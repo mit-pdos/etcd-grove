@@ -40,30 +40,8 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([«_».init,
-        isListCache.init,
-        errExpectFieldItems.init,
-        errExpectSliceItems.init,
-        objectSliceType.init,
-        objectType.init,
-        rawExtensionObjectType.init,
-        «_».init,
-        errNotList.init,
-        errNotCommon.init,
-        errNotObject.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        RESTScopeNamespace.init,
-        RESTScopeRoot.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        unpluralizedSuffixes.init] : List val),
+    ∀ v ∈ ([errNotList.init,
+        errNotObject.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 end k8s_io.apimachinery.pkg.api.«meta»
@@ -90,30 +68,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk isListCache.init (by mem_tac))
-  wp_apply (opaqueInitsOk errExpectFieldItems.init (by mem_tac))
-  wp_apply (opaqueInitsOk errExpectSliceItems.init (by mem_tac))
-  wp_apply (opaqueInitsOk objectSliceType.init (by mem_tac))
-  wp_apply (opaqueInitsOk objectType.init (by mem_tac))
-  wp_apply (opaqueInitsOk rawExtensionObjectType.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk errNotList.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNotCommon.init (by mem_tac))
   wp_apply (opaqueInitsOk errNotObject.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk RESTScopeNamespace.init (by mem_tac))
-  wp_apply (opaqueInitsOk RESTScopeRoot.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk unpluralizedSuffixes.init (by mem_tac))
   iframe Hown
   is_pkg_init_finish
 

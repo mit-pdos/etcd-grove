@@ -41,9 +41,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([CheckPeriod.init,
-        PanicOnCacheInconsistency.init,
-        checkerListPageSize.init] : List val),
+    ∀ v ∈ ([PanicOnCacheInconsistency.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `k8s_io.apiserver.pkg.storage.cacher.consistency`'s untranslated `init` functions return.** Goose
@@ -80,9 +78,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply (_root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk CheckPeriod.init (by mem_tac))
   wp_apply (opaqueInitsOk PanicOnCacheInconsistency.init (by mem_tac))
-  wp_apply (opaqueInitsOk checkerListPageSize.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish

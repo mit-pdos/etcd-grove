@@ -5,3 +5,37 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["numberType"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,
+cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["export"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`jsontext.Internal.Export` returns a constant (the exporter value). So it terminates, cannot panic
+and has no effect beyond its variable."""
+
+[[skip]]
+names = ["errUnexpectedEnd"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable."""
+
+[[skip]]
+names = ["syntaxErrorReplacer"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`strings.NewReplacer` of an even number of constants allocates a replacer. So it terminates, cannot
+panic and has no effect beyond its variable."""
+# --- end of skipped package variables ---

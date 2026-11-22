@@ -30,3 +30,114 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
 translate_types = true
 
 trusted = ["Server.Serve"]
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["DefaultBackoffConfig", "unaryStreamDesc", "invalidDefaultServiceConfigErrPrefix",
+  "PickFirstBalancerName", "grpcStatusDetailsBinHeader", "errTransportClosing",
+  "transportFailureCodes", "http2ErrCodeNames", "http2ErrConvTab", "defaultServerOptions",
+  "emptyMethodConfig"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["metadataFromOutgoingContextRaw"]
+reason = """
+`internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type
+assertion of a function value that `metadata`'s `init` (run before this package's, which imports it)
+has set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect
+beyond the variable."""
+
+[[skip]]
+names = ["ErrClientConnClosing", "errIllegalHeaderWrite", "statusOK"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`status.New`/`status.Error` of a constant code and message allocate a status (and its error). So
+each terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["errConnDrain", "errConnClosing", "errConnIdling", "errNoTransportSecurity",
+  "errTransportCredsAndBundle", "errNoTransportCredsInBundle", "errTransportCredentialsMissing",
+  "ErrClientConnTimeout", "errStreamDone", "errMalformedFrame", "ErrServerStopped"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["modelChooseRandom"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `os.Getenv` reads
+the environment. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["errContextCanceled", "errContextDeadline"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`status.New`/`status.Error` of a constant code and message allocate a status (and its error);
+`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,
+cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@clientconn.go:459"]
+reason = """
+An interface check: a nil pointer converted to `ClientConnInterface`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@codec.go:60"]
+reason = """
+An interface check: `codecV0Bridge{}` converted to `baseCodec`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@codec.go:81"]
+reason = """
+An interface check: `codecV1Bridge{}` converted to `encoding.CodecV2`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@server.go:1014"]
+reason = """
+An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@stream_interfaces.go:169"]
+reason = """
+An interface check: a nil pointer converted to `ServerStreamingClient[string]`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@stream_interfaces.go:170"]
+reason = """
+An interface check: a nil pointer converted to `ClientStreamingClient[int, string]`. No call, no
+panic, no effect."""
+
+[[skip]]
+names = ["_@stream_interfaces.go:171"]
+reason = """
+An interface check: a nil pointer converted to `BidiStreamingClient[int, string]`. No call, no
+panic, no effect."""
+
+[[skip]]
+names = ["_@stream_interfaces.go:211"]
+reason = """
+An interface check: a nil pointer converted to `ServerStreamingServer[string]`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@stream_interfaces.go:212"]
+reason = """
+An interface check: a nil pointer converted to `ClientStreamingServer[int, string]`. No call, no
+panic, no effect."""
+
+[[skip]]
+names = ["_@stream_interfaces.go:213"]
+reason = """
+An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no
+panic, no effect."""
+# --- end of skipped package variables ---

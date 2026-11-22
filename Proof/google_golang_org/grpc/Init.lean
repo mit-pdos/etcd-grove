@@ -53,46 +53,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([DefaultBackoffConfig.init,
-        unaryStreamDesc.init,
-        ErrClientConnClosing.init,
-        errConnDrain.init,
-        errConnClosing.init,
-        errConnIdling.init,
-        invalidDefaultServiceConfigErrPrefix.init,
-        PickFirstBalancerName.init,
-        errNoTransportSecurity.init,
-        errTransportCredsAndBundle.init,
-        errNoTransportCredsInBundle.init,
-        errTransportCredentialsMissing.init,
-        «_».init,
-        ErrClientConnTimeout.init,
-        «_».init,
-        «_».init,
-        modelChooseRandom.init,
-        grpcStatusDetailsBinHeader.init,
-        errStreamDone.init,
-        errIllegalHeaderWrite.init,
-        errTransportClosing.init,
-        transportFailureCodes.init,
-        errMalformedFrame.init,
-        http2ErrCodeNames.init,
-        http2ErrConvTab.init,
-        errContextCanceled.init,
-        errContextDeadline.init,
-        statusOK.init,
-        logger.init,
-        defaultServerOptions.init,
-        ErrServerStopped.init,
-        «_».init,
-        metadataFromOutgoingContextRaw.init,
-        emptyMethodConfig.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init] : List val),
+    ∀ v ∈ ([logger.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `google_golang_org.grpc`'s untranslated `init` functions return.** Goose
@@ -117,7 +78,6 @@ variable [package_sem : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 namespace google_golang_org.grpc
 
-set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.grpc get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
@@ -142,46 +102,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk DefaultBackoffConfig.init (by mem_tac))
-  wp_apply (opaqueInitsOk unaryStreamDesc.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrClientConnClosing.init (by mem_tac))
-  wp_apply (opaqueInitsOk errConnDrain.init (by mem_tac))
-  wp_apply (opaqueInitsOk errConnClosing.init (by mem_tac))
-  wp_apply (opaqueInitsOk errConnIdling.init (by mem_tac))
-  wp_apply (opaqueInitsOk invalidDefaultServiceConfigErrPrefix.init (by mem_tac))
-  wp_apply (opaqueInitsOk PickFirstBalancerName.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNoTransportSecurity.init (by mem_tac))
-  wp_apply (opaqueInitsOk errTransportCredsAndBundle.init (by mem_tac))
-  wp_apply (opaqueInitsOk errNoTransportCredsInBundle.init (by mem_tac))
-  wp_apply (opaqueInitsOk errTransportCredentialsMissing.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrClientConnTimeout.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk modelChooseRandom.init (by mem_tac))
-  wp_apply (opaqueInitsOk grpcStatusDetailsBinHeader.init (by mem_tac))
-  wp_apply (opaqueInitsOk errStreamDone.init (by mem_tac))
-  wp_apply (opaqueInitsOk errIllegalHeaderWrite.init (by mem_tac))
-  wp_apply (opaqueInitsOk errTransportClosing.init (by mem_tac))
-  wp_apply (opaqueInitsOk transportFailureCodes.init (by mem_tac))
-  wp_apply (opaqueInitsOk errMalformedFrame.init (by mem_tac))
-  wp_apply (opaqueInitsOk http2ErrCodeNames.init (by mem_tac))
-  wp_apply (opaqueInitsOk http2ErrConvTab.init (by mem_tac))
-  wp_apply (opaqueInitsOk errContextCanceled.init (by mem_tac))
-  wp_apply (opaqueInitsOk errContextDeadline.init (by mem_tac))
-  wp_apply (opaqueInitsOk statusOK.init (by mem_tac))
   wp_apply (opaqueInitsOk logger.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultServerOptions.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrServerStopped.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk metadataFromOutgoingContextRaw.init (by mem_tac))
-  wp_apply (opaqueInitsOk emptyMethodConfig.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   wp_apply (initFuncsOk init.«1» (by mem_tac))
   wp_apply (initFuncsOk init.«2» (by mem_tac))

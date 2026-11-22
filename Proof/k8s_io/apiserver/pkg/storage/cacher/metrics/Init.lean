@@ -42,26 +42,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([dispatchStages.init,
-        listCacheCount.init,
-        listCacheNumFetched.init,
-        listCacheNumReturned.init,
-        InitCounter.init,
-        EventsReceivedCounter.init,
-        EventsCounter.init,
-        TerminatedWatchersCounter.init,
-        watchCacheResourceVersion.init,
-        watchCacheCapacityIncreaseTotal.init,
-        watchCacheCapacityDecreaseTotal.init,
-        WatchCacheCapacity.init,
-        WatchCacheInitializations.init,
-        WatchCacheInitializationErrors.init,
-        WatchCacheInitializationDuration.init,
-        ConsistentReadTotal.init,
-        StorageConsistencyCheckTotal.init,
-        WatchShardsTotal.init,
-        WatchFilteredEventsTotal.init,
-        DispatchStageDuration.init] : List val),
+    ∀ v ∈ ([EventsReceivedCounter.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- `WatchCacheReadWait = compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`
@@ -95,27 +76,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply (_root_.Perennial.k8s_io.component_base.metrics.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk dispatchStages.init (by mem_tac))
-  wp_apply (opaqueInitsOk listCacheCount.init (by mem_tac))
-  wp_apply (opaqueInitsOk listCacheNumFetched.init (by mem_tac))
-  wp_apply (opaqueInitsOk listCacheNumReturned.init (by mem_tac))
-  wp_apply (opaqueInitsOk InitCounter.init (by mem_tac))
   wp_apply (opaqueInitsOk EventsReceivedCounter.init (by mem_tac))
-  wp_apply (opaqueInitsOk EventsCounter.init (by mem_tac))
-  wp_apply (opaqueInitsOk TerminatedWatchersCounter.init (by mem_tac))
-  wp_apply (opaqueInitsOk watchCacheResourceVersion.init (by mem_tac))
-  wp_apply (opaqueInitsOk watchCacheCapacityIncreaseTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk watchCacheCapacityDecreaseTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCacheCapacity.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCacheInitializations.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCacheInitializationErrors.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchCacheInitializationDuration.init (by mem_tac))
   wp_apply WatchCacheReadWait_init as ⟨%vWatchCacheReadWait, HWatchCacheReadWait, %LWatchCacheReadWait⟩
-  wp_apply (opaqueInitsOk ConsistentReadTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk StorageConsistencyCheckTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchShardsTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk WatchFilteredEventsTotal.init (by mem_tac))
-  wp_apply (opaqueInitsOk DispatchStageDuration.init (by mem_tac))
   ipersist HWatchCacheReadWait
   iframe Hown
   imodintro

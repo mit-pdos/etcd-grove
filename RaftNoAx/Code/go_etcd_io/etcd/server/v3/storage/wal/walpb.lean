@@ -51,21 +51,6 @@ noncomputable def file_record_proto_rawDescOnce [GooseExts] [GoGlobalContext] : 
 noncomputable def file_record_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_rawDescData"
 
-noncomputable def file_record_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_msgTypes"
-
-opaque file_record_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_record_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_goTypes"
-
-opaque file_record_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_record_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_depIdxs"
-
-opaque file_record_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ValidateSnapshotForWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.ValidateSnapshotForWrite"
 
@@ -357,6 +342,29 @@ noncomputable def Snapshot.GetConfState.impl [GooseExts] [GoGlobalContext] : val
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `file_record_proto_msgTypes` (`var file_record_proto_msgTypes = make([]protoimpl.MessageInfo, 2)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_record_proto_goTypes` (`var file_record_proto_goTypes = []any{ (*Record)(nil), (*Snapshot)(nil), (*raftpb.ConfState)(nil), }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_record_proto_depIdxs` (`var file_record_proto_depIdxs = []int32{ 2, 1, 1, 1, 1, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_record_proto_msgTypes = make([]protoimpl.MessageInfo, 2)"⟩,
+  ⟨"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_record_proto_goTypes = []any{ (*Record)(nil), (*Snapshot)(nil), (*raftpb.ConfState)(nil), }"⟩,
+  ⟨"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_record_proto_depIdxs = []int32{ 2, 1, 1, 1, 1, 0, }"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.wal.walpb where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.fmt, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
@@ -374,17 +382,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Val #(go!"walpb: crc mismatch"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val file_record_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_record_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_record_proto_msgTypes.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrCRCMismatch))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)

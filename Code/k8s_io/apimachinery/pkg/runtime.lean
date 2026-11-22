@@ -456,78 +456,8 @@ opaque contentTypeTag [GooseExts] [GoGlobalContext] : val
 
 opaque maxUint64VarIntLength [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AllocatorPool [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.AllocatorPool"
-
-opaque AllocatorPool.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def maxPooledBufferCapacity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.maxPooledBufferCapacity"
-
-noncomputable def InternalGroupVersioner [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.InternalGroupVersioner"
-
-opaque InternalGroupVersioner.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DisabledGroupVersioner [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.DisabledGroupVersioner"
-
-opaque DisabledGroupVersioner.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def mapStringInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.mapStringInterfaceType"
-
-opaque mapStringInterfaceType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def stringType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.stringType"
-
-opaque stringType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def fieldCache [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.fieldCache"
-
-opaque fieldCache.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultUnstructuredConverter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.DefaultUnstructuredConverter"
-
-opaque DefaultUnstructuredConverter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cborNull [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.cborNull"
-
-opaque cborNull.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cborSelfDescribed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.cborSelfDescribed"
-
-opaque cborSelfDescribed.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.ErrInvalidLengthGenerated"
-
-opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.ErrIntOverflowGenerated"
-
-opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.ErrUnexpectedEndOfGroupGenerated"
-
-opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultFramer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.DefaultFramer"
-
-opaque DefaultFramer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/runtime.internalPackages"
-
-opaque internalPackages.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SetMaxPooledBufferCapacity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.SetMaxPooledBufferCapacity"
@@ -1032,10 +962,116 @@ noncomputable def RawExtension.DeepCopyInto.impl [GooseExts] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore RawExtension.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RawExtension.ty)))) (Var "out")) (Var "$r0")))))))))
   (Val #()))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `AllocatorPool` (`var AllocatorPool = sync.Pool{ New: func() interface{} { return &Allocator{} }, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@allocator.go:109` (`var _ MemoryAllocator = &Allocator{}`): An interface check: `&Allocator{}` converted to `MemoryAllocator`. No call, no panic, no effect.
+- `_@allocator.go:140` (`var _ MemoryAllocator = &SimpleAllocator{}`): An interface check: `&SimpleAllocator{}` converted to `MemoryAllocator`. No call, no panic, no
+effect.
+- `_@codec.go:104` (`var _ Serializer = NoopEncoder{}`): An interface check: `NoopEncoder{}` converted to `Serializer`. No call, no panic, no effect.
+- `_@codec.go:124` (`var _ Serializer = NoopDecoder{}`): An interface check: `NoopDecoder{}` converted to `Serializer`. No call, no panic, no effect.
+- `_@codec.go:148` (`var _ ParameterCodec = &parameterCodec{}`): An interface check: `&parameterCodec{}` converted to `ParameterCodec`. No call, no panic, no effect.
+- `InternalGroupVersioner` (`var // InternalGroupVersioner will always prefer the internal version for a given group version kind. InternalGroupVersi … [sha256:d45a5bf859583656]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DisabledGroupVersioner` (`var // DisabledGroupVersioner will reject all kinds passed to it. DisabledGroupVersioner GroupVersioner = disabledGroupV … [sha256:834a5c06190efead]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@codec.go:324` (`var _ GroupVersioner = schema.GroupVersion{}`): An interface check: `schema.GroupVersion{}` converted to `GroupVersioner`. No call, no panic, no
+effect.
+- `_@codec.go:325` (`var _ GroupVersioner = schema.GroupVersions{}`): An interface check: `schema.GroupVersions{}` converted to `GroupVersioner`. No call, no panic, no
+effect.
+- `_@codec.go:326` (`var _ GroupVersioner = multiGroupVersioner{}`): An interface check: `multiGroupVersioner{}` converted to `GroupVersioner`. No call, no panic, no
+effect.
+- `mapStringInterfaceType` (`var mapStringInterfaceType = reflect.TypeOf(map[string]interface{}{})`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `stringType` (`var stringType = reflect.TypeOf(string(""))`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `fieldCache` (`var fieldCache = newFieldsCache()`): Its initializer calls, besides literals of constants and other variables' values: `newFieldsCache`
+allocates an empty cache. So it terminates, cannot panic and has no effect beyond its variable.
+- `DefaultUnstructuredConverter` (`var // DefaultUnstructuredConverter performs unstructured to Go typed object conversions. DefaultUnstructuredConverter = … [sha256:dbbcc37847a41157]`): Its initializer calls, besides literals of constants and other variables' values: `parseBool` parses
+a string; `os.Getenv` reads the environment; `conversion.EqualitiesOrDie` of a fixed function
+allocates an equality table (it panics only on an ill-typed function, and this one is well typed: Go
+runs it at every start). So it terminates, cannot panic and has no effect beyond its variable.
+- `cborNull` (`var cborNull = []byte{0xf6}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `cborSelfDescribed` (`var cborSelfDescribed = []byte{0xd9, 0xd9, 0xf7}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrInvalidLengthGenerated` (`var ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrIntOverflowGenerated` (`var ErrIntOverflowGenerated = fmt.Errorf("proto: integer overflow")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrUnexpectedEndOfGroupGenerated` (`var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf("proto: unexpected end of group")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `_@helper.go:34` (`var _ ObjectConvertor = unsafeObjectConvertor{}`): An interface check: `unsafeObjectConvertor{}` converted to `ObjectConvertor`. No call, no panic, no
+effect.
+- `_@helper.go:174` (`var _ ObjectTyper = MultiObjectTyper{}`): An interface check: `MultiObjectTyper{}` converted to `ObjectTyper`. No call, no panic, no effect.
+- `DefaultFramer` (`var DefaultFramer = defaultFramer{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@helper.go:290` (`var _ Serializer = nondeterministicEncoderToEncoderAdapter{}`): An interface check: `nondeterministicEncoderToEncoderAdapter{}` converted to `Serializer`. No call,
+no panic, no effect.
+- `_@mapper.go:40` (`var _ EquivalentResourceMapper = (*equivalentResourceRegistry)(nil)`): An interface check: a nil pointer converted to `EquivalentResourceMapper`. No call, no panic, no
+effect.
+- `_@mapper.go:41` (`var _ EquivalentResourceRegistry = (*equivalentResourceRegistry)(nil)`): An interface check: a nil pointer converted to `EquivalentResourceRegistry`. No call, no panic, no
+effect.
+- `internalPackages` (`var internalPackages = []string{"k8s.io/apimachinery/pkg/runtime/scheme.go"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/runtime.AllocatorPool", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var AllocatorPool = sync.Pool{ New: func() interface{} { return &Allocator{} }, }"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@allocator.go:109", "An interface check: `&Allocator{}` converted to `MemoryAllocator`. No call, no panic, no effect.", "var _ MemoryAllocator = &Allocator{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@allocator.go:140", "An interface check: `&SimpleAllocator{}` converted to `MemoryAllocator`. No call, no panic, no\neffect.", "var _ MemoryAllocator = &SimpleAllocator{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@codec.go:104", "An interface check: `NoopEncoder{}` converted to `Serializer`. No call, no panic, no effect.", "var _ Serializer = NoopEncoder{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@codec.go:124", "An interface check: `NoopDecoder{}` converted to `Serializer`. No call, no panic, no effect.", "var _ Serializer = NoopDecoder{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@codec.go:148", "An interface check: `&parameterCodec{}` converted to `ParameterCodec`. No call, no panic, no effect.", "var _ ParameterCodec = &parameterCodec{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.InternalGroupVersioner", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // InternalGroupVersioner will always prefer the internal version for a given group version kind. InternalGroupVersi … [sha256:d45a5bf859583656]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.DisabledGroupVersioner", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // DisabledGroupVersioner will reject all kinds passed to it. DisabledGroupVersioner GroupVersioner = disabledGroupV … [sha256:834a5c06190efead]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@codec.go:324", "An interface check: `schema.GroupVersion{}` converted to `GroupVersioner`. No call, no panic, no\neffect.", "var _ GroupVersioner = schema.GroupVersion{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@codec.go:325", "An interface check: `schema.GroupVersions{}` converted to `GroupVersioner`. No call, no panic, no\neffect.", "var _ GroupVersioner = schema.GroupVersions{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@codec.go:326", "An interface check: `multiGroupVersioner{}` converted to `GroupVersioner`. No call, no panic, no\neffect.", "var _ GroupVersioner = multiGroupVersioner{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.mapStringInterfaceType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var mapStringInterfaceType = reflect.TypeOf(map[string]interface{}{})"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.stringType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var stringType = reflect.TypeOf(string(\"\"))"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.fieldCache", "Its initializer calls, besides literals of constants and other variables' values: `newFieldsCache`\nallocates an empty cache. So it terminates, cannot panic and has no effect beyond its variable.", "var fieldCache = newFieldsCache()"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.DefaultUnstructuredConverter", "Its initializer calls, besides literals of constants and other variables' values: `parseBool` parses\na string; `os.Getenv` reads the environment; `conversion.EqualitiesOrDie` of a fixed function\nallocates an equality table (it panics only on an ill-typed function, and this one is well typed: Go\nruns it at every start). So it terminates, cannot panic and has no effect beyond its variable.", "var // DefaultUnstructuredConverter performs unstructured to Go typed object conversions. DefaultUnstructuredConverter = … [sha256:dbbcc37847a41157]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.cborNull", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var cborNull = []byte{0xf6}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.cborSelfDescribed", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var cborSelfDescribed = []byte{0xd9, 0xd9, 0xf7}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.ErrInvalidLengthGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrInvalidLengthGenerated = fmt.Errorf(\"proto: negative length found during unmarshaling\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.ErrIntOverflowGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrIntOverflowGenerated = fmt.Errorf(\"proto: integer overflow\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.ErrUnexpectedEndOfGroupGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf(\"proto: unexpected end of group\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@helper.go:34", "An interface check: `unsafeObjectConvertor{}` converted to `ObjectConvertor`. No call, no panic, no\neffect.", "var _ ObjectConvertor = unsafeObjectConvertor{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@helper.go:174", "An interface check: `MultiObjectTyper{}` converted to `ObjectTyper`. No call, no panic, no effect.", "var _ ObjectTyper = MultiObjectTyper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.DefaultFramer", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultFramer = defaultFramer{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@helper.go:290", "An interface check: `nondeterministicEncoderToEncoderAdapter{}` converted to `Serializer`. No call,\nno panic, no effect.", "var _ Serializer = nondeterministicEncoderToEncoderAdapter{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@mapper.go:40", "An interface check: a nil pointer converted to `EquivalentResourceMapper`. No call, no panic, no\neffect.", "var _ EquivalentResourceMapper = (*equivalentResourceRegistry)(nil)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime._@mapper.go:41", "An interface check: a nil pointer converted to `EquivalentResourceRegistry`. No call, no panic, no\neffect.", "var _ EquivalentResourceRegistry = (*equivalentResourceRegistry)(nil)"⟩,
+  ⟨"k8s.io/apimachinery/pkg/runtime.internalPackages", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var internalPackages = []string{\"k8s.io/apimachinery/pkg/runtime/scheme.go\"}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.runtime where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.io, pkg_id.reflect, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.conversion]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1045,89 +1081,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val internalPackages.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultFramer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrUnexpectedEndOfGroupGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrIntOverflowGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cborSelfDescribed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cborNull.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultUnstructuredConverter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val fieldCache.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val stringType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val mapStringInterfaceType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DisabledGroupVersioner.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val InternalGroupVersioner.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val AllocatorPool.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.bytes.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.bytes.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)

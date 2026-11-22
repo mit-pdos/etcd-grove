@@ -90,23 +90,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([«_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        ErrZeroLengthDeltasObject.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        informerNameRegistry.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
+    ∀ v ∈ ([ErrZeroLengthDeltasObject.init,
         mutationDetectionEnabled.init,
         defaultMinWatchTimeout.init,
         defaultMaxWatchTimeout.init,
@@ -116,18 +100,7 @@ axiom opaqueInitsOk :
         defaultBackoffFactor.init,
         defaultBackoffJitter.init,
         internalPackages.init,
-        «_».init,
-        unsupportedTableGVK.init,
-        metricsFactory.init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        «_».init,
-        batchable.init,
-        «_».init] : List val),
+        unsupportedTableGVK.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `k8s_io.client_go.tools.cache`'s untranslated `init` functions return.** Goose
@@ -234,25 +207,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk ErrZeroLengthDeltasObject.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply ErrFIFOClosed_init as ⟨%eErrFIFOClosed, HErrFIFOClosed⟩
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk informerNameRegistry.init (by mem_tac))
   -- translated initializer of globalInformerMetricsProvider))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk mutationDetectionEnabled.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultMinWatchTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultMaxWatchTimeout.init (by mem_tac))
@@ -263,18 +220,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk defaultBackoffJitter.init (by mem_tac))
   wp_apply (opaqueInitsOk internalPackages.init (by mem_tac))
   wp_apply errorStopRequested_init as ⟨%eerrorStopRequested, HerrorStopRequested⟩
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk unsupportedTableGVK.init (by mem_tac))
-  wp_apply (opaqueInitsOk metricsFactory.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk batchable.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   try wp_auto
   ipersist HErrFIFOClosed

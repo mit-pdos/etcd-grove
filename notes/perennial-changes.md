@@ -3741,3 +3741,16 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `DistAdequacy.lean`); D4 decides between the copy and waiting for the Perennial change.
 - **Status.** Proposed only (2026-11-22). To be designed with the single-node change as one Perennial
   branch.
+
+## 2026-11-22: goose `[[skip]]` cannot name a blank variable of a cgo-generated file (`net`; #23, branch `prove-ps2-skip/2026-11-22`)
+
+- **Limitation.** perennial#669 names a blank package variable by `"_@file.go:L"`
+  (`declfilter.BlankName`, `blankNameRx = ^_@[^/:@]+\.go:L$`), and a package that skips one must
+  list all of them. `net` (translated with cgo) has a blank in a cgo-generated file, which the build
+  cache names by a hash without `.go` (`var _ syscall.Errno`, reported as
+  `_@1c315fb5…d355-d:15`): goose demands that name be listed, and the config parser refuses it.
+- **Workaround here.** `net`'s blank variables are not skipped (its other variables are): its four
+  `«_».init`s stay in `net.opaqueInitsOk`.
+- **Proposed.** Name a blank of a generated file by the position its `//line` directive gives (the
+  cgo source, `cgo_unix_cgo.go`), or accept the build-cache name (any base name) in `blankNameRx`.
+- **Status.** Not filed yet.

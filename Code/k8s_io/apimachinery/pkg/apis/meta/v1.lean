@@ -560,248 +560,13 @@ opaque IncludeMetadata [GooseExts] [GoGlobalContext] : val
 
 opaque IncludeObject [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.ErrInvalidLengthGenerated"
-
-opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.ErrIntOverflowGenerated"
-
-opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.ErrUnexpectedEndOfGroupGenerated"
-
-opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cborNull [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.cborNull"
-
-opaque cborNull.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def schemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.schemeBuilder"
-
-noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.localSchemeBuilder"
-
-opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.SchemeGroupVersion"
-
-opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Unversioned [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.Unversioned"
-
-opaque Unversioned.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def scheme [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.scheme"
-
-opaque scheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ParameterCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.ParameterCodec"
 
 opaque ParameterCodec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def optionsTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.optionsTypes"
-
-opaque optionsTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_APIGroup [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIGroup"
-
-opaque map_APIGroup.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_APIGroupList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIGroupList"
-
-opaque map_APIGroupList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_APIResource [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIResource"
-
-opaque map_APIResource.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_APIResourceList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIResourceList"
-
-opaque map_APIResourceList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_APIVersions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIVersions"
-
-opaque map_APIVersions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ApplyOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ApplyOptions"
-
-opaque map_ApplyOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Condition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Condition"
-
-opaque map_Condition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_CreateOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_CreateOptions"
-
-opaque map_CreateOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_DeleteOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_DeleteOptions"
-
-opaque map_DeleteOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_FieldSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_FieldSelectorRequirement"
-
-opaque map_FieldSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_GetOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_GetOptions"
-
-opaque map_GetOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_GroupVersionForDiscovery [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_GroupVersionForDiscovery"
-
-opaque map_GroupVersionForDiscovery.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LabelSelector [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_LabelSelector"
-
-opaque map_LabelSelector.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_LabelSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_LabelSelectorRequirement"
-
-opaque map_LabelSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_List [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_List"
-
-opaque map_List.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ListMeta [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ListMeta"
-
-opaque map_ListMeta.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ListOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ListOptions"
-
-opaque map_ListOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ManagedFieldsEntry [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ManagedFieldsEntry"
-
-opaque map_ManagedFieldsEntry.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ObjectMeta [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ObjectMeta"
-
-opaque map_ObjectMeta.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_OwnerReference [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_OwnerReference"
-
-opaque map_OwnerReference.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PartialObjectMetadata [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_PartialObjectMetadata"
-
-opaque map_PartialObjectMetadata.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PartialObjectMetadataList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_PartialObjectMetadataList"
-
-opaque map_PartialObjectMetadataList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Patch [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Patch"
-
-opaque map_Patch.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_PatchOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_PatchOptions"
-
-opaque map_PatchOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Preconditions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Preconditions"
-
-opaque map_Preconditions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_RootPaths [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_RootPaths"
-
-opaque map_RootPaths.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ServerAddressByClientCIDR [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ServerAddressByClientCIDR"
-
-opaque map_ServerAddressByClientCIDR.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_ShardInfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ShardInfo"
-
-opaque map_ShardInfo.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Status [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Status"
-
-opaque map_Status.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatusCause [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_StatusCause"
-
-opaque map_StatusCause.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_StatusDetails [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_StatusDetails"
-
-opaque map_StatusDetails.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_Table [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Table"
-
-opaque map_Table.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TableColumnDefinition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableColumnDefinition"
-
-opaque map_TableColumnDefinition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TableOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableOptions"
-
-opaque map_TableOptions.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TableRow [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableRow"
-
-opaque map_TableRow.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TableRowCondition [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableRowCondition"
-
-opaque map_TableRowCondition.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_TypeMeta [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TypeMeta"
-
-opaque map_TypeMeta.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def map_UpdateOptions [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_UpdateOptions"
-
-opaque map_UpdateOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IsControlledBy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.IsControlledBy"
@@ -2104,10 +1869,263 @@ noncomputable def Time.DeepCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrInvalidLengthGenerated` (`var ErrInvalidLengthGenerated = fmt.Errorf("proto: negative length found during unmarshaling")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrIntOverflowGenerated` (`var ErrIntOverflowGenerated = fmt.Errorf("proto: integer overflow")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `ErrUnexpectedEndOfGroupGenerated` (`var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf("proto: unexpected end of group")`): Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable.
+- `_@helpers.go:311` (`var _ json.Marshaler = FieldsV1{}`): An interface check: `FieldsV1{}` converted to `json.Marshaler`. No call, no panic, no effect.
+- `_@helpers.go:312` (`var _ json.Unmarshaler = &FieldsV1{}`): An interface check: `&FieldsV1{}` converted to `json.Unmarshaler`. No call, no panic, no effect.
+- `cborNull` (`var cborNull = []byte{0xf6}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@meta.go:131` (`var _ ListInterface = &ListMeta{}`): An interface check: `&ListMeta{}` converted to `ListInterface`. No call, no panic, no effect.
+- `_@micro_time_fuzz.go:40` (`var _ randfill.SimpleSelfFiller = &MicroTime{}`): An interface check: `&MicroTime{}` converted to `randfill.SimpleSelfFiller`. No call, no panic, no
+effect.
+- `localSchemeBuilder` (`var localSchemeBuilder = &schemeBuilder`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `SchemeGroupVersion` (`var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Unversioned` (`var Unversioned = schema.GroupVersion{Group: "", Version: "v1"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `scheme` (`var scheme = runtime.NewScheme()`): Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it
+(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every
+start). So it terminates, cannot panic and has no effect beyond its variable.
+- `optionsTypes` (`var optionsTypes = []runtime.Object{ &ListOptions{}, &GetOptions{}, &DeleteOptions{}, &CreateOptions{}, &UpdateOptions{} … [sha256:739532f7becc9a54]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@time_fuzz.go:40` (`var _ randfill.SimpleSelfFiller = &Time{}`): An interface check: `&Time{}` converted to `randfill.SimpleSelfFiller`. No call, no panic, no
+effect.
+- `map_APIGroup` (`var map_APIGroup = map[string]string{ "": "APIGroup contains the name, the supported versions, and the preferred version … [sha256:db85aac3ab577f36]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_APIGroupList` (`var map_APIGroupList = map[string]string{ "": "APIGroupList is a list of APIGroup, to allow clients to discover the API  … [sha256:8aa0bfbc926bf1ea]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_APIResource` (`var map_APIResource = map[string]string{ "": "APIResource specifies the name of a resource and whether it is namespaced. … [sha256:5fed9d2b80cbb80c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_APIResourceList` (`var map_APIResourceList = map[string]string{ "": "APIResourceList is a list of APIResource, it is used to expose the nam … [sha256:9fc2810eb56aaf5d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_APIVersions` (`var map_APIVersions = map[string]string{ "": "APIVersions lists the versions that are available, to allow clients to dis … [sha256:9e536fa8acef1c2d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ApplyOptions` (`var map_ApplyOptions = map[string]string{ "": "ApplyOptions may be provided when applying an API object. FieldManager is … [sha256:51c4bc1facc5b694]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Condition` (`var map_Condition = map[string]string{ "": "Condition contains details for one aspect of the current state of this API R … [sha256:6959947f0262f599]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_CreateOptions` (`var map_CreateOptions = map[string]string{ "": "CreateOptions may be provided when creating an API object.", "dryRun": " … [sha256:ae8563b91a06201e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_DeleteOptions` (`var map_DeleteOptions = map[string]string{ "": "DeleteOptions may be provided when deleting an API object.", "gracePerio … [sha256:89dfd3b15ea784e0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_FieldSelectorRequirement` (`var map_FieldSelectorRequirement = map[string]string{ "": "FieldSelectorRequirement is a selector that contains values,  … [sha256:d8b24364fb78ad68]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_GetOptions` (`var map_GetOptions = map[string]string{ "": "GetOptions is the standard query options to the standard REST get call.", " … [sha256:088d7111e7fd1e8c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_GroupVersionForDiscovery` (`var map_GroupVersionForDiscovery = map[string]string{ "": "GroupVersion contains the \"group/version\" and \"version\" s … [sha256:9a4b1272db8a4a35]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LabelSelector` (`var map_LabelSelector = map[string]string{ "": "A label selector is a label query over a set of resources. The result of … [sha256:ede6cf65bd359cf6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_LabelSelectorRequirement` (`var map_LabelSelectorRequirement = map[string]string{ "": "A label selector requirement is a selector that contains valu … [sha256:9448c3ab79ecf9d9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_List` (`var map_List = map[string]string{ "": "List holds a list of objects, which may not be known by the server.", "metadata": … [sha256:38fb4798a20c049c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ListMeta` (`var map_ListMeta = map[string]string{ "": "ListMeta describes metadata that synthetic resources must have, including lis … [sha256:ef44b6c7595d84e8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ListOptions` (`var map_ListOptions = map[string]string{ "": "ListOptions is the query options to a standard REST list call.", "labelSel … [sha256:f5da04beda4d026a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ManagedFieldsEntry` (`var map_ManagedFieldsEntry = map[string]string{ "": "ManagedFieldsEntry is a workflow-id, a FieldSet and the group versi … [sha256:754aa24d8c13ac48]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ObjectMeta` (`var map_ObjectMeta = map[string]string{ "": "ObjectMeta is metadata that all persisted resources must have, which includ … [sha256:d40c0c4a0a7e805a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_OwnerReference` (`var map_OwnerReference = map[string]string{ "": "OwnerReference contains enough information to let you identify an ownin … [sha256:a232d74b95498e91]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PartialObjectMetadata` (`var map_PartialObjectMetadata = map[string]string{ "": "PartialObjectMetadata is a generic representation of any object  … [sha256:cdce1701a9dad7ab]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PartialObjectMetadataList` (`var map_PartialObjectMetadataList = map[string]string{ "": "PartialObjectMetadataList contains a list of objects contain … [sha256:4cd3f4e4ba07c0da]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Patch` (`var map_Patch = map[string]string{ "": "Patch is provided to give a concrete name and type to the Kubernetes PATCH reque … [sha256:390d972845466b9e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_PatchOptions` (`var map_PatchOptions = map[string]string{ "": "PatchOptions may be provided when patching an API object. PatchOptions is … [sha256:5802558cc93356d8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Preconditions` (`var map_Preconditions = map[string]string{ "": "Preconditions must be fulfilled before an operation (update, delete, etc … [sha256:d5ddf467c1330b14]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_RootPaths` (`var map_RootPaths = map[string]string{ "": "RootPaths lists the paths available at root. For example: \"/healthz\", \"/a … [sha256:882e6f006efe51d8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ServerAddressByClientCIDR` (`var map_ServerAddressByClientCIDR = map[string]string{ "": "ServerAddressByClientCIDR helps the client to determine the  … [sha256:9faed29546abbe60]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_ShardInfo` (`var map_ShardInfo = map[string]string{ "": "ShardInfo describes the shard selector that was applied to produce a list re … [sha256:26d39952c3280ca0]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Status` (`var map_Status = map[string]string{ "": "Status is a return value for calls that don't return other objects.", "metadata … [sha256:db7a9fe6b372d620]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatusCause` (`var map_StatusCause = map[string]string{ "": "StatusCause provides more information about an api.Status failure, includi … [sha256:fed70f8489b4127e]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_StatusDetails` (`var map_StatusDetails = map[string]string{ "": "StatusDetails is a set of additional properties that MAY be set by the s … [sha256:b9541da9eddf8410]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_Table` (`var map_Table = map[string]string{ "": "Table is a tabular representation of a set of API resources. The server transfor … [sha256:91f061079e8a1bab]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TableColumnDefinition` (`var map_TableColumnDefinition = map[string]string{ "": "TableColumnDefinition contains information about a column return … [sha256:89db7c619d3210e7]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TableOptions` (`var map_TableOptions = map[string]string{ "": "TableOptions are used when a Table is requested by the caller.", "include … [sha256:cec41b5c4b2ce5cc]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TableRow` (`var map_TableRow = map[string]string{ "": "TableRow is an individual row in a table.", "cells": "cells will be as wide a … [sha256:8534011169eb0039]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TableRowCondition` (`var map_TableRowCondition = map[string]string{ "": "TableRowCondition allows a row to be marked with additional informat … [sha256:24746002d3531e5b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_TypeMeta` (`var map_TypeMeta = map[string]string{ "": "TypeMeta describes an individual object in an API response or request with st … [sha256:1fea9cbe03363bac]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `map_UpdateOptions` (`var map_UpdateOptions = map[string]string{ "": "UpdateOptions may be provided when updating an API object. All fields in … [sha256:ef67fb5cf9cc3eb9]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.ErrInvalidLengthGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrInvalidLengthGenerated = fmt.Errorf(\"proto: negative length found during unmarshaling\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.ErrIntOverflowGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrIntOverflowGenerated = fmt.Errorf(\"proto: integer overflow\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.ErrUnexpectedEndOfGroupGenerated", "Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of\na constant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So each terminates, cannot panic and has no effect\nbeyond its variable.", "var ErrUnexpectedEndOfGroupGenerated = fmt.Errorf(\"proto: unexpected end of group\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1._@helpers.go:311", "An interface check: `FieldsV1{}` converted to `json.Marshaler`. No call, no panic, no effect.", "var _ json.Marshaler = FieldsV1{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1._@helpers.go:312", "An interface check: `&FieldsV1{}` converted to `json.Unmarshaler`. No call, no panic, no effect.", "var _ json.Unmarshaler = &FieldsV1{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.cborNull", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var cborNull = []byte{0xf6}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1._@meta.go:131", "An interface check: `&ListMeta{}` converted to `ListInterface`. No call, no panic, no effect.", "var _ ListInterface = &ListMeta{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1._@micro_time_fuzz.go:40", "An interface check: `&MicroTime{}` converted to `randfill.SimpleSelfFiller`. No call, no panic, no\neffect.", "var _ randfill.SimpleSelfFiller = &MicroTime{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.localSchemeBuilder", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var localSchemeBuilder = &schemeBuilder"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.SchemeGroupVersion", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var SchemeGroupVersion = schema.GroupVersion{Group: GroupName, Version: \"v1\"}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.Unversioned", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Unversioned = schema.GroupVersion{Group: \"\", Version: \"v1\"}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.scheme", "Its initializer calls, besides literals of constants and other variables' values:\n`runtime.NewScheme` allocates an empty `*Scheme` and registers the default conversions into it\n(`utilruntime.Must` panics only if those fixed registrations fail, which Go would do at every\nstart). So it terminates, cannot panic and has no effect beyond its variable.", "var scheme = runtime.NewScheme()"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.optionsTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var optionsTypes = []runtime.Object{ &ListOptions{}, &GetOptions{}, &DeleteOptions{}, &CreateOptions{}, &UpdateOptions{} … [sha256:739532f7becc9a54]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1._@time_fuzz.go:40", "An interface check: `&Time{}` converted to `randfill.SimpleSelfFiller`. No call, no panic, no\neffect.", "var _ randfill.SimpleSelfFiller = &Time{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIGroup", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_APIGroup = map[string]string{ \"\": \"APIGroup contains the name, the supported versions, and the preferred version … [sha256:db85aac3ab577f36]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIGroupList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_APIGroupList = map[string]string{ \"\": \"APIGroupList is a list of APIGroup, to allow clients to discover the API  … [sha256:8aa0bfbc926bf1ea]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIResource", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_APIResource = map[string]string{ \"\": \"APIResource specifies the name of a resource and whether it is namespaced. … [sha256:5fed9d2b80cbb80c]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIResourceList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_APIResourceList = map[string]string{ \"\": \"APIResourceList is a list of APIResource, it is used to expose the nam … [sha256:9fc2810eb56aaf5d]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIVersions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_APIVersions = map[string]string{ \"\": \"APIVersions lists the versions that are available, to allow clients to dis … [sha256:9e536fa8acef1c2d]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_ApplyOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ApplyOptions = map[string]string{ \"\": \"ApplyOptions may be provided when applying an API object. FieldManager is … [sha256:51c4bc1facc5b694]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_Condition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Condition = map[string]string{ \"\": \"Condition contains details for one aspect of the current state of this API R … [sha256:6959947f0262f599]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_CreateOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_CreateOptions = map[string]string{ \"\": \"CreateOptions may be provided when creating an API object.\", \"dryRun\": \" … [sha256:ae8563b91a06201e]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_DeleteOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_DeleteOptions = map[string]string{ \"\": \"DeleteOptions may be provided when deleting an API object.\", \"gracePerio … [sha256:89dfd3b15ea784e0]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_FieldSelectorRequirement", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_FieldSelectorRequirement = map[string]string{ \"\": \"FieldSelectorRequirement is a selector that contains values,  … [sha256:d8b24364fb78ad68]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_GetOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_GetOptions = map[string]string{ \"\": \"GetOptions is the standard query options to the standard REST get call.\", \" … [sha256:088d7111e7fd1e8c]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_GroupVersionForDiscovery", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_GroupVersionForDiscovery = map[string]string{ \"\": \"GroupVersion contains the \\\"group/version\\\" and \\\"version\\\" s … [sha256:9a4b1272db8a4a35]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_LabelSelector", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LabelSelector = map[string]string{ \"\": \"A label selector is a label query over a set of resources. The result of … [sha256:ede6cf65bd359cf6]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_LabelSelectorRequirement", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_LabelSelectorRequirement = map[string]string{ \"\": \"A label selector requirement is a selector that contains valu … [sha256:9448c3ab79ecf9d9]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_List", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_List = map[string]string{ \"\": \"List holds a list of objects, which may not be known by the server.\", \"metadata\": … [sha256:38fb4798a20c049c]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_ListMeta", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ListMeta = map[string]string{ \"\": \"ListMeta describes metadata that synthetic resources must have, including lis … [sha256:ef44b6c7595d84e8]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_ListOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ListOptions = map[string]string{ \"\": \"ListOptions is the query options to a standard REST list call.\", \"labelSel … [sha256:f5da04beda4d026a]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_ManagedFieldsEntry", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ManagedFieldsEntry = map[string]string{ \"\": \"ManagedFieldsEntry is a workflow-id, a FieldSet and the group versi … [sha256:754aa24d8c13ac48]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_ObjectMeta", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ObjectMeta = map[string]string{ \"\": \"ObjectMeta is metadata that all persisted resources must have, which includ … [sha256:d40c0c4a0a7e805a]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_OwnerReference", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_OwnerReference = map[string]string{ \"\": \"OwnerReference contains enough information to let you identify an ownin … [sha256:a232d74b95498e91]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_PartialObjectMetadata", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PartialObjectMetadata = map[string]string{ \"\": \"PartialObjectMetadata is a generic representation of any object  … [sha256:cdce1701a9dad7ab]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_PartialObjectMetadataList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PartialObjectMetadataList = map[string]string{ \"\": \"PartialObjectMetadataList contains a list of objects contain … [sha256:4cd3f4e4ba07c0da]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_Patch", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Patch = map[string]string{ \"\": \"Patch is provided to give a concrete name and type to the Kubernetes PATCH reque … [sha256:390d972845466b9e]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_PatchOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_PatchOptions = map[string]string{ \"\": \"PatchOptions may be provided when patching an API object. PatchOptions is … [sha256:5802558cc93356d8]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_Preconditions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Preconditions = map[string]string{ \"\": \"Preconditions must be fulfilled before an operation (update, delete, etc … [sha256:d5ddf467c1330b14]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_RootPaths", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_RootPaths = map[string]string{ \"\": \"RootPaths lists the paths available at root. For example: \\\"/healthz\\\", \\\"/a … [sha256:882e6f006efe51d8]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_ServerAddressByClientCIDR", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ServerAddressByClientCIDR = map[string]string{ \"\": \"ServerAddressByClientCIDR helps the client to determine the  … [sha256:9faed29546abbe60]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_ShardInfo", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_ShardInfo = map[string]string{ \"\": \"ShardInfo describes the shard selector that was applied to produce a list re … [sha256:26d39952c3280ca0]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_Status", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Status = map[string]string{ \"\": \"Status is a return value for calls that don't return other objects.\", \"metadata … [sha256:db7a9fe6b372d620]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_StatusCause", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatusCause = map[string]string{ \"\": \"StatusCause provides more information about an api.Status failure, includi … [sha256:fed70f8489b4127e]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_StatusDetails", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_StatusDetails = map[string]string{ \"\": \"StatusDetails is a set of additional properties that MAY be set by the s … [sha256:b9541da9eddf8410]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_Table", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_Table = map[string]string{ \"\": \"Table is a tabular representation of a set of API resources. The server transfor … [sha256:91f061079e8a1bab]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableColumnDefinition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TableColumnDefinition = map[string]string{ \"\": \"TableColumnDefinition contains information about a column return … [sha256:89db7c619d3210e7]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TableOptions = map[string]string{ \"\": \"TableOptions are used when a Table is requested by the caller.\", \"include … [sha256:cec41b5c4b2ce5cc]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableRow", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TableRow = map[string]string{ \"\": \"TableRow is an individual row in a table.\", \"cells\": \"cells will be as wide a … [sha256:8534011169eb0039]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableRowCondition", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TableRowCondition = map[string]string{ \"\": \"TableRowCondition allows a row to be marked with additional informat … [sha256:24746002d3531e5b]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_TypeMeta", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_TypeMeta = map[string]string{ \"\": \"TypeMeta describes an individual object in an API response or request with st … [sha256:1fea9cbe03363bac]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/apis/meta/v1.map_UpdateOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var map_UpdateOptions = map[string]string{ \"\": \"UpdateOptions may be provided when updating an API object. All fields in … [sha256:ef67fb5cf9cc3eb9]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.time]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2119,168 +2137,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
-  (App (Val map_UpdateOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TypeMeta.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TableRowCondition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TableRow.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TableOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_TableColumnDefinition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Table.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatusDetails.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_StatusCause.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Status.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ShardInfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ServerAddressByClientCIDR.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_RootPaths.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Preconditions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PatchOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Patch.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PartialObjectMetadataList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_PartialObjectMetadata.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_OwnerReference.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ObjectMeta.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ManagedFieldsEntry.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ListOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ListMeta.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_List.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LabelSelectorRequirement.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_LabelSelector.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_GroupVersionForDiscovery.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_GetOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_FieldSelectorRequirement.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_DeleteOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_CreateOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_Condition.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_ApplyOptions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_APIVersions.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_APIResourceList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_APIResource.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_APIGroupList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val map_APIGroup.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val optionsTypes.init) (Val #()))))))
-  (App (Val doExecute)
   (App (Val ParameterCodec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val scheme.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Unversioned.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val SchemeGroupVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val localSchemeBuilder.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cborNull.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrUnexpectedEndOfGroupGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrIntOverflowGenerated.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.initialize') (Val #()))))))
   (App (Val doExecute)

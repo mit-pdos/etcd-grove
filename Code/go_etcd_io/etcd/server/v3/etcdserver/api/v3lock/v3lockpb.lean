@@ -87,26 +87,6 @@ noncomputable def file_v3lock_proto_rawDescOnce [GooseExts] [GoGlobalContext] : 
 noncomputable def file_v3lock_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_rawDescData"
 
-noncomputable def file_v3lock_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_msgTypes"
-
-opaque file_v3lock_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_v3lock_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_goTypes"
-
-opaque file_v3lock_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_v3lock_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_depIdxs"
-
-opaque file_v3lock_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Lock_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.Lock_ServiceDesc"
-
-opaque Lock_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def file_v3lock_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_rawDescGZIP"
 
@@ -278,6 +258,34 @@ noncomputable def UnlockResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : 
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `file_v3lock_proto_msgTypes` (`var file_v3lock_proto_msgTypes = make([]protoimpl.MessageInfo, 4)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_v3lock_proto_goTypes` (`var file_v3lock_proto_goTypes = []any{ (*LockRequest)(nil), (*LockResponse)(nil), (*UnlockRequest)(nil), (*UnlockRespons … [sha256:b160aef2426cc56a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `file_v3lock_proto_depIdxs` (`var file_v3lock_proto_depIdxs = []int32{ 4, 4, 0, 2, 1, 3, 4, 2, 2, 2, 0, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Lock_ServiceDesc` (`var Lock_ServiceDesc = grpc.ServiceDesc{ ServiceName: "v3lockpb.Lock", HandlerType: (*LockServer)(nil), Methods: []grpc. … [sha256:edf6586aceab02fc]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_v3lock_proto_msgTypes = make([]protoimpl.MessageInfo, 4)"⟩,
+  ⟨"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_v3lock_proto_goTypes = []any{ (*LockRequest)(nil), (*LockResponse)(nil), (*UnlockRequest)(nil), (*UnlockRespons … [sha256:b160aef2426cc56a]"⟩,
+  ⟨"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var file_v3lock_proto_depIdxs = []int32{ 4, 4, 0, 2, 1, 3, 4, 2, 2, 2, 0, }"⟩,
+  ⟨"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.Lock_ServiceDesc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Lock_ServiceDesc = grpc.ServiceDesc{ ServiceName: \"v3lockpb.Lock\", HandlerType: (*LockServer)(nil), Methods: []grpc. … [sha256:edf6586aceab02fc]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
@@ -288,20 +296,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val Lock_ServiceDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_v3lock_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_v3lock_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_v3lock_proto_msgTypes.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initialize') (Val #()))))))
   (App (Val doExecute)

@@ -2,10 +2,9 @@
 Package initialization of `github_com.prometheus.client_golang.prometheus`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
+initialized variable).
 -/
 module
 
@@ -35,29 +34,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `github_com.prometheus.client_golang.prometheus`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([rmNamesForMemStatsMetrics.init,
-        nativeHistogramBounds.init,
-        DefBuckets.init,
-        errBucketLabelNotAllowed.init,
-        errInconsistentCardinality.init,
-        separatorByteSlice.init,
-        defaultRegistry.init,
-        DefaultRegisterer.init,
-        DefaultGatherer.init,
-        «_».init,
-        errQuantileLabelNotAllowed.init,
-        CounterMetricTypePtr.init,
-        GaugeMetricTypePtr.init,
-        UntypedMetricTypePtr.init,
-        labelsPool.init,
-        V2.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `github_com.prometheus.client_golang.prometheus`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
@@ -94,22 +70,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk rmNamesForMemStatsMetrics.init (by mem_tac))
-  wp_apply (opaqueInitsOk nativeHistogramBounds.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefBuckets.init (by mem_tac))
-  wp_apply (opaqueInitsOk errBucketLabelNotAllowed.init (by mem_tac))
-  wp_apply (opaqueInitsOk errInconsistentCardinality.init (by mem_tac))
-  wp_apply (opaqueInitsOk separatorByteSlice.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultRegistry.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefaultRegisterer.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefaultGatherer.init (by mem_tac))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk errQuantileLabelNotAllowed.init (by mem_tac))
-  wp_apply (opaqueInitsOk CounterMetricTypePtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk GaugeMetricTypePtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk UntypedMetricTypePtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk labelsPool.init (by mem_tac))
-  wp_apply (opaqueInitsOk V2.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   iframe Hown
   is_pkg_init_finish

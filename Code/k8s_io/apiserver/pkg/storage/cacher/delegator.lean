@@ -44,17 +44,25 @@ noncomputable def ShouldDelegateList [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ConsistentReadSupported [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/delegator.ConsistentReadSupported"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@interface.go:81` (`var _ Helper = CacheWithoutSnapshots{}`): An interface check: `CacheWithoutSnapshots{}` converted to `Helper`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/delegator._@interface.go:81", "An interface check: `CacheWithoutSnapshots{}` converted to `Helper`. No call, no panic, no effect.", "var _ Helper = CacheWithoutSnapshots{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.delegator where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.cacher.delegator)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))))
+  (Val #()))))))
 
 abbrev Helper [GooseExts] : Type := GoInterface
 

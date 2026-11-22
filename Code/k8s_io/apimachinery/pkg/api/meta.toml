@@ -9,3 +9,109 @@ imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["isListCache", "RESTScopeNamespace", "RESTScopeRoot", "unpluralizedSuffixes"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["errExpectFieldItems", "errExpectSliceItems"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["objectSliceType", "objectType", "rawExtensionObjectType"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["errNotCommon"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `fmt.Errorf` of a
+constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So it terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["_@firsthit_restmapper.go:27"]
+reason = """
+An interface check: `&FirstHitRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@lazy.go:55"]
+reason = """
+An interface check: `&lazyObject{}` converted to `ResettableRESTMapper`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@multirestmapper.go:29"]
+reason = """
+An interface check: `MultiRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@multirestmapper.go:30"]
+reason = """
+An interface check: `MultiRESTMapper{}` converted to `fmt.Stringer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@multirestmapper.go:31"]
+reason = """
+An interface check: `MultiRESTMapperWithContext{}` converted to `ResettableRESTMapperWithContext`.
+No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@multirestmapper.go:32"]
+reason = """
+An interface check: `MultiRESTMapperWithContext{}` converted to `fmt.Stringer`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@priority.go:34"]
+reason = """
+An interface check: `PriorityRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@priority.go:35"]
+reason = """
+An interface check: `PriorityRESTMapperWithContext{}` converted to
+`ResettableRESTMapperWithContext`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@priority.go:36"]
+reason = """
+An interface check: `PriorityRESTMapperWithContext{}` converted to `fmt.Stringer`. No call, no
+panic, no effect."""
+
+[[skip]]
+names = ["_@restmapper.go:75"]
+reason = """
+An interface check: `&DefaultRESTMapper{}` converted to `RESTMapper`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@restmapper.go:76"]
+reason = """
+An interface check: `&DefaultRESTMapper{}` converted to `RESTMapperWithContext`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@restmapper.go:77"]
+reason = """
+An interface check: `&DefaultRESTMapper{}` converted to `fmt.Stringer`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

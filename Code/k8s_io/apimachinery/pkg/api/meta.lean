@@ -217,65 +217,15 @@ opaque AnyResource [GooseExts] [GoGlobalContext] : val
 
 opaque AnyKind [GooseExts] [GoGlobalContext] : val
 
-noncomputable def isListCache [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.isListCache"
-
-opaque isListCache.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errExpectFieldItems [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.errExpectFieldItems"
-
-opaque errExpectFieldItems.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errExpectSliceItems [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.errExpectSliceItems"
-
-opaque errExpectSliceItems.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def objectSliceType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.objectSliceType"
-
-opaque objectSliceType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def objectType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.objectType"
-
-opaque objectType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def rawExtensionObjectType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.rawExtensionObjectType"
-
-opaque rawExtensionObjectType.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errNotList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errNotList"
 
 opaque errNotList.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errNotCommon [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.errNotCommon"
-
-opaque errNotCommon.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errNotObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errNotObject"
 
 opaque errNotObject.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def RESTScopeNamespace [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.RESTScopeNamespace"
-
-opaque RESTScopeNamespace.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def RESTScopeRoot [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.RESTScopeRoot"
-
-opaque RESTScopeRoot.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def unpluralizedSuffixes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apimachinery/pkg/api/meta.unpluralizedSuffixes"
-
-opaque unpluralizedSuffixes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SetStatusCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.SetStatusCondition"
@@ -588,10 +538,95 @@ noncomputable def Accessor.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@firsthit_restmapper.go:27` (`var _ ResettableRESTMapper = &FirstHitRESTMapper{}`): An interface check: `&FirstHitRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic,
+no effect.
+- `isListCache` (`var // isListCache maintains a cache of types that are checked for lists // which is used by IsListType. // TODO: remove … [sha256:e088d13424efc424]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errExpectFieldItems` (`var errExpectFieldItems = errors.New("no Items field in this object")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errExpectSliceItems` (`var errExpectSliceItems = errors.New("Items field must be a slice of objects")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `objectSliceType` (`var // objectSliceType is the type of a slice of Objects objectSliceType = reflect.TypeOf([]runtime.Object{})`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `objectType` (`var objectType = reflect.TypeOf((*runtime.Object)(nil)).Elem()`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `rawExtensionObjectType` (`var rawExtensionObjectType = reflect.TypeOf(runtime.RawExtension{})`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable.
+- `_@lazy.go:55` (`var _ ResettableRESTMapper = &lazyObject{}`): An interface check: `&lazyObject{}` converted to `ResettableRESTMapper`. No call, no panic, no
+effect.
+- `errNotCommon` (`var errNotCommon = fmt.Errorf("object does not implement the common interface for accessing the SelfLink")`): Its initializer calls, besides literals of constants and other variables' values: `fmt.Errorf` of a
+constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So it terminates, cannot panic and has no effect beyond
+its variable.
+- `_@multirestmapper.go:29` (`var _ ResettableRESTMapper = MultiRESTMapper{}`): An interface check: `MultiRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic, no
+effect.
+- `_@multirestmapper.go:30` (`var _ fmt.Stringer = MultiRESTMapper{}`): An interface check: `MultiRESTMapper{}` converted to `fmt.Stringer`. No call, no panic, no effect.
+- `_@multirestmapper.go:31` (`var _ ResettableRESTMapperWithContext = MultiRESTMapperWithContext{}`): An interface check: `MultiRESTMapperWithContext{}` converted to `ResettableRESTMapperWithContext`.
+No call, no panic, no effect.
+- `_@multirestmapper.go:32` (`var _ fmt.Stringer = MultiRESTMapperWithContext{}`): An interface check: `MultiRESTMapperWithContext{}` converted to `fmt.Stringer`. No call, no panic,
+no effect.
+- `_@priority.go:34` (`var _ ResettableRESTMapper = PriorityRESTMapper{}`): An interface check: `PriorityRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic,
+no effect.
+- `_@priority.go:35` (`var _ ResettableRESTMapperWithContext = PriorityRESTMapperWithContext{}`): An interface check: `PriorityRESTMapperWithContext{}` converted to
+`ResettableRESTMapperWithContext`. No call, no panic, no effect.
+- `_@priority.go:36` (`var _ fmt.Stringer = PriorityRESTMapperWithContext{}`): An interface check: `PriorityRESTMapperWithContext{}` converted to `fmt.Stringer`. No call, no
+panic, no effect.
+- `RESTScopeNamespace` (`var RESTScopeNamespace = &restScope{ name: RESTScopeNameNamespace, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `RESTScopeRoot` (`var RESTScopeRoot = &restScope{ name: RESTScopeNameRoot, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@restmapper.go:75` (`var _ RESTMapper = &DefaultRESTMapper{}`): An interface check: `&DefaultRESTMapper{}` converted to `RESTMapper`. No call, no panic, no effect.
+- `_@restmapper.go:76` (`var _ RESTMapperWithContext = &DefaultRESTMapper{}`): An interface check: `&DefaultRESTMapper{}` converted to `RESTMapperWithContext`. No call, no panic,
+no effect.
+- `_@restmapper.go:77` (`var _ fmt.Stringer = &DefaultRESTMapper{}`): An interface check: `&DefaultRESTMapper{}` converted to `fmt.Stringer`. No call, no panic, no
+effect.
+- `unpluralizedSuffixes` (`var unpluralizedSuffixes = []string{ "endpoints", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@firsthit_restmapper.go:27", "An interface check: `&FirstHitRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic,\nno effect.", "var _ ResettableRESTMapper = &FirstHitRESTMapper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.isListCache", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // isListCache maintains a cache of types that are checked for lists // which is used by IsListType. // TODO: remove … [sha256:e088d13424efc424]"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.errExpectFieldItems", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errExpectFieldItems = errors.New(\"no Items field in this object\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.errExpectSliceItems", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errExpectSliceItems = errors.New(\"Items field must be a slice of objects\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.objectSliceType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var // objectSliceType is the type of a slice of Objects objectSliceType = reflect.TypeOf([]runtime.Object{})"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.objectType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var objectType = reflect.TypeOf((*runtime.Object)(nil)).Elem()"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.rawExtensionObjectType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each\nterminates, cannot panic and has no effect beyond its variable.", "var rawExtensionObjectType = reflect.TypeOf(runtime.RawExtension{})"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@lazy.go:55", "An interface check: `&lazyObject{}` converted to `ResettableRESTMapper`. No call, no panic, no\neffect.", "var _ ResettableRESTMapper = &lazyObject{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.errNotCommon", "Its initializer calls, besides literals of constants and other variables' values: `fmt.Errorf` of a\nconstant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So it terminates, cannot panic and has no effect beyond\nits variable.", "var errNotCommon = fmt.Errorf(\"object does not implement the common interface for accessing the SelfLink\")"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@multirestmapper.go:29", "An interface check: `MultiRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic, no\neffect.", "var _ ResettableRESTMapper = MultiRESTMapper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@multirestmapper.go:30", "An interface check: `MultiRESTMapper{}` converted to `fmt.Stringer`. No call, no panic, no effect.", "var _ fmt.Stringer = MultiRESTMapper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@multirestmapper.go:31", "An interface check: `MultiRESTMapperWithContext{}` converted to `ResettableRESTMapperWithContext`.\nNo call, no panic, no effect.", "var _ ResettableRESTMapperWithContext = MultiRESTMapperWithContext{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@multirestmapper.go:32", "An interface check: `MultiRESTMapperWithContext{}` converted to `fmt.Stringer`. No call, no panic,\nno effect.", "var _ fmt.Stringer = MultiRESTMapperWithContext{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@priority.go:34", "An interface check: `PriorityRESTMapper{}` converted to `ResettableRESTMapper`. No call, no panic,\nno effect.", "var _ ResettableRESTMapper = PriorityRESTMapper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@priority.go:35", "An interface check: `PriorityRESTMapperWithContext{}` converted to\n`ResettableRESTMapperWithContext`. No call, no panic, no effect.", "var _ ResettableRESTMapperWithContext = PriorityRESTMapperWithContext{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@priority.go:36", "An interface check: `PriorityRESTMapperWithContext{}` converted to `fmt.Stringer`. No call, no\npanic, no effect.", "var _ fmt.Stringer = PriorityRESTMapperWithContext{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.RESTScopeNamespace", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var RESTScopeNamespace = &restScope{ name: RESTScopeNameNamespace, }"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.RESTScopeRoot", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var RESTScopeRoot = &restScope{ name: RESTScopeNameRoot, }"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@restmapper.go:75", "An interface check: `&DefaultRESTMapper{}` converted to `RESTMapper`. No call, no panic, no effect.", "var _ RESTMapper = &DefaultRESTMapper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@restmapper.go:76", "An interface check: `&DefaultRESTMapper{}` converted to `RESTMapperWithContext`. No call, no panic,\nno effect.", "var _ RESTMapperWithContext = &DefaultRESTMapper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta._@restmapper.go:77", "An interface check: `&DefaultRESTMapper{}` converted to `fmt.Stringer`. No call, no panic, no\neffect.", "var _ fmt.Stringer = &DefaultRESTMapper{}"⟩,
+  ⟨"k8s.io/apimachinery/pkg/api/meta.unpluralizedSuffixes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var unpluralizedSuffixes = []string{ \"endpoints\", }"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.«meta» where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -599,76 +634,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val unpluralizedSuffixes.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val RESTScopeRoot.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val RESTScopeNamespace.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNotObject.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNotCommon.init) (Val #()))))))
+  (App (Val errNotObject.init) (Val #())))))
   (App (Val doExecute)
   (App (Val errNotList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val rawExtensionObjectType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val objectType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val objectSliceType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errExpectSliceItems.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errExpectFieldItems.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val isListCache.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.initialize') (Val #()))))))))
 

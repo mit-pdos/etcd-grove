@@ -42,16 +42,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The trust boundary: `k8s_io.apiserver.pkg.storage.feature`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([v3_4_31.init,
-        v3_5_0.init,
-        v3_5_13.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
 /-- `DefaultFeatureSupportChecker = newDefaultFeatureSupportChecker()` (`feature_support_checker.go`): a checker whose `CheckClient` returns for a constructed client and its context (`checkClientOk`; sweep repairs 1, B5: until then for any arguments) (the variable never changes after). -/
 axiom DefaultFeatureSupportChecker_init :
     {{ (True : IProp GF) }} (App (Val DefaultFeatureSupportChecker.init) (Val #()))

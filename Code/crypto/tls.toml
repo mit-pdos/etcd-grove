@@ -6,3 +6,59 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["alertText", "signaturePadding", "globalCertCache", "supportedUpToTLS12",
+  "supportedOnlyTLS12", "supportedOnlyTLS13", "cipherSuites", "cipherSuitesTLS13",
+  "cipherSuitesPreferenceOrder", "cipherSuitesPreferenceOrderNoAES", "disabledCipherSuites",
+  "hasGCMAsmAMD64", "hasGCMAsmARM64", "hasGCMAsmS390X", "hasGCMAsmPPC64",
+  "hasAESGCMHardwareSupport", "aesgcmCiphers", "directSigning", "helloRetryRequestRandom",
+  "deprecatedSessionTicketKey", "supportedVersions", "_SignatureScheme_index_8",
+  "_SignatureScheme_index_9", "_CurveID_index_0", "_CurveID_index_3", "_ClientAuthType_index",
+  "outBufPool", "defaultCipherSuitesTLS13", "defaultCipherSuitesTLS13NoAES",
+  "allowedSupportedVersionsFIPS", "allowedCurvePreferencesFIPS", "allowedSignatureAlgorithmsFIPS",
+  "allowedCipherSuitesFIPS", "allowedCipherSuitesTLS13FIPS"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["rsaSignatureSchemes"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `crypto.Hash.Size`
+of a constant hash returns a constant (the hash is known: it panics only for an unknown one). So it
+terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["errNoCertificates", "errShutdown", "errEarlyCloseWrite", "errMalformedECHConfigList",
+  "errMalformedECHExt", "errInvalidECHExt", "errClientKeyExchange", "errServerKeyExchange"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["tlssha1", "tlsmlkem", "tlssecpmlkem", "fips140ems", "tlsmaxrsasize"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable."""
+
+[[skip]]
+names = ["_@alert.go:15"]
+reason = """
+An interface check: `AlertError(0)` converted to `error`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@tls.go:115"]
+reason = """
+An interface check: `timeoutError{}` converted to `error`. No call, no panic, no effect."""
+# --- end of skipped package variables ---

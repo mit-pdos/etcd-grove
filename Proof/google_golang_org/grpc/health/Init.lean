@@ -42,9 +42,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([backoffStrategy.init,
-        backoffFunc.init,
-        logger.init] : List val),
+    ∀ v ∈ ([logger.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `google_golang_org.grpc.health`'s untranslated `init` functions return.** Goose
@@ -83,8 +81,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk backoffStrategy.init (by mem_tac))
-  wp_apply (opaqueInitsOk backoffFunc.init (by mem_tac))
   wp_apply (opaqueInitsOk logger.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   wp_apply (initFuncsOk init.«1» (by mem_tac))

@@ -1,7 +1,35 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-daemonset-goose.md: what the DaemonSet controller and its example name).
-translate = ["!*"]
+translate = ["!*",
+  # (#23, 2026-11-22) `IsQualifiedName = content.IsLabelKey`: read by the translated
+  # `v1helper.IsExtendedResourceName`, so goose cannot skip it; a function value, translated
+  "IsQualifiedName"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["httpPathRegexp", "dns1123LabelRegexp", "dns1123SubdomainRegexp",
+  "dns1123SubdomainRegexpWithUnderscore", "dns1035LabelRegexp", "portNameCharsetRegex",
+  "portNameOneLetterRegexp", "percentRegexp", "httpHeaderNameRegexp", "envVarNameRegexp",
+  "configMapKeyRegexp"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So each terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["IsValidLabelValue", "IsCIdentifier"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+# --- end of skipped package variables ---
