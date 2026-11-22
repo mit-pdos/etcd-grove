@@ -8,10 +8,13 @@ Why an axiom: Perennial's `time` has `Time.Format` names-only (no body: the call
 a model would need `appendFormat` with `Time`'s calendar arithmetic and `Location` lookup translated.
 The claim is the WAL's whole use of the result (`brokenName_nameOk`) and is far weaker than what Go's
 `appendFormat` does at this layout: every byte it appends is a digit, `.` (the layout's two literal dots,
-the fraction's), or a `-` (a negative year) -- see the spec's header. It never panics: `appendFormat`
-handles every layout and every `Time` (no index or division by a value it does not bound), and the
-`Location` lookup of `time.Now()`'s `Local` (`initLocal` under a `sync.Once`, falling back to UTC on a
-missing or malformed zone file) has no failure path.
+the fraction's), or a `-` (a negative year) -- see the spec's header. It never panics on a `Time` whose
+`Location` no one writes: `appendFormat` handles every layout and every `Time` (no index or division by
+a value it does not bound), and the `Location` lookup of `Local` (`initLocal` under a `sync.Once`,
+falling back to UTC on a missing or malformed zone file) or of `UTC` has no failure path. A write to the
+`Location` racing with `Format` does make it panic (`Location.lookup`, index out of range), hence the
+precondition: the `Location` is `UTC`'s or `Local`'s, which no program can write (the spec's header;
+independent review 2026-11-22).
 -/
 module
 

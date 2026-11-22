@@ -4140,3 +4140,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `err ≠ t` follows from the types, without freshness. A `*fmt.wrapErrors` (two `%w`s) is left out: Perennial's
   `errorfErr` says nothing of its `errs` field, so its `Unwrap` cannot be stepped.
 - **Decision.** Made (the user's approval of item (3), 2026-11-22).
+
+## 2026-11-22: `time.Time.Format.specBroken` -- precondition `True` admits a writable `Location` (wal-safe, independent review)
+- **Spec.** `Spec/time/Time__FormatBroken.lean` (the trust-boundary axiom `time.Time.Format.wp_proofBroken`), called by
+  `wal.WAL.cleanupWAL.wp_proof` on `time.Now()`'s `Time`.
+- **Defect.** Precondition `True` for every `t`. `Format` reads `*t.loc`; in Go a write to that `Location` racing with
+  `Format` tears it and `Format` panics (`index out of range` in `Location.lookup`, `zoneinfo.go:200`). The axiom was
+  sound only because no model program can yet get a `Time` whose `Location` it can write (`Local` read-only by `time`'s
+  initializer, no specs of `In`/`Date`/`FixedZone`/`LoadLocation`): a fact outside the statement, which a future spec
+  could break.
+- **Evidence.** The independent review's `TestRacyLocation` and `TestRacyLocal` (go1.27.3, rerun 2026-11-22: both
+  panic in `time.(*Location).lookup`), `notes/axiom-review/time-format-broken/review_*.txt`.
+- **Proposed change.** `∀ t l, {{ globalAddr time.Local ↦□ l ∗ ⌜t.loc' = Loc.null ∨ t.loc' = l⌝ }}` (the location is
+  `UTC`'s or the read-only `Local`'s, whose `Location`s `time`'s initializer leaves no one the points-to of); the post
+  unchanged. `cleanupWAL` discharges it with the new `time.Now.specLoc` (`Spec/time/NowLoc.lean`, proved over
+  Perennial's translation of `Now`: the result's `loc'` is `Local`'s value).
+- **Decision.** Made (the independent review's recommendation, relayed by the coordinator, 2026-11-22).
