@@ -36,6 +36,9 @@ theorem reqWire_bytes (seq : w64) (sm : GoString) (eb : List w8) :
     ([] ++ frameOf ([] ++ u64Le seq ++ strEnc sm)) ++ frameOf eb = reqWire seq sm eb := by
   simp [reqWire, reqHdr]
 
+theorem sint_nat_lt' (x : w64) : sint.nat x < 2 ^ 63 := by
+  unfold sint.nat; have := BitVec.toInt_lt (x := x); simp at this; omega
+
 theorem reqWire_ne_nil (seq : w64) (sm : GoString) (eb : List w8) : reqWire seq sm eb ≠ [] := by
   intro h
   have := reqWire_length seq sm eb
@@ -48,8 +51,8 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
     (wp_putFrame : putFrame.spec (GF := GF) (hG := hG))
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG)) :
     clientCodec.WriteRequest.spec (GF := GF) (hG := hG) := by
-  intro c t cn s a la ra r rv body w0 ed C Pr W0 Ψ
-  wp_start as ⟨#Hrwc, #Hc, #Hed, Hwerr, Hr, #Hset, Htok, Henc⟩
+  intro c t cn s a la ra r rv body w0 ed C Pr W0 Ψ0 Ψ
+  wp_start as ⟨#Hrwc, #Hc, #Hed, Hwerr, Hr, #Hset, Htok, Henc, Hupd⟩
   wp_auto
   cases w0 with
   | ok e =>
@@ -57,7 +60,7 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
     iapply HΦ
     iframe Hr
     ileft
-    iframe Hwerr Htok Henc
+    iframe Hwerr Htok Henc Hupd
     ipureintro; exact ⟨fun h => (by cases h), rfl⟩
   | nil =>
   wp_auto
@@ -77,9 +80,16 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
   wp_bind (App (Val #v.Encode') _)
   iapply Henc' $$ Henc
   inext
-  iintro %sl %eb Hsl Hslc Hupd
-  unfold reqEnc
-  imod Hupd with ⟨#Hproto, HΨ⟩
+  iintro %sl %eb Hsl Hslc HΨ0
+  ihave %Hsll := ownSlice_len $$ Hsl
+  ihave %Hh2l := ownSlice_len $$ Hh2
+  have hfit : rv.ServiceMethod'.length + 16 < 2 ^ 63 ∧ eb.length < 2 ^ 63 := by
+    have := sint_nat_lt' sl.len
+    have := sint_nat_lt' h2.len
+    simp [strEnc_length, u64Le_length] at Hh2l
+    omega
+  unfold reqUpd
+  imod Hupd $$ %eb %hfit HΨ0 with ⟨#Hproto, HΨ⟩
   wp_apply wp_putFrame b1 _ sl (DFrac.own 1) eb $$ [$Hb1 $Hb1c $Hsl] as %b2 ⟨Hb2, Hb2c, Hsl⟩
   rw [reqWire_bytes]
   ihave Hw0 := writeP_init (Gg := hG.goose_globalGS) cn s Pr W0 $$ Htok
