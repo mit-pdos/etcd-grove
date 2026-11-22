@@ -11,6 +11,14 @@ public import Dsverify.Proof.github_com.xiang90.paxos.AcceptorProof
 public import Dsverify.Proof.github_com.xiang90.paxos.LearnerProof
 public import Dsverify.Proof.github_com.xiang90.paxos.ProposerProof
 public import Dsverify.Proof.github_com.xiang90.paxos.DeployProof
+public import Net.Proof.net.Listen
+public import Net.Proof.net.DialTimeout
+public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.Conn__Read
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.Conn__SetReadDeadline
+public import Net.Proof.net.Conn__SetWriteDeadline
 
 @[expose] public section
 
@@ -36,9 +44,13 @@ variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
 
 -- transport (no callees outside its module)
 theorem wp_newTCPNode : newTCPNode.spec (GF := GF) (hG := hG) := newTCPNode.wp_proof
-theorem wp_serve : tcpNode.serve.spec (GF := GF) (hG := hG) := tcpNode.serve.wp_proof
+theorem wp_serve : tcpNode.serve.spec (GF := GF) (hG := hG) :=
+  tcpNode.serve.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof
+    net.Conn.SetReadDeadline.wp_proof net.Conn.Read.wp_proof net.Conn.Close.wp_proof
 theorem wp_network : tcpNode.network.spec (GF := GF) (hG := hG) := tcpNode.network.wp_proof
-theorem wp_send : tcpNetwork.send.spec (GF := GF) (hG := hG) := tcpNetwork.send.wp_proof
+theorem wp_send : tcpNetwork.send.spec (GF := GF) (hG := hG) :=
+  tcpNetwork.send.wp_proof net.DialTimeout.wp_proof net.Conn.SetWriteDeadline.wp_proof
+    net.Conn.Write.wp_proof net.Conn.Close.wp_proof
 theorem wp_recv : tcpNetwork.recv.spec (GF := GF) (hG := hG) := tcpNetwork.recv.wp_proof
 theorem wp_poll : tcpNetwork.poll.spec (GF := GF) (hG := hG) := tcpNetwork.poll.wp_proof
 -- agents
@@ -51,7 +63,6 @@ theorem wp_newProposer : newProposer.spec (GF := GF) (hG := hG) := newProposer.w
 theorem wp_proposer_run : proposer.run.spec (GF := GF) (hG := hG) :=
   proposer.run.wp_proof wp_send wp_recv
 -- deployment
-theorem wp_initialize : initialize'.spec (GF := GF) (hG := hG) := initialize'.wp_proof
 theorem wp_NewNetCluster : NewNetCluster.spec (GF := GF) (hG := hG) :=
   NewNetCluster.wp_proof wp_newTCPNode wp_serve
 theorem wp_RunServer : RunServer.spec (GF := GF) (hG := hG) :=
