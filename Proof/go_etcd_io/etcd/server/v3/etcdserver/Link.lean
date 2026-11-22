@@ -259,6 +259,9 @@ public import Proof.context.TODO
 public import Proof.context.ValueStartTime
 public import Proof.context.WithCancelBackground
 public import Proof.context.WithValue
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.ToBackendFileName
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.ToMemberDir
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.ToSnapDir
 public import Proof.errors.AsLeaf
 public import Proof.errors.AsLeafTy
 public import Proof.errors.AsNoMatch
@@ -272,6 +275,17 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isConnectedToQuorumSinc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.tickToDur
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__String
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.exceedsRequestLimit
+public import Proof.path.filepath.Clean
+public import Proof.path.filepath.Join
+public import Proof.path.filepath.join
+public import Proof.internal.filepathlite.Clean
+public import Proof.internal.filepathlite.FromSlash
+public import Proof.internal.filepathlite.IsPathSeparator
+public import Proof.internal.filepathlite.lazybuf__append
+public import Proof.internal.filepathlite.lazybuf__index
+public import Proof.internal.filepathlite.lazybuf__string
+public import Proof.internal.filepathlite.postClean
+public import Proof.internal.filepathlite.volumeNameLen
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstCompareKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpKey
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.firstOpLease
@@ -1171,9 +1185,65 @@ theorem os.wp_Rename :
     os.Rename.spec (GF := GF) (hG := hG) :=
   os.Rename.wp_proof
 
+theorem filepathlite.lazybuf.wp_index :
+    filepathlite.lazybuf.index.spec (GF := GF) (hG := hG) :=
+  filepathlite.lazybuf.index.wp_proof
+
+theorem filepathlite.lazybuf.wp_append :
+    filepathlite.lazybuf.append.spec (GF := GF) (hG := hG) :=
+  filepathlite.lazybuf.append.wp_proof
+
+theorem filepathlite.lazybuf.wp_string :
+    filepathlite.lazybuf.string.spec (GF := GF) (hG := hG) :=
+  filepathlite.lazybuf.string.wp_proof
+
+theorem filepathlite.wp_IsPathSeparator :
+    filepathlite.IsPathSeparator.spec (GF := GF) (hG := hG) :=
+  filepathlite.IsPathSeparator.wp_proof
+
+theorem filepathlite.wp_volumeNameLen :
+    filepathlite.volumeNameLen.spec (GF := GF) (hG := hG) :=
+  filepathlite.volumeNameLen.wp_proof
+
+theorem filepathlite.wp_postClean :
+    filepathlite.postClean.spec (GF := GF) (hG := hG) :=
+  filepathlite.postClean.wp_proof
+
+theorem filepathlite.wp_FromSlash :
+    filepathlite.FromSlash.spec (GF := GF) (hG := hG) :=
+  filepathlite.FromSlash.wp_proof
+
+theorem filepathlite.wp_Clean :
+    filepathlite.Clean.spec (GF := GF) (hG := hG) :=
+  filepathlite.Clean.wp_proof filepathlite.lazybuf.wp_index filepathlite.lazybuf.wp_append filepathlite.lazybuf.wp_string filepathlite.wp_IsPathSeparator filepathlite.wp_volumeNameLen filepathlite.wp_postClean filepathlite.wp_FromSlash
+
+theorem filepath.wp_Clean :
+    filepath.Clean.spec (GF := GF) (hG := hG) :=
+  filepath.Clean.wp_proof filepathlite.wp_Clean
+
+theorem filepath.wp_join :
+    filepath.join.spec (GF := GF) (hG := hG) :=
+  filepath.join.wp_proof filepath.wp_Clean
+
+theorem filepath.wp_Join :
+    filepath.Join.spec (GF := GF) (hG := hG) :=
+  filepath.Join.wp_proof filepath.wp_join
+
+theorem datadir.wp_ToMemberDir :
+    datadir.ToMemberDir.spec (GF := GF) (hG := hG) :=
+  datadir.ToMemberDir.wp_proof filepath.wp_Join
+
+theorem datadir.wp_ToSnapDir :
+    datadir.ToSnapDir.spec (GF := GF) (hG := hG) :=
+  datadir.ToSnapDir.wp_proof filepath.wp_Join datadir.wp_ToMemberDir
+
+theorem datadir.wp_ToBackendFileName :
+    datadir.ToBackendFileName.spec (GF := GF) (hG := hG) :=
+  datadir.ToBackendFileName.wp_proof filepath.wp_Join datadir.wp_ToSnapDir
+
 theorem config.ServerConfig.wp_BackendPath :
     config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG) :=
-  config.ServerConfig.BackendPath.wp_proof
+  config.ServerConfig.BackendPath.wp_proof datadir.wp_ToBackendFileName
 
 theorem consistentIndex.wp_SetConsistentIndex :
     consistentIndex.SetConsistentIndex.spec (GF := GF) (hG := hG) :=

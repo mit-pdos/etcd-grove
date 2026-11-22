@@ -865,7 +865,23 @@ etcdserver_NewServer+R: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger_
 fmt_Errorf: @
 snap_Snapshotter__DBFilePath:
 os_Rename:
-config_ServerConfig__BackendPath:
+# (bkarea, 2026-11-22) `BackendPath` proved over `datadir` (translated with its bodies) and
+# `filepath.Join` (the part's translation, proved; the WAL's Link links it in its own namespace)
+filepathlite_lazybuf__index:
+filepathlite_lazybuf__append:
+filepathlite_lazybuf__string:
+filepathlite_IsPathSeparator:
+filepathlite_volumeNameLen:
+filepathlite_postClean:
+filepathlite_FromSlash:
+filepathlite_Clean: filepathlite_lazybuf__index filepathlite_lazybuf__append filepathlite_lazybuf__string filepathlite_IsPathSeparator filepathlite_volumeNameLen filepathlite_postClean filepathlite_FromSlash
+filepath_Clean: filepathlite_Clean
+filepath_join: filepath_Clean
+filepath_Join: filepath_join
+datadir_ToMemberDir: filepath_Join
+datadir_ToSnapDir: filepath_Join datadir_ToMemberDir
+datadir_ToBackendFileName: filepath_Join datadir_ToSnapDir
+config_ServerConfig__BackendPath: datadir_ToBackendFileName
 storage_OpenBackend:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
