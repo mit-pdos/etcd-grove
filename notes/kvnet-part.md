@@ -273,3 +273,38 @@ def rep (γ) (F) : Loc → w64 → IProp GF := fun r id => ∃ nh, isReplica γ 
 -- the facts' instance (notes/kvnet-protocol.md's table), over B's shared names
 def kvFacts (γ : KnNames) : KvFacts GF := { msgOk := fun src st => sentMsg γ.r.cluster N src st ∗ □ msgCredits … ∗ ⌜..⌝, ... }
 ```
+
+### The replica layer, done so far (2026-11-22)
+
+Proved, no axiom or `sorry` (`lake build KvNet`: 2965 jobs):
+
+- **`Defs.lean`, `DefsLaws.lean`** (the part's own): kvdurablenoax's interface at kvnet's `Replica`
+  (no stop channels, no crashed flag, no `seqs`; kvnet's `Stats`); the file's invariant not yet in
+  `isReplica` (it comes with `persist`).
+- **Copies of kvdurablenoax's proofs over it** (`KVNET_REUSED`; the copies drop kvdurablenoax's
+  `[HasExt durableExt]`, `TEXT_FIXES_KVNET`): `Replica.{request,applyOp,answer}`,
+  `Storage.{SetHardState,snapIndex,InitialState,Snapshot}`, `openStorage`, with `SnapMake`,
+  `ApplyLemmas`, `ClientLemmas`.
+- **Adapted (the part's own)**: `Replica.{snapshot,install,applyEntry,applyConf}` (`Stats.add` by
+  index, no crashed half), `Replica.{ticker,snapshotter}` (`for range`, no stop),
+  `readSeqs__nextLemmas` (without the `readSeqs.next` spec: `kd_readAu`, `kd_mint_next` for the clients).
+- **At the protocol's facts** (`Facts.lean`: `kvFacts γ cf`, `kvRep γ vs dir`): the server side's
+  `Replica.read.spec` and `Replica.propose.spec` are proved at `kvFacts`/`kvRep` (the read with the
+  client's context and the busy-`seq` check; the proposal with its slot from the request).
+
+**Seams added**: `ansLen.law`, `waitLen.law` (an answer's value is shorter than `2^61`: the server
+promises it to its reply frame; to discharge from the store's invariant, e.g. by bounding the values
+the minted operations carry, which `EncodeOp`'s callers bound); `kvFacts`'s `confOk` is a parameter
+(`cf`) until `confLaw` is discharged.
+
+**Next: `persist` (decision C)**. The file's invariant moves to fsExt: per id, with the bodied
+`durable`'s names `γd : DurGS` and file `f : DFile`,
+`kdFileInv γ γd id := inv (kdRepN .@ id) (∃ S s, raftState γ.r.cluster id S ∗ durSt γd s ∗
+ghostVar (γ.wr id) ½ (S, s.cur) ∗ ⌜StorageHolds S (decodeOpt (s.alt.getD s.cur))⌝ ∗ …)` (while a write's
+rename may still be lost, `alt` holds the old contents, which hold the durable state; the batch's *enter*
+fires at `durWriteSync`, when `alt := none`); `dmu` holds the call's `durHandle γd f R` and its
+`osCallPerm` (exclusive: one writer at a time), `isReplica` the persistent `durInv γd f`, `osInv`,
+`osSharedInv R`. `persist`'s two forms (`spec`, `specRun`) are kvdurable's without `ok`. Then `run`
+(kvdurable's 1615-line proof and its `Run*` lemmas, over `persist.specRun`), `newReplica`, `StartNode`
+(`durable.Read` under the crash invariant's `crashed` side, `openStorage`, `RestartNode` at
+`nodeVacantA`).
