@@ -2,9 +2,10 @@
 The model of prometheus's default registry (`examples/lib/promreg`, notes/prom-registry.md): its
 ghost state and invariant. Lean-first.
 
-* **The ghost names of a run** (`PromRegGS`, as `WalGS`): a ghost map from descriptor and collector
-  IDs to `()`, allocated by each run's proof (`promReg_alloc`); its exclusive elements are the rights
-  to register (`idTok`). No axiom produces one (`notes/decisions.md`, the prom-registry entry).
+* **The ghost name of a run** (`γ`, explicit): a ghost map from descriptor and collector IDs to `()`,
+  allocated by each run's proof (`promReg_alloc`); its exclusive elements are the rights to register
+  (`idTok γ`). No axiom produces one. prometheus's package fact and its rights find the run's `γ`
+  through Perennial's per-generation name supply (`localName promKey γ`, `Registry.lean`).
 * **The registry** (`isRegistry f r`, persistent): the `*Registry` `r`'s map fields (read-only), and
   its mutex, whose invariant (`regInv`) owns the three maps and the element of every registered
   descriptor ID and collector ID; every registered name is built in or has its ID `f n` registered
@@ -30,11 +31,6 @@ namespace promreg
 
 open Iris Iris.BI Iris.ProofMode
 open _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib
-
-/-- **The ghost names of one run's registry rights** (allocated by the run's proof,
-`promReg_alloc`). -/
-class PromRegGS (GF : BundledGFunctors) where
-  γ : GName
 
 /-! ## The builtins (`SeedBuiltins`; configuration C, `model_test.go`'s `TestBuiltins`) -/
 
@@ -151,56 +147,56 @@ def descsOk [GooseExts] (f : GoString → w64) (ds : List promreg.Desc) : Prop :
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [promG : PromRegGS GF]
+variable {γ : GName}
 
-/-- **The right to the ID `k`** (exclusive): this run's ghost map's element. -/
-def idTok (k : w64) : IProp GF := ghostMapElem (K := w64) (V := Unit) promG.γ k (DFrac.own 1) ()
+/-- **The right to the ID `k`** (exclusive): the element of the run's ghost map `γ`. -/
+def idTok (γ : GName) (k : w64) : IProp GF := ghostMapElem (K := w64) (V := Unit) γ k (DFrac.own 1) ()
 
 /-- The rights to the IDs `ks`. -/
-def idToks (ks : List w64) : IProp GF := iprop([∗list] k ∈ ks, idTok k)
+def idToks (γ : GName) (ks : List w64) : IProp GF := iprop([∗list] k ∈ ks, idTok γ k)
 
 /-- The rights the builtins take (prometheus's initializer). -/
-def builtinToks : IProp GF := idToks builtinKeys
+def builtinToks (γ : GName) : IProp GF := idToks γ builtinKeys
 
 /-- The mutex's invariant: the maps (`descIDs`, `dimHashesByName`, `collectorsByID`, all values
 `true`), the element of every registered ID (descriptor or collector), and every registered name
 built in or with its ID registered. -/
-def regInv (f : GoString → w64) (mI mD mC : Loc) : IProp GF :=
+def regInv (γ : GName) (f : GoString → w64) (mI mD mC : Loc) : IProp GF :=
   iprop(∃ (ids : GMap w64 Bool) (dims : GMap GoString w64) (cols : GMap w64 Bool),
     mI ↦$ ids ∗ mD ↦$ dims ∗ mC ↦$ cols ∗
-    ([∗map] k ↦ _b ∈ ids ∪ cols, idTok k) ∗
+    ([∗map] k ↦ _b ∈ ids ∪ cols, idTok γ k) ∗
     ⌜(∀ k b, ids !! k = some b → b = true) ∧ (∀ k b, cols !! k = some b → b = true) ∧
       (∀ n h, dims !! n = some h → n ∈ builtinNames ∨ ids !! f n = some true)⌝)
 
 /-- **The registry `r`** (persistent), naming IDs by `f`. -/
-def isRegistry (f : GoString → w64) (r : Loc) : IProp GF :=
+def isRegistry (γ : GName) (f : GoString → w64) (r : Loc) : IProp GF :=
   iprop(∃ (mI mD mC : Loc),
     structFieldRef promreg.Registry go!"descIDs" r ↦□ mI ∗
     structFieldRef promreg.Registry go!"dimHashesByName" r ↦□ mD ∗
     structFieldRef promreg.Registry go!"collectorsByID" r ↦□ mC ∗
-    sync.isMutex (structFieldRef promreg.Registry go!"mu" r) (regInv f mI mD mC))
+    sync.isMutex (structFieldRef promreg.Registry go!"mu" r) (regInv γ f mI mD mC))
 
-instance isRegistry_persistent (f : GoString → w64) (r : Loc) :
-    Persistent (isRegistry (GF := GF) f r) := by
+instance isRegistry_persistent (γ : GName) (f : GoString → w64) (r : Loc) :
+    Persistent (isRegistry (GF := GF) γ f r) := by
   unfold isRegistry; infer_instance
 
 /-- The rights to the IDs `k :: ks`. -/
 theorem idToks_cons (k : w64) (ks : List w64) :
-    idToks (GF := GF) (k :: ks) ⊣⊢ idTok k ∗ idToks ks := by
+    idToks (GF := GF) γ (k :: ks) ⊣⊢ idTok γ k ∗ idToks γ ks := by
   unfold idToks; exact BigSepL.bigSepL_cons
 
 theorem idToks_app (ks1 ks2 : List w64) :
-    idToks (GF := GF) (ks1 ++ ks2) ⊣⊢ idToks ks1 ∗ idToks ks2 := by
+    idToks (GF := GF) γ (ks1 ++ ks2) ⊣⊢ idToks γ ks1 ∗ idToks γ ks2 := by
   unfold idToks; exact BigSepL.bigSepL_append
 
 theorem builtinToks_split :
-    builtinToks (GF := GF) ⊣⊢ idToks builtinIDs ∗ idToks builtinCollectors :=
+    builtinToks (GF := GF) γ ⊣⊢ idToks γ builtinIDs ∗ idToks γ builtinCollectors :=
   idToks_app builtinIDs builtinCollectors
 
 /-- Two rights to one ID are one too many. -/
-theorem idTok_excl (k : w64) : idTok (GF := GF) k ∗ idTok k ⊢ False := by
+theorem idTok_excl (k : w64) : idTok (GF := GF) γ k ∗ idTok γ k ⊢ False := by
   unfold idTok
   iintro ⟨H1, H2⟩
   ihave %H := ghostMapElem_ne _ k k _ () () $$ H1 H2
@@ -208,24 +204,24 @@ theorem idTok_excl (k : w64) : idTok (GF := GF) k ∗ idTok k ⊢ False := by
 
 /-- The registry's rights exclude a held one. -/
 theorem regToks_absent (M : GMap w64 Bool) (k : w64) :
-    ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) k') ∗ idTok k ⊢
-      ⌜M !! k = none⌝ ∗ ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) k') ∗ idTok k := by
+    ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) γ k') ∗ idTok γ k ⊢
+      ⌜M !! k = none⌝ ∗ ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) γ k') ∗ idTok γ k := by
   iintro ⟨HM, Hk⟩
   cases h : M !! k with
   | none => iframe; ipureintro; rfl
   | some b =>
-    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (Φ := fun k' (_ : Bool) => idTok (GF := GF) k')
+    icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (Φ := fun k' (_ : Bool) => idTok (GF := GF) γ k')
       (m := M) (i := k) (x := b) h).1 $$ HM with ⟨Hk', -⟩
     iexfalso
-    iapply (idTok_excl (GF := GF) k)
+    iapply (idTok_excl (GF := GF) (γ := γ) k)
     iframe
 
 /-- A right given to the registry. -/
 theorem regToks_insert (M : GMap w64 Bool) (k : w64) (b : Bool) (h : M !! k = none) :
-    ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) k') ∗ idTok k ⊢
-      [∗map] k' ↦ _b ∈ <[k := b]> M, idTok (GF := GF) k' := by
+    ([∗map] k' ↦ _b ∈ M, idTok (GF := GF) γ k') ∗ idTok γ k ⊢
+      [∗map] k' ↦ _b ∈ <[k := b]> M, idTok (GF := GF) γ k' := by
   iintro ⟨HM, Hk⟩
-  iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (Φ := fun k' (_ : Bool) => idTok (GF := GF) k')
+  iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (Φ := fun k' (_ : Bool) => idTok (GF := GF) γ k')
     (m := M) (i := k) (x := b) h).2
   iframe
 
@@ -301,11 +297,11 @@ theorem ghost_map_insert_list (γ : GName) (ks : List w64) (m : GMap w64 Unit) (
 /-- **A run's rights** (each run's proof calls it once, before initialization): a fresh ghost
 name, the builtins' rights and the rights to the IDs `ks` (pairwise distinct, none a builtin's). -/
 theorem promReg_alloc (ks : List w64) (hks : (builtinKeys ++ ks).Nodup) :
-    ⊢ |==> ∃ _ : PromRegGS GF, builtinToks (GF := GF) ∗ idToks (GF := GF) ks := by
+    ⊢ |==> ∃ γ : GName, builtinToks (GF := GF) γ ∗ idToks (GF := GF) γ ks := by
   imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit)) with ⟨%γ, Ha⟩
   imod (ghost_map_insert_list γ (builtinKeys ++ ks) ∅ hks (fun _ _ => rfl)) $$ Ha with Hs
   imodintro
-  iexists ⟨γ⟩
+  iexists γ
   unfold builtinToks idToks idTok
   iapply (BigSepL.bigSepL_append (PROP := IProp GF)).1
   iexact Hs

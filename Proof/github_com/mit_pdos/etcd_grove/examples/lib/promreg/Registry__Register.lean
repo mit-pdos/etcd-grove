@@ -100,12 +100,12 @@ variable [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [promG : promreg.PromRegGS GF]
+variable {γ : GName}
 
 /-- Every held right is absent from the registry's. -/
 theorem promreg.regToks_absent_all (M : GMap w64 Bool) (ks : List w64) :
-    ([∗map] k' ↦ _b ∈ M, promreg.idTok (GF := GF) k') ∗ promreg.idToks ks ⊢
-      ⌜∀ k ∈ ks, M !! k = none⌝ ∗ ([∗map] k' ↦ _b ∈ M, promreg.idTok (GF := GF) k') ∗ promreg.idToks ks := by
+    ([∗map] k' ↦ _b ∈ M, promreg.idTok (GF := GF) γ k') ∗ promreg.idToks γ ks ⊢
+      ⌜∀ k ∈ ks, M !! k = none⌝ ∗ ([∗map] k' ↦ _b ∈ M, promreg.idTok (GF := GF) γ k') ∗ promreg.idToks γ ks := by
   induction ks with
   | nil => iintro ⟨HM, Hk⟩; iframe; ipureintro; intro k hk; cases hk
   | cons a ks ih =>
@@ -127,8 +127,8 @@ theorem promreg.regToks_absent_all (M : GMap w64 Bool) (ks : List w64) :
 
 /-- The held rights given to the registry. -/
 theorem promreg.regToks_insertAll (M : GMap w64 Bool) (ks : List w64) :
-    ([∗map] k' ↦ _b ∈ M, promreg.idTok (GF := GF) k') ∗ promreg.idToks ks ⊢
-      [∗map] k' ↦ _b ∈ promreg.insertAll ks M, promreg.idTok (GF := GF) k' := by
+    ([∗map] k' ↦ _b ∈ M, promreg.idTok (GF := GF) γ k') ∗ promreg.idToks γ ks ⊢
+      [∗map] k' ↦ _b ∈ promreg.insertAll ks M, promreg.idTok (GF := GF) γ k' := by
   induction ks generalizing M with
   | nil => iintro ⟨HM, -⟩; simp only [promreg.insertAll, List.foldl_nil]; iexact HM
   | cons a ks ih =>
@@ -151,11 +151,10 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [promG : promreg.PromRegGS GF]
 variable [package_sem : promreg.Assumptions]
 
 theorem promreg.Registry.Register.wp_proof : promreg.Registry.Register.spec (GF := GF) (hG := hG) := by
-  intro f r s dq ds Hok
+  intro γ f r s dq ds Hok
   wp_start as ⟨#Hreg, Hs, Htoks⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

@@ -3707,3 +3707,15 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   theorems that change and the rejected variants: `notes/prom-registry.md`, "Option 2". **Status.** Proposed as
   mit-pdos/perennial#681 (branch `local-names`; on this repository's pin as `local-names-c14`, `8dd458684`);
   branch `prom-registry` builds against it.
+
+## 2026-11-22: trusted code cannot call another translated package's functions (prometheus's registry model, branch `prom-registry`)
+
+- **The gap.** A trusted body (`TrustedCode/`) may call any translated function by name (`FuncResolve`), but
+  stepping the call needs that package's `FuncUnfold`/`MethodUnfold`, which only its `Assumptions` give, and a
+  package's `Assumptions` include only its Go imports' (`import_<q>_Assumption`; `pkgImportedPkgs` likewise).
+  prometheus's glue runs the Go model `examples/lib/promreg`, which client_golang does not import, so neither
+  its proofs nor any closed theorem has `promreg.Assumptions` (`notes/prom-registry.md`, "Stage 4 started").
+- **Worked around locally.** Not yet (options there).
+- **Proposed (general).** A goose configuration key (`extra_imports = ["<pkg>"]`) that adds import edges for
+  trusted code: the package's `Assumptions` get `import_<pkg>_Assumption`, its `pkgImportedPkgs` the package,
+  and its `initialize'` the package's initializer (or the trusted initializer calls it). **Status.** Recorded only.

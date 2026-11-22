@@ -361,3 +361,66 @@ a per-package exclusive token deposited at the start; more machinery for the sam
 **Status.** Built: mit-pdos/perennial#681 (branch `local-names`), on etcd-grove's pin as `local-names-c14`
 (`8dd458684`, worktree `/shared/perennial-local-names-c14`, manifest `/shared/tmp/manifest-ln14.json`). Stages 4–5
 are built against it.
+
+## Stage 4 started; blocked on the model's `Assumptions` (2026-11-22, session on perennial#681)
+
+**Done** (built against `/shared/tmp/manifest-ln14.json`, `local-names-c14`):
+* `PromRegGS` is gone: the promreg ghost state takes its name explicitly (`idTok γ k`, `idToks γ ks`,
+  `builtinToks γ`, `regInv γ f …`, `isRegistry γ f r`; the lemmas take `γ` implicitly), the three specs
+  quantify `∀ γ`, `promReg_alloc` gives `∃ γ, builtinToks γ ∗ idToks γ ks`. Proofs rebuilt.
+* `Registry.lean`: `promKey`, `nameDesc n dh`, `collectorDescsAre c ds` (the glue's `collectorDescs.impl`
+  returns `ds` in a new slice, in every instance: `∀ GF hG sem`), **`collectorName` a definition** (`∃ dh,
+  collectorDescsAre c [nameDesc n dh]`; the constructor axioms unchanged in text), and **`regFree n`**
+  (`⌜n ∉ builtinNames⌝ ∗ ∃ γ, localName promKey γ ∗ idTok γ (descId n)`). The `nameFree` axiom stays
+  (Start.lean). Built through `read/Init`, `MustRegister`, `NewCounterVec`.
+
+**Blocked: the glue resolves the model's functions by name, and no closed theorem assumes them.**
+The glue (`TrustedCode/.../prometheus.lean`) calls `FuncResolve promreg.NewRegistry` and
+`MethodResolve *promreg.Registry "Register"/"SeedBuiltins"`, and the model's bodies resolve
+`promreg.Builtin*` and `sync.Mutex`'s methods. Stepping a resolution needs its `FuncUnfold`/`MethodUnfold`
+(Perennial `PostLang.lean`: `#(functions f ts) = impl`), which only `promreg.Assumptions` (and
+`sync.Assumptions`) give. `prometheus.Assumptions` has only `import_time_Assumption` (the translation's
+imports are `["!*", "time"]`, and client_golang does not import the model), so neither `MustRegister`'s
+proof nor prometheus's initializer (the glue's `defaultRegistry.init`) can step into the model, and the
+instance would have to come from the closed theorems, whose `Assumptions` arguments (`package_sem`,
+`mvcc_sem`, …) are part of their statements. The same gap makes `isPkgInit prometheus`'s dependency on
+`promreg` (needed for `sync`'s fact) absent from `GetIsPkgInitWf`; that part alone is fixable (a
+hand-written instance with dependencies `[time, promreg]`, `etc/gen-init.py` following it), but not the
+`Assumptions`.
+
+**Soundness hazard on the branch as it stands** (not landed): prometheus's `Init.lean` predates the glue
+(`etc/gen-init.py --check` would differ): its axioms `opaqueInitsOk` (with `defaultRegistry.init`) and
+`initFuncsOk` (`init.«0»`, unfolded by `prometheus.Assumptions` to the glue's `init.«0».impl`) now claim
+triples of concrete code that resolves `promreg`'s names, for every semantics satisfying
+`prometheus.Assumptions`, including one whose table maps `promreg.NewRegistry` to a panicking function.
+Both must go (stage 4 replaces them by the proof), or the glue must not resolve names.
+
+**Options (a decision for the user; the instruction is that no closed statement changes but for losing
+`HNs`/`Ns`/`hNs`/`hNsIds`):**
+1. **The closed theorems gain `[promreg_sem : promreg.Assumptions]`** (the semantics' function table holds
+   the model's code: what the trusted model means; satisfiable, the names are the model's own package path),
+   as `mvcc_sem`/`srv_sem`/`cache_sem` were added for packages main does not import. Every theorem between
+   (prometheus's `Init`, the registering packages' `Init`/`InitLinked`, `MustRegister.wp_proof`, their
+   `Link`s, the `PkgTable`s' sections) takes the instance: a `variable` in the generated files
+   (`etc/gen-init.py`, `etc/gen-link.py`), the same ripple as `PromRegGS`'s (§"Handoff"), but of a `Prop`
+   class, so no ghost-name question. A closed-statement change: needs the user's (and #15's) approval.
+2. **No resolution of the model's names**: translate client_golang's prometheus with `sync` among its imports,
+   and make the model's code the trusted bodies of client_golang's own names (`NewRegistry`,
+   `(*Registry).Register`, `MustRegister`, `Register`, `init.0`; the builtin lists as literals in them), over
+   client_golang's `Registry` struct if it translates with `sync` (its fields are `mtx`, `collectorsByID`,
+   `descIDs`, `dimHashesByName`, …: the model's state). The model is then trusted Lean, not verified Go: the
+   stage-3' proofs are redone over those names, and `model_test.go` stays the evidence. No closed statement
+   changes.
+3. **Ask Perennial/goose for a translation option** that adds an import edge (`extra_imports`: prometheus
+   imports the model's package), so that `prometheus.Assumptions` gets `import_promreg_Assumption` and the
+   package's `pkgImportedPkgs` gets `promreg` (then `define_is_pkg_init` and the package tables follow by
+   themselves). A general translator feature (trusted code that calls another translated package), to be
+   proposed on its own (`notes/perennial-changes.md`); no closed statement changes. Recommended.
+
+Until decided, `PkgInit.lean` keeps its `True` fact and nothing above `Registry.lean` changes but what
+`collectorName`'s definition rebuilds. Next once decided: `isPkgInit prometheus` (`∃ l γ, globalAddr
+defaultRegistry ↦□ l ∗ localName promKey γ ∗ isRegistry γ descId l`, with `promreg`'s fact among its
+dependencies), `MustRegister`/`Register`/the initializer as theorems (`localName_agree` for γ = γ′), then
+`NewServerMetrics`' clause and `Register.spec`'s rights (which the `metricsP` lock of `v3rpc`'s
+`getServerMetrics` must carry in its `nil` case, from `v3rpc`'s init resources: both collector IDs, with and
+without the histogram, since the option is decided at run time), then stage 5.

@@ -51,6 +51,8 @@ module
 
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import Proof.github_com.cespare.xxhash.v2.Model
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Defs
+public import Perennial.GooseLang.LocalNames
 
 @[expose] public section
 
@@ -63,6 +65,7 @@ namespace EtcdGrove
 namespace prometheus
 
 open Iris Iris.BI
+open _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib
 
 /-- prometheus's `BuildFQName(namespace, subsystem, name)` (`metric.go`): the non-empty parts
 joined by `_`, or empty if `name` is. -/
@@ -183,18 +186,73 @@ def histOpts (o : github_com.prometheus.client_golang.prometheus.HistogramOpts)
   o = { (zeroValDef : github_com.prometheus.client_golang.prometheus.HistogramOpts) with
         Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Buckets' := s }
 
+/-- **The key of the registry's ghost name** in the run's name supply (Perennial's `localName`): the
+package path. -/
+def promKey : GoString := go!"github.com/prometheus/client_golang/prometheus"
+
+/-- The descriptor `promreg.Desc` of the label-free descriptor named `n` (valid, its ID `descId n`),
+with the dim hash `dh`. -/
+def nameDesc (n : GoString) (dh : w64) : promreg.Desc :=
+  { ID' := descId n, FQName' := n, DimHash' := dh, Invalid' := false }
+
+end preds
+
+section descs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+
+/-- **The collector `c` describes the descriptors `ds`** (prom-registry, notes/prom-registry.md §2):
+the model's `collectorDescs` (the trusted glue's one undefined operation: what `c.Describe` sends, as
+`Register` reads it) returns them in a new slice, in every instance of the logic. What a collector
+describes is what its constructor's spec says (a `New<Kind>` axiom's post, `collectorName`); the
+evidence is `examples/lib/promreg/model_test.go`'s `TestConstructorDescs`. -/
+def collectorDescsAre (c : GoInterfaceOk) (ds : List promreg.Desc) : Prop :=
+  ∀ (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics],
+  {{ (True : IProp GF) }}
+    (App (Val github_com.prometheus.client_golang.prometheus.collectorDescs.impl) (Val #(GoInterface.ok c)))
+  {{ (s : GoSlice), RET #s; s ↦* ds }}
+
 /-- The collector `c` describes exactly one descriptor: valid, of fully-qualified name `n`,
 without const labels (a counter `NewCounter` made; mustreg, 2026-11-20: or a metric vector
 `New<Kind>Vec` made, whose variable labels enter only the descriptor's `dimHash`, not its ID:
 `NewDesc` in client_golang v1.24.1's `desc.go` hashes the name and the const label values into
-`id`, the help and all label names into `dimHash`). -/
-axiom collectorName (c : GoInterfaceOk) (n : GoString) : Prop
+`id`, the help and all label names into `dimHash`). (prom-registry) A definition: the model's
+`collectorDescs c` is that one descriptor, `nameDesc n dh` for some dim hash. -/
+def collectorName (c : GoInterfaceOk) (n : GoString) : Prop :=
+  ∃ dh : w64, collectorDescsAre c [nameDesc n dh]
+
+end descs
+
+section rights
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- **The right to register the name `n`** with prometheus's default registry (exclusive;
+prom-registry, notes/prom-registry.md §3): `n` is not a builtin's name, and the run's registry rights
+(the ghost map whose name the run records under `promKey`) hold the element of `n`'s label-free
+descriptor ID, `descId n`. The registry's invariant owns the element of every registered ID, so the
+holder knows `descId n` unregistered, as a descriptor and as a collector ID, and `n` unregistered
+(every registered name is a builtin's or has its ID registered). Allocated by each run's proof
+(`promreg.promReg_alloc`), so a crash's next run has new ones. -/
+def regFree (n : GoString) : IProp GF :=
+  iprop(⌜n ∉ promreg.builtinNames⌝ ∗ ∃ γ, localName promKey γ ∗ promreg.idTok γ (descId n))
+
+end rights
+
+section preds
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
 
 /-- **The right to register the name `n`** with prometheus's default registry (exclusive):
 no collector registered there, now or later by anyone but the holder, has a descriptor named
 `n`, or whose ID (or collector ID) is the ID of `n`'s label-free descriptor (`descId n`). Given at
 program start, once per name, for names whose IDs are pairwise distinct (`descIdsDistinct`: the
-holder of another name's right registers that name's ID). -/
+holder of another name's right registers that name's ID). (prom-registry) Superseded by `regFree`;
+kept only while `goose_adequacy_start` (`Proof/runtime/Start.lean`) hands it out. -/
 axiom nameFree {GF : BundledGFunctors} (n : GoString) : IProp GF
 
 end preds

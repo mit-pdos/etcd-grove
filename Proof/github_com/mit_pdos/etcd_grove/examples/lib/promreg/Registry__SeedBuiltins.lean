@@ -25,7 +25,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [promG : promreg.PromRegGS GF]
 variable [package_sem : promreg.Assumptions]
 
 theorem promreg.wp_BuiltinIDs :
@@ -81,7 +80,7 @@ theorem promreg.wp_BuiltinCollectors :
   iapply HΦ $$ S
 
 theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.spec (GF := GF) (hG := hG) := by
-  intro f r
+  intro γ f r
   wp_start as ⟨#Hreg, Htoks⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -97,8 +96,8 @@ theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.s
   icases (promreg.builtinToks_split (GF := GF)).1 $$ Htoks with ⟨HtI, HtC⟩
   obtain ⟨Hids, Hcols, Hdims⟩ := Hp
   ihave Hinv : iprop(∃ (j : Nat) (ids' : GMap w64 Bool), "i" ∷ i_ptr ↦ W64 j ∗ "HmI" ∷ mI ↦$ ids' ∗
-      "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols, promreg.idTok (GF := GF) k) ∗
-      "HtI" ∷ promreg.idToks (GF := GF) (promreg.builtinIDs.drop j) ∗ "id" ∷ (∃ v : w64, id_ptr ↦ v) ∗
+      "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols, promreg.idTok (GF := GF) γ k) ∗
+      "HtI" ∷ promreg.idToks (GF := GF) γ (promreg.builtinIDs.drop j) ∗ "id" ∷ (∃ v : w64, id_ptr ↦ v) ∗
       "%Hj" ∷ ⌜j ≤ promreg.builtinIDs.length ∧ (∀ k b, ids' !! k = some b → b = true) ∧
         (∀ n h, dims !! n = some h → n ∈ promreg.builtinNames ∨ ids' !! f n = some true)⌝) $$ [i HmI Hrt HtI id]
   · iexists 0, ids
@@ -228,8 +227,8 @@ theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.s
       have hCC : promreg.builtinCollectors.length = 2 := rfl
       have hsC : sint.Z sC.len = 2 := by have h := HlenC.1; rw [hCC] at h; word
       ihave Hinv : iprop(∃ (j : Nat) (cols' : GMap w64 Bool), "i" ∷ i_ptr ↦ W64 j ∗ "HmC" ∷ mC ↦$ cols' ∗
-          "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols', promreg.idTok (GF := GF) k) ∗
-          "HtC" ∷ promreg.idToks (GF := GF) (promreg.builtinCollectors.drop j) ∗ "c" ∷ (∃ v : w64, c_ptr ↦ v) ∗
+          "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols', promreg.idTok (GF := GF) γ k) ∗
+          "HtC" ∷ promreg.idToks (GF := GF) γ (promreg.builtinCollectors.drop j) ∗ "c" ∷ (∃ v : w64, c_ptr ↦ v) ∗
           "%Hj" ∷ ⌜j ≤ promreg.builtinCollectors.length ∧ (∀ k b, cols' !! k = some b → b = true)⌝)
         $$ [i HmC Hrt HtC c]
       · iexists 0, cols
