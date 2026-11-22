@@ -1,4 +1,4 @@
-# Clients on machines of their own: porting dsverify-lab's `Remote` (plan, R0)
+# Clients on machines of their own: porting dsverify-lab's `Remote` (plan)
 
 Claim: etcd-grove#24 (etcd-dist, D8). Session: agent of etcd-grove-03 for kaashoek, branch `remote`,
 worktree `/shared/etcd-grove-remote`. Started 2026-11-21.
@@ -12,215 +12,265 @@ This plan ports that design onto etcd-grove's net extension as a neutral library
 dsverify's kits (phase 6 of `notes/dsverify-net-port-plan.md`) can reuse it, and so can etcd-dist's
 workloads (`notes/etcd-dist-plan.md` §2, D8).
 
-Status: **R0, the plan. No code yet.** Questions for the coordinator are in §8.
+**Status:** R0 reviewed 2026-11-22. This is revision 2, after the coordinator's decisions (§8). R1 is next.
 
 ## 1. The lab's pieces, mapped to ours
 
 | Lab (dsverify-lab `master`) | Here | How |
 |---|---|---|
-| `harness/remote/remote.go`: `Call`, `Serve`, `ServeClient`, `RunRemote`, the wire, `Codec`, `String` | `examples/lib/remote/remote.go` | **ported, changed** (§3): calls are retried until they get a reply, and replies are cached for duplicate requests. Ops are numbered by a sequence counter on node 0. Frames use kvnet's format. There is no `configure`/`New`, `Start` or `waitMs` |
-| `harness/driver` (`driver.Run`: client goroutines, `Gen`, `Start`, the recorder) | `examples/lib/lintest` (proved: `Run` never returns `Illegal` if `apply` is logically atomic) | **reused**. `apply` needs to know the calling client: Q1 |
-| `Recorder.lean`, `RunInv.lean`, `ClientSpec.lean` (`opAwpMaybe`, `DriverClientSpec`), `Driver.lean` | lintest's `Defs`/`InvLemmas`/`RunLemmas` (`applySpec`, `genSpec`, `clockSpec`, `linInv`) | **reused**. `opAwpMaybe` (an operation may return an unknown outcome) is dropped: lintest's `apply` always returns an output, and a library folds failure into its model (txnlin's `Output{Err: true}`) |
+| `harness/remote/remote.go`: `Call`, `Serve`, `ServeClient`, `RunRemote`, the wire, `Codec`, `String` | `examples/lib/remote/remote.go` | **ported, changed** (§3): one connection per attempt; a write gets one attempt and otherwise an unknown outcome, a read up to `ReadTries` attempts; the codec gains `IsRead` and `Unknown`; no `configure`/`New`, `Start` or `waitMs` |
+| `harness/driver` (`driver.Run`: client goroutines, `Gen`, `Start`, the recorder) | `examples/lib/lintest`, through a new `lintest.RunC` whose `apply` gets the client id (Q1); `Run` and its proof unchanged | **reused** |
+| `Recorder.lean`, `RunInv.lean`, `ClientSpec.lean`, `Driver.lean` | lintest's `Defs`/`InvLemmas`/`RunLemmas` (`applySpec`, `genSpec`, `clockSpec`, `linInv`) | **reused**. The lab's `opAwpMaybe` (commit, or an error after which the update may still fire) **is kept**, as the client node's obligation (§4). Node 0 turns it into lintest's always-committing `applySpec` over a model with pending writes |
 | `CheckerSpec.lean`, `PorcupineLin.lean`, the porcupine **axiom** | `Proof/github_com/anishathalye/porcupine/` (verified, no axiom) through lintest | **dropped**: our proof replaces it |
-| `Remote/RunP.lean`, `DriverP.lean` (copies of the driver's proof with persistent commit postconditions only) | none | **dropped**. We prove lintest's full `applySpec` (any postcondition Φ): the committed continuation goes back to node 0 through the slot invariant, not through the reply (§4) |
-| `Remote.lean`: `slotReg`, `reqProto`, `repProto`, `RemoteNames` (per-(c, j) claim tokens and saved predicates, allocated at the start for `j < k`) | `Remote/Defs.lean` | **ported, redesigned** (§4): slots are allocated by node 0 at call time and named by a global map from seq numbers. Each client node holds a frontier, not k claim tokens. No `k` |
-| `Remote/Wire.lean` (`le64`, `encRequest`, `encReply`, parsing lemmas) | `Remote/Wire.lean` | **ported** to the frame format, plus prefix lemmas (our reader's facts are about prefixes, §2) |
-| `Remote/Call.lean`, `Serve.lean`, `RunRemote.lean`, `Init.lean` | `Remote/{Call,Serve,ServeClient,Run,Init}.lean` | **ported, re-proved** over the net extension's canonical specs (`Net/Spec/net/`) and the protocol library `GooseLang/Ext/Net/Proto.lean` (`dial_au`, `accept_au`, `writeP`/`write_acc`, `read_au`, `close_au`, `deadline_au`) |
-| `Remote/Codec.lean`, `CodecKV/CasReg/KVScan.lean`, `KV.lean`, ... (per-model codecs) | `Remote/Codec.lean` (`CodecSpec`) + one codec per instance | **ported in form**: R4 gets one codec. The lab's KV/CasReg/KVScan codecs are not ported (their models are the lab's, not ours) |
+| `Remote/RunP.lean`, `DriverP.lean` (the driver's proof copied for persistent commit postconditions only) | none | **dropped**. The committed continuation comes back to the caller through the slot invariant (§4), so lintest's `applySpec` is proved for any postcondition |
+| The lab's unknown outcomes (porcupine's pending operations, through its axiom) | the pending-writes model `linkv.PendSpec`/`pM` (`Proof/.../etcd/txnlin/PendModel.lean`, used by txnlin and k8s etcd3) | **reused**. A failed write is pending: it may take effect later, at most once, or never. A failed read constrains nothing |
+| `Remote.lean`: `slotReg`, `reqProto`, `repProto`, `RemoteNames` (per-(c, j) claim tokens and saved predicates, allocated at the start for `j < k`) | `Remote/Defs.lean` | **redesigned** (§4): one slot per connection, made by the dialer once it has the connection and claimed by the acceptor with that connection's `connFresh`. No `j`, no `k`, no start allocation per operation |
+| `Remote/Wire.lean` | `Remote/Wire.lean` | **ported** to kvnet's frame format, with prefix lemmas (§2) |
+| `Remote/Call.lean`, `Serve.lean`, `RunRemote.lean`, `Init.lean` | `Remote/{Call,Do,Serve,ServeClient,Run,Init}.lean` | **re-proved** over the net extension's canonical specs (`Net/Spec/net/`) and `GooseLang/Ext/Net/Proto.lean` (`dial_au`, `accept_au`, `writeP`/`write_acc`, `read_au`, `close_au`, `deadline_au`) |
+| `Remote/Codec.lean` and the per-model codecs (`CodecKV`, `CodecCasReg`, `CodecKVScan`, ...) | `Remote/Codec.lean` (`CodecSpec`) and one codec per instance | **ported in form**. R4 gets the counter's codec. The lab's codecs are not ported (their models are the lab's) |
 | `Remote/Start.lean` (`remote_start`), `Dist.lean` (`remoteDistSafe` over `SafeDist`), `DistSha.lean` | `Remote/Start.lean`, `Remote/Robust.lean` (`remote_robust`) | **re-stated** as `KitDeploy … → Robust [] …` through `robust_of_kitProto` (§6). SHA is not needed |
-| `RemoteKit`, `RemoteFacts`, `RemoteMainFacts`, `remoteMainImpl`/`clientNodeImpl` (`rfl` facts about kitgen's generated `Main`) | none | **dropped**. An instance proves its nodes' boot WPs itself, calling `remote.Check`'s and `remote.ServeClient`'s specs. No kitgen |
+| `RemoteKit`, `RemoteFacts`, `RemoteMainFacts`, `remoteMainImpl`/`clientNodeImpl` (`rfl` facts about kitgen's generated `Main`) | none | **dropped**. An instance proves its nodes' boot WPs itself, calling `remote.Check`'s and `remote.ServeClient`'s specs |
 | `Mux.lean` | not used by `Remote` | not needed |
-| kvnet's `kvcheck` (#22) | not edited | **reused as the reference** for the client side: one request frame per connection with a timeout, retries, fresh ids for at-most-once (`checker.fresh`, including its `for {}` at exhaustion). Not imported: `remote` must not depend on kvnet. A kvnet with clients on their own machines would be an instance of `remote` later |
+| kvnet's `kvcheck` (#22) | not edited | **reused as the reference** for the client side: one request frame per connection with a timeout, the frame format. Not imported: `remote` must not depend on kvnet |
 
 ## 2. Semantics: the lab's `NetConn` vs the net extension
 
 | Difference | Lab | Here | What it means for the specs |
 |---|---|---|---|
-| Errors | codes | kinds `closed \| timeout \| sys`, EOF a read result (`ReadOutcome`) | none. `Call` and `Serve` treat every error the same way (retry, or close and move on), so their specs need no error predicate |
-| `Write` | one step | a loop of steps (D15): may write a prefix, then fail | a reader can see a truncated frame. The protocols are prefix-closed (`protoPrefix`, `ProtoPrefixClosed`), and a frame carries its length, so a reader that gets a full frame gets the one that was written (`Wire.lean`: a frame is not a prefix of another one). A truncated frame fails `readFull`, and the reader closes |
+| Errors | codes | kinds `closed \| timeout \| sys`, EOF a read result (`ReadOutcome`) | none. Every error is a failed attempt, so no spec has an error predicate |
+| `Write` | one step | a loop of steps (D15): may write a prefix, then fail | a reader can see a truncated frame. The protocols are prefix-closed (`protoPrefix`, `ProtoPrefixClosed`), and a frame carries its length, so a reader that gets a whole frame gets the one that was written (`Wire.lean`: no frame is a proper prefix of another). A truncated frame fails `readFull`, and the reader closes |
 | Write lock (D25) | not modeled | a waiting `Write` step may stutter | none: one writer per end |
 | Read facts | immediate | one step later (`recvTokL`, `recvTokL_later`) | later credits in the read loop, as `wire.ReadFull`'s proof already does |
-| Abandoned dials (D16) | no | `Accept` may return a connection whose dial failed: an empty, shut direction | `Serve` reads EOF and closes. No ghost state was promised for it |
-| Deadlines | timeouts | the value is not modeled: any operation may time out once a deadline is set (`deadline_au`) | `Call` retries on timeout, and `Serve` closes. Timing is never used for safety |
-| `Listen` | needs an exclusive address token | `addrTok` persistent; `Listen` on an address in use fails with `sys`; the listening token `netLisTok` (v3.4) | `Serve` retries `Listen` in a loop (as the lab's and kvnet's do). The client node's share includes its address's `addrUnset` and protocol |
-| Deployment | `cfg.WellFormed`, plan, hosts | `KitDeploy addrs nodes g` (v3.4): addresses distinct and `addrOk`, no connections, no listeners | the instance's addresses are the client nodes' plus the servers' (node 0 listens on none) |
-| Crashes | no crash (`SafeDist`) | `Robust crashing stable`. The kits use `Robust []` (`robust_of_kitBoot`) | the orchestrator and client nodes are **stable** (they keep the history). R3 proves the `Robust []` form. Each node's boot WP is a separate lemma, so that etcd-dist's mixed bridge (crashing servers, #22's `NetFs` adequacy) can reuse them unchanged |
-| Liveness | not proved | not proved | `Call` retries forever, so a partition between node 0 and client c stalls client c. That is safe: kvcheck does the same |
+| Abandoned dials (D16) | no | `Accept` may return a connection whose dial failed (an empty, shut direction) | `Serve` reads EOF and closes. No slot was made for it, and none is claimed |
+| Deadlines | timeouts | the value is not modeled: any operation may time out once a deadline is set (`deadline_au`) | a timeout is a failed attempt. Timing is never used for safety |
+| `Listen` | needs an exclusive address token | `addrTok` persistent; `Listen` on an address in use fails with `sys`; listening token `netLisTok` (v3.4) | `Serve` retries `Listen` (as the lab's and kvnet's do). A listening node's share includes its address's `addrUnset` and protocol |
+| Deployment | `cfg.WellFormed`, plan, hosts | `KitDeploy addrs nodes g` (v3.4): addresses distinct and `addrOk`, no connections, no listeners | the addresses are the listening nodes' (client nodes, servers). Node 0 listens on none |
+| Crashes | none (`SafeDist`) | `Robust crashing stable`. The kits use `Robust []` (`robust_of_kitBoot`) | the orchestrator and the client nodes are **stable** (they keep the history). R3 proves the `Robust []` form. Each node's boot WP is a separate lemma, so a mixed bridge (crashing servers: #22's `NetFs` adequacy, etcd-dist D3) can reuse them unchanged |
+| Liveness | not proved | not proved | a call that never gets a reply waits for its attempt's deadline. Safety only |
 
-No change to the net extension or to Perennial is needed. Everything above uses specs and laws that
-exist (`Net/Spec/net/{DialTimeout,Listen,Listener__Accept,Conn__Read,Conn__Write,Conn__Close,
-Conn__SetDeadline}.lean`, `Proto.lean`, Perennial's `time.Now`, `Time.Add`, `sync/atomic`).
+No change to the net extension or to Perennial. Everything above uses specs and laws that exist
+(`Net/Spec/net/{DialTimeout,Listen,Listener__Accept,Conn__Read,Conn__Write,Conn__Close,
+Conn__SetDeadline}.lean`, `Proto.lean`, Perennial's `time.Now`, `Time.Add`, `sync/atomic`, and
+goose's `primitive.NewProph`/`ResolveU64`, as txnlin uses them).
 
 ## 3. The Go API (`examples/lib/remote`)
 
 ```go
-// Codec: a model's inputs and outputs as bytes; Dec* is false on bytes that are not an encoding.
+// Codec: a model's inputs and outputs as bytes (Dec* false on bytes that are not an encoding),
+// which inputs are reads (a read may be retried; a write may not), and the model's unknown
+// output for an input (txnlin's Output{Err: true}).
 type Codec struct {
-	EncIn  func(any) []byte
-	DecIn  func([]byte) (any, bool)
-	EncOut func(any) []byte
-	DecOut func([]byte) (any, bool)
+	EncIn   func(any) []byte
+	DecIn   func([]byte) (any, bool)
+	EncOut  func(any) []byte
+	DecOut  func([]byte) (any, bool)
+	IsRead  func(any) bool
+	Unknown func(any) any
 }
 
-// Node 0. lintest's driver: client c's operations are calls to addrs[c]; the history is checked
-// by porcupine against model. attempt bounds one try (dial, request, reply).
+// Node 0: lintest.RunC with apply(c, in) = Do(addrs[c], in, codec, attempt); porcupine checks the
+// history against model.
 func Run(model porcupine.Model, addrs []string, codec Codec, gen func(int) any, ops int,
 	attempt time.Duration, timeout time.Duration) porcupine.CheckResult
 // Check is Run with no timeout; it panics unless porcupine answers Ok (the theorem: it never panics).
 func Check(model porcupine.Model, addrs []string, codec Codec, gen func(int) any, ops int,
 	attempt time.Duration)
 
-// Client node c: sys := newClient(c), then Serve. Never returns.
-func ServeClient(c int, addr string, newClient func(int) any, op func(sys any, in any) any, codec Codec)
-func Serve(addr string, sys any, op func(sys any, in any) any, codec Codec)
+// One operation at the node listening at addr: a write gets one attempt, a read up to ReadTries.
+// It returns the output the far side answered, or codec.Unknown(in) if no attempt got an answer
+// (or the far side answered "unknown": its own operation failed).
+func Do(addr string, in any, codec Codec, attempt time.Duration) any
 
-// The call (exported for reuse and tests): sends request seq with input in until it gets a reply.
-func Call(addr string, seq uint64, in []byte, attempt time.Duration) []byte
+// The node at addr: listens (retried), serves one connection at a time with op(sys, in). It never
+// returns. ServeClient(c, ...) is newClient(c), then Serve.
+func Serve(addr string, sys any, op func(sys any, in any) any, codec Codec)
+func ServeClient(c int, addr string, newClient func(int) any, op func(sys any, in any) any, codec Codec)
 ```
 
-The wire is kvnet's frame format: an 8-byte little-endian length, then the body. One connection
-per attempt. The request is the frame `seq ‖ in`, the reply the frame `seq ‖ out`.
+**The wire.** kvnet's frame format: an 8-byte little-endian length, then the body. One connection
+per attempt, carrying one request and at most one reply:
 
-- **Node 0** (`Run`): `lintest.RunC` (Q1) with `apply(c, in)`. It takes `seq` from an atomic
-  counter (and loops forever at `2^64 - 1`, as kvcheck's `fresh` does), encodes `in`, `Call`s
-  `addrs[c]`, and decodes the output. A reply that does not decode is treated as no reply, and
-  `Call` retries. The clock is `lintest.CounterClock()`.
-- **`Call`**: for each attempt, `DialTimeout`, `SetDeadline(now + attempt)`, write the request,
-  read the reply frame. It returns the reply's output if the reply is for `seq`, and otherwise tries
-  again. It never returns without a reply.
-- **Client node** (`Serve`): `Listen` (retried), then serve one connection at a time. Read a request
-  frame (with a deadline). If `seq > last`: decode the input, run `op(sys, in)`, encode the output,
-  set `last, cached`, and reply. If `seq == last`: reply `cached` (a retry whose reply was lost). If
-  `seq < last`: close (a stale connection). Then close.
-- **Too long**: an encoding longer than `MaxLen` (2^20, as kvnet's `maxFrame` bounds a frame) is never
-  sent. The orchestrator then waits forever (`for {}`), with no premise and no panic. The R1 tests
-  assert the instances' encodings fit (Q4).
+- the request is the frame `in`;
+- the reply is the frame `1 ‖ out` (answered with `out`) or `0` (the far side's `op` returned its
+  unknown output).
 
-**What changed from the lab, and why.**
-- *Retry with a reply cache, instead of an unknown outcome.* lintest's `apply` must return an output
-  (`applySpec`), and node 0 cannot commit an operation for the client node. The cache makes retries
-  at-most-once: the `seq` numbers are increasing for each client node, because client c's goroutine
-  is sequential and the counter is atomic. So every operation's output is the one its client
-  library's `op` returned. A library with unknown outcomes (an etcd request that times out) returns
-  them as model outputs, as txnlin does today.
-- *One sequence counter on node 0, not a `j` per client and a `k` per run.* The ghost slots are
-  allocated when the call is made, so the start needs no bound on operations.
-- *No `configure`/`New`, `Start`, `waitMs`.* etcd-dist's client machines get their endpoints as
-  arguments (`client.Main(w, eps)`), and lintest has no start delays.
+There are no sequence numbers. An attempt is identified by its connection.
 
-**etcd-dist's seam** (read on branch `etcd-dist`, `examples/etcd/dist/client/client.go`, a sketch;
-not edited). Each workload is `Main(w, eps)` on one machine. With `remote`, a multi-client workload
-splits into:
+**`Do`** runs, for each attempt:
 
-- node 0's `remote.Check(model, clientAddrs, codec, gen, ops, attempt)`;
-- client machine c's `remote.ServeClient(c, addr, newClient, op, codec)`.
+1. `DialTimeout`, then `SetDeadline(now + attempt)`;
+2. write the request, then read the reply;
+3. if the reply is `1 ‖ out` and `out` decodes, return it.
 
-For `kv`: `newClient(c)` is `clientv3.New` of `eps[c mod k]`, and `op(sys, in)` is
-`txnlin.Apply(sys.(*clientv3.Client), in)`. That is `partition.Apply` without the random member,
-"each client's operation sequence a function over its own client". `gen` and `model` are
-`txnlin.Gen` and `txnlin.Model()`. txnlin needs a codec for its `Input` and `Output` (Go and proof:
-etcd-dist's work, sized in §7). Single-client workloads (putget, compact, durable) do not use
-`remote`.
+If the reply is `0`, `Do` returns `Unknown(in)` at once. On any other failure, a read tries again
+(at most `ReadTries` attempts, 3), and a write stops after its one attempt. Either way, when no
+attempt gets an answer, `Do` returns `Unknown(in)`. A prophecy (`NewProph` at the start of `Do`,
+`ResolveU64` at its end) records which attempt answered (or none). It does nothing in Go; node 0's
+proof needs it (§4).
 
-The Go module: Q3.
+**`Serve`** handles one connection at a time:
+
+1. accept, then `SetDeadline`;
+2. read the request frame and decode it;
+3. run `op(sys, in)`;
+4. reply `1 ‖ EncOut(out)`, or `0` if `out` is `Unknown(in)`;
+5. close.
+
+A connection whose request does not arrive whole, or does not decode, is closed without running
+anything.
+
+**A write whose connection is cut mid-call.** If the cut comes before the client node has read the
+whole request, the client node never runs it: the write has no effect, now or later. If the cut
+comes after, the client node runs `op` to completion (it is not cancelled), then fails to write
+the reply, closes and serves the next connection. The write may have taken effect, or may still
+take effect later through the far side's own pending state (an etcd proposal still in raft).
+
+In both cases node 0's `Do` sees a failed attempt and returns `Unknown(in)`. The model takes that
+as a pending write: it may have taken effect before the return, may take effect after it (at most
+once), or never. Node 0 never resends a write, and no other connection carries it. So nothing
+makes writes at-most-once through retries: at-most-once is what one request per connection, and
+one claim per connection, give (§4).
+
+**No reply cache, no deduplication.** Revision 1 had both, because it retried writes. Now each
+attempt is its own connection and its own slot, and a reply is read on the connection that carried
+its request, so a read's retry cannot be confused with a stale reply. `Serve` keeps no state
+between connections. This also removes the per-sender deduplication R4's server needed (§6, Q2).
+
+**Too long.** An encoding longer than `MaxLen` (2^20, as kvnet's `maxFrame`) is never sent: node 0
+waits forever (`for {}`). No premise (Q4).
+
+**etcd-dist's seam** (branch `etcd-dist` at `59304d8044`, §2 "Stage D1"; not edited). The kv
+workload is `RunKV`: `kvClient` (a copy of `lintest.runClient`, made because `Run`'s `apply` gets no
+client id) loops over `kvApply(clis[i])`, which is `txnlin.Apply` through client i's own clientv3
+client. With `remote`:
+
+- node 0 is `remote.Check(txnlin.Model(), clientAddrs, txnCodec, txnlin.Gen, ops, attempt)`;
+- client machine i is `remote.ServeClient(i, addr_i, newClient, op, txnCodec)`.
+
+`lintest.RunC` makes the `kvClient` copy unnecessary (D1 can drop it). There is one difference:
+`op` must be txnlin's call **without** its prophecies (txnlin's unexported `call`), since node 0's
+`Do` now makes the prophecy (§4). txnlin's codec (heap-free `Input`/`Output`, `IsRead` =
+`!isWrite`, `Unknown` = `Output{Err: true}`) is etcd-dist's work (§7). The watch/cache writers
+(`etcdstart.Writer`) and auth (`auth.Work(cli_who, who)`) are other seams: per-client loops that
+are not porcupine histories. `remote` does not cover them (Q6).
 
 ## 4. The proof design (R2)
 
 **Where.** In the part `Net/` (it calls `net`, whose main-tree copy is names-only), as a new goose
-project `remote`. Its configuration:
+project `remote`:
 
 - `local=examples/lib/remote`, `root="Net"`;
-- `lean_roots` maps `remote` to `Net`, and lintest and porcupine to the main tree (`=`). Checked: lintest's
-  135-module import closure reaches no `net` module, so `Net` can import it;
-- specs under `Net/Spec/github_com/.../lib/remote/`, proofs under `Net/Proof/.../lib/remote/`, the
-  shared definitions in `Defs.lean`;
-- a `Link.lean`, and a collection `etc/tcb-collections/remote.txt`.
+- `lean_roots` maps `remote` to `Net`, and lintest and porcupine to the main tree (`=`). Checked:
+  lintest's 135-module import closure reaches no `net` module;
+- specs under `Net/Spec/github_com/.../lib/remote/`, proofs under `Net/Proof/.../lib/remote/`;
+- a `Link.lean`, and the collection `etc/tcb-collections/remote.txt`.
 
-**What crosses the network.** Protocols are persistent, so an operation's atomic update moves through
-an invariant, as in the lab's spec (R). The differences: slots are made at call time, and the commit's
-continuation comes back through the slot.
+**The base and the model.** An instance gives a deterministic base store, `B : linkv.PendSpec St I O`
+(`step : I → St → St × O`, `isWrite`, with reads not changing the state), and the base state's
+predicate `sysState : St → IProp` over the global ghost state (the far side's: the counter's value,
+etcd's KV). The model node 0 checks against is `linkv.pM B dec`: pending writes, as for txnlin, with
+`dec` the instance's decoder of porcupine's inputs and outputs (`Unknown(in)` decodes to `err`). The
+instance proves `isModel` of its Go model, as txnlin does.
 
-- The global ghost state (allocated at the start, over `GooseGlobalGS`, as the lab does) has:
-  - a map `seq ↦□ γ` (`slotName`), whose authority is in node 0's local invariant with the atomic
-    counter;
-  - for each client node c, a frontier `mono γc last` (authority at client node c).
-- Slot `seq` for client node c, input i, update `AU` and continuation Φ:
-  `inv (slotN seq) (pending AU ∨ (monoLb γc seq ∗ (running ∨ done o (K o ∨ takeTok γ))))`.
-  - Client node c takes `AU` only by advancing its frontier to `seq`. A slot with `seq > last` is
-    therefore still pending, and an update is taken at most once.
-  - After `op` returns o, the node stores the committed continuation `K o` as `done o` and keeps
-    the persistent fact `doneLb seq o`.
-  - Node 0, holding `takeTok`, takes `K o` once the reply arrives.
-- `reqProto c cn W`: `W` is a prefix of a request frame `seq ‖ bI i`, with `slotName seq γ`, the slot's
-  invariant for c's address, and `□ inOk i`.
-- `repProto c cn W`: `W` is a prefix of a reply frame `seq ‖ bO o`, with `doneLb seq o` and `S.ioOk i o`.
-  Both protocols are persistent, and so are their facts.
-- So node 0's `apply` meets lintest's `applySpec` for **every** Φ. lintest's proof is used unchanged
-  (no `RunP` copy, unlike the lab), and so is porcupine's.
+**The far side's obligation** (`opMaybe`: the lab's `opAwpMaybe` over the base, with the node's own
+token):
 
-**The client node's obligation** (a kit's, or a workload's, for its client library):
+```
+∀ sys i Φ, inOk i ∗ tok sys ∗ threadTok ∗
+  AU <∀∀ st, sysState st> @ Eop <sysState (B.step i st).1, COMM Φ (B.step i st).2> -∗
+  WP op sys i {v, tok sys ∗ threadTok ∗ ((∃ o, v = encO o ∗ Φ o) ∨ v = Unknown i)}
+```
 
-- `newClient(c)` gives `is_sys sys` (persistent) and `tok sys` (exclusive, chosen by the node, over
-  its own heap: the lab's `client_tok`, without the index `j`, since `Serve` never skips an
-  operation);
-- `op` meets lintest's `applySpec` shape, lent `tok sys` and the thread's `threadTok`:
-  `{{ inOk i ∗ tok sys ∗ threadTok }} <<∀∀ s, libState s>> op sys i @@ Eop
-  <<∃∃ s' o, libState s' ∗ ⌜S.M.step s (i, o) = some s'⌝>> {{ RET o'; ⌜equiv⌝ ∗ S.ioOk i o' ∗ tok sys ∗ threadTok }}`.
+Either it committed and returns the step's output, or it returns unknown: the update may then have
+fired, may fire later, or never. A library that never fails meets it trivially, for example
+`lintest/counter`'s `Counter.Apply`, which is logically atomic over the counter.
 
-**The cross-node condition** (as the lab's, made explicit). `libState`, `inOk` and `S.ioOk` are the
+**What crosses a connection.** Protocols are persistent, so an update moves through an invariant,
+one per connection (the lab's spec (R)):
+
+- **The slot.** After its `DialTimeout` succeeds, the dialer has `cn` and `connFresh cn false`. It
+  registers `cn ↦ γ` in a global ghost map (`slotOf cn γ`, persistent). The map's invariant holds
+  each registered connection's `connFresh cn false`, so a connection gets one slot. The dialer then
+  allocates
+  `inv (slotN cn) (pending AU ∨ connFresh cn true ∗ (running ∨ done o (Φ o ∨ takeTok γ)))`.
+- **The claim.** The acceptor's `connFresh cn true` (`accept_au`, exclusive, `connFresh_excl`) is the
+  only key to the update. The acceptor swaps it for `AU`, so the update fires at most once. That is
+  the at-most-once argument, with no sequence numbers.
+- **The protocols.** `reqProto cn W`: `W` is a prefix of the frame of `bI i`, with `slotOf cn γ`, the
+  slot's invariant and `□ inOk i`. `repProto cn W`: `W` is a prefix of `1 ‖ bO o` with
+  `slotOf cn γ ∗ doneLb γ o`, or of `0`. Both are persistent.
+- **The reply.** After `op` returns `o`, the acceptor stores `Φ o` in the slot (`done`) and replies.
+  The dialer, holding `takeTok`, takes `Φ o` when the reply arrives.
+- **The spec.** `Do.spec` is `opMaybe` over the same base: the far side's `opMaybe`, transported.
+  That is also the obligation of a client node whose `op` is itself a `Do` to a server, as in R4.
+
+**Node 0's `apply` meets lintest's `applySpec` over `pM B dec`.** This generalizes txnlin's
+`Inv.lean`: `write_err_commit`, `write_pend_au`, `write_ok_au`.
+
+- A generic invariant `pendInv` relates lintest's `libState S` (half a ghost variable) to
+  `sysState st`: some configuration of `S` is `st` with exactly the pending map's writes pending,
+  and `S` is closed under late effects.
+- `Do`'s prophecy says which attempt answers, if any. Before the first attempt, node 0 decides
+  what each attempt's slot holds:
+  - the answering attempt's slot gets an update that commits lintest's update with `(i, ok o)` when
+    it fires;
+  - a write with no answer commits now with `(i, err)` (pending, minting the pending write's token)
+    and puts in its slot the update that fires the pending write;
+  - a read with no answer commits now with `err` (nothing), and every attempt's slot gets a no-op
+    read update (reads do not change the state).
+- So lintest's proof, and porcupine's, are used unchanged.
+
+**The cross-node condition** (as the lab's, made explicit). `sysState`, `inOk` and `S.ioOk` are the
 same propositions at every node: they are defined over the global ghost state. `CodecSpec` makes
-decoding return the value that was encoded (`DecIn (bI i) = i`, `DecOut (bO o) = o`, `bI` and `bO`
-injective on admitted values). So the model's inputs and outputs must be heap-free Go values
-(scalars, strings, structs of them; not slices, maps or pointers). The counter's `bool`/`int64`
-qualify. txnlin's `Input`/`Output` must be checked when etcd-dist writes its codec (its `Output`
-keeps its KVs in fixed fields, `NKVs`, which looks heap-free).
+decoding return the value that was encoded, so the model's inputs and outputs must be heap-free Go
+values (scalars, strings, structs of them). The counter's `bool`/`int64` qualify; txnlin's
+`Input`/`Output` are checked when its codec is written.
 
 **Specs**:
 
-- `remote.Call.spec`: a reply for `seq`, with `doneLb seq o` and its bytes;
-- `remote.Serve.spec`, `remote.ServeClient.spec`: never return; safe from the client node's share
-  and obligation;
-- `remote.Run.spec`, `remote.Check.spec`: lintest's premises (`isModel`, `genSpec`, `libState S.M.init`,
-  bounds), `CodecSpec`, node 0's share; then `r ≠ Illegal`, and `Check` returns;
-- `CodecSpec`;
-- the frame helpers (`writeFrame`, `readFrame`, `readFull`: ported from kvnet's and `wire.ReadFull`'s
-  proofs, not imported).
+- `remote.Do.spec`: `opMaybe` transported, under the address's protocol;
+- `remote.Serve.spec`, `remote.ServeClient.spec`: never return; safe from the node's share and its
+  `opMaybe`;
+- `remote.Run.spec`, `remote.Check.spec`: lintest's premises (`isModel` with `S.M = pM B dec`,
+  `genSpec`, bounds), `CodecSpec`, `pendInv`'s start, node 0's share; then `r ≠ Illegal`, and
+  `Check` returns;
+- `lintest.RunC.spec` (lintest's `Run.spec` with an id-indexed `applySpec`);
+- the frame helpers, ported from kvnet's and `wire.ReadFull`'s proofs, not imported.
 
 ## 5. Stages
 
-1. **R1** Go: `remote.go` and tests over real sockets (loopback). The tests are:
-   - an end-to-end run with the counter (§6) on separate listeners, porcupine `Ok`;
-   - a fault proxy that cuts connections at every byte offset, drops replies, and delays and duplicates
-     requests. Expected: every operation answered once, the history linearizable;
-   - a differential check against `lintest.Run` with an in-process counter (same model, same verdicts);
-   - stale and duplicate seq handling.
+1. **R1** Go: `remote.go`, `lintest.RunC`, the counter instance, and tests over real sockets
+   (loopback):
+   - an end-to-end run (node 0, two client nodes, the counter server; porcupine `Ok`);
+   - a fault proxy that cuts connections at every byte offset of a request and of a reply, and
+     delays and drops. Expected: porcupine `Ok`, with unknown-outcome writes in the history, some
+     of which took effect;
+   - a differential check against `lintest.Run` with an in-process counter, when there are no faults;
+   - a mutation control: a `Serve` that runs a write twice must be caught.
 
-   Also the goose project, `etc/goose.py --check --project remote`, and a gate line in `etc/gates.sh`.
-2. **R2**: translation, `Defs`, `Wire`, frame helpers, `Call`, `Serve`/`ServeClient`, `Run`/`Check`,
-   `Init`, `Link`. If Q1 goes that way, it also includes lintest's `RunC` and its proof.
-3. **R3**: `remote_robust` (§6) with `remote_start` and the per-node boot lemmas.
-4. **R4**: the instance (§6), closed, with `#print axioms` and `etc/tcb-collections/remote.txt`.
+   Also the goose project, `etc/goose.py --check --project remote`, and a gate line.
+2. **R2**: translation; `Defs`, `Wire`, frames; `Do`, `Serve`/`ServeClient`; `pendInv` and node 0's
+   `apply`; `Run`/`Check`; `lintest.RunC`; `Init`, `Link`.
+3. **R3**: `remote_robust` (§6), with `remote_start` and the per-node boot lemmas.
+4. **R4**: the counter instance, closed, with `#print axioms` and `etc/tcb-collections/remote.txt`.
 
 ## 6. The statement (R3) and the instance (R4)
 
 **R3, the generic lemma**, over `KitDeploy` and `KitBridge` as the Net examples (`echo_kit_robust`):
 
 ```lean
-/-- What an instance proves (the lab's RemoteDistSpec, over the global ghost state). -/
 structure RemoteObligations (orch : Expr × state) (clients servers : List (Expr × state))
     (clientAddrs serverAddrs : List GoString) [G : GooseGlobalGS .hasLC netGF] [NetProtoGS] where
-  σ : Type; S : ModelSpec netGF σ; libState : σ → IProp netGF; inOk : …; Eop : CoPset
+  B : linkv.PendSpec St I O; sysState : St → IProp netGF; inOk …; Eop : CoPset
   Γs : Type
-  /-- the instance's own start: its servers' shares and the model's initial state, from its servers'
-  addresses (the harness sets up the client nodes' addresses itself) -/
+  /-- the instance's start: the base state at B.init and the nodes' shares, from its servers'
+  addresses (the harness sets up the client nodes' addresses and the slot map itself) -/
   start : ⊢ regCtx -∗ ([∗list] a ∈ serverAddrs, addrUnset a) ={⊤}=∗
-    ∃ γ : Γs, libState S.M.init ∗ orchRes γ ∗ ([∗list] c ↦ _ ∈ clients, clientRes γ c) ∗
+    ∃ γ : Γs, sysState B.init ∗ orchRes γ ∗ ([∗list] c ↦ _ ∈ clients, clientRes γ c) ∗
       [∗list] i ↦ _ ∈ servers, serverRes γ i
-  /-- node 0's boot program is safe from its share and the harness's (it calls remote.Check) -/
-  orch_boot : ∀ γ ρ, KitBootWp orch.1 (orchRes γ ∗ remoteOrchShare S … clientAddrs ρ ∗ libState S.M.init)
-  /-- client node c's boot program is safe from its share and the harness's (it calls ServeClient) -/
+  orch_boot : ∀ γ ρ, KitBootWp orch.1 (orchRes γ ∗ remoteOrchShare … clientAddrs ρ)
   client_boot : ∀ γ ρ c m a, clients[c]? = some m → clientAddrs[c]? = some a →
-    KitBootWp m.1 (clientRes γ c ∗ remoteClientShare S … a c ρ)
+    KitBootWp m.1 (clientRes γ c ∗ remoteNodeShare … a ρ)
   server_boot : ∀ γ i m, servers[i]? = some m → KitBootWp m.1 (serverRes γ i)
 
 theorem remote_robust … (H : ∀ [GooseGlobalGS .hasLC netGF] [NetProtoGS], RemoteObligations …) :
@@ -228,87 +278,91 @@ theorem remote_robust … (H : ∀ [GooseGlobalGS .hasLC netGF] [NetProtoGS], Re
     Robust [] (orch :: clients ++ servers) g threads bound
 ```
 
-It is proved by `robust_of_kitProto`:
+It is proved by `robust_of_kitProto`. `remote_start` sets the client addresses' protocols, allocates
+the slot map and `pendInv`, and splits the shares; the instance's `start` does the rest. Each node's
+WP is the instance's short proof: it calls `remote.Check.wp_proof`, `remote.ServeClient.wp_proof` or
+`remote.Serve.wp_proof` with its model, codec and library. `remote_orch_boot` and
+`remote_node_boot` lemmas package the common part. A server that itself listens through `remote`
+gets its address's protocol from `remote_start` too: `serverAddrs` are split into `remote`'s and
+the instance's own.
 
-- `remote_start` sets the client addresses' protocols (`addrs_set_proto`), allocates the slot map and
-  frontiers, and splits the shares;
-- the instance's `start` does the rest.
+**R4, the instance** (Q2 decided): a counter on a server node, behind two client nodes. Four
+machines:
 
-The orchestrator's and the client nodes' WPs are the instance's own short proofs. Each calls
-`remote.Check.wp_proof` or `remote.ServeClient.wp_proof` with its model, codec and client library;
-`remote_orch_boot` and `remote_client_boot` lemmas package the common part.
+- node 0: `remote.Check(model, [c0, c1], codec, gen, ops, attempt)`;
+- client nodes 0 and 1: `ServeClient` whose `op` is `remote.Do(serverAddr, in, codec, attempt)`;
+- the server: `remote.Serve` with `op` = `lintest/counter`'s `Counter.Apply`, already proved
+  logically atomic over the counter.
 
-**R4, the instance** (recommended, Q2): a counter on a server node, with two client nodes, so the
-state is really shared and the server sits behind the client nodes. Four machines:
+The model is the counter's pending-writes model: base `B` = increment (a write) or read on an
+`int64`. Its Go model is new: its state `(lo, k)` is the counter's least value and the number of
+increments pending (the configurations `{(lo + j, k - j)}`), and its `Step` is proved to be
+`pSeq.step` on those sets.
 
-- node 0: `remote.Check(counter.Model(), [c0, c1], counterCodec, gen, ops, attempt)`;
-- client nodes 0 and 1: `ServeClient` whose `op` is a `remote.Call` to the server;
-- the server: `remote.Serve` with `op` = `lintest/counter`'s `Counter.Apply`, which is already proved
-  linearizable.
-
-This exercises the library twice. The client nodes' `op` is exactly node 0's `apply` lemma, at one
-level down. The cost: `Serve` must deduplicate **per sender** (requests carry a sender id: node 0 is
-one sender per client node, and each client node is a sender to the server). That means a `last`
-and a cached reply per sender (a small map) and one frontier per (address, sender). It is useful in
-general: any server behind `remote` has several senders.
-
-The fallback (R4-min): no server; each client node's `op` is a pure function (model: output =
-f(input), state unit). It is cheap, but shows no shared state.
+Unknown outcomes: a fault proxy in R1's test, and in the proof every attempt may fail. For the
+theorem to show an unknown-outcome write, the history itself must contain one, so the workload
+includes one: node 0's attempt deadline is short enough that the R1 test sees unknown writes, and
+`Check` does not depend on whether they occur. Through `Do`'s two hops, a write can end unknown at
+node 0 while it was answered between the client node and the server (the client node's reply cut).
+The model then shows it pending and applied.
 
 The statement goes in `Net/Spec/.../lib/remote/counter/TopLevelRobustness.lean`:
 
 `counter_remote_robust.spec := ∀ …, KitDeploy counterAddrs (system …) g → Robust [] (system …) g threads bound`
 
-with `#print axioms` (expected: the net extension's and Perennial's, nothing of `remote`), and a
-collection `etc/tcb-collections/remote.txt`.
+with `#print axioms` (expected: the net extension's and Perennial's, nothing of `remote`'s), and
+`etc/tcb-collections/remote.txt`.
 
 ## 7. Sizes
 
 | Piece | Go | Lean (estimate) |
 |---|---|---|
-| R1 `remote.go`, tests, proxy | ~250 + ~350 | — |
-| lintest `RunC` (Q1) | ~20 | ~250 changed/added (`runClient`/`RunLin2` take an id-aware `apply`, `Run` derived) |
-| R2 `Defs` (slots, frontiers, protocols), `Wire`, frames | — | ~800 |
-| R2 `Call`, `Serve`/`ServeClient` (with per-sender dedup), `Run`/`Check`, `Init`, `Link` | — | ~1600 |
+| R1 `remote.go`, the counter instance (Go model with pending increments, codec, nodes), tests, fault proxy | ~250 + ~200 + ~400 | — |
+| `lintest.RunC` (new; `Run` unchanged) | ~30 | ~350 (`RunC`, `runClientC`, `RunLin2C`: copies of the proofs with an id-indexed `applySpec`) |
+| R2 `Defs` (slots, protocols), `Wire`, frames | — | ~800 |
+| R2 `Do`, `Serve`/`ServeClient` | — | ~1100 |
+| R2 `pendInv` and node 0's `apply` (prophecy, pending writes; after txnlin's `Inv.lean`, ~940 lines, without revisions) | — | ~900 |
+| R2 `Run`/`Check`, `Init`, `Link` | — | ~300 |
 | R3 `remote_start`, boot lemmas, `remote_robust` | — | ~450 |
-| R4 counter codec, nodes, server, `TopLevel*`, tcb collection | ~120 | ~900 |
-| **total** | ~750 | **~4000** (the lab's `Remote*` is ~5700, of which ~1300 is three codecs) |
+| R4 the counter's pending model (`isModel`), codec, nodes, `TopLevel*` | — | ~1300 |
+| **total** | ~900 | **~5200** (the lab's `Remote*` is ~5700, of which ~1300 is three codecs) |
 
-For etcd-dist (not this branch): txnlin's codec (Go ~150, proof ~500) and the kv workload's client
-node obligation (`op` = `txnlin.Apply`'s existing proof, lent `tok`).
+For etcd-dist (not this branch): txnlin's codec (Go ~150, proof ~500), an exported txnlin call
+without prophecies with its `opMaybe` proof (from txnlin's `Apply` proof, which already splits on the
+outcome).
 
 Risks:
-- the per-sender map in `Serve` (Goose maps are fine, but they add proof);
-- lintest's `applySpec` shape (`threadTok` lent; the masks `Eapp` vs `remoteN`/`lintestN`):
-  the slot namespace must be outside `Eop` and `lintestN`;
-- the build budget: `Net/` is rebuilt by others too. Use the two build slots only.
+- **Reads that fire more than once.** txnlin's reads hand the server a *persistent* read update
+  (`read_ok_au`: etcd may serve a read's update more than once). `opMaybe`'s update is single-shot.
+  If etcd-dist's `op` needs a persistent read update, `opMaybe` gets a read form (a persistent
+  update for `B`'s reads, which do not change the state). This is not needed for R4.
+- The prophecy's protocol across attempts: the slot contents are decided before the first attempt;
+  this needs care in `Do`'s loop invariant. A read's attempts that are not the answering one need
+  an update too, since the far side may claim their slots. So `Do.spec` takes, for reads, a
+  persistent no-op read update over `sysState` (`readNoop`: `sysState` in an invariant, which
+  `pendInv` is), handed to every node in its share. A slot never claims more than its one update.
+- Masks: the slot namespace and `pendInv`'s must be outside `Eop` and `lintestN`.
+- The build budget: `Net/` is rebuilt by others too. Use the two build slots only.
 
-## 8. Questions for the coordinator
+## 8. Decisions (coordinator, 2026-11-22) and open questions
 
-- **Q1 (lintest's `apply` does not know its client).** `lintest.Run`'s `apply` is `func(any) any`, and
-  node 0 must route client c's operation to client node c.
-  - (a) Recommended: add `lintest.RunC` whose `apply` is `func(id int, in any) any`. `runClient` passes
-    its id, and `Run`/`RunLin`/`RunLin2` call through it with `apply` wrapped. Proof: `applySpec`
-    gains an id-indexed variant, and the old one implies it. This edits lintest (Go, translation, ~250
-    Lean lines). kvcheck and the other users are unchanged.
-  - (b) Leave lintest alone: `remote` wraps `gen` so that inputs carry the client id, and wraps the
-    model to unwrap them. That needs a `ModelSpec` for the wrapped model, and porcupine's histories
-    show the wrapper.
-
-  May I edit lintest?
-- **Q2 (R4's instance).** The counter behind a server node with per-sender deduplication in `Serve`
-  (recommended), or R4-min (pure function, no server) first?
-- **Q3 (module path, phase 3's export).** `examples/lib/remote` as a Go module of its own,
-  `github.com/mit-pdos/etcd-grove/examples/lib/remote` (like lintest; recommended now). The path names
-  etcd-grove, so phase 3's leak check will flag it, as it will lintest. Moving both to a neutral path
-  (as `models.lab`) is phase 3's change. Or a neutral module path now?
-- **Q4 (too-long encodings).** Hang (`for {}`) with no premise (recommended; tests check the instances
-  fit), or a premise in `CodecSpec` that admitted values encode within `MaxLen` (the lab's craq/rabia
-  bounds)?
-- **Q5 (deviation from the lab's spec).** Calls are retried with a reply cache, so there are no unknown
-  outcomes at the transport level. The lab kept unknown outcomes (`opAwpMaybe`). With lintest that is
-  the only option, but it is a change to the user's design: is it acceptable, or should I ask the user?
+- **Q1** decided: `lintest.RunC` (apply gets the client id) as a separate function. `Run` and its proof
+  unchanged.
+- **Q2** decided: the counter on a server node behind two client nodes; R4 exercises an
+  unknown-outcome write. The decision asked for `Serve` to deduplicate per sender. With one slot per
+  connection (§4) deduplication is unnecessary: nothing is resent, and a connection's claim is its
+  `connFresh`. **Confirm dropping it.**
+- **Q3** decided: the module path beside lintest (`github.com/mit-pdos/etcd-grove/examples/lib/remote`,
+  a Go module of its own). The neutral path comes with phase 3.
+- **Q4** decided: node 0 hangs on an over-long encoding, with no premise.
+- **Q5** decided (the user: "clients in etcd don't retry, except for read ops"): a write that fails on
+  the link is an unknown outcome, reported as the model's unknown output (`Codec.Unknown`), never
+  retried. A read is retried, up to `ReadTries`. Done in §§2-4.
+- **Q6** (new, for etcd-dist): `remote` covers workloads whose clients' operations form one porcupine
+  history (kv). The watch/cache writers and auth's principals are per-client loops with their own
+  checks. Should they also go through `remote` (each loop on its client machine, node 0 collecting
+  results), or stay one machine per workload? Not needed for this branch.
 
 ## Handoff
 
-(Empty: R0 just written.)
+(Nothing in flight: revision 2 of the plan written; R1 next.)
