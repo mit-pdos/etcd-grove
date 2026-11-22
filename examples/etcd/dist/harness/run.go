@@ -605,3 +605,34 @@ func (c *Cluster) Stop() {
 		}
 	}
 }
+
+// RunFaults makes the run's faults until stop is closed, for a deployment whose clients the
+// caller starts itself (examples/k8s/dist: its own client machines, a cluster per workload): the
+// crasher (Config's crashes, the first at once) and, if machines is not empty and the configuration
+// has network faults, a network nemesis over machines (in place of Start's, which covers only this
+// cluster's machines). It returns once they have stopped; NetStats then describes that nemesis.
+func (c *Cluster) RunFaults(machines []*robust.Machine, stop <-chan struct{}) {
+	var wg sync.WaitGroup
+	if c.cfg.CrashPause != 0 {
+		wg.Add(1)
+		go func() { c.crasher(stop); wg.Done() }()
+	}
+	if len(machines) != 0 && c.cfg.Netns && c.cfg.NetPause != 0 {
+		c.nemesis = &robust.NetNemesis{Net: c.net, Machines: machines, Pause: c.cfg.NetPause, Hold: c.cfg.NetHold}
+		wg.Add(1)
+		go func() {
+			if err := c.nemesis.Run(stop); err != nil {
+				c.fail(fmt.Errorf("the network nemesis: %v", err))
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+// Fail records err as the run's failure (if it is the first), for a caller that runs clients of
+// its own.
+func (c *Cluster) Fail(err error) { c.fail(err) }
+
+// Failed is closed once the run has failed (or stopped).
+func (c *Cluster) Failed() <-chan struct{} { return c.failed }
