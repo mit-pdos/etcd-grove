@@ -4456,3 +4456,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Tighten the Go check (the design: validity is a Lean premise, mirrored by Go panicking on
   an invalid configuration), retranslate, and the statement draft's `ClusterConfig.Ok` the same.
 - **Decision.** Applied (the coordinator's decision, 2026-11-22).
+
+## 2026-11-22: kvnet's transport takes no frame-length bound with a message; `newReplica` names its node (KvNet)
+
+- **Spec.** `Transport.Send.spec`'s `sendElem F m` and the queue's `qElem F pid m` (`TransportDefs.lean`, so
+  `Transport.enqueue.spec`, `isPeer`) lose the conjunct `(encMsg st).length + 8 < 2^63`. `newReplica.spec`'s
+  post names the node it was given: `∃ st' sts' sq' ρ, isReplicaR γ vs dir id r n st' sts' sq' ρ` (was `∃ n' …`).
+- **Defect.** The bound is not derivable where the messages come from (`run`'s send callback gets raft's
+  `Ready` messages, with no size bound: `MaxSizePerMsg` is any `uint64`), so `StartNode` could not give
+  `t.Send` as `run`'s callback. It is not needed either: `runPeer` encodes the message first (`putMsg`), and
+  the encoding's slice gives `(encMsg st).length < 2^63` (`ownSlice_len`), all the protocol needs. And
+  `StartNode`'s post (`isNodeS`) needs the replica's node to be the transport's: the old post forgot it.
+- **Evidence.** `Transport__runPeer.lean` (the bound's two uses, `peer_send` and the frames' bound, now from
+  the slice); `newReplica.lean`'s last step already named `n`.
+- **Proposed change.** As above.
+- **Decision.** Applied (weaker premises; a stronger post).

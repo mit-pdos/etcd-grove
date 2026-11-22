@@ -77,7 +77,7 @@ theorem Transport.runPeer.wp_proof (wp_dial : Transport.dial.spec (GF := GF) (hG
   wp_apply wp_bag_receive (t := go.GoType.PointerType raftpb.Message.ty) γq ch (qElem F pid) $$ Hbag
     as %mq Hq
   iunfold qElem at Hq
-  icases Hq with ⟨%dq, %dqe, %cap, %st, %src, Hm, #Hok, %HTo, %Hlen⟩
+  icases Hq with ⟨%dq, %dqe, %cap, %st, %src, Hm, #Hok, %HTo⟩
   try wp_auto
   icases Hc with (%Hnil | HC)
   · subst Hnil
@@ -118,6 +118,8 @@ theorem Transport.runPeer.wp_proof (wp_dial : Transport.dial.spec (GF := GF) (hG
     ihave Hnc := ownSliceCap_nil (V := w8) (GF := GF)
     wp_apply wp_putMsg slice.nil [] mq dq dqe cap st $$ [$Hpkg $Hns $Hnc $Hm] as %s1 ⟨Hs1, -, Hm⟩
     rw [List.nil_append]
+    ihave %Hs1l := ownSlice_len $$ Hs1
+    have Hlen : ((encMsg st).length : Int) < 2 ^ 63 := by have := Hs1l.1; have := Hs1l.2; word
     try wp_auto
     ihave HW := writeP_init cn false (kvP F pid) _ $$ HW
     ihave #Hpr : □ kvP F pid cn ((helloPeerB :: framesBytes sts) ++ putB (encMsg st)) $$ []
@@ -217,6 +219,8 @@ theorem Transport.runPeer.wp_proof (wp_dial : Transport.dial.spec (GF := GF) (hG
     ihave Hnc := ownSliceCap_nil (V := w8) (GF := GF)
     wp_apply wp_putMsg slice.nil [] mq dq dqe cap st $$ [$Hpkg $Hns $Hnc $Hm] as %s1 ⟨Hs1, -, Hm⟩
     rw [List.nil_append]
+    ihave %Hs1l := ownSlice_len $$ Hs1
+    have Hlen : ((encMsg st).length : Int) < 2 ^ 63 := by have := Hs1l.1; have := Hs1l.2; word
     try wp_auto
     ihave HW := writeP_init cn false (kvP F pid) _ $$ HW
     ihave #Hpr : □ kvP F pid cn ((helloPeerB :: framesBytes sts) ++ putB (encMsg st)) $$ []

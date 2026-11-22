@@ -222,7 +222,7 @@ theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     itrivial
   try wp_auto
   iapply HΦ
-  iexists n, st, sts, sts, ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩
+  iexists st, sts, sts, ⟨ms, γs, snc, γsn, K, ⟨γph, γic, γis, γcm, fl⟩⟩
   iexact HR
 
 end proof

@@ -1,7 +1,7 @@
 /-
 `t.Send(ms)` (`examples/raft/kvnet/transport.go`): each message of `ms` handed to its peer's queue
 (`enqueue`), or dropped (`dropped`) if its destination is no peer the transport knows. The caller
-gives the messages away, each with its fact (`sendElem F m`: `F.msgOk`, a frame's length); the slice
+gives the messages away, each with its fact (`sendElem F m`: `F.msgOk`); the slice
 is only read.
 -/
 module
@@ -26,10 +26,10 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- A message `Send` takes: owned at any fractions, with its fact and a frame's length. -/
+/-- A message `Send` takes: owned at any fractions, with its fact. -/
 def sendElem (F : KvFacts GF) (m : Loc) : IProp GF :=
   iprop(∃ (dq dqe : DFrac) (cap : Bool) (st : MsgSt) (src : w64),
-    msgPtsC m dq dqe cap st ∗ F.msgOk src st ∗ ⌜((encMsg st).length : Int) + 8 < 2 ^ 63⌝)
+    msgPtsC m dq dqe cap st ∗ F.msgOk src st)
 
 /-- See the file header. -/
 abbrev Transport.Send.spec : Prop :=

@@ -66,7 +66,7 @@ theorem Transport.Send.wp_proof (wp_enqueue : Transport.enqueue.spec (GF := GF) 
     rw [Hdrop]
     icases Hel with ⟨Hq, Hel⟩
     iunfold sendElem at Hq
-    icases Hq with ⟨%dq, %dqe, %cap, %st, %src, Hm, #Hok, %Hlen⟩
+    icases Hq with ⟨%dq, %dqe, %cap, %st, %src, Hm, #Hok⟩
     try wp_auto
     wp_apply wp_GetTo.1 q _ _ _ _ $$ [$Hpb $Hm] as Hm
     wp_apply (wp_map_lookup2 (K := w64) (V := Loc) go.uint64
@@ -93,7 +93,7 @@ theorem Transport.Send.wp_proof (wp_enqueue : Transport.enqueue.spec (GF := GF) 
       · iunfold qElem
         iexists dq, dqe, cap, st, src
         iframe Hm Hok
-        ipureintro; exact ⟨rfl, Hlen⟩
+        ipureintro; rfl
       try wp_auto
       wp_for_post
       iframe
