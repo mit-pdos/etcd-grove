@@ -141,16 +141,28 @@ Done (committed on `prom-registry`):
 2. The glue (`TrustedCode/.../prometheus.lean`) and `prometheus.toml`'s `trusted` list; the
    translation regenerated with them (see STATUS).
 
+3. (statements) `Proof/github_com/mit_pdos/etcd_grove/examples/lib/promreg/Defs.lean`: `PromRegGS`,
+   `idTok`/`idToks`, the builtin lists (`builtinKeys_nodup` by `decide`), `descKeys`, `descsOk`,
+   `regInv`, `isRegistry`; `Spec/.../examples/lib/promreg/{NewRegistry,Registry__SeedBuiltins,
+   Registry__Register}.lean`. `notes/prom-registry-start-change.md`: the start model's change, for
+   Upamanyu's sign-off (posted on #15 by the coordinator; nothing lands before it).
+
 Next, in order:
-3. `Proof/github_com/mit_pdos/etcd_grove/examples/lib/promreg/`: `PromRegGS`, the tokens,
-   `promReg_alloc`, `isRegistry`, and the specs of `NewRegistry`, `SeedBuiltins`, `Register` (the loop
-   over the descriptors with the three maps; a general spec for descriptors whose IDs are their
-   names' `descId`s, names not built in, with the elements of their IDs and collector ID).
+3'. The proofs of the three specs (`Proof/.../promreg/{NewRegistry,Registry__SeedBuiltins,
+   Registry__Register}.lean`; `Register`'s loop: invariant over the prefix of `ds` seen, with
+   `newSeen`/`newDims` mirroring `descKeys`/the names; the tokens give `descIDs !! id = none`,
+   `collectorsByID !! xor = none` and the names absent), `promReg_alloc` (`ghost_map_alloc` of the
+   builtin keys and the program's names' IDs), and whether the specs need `isPkgInit promreg`
+   (the glue initializes the package in `defaultRegistry.init`; gen-init must then generate
+   promreg's `PkgInit`/`Init`).
 4. `Registry.lean`: `collectorName`, `nameFree` as definitions; `MustRegister.lean`, `Register.lean`,
    `Init.lean` (prometheus's `wp_initialize'_res`) as theorems; `PkgInit.lean`'s `isPkgInit`.
 5. `etc/gen-init.py` (prometheus a resource package; the instance in the sections), regenerate;
    `Proof/runtime/Start.lean` (drop the names); the closed theorems (mvccfull, mvccrand, etcdstart's
    `Adequacy`/`AdequacyMembers`/`StartRes`, the examples' Results/TopLevelRobustness) allocate the
    instance; `notes/decisions.md` (supersede D19d's names part), `notes/axiom-review/`.
-6. The residue list (§5), `Register.spec`'s grpc rights (§4), gates, `tcb-report --check --update`,
+6. The residue list (§5, first pass done), `Register.spec`'s grpc rights (§4; the coordinator's
+   instruction, 2026-11-22: #24 has not answered, so add to `NewServerMetrics`' post the clause that
+   the collector describes the server metrics' descriptors (`collectorDescs` of `m`, as
+   `collectorName`), its statement otherwise unchanged, and flag it; needs stage 4's definition), gates, `tcb-report --check --update`,
    the collections' `--update`.
