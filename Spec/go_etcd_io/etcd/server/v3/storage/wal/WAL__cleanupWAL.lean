@@ -42,7 +42,7 @@ the update for the rest of it) and what to do with its outcome (`Fin err`, the c
 the area's path given back to it). -/
 def cleanupLaw (R : Roots) (jr : Ino) (r nm : GoString) (Rp : Roots) (qp : Qp) (tf : Loc)
     (Fr : IProp GF) (Fin : GoInterface → IProp GF) : IProp GF :=
-  iprop(∀ ts : GoString, ⌜∀ c ∈ ts, c ∈ timeStampChars⌝ -∗ Fr -∗ walUnlockedTokX (W := W) -∗
+  iprop(∀ ts : GoString, ⌜timeStampOk ts⌝ -∗ Fr -∗ walUnlockedTokX (W := W) -∗
     walNamesFrag (W := W) (some (child r nm)) -∗
     (∃ j : Ino, osPathS Rp (child r nm) (DFrac.own qp) j ∗ osPathS Rp (child r nm) (DFrac.own qp) j) -∗
     (∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) -∗

@@ -4101,3 +4101,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `m.size < 2 ^ 61` (then every round's `soff + max < 2^62`, and the fallback's `Read`/`Write`
   of 32 KiB stay below `2^62`). `Repair` has `size ≤ Fs.maxBytes = 0xffffffff000`.
 - **Decision.** Made (the premise's own statement; no client but `Repair`, which supplies it).
+
+## 2026-11-22: `time.Time.Format.specBroken` weakened to what the WAL uses, and made an axiom (wal-safe, session 11)
+- **Spec.** `Spec/time/Time__FormatBroken.lean` (a hypothesis of `wal.WAL.cleanupWAL.wp_proof`, through the WAL and
+  tester Links); `cleanupLaw`'s timestamp premise (`Spec/.../wal/WAL__cleanupWAL.lean`).
+- **Defect.** Stronger than the WAL needs: its post said every byte is a digit, `.` or `-`, but the WAL uses only that
+  the broken name `nm.broken.<s>` is a name (`brokenName_nameOk`: no `/`, no NUL). As a trust-boundary axiom (the
+  user's decision, 2026-11-22: "a minimal axiom claiming only what the WAL relies on") the extra claim would be
+  trusted for nothing.
+- **Evidence.** `brokenName_nameOk`'s proof uses only `/ ∉ s` and `NUL ∉ s`; `create_cleanupLaw` ignores the premise.
+- **Proposed change.** Post `⌜timeStampOk s⌝` (`timeStampOk s := 47 ∉ s ∧ 0 ∉ s`); `cleanupLaw` takes the same;
+  `timeStampChars` deleted. The axiom `time.Time.Format.wp_proofBroken` (`Proof/time/Time__FormatBroken.lean`),
+  reviewed by the `axiom` skill (`notes/axiom-review/time-format-broken.md`: survives).
+- **Decision.** Made (the user's approval of item (4), 2026-11-22). Closes the 2026-11-14 entry ("its result
+  unconstrained").

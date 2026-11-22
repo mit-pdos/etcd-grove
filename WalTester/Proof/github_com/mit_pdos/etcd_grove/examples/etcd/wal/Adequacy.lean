@@ -194,7 +194,6 @@ structure TOpen : Prop where
   errorfErrsNot : fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG)
   errorfErrsTerm : fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)
   unmarshalWalRecordE : proto.UnmarshalWalRecordE.spec (GF := GF) (hG := hG)
-  formatBroken : time.Time.Format.specBroken (GF := GF) (hG := hG)
 
 end open_
 
@@ -226,7 +225,7 @@ theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (h
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
     walPb_laws.unmarshalEnt walPb_laws.zero h.isErrno h.isPathErrnoEof h.isPathErrnoNotExist
     h.isPathErrnoTerm h.errorfErrsNot h.errorfErrsTerm
-    h.unmarshalWalRecordE h.hasPrefix h.formatBroken
+    h.unmarshalWalRecordE h.hasPrefix
 
 end linked
 

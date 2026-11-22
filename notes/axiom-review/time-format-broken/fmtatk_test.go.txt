@@ -1,0 +1,105 @@
+package fmtatk
+
+import (
+	"math"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+)
+
+const layout = "20060102.150405.999999"
+
+func bad(s string) bool { return strings.ContainsAny(s, "/\x00") }
+
+func check(t *testing.T, name string, tm time.Time) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("%s: PANIC %v", name, r)
+		}
+	}()
+	s := tm.Format(layout)
+	if bad(s) {
+		t.Fatalf("%s: bad byte in %q", name, s)
+	}
+	for _, c := range []byte(s) {
+		if !(c >= '0' && c <= '9' || c == '.' || c == '-') {
+			t.Errorf("%s: byte %q outside digits/./- in %q", name, c, s)
+		}
+	}
+	t.Logf("%-28s %q (len %d)", name, s, len(s))
+}
+
+func TestFormatEdges(t *testing.T) {
+	check(t, "now", time.Now())
+	check(t, "zero", time.Time{})
+	check(t, "unix0", time.Unix(0, 0))
+	check(t, "maxint64 sec", time.Unix(math.MaxInt64, 999999999))
+	check(t, "minint64 sec", time.Unix(math.MinInt64, 0))
+	check(t, "unixmicro min", time.UnixMicro(math.MinInt64))
+	check(t, "year -1", time.Date(-1, 1, 1, 0, 0, 0, 1000, time.UTC))
+	check(t, "year -123456", time.Date(-123456, 12, 31, 23, 59, 59, 999999999, time.UTC))
+	check(t, "year 1e9", time.Date(1000000000, 1, 1, 0, 0, 0, 0, time.UTC))
+	check(t, "fixed odd zone", time.Now().In(time.FixedZone("a/b\x00c", -12*3600-1)))
+	check(t, "fixed max offset", time.Unix(math.MaxInt64, 0).In(time.FixedZone("x", math.MaxInt32)))
+	check(t, "fixed min offset", time.Unix(math.MinInt64, 0).In(time.FixedZone("x", math.MinInt32)))
+	check(t, "nano 0 fraction", time.Date(2026, 11, 22, 1, 2, 3, 0, time.UTC))
+	check(t, "nano 1", time.Date(2026, 11, 22, 1, 2, 3, 1, time.UTC))
+	var z *time.Location
+	_ = z
+	check(t, "zero Location", time.Now().In(&time.Location{}))
+	if l, err := time.LoadLocation("Asia/Kathmandu"); err == nil {
+		check(t, "Kathmandu", time.Now().In(l))
+	}
+	check(t, "monotonic stripped", time.Now().Round(0))
+	check(t, "add max dur", time.Now().Add(math.MaxInt64))
+}
+
+// Local from odd TZ values, in a child process each (initLocal runs once per process).
+func TestFormatLocalTZ(t *testing.T) {
+	if os.Getenv("FMTATK_CHILD") != "" {
+		check(t, "child now", time.Now())
+		check(t, "child unix max", time.Unix(math.MaxInt64, 0))
+		check(t, "child unix min", time.Unix(math.MinInt64, 0))
+		return
+	}
+	for _, tz := range []string{"", ":", "/nonexistent", ":/etc/passwd", "../../../../etc/passwd", "UTC-99:99/x", "a/b", "\x01", "Europe/Paris", "EST5EDT,M3.2.0,M11.1.0", "<+0330>-3:30", strings.Repeat("A", 100000)} {
+		cmd := exec.Command(os.Args[0], "-test.run=TestFormatLocalTZ", "-test.v")
+		cmd.Env = append(os.Environ(), "FMTATK_CHILD=1", "TZ="+tz)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Errorf("TZ=%q: %v\n%s", tz, err, out)
+		}
+		lines := strings.Split(string(out), "\n")
+		for _, l := range lines {
+			if strings.Contains(l, "child") {
+				t.Logf("TZ=%.20q %s", tz, strings.TrimSpace(l))
+			}
+		}
+	}
+}
+
+// A malformed zone file through ZONEINFO.
+func TestFormatZoneinfo(t *testing.T) {
+	if os.Getenv("FMTATK_CHILD2") != "" {
+		check(t, "child2 now", time.Now())
+		return
+	}
+	dir := t.TempDir()
+	os.WriteFile(dir+"/Bad", []byte("TZif2\x00garbage garbage garbage"), 0o644)
+	os.WriteFile(dir+"/Empty", nil, 0o644)
+	for _, tz := range []string{"Bad", "Empty"} {
+		cmd := exec.Command(os.Args[0], "-test.run=TestFormatZoneinfo", "-test.v")
+		cmd.Env = append(os.Environ(), "FMTATK_CHILD2=1", "TZ="+tz, "ZONEINFO="+dir)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Errorf("TZ=%q: %v\n%s", tz, err, out)
+		}
+		for _, l := range strings.Split(string(out), "\n") {
+			if strings.Contains(l, "child2") {
+				t.Logf("ZONEINFO TZ=%q %s", tz, strings.TrimSpace(l))
+			}
+		}
+	}
+}

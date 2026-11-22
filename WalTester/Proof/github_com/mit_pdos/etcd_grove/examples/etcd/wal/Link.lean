@@ -16,7 +16,7 @@ with no proof and the premises on the model parameters (the client's protobuf la
 `h_WalPbIn_UnmarshalEntLaw` (5), `h_WalPbIn_ZeroLaw` (9), `h_errors_IsErrno` (8),
 `h_errors_IsPathErrnoEof` (5), `h_errors_IsPathErrnoNotExist` (5), `h_errors_IsPathErrnoTerm` (8),
 `h_fmt_ErrorfErrsNot` (5), `h_fmt_ErrorfErrsTerm` (5), `h_proto_UnmarshalWalRecordE` (5),
-`h_stringslite_HasPrefix` (2), `h_time_Time_FormatBroken` (2).
+`h_stringslite_HasPrefix` (2).
 
 `#print axioms` on a result is its trust base (`etc/tcb-report.py`).
 -/
@@ -70,7 +70,6 @@ public import Spec.fmt.ErrorfErrsTerm
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
 public import Spec.google_golang_org.protobuf.proto.UnmarshalWalRecordE
 public import Spec.internal.stringslite.HasPrefix
-public import Spec.time.Time__FormatBroken
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Boot
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Main
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.addCand
@@ -185,6 +184,7 @@ variable [_root_.Perennial.time.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
 variable [_root_.Perennial.io.Assumptions]
 variable [FsStepSat (NoMapLockErr Sio)]
+variable [time.Assumptions]
 
 theorem zap.wp_NewNop :
     _root_.Perennial.EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
@@ -670,6 +670,7 @@ variable [_root_.Perennial.time.Assumptions]
 variable [FsStepSat (NoIoErr Sio)]
 variable [_root_.Perennial.io.Assumptions]
 variable [FsStepSat (NoMapLockErr Sio)]
+variable [time.Assumptions]
 
 theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.wp_tryRead
     (h_errors_IsPathErrnoNotExist : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec
@@ -994,9 +995,7 @@ theorem etcd_wal.wp_Boot
     _root_.Perennial.EtcdGrove.fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG))
     (h_proto_UnmarshalWalRecordE : _root_.Perennial.EtcdGrove.proto.UnmarshalWalRecordE.spec (GF
     := GF) (hG := hG)) (h_stringslite_HasPrefix :
-    _root_.Perennial.EtcdGrove.stringslite.HasPrefix.spec (GF := GF) (hG := hG))
-    (h_time_Time_FormatBroken : _root_.Perennial.EtcdGrove.time.Time.Format.specBroken (GF :=
-    GF) (hG := hG)) :
+    _root_.Perennial.EtcdGrove.stringslite.HasPrefix.spec (GF := GF) (hG := hG)) :
     _root_.Perennial.EtcdGrove.etcd_wal.Boot.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.Boot.wp_proof
     _root_.Perennial.EtcdGrove.walTester.zap.wp_NewNop
@@ -1006,7 +1005,7 @@ theorem etcd_wal.wp_Boot
     h_errors_IsPathErrnoNotExist)) (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.wal.wp_CreateFresh (walRaftP (GF := GF)) walRaftMr
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_NilLaw h_errors_IsPathErrnoNotExist
-    h_errors_IsPathErrnoTerm h_stringslite_HasPrefix h_time_Time_FormatBroken))
+    h_errors_IsPathErrnoTerm h_stringslite_HasPrefix))
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_freshOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_storeOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_resume
@@ -1046,9 +1045,7 @@ theorem etcd_wal.wp_Main
     _root_.Perennial.EtcdGrove.fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG))
     (h_proto_UnmarshalWalRecordE : _root_.Perennial.EtcdGrove.proto.UnmarshalWalRecordE.spec (GF
     := GF) (hG := hG)) (h_stringslite_HasPrefix :
-    _root_.Perennial.EtcdGrove.stringslite.HasPrefix.spec (GF := GF) (hG := hG))
-    (h_time_Time_FormatBroken : _root_.Perennial.EtcdGrove.time.Time.Format.specBroken (GF :=
-    GF) (hG := hG)) :
+    _root_.Perennial.EtcdGrove.stringslite.HasPrefix.spec (GF := GF) (hG := hG)) :
     _root_.Perennial.EtcdGrove.etcd_wal.Main.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.Main.wp_proof
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_Boot P U HsO h_U_Ok h_U_SnapCoh
@@ -1057,7 +1054,7 @@ theorem etcd_wal.wp_Main
     h_WalPbIn_MustSyncLaw h_WalPbIn_NilLaw h_WalPbIn_SizeLaw h_WalPbIn_UnmarshalEntLaw
     h_WalPbIn_ZeroLaw h_errors_IsErrno h_errors_IsPathErrnoEof h_errors_IsPathErrnoNotExist
     h_errors_IsPathErrnoTerm h_fmt_ErrorfErrsNot h_fmt_ErrorfErrsTerm h_proto_UnmarshalWalRecordE
-    h_stringslite_HasPrefix h_time_Time_FormatBroken)
+    h_stringslite_HasPrefix)
 
 end links_pending
 

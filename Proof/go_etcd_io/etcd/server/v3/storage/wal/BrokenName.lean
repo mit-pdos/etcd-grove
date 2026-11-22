@@ -3,7 +3,7 @@
 # The cleanup's broken name (W4 of `notes/wal-fsext-plan.md`, twenty-sixth session)
 
 `cleanupWAL` renames the WAL directory `r/nm` to `fmt.Sprintf("%s.broken.%v", r/nm, s)`, `s` the
-timestamp (`time.Time.Format.specBroken`: digits, `.` and `-`; `fmt.SprintfBroken.spec`): the name
+timestamp (`time.Time.Format.specBroken`: no `/`, no NUL; `fmt.SprintfBroken.spec`): the name
 `nm.broken.<s>` in the area directory `r`, a valid name (`NameOk`) whatever its length.
 -/
 module
@@ -33,7 +33,7 @@ theorem child_brokenName (r nm s : GoString) :
 
 /-- A broken name is valid: `nm`'s bytes, `.broken.` and the timestamp's hold no `/` nor NUL, and it
 is longer than `..`. -/
-theorem brokenName_nameOk {nm s : GoString} (hnm : NameOk nm) (hs : ∀ c ∈ s, c ∈ timeStampChars) :
+theorem brokenName_nameOk {nm s : GoString} (hnm : NameOk nm) (hs : timeStampOk s) :
     NameOk (brokenName nm s) := by
   obtain ⟨hne, -, -, hsl, hnul⟩ := hnm
   have hlen : 2 < (brokenName nm s).length := by
@@ -46,13 +46,13 @@ theorem brokenName_nameOk {nm s : GoString} (hnm : NameOk nm) (hs : ∀ c ∈ s,
     rcases h with (h | h) | h
     · exact hsl h
     · revert h; decide
-    · have := hs _ h; revert this; decide
+    · exact hs.1 h
   · intro h
     simp only [brokenName, List.mem_append] at h
     rcases h with (h | h) | h
     · exact hnul h
     · revert h; decide
-    · have := hs _ h; revert this; decide
+    · exact hs.2 h
 
 end WalFs
 end EtcdGrove
