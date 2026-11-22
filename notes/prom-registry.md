@@ -545,3 +545,130 @@ over the model, the keys component (`regsFree`, `REG_KEYS`), `NewServerMetrics`'
 `promreg_sem` in the Links and the closed theorems. What goes: `ownLocalNames ∅` in `goose_adequacy_start`
 and in the generic theorems' `progOk`, `wp_init_of_localNames`/`regsFree_alloc` over it, and `idTok`'s
 `localName`.
+
+## Option 4 (Upamanyu, 2026-11-22): the run's ghost name through untrusted proof code
+
+**The decision** (Upamanyu on #15 and perennial#681, relayed by the coordinator): #681 is rejected; the
+trusted adequacy statements gain nothing, and `Start.lean`'s change is removal only (`nameFree` out of
+`startRights`; `Ns`, `hNs`, `hNsFree`, `hNsIds`, `nameUnclaimed`, `namesUnclaimed` deleted). The program's
+proof allocates the registry's ghost state itself, inside each run's `Hwp` update (a crashed generation's
+rights are over its own, stale, name); prometheus's package fact gets the name through untrusted proof code
+(an instance or a package-level parameter); if `define_is_pkg_init` copying the instance into every
+importer's fact is the obstacle, fix that machinery in Perennial (untrusted). `[promreg.Assumptions]` on the
+closed theorems is fine.
+
+**What spreads today, read at `/shared/perennial-c14cca87a` (`Perennial/Golang/Theory/Pkg.lean`).**
+`define_is_pkg_init P` elaborates `IsPkgInit.mk deps P` with `deps := isPkgInit d₁ ∗ … ∗ True` over
+`pkgImportedPkgs`, each `isPkgInit dᵢ` at the instance `synthInstance (IsPkgInit PROP dᵢ)` finds *in the
+importer's context*. So if prometheus's instance is `instance [PromRegGS GF] : IsPkgInit (IProp GF)
+prometheus`, every importer's `define_is_pkg_init` fails unless `[PromRegGS GF]` is in scope, and then its
+own instance takes the argument, and so on up (52 packages; every module that elaborates their
+`isPkgInit`, 2073). `build_get_is_pkg_init_wf` likewise synthesizes each dependency's `GetIsPkgInitWf`.
+`solve_pkg_init`/`iPkgInit` (`pkgInitChain`) find a target `isPkgInit d` by `isDefEq` against
+hypotheses, descending through `isPkgInit` (its `deps` field), `∗` and `□`; `is_pkg_init_finish` proves an
+initializer's post by `isPkgInit_unfold` then `iframe #`.
+
+**The design: a parametric package fact, existential in its importers' facts.**
+1. *Perennial* (`Pkg.lean`, untrusted), new class: a package whose fact takes a parameter.
+   ```lean
+   class IsPkgInitParam (PROP : Type _) [BI PROP] (pkg_name : GoString) where
+     Param : Type
+     inst : Param → IsPkgInit PROP pkg_name
+   /-- the fact of `pkg_name` at some parameter: what an importer knows of it -/
+   def isPkgInitSome (pkg_name) [IsPkgInitParam PROP pkg_name] : PROP :=
+     iprop(∃ x : IsPkgInitParam.Param PROP pkg_name, @isPkgInit PROP _ pkg_name (IsPkgInitParam.inst x))
+   ```
+   (`isPkgInitSome` persistent.)
+2. *Perennial*, `define_is_pkg_init`: for each dependency `d`, if `synthInstance (IsPkgInit PROP d)`
+   fails and `synthInstance (IsPkgInitParam PROP d)` succeeds, the conjunct is `isPkgInitSome d` instead
+   of `isPkgInit d`. An importer's instance then needs no parameter: **no spread through `IsPkgInit`**.
+3. *Perennial*, `build_get_is_pkg_init_wf`: unchanged. A parametric package's `GetIsPkgInitWf` instance
+   takes the parameter (`g d = isPkgInit (inst x) d` at the `x` in scope), so an importer's
+   `GetIsPkgInitWf` instance takes it too: the parameter spreads through the **well-formedness instances
+   only** (declared once per package, by an explicit binder `instance [PromRegGS GF] : GetIsPkgInitWf …`,
+   not a section variable, or the `IsPkgInit` instance beside it would take it too), and through their users:
+   the generated `Init`/`InitLinked`/`PkgTable`s and the closed proofs. This is wanted: the wf instance is
+   what pins the run's name for the initializers (below).
+4. *Perennial*, tactics: `pkgInitChain` treats `isPkgInitSome d` as an atom (a target `isPkgInitSome d` is
+   found by `isDefEq`, as today), and may descend through it to targets below `d` by `exist_elim` (the chain
+   from `isPkgInit (inst x) d` to a target not mentioning `x` is built under a binder `x`). `is_pkg_init_finish`
+   proves an `isPkgInitSome d` conjunct of the goal from `isPkgInit (inst x) d` in the context (`iexists _;
+   iframe`, or a `Frame` instance for `isPkgInitSome`). Nothing else changes; no adequacy statement changes.
+
+**In this repository** (after a pin bump bringing 1–4):
+* `PromRegGS GF` (a class holding `γ : GName`) returns; `instance : IsPkgInitParam (IProp GF) prometheus :=
+  ⟨PromRegGS GF, fun x => ⟨deps, promInit x.γ⟩⟩` (hand-written, with its deps `time`, `promreg`), and a local
+  instance `[PromRegGS GF] → IsPkgInit (IProp GF) prometheus` for code at a known name.
+  `promInit γ := ∃ l, globalAddr defaultRegistry ↦□ l ∗ isRegistry γ descId l`; `idTok γ k := ⌜k ∉
+  builtinKeys⌝ ∗ k ↪[γ] ()` (stage 3''s form; `localName`/`regKey` go).
+* **Where the name is known, and why it agrees.** (a) A registering package's initializer (`MustRegister` in
+  `init()`): its generated `wp_initialize'_res` is in a section with `[PromRegGS GF]`; its rights are
+  `regsFree` at that instance, and prometheus's fact comes from `prometheus.wp_initialize'` at the same
+  instance, whose `Hinit` (the wf instance at that instance) says `g prometheus = isPkgInit (inst γ)
+  prometheus`: whether prometheus's initializer runs now or ran before, the fact returned is at `γ`.
+  (b) A run-time registration (`getServerMetrics`): the fact and the rights are stored together, packed:
+  `metricsP`'s `nil` case holds `∃ x : PromRegGS GF, isPkgInit (inst x) prometheus ∗ idToks x.γ grpcKeys`
+  (v3rpc's initializer, at the section's instance, has both), so v3rpc's own fact mentions no parameter.
+  (c) Code that needs prometheus initialized but not the registry (the vectors' `WithLabelValues`, `With`,
+  the server's paths that use metrics: 6 specs and ~7 proofs name `isPkgInit prometheus` today) takes
+  `isPkgInitSome prometheus`, which `iPkgInit` finds in its package's deps.
+* **The closed proofs** use the `_alloc` adequacy forms (`etcd_adequate_alloc`, as the k8s compactor
+  registry's): `T γ := idToks γ (regKeysOf regQs)` allocated by `ghost_map_alloc` inside `Hwp`, then
+  `letI : PromRegGS GF := ⟨γ⟩` and the program's `getIsPkgInit_wf` at it; `regQsOk regQs` decided by the
+  kernel as now (but see "kernel" below). The WAL tester's crash proof does the same in each generation's
+  `Hwp` (each generation allocates a new `γ`; a carried-over right is at the crashed `γ`, which no spec of the
+  new generation takes). The generic etcdstart theorems keep `progOk`'s `R` (`regsFree` at the instance,
+  through `T`); `goose_adequacy_start` is removal only.
+* Unchanged from the WIP: the model and its proofs (with `γ` explicit), the glue, `Register` proved,
+  `NewServerMetrics`' clause, the keys component, `promreg_sem` in the Links and closed theorems.
+
+**Cost.** Perennial: one class, one definition, ~15 lines in `define_is_pkg_init`, the tactic support.
+Here: the 52 importers' `GetIsPkgInitWf` instances get an explicit `[PromRegGS GF]` binder (a script;
+`etc/gen-init.py` already lists them), the generated init/table files the variable (`PROMREG_VAR`'s
+successor), the closed proofs `letI`; ~13 files move from `isPkgInit prometheus` to `isPkgInitSome`.
+**Not avoided**: the wf spread (point 3) is inherent: an initializer that registers must know prometheus's
+fact at its rights' name, and the only route from the run's start to the initializer is the
+well-formedness of `get_is_pkg_init` (or the resources of `ownInitResL`, which are allocated before
+prometheus's location exists).
+
+**Rejected variants.** An existential parameter in the wf too (`∃ x, GetIsPkgInitProp (inst x) d g`): the
+initializer learns some `x` and holds rights at the section's `γ`, with nothing equating them. A
+sigma-packed `IsPkgInit` instance whose `isPkgInitDef` is `∃ γ, promInit γ` (no Perennial change): the
+same lack of agreement for the initializers (Step A). The fact keyed by another package (`promreg`):
+`promreg` is initialized before the registry exists.
+
+**Kernel.** The WIP's `mvccrand` closed proof hit the default heartbeats deciding `regQsOk regQs` by
+`decide +kernel` at the theorem (job 14620 of the full build): split it out as its own lemma with raised
+`maxHeartbeats`, or decide `regKeysOf` once into a literal list first.
+
+## Why the real client_golang registry is not translated (for Upamanyu's sign-off)
+
+Read at client_golang v1.24.1 (`prometheus/registry.go`, `desc.go`, `go_collector_latest.go`,
+`internal/go_collector_options.go`), common v0.70.1 (`model/metric.go`):
+* **`Registry.Register` itself is translatable**: a `sync.RWMutex`, three maps (`collectorsByID
+  map[uint64]Collector`), a goroutine running `c.Describe(descChan)` and closing a buffered channel, a
+  `for range` drain in a `defer`, xxhash (already translated here). What goose or Perennial lacks is on its
+  error paths only: `fmt.Errorf("… %s …: %w", desc, …)` (a `Stringer` and `%w`; `Desc.String` uses
+  `fmt.Sprintf` with `%q` and `%v`) and the type switch on `*wrappingCollector`. Those paths are
+  unreachable under the rights, so they **could be left stuck** (not modeled): the proof shows they are not
+  reached.
+* **`Desc`/`NewDesc`**: `constLabelPairs []*dto.LabelPair` (client_model's protobuf messages, protobuf-go's
+  `protoimpl` runtime), `proto.String`, `sort.Sort(internal.LabelPairSorter)`, `model.IsValidMetricName`
+  (with the default UTF-8 scheme a `utf8.ValidString`, no regexp at call time). Translatable with the
+  protobuf types names-only (#18 is translating `Desc`'s methods), not stuck.
+* **The obstacle is `init()`**, which every program runs: `MustRegister(NewProcessCollector(…))` and
+  `MustRegister(NewGoCollector())`. `NewGoCollector` filters `runtime/metrics.All()` (the Go runtime's
+  metric list, which depends on the toolchain version) through `regexp.Regexp.MatchString` with
+  `internal.GoCollectorDefaultRuntimeMetrics = regexp.MustCompile(…)` (a package variable), calls
+  `metrics.Read` for the histograms' buckets, and builds descriptors from the runtime's descriptions with
+  string rewriting (`internal.RuntimeMetricsToProm`). common's `model.MetricNameRE = regexp.MustCompile(…)`
+  is also compiled at initialization. None of this can be left stuck: a stuck initializer makes every
+  program stuck. It needs either a regexp model and a trusted `runtime/metrics.All()` (whose content is the
+  toolchain's, so trusted anyway), or a trusted summary of what `init()` registers: the model's
+  `SeedBuiltins`, the 38 descriptor IDs and 2 collector IDs of configuration C, checked by `TestBuiltins`.
+  (No `reflect` and no `sync.Map` on these paths; `procfs` is only read at `Collect`.)
+* So a middle route exists: translate `registry.go`'s `NewRegistry`/`Register`/`MustRegister` and `desc.go`
+  with their bodies (error paths stuck), keep `init()` trusted as `SeedBuiltins` is now, and the two regexp
+  package variables as untranslated initializers (`opaqueInitsOk`: they return without panicking). The
+  trusted part would shrink to `init()`'s registrations; the cost is a proof of the real `Register`
+  (goroutine and channel included) instead of the model's, and `Desc` as a translated type (#18's area).
