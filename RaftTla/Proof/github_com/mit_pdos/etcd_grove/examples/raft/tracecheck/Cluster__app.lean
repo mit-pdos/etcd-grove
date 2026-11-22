@@ -188,6 +188,8 @@ theorem Cluster.app.wp_proof
     iunfold readySnap at Hsnap
     icases Hsnap with ⟨%Hnull, Happ, -, %Hidx⟩
     iunfold readyEnter at Henter
+    icases Henter with ⟨Henter, -⟩
+    iunfold readyEnterLive at Henter
     -- (2026-11-21, the crash invariant) *enter* is a crash-token update: at a step
     iapply (wp_ncfupd _ _ (by rfl))
     unfold ncfupd

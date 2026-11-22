@@ -4289,3 +4289,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** `notes/kvnet-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
 - **Proposed change.** As above. `durInv_commit` passes the token; the tester's `storeOracle` gives a plain update.
 - **Decision.** Applied (needed for kvnet's `persist`, item 2 of the coordinator's 2026-11-22 decisions).
+
+## 2026-11-22: raft's node API -- a crash could only discard a batch cut and not entered; `statusOwn` gave no read access
+
+- **Spec.** `Proof/go_etcd_io/raft/v3/InvNode.lean`: `readyEnter` (in `node.Ready`'s post through `readyGot`),
+  `nodeCrash`, `statusOwn` (`node.Status.spec`'s post). No SpecPlan counterpart: the plan has no crash law, and
+  `node.Status` has no plan spec.
+- **Defect.** (1) Too weak for a durable client whose write has two durability points (`durable.Write`: rename,
+  then directory sync). After a crash between them the new file may survive. Then the restarted node's storage
+  holds the batch's state, while raft's durable state (`raftState`) is the old one, because `nodeCrash` discards
+  the batch. `RestartNode` cannot get `StorageHolds S σ`. (2) `statusOwn` gave heap ownership but no law to read
+  it, so kvnet's `Node.status` could not call `GetTerm`/`GetCommit` on `st.HardState`.
+- **Evidence.** kvnet's `persist`, `notes/kvnet-part.md` (branch `worktree-agent-a9b8a3f3fbe5852a9`),
+  "persist" item 3 and "`Node.status` (open)".
+- **Proposed change.** (1) `readyEnter := readyEnterLive ∧ readyEnterCrash`. The live half is the old wand.
+  The crash half gives the law `readyCrashEnter`: `crashed -∗ nodeCrashTok γ id x -∗ nodeArm n γ x -∗
+  nodeRunning n γ N q -∗ readyEnter … -∗ raftState γ id st.durable ={E}=∗ raftState γ id st'.durable ∗
+  nodeVacant γ id`. This is kvnet's requested statement with `nodeRunning` and `nodeArm` added and `isCluster`
+  dropped. Without the two additions the law is false: after a `node.Stop` the batch is of a dead generation
+  (`notes/raft-crash-law-design.md` (k)). Live clients take the conjunction's left half. (2)
+  `statusOwn_hardState : statusOwn st ⊢ statusOwn st ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs`, read access
+  only.
+- **Decision.** Applied (branch `raft-crash-enter`; the coordinator's 2026-11-22 decision for (1), "raft adds a
+  variant of `nodeCrash`"). kvnet must adapt its `readyCrashEnter.law` hypothesis to the two added premises.

@@ -2704,13 +2704,32 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 variable [CrashGS GF] in
-/-- (2026-11-01, durability stage I-3) *Enter* (the draft's `readyEnter`). -/
-def readyEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+/-- (2026-11-01, durability stage I-3) *Enter* while the generation runs (the API's
+`readyEnterLive`; until 2026-11-22 the whole of `readyEnter`). -/
+def readyEnterLive (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
     (ms : List QMsg) : IProp GF :=
   iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗ notCrashed -∗
     raftStateU γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
       notCrashed ∗ raftStateU γ id st'.durable ∗ nodeRunning n γ N q ∗ nodeDriver n γ N st' ∗
       readyMsgs γ N id ms)
+
+variable [CrashGS GF] in
+/-- (2026-11-22, `notes/raft-crash-law-design.md` (k)) *Enter* at a crash (the API's
+`readyEnterCrash`): after the crash of the generation that ran node `n` (still running: a share of
+its liveness, so the batch is its current generation's), the arm's crash token enters the batch and
+gives the vacancy back (`raft_crash_enter`). -/
+def readyEnterCrash (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState) :
+    IProp GF :=
+  iprop(∀ (E : CoPset) (x : CrashNames) (q : Qp), ⌜↑N ⊆ E⌝ -∗ crashed -∗ nodeCrashTokU γ id x -∗
+    nodeArmU n γ x -∗ nodeRunning n γ N q -∗ raftStateU γ id st.durable ={E}=∗
+      raftStateU γ id st'.durable ∗ nodeVacantU γ id)
+
+variable [CrashGS GF] in
+/-- (2026-11-01, durability stage I-3) *Enter* (the draft's `readyEnter`); (2026-11-22) live, or at a
+crash (`readyEnterLive ∧ readyEnterCrash`). -/
+def readyEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+    (ms : List QMsg) : IProp GF :=
+  iprop(readyEnterLive n γ N id st st' ms ∧ readyEnterCrash n γ N id st st')
 
 -- (2026-11-03, R2b-1 stage 1: moved here from `InvApiView`, for `readyPost`)
 
@@ -3742,6 +3761,49 @@ theorem api_enter (n : NodeH) (γ : Cluster) (N : Namespace) (γn : NodeNames)
       readyEnter n γ N γn.id st st' ms := by
   iintro #Hci #Hpool #Hlb #Hhc #Htab #Hkey #Hnode Hbusy Hgv Hd1 Hd2 Hbw Hpend #HtS'0 #Hmw #Htl
   unfold readyEnter
+  isplit
+  rotate_left
+  · -- (2026-11-22) at a crash: the batch entered by the arm's token (`raft_crash_enter`)
+    unfold readyEnterCrash
+    iintro %E %x %q %HE #Hc Htok #Harm Hrun Hrs
+    iunfold raftStateU at Hrs
+    icases Hrs with ⟨Hdg, #HtS, #Hbi⟩
+    iunfold nodeRunning at Hrun
+    icases Hrun with ⟨%γ1, %id1, %Hok1, #H1, #T1, Hl⟩
+    icases isNode_id_agree γ1 γn id1 γn.id n.loc $$ H1 Hnode with %Hid1
+    subst Hid1
+    ihave %Hg1 := EtcdGrove.isNode_id γ1 γn.id n.loc $$ H1
+    have Hr1 : γ1.raft = γ.raft := Hok1.1.1
+    ihave %Hcn := nodeTabOk_agree γ n γ1 γn $$ T1 Htab
+    have Hgen : γ1.gen = γn.gen := by
+      simp only [cfgNamesOf, Prod.mk.injEq] at Hcn
+      exact Hcn.2.2.2.2.2.2.2.2.2.2.1
+    -- the token's arm is the node's
+    ihave %Hx := nodeArmU_agree n γ x γ1.cx $$ Harm []
+    · unfold nodeArmU; iexists γ1; iframe T1; ipureintro; rfl
+    subst Hx
+    iunfold EtcdGrove.nodeLiveRaw at Hl
+    icases Hl with ⟨-, Hsl⟩
+    ihave Hsl : genView γ.raft γn.id γ1.cx q.half γn.gen $$ [Hsl]
+    · rw [← Hr1, ← Hg1, ← Hgen]; iexact Hsl
+    have HrE : (↑(raftN γ.raft) : CoPset) ⊆ E := by
+      intro p hp
+      unfold raftN at hp; rw [HNs] at hp
+      exact HE p (nclose_subseteq N "raft" p hp)
+    ihave Hpend : pendBatch γ.raft γn.id γn.gen S' W $$ [Hpend]
+    · rw [← Hnok.1]; iexact Hpend
+    iunfold nodeCrashTokU at Htok
+    imod raft_crash_enter E γ.raft γn.id st.durable γ1.cx q.half γn.gen S' W HrE HwS
+      $$ Hc Htok Hdg Hsl Hpend with ⟨Hdg, Hslot⟩
+    ihave #HtS' : termLB γ.bud S'.term $$ []
+    · rw [← Hnok.2.1]; iexact HtS'0
+    imodintro
+    isplitl [Hdg]
+    · unfold raftStateU
+      rw [HS]
+      iframe Hdg HtS' Hbi
+    unfold nodeVacantU; iexact Hslot
+  unfold readyEnterLive
   iintro %E %q %HE Hnc ⟨Hrs, Hrun⟩
   iunfold raftStateU at Hrs
   icases Hrs with ⟨Hdg, #HtS, #Hbi⟩

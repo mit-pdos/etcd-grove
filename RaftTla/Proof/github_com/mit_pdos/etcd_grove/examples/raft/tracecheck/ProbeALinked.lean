@@ -67,6 +67,8 @@ theorem probeA_round (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64)
     exact Hf.elim
   | none =>
   iunfold readyEnter at Hent
+  icases Hent with ⟨Hent, -⟩
+  iunfold readyEnterLive at Hent
   imod Hent $$ %⊤ %qr %hN Hnc [Hrs Hrun] with ⟨Hnc, Hrs, Hrun, Hdrv, #Hsent⟩
   · iframe Hrs Hrun
   ihave ⟨Hrec, %v, Hv, #Hsk⟩ := Hwork $$ %ce %es Hsnap

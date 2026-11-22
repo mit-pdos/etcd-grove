@@ -99,6 +99,8 @@ theorem Replica.persist.wp_proof
         · ipureintro; exact Hst0.2
         iintro %E %HE Hnc HrS
         iunfold readyEnter at Henter
+        icases Henter with ⟨Henter, -⟩
+        iunfold readyEnterLive at Henter
         ihave HrS : raftState γ.r.cluster id st0.durable $$ [HrS]
         · rw [Hst0.1]; iexact HrS
         imod Henter $$ %E %q %HE Hnc [$HrS $Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hmsgs⟩
@@ -253,6 +255,8 @@ theorem Replica.persist.wp_proofRun
         · ipureintro; exact ⟨h2 ▸ Hst0.2, rfl⟩
         iintro %E %HE Hnc Hlc HrS
         iunfold readyEnter at Henter
+        icases Henter with ⟨Henter, -⟩
+        iunfold readyEnterLive at Henter
         ihave HrS : raftState γ.r.cluster id st0.durable $$ [HrS]
         · rw [Hst0.1]; iexact HrS
         imod Henter $$ %E %q %HE Hnc [$HrS $Hrun] with ⟨Hnc, HrS, Hrun, Hdrv, #Hmsgs⟩

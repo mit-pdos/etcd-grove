@@ -227,6 +227,8 @@ theorem dmu_close_enter (γ : KdNames) (dir : GoString) (id : w64) (r : Loc) (n 
   obtain ⟨h1, h2⟩ := Prod.mk.inj Hag
   subst h1
   iunfold readyEnter at Henter
+  icases Henter with ⟨Henter, -⟩
+  iunfold readyEnterLive at Henter
   ihave HrS : raftState γ.r.cluster id stI.durable $$ [HrS]
   · rw [HS]; iexact HrS
   imod Henter $$ %(⊤ \ ↑(kdRepN .@ uint.nat id)) %((1 : Qp).half) %(kdRaftN_rep id) Hnc [$HrS $Hrun]

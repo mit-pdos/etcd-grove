@@ -465,3 +465,69 @@ without one ignores it.
 updates (`7ad4f91b1`; `sendAu`'s `|NC={⊤,∅}=>`). `node.run`'s hand-out and cut run under
 `sendAu_ncfupd` (`InvNodeRun.lean`) with the token the channel lends. `node__run_gated.lean` builds
 in all three trees.
+
+## (k) A crash may enter a cut batch (`readyCrashEnter`, 2026-11-22, branch `raft-crash-enter`)
+
+**Need** (kvnet, `notes/kvnet-part.md` on its branch, "persist" item 3): a replica writes its storage image
+with `durable.Write`, a rename then a directory sync. A crash between the two may keep either file, and the
+kernel decides which at crash time. `nodeCrash` discards a pending batch (the generation bump), so if the new
+file survived, raft's durable state was still the old one and `RestartNode` could not get `StorageHolds S σ`.
+
+**The law** (`InvNode.lean`), beside `nodeCrash`:
+
+```lean
+theorem readyCrashEnter (n γ N id st st' ms x q E) (HE : ↑N ⊆ E) :
+    ⊢ crashed -∗ nodeCrashTok γ id x -∗ nodeArm n γ x -∗ nodeRunning n γ N q -∗
+      readyEnter n γ N id st st' ms -∗ raftState γ id st.durable ={E}=∗
+        raftState γ id st'.durable ∗ nodeVacant γ id
+```
+
+It differs from the statement kvnet asked for (`readyCrashEnter.law`):
+- **`nodeRunning n γ N q` is added** (any share). Without it the law is false of the ghost model: a client may
+  `node.Stop` the node after the cut (`Stop` takes only `nodeRunning 1`). The stop bumps the generation within
+  the same arm (`Stop`'s post is `nodeVacantA γ id x` at the same `x`), so the batch's queue entry is then of a
+  dead generation. The client may restart the node, enter later batches, and crash, still holding the old
+  `readyEnter`, `nodeArm n γ x` and the token. Entering the stale batch then would mint its promises against
+  entered maps that later batches have moved. A share of `n`'s liveness proves that `n` was not stopped, so the
+  batch's generation is the slot's current one (`genView` against the crash invariant's `ghostVar x.g`). kvnet
+  holds `run`'s half of `nodeRunning` in `run`'s frame, so it moves a share into the file invariant with the
+  `readyEnter` at the rename and takes both out at the sync, where the live wand takes any share anyway.
+- **`nodeArm n γ x` is added.** The token must be the node's arm's. With another arm, entered after a
+  `nodeCrash` and `nodeVacant_arm` inside the same crash wand, the node's generation is again stale.
+  `StartNode`/`RestartNode` give `nodeArm`, and it is persistent.
+- **`isCluster` is dropped.** The namespace fact it gave `nodeCrash` is the hand-out's own (`api_enter` has
+  `HNs`).
+
+**Design.** `readyEnter` is now `readyEnterLive ∧ readyEnterCrash` (both transparent defs in `InvNode`, and the
+same in `ApiImpl`). `readyEnterLive` is the old wand, unchanged. `readyEnterCrash` is the law's wand for this
+batch. The ∧ shares the hand-out's resources (the `pendBatch`, the node-table facts) between the two, so no
+resource is split. A client that fires *enter* live adds
+`icases Henter with ⟨Henter, -⟩; iunfold readyEnterLive at Henter`. Seven sites in the main tree and two in
+`RaftTla`'s trace check do this. `api_enter` proves both halves.
+
+**Protocol level** (`Protocol/Enter.lean`):
+- `raft_enter_core`: `raft_enter`'s proof with the generation check abstracted. It takes a resource `R` and an
+  update `Hag` that agrees `R`'s generation with the slot's half, at `E \ slotN`.
+- `raft_enter` is the core with `R := notCrashed ∗ genView`, statement unchanged.
+- `raft_crash_enter : crashed -∗ raftCrashTok γ id x -∗ ownDurGhost S -∗ genView γ id x q g -∗ pendBatch g S' W
+  ={E}=∗ ownDurGhost S' ∗ raftIdSlot γ id`. The steps:
+  1. The token refutes the crash invariant's crashed disjunct, so the six pieces are there.
+  2. The view's `ghostVar x.g` agrees with theirs, which gives `g`.
+  3. The core runs with `R := slotLive γ id 1 g`, the slot's own generation from the invariant, at
+     `E \ crashN`.
+  4. The pieces go back.
+  5. `raft_crash` runs as before.
+
+  So entering at a crash is entering while the dead generation's slot share is still in the invariant, then the
+  crash.
+
+**Why it is sound** (beyond the proof, which checks it against raft's invariants): entering declares the batch
+durable at the crash point. A non-leader sends nothing of the batch before it is entered (`readyMsgs` comes from
+*enter*), and a leader's messages sent first carry no pending promise (`readyLeaderMsgs`). A batch the
+restarted node does not find is discarded by `nodeCrash`, as before.
+
+**Also on this branch: `statusOwn_hardState`** (for kvnet's `Node.status`). `node.Status`'s post `statusOwn st`
+promised nothing of the values, and it still does not. The new law gives read access only:
+`statusOwn st ⊢ statusOwn st ∗ ∃ hs, hsOpt st.BasicStatus'.HardState' hs`. `hsOpt` is `nil` (a stopped node's
+`Status{}`) or `hsRO`, which `HardState.GetTerm`/`GetCommit` read. `Lead` and `RaftState` are plain fields of the
+returned struct and need no law.
