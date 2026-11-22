@@ -34,6 +34,12 @@ public import Net.Proof.net.rpc.clientCodec__ReadResponseBody
 public import Net.Proof.net.rpc.clientCodec__WriteRequest
 public import Net.Proof.net.rpc.clientCodec__Close
 public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.rpc.Call__done
+public import Net.Proof.net.rpc.Client__Close
+public import Net.Proof.net.rpc.Client__send
+public import Net.Proof.net.rpc.Client__Go
+public import Net.Proof.net.rpc.Client__Call
+public import Net.Proof.net.rpc.newClientCodec
 public import Net.Proof.net.Conn__Close
 public import Net.Proof.net.Conn__Read
 public import Perennial.Proof.sync.Link
@@ -95,7 +101,36 @@ theorem clientCodec.WriteRequest.wp [sync.Assumptions] [NetProtoGS] :
 theorem clientCodec.Close.wp : clientCodec.Close.spec (GF := GF) (hG := hG) :=
   clientCodec.Close.wp_proof net.Conn.Close.wp_proof
 
+theorem newClientCodec.wp : newClientCodec.spec (GF := GF) (hG := hG) := newClientCodec.wp_proof
+
 end results
+
+section client
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [net.rpc.Assumptions]
+variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [sync.Assumptions] [NetProtoGS]
+
+theorem Call.done.wp : Call.done.spec (GF := GF) (hG := hG) := Call.done.wp_proof
+
+theorem Client.Close.wp : Client.Close.spec (GF := GF) (hG := hG) :=
+  Client.Close.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.Close.wp
+
+theorem Client.send.wp : Client.send.spec (GF := GF) (hG := hG) :=
+  Client.send.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.WriteRequest.wp
+    Call.done.wp
+
+theorem Client.Go.wp : Client.Go.spec (GF := GF) (hG := hG) := Client.Go.wp_proof Client.send.wp
+
+theorem Client.Call.wp : Client.Call.spec (GF := GF) (hG := hG) := Client.Call.wp_proof Client.Go.wp
+
+end client
+
+section results'
+
+end results'
 
 end net.rpc
 end Perennial
@@ -113,3 +148,9 @@ end Perennial
 #print axioms Perennial.net.rpc.clientCodec.ReadResponseBody.wp
 #print axioms Perennial.net.rpc.clientCodec.WriteRequest.wp
 #print axioms Perennial.net.rpc.clientCodec.Close.wp
+#print axioms Perennial.net.rpc.newClientCodec.wp
+#print axioms Perennial.net.rpc.Call.done.wp
+#print axioms Perennial.net.rpc.Client.Close.wp
+#print axioms Perennial.net.rpc.Client.send.wp
+#print axioms Perennial.net.rpc.Client.Go.wp
+#print axioms Perennial.net.rpc.Client.Call.wp
