@@ -144,7 +144,7 @@ end lemmas
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [AllG GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
 
@@ -161,10 +161,7 @@ local macro "encOut_loop" : tactic => `(tactic| (
       ipureintro; simp
     wp_for HI
     wp_if_destruct
-    · have hj8 : uint.nat j < 8 := by
-        first
-        | (have h : uint.Z j < uint.Z (W64 8) := Hif; clear Hif Hv; word)
-        | (have h := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif); clear Hif Hv; word)
+    · have hj8 : uint.nat j < 8 := by clear Hv; word
       have hs : 0 ≤ sint.Z (W64 1 + j) ∧ sint.Z (W64 1 + j) < sint.Z b.len := by
         rw [hb9]; word
       rw [ite_eq_left hs]
@@ -180,12 +177,7 @@ local macro "encOut_loop" : tactic => `(tactic| (
         show uint.nat (j + W64 1) = uint.nat j + 1 by word]
       iframe
       ipureintro; word
-    · have hj8 : uint.nat j = 8 := by
-        first
-        | (have h : ¬ uint.Z j < uint.Z (W64 8) := Hif; clear Hif Hv; word)
-        | (have h : ¬ uint.Z j < uint.Z (W64 8) := fun hp =>
-              Hif (by simp only [hp, _root_.decide_true])
-           clear Hif Hv; word)
+    · have hj8 : uint.nat j = 8 := by clear Hv; word
       rw [hj8, List.take_of_length_le (by simp [u64Le_length])]
       try wp_auto
       simp only [List.drop_replicate, Nat.sub_self, List.replicate_zero, List.append_nil]
