@@ -779,10 +779,9 @@ put the persistent facts you need in `P`. `BI.or_false` and `_root_.or_false` ar
 
 # Handoff (branch `wal-safe`, 2026-11-22, session 5 of etcd-grove-03's delegates): (D)1 done; (D)2-3 need a decision
 
-**State** (`2999344fbd`, on `025b1929a6`): no axiom, no `sorry`; checked with `etc/lean-check.py -a` (the os
+**State** (`c771b6bf06`, on `025b1929a6`): no axiom, no `sorry`; the WAL Link and the tester Link build (3590 jobs; `RemoveAll`'s shared helpers moved to the defs module `RemoveAllTop`, tiers clean). Checked with `etc/lean-check.py -a` (the os
 files, `RemoveAllSub`, `RemoveAllCover`, and the WAL files that used `SubCover`: `CreateDefs`, `CreateFree`,
-`CreateArea`). **No `lake build` of the Links was run this session**: `CreateDefs` changed (two definitions moved
-out, names unchanged), so the next build of the WAL Link rebuilds the WAL (about 25 minutes).
+`CreateArea`).
 
 **(D)1 done** (`fe1fc1817f`, `2999344fbd`):
 - `Spec/os/RemoveAll.lean`: **`os.RemoveAll.specSubS`**: `d/b` holding anything (nothing, a file, a directory
