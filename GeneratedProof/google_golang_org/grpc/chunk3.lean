@@ -559,7 +559,7 @@ noncomputable instance serverOptions_access_load_codec (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverOptions_access_store_codec (l : Loc) (v : google_golang_org.grpc.serverOptions) (codec' : google_golang_org.grpc.baseCodec) :
+noncomputable instance serverOptions_access_store_codec (l : Loc) (v : google_golang_org.grpc.serverOptions) (codec' : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"codec" l) v.codec' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"codec" l) codec' (DFrac.own 1))

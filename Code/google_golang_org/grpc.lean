@@ -1726,7 +1726,7 @@ noncomputable def MaxCallSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore CallOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad CallOption.ty))) (Var "$res0")))))
 
-/-- go: server.go:219:30 -/
+/-- go: server.go:222:30 -/
 noncomputable def funcServerOption.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fdo"
   (Lam "do"
@@ -1738,7 +1738,7 @@ noncomputable def funcServerOption.apply.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverOptions.ty)] false []))))) (App (Val (GoInstruction (StructFieldRef funcServerOption.ty go!"f"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType funcServerOption.ty)))) (Var "fdo")))) (Var "$a0")))))))
   (Val #()))))
 
-/-- go: server.go:223:6 -/
+/-- go: server.go:226:6 -/
 noncomputable def newFuncServerOption.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType funcServerOption.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType funcServerOption.ty)))) (Val #())))
@@ -1755,7 +1755,7 @@ noncomputable def newFuncServerOption.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- KeepaliveEnforcementPolicy returns a ServerOption that sets keepalive enforcement policy for the server.
 
-    go: server.go:346:6 -/
+    go: server.go:349:6 -/
 noncomputable def KeepaliveEnforcementPolicy.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "kep"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1779,7 +1779,7 @@ noncomputable def KeepaliveEnforcementPolicy.impl [GooseExts] [GoGlobalContext] 
 /-- MaxRecvMsgSize returns a ServerOption to set the max message size in bytes the server can receive.
     If this is not set, gRPC uses the default 4MB.
 
-    go: server.go:447:6 -/
+    go: server.go:450:6 -/
 noncomputable def MaxRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1803,7 +1803,7 @@ noncomputable def MaxRecvMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MaxSendMsgSize returns a ServerOption to set the max message size in bytes the server can send.
     If this is not set, gRPC uses the default `math.MaxInt32`.
 
-    go: server.go:455:6 -/
+    go: server.go:458:6 -/
 noncomputable def MaxSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1827,7 +1827,7 @@ noncomputable def MaxSendMsgSize.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MaxConcurrentStreams returns a ServerOption that will apply a limit on the number
     of concurrent streams to each ServerTransport.
 
-    go: server.go:463:6 -/
+    go: server.go:466:6 -/
 noncomputable def MaxConcurrentStreams.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1860,7 +1860,7 @@ noncomputable def MaxConcurrentStreams.impl [GooseExts] [GoGlobalContext] : val 
     while the last interceptor will be the inner most wrapper around the real call.
     All unary interceptors added by this method will be chained.
 
-    go: server.go:495:6 -/
+    go: server.go:498:6 -/
 noncomputable def ChainUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "interceptors"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -1888,7 +1888,7 @@ noncomputable def ChainUnaryInterceptor.impl [GooseExts] [GoGlobalContext] : val
     while the last interceptor will be the inner most wrapper around the real call.
     All stream interceptors added by this method will be chained.
 
-    go: server.go:516:6 -/
+    go: server.go:519:6 -/
 noncomputable def ChainStreamInterceptor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "interceptors"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc ServerOption.ty))) (App (Val (GoInstruction (GoZeroVal ServerOption.ty))) (Val #())))
@@ -4528,7 +4528,7 @@ attribute [instance] Server.TypeAssumptions.type_repr
 structure serverOptions [GooseExts] where
   mk ::
   creds' : _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials
-  codec' : baseCodec
+  codec' : GoInterface
   cp' : Compressor
   dc' : Decompressor
   unaryInt' : UnaryServerInterceptor
@@ -4560,7 +4560,7 @@ noncomputable instance serverOptions.zero_val [GooseExts] : ZeroVal serverOption
 
 @[reducible] noncomputable def serverOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"creds" _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials.ty),
-(go.field_decl.FieldDecl go!"codec" baseCodec.ty),
+(go.field_decl.FieldDecl go!"codec" go.any),
 (go.field_decl.FieldDecl go!"cp" Compressor.ty),
 (go.field_decl.FieldDecl go!"dc" Decompressor.ty),
 (go.field_decl.FieldDecl go!"unaryInt" UnaryServerInterceptor.ty),
@@ -4603,7 +4603,7 @@ class serverOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   get_creds : ∀ (x : serverOptions), go.IsGoStepPureDetTagged under (StructFieldGet serverOptions.underlying go!"creds") #x (Val #(x.creds'))
   set_creds : ∀ (x : serverOptions) (y : _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials), go.IsGoStepPureDetTagged under (StructFieldSet serverOptions.underlying go!"creds") (PairV #x #y) (Val #(({ x with creds' := y } : serverOptions)))
   get_codec : ∀ (x : serverOptions), go.IsGoStepPureDetTagged under (StructFieldGet serverOptions.underlying go!"codec") #x (Val #(x.codec'))
-  set_codec : ∀ (x : serverOptions) (y : baseCodec), go.IsGoStepPureDetTagged under (StructFieldSet serverOptions.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : serverOptions)))
+  set_codec : ∀ (x : serverOptions) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet serverOptions.underlying go!"codec") (PairV #x #y) (Val #(({ x with codec' := y } : serverOptions)))
   get_cp : ∀ (x : serverOptions), go.IsGoStepPureDetTagged under (StructFieldGet serverOptions.underlying go!"cp") #x (Val #(x.cp'))
   set_cp : ∀ (x : serverOptions) (y : Compressor), go.IsGoStepPureDetTagged under (StructFieldSet serverOptions.underlying go!"cp") (PairV #x #y) (Val #(({ x with cp' := y } : serverOptions)))
   get_dc : ∀ (x : serverOptions), go.IsGoStepPureDetTagged under (StructFieldGet serverOptions.underlying go!"dc") #x (Val #(x.dc'))

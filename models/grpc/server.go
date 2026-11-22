@@ -149,8 +149,11 @@ type Server struct {
 }
 
 type serverOptions struct {
-	creds           credentials.TransportCredentials
-	codec           baseCodec
+	creds credentials.TransportCredentials
+	// MODEL: codec holds a baseCodec (or nil), stored as any: baseCodec's methods name
+	// mem.BufferSlice, and the struct names no type of package mem (see bufferPool below), until
+	// mem is translated with its pools. getCodec asserts it back.
+	codec           any
 	cp              Compressor
 	dc              Decompressor
 	unaryInt        UnaryServerInterceptor
@@ -1425,7 +1428,7 @@ func (s *Server) closeListenersLocked() {
 // cannot return nil
 func (s *Server) getCodec(contentSubtype string) baseCodec {
 	if s.opts.codec != nil {
-		return s.opts.codec
+		return s.opts.codec.(baseCodec) // MODEL: a baseCodec (serverOptions.codec)
 	}
 	if contentSubtype == "" {
 		return getCodec(proto.Name)
