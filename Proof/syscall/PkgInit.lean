@@ -9,6 +9,8 @@ module
 public import GeneratedProof.syscall
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.sync.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.internal.oserror.Base
 
 @[expose] public section
 
