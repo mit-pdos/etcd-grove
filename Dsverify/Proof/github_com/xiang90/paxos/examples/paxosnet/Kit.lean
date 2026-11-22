@@ -46,7 +46,10 @@ instance BStr.countable : Pos.Countable BStr :=
   .ofInjective (fun x : BStr => Pos.Countable.encode x.1)
     (fun a b h => Subtype.ext (Pos.encode_inj h))
 
-def bnd (w : GoString) (i : BStr) : BStr := if h : (w.length : Int) < 2 ^ 48 then ⟨w, h⟩ else i
+/-- `BStr`'s `BEq` is its decidable equality's (the instance linkv's pending lists erase with). -/
+@[reducible] instance (priority := high) BStr.beq : BEq BStr := instBEqOfDecidableEq
+
+@[irreducible] def bnd (w : GoString) (i : BStr) : BStr := if h : (w.length : Int) < 2 ^ 48 then ⟨w, h⟩ else i
 
 theorem bnd_of {w : GoString} (h : (w.length : Int) < 2 ^ 48) (i : BStr) : bnd w i = ⟨w, h⟩ := by
   unfold bnd; rw [dif_pos h]
