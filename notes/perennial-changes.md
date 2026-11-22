@@ -3667,8 +3667,8 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 
 ## 2026-11-22: `sync.OnceFunc`'s spec says nothing of calling the function it returns (`hash/crc32`'s arch hooks, etcd-grove#14)
 
-- **The gap.** `Perennial/Spec/sync/OnceFunc.lean` (the pin `d648cfe22`, and Perennial `lean`'s head on
-  2026-11-22): `OnceFunc(f)` returns some `g` with postcondition `True`, and no spec says what calling `g`
+- **The gap.** `Perennial/Spec/sync/OnceFunc.lean` (the pins `d648cfe22` and `c14cca87a`, and Perennial
+  `lean`'s head on 2026-11-22): `OnceFunc(f)` returns some `g` with postcondition `True`, and no spec says what calling `g`
   does (nor for `OnceValue`/`OnceValues`). `Once.Do` (`isOnce o P Q`) and `atomic.Bool.Load`/`Store`
   (`ownBool`) have specs; `OnceFunc` is translated with its body (`Once`, `wrapDeferRecover`).
 - **Who needs it.** The fix of etcd-grove#14 that upamanyus approved: translate crc32's `MakeTable`,
@@ -3687,7 +3687,9 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   (a) The real code reads package globals (`castagnoliInitOnce`, `haveCastagnoli`, `castagnoliTable`,
   `IEEETable`), so the specs of `MakeTable`, `update`, `Update` and `digest.Write` gain the premise
   `isPkgInit pkg_id.hash.crc32`; their callers (the WAL's initializer, `pkg/v3/crc`'s `digest.Write`, mvcc's
-  `newKVHasher` and `kvHasher.WriteKeyValue`) have to supply it. Otherwise the statements stay unchanged.
+  `newKVHasher` and `kvHasher.WriteKeyValue`) have to supply it. Otherwise the statements stay unchanged. (kaashoek
+  on #14: the WAL proofs use crc32 only through these specs, so the WAL proofs are affected only by this
+  premise.)
   (b) crc32's fact gains an invariant: `haveCastagnoli`'s `ownBool`, and, once it is true,
   `castagnoliTable ↦□ t ∗ t ↦□ castagnoliTableArr` plus `updateCastagnoli ↦□ u` with `u`'s WP computing
   `crc32c`. The once's `P` is the cells of `castagnoliTable`, `castagnoliTable8` and `updateCastagnoli`.
