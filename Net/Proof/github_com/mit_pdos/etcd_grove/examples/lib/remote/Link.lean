@@ -37,7 +37,9 @@ namespace Perennial
 
 open Iris Iris.BI Net
 
-namespace github_com.mit_pdos.etcd_grove.examples.lib.remote
+namespace EtcdGrove.remote
+
+open github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 section linked
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -85,5 +87,5 @@ theorem wp_Check : Check.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O)
 
 end linked
 
-end github_com.mit_pdos.etcd_grove.examples.lib.remote
+end EtcdGrove.remote
 end Perennial

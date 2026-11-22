@@ -55,11 +55,11 @@ theorem wp_attempt : attempt.spec (GF := GF) (hG := hG) := attempt.wp_proof
 theorem wp_CounterApply : CounterApply.spec (GF := GF) (hG := hG) := CounterApply.wp_proof
 theorem wp_Server : Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof EtcdGrove.lintest.counter.New.wp_proof wp_CounterApply wp_Codec wp_attempt
-    remote.wp_Serve
+    EtcdGrove.remote.wp_Serve
 theorem wp_Client : Client.spec (GF := GF) (hG := hG) :=
-  Client.wp_proof wp_Codec wp_attempt remote.wp_Do remote.wp_ServeClient
+  Client.wp_proof wp_Codec wp_attempt EtcdGrove.remote.wp_Do EtcdGrove.remote.wp_ServeClient
 theorem wp_Orch : Orch.spec (GF := GF) (hG := hG) :=
-  Orch.wp_proof wp_Model wp_Codec wp_Gen wp_attempt remote.wp_Check
+  Orch.wp_proof wp_Model wp_Codec wp_Gen wp_attempt EtcdGrove.remote.wp_Check
 
 end pkg
 
