@@ -130,6 +130,9 @@ theorem EtcdServer.PromoteMember.wp_proof
   intro s E ρ γr ctx cd tok id Pin Pm Qm Qin Qfw n
   wp_start as ⟨#Hq, #Hr, #Hprt, #Hau, #Hlb, #Hctx, #Hlib, #HtokC, HRD, HPin, HPm, #Hmay, #Hconf,
     #Hfw⟩
+  -- `errors.IsCtxErr` takes `context`'s initialization (errors-is-axioms, 2026-11-22)
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   iunfold srvPeerRt at Hprt
   icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩
   ihave Hinit : (srvInit : IProp GF) $$ []

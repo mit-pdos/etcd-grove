@@ -53,7 +53,6 @@ axiom encoding.json.Unmarshal.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.SprintfWalName.wp_proof

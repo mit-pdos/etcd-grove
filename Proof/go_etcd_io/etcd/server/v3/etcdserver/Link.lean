@@ -1951,7 +1951,7 @@ theorem wp_getRequestType :
 
 theorem errors.wp_IsCtxErr :
     errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
-  errors.IsCtxErr.wp_proof
+  errors.IsCtxErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem EtcdServer.wp_getLead :
     EtcdServer.getLead.spec (GF := GF) (hG := hG) :=
