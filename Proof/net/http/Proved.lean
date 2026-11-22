@@ -230,17 +230,25 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.bytes.Assumptions]
 
-/-- `bytes.NewBuffer(b)` (`NewBuffer_spec`): Perennial's (stdlib2, 2026-11-21; until then an axiom). -/
+/-- `bytes.NewBuffer(b)` (`NewBuffer_spec`), over its code: `&Buffer{buf: b}`. (stdlib2,
+2026-11-21, until then an axiom; Perennial's `bytes.NewBuffer.spec` also takes `b`'s spare
+capacity since mit-pdos/perennial#670, which `bufferHas` does not hold.) -/
 theorem NewBuffer_ok : NewBuffer_spec (GF := GF) := by
   intro b bs
   iintro %Φ !> Hb HΦ
-  wp_apply _root_.Perennial.bytes.wp_NewBuffer b bs $$ Hb as %l Hl
+  wp_func_call
+  wp_auto
   iapply HΦ
-  unfold readerHas
+  unfold readerHas bufferHas
   iright
-  iexists l
-  iframe Hl
-  ipureintro; rfl
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  iexists _, bs
+  iframe
+  ipureintro
+  refine ⟨by word, by word, ?_⟩
+  rw [show sint.nat (0 : w64) = 0 from rfl, List.drop_zero]
 
 /-- `nil` is a reader of no bytes, an empty request body (`readerHas`'s first case; `NewRequest`'s
 `nil` body). (stdlib2, 2026-11-21; until then an axiom.) -/

@@ -547,7 +547,7 @@ theorem _root_.Perennial.EtcdGrove.bbolt.Bucket.spill.wp_proof (hNS : node.spill
         | ok ii =>
         try wp_auto
         unfold forMapPostcondition
-        iright; iright; iright
+        iright; iright; iright; ileft
         iexists #()
         isplitr
         · ipureintro; rfl

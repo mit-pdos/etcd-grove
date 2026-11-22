@@ -13962,11 +13962,11 @@ attribute [instance] etcdError.TypeAssumptions.underlying
 abbrev grpcError [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def grpcError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GRPCStatus" (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GRPCStatus" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)]))])
 
 class grpcError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq grpcError.ty grpcError.underlying
-  method_set : go.MethodSetIs grpcError.ty [(go!"GRPCStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))])))]
+  method_set : go.MethodSetIs grpcError.ty [(go!"GRPCStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.status.Status.ty)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType grpcError.ty) []
 
 attribute [instance] grpcError.TypeAssumptions.underlying
