@@ -55,13 +55,12 @@ bumped there to Perennial `3afd77e35`; read only, nothing in the lab changed).
 
 Compiles: the translation, the whole paxos package's proof and Link, the kit's proofs, mains and
 links, and `paxos_remote_robust` (`#print axioms`: `propext`, `sorryAx`, `Classical.choice`,
-`Quot.sound`). The `sorry`s (all in `Dsverify/Proof/.../paxosnet/KitProof.lean`):
+`Quot.sound`). The one `sorry` (in `Dsverify/Proof/.../paxosnet/KitProof.lean`):
 
 - `Model.wp_proof`: `Model()` meets `woS` (`isModel`): `step`, `push`, `has`, `erase`, `equal` on
   the Go `State{Known, Val, Pend []string}`, and `woSet`'s laws (the configurations a state stands
   for, closed under late effects, and the four kinds of step). The counter's `ModelDefs.lean` is the
   template (its state is two integers; here a read-only slice).
-- `Codec.wp_proof`: `Codec()` meets `codecOk (woR Γ)` (string/byte conversions, `append`).
 
 No axiom of this repository is added. Not done: the per-function spec/proof file layout (the
 lab's hub files are kept, as for its Link); `etc/gen-link.py` does not generate these Links

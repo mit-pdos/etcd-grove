@@ -2,9 +2,8 @@
 # extension and examples/lib/remote, in the part Dsverify/: the paxos package's linked results
 # (Dsverify/Proof/github_com/xiang90/paxos/Link.lean), the kit's (examples/paxosnet/Linked.lean) and
 # its closed theorem `paxos_remote_robust` (examples/paxosnet/TopLevelRobustness.lean: ten machines,
-# Robust [] under DistDeploy). Its `#print axioms`: Lean's three and `sorryAx` (the kit's model and
-# codec proofs, `Model.wp_proof` and `Codec.wp_proof` in examples/paxosnet/KitProof.lean, are not
-# written yet); no axiom of this repository.
+# Robust [] under DistDeploy). Its `#print axioms`: Lean's three and `sorryAx` (the kit's porcupine
+# model's proof, `Model.wp_proof` in examples/paxosnet/KitProof.lean, is not written yet); no axiom of this repository.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-paxos.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-paxos.txt --check    against the lines below

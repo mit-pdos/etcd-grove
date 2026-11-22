@@ -8,6 +8,7 @@ public import Dsverify.Proof.github_com.xiang90.paxos.examples.paxosnet.Kit
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 public import Perennial.Spec.time.Sleep
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
 
@@ -153,7 +154,140 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
   sorry
 
 theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro Γ
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold codecOk woR
+  simp only
+  isplitr
+  · -- EncIn
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+    iapply HΦ'
+    iexact Hsl
+  isplitr
+  · -- DecIn
+    iintro %i %b %dq
+    iintro !> %Φ' Hb HΦ'
+    wp_auto
+    wp_apply wp_bytes_to_string $$ [Hb] as Hb
+    · iexact Hb
+    iapply HΦ'
+    ipureintro
+    intro _
+    rfl
+  isplitr
+  · -- EncOut
+    iintro %v %Hv
+    obtain ⟨u, w, rfl⟩ : ∃ (u : Bool) (w : BStr), v = outV u w.1 := by
+      rcases Hv with ⟨o, h⟩ | ⟨_, h⟩
+      · exact ⟨_, _, h⟩
+      · exact ⟨_, ⟨[], by simp⟩, h⟩
+    iintro !> %Φ' - HΦ'
+    rw [encOutV_outV]
+    have hw := w.2
+    wp_auto
+    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hlen
+    wp_apply (wp_slice_make3 (V := w8) (W64 1) (W64 1 + W64 w.1.length) (by word))
+      as %b ⟨Hb, Hcap, -⟩
+    ihave %Hbl := ownSlice_len _ _ _ $$ Hb
+    have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by
+      obtain ⟨h1, h2⟩ := Hbl; simp only [List.length_replicate] at h1; word
+    cases u
+    · wp_auto
+      wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+      wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb', -, -⟩
+      iapply HΦ'
+      simp only [encOutB, Bool.false_eq_true, ↓reduceIte]
+      rw [show List.replicate 1 (zero_val w8) ++ w.val = W8 0 :: w.val from rfl]
+      iexact Hb'
+    · wp_auto
+      rw [ite_eq_left h0]
+      wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 1) $$ [Hb] as Hb
+      · iframe Hb; ipureintro; simp
+      wp_auto
+      wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+      wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb', -, -⟩
+      iapply HΦ'
+      simp only [encOutB, ↓reduceIte]
+      rw [show (List.replicate 1 (zero_val w8)).set 0 (W8 1) ++ w.val = W8 1 :: w.val from rfl]
+      iexact Hb'
+  isplitr
+  · -- DecOut
+    iintro %v %b %dq %Hv
+    obtain ⟨u, w, rfl⟩ : ∃ (u : Bool) (w : BStr), v = outV u w.1 := by
+      rcases Hv with ⟨o, h⟩ | ⟨_, h⟩
+      · exact ⟨_, _, h⟩
+      · exact ⟨_, ⟨[], by simp⟩, h⟩
+    iintro !> %Φ' Hb HΦ'
+    rw [encOutV_outV]
+    simp only [encOutB]
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hb
+    ihave %Hwf := ownSlice_wf _ _ _ $$ Hb
+    have hw := w.2
+    have hb1 : 1 ≤ sint.Z b.len := by
+      obtain ⟨h1, h2⟩ := Hlen; simp only [List.length_cons] at h1
+      have h3 : ((sint.nat b.len : Nat) : Int) = sint.Z b.len := Int.toNat_of_nonneg h2
+      omega
+    have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by
+      constructor <;> word
+    wp_auto
+    wp_if_destruct
+    · exfalso; word
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq (if u then W8 1 else W8 0) (by word)
+      $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    wp_if_destruct
+    · exfalso; cases u <;> simp only [Bool.false_eq_true, ↓reduceIte] at Hif <;> word
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq (if u then W8 1 else W8 0) (by word)
+      $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    wp_auto
+    rw [ite_eq_left (show 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z b.len ∧
+      sint.Z b.len ≤ sint.Z b.cap from ⟨by word, by word, Hwf.2⟩)]
+    icases (ownSlice_split_all (W64 1) b dq _ ⟨by word, by word⟩).1 $$ Hb with ⟨Hb1, Hb2⟩
+    rw [show sint.nat (W64 1) = 1 from rfl, List.drop_one, List.tail_cons]
+    wp_apply wp_bytes_to_string $$ [Hb2] as Hb2
+    · iexact Hb2
+    iapply HΦ'
+    ipureintro
+    intro _
+    cases u <;> rfl
+  isplitr
+  · -- IsRead
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    rw [show (!woB.isWrite i) = false from rfl]
+    iapply HΦ'
+    itrivial
+  isplitr
+  · -- Unknown
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    iapply HΦ'
+    itrivial
+  isplitr
+  · -- IsUnknown, an output
+    iintro %o
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    iapply HΦ'
+    itrivial
+  · -- IsUnknown, an unknown output
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    iapply HΦ'
+    itrivial
 
 /-! ## Masks, injectivity, the model's decoder -/
 
