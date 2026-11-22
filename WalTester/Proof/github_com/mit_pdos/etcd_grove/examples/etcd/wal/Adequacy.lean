@@ -183,15 +183,9 @@ variable [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions
 
 /-- **The specs the tester's proof takes that no proof discharges yet** (the tester Link's hypotheses
 but the model's laws, which are proved): the Perennial-gap specs, `WalDecEnvSupply`, the trust-boundary
-spec of `proto.Unmarshal` on a WAL record, and the raftpb hard-state law pending the user
-(`WalHsOwn`'s `reset`: `RaftModel/Laws.lean`). -/
+spec of `proto.Unmarshal` on a WAL record. -/
 structure TOpen : Prop where
   decEnv : WalDecEnvSupply (GF := GF)
-  resetHs : ∀ (p : Loc) (h : HardStateM),
-      {{ walRaftHsO (GF := GF) p h }}
-        (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty @!! go!"Reset"))
-          (Val #()))
-      {{ RET #(); walRaftHsO p hsZero }}
   isErrno : errors.IsErrno.spec (GF := GF) (hG := hG)
   isPathErrnoEof : errors.IsPathErrnoEof.spec (GF := GF) (hG := hG)
   isPathErrnoNotExist : errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG)
@@ -226,8 +220,8 @@ variable [_root_.Perennial.go_uber_org.zap.Assumptions]
 `walRaftHsO`), its laws proved, the rest from `TOpen`. -/
 theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (hG := hG) :=
   walTester.etcd_wal.wp_Main walRaftP walRaftU walRaftHsO walRaftU_ok walRaftU_snapCoh
-    h.decEnv (walRaftHsO_own proto.UnmarshalPb.wp_proof h.resetHs)
-    (walRaftHsO_own proto.UnmarshalPb.wp_proof h.resetHs)
+    h.decEnv (walRaftHsO_own proto.UnmarshalPb.wp_proof)
+    (walRaftHsO_own proto.UnmarshalPb.wp_proof)
     (walRaftP_cloneHs proto.ClonePb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
     walPb_laws.unmarshalEnt walPb_laws.zero h.isErrno h.isPathErrnoEof h.isPathErrnoNotExist

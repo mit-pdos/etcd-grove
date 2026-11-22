@@ -3,8 +3,8 @@
 `WalPbIn.NilLaw`, `ZeroLaw`, `MustSyncLaw` (raft's `MustSync`, `rawnode.go:191`), `IsEmptyLaw` (raft's
 `IsEmptyHardState`, `node.go:122`, over raft's package fact `isInitialized`: `emptyState`), and
 `WalHsOwn`'s `zero`, `getCommit`, `freeze` of `walRaftHsO`. (`MarshalHsLaw`: `LawsHsMarshal.lean`, over the
-registered `raftpb.HardState`, wal-item3; `WalHsOwn.unmarshal`, `reset` and `CloneHsLaw` are not proved: the
-U4 log.) Lean-first.
+registered `raftpb.HardState`, wal-item3; `WalHsOwn.reset` over the trusted model `HardState.Reset.impl` since 2026-11-22; `WalHsOwn.unmarshal` and
+`CloneHsLaw`: `LawsHsPb.lean`.) Lean-first.
 -/
 module
 
@@ -209,6 +209,34 @@ theorem walRaftHsO_getCommit (p : Loc) (h : HardStateM) :
   iexists pt, pv, pc, st, sc, us
   iframe HT cT HV cV HC cC Hst Hsc Hus Huf
   ipureintro; exact Hn
+
+/-- The trusted model's type by name is the translation's `HardState.ty`. -/
+theorem raftpb_model_HardState_eq :
+    go_etcd_io.raft.v3.raftpb.model.HardState = go_etcd_io.raft.v3.raftpb.HardState.ty := by
+  unfold go_etcd_io.raft.v3.raftpb.HardState.ty; rfl
+
+/-- `WalHsOwn.reset`, over the trusted model `HardState.Reset.impl`
+(`TrustedCode/go_etcd_io/raft/v3/raftpb.lean`: the store of the zero value). -/
+theorem walRaftHsO_reset (p : Loc) (h : HardStateM) :
+    {{ walRaftHsO (GF := GF) p h }}
+      (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty @!! go!"Reset"))
+        (Val #()))
+    {{ RET #(); walRaftHsO p hsZero }} := by
+  wp_start_folded as Hh
+  iunfold walRaftHsO at Hh
+  iunfold hsOwnC at Hh
+  icases Hh with ⟨%pt, %pv, %pc, %st, %sc, %us, %Hn, HT, -, HV, -, HC, -, Hst, Hsc, Hus, -⟩
+  ihave Hp := typedPointsto_combine (GF := GF) p
+    (go_etcd_io.raft.v3.raftpb.HardState.mk st pt pv pc us sc) (DFrac.own 1) Hn $$ [HT HV HC Hst Hsc Hus]
+  · simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  rw [method_unfold (t := go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) (m := go!"Reset")]
+  unfold go_etcd_io.raft.v3.raftpb.HardState.Reset.impl
+  rw [raftpb_model_HardState_eq]
+  wp_auto
+  iapply HΦ
+  iapply walRaftHsO_zero
+  iexact Hp
 
 /-- `WalHsOwn.freeze`. -/
 theorem walRaftHsO_freeze (p : Loc) (h : HardStateM) (E : CoPset) :
