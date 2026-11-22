@@ -12,14 +12,14 @@ This plan ports that design onto etcd-grove's net extension as a neutral library
 dsverify's kits (phase 6 of `notes/dsverify-net-port-plan.md`) can reuse it, and so can etcd-dist's
 workloads (`notes/etcd-dist-plan.md` §2, D8).
 
-**Status:** R0 reviewed 2026-11-22. This is revision 2, after the coordinator's decisions (§8). R1 is next.
+**Status:** R0 reviewed 2026-11-22; this is revision 2, after the coordinator's decisions (§8). **R1 done** (2026-11-22, §5). R2 next.
 
 ## 1. The lab's pieces, mapped to ours
 
 | Lab (dsverify-lab `master`) | Here | How |
 |---|---|---|
 | `harness/remote/remote.go`: `Call`, `Serve`, `ServeClient`, `RunRemote`, the wire, `Codec`, `String` | `examples/lib/remote/remote.go` | **ported, changed** (§3): one connection per attempt; a write gets one attempt and otherwise an unknown outcome, a read up to `ReadTries` attempts; the codec gains `IsRead` and `Unknown`; no `configure`/`New`, `Start` or `waitMs` |
-| `harness/driver` (`driver.Run`: client goroutines, `Gen`, `Start`, the recorder) | `examples/lib/lintest`, through a new `lintest.RunC` whose `apply` gets the client id (Q1); `Run` and its proof unchanged | **reused** |
+| `harness/driver` (`driver.Run`: client goroutines, `Gen`, `Start`, the recorder) | `examples/lib/lintest`, through a new package `lintest/perclient` whose `Run`'s `apply` gets the client id (Q1); lintest itself unchanged | **reused** |
 | `Recorder.lean`, `RunInv.lean`, `ClientSpec.lean`, `Driver.lean` | lintest's `Defs`/`InvLemmas`/`RunLemmas` (`applySpec`, `genSpec`, `clockSpec`, `linInv`) | **reused**. The lab's `opAwpMaybe` (commit, or an error after which the update may still fire) **is kept**, as the client node's obligation (§4). Node 0 turns it into lintest's always-committing `applySpec` over a model with pending writes |
 | `CheckerSpec.lean`, `PorcupineLin.lean`, the porcupine **axiom** | `Proof/github_com/anishathalye/porcupine/` (verified, no axiom) through lintest | **dropped**: our proof replaces it |
 | `Remote/RunP.lean`, `DriverP.lean` (the driver's proof copied for persistent commit postconditions only) | none | **dropped**. The committed continuation comes back to the caller through the slot invariant (§4), so lintest's `applySpec` is proved for any postcondition |
@@ -68,7 +68,7 @@ type Codec struct {
 	Unknown func(any) any
 }
 
-// Node 0: lintest.RunC with apply(c, in) = Do(addrs[c], in, codec, attempt); porcupine checks the
+// Node 0: perclient.Run (lintest's driver) with apply(c, in) = Do(addrs[c], in, codec, attempt); porcupine checks the
 // history against model.
 func Run(model porcupine.Model, addrs []string, codec Codec, gen func(int) any, ops int,
 	attempt time.Duration, timeout time.Duration) porcupine.CheckResult
@@ -91,8 +91,9 @@ func ServeClient(c int, addr string, newClient func(int) any, op func(sys any, i
 per attempt, carrying one request and at most one reply:
 
 - the request is the frame `in`;
-- the reply is the frame `1 ‖ out` (answered with `out`) or `0` (the far side's `op` returned its
-  unknown output).
+- the reply is the frame of `EncOut(out)`. The unknown output is a model output like any other,
+  so it is encoded too: an `op` that returned `Unknown(in)` replies with it, and the caller
+  returns it.
 
 There are no sequence numbers. An attempt is identified by its connection.
 
@@ -100,9 +101,9 @@ There are no sequence numbers. An attempt is identified by its connection.
 
 1. `DialTimeout`, then `SetDeadline(now + attempt)`;
 2. write the request, then read the reply;
-3. if the reply is `1 ‖ out` and `out` decodes, return it.
+3. if the reply decodes, return it (it may be the far side's unknown output).
 
-If the reply is `0`, `Do` returns `Unknown(in)` at once. On any other failure, a read tries again
+On any failure, a read tries again
 (at most `ReadTries` attempts, 3), and a write stops after its one attempt. Either way, when no
 attempt gets an answer, `Do` returns `Unknown(in)`. A prophecy (`NewProph` at the start of `Do`,
 `ResolveU64` at its end) records which attempt answered (or none). It does nothing in Go; node 0's
@@ -113,7 +114,7 @@ proof needs it (§4).
 1. accept, then `SetDeadline`;
 2. read the request frame and decode it;
 3. run `op(sys, in)`;
-4. reply `1 ‖ EncOut(out)`, or `0` if `out` is `Unknown(in)`;
+4. reply `EncOut(out)`, unless the encoding is longer than `MaxLen`;
 5. close.
 
 A connection whose request does not arrive whole, or does not decode, is closed without running
@@ -147,7 +148,7 @@ client. With `remote`:
 - node 0 is `remote.Check(txnlin.Model(), clientAddrs, txnCodec, txnlin.Gen, ops, attempt)`;
 - client machine i is `remote.ServeClient(i, addr_i, newClient, op, txnCodec)`.
 
-`lintest.RunC` makes the `kvClient` copy unnecessary (D1 can drop it). There is one difference:
+`perclient.Run` makes the `kvClient` copy unnecessary (D1 can drop it). There is one difference:
 `op` must be txnlin's call **without** its prophecies (txnlin's unexported `call`), since node 0's
 `Do` now makes the prophecy (§4). txnlin's codec (heap-free `Input`/`Output`, `IsRead` =
 `!isWrite`, `Unknown` = `Output{Err: true}`) is etcd-dist's work (§7). The watch/cache writers
@@ -197,8 +198,8 @@ one per connection (the lab's spec (R)):
   only key to the update. The acceptor swaps it for `AU`, so the update fires at most once. That is
   the at-most-once argument, with no sequence numbers.
 - **The protocols.** `reqProto cn W`: `W` is a prefix of the frame of `bI i`, with `slotOf cn γ`, the
-  slot's invariant and `□ inOk i`. `repProto cn W`: `W` is a prefix of `1 ‖ bO o` with
-  `slotOf cn γ ∗ doneLb γ o`, or of `0`. Both are persistent.
+  slot's invariant and `□ inOk i`. `repProto cn W`: `W` is a prefix of the frame of `bO o`, with
+  `slotOf cn γ ∗ doneLb γ o` for an answered `o`, or with `o` the unknown output. Both are persistent.
 - **The reply.** After `op` returns `o`, the acceptor stores `Φ o` in the slot (`done`) and replies.
   The dialer, holding `takeTok`, takes `Φ o` when the reply arrives.
 - **The spec.** `Do.spec` is `opMaybe` over the same base: the far side's `opMaybe`, transported.
@@ -234,12 +235,12 @@ values (scalars, strings, structs of them). The counter's `bool`/`int64` qualify
 - `remote.Run.spec`, `remote.Check.spec`: lintest's premises (`isModel` with `S.M = pM B dec`,
   `genSpec`, bounds), `CodecSpec`, `pendInv`'s start, node 0's share; then `r ≠ Illegal`, and
   `Check` returns;
-- `lintest.RunC.spec` (lintest's `Run.spec` with an id-indexed `applySpec`);
+- `perclient.Run.spec` (lintest's `Run.spec` with an id-indexed `applySpec`; its proof reuses lintest's `Defs`, `InvLemmas`, `RunLemmas`);
 - the frame helpers, ported from kvnet's and `wire.ReadFull`'s proofs, not imported.
 
 ## 5. Stages
 
-1. **R1** Go: `remote.go`, `lintest.RunC`, the counter instance, and tests over real sockets
+1. **R1** (done 2026-11-22, below) Go: `remote.go`, `lintest/perclient`, the counter instance, and tests over real sockets
    (loopback):
    - an end-to-end run (node 0, two client nodes, the counter server; porcupine `Ok`);
    - a fault proxy that cuts connections at every byte offset of a request and of a reply, and
@@ -250,7 +251,7 @@ values (scalars, strings, structs of them). The counter's `bool`/`int64` qualify
 
    Also the goose project, `etc/goose.py --check --project remote`, and a gate line.
 2. **R2**: translation; `Defs`, `Wire`, frames; `Do`, `Serve`/`ServeClient`; `pendInv` and node 0's
-   `apply`; `Run`/`Check`; `lintest.RunC`; `Init`, `Link`.
+   `apply`; `Run`/`Check`; `perclient.Run`; `Init`, `Link`.
 3. **R3**: `remote_robust` (§6), with `remote_start` and the per-node boot lemmas.
 4. **R4**: the counter instance, closed, with `#print axioms` and `etc/tcb-collections/remote.txt`.
 
@@ -318,7 +319,7 @@ with `#print axioms` (expected: the net extension's and Perennial's, nothing of 
 | Piece | Go | Lean (estimate) |
 |---|---|---|
 | R1 `remote.go`, the counter instance (Go model with pending increments, codec, nodes), tests, fault proxy | ~250 + ~200 + ~400 | — |
-| `lintest.RunC` (new; `Run` unchanged) | ~30 | ~350 (`RunC`, `runClientC`, `RunLin2C`: copies of the proofs with an id-indexed `applySpec`) |
+| `lintest/perclient` (new package; lintest unchanged) | ~30 | ~350 (`perclient.Run`, `runClient`: lintest's proofs with an id-indexed `applySpec`) |
 | R2 `Defs` (slots, protocols), `Wire`, frames | — | ~800 |
 | R2 `Do`, `Serve`/`ServeClient` | — | ~1100 |
 | R2 `pendInv` and node 0's `apply` (prophecy, pending writes; after txnlin's `Inv.lean`, ~940 lines, without revisions) | — | ~900 |
@@ -346,8 +347,11 @@ Risks:
 
 ## 8. Decisions (coordinator, 2026-11-22) and open questions
 
-- **Q1** decided: `lintest.RunC` (apply gets the client id) as a separate function. `Run` and its proof
-  unchanged.
+- **Q1** decided: a separate function whose `apply` gets the client id, with `Run` and its proof
+  unchanged. It is in a package of its own, `examples/lib/lintest/perclient` (`perclient.Run`),
+  not in `lintest`: any change to `lintest.go` changes its translation's `.olean`, which would rebuild
+  2056 modules (327k lines: every lintest user, k8s and etcd included; `etc/importers.py --count`).
+  The package beside it changes no existing module.
 - **Q2** decided: the counter on a server node behind two client nodes; R4 exercises an
   unknown-outcome write. The decision asked for `Serve` to deduplicate per sender. With one slot per
   connection (§4) deduplication is unnecessary: nothing is resent, and a connection's claim is its
@@ -363,6 +367,29 @@ Risks:
   checks. Should they also go through `remote` (each loop on its client machine, node 0 collecting
   results), or stay one machine per workload? Not needed for this branch.
 
+## R1, done (2026-11-22)
+
+- `examples/lib/remote/remote.go` (a Go module of its own; §3), `examples/lib/lintest/perclient`,
+  and the instance `examples/lib/remote/counter` (`Model`: the counter with pending increments,
+  state `(Lo, K)`; `Codec`; `Gen`; `Orch`, `Client`, `Server`; commands `cmd/{orch,client0,client1,server}`).
+- Tests (`counter/counter_test.go`, all pass, also with `-race -count=2`):
+  - `TestModelIsPending`: `step` against linkv's construction on explicit configuration sets
+    (200k random cases: the same verdicts, and the states stand for the same sets);
+  - `TestModelWithoutFaults`: on fault-free histories, the same verdicts as lintest/counter's model;
+  - `TestCodec`: round trips, and garbage refused;
+  - `TestNoFaults`: the in-process deployment over loopback sockets, porcupine `Ok`;
+  - `TestFaults`: fault proxies on both hops, cutting requests and replies at random byte offsets
+    and delaying them, ten fresh deployments. Porcupine is `Ok` every time. One run saw 529 cuts and
+    174 unknown-outcome increments, of which 80 took effect: the server's count is between the
+    answered increments and the answered plus unknown ones;
+  - `TestControlDoubleApply`: a server that applies every increment twice is caught (`Illegal`);
+  - `TestProcesses`: the four commands as processes, three fresh deployments, the orchestrator exits 0.
+
+  A first version ran several orchestrations against one server, and porcupine rejected the
+  history, as it should: the model starts at 0. Each deployment is now fresh.
+- Goose: project `remote` (into `Net/`), and `./perclient` added to project `lintest` (lintest's
+  other files unchanged). `etc/gates.sh` runs the Go tests (`remote:` line).
+
 ## Handoff
 
-(Nothing in flight: revision 2 of the plan written; R1 next.)
+(R1 committed; R2 next: specs of the frame helpers and `Do`, `Serve`; then `pendInv`.)
