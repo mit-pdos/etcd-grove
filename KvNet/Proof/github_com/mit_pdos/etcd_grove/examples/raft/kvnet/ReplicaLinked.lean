@@ -53,7 +53,8 @@ variable [_root_.Perennial.log.NewModel]
 
 /-- **A replica's program** (see the file header): from the generation's empty package state, the
 replica's address protocols and the start resource at every address map holding exactly the
-addresses (the globals `RunNode` reads come from the package's imports' facts, `TopPkg.lean`). -/
+addresses, given the globals the package's imports' facts give (`TopPkg.lean`), which `RunNode`
+reads too. -/
 theorem kvReplica_wp
     (h_err : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
     (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
@@ -63,7 +64,7 @@ theorem kvReplica_wp
     ⊢ ownGoState (GF := GF) ∅ -∗
       (∀ a, ⌜(splitAddrs addrs)[uint.nat id - 1]? = some a⌝ -∗
         addrProto a (kvP (kvFacts γ (fun _ => True)) id) (kvQ (kvFacts γ (fun _ => True)) id)) -∗
-      (∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
+      (raft_kvcheck.connGlobals -∗ context.isClosedchanInit -∗ ∀ M, ⌜addrMapOk (splitAddrs addrs) M⌝ -∗
         kvNodeStart γ vs dir id dir ⟨cl.voters, cl.preVote, cl.checkQuorum, cl.stepDownOnRemoval,
           cl.maxSizePerMsg, cl.maxCommittedSizePerReady, cl.maxInflightMsgs⟩ M) -∗
       WP (kvnetReplicaProgram cl addrs dir id) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
@@ -82,6 +83,7 @@ theorem kvReplica_wp
   ihave ⟨#Hnet, #Hctx⟩ := kvnet_pkg_deps $$ Hpkg
   ihave #Hcg := connGlobals_of_net $$ Hnet
   ihave #Hcc := context.isClosedchanInit_of_init $$ Hctx
+  ispecialize HS $$ Hcg Hcc
   unfold raft_kvcheck.connGlobals
   icases Hcg with ⟨%eof, %ed, %et, #Heof, #Hed, -⟩
   wp_pures
