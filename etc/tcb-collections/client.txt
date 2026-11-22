@@ -13,9 +13,7 @@ axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
-axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom NewMaintenance.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom context.WithCancelTodo.wp_proof
