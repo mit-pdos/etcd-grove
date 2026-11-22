@@ -21,7 +21,6 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/enc"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
-	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 
 	comp "github.com/mit-pdos/etcd-grove/examples/k8s/dist/compactorcopy"
 )
@@ -108,7 +107,7 @@ func CompactorNode(c int, addr string, eps []string) {
 		}
 		d = writerAttempt
 	case c <= comp.Servers:
-		cli := client.ConnectRetry(robust.Rotate(eps, c))
+		cli := client.ConnectRetry(client.Rotate(eps, c))
 		op = func(any, any) any {
 			return []comp.Log{comp.Sample(cli, comp.NewOwn(cli))}
 		}
@@ -150,7 +149,7 @@ func RunCompactor(w Workload, addrs []string, ready func()) Result {
 	if len(addrs) != CompactorMachines {
 		return ended("not one machine per API server and writer")
 	}
-	if !robust.AwaitAccept(addrs) {
+	if !client.AwaitAccept(addrs) {
 		return ended("a client machine never answered")
 	}
 	ready()
@@ -163,7 +162,7 @@ func RunCompactor(w Workload, addrs []string, ready func()) Result {
 	answered, logs := 0, 0
 	for k := 0; k < rounds; k++ {
 		go remote.Report(addrs[0], 0, codec, writerAttempt)
-		outs, oks := robust.CallAll(addrs[1:], ins, func(a string, in any) (any, bool) {
+		outs, oks := client.CallAll(addrs[1:], ins, func(a string, in any) (any, bool) {
 			return remote.Report(a, in, codec, apiserverAttempt)
 		})
 		for i := range outs {

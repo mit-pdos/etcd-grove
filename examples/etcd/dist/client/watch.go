@@ -9,7 +9,6 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
-	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 )
 
 // readTimeout bounds how long a workload reads its watch after its writers are done, so that a
@@ -32,7 +31,7 @@ func RunWatch(eps []string, nodes []string, nops int, ready func()) Result {
 	if err != nil {
 		return ended("watch: the watcher failed to connect")
 	}
-	if !robust.AwaitAccept(nodes) {
+	if !AwaitAccept(nodes) {
 		return ended("watch: a writer's machine never answered")
 	}
 	wctx, cancel := context.WithCancel(context.Background())
@@ -68,7 +67,7 @@ func RunCache(eps []string, nodes []string, nops int, ready func()) Result {
 	if err != nil {
 		return ended("cache: the cache's client failed to connect")
 	}
-	if !robust.AwaitAccept(nodes) {
+	if !AwaitAccept(nodes) {
 		return ended("cache: a writer's machine never answered")
 	}
 	c, err := cache.New(ccli, cachePrefix)

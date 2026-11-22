@@ -25,10 +25,9 @@
 //     whose end the run waits for; the faults started only once every orchestrator's set-up is
 //     done (RunClients, RunFaults); the run's first failure (Fail, Err, Failed) and what it made
 //     (Stats, NetStats). Config says which faults, how often, and the deadline.
-//   - Small helpers for the programs and tests of a deployment (util.go): the network or the
-//     local mode (NewNetworkOrLocal), a test run again where it can make namespaces (RerunTest),
-//     waiting for addresses to accept connections (AwaitAccept), calls at several addresses at
-//     once (CallAll), endpoint lists rotated (Rotate).
+//   - Small helpers for a deployment's tests (util.go): the network or the local mode
+//     (NewNetworkOrLocal), a test run again where it can make namespaces (RerunTest), Symlink,
+//     Tail. Nothing here is for the machines' programs, which never import this package.
 //
 // What a run checks (linearizability of the clients' operations, convergence, durability across
 // a whole-cluster crash) is the program's business (its orchestrators' checks, which panic); the

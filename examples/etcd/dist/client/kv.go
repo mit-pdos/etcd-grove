@@ -6,7 +6,6 @@ import (
 	"github.com/anishathalye/porcupine"
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote"
-	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 )
 
 // The kv workload (txnlinfaultsN's Main minus its start and partitioner; Lean: Workload.kv): one
@@ -26,7 +25,7 @@ const kvCheckTimeout = 2 * time.Minute
 // its clientv3 client of every endpoint, preferring eps[c mod k]); its set-up is the wait for
 // them (ready after it).
 func RunKV(nodes []string, ops int, ready func()) Result {
-	if !robust.AwaitAccept(nodes) {
+	if !AwaitAccept(nodes) {
 		return ended("kv: a client machine never answered")
 	}
 	ready()

@@ -10,7 +10,6 @@ import (
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
-	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 )
 
 // The users' passwords (authkv's SetUp's; unexported there).
@@ -103,7 +102,7 @@ func RunAuth(eps []string, nodes []string, ready func()) Result {
 	if err != nil {
 		return ended("auth: u's client failed to connect")
 	}
-	if !robust.AwaitAccept(nodes) {
+	if !AwaitAccept(nodes) {
 		return ended("auth: a principal's machine never answered")
 	}
 	ready()

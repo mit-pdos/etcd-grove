@@ -153,18 +153,19 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
   or `SetupWait` passed, and waits for the orchestrators, the deadline or a failure; `Fail`, `Err`,
   `Failed`, `Stats`, `NetStats`, `Stop`. `Config`, `Command` and the crash modes (`CrashKill`,
   `CrashPower`, `CrashMixed`) are `robust`'s. `util.go`: `NewNetworkOrLocal` (was `dist.NewNet`),
-  `Symlink` (was `link`), `RerunTest` (`TestDist`'s re-run in a user namespace or by sudo),
-  `AwaitAccept` (was `client.awaitNodes`), `Rotate` (was `client.rotate`), `CallAll` (the body of
-  `client.reportAll`, which is now a one-line wrapper over it, as `remote` cannot be a dependency of
-  `robust`: kvnet's module imports `robust` and not `remote`), `Tail`. What stays in
+  `Symlink` (was `link`), `RerunTest` (`TestDist`'s re-run in a user namespace or by sudo), `Tail`.
+  `robust` is the test side only: no machine's program (`dist/{server,client,cmd,kvremote,enc,env}`,
+  `examples/k8s/dist`'s non-test files) imports it, since D2 translates those programs. The helpers
+  the programs share are `dist/client`'s (`await.go`): `AwaitAccept` (was `awaitNodes`), `Rotate`
+  (was `rotate`), `CallAll` (the body of `reportAll`, now a one-line wrapper over it). What stays in
   `examples/etcd/dist`: the member program and the workloads (`server`, `client`, `RunProcess`),
   `Deployment`, `RandomDeployment`, `WellFormed`, the member configurations, ids and addresses
   (`MemberAddrs`, `MemberMachines`), and `Cluster`: a deployment's members in a run (`Start(d, run,
   net, ms)`: their directories, the links from the data directory and WAL area, their
   configurations) and its workloads' machines (`Cluster.Run`, over `RunClients`); `Cluster.Stop`
-  removes the links, the run's `Stop` kills the members and removes their disks. `client.AwaitCluster`
-  and `client.ConnectRetry` are exported (etcd's: a linearizable read, a clientv3 client), for
-  `examples/k8s/dist`.
+  removes the links, the run's `Stop` kills the members and removes their disks. `client.AwaitCluster`,
+  `client.ConnectRetry`, `AwaitAccept`, `Rotate` and `CallAll` are exported, for `examples/k8s/dist`'s
+  machine programs.
 
 **Copies** (driver code that could not be reused unchanged, and why):
 

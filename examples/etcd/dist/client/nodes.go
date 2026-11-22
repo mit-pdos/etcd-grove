@@ -11,7 +11,6 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
-	"github.com/mit-pdos/etcd-grove/examples/lib/robust"
 )
 
 // Clients on machines of their own (the plan's §2, D8; examples/lib/remote): a workload with
@@ -232,9 +231,9 @@ func NodeMain(w Workload, c int, addr string, eps []string) {
 	}
 	switch w.Kind {
 	case KV:
-		kvremote.Node(c, addr, robust.Rotate(eps, c))
+		kvremote.Node(c, addr, Rotate(eps, c))
 	case Watch, Cache:
-		newClient := func(c int) any { return ConnectRetry(robust.Rotate(eps, c)) }
+		newClient := func(c int) any { return ConnectRetry(Rotate(eps, c)) }
 		remote.ServeClient(c, addr, newClient, writerOp, writerCodec(), writerAttempt(w.Ops))
 	case Auth:
 		newClient := func(int) any { return eps }
@@ -243,7 +242,7 @@ func NodeMain(w Workload, c int, addr string, eps []string) {
 }
 
 // reportAll runs remote.Report at every client machine nodes[c] with input ins[c], all at once
-// (robust.CallAll), and returns their outputs and whether each answered.
+// (CallAll), and returns their outputs and whether each answered.
 func reportAll(nodes []string, ins []any, codec remote.Codec, d time.Duration) ([]any, []bool) {
-	return robust.CallAll(nodes, ins, func(a string, in any) (any, bool) { return remote.Report(a, in, codec, d) })
+	return CallAll(nodes, ins, func(a string, in any) (any, bool) { return remote.Report(a, in, codec, d) })
 }
