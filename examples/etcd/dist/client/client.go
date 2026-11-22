@@ -151,10 +151,27 @@ func awaitCluster(eps []string) bool {
 	return false
 }
 
-// Main runs w against the members' client endpoints eps (in the members' order: the workloads
+// Main runs w with no observer of its set-up (MainReady).
+func Main(w Workload, eps []string) Result {
+	return MainReady(w, eps, func() {})
+}
+
+// hasSetUp says whether a workload of kind k has a set-up: steps before its checks whose unknown
+// outcome cannot be redone (auth's users and AuthEnable, authLease's leases, leaseCatchup's first
+// lease) or that must precede the writes (the watch and the cache opened before any write).
+func hasSetUp(k Kind) bool {
+	return k == Watch || k == Cache || k == Auth || k == AuthLease || k == LeaseCatchup
+}
+
+// MainReady runs w against the members' client endpoints eps (in the members' order: the workloads
 // that pick a member use eps[i mod len(eps)]), after clearing the proxy variables as the server
 // does (review F8). A failed check is a panic inside the workload.
-func Main(w Workload, eps []string) Result {
+//
+// ready is called once the workload's set-up is done (at once, after the cluster's first read, for
+// a workload with none), or not at all if the workload ends before: a harness may hold its faults
+// until then (examples/etcd/dist/harness). It is an observer only: nothing the workload does
+// depends on it.
+func MainReady(w Workload, eps []string, ready func()) Result {
 	env.ClearProxy()
 	if len(eps) == 0 {
 		return ended("no endpoint")
@@ -162,25 +179,28 @@ func Main(w Workload, eps []string) Result {
 	if !awaitCluster(eps) {
 		return ended("the cluster never answered a read")
 	}
+	if !hasSetUp(w.Kind) {
+		ready()
+	}
 	switch w.Kind {
 	case KV:
 		return RunKV(eps, w.Clients, w.Ops)
 	case Watch:
-		return RunWatch(eps, w.Clients, w.Ops)
+		return RunWatch(eps, w.Clients, w.Ops, ready)
 	case Cache:
-		return RunCache(eps, w.Clients, w.Ops)
+		return RunCache(eps, w.Clients, w.Ops, ready)
 	case Compact:
 		return RunCompact(eps)
 	case PutGet:
 		return RunPutGet(eps)
 	case Auth:
-		return RunAuth(eps)
+		return RunAuth(eps, ready)
 	case AuthLease:
-		return RunAuthLease(eps)
+		return RunAuthLease(eps, ready)
 	case LeaseRead:
 		return RunLeaseRead(eps)
 	case LeaseCatchup:
-		return RunLeaseCatchup(eps)
+		return RunLeaseCatchup(eps, ready)
 	case LeaseExpiry:
 		return RunLeaseExpiry(eps)
 	case Durable:

@@ -118,7 +118,7 @@ func RunLeaseRead(eps []string) Result {
 // fillers are granted so that it catches up by a snapshot; here any cut, and any catch-up, is the
 // network's and the crashes' (a run that takes the snapshot path is one execution among those
 // the theorem covers; plan §6).
-func RunLeaseCatchup(eps []string) Result {
+func RunLeaseCatchup(eps []string, ready func()) Result {
 	k := len(eps)
 	c3, err := newClient([]string{eps[k-1]})
 	if err != nil {
@@ -134,6 +134,7 @@ func RunLeaseCatchup(eps []string) Result {
 	if err != nil {
 		return ended("leaseCatchup: the first grant failed")
 	}
+	ready()
 	var last clientv3.LeaseID
 	granted := false
 	for i := 0; i < catchupFillers; i++ {

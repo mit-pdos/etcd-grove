@@ -61,7 +61,7 @@ func writerClients(eps []string, n int) ([]*clientv3.Client, bool) {
 // until it has reported every successful Put (etcdstart.Collect: a closed channel or an error
 // response is an end, never "complete") and checked against the writes (etcdstart.Check: exactly
 // the writes, gap-free from revision 2, so the deployment's only workload writing keys).
-func RunWatch(eps []string, nw int, nops int) Result {
+func RunWatch(eps []string, nw int, nops int, ready func()) Result {
 	tried := etcdstart.GenAll(nw*nops, []string{watchPrefix + "k0", watchPrefix + "k1", watchPrefix + "k2"})
 	watcher, err := newClient(eps)
 	if err != nil {
@@ -75,6 +75,7 @@ func RunWatch(eps []string, nw int, nops int) Result {
 	defer cancel()
 	wch := watcher.Watcher.Watch(wctx, watchPrefix, clientv3.WithPrefix(), clientv3.WithRev(1),
 		clientv3.WithProgressNotify(), clientv3.WithCreatedNotify())
+	ready()
 	oks := writers(clis, tried, nops)
 	t := time.AfterFunc(readTimeout, cancel)
 	evs, ok := etcdstart.Collect(wch, etcdstart.MaxRev(oks))
@@ -96,7 +97,7 @@ func RunWatch(eps []string, nw int, nops int) Result {
 // last event's; and the cache's Get of the prefix at the highest successful Put's revision, which
 // must answer each key's last watched value at or below it. The deployment's only workload writing
 // keys.
-func RunCache(eps []string, nw int, nops int) Result {
+func RunCache(eps []string, nw int, nops int, ready func()) Result {
 	tried := etcdstart.GenAll(nw*nops, []string{cachePrefix + "k0", cachePrefix + "k1", cachePrefix + "k2"})
 	ccli, err := newClient(eps)
 	if err != nil {
@@ -114,6 +115,7 @@ func RunCache(eps []string, nw int, nops int) Result {
 	wctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	wch := c.Watch(wctx, cachePrefix, clientv3.WithPrefix(), clientv3.WithRev(2))
+	ready()
 	oks := writers(clis, tried, nops)
 	t := time.AfterFunc(readTimeout, cancel)
 	defer t.Stop()

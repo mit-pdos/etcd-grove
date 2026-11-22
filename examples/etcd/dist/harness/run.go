@@ -27,7 +27,8 @@ const (
 
 // RunProcess runs a harness process: role RoleServer with a server.Config's JSON file (server.Main;
 // with DIST_LOG set, MainLogger to standard error), or RoleClient with a client.Args JSON file
-// (client.Main, its result printed). What cmd/server and cmd/client do, for a binary that is both
+// (client.MainReady, its result printed; its set-up done marked by the file FILE.json.ready, for
+// the harness to hold its faults until then). What cmd/server and cmd/client do, for a binary that is both
 // (the test binary).
 func RunProcess(args []string) error {
 	if len(args) != 2 {
@@ -56,7 +57,8 @@ func RunProcess(args []string) error {
 		if err := json.Unmarshal(b, &a); err != nil {
 			return err
 		}
-		fmt.Printf("%s: %v\n", a.W.Kind, client.Main(a.W, a.Eps))
+		ready := func() { os.WriteFile(args[1]+".ready", nil, 0o644) }
+		fmt.Printf("%s: %v\n", a.W.Kind, client.MainReady(a.W, a.Eps, ready))
 		return nil
 	}
 	return fmt.Errorf("unknown role %q", args[0])
@@ -78,6 +80,11 @@ type Config struct {
 	NetPause   time.Duration // between two network faults, on average (0: none)
 	NetHold    time.Duration // how long a network fault lasts, on average
 	Deadline   time.Duration // the run fails if a client is not done by then
+	// FaultsAtStart makes the faults from the start, through the workloads' set-ups (which then
+	// often end a workload: auth's set-up cannot be redone after an unknown outcome); otherwise
+	// they start once every workload's set-up is done or the workload ended, or after SetupWait.
+	FaultsAtStart bool
+	SetupWait     time.Duration
 }
 
 // Command says how to start the harness's processes: the program and the environment added; the
@@ -102,10 +109,17 @@ type member struct {
 // Stats counts the faults made.
 type Stats struct {
 	Kills, PowerLosses, Restarts atomic.Uint64
+	// SetupsDone is how many workloads had marked their set-up done when the faults started (all,
+	// unless the wait ran out or a workload ended first); FaultsAfter is when they started, from
+	// the clients' start.
+	SetupsDone  atomic.Int64
+	FaultsAfter atomic.Int64
 }
 
 func (s *Stats) String() string {
-	return fmt.Sprintf("kills %d, power losses %d", s.Kills.Load(), s.PowerLosses.Load())
+	return fmt.Sprintf("kills %d, power losses %d; faults from %v, %d set-ups done then",
+		s.Kills.Load(), s.PowerLosses.Load(), time.Duration(s.FaultsAfter.Load()).Round(100*time.Millisecond),
+		s.SetupsDone.Load())
 }
 
 // Result is a run's outcome: each workload's result line (in the workloads' order), and the first
@@ -338,8 +352,10 @@ func (c *Cluster) crash(i int) {
 	}
 }
 
-// crasher crashes a random member at random times until stop.
+// crasher crashes a random member at once, then at random times until stop (the first at once,
+// so that a short workload, done within seconds of the faults' start, meets one).
 func (c *Cluster) crasher(stop <-chan struct{}) {
+	c.crash(rand.IntN(len(c.members)))
 	for {
 		select {
 		case <-stop:
@@ -354,14 +370,17 @@ func (c *Cluster) crasher(stop <-chan struct{}) {
 
 // runClients starts every workload's process on its machine and waits for all of them to end,
 // or for the deadline, or for the run to fail; it returns their result lines.
-func (c *Cluster) runClients() []string {
+func (c *Cluster) runClients(started chan<- []string, exited []atomic.Bool) []string {
 	eps := c.d.Endpoints()
 	lines := make([]string, len(c.d.Workloads))
 	done := make(chan int, len(c.d.Workloads))
 	var procs []*robust.Proc
+	var argPaths []string
+	defer func() { close(started) }()
 	for i, w := range c.d.Workloads {
 		b, _ := json.Marshal(client.Args{W: w, Eps: eps})
 		argPath := filepath.Join(c.work, fmt.Sprintf("client-%d.json", i))
+		argPaths = append(argPaths, argPath)
 		logPath := filepath.Join(c.work, "logs", fmt.Sprintf("client-%d-%s.log", i, w.Kind))
 		if err := os.WriteFile(argPath, b, 0o644); err != nil {
 			c.fail(err)
@@ -378,6 +397,7 @@ func (c *Cluster) runClients() []string {
 				c.fail(fmt.Errorf("client %d (%s) failed (%v); its log:\n%s", i, w.Kind, err, tail(logPath, 30)))
 			}
 			lines[i] = strings.TrimSpace(tail(logPath, 1))
+			exited[i].Store(true)
 			done <- i
 		})
 		if err != nil {
@@ -386,6 +406,7 @@ func (c *Cluster) runClients() []string {
 		}
 		procs = append(procs, p)
 	}
+	started <- argPaths
 	deadline := time.After(c.cfg.Deadline)
 	for n := 0; n < len(procs); n++ {
 		select {
@@ -408,24 +429,67 @@ func (c *Cluster) runClients() []string {
 // done, it stops the faults. It returns the result; the caller stops the cluster (Stop).
 func (c *Cluster) Run() Result {
 	stop := make(chan struct{})
+	started := make(chan []string, 1)
+	exited := make([]atomic.Bool, len(c.d.Workloads))
 	var wg sync.WaitGroup
-	if c.cfg.CrashPause != 0 {
-		wg.Add(1)
-		go func() { c.crasher(stop); wg.Done() }()
-	}
-	if c.nemesis != nil {
-		wg.Add(1)
-		go func() {
-			if err := c.nemesis.Run(stop); err != nil {
-				c.fail(fmt.Errorf("the network nemesis: %v", err))
-			}
-			wg.Done()
-		}()
-	}
-	lines := c.runClients()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		t0 := time.Now()
+		paths, ok := <-started
+		if !ok {
+			return
+		}
+		if !c.cfg.FaultsAtStart && !c.awaitSetUps(paths, exited, stop) {
+			return
+		}
+		c.Stats.FaultsAfter.Store(int64(time.Since(t0)))
+		if c.cfg.CrashPause != 0 {
+			wg.Add(1)
+			go func() { c.crasher(stop); wg.Done() }()
+		}
+		if c.nemesis != nil {
+			wg.Add(1)
+			go func() {
+				if err := c.nemesis.Run(stop); err != nil {
+					c.fail(fmt.Errorf("the network nemesis: %v", err))
+				}
+				wg.Done()
+			}()
+		}
+	}()
+	lines := c.runClients(started, exited)
 	close(stop)
 	wg.Wait()
 	return Result{Lines: lines, Err: c.Err()}
+}
+
+// awaitSetUps waits until every client has marked its set-up done (its args file's .ready) or
+// ended, or SetupWait has passed; it records how many set-ups were done, and reports false if the
+// run stopped first.
+func (c *Cluster) awaitSetUps(paths []string, exited []atomic.Bool, stop <-chan struct{}) bool {
+	deadline := time.Now().Add(c.cfg.SetupWait)
+	for {
+		done, all := int64(0), true
+		for i, p := range paths {
+			if _, err := os.Stat(p + ".ready"); err == nil {
+				done++
+			} else if !exited[i].Load() {
+				all = false
+			}
+		}
+		if all || time.Now().After(deadline) {
+			c.Stats.SetupsDone.Store(done)
+			return true
+		}
+		select {
+		case <-stop:
+			return false
+		case <-c.failed:
+			return false
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 // NetStats describes the network faults made.

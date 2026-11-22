@@ -224,6 +224,20 @@ within 1 s with the same program; on namespaces, `robust.NetNemesis` over all ma
 both ways or one way, isolations, delay/loss/duplication/reordering), a fault about every second,
 held about 2 s. A run fails on a panic, a member exiting on its own, or a client not done by the
 deadline. `-short`: one deployment with small sizes; otherwise `DIST_ROUNDS` (default 4).
+
+**Faults after the set-ups (the user, 2026-11-22).** By default the faults (kills, partitions, link
+faults) start only once every workload's set-up is done. `client.MainReady(w, eps, ready)` calls
+`ready` once its set-up is done (`Main` is `MainReady` with a no-op): watch and cache once their
+watch is open, auth after `auth.SetUp`, the barriers and its principals' clients, authLease after
+its leases and second barriers, leaseCatchup after its first grant; the others at once, after the
+cluster's first read. `ready` is an observer only: no workload's steps or checks changed. The harness
+(`RunProcess`) marks it with a file `<args>.json.ready` beside the client's arguments
+(`cmd/client` prints `<kind>: set-up done`), and holds its faults until every workload has marked
+it or ended, at most `SetupWait` (3 min; then it starts anyway and reports how many set-ups were
+done: "faults from …, n set-ups done then"). A set-up that fails without faults ends its workload
+without a check, as before, and its result line says so. `DIST_FAULTS=start` keeps the old mode
+(faults from the start, set-ups under faults too). `DIST_WANT=auth,authLease` keeps only random
+deployments with a workload of those kinds.
 Root: a root with `CAP_NET_ADMIN` runs namespaces directly; a container's root reruns the test in a
 user namespace (bridge variant, kills only); a non-root reruns by `sudo -n`, or falls back to the
 local mode (one loopback address, kills only).
@@ -237,6 +251,35 @@ leaseCatchup 4/5, leaseExpiry 1/1, auth 1/6: the others ended in a barrier, root
 history watch under the faults). authLease ran only in the first run (four times), always ending in
 its set-up (before `awaitCluster`). Not exercised here: power losses (no device mapper), resets.
 No check failed, and no bug in etcd was found.
+
+**Results with the faults after the set-ups (2026-11-22, same machine, same limits).** The crasher
+now kills a random member the moment the faults start (then about every 2 s), so that a workload
+done within seconds still meets a crash. Three runs, all passed (no panic, no member exiting on its
+own, every client done): 14 deployments aimed at auth/authLease (`DIST_WANT`), 24 unaimed, 16 aimed
+at watch/compact/putget/durable; 54 deployments, 377 kills, 204 partitions, 110 link faults. Per
+workload: runs, checks reached, and checks reached in a run with faults that lasted at least 2 s
+after the faults started (the rest finished their checks within about a second of the first fault):
+
+| Workload | Runs | Checked | Checked under faults (≥ 2 s) |
+|---|---|---|---|
+| kv | 6 | 6 | 4 |
+| watch | 8 | 7 | 4 |
+| cache | 4 | 4 | 4 |
+| compact | 12 | 12 | 5 |
+| putget | 10 | 10 | 4 |
+| durable | 9 | 9 | 6 |
+| auth | 11 | 4 | 4 |
+| authLease | 9 | 8 | 8 |
+| leaseRead | 18 | 18 | 9 |
+| leaseCatchup | 11 | 11 | 4 |
+| leaseExpiry | 11 | 11 | 11 |
+
+Every set-up finished before its faults (no `SetupWait` ran out). auth's 7 runs without a check
+ended after its set-up, under the faults, at root's last Put or root's history watch (an unknown
+outcome or a watch end: no check is possible then); authLease's one at u's revocation; watch's one
+had its watch end under the 10 ms periodic compactor. The old mode (`DIST_FAULTS=start`, 8
+deployments aimed at auth/authLease, 62 kills, 28 partitions): auth checked 1 of 4, authLease 1 of
+4, the rest ending in a barrier or the set-up, as before. No check failed; no bug found.
 
 ## 3. The configuration set
 

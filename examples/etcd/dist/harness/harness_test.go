@@ -54,6 +54,23 @@ func TestWellFormed(t *testing.T) {
 	}
 }
 
+// wanted says whether d has a workload of a kind DIST_WANT names (comma-separated kind names, e.g.
+// auth,authLease), or DIST_WANT is unset: to aim the random deployments at some workloads.
+func wanted(d Deployment) bool {
+	want := os.Getenv("DIST_WANT")
+	if want == "" {
+		return true
+	}
+	for _, w := range d.Workloads {
+		for _, k := range strings.Split(want, ",") {
+			if w.Kind.String() == k {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // deployRound runs one random deployment of k members: its network, its cluster, its clients
 // under the faults; it fails t on a failure.
 func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, deadline time.Duration) {
@@ -72,11 +89,15 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 	}
 	tag := fmt.Sprintf("d%d-%d", os.Getpid(), round)
 	d, err := RandomDeployment(tag, 3, addr, sz)
+	for tries := 0; err == nil && !wanted(d) && tries < 1000; tries++ {
+		d, err = RandomDeployment(tag, 3, addr, sz)
+	}
 	if err != nil {
 		t.Fatalf("%v: %v", d, err)
 	}
 	cfg := Config{Crash: crash, CrashPause: 2 * time.Second, Downtime: time.Second, Netns: netns,
-		NetPause: time.Second, NetHold: 2 * time.Second, Deadline: deadline}
+		NetPause: time.Second, NetHold: 2 * time.Second, Deadline: deadline,
+		FaultsAtStart: os.Getenv("DIST_FAULTS") == "start", SetupWait: 3 * time.Minute}
 	work, err := os.MkdirTemp("", "etcddist-")
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +123,9 @@ func deployRound(t *testing.T, round int, netns bool, crash string, sz Sizes, de
 // client machines of their own, while members crash (kills, and power losses where the device
 // mapper is available) and, on network namespaces, the network fails. It runs only with DIST_RUN
 // set (minutes per deployment); -short runs one small deployment, otherwise DIST_ROUNDS (default
-// 4) larger ones. Network namespaces need root with CAP_NET_ADMIN: a root without it (a container)
+// 4) larger ones. The faults start once every workload's set-up is done (client.MainReady), or,
+// with DIST_FAULTS=start, from the start; DIST_WANT=kind,... keeps only random deployments with a
+// workload of those kinds. Network namespaces need root with CAP_NET_ADMIN: a root without it (a container)
 // runs the test again in a user namespace of its own (robust.RerunInUserns: the bridge variant);
 // a non-root runs it again by sudo -n if it can, and in the local mode (one loopback address, no
 // network faults) otherwise.
@@ -124,7 +147,8 @@ func TestDist(t *testing.T) {
 		}
 		if rerun != nil {
 			var out bytes.Buffer
-			err := rerun(args, []string{"DIST_RUN=1", "DIST_CHILD=1", "DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS")}, &out)
+			err := rerun(args, []string{"DIST_RUN=1", "DIST_CHILD=1", "DIST_ROUNDS=" + os.Getenv("DIST_ROUNDS"),
+				"DIST_FAULTS=" + os.Getenv("DIST_FAULTS"), "DIST_WANT=" + os.Getenv("DIST_WANT")}, &out)
 			for _, l := range strings.Split(out.String(), "\n") {
 				if strings.TrimSpace(l) != "" {
 					t.Log(l)

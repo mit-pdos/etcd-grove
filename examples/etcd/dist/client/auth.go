@@ -81,7 +81,7 @@ func collectFor(wch clientv3.WatchChan, cancel context.CancelFunc, upTo int64) (
 // principal was permitted), and u's watch of [a, b), whose events must all be keys u may read.
 // Every refusal the checks expect is any error (auth.Work's refused): an error never counts as a
 // write not applied, since the history check reads what was applied.
-func RunAuth(eps []string) Result {
+func RunAuth(eps []string, ready func()) Result {
 	k := len(eps)
 	a0, au, av := eps[0], eps[1%k], eps[2%k]
 	cli, err := newClient([]string{a0})
@@ -110,6 +110,7 @@ func RunAuth(eps []string) Result {
 	if err != nil {
 		return ended("auth: bad's client failed to connect")
 	}
+	ready()
 	var wg sync.WaitGroup
 	for _, who := range auth.Principals() {
 		c := cli

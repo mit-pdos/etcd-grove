@@ -124,7 +124,7 @@ func absent(root *clientv3.Client, k string, why string) bool {
 // absent or attached is read by root after the refused request, so an error never stands for
 // "not applied". With etcd's full peer handler (Q8) a follower's TimeToLive reaches the leader's
 // lessor; the checks are refusals, made by the receiving member before it forwards.
-func RunAuthLease(eps []string) Result {
+func RunAuthLease(eps []string, ready func()) Result {
 	k := len(eps)
 	a0, au, av := eps[0], eps[1%k], eps[2%k]
 	cli, err := newClient([]string{a0})
@@ -170,6 +170,7 @@ func RunAuthLease(eps []string) Result {
 	if !barriers(eps) {
 		return ended("authLease: a barrier failed")
 	}
+	ready()
 	noAuth(cli, "anon", lu)
 	noAuth(bcli, "bad", lu)
 	ctx, cancel = context.WithTimeout(context.Background(), etcdstart.RequestTimeout)
