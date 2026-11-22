@@ -10,6 +10,8 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untrans
 module
 
 public import Proof.github_com.Masterminds.semver.v3.PkgInit
+public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -86,6 +88,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
+      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk ErrConstraintTooLong.init (by mem_tac))
   wp_apply (opaqueInitsOk ErrTooManyConstraintGroups.init (by mem_tac))
   wp_apply (opaqueInitsOk CoerceNewVersion.init (by mem_tac))
