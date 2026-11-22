@@ -41796,6 +41796,8 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## Protobuf stage 0': the schemas generated from `models/pbdesc`, a candidate wire semantics (2026-11-21 · proving session 2, #18 · branch `prove-ps2-pbwire/2026-11-21`; scoped by kaashoek's review, #20 item 2 (b))
 
+**Partly superseded (2026-11-22, proving session 2):** the candidate wire semantics (`PbWire.lean`, `PbWireVectors.lean`, `examples/pbwire`) is deleted. Upamanyu's plan is pbgen with no `reflect` semantics (#20, 2026-11-22), and phase 7 (#24) has no consumer for a descriptor-generic Lean semantics. The schema generation (`etc/gen-pbschema.py`, `PbSchema.lean`) stays: it ties the trusted schemas raft's and the WAL's specs use to the registered descriptors.
+
 - **The schemas** (`PbSchema.lean`: the `FieldSchema` constants and `pbSchemaOf`, trusted) are
   generated from the registered descriptors by `etc/gen-pbschema.py` (it runs `models/pbdesc` in
   `examples/`, the one descriptor source pbgen reads), between marker lines of the file, with
@@ -41901,3 +41903,15 @@ Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge
 - The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
   over any extensions with the net extension: only the boot programs (a program's syntax is over its
   extension list) and `wp_boot` are restated.
+
+## The distributed deployment's start and bridge: `Kit*` renamed `Dist*` (2026-11-22 · branch `dist-rename`)
+
+**Decision (the user's, kaashoek):** "kit" is dsverify-lab's word for its examples; the predicates
+`Net/Statement/` states are a distributed deployment's start and its bridge, whatever the program. So
+`KitDeploy.lean`/`KitBridge.lean` are `DistDeploy.lean`/`DistBridge.lean` (`Net.Statement.DistDeploy`,
+`Net.Statement.DistBridge`), and `KitDeploy` → `DistDeploy`, `KitBootWp`/`KitBootWpG` →
+`DistBootWp`/`DistBootWpG`, `nodeWp_of_kitBoot`/`nodeWp_of_kitBootG` → `nodeWp_of_distBoot`/
+`nodeWp_of_distBootG`, `robust_of_kitBoot`/`robust_of_kitProto` (and their `RB` variants) →
+`robust_of_distBoot`/`robust_of_distProto` (`…RB`), and echo's instance `echo_kit_robust` →
+`echo_dist_robust`. Statements, definitions and axioms unchanged. Older entries keep the old names;
+prose about the lab's own kits (its examples, "phase 6's kits") keeps the word.

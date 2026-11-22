@@ -349,7 +349,8 @@ def memberPeerServeRes (γn : NetNames GF) (τ : SrvTr GF) (served : Bool) : IPr
 request names `ρ` at an apply environment `E` agreeing with the stand-in `E₀`, auth off, from a
 configuration `cfg` with the logger `lg`, no tracer options and no progress-notify interval:
 `isServerBuilt` (from `NewServer`'s `srvBuilt` and `srvBuildGap`, at the bound `N`), what `Start` takes besides (the storage version monitor's backend access, the
-monitors off, `lgMu`'s reader slot of the downgrade monitor), and what `NewServer` left for serving
+monitors off, `lgMu`'s reader slot of the downgrade monitor and, rdslot, `adjustTicks`'s transport
+slot: `srvMonitorRes`), and what `NewServer` left for serving
 (`srvServeBuilt`) and for the member's place in the network `γn`
 (`srvNetMember`, with its transport `τ`; 2026-10-24, rafthttp stage 6d: the raft loop's key to the
 transport's `Send`, `srvTrKey`, under `γk`, one of the transport's reader tokens, `srvTrTok`, and
@@ -377,7 +378,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     srvWatchBuilt s E ∗
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
-    srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvLgReader s ∗
+    srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
     srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     memberPeerServeRes γn τ served ∗
     srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)

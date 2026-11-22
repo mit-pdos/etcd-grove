@@ -200,7 +200,7 @@ checked by `decide`), and the target configuration (Linux 7.0 defaults, Go 1.27.
   address's pending set (finitely many valid addresses, `Deploy.lean`'s `addrList`; `netStart`),
   and a proof keeps exclusivity in its own ghost state. Updated: the specs (`net.Listen.spec` takes
   `listenOk`, `net.Dial.spec`/`DialTimeout.spec` and `Listener.Accept.spec` take `addrOk`, no
-  `netPlan`), the kits' `KitDeploy` (distinct valid addresses, no connection, no listener) and
+  `netPlan`), the kits' `DistDeploy` (distinct valid addresses, no connection, no listener) and
   bridge, the seven examples (their plan and host premises dropped), the Lean replay (witness
   version 2) and the Python checker (`examples/net/conform/check/README.md`), the Go examples
   (`TestListenNotLocal`, the D6/D7/D13/D20/D21 rows of `examples/net/semantics/doc.go`). Review:

@@ -24,14 +24,16 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `isConnectedSince(transport, since, remote)`, the transport a `rafthttp.isTransporter`: some
-boolean (whether the transport has been active with `remote` since `since`; `parseProposeCtxErr`
-only classifies its error by it). -/
+/-- `isConnectedSince(transport, since, remote)`, the transport a `rafthttp.isTransporter` read with
+`Rd` (rdslot, 2026-11-22: its reader's resource, given back; until then none): some boolean
+(whether the transport has been active with `remote` since `since`; `parseProposeCtxErr` only
+classifies its error by it). -/
 abbrev isConnectedSince.spec : Prop :=
-  ∀ (tr : GoInterface) (since : time.Time) (remote : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rafthttp.isTransporter tr }}
+  ∀ (tr : GoInterface) (Rd : IProp GF) (since : time.Time) (remote : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rafthttp.isTransporter tr Rd ∗
+      Rd }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.isConnectedSince)) (Val #tr)) (Val #since)) (Val #remote))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; Rd }}
 
 end spec
 

@@ -45,7 +45,6 @@ REVIEWED = {
         "the model's errorString cell and Go's wrapError msg are written once; the errDesc prefix "
         "only given an Unwrap method (Go's wrapError; H0, 2026-11-18: vacuous of the model's error)",
     'Spec/go_etcd_io/etcd/client/v3/Client__Endpoints.lean': 'statusErrOk opened, not used',
-    'Spec/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean': 'statusErrOk opened, not used',
     'Spec/google_golang_org/grpc/model/respond.lean':
         'srvErrOk err a premise of the pre (stable Error()/GRPCStatus(): status.FromError, server.go:1461): '
         'the carrier (Proof/google_golang_org/grpc/model/Serve.lean:71-72) gets it from the deposited run '
