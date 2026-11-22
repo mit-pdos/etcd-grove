@@ -22,6 +22,7 @@ import (
 
 	"github.com/anishathalye/porcupine"
 	"github.com/goose-lang/primitive"
+	"github.com/mit-pdos/gokv/trusted_proph"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
 	"github.com/mit-pdos/etcd-grove/examples/raft/kvnet"
 	pb "go.etcd.io/raft/v3/raftpb"
@@ -133,11 +134,16 @@ func (c *checker) do(kind byte, key, val string) string {
 }
 
 // read returns key's value by a read index at a random member, retried (each attempt a fresh
-// read) until one answers.
+// read) until one answers. The prophecy p, resolved with the answer, is for the proof only, as in
+// kvdurable's Cluster.Read (examples/raft/kvdurable/cluster.go): it tells the proof of read
+// (KvNet/Proof/.../kvnet/kvcheck/checker__read.lean), at each change of the store, whether the
+// key's value then is the answer (the read's linearization point). It has no effect.
 func (c *checker) read(key string) string {
+	p := primitive.NewProph()
 	for {
 		req := kvnet.EncodeRead(c.fresh(&c.nextRead), key)
 		if v, ok := c.request(c.randomMember(), kvnet.ReqRead, req); ok {
+			trusted_proph.ResolveBytes(p, v)
 			return string(v)
 		}
 	}
