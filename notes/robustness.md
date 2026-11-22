@@ -192,6 +192,9 @@ machine, 27 by resets) and 47 link-fault episodes.
   The kits' bridge (`Net/Statement/KitBridge.lean`, 2026-11-19) covers only the case where **every**
   machine is stable (`Robust [] nodes`: no boot program, so the executions are `DistNsteps` and
   `goose_dist_adequacy` applies); a deployment with both kinds (kvnet's) still needs that change.
+  (2026-11-22: Perennial has it, `goose_dist_mixed_crash_adequacy`; its bridge for `[netExt, fsExt]`,
+  `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`, etcd-dist D3, `notes/dist-crash-bridge.md`),
+  with echo's server crashing and its client stable as the instance, branch `dist-crash-bridge`.)
 - A mutation check that only the network finds (e.g. a `Read` served without a read index: a stale
   read from a partitioned old leader).
 - Other programs: the harness takes any binary; their statements are `Robust` of their machines.
