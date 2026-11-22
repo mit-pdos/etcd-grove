@@ -80,8 +80,8 @@ theorem promreg.wp_BuiltinCollectors :
   iapply HΦ $$ S
 
 theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.spec (GF := GF) (hG := hG) := by
-  intro γ f r
-  wp_start as ⟨#Hreg, Htoks⟩
+  intro f r
+  wp_start as #Hreg
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold promreg.isRegistry at Hreg
@@ -93,13 +93,12 @@ theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.s
   icases HR with ⟨%ids, %dims, %cols, HmI, HmD, HmC, Hrt, %Hp⟩
   wp_apply promreg.wp_BuiltinIDs as %sI SI
   ihave %HlenI := ownSlice_len _ _ _ $$ SI
-  icases (promreg.builtinToks_split (GF := GF)).1 $$ Htoks with ⟨HtI, HtC⟩
   obtain ⟨Hids, Hcols, Hdims⟩ := Hp
   ihave Hinv : iprop(∃ (j : Nat) (ids' : GMap w64 Bool), "i" ∷ i_ptr ↦ W64 j ∗ "HmI" ∷ mI ↦$ ids' ∗
-      "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols, promreg.idTok (GF := GF) γ k) ∗
-      "HtI" ∷ promreg.idToks (GF := GF) γ (promreg.builtinIDs.drop j) ∗ "id" ∷ (∃ v : w64, id_ptr ↦ v) ∗
+      "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols, promreg.regTok (GF := GF) k) ∗
+      "id" ∷ (∃ v : w64, id_ptr ↦ v) ∗
       "%Hj" ∷ ⌜j ≤ promreg.builtinIDs.length ∧ (∀ k b, ids' !! k = some b → b = true) ∧
-        (∀ n h, dims !! n = some h → n ∈ promreg.builtinNames ∨ ids' !! f n = some true)⌝) $$ [i HmI Hrt HtI id]
+        (∀ n h, dims !! n = some h → n ∈ promreg.builtinNames ∨ ids' !! f n = some true)⌝) $$ [i HmI Hrt id]
   · iexists 0, ids
     iframe
     isplitl [id]
@@ -120,17 +119,9 @@ theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.s
     icases id with ⟨%v, id⟩
     wp_apply (wp_load_slice_index (t := go.uint64) sI (sint.Z (W64 (j : Int))) promreg.builtinIDs (DFrac.own 1) x h0) $$ [SI] as SI
     · iframe; ipureintro; rw [hsj]; exact hx
-    have hdrop : promreg.builtinIDs.drop j = x :: promreg.builtinIDs.drop (j + 1) := by
-      rw [List.drop_eq_getElem_cons hj]; congr; exact (List.getElem?_eq_some_iff.mp hx).2
-    rw [hdrop]
-    icases (promreg.idToks_cons (GF := GF) x _).1 $$ HtI with ⟨Hx, HtI⟩
-    icases promreg.regToks_absent (GF := GF) _ x $$ [Hrt Hx] with ⟨%Hab, Hrt, Hx⟩
-    · iframe
-    have hx1 : ids' !! x = none := by
-      rw [gmap_lookup_union] at Hab; cases h : ids' !! x <;> simp_all
+    have hxb : x ∈ promreg.builtinKeys := List.mem_append_left _ (List.mem_of_getElem? hx)
     wp_apply wp_mapInsert $$ [$HmI] as HmI
-    ihave Hrt := promreg.regToks_insert (GF := GF) _ x true Hab $$ [Hrt Hx]
-    · iframe
+    ihave Hrt := promreg.regToks_insert_builtin (GF := GF) _ x true hxb $$ Hrt
     rw [← promreg.union_insert_l]
     iapply wp_for_post_do
     wp_auto
@@ -227,10 +218,10 @@ theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.s
       have hCC : promreg.builtinCollectors.length = 2 := rfl
       have hsC : sint.Z sC.len = 2 := by have h := HlenC.1; rw [hCC] at h; word
       ihave Hinv : iprop(∃ (j : Nat) (cols' : GMap w64 Bool), "i" ∷ i_ptr ↦ W64 j ∗ "HmC" ∷ mC ↦$ cols' ∗
-          "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols', promreg.idTok (GF := GF) γ k) ∗
-          "HtC" ∷ promreg.idToks (GF := GF) γ (promreg.builtinCollectors.drop j) ∗ "c" ∷ (∃ v : w64, c_ptr ↦ v) ∗
+          "Hrt" ∷ ([∗map] k ↦ _b ∈ ids' ∪ cols', promreg.regTok (GF := GF) k) ∗
+          "c" ∷ (∃ v : w64, c_ptr ↦ v) ∗
           "%Hj" ∷ ⌜j ≤ promreg.builtinCollectors.length ∧ (∀ k b, cols' !! k = some b → b = true)⌝)
-        $$ [i HmC Hrt HtC c]
+        $$ [i HmC Hrt c]
       · iexists 0, cols
         iframe
         isplitl [c]
@@ -249,18 +240,14 @@ theorem promreg.Registry.SeedBuiltins.wp_proof : promreg.Registry.SeedBuiltins.s
         icases c with ⟨%v, c⟩
         wp_apply (wp_load_slice_index (t := go.uint64) sC (sint.Z (W64 (j : Int))) promreg.builtinCollectors (DFrac.own 1) x h0) $$ [SC] as SC
         · iframe; ipureintro; rw [hsj]; exact hx
-        have hdrop : promreg.builtinCollectors.drop j = x :: promreg.builtinCollectors.drop (j + 1) := by
-          rw [List.drop_eq_getElem_cons hj]; congr; exact (List.getElem?_eq_some_iff.mp hx).2
-        rw [hdrop]
-        icases (promreg.idToks_cons (GF := GF) x _).1 $$ HtC with ⟨Hx, HtC⟩
-        icases promreg.regToks_absent (GF := GF) _ x $$ [Hrt Hx] with ⟨%Hab, Hrt, Hx⟩
-        · iframe
-        have hx1 : ids' !! x = none := by
-          rw [gmap_lookup_union] at Hab; cases h : ids' !! x <;> simp_all
+        have hxb : x ∈ promreg.builtinKeys := List.mem_append_right _ (List.mem_of_getElem? hx)
+        have hx1 : ids' !! x = none ∨ ids' !! x = some true := by
+          cases h : ids' !! x with
+          | none => exact Or.inl rfl
+          | some b => exact Or.inr (by rw [Hids' x b h])
         wp_apply wp_mapInsert $$ [$HmC] as HmC
-        ihave Hrt := promreg.regToks_insert (GF := GF) _ x true Hab $$ [Hrt Hx]
-        · iframe
-        rw [← promreg.union_insert_r _ _ _ _ hx1]
+        ihave Hrt := promreg.regToks_insert_builtin (GF := GF) _ x true hxb $$ Hrt
+        rw [← promreg.union_insert_r_same _ _ _ hx1]
         iapply wp_for_post_do
         wp_auto
         iframe

@@ -188,8 +188,9 @@ def reg_steps(p, regs):
     for i, (x, c, n, _) in enumerate(regs, 1):
         L += [f'wp_apply wp_slice_literal (l := [{c}])', 'isplitr', '· ipureintro; rfl',
               f'iintro %s{i} ⟨S{i}, -⟩', 'try wp_auto',
-              f'wp_apply EtcdGrove.prometheus.MustRegister.wp_proof _ _ _ _ {n} $$ [S{i} HR{i}] as S{i}',
-              f'· iframe S{i} HR{i}']
+              f'wp_apply (EtcdGrove.prometheus.MustRegister.wp_proof EtcdGrove.promreg.Registry.Register.wp_proof)',
+              f'    _ _ _ _ {n} $$ [S{i} HR{i}] as S{i}',
+              f'· iframe S{i} HR{i}', '  iPkgInit']
     return L
 
 
@@ -255,6 +256,31 @@ def instances(proof='Proof/'):
 
 inv = inventory()
 inst = instances()
+# (prom-registry, 2026-11-22, notes/prom-registry.md) Dependencies a package's initializer has beyond its
+# translation's `pkgImportedPkgs`: prometheus's trusted `defaultRegistry.init` (`TrustedCode/`) initializes
+# the default registry's model, `promreg`, which client_golang does not import. Its `IsPkgInit` and
+# `GetIsPkgInitWf` instances are hand-written with them (`INST_HAND`), and the package tables follow
+# them (`pkginfo_imports`); its initializer's steps call the extra package's initializer (`SPECIAL`).
+EXTRA_DEPS = {'github_com.prometheus.client_golang.prometheus':
+              ['github_com.mit_pdos.etcd_grove.examples.lib.promreg']}
+# Packages whose `IsPkgInit` instance is hand-written (not `define_is_pkg_init`): its module and fact.
+INST_HAND = {'github_com.prometheus.client_golang.prometheus':
+             ('github_com/prometheus/client_golang/prometheus/PkgInit', 'promInit')}
+
+
+def add_extra_deps(inv):
+    for p, ds in EXTRA_DEPS.items():
+        if p in inv:
+            inv[p]['imports'] = inv[p]['imports'] + [d for d in ds if d not in inv[p]['imports']]
+
+
+add_extra_deps(inv)
+for _p, _m in INST_HAND.items():
+    inst.setdefault(_p, [_m])
+# (prom-registry) The model's `Assumptions`, which the closed theorems take as an instance argument
+# (the user's decision, 2026-11-22): every initializer whose closure has the model takes it.
+PROMREG = 'github_com.mit_pdos.etcd_grove.examples.lib.promreg'
+PROMREG_VAR = f'variable [promreg_sem : _root_.Perennial.{PROMREG}.Assumptions]'
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -1792,7 +1818,8 @@ name maps), which the trust-boundary axiom `opaqueInitsOk` says run.''',
                  ['Auth_ServiceDesc', 'Maintenance_ServiceDesc', 'Cluster_ServiceDesc',
                   'Lease_ServiceDesc', 'Watch_ServiceDesc', 'KV_ServiceDesc']},
     finish=['repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; wp_auto)',
-            'iframe Hown', 'is_pkg_init_finish'],
+            'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+            'is_pkg_init_finish'],
 )
 
 SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
@@ -3911,6 +3938,49 @@ register(SPECIAL[_MV], _MV, [
     reg_scalar('totalPutSizeGauge', _D, _MVR, 'total_put_size_in_bytes')])
 
 
+# (prom-registry, 2026-11-22, notes/prom-registry.md) prometheus's default registry: the trusted glue
+# (`TrustedCode/github_com/prometheus/client_golang/prometheus.lean`) runs the model `promreg` (translated
+# with its bodies, verified): `defaultRegistry.init` allocates the variable, initializes the model's package
+# (`EXTRA_DEPS`) and stores `promreg.NewRegistry()`; `init.«0»` is `SeedBuiltins`. Its fact (`promInit`,
+# `PkgInit.lean`): the variable holds the registry. Until then `defaultRegistry.init` was in
+# `opaqueInitsOk` and `init.«0»` the trust-boundary axiom `initFuncsOk`, both names only.
+_PR = 'github_com.mit_pdos.etcd_grove.examples.lib.promreg'
+SPECIAL['github_com.prometheus.client_golang.prometheus'] = dict(
+    doc='''Its fact (`PkgInit.lean`, `promInit`): the variable `defaultRegistry` holds the default registry, the
+model's (`promreg`), naming IDs by `descId`. Its initializer initializes its imports, runs the untranslated
+initializers of its other variables (`X.init`, axioms of the translation), which the trust-boundary axiom
+`opaqueInitsOk` says run without panicking, and the trusted glue's (`TrustedCode/`, notes/prom-registry.md):
+`defaultRegistry.init` initializes the model's package and stores `promreg.NewRegistry()`, and `init.«0»`
+runs `SeedBuiltins` (both proved over the model's specs). (Until 2026-11-22 its fact was `True`,
+`defaultRegistry.init` among `opaqueInitsOk` and `init.«0»` the trust-boundary axiom `initFuncsOk`.)''',
+    imports=[f'Proof.{_PR}.Init',
+             f'Proof.{_PR}.NewRegistry', f'Proof.{_PR}.Registry__SeedBuiltins'],
+    trusted={'defaultRegistry': [
+        'wp_call',
+        'simp only [EtcdGrove.prometheus.model_defaultRegistry_eq]',
+        'try wp_auto',
+        'wp_apply wp_GlobalAlloc (V := Loc) github_com.prometheus.client_golang.prometheus.defaultRegistry _ as HdefaultRegistry',
+        'try wp_auto',
+        f'wp_apply (_root_.Perennial.{_PR}.wp_initialize\'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.promreg.NewRegistry.wp_proof EtcdGrove.prometheus.descId) as %reg #Hreg',
+        'try wp_auto',
+        'ipersist HdefaultRegistry']},
+    after={'init.«0»': [
+        'simp only [EtcdGrove.prometheus.model_defaultRegistry_eq]',
+        'try wp_auto',
+        'wp_apply (EtcdGrove.promreg.Registry.SeedBuiltins.wp_proof EtcdGrove.prometheus.descId reg)',
+        '· iframe #',
+        'try wp_auto']},
+    finish=['ihave #Hfact : (github_com.prometheus.client_golang.prometheus.promInit : IProp GF) $$ []',
+            '· iunfold github_com.prometheus.client_golang.prometheus.promInit',
+            '  iexists reg',
+            '  iframe #',
+            'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+            'is_pkg_init_finish'],
+)
+
+
 def closure(p):
     seen = set(); st = [p]
     while st:
@@ -4000,8 +4070,8 @@ def pkginfo_imports(p):
     t = open(inv[p]['file']).read()
     m = re.search(r"instance info' : PkgInfo pkg_id\.\S+ where\n  pkgImportedPkgs := \[(.*)\]", t)
     if not m or not m.group(1).strip():
-        return []
-    return [x.strip()[len('pkg_id.'):] for x in m.group(1).split(',')]
+        return list(EXTRA_DEPS.get(p, []))
+    return [x.strip()[len('pkg_id.'):] for x in m.group(1).split(',')] + list(EXTRA_DEPS.get(p, []))
 
 def exec_order(p):
     """The initializer's statements in execution order: ('import', q) / ('opaque', X) /
@@ -4120,7 +4190,7 @@ def gen(p, cfg=None):
     opqf = [x for (kind, x) in items if kind == 'opaqueinitfn' and x not in custom_initfn]
     trs = [x for (kind, x) in items if kind == 'trusted']
     imps = [x for (kind, x) in items if kind == 'import']
-    assert sorted(imps) == sorted(pk), (p, imps, pk)
+    assert sorted(imps + EXTRA_DEPS.get(p, [])) == sorted(pk), (p, imps, pk)
     # (mustreg) the registration rights' definitions (`regNames`: prometheus's `fqName`) and lemmas
     cfg_imps = list(cfg.get('imports', []))
     if res_list(p):
@@ -4129,6 +4199,7 @@ def gen(p, cfg=None):
                 cfg_imps.append(m)
     if p in PRE_RES and 'Proof.github_com.prometheus.client_golang.prometheus.MustRegister' not in cfg_imps:
         cfg_imps.append('Proof.github_com.prometheus.client_golang.prometheus.MustRegister')
+        cfg_imps.append('Proof.github_com.mit_pdos.etcd_grove.examples.lib.promreg.Registry__Register')
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg_imps
     if newvars: mods.append('Proof.errors.NewVarCell')
     mods.append('Proof.runtime.PkgInitExt')
@@ -4284,6 +4355,8 @@ def gen(p, cfg=None):
     A('variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]')
     A('variable [sem : go.Semantics]')
     A(f'variable [package_sem : _root_.Perennial.{p}.Assumptions]')
+    if PROMREG in cl and p != PROMREG:
+        A(PROMREG_VAR)
     _SP = {**SPECIAL, **WT_SPECIAL}
     vs = list(cfg.get('vars', []))
     for q in sorted(cl):
@@ -4632,6 +4705,7 @@ def gen_table(p, path):
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',
          f'variable [package_sem : _root_.Perennial.{p}.Assumptions]'] + \
+        ([PROMREG_VAR] if PROMREG in cl else []) + \
         [f'variable {v}' for v in table_vars(cl)] + ['',
          '/-- Every package of the program\'s import closure, with its `isPkgInit`. -/',
          'def pkgInitTable : List (GoString × IProp GF) :=']

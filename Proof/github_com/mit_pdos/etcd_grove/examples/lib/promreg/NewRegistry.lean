@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : promreg.Assumptions]
 
 theorem promreg.NewRegistry.wp_proof : promreg.NewRegistry.spec (GF := GF) (hG := hG) := by
-  intro γ f
+  intro f
   wp_start
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -38,7 +38,7 @@ theorem promreg.NewRegistry.wp_proof : promreg.NewRegistry.spec (GF := GF) (hG :
   ipersist descIDs
   ipersist dimHashesByName
   ipersist collectorsByID
-  imod (sync.init_Mutex (promreg.regInv (GF := GF) γ f mI mD mC) ⊤ _) $$ mu [HmI HmD HmC] with #Hmu
+  imod (sync.init_Mutex (promreg.regInv (GF := GF) f mI mD mC) ⊤ _) $$ mu [HmI HmD HmC] with #Hmu
   · inext
     unfold promreg.regInv
     iexists ∅, ∅, ∅

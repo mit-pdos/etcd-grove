@@ -186,10 +186,6 @@ def histOpts (o : github_com.prometheus.client_golang.prometheus.HistogramOpts)
   o = { (zeroValDef : github_com.prometheus.client_golang.prometheus.HistogramOpts) with
         Namespace' := ns, Subsystem' := sub, Name' := name, Help' := help, Buckets' := s }
 
-/-- **The key of the registry's ghost name** in the run's name supply (Perennial's `localName`): the
-package path. -/
-def promKey : GoString := go!"github.com/prometheus/client_golang/prometheus"
-
 /-- The descriptor `promreg.Desc` of the label-free descriptor named `n` (valid, its ID `descId n`),
 with the dim hash `dh`. -/
 def nameDesc (n : GoString) (dh : w64) : promreg.Desc :=
@@ -221,23 +217,43 @@ without const labels (a counter `NewCounter` made; mustreg, 2026-11-20: or a met
 def collectorName (c : GoInterfaceOk) (n : GoString) : Prop :=
   ∃ dh : w64, collectorDescsAre c [nameDesc n dh]
 
+/-- The glue's name for `Collector` (`TrustedCode/`, which the translation imports, so it writes the
+type out) is the translation's. -/
+theorem model_Collector_eq :
+    github_com.prometheus.client_golang.prometheus.model.Collector =
+      github_com.prometheus.client_golang.prometheus.Collector.ty := by
+  unfold github_com.prometheus.client_golang.prometheus.Collector.ty; rfl
+
+
+/-- The glue's name for `Register` is the translation's. -/
+theorem model_Register_eq :
+    github_com.prometheus.client_golang.prometheus.model.Register =
+      github_com.prometheus.client_golang.prometheus.Register := rfl
+
+
+/-- The glue's name for `defaultRegistry` is the translation's. -/
+theorem model_defaultRegistry_eq :
+    github_com.prometheus.client_golang.prometheus.model.defaultRegistry =
+      github_com.prometheus.client_golang.prometheus.defaultRegistry := rfl
+
+
 end descs
 
 section rights
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
 
 /-- **The right to register the name `n`** with prometheus's default registry (exclusive;
-prom-registry, notes/prom-registry.md §3): `n` is not a builtin's name, and the run's registry rights
-(the ghost map whose name the run records under `promKey`) hold the element of `n`'s label-free
-descriptor ID, `descId n`. The registry's invariant owns the element of every registered ID, so the
-holder knows `descId n` unregistered, as a descriptor and as a collector ID, and `n` unregistered
-(every registered name is a builtin's or has its ID registered). Allocated by each run's proof
-(`promreg.promReg_alloc`), so a crash's next run has new ones. -/
+prom-registry, notes/prom-registry.md §3): `n` is not a builtin's name, and the right to `n`'s
+label-free descriptor ID, `descId n` (`promreg.idTok`: an element of the run's ghost map, whose name
+the generation records under `promreg.regKey`; it is no builtin's ID). The registry's invariant holds
+the right of every registered ID that is no builtin's, so the holder knows `descId n` unregistered, as
+a descriptor and as a collector ID, and `n` unregistered (every registered name is a builtin's or has
+its ID registered). Allocated by each run's proof (`promreg.promReg_alloc`), so a crash's next run has
+new ones. -/
 def regFree (n : GoString) : IProp GF :=
-  iprop(⌜n ∉ promreg.builtinNames⌝ ∗ ∃ γ, localName promKey γ ∗ promreg.idTok γ (descId n))
+  iprop(⌜n ∉ promreg.builtinNames⌝ ∗ promreg.idTok (descId n))
 
 end rights
 

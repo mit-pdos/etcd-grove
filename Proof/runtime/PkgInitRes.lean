@@ -34,10 +34,17 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-/-- **The rights to register the names `Ns`** with prometheus's default registry: `nameFree` of
-each (D16). -/
-def prometheus.namesFree {GF : BundledGFunctors} (Ns : List GoString) : IProp GF :=
-  iprop([∗list] n ∈ Ns, prometheus.nameFree n)
+section names
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+
+/-- **The rights to register the names `Ns`** with prometheus's default registry: `regFree` of
+each (D16; prom-registry, 2026-11-22: until then the axiom `nameFree` of each). -/
+def prometheus.namesFree (Ns : List GoString) : IProp GF :=
+  iprop([∗list] n ∈ Ns, prometheus.regFree n)
+
+end names
 
 theorem pkgInitLe_initLe {σ0 σ : GMap GoString Bool} (h : pkgInitLe σ0 σ) : initLe σ0 σ := h
 

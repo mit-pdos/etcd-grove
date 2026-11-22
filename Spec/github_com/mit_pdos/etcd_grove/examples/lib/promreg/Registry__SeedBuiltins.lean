@@ -22,11 +22,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `r.SeedBuiltins()` registers the builtins, taking their rights (`builtinToks`: prometheus's
-initializer's). -/
+/-- `r.SeedBuiltins()` registers the builtins (which take no rights: no right is a builtin's). -/
 abbrev promreg.Registry.SeedBuiltins.spec : Prop :=
-  ∀ (γ : GName) (f : GoString → w64) (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.promreg ∗ promreg.isRegistry (GF := GF) γ f r ∗ promreg.builtinToks (GF := GF) γ }}
+  ∀ (f : GoString → w64) (r : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.promreg ∗ promreg.isRegistry (GF := GF) f r }}
     (App (Val (r @!! go.GoType.PointerType promreg.Registry.ty @!! go!"SeedBuiltins")) (Val #()))
   {{ RET #(); True }}
 
