@@ -328,8 +328,7 @@ end init
 
 /-- The ghost state of the net extension. The program gets the network's pending sets (every
 valid address's), and each node its listeners. The network starts with no connection
-(`NetGlobal.init`); a node's listeners are not constrained (`initP`: `True`, until the extension's
-semantics carries `NetLocal.init`, `Impl.lean`). -/
+(`NetGlobal.init`); a node's listeners are not constrained (`initP`: `True`). -/
 instance net_interp : ExtInterp netExt where
   LocalGS := NetLocalGS
   GlobalGS := NetGS
@@ -342,6 +341,12 @@ instance net_interp : ExtInterp netExt where
   localStart := lisStart
   global_init _ hPre g hg := net_global_init hPre g hg
   local_init _ hPre L _ _ := net_local_init hPre L
+
+/-- The ghost state can be allocated for every initial state of the semantics (`net_semantics`'s
+`initGlobal` is `net_interp`'s `initgP`). -/
+instance net_init_compat : ExtInitCompat netExt where
+  initgP_of_init _ h := h
+  initP_of_init _ _ _ := trivial
 
 end Net
 end Perennial

@@ -5119,14 +5119,22 @@ def net_inits(ext_txt):
 # tree's, from the part's translation (`KvNet/Code` over the main tree's) and instances
 # (`KvNet/Proof/`, etc/copy-part.py's copies, over the main tree's), with `net`'s and `durable`'s
 # configurations those of `Net/` and `WalTester/`, the imports of the part's modules prefixed, and a
-# `PkgInitExt` that is the main tree's with the part's raft. (kvnet's and kvcheck's own, and their
-# program's `PkgTable`, wait for kvnet's proof to give their `IsPkgInit` instances.)
+# `PkgInitExt` that is the main tree's with the part's raft; kvnet's and kvcheck's own, and their
+# programs' `PkgTable`s (`KVNET_PROGRAMS`).
 # etc/copy-part.py does not copy these (`kvnet_paths`).
 KVNET_ROOT = 'KvNet'
 KVNET_INITS = PART_INITS + ['net', 'github_com.mit_pdos.etcd_grove.examples.lib.durable',
                             # (`durable`'s imports that `os` does not import)
                             'internal.filepathlite', 'path.filepath']
+# (2026-11-22) kvnet's and kvcheck's own (the two programs of the top-level theorem), and their tables
+KVNET_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvnet'
+KVNET_INITS += [KVNET_PKG, f'{KVNET_PKG}.kvcheck']
+KVNET_PROGRAMS = {KVNET_PKG: f'Proof/{KVNET_PKG.replace(".", "/")}/PkgTable.lean',
+                  f'{KVNET_PKG}.kvcheck': f'Proof/{KVNET_PKG.replace(".", "/")}/kvcheck/PkgTable.lean'}
 KVNET_SPECIAL = {**NET_SPECIAL, **WT_SPECIAL}
+# kvnet's fact is `True` (`Base.lean`): its one variable, `StatNames` (stats.go), an array literal no
+# proof reads, is allocated and stored
+KVNET_SPECIAL[KVNET_PKG] = dict(alloc_types=_ALLOC_ANY, before={'StatNames': ['try wp_auto']})
 _KVNET_RAW = []
 
 
@@ -5145,6 +5153,7 @@ def kvnet_raw():
         CFG_OVERRIDE = KVNET_SPECIAL
         raw = [o for p in KVNET_INITS
                for o in gen(p, KVNET_SPECIAL.get(p, SPECIAL.get(p)))]
+        raw += [gen_table(p, path) for p, path in KVNET_PROGRAMS.items()]
     finally:
         inv, inst, CFG_OVERRIDE = saved
     _KVNET_RAW.append(raw)
