@@ -41,7 +41,7 @@ abbrev Node.handle.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
       @!! go!"handle")) (Val #kind)) (Val #p)) (Val #tmo))
   {{ (ans : GoSlice) (good : Bool), RET (PairV #ans #good);
       ⌜good = false⌝ ∨
-      ∃ (v : List w8), ⌜good = true ∧ v.length < 2 ^ 61⌝ ∗ ans ↦* v ∗ ansOk F id kind pl v }}
+      ∃ (v : List w8), ⌜good = true ∧ (v.length : Int) + 9 < 2 ^ 63⌝ ∗ ans ↦* v ∗ ansOk F id kind pl v }}
 
 end spec
 

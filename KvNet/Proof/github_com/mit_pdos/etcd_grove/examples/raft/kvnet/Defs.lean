@@ -150,16 +150,50 @@ attribute [local instance] kdStorageModel
 def rsOk (γ : Cluster) (v : ReadState) : IProp GF :=
   iprop(∃ c : List w8, v.RequestCtx' ↦*□ c ∗ readStateOk γ kdRaftN c v.Index')
 
+/-- **An answer fits a reply frame** (2026-11-22, notes/kvnet-part.md, "The answers' lengths"): the
+server writes `1 :: v` with its 8-byte length prefix (`writeFrame`: `make([]byte, 0, 8+len(body))`), so
+`len(v) + 9` must be a Go `int`. Every value the replica holds is the tail of a decoded entry, a Go
+slice with 17 bytes before it (`decode`), or a snapshot's: the replica's maps keep it (`MapFits`). -/
+def MapFits (M : GMap (List w8) (List w8)) : Prop :=
+  ∀ k v, M !! k = some v → (v.length : Int) + 9 < 2 ^ 63
+
+theorem MapFits.insert {M : GMap (List w8) (List w8)} (h : MapFits M) (k v : List w8)
+    (hv : (v.length : Int) + 9 < 2 ^ 63) : MapFits (<[k := v]> M) := by
+  intro k' v' h'
+  rcases (GMap.lookup_insert_Some M k k' v v').1 h' with ⟨-, rfl⟩ | ⟨-, h''⟩
+  · exact hv
+  · exact h k' v' h''
+
+theorem MapFits.getD {M : GMap (List w8) (List w8)} (h : MapFits M) (k : List w8) :
+    (((M !! k).getD []).length : Int) + 9 < 2 ^ 63 := by
+  cases hk : M !! k with
+  | none => simp
+  | some v => exact h k v hk
+
+theorem decodeOp_val_len {d : List w8} {i : w64} {kd : w8} {key val : List w8}
+    (h : raft_kvreconf.decodeOp d = some (i, kd, key, val)) : val.length + 17 ≤ d.length := by
+  unfold raft_kvreconf.decodeOp at h
+  split at h
+  · split at h
+    · simp only [Option.some.injEq, Prod.mk.injEq] at h
+      obtain ⟨-, -, -, rfl⟩ := h
+      simp only [List.length_drop]
+      omega
+    · cases h
+  · cases h
+
 /-- A read's entry in the replica's lock: the context `c` minted at `(id, s)`. -/
 def readWaiterOk (γ : KdNames) (id s : w64) (ch : Loc) : IProp GF :=
   iprop(∃ (c : List w8) (γh : HandoffNames),
     (id, s) ↪[γ.r.rmint]□ c ∗
-    isHandoff γh ch (readAns γ c) iprop(True) iprop(False) ∗ handoffProducer γh false)
+    isHandoff γh ch (fun v => iprop(readAns γ c v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True)
+      iprop(False) ∗ handoffProducer γh false)
 
 /-- An operation's entry in the replica's lock. -/
 def waiterOk (γ : KdNames) (d : List w8) (ch : Loc) : IProp GF :=
   iprop(∃ (γh : HandoffNames),
-    isHandoff γh ch (waitP γ d) iprop(True) iprop(False) ∗ handoffProducer γh false)
+    isHandoff γh ch (fun v => iprop(waitP γ d v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True)
+      iprop(False) ∗ handoffProducer γh false)
 
 /-- The applier's half of an incarnation's replicated state (kvreconf's `repOwn`), at the committed
 prefix `ap`: since a restarted incarnation starts at its stored snapshot's prefix, `ap` is any
@@ -177,6 +211,7 @@ def repOwn (γ : KdNames) (r : Loc) (ap : List LogEntry)
     "#Hap" ∷ isCommittedLogLb γ.r.cluster ap ∗
     "%Hlen" ∷ ⌜(ap.length : Int) < 2 ^ 61⌝ ∗
     "%Hval" ∷ ⌜∀ k, (K !! k).getD [] = raft_kvreconf.kvFold (raft_kvreconf.logHist ap) k⌝ ∗
+    "%HKfit" ∷ ⌜MapFits K⌝ ∗
     "%HA" ∷ ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝ ∗
     "#HcsO" ∷ csOpt csp DFrac.discard c ∗
     "%Hcsm" ∷ ⌜confStateIs c m⌝ ∗
@@ -193,7 +228,8 @@ def repShared (γ : KdNames) (r : Loc) : IProp GF :=
     "Hidx" ∷ r.[KReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx ∗
     "#HcsO" ∷ csOpt csp DFrac.discard c ∗
     "#Hap" ∷ isCommittedLogLb γ.r.cluster ap ∗
-    "%HA" ∷ ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝)
+    "%HA" ∷ ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝ ∗
+    "%HAfit" ∷ ⌜MapFits A⌝)
 
 /-- An incarnation's `mu` lock invariant (kvreconf's `lockInv` without `nextRead`: the reads'
 sequence numbers are the cluster's, `readSeqs`). -/

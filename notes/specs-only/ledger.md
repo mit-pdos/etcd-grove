@@ -4238,3 +4238,54 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Replace `NewLessor`'s axiom by the narrower `Lease.expired` one (the user's choice (a),
   prove-ps2-newlessor).
 - **Decision.** Approved (the user's (a); net 0 axioms), applied.
+
+## 2026-11-22: `slices.Concat`'s axiom takes the total length `< 2 ^ 63` (claim #26, fix-slices-concat)
+
+- **Spec.** `slices.Concat.spec` (`Spec/slices/Concat.lean`, the axiom `Proof/slices/Concat.lean`), and through its
+  one caller the decision vocabulary of `k8s.io/apiserver/pkg/authorization` (`Proof/.../authorizer/Defs.lean`):
+  `collectReasonsAndErrors.spec`, `ConditionsAwareDecisionUnion.Add/ToDecision.spec`,
+  `PartiallyEvaluateConditionsAwareDecision.spec`, `ConditionsAwareDecisionConditionsMap.spec`,
+  `partiallyEvaluateConditionsMapInternal.spec`, `AuthorizerFunc.ConditionsAwareAuthorize.spec`, `caaOk`,
+  `ownBuilder`, `Dec.WF`, and the driver's `arbDecision.spec`, `arbAuthorizer.ConditionsAwareAuthorize.spec`.
+- **Defect.** The axiom had no premise ("the address space bounds strings' total length"). Go's `Concat` sums
+  `len(s)` and panics with "len out of range" once the sum is negative (go1.27.3 `slices/slices.go:491-498`), before
+  `Grow`; aliased arguments reach it without the memory (`examples/premisefix/concatlen`: `TestBoundary`, 2^63-1
+  returns and 2^63 panics; `TestStringsOverflow`; `TestStrings32` under `GOARCH=386`). In the model a slice of
+  length `2 ^ 63 - 1` passed as `collectReasonsAndErrors`'s prefix made the axiom prove a slice of length `2 ^ 63`.
+- **Evidence.** The Go source; Perennial PR #670 proves `slices.Concat.spec` over the translated code with the premise
+  `(xss.map List.length).sum < 2 ^ 63` (its post adds that an empty result is `nil`).
+- **Proposed change.** The premise, as PR #670 states it (our statement is its string instance, so the axiom becomes
+  a theorem after the pin bump). The caller extends a path of names by one per union level, so it takes
+  `pre.length + m.depth < 2 ^ 63` (`Dec.depth`, new); `Dec.WF`'s union case adds `Dec.depthL ks + 1 < 2 ^ 63`; the
+  builder keeps its children below `2 ^ 63 - 1` (`ownBuilder`, `Add`'s premise), which `caaOk` gives
+  (`isWFDecisionLe (2 ^ 63 - 2)`, new predicate); producers report depths (`ToDecision`: at most its union's;
+  `PartiallyEvaluate...`: at most its input's; the leaf constructors and `AuthorizerFunc`: `0`); the driver's
+  `arbDecision(depth)` takes `uint.nat depth < 2 ^ 63`, `arbAuthorizer.ConditionsAwareAuthorize` `z.depth < 2 ^ 63 - 1`
+  (its closed program uses 2). A fixed bound in the invariant alone cannot work: a union of invariant decisions is
+  one level deeper, so the authorizers' decisions (`caaOk`) carry the tighter one.
+- **Decision.** Applied (fix-slices-concat/2026-11-22). `k8s_authz_robust`'s statement unchanged; no axiom added or
+  removed.
+## 2026-11-22: kvnet's answers' length bound weakened to what the reply frame needs (KvNet)
+
+- **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvNet, Lean-first; no SpecPlan
+  counterpart): post `len(v) < 2^61` to `(len(v) : Int) + 9 < 2^63`. `Replica.install.spec`: new premises
+  `MapFits K'`, `MapFits A'`.
+- **Defect.** The `2^61` bound was not derivable (the store's `waitP`/`readAns` say nothing of lengths): the
+  proofs took it as two seams (`ansLen.law`, `waitLen.law`). The only consumer (`serveClient`, its `writeFrame`)
+  needs `len(v) + 9 < 2^63`.
+- **Evidence.** `notes/kvnet-part.md`, "The answers' lengths"; `Node__serveClient.lean` unchanged.
+- **Proposed change.** Weaken the posts; carry the bound in the replica's maps (`MapFits`, `Defs.lean`) and
+  waiters; drop the seams.
+- **Decision.** Applied (the coordinator's item 1: weaken locally before strengthening the store).
+
+## 2026-11-22: `durable.Write`'s sync update may use the crash token (WalTester, copied into KvNet)
+
+- **Spec.** `github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec` (WalTester, Lean-first; no SpecPlan
+  counterpart): the second update `durWriteSync γ Ψ` is now `notCrashed -∗ AU <{∃∃ s, durSt γ s}> <{ durSt γ
+  ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>`. This is weaker as the client's obligation: a plain update is one
+  (`durWriteSync_of_au`).
+- **Defect.** A client could not fire raft's *enter* (`readyEnter`, which takes `notCrashed`) at the sync, where
+  decision C (`notes/kvnet-proof-plan.md`) places it. Yet the proof holds the token there (`durInv_commit`).
+- **Evidence.** `notes/kvnet-part.md`, "`persist`" item 1; `WriteInv.lean`'s `durInv_commit`.
+- **Proposed change.** As above. `durInv_commit` passes the token; the tester's `storeOracle` gives a plain update.
+- **Decision.** Applied (needed for kvnet's `persist`, item 2 of the coordinator's 2026-11-22 decisions).

@@ -99,7 +99,6 @@ axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
-axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
 axiom config.ServerConfig.BackendPath.wp_proof

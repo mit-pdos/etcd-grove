@@ -101,18 +101,46 @@ instance kvRep_persistent (γ : KdNames) (vs : List w64) (dir : GoString) (r : L
     Persistent (kvRep (GF := GF) γ vs dir r id) := by
   unfold kvRep; infer_instance
 
-/-- **A store-level law on the answers' lengths** (a seam, to discharge from the store's invariant):
-an answer's value is shorter than `2^61` (the values the store holds are the operations', whose
-lengths `EncodeOp` bounds). Taken as a hypothesis by `Replica.read`'s and `Replica.propose`'s proofs,
-whose specs promise the bound to the server (its reply frame). -/
-abbrev ansLen.law : Prop :=
-  ∀ (γ : KdNames) (c v : List w8), readAns (GF := GF) γ c v ⊢ ⌜v.length < 2 ^ 61⌝
-
-/-- **The same law of an operation's answers** (a seam, as `ansLen.law`). -/
-abbrev waitLen.law : Prop :=
-  ∀ (γ : KdNames) (d v : List w8), waitP (GF := GF) γ d v ⊢ ⌜v.length < 2 ^ 61⌝
-
 end facts
+
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
+variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [Net.NetProtoGS]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
+variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+
+attribute [local instance] kdStorageModel
+
+/-- **The step law at the store's facts** (2026-11-22; `stepLaw`, `TransportDefs.lean`, the transport's
+seam to raft's `Step`): a peer frame's message (`kvFacts`' `msgOk`: sent, its credits, well formed),
+addressed to `id`, steps at `id`, at an untraced cluster with no bound on proposed data and no snapshot
+directories (the store's cluster: `kdCluster`, `isReplica`'s `Hmd`, kvreconf's `DefsCluster`'s `Hsl`):
+raft's `stepIn_intro`, with the sent token `sentTok_untraced` and the snapshot's locality
+`snapLocalMsg_noDir`. -/
+theorem kv_stepLaw (γ : KdNames) (cf : List w8 → Prop) (id : w64)
+    (htr : Cluster.trace γ.r.cluster = none) (hmd : γ.r.cluster.maxData = none)
+    (hsl : γ.r.cluster.snapLoc id = none) :
+    ⊢ stepLaw (GF := GF) (kvFacts γ cf) γ.r.cluster kdRaftN id := by
+  unfold stepLaw
+  iintro !> %src %st %ml %Hto Hok Hml
+  simp only [kvFacts]
+  iunfold msgOkK at Hok
+  icases Hok with ⟨#Hsent, #Hcr, %Hwf⟩
+  icases (msgPtsC_iff_CC ml _ _ _ _).1 $$ Hml with ⟨%c, Hc, %Hcm⟩
+  ihave Hs : iprop(|==> stepIn γ.r.cluster kdRaftN id ml) $$ [Hc]
+  · iapply stepIn_intro γ.r.cluster kdRaftN id ml src st c Hto (by rw [Hcm.1]) Hcm.2
+      (fun b hb => by rw [hmd] at hb; cases hb)
+    iframe Hsent Hc Hcr
+    isplitr
+    · iapply snapLocalMsg_noDir γ.r.cluster id hsl st
+    · iapply sentTok_untraced γ.r.cluster st htr
+  imod Hs
+  imodintro
+  iexact Hs
+
+end laws
 
 end raft_kvnet
 end EtcdGrove

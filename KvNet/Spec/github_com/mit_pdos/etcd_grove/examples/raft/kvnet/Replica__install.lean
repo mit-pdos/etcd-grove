@@ -39,6 +39,7 @@ abbrev Replica.install.spec : Prop :=
     (mK' mA' : Loc) (K' A' : GMap (List w8) (List w8)) (L : List LogEntry) (mL : Membership),
   L.length = uint.nat md.Index' → ((L.length : Int) < 2 ^ 61) →
   (∀ k, (K' !! k).getD [] = kvFold (logHist L) k) → AppliedOk A' (logHist L) →
+  MapFits K' → MapFits A' →
   confStateIs md.ConfState' mL → GMap.size mL.ids < 2 ^ 61 →
   {{ isReplica γ vs dir id r n st sts sq ms γs ph ∗ repOwn γ r ap idx csp m mA A ∗ smOpt mdp dq md ∗
       mK' ↦$ K' ∗ mA' ↦$ A' ∗ isCommittedLogLb γ.r.cluster L ∗ confAt γ.r.cluster L.length mL }}

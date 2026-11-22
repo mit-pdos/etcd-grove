@@ -33,7 +33,7 @@ abbrev Replica.read.spec (F : KvFacts GF) (rep : Loc → w64 → IProp GF) : Pro
     (App (App (App (Val (r @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica.ty @!! go!"read")) (Val #seq))
       (Val #key)) (Val #tmo))
   {{ (v : GoString) (ok : Bool), RET (PairV #v #ok);
-      ⌜v.length < 2 ^ 61⌝ ∗ if ok then F.ansRead id seq key v else iprop(True) }}
+      ⌜(v.length : Int) + 9 < 2 ^ 63⌝ ∗ if ok then F.ansRead id seq key v else iprop(True) }}
 
 end spec
 

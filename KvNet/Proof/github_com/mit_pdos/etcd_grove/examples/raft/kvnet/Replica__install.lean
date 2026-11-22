@@ -51,7 +51,7 @@ local macro "install_rest" : tactic => `(tactic| (
     wp_apply sync.Mutex.wp_Lock _ _ $$ [$(frameH `Hmu)] as ⟨Hlocked, HR⟩
     iNamed HR
     iunfold repShared at Hrep
-    icases Hrep with ⟨%mA0, %A0, %csp0, %c0, %idx0, %ap0, HmA', HA', Hcs', Hidx', #HcsO0, #Hap0, %HA0⟩
+    icases Hrep with ⟨%mA0, %A0, %csp0, %c0, %idx0, %ap0, HmA', HA', Hcs', Hidx', #HcsO0, #Hap0, %HA0, %HA0fit⟩
     icombine HmA HmA' gives %HmAeq
     subst HmAeq
     icombine Hcs Hcs' gives %Hcseq
@@ -113,13 +113,16 @@ local macro "install_rest" : tactic => `(tactic| (
         wp_apply wp_mapDelete $$ [$(frameH `Hm)] as Hm
         iunfold waiterOk at Hwt
         icases Hwt with ⟨%γh, #Hho, Hprod⟩
-        ihave #Hw : waitP γ key w $$ []
-        · unfold waitP
-          iexists L
-          iframe HL
-          ipureintro; exact HA'.2 _ _ HAk
+        ihave #Hw : iprop(waitP γ key w ∗ ⌜(w.length : Int) + 9 < 2 ^ 63⌝) $$ []
+        · isplitl
+          · unfold waitP
+            iexists L
+            iframe HL
+            ipureintro; exact HA'.2 _ _ HAk
+          · ipureintro; exact HAfit' _ _ HAk
         try wp_auto
-        wp_apply wp_handoff_send (t := go.string) γh v (waitP γ key) iprop(True) iprop(False)
+        wp_apply wp_handoff_send (t := go.string) γh v
+          (fun v => iprop(waitP γ key v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True) iprop(False)
           w $$ [$(frameH `Hho) $(frameH `Hprod) $(frameH `Hw)]
         iintro -
         try wp_auto
@@ -148,7 +151,7 @@ local macro "install_rest" : tactic => `(tactic| (
       iframe
       iexists mA', A', csn, md.ConfState', md.Index', L
       iframe HmA' HA2 Hcs' Hidx' HcsN HL
-      ipureintro; exact HA'
+      ipureintro; exact ⟨HA', HAfit'⟩
     -- the statistics
     try wp_auto
     wp_apply wp_add sts _ (by decide) (by decide) $$ [$(frameH `Hpkg) $(frameH `Hstats)]
@@ -164,7 +167,7 @@ local macro "install_rest" : tactic => `(tactic| (
       unfold repOwn
       iexists mK', K', md.ConfState'
       iframe HmK HKf HmA HA1 Hcs Hidx HcsN HL HmL
-      ipureintro; exact ⟨HLlen', HK', HA', HmLc, HmLsz⟩
+      ipureintro; exact ⟨HLlen', HK', HKfit', HA', HmLc, HmLsz⟩
     try wp_if_destruct
     all_goals
       try wp_apply wp_add sts _ (by decide) (by decide) $$ [$(frameH `Hpkg) $(frameH `Hstats)]
@@ -194,7 +197,7 @@ theorem Replica.install.wp_proof
     (wp_GetLearnersNext : raftpb.ConfState.GetLearnersNext.spec (GF := GF) (hG := hG))
     (wp_Clone : raftpb.CloneConfState.spec (GF := GF) (hG := hG)) :
     Replica.install.spec (GF := GF) (hG := hG) := by
-  intro γ vs dir id r n st sts sq ms γs ph ap idx csp m mA A mdp dq md mK' mA' K' A' L mL HLlen HLlen' HK' HA' HmLc HmLsz
+  intro γ vs dir id r n st sts sq ms γs ph ap idx csp m mA A mdp dq md mK' mA' K' A' L mL HLlen HLlen' HK' HA' HKfit' HAfit' HmLc HmLsz
   wp_start as ⟨#Hrep, Hown, Hsm, HKf, HAf, #HL, #HmL⟩
   ihave #Hrep' := Hrep
   iunfold isReplica at Hrep'

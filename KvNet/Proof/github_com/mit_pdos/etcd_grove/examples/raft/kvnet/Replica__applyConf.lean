@@ -92,6 +92,8 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       isplitr
       · ipureintro; rw [Hlh]; exact Hval
       isplitr
+      · ipureintro; exact HKfit
+      isplitr
       · ipureintro; rw [Hlh]; exact HA
       iunfold cfgAt at Hcfg'
       icases Hcfg' with ⟨%Hcsm', #Hcfg'⟩
@@ -153,6 +155,8 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
         · ipureintro; rw [List.length_append, List.length_singleton]; omega
         isplitr
         · ipureintro; rw [Hlh]; exact Hval
+        isplitr
+        · ipureintro; exact HKfit
         isplitr
         · ipureintro; rw [Hlh]; exact HA
         iunfold cfgAt at Hcfg'

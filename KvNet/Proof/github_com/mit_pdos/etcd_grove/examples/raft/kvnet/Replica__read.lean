@@ -6,7 +6,7 @@ place of `readSeqs.next`'s, and the replica's check that no read of the same `se
 retry reaching it again: no answer). Under the lock a handoff channel is registered as the waiting
 read (`readWaiterOk`); the answer comes through it (`readAns`), in the blocking `select` or, after the
 timeout, in the non-blocking one; it is the key's value in a history extending `l0`'s
-(`kd_readAns_ok`). The answer's length bound is the store-level law `ansLen.law` (a seam).
+(`kd_readAns_ok`). The answer's length bound comes with it (`readWaiterOk`, from the replica's map: `MapFits`).
 -/
 module
 
@@ -45,7 +45,6 @@ theorem Replica.read.wp_proof
     (wp_readCtx : readCtx.spec (GF := GF) (hG := hG))
     (wp_node_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG))
     (hWT : withTimeout.spec (GF := GF) (hG := hG))
-    (Hlen : ansLen.law (GF := GF))
     (γ : KdNames) (vs : List w64) (dir : GoString) (cf : List w8 → Prop) :
     Replica.read.spec (GF := GF) (hG := hG) (kvFacts γ cf) (kvRep γ vs dir) := by
   intro r id seq key tmo
@@ -77,7 +76,7 @@ theorem Replica.read.wp_proof
   · ipureintro; decide
   ihave Hoc : ownChan γc GoString (.Buffered []) $$ Hoc
   try wp_auto
-  imod start_handoff ch (readAns γ (readCtxB id seq key)) iprop(True) iprop(False) γc
+  imod start_handoff ch (fun v => iprop(readAns γ (readCtxB id seq key) v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True) iprop(False) γc
     $$ Hch Hoc with ⟨%γh, %Hγh, #Hho, Hprod, Hcons⟩
   try wp_auto
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HL⟩
@@ -146,7 +145,7 @@ theorem Replica.read.wp_proof
     · ipureintro; rfl
     isplitr
     · iexact Hhch
-    iapply handoff_rcv_au γh ch (readAns γ (readCtxB id seq key)) iprop(True)
+    iapply handoff_rcv_au γh ch (fun v => iprop(readAns γ (readCtxB id seq key) v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True)
       iprop(False) false _ $$ Hho Hlc1 Hcons
     inext
     iintro %v %ok ⟨Hcons, Hgot⟩
@@ -160,8 +159,7 @@ theorem Replica.read.wp_proof
       icases Hgot with ⟨-, Hf⟩
       iexfalso; iexact Hf
     simp only [↓reduceIte]
-    icases Hgot with ⟨#Hw, -⟩
-    ihave %Hvl := Hlen γ _ v $$ Hw
+    icases Hgot with ⟨⟨#Hw, %Hvl⟩, -⟩
     iapply HΦ
     simp only [↓reduceIte]
     icases kd_readAns_ok γ id seq key l0 v Hk64 $$ Hra Hl0 Hw with ⟨%L, #HL, %HLf⟩
@@ -219,7 +217,7 @@ theorem Replica.read.wp_proof
           unfold nonblockingRecvAu
           isplit
           · iapply recvAu_nonblocking
-            iapply handoff_rcv_au γh _ (readAns γ (readCtxB id seq key)) iprop(True)
+            iapply handoff_rcv_au γh _ (fun v => iprop(readAns γ (readCtxB id seq key) v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True)
               iprop(False) false _ $$ Hho Hlc1 Hcons
             inext
             iintro %v %ok ⟨Hcons, Hgot⟩
@@ -231,8 +229,7 @@ theorem Replica.read.wp_proof
               icases Hgot with ⟨-, Hf⟩
               iexfalso; iexact Hf
             simp only [↓reduceIte]
-            icases Hgot with ⟨#Hw, -⟩
-            ihave %Hvl := Hlen γ _ v $$ Hw
+            icases Hgot with ⟨⟨#Hw, %Hvl⟩, -⟩
             iapply HΦ
             simp only [↓reduceIte]
             icases kd_readAns_ok γ id seq key l0 v Hk64 $$ Hra Hl0 Hw with ⟨%L, #HL, %HLf⟩
@@ -272,7 +269,7 @@ theorem Replica.read.wp_proof
           unfold nonblockingRecvAu
           isplit
           · iapply recvAu_nonblocking
-            iapply handoff_rcv_au γh _ (readAns γ (readCtxB id seq key)) iprop(True)
+            iapply handoff_rcv_au γh _ (fun v => iprop(readAns γ (readCtxB id seq key) v ∗ ⌜(v.length : Int) + 9 < 2 ^ 63⌝)) iprop(True)
               iprop(False) false _ $$ Hho Hlc1 Hcons
             inext
             iintro %v %ok ⟨Hcons, Hgot⟩
@@ -284,8 +281,7 @@ theorem Replica.read.wp_proof
               icases Hgot with ⟨-, Hf⟩
               iexfalso; iexact Hf
             simp only [↓reduceIte]
-            icases Hgot with ⟨#Hw, -⟩
-            ihave %Hvl := Hlen γ _ v $$ Hw
+            icases Hgot with ⟨⟨#Hw, %Hvl⟩, -⟩
             iapply HΦ
             simp only [↓reduceIte]
             icases kd_readAns_ok γ id seq key l0 v Hk64 $$ Hra Hl0 Hw with ⟨%L, #HL, %HLf⟩
