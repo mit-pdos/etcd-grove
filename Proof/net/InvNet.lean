@@ -36,6 +36,13 @@ open Iris Iris.BI Net
 /-- **The program's closed-world claim on the address `addr`** (exclusive; see the file header). -/
 axiom addrClaim {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
+/-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,
+rafthttp stage 6a): `http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's
+protocol before its listener exists (a raft member sends to its peers before they listen). Purely ghost:
+no Go operation consumes or needs it. Until the net swap (2026-11-22) program start gave it once per
+address, with `netAddrFree`; now nothing does (net/http's S5, or `etcd_dist_safe`'s deployment, is to). -/
+axiom httpProtoFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]

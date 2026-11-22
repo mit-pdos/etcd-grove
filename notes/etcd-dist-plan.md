@@ -693,6 +693,23 @@ them: take the deletion), `etc/tcb-baseline.txt`, `etc/tcb-collections/mvccfull.
 `etc/gen-init.py` (independent hunks). Its planned step-2 edits to etcd/all's, k8s/all's and leaseexpiryN's
 closed proofs (§5 of `notes/prom-registry-start-change.md`) are moot after the retirement.
 
+**Done on `net-swap` (2026-11-22, `df4369bae2`; built against a plain Perennial `74471ecd8` worktree,
+`/shared/perennial-74471ecd8`, manifest `/shared/tmp/manifest-744.json`).**
+- Translation: `net=Net` in the 35 main-tree projects (with `net/{http,url,textproto,http/httptrace}=` kept
+  main-tree); `Code/net.{toml,lean}`, `GeneratedProof/net.lean` deleted; 30 translations regenerated (their
+  import line only). gen-init: the main tree's `Proof/net/Init.lean` over Net's translation (its fact
+  `Net/Proof/net/Base.lean`'s `isInit`; `cache/v3/Base.lean`'s `True` instance for `net` removed);
+  `net.opaqueInitsOk` gone. gen-specs-pkginit: `SpecPlan.Spec.PkgInit.net` over `Net.GeneratedProof.net`.
+- Design D, with one change: the predicates carry `HasExt netExt` **inside** (`∃ _ : HasExt netExt, …`, a
+  proposition, so proof-irrelevant), so that no section needs a `[HasExt Net.netExt]` binder: no sweep, and
+  **no edit to upamanyus's grpc, v3rpc or net/http files** (their statements over `netListenerAt` keep their
+  signatures). `netListenerAt` ties `l` to a `*TCPListener` pointer but not that pointer to the extension's
+  listener id (`isListener` would need `net.Assumptions` at every use); S2 may strengthen it.
+- `EtcdGrove.net.Listen.wp_proof` a theorem from Net's `net.Listen.wp_proof` (an `=` callee in
+  `etc/link-lean-first-{common,cluster3}.txt`, `gen-link`'s `EXTRA_IMPORTS`).
+- Retirement and the start axiom's address part: as decided above. Not done: step 5 (Net's own copies of
+  the main tree's initializers), which kvremote needs next.
+
 Branch `net-swap`. Agreed on #24 (upamanyus, 2026-11-22 15:52Z): ours, after `phase7-dial` (on `lean`,
 `bbc60799b2`); `net/http` stays with phase 7 (S5). His constraints: project `etcd`'s `-lean-root net=`
 becomes `net=Net` (as `models-net`), so grpc's translation sees the real `net.Conn`/`net.Listener`;
