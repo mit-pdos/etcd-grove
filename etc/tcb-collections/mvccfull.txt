@@ -17,7 +17,6 @@ axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.client.v3.defaultOptions_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
@@ -29,6 +28,7 @@ axiom Perennial.google_golang_org.grpc.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
+axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
@@ -59,6 +59,7 @@ axiom prometheus.nameFree
 axiom prometheus.nameUnclaimed
 axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
+axiom rand.Float64.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof

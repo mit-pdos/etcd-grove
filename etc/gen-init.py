@@ -2116,8 +2116,9 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
 
 SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
     doc='''Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, translated:
-`[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
-backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
+`[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, translated since 2026-11-22: `&options{...}`
+whose backoff function, `backoffLinearWithJitter`'s, returns; until then the trust-boundary axiom
+`defaultOptions_init`), and its translated
 `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, `time.Unix.wp_proof`: proved over Perennial's translation since
 2026-11-20, until then a trust-boundary axiom) and
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
@@ -2128,14 +2129,11 @@ too: the three `errors.New` errors, the call options (grpc's `WaitForReady`, `Ma
 `MaxCallRecvMsgSize`), `defaultCallOpts` (their slice) and `defaultBackoffJitterFraction` (until then
 `opaqueInitsOk` and the trust-boundary axioms `defaultCallOpts_init`,
 `defaultBackoffJitterFraction_init`).''',
-    imports=['Proof.time.Unix'],
-    alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
+    imports=['Proof.time.Unix', 'Proof.math.rand.Float64', 'Proof.go_etcd_io.etcd.client.v3.jitterUp',
+             'Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter'],
+    alloc_types={'maxBackoff': 'w64', 'defaultOptions': 'Loc', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
                  'noPrefixEnd': 'GoSlice', 'LeaseResponseChSize': 'w64', 'defaultUnaryMaxRetries': 'w64', 'defaultStreamMaxRetries': 'w64',
                  'defaultBackoffWaitBetween': 'w64'},
-    custom={'defaultOptions': dict(
-        doc='/-- `defaultOptions = &options{retryPolicy: nonRepeatable, ..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`\'s float arithmetic and `rand.Float64`, which do not panic), with the policy `nonRepeatable` (`W8 1`, `retry.go`\'s `iota`; D29). -/',
-        post=f'∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ {CV3}.backoffOk ov.backoffFunc\' ∗ ⌜ov.retryPolicy\' = W8 1⌝',
-        pat='⟨%dp@, %ov@, H@, #P@, #S@, %R@⟩')},
     before={'defaultWaitForReady': [
         'wp_apply wp_slice_literal (l := [W8 0])', 'isplitr', '· ipureintro; rfl',
         'iintro %snp ⟨Hsnp, -⟩', 'try wp_auto'],
@@ -2647,16 +2645,24 @@ _C['before']['defaultWaitForReady'] = (
     ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sco ⟨Sco, -⟩',
      'try wp_auto'])
 del _C['before']['ErrNoAvailableEndpoints'], _C['before']['ErrOldCluster'], _C['before']['ErrMutuallyExclusiveCfg']
+# (prove-ps2-rqb, 2026-11-22) `defaultOptions` translated (until then the trust-boundary axiom
+# `defaultOptions_init`): `&options{..., backoffFunc: backoffLinearWithJitter(50ms, 0.10), ...}`, the
+# backoff function by its proof (over `jitterUp`'s and the trust boundary's `rand.Float64`)
+_C['before']['defaultOptions'] = [
+    'try wp_auto',
+    'wp_apply (EtcdGrove.backoffLinearWithJitter.wp_proof (EtcdGrove.jitterUp.wp_proof EtcdGrove.rand.Float64.wp_proof)) as %bfdo #BdefaultOptions',
+    'try wp_auto']
 _C['alloc_types'].update({'defaultWaitForReady': 'GoInterface', 'defaultMaxCallSendMsgSize': 'GoInterface',
                           'defaultMaxCallRecvMsgSize': 'GoInterface', 'defaultCallOpts': 'GoSlice',
                           'defaultBackoffJitterFraction': 'w64'})
-_C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
+_C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist «$r0»', 'ipersist HdefaultCallOpts',
                  'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
                  'ipersist HdefaultBackoffJitterFraction', 'ipersist HvalCtxCh', 'ipersist HzeroTime',
                  'ipersist HmaxBackoff', 'ipersist HLeaseResponseChSize', 'ipersist Sco'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
                  'ipureintro',
-                 'refine ⟨RdefaultOptions, rfl, fun v hv => ?_⟩',
+                 # `defaultOptions`' policy (its struct literal's), `defaultCallOpts`' slice
+                 'refine ⟨rfl, rfl, fun v hv => ?_⟩',
                  'have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl',
                  'have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl',
                  'rw [h1, h2] at hv',
