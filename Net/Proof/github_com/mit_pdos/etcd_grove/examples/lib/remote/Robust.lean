@@ -1,0 +1,85 @@
+/-
+# remote: the deployment's statement (`notes/remote-port-plan.md`, §6, R3)
+
+A deployment of `remote` is machines that never crash (the orchestrator, the client nodes, the
+servers), each serving or calling at addresses `addrs`, every one of which serves `remote`'s calls
+(`remoteAddr`: its protocols are `reqP`/`repP` of one far-side store `R`). Its statement is the
+kits' (`Robust []`, under `KitDeploy`: `Net/Statement/KitBridge.lean`), proved by
+`robust_of_kitProto`:
+
+- `remote_start`: from the protocol library's registry and the addresses unset, the slot map
+  (`mapCtx`, `mapCtx_alloc`) and, for any store `R` chosen later (once the instance has made the
+  ghost state its `R.sysState` names), every address's protocols (`addrs_set_proto`).
+- `remote_robust`: the instance's obligation is an update from those to a share per machine, each
+  machine's boot program safe from its share (`KitBootWp`); the machines' WPs are the instance's,
+  from `Check.spec`, `ServeClient.spec` and `Serve.spec`.
+-/
+module
+
+public import Net.Statement.KitBridge
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Pend
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Robustness
+
+namespace github_com.mit_pdos.etcd_grove.examples.lib.remote
+
+attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
+  GooseGlobalGS.gooseInvGS
+
+section start
+variable [GoGlobalContext]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+
+/-- **The deployment's start**: the slot map, and the addresses' protocols for a store chosen
+later. -/
+theorem remote_start [G : GooseGlobalGS .hasLC netGF] [π : NetProtoGS] (addrs : List GoString) :
+    ⊢ regCtx (Gg := G) -∗ ([∗list] a ∈ addrs, addrUnset (Gg := G) a) ={⊤}=∗
+      ∃ ρ : RemoteGS, mapCtx (Gg := G) (ρ := ρ) (I := I) ∗
+        ∀ R : RBase netGF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a := by
+  iintro #Hreg Hs
+  imod mapCtx_alloc (Gg := G) (I := I) ⊤ with ⟨%ρ, #Hm⟩
+  imodintro
+  iexists ρ
+  iframe Hm
+  iintro %R
+  unfold remoteAddr
+  iapply addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) R) (fun _ => repP (Gg := G) R) addrs
+    $$ Hreg Hs
+
+end start
+
+section robust
+variable [GoGlobalContext] [lctx : GoLocalContext]
+variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+
+/-- **remote's deployments are robust** (see the file header): from the instance's update, for the
+slot map and the addresses' protocols set for a store of its choice, to a share per machine from
+which the machine's boot program is safe, `Robust []` under the deployment. -/
+theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g : GlobalState)
+    (threads bound : Nat)
+    (Hstart : ∀ [G : GooseGlobalGS .hasLC netGF] [π : NetProtoGS] [ρ : RemoteGS],
+      ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
+        (∀ R : RBase netGF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
+        ∃ Ps : Nat → IProp netGF,
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWp m.1 (Ps i)⌝ ∗
+          [∗list] i ↦ _m ∈ nodes, Ps i) :
+    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  refine robust_of_kitProto addrs nodes g threads bound ?_
+  intro G π
+  iintro #Hreg Hs
+  imod remote_start (I := I) (O := O) (St := St) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩
+  iapply @Hstart G π ρ $$ Hreg Hm Hset
+
+end robust
+
+end github_com.mit_pdos.etcd_grove.examples.lib.remote
+end Perennial
