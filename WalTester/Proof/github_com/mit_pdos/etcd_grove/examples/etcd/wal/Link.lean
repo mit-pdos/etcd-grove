@@ -15,8 +15,8 @@ with no proof and the premises on the model parameters (the client's protobuf la
 `h_WalPbIn_MustSyncLaw` (9), `h_WalPbIn_NilLaw` (2), `h_WalPbIn_SizeLaw` (9),
 `h_WalPbIn_UnmarshalEntLaw` (5), `h_WalPbIn_ZeroLaw` (9), `h_errors_IsErrno` (8),
 `h_errors_IsPathErrnoEof` (5), `h_errors_IsPathErrnoNotExist` (5), `h_errors_IsPathErrnoTerm` (8),
-`h_filepathlite_IsAbs` (2), `h_fmt_ErrorfErrsNot` (5), `h_fmt_ErrorfErrsTerm` (5), `h_io_CopyFiles`
-(5), `h_proto_UnmarshalWalRecordE` (5), `h_time_Time_FormatBroken` (2).
+`h_fmt_ErrorfErrsNot` (5), `h_fmt_ErrorfErrsTerm` (5), `h_io_CopyFiles` (5),
+`h_proto_UnmarshalWalRecordE` (5), `h_stringslite_HasPrefix` (2), `h_time_Time_FormatBroken` (2).
 
 `#print axioms` on a result is its trust base (`etc/tcb-report.py`).
 -/
@@ -69,7 +69,7 @@ public import Spec.fmt.ErrorfErrsNot
 public import Spec.fmt.ErrorfErrsTerm
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ExistCallees
 public import Spec.google_golang_org.protobuf.proto.UnmarshalWalRecordE
-public import Spec.internal.filepathlite.IsAbs
+public import Spec.internal.stringslite.HasPrefix
 public import Spec.io.CopyFiles
 public import Spec.time.Time__FormatBroken
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Boot
@@ -994,14 +994,15 @@ theorem etcd_wal.wp_Boot
     (hG := hG)) (h_errors_IsPathErrnoNotExist :
     _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
     (h_errors_IsPathErrnoTerm : _root_.Perennial.EtcdGrove.errors.IsPathErrnoTerm.spec (GF :=
-    GF) (hG := hG)) (h_filepathlite_IsAbs : _root_.Perennial.EtcdGrove.filepathlite.IsAbs.spec
-    (GF := GF) (hG := hG)) (h_fmt_ErrorfErrsNot :
-    _root_.Perennial.EtcdGrove.fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG))
-    (h_fmt_ErrorfErrsTerm : _root_.Perennial.EtcdGrove.fmt.ErrorfErrsTerm.spec (GF := GF) (hG :=
-    hG)) (h_io_CopyFiles : _root_.Perennial.EtcdGrove.io.CopyFiles.spec (GF := GF) (hG := hG))
+    GF) (hG := hG)) (h_fmt_ErrorfErrsNot : _root_.Perennial.EtcdGrove.fmt.ErrorfErrsNot.spec (GF
+    := GF) (hG := hG)) (h_fmt_ErrorfErrsTerm :
+    _root_.Perennial.EtcdGrove.fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)) (h_io_CopyFiles :
+    _root_.Perennial.EtcdGrove.io.CopyFiles.spec (GF := GF) (hG := hG))
     (h_proto_UnmarshalWalRecordE : _root_.Perennial.EtcdGrove.proto.UnmarshalWalRecordE.spec (GF
-    := GF) (hG := hG)) (h_time_Time_FormatBroken :
-    _root_.Perennial.EtcdGrove.time.Time.Format.specBroken (GF := GF) (hG := hG)) :
+    := GF) (hG := hG)) (h_stringslite_HasPrefix :
+    _root_.Perennial.EtcdGrove.stringslite.HasPrefix.spec (GF := GF) (hG := hG))
+    (h_time_Time_FormatBroken : _root_.Perennial.EtcdGrove.time.Time.Format.specBroken (GF :=
+    GF) (hG := hG)) :
     _root_.Perennial.EtcdGrove.etcd_wal.Boot.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.Boot.wp_proof
     _root_.Perennial.EtcdGrove.walTester.zap.wp_NewNop
@@ -1011,7 +1012,7 @@ theorem etcd_wal.wp_Boot
     h_errors_IsPathErrnoNotExist)) (fun W : WalGS GF =>
     (_root_.Perennial.EtcdGrove.walfs.wal.wp_CreateFresh (walRaftP (GF := GF)) walRaftMr
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw h_WalPbIn_NilLaw h_errors_IsPathErrnoNotExist
-    h_errors_IsPathErrnoTerm h_filepathlite_IsAbs h_time_Time_FormatBroken))
+    h_errors_IsPathErrnoTerm h_stringslite_HasPrefix h_time_Time_FormatBroken))
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_freshOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_storeOracle
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.member.wp_resume
@@ -1046,14 +1047,15 @@ theorem etcd_wal.wp_Main
     (hG := hG)) (h_errors_IsPathErrnoNotExist :
     _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
     (h_errors_IsPathErrnoTerm : _root_.Perennial.EtcdGrove.errors.IsPathErrnoTerm.spec (GF :=
-    GF) (hG := hG)) (h_filepathlite_IsAbs : _root_.Perennial.EtcdGrove.filepathlite.IsAbs.spec
-    (GF := GF) (hG := hG)) (h_fmt_ErrorfErrsNot :
-    _root_.Perennial.EtcdGrove.fmt.ErrorfErrsNot.spec (GF := GF) (hG := hG))
-    (h_fmt_ErrorfErrsTerm : _root_.Perennial.EtcdGrove.fmt.ErrorfErrsTerm.spec (GF := GF) (hG :=
-    hG)) (h_io_CopyFiles : _root_.Perennial.EtcdGrove.io.CopyFiles.spec (GF := GF) (hG := hG))
+    GF) (hG := hG)) (h_fmt_ErrorfErrsNot : _root_.Perennial.EtcdGrove.fmt.ErrorfErrsNot.spec (GF
+    := GF) (hG := hG)) (h_fmt_ErrorfErrsTerm :
+    _root_.Perennial.EtcdGrove.fmt.ErrorfErrsTerm.spec (GF := GF) (hG := hG)) (h_io_CopyFiles :
+    _root_.Perennial.EtcdGrove.io.CopyFiles.spec (GF := GF) (hG := hG))
     (h_proto_UnmarshalWalRecordE : _root_.Perennial.EtcdGrove.proto.UnmarshalWalRecordE.spec (GF
-    := GF) (hG := hG)) (h_time_Time_FormatBroken :
-    _root_.Perennial.EtcdGrove.time.Time.Format.specBroken (GF := GF) (hG := hG)) :
+    := GF) (hG := hG)) (h_stringslite_HasPrefix :
+    _root_.Perennial.EtcdGrove.stringslite.HasPrefix.spec (GF := GF) (hG := hG))
+    (h_time_Time_FormatBroken : _root_.Perennial.EtcdGrove.time.Time.Format.specBroken (GF :=
+    GF) (hG := hG)) :
     _root_.Perennial.EtcdGrove.etcd_wal.Main.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.etcd_wal.Main.wp_proof
     (_root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_Boot P U HsO h_U_Ok h_U_SnapCoh
@@ -1061,8 +1063,8 @@ theorem etcd_wal.wp_Main
     h_WalPbIn_GetTermLaw h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalEntLaw h_WalPbIn_MarshalHsLaw
     h_WalPbIn_MustSyncLaw h_WalPbIn_NilLaw h_WalPbIn_SizeLaw h_WalPbIn_UnmarshalEntLaw
     h_WalPbIn_ZeroLaw h_errors_IsErrno h_errors_IsPathErrnoEof h_errors_IsPathErrnoNotExist
-    h_errors_IsPathErrnoTerm h_filepathlite_IsAbs h_fmt_ErrorfErrsNot h_fmt_ErrorfErrsTerm
-    h_io_CopyFiles h_proto_UnmarshalWalRecordE h_time_Time_FormatBroken)
+    h_errors_IsPathErrnoTerm h_fmt_ErrorfErrsNot h_fmt_ErrorfErrsTerm h_io_CopyFiles
+    h_proto_UnmarshalWalRecordE h_stringslite_HasPrefix h_time_Time_FormatBroken)
 
 end links_pending
 

@@ -408,6 +408,13 @@ rebuilds everything; no bump of its own).
 - **Status.** `HasSuffix` done (2026-11-20, Perennial `e9988b5cd`): `stringslite.HasSuffix`/`TrimSuffix`
   and `strings.HasSuffix`/`TrimSuffix` translated and proved, the axiom here a theorem.
   `stringslite.HasPrefix` (and `IsAbs`) still open.
+  (2026-11-22, wal-safe session 8) `stringslite.HasPrefix`: drafted on Perennial branch `stringslite-hasprefix`
+  (`d508df6ff`, off `lean` at `04ed1c622`, worktree `/shared/perennial-stringslite-hasprefix`, **not pushed**: the
+  user pushes Perennial): `HasPrefix` translated with its body (from go1.26.3's source, as the committed
+  `HasSuffix`), `internal.stringslite.HasPrefix.spec`/`wp_proof`, linked; its modules build. Here
+  `filepathlite.IsAbs.spec` is proved (`Proof/internal/filepathlite/IsAbs.lean`) over the callee spec
+  `stringslite.HasPrefix.spec` (`Spec/internal/stringslite/HasPrefix.lean`, a hypothesis with Perennial's
+  statement), which goes once the pin reaches the branch.
 
 ### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
 
