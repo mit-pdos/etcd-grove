@@ -23,6 +23,7 @@
 //	                                             D23 the network "tcp4" (TrustedCode/net.lean)
 //	                                             D24 socket options (SetSockoptStep, SockOptOutcome)
 //	                                             D25 the write lock (WriteStep, NetConn.lock)
+//	                                             D26 initial states (NetLocal.init, NetGlobal.init)
 //
 // Each test is one behavior: its doc comment says the decision it supports or
 // refutes, what Linux and Go do, and why (the kernel or Go code path). Every
@@ -164,6 +165,13 @@
 //	TestWriteToKilledPeer        D2,D10 a Write after the FIN succeeds (lost); after the RST: EPIPE      measured   WriteOutcome (cut)
 //	TestServerKilledBeforeReply  D1,D10,D11 the client reads EOF, no bytes, no error                     measured   ReadOutcome (break)
 //	TestKilledListener           D7,D8,D10 the queued connection is reset; Dial then refused             measured   AcceptStep, DialStep
+//
+// Initial states (init_test.go; since 2026-11-22 the semantics' initLocal/initGlobal, net_semantics):
+//
+//	TestFreshProcessNoSocket     D26  a process started by os/exec has no socket among its fds, though   measured   NetLocal.init (initLocal)
+//	                                  its parent holds a listener and a connection (CLOEXEC)
+//	(the network at the start)   D13,D26 no connection before the deployment's processes start: none    assumed    NetGlobal.init (initGlobal)
+//	                                  exists yet, and no other process dials or accepts (closed world)
 //
 // Steps (D22; Impl.lean's header has the table of every operation's outcomes in every state):
 //

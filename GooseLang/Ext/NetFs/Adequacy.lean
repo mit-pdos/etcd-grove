@@ -10,13 +10,15 @@ Each extension's semantics, interpretation and crash interpretation are its own 
 `Net.net_interp`, `Net.net_crash_interp`; `Fs.fs_semantics`, `Fs.fs_interp`, `Fs.fs_crash_interp`):
 Perennial's `ExtTuple` composes them, an extension's specs see only their own part (`HasExt`), so a
 proof over `kvnetExts` uses both extensions' specs unchanged. The initial states: the network has no
-connection (`Net.NetGlobal.init`, the net interpretation's `initgP`) and every machine's files are as
-on disk (`Fs.FsInit`, the file interpretation's `initP`).
+connection and no machine a listener (`Net.NetGlobal.init`, `Net.NetLocal.init`: the net semantics'
+`initGlobal`/`initLocal`), and every machine's files are as on disk (`Fs.FsInit`, the file semantics'
+`initLocal`); the interpretations accept them (`kvnetInitCompat`).
 -/
 module
 
 public import GooseLang.Ext.Net.Adequacy
 public import GooseLang.Ext.Fs.Adequacy
+public import Perennial.GooseLang.InitAdequacy
 
 @[expose] public section
 
@@ -57,6 +59,10 @@ set_option linter.defProp false in
   interp_eq := rfl
 
 attribute [local instance] kvnetExts_hasNet kvnetExts_hasFs
+
+/-- The interpretations of `[netExt, fsExt]` accept every initial state of the semantics
+(`Net.net_init_compat`, `Fs.fs_init_compat`): Perennial's `*_adequacy_init` theorems apply. -/
+theorem kvnetInitCompat : GooseInitCompat := ⟨Net.net_init_compat, Fs.fs_init_compat, trivial⟩
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

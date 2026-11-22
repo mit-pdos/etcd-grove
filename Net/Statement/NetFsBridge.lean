@@ -235,6 +235,27 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
     ipureintro
     exact HQ
 
+/-- **The bridge, from `Robust`'s own premises**: since the extensions state their initial states
+(2026-11-22: the net extension's no listener and no connection, `net_semantics`; the file
+extension's files as on disk, `fs_semantics`), `NetFsDeploy` follows from `Robust`'s premises and the
+address facts alone: `robust_of_netFsBoot` with only the addresses distinct and valid. -/
+theorem robust_of_netFsBoot_addrs [lctx : GoLocalContext] (addrs : List GoString)
+    (crashing stable : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
+    (Hnd : addrs.Nodup) (Hok : ∀ a ∈ addrs, addrOk a = true)
+    (Hstart : ∀ [GooseGlobalGS .hasLC GF], receiptBound GF ≤ bound →
+      ⊢ ([∗list] a ∈ addrs, addrUnset a) ={⊤}=∗
+        ∃ (Pc : Nat → GooseLocalGS GF → IProp GF) (Ps : Nat → IProp GF),
+          ⌜∀ (i : Nat) (m : Expr × state), crashing[i]? = some m → CrashBootWp m.1 (Pc i)⌝ ∗
+          ⌜∀ (j : Nat) (m : Expr × state), stable[j]? = some m → StableBootWp m.1 m.2 (Ps j)⌝ ∗
+          ([∗list] i ↦ m ∈ crashing, ∀ L : GooseLocalGS GF,
+            ⌜L.goose_go_local_context = lctx⌝ -∗ fsStartRes L (extLocal Fs.fsExt m.2.world) -∗
+            ownGoState (hG := L.goose_go_stateGS) ∅ ={⊤}=∗ Pc i L) ∗
+          [∗list] j ↦ _m ∈ stable, Ps j) :
+    Robust crashing stable g threads bound := by
+  intro hfresh hig hil
+  exact robust_of_netFsBoot (GF := GF) addrs crashing stable g threads bound Hstart
+    ⟨⟨Hnd, Hok, hig.1, fun m hm => (hil m hm).1⟩, fun m hm => (hil m hm).2.1⟩ hfresh hig hil
+
 end bridge
 
 end Net

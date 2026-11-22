@@ -26,8 +26,10 @@ instance `[GoLocalContext]`: the meaning of the Go instructions, shared by the m
 three programs share one), no package is initialized, and it has its main thread only. **Every
 machine and the shared state start in their extensions' initial states** (Perennial's trusted
 `ExtSemantics.initLocal`/`initGlobal`, through `extsInitLocal`/`extsInitGlobal`: e.g. the net
-extension's no listener and no connection, the file extension's files as on disk; premises inside
-`Robust` too, 2026-11-21, for kvnet's statement). What an instance needs beyond them (a directory
+extension's no listener and no connection, `Net.net_semantics`, and the Linux file extension's files
+as on disk, `Fs.fs_semantics`, both stated by the extensions since 2026-11-22; an extension that
+states none starts anywhere, Perennial's default `True`; premises inside `Robust` too, 2026-11-21,
+for kvnet's statement). What an instance needs beyond them (a directory
 that is empty, its addresses) stays the instance's.
 
 The statement says nothing of what the programs compute. A property of a system (its clients'

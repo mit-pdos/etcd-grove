@@ -27,7 +27,8 @@ exclude (so the theorem's coverage is decided by the premises, not by Go code).
 nonzero and below the ephemeral range); on every replica's machine, `dir` a root of its file system
 with nothing in it. `Robust` itself requires every machine to be a fresh Go process (one context
 `lctx`) and the machines and the network to start in their extensions' initial states (no
-listener, no connection; the files as on disk).
+listener, no connection; the files as on disk), which the extensions' semantics state
+(`Net.net_semantics`, `Fs.fs_semantics`: their `initLocal`/`initGlobal`, 2026-11-22).
 
 **The extensions are fixed**: the net extension and the Linux file extension (`kvnetExts`), and
 nothing else. Their trusted semantics assume an environment, stated here in prose:
@@ -41,7 +42,9 @@ nothing else. Their trusted semantics assume an environment, stated here in pros
 programs and of the packages they reach (kvnet, kvcheck, raft-noax's raft, `durable`, porcupine,
 lintest, gokv's `trusted_proph`, the standard library's models), the trusted `net` model, and the
 package-assumption instances the statement takes (`kvcheck.Assumptions`, which includes those of
-every package kvcheck imports, kvnet's among them; `net.FieldAssumptions`).
+every package kvcheck imports, kvnet's among them; `net.FieldAssumptions`; `os.file.FieldAssumptions`
+and `os.fileStat.FieldAssumptions`, the layouts of `os`'s `file` and `fileStat` its models read, added
+2026-11-22 with the coordinator's approval: `notes/specs-only/ledger.md`).
 
 Safety only: an operation no replica ever answers keeps `Check` running (no deadline), which the
 theorem allows.
@@ -72,7 +75,8 @@ the machine `replicas[i].2`; the client runs on the machine `σc`. -/
 def raft_kvnet_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions],
+    [field_sem : net.FieldAssumptions]
+    [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions],
   ∀ (cl : ClusterConfig) (dir : GoString) (replicas : List (GoString × state)) (σc : state)
     (g : GlobalState),
     cl.Ok replicas.length →
@@ -99,7 +103,8 @@ in /var/lib/kvnet. A corollary of `raft_kvnet_robust`. -/
 def raft_kvnet_robust_example.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
-    [field_sem : net.FieldAssumptions],
+    [field_sem : net.FieldAssumptions]
+    [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions],
   ∀ (σ₁ σ₂ σ₃ σ₄ σ₅ σc : state) (g : GlobalState),
     (∀ σ ∈ [σ₁, σ₂, σ₃, σ₄, σ₅],
       go!"/var/lib/kvnet" ∈ (fsOf σ).fs.roots.map (·.1) ∧

@@ -4658,3 +4658,18 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
   at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
 - **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
+## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
+
+- **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
+  (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`): two instance binders added next to `net.FieldAssumptions`,
+  `[os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]`; the header's list
+  of trusted instances names them.
+- **Defect.** `durable`'s proofs (`tryRead`, `tryWrite`, `WriteOpen`, through `StartNode` and `persist`) read
+  files through `os`'s models, which take these trusted struct-field facts (`TrustedCode/os.lean`, of the kind
+  of `net.FieldAssumptions`); `kvcheck.Assumptions` does not include them, so the agreed statement could not be
+  proved without them (found linking kvnet, 2026-11-22: `kvnet/Link.lean`'s section variables).
+- **Evidence.** `KvNet/Proof/.../lib/durable/{tryRead,tryWrite,WriteOpen}.lean`, `kvnet/Link.lean:196-197`;
+  reported on mit-pdos/etcd-grove#22 (gap 3).
+- **Proposed change.** As above.
+- **Decision.** Applied: approved by the coordinator (zeldovich-agent's session, relaying the decision on
+  #22), 2026-11-22.
