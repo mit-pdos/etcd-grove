@@ -236,10 +236,12 @@ both stores import); (3) kvnet `Defs` and the small-edit proofs; (4) `persist` a
 
 kvreconf is translated into KvNet (a third `Part` of project kvreconf; identical to RaftNoAx's up to the
 prefix), and `KVNET_REUSED` lists storage.go's and the codecs' functions (`newStorage`, `image.*`,
-`Storage.*`, `openStorage`, `encodeState`/`decodeState`, `putMap`/`getMap`, `less`/`sortStrings`,
-`readCtx`/`decodeReadCtx`, `validConf`, `fits`, `oneIn`, `below`): copy-part now writes 333 copies (319
-from RaftNoAx: kvreconf's shared modules, kvdurablenoax's `KdStorage`/`Image`/`SnapLemmas`/`Codec` and
-the specs and proofs of those functions, renamed). Not built yet (the machine is decision B's).
+`Storage.{ApplySnapshot,Append,CreateSnapshot,Compact,encode}`, `encodeState`/`decodeState`,
+`putMap`/`getMap`, `less`/`sortStrings`, `readCtx`/`decodeReadCtx`, `validConf`, `fits`, `oneIn`, `below`):
+copy-part writes 309 copies (kvreconf's shared modules, kvdurablenoax's `KdStorage`/`Image`/`SnapLemmas`/
+`Codec` and those functions' specs and proofs, renamed); built 2026-11-22 (`lake build KvNet`, 2898 jobs).
+`Storage.{SetHardState,snapIndex,InitialState,Snapshot}` and `openStorage` are not reused yet: their specs
+name kvdurablenoax's `Defs` (its file invariant over `durableExt`); they wait for kvnet's `Defs`.
 `Replica.{request,applyOp,answer,propose}` wait for kvnet's `Defs`, which waits for B's shared store
 module.
 

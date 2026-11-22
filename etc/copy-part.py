@@ -260,10 +260,11 @@ KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
                 ["putUint64", "getUint64", "putBytes", "getBytes", "putIDs", "getIDs", "putEntry",
                  "getEntry", "putSnapshot", "getSnapshot", "withTimeout", "encode", "decode",
                  # storage.go and the codecs, the same Go text (notes/kvnet-part.md, the replica layer)
+                 # (not those whose specs name kvdurablenoax's Defs: Storage.SetHardState, snapIndex,
+                 # InitialState, Snapshot, openStorage wait for kvnet's own Defs)
                  "newStorage", "image__applySnapshot", "image__append", "image__createSnapshot",
-                 "image__compact", "Storage__ApplySnapshot", "Storage__SetHardState", "Storage__Append",
-                 "Storage__CreateSnapshot", "Storage__Compact", "Storage__snapIndex",
-                 "Storage__InitialState", "Storage__Snapshot", "Storage__encode", "openStorage",
+                 "image__compact", "Storage__ApplySnapshot", "Storage__Append",
+                 "Storage__CreateSnapshot", "Storage__Compact", "Storage__encode",
                  "encodeState", "decodeState", "putMap", "getMap", "less", "sortStrings", "readCtx",
                  "decodeReadCtx", "validConf", "fits", "oneIn", "below"]]
 
