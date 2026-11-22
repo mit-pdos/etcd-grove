@@ -11,6 +11,10 @@ translate_types = true
 # their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
 # translated code, so no verified code reads them; each reason says why not running the
 # initializer is unobservable.
+# (etcd-grove#32, 2026-11-22) the `init` functions trusted: a model that does nothing
+# (TrustedCode/k8s_io/apimachinery/pkg/apis/meta/internalversion.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0", "init.1"]
+
 [[skip]]
 names = ["localSchemeBuilder", "AddToScheme", "SchemeGroupVersion"]
 reason = """

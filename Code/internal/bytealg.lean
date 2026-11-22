@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.internal.bytealg
 
 @[expose] public section
 
@@ -162,9 +163,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   LastIndexByteString_unfold : FuncUnfold LastIndexByteString [] LastIndexByteString.impl
 
-attribute [instance] Assumptions.LastIndexByteString_unfold
+attribute [instance] Assumptions.«init.0_unfold»
+  Assumptions.LastIndexByteString_unfold
 
 end internal.bytealg
 
