@@ -489,7 +489,7 @@ theorem RunConcurrent.wp_proof
         icases typedPointsto_split _ _ _ $$ «$sl0» with Hrf
         simp only [TypedPointsto.typedPointstoDef]
         icases Hrf with ⟨Rid, Rnode, Rstor, Rappl, Rsi, Rcs, -⟩
-        imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rid with #Rid.loc
+        imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rid with #Rid
         imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rnode with #Rnode
         imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Rstor with #Rstor
         wp_auto

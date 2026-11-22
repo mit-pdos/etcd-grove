@@ -38,7 +38,7 @@ attribute [local instance] memStorageModel
 with the whole of its liveness, and its share of the network join's adders' right. -/
 def appDone (c : Loc) (W : TcW) (r : Loc) (id : w64) (q : Qp) : IProp GF :=
   iprop(∃ n : NodeH, r.[github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.creplica, go!"node"]
-      ↦□ nodeIface n ∗ isNode n W.cl tcRaftN id ∗ nodeRunning n W.cl tcRaftN 1 ∗
+      ↦□ nodeIface n.loc ∗ isNode n W.cl tcRaftN id ∗ nodeRunning n W.cl tcRaftN 1 ∗
     njAdder tcNetN (c.[G.Cluster, go!"net"]) W.nj q)
 
 /-- See the file header. -/
