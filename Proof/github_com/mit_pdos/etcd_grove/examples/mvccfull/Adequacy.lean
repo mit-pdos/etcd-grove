@@ -385,10 +385,9 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := mvccfullGF) (n + 1) T (mvccfullProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccfull.initNames [] []
-    (by decide +kernel) List.nodup_nil
-    List.nodup_nil (fun _ h => absurd h List.not_mem_nil) HNs
-    (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
+    ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccfull.initNames []
+    (by decide +kernel) List.nodup_nil HNs
+    ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
@@ -401,7 +400,7 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨Hns, -, -, -, #Hvoff⟩
+  icases Hrights with ⟨Hns, -, #Hvoff⟩
   have Hst : extsLocalStart (GF := mvccfullGF) σ.world ⊢
       Fs.osStart (Fs.gooseOsGS (L := (inferInstance : HeapGS .hasLC mvccfullGF).goose_localGS))
         (extLocal Fs.fsExt σ.world) :=

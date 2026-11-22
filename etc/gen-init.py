@@ -283,6 +283,12 @@ for _p, _m in INST_HAND.items():
 # The section variable of the parameter, in every generated file whose closure has prometheus (its
 # `vars`/`table_vars`): the initializers' and tables' well-formedness instances take it.
 PROMREG_VAR = '[promreg_gs : EtcdGrove.prometheus.PromRegGS GF]'
+# (net-swap, etcd-dist D2, 2026-11-22) the main tree's `net` is the part `Net/`'s translation (over the
+# net extension; `etc/goose.py`'s `net=Net`), with its `IsPkgInit` instance in `Net/Proof/net/Base.lean`
+# (`isInit`); its `Init.lean` is generated here over the main tree's imports (`Net/`'s own imports the
+# part's copies of `os`'s initializers). `@` marks a full module name.
+inv['net'] = inventory('Net/Code')['net']
+inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -1118,6 +1124,9 @@ trusted initializers of its other variables (models in `TrustedCode/` that do no
             'is_pkg_init_finish', 'unfold isInit closedErr', 'imodintro',
             'iframe HErrClosed HerrClosed', 'iexists _', 'iexact HerrTimeout'],
 )
+
+# (net-swap, 2026-11-22) the main tree's `net` is `Net/`'s: the same initializer proof
+SPECIAL['net'] = NET_SPECIAL['net']
 
 # (2026-10-26) `ValidString` with its body: the tables it reads are translated
 SPECIAL['unicode.utf8'] = dict(
@@ -4274,7 +4283,8 @@ def gen(p, cfg=None):
     d = inv[p]
     k = plain(p)
     imods = inst.get(k) or inst.get(p)
-    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else 'Proof.' + imods[0][0].replace('/', '.')
+    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else (
+        imods[0][0][1:] if imods[0][0].startswith('@') else 'Proof.' + imods[0][0].replace('/', '.'))
     cl = closure(p)
     needs_ctx = 'context' in cl
     needs_raft = 'go_etcd_io.raft.v3' in cl
@@ -4728,9 +4738,8 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+# (net-swap, 2026-11-22) etcd/all's, k8s/all's and leaseexpiryN's tables went with their closed theorems
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
@@ -4747,11 +4756,7 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'

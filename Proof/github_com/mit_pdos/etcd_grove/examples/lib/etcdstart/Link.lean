@@ -40,6 +40,7 @@ public import Proof.google_golang_org.grpc.model.finishStream
 public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.strconv.FormatUint
+public import Net.Proof.net.Listen
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.context.Link
@@ -153,7 +154,7 @@ theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 
 theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
+  EtcdGrove.net.Listen.wp_proof _root_.Perennial.net.Listen.wp_proof
 
 theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.NewMember.spec (GF := GF) (hG := hG) :=
