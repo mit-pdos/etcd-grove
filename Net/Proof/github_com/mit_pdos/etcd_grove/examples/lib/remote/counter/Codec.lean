@@ -239,7 +239,7 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
       wp_for HI
       wp_if_destruct
       · have hj8 : uint.nat j < 8 := by
-          have h : uint.Z j < uint.Z (W64 8) := Hif
+          have h := of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
           clear Hif Hv; word
         have hs : 0 ≤ sint.Z (W64 1 + j) ∧ sint.Z (W64 1 + j) < sint.Z b.len := by
           rw [hb9]; word
@@ -257,7 +257,7 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
         iframe
         ipureintro; word
       · have hj8 : uint.nat j = 8 := by
-          have h : ¬ uint.Z j < uint.Z (W64 8) := Hif
+          have h : ¬ uint.Z j < uint.Z (W64 8) := fun hp => Hif (by simp only [hp, decide_true])
           clear Hif Hv; word
         rw [hj8, List.take_of_length_le (by simp [u64Le_length])]
         wp_auto

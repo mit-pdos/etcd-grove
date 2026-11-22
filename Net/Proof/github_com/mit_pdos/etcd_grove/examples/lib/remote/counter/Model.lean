@@ -26,7 +26,7 @@ namespace github_com.mit_pdos.etcd_grove.examples.lib.remote.counter
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
 
@@ -47,7 +47,9 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG)) :
     iintro !> %Φ' _ HΦ'
     wp_auto
     iapply HΦ'
-    sorry
+    simp only [cS]
+    ipureintro
+    exact ⟨0, 0, Nat.le_refl _, by omega, rfl, cSet_init.symm⟩
   isplitr
   · -- Step
     iright
@@ -61,6 +63,8 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG)) :
     obtain ⟨⟨b, rfl⟩, u, n, rfl⟩ := Hio
     obtain ⟨lo, K, hk, hb, rfl, rfl⟩ := Hrep
     wp_auto
+    wp_apply wp_step as %ok %s' %Hst
+    wp_auto
     sorry
   isplitr
   · ipureintro; nofun
@@ -71,10 +75,11 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG)) :
     iintro !> %Φ' Hpre HΦ'
     simp only [cS]
     icases Hpre with ⟨%Hv, %Hw⟩
-    obtain ⟨lo, K, -, hb, rfl, rfl⟩ := Hv
-    obtain ⟨lo', K', -, hb', rfl, rfl⟩ := Hw
+    obtain ⟨lo, K, hk, hb, rfl, rfl⟩ := Hv
+    obtain ⟨lo', K', hj, hb', rfl, rfl⟩ := Hw
     wp_auto
-    sorry
+    wp_if_destruct
+    all_goals sorry
   ileft
   ipureintro; trivial
 

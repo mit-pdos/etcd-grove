@@ -41,10 +41,11 @@ variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 /-- **The deployment's start**: the slot map, and the addresses' protocols for a store chosen
 later. -/
-theorem remote_start [G : GooseGlobalGS .hasLC netGF] [π : NetProtoGS] (addrs : List GoString) :
+theorem remote_start {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
+    (addrs : List GoString) :
     ⊢ regCtx (Gg := G) -∗ ([∗list] a ∈ addrs, addrUnset (Gg := G) a) ={⊤}=∗
       ∃ ρ : RemoteGS, mapCtx (Gg := G) (ρ := ρ) (I := I) ∗
-        ∀ R : RBase netGF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a := by
+        ∀ R : RBase GF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a := by
   iintro #Hreg Hs
   imod mapCtx_alloc (Gg := G) (I := I) ⊤ with ⟨%ρ, #Hm⟩
   imodintro
@@ -76,8 +77,27 @@ theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g 
   refine robust_of_kitProto addrs nodes g threads bound ?_
   intro G π
   iintro #Hreg Hs
-  imod remote_start (I := I) (O := O) (St := St) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩
+  imod remote_start (GF := netGF) (I := I) (O := O) (St := St) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩
   iapply @Hstart G π ρ $$ Hreg Hm Hset
+
+/-- `remote_robust` over any ghost bundle `GF`, the obligation given the receipt bound
+(`robust_of_kitProtoRB`): what an instance whose machines need porcupine's non-atomic invariants or
+lintest's clock uses (the counter, R4). -/
+theorem remote_robustRB {GF : BundledGFunctors} [GooseGpreS GF] (addrs : List GoString)
+    (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
+    (Hstart : ∀ [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS] [ρ : RemoteGS],
+      receiptBound GF ≤ bound →
+      ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
+        (∀ R : RBase GF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
+        ∃ Ps : Nat → IProp GF,
+          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → KitBootWpG m.1 (Ps i)⌝ ∗
+          [∗list] i ↦ _m ∈ nodes, Ps i) :
+    KitDeploy addrs nodes g → Robust [] nodes g threads bound := by
+  refine robust_of_kitProtoRB (GF := GF) addrs nodes g threads bound ?_
+  intro G π hb
+  iintro #Hreg Hs
+  imod remote_start (GF := GF) (I := I) (O := O) (St := St) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩
+  iapply @Hstart G π ρ hb $$ Hreg Hm Hset
 
 end robust
 
