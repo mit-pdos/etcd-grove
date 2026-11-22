@@ -30,6 +30,14 @@ theorem os.cfr_sumZ (a b : w64) (ha : a.toNat < 2 ^ 61) (hb : b.toNat ≤ 0x7fff
 theorem os.cfr_natZ (n : Nat) (h : n < 2 ^ 61) : sint.Z (W64 n) = n ∧ (W64 n).toNat = n := by
   simp only [sint.Z]; constructor <;> word
 
+theorem os.cfr_W64_add (a b : Nat) : W64 (a : Int) + W64 (b : Int) = W64 ((a + b : Nat) : Int) := by
+  apply BitVec.eq_of_toNat_eq; simp [BitVec.toNat_add]; omega
+
+theorem os.cfr_W64_addI (a b : Int) : W64 a + W64 b = W64 (a + b) := by
+  apply BitVec.eq_of_toInt_eq; simp [BitVec.toInt_add]
+
+theorem os.cfr_natInt (n : Nat) (h : n < 2 ^ 61) : (W64 (n : Int)).toInt = n := by word
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [go_gctx : GoGlobalContext]
@@ -54,7 +62,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
         structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗ structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         ∃ k : Nat, ⌜w = W64 k ∧ k ≤ mx.toNat ∧ (0 < k → e = W64 0) ∧
-            (k = 0 → e = W64 0 → bs.length ≤ soff.toNat)⌝ ∗
+            (k = 0 → e = W64 0 → bs.length ≤ soff.toNat) ∧ soff.toNat + k ≤ bs.length⌝ ∗
           structFieldRef os.file go!"off" ind ↦ (doff + W64 k) ∗
           structFieldRef os.file go!"off" ins ↦ (soff + W64 k) ∗
           io.copyDst dd.ino (· = vs ++ ((bs.map Prod.fst).drop soff.toNat).take k) }} := by
@@ -112,7 +120,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
       show soff + W64 (0 : Nat) = soff by simp]
     iframe Hdoff Hsoff Hdst
     ipureintro
-    exact ⟨rfl, Nat.zero_le _, fun h => absurd h (Nat.lt_irrefl 0), fun _ h => absurd h he0⟩
+    exact ⟨rfl, Nat.zero_le _, fun h => absurd h (Nat.lt_irrefl 0), fun _ h => absurd h he0, by omega⟩
   subst he0
   rw [show decide ((W64 0) = W64 0) = true from decide_eq_true rfl]
   wp_auto
@@ -133,7 +141,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
       show soff + W64 (0 : Nat) = soff by simp]
     iframe Hdoff Hsoff Hdst
     ipureintro
-    refine ⟨rfl, Nat.zero_le _, fun h => absurd h (Nat.lt_irrefl 0), fun _ _ => ?_⟩
+    refine ⟨rfl, Nat.zero_le _, fun h => absurd h (Nat.lt_irrefl 0), fun _ _ => ?_, by omega⟩
     rcases hke rfl with h | h
     · omega
     · have := congrArg List.length h
@@ -179,7 +187,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
     simp only [List.take_zero, List.append_nil] at hvk
     iframe Hdoff Hsoff Hdst
     ipureintro
-    refine ⟨rfl, Nat.zero_le _, fun h => absurd h (Nat.lt_irrefl 0), fun _ h => ?_⟩
+    refine ⟨rfl, Nat.zero_le _, fun h => absurd h (Nat.lt_irrefl 0), fun _ h => ?_, by omega⟩
     rcases hke' with ⟨h1, -⟩ | h1
     · omega
     · exact absurd h h1
@@ -193,7 +201,7 @@ theorem os.wp_cfrRound (ind ins : Loc) (fdd fds doff soff mx : w64) (dqd dqs dqf
   iexists k
   iframe Hdoff Hsoff Hdst
   ipureintro
-  exact ⟨rfl, by omega, fun _ => rfl, fun h => absurd h hk0'⟩
+  exact ⟨rfl, by omega, fun _ => rfl, fun h => absurd h hk0', by rw [hmidl] at hk'l; omega⟩
 
 end proof
 
