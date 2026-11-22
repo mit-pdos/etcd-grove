@@ -41,6 +41,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 
@@ -114,20 +115,21 @@ local macro "applyconf_rest" oc:term : tactic => `(tactic| (
       wp_apply sync.Mutex.wp_Lock _ _ $$ [$(frameH `Hmu)] as ⟨Hlocked, HR⟩
       iNamed HR
       iunfold repShared at Hrep
-      icases Hrep with ⟨%mA', %A0, %csp0, %c0, %idx', %ap', HmA', HA', Hcs', Hidx', #HcsO0, #Hap', %HA0⟩
+      icases Hrep with ⟨%mA', %A0, %csp0, %c0, %idx', %ap', %mK0, %K0, HmA', HA', Hcs', Hidx', HmK0, HK0,
+        #HcsO0, #Hap', %HA0⟩
       icombine Hcs Hcs' gives %Hcseq
       subst Hcseq
       ihave Hcsf := (typedPointsto_half_split _ csp (1 : Qp)).2 $$ [$(frameH `Hcs) $(frameH `Hcs')]
       try wp_auto
       icases (typedPointsto_half_split _ csp' (1 : Qp)).1 $$ Hcsf with ⟨Hcs, Hcs'⟩
       wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) HmA' HA' Hcs' Hidx'
-          HmW HW Hwaiters HmR HRd Hreads]
+          HmK0 HK0 HmW HW Hwaiters HmR HRd Hreads]
       · inext
         unfold lockInv repShared
         iexists mW, W, mR, Rd
         iframe
-        iexists mA', A0, csp', c', idx', ap'
-        iframe HmA' HA' Hcs' Hidx' HcsO' Hap'
+        iexists mA', A0, csp', c', idx', ap', mK0, K0
+        iframe HmA' HA' Hcs' Hidx' HmK0 HK0 HcsO' Hap'
         ipureintro; exact HA0
       try wp_auto
       wp_apply wp_add sts _ (by decide) (by decide) $$ [$(frameH `Hpkg) $(frameH `Hstats)]

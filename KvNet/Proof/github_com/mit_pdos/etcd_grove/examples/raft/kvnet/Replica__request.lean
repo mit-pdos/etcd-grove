@@ -43,6 +43,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 
@@ -66,9 +67,9 @@ theorem Replica.request.wp_proof
   wp_apply sync.Mutex.wp_Lock _ _ $$ [$Hmu] as ⟨Hlocked, HR⟩
   try wp_auto
   -- the data: `nil`, or the encoded state with what the snapshot needs
-  wp_join iprop(∃ dv : GoSlice, data_ptr ↦ dv ∗ mK ↦$ K ∗ mA ↦${DFrac.own (1 : Qp).half} A ∗
+  wp_join iprop(∃ dv : GoSlice, data_ptr ↦ dv ∗ mK ↦${DFrac.own (1 : Qp).half} K ∗ mA ↦${DFrac.own (1 : Qp).half} A ∗
       index_ptr ↦ W64 ap.length ∗ cs_ptr ↦ csp ∗ snapIndex_ptr ↦ snapIndex ∗ r_ptr ↦ r ∗
-      r.[KReplica, go!"kv"] ↦ mK ∗ r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
+      r.[KReplica, go!"kv"] ↦{DFrac.own (1 : Qp).half} mK ∗ r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
       (⌜dv = slice.nil⌝ ∨ ∃ (e : EntryM) (cc : ConfStateM) (bs : List w8),
         memLog ρ.γs (uint.nat (W64 ap.length)) DFrac.discard [e] ∗
         monoNatLbOwn ρ.ph.ic (uint.nat (W64 ap.length)) ∗
@@ -92,7 +93,7 @@ theorem Replica.request.wp_proof
                    isplitl []
                    · ileft; ipureintro; rfl
                    ipureintro; intro h; exact absurd rfl h)
-    wp_apply +noauto wp_encodeState mK mA K A (DFrac.own 1) (DFrac.own (1 : Qp).half) $$ [$Hpkg $HK $HA]
+    wp_apply +noauto wp_encodeState mK mA K A (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) $$ [$Hpkg $HK $HA]
       as %sl ⟨HK, HA, %kvs, %ops, Hsl, %Hkv⟩
     -- the snapshot: its entry, its certificate, its delivered log
     have Hlt : uint.nat snapIndex < ap.length := by word

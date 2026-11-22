@@ -338,7 +338,7 @@ Read against the bodied `durable`'s `Write.spec` (`WalTester/Spec/.../lib/durabl
    ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>` (WalTester's `durable/Defs.lean`). `durInv_commit` passes the token,
    and `durWriteSync_of_au` turns a plain update into one (the tester's `storeOracle` uses it). The rename's update
    is unchanged: it fires inside the os rename's update, which gives no token. Ledger, 2026-11-22.
-2. **The 1 GiB bound (open).** `Write.spec` takes `len(data) <= 2^30` (`DCand.Ok`: one `WriteAt`, one `ReadAt` of
+2. **The 1 GiB bound (lifted 2026-11-22**: `ReadAt.specLong`, `tryWrite` over `WriteAt.specLong`, `Write.spec` takes `len(data) < 2^63`; the text below is the finding as it was). `Write.spec` takes `len(data) <= 2^30` (`DCand.Ok`: one `WriteAt`, one `ReadAt` of
    at most `maxRW`). kvnet writes `string(storage.encode())`, and its image has no size bound (the Go code checks
    none). `WriteLong` (`Spec/os/WriteLong.lean`) already covers `WriteAt` of any length. Lifting the bound needs the
    same for `ReadAt` (`durable.tryRead` reads the whole file), then `tryWrite`/`tryRead` over them. Until then
@@ -361,3 +361,92 @@ Read against the bodied `durable`'s `Write.spec` (`WalTester/Spec/.../lib/durabl
    invariant's shape. That shape would record, while `alt = some old`, that `old` holds `S` and `cur` holds the
    pending batch's `S'`, plus the crash-side resource of (a). So `persist`, `run` and `StartNode` wait for this
    decision.
+
+### The crash law kvnet needs: entering a cut batch at the next boot (2026-11-22, for raft's agent)
+
+**Decided** (the coordinator, 2026-11-22): raft adds a variant of `nodeCrash`. At a crash with a batch cut and not
+entered, the next generation may either discard the batch (today's `nodeCrash`) or enter it: `StartNode` chooses
+by what `durable.Read` returns. Until raft proves it, kvnet takes it as a law hypothesis (`abbrev
+readyCrashEnter.law : Prop` in kvnet's defs, passed to the `wp_proof`s that need it).
+
+**The statement kvnet needs**, over raft's existing API names (`KvNet/Proof/go_etcd_io/raft/v3/InvNode.lean`:
+`readyEnter` `:1082`, `raftState` `:716`, `nodeVacant` `:721`, `nodeCrashTok` `:734`, `nodeCrash`
+`InvNodeRule.lean:665`, `isCluster`; `crashed` is the generation's, under `[CrashGS GF]` as in `nodeCrash`):
+
+```lean
+variable [CrashGS GF] in
+/-- A batch cut and not entered (its *enter*, `readyEnter`, unused) may be entered after the crash, by
+the next generation: the arm's crash token gives the vacancy back (as `nodeCrash`) and the durable
+state moves to the batch's. -/
+abbrev readyCrashEnter.law : Prop :=
+  ∀ (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState) (ms : List QMsg)
+    (x : CrashNames) (E : CoPset), ↑N ⊆ E →
+  ⊢ isCluster (GF := GF) γ N -∗ crashed -∗ nodeCrashTok γ id x -∗
+      readyEnter n γ N id st st' ms -∗ raftState γ id st.durable ={E}=∗
+      raftState γ id st'.durable ∗ nodeVacant γ id
+```
+
+Notes for its proof:
+- `readyEnter` is a plain `def` today, a wand that needs `notCrashed`. The law needs raft to keep, behind it, the
+  batch's crash side: the `pendBatch γ.raft id g st'.durable W` of the cut generation `g`
+  (`Protocol/GhostState.lean:3110`), which `raft_enter` consumes. One way that keeps every client: redefine
+  `readyEnter := readyEnterLive ∧ <crash side>`, where `readyEnterLive` is today's wand. The clients that fire it
+  then add an `and_elim_l`, and the law is `and_elim_r` plus the crash-side lemma. Another way: seal the hand-out
+  and prove the law from it. Either is raft's choice, as long as the statement above holds of the `readyEnter`
+  that `node.Ready`'s post (`readyPost`, `InvNode.lean:1686`/`:1730`) gives.
+- **What kvnet does with it.** `persist` moves the batch's `readyEnter` into the file's invariant at the rename
+  (`alt = some old`: `old` holds `st.durable`, the new `cur` holds `st'.durable`). At the sync
+  (`durWriteSync`, with `notCrashed`) it takes it back out and fires it. After a crash in between, the boot
+  (`StartNode`) reads the file. If the file holds `cur`, the boot applies the law; if it holds `old`, it applies
+  `nodeCrash`, which drops the batch.
+- The crash token is the arm's `nodeCrashTok γ id x` (`nodeVacant_arm`). kvnet keeps it in its crash obligation.
+
+### `Replica.contents`, `PutStatus`, `Node.status` (2026-11-22)
+
+- **`kv` under `mu`.** Half of the `kv` field and of its map moved from `repOwn` into `repShared`, as for
+  `applied`, with `MapFits K`. Every access in the Go holds `mu`. `applyOp` combines the halves to write,
+  `install` to store a new map, and `answer`/`request` read with their half. `applyEntry`, `applyConf` and
+  `propose` pass the halves through.
+- **`Replica.contents` is proved** (`Replica__contents.lean`). Pre `isRep γ vs dir id r`; post a fresh map `m ↦$ M`
+  with `MapFits M`, the applied index, and `csOpt csp DFrac.discard c`.
+- **`PutStatus` (open).** Its current spec is unprovable: it takes nothing of what it encodes, and its `< 2^61`
+  has no source. Ownership is easy to add (`s.Contents ↦${dq} M ∗ csOpt s.Conf dq c`, as `putMap`/`putConfState`
+  take; the loops unfold to `wp_for`). The **length bound is not derivable**: `MapFits` bounds each value, but no
+  invariant bounds the number of keys, so the status encoding is unbounded in the model. `serveClient` then needs
+  `len + 9 < 2^63` for `writeFrame`'s `make([]byte, 0, 8+len(body))`. Options:
+  - (a) Go: `writeFrame` returns `false` for a body past `maxFrame`. `readFrame` refuses such frames anyway, so
+    nothing is lost. `writeFrame`'s premise then disappears, and so do the answers' `+ 9` bounds (`MapFits` would
+    be needed only by `PutStatus`'s callers, if at all).
+  - (b) a store-size invariant: lengths in the minted operations plus a bound on their number. Much larger.
+  I left `PutStatus.spec` and `Node.handle` unchanged until this is decided.
+- **`Node.status` (open).** Besides `contents`, it reads `st.HardState`'s term and commit from raft's `Status`, whose
+  `statusOwn` is sealed. It needs a raft API law exposing the hard state's read access (`statusOwn st ⊢ ∃ hs,
+  hsRO st.BasicStatus'.HardState' hs ∨ …`, as `InvStatus.statusOwnRaw` holds), and a spec for `Stats.Snapshot`
+  (easy: the counters under the mutex).
+
+### `persist` proved (2026-11-22)
+
+- **Defs** (`Defs.lean`). `KdDmuNames` gains the file's names: `γd : DurGS`, `df : DFile`, `fR : Roots`, so
+  `isReplica`'s arity is unchanged.
+  - `dmu` holds `durHandle` and a share of the directory's `osCallPerm`.
+  - `isReplica` holds `osInv`, `osSharedInv`, `durInv`, the file invariant, and `df.Ok ∧ df.name = kdFileName dir id`.
+  - The file invariant `kdFileInvK γ id n ph` is a plain invariant of the generation; the crash obligation carries
+    its contents. It holds `raftState γ id S ∗ durSt γd s ∗` the writer's half `(S, s, pb)`, and `kdFileState`:
+    - outside a window, the file holds `S` (`fileHolds`: decodes, `KdFileOk`, certificate);
+    - in a window, the old contents hold `S`; the new ones hold `S`, or, with `pb = some (γb, S2)`, the batch's
+      `S2`, whose `readyEnter n … st st' ms` and `savedPropOwn γb □ (kdBatchRes …)` wait there. This is what the
+      boot hands to `readyCrashEnter.law`.
+  - The writer's value is `KdWv := RaftState × DurSt × Option (GName × RaftState)`. A `NodeH` cannot sit in a ghost
+    variable (it lives in `Type 1`), hence the node `n` as the invariant's parameter: one node per generation.
+  - Every kvnet file over these predicates now declares `[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]`.
+    Four former copies became the part's own (the `answer`, `request` and `persist` specs, and `ClientLemmas`).
+- **`PersistLemmas.lean`.** `kd_writeAU`, the write's two atomic updates. At the rename, the batch's *enter*
+  moves into the invariant. At the sync (crash token, one later credit), it fires and the batch's results stay at
+  `γb`. `kdPendIn`/`kdPendOut`, `pbTarget`, `fileHolds_some`.
+- **`Replica__persist.lean`.** `persist.wp_proof`: a batch `waiting` in `dmu` becomes `fired`.
+  `persist.wp_proofRun`: `run`'s own batch's results come back by the saved proposition's agreement, and the phase
+  returns to `idle`. Its spec is the kvdurable one without `ok` (kvnet's `persist` returns nothing).
+- **Next.** `run` (kvdurablenoax's 1615-line proof and its `Run*` lemmas, over `persist.specRun`), `newReplica`
+  (allocates the file invariant: the writer at `(S, ⟨cur, none⟩, none)`), and `StartNode` (reads the file:
+  `fileHolds` of `cur` or of `alt` per durable's crash lemma; `RestartNode` at `nodeVacantA`; after a crash
+  in a window, `readyCrashEnter.law` or `nodeCrash`).

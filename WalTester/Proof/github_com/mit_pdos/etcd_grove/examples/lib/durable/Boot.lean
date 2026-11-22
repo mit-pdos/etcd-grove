@@ -123,12 +123,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 
 /-- **What the generation finds at the file's name** in its first tree `m`, its contents `v`: no file
 (`v = none`), or a file whose start resources it holds (`osFileStart`: its `OsMeta` and bytes whole,
-on disk), its contents `v` (at most 1 GiB, as `Write`'s); never a directory. -/
+on disk), its contents `v` (shorter than `2^63`, as `Write`'s); never a directory. -/
 def durFound (f : DFile) (m : Tree) (v : Option GoString) : IProp GF :=
   match m.entry f.J f.b with
   | none => iprop(⌜v = none⌝)
   | some (.file i) => iprop(∃ fl : OsFile,
-      ⌜v = some fl.contents ∧ fl.contents.length ≤ 0x40000000⌝ ∗ osFileStart (L := L) i fl)
+      ⌜v = some fl.contents ∧ fl.contents.length < 2 ^ 63⌝ ∗ osFileStart (L := L) i fl)
   | some (.dir _) => iprop(False)
 
 /-- **What the generation finds at the temporary's name**: nothing, or a file it holds whole; never a

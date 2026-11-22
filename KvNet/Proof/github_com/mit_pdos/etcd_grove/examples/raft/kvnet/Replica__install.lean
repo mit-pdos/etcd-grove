@@ -41,6 +41,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 
@@ -51,7 +52,10 @@ local macro "install_rest" : tactic => `(tactic| (
     wp_apply sync.Mutex.wp_Lock _ _ $$ [$(frameH `Hmu)] as ⟨Hlocked, HR⟩
     iNamed HR
     iunfold repShared at Hrep
-    icases Hrep with ⟨%mA0, %A0, %csp0, %c0, %idx0, %ap0, HmA', HA', Hcs', Hidx', #HcsO0, #Hap0, %HA0, %HA0fit⟩
+    icases Hrep with ⟨%mA0, %A0, %csp0, %c0, %idx0, %ap0, %mK0, %K0, HmA', HA', Hcs', Hidx', HmK', -,
+      #HcsO0, #Hap0, %HA0, %HA0fit, -⟩
+    icombine HmK HmK' gives %HmKeq
+    subst HmKeq
     icombine HmA HmA' gives %HmAeq
     subst HmAeq
     icombine Hcs Hcs' gives %Hcseq
@@ -61,12 +65,14 @@ local macro "install_rest" : tactic => `(tactic| (
     ihave HmAf := (typedPointsto_half_split _ mA (1 : Qp)).2 $$ [$(frameH `HmA) $(frameH `HmA')]
     ihave Hcsf := (typedPointsto_half_split _ csp (1 : Qp)).2 $$ [$(frameH `Hcs) $(frameH `Hcs')]
     ihave Hidxf := (typedPointsto_half_split _ idx (1 : Qp)).2 $$ [$(frameH `Hidx) $(frameH `Hidx')]
+    ihave HmKf := (typedPointsto_half_split _ mK (1 : Qp)).2 $$ [$(frameH `HmK) $(frameH `HmK')]
     try wp_auto
     wp_apply wp_GetIndex mdp dq md $$ [$(frameH `Hpb) $(frameH `Hsm)] as Hsm
     try wp_auto
     icases (typedPointsto_half_split _ mA' (1 : Qp)).1 $$ HmAf with ⟨HmA, HmA'⟩
     icases (typedPointsto_half_split _ csn (1 : Qp)).1 $$ Hcsf with ⟨Hcs, Hcs'⟩
     icases (typedPointsto_half_split _ md.Index' (1 : Qp)).1 $$ Hidxf with ⟨Hidx, Hidx'⟩
+    icases (typedPointsto_half_split _ mK' (1 : Qp)).1 $$ HmKf with ⟨HmK, HmK'⟩
     -- the waiters the snapshot covers
     try wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -142,16 +148,17 @@ local macro "install_rest" : tactic => `(tactic| (
     iintro %W' HP HW
     iNamed HP
     icases ownMap_halves_split mA' A' $$ [$(frameH `HAf)] with ⟨HA1, HA2⟩
+    icases ownMap_halves_split mK' K' $$ [$(frameH `HKf)] with ⟨HKf, HKf2⟩
     try wp_auto
     wp_apply sync.Mutex.wp_Unlock _ _ $$ [$(frameH `Hmu) $(frameH `Hlocked) HmA' HA2 Hcs' Hidx'
-        HmW HW Hws HmR HRd Hreads]
+        HmK' HKf2 HmW HW Hws HmR HRd Hreads]
     · inext
       unfold lockInv repShared
       iexists mW, W', mR, Rd
       iframe
-      iexists mA', A', csn, md.ConfState', md.Index', L
-      iframe HmA' HA2 Hcs' Hidx' HcsN HL
-      ipureintro; exact ⟨HA', HAfit'⟩
+      iexists mA', A', csn, md.ConfState', md.Index', L, mK', K'
+      iframe HmA' HA2 Hcs' Hidx' HmK' HKf2 HcsN HL
+      ipureintro; exact ⟨HA', HAfit', HKfit'⟩
     -- the statistics
     try wp_auto
     wp_apply wp_add sts _ (by decide) (by decide) $$ [$(frameH `Hpkg) $(frameH `Hstats)]

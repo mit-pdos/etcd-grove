@@ -28,6 +28,7 @@ public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Cod
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Image
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.DefsCluster
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TransportDefs
+public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durable.Defs
 
 @[expose] public section
 
@@ -68,6 +69,10 @@ structure KdDmuNames where
   /-- the image's hard state (`ghostVar`, halves: `dmu`'s and `run`'s; only `run`'s `SetHardState`
   moves it, so `run` knows it is its driver's: 2026-11-01, stage II (j), G12) -/
   cm : GName
+  /-- (2026-11-22, decision C) the replica's file: `durable`'s names, the file, its roots -/
+  γd : DurFs.DurGS
+  df : DurFs.DFile
+  fR : Fs.Roots
 
 /-- A replica incarnation's names (`DefsCluster`'s `RepNames` without the stop channels, with the
 storage's key and the `dmu` names). -/
@@ -143,6 +148,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 
@@ -202,8 +208,8 @@ def repOwn (γ : KdNames) (r : Loc) (ap : List LogEntry)
     (idx : w64) (csp : Loc) (m : Membership) (mA : Loc) (A : GMap (List w8) (List w8)) :
     IProp GF :=
   iprop(∃ (mK : Loc) (K : GMap (List w8) (List w8)) (c : ConfStateM),
-    "HmK" ∷ r.[KReplica, go!"kv"] ↦ mK ∗
-    "HK" ∷ mK ↦$ K ∗
+    "HmK" ∷ r.[KReplica, go!"kv"] ↦{DFrac.own (1 : Qp).half} mK ∗
+    "HK" ∷ mK ↦${DFrac.own (1 : Qp).half} K ∗
     "HmA" ∷ r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
     "HA" ∷ mA ↦${DFrac.own (1 : Qp).half} A ∗
     "Hcs" ∷ r.[KReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp ∗
@@ -218,18 +224,22 @@ def repOwn (γ : KdNames) (r : Loc) (ap : List LogEntry)
     "%Hsz" ∷ ⌜GMap.size m.ids < 2 ^ 61⌝ ∗
     "#Hcfg" ∷ confAt γ.r.cluster ap.length m)
 
-/-- The lock's half of an incarnation's replicated state (kvreconf's `repShared`). -/
+/-- The lock's half of an incarnation's replicated state (kvreconf's `repShared`), with half of the
+store's map (2026-11-22: kvnet's `contents` reads it under `mu`; the applier writes it under `mu`). -/
 def repShared (γ : KdNames) (r : Loc) : IProp GF :=
   iprop(∃ (mA : Loc) (A : GMap (List w8) (List w8)) (csp : Loc) (c : ConfStateM) (idx : w64)
-      (ap : List LogEntry),
+      (ap : List LogEntry) (mK : Loc) (K : GMap (List w8) (List w8)),
     "HmA" ∷ r.[KReplica, go!"applied"] ↦{DFrac.own (1 : Qp).half} mA ∗
     "HA" ∷ mA ↦${DFrac.own (1 : Qp).half} A ∗
     "Hcs" ∷ r.[KReplica, go!"cs"] ↦{DFrac.own (1 : Qp).half} csp ∗
     "Hidx" ∷ r.[KReplica, go!"index"] ↦{DFrac.own (1 : Qp).half} idx ∗
+    "HmK" ∷ r.[KReplica, go!"kv"] ↦{DFrac.own (1 : Qp).half} mK ∗
+    "HK" ∷ mK ↦${DFrac.own (1 : Qp).half} K ∗
     "#HcsO" ∷ csOpt csp DFrac.discard c ∗
     "#Hap" ∷ isCommittedLogLb γ.r.cluster ap ∗
     "%HA" ∷ ⌜raft_kvreconf.AppliedOk A (raft_kvreconf.logHist ap)⌝ ∗
-    "%HAfit" ∷ ⌜MapFits A⌝)
+    "%HAfit" ∷ ⌜MapFits A⌝ ∗
+    "%HKsfit" ∷ ⌜MapFits K⌝)
 
 /-- An incarnation's `mu` lock invariant (kvreconf's `lockInv` without `nextRead`: the reads'
 sequence numbers are the cluster's, `readSeqs`). -/
@@ -281,10 +291,60 @@ def kdSnapCert (γ : KdNames) (sv : SnapshotM) : IProp GF :=
       ⌜L.length = uint.nat sv.Metadata'.Index' ∧ raft_kvreconf.kvSnapOk L sv.Data' ∧
         confStateIs sv.Metadata'.ConfState' m ∧ GMap.size m.ids < 2 ^ 61⌝)
 
-/-- **The right to write replica `id`'s file**, which holds `o`, with its durable state `S`
-(exclusive; the other half in `kdFileInv`). -/
+/-- **A batch's results** (`readyEnter`'s post but the durable state and the running token): the
+loop's token after the `Ready` and its messages sent. -/
+def kdBatchRes (γ : KdNames) (id : w64) (n : NodeH) (st' : NodeDriverState) (ms : List QMsg) :
+    IProp GF :=
+  iprop(nodeDriver n γ.r.cluster kdRaftN st' ∗ readyMsgs γ.r.cluster kdRaftN id ms)
+
+/-- **The writer's value** (2026-11-22, decision C): the durable state, the file's client state
+(`durable`'s `DurSt`), and, during a write's window (between its rename and its sync), the name of the
+pending batch's results (`kdBatchRes`'s saved proposition) and the durable state it enters, whose
+*enter* waits in the file's invariant. -/
+abbrev KdWv : Type := RaftState × DurFs.DurSt × Option (GName × RaftState)
+
+/-- **The right to write replica `id`'s file**, which holds `o`, with its durable state `S`, no write in
+its window (exclusive; the other half in `kdFileBody`). -/
 def kdWriter (γ : KdNames) (id : w64) (S : RaftState) (o : Option StorFile) : IProp GF :=
-  ghostVar (γ.wr id) (1 : Qp).half (S, kdFileVal o)
+  ghostVar (γ.wr id) (1 : Qp).half ((S, ⟨kdFileVal o, none⟩, none) : KdWv)
+
+/-- **The file's contents `v` hold the durable state `S`**: the encoding of a file `openStorage` accepts
+(`KdFileOk`) whose contents hold `S`, with its snapshot's certificate; or no file and `S` the empty
+storage's. -/
+def fileHolds (γ : KdNames) (S : RaftState) (v : Option GoString) : IProp GF :=
+  iprop(∃ o : Option StorFile,
+    ⌜v = kdFileVal o ∧ (∀ f, o = some f → KdFileOk f) ∧ StorageHolds S (kdContents o)⌝ ∗
+    (∀ f, ⌜o = some f⌝ -∗ kdSnapCert γ f.snap))
+
+/-- **What replica `id`'s file holds** at the client state `s` and durable state `S`, for the node `n`
+(see `kdFileInvK`): outside a write's window (`alt = none`) the file holds `S`; in it, the old contents
+hold `S`, and the new ones either `S` too (a write that moves no durable state) or the state that the
+pending batch (its results saved at `γb`) enters (`S2`), whose *enter* (`readyEnter`) waits here: at the sync
+it fires (`persist`); after a crash the next boot either drops the batch (the file kept the old
+contents: raft's `nodeCrash`) or enters it (`readyCrashEnter.law`, `notes/kvnet-part.md`). -/
+def kdFileState (γ : KdNames) (id : w64) (n : NodeH) (S : RaftState) (s : DurFs.DurSt)
+    (pb : Option (GName × RaftState)) : IProp GF :=
+  match s.alt with
+  | none => iprop(fileHolds γ S s.cur ∗ ⌜pb = none⌝)
+  | some old => iprop(fileHolds γ S old ∗
+      match pb with
+      | none => fileHolds γ S s.cur
+      | some (γb, S2) => iprop(∃ (st st' : NodeDriverState) (ms : List QMsg),
+          readyEnter n γ.r.cluster kdRaftN id st st' ms ∗
+          savedPropOwn γb DFrac.discard (kdBatchRes γ id n st' ms) ∗
+          ⌜st.durable = S ∧ st'.durable = S2⌝ ∗ fileHolds γ S2 s.cur))
+
+/-- The file invariant's body. -/
+def kdFileBody (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) : IProp GF :=
+  iprop(∃ (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState)),
+    raftState γ.r.cluster id S ∗ DurFs.durSt ph.γd s ∗
+    ghostVar (γ.wr id) (1 : Qp).half ((S, s, pb) : KdWv) ∗ kdFileState γ id n S s pb)
+
+/-- **Replica `id`'s file** (an invariant of this generation, whose node is `n`: decision C; the crash
+obligation carries its contents to the next boot): its durable state, `durable`'s client state of the
+file, the writer's other half, and what the file holds (`kdFileState`). -/
+def kdFileInvK (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) : IProp GF :=
+  inv (kdRepN .@ uint.nat id) (kdFileBody γ id n ph)
 
 /-- The decimal digits of `n` (`itoa`). -/
 def decimalB (n : Nat) : GoString := (Nat.toDigits 10 n).map (fun c => W8 (c.toNat : Int))
@@ -292,12 +352,6 @@ def decimalB (n : Nat) : GoString := (Nat.toDigits 10 n).map (fun c => W8 (c.toN
 /-- The file of replica `id` (the program's string): `dir + "/replica-" + itoa(id)`. -/
 def kdFileName (dir : GoString) (id : w64) : GoString :=
   dir ++ go!"/replica-" ++ decimalB (uint.nat id)
-
-/-- **A batch's results** (`readyEnter`'s post but the durable state and the running token): the
-loop's token after the `Ready` and its messages sent. -/
-def kdBatchRes (γ : KdNames) (id : w64) (n : NodeH) (st' : NodeDriverState) (ms : List QMsg) :
-    IProp GF :=
-  iprop(nodeDriver n γ.r.cluster kdRaftN st' ∗ readyMsgs γ.r.cluster kdRaftN id ms)
 
 /-- **The pending batch's resources** (see the file header), at the file's durable state `S` and
 the storage's contents `M`, for the node `n` of replica `id`, `ph` the claim's variable. -/
@@ -330,6 +384,10 @@ def kdDmuInv (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms : Loc) (γs 
     "His" ∷ monoNatAuthOwn ph.is 1 (uint.nat M.snap.Metadata'.Index') ∗
     -- (2026-11-01, stage II (j), G12) half of the image's hard state (`run` holds the other)
     "Hcm" ∷ ghostVar ph.cm (1 : Qp).half M.hs ∗
+    -- (2026-11-22, decision C) the file's handle and a share of its directory's call permission
+    -- (`durable.Write`'s: one writer at a time)
+    "Hdh" ∷ DurFs.durHandle ph.γd ph.df ph.fR ∗
+    "Hcp" ∷ (∃ qc : Qp, Fs.osCallPerm (Fs.callKey ph.fR ph.df.d) qc) ∗
     -- (2026-11-01, stage II (h)) `M`'s shape, certificate and phase also after the crash (the run
     -- loop and the snapshotter go on changing the storage until `stop`, and their changes' premises
     -- are about `M`); the writer's half stays after the crash (`run` enters commit-only batches
@@ -362,6 +420,10 @@ def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Lo
     "#Hrec" ∷ kdStorRec st ms γs ∗
     "#Hmu" ∷ sync.isMutex (r.[KReplica, go!"mu"]) (lockInv γ id r) ∗
     "#Hdmu" ∷ sync.isMutex (r.[KReplica, go!"dmu"]) (kdDmuInv γ id r n st ms γs ph) ∗
+    -- (2026-11-22, decision C) the file: `os`'s and `durable`'s invariants, and the store's
+    "#Hos" ∷ Fs.osInv ∗ "#HosS" ∷ Fs.osSharedInv ph.fR ∗ "#Hdi" ∷ DurFs.durInv ph.γd ph.df ∗
+    "#HfInv" ∷ kdFileInvK γ id n ph ∗
+    "%Hdf" ∷ ⌜ph.df.Ok ∧ ph.df.name = kdFileName dir id⌝ ∗
     -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the
     -- node API's size premises hold vacuously
     "%Hmd" ∷ ⌜γ.r.cluster.maxData = none⌝ ∗

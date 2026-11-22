@@ -58,6 +58,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Assumptions]
 variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [KdStor GF]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 
 attribute [local instance] kdStorageModel
 
@@ -162,7 +163,7 @@ theorem Replica.snapshot.wp_proof
     -- `dmu`'s record of the image kept; the error the image's
     ihave Hblk : iprop(|==> (⌜err = interface.nil ∨ err = interface.mkOk (go.GoType.PointerType
         _root_.Perennial.errors.errorString.ty) #xe⌝ ∗ ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph ∗
-        monoNatLbOwn ρ.ph.is (uint.nat q.index'))) $$ [Hres Hmeta Hwr Hph Hic His Hcm]
+        monoNatLbOwn ρ.ph.is (uint.nat q.index'))) $$ [Hres Hmeta Hwr Hph Hic His Hcm Hdh Hcp]
     · by_cases Hst : imgCreateStale M q.index'
       · imodintro
         simp only [Hst, ↓reduceIte]
@@ -174,7 +175,7 @@ theorem Replica.snapshot.wp_proof
         · inext
           iunfold kdDmuInv
           iexists ip, M, fz
-          iframe Himg Himage Hmeta Hic Hfz His Hcm
+          iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcp
           isplitr
           · ipureintro; exact Hfzc
           iexists S, o, pz
@@ -200,7 +201,7 @@ theorem Replica.snapshot.wp_proof
           show (imgCreateSnapshot M q.index' (some cc) bs).prev = M.prev from rfl,
           show (imgCreateSnapshot M q.index' (some cc) bs).ents = M.ents from rfl,
           show (imgCreateSnapshot M q.index' (some cc) bs).snap.Metadata'.Index' = q.index' from rfl]
-        iframe Himg Himage Hmeta Hic Hfz His Hcm
+        iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcp
         isplitr
         · ipureintro; exact Hfzc
         iexists S, o, pz
@@ -301,7 +302,7 @@ theorem Replica.snapshot.wp_proof
           $$ [$Hpkg $Hrec $Himg $Himage $ErrCompacted $Hraft $HmsInv $HB $Hex $Hxlb]
         as %err ⟨-, Hres⟩
       ihave ⟨%Herr, HI⟩ : iprop(⌜err = interface.nil ∨ err = errCompacted⌝ ∗
-          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hmeta Hwr Hph Hic His Hcm]
+          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hmeta Hwr Hph Hic His Hcm Hdh Hcp]
       · by_cases Hst : imgCompactStale M (fi + rb)
         · simp only [Hst, ↓reduceIte]
           icases Hres with ⟨%Herr, Himage⟩
@@ -310,7 +311,7 @@ theorem Replica.snapshot.wp_proof
           inext
           iunfold kdDmuInv
           iexists ip, M, fz
-          iframe Himg Himage Hmeta Hic Hfz His Hcm
+          iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcp
           isplitr
           · ipureintro; exact Hfzc
           iexists S, o, pz
@@ -334,7 +335,7 @@ theorem Replica.snapshot.wp_proof
             show (imgCompact M (fi + rb)).snap = M.snap from rfl,
             show (imgCompact M (fi + rb)).prev = fi + rb from rfl,
             show (imgCompact M (fi + rb)).ents = M.ents.drop (uint.nat (fi + rb) - uint.nat M.prev) from rfl]
-          iframe Himg Himage Hmeta Hic Hfz' His Hcm
+          iframe Himg Himage Hmeta Hic Hfz' His Hcm Hdh Hcp
           isplitr
           · ipureintro; rcases Hfzc with h | h
             · left; exact h
@@ -372,7 +373,7 @@ theorem Replica.snapshot.wp_proof
       iapply HΦ
       iframe Hrun Hkn1 Hkni1
     · try wp_auto
-      wp_apply wp_persist γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph qp $$ [$Hrep $Hrun] as %ok Hrun
+      wp_apply wp_persist γ vs dir id r n st sts sq ρ.ms ρ.γs ρ.ph qp $$ [$Hrep $Hrun] as Hrun
       try wp_auto
       iapply HΦ
       iframe Hrun Hkn1 Hkni1

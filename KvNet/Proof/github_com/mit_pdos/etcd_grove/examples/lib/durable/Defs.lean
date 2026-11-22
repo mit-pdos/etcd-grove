@@ -91,10 +91,10 @@ structure DCand where
   m : OsMeta
   v : GoString
 
-/-- A candidate's `OsMeta` says a crash leaves it at its size; its contents fit one `ReadAt` (1 GiB,
-as `Write`'s `data`). -/
+/-- A candidate's `OsMeta` says a crash leaves it at its size; its contents fit a Go slice (as
+`Write`'s `data`: a `ReadAt` of any length reads them back). -/
 def DCand.Ok (c : DCand) : Prop :=
-  c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size ∧ c.v.length ≤ 0x40000000
+  c.m.size = c.v.length ∧ c.m.lo = c.m.size ∧ c.m.hi = c.m.size ∧ c.v.length < 2 ^ 63
 
 /-- **The physical state**: the claims' histories of the file's name (`hb`) and of the
 temporary's (`ht`), a commit lower bound `nc`, the candidates, and the state's `alt` (a copy, so
