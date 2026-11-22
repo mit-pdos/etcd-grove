@@ -41796,6 +41796,8 @@ later generation changes (h). So every ghost step takes the token: `ncfupd`,
 
 ## Protobuf stage 0': the schemas generated from `models/pbdesc`, a candidate wire semantics (2026-11-21 · proving session 2, #18 · branch `prove-ps2-pbwire/2026-11-21`; scoped by kaashoek's review, #20 item 2 (b))
 
+**Partly superseded (2026-11-22, proving session 2):** the candidate wire semantics (`PbWire.lean`, `PbWireVectors.lean`, `examples/pbwire`) is deleted. Upamanyu's plan is pbgen with no `reflect` semantics (#20, 2026-11-22), and phase 7 (#24) has no consumer for a descriptor-generic Lean semantics. The schema generation (`etc/gen-pbschema.py`, `PbSchema.lean`) stays: it ties the trusted schemas raft's and the WAL's specs use to the registered descriptors.
+
 - **The schemas** (`PbSchema.lean`: the `FieldSchema` constants and `pbSchemaOf`, trusted) are
   generated from the registered descriptors by `etc/gen-pbschema.py` (it runs `models/pbdesc` in
   `examples/`, the one descriptor source pbgen reads), between marker lines of the file, with
