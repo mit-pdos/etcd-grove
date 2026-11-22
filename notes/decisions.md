@@ -41851,3 +41851,28 @@ invariant or fragment meaning changed.
 
 **Also:** `statusOwn_hardState`, read access to `node.Status`'s hard state (`hsOpt`), without promising anything of
 the values, as `node.Status.spec` already says.
+
+## remote's slot library over a service; `Report`'s spec (2026-11-22 · branch `remote-report`)
+
+**Was:** every spec of `examples/lib/remote` (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Do`, `Run`, `Check`) took a far-side store `R : RBase` (a linearizable base store with
+`sysState`, `Eop`, `lin`, unknown outputs), and the slot handed the far side `slotUpd R i Φ`. `Report`
+(one attempt, no model: a client machine's loop answers its report) had no spec, and could not be an
+instance: a report's output is not a function of the input and a state (`B.step`), and its codec has
+no `IsRead`/`Unknown`/`IsUnknown` (`codecOk` needs them).
+
+**Now:** the wire and the slot's update are a **service** `RSvc GF I O` (`RWire` and `unkAns`, `upd`):
+the functions that only move bytes and the update (`attempt`, `serveConn`, `Serve`, `ServeClient`,
+`listen`, `Report`) are stated over any service, with the codec's wire part `wireOk` and the far
+side's `svcOp`; `Do`/`Run`/`Check`, which need the model, over a store, through `RBase.svc`
+(`remoteAddr R a` is `svcAddr R.svc a`; `codecOk_wireOk`, `opMaybe_svcOp`). A report is
+`reportSvc W Q`: the update is `∀ o, Q i o -∗ Φ o` (so `Q` may be persistent or transferable: the
+slot hands `Φ o` back once), with no unknown answers; its far side meets `reportOp W Q tok op`
+(`reportOp_svcOp`). One spec per function: `Report.spec` is stated over any service, a report an
+instance (`unkAns = False` empties its last disjunct).
+
+**Why not** an `unk : I → Option GoInterface` or an output type `O ⊕ I` for the unknown answer: both
+touch `Do`'s proof and `Pend` (the read form's commit), where `unkAns i v := v = unk i` leaves them
+unchanged. **Departure** (TaDa, not HoCAP): `reportSvc`'s `Q` is a caller-provided predicate fixed in
+the address's protocol, as a store's `sysState` already is; the far side must know what it proves
+before any call, and the deployment fixes it once (`remote_start`, now for any service).

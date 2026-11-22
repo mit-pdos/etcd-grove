@@ -359,7 +359,8 @@ in D1. No check failed; no bug found.
    `Proof/.../txnlin/PendModel.lean`), `codecOk` of the codec, `opMaybe` of `Call` (from `Call.spec`:
    a write's update fired at most once, a read's persistent read update: `opMaybe`'s read form, done
    2026-11-22, below), the nodes' WPs.
-   `Report` needs a spec (a report's postcondition, no model) for watch, cache and auth.
+   `Report` needs a spec (a report's postcondition, no model) for watch, cache and auth: **done
+   2026-11-22**, below ("`Report`, proved").
 
 **Handoff (2026-11-22, end of the D8 Go session).** Branch `etcd-dist` (pushed), worktree
 `/shared/etcd-grove-etcddist`; `lean` merged at `c89f800b38`. Built here (`manifest-d64.json`): the
@@ -385,6 +386,40 @@ meets the read form in shape (its read update is `callUpd`'s persistent read upd
 and D7 (one store state). Other open decisions: (b) whether a
 writer without an answer should rather be retried as reads are (it is a write: no, by the user's
 rule; kept as "all tried, none succeeded").
+
+**`Report`, proved (2026-11-22, branch `remote-report`).** `remote`'s slot library is generic over a
+**service** `RSvc GF I O` (`Net/Proof/.../lib/remote/Defs.lean`): the wire (`RWire`: `iv`, `ov`,
+`encIn`, `encOut`), the answers that are not outputs (`unkAns i v`) and the update a slot hands to
+the far side (`upd i Φ`). A store is one (`RBase.svc`: `unkAns i v := v = unk i`, `upd := slotUpd R`;
+`remoteAddr R a` is `svcAddr R.svc a`), and so is **a report** (`reportSvc W Q`: the far side's loop
+on `i` answers an output `o` with `Q i o`, its postcondition, persistent or transferable;
+`upd i Φ := ∀ o, Q i o -∗ Φ o`; `unkAns := False`). The codec splits: `wireOk S cd` (`EncIn`,
+`DecIn`, `EncOut`, `DecOut`: all `Report` and the serving side use; a report's codec leaves
+`IsRead`/`Unknown`/`IsUnknown` nil) under a store's `codecOk` (`codecOk_wireOk`). The serving side's
+counterpart: `svcOp S tok op` (given `S.upd i Φ`, `op` answers an output with `Φ` of it or an
+answer `unkAns i v`), met by a store's `opMaybe` (`opMaybe_svcOp`) and by a report's loop
+`reportOp W Q tok op` (`{tok sys} op(sys, iv i) {v. tok sys ∗ ∃ o, v = ov o ∗ Q i o}`,
+`reportOp_svcOp`). `attempt`, `serveConn`, `Serve`, `ServeClient` and `listen` are now stated over
+`S : RSvc` (wire and update generic, same proofs); `Do`, `Run`, `Check` over a store, unchanged.
+`Report.spec`:
+
+    ∀ (S : RSvc GF I O) a i Φ cd d,
+    {{ isPkgInit remote ∗ mapCtx (I := I) ∗ svcAddr S a ∗ wireOk S cd ∗ S.upd i Φ }}
+      Report a (S.iv i) cd d
+    {{ (v : GoInterface) (ok : Bool), RET (v, ok);
+        ⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ((∃ o, ⌜v = S.ov o⌝ ∗ Φ o) ∨ ⌜S.unkAns i v⌝)) }}
+
+For a report, `Φ := Q i` and the caller hands `∀ o, Q i o -∗ Q i o`: `true` comes only with an
+output `o` and `Q i o` (the last disjunct is `False`); `false` carries nothing, as the orchestrator
+treats it ("all tried, none succeeded"), and the update stays in the slot (the far side may still
+run). Linked in `remote`'s `Link` (`wp_Report`); `counter_remote_robust`'s statement unchanged,
+building with Lean's three axioms. `remote_start` now sets the addresses' protocols for any service;
+`remote_robust` keeps a store's. **Left for the watch, cache and auth instances**: their `Q` (a
+writer's log: each logged Put returned, as a persistent fact of the cluster's KV state; auth: that
+`Work` ran), their codecs' `wireOk`, the far side's `reportOp` from `etcdstart.Writer`/`auth.Work`'s
+specs, a `remote_robust` over a report service (one slot map per deployment holds one input type
+`I`: a deployment that mixes `Do` and `Report` calls of different input types needs one
+`RemoteGS` per type, or a sum type), all behind D2 (`net`) as kv's instance is.
 
 ## 3. The configuration set
 
@@ -561,7 +596,7 @@ For upamanyus:
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
-| D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), `Report`'s spec, watch/cache/auth instances | ~2k lines + the port | D1; Lean: D2, D7 |
+| D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), watch/cache/auth instances (over `Report`, proved 2026-11-22: §2, "`Report`, proved") | ~2k lines + the port | D1; Lean: D2, D7 |
 | D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:

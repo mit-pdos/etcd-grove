@@ -26,16 +26,16 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
 variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
-variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
+variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
 theorem ServeClient.wp_proof
-    (wp_Serve : Serve.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O)) :
-    ServeClient.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R c a newClient op cd d tok
+    (wp_Serve : Serve.spec (GF := GF) (hG := hG) (I := I) (O := O)) :
+    ServeClient.spec (GF := GF) (hG := hG) (I := I) (O := O) := by
+  intro S c a newClient op cd d tok
   wp_start as ⟨#Haddr, #Hcd, #Hop, #HnewClient⟩
   wp_auto
   wp_apply HnewClient as %sys Hsys
-  wp_apply wp_Serve R a sys op cd d tok $$ [Hsys] as Hf
+  wp_apply wp_Serve S a sys op cd d tok $$ [Hsys] as Hf
   · iframe Haddr Hcd Hop Hsys
   iexfalso
   iexact Hf
