@@ -81,11 +81,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave #Hos := _root_.Perennial.internal.oserror.isInit_access $$ Hd2
   icases Hos with ⟨#VIn, #VPe, #VEx, #VNE, #VCl⟩
   iunfold _root_.Perennial.errors.newVar at VIn VPe VEx VNE VCl
-  icases VIn with ⟨%xIn, #OIn, #EIn⟩
-  icases VPe with ⟨%xPe, #OPe, #EPe⟩
-  icases VEx with ⟨%xEx, #OEx, #EEx⟩
-  icases VNE with ⟨%xNE, #ONE, #ENE⟩
-  icases VCl with ⟨%xCl, #OCl, #ECl⟩
+  icases VIn with ⟨%xIn, #OIn, -, #EIn⟩
+  icases VPe with ⟨%xPe, #OPe, -, #EPe⟩
+  icases VEx with ⟨%xEx, #OEx, -, #EEx⟩
+  icases VNE with ⟨%xNE, #ONE, -, #ENE⟩
+  icases VCl with ⟨%xCl, #OCl, -, #ECl⟩
   wp_func_call
   wp_call
   wp_auto

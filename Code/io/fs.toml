@@ -4,6 +4,8 @@
 translate = ["!*", "FileInfo", "FileMode", "PathError",
   # (2026-11-04) with its body, so that the models' errors are ones `fmt` formats (`fmtErrorOk`)
   "PathError.Error",
+  # (2026-11-22, wal-safe-errors) with its body: `errors.Is` walks a `*PathError` to its errno through it
+  "PathError.Unwrap",
   # (2026-11-07) the package-level variables (the error variables, internal/oserror's; `SkipDir`,
   # `SkipAll`, the `var _ I = (*subFS)(nil)` assertions) and the functions their initializers call,
   # as Perennial's io/fs.toml: what importing io/fs runs
