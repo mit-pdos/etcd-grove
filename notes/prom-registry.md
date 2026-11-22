@@ -147,7 +147,9 @@ Done (committed on `prom-registry`):
    Registry__Register}.lean`. `notes/prom-registry-start-change.md`: the start model's change, for
    Upamanyu's sign-off (posted on #15 by the coordinator; nothing lands before it).
 
-Next, in order:
+3'. (2026-11-22, done) The proofs of the three specs and `promReg_alloc` (see "Handoff" below).
+
+Next, in order (stage 4 on is blocked: "Handoff"):
 3'. The proofs of the three specs (`Proof/.../promreg/{NewRegistry,Registry__SeedBuiltins,
    Registry__Register}.lean`; `Register`'s loop: invariant over the prefix of `ds` seen, with
    `newSeen`/`newDims` mirroring `descKeys`/the names; the tokens give `descIDs !! id = none`,
@@ -166,3 +168,53 @@ Next, in order:
    the collector describes the server metrics' descriptors (`collectorDescs` of `m`, as
    `collectorName`), its statement otherwise unchanged, and flag it; needs stage 4's definition), gates, `tcb-report --check --update`,
    the collections' `--update`.
+
+## Handoff (2026-11-22, end of the session that proved stage 3')
+
+**Done** (commits `6ddb44f707`, `2c0bbcd8f6`): `Proof/github_com/mit_pdos/etcd_grove/examples/lib/promreg/`
+`NewRegistry.lean`, `Registry__SeedBuiltins.lean` (with `wp_Builtin{IDs,Dims,Names,Collectors}`, the slice
+literals), `Registry__Register.lean` (the loop's state is pure: `pIDs ds j`, the `eraseDups` of the prefix's IDs,
+`xorAll` of it, the seen set, the names; the rights are checked absent from the registry before the loop,
+`regToks_absent_all`, and handed over after the commit loops, `regToks_insertAll`, the final maps equal to
+`insertAll (descKeys ds) (ids ∪ cols)`). `Defs.lean` gained the package's fact (`isPkgInit promreg`, `True`; its
+`IsPkgInit` instance is in `Defs.lean`, where `etc/gen-init.py`'s `instances()` finds it), `idToks_cons`/`_app`,
+`idTok_excl`, `regToks_absent`/`_insert`, `builtinToks_split`, `union_insert_l`/`_r`, `promReg_alloc` (for any
+`ks` with `(builtinKeys ++ ks).Nodup`). The three specs take `isPkgInit promreg` (the glue's `defaultRegistry.init`
+initializes the package before `NewRegistry`): **decided yes**. Not yet in a `Link` (promreg has no callers'
+`Link` yet); built with `etc/lean-check.py` only (no `lake build` run on the branch since).
+
+**Names** (the coordinator, 2026-11-22): the new defined right is to be `prometheus.regFree` (not yet written);
+the opaque `prometheus.nameFree` axiom stays until the `goose_adequacy_start` shrink, which is to be the last
+commit of stage 5 (dropped if Upamanyu declines on #15; the fallback is the axiom unchanged and the closed
+proofs at `Ns := []`).
+
+**Blocked: where the run's ghost name lives.** §3/§4 make `isPkgInit prometheus` `∃ l, globalAddr
+defaultRegistry ↦□ l ∗ isRegistry descId l`, whose `isRegistry` names the instance `PromRegGS GF` (its `γ`).
+Perennial's `define_is_pkg_init` builds a package's `IsPkgInit` instance by synthesizing the `IsPkgInit`
+instances of its imports (`Pkg.lean`, `isPkgInitDeps`), so every package above prometheus would get the
+instance argument, and every module that elaborates their `isPkgInit` or applies a theorem stated over them
+would need `[PromRegGS GF]` in scope: 52 packages above prometheus (gen-init's inventory), 2073 modules naming
+them (`Proof`, `Spec`, the parts), and their importers' theorems gain the argument. §3's "the ~115 users of
+`nameFree` get the instance" missed this. Section variables would also add the instance to every theorem of
+those sections (it depends only on `GF`), closed statements included where they sit in such a section.
+An existential name in the fact (`∃ l γ, … isRegistry γ l`) does not work: nothing ties it to the name of the
+rights a caller holds (the rights are allocated before the registry exists, and the fact is the only thing the
+registering packages' initializers learn of prometheus's). Every way around found needs a name both sides
+can write, that is fresh in each run:
+
+1. **The instance everywhere, by script**: `variable [promG : promreg.PromRegGS GF]` in every section of the
+   modules above prometheus (and the generated `Init`/`InitLinked`), the closed proofs giving it from
+   `promReg_alloc`. As designed, no Perennial change; a diff over thousands of files, conflicting with every
+   session in the server's cone, and every closed statement must be checked not to gain the argument.
+2. **A per-generation ghost-name supply in Perennial** (`GooseLocalGS`: a name allocated by the adequacy
+   theorems at each generation's start, for a client's own ghost map, as `packageMonoName` is for the package
+   state): `PromRegGS` becomes a definition from `hG`, in scope wherever `hG` is; no ripple. A Perennial
+   change (general: any package fact about per-run ghost state needs it), to be proposed on its own
+   (`notes/perennial-changes.md`).
+3. **The registry's ghost state as an extension's local ghost state** (`Exts.LocalGS`, per generation, in
+   `hG`): no Perennial change, but a new trusted extension (its `extsLocalStart` given by the start model).
+
+The registry and its proofs do not depend on the choice (they are generic in `PromRegGS`). Until it is made,
+stage 4 (`collectorName`/`regFree` definitions, `MustRegister`/`Register`/the initializer as theorems,
+`NewServerMetrics`' clause) and stage 5 (gen-init, the closed proofs) wait; `collectorName` as a definition
+(§2) does not depend on it and could go first, but rebuilds everything above `Registry.lean`.
