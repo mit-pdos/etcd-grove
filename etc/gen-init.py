@@ -5302,7 +5302,27 @@ def dsv_inits():
         elif os.path.exists(f'{NET_ROOT}/{f}') or x == 'Proof.runtime.PkgInitExt':
             x = f'{NET_ROOT}.{x}'
         return m.group(1) + x
-    return [(path, re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+    # an external initializer `Net/`'s `ExternalInit` does not list (`marshal`, which no package of
+    # `Net/` imports): `Dsverify/Proof/runtime/PkgInitDsv.lean`'s `initLb_of_spec`, without the guard
+    # (the part imports `Net/`'s `PkgInitExt`, which declares `ExternalInit`, so it cannot declare its
+    # own)
+    net_ext = open(f'{NET_ROOT}/Proof/runtime/PkgInitExt.lean').read()
+    have = set(re.findall(r'(?m)^  \| (\S+) : ExternalInit', net_ext))
+
+    def ext(m):
+        if m.group(3) in have:
+            return m.group(0)
+        return f"(EtcdGrove.Dsv.initLb_of_spec {m.group(1)} {m.group(2)}\n      {m.group(4)}"
+    pat = (r"\(EtcdGrove\.initLb_of_spec (pkg_id\.\S+) (\S+)\n\s+EtcdGrove\.ExternalInit\.(\S+) "
+           r"(\S+)")
+
+    def fix(txt):
+        new = re.sub(pat, ext, txt)
+        if new != txt:
+            new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
+                              'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
+        return new
+    return [(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))) for path, txt in raw]
 
 
 def main(argv):

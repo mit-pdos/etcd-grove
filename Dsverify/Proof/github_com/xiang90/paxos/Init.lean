@@ -13,7 +13,7 @@ public import Perennial.Proof.log.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Net.Proof.net.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
 
@@ -54,8 +54,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.github_com.tchajed.marshal _root_.Perennial.github_com.tchajed.marshal.initialize'
-      EtcdGrove.ExternalInit.github_com_tchajed_marshal _root_.Perennial.github_com.tchajed.marshal.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.github_com.tchajed.marshal _root_.Perennial.github_com.tchajed.marshal.initialize'
+      _root_.Perennial.github_com.tchajed.marshal.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.log _root_.Perennial.log.initialize'
