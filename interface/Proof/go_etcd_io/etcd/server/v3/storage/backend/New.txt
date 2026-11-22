@@ -4,7 +4,7 @@
 
 theorem backend.New.wp_proof (hNB : backend.newBackend.spec) : backend.New.spec
   -- `Perennial.EtcdGrove.backend.New.spec`, unfolded:
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (P : backend.BParams) (D : backend.Data)
     (W Pk K : backend.BNames → IProp GF),
     ⊢

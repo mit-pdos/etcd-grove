@@ -40,7 +40,7 @@ theorem backend.batchTx.safePending.wp_proof :
   icases Hfree with (⟨%st, %db, Hph, Hg, %Hfo, HWR⟩ | #Hbs)
   · unfold batchPhys batchGhostAt
     icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
-    icases Hg with ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn', Hhkd, Hfkh, %Hbg⟩
+    icases Hg with ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn', Hhkd, Hfkh, #Hbr, %Hbg⟩
     icombine Hu Hus gives % ⟨_, Hueq⟩
     subst Hueq
     ihave #Hlb := monoNatLbOwn_get γ.wbc 1 w $$ Hmo
@@ -64,6 +64,7 @@ theorem backend.batchTx.safePending.wp_proof :
       · iframe Hv
         iexists n, w, u
         iframe
+        iframe #
         ipureintro
         exact Hbg
       · ipureintro

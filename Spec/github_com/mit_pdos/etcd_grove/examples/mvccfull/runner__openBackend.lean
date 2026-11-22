@@ -31,7 +31,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev runner.openBackend.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
     (h : Loc) (γh : HistNames) (path : GoString) (D : backend.Data)
     (W Pk K : backend.BNames → IProp GF),
   backend.dbOpenOk → sint.Z (limOf cfg) ≤ 2 ^ 57 →

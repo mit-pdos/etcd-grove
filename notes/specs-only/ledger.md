@@ -25,6 +25,26 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: `FollowerStats.Succ` takes the stats' mutex (prove-ps2-succ)
+
+- **Spec.** `v2stats.FollowerStats.Succ.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change, `leader.go` names-only for it); SpecPlan's `FollowerStats.Succ.spec` already
+  takes `isFollowerStats p`. Moved with it: `v2stats.isFollowerStats` (now guarding all of `Counts` and `Latency`),
+  `newMsgAppV2Encoder.spec` and `startStreamWriter.spec` (premise `v2stats.isFollowerStats fs` added beside
+  `fs ≠ null`), `v2EncOwn` and `swFixed` (which keep it).
+- **Defect.** Not provable over the real code: `Succ` locks the stats' embedded `sync.Mutex` and updates
+  `Counts.Success` and the six `Latency` fields (`leader.go:104-128`), and the premise (`fs ≠ null`) gave no mutex and no
+  points-to. True of Go by its type safety, not provable in the logic (as `Fail`'s, the entry of 2026-11-21).
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`, `FollowerStats.Succ.impl`).
+- **Proposed change.** As above: `isFollowerStats fs` owns `Counts` and `Latency` whole (`Follower` allocates them
+  with the mutex); `Succ` and `Fail` take it. Its callers discharge it: the pipeline from `pipeHandleOk` (as for
+  `Fail`), the msgappv2 encoder from `v2EncOwn`, which `newMsgAppV2Encoder` builds from its new premise, which
+  `streamWriter.run` takes from `swFixed`, which `startStreamWriter` builds from its new premise, which `startPeer`
+  has (its premise since 2026-11-21). The user's decision (2026-11-21): an ownership premise every caller discharges
+  may be added.
+- **Decision.** Applied (prove-ps2-succ, 2026-11-22): `Succ` translated and proved over Perennial's `math.Sqrt`
+  (mit-pdos/perennial#675, in review: `sqrt`, compiled to the square-root instruction, trusted as an arbitrary
+  float), the axiom retired once the pin includes #675.
 ## 2026-11-22: kvnet's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
 
 - **Spec.** `KvNet/Spec/.../kvnet/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
@@ -4678,6 +4698,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
   at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
 - **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
+
+## 2026-11-22: `storage.OpenBackend`'s axiom takes `New`'s receipt bound (step bounds, #30, step 2)
+
+- **Spec.** `storage.OpenBackend.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`), a
+  trust-boundary axiom (`storage.OpenBackend.wp_proof`), and `OpenSnapshotBackend`'s, which takes it.
+- **Defect.** The axiom gives `backend.New`'s post (`newPostK`) under `[ThreadBoundLe GF (2 ^ 29)]`
+  alone, but `New` requires a receipt bound: `[ReceiptBoundLe GF (2 ^ 62)]` since S3e (2026-11-17;
+  bbolt's core invariant keeps `receiptBound GF ≤ 2 ^ 62`, `Proof/go_etcd_io/bbolt/Inv/Bolt.lean:111`),
+  `2 ^ 60` since step 2 (the buffers' receipt `bufRc` keeps `receiptBound GF ≤ 2 ^ 60` in the batch
+  lock's ghost share). So the axiom is false at a larger receipt bound: from its post, lock the batch
+  transaction and read `receiptBound ≤ 2 ^ 60` off the share (`batchGhostAt_bufRc`), refuting
+  `receiptBound = 2 ^ 61`, and `WP (OpenBackend; Lock; panic) {True}` follows. Its docstring's "its
+  post exactly what `New` gives" stopped being true at S3e. No closed theorem is affected: they fix
+  `receiptBound ≤ 2 ^ 48`.
+- **Evidence.** The step-2 review (fresh `spec-reviewer`, 2026-11-22), item 1.
+- **Proposed change.** Add `[ReceiptBoundLe GF (2 ^ 60)]` to `storage.OpenBackend.spec` and to
+  `OpenSnapshotBackend`'s use of it (only weakens the axiom: it now claims `New`'s post under `New`'s
+  premises). Its one caller, `OpenSnapshotBackend` from the server's `applySnapshot` walk
+  (`SnapApplyWalk.lean:338`), has no receipt bound in scope (`isServerM` holds only the thread
+  bound), so the change threads a receipt-bound fact into the walk (from `isServerM`, as its thread
+  bound, or a premise of `applySnapshot`'s spec).
+- **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
+  scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
+  stays false above `2 ^ 60` until then; no closed theorem reaches that.
 ## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
 
 - **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`

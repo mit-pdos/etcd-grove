@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
+
+- **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a
+  trust-boundary axiom after the IEEE 754 floats (perennial#654).
+- **Who needs it.** `v2stats.FollowerStats.Succ.wp_proof` (branch `prove-ps2-succ/2026-11-22`: proved, landed with
+  the pin).
+- **Proposed change.** perennial#675 (merged, branch `math-sqrt`): `Sqrt`, `Float64bits`/`Float64frombits` (the
+  `unsafe.Pointer` views, under the plain-memory rules), `IsNaN`, `IsInf`, `Abs`, `NaN` translated with specs and
+  proofs; `sqrt` trusted as an arbitrary float, because gc compiles it to `SQRTSD` (a compiler intrinsic), whose NaNs
+  differ from the Go body's (measured: `Sqrt(-1)` is `0xfff8000000000000`, the body's `0x7ff8000000000001`), so
+  translating the body would be unfaithful.
+- **Status.** Done: merged, pinned at Perennial `74471ecd8` (2026-11-22).
+
 ### The robustness theorems' standard-library leaf axioms: what the pinned Perennial lacks (2026-11-21, claim #26, branch `prove-stdlib-leaves/2026-11-21`)
 
 - **Done here, no Perennial change.** `bufferM.ownBuffer_new` is a theorem, `ownBuffer` a definition
@@ -3727,7 +3740,7 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `Debug`, `jitterUp`'s `rand.Float64` and float operations, have specs).
 - **Worked around locally.** Not: the axiom stays (prove-ps2-client, 2026-11-22).
 - **Proposed (general).** mit-pdos/perennial#675 (prove-ps2-succ's, in review) translates `Float64bits` and
-  `Float64frombits` with specs. **Status.** Waits for #675 and a pin bump.
+  `Float64frombits` with specs. **Status.** #675 merged and pinned (`74471ecd8`, 2026-11-22); the axiom can now be proved.
 
 ## 2026-11-22: `%+v` of a map is arbitrary in the `fmt` model (`clientv3.streamKeyFromCtx`)
 

@@ -16,12 +16,12 @@ def backend.vData (P : backend.BParams) (rv : backend.RView) : GMap (GoString ×
   { lookup := fun nk => if P.HB nk.fst = true then none else backend.vOf P rv nk.fst nk.snd, finite := ⋯ }
 
 def backend.bgOk (P : backend.BParams) (st : backend.BSess) (free : Bool) (n w u : Nat) : Prop :=
-  uint.Z st.R.ver + ↑n + ↑st.cnt.k < 2 ^ 40 ∧
+  uint.Z st.R.ver + ↑n + ↑st.cnt.k < 2 ^ 62 ∧
     u ≤ w ∧
       (st.cnt.c ≤ st.cnt.k + 1 + if u = w then 1 else 0) ∧
         st.cnt.p0 ≤ sint.nat st.pend ∧
           ((st.cnt.e = 0 ∨ st.cnt.c = 0) ∧ (st.cnt.c = 0 ∨ ∀ (i : w64), backend.bkOf st.R.bks i = [])) ∧
-            st.cnt.e ≤ P.hookMax * (2 ^ 40 + 2) ∧
+            st.cnt.e ≤ P.hookMax * (2 ^ 62 + 2) ∧
               (∀ (i : w64),
                   (backend.bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0 + P.hookMax * st.cnt.c ∧
                     (backend.bkOf st.R.bks i).length ≤ st.cnt.p0 + st.cnt.e) ∧

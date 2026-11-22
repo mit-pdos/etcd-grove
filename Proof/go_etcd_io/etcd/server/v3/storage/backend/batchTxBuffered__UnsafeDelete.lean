@@ -40,6 +40,8 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
+  icases batchGhostAt_bufRc γ P st false c $$ Hg with ⟨Hg, #Hbr⟩
+  ihave #Hbr' := bufRc_congr (st := st) (st' := (st.del bi kb k)) rfl rfl $$ Hbr
   imod batchGhost_step_dl γ P (st := st) (st' := (st.del bi kb k)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => by simp [BSess.del, BSess.create, BSess.delBucket])
     bi.name (hkData_del st bi kb Hhk)
@@ -52,7 +54,7 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
       | some v => rw [hsub _ v hq]; simp)) rfl rfl hd) (fun m hm => tkSet_ne _ _ hm)
     k c (fun m hm => by cases k <;> simp [BSess.del, cwAdd, hm]) (fun h => by subst h; rfl)
     (fun h _ => by subst h; right; simp [BSess.del, cwAdd]) (fun h => by subst h; revert Hkc; cases c <;> decide)
-    $$ Hg Hrbp Hdlp with ⟨Hg, Hrbp, Hdlp⟩
+    $$ Hbr' Hg Hrbp Hdlp with ⟨Hg, Hrbp, Hdlp⟩
   wp_apply (hBT γ P W Pk b t st bk bi key kb dk own) $$ [Htxf Hpend Hwtx $Hkey] as ⟨Hw, Hkey⟩
   · iframe #
     unfold btW
