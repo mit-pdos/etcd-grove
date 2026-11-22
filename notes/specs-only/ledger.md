@@ -4408,3 +4408,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. `serveClient` takes `len(v) < 2^63` (for `kvQ`) from the answer's slice.
   `MapFits` stays for now (the waiters' handoffs still carry it); it is removable.
 - **Decision.** Applied (the coordinator's option (a), 2026-11-22). Unchecked: no `.lake` at the time.
+
+## 2026-11-22: `credentials.NewPerRPCCredentialBundle` takes its package's initialization; `credTokInv` over the lock (prove-ps2-client)
+
+- **Spec.** `credentials.NewPerRPCCredentialBundle.spec`: pre `True` to `isPkgInit
+  pkg_id.go_etcd_io.etcd.client.v3.credentials`. `credTokInv rc P` (the definition `tokenBundleInv`,
+  `UpdateAuthToken.spec` and `GetRequestMetadata.spec` are written in): a bare invariant over `rc.authToken` to
+  `rc.authTokenMu`'s `isRWMutexGuard` over `credTokR rc P` (the field at a fraction, `""` or a `□ P` token), the
+  lock's reader tokens in a thread pool, and `isPkgInit pkg_id.sync`; the bound `threadBound GF ≤ 2^30` kept.
+- **Defect.** None in the old statements: `UpdateAuthToken` was a trust-boundary axiom because its lock had no
+  ghost state; a writer needs only the persistent guard (`RWMutex.wp_Lock_guard`), and `Lock` needs `sync`'s
+  initialization, which nothing on `UpdateAuthToken`'s path had.
+- **Evidence.** `UpdateAuthToken.wp_proof` is now a theorem over its body. `GetRequestMetadata`'s axiom is as true
+  of the new `credTokInv` (its reads are under `RLock`; every write is `UpdateAuthToken`'s, under `Lock`).
+- **Proposed change.** As above. The one caller, `newClient`, has `client/v3`'s initialization, which gives the
+  credentials package's.
+- **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).

@@ -36,8 +36,11 @@ theorem RestartNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRaw
                                                         isCluster γ N ∗
                                                           nodeVacantA γ cv.ID' x ∗
                                                             readyFits γ N ∗
-                                                              AU <{ ∃∃ S, ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @
-                                                                    ⊤ \ ↑N, ∅ <{ raftState γ cv.ID' S, COMM Q S }> ∗
+                                                              (notCrashed -∗
+                                                                  AU <{ ∃∃ S,
+                                                                      ▷ raftState γ cv.ID' S ∗ ⌜StorageHolds S σ⌝ }> @
+                                                                      ⊤ \ ↑N, ∅ <{ raftState γ cv.ID' S, COMM
+                                                                      notCrashed ∗ Q S }>) ∗
                                                                 confAt γ a m ∗
                                                                   restartStorage γ (GoInterface.ok si) σ csm
                                                                     (uint.nat cv.Applied') F SV -∗

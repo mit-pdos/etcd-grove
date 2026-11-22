@@ -257,6 +257,43 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Version.ty))) (Pair (Var "v") (Var "$r0")))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Version.ty)))) (Var "$res0")))))))))
 
+/-- MustParse parses a given version and panics on error.
+
+    go: version.go:327:6 -/
+noncomputable def MustParse.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Version.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Version.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve NewVersion []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "sv" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Version.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Version.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Version.ty)))) (Var "sv"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Version.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Version.ty)))) (Pair (Var "sv") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Version.ty)))) (Var "$res0")))))
+
 /-- Major returns the major version.
 
     go: version.go:360:18 -/
@@ -561,6 +598,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   cfunc_instance : cfunc.TypeAssumptions
   Version_instance : Version.TypeAssumptions
   New_unfold : FuncUnfold New [] New.impl
+  MustParse_unfold : FuncUnfold MustParse [] MustParse.impl
 
 attribute [instance] Assumptions.Collection_instance
   Assumptions.Constraints_instance
@@ -568,6 +606,7 @@ attribute [instance] Assumptions.Collection_instance
   Assumptions.cfunc_instance
   Assumptions.Version_instance
   Assumptions.New_unfold
+  Assumptions.MustParse_unfold
 
 end github_com.Masterminds.semver.v3
 

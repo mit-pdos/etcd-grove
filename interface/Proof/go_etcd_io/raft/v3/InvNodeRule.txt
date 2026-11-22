@@ -18,6 +18,11 @@ def isStorage (γ : Cluster) (K : GName) (st : Storage) (SV : SnapshotM → IPro
 theorem nodeRunning_stopped [package_sem : Assumptions] (n : NodeH) (γ : Cluster) (N : Namespace) (q
     : Qp) : nodeRunning n γ N q ∗ nodeStopped n γ N ⊢ False
 
+theorem restartAu_nc (γ : Cluster) (N : Namespace) (id : w64) (σ : StorContents) (Q : RaftState →
+    IProp GF) : AU <{ ∃∃ S, ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N, ∅ <{ raftState γ id
+    S, COMM Q S }> ⊢ notCrashed -∗ AU <{ ∃∃ S, ▷ raftState γ id S ∗ ⌜StorageHolds S σ⌝ }> @ ⊤ \ ↑N,
+    ∅ <{ raftState γ id S, COMM notCrashed ∗ Q S }>
+
 theorem Membership.Valid.snapListsOk {m : Membership} {cs : ConfStateM} {t i : w64} {d : List w8} :
     m.Valid → confStateIs cs m → ¬W64 0 ∈ m.ids → (∀ (k : w64), k ∈ m.learnersNext → ¬k ∈ m.voters)
     → GMap.size m.ids < 2 ^ 61 → uint.Z i < 2 ^ 61 → SnapListsOk { sid := { term' := t, index' := i

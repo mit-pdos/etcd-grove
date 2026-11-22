@@ -8,8 +8,11 @@ translate = ["!*", "MinClusterVersion", "Version", "APIVersion", "GitSHA",
   # (prove-initleft, 2026-11-21) the `semver` versions, over `semver.New`'s spec (proved since
   # 2026-11-20): their initializers translated (`etc/gen-init.py`; until then `V3_6_init` and
   # `opaqueInitsOk`)
-  "V3_0", "V3_1", "V3_2", "V3_3", "V3_4", "V3_5", "V3_6", "V3_7", "V3_8", "V3_9", "V4_0", "AllVersions"]
-imports = ["!*", "github.com/Masterminds/semver/v3"]
+  "V3_0", "V3_1", "V3_2", "V3_3", "V3_4", "V3_5", "V3_6", "V3_7", "V3_8", "V3_9", "V4_0", "AllVersions",
+  # (prove-ps2-client, 2026-11-22) `Cluster`, over `semver.NewVersion`'s spec, `fmt.Sprintf`'s
+  # model and `strings.Split`
+  "Cluster"]
+imports = ["!*", "github.com/Masterminds/semver/v3", "fmt", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
