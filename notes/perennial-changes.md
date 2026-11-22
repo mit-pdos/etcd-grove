@@ -3684,3 +3684,28 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   outgoing metadata, `streamKeyOf`) is unprovable over it.
 - **Proposed (general).** `%v`/`%+v` of a map: Go prints `map[` then the entries sorted by key (`fmt`'s
   `internal/fmtsort`), `k:v` separated by spaces, then `]`. **Status.** Recorded only.
+
+## 2026-11-22: extension state access at generation start, distributed (`goose_dist_mixed_crash_adequacy`; etcd-dist D3, branch `dist-crash-bridge`)
+
+- **Missing.** The distributed counterpart of the 2026-11-21 entry "extension state access at generation
+  start" (branch `wal-safe`, `goose_crash_adequacy`). In `Perennial/GooseLang/DistAdequacy.lean`, a
+  crashing node's generation is made by `BootWp` (`Hwp`: `P i L -∗ threadTok ={⊤}=∗ WP ∗ crashFrame`),
+  its first one through `nodeStart` and `goose_nodes_init_gen`, and a stable node's by `nodeWpBody`;
+  none of them can touch the node's extensions' local interpretation, though the proof holds the node's
+  state interpretation at each point (`goose_nodes_init_gen` after allocating `L`; `dist_crash_node`
+  after `goose_crash_step`, its `Hσ`). So a crashing machine over the Linux file extension cannot switch
+  to the shared mode (`treeCtx_switchG`) before its WP, and its crash frame cannot take what the shared
+  mode allocates. The bridge `robust_of_netFsBoot` (`Net/Statement/NetFsBridge.lean`) is therefore in
+  the legacy mode only; D4 (etcd's bundle, shared-mode generations) needs the change.
+- **Proposed (general), with the single-node one.** `BootWp`'s conclusion becomes
+  `P i L -∗ threadTok ={⊤}=∗ ∀ w, extsLocalCtx (L := L) w ={⊤}=∗ extsLocalCtx (L := L) w ∗
+  (gooseWptp [e] … ∗ crashFrame T es P i L)`, and so does `goose_dist_mixed_crash_adequacy`'s `Hwp`
+  (and `goose_dist_crash_adequacy`'s); `nodeWpBody` likewise for stable nodes. In `dist_crash_node`, apply
+  it to the node's part of `Hσ` before `bstateInterp_split` (with `wal-safe`'s `bstate_extsLocal_acc`); in
+  `goose_nodes_init_gen`, where the node's `nodeInterp` is made. Callers adapt by ignoring it
+  (`iintro %w Hext; iframe Hext`). No statement of an adequacy theorem's conclusion changes.
+- **Not worked around** (D3's scope: record and stop): a local copy would duplicate `dist_soundness`,
+  `goose_nodes_init_gen`, `dist_crash_node` and the mixed theorem (several hundred lines of
+  `DistAdequacy.lean`); D4 decides between the copy and waiting for the Perennial change.
+- **Status.** Proposed only (2026-11-22). To be designed with the single-node change as one Perennial
+  branch.
