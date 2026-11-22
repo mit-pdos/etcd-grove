@@ -261,6 +261,7 @@ IsEmptySnap: @
 # (premise-fixes-4, 2026-11-10) raft's `SetLogger`, `newRaftNode`'s callee (until then a contract)
 SetLogger: @
 zap_Duration:
+zap_Time:
 zap_Logger__Fatal:
 # (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
 # NodeApiLink's `srvApi_wp_MemAppend`)
@@ -386,7 +387,7 @@ EtcdServer__LeaseTimeToLive: EtcdServer__requireAuthInfo+C EtcdServer__checkLeas
 lease_lessor__Renew: lease_lessor__isPrimary lease_Lease__Remaining lease_Lease__refresh lease_LeaseExpiredNotifier__RegisterOrUpdate
 EtcdServer__raftStatus:
 EtcdServer__isActive: raftNode__getLatestTickTs
-EtcdServer__ensureLeadership:
+EtcdServer__ensureLeadership: EtcdServer__Logger EtcdServer__isActive raftNode__getLatestTickTs zap_Time zap_Logger__Debug config_ServerConfig__ReqTimeout EtcdServer__raftStatus EtcdServer__MemberID zap_Error zap_Uint64 zap_Logger__Warn
 EtcdServer__waitAppliedIndex: EtcdServer__getCommittedIndex
 EtcdServer__waitLeader: EtcdServer__Leader membership_RaftCluster__Member
 leasehttp_RenewHTTP:
@@ -715,7 +716,23 @@ schema_NewAlarmBackend:
 schema_NewMembershipBackend:
 mvcc_store__HashStorage:
 math_Ceil:
-lease_NewLessor:
+# (prove-ps2-newlessor5, 2026-11-21) `NewLessor` proved over the real code: `newLessor` (the lessor's
+# ghost state, `le.mu`, the backend's contract `lessorApplyOk_real`) and its expiry loop; the loop's
+# expiry payload is `Lease.expired`'s trust boundary (an axiom, `Lease__expired.lean`).
+lease_NewLessor: lease_newLessor
+lease_newLessor: lease_newLeaseExpiredNotifier lease_lessor__initAndRecover lease_lessor__runLoop backend__BatchTx batchTxBuffered__LockInsideApply batchTxBuffered__UnsafePut batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+lease_lessor__runLoop: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop lease_lessor__revokeExpiredLeases lease_lessor__checkpointScheduledLeases
+lease_lessor__revokeExpiredLeases: lease_lessor__isPrimary lease_lessor__findExpiredLeases
+lease_lessor__findExpiredLeases: lease_lessor__expireExists lease_Lease__expired
+lease_Lease__expired:
+lease_lessor__expireExists: lease_LeaseExpiredNotifier__Len lease_LeaseExpiredNotifier__Peek lease_LeaseExpiredNotifier__Unregister lease_LeaseExpiredNotifier__RegisterOrUpdate
+lease_LeaseExpiredNotifier__Len:
+lease_LeaseExpiredNotifier__Peek: lease_LeaseExpiredNotifier__Len
+lease_LeaseExpiredNotifier__Unregister: lease_LeaseQueue__Len lease_LeaseQueue__Less lease_LeaseQueue__Swap lease_LeaseQueue__Push lease_LeaseQueue__Pop heap_Pop
+lease_LeaseQueue__Pop:
+heap_Pop: heap_down
+lease_lessor__checkpointScheduledLeases: lease_lessor__isPrimary lease_lessor__findDueScheduledCheckpoints
+lease_lessor__findDueScheduledCheckpoints:
 # (the auth plan's E2g, 2026-10-25) the token provider's constructor proved: the options'
 # decomposition, the simple and no-op providers' constructors; the JWT provider's an axiom (`crypto`,
 # `golang-jwt`: its spec's docstring)

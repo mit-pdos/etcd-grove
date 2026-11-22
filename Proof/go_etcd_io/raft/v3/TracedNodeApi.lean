@@ -134,8 +134,10 @@ abbrev StartNode.tracedSpec : Prop :=
   csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
   csm.AutoLeave' = false →
   vs = pv.map Peer.ID' →
+  -- (2026-11-21, the crash invariant) the id's vacancy armed at `x` (`nodeVacant_arm`)
+  ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacant γ cv.ID' ∗
+      nodeBoot γ N vs ctxs cv.ID' ∗ nodeVacantA γ cv.ID' x ∗
       AU <{ ∃∃ (S : RaftState), raftState γ cv.ID' S ∗ ⌜S = RaftState.init⌝ }> @ ⊤ \ ↑N, ∅
          <{ raftState γ cv.ID' S, COMM Q }> ∗
       restartStorage γ (interface.ok si) ⟨hsZero, none, entryID.mk (W64 0) (W64 0), []⟩ csm 0 F ∗
@@ -146,7 +148,7 @@ abbrev StartNode.tracedSpec : Prop :=
         nodeStartedFresh n γ N vs ctxs cv.ID' ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si) K) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ ∗
-        nodeRunning n γ N 1 ∗ Q ∗ F K ∗ peers ↦*{dq} pv ∗ startDone γ cv.ID' }}
+        nodeRunning n γ N 1 ∗ nodeArm n γ x ∗ Q ∗ F K ∗ peers ↦*{dq} pv ∗ startDone γ cv.ID' }}
 
 omit [StorageModel GF] sem package_sem in
 /-- The empty bag represents the empty list. -/

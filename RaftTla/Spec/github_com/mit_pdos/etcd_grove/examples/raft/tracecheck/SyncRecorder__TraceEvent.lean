@@ -34,7 +34,8 @@ abbrev SyncRecorder.TraceEvent.spec : Prop :=
   ∀ (γt : GName) (r p : Loc) (e : TraceEv) (Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck ∗
       isSyncRecorder γt r ∗ tracingEventRep p e ∗
-      (AU <{ ∃∃ L, traceAuth (GF := GF) γt L }> @ ⊤, ∅ <{ traceAuth γt (L ++ [e]), COMM Q }>) }}
+      (AU <{ ∃∃ L, traceAuth (GF := GF) γt L }> @ ⊤, ∅
+        <{ traceAuth γt (L ++ [e]) ∗ notCrashed, COMM notCrashed ∗ Q }>) }}
     (App (Val (r @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.SyncRecorder.ty
       @!! go!"TraceEvent")) (Val #p))
   {{ RET #(); Q }}

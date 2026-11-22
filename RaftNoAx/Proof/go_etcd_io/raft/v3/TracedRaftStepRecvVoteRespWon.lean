@@ -169,7 +169,8 @@ theorem wonGate_bl (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : L
       HookGate (some γd) r (NodeEvOf (W64 3) id (becomeLeaderPre id (votedState s m)) c)
         (wonB1 γ md c r id s m γd C0 cs1 P0) := by
   iintro ⟨#Hm, Hgh, Hc⟩
-  iapply hookGate_fupd
+  iapply hookGate_nc
+  iintro Hnc
   imod ownStepGhost_traceOk γ md c id s hfit $$ Hgh with ⟨%Hb, Hgh⟩
   -- raft's facts of the candidate's log
   iunfold ownStepGhost at Hgh
@@ -180,8 +181,8 @@ theorem wonGate_bl (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : L
   ihave Hgh : ownStepGhost γ md c id s $$ [Hg Hrest]
   · iunfold ownStepGhost; iframe Hg Hrest
   -- the registration
-  imod ghost_stepWin_reg γ md c id s m ents hto hterm hrole hq $$ Hm Hgh
-    with ⟨#Hl, %fp, %Hfp, #Hcp, -, %γm, %terms, %Hfree, Ha, Hw⟩
+  imod ghost_stepWin_reg γ md c id s m ents hto hterm hrole hq $$ Hnc Hm Hgh
+    with ⟨Hnc, #Hl, %fp, %Hfp, #Hcp, -, %γm, %terms, %Hfree, Ha, Hw⟩
   have hfp : fp = [] := by
     have h := Hfp.1; rw [show (toPState s).base = base0 from hb0, base0_index] at h
     exact List.eq_nil_of_length_eq_zero (by omega)
@@ -197,6 +198,7 @@ theorem wonGate_bl (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : L
     have := Hok.2.2; rw [hL] at this; exact this
   icases trCapB_logger γd γ r id c true _ _ $$ Hc with ⟨%tl, #Htl, Hc⟩
   imodintro
+  iframe Hnc
   iapply hookGate_mono (some γd) r _
     iprop(trCapB (some γd) γ r id c true (PinAt (wonL id s m) C0 (leaderC (confAbs C0) (idAbs id) cs1) P0 s.outbox)
       (fun o => o.isSome = true) ∗ (leadFull γ s.term (toPState s).log ∗ winGhost γ md c id s m))
@@ -248,9 +250,10 @@ theorem wonGate_rep (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : 
   have hsa : MsgTrOk γ (selfAck id (becomeLeaderLog id (votedState s m))) := fun _ => by
     rw [← selfAck_wonLg]
     exact selfAck_trOk id _ (by show uint.Z s.term < traceNumBound; omega) (by rw [hll]; omega)
-  iapply hookGateN_fupd
+  iapply hookGateN_nc
+  iintro Hnc
   imod ghost_stepWin_entry γ md c id s m ents (wonPvs id (logLast s.logst) s.prvals) hTy hto hterm hrole Hid hq
-    (wonPvs_reset _ _ _ Hid) Hnw hsa $$ Hm Hrc Hwg with Hgh
+    (wonPvs_reset _ _ _ Hid) Hnw hsa $$ Hnc Hm Hrc Hwg with ⟨Hnc, Hgh⟩
   icases trCapB_logger γd γ r id c true _ _ $$ Hc with ⟨%tl, #Htl, Hc⟩
   ihave Hc := trCapB_mono (some γd) γ r id c true _
     (RepPin (wonL id s m) [zero_val EntryM] s.outbox C0 (leaderC (confAbs C0) (idAbs id) cs1) P0 0) _
@@ -259,6 +262,7 @@ theorem wonGate_rep (γd : GName) (γ : RaftNames) (md : GMode) (c : CfgM) (r : 
     (leaderC (confAbs C0) (idAbs id) cs1) P0 hidC hbl0 hcl (by omega) $$ []
   · iframe Hf Hl Hcp Hr Hcm Hci
   imodintro
+  iframe Hnc
   rw [show NodeEvOf (W64 5) id (becomeLeaderPre id (votedState s m)) c = NodeEvOf (W64 5) id (wonL id s m) c
     from rfl]
   iapply hookGateN_mono (some γd) r _ _

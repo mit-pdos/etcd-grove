@@ -41708,3 +41708,89 @@ uses a static cluster. [Regression and fix](../issues/raft-witness-joint-progres
   field) returned a type error for a string with an escape sequence, which the real Unmarshal
   unescapes and decodes; it now panics (NotModelled) on any escape there, as `Str` does elsewhere.
   Found by the mutation tests of the reworked generator; the old per-type tests had no escapes.
+
+## Raft's crash law: the crash invariant, the token through every ghost step (2026-11-21 · the coordinating session · branch `worktree-agent-aa878c2e224f33d0c`)
+
+`notes/raft-crash-law-design.md`, sections (b1), (f), (g), (h), (i); `notes/kvnet-proof-plan.md`
+decision A. A replica killed at any instruction must leave its id restartable.
+
+**Ghost state.**
+- Per arm of an id, the crash invariant
+  `nodeCrashInv γ id x := inv (crashN γ id x) ((∃ X, views ½ X ∗ slotX X) ∨ crashed ∗ tok)` holds the
+  six timeless pieces of `raftIdSlot`: `V`'s half, `slotLive 1 g`, and the authorities of
+  terms, wins, lcm and rqm. `x : CrashNames` names the views and the token.
+- `ownRaftGhost`/`ownLogGhost`/`lcmOwn`/`rdOwn` and the client's and run's generation shares hold view
+  halves in their place.
+- The arm's names are carried in `NodeNames`. A stop agrees the run's names with the client's (two
+  armed invariants of one id would both hold the full `terms` authority; the namespace includes the
+  names).
+
+**API.**
+- `nodeVacant_arm`, `nodeCrash`.
+- `StartNode`/`RestartNode` take the armed vacancy `nodeVacantA`, and `node.Stop` gives it back.
+- `readyEnter` and `Ready`'s enter wand are crash-token updates (`ncfupd`).
+
+**Why the token everywhere** (the two gaps found in implementation):
+- The traced win lends the term map's authority across the trace line (f).
+- Ordinary steps (votes, heartbeats, appends, snapshots, read index) read the slot's half of `V`
+  against the entered maps (`slot_open`) (g).
+
+A thread needs `notCrashed` not only to update state a crash may change but also to read state a
+later generation changes (h). So every ghost step takes the token: `ncfupd`,
+`wp_ncfupd`/`wp_ncfupd_post` (`GooseLang/NotCrashed.lean`, proved).
+
+**Rejected.**
+- Fresh names per incarnation (b2): new cross-generation protocol reasoning.
+- A per-generation slot name for `V` (h): it does not remove the token.
+- (b3) deferred.
+
+**Applying it** (2026-11-21, the implementing session):
+- The cut runs inside the `readyc` send's atomic update, where no client step supplies the token
+  (design note (j)). Option 1 was chosen: channel updates that carry `notCrashed`, a Perennial
+  change (branch `nc-chan`). `node.run`'s proof waits for it.
+- "Same `x`" across a stop: `StartNode`/`RestartNode` give a persistent `nodeArm n γ x`, and
+  `node.Stop` gives `∃ x, nodeVacantA γ id x ∗ nodeArm n γ x`. `nodeArm_agree` ties the result to the
+  start, so `node.Stop`'s precondition did not change.
+- A client whose crash is `node.Stop`'s arms with `nodeVacant_armD`, which drops the crash token, and
+  keeps `∃ x, nodeVacantA …`. This covers kv, kvreconf, kvdurable and the server.
+- kvdurable enters inside the durable write's update. So the durable `Write.spec` lends the token when
+  the update opens (`wp_atomic_nc` at the extension's atomic step: a new `Language.Atomic` instance
+  for its `"Write"`).
+- A client with its own `[AllG GF]` (kvdurable) names the token by the notation `notCrashedG`,
+  which is the state interpretation's `gooseAllG` instance. A bare `notCrashed` would resolve to the
+  client's own instance and not match raft's.
+
+## Protobuf stage 0': the schemas generated from `models/pbdesc`, a candidate wire semantics (2026-11-21 · proving session 2, #18 · branch `prove-ps2-pbwire/2026-11-21`; scoped by kaashoek's review, #20 item 2 (b))
+
+- **The schemas** (`PbSchema.lean`: the `FieldSchema` constants and `pbSchemaOf`, trusted) are
+  generated from the registered descriptors by `etc/gen-pbschema.py` (it runs `models/pbdesc` in
+  `examples/`, the one descriptor source pbgen reads), between marker lines of the file, with
+  `--check` in `etc/gates.sh` (`goose` section). The header, the `pbSchemaOf_*` lemmas and the
+  `PbGoType` instances stay hand-written: they are proved, not trusted. Why a region, not a
+  generated module: the file's importers, its RaftNoAx copy (`etc/copy-part.py`) and
+  `etc/PbSchemaDump.lean` (which reads `pbSchemaOf`'s `if ty = X.ty` chain) are unchanged. The
+  generated schemas and `pbSchemaOf` are exactly the hand-written ones (definitions unchanged);
+  only the docstrings changed, from hand-written `raft.proto:LINES` citations to the descriptor's
+  facts (file, syntax, each field's number, name, cardinality and kind), since the dump has no
+  source lines. `etc/pbschema-check.py` stays: it checks the registrations' reach and D1's size
+  bound, which the generator does not.
+- **The candidate wire semantics** `Proof/google_golang_org/protobuf/proto/PbWire.lean`: total,
+  computable `encode`/`decode` of a message value against a descriptor (protobuf-go v1.36.12's
+  `proto.Marshal`/`Unmarshal`, cited per rule), structural recursion (small cases reduce by
+  `rfl`). **Nothing trusts it**: no axiom, spec or proof imports it; pbgen stays the trusted
+  protobuf implementation (2026-11-19) until upamanyus and kaashoek settle #20 item 2 (a). Two
+  protobuf-go facts the plan had not stated: a message's oneofs are written after all its other
+  fields, in the oneofs' declaration order, not by number (`codec_message.go:177-184`, "marshal
+  oneofs last"; found by the vectors: the first draft wrote a oneof at its first member's number);
+  the fast path does not check closed (proto2) enums' values on decode.
+- **Its evidence**: `examples/pbwire` (Go) builds random messages of 24 root types (raftpb,
+  walpb, etcdserverpb with its oneofs, mvccpb, authpb, leasepb, and `xpb`, a copy of
+  `models/internal/pbdifftest/xpb` for the kinds etcd lacks) on the real generated structs,
+  marshals them with protobuf-go and, for the types in pbgen's subset (its own
+  `protobuf.toml`), with pbgen's codec, which must agree; unmarshals the encodings, their
+  concatenations (merges), mutations and crafted records (every wire type at known and unknown
+  numbers, non-minimal tags and varints, overflow, groups, cut values, bad UTF-8); and writes
+  descriptors (from `models/pbdesc`), inputs and outcomes as `PbWireVectors.lean`, whose `#guard`s
+  compare the Lean semantics with every vector at each build, with the recursion limits (10000
+  messages, 10001 groups) as Lean-side constructions. The Go test fails if the committed module is
+  not what it writes (`PBWIRE_UPDATE=1` rewrites it); it runs in `etc/gates.sh`'s `models` section.

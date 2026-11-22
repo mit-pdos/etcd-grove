@@ -280,6 +280,7 @@ public import Proof.fmt.SprintfArgs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Init_
+public import Proof.container.heap.Pop
 public import Proof.container.heap.Push
 public import Proof.container.heap.down
 public import Proof.container.heap.up
@@ -296,14 +297,19 @@ public import Proof.encoding.json.MarshalConfigChangeContext
 public import Proof.encoding.json.MarshalMember
 public import Proof.encoding.json.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Init
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Len
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Peek
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__Unregister
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Less
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Pop
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Push
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Swap
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Keys
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__Remaining
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__TTL
+public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__expired
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__forever
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__getRemainingTTL
 public import Proof.go_etcd_io.etcd.server.v3.lease.Lease__persistTo
@@ -329,14 +335,21 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Renew
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Revoke
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Stop
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__checkpointScheduledLeases
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__clearLeaseExpiredNotifier
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__clearScheduledLeasesCheckpoints
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__expireExists
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__findDueScheduledCheckpoints
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__findExpiredLeases
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__initAndRecover
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__revokeExpiredLeases
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__runLoop
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__unsafeLeases
 public import Proof.go_etcd_io.etcd.server.v3.lease.newLeaseExpiredNotifier
+public import Proof.go_etcd_io.etcd.server.v3.lease.newLessor
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP
 public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
@@ -635,6 +648,7 @@ public import Proof.go_uber_org.zap.Logger__Debug
 public import Proof.go_uber_org.zap.Logger__Fatal
 public import Proof.go_uber_org.zap.Stringer
 public import Proof.go_uber_org.zap.Strings
+public import Proof.go_uber_org.zap.Time
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.net.http.Axioms
 public import Perennial.Proof.time.Link
@@ -886,6 +900,18 @@ theorem membership.RaftCluster.wp_ID :
     membership.RaftCluster.ID.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ID.wp_proof
 
+theorem zap.wp_Time :
+    zap.Time.spec (GF := GF) (hG := hG) :=
+  zap.Time.wp_proof
+
+theorem zap.Logger.wp_Debug :
+    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
+  zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
+
+theorem zap.wp_Uint64 :
+    zap.Uint64.spec (GF := GF) (hG := hG) :=
+  zap.Uint64.wp_proof
+
 theorem membership.RaftCluster.wp_Member :
     membership.RaftCluster.Member.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.Member.wp_proof membership.Member.wp_Clone
@@ -1006,10 +1032,6 @@ theorem context.wp_TODO :
     context.TODO.spec (GF := GF) (hG := hG) :=
   context.TODO.wp_proof
 
-theorem zap.Logger.wp_Debug :
-    zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
-  zap.Logger.Debug.wp_proof zap.Logger.wp_check zapcore.CheckedEntry.wp_Write
-
 theorem binary.wp_ReadUint64 :
     binary.ReadUint64.spec (GF := GF) (hG := hG) :=
   binary.ReadUint64.wp_proof _root_.Perennial.encoding.binary.bigEndian.wp_Uint64
@@ -1017,10 +1039,6 @@ theorem binary.wp_ReadUint64 :
 theorem fmt.wp_SprintfArgs :
     fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
   fmt.SprintfArgs.wp_proof
-
-theorem zap.wp_Uint64 :
-    zap.Uint64.spec (GF := GF) (hG := hG) :=
-  zap.Uint64.wp_proof
 
 theorem prometheus.GaugeVec.wp_WithLabelValues :
     prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
@@ -1494,13 +1512,37 @@ theorem math.wp_Ceil :
     math.Ceil.spec (GF := GF) (hG := hG) :=
   math.Ceil.wp_proof
 
-theorem lease.lessor.wp_clearScheduledLeasesCheckpoints :
-    lease.lessor.clearScheduledLeasesCheckpoints.spec (GF := GF) (hG := hG) :=
-  lease.lessor.clearScheduledLeasesCheckpoints.wp_proof
-
 theorem lease.wp_newLeaseExpiredNotifier :
     lease.newLeaseExpiredNotifier.spec (GF := GF) (hG := hG) :=
   lease.newLeaseExpiredNotifier.wp_proof
+
+theorem lease.LeaseExpiredNotifier.wp_Len :
+    lease.LeaseExpiredNotifier.Len.spec (GF := GF) (hG := hG) :=
+  lease.LeaseExpiredNotifier.Len.wp_proof
+
+theorem lease.LeaseExpiredNotifier.wp_Peek :
+    lease.LeaseExpiredNotifier.Peek.spec (GF := GF) (hG := hG) :=
+  lease.LeaseExpiredNotifier.Peek.wp_proof lease.LeaseExpiredNotifier.wp_Len
+
+theorem lease.LeaseQueue.wp_Pop :
+    lease.LeaseQueue.Pop.spec (GF := GF) (hG := hG) :=
+  lease.LeaseQueue.Pop.wp_proof
+
+theorem lease.Lease.wp_expired :
+    lease.Lease.expired.spec (GF := GF) (hG := hG) :=
+  lease.Lease.expired.wp_proof
+
+theorem lease.lessor.wp_findDueScheduledCheckpoints :
+    lease.lessor.findDueScheduledCheckpoints.spec (GF := GF) (hG := hG) :=
+  lease.lessor.findDueScheduledCheckpoints.wp_proof
+
+theorem lease.lessor.wp_checkpointScheduledLeases :
+    lease.lessor.checkpointScheduledLeases.spec (GF := GF) (hG := hG) :=
+  lease.lessor.checkpointScheduledLeases.wp_proof lease.lessor.wp_isPrimary lease.lessor.wp_findDueScheduledCheckpoints
+
+theorem lease.lessor.wp_clearScheduledLeasesCheckpoints :
+    lease.lessor.clearScheduledLeasesCheckpoints.spec (GF := GF) (hG := hG) :=
+  lease.lessor.clearScheduledLeasesCheckpoints.wp_proof
 
 theorem lease.lessor.wp_clearLeaseExpiredNotifier :
     lease.lessor.clearLeaseExpiredNotifier.spec (GF := GF) (hG := hG) :=
@@ -1925,9 +1967,21 @@ theorem EtcdServer.wp_LeaseLeases [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaseLeases.wp_proof lease.lessor.wp_Leases EtcdServer.wp_checkLeaseLeases EtcdServer.wp_newHeader
 
+theorem raftNode.wp_getLatestTickTs :
+    raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
+  raftNode.getLatestTickTs.wp_proof
+
+theorem EtcdServer.wp_isActive :
+    EtcdServer.isActive.spec (GF := GF) (hG := hG) :=
+  EtcdServer.isActive.wp_proof raftNode.wp_getLatestTickTs
+
+theorem EtcdServer.wp_raftStatus :
+    EtcdServer.raftStatus.spec (GF := GF) (hG := hG) :=
+  EtcdServer.raftStatus.wp_proof
+
 theorem EtcdServer.wp_ensureLeadership :
     EtcdServer.ensureLeadership.spec (GF := GF) (hG := hG) :=
-  EtcdServer.ensureLeadership.wp_proof
+  EtcdServer.ensureLeadership.wp_proof EtcdServer.wp_Logger EtcdServer.wp_isActive raftNode.wp_getLatestTickTs zap.wp_Time zap.Logger.wp_Debug config.ServerConfig.wp_ReqTimeout EtcdServer.wp_raftStatus EtcdServer.wp_MemberID zap.wp_Error zap.wp_Uint64 zap.Logger.wp_Warn
 
 theorem EtcdServer.wp_waitAppliedIndex :
     EtcdServer.waitAppliedIndex.spec (GF := GF) (hG := hG) :=
@@ -2829,18 +2883,6 @@ theorem EtcdServer.wp_Watchable :
     EtcdServer.Watchable.spec (GF := GF) (hG := hG) :=
   EtcdServer.Watchable.wp_proof EtcdServer.wp_KV
 
-theorem raftNode.wp_getLatestTickTs :
-    raftNode.getLatestTickTs.spec (GF := GF) (hG := hG) :=
-  raftNode.getLatestTickTs.wp_proof
-
-theorem EtcdServer.wp_isActive :
-    EtcdServer.isActive.spec (GF := GF) (hG := hG) :=
-  EtcdServer.isActive.wp_proof raftNode.wp_getLatestTickTs
-
-theorem EtcdServer.wp_raftStatus :
-    EtcdServer.raftStatus.spec (GF := GF) (hG := hG) :=
-  EtcdServer.raftStatus.wp_proof
-
 theorem EtcdServer.wp_requireAuthInfo :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
   EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
@@ -3005,9 +3047,37 @@ theorem membership.RaftCluster.wp_SetVersionChangedNotifier :
     membership.RaftCluster.SetVersionChangedNotifier.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 
+theorem heap.wp_Pop :
+    heap.Pop.spec (GF := GF) (hG := hG) :=
+  heap.Pop.wp_proof heap.wp_down
+
+theorem lease.LeaseExpiredNotifier.wp_Unregister :
+    lease.LeaseExpiredNotifier.Unregister.spec (GF := GF) (hG := hG) :=
+  lease.LeaseExpiredNotifier.Unregister.wp_proof lease.LeaseQueue.wp_Len lease.LeaseQueue.wp_Less lease.LeaseQueue.wp_Swap lease.LeaseQueue.wp_Push lease.LeaseQueue.wp_Pop heap.wp_Pop
+
+theorem lease.lessor.wp_expireExists :
+    lease.lessor.expireExists.spec (GF := GF) (hG := hG) :=
+  lease.lessor.expireExists.wp_proof lease.LeaseExpiredNotifier.wp_Len lease.LeaseExpiredNotifier.wp_Peek lease.LeaseExpiredNotifier.wp_Unregister lease.LeaseExpiredNotifier.wp_RegisterOrUpdate
+
+theorem lease.lessor.wp_findExpiredLeases :
+    lease.lessor.findExpiredLeases.spec (GF := GF) (hG := hG) :=
+  lease.lessor.findExpiredLeases.wp_proof lease.lessor.wp_expireExists lease.Lease.wp_expired
+
+theorem lease.lessor.wp_revokeExpiredLeases :
+    lease.lessor.revokeExpiredLeases.spec (GF := GF) (hG := hG) :=
+  lease.lessor.revokeExpiredLeases.wp_proof lease.lessor.wp_isPrimary lease.lessor.wp_findExpiredLeases
+
+theorem lease.lessor.wp_runLoop :
+    lease.lessor.runLoop.spec (GF := GF) (hG := hG) :=
+  lease.lessor.runLoop.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop lease.lessor.wp_revokeExpiredLeases lease.lessor.wp_checkpointScheduledLeases
+
+theorem lease.wp_newLessor :
+    lease.newLessor.spec (GF := GF) (hG := hG) :=
+  lease.newLessor.wp_proof lease.wp_newLeaseExpiredNotifier lease.lessor.wp_initAndRecover lease.lessor.wp_runLoop backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_UnsafePut backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
 theorem lease.wp_NewLessor :
     lease.NewLessor.spec (GF := GF) (hG := hG) :=
-  lease.NewLessor.wp_proof
+  lease.NewLessor.wp_proof lease.wp_newLessor
 
 theorem wp_newCorruptionChecker :
     newCorruptionChecker.spec (GF := GF) (hG := hG) :=

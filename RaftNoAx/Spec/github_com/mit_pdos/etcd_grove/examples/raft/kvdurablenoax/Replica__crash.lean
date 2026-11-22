@@ -36,7 +36,7 @@ abbrev Replica.crash.spec : Prop :=
   ∀ (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Loc),
   {{ repStop γ vs dir id r }}
     (App (Val (r @!! go.GoType.PointerType kReplicaTy @!! go!"crash")) (Val #()))
-  {{ RET #(); nodeVacant γ.r.cluster id ∗ ∃ (S : RaftState) (o : Option StorFile), kdWriter γ id S o }}
+  {{ RET #(); (∃ x, nodeVacantA γ.r.cluster id x) ∗ ∃ (S : RaftState) (o : Option StorFile), kdWriter γ id S o }}
 
 end spec
 
