@@ -289,7 +289,7 @@ def newvar_steps(x, cell=False, errorf=None):
     pre = ['try wp_auto']
     if cell:
         return pre + [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{x} ⟨#M{x}, #C{x}⟩']
-    return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+    return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#_, #M{x}⟩']
 
 def newvars_cfg(cfg, names, cell=False, errorf={}):
     """Add the translated `errors.New` variables `names` to the package config `cfg` (those in
@@ -528,7 +528,7 @@ Perennial's `errors.wp_New_errorString`); the other variables' errors are `*erro
     imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.NewVar', 'Proof.errors.ErrorStringOk'],
     alloc_types={x: 'GoInterface' for x in _BBOLT_ERRS},
     vars=['[_root_.Perennial.errors.Assumptions]'],
-    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#_, #M{x}⟩']
                  for x in _BBOLT_ERRS}, **{'$end': ['try wp_auto']}),
     finish=[f'ipersist H{x}' for x in _BBOLT_ERRS] + FIN_PRE + ['iexists _', 'iframe HErrBucketNotFound',
             'isplitr', '· ipureintro',
@@ -619,7 +619,7 @@ translated since 2026-11-17, `Code/go_etcd_io/bbolt.toml`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
                      discardLogger='GoInterface', DefaultOptions='Loc'),
-    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
+    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS ⟨#_, #MS⟩'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
                 'ihave #Hev : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []',
@@ -727,18 +727,18 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
         'ihave #Hos := _root_.Perennial.internal.oserror.isInit_access $$ {Hd:internal.oserror}',
         'icases Hos with ⟨#VIn, #VPe, #VEx, #VNE, #VCl⟩',
         'iunfold _root_.Perennial.errors.newVar at VIn VPe VEx VNE VCl',
-        'icases VIn with ⟨%xIn, #OIn, #EIn⟩',
-        'icases VPe with ⟨%xPe, #OPe, #EPe⟩',
-        'icases VEx with ⟨%xEx, #OEx, #EEx⟩',
-        'icases VNE with ⟨%xNE, #ONE, #ENE⟩',
-        'icases VCl with ⟨%xCl, #OCl, #ECl⟩',
+        'icases VIn with ⟨%xIn, #OIn, #_, #EIn⟩',
+        'icases VPe with ⟨%xPe, #OPe, #_, #EPe⟩',
+        'icases VEx with ⟨%xEx, #OEx, #_, #EEx⟩',
+        'icases VNE with ⟨%xNE, #ONE, #_, #ENE⟩',
+        'icases VCl with ⟨%xCl, #OCl, #_, #ECl⟩',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrInvalid',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrPermission',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrExist',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrNotExist',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrClosed',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD #ESD',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA #ESA']},
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD ⟨#_, #ESD⟩',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA ⟨#_, #ESA⟩']},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
 
@@ -791,7 +791,7 @@ SPECIAL['bufio'] = dict(
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=_ALLOC_ANY,
     # (#23, 2026-11-22: keyed `errorRune` until it was skipped, goose `[[skip]]`; it ran last)
-    before={'$end': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} #E{i}'
+    before={'$end': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} ⟨#_, #E{i}⟩'
                      for i in range(len(_BUFIO_ERRS))]},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
@@ -820,7 +820,7 @@ for _p, _k in [('internal.filepathlite', '$end'), ('path.filepath', '$end'), ('k
     SPECIAL[_p] = dict(
         imports=['Perennial.Proof.errors.NewVar'],
         alloc_types=_ALLOC_ANY,
-        before={_k: ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 #E0']},
+        before={_k: ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 ⟨#_, #E0⟩']},
         finish=['iframe Hown', 'is_pkg_init_finish'],
     )
 
@@ -847,7 +847,7 @@ initializers of its protobuf descriptors and its `init` function, which the trus
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.''',
     imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm', 'Proof.errors.ErrorStringOk'],
     alloc_types={'ErrCRCMismatch': 'GoInterface'},
-    before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC',
+    before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC ⟨#_, #EC⟩',
                                'try wp_auto']},
     finish=['ipersist HErrCRCMismatch', 'ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ {Hd:errors}'] +
            FIN_PRE[:6] + [
@@ -868,7 +868,7 @@ outcome.''',
     vars=['[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]'],
     alloc_types={'linuxLockFile': 'GoFunc', 'linuxTryLockFile': 'GoFunc', 'wrlck': 'syscall.Flock_t',
                  'ErrLocked': 'GoInterface'},
-    before={'ErrLocked': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xL #EL',
+    before={'ErrLocked': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xL ⟨#_, #EL⟩',
                           'try wp_auto']},
     after={'init.«0»': [
         "wp_apply (_root_.Perennial.EtcdGrove.syscall.FcntlFlock.wp_getlk _ _ _) $$ getlk as %e ⟨%v', Hv, %hv⟩",
@@ -988,7 +988,7 @@ says returns.''',
     before=dict({x: metric_steps_to(x, k, f'EtcdGrove.wal.{t}') for x, k, t in
                  [('walFsyncSec', 'hist', 'histSpec'), ('walWriteSec', 'hist', 'histSpec'),
                   ('walWriteBytes', 'gauge', 'gaugeAddSpec')]},
-                **{x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #E{t}',
+                **{x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} ⟨#_, #E{t}⟩',
                      'try wp_auto'] for x, t in _WAL_NEW_ERRS},
                 ErrCRCMismatch=['try wp_auto',
                     'ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []',
@@ -1064,13 +1064,13 @@ literal).''',
     before={'$end': [
         'set_option maxRecDepth 20000 in',
         'wp_apply _root_.Perennial.sync.wp_OnceValue as %cfr -',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC #EFC',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xND #END',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC ⟨#_, #EFC⟩',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xND ⟨#_, #END⟩',
         'ipersist HErrNoDeadline',
         'wp_alloc_anon',
         'wp_auto',
         'ipersist HErrDeadlineExceeded',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP #ENP']},
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP ⟨#_, #ENP⟩']},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
 
@@ -1767,7 +1767,7 @@ untranslated initializers (`opaqueInitsOk`), but the one the fact reads, `Cluste
 trust-boundary axiom `ClusterVersionMetrics_init`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types={x: 'GoInterface' for x in _MEMBERSHIP_ERRS},
-    before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+    before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#_, #M{x}⟩']
             for x in _MEMBERSHIP_ERRS},
     finish=['ipersist HClusterVersionMetrics'] +
         [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] + FIN_PRE[:6] +
@@ -3769,7 +3769,7 @@ their translated initializers (prove-k8s, 2026-11-20; until then the trust-bound
 `ForeverTestTimeout` (a constant product), `NeverStop` (a fresh channel), `jitterRand` (a function
 value) and `var _ context.Context = channelContext{}`.''',
     alloc_types=_ALLOC_ANY,
-    before={'ErrWaitTimeout': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xW #MW',
+    before={'ErrWaitTimeout': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xW ⟨#_, #MW⟩',
                                'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto'],
             'NeverStop': ['try wp_auto', 'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩', 'try wp_auto']})
 _LB = 'k8s_io.apimachinery.pkg.labels'

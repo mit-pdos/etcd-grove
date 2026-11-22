@@ -71,7 +71,7 @@ noncomputable def Every.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Limit.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "interval")) (Val #(W64 0)))))
-  (Let "$r0" (Val Inf)
+  (Let "$r0" (Val #(W64 9218868437227405311))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -311,7 +311,7 @@ noncomputable def Limiter.reserveN.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (App (Val (GoInstruction (GoOp GoSub go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (Var "$r0")))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Limit.ty))) (Pair (App (Val (GoInstruction (GoLoad Limit.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Val Inf))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals Limit.ty))) (Pair (App (Val (GoInstruction (GoLoad Limit.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Val #(W64 9218868437227405311)))))
   (Let "$r0" (Let "$v0" (Val #true)
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
@@ -410,7 +410,7 @@ noncomputable def Limit.durationFromTokens.impl [GooseExts] [GoGlobalContext] : 
   (Let "limit" (App (Val (GoInstruction (GoAlloc Limit.ty))) (Var "limit"))
   (Let "tokens" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "tokens"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "limit")))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (Val #(W64 1000000000)))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "limit")))) (Val #(W64 4741671816366391296))))
   (Let "duration" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon

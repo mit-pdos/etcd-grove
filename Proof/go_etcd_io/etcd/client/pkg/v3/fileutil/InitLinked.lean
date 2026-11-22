@@ -87,7 +87,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrLocked))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xL #EL
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xL ⟨#_, #EL⟩
   try wp_auto
   -- translated initializer of wrlck))
   -- translated initializer of linuxTryLockFile))
