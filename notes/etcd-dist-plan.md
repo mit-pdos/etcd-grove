@@ -392,13 +392,14 @@ rule; kept as "all tried, none succeeded").
 `encIn`, `encOut`), the answers that are not outputs (`unkAns i v`) and the update a slot hands to
 the far side (`upd i Φ`). A store is one (`RBase.svc`: `unkAns i v := v = unk i`, `upd := slotUpd R`;
 `remoteAddr R a` is `svcAddr R.svc a`), and so is **a report** (`reportSvc W P Q`: the far side's loop
-on `i` answers an output `o` with `Q i o`, its postcondition, persistent or transferable;
-`upd i Φ := ∀ o, Q i o -∗ Φ o`; `unkAns := False`). The codec splits: `wireOk S cd` (`EncIn`,
+on `i`, given `P i` by the dialer (what the orchestrator established before the call: auth's set-up,
+a writer's Puts being in `tried`), answers an output `o` with `Q i o`, its postcondition, persistent
+or transferable; `upd i Φ := P i ∗ ∀ o, Q i o -∗ Φ o`; `unkAns := False`). The codec splits: `wireOk S cd` (`EncIn`,
 `DecIn`, `EncOut`, `DecOut`: all `Report` and the serving side use; a report's codec leaves
 `IsRead`/`Unknown`/`IsUnknown` nil) under a store's `codecOk` (`codecOk_wireOk`). The serving side's
 counterpart: `svcOp S tok op` (given `S.upd i Φ`, `op` answers an output with `Φ` of it or an
 answer `unkAns i v`), met by a store's `opMaybe` (`opMaybe_svcOp`) and by a report's loop
-`reportOp W P Q tok op` (`{tok sys} op(sys, iv i) {v. tok sys ∗ ∃ o, v = ov o ∗ Q i o}`,
+`reportOp W P Q tok op` (`{tok sys ∗ P i} op(sys, iv i) {v. tok sys ∗ ∃ o, v = ov o ∗ Q i o}`,
 `reportOp_svcOp`). `attempt`, `serveConn`, `Serve`, `ServeClient` and `listen` are now stated over
 `S : RSvc` (wire and update generic, same proofs); `Do`, `Run`, `Check` over a store, unchanged.
 `Report.spec`:
@@ -409,7 +410,7 @@ answer `unkAns i v`), met by a store's `opMaybe` (`opMaybe_svcOp`) and by a repo
     {{ (v : GoInterface) (ok : Bool), RET (v, ok);
         ⌜ok = false⌝ ∨ (⌜ok = true⌝ ∗ ((∃ o, ⌜v = S.ov o⌝ ∗ Φ o) ∨ ⌜S.unkAns i v⌝)) }}
 
-For a report, `Φ := Q i` and the caller hands `∀ o, Q i o -∗ Q i o`: `true` comes only with an
+For a report, `Φ := Q i` and the caller hands `P i ∗ ∀ o, Q i o -∗ Q i o`: `true` comes only with an
 output `o` and `Q i o` (the last disjunct is `False`); `false` carries nothing, as the orchestrator
 treats it ("all tried, none succeeded"), and the update stays in the slot (the far side may still
 run). Linked in `remote`'s `Link` (`wp_Report`); `counter_remote_robust`'s statement unchanged,
@@ -420,6 +421,17 @@ writer's log: each logged Put returned, as a persistent fact of the cluster's KV
 specs, a `remote_robust` over a report service (one slot map per deployment holds one input type
 `I`: a deployment that mixes `Do` and `Report` calls of different input types needs one
 `RemoteGS` per type, or a sum type), all behind D2 (`net`) as kv's instance is.
+**Open, from the spec review (2026-11-22)**: (A) the wire is pure values (`iv`/`ov : _ → GoInterface`,
+`wireOk`'s decoders return `x = iv i`/`x = v`, encoders take `{{ True }}`), which fits the counter,
+txnlin and auth (string in, bool out) but not the writers' `[]KV`/`[]PutRec` slices: a decoded slice
+is fresh (and `DecOut` of an empty log gives `nil` where `writerOp` returned `[]PutRec{}`), and the
+orchestrator must own the reply's elements. The fix is ownership-carrying representations
+(`inRep i x`, `outRep o v`) through `RWire`, `wireOk`, `svcOp`, `attempt`, `Report`, and `Do`/`Pend`
+(`⌜x = iv i⌝` for the pure instances): a redesign of the slot library, needed before the watch and
+cache instances. (C) `mapCtx (I := I)` in `Report`'s/`Do`'s/`attempt`'s precondition is the slot
+library's bookkeeping, one type per `RemoteGS`: fold it into `svcAddr`, or key the map by
+`GoInterface`. (Minor) `RWire.encIn_len`/`encOut_len` bound every encoding below `2^63`, which an
+unbounded `I` meets only by a subtype; frames are already at most `MaxLen` where the bound is used.
 
 ## 3. The configuration set
 
