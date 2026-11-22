@@ -55,6 +55,8 @@ theorem NewClientWithCodec.wp_proof (wp_input : Client.input.spec (GF := GF) (hG
     iframe request Hwerr Hsend Hreqs Hsq1
     isplitl [Hd3]
     · iexists false; iexact Hd3
+    isplitr
+    · ileft; ipureintro; rfl
     ipureintro
     simp [reqsWire]
   imod sync.init_Mutex (muInv γc «$r0_ptr») ⊤

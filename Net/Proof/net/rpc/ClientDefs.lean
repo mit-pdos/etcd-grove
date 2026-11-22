@@ -196,6 +196,7 @@ def sendInv (γ : ClientNames) (c cc : Loc) (cn : Nat) (W : RpcWorld GF) (a : Go
     sendTok (Gg := hG.goose_globalGS) cn false (reqProto W a) Wd ∗
     monoListAuthOwn γ.conn.reqs (1 : Qp).half L ∗ ghostVar γ.sq (1 : Qp).half n ∗
     (∃ sd : Bool, ghostVar γ.down (1 : Qp).half.half sd) ∗
+    (⌜w0 = interface.nil⌝ ∨ ⌜notServerErr w0⌝ ∗ models_lab.errAny w0) ∗
     ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ n ∧ Wd <+: reqsWire L ∧
       (w0 = interface.nil → Wd = reqsWire L ∧ L.length = n)⌝)
 
