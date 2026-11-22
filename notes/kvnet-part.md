@@ -639,6 +639,11 @@ Proved (no axiom, no `sorry`; `lake build KvNet` 3008 jobs):
 - `kv_confLaw γ vs dir id` (`ConfLaw.lean`): `confLaw (kvFacts γ (fun _ => True)) (kvRep γ vs dir) kvConfRead
   γ.r.cluster kdRaftN id`. So `kvFacts`' `confOk` is `True` at the top level: the server proposes whatever change
   it is asked, and the store's conf policy decides at the commit.
+- kvcheck's `checker.disrupt` (a loop over `sleep`, its answers dropped). Left in kvcheck: `checker.conf` (needs
+  `GetStatus`, a decoder like `GetConfChange`), `reconfigure` (needs `PutConfChange`, whose payload bound
+  `len + 17 < 2^63` needs `randomChange`'s post to bound its changes, at most three, and a premise
+  `∀ pl, F.confOk pl`), `Check`.
+- Built after merging `lean` at the Perennial pin `c14cca87a` (`lake build KvNet` 3016 jobs).
 
 ### `StartNode` and the crash frame: blocked on raft's `RestartNode` update (2026-11-22)
 
