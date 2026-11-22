@@ -65,7 +65,6 @@ axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
