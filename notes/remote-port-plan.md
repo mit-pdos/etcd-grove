@@ -390,6 +390,45 @@ Risks:
 - Goose: project `remote` (into `Net/`), and `./perclient` added to project `lintest` (lintest's
   other files unchanged). `etc/gates.sh` runs the Go tests (`remote:` line).
 
-## Handoff
+## Handoff (2026-11-22, after R1)
 
-(R1 committed; R2 next: specs of the frame helpers and `Do`, `Serve`; then `pendInv`.)
+**State.** Branch `remote` (pushed), worktree `/shared/etcd-grove-remote`. R0 (revision 2) and R1
+are committed. No Lean proofs yet. The translations build (`Net.GeneratedProof...lib.remote*`,
+`GeneratedProof...lintest.perclient`: 1584 jobs, 41 s, from an empty `.lake/build` against
+`/shared/tmp/manifest-d64.json`). This worktree's `.lake/build` holds that much.
+
+**Next (R2), in order.**
+1. **Package facts and initializers.**
+   - `Base.lean` for `remote` (`Net/Proof/.../lib/remote/Base.lean`, fact `True`, as `wire/Base.lean`)
+     and for `lintest/perclient` (main tree, `Proof/.../lib/lintest/perclient/Base.lean`, fact `True`).
+   - The `Init.lean` files come from `etc/gen-init.py` (never by hand):
+     - add `github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient` to `ROOTS`;
+     - add `remote`, `remote.counter` and `remote.counter.cmd.{orch,client0,client1,server}` to
+       `NET_PKGS`, and the four nodes to `NET_PROGRAMS` (package tables).
+   - `remote` imports main-tree packages: `lintest`, `lintest/counter`, `perclient`, porcupine,
+     `primitive`, `time`, `sync`. Check how `net_inits` treats main-tree packages: `NET_MAIN` only
+     covers `os` and the packages it imports. Main-tree non-Perennial packages may need the same
+     copying. Run `PERENNIAL_DIR=/shared/perennial-d648cfe22 etc/gen-init.py --check` (the shared
+     `.lake/packages/perennial` is absent here).
+2. **Frame helpers.** `readFull` is `wire.ReadFull` verbatim: port `Net/Spec|Proof/.../net/wire/ReadFull.lean`.
+   `writeAll` follows `Conn.Write.spec` with `writeP`/`write_acc`. Then `writeFrame`/`readFrame`
+   with `Wire.lean` (`le64`, a frame is not a proper prefix of another).
+3. **The slot library** (`Defs.lean`, §4): the slot map `cn ↦ γ` holding the dialers' `connFresh cn
+   false`, the slot invariant, `reqProto`/`repProto` (prefix-closed), and the laws (register, claim
+   with `connFresh cn true`, done, take).
+4. **`attempt`, `Do`** (`opMaybe` transported; the prophecy unused there); **`serveConn`, `Serve`,
+   `ServeClient`**.
+5. **`pendInv`** (generic over `linkv.PendSpec`; model it on txnlin's `Inv.lean`, without revisions)
+   and node 0's `apply` (prophecy cases), then **`perclient.Run`** (lintest's `Run` proof with an
+   id-indexed `applySpec`) and `remote.Run`/`Check`.
+
+**Pitfalls.**
+- Build only through `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-d64.json build …`.
+  `etc/goose.py` cloned Perennial into `.lake/goose/perennial` (fine). `PATH` needs `/usr/local/go/bin`.
+- Never touch `lintest.go`: its translation's `.olean` is imported by 2056 modules.
+- In-process Go tests must use fresh ports per deployment: a `Serve` never returns, and an earlier
+  deployment's server keeps its state (porcupine then rightly says `Illegal`).
+- Reads' non-answering attempts need a no-op read update (§7, risks): plan `Do.spec`'s read premise
+  before proving `Do`.
+- For etcd-dist: its `op` must be txnlin's call *without* its prophecies, and txnlin's reads may
+  need a persistent read update (§7).
