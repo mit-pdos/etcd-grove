@@ -9,7 +9,7 @@ statement and its definitions, no proofs. Files:
   (`Deployment`, `WellFormed`, `Workload`, `Compatible`, `ServerCfg.Supported`, the start states,
   `EtcdEnv`; placeholders marked `PLACEHOLDER`);
 - the Go programs: `examples/etcd/dist/{server,client,env}/` and `cmd/{server,client}/`, and the
-  deployment harness `examples/etcd/dist/harness/` (stage D1, done: §2, "Stage D1").
+  deployment test in `examples/etcd/dist` (`dist_test.go`) (stage D1, done: §2, "Stage D1").
 
 Neither Lean file is built (they import the server's proof cone, and the draft has placeholders for
 what is not translated yet).
@@ -133,7 +133,7 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
   writer (kv) or alone (auth), and no other prefix starts with `k`, `a`, `c/` or `z`.
 - **`cmd/server`, `cmd/client`**: JSON config in, `server.Main`/`client.Main` (the client prints its
   result). `DIST_LOG` makes the server log to standard error.
-- **`examples/etcd/dist/harness`**: the deployment harness (`TestDist`, `TestWellFormed`; see "The
+- **`examples/etcd/dist`** (`deploy.go`, `run.go`, `dist_test.go`): the deployment test (`TestDist`, `TestWellFormed`; see "The
   harness" below).
 - **`examples/lib/robust`** (shared with kvnet's driver, additive): the **bridge variant** of the
   namespace mode and `RerunInUserns`. This machine's root has no `CAP_NET_ADMIN`, a read-only
@@ -208,7 +208,7 @@ each over its own `*clientv3.Client`, from the orchestration:
   authLease's principals are sequential steps of one orchestration, kept in one function.
 - compact, putget, durable: one client each, one machine.
 
-**The harness** (`examples/etcd/dist/harness`, `TestDist`, `DIST_RUN=1`): random well-formed
+**The test** (`examples/etcd/dist`, `TestDist`, `DIST_RUN=1`): random well-formed
 deployments of three members (`RandomDeployment`; `WellFormed` is the Lean predicate's Go mirror,
 member ids from etcd's own `membership.NewClusterFromURLsMap`, the token searched until the low 16
 (15) bits are apart): a random `ServerCfg` (compactor off/revision 1, 10, 1000/periodic 10 ms, 1 s,
