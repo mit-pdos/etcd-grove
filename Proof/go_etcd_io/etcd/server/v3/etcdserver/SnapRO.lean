@@ -412,7 +412,9 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6 ∧
+      -- (#30, 2026-11-22) `OpenSnapshotBackend`'s receipt bound (`backend.New`'s, `2 ^ 60`); it
+      -- implies the `wbInit - 6` the walk's write-token stock needs
+      receiptBound GF ≤ 2 ^ 60 ∧
       -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes, which
       -- `OpenSnapshotBackend`'s `BackendPath()` needs (`filepath.Join`'s premise): at a first start
       -- from `bootCfgFresh`'s `DirFits`, at a restart from the image's WAL area (`srvFiles_dataDir_len`)

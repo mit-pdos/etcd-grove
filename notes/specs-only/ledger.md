@@ -4719,9 +4719,11 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`SnapApplyWalk.lean:338`), has no receipt bound in scope (`isServerM` holds only the thread
   bound), so the change threads a receipt-bound fact into the walk (from `isServerM`, as its thread
   bound, or a premise of `applySnapshot`'s spec).
-- **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
-  scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
-  stays false above `2 ^ 60` until then; no closed theorem reaches that.
+- **Decision.** Deferred from step 2, then applied at the user's request (2026-11-22, branch
+  `openbackend-receipt`, `notes/step-bounds-questions.md`, Q2): the axiom and `OpenSnapshotBackend`'s
+  spec take `[ReceiptBoundLe GF (2 ^ 60)]`; `srvSnapRO`'s receipt conjunct and `applySnapshot`'s
+  `hrbw` become `receiptBound GF ≤ 2 ^ 60` (implying the `wbInit - 6` they stated), which the walk
+  passes as the instance.
 ## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
 
 - **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`

@@ -131,7 +131,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (the lease-revoke plan, 2026-10-31) the `Lease` bucket in the table, tracked, no hook keys
     -- (the boot backend's, `bootOk`; the new backend's parameters are the old one's)
     (hlp : mvcc.leaseParams d.P)
-    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ 2 ^ 60)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
