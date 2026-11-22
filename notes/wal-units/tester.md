@@ -776,3 +776,68 @@ filter on `error:` alone hides `lake setup-file` failures of an import). `osName
 one name. Inside a `have h : P ⊢ Q := …` (or a `BigSepL.bigSepL_mono` element) the outer Iris context is gone:
 put the persistent facts you need in `P`. `BI.or_false` and `_root_.or_false` are ambiguous once
 `TmpClaim` is imported: write `_root_.or_false`.
+
+# Handoff (branch `wal-safe`, 2026-11-22, session 5 of etcd-grove-03's delegates): (D)1 done; (D)2-3 need a decision
+
+**State** (`2999344fbd`, on `025b1929a6`): no axiom, no `sorry`; checked with `etc/lean-check.py -a` (the os
+files, `RemoveAllSub`, `RemoveAllCover`, and the WAL files that used `SubCover`: `CreateDefs`, `CreateFree`,
+`CreateArea`). **No `lake build` of the Links was run this session**: `CreateDefs` changed (two definitions moved
+out, names unchanged), so the next build of the WAL Link rebuilds the WAL (about 25 minutes).
+
+**(D)1 done** (`fe1fc1817f`, `2999344fbd`):
+- `Spec/os/RemoveAll.lean`: **`os.RemoveAll.specSubS`**: `d/b` holding anything (nothing, a file, a directory
+  with any subtree), the whole claim on `b`, the whole claims `cl` of the directories under it (`osClaimsW cl`,
+  `SubCover cl`) and **`ClRanked cl`** (a rank growing along the claims' directory entries: no cycle; the
+  recursion needs it to know a directory below `J` is not `J`). Post: `∃ h' cl'`, the claims back,
+  `EntsSub h'.cur h.cur` (`b` as it was or gone), `ClsSub cl' cl` (same claims in order, each holding some of
+  what it held); the error `nil` or `fmtErrorOk`, saying nothing of which. `ClReach`/`SubCover` moved here
+  from the WAL's `CreateDefs` (namespace `EtcdGrove`, names unchanged).
+- Proof `Proof/os/RemoveAllSub.lean`: `os.model.wp_removeAllFrom_sub n` by induction on the number of claims
+  (the directory case is `RemoveAllFrom.lean`'s passes with each name removed by the induction hypothesis on
+  the pool `os.rmPool`, the claims but the directory's own); `os.RemoveAll.wp_proofSubS`. Pure facts in
+  `Proof/os/RemoveAllCover.lean` (defs tier: `ClsSub.*`, `SubCover.of_sub` for clients, `subCover_pool`,
+  `TreeWf.rank`/`ClRanked.of_tree`: a well-formed tree's directories ranked by depth, for the boot).
+- `os.model.wp_rmdirLoop_dirSt` takes a guard of any path `pg` of the root (`hkg`).
+
+**(D)2-3: the plan as written is incomplete; a cheaper design needs a premise (decision for the coordinator).**
+Retiring `BootFoNmTmp` needs `Create` to cope with *any* `nm.tmp`: a directory with subdirectories, a
+`.touch` that is a directory, **and `nm.tmp` a file** (the third part of `BootFoNmTmp`; the plan only named
+the `.touch` arm). After `specSubS`, `nm.tmp` may still be anything: `RemoveAll` returns `nil` on a spurious
+`ENOENT` with no effect, and `Exist` may miss it (a `Stat` error). Two designs:
+- **(G) as planned**: make `TouchDirAll`/`CreateDirAll` cope with any leftover. New: ext no-effect lemmas
+  (`open(O_CREAT|O_WRONLY)` of a directory: `OpenEffect` has no case, an error with no effect; `open` of a
+  path under a file: `lookup` none and no parent; each ~50 lines over `wp_callEndS`, as
+  `RemoveAllExt.wp_osRmdirS_nonempty`), `os.WriteFile` error arms (both), `os.MkdirAll` on a file,
+  `IsDirWriteable` error arms, `TouchDirAll.specFile`, `TouchDirAll.specDir` and `CreateDirAll.specTmp`
+  over a subtree pool (with `ReadDir` of a directory holding directories), then `Create`, `walAreaRes`
+  (`TmpOk` out, `tmpClTouch` accepting a directory), the boot (`bootTmps`/`bootFiles_split` without
+  `BootFo`'s `nm.tmp` parts). Estimate 3-4 sessions.
+- **(FNE, recommended)**: `Create`'s `nm.tmp` exact under `FsNoErrOn` of three paths. Checked against
+  `NoIoErr`/`PathErrno` (`Premises.lean`) and the model (`TrustedCode/os.lean`): with `dir.tmp` and its
+  parent covered (and fitting), `Exist(dir.tmp)` is exact (`Stat`'s `Open` and `Fstat` succeed), and
+  `RemoveAll(dir.tmp)` returns `nil` only with `dir.tmp` gone: every `nil` exit is an `unlink`/`rmdir` of
+  `dir.tmp` itself answering 0 or `ENOENT` (`PathErrno`: absent), the parent's `open` (covered: succeeds),
+  or a read of `dir.tmp` answering `ENOENT` (only for a removed directory). The entries **below** `dir.tmp`
+  need no coverage (their removal is `specSubS`'s weak recursion; a failure there surfaces as `ENOTEMPTY`
+  at `dir.tmp`'s covered `rmdir`, an error). So `CreateDirAll` only ever sees an absent `dir.tmp`
+  (`CreateDirAll.spec`, proved), `specTmp`/`TmpOk`/`tmpClTouch`/`bootTmps` can go, and the error returns
+  give `walAreaRes` back from `specSubS`'s weak post. New: `os.RemoveAll.specSubSNE` (`specSubS` plus
+  `FsNoErrOn (· ∈ [child d b, d])`, post `err = nil → h'.cur !! b = none`; NE variants of the top-level
+  loops: unlink, rmdir, open of the directory and the parent, the read), `Stat`/`fileutil.Exist` NE
+  variants (`true` iff present). Estimate 2 sessions, and it removes code.
+  **The premise**: `wal.Create.spec`/`specFresh` (exported results of the WAL Link) and the tester's
+  `tWalFsOk` (premise of `Boot`/`Main`) widen `FsNoErrOn (· = dir)` to
+  `FsNoErrOn (fun p => p = dir ∨ p = dir ++ ".tmp" ∨ p = filepath.Dir dir)`. At the closed theorem it is
+  discharged as `tWalFsOk` already is (`fsNoErrOn_of` with the semantics' `allIo`, every path), so the closed
+  statement gains no premise. Needs the coordinator's yes (a premise on an exported statement).
+Either way the boot supplies `ClRanked` of the `nm.tmp` claims from `TreeWf` (`ClRanked.of_tree`), and
+`walAreaRes` carries `SubCover` and `ClRanked` of each `nm.tmp`'s tagged claims in place of `TmpOk`.
+
+**Then**: retire `tester_crash`'s `hfo` (`BootFoNmTmp`) and `TCrashed`'s carried fact; `renameWALPost`'s
+arm 2 if cheap; step 3 (the wiring onto `fsSQ_crash_adequacyShared`, plan two handoffs up); the hard stop
+before the closed statement stands.
+
+**Pitfalls (new).** `ihave H := lemma $$ [Hs]` puts the side goal first (`H` is not in it): write
+`ihave H : P $$ [Hs]` then `· iapply lemma; iframe`. `ihave HΦ' : … $$ [HΦ]` consumes `HΦ` (no `iclear`).
+A Lean-level induction (on the claims' count) is simpler than `iloeb` for a recursion whose depth a datum
+bounds: the hypothesis is a plain triple for `wp_apply`.
