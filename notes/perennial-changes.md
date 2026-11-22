@@ -3615,7 +3615,7 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   nil) proved over `UTC`'s global, held by time's `isInit`. **Status.** Landed on Perennial `lean` as
   `7103946b3` (2026-11-21, srvloops2), in the pin since `5dab16ec2`: with it
   `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
-  `Location` call, branch `prove-srvloops2`'s follow-up) retire `EtcdServer.ensureLeadership.wp_proof`.
+  `Location` call) retired `EtcdServer.ensureLeadership.wp_proof` (2026-11-22, `prove-srvloops2b`).
 
 ## 2026-11-21: Goose refuses unnamed struct types with field tags (v2stats' `ServerStats`)
 
@@ -3624,14 +3624,17 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   had no tag, so dropping them would identify types Go distinguishes. etcd's `v2stats.serverStats.LeaderInfo`
   is one, so `NewServerStats` and `ServerStats`' `RecvAppendReq`, `SendAppendReq`, `BecomeLeader` were
   trust-boundary axioms (and `serverStats` an opaque type).
-- **Proposed (general).** mit-pdos/perennial#651 (the design), PR mit-pdos/perennial#655 (option 1b):
-  `go.field_decl.TaggedField`/`TaggedEmbeddedField` (name, type, tag), emitted only for a field of an unnamed
-  struct type with a non-empty tag, so no existing translation changes; the semantics, `Countable`, the type
-  fingerprint and the struct tactics ignore the tag. A defined struct type's underlying type stays untagged
-  (its identity is its name; conversions ignore tags in Go). **Status.** PR open, review requested from
-  upamanyus; etcd-grove's side on `prove-ps2-v2stats/2026-11-21`, built against it (`--packages`), waits for
-  the pin bump.
-  `Location` call) retired `EtcdServer.ensureLeadership.wp_proof` (2026-11-22, `prove-srvloops2b`).
+- **Proposed (general).** mit-pdos/perennial#651 (the design), PR mit-pdos/perennial#655, revised after
+  upamanyus' review (2026-11-22): a tag on every field declaration, as Go's `FieldDecl = (IdentifierList Type |
+  EmbeddedField) [Tag]`: `go.field_decl.Field`/`Embedded name type tag` (the empty tag when there is none, which
+  Go does not tell from an absent one), with `FieldDecl`/`EmbeddedField name type` the `match_pattern`
+  shorthands for the untagged field, which goose writes as before; tagged fields of unnamed struct types are
+  written `Field name type "tag"`. The semantics, `Countable`, the type fingerprint and the struct tactics ignore
+  the tag. A defined struct type's underlying type stays untagged, and no tag-ignoring conversion rule: such
+  conversions are stuck (Perennial's `docs/KNOWN_LIMITATIONS.md`). Only v2stats has tagged fields in this
+  repository's translations. **Status.** PR open (head `fdce65a04`); etcd-grove's side on
+  `prove-ps2-v2stats/2026-11-21`, regenerated with it (`etc/goose.py --perennial`) and its v2stats and rafthttp
+  modules built against it (`--packages`); waits for the pin bump.
 
 ## 2026-11-20: goose imports a vendored package by its import path (the net/http model, phase 5.2 of `notes/dsverify-net-port-plan.md`, branch `models-rpc-http-lean`)
 
