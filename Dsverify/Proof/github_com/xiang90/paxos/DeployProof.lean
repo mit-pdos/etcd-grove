@@ -25,73 +25,6 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 set_option linter.unusedSectionVars false
 
-section proofs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [π : NetProtoGS]
-variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
-  [sync.Assumptions]
-
-local notation "pkg" => pkg_id.github_com.xiang90.paxos
-
-set_option goose.wp.extras true
-
-/-! ## The package's initialization -/
-
-/-- The paxos package's `initialize'`: it initializes `log`, `time`, `marshal`, `sync`, `net`. -/
-abbrev initialize'.spec : Prop :=
-  ∀ (get_is_pkg_init : GoString → IProp GF),
-  GetIsPkgInitProp pkg get_is_pkg_init →
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg }}
-
-theorem initialize'.wp_proof : initialize'.spec (GF := GF) (hG := hG) := by
-  intro get_is_pkg_init Hinit
-  wp_start as Hown
-  iapply wp_package_init (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply (net.initialize'.wp_proof time.wp_initialize' io.wp_initialize') _ Hinit.2.2.2.2.2.1
-    $$ Hown as ⟨Hown, #Hnet⟩
-  wp_apply sync.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hsync⟩
-  wp_apply github_com.tchajed.marshal.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hm⟩
-  wp_apply time.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Htime⟩
-  wp_apply log.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hlog⟩
-  iframe Hown
-  is_pkg_init_finish
-  rw [show (PaxosNetPkgState.paxos : IProp GF) = iprop(True) from rfl]
-  iintro !>
-  itrivial
-
-/-! ## The ids -/
-
-theorem wp_netProposerId (c : w64) :
-    {{ isPkgInit (PROP := IProp GF) pkg }}
-      (App (Val (@! netProposerId)) (Val #c))
-    {{ RET #(W64 1001 + c); True }} := by
-  wp_start
-  wp_auto
-  wp_end
-
-theorem wp_netLearnerId (j : w64) :
-    {{ isPkgInit (PROP := IProp GF) pkg }}
-      (App (Val (@! netLearnerId)) (Val #j))
-    {{ RET #(W64 2001 + j); True }} := by
-  wp_start
-  wp_auto
-  wp_end
-
-theorem wp_netBoxId (c : w64) :
-    {{ isPkgInit (PROP := IProp GF) pkg }}
-      (App (Val (@! netBoxId)) (Val #c))
-    {{ RET #(W64 3001 + c); True }} := by
-  wp_start
-  wp_auto
-  wp_end
-
 /-! ## Pure facts about the ids -/
 
 theorem w64_le3 (i : w64) (h1 : 1 ≤ uint.nat i) (h : uint.nat i ≤ 3) :
@@ -119,12 +52,50 @@ theorem w64_lt4 (c : w64) (h : uint.nat c < 4) :
 
 theorem box_ids (c : w64) (hc : uint.nat c < 4) :
     W64 3001 + c ∉ accIds ∧ W64 3001 + c ∉ propIds ∧ W64 3001 + c ∉ lrnIds ∧
-      W64 3001 + c ∈ boxIds ∧ W64 3001 + c ∈ clientIds := by
+      W64 3001 + c ∈ boxIds ∧ W64 3001 + c ∈ clientIds c := by
   rcases w64_lt4 c hc with rfl | rfl | rfl | rfl <;> decide
 
 theorem prop_ids (c : w64) (hc : uint.nat c < 4) :
-    W64 1001 + c ∈ propIds ∧ W64 1001 + c ∈ clientIds := by
+    W64 1001 + c ∈ propIds ∧ W64 1001 + c ∈ clientIds c := by
   rcases w64_lt4 c hc with rfl | rfl | rfl | rfl <;> decide
+
+section proofs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [π : NetProtoGS]
+variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
+  [sync.Assumptions]
+
+local notation "pkg" => pkg_id.github_com.xiang90.paxos
+
+set_option goose.wp.extras true
+
+/-! ## The ids -/
+
+theorem wp_netProposerId (c : w64) :
+    {{ isPkgInit (PROP := IProp GF) pkg }}
+      (App (Val (@! netProposerId)) (Val #c))
+    {{ RET #(W64 1001 + c); True }} := by
+  wp_start
+  wp_auto
+  wp_end
+
+theorem wp_netLearnerId (j : w64) :
+    {{ isPkgInit (PROP := IProp GF) pkg }}
+      (App (Val (@! netLearnerId)) (Val #j))
+    {{ RET #(W64 2001 + j); True }} := by
+  wp_start
+  wp_auto
+  wp_end
+
+theorem wp_netBoxId (c : w64) :
+    {{ isPkgInit (PROP := IProp GF) pkg }}
+      (App (Val (@! netBoxId)) (Val #c))
+    {{ RET #(W64 3001 + c); True }} := by
+  wp_start
+  wp_auto
+  wp_end
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] 
@@ -217,31 +188,32 @@ theorem wp_learnerIds :
 /-- The map after the acceptors' loop up to `n`. -/
 def accM : Nat → GMap w64 GoString
   | 0 => ∅
-  | n + 1 => <[W64 ((n + 1 : Nat) : Int) := addrs.getD (n + 1) []]> (accM n)
+  | n + 1 => <[W64 ((n + 1 : Nat) : Int) := addrs.getD n []]> (accM n)
 
 /-- The map after the learners' loop up to `n`. -/
 def lrnM : Nat → GMap w64 GoString
   | 0 => accM 3
-  | n + 1 => <[W64 (2001 + (n : Nat)) := addrs.getD (4 + n) []]> (lrnM n)
+  | n + 1 => <[W64 (2001 + (n : Nat)) := addrs.getD (3 + n) []]> (lrnM n)
 
 /-- The map after the clients' loop up to `n`. -/
 def cliM : Nat → GMap w64 GoString
   | 0 => lrnM 2
-  | n + 1 => <[W64 (3001 + (n : Nat)) := addrs.getD 0 []]>
-      (<[W64 (1001 + (n : Nat)) := addrs.getD 0 []]> (cliM n))
+  | n + 1 => <[W64 (3001 + (n : Nat)) := addrs.getD (5 + n) []]>
+      (<[W64 (1001 + (n : Nat)) := addrs.getD (5 + n) []]> (cliM n))
 
 theorem accM_step (i : w64) (a : GoString) (h1 : 1 ≤ uint.nat i) (h3 : uint.nat i ≤ 3)
-    (ha : addrs[uint.nat i]? = some a) :
+    (ha : addrs[uint.nat i - 1]? = some a) :
     <[i := a]> (accM (uint.nat i - 1)) = accM (uint.nat (i + W64 1) - 1) := by
   rcases w64_le3 i h1 h3 with rfl | rfl | rfl <;> simp [addrs] at ha <;> subst ha <;> rfl
 
 theorem lrnM_step (j : w64) (h : uint.nat j < 2) :
-    <[W64 2001 + j := addrs.getD (4 + uint.nat j) []]> (lrnM (uint.nat j)) =
+    <[W64 2001 + j := addrs.getD (3 + uint.nat j) []]> (lrnM (uint.nat j)) =
       lrnM (uint.nat (j + W64 1)) := by
   rcases w64_lt2 j h with rfl | rfl <;> rfl
 
 theorem cliM_step (c : w64) (h : uint.nat c < 4) :
-    <[W64 3001 + c := addrs.getD 0 []]> (<[W64 1001 + c := addrs.getD 0 []]> (cliM (uint.nat c))) =
+    <[W64 3001 + c := addrs.getD (5 + uint.nat c) []]>
+      (<[W64 1001 + c := addrs.getD (5 + uint.nat c) []]> (cliM (uint.nat c))) =
       cliM (uint.nat (c + W64 1)) := by
   rcases w64_lt4 c h with rfl | rfl | rfl | rfl <;> rfl
 
@@ -283,12 +255,12 @@ theorem wp_agentAddrs (sl : GoSlice) :
     ipureintro; word
   wp_for HI
   wp_if_destruct
-  · have hal : addrs.length = 6 := rfl
-    have hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := by word
+  · have hal : addrs.length = 9 := rfl
+    have hb : 0 ≤ sint.Z (i - W64 1) ∧ sint.Z (i - W64 1) < sint.Z sl.len := by word
     simp only [hb, _root_.and_self, ↓reduceIte]
-    list_elem addrs (uint.nat i) as a
-    wp_apply wp_load_slice_index sl (sint.Z i) addrs DFrac.discard a hb.1 $$ [$Hsl] with -
-    · ipureintro; rw [show (sint.Z i).toNat = uint.nat i by word]; exact Ha_lookup
+    list_elem addrs (uint.nat i - 1) as a
+    wp_apply wp_load_slice_index sl (sint.Z (i - W64 1)) addrs DFrac.discard a hb.1 $$ [$Hsl] with -
+    · ipureintro; rw [show (sint.Z (i - W64 1)).toNat = uint.nat i - 1 by word]; exact Ha_lookup
     wp_apply wp_mapInsert $$ Hm as Hm
     wp_for_post
     iframe
@@ -306,21 +278,21 @@ theorem wp_agentAddrs (sl : GoSlice) :
     ipureintro; word
   wp_for HJ
   wp_if_destruct
-  · have hal : addrs.length = 6 := rfl
-    have hb : 0 ≤ sint.Z (W64 3 + W64 1 + j) ∧ sint.Z (W64 3 + W64 1 + j) < sint.Z sl.len := by
+  · have hal : addrs.length = 9 := rfl
+    have hb : 0 ≤ sint.Z (W64 3 + j) ∧ sint.Z (W64 3 + j) < sint.Z sl.len := by
       word
     simp only [hb, _root_.and_self, ↓reduceIte]
-    list_elem addrs (4 + uint.nat j) as a
-    wp_apply wp_load_slice_index sl (sint.Z (W64 3 + W64 1 + j)) addrs DFrac.discard a hb.1
+    list_elem addrs (3 + uint.nat j) as a
+    wp_apply wp_load_slice_index sl (sint.Z (W64 3 + j)) addrs DFrac.discard a hb.1
       $$ [$Hsl] with -
-    · ipureintro; rw [show (sint.Z (W64 3 + W64 1 + j)).toNat = 4 + uint.nat j by word]
+    · ipureintro; rw [show (sint.Z (W64 3 + j)).toNat = 3 + uint.nat j by word]
       exact Ha_lookup
     wp_apply wp_netLearnerId
     wp_apply wp_mapInsert $$ Hm as Hm
     wp_for_post
     iframe
     iexists j + W64 1
-    have ha : a = addrs.getD (4 + uint.nat j) [] := by
+    have ha : a = addrs.getD (3 + uint.nat j) [] := by
       simp [List.getD_eq_getElem?_getD, Ha_lookup]
     subst ha
     rw [← lrnM_step j (by word)]
@@ -336,23 +308,25 @@ theorem wp_agentAddrs (sl : GoSlice) :
     ipureintro; word
   wp_for HC
   wp_if_destruct
-  · have hal : addrs.length = 6 := rfl
-    have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len := by word
+  · have hal : addrs.length = 9 := rfl
+    have hb : 0 ≤ sint.Z (W64 3 + W64 2 + c) ∧ sint.Z (W64 3 + W64 2 + c) < sint.Z sl.len := by word
     simp only [hb, _root_.and_self, ↓reduceIte]
-    list_elem addrs 0 as a
-    wp_apply wp_load_slice_index sl (sint.Z (W64 0)) addrs DFrac.discard a hb.1 $$ [$Hsl] with -
-    · ipureintro; exact Ha_lookup
+    list_elem addrs (5 + uint.nat c) as a
+    wp_apply wp_load_slice_index sl (sint.Z (W64 3 + W64 2 + c)) addrs DFrac.discard a hb.1 $$ [$Hsl] with -
+    · ipureintro; rw [show (sint.Z (W64 3 + W64 2 + c)).toNat = 5 + uint.nat c by word]
+      exact Ha_lookup
     wp_apply wp_netProposerId
     wp_apply wp_mapInsert $$ Hm as Hm
     simp only [hb, _root_.and_self, ↓reduceIte]
-    wp_apply wp_load_slice_index sl (sint.Z (W64 0)) addrs DFrac.discard a hb.1 $$ [$Hsl] with -
-    · ipureintro; exact Ha_lookup
+    wp_apply wp_load_slice_index sl (sint.Z (W64 3 + W64 2 + c)) addrs DFrac.discard a hb.1 $$ [$Hsl] with -
+    · ipureintro; rw [show (sint.Z (W64 3 + W64 2 + c)).toNat = 5 + uint.nat c by word]
+      exact Ha_lookup
     wp_apply wp_netBoxId
     wp_apply wp_mapInsert $$ Hm as Hm
     wp_for_post
     iframe
     iexists c + W64 1
-    have ha : a = addrs.getD 0 [] := by
+    have ha : a = addrs.getD (5 + uint.nat c) [] := by
       simp [List.getD_eq_getElem?_getD, Ha_lookup]
     subst ha
     rw [← cliM_step c (by word)]
@@ -401,34 +375,13 @@ theorem allProtos_addr (Γ : Names) (a : GoString) (ha : a ∈ addrs) :
   unfold allProtos
   iapply BigSepL.bigSepL_mem ha $$ H
 
-theorem clientToks_lock (Γ : Names) :
-    clientToks (GF := GF) Γ ⊢
-      [∗list] c ↦ u ∈ [false, false, false, false],
-        if u = true then iprop(True) else clientTok Γ (W64 c) := by
-  iintro H
-  unfold clientToks
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H0, H⟩
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H2, H⟩
-  icases BigSepL.bigSepL_cons.1 $$ H with ⟨H3, -⟩
-  iapply BigSepL.bigSepL_cons.2
-  isplitl [H0]
-  · simp only [Bool.false_eq_true, ↓reduceIte, Nat.zero_add, Nat.reduceAdd, Int.reduceNatCast]
-    iexact H0
-  iapply BigSepL.bigSepL_cons.2
-  isplitl [H1]
-  · simp only [Bool.false_eq_true, ↓reduceIte, Nat.zero_add, Nat.reduceAdd, Int.reduceNatCast]
-    iexact H1
-  iapply BigSepL.bigSepL_cons.2
-  isplitl [H2]
-  · simp only [Bool.false_eq_true, ↓reduceIte, Nat.zero_add, Nat.reduceAdd, Int.reduceNatCast]
-    iexact H2
-  iapply BigSepL.bigSepL_cons.2
-  isplitl [H3]
-  · simp only [Bool.false_eq_true, ↓reduceIte, Nat.zero_add, Nat.reduceAdd, Int.reduceNatCast]
-    iexact H3
-  iapply BigSepL.bigSepL_nil.2
-  iempintro
+theorem clientTok_lock (Γ : Names) (c : w64) (hc : uint.nat c < 4) :
+    clientTok (GF := GF) Γ c ⊢
+      if [false, false, false, false][uint.nat c]? = some false then clientTok Γ c else iprop(True) := by
+  rw [show [false, false, false, false][uint.nat c]? = some false by
+    rcases w64_lt4 c hc with rfl | rfl | rfl | rfl <;> rfl]
+  simp only [↓reduceIte]
+  exact .rfl
 
 end ghost
 
@@ -437,61 +390,37 @@ end ghost
 theorem NewNetCluster.wp_proof
     (wp_newTCPNode : newTCPNode.spec (GF := GF) (hG := hG))
     (wp_serve : tcpNode.serve.spec (GF := GF) (hG := hG)) :
-    NewNetCluster.spec (GF := GF) (hG := hG) := fun Γ sl => by
-  wp_start as ⟨#Hpx, #Hsl, Htok, #Hprotos, Htoks⟩
+    NewNetCluster.spec (GF := GF) (hG := hG) := fun Γ sl c hc => by
+  wp_start as ⟨#Hpx, #Hsl, #Hprotos, Htoks⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   wp_auto
-  wp_apply (wp_slice_make3 (V := w64) (W64 0) (W64 2 * W64 4) (by word)) as %lsl ⟨Hlsl, Hcap, -⟩
-  ihave HI : (∃ (c : w64) (ids : GoSlice), "c" ∷ c_ptr ↦ c ∗ "Hloc" ∷ local_ptr ↦ ids ∗
-      "Hlsl" ∷ ids ↦* clientIds.take (2 * uint.nat c) ∗
-      "Hcap" ∷ ownSliceCap w64 ids (DFrac.own 1) ∗
-      "%Hc" ∷ ⌜uint.nat c ≤ 4⌝ : IProp GF) $$ [c «local» Hlsl Hcap]
-  · iexists W64 0, lsl
-    iframe
-    ipureintro; word
-  wp_for HI
-  wp_if_destruct
-  · wp_apply wp_netProposerId
-    wp_apply wp_slice_literal
-    isplitr
-    · ipureintro; rfl
-    iintro %sl2 ⟨Htmp, -⟩
-    wp_auto
-    wp_apply wp_slice_append (V := w64) $$ [$Hlsl $Hcap $Htmp] as %ids' ⟨Hlsl, Hcap, -⟩
-    wp_apply wp_netBoxId
-    wp_apply wp_slice_literal
-    isplitr
-    · ipureintro; rfl
-    iintro %sl3 ⟨Htmp, -⟩
-    wp_auto
-    wp_apply wp_slice_append (V := w64) $$ [$Hlsl $Hcap $Htmp] as %ids'' ⟨Hlsl, Hcap, -⟩
-    wp_for_post
-    iframe
-    iexists c + W64 1, ids''
-    have h4 : uint.nat c < 4 := by word
-    rcases w64_lt4 c h4 with rfl | rfl | rfl | rfl
-    all_goals (iframe; ipureintro; decide)
-  have h4 : c = W64 4 := by word
-  subst h4
-  rw [show List.take (2 * uint.nat (W64 4)) clientIds = clientIds from rfl]
+  wp_apply wp_netProposerId
+  wp_apply wp_netBoxId
+  wp_apply wp_slice_literal
+  isplitr
+  · ipureintro; rfl
+  iintro %ids ⟨Hlsl, -⟩
+  rw [show ([W64 1001 + c, zero_val w64].set (sint.nat (W64 (0 + 1))) (W64 3001 + c)) = clientIds c
+    from rfl]
+  wp_auto
   wp_apply wp_agentAddrs sl $$ [$Hsl] as %am Ham
   ihave #Hmap := allProtos_map Γ agentMap agentMap_in $$ Hprotos
-  wp_apply wp_newTCPNode (msgOK Γ) am agentMap ids clientIds (DFrac.own 1) $$ [$Ham $Hlsl $Hmap]
+  wp_apply wp_newTCPNode (msgOK Γ) am agentMap _ (clientIds c) (DFrac.own 1) $$ [$Ham $Hlsl $Hmap]
     as %nd ⟨#Hnode, Hlsl⟩
-  have hal : addrs.length = 6 := rfl
-  have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len := by word
+  have hal : addrs.length = 9 := rfl
+  have hb : 0 ≤ sint.Z (W64 3 + W64 2 + c) ∧ sint.Z (W64 3 + W64 2 + c) < sint.Z sl.len := by word
   simp only [hb, _root_.and_self, ↓reduceIte]
-  have ha0 : addrs[(sint.Z (W64 0)).toNat]? = some (addrs.getD 0 []) := rfl
-  wp_apply wp_load_slice_index sl (sint.Z (W64 0)) addrs DFrac.discard _ hb.1 $$ [$Hsl] with -
-  · ipureintro; exact ha0
-  ihave #Hp0 := allProtos_addr Γ (addrs.getD 0 []) (by decide) $$ Hprotos
-  wp_apply wp_serve (msgOK Γ) nd agentMap clientIds (addrs.getD 0 []) (W64 50)
-    $$ [$Hnode $Htok $Hp0] as %ok -
+  list_elem addrs (5 + uint.nat c) as a
+  wp_apply wp_load_slice_index sl (sint.Z (W64 3 + W64 2 + c)) addrs DFrac.discard a hb.1 $$ [$Hsl] with -
+  · ipureintro; rw [show (sint.Z (W64 3 + W64 2 + c)).toNat = 5 + uint.nat c by word]
+    exact Ha_lookup
+  ihave #Hp0 := allProtos_addr Γ a (List.mem_of_getElem? Ha_lookup) $$ Hprotos
+  wp_apply wp_serve (msgOK Γ) nd agentMap (clientIds c) a (W64 50) $$ [$Hnode $Hp0] as %ok -
   wp_apply wp_acceptorIds as %asl Hasl
   wp_apply +noauto (wp_slice_make2 (V := Bool) (W64 4)) as %usl ⟨Husl, -⟩
   · ipureintro; word
   iapply fupd_wp
-  imod sync.init_Mutex (clusterLock Γ usl) ⊤ «$v2_ptr» $$ «$v2» [Husl Htoks] with #Hlock
+  imod sync.init_Mutex (clusterLock Γ c usl) ⊤ «$v2_ptr» $$ «$v2» [Husl Htoks] with #Hlock
   · inext
     unfold clusterLock
     iexists _
@@ -499,7 +428,7 @@ theorem NewNetCluster.wp_proof
     isplitr
     · ipureintro; rfl
     rw [show List.replicate 4 (zero_val Bool) = [false, false, false, false] from rfl]
-    iapply clientToks_lock $$ Htoks
+    iapply clientTok_lock Γ c hc $$ Htoks
   imod ownSlice_persist _ _ _ $$ Hasl with #Hasl
   imodintro
   wp_pures
@@ -706,12 +635,12 @@ theorem RunServer.wp_proof
     (wp_newLearner : newLearner.spec (GF := GF) (hG := hG))
     (wp_learn : learner.learn.spec (GF := GF) (hG := hG)) :
     RunServer.spec (GF := GF) (hG := hG) := fun Γ sl me hme => by
-  wp_start as ⟨#Hpx, #Hsl, Htok, #Hprotos, Hst⟩
+  wp_start as ⟨#Hpx, #Hsl, #Hprotos, Hst⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   wp_auto
   wp_apply wp_agentAddrs sl $$ [$Hsl] as %am Ham
   ihave #Hmap := allProtos_map Γ agentMap agentMap_in $$ Hprotos
-  have hal : addrs.length = 6 := rfl
+  have hal : addrs.length = 9 := rfl
   wp_if_destruct
   · -- an acceptor
     have h3 : uint.nat me ≤ 3 := by word
@@ -723,18 +652,18 @@ theorem RunServer.wp_proof
     wp_auto
     wp_apply wp_newTCPNode (msgOK Γ) am agentMap _ [me] (DFrac.own 1) $$ [$Ham $Hisl $Hmap]
       as %nd ⟨#Hnode, -⟩
-    have hb : 0 ≤ sint.Z me ∧ sint.Z me < sint.Z sl.len := by word
-    have ham : addrs[(sint.Z me).toNat]? = some (addrs.getD (uint.nat me) []) := by
-      rw [show (sint.Z me).toNat = uint.nat me by word]
-      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show uint.nat me < addrs.length by word)]
-    have hmem : addrs.getD (uint.nat me) [] ∈ addrs := by
-      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show uint.nat me < addrs.length by word)]
+    have hb : 0 ≤ sint.Z (me - W64 1) ∧ sint.Z (me - W64 1) < sint.Z sl.len := by word
+    have ham : addrs[(sint.Z (me - W64 1)).toNat]? = some (addrs.getD (uint.nat me - 1) []) := by
+      rw [show (sint.Z (me - W64 1)).toNat = uint.nat me - 1 by word]
+      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show uint.nat me - 1 < addrs.length by word)]
+    have hmem : addrs.getD (uint.nat me - 1) [] ∈ addrs := by
+      simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (show uint.nat me - 1 < addrs.length by word)]
     ihave #Hpme := allProtos_addr Γ _ hmem $$ Hprotos
     wp_for
     simp only [hb, _root_.and_self, ↓reduceIte]
-    wp_apply wp_load_slice_index sl (sint.Z me) addrs DFrac.discard _ hb.1 $$ [$Hsl] with -
+    wp_apply wp_load_slice_index sl (sint.Z (me - W64 1)) addrs DFrac.discard _ hb.1 $$ [$Hsl] with -
     · ipureintro; exact ham
-    wp_apply wp_serve (msgOK Γ) nd agentMap [me] _ (W64 10) $$ [$Hnode $Htok $Hpme] as %ok Htok
+    wp_apply wp_serve (msgOK Γ) nd agentMap [me] _ (W64 10) $$ [$Hnode $Hpme] as %ok -
     cases ok
     case false =>
       simp only [Bool.not_false]
@@ -778,21 +707,21 @@ theorem RunServer.wp_proof
       wp_auto
       wp_apply wp_newTCPNode (msgOK Γ) am agentMap _ [lid] (DFrac.own 1) $$ [$Ham $Hisl $Hmap]
         as %nd ⟨#Hnode, -⟩
-      have hb : 0 ≤ sint.Z me ∧ sint.Z me < sint.Z sl.len := by word
-      have ham : addrs[(sint.Z me).toNat]? = some (addrs.getD (uint.nat me) []) := by
-        rw [show (sint.Z me).toNat = uint.nat me by word]
+      have hb : 0 ≤ sint.Z (me - W64 1) ∧ sint.Z (me - W64 1) < sint.Z sl.len := by word
+      have ham : addrs[(sint.Z (me - W64 1)).toNat]? = some (addrs.getD (uint.nat me - 1) []) := by
+        rw [show (sint.Z (me - W64 1)).toNat = uint.nat me - 1 by word]
         simp [List.getD_eq_getElem?_getD,
-          List.getElem?_eq_getElem (show uint.nat me < addrs.length by word)]
-      have hmem : addrs.getD (uint.nat me) [] ∈ addrs := by
+          List.getElem?_eq_getElem (show uint.nat me - 1 < addrs.length by word)]
+      have hmem : addrs.getD (uint.nat me - 1) [] ∈ addrs := by
         simp [List.getD_eq_getElem?_getD,
-          List.getElem?_eq_getElem (show uint.nat me < addrs.length by word)]
+          List.getElem?_eq_getElem (show uint.nat me - 1 < addrs.length by word)]
       ihave #Hpme := allProtos_addr Γ _ hmem $$ Hprotos
       wp_for
       simp only [hb, _root_.and_self, ↓reduceIte]
-      wp_apply wp_load_slice_index sl (sint.Z me) addrs DFrac.discard _ hb.1 $$ [$Hsl] with -
+      wp_apply wp_load_slice_index sl (sint.Z (me - W64 1)) addrs DFrac.discard _ hb.1 $$ [$Hsl] with -
       · ipureintro; exact ham
-      wp_apply wp_serve (msgOK Γ) nd agentMap [lid] _ (W64 10) $$ [$Hnode $Htok $Hpme]
-        as %ok Htok
+      wp_apply wp_serve (msgOK Γ) nd agentMap [lid] _ (W64 10) $$ [$Hnode $Hpme]
+        as %ok -
       cases ok
       case false =>
         simp only [Bool.not_false]
@@ -846,26 +775,29 @@ theorem NetCluster.Propose.wp_proof
   simp only [hb, _root_.and_self, ↓reduceIte]
   wp_apply wp_store_slice_index usl (sint.Z c) used true $$ [Husl] with Husl
   · iframe; ipureintro; word
-  icases BigSepL.bigSepL_insert_acc Hu_lookup $$ Htoks with ⟨Hct, Hback⟩
-  ihave Htoks := Hback $$ %true []
-  · simp only [↓reduceIte]; itrivial
   rw [show (sint.Z c).toNat = uint.nat c by word]
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hlock $Hlocked Husl Htoks]
-  · iexists _; iframe; ipureintro; simpa using Hlen
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hlock $Hlocked Husl]
+  · iexists _
+    iframe Husl
+    isplitr
+    · ipureintro; simpa using Hlen
+    rw [List.getElem?_set_self (by omega)]
+    simp only [Option.some.injEq, Bool.true_eq_false, ↓reduceIte]
+    itrivial
+  rw [Hu_lookup]
   cases u
   case true =>
     wp_auto
     iright; ipureintro; exact ⟨_, rfl⟩
-  simp only [Bool.false_eq_true, ↓reduceIte]
+  simp only [↓reduceIte]
   unfold clientTok
-  icases Hct with ⟨Hrtok, Hptok, Hdtok⟩
-  rw [show W64 ((uint.nat c : Nat) : Int) = c by word]
+  icases Htoks with ⟨Hrtok, Hptok, Hdtok⟩
   wp_auto
   wp_apply wp_netBoxId
-  wp_apply wp_network (msgOK Γ) nd agentMap clientIds (W64 3001 + c) $$ [$Hnode] as %box Hbox
-  have hbox : W64 3001 + c ∈ clientIds := (box_ids c hc).2.2.2.2
+  wp_apply wp_network (msgOK Γ) nd agentMap (clientIds c) (W64 3001 + c) $$ [$Hnode] as %box Hbox
+  have hbox : W64 3001 + c ∈ clientIds c := (box_ids c hc).2.2.2.2
   wp_for
-  wp_apply wp_poll (msgOK Γ) box nd agentMap clientIds (W64 3001 + c) hbox $$ [$Hnode $Hbox]
+  wp_apply wp_poll (msgOK Γ) box nd agentMap (clientIds c) (W64 3001 + c) hbox $$ [$Hnode $Hbox]
     as %m %ok ⟨Hbox, -⟩
   cases ok
   case true =>
@@ -876,9 +808,9 @@ theorem NetCluster.Propose.wp_proof
   wp_for_post
   wp_apply wp_netProposerId
   wp_apply wp_netProposerId
-  wp_apply wp_network (msgOK Γ) nd agentMap clientIds (W64 1001 + c) $$ [$Hnode] as %nt Hnt
+  wp_apply wp_network (msgOK Γ) nd agentMap (clientIds c) (W64 1001 + c) $$ [$Hnode] as %nt Hnt
   obtain ⟨hpid, hpc⟩ := prop_ids c hc
-  wp_apply wp_newProposer Γ (W64 1001 + c) v nt nd agentMap clientIds asl hpid hv
+  wp_apply wp_newProposer Γ (W64 1001 + c) v nt nd agentMap (clientIds c) asl hpid hv
     $$ [Hnt] as %pp Hpp
   · unfold agentEnv
     iframe Hpx Hnode Hnt Haccs
@@ -895,7 +827,7 @@ theorem NetCluster.Propose.wp_proof
   · iexists _; iframe
   wp_for HI
   wp_if_destruct
-  · wp_apply (lc := 2) wp_recv (msgOK Γ) box nd agentMap clientIds (W64 3001 + c) _ hbox
+  · wp_apply (lc := 2) wp_recv (msgOK Γ) box nd agentMap (clientIds c) (W64 3001 + c) _ hbox
       $$ [$Hnode $Hbox] as %m %ok ⟨Hbox, Hm⟩
     cases ok
     case false =>
@@ -910,7 +842,7 @@ theorem NetCluster.Propose.wp_proof
     icases Hok with ⟨%Htyp, #Hch⟩
     iapply fupd_wp
     ihave Hlc := lc_split.2 $$ [$Hlc1 $Hlc2]
-    imod inv_return Γ c v m.value' Q $$ Hpx Hlc Hslot Hdtok Hch with ⟨%σ, %σ', HQ⟩
+    imod inv_return Γ c v m.value' Q $$ Hpx Hlc Hslot Hdtok Hch with HQ
     imodintro
     wp_auto
     simp only [Htyp, _root_.decide_true]
@@ -920,7 +852,6 @@ theorem NetCluster.Propose.wp_proof
     iexists m.value'
     isplitr
     · ipureintro; rfl
-    iexists σ, σ'
     iexact HQ
   iright; ipureintro; exact ⟨_, rfl⟩
 
