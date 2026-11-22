@@ -4,6 +4,7 @@ module
 public import Code.google_golang_org.protobuf.reflect.protoreflect
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.api.v3.authpb
 
 @[expose] public section
 
@@ -728,6 +729,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   User_instance : User.TypeAssumptions
   Permission_instance : Permission.TypeAssumptions
   Role_instance : Role.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
@@ -736,6 +738,7 @@ attribute [instance] Assumptions.Permission_Type_instance
   Assumptions.User_instance
   Assumptions.Permission_instance
   Assumptions.Role_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_protoreflect_Assumption
   Assumptions.import_protoimpl_Assumption
 

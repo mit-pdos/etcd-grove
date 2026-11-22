@@ -119,7 +119,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.syscall.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of trySolo))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xS ⟨#_, #MS⟩
   -- translated initializer of DefaultOptions))
   try wp_auto
   -- translated initializer of ErrDatabaseNotOpen))
