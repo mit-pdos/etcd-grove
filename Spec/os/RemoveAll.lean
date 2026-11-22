@@ -28,8 +28,12 @@ the WAL's uses need none. `dir.tmp` is the program's before `Create` publishes i
   anything (nothing, a file, or a directory with any subtree), with the whole claims `cl` of every
   directory under it (`SubCover`), among which no cycle (`ClRanked`), the whole claim on `b` and
   the whole call permission: the claims back, each holding some of the entries it held (`ClsSub`),
-  and `b` as it was or gone (`EntsSub`); the error `nil` or `fmtErrorOk`, which says nothing of
-  which (as for `specDirS`).
+  and `b` as it was or gone (`EntsSub`); the error `nil` or `fmtErrorOk`. The error says nothing of
+  which (as for `specDirS`), unless the file system does not fail on `d/b` and on `d`
+  (`FsNoErrAt`, `GooseLang/Ext/Fs/NoErrRemoveSteps.lean`): then `nil` only with `b` gone (wal-safe,
+  2026-11-22, design (FNE): every `nil` exit of the model is an `unlink`/`rmdir` of `d/b` answering 0
+  or `ENOENT`, the parent's `open` answering `ENOENT`, or a read of `d/b` answering `ENOENT`; with
+  `d/b` and `d` covered, each happens only with `b` gone).
 
 Proved in `Proof/os/RemoveAll.lean` (`specSubS`: `Proof/os/RemoveAllSub.lean`). Lean-first (no Rocq counterpart).
 -/
@@ -37,6 +41,7 @@ module
 
 public import Proof.os.SharedAu
 public import Spec.fmt.ErrorOk
+public import GooseLang.Ext.Fs.NoErrRemoveSteps
 
 @[expose] public section
 
@@ -138,7 +143,9 @@ abbrev os.RemoveAll.specSubS : Prop :=
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       (∃ (h' : NamesH) (cl' : List Claim), osNames j (.only [b]) (DFrac.own 1) h' ∗ osClaimsW cl' ∗
-        ⌜EntsSub h'.cur h.cur ∧ ClsSub cl' cl⌝) ∗ fmtErrorOkOrNil err }}
+        ⌜EntsSub h'.cur h.cur ∧ ClsSub cl' cl ∧
+          (err = interface.nil → FsNoErrAt (child d b) → FsNoErrAt d → h'.cur !! b = none)⌝) ∗
+      fmtErrorOkOrNil err }}
 
 end spec
 
