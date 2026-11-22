@@ -341,6 +341,8 @@ theorem StartCluster.wp_proof
     ihave #Hkc' := Hkc
     iunfold kvCluster at Hkc'
     icases Hkc' with ⟨#Hiscl, -, #Hca0, -⟩
+    -- (2026-11-22) the update with the crash token (`restartAu_nc`)
+    ihave Hau := restartAu_nc _ _ _ _ _ $$ Hau
     wp_apply (wp_RestartNode γr.cluster kvRaftN _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ kvBootContents (raft_kv.kvConfState vs) 0
       (kvMembership γr)

@@ -2,9 +2,9 @@
 
 `newReplica(id, file, node, storage, kv, applied, cs, index, rafted, tick, stats, send)`
 (`examples/raft/kvnet/replica.go`): an incarnation of replica `id` on the node `RestartNode` just started on
-`storage`, whose durable file is `file` (`durable`'s names `γd`, the file `df`, its roots `fR`; the
-generation's file invariant `kdFileInvK γ id n γd`, which `StartNode` allocated with the writer's other
-half), at the replicated state of the stored snapshot's prefix `ap` (`repOwn`'s fields `kv` and `applied`
+`storage`, whose durable file is `file` (the generation's file names `fl`: `durable`'s, the file, its roots, the
+writer's variable; the file invariant `kdFileInvK γ id fl`, allocated at the generation's boot with the
+writer's other half; the node started from the generation's arm `fl.x`), at the replicated state of the stored snapshot's prefix `ap` (`repOwn`'s fields `kv` and `applied`
 given here, their values fitting a reply frame, `MapFits`; the configuration `cs` denoting `m`, `index =
 len ap`); raft's applied index at start `rafted`. Its `dmu` lock gets the writer's half at `(S, o)`, the
 storage's image at the contents `M` (holding `S`), the file's handle and a share of its call permission;
@@ -42,7 +42,7 @@ abbrev newReplica.spec : Prop :=
     (γs : MemStorNames) (K : GName) (mK mA csp : Loc) (Kv A : GMap (List w8) (List w8))
     (ap l : List LogEntry) (m : Membership) (cfg : ConfStateM) (ip : Loc) (hs : HardStateM) (S : RaftState)
     (o : Option StorFile) (M : StorFile) (rafted : w64) (tick : time.Duration) (f : GoFunc)
-    (γd : DurFs.DurGS) (df : DurFs.DFile) (fR : Fs.Roots) (qc : Qp),
+    (fl : KdFileNames) (qc : Qp),
   0 < sint.Z tick → M.hs = hs → KdFileOk M → StorageHolds S (kdContents (some M)) →
   (ap.length : Int) < 2 ^ 61 → uint.nat rafted = l.length →
   (∀ f, o = some f → f = M) → l.length ≤ ap.length →
@@ -52,18 +52,19 @@ abbrev newReplica.spec : Prop :=
   -- (2026-11-22) the starting maps' values fit a reply frame (`repOwn`/`repShared`'s `MapFits`)
   MapFits Kv → MapFits A →
   -- (2026-11-22, decision C) the file
-  df.Ok → df.name = kdFileName dir id →
+  fl.df.Ok → fl.df.name = kdFileName dir id →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗ context.isClosedchanInit ∗
       kdCluster γ vs ∗ isStats sts ∗
-      Fs.osInv ∗ Fs.osSharedInv fR ∗ DurFs.durInv γd df ∗ kdFileInvK γ id n γd ∗
-      DurFs.durHandle γd df fR ∗ Fs.osCallPerm (Fs.callKey fR df.d) qc ∗
+      Fs.osInv ∗ Fs.osSharedInv fl.fR ∗ DurFs.durInv fl.γd fl.df ∗ kdFileInvK γ id fl ∗
+      DurFs.durHandle fl.γd fl.df fl.fR ∗ Fs.osCallPerm (Fs.callKey fl.fR fl.df.d) qc ∗
+      nodeArm n γ.r.cluster fl.x ∗
       isNode n γ.r.cluster kdRaftN id ∗
       nodeDriver n γ.r.cluster kdRaftN ⟨kdStorIface st, l, hs, none, K, S, StateFollower⟩ ∗
       nodeConfig n γ.r.cluster kdRaftN ⟨ap.length, m⟩ ∗
       nodeRunning n γ.r.cluster kdRaftN 1 ∗
       kdStorRec st ms γs ∗ memStorInvP ms γs (kdJ γ.r.cluster K) ∗
       memStorMeta ms γs hs ∗ st.[KStorage, go!"img"] ↦□ ip ∗ ownImage ip M ∗
-      kdSnapCert γ M.snap ∗ kdWriter γ id S o ∗
+      kdSnapCert γ M.snap ∗ kdWriter fl S o ∗
       memCompacted γs (uint.nat M.prev) ∗
       memLog γs (uint.nat M.prev + 1) DFrac.discard (M.ents.take (l.length - uint.nat M.prev)) ∗
       raft_kvreconf.frozenTo γs (uint.nat M.prev) l ∗

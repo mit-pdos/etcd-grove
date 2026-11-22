@@ -3672,3 +3672,23 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   (`Net/Proof/.../lib/remote/Serve.lean`, with a comment).
 - **Proposed (general).** `wp_apply` re-raises its post-processing's error instead of admitting the
   goal. **Status.** Recorded only.
+
+## 2026-11-22: `math.Float64bits` is names-only (`zap.Float64`, `Client.roundRobinQuorumBackoff`)
+
+- **The gap.** Perennial's `math` translation has `Float64bits` (and presumably `Float64frombits`) as names
+  only, so zap's `Float64(key, val)` (`Field{..., Integer: int64(math.Float64bits(val))}`) has no spec, and
+  `clientv3.Client.roundRobinQuorumBackoff`'s closure, which logs `zap.Float64("jitterFraction", ...)`,
+  stays a trust-boundary axiom (its other callees, `Endpoints`, `GetLogger`, `zap.Uint`/`Duration`,
+  `Debug`, `jitterUp`'s `rand.Float64` and float operations, have specs).
+- **Worked around locally.** Not: the axiom stays (prove-ps2-client, 2026-11-22).
+- **Proposed (general).** mit-pdos/perennial#675 (prove-ps2-succ's, in review) translates `Float64bits` and
+  `Float64frombits` with specs. **Status.** Waits for #675 and a pin bump.
+
+## 2026-11-22: `%+v` of a map is arbitrary in the `fmt` model (`clientv3.streamKeyFromCtx`)
+
+- **The gap.** `SprintfOut` formats `%s`/`%v` of strings and the integer verbs; any other directive's
+  output is arbitrary (`SprintfOut.other`), so `fmt.Sprintf("%+v", map[string][]string(md))` (the watch's
+  stream key) has no determined result, and `streamKeyFromCtx`'s spec (the key is a function of the
+  outgoing metadata, `streamKeyOf`) is unprovable over it.
+- **Proposed (general).** `%v`/`%+v` of a map: Go prints `map[` then the entries sorted by key (`fmt`'s
+  `internal/fmtsort`), `k:v` separated by spaces, then `]`. **Status.** Recorded only.

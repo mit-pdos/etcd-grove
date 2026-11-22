@@ -5,7 +5,8 @@
 
 A crash during a write's window may leave either file (`durable`'s crash lemma `durInv_crash`: the next
 generation finds `v`, with `v = s.cur ∨ s.alt = some v`). The generation's file invariant
-(`kdFileInvK`), carried by the crash obligation, says what each holds (`kdFileState`). `kd_boot_choose`
+(`kdFileInvK`, allocated at the generation's boot, `kd_file_alloc`), whose contents the crash
+obligation takes, says what each holds (`kdFileState`). `kd_boot_choose`
 turns it into the next generation's start (raft's vacancy, the durable state `S'`, and the found
 contents holding it):
 
@@ -46,13 +47,13 @@ attribute [local instance] kdStorageModel
 /-- **The boot's choice** (see the file header): from the crashed generation's file state at `(S, s,
 pb)` and the contents `v` the crash left, the next generation's durable state `S'`, raft's vacancy,
 and `v` holding `S'`. -/
-theorem kd_boot_choose (γ : KdNames) (id : w64) (n : NodeH)
-    (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState × Qp)) (x : CrashNames)
+theorem kd_boot_choose (γ : KdNames) (id : w64)
+    (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState × Qp × GName)) (x : CrashNames)
     (v : Option GoString) (E : CoPset) (hE : ↑kdRaftN ⊆ E) (hv : v = s.cur ∨ s.alt = some v) :
     ⊢ isCluster (GF := GF) γ.r.cluster kdRaftN -∗ crashed -∗ nodeCrashTok γ.r.cluster id x -∗
-      nodeArm n γ.r.cluster x -∗ raftState γ.r.cluster id S -∗ kdFileState γ id n S s pb ={E}=∗
+      raftState γ.r.cluster id S -∗ kdFileState γ id x S s pb ={E}=∗
       ∃ S' : RaftState, raftState γ.r.cluster id S' ∗ nodeVacant γ.r.cluster id ∗ fileHolds γ S' v := by
-  iintro #HisC #Hcr Htok #Harm HrS Hfs
+  iintro #HisC #Hcr Htok HrS Hfs
   obtain ⟨cur, alt⟩ := s
   cases alt with
   | none =>
@@ -81,9 +82,11 @@ theorem kd_boot_choose (γ : KdNames) (id : w64) (n : NodeH)
         iexists S
         iframe HrS Hvac Hnew
       | some p =>
-        obtain ⟨γb, S2, q'⟩ := p
+        obtain ⟨γb, S2, q', γr⟩ := p
         simp only
-        icases Hnew with ⟨%st, %st', %ms, Henter, Hrun, -, %Hst, Hfh⟩
+        icases Hnew with ⟨%n, Hrec, -, Hfh⟩
+        iunfold kdBatchRec at Hrec
+        icases Hrec with ⟨%st, %st', %ms, #Harm, Henter, Hrun, -, %Hst⟩
         obtain ⟨Hst1, Hst2⟩ := Hst
         ihave HrS : raftState γ.r.cluster id st.durable $$ [HrS]
         · rw [Hst1]; iexact HrS
@@ -103,21 +106,51 @@ theorem kd_boot_choose (γ : KdNames) (id : w64) (n : NodeH)
       iexists S
       iframe HrS Hvac Hold
 
-/-- **What `StartNode` starts from** (the boot's result, `kd_boot_choose`, with the file's names): the
-store's cluster, `durable`'s and `os`'s invariants for the file `df` (its client state `s` outside a
-window, `alt = none`), the durable state `S` that its contents hold, raft's vacancy armed at `x` (with
-its crash token, which the crash obligation keeps), and both halves of the writer's variable, at
-`(S, s, none)`. `StartNode` allocates the generation's file invariant `kdFileInvK` once raft's node
-`n` exists, from `raftState`, `durSt` and one writer half. -/
-def kvStart (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (γd : DurFs.DurGS)
-    (df : DurFs.DFile) (fR : Fs.Roots) (qc : Qp) (x : CrashNames) : IProp GF :=
+/-- **What `StartNode` starts from** (2026-11-22, ledger kvnet's `StartNode`: the boot's result, with the
+generation's file names `fl`): the store's cluster, `durable`'s and `os`'s invariants for the file
+`fl.df`, the generation's file invariant (allocated at the boot, `kd_file_alloc`, its crash token kept by
+the crash obligation), the writer's half at the durable state `S` with the file outside a write's window
+holding `cur`, which holds `S`, and raft's vacancy armed at `fl.x` (its crash token kept by the crash
+obligation). -/
+def kvStart (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (fl : KdFileNames) (qc : Qp) :
+    IProp GF :=
   iprop(∃ (S : RaftState) (cur : Option GoString),
-    kdCluster γ vs ∗ Fs.osInv ∗ Fs.osSharedInv fR ∗ DurFs.durInv γd df ∗
-    DurFs.durHandle γd df fR ∗ Fs.osCallPerm (Fs.callKey fR df.d) qc ∗
-    DurFs.durSt γd ⟨cur, none⟩ ∗ fileHolds γ S cur ∗ raftState γ.r.cluster id S ∗
-    nodeVacantA γ.r.cluster id x ∗
-    ghostVar (γ.wr id) (1 : Qp) ((S, ⟨cur, none⟩, none) : KdWv) ∗
-    ⌜df.Ok ∧ df.name = kdFileName dir id ∧ 1 ≤ uint.nat id ∧ uint.nat id ≤ γ.max⌝)
+    kdCluster γ vs ∗ Fs.osInv ∗ Fs.osSharedInv fl.fR ∗ DurFs.durInv fl.γd fl.df ∗
+    DurFs.durHandle fl.γd fl.df fl.fR ∗ Fs.osCallPerm (Fs.callKey fl.fR fl.df.d) qc ∗
+    kdFileInvK γ id fl ∗ ghostVar fl.wr (1 : Qp).half ((S, ⟨cur, none⟩, none) : KdWv) ∗
+    fileHolds γ S cur ∗ nodeVacantA γ.r.cluster id fl.x ∗
+    ⌜fl.df.Ok ∧ fl.df.name = kdFileName dir id ∧ 1 ≤ uint.nat id ∧ uint.nat id ≤ γ.max⌝)
+
+/-- **The generation's file invariant, allocated at its boot** (decision C): from `durable`'s client
+state outside a window at `cur`, the durable state `S` it holds, fresh writer and crash-token names: the
+invariant, the writer's other half, and the crash token (the crash obligation's). -/
+theorem kd_file_alloc (γ : KdNames) (id : w64) (γd : DurFs.DurGS) (df : DurFs.DFile) (fR : Fs.Roots)
+    (x : CrashNames) (S : RaftState) (cur : Option GoString) (E : CoPset) :
+    ⊢ DurFs.durSt (GF := GF) γd ⟨cur, none⟩ -∗ raftState γ.r.cluster id S -∗ fileHolds γ S cur ={E}=∗
+      ∃ (wr tk : GName), kdFileInvK γ id ⟨γd, df, fR, wr, tk, x⟩ ∗
+        ghostVar wr (1 : Qp).half ((S, ⟨cur, none⟩, none) : KdWv) ∗ token tk := by
+  iintro Hds HrS #Hfh
+  imod ghostVar_alloc (GF := GF) ((S, ⟨cur, none⟩, none) : KdWv) with ⟨%wr, Hwr⟩
+  icases (ghostVar_split_half (GF := GF) wr 1 ((S, ⟨cur, none⟩, none) : KdWv)).1 $$ Hwr
+    with ⟨Hwr1, Hwr2⟩
+  imod token_alloc (GF := GF) with ⟨%tk, Htk⟩
+  imod inv_alloc (kdRepN .@ uint.nat id) E (kdFileBody γ id ⟨γd, df, fR, wr, tk, x⟩)
+    $$ [Hds HrS Hwr2] with #Hinv
+  · inext
+    iunfold kdFileBody
+    iexists S, ⟨cur, none⟩, none
+    iframe Hds Hwr2
+    ileft
+    iframe HrS
+    iunfold kdFileState
+    isplitr
+    · iexact Hfh
+    ipureintro; rfl
+  imodintro
+  iexists wr, tk
+  iframe Hwr1 Htk
+  iunfold kdFileInvK
+  iexact Hinv
 
 end boot
 

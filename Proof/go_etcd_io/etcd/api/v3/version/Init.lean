@@ -16,6 +16,8 @@ axiom `initFuncsOk` says returns.
 module
 
 public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
+public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.strings.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 
 @[expose] public section
