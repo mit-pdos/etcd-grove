@@ -67,6 +67,7 @@ public import Proof.go_etcd_io.etcd.client.v3.blockLogger__recordWait
 public import Proof.go_etcd_io.etcd.client.v3.canceledByCaller
 public import Proof.go_etcd_io.etcd.client.v3.New
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
+public import Proof.go_etcd_io.etcd.client.v3.contextErrToGRPCErr
 public import Proof.context.TODO
 public import Proof.context.ValueKeepAlive
 public import Proof.context.WithCancelTodo
@@ -81,6 +82,7 @@ public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredential__Upda
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
 public import Proof.errors.Is
+public import Proof.errors.IsDeadlineExceeded
 public import Proof.errors.IsStatusErr
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__AuthEnable
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__Authenticate
@@ -263,6 +265,18 @@ theorem grpc.wp_Peer :
     EtcdGrove.grpc.Peer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Peer.wp_proof
 
+theorem errors.wp_IsDeadlineExceeded :
+    EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
+
+theorem errors.wp_Is :
+    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Is.wp_proof
+
+theorem status.wp_Error :
+    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Error.wp_proof
+
 theorem grpc.ClientConn.wp_Target :
     EtcdGrove.grpc.ClientConn.Target.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.ClientConn.Target.wp_proof
@@ -379,10 +393,6 @@ theorem ResponseHeader.wp_GetRevision :
     EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ResponseHeader.GetRevision.wp_proof
 
-theorem status.wp_Error :
-    EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.status.Error.wp_proof
-
 theorem v3.WatchResponse.wp_Err :
     EtcdGrove.WatchResponse.Err.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WatchResponse.Err.wp_proof rpctypes.wp_Error status.wp_Error rpctypes.EtcdError.wp_Error
@@ -394,10 +404,6 @@ theorem v3.WatchResponse.wp_IsProgressNotify :
 theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
-
-theorem errors.wp_Is :
-    EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.Is.wp_proof
 
 theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
@@ -490,9 +496,13 @@ theorem v3.wp_filterCallOptions :
     EtcdGrove.filterCallOptions.spec (GF := GF) (hG := hG) :=
   EtcdGrove.filterCallOptions.wp_proof
 
+theorem v3.wp_contextErrToGRPCErr :
+    EtcdGrove.contextErrToGRPCErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.contextErrToGRPCErr.wp_proof errors.wp_IsDeadlineExceeded errors.wp_Is status.wp_Error
+
 theorem v3.wp_waitRetryBackoff :
     EtcdGrove.waitRetryBackoff.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.waitRetryBackoff.wp_proof
+  EtcdGrove.waitRetryBackoff.wp_proof v3.wp_contextErrToGRPCErr
 
 theorem peer.Peer.wp_String :
     EtcdGrove.peer.Peer.String.spec (GF := GF) (hG := hG) :=

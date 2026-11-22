@@ -1,7 +1,8 @@
 /-
-`waitRetryBackoff(ctx, attempt, callOpts)` (`client/v3/retry_interceptor.go`, names only; unit
-P3a): the retry interceptor's wait before an attempt, with a timer (`time.NewTimer`, a `select`
-on `ctx.Done()` and the timer's channel) and the options' backoff function.
+`waitRetryBackoff(ctx, attempt, callOpts)` (`client/v3/retry_interceptor.go`; unit P3a, names only
+and an axiom until prove-ps2-wrb, 2026-11-22, which translated and proved it): the retry
+interceptor's wait before an attempt, with a timer (`time.NewTimer`, a `select` on `ctx.Done()` and
+the timer's channel) and the options' backoff function.
 -/
 module
 
