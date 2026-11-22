@@ -129,8 +129,9 @@ theorem kd_claim_idle (γ : KdNames) (id : w64) (n : NodeH) (g : GName) (S S0 : 
 /-- What `dmu`'s invariant keeps of the image beside the record the section changes. -/
 def kdDmuRest (γ : KdNames) (id : w64) (r : Loc) (ph : KdDmuNames) (S : RaftState)
     (M : StorFile) : IProp GF :=
-  iprop(DurFs.durHandle ph.γd ph.df ph.fR ∗ (∃ qc : Qp, Fs.osCallPerm (Fs.callKey ph.fR ph.df.d) qc) ∗
-    ∃ o : Option StorFile, kdWriter γ id S o ∗
+  iprop(DurFs.durHandle ph.fl.γd ph.fl.df ph.fl.fR ∗
+    (∃ qc : Qp, Fs.osCallPerm (Fs.callKey ph.fl.fR ph.fl.df.d) qc) ∗
+    ∃ o : Option StorFile, kdWriter ph.fl S o ∗
       ⌜∀ f, o = some f → uint.nat f.hs.Commit' ≤ uint.nat M.hs.Commit'⌝)
 
 /-- **The `dmu` section's end, a cut batch**: recorded, `waiting`. -/
@@ -193,7 +194,7 @@ theorem dmu_close_enter (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms :
     (His : uint.nat M.snap.Metadata'.Index' ≤ uint.nat M'.snap.Metadata'.Index')
     (Hfile : ∀ σ : StorContents, StorageHolds S σ → σ.commit ≤ uint.nat M'.hs.Commit' →
       StorageHolds stI'.durable σ) :
-    £ 1 ∗ notCrashed ∗ kdFileInvK γ id n ph.γd ∗ kdDmuRest γ id r ph S M ∗ st.[KStorage, go!"img"] ↦□ ip ∗
+    £ 1 ∗ notCrashed ∗ kdFileInvK γ id ph.fl ∗ kdDmuRest γ id r ph S M ∗ st.[KStorage, go!"img"] ↦□ ip ∗
       ownImage ip M' ∗
       memStorMeta ms γs M'.hs ∗ monoNatAuthOwn ph.ic 1 fz ∗
       memLog γs (uint.nat M'.prev + 1) DFrac.discard (M'.ents.take (fz' - uint.nat M'.prev)) ∗
@@ -214,9 +215,13 @@ theorem dmu_close_enter (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms :
   iinv HfInv with HI Hclose
   imod lc_fupd_elim_later $$ Hlc HI with HI
   iunfold kdFileBody at HI
-  icases HI with ⟨%S0, %s0, %pb0, HrS, Hds, Hwv, Hfs⟩
+  icases HI with ⟨%S0, %s0, %pb0, Hds, Hwv, Hb⟩
+  -- the crashed side is refuted with the token
+  icases Hb with (⟨HrS, Hfs⟩ | ⟨#Hcr, -⟩)
+  rotate_left
+  · iexfalso; iapply notCrashed_crashed $$ Hnc Hcr
   iunfold kdWriter at Hwr
-  ihave %Hag := ghostVar_agree (γ.wr id) _ _ _ _ $$ Hwr Hwv
+  ihave %Hag := ghostVar_agree ph.fl.wr _ _ _ _ $$ Hwr Hwv
   simp only [Prod.mk.injEq] at Hag
   obtain ⟨rfl, rfl, rfl⟩ := Hag
   iunfold kdFileState at Hfs
@@ -228,7 +233,7 @@ theorem dmu_close_enter (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms :
   · rw [HS]; iexact HrS
   imod Henter $$ %(⊤ \ ↑(kdRepN .@ uint.nat id)) %((1 : Qp).half) %(kdRaftN_rep id) Hnc [$HrS $Hrun]
     with ⟨Hnc, HrS, Hrun, Hdrv, #Hmsgs⟩
-  imod ghostVar_update_halves ((stI'.durable, ⟨kdFileVal o, none⟩, none) : KdWv) (γ.wr id) _ _
+  imod ghostVar_update_halves ((stI'.durable, ⟨kdFileVal o, none⟩, none) : KdWv) ph.fl.wr _ _
     $$ Hwr Hwv with ⟨Hwr, Hwv⟩
   -- the file keeps its contents, which hold the new durable state (its commit only moved)
   ihave Hfh' : fileHolds γ stI'.durable (kdFileVal o) $$ [Hfh]
@@ -245,7 +250,9 @@ theorem dmu_close_enter (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms :
   · inext
     iunfold kdFileBody
     iexists stI'.durable, ⟨kdFileVal o, none⟩, none
-    iframe HrS Hds Hwv
+    iframe Hds Hwv
+    ileft
+    iframe HrS
     iunfold kdFileState
     isplitl [Hfh']
     · iexact Hfh'

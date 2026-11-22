@@ -58,8 +58,8 @@ theorem Replica.persist.wp_proof
   icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
   icases Hcpm with ⟨%qc, Hcpm⟩
   -- the pending batch: what the write takes, what it leaves, and the phase after it
-  ihave Hpz : iprop(∃ pb : Option (GName × RaftState × Qp), kdRunKeep γ n q pb ∗ ⌜pbQ q pb = q⌝ ∗
-      ⌜StorageHolds (pbTarget S pb) (kdContents (some M))⌝ ∗ kdPendIn γ id n S pb ∗
+  ihave Hpz : iprop(∃ pb : Option (GName × RaftState × Qp × NodeH), kdRunKeep γ n q pb ∗ ⌜pbQ q pb = q⌝ ∗ ⌜∀ p, pb = some p → p.2.2.2 = n⌝ ∗
+      ⌜StorageHolds (pbTarget S pb) (kdContents (some M))⌝ ∗ kdPendIn γ id S pb ∗
       (kdPendOut pb -∗ ∃ pz', kdPhaseInv γ id n ph.ph (pbTarget S pb) M pz')) $$ [Hph Hrun]
   · cases pz with
     | idle =>
@@ -70,6 +70,8 @@ theorem Replica.persist.wp_proof
       · iunfold kdRunKeep; iexact Hrun
       isplitr
       · ipureintro; rfl
+      isplitr
+      · ipureintro; intro p hp; cases hp <;> rfl
       isplitr
       · ipureintro; exact HSM
       isplitr
@@ -83,11 +85,13 @@ theorem Replica.persist.wp_proof
     | waiting st0 st0' ms0 γb0 =>
       iunfold kdPhaseInv at Hph
       icases Hph with ⟨Hph, #Hsv0, Henter, %Hst0⟩
-      iexists some (γb0, st0'.durable, q)
+      iexists some (γb0, st0'.durable, q, n)
       isplitr
       · iunfold kdRunKeep; iempintro
       isplitr
       · ipureintro; rfl
+      isplitr
+      · ipureintro; intro p hp; cases hp <;> rfl
       isplitr
       · ipureintro; exact Hst0.2
       isplitl [Henter Hrun]
@@ -97,9 +101,9 @@ theorem Replica.persist.wp_proof
         ipureintro; exact ⟨Hst0.1, rfl⟩
       iintro Hout
       iexists KdPhase.fired γb0
-      rw [show pbTarget S (some (γb0, st0'.durable, q)) = st0'.durable from rfl]
+      rw [show pbTarget S (some (γb0, st0'.durable, q, n)) = st0'.durable from rfl]
       simp only [kdPhaseInv]
-      rw [show kdPendOut (GF := GF) (some (γb0, st0'.durable, q)) =
+      rw [show kdPendOut (GF := GF) (some (γb0, st0'.durable, q, n)) =
         iprop(∃ R : IProp GF, savedPropOwn γb0 DFrac.discard R ∗ R) from rfl]
       iframe Hph
       isplitl [Hout]
@@ -114,6 +118,8 @@ theorem Replica.persist.wp_proof
       isplitr
       · ipureintro; rfl
       isplitr
+      · ipureintro; intro p hp; cases hp <;> rfl
+      isplitr
       · ipureintro; exact HSM
       isplitr
       · iunfold kdPendIn; iempintro
@@ -125,7 +131,7 @@ theorem Replica.persist.wp_proof
       isplitl [HR]
       · iexact HR
       ipureintro; exact HSM
-  icases Hpz with ⟨%pb, Hkeep, %HpbQ, %HSM', Hpend, Hpost⟩
+  icases Hpz with ⟨%pb, Hkeep, %HpbQ, %Hpbn, %HSM', Hpend, Hpost⟩
   try wp_auto
   wp_apply wp_encode st ip M $$ [$Hpkg $Himg $Himage] as %sl ⟨Hsl, -, Himage⟩
   ihave %Hsll := ownSlice_len $$ Hsl
@@ -133,9 +139,9 @@ theorem Replica.persist.wp_proof
   wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
   try wp_auto
   rw [← Hdf.2]
-  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
+  wp_apply (wp_Write ph.fl.γd ph.fl.df ph.fl.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
     [r Hwr Hlc1 Hkeep Hpend Hpost Hlocked Himage Hmeta Hic His Hcm HΦ]
-  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Hwr Hlc1 Hkeep Hcert Hpend
+  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' Hpbn $$ HfInv Harm Hwr Hlc1 Hkeep Hcert Hpend
   iintro Hwr Hrun Hout Hdh Hcpm
   rw [HpbQ]
   ihave ⟨%pz', Hph⟩ := Hpost $$ Hout
@@ -181,9 +187,9 @@ theorem Replica.persist.wp_proofRun
   icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
   icases Hcpm with ⟨%qc, Hcpm⟩
   -- `run`'s batch: what the write takes, and how `run` gets its results back after it
-  ihave Hpz : iprop(∃ pb : Option (GName × RaftState × Qp), kdRunKeep γ n q pb ∗ ⌜pbQ q pb = q⌝ ∗
+  ihave Hpz : iprop(∃ pb : Option (GName × RaftState × Qp × NodeH), kdRunKeep γ n q pb ∗ ⌜pbQ q pb = q⌝ ∗ ⌜∀ p, pb = some p → p.2.2.2 = n⌝ ∗
       ⌜StorageHolds (pbTarget S pb) (kdContents (some M)) ∧ pbTarget S pb = st'.durable⌝ ∗
-      kdPendIn γ id n S pb ∗ ghostVar ph.ph (1 : Qp).half (some γb, st'.durable) ∗
+      kdPendIn γ id S pb ∗ ghostVar ph.ph (1 : Qp).half (some γb, st'.durable) ∗
       ghostVar ph.ph (1 : Qp).half (some γb, st'.durable) ∗
       (kdPendOut pb -∗ £ 1 ={⊤}=∗ kdBatchRes γ id n st' qs)) $$ [Hph Hclaim Hrun]
   · cases pz with
@@ -199,11 +205,13 @@ theorem Replica.persist.wp_proofRun
       ihave %Hag := ghostVar_agree ph.ph _ _ _ _ $$ Hph Hclaim
       obtain ⟨h1, h2⟩ := Prod.mk.inj Hag
       obtain rfl := Option.some.inj h1
-      iexists some (γb0, st0'.durable, q)
+      iexists some (γb0, st0'.durable, q, n)
       isplitr
       · iunfold kdRunKeep; iempintro
       isplitr
       · ipureintro; rfl
+      isplitr
+      · ipureintro; intro p hp; cases hp <;> rfl
       isplitr
       · ipureintro; exact ⟨Hst0.2, h2⟩
       isplitl [Henter Hrun]
@@ -215,7 +223,7 @@ theorem Replica.persist.wp_proofRun
       · rw [← h2]; iexact Hph
       iframe Hph Hclaim
       iintro Hout Hlc
-      rw [show kdPendOut (GF := GF) (some (γb0, st0'.durable, q)) =
+      rw [show kdPendOut (GF := GF) (some (γb0, st0'.durable, q, n)) =
         iprop(∃ R : IProp GF, savedPropOwn γb0 DFrac.discard R ∗ R) from rfl]
       icases Hout with ⟨%R, #HsvR, HRR⟩
       ihave #Heq := saved_prop_agree γb0 DFrac.discard DFrac.discard _ _ $$ HsvR HsvC
@@ -239,6 +247,8 @@ theorem Replica.persist.wp_proofRun
       isplitr
       · ipureintro; rfl
       isplitr
+      · ipureintro; intro p hp; cases hp <;> rfl
+      isplitr
       · ipureintro; exact ⟨HSM, h2⟩
       isplitr
       · iunfold kdPendIn; iempintro
@@ -255,7 +265,7 @@ theorem Replica.persist.wp_proofRun
       imod lc_fupd_elim_later $$ Hlc HA with HA
       imodintro
       iexact HA
-  icases Hpz with ⟨%pb, Hkeep, %HpbQ, ⟨%HSM', %HS'⟩, Hpend, Hph, Hclaim, Hpost⟩
+  icases Hpz with ⟨%pb, Hkeep, %HpbQ, %Hpbn, ⟨%HSM', %HS'⟩, Hpend, Hph, Hclaim, Hpost⟩
   try wp_auto
   wp_apply wp_encode st ip M $$ [$Hpkg $Himg $Himage] as %sl ⟨Hsl, -, Himage⟩
   ihave %Hsll := ownSlice_len $$ Hsl
@@ -263,9 +273,9 @@ theorem Replica.persist.wp_proofRun
   wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
   try wp_auto
   rw [← Hdf.2]
-  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
+  wp_apply (wp_Write ph.fl.γd ph.fl.df ph.fl.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
     [r Hwr Hlc1 Hlc2 Hkeep Hpend Hpost Hph Hclaim Hlocked Himage Hmeta Hic His Hcm HΦ]
-  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Hwr Hlc1 Hkeep Hcert Hpend
+  iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' Hpbn $$ HfInv Harm Hwr Hlc1 Hkeep Hcert Hpend
   iintro Hwr Hrun Hout Hdh Hcpm
   rw [HpbQ]
   imod Hpost $$ Hout Hlc2 with HA

@@ -687,3 +687,48 @@ invariant's restructuring above (`Defs`, `PersistLemmas`, `Replica.persist`, `Ru
 configuration loop, `&Stats{}`'s mutex, `newTransport`/`start`, `sendSpec` from `Transport.Send.spec`).
 (3) Independent of (1)-(2): kvcheck's `checker.{conf,reconfigure,disrupt}`, `Gen`/`Model`, `Check` over lintest,
 the minting laws; `PutConfChange`.
+
+## The file invariant from the generation's boot (2026-11-22, branch `kvnet-proof`)
+
+Raft's `RestartNode` update now takes and gives back `notCrashed` (ledger 2026-11-22, raft's
+`RestartNode`; `restartAu_nc` for clients that do not need it). kvnet's side (ledger 2026-11-22, kvnet's
+`StartNode`), as built:
+
+- `KdFileNames` (`Defs.lean`): a generation's file names, allocated at its boot: `durable`'s `γd`, the file
+  `df`, its roots `fR`, the writer's variable `wr` (per generation: `KdNames.wr` is no longer used, left in
+  `Store.lean`), the invariant's crash token `tk`, raft's arm `x`. `KdDmuNames.fl` holds them.
+- `kdFileInvK γ id fl` := `inv (∃ S s pb, durSt fl.γd s ∗ ghostVar fl.wr ½ (S, s, pb) ∗
+  ((raftState S ∗ kdFileState γ id fl.x S s pb) ∨ crashed ∗ token fl.tk))`. The pending batch `pb` carries its
+  node (`KdWv`'s `Option (GName × RaftState × Qp × NodeH)`), and its record holds `nodeArm n γ x` (what
+  `readyCrashEnter` needs), so the invariant names no node. `isReplica` keeps `nodeArm n γ ph.fl.x`.
+- Openers: `kd_writeAU`'s rename update (no token) moves only `durSt` and the writer on the crashed side,
+  dropping the batch; its sync update, `dmu_close_enter` and `kv_restartAu` (`StartLemmas.lean`) refute the
+  crashed side with `notCrashed` (`notCrashed_or_crashed`).
+- `kd_file_alloc` (`BootLemmas.lean`): the invariant, the writer's other half and the token, from `durSt`
+  outside a window, `raftState` and `fileHolds`. `kvStart γ vs dir id fl qc` is what `StartNode` starts from
+  (the invariant already allocated, the writer's half, `fileHolds`, `nodeVacantA γ id fl.x`).
+  `kd_boot_choose` takes the record's arm.
+- `StartNode.spec`/`Run.spec`/`RunNode.spec`: the start resource is `S id dir opts M`, `StartNode` owns
+  `cfg.Addrs ↦$□ M`; `RunNode` gives `S` at every `M` with `addrMapOk (splitAddrs addrs) M` (`Addrs.lean`), the
+  loop's map shown to be exactly that.
+
+Still to do for the crash frame (task 4's): the crash obligation's lemma (open `kdFileInvK` with `tk`, take
+`raftState` and `kdFileState` (under a later: the next generation strips it at its first step, or a credit
+kept with the token), run `durInv_crash` with `durSt`, close with `crashed ∗ token`), then `kd_boot_choose`
+and `kd_file_alloc` for the next generation.
+
+### Handoff (2026-11-22, second session on `kvnet-proof`)
+
+- Commit `657f10a456`: raft's `RestartNode` change (spec, `raft_restart`, clients, copies regenerated and
+  `--check`ed). Built: the edited modules (`lake build` of `RestartNode`, kv `StartCluster`, kvdurable
+  `Cluster.start`, kvreconf `Cluster.startNew`/`StartCluster`, the server's `newRaftNode`: 3679 jobs, green). The
+  full leaf build (80 leaves of `etc/importers.py --leaves`, ~7900 jobs: every `Link`/`Results` above raft's
+  `Api`) reached 7874/7900 with no proof error but was killed twice by the machine's memory pressure (one
+  unrelated module, `rpctypes.InitLinked`, OOM-killed). Not yet done: finish that build, regenerate
+  `interface/` (`etc/gen-interface.py etc/api/raft.txt`: `Spec/.../RestartNode.txt`, `Proof/.../RestartNode.txt`,
+  `Linked.txt` move), `etc/tier-check.py --check`, the STATUS entry (text in the session's report), then the land request.
+- The WIP commit after it: the section above, **unbuilt and unchecked** (written while the build ran). Check
+  with `etc/lean-check.py` in order: `Defs`, `DefsLaws`, `PersistLemmas`, `RunDmu`, `BootLemmas`, `StartLemmas`,
+  `Replica__persist`, `newReplica` (spec, proof), `Addrs`, `StartNode`/`Run`/`RunNode` (specs, proofs); then
+  `lake build KvNet`. Then `StartNode`'s proof (template kvdurablenoax's `Cluster.start`; `kv_restartAu`
+  replaces `kd_restartAu`).
