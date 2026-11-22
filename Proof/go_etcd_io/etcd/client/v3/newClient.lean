@@ -165,7 +165,7 @@ theorem newClient.wp_proof
         · exact hp h
       · ipureintro; exact Hrb
     haveI : ThreadBoundLe GF (2 ^ 30) := ⟨Hrb⟩
-    wp_apply wp_NewBundle P $$ [] as %atb #Hb
+    wp_apply wp_NewBundle P as %atb #Hb
     (try wp_auto)
     wp_join_done
     iexists _, _, atb

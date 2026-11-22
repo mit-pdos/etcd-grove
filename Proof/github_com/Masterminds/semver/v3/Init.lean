@@ -2,14 +2,15 @@
 Package initialization of `github_com.Masterminds.semver.v3`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer initializes its imports and runs its untranslated
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
+initialized variable).
 -/
 module
 
 public import Proof.github_com.Masterminds.semver.v3.PkgInit
+public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -34,24 +35,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **The trust boundary: `github_com.Masterminds.semver.v3`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrConstraintTooLong.init,
-        ErrTooManyConstraintGroups.init,
-        CoerceNewVersion.init,
-        DetailedNewVersionErrors.init,
-        ErrInvalidSemVer.init,
-        ErrEmptyString.init,
-        ErrInvalidCharacters.init,
-        ErrSegmentStartsZero.init,
-        ErrInvalidMetadata.init,
-        ErrInvalidPrerelease.init,
-        ErrVersionTooLong.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `github_com.Masterminds.semver.v3`'s untranslated `init` functions return.** Goose
 names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
@@ -86,17 +69,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk ErrConstraintTooLong.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrTooManyConstraintGroups.init (by mem_tac))
-  wp_apply (opaqueInitsOk CoerceNewVersion.init (by mem_tac))
-  wp_apply (opaqueInitsOk DetailedNewVersionErrors.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrInvalidSemVer.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrEmptyString.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrInvalidCharacters.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrSegmentStartsZero.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrInvalidMetadata.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrInvalidPrerelease.init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrVersionTooLong.init (by mem_tac))
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
+      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   wp_apply (initFuncsOk init.«1» (by mem_tac))
   iframe Hown

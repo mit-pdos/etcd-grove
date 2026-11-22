@@ -21,7 +21,7 @@ open Iris Iris.BI Iris.ProofMode Net raft_kvnet
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [AllG GF] [NetProtoGS]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NetProtoGS]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.Assumptions]
 variable [field_sem : net.FieldAssumptions]

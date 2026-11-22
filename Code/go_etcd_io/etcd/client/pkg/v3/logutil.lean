@@ -26,16 +26,6 @@ opaque ConsoleLogFormat [GooseExts] [GoGlobalContext] : val
 
 opaque JsonLogFormat [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultLogFormat [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultLogFormat"
-
-opaque DefaultLogFormat.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultLogLevel [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultLogLevel"
-
-opaque DefaultLogLevel.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def DefaultZapLoggerConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultZapLoggerConfig"
 
@@ -56,6 +46,24 @@ noncomputable def MergeOutputPaths [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def mergePaths [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/logutil.mergePaths"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `DefaultLogFormat` (`var DefaultLogFormat = JSONLogFormat`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DefaultLogLevel` (`var DefaultLogLevel = "info"`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultLogFormat", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultLogFormat = JSONLogFormat"⟩,
+  ⟨"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultLogLevel", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultLogLevel = \"info\""⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil where
   pkgImportedPkgs := []
 
@@ -65,14 +73,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val DefaultZapLoggerConfig.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val DefaultLogLevel.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultLogFormat.init) (Val #()))))))))
+  (App (Val DefaultZapLoggerConfig.init) (Val #())))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 

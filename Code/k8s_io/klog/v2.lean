@@ -170,48 +170,8 @@ opaque flushInterval [GooseExts] [GoGlobalContext] : val
 
 opaque nameKey [GooseExts] [GoGlobalContext] : val
 
-noncomputable def klogLogger [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.klogLogger"
-
-opaque klogLogger.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ExitFlushTimeout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.ExitFlushTimeout"
-
-opaque ExitFlushTimeout.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def OsExit [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.OsExit"
-
-opaque OsExit.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.New"
-
-opaque New.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def nilToken [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.nilToken"
-
-opaque nilToken.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Stats [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.Stats"
-
-noncomputable def severityStats [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.severityStats"
-
-opaque severityStats.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errVmoduleSyntax [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.errVmoduleSyntax"
-
-opaque errVmoduleSyntax.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTraceSyntax [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.errTraceSyntax"
-
-opaque errTraceSyntax.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logging [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.logging"
@@ -219,44 +179,14 @@ noncomputable def logging [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def commandLine [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.commandLine"
 
-noncomputable def timeNow [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.timeNow"
-
-opaque timeNow.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def logExitFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.logExitFunc"
 
 noncomputable def fatalNoStacks [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.fatalNoStacks"
 
-noncomputable def MaxSize [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.MaxSize"
-
-opaque MaxSize.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def logDirs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.logDirs"
-
-noncomputable def pid [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.pid"
-
-opaque pid.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def program [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.program"
-
-opaque program.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def host [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.host"
-
-opaque host.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def userName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/klog/v2.userName"
-
-opaque userName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def userNameOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.userNameOnce"
@@ -516,10 +446,100 @@ noncomputable def slogOutput [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def SafePtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.SafePtr"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `klogLogger` (`var // klogLogger is used as fallback for logging through the normal klog code // when no Logger is set. klogLogger logr … [sha256:e3d8898f31d30e95]`): Its initializer calls, besides literals of constants and other variables' values:
+`logr.New(&klogger{})` allocates a logger over a new sink and calls its `Init`, which sets the
+sink's own field. So it terminates, cannot panic and has no effect beyond its variable.
+- `ExitFlushTimeout` (`var // ExitFlushTimeout is the timeout that klog has traditionally used during // calls like Fatal or Exit when flushing … [sha256:eced69ee8f02db6c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `OsExit` (`var // OsExit is the function called by FlushAndExit to terminate the program. // // Can be set for testing purpose or t … [sha256:a39d86bde8dbc365]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@format.go:64` (`var _ fmt.Stringer = formatAny{}`): An interface check: `formatAny{}` converted to `fmt.Stringer`. No call, no panic, no effect.
+- `_@format.go:65` (`var _ logr.Marshaler = formatAny{}`): An interface check: `formatAny{}` converted to `logr.Marshaler`. No call, no panic, no effect.
+- `New` (`var // New is an alias for logr.New. New = logr.New`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@k8s_references.go:67` (`var _ logr.Marshaler = ObjectRef{}`): An interface check: `ObjectRef{}` converted to `logr.Marshaler`. No call, no panic, no effect.
+- `_@k8s_references.go:137` (`var _ fmt.Stringer = kobjSlice{}`): An interface check: `kobjSlice{}` converted to `fmt.Stringer`. No call, no panic, no effect.
+- `_@k8s_references.go:138` (`var _ logr.Marshaler = kobjSlice{}`): An interface check: `kobjSlice{}` converted to `logr.Marshaler`. No call, no panic, no effect.
+- `nilToken` (`var nilToken = []byte("null")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@k8s_references_slog.go:33` (`var _ slog.LogValuer = ObjectRef{}`): An interface check: `ObjectRef{}` converted to `slog.LogValuer`. No call, no panic, no effect.
+- `_@k8s_references_slog.go:39` (`var _ slog.LogValuer = kobjSlice{}`): An interface check: `kobjSlice{}` converted to `slog.LogValuer`. No call, no panic, no effect.
+- `severityStats` (`var severityStats = [severity.NumSeverity]*OutputStats{ severity.InfoLog: &Stats.Info, severity.WarningLog: &Stats.Warni … [sha256:2f9d469602400c08]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errVmoduleSyntax` (`var errVmoduleSyntax = errors.New("syntax error: expect comma-separated list of filename=N")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errTraceSyntax` (`var errTraceSyntax = errors.New("syntax error: expect file.go:234")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `timeNow` (`var timeNow = time.Now // Stubbed out for testing.`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `MaxSize` (`var MaxSize uint64 = 1024 * 1024 * 1800`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `pid` (`var pid = os.Getpid()`): Its initializer calls, besides literals of constants and other variables' values: `os.Getpid` reads
+the process id. So it terminates, cannot panic and has no effect beyond its variable.
+- `program` (`var program = filepath.Base(os.Args[0])`): Its initializer calls, besides literals of constants and other variables' values: `filepath.Base`
+computes a string (of `os.Args[0]`, which exists: Linux gives every process a non-empty argv since
+5.18). So it terminates, cannot panic and has no effect beyond its variable.
+- `host` (`var host = "unknownhost"`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `userName` (`var userName = "unknownuser"`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@klogr.go:104` (`var _ logr.LogSink = &klogger{}`): An interface check: `&klogger{}` converted to `logr.LogSink`. No call, no panic, no effect.
+- `_@klogr.go:105` (`var _ logr.CallDepthLogSink = &klogger{}`): An interface check: `&klogger{}` converted to `logr.CallDepthLogSink`. No call, no panic, no effect.
+- `_@klogr_slog.go:101` (`var _ logr.SlogSink = &klogger{}`): An interface check: `&klogger{}` converted to `logr.SlogSink`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/klog/v2.klogLogger", "Its initializer calls, besides literals of constants and other variables' values:\n`logr.New(&klogger{})` allocates a logger over a new sink and calls its `Init`, which sets the\nsink's own field. So it terminates, cannot panic and has no effect beyond its variable.", "var // klogLogger is used as fallback for logging through the normal klog code // when no Logger is set. klogLogger logr … [sha256:e3d8898f31d30e95]"⟩,
+  ⟨"k8s.io/klog/v2.ExitFlushTimeout", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // ExitFlushTimeout is the timeout that klog has traditionally used during // calls like Fatal or Exit when flushing … [sha256:eced69ee8f02db6c]"⟩,
+  ⟨"k8s.io/klog/v2.OsExit", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // OsExit is the function called by FlushAndExit to terminate the program. // // Can be set for testing purpose or t … [sha256:a39d86bde8dbc365]"⟩,
+  ⟨"k8s.io/klog/v2._@format.go:64", "An interface check: `formatAny{}` converted to `fmt.Stringer`. No call, no panic, no effect.", "var _ fmt.Stringer = formatAny{}"⟩,
+  ⟨"k8s.io/klog/v2._@format.go:65", "An interface check: `formatAny{}` converted to `logr.Marshaler`. No call, no panic, no effect.", "var _ logr.Marshaler = formatAny{}"⟩,
+  ⟨"k8s.io/klog/v2.New", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // New is an alias for logr.New. New = logr.New"⟩,
+  ⟨"k8s.io/klog/v2._@k8s_references.go:67", "An interface check: `ObjectRef{}` converted to `logr.Marshaler`. No call, no panic, no effect.", "var _ logr.Marshaler = ObjectRef{}"⟩,
+  ⟨"k8s.io/klog/v2._@k8s_references.go:137", "An interface check: `kobjSlice{}` converted to `fmt.Stringer`. No call, no panic, no effect.", "var _ fmt.Stringer = kobjSlice{}"⟩,
+  ⟨"k8s.io/klog/v2._@k8s_references.go:138", "An interface check: `kobjSlice{}` converted to `logr.Marshaler`. No call, no panic, no effect.", "var _ logr.Marshaler = kobjSlice{}"⟩,
+  ⟨"k8s.io/klog/v2.nilToken", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var nilToken = []byte(\"null\")"⟩,
+  ⟨"k8s.io/klog/v2._@k8s_references_slog.go:33", "An interface check: `ObjectRef{}` converted to `slog.LogValuer`. No call, no panic, no effect.", "var _ slog.LogValuer = ObjectRef{}"⟩,
+  ⟨"k8s.io/klog/v2._@k8s_references_slog.go:39", "An interface check: `kobjSlice{}` converted to `slog.LogValuer`. No call, no panic, no effect.", "var _ slog.LogValuer = kobjSlice{}"⟩,
+  ⟨"k8s.io/klog/v2.severityStats", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var severityStats = [severity.NumSeverity]*OutputStats{ severity.InfoLog: &Stats.Info, severity.WarningLog: &Stats.Warni … [sha256:2f9d469602400c08]"⟩,
+  ⟨"k8s.io/klog/v2.errVmoduleSyntax", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errVmoduleSyntax = errors.New(\"syntax error: expect comma-separated list of filename=N\")"⟩,
+  ⟨"k8s.io/klog/v2.errTraceSyntax", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errTraceSyntax = errors.New(\"syntax error: expect file.go:234\")"⟩,
+  ⟨"k8s.io/klog/v2.timeNow", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var timeNow = time.Now // Stubbed out for testing."⟩,
+  ⟨"k8s.io/klog/v2.MaxSize", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var MaxSize uint64 = 1024 * 1024 * 1800"⟩,
+  ⟨"k8s.io/klog/v2.pid", "Its initializer calls, besides literals of constants and other variables' values: `os.Getpid` reads\nthe process id. So it terminates, cannot panic and has no effect beyond its variable.", "var pid = os.Getpid()"⟩,
+  ⟨"k8s.io/klog/v2.program", "Its initializer calls, besides literals of constants and other variables' values: `filepath.Base`\ncomputes a string (of `os.Args[0]`, which exists: Linux gives every process a non-empty argv since\n5.18). So it terminates, cannot panic and has no effect beyond its variable.", "var program = filepath.Base(os.Args[0])"⟩,
+  ⟨"k8s.io/klog/v2.host", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var host = \"unknownhost\""⟩,
+  ⟨"k8s.io/klog/v2.userName", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var userName = \"unknownuser\""⟩,
+  ⟨"k8s.io/klog/v2._@klogr.go:104", "An interface check: `&klogger{}` converted to `logr.LogSink`. No call, no panic, no effect.", "var _ logr.LogSink = &klogger{}"⟩,
+  ⟨"k8s.io/klog/v2._@klogr.go:105", "An interface check: `&klogger{}` converted to `logr.CallDepthLogSink`. No call, no panic, no effect.", "var _ logr.CallDepthLogSink = &klogger{}"⟩,
+  ⟨"k8s.io/klog/v2._@klogr_slog.go:101", "An interface check: `&klogger{}` converted to `logr.SlogSink`. No call, no panic, no effect.", "var _ logr.SlogSink = &klogger{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.klog.v2 where
   pkgImportedPkgs := [pkg_id.github_com.go_logr.logr]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -527,82 +547,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val userName.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val host.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val program.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val pid.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val MaxSize.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val timeNow.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTraceSyntax.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errVmoduleSyntax.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val severityStats.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val nilToken.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val New.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val OsExit.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ExitFlushTimeout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val klogLogger.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.go_logr.logr.initialize') (Val #()))))))))
 

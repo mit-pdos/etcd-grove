@@ -44,11 +44,6 @@ opaque ListFunc.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), 
 
 opaque byUID.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def dataConsistencyDetectionForWatchListEnabled [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/util/consistencydetector.dataConsistencyDetectionForWatchListEnabled"
-
-opaque dataConsistencyDetectionForWatchListEnabled.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.init.0"
 
@@ -70,6 +65,19 @@ noncomputable def prepareListCallOptions [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable def toMetaObjectSliceOrDie [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.toMetaObjectSliceOrDie"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `dataConsistencyDetectionForWatchListEnabled` (`var dataConsistencyDetectionForWatchListEnabled = false`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/client-go/util/consistencydetector.dataConsistencyDetectionForWatchListEnabled", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var dataConsistencyDetectionForWatchListEnabled = false"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.consistencydetector where
   pkgImportedPkgs := []
 
@@ -79,11 +87,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.util.consistencydetector)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val dataConsistencyDetectionForWatchListEnabled.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 abbrev RetrieveItemsFunc [GooseExts] (U : Type) : Type := GoFunc
 

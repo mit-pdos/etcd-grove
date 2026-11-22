@@ -39,13 +39,14 @@ variable [go_gctx : GoGlobalContext]
 /-- **`logkvrw_adequate` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `logkvrw_adequate`'s other hypotheses: in every
-execution of fewer than `2 ^ 30 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+execution of fewer than `2 ^ 63` steps along which fewer than `2 ^ 30` threads are live (the server's
+`RWMutex` readers), no thread is stuck and none has an unrecovered panic. -/
 def logkvrw_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions]
     (σ : state) (g : GlobalState),
     Robustness.Robust [] [(logkvrwProgram, σ)] g (threads := 2 ^ 30)
-      (bound := 2 ^ 30 - 1)
+      (bound := 2 ^ 63)
 
 end adequacy
 end logkvrw

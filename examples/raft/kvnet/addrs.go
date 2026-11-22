@@ -94,8 +94,8 @@ func ValidAddrs(addrs []string, voters uint64) bool {
 
 // ValidCluster says whether the cluster is one the top-level theorem's premises allow: valid
 // addresses and voters (ValidAddrs), raft's size limits not both 0, and MaxInflightMsgs a
-// positive Go int.
+// positive Go int below 2^62 (raft's RestartNode needs it).
 func ValidCluster(addrs []string, voters, maxSizePerMsg, maxCommittedSizePerReady, maxInflightMsgs uint64) bool {
 	return ValidAddrs(addrs, voters) && !(maxSizePerMsg == 0 && maxCommittedSizePerReady == 0) &&
-		0 < maxInflightMsgs && maxInflightMsgs < 1<<63
+		0 < maxInflightMsgs && maxInflightMsgs < 1<<62
 }

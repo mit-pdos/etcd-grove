@@ -100,6 +100,24 @@ def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
   iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗ walFiles a id cid σ true) ∗
     backend.fileHolds (config.backendPathOf dd) D)
 
+/-- (bkarea, 2026-11-22) **The data directory of the server's files is shorter than `2^60` bytes**: the
+WAL area's directory `srvWalDirOf dd` fits (`WalA.fits`), and it holds all of `dd` past `dataBase`. -/
+theorem srvFiles_dataDir_len (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) :
+    srvFiles (GF := GF) dd id σ D ⊢ ⌜dd.length < 2 ^ 60⌝ ∗ srvFiles dd id σ D := by
+  unfold srvFiles
+  iintro ⟨⟨%a, %cid, %ha, Hw⟩, Hb⟩
+  have hf := a.fits
+  rw [ha] at hf
+  have hl : (srvWalDirOf dd).length < 3800 := hf.1
+  simp only [srvWalDirOf, walAreaOf, List.length_append, List.length_drop] at hl
+  have hdb : dataBase.length = 20 := by decide
+  isplitr
+  · ipureintro; omega
+  iframe Hb
+  iexists a, cid
+  iframe Hw
+  ipureintro; exact ha
+
 /-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
 (R2c's draft opaque `v3ConfState`, defined 2026-11-04, the restart plan's R2b-3d gap 3; R2c review
 F4: from the bucket, not the in-memory members): the bucket's entries are those of some members

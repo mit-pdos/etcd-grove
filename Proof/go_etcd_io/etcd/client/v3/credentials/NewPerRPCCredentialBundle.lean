@@ -25,27 +25,33 @@ variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 theorem credentials.NewPerRPCCredentialBundle.wp_proof :
     credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) := by
   intro _ P
-  wp_start
+  wp_start as #Hpi
   have Htb : threadBound GF ≤ 2 ^ 30 := ThreadBoundLe.le (GF := GF) _
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
   wp_auto
   wp_alloc b as Hb
   iStructNamed Hb
   ipersist rc
   iStructNamed «$v0»
-  imod inv_alloc credTokN ⊤ iprop(∃ t : GoString,
-      structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken"
-        «$v0_ptr» ↦ t ∗ (⌜t = go!""⌝ ∨ □ P t)) $$ [authToken] with #Hinv
-  · iexists _
+  imod sync.init_RWMutex_threadPool (credTokR «$v0_ptr» P) credTokN _ Htb $$ [authToken] authTokenMu
+    with ⟨%γp, #Hg, #Hpool⟩
+  · inext
+    iunfold credTokR
+    iexists _
     iframe authToken
     ileft; ipureintro; rfl
   wp_auto
   iapply HΦ
   unfold tokenBundleInv credTokInv
   iexists b, «$v0_ptr»
-  iframe rc Hinv
+  iframe rc Hsync Hg
   isplitr
   · ipureintro; rfl
-  ipureintro; exact Htb
+  isplitr
+  · ipureintro; exact Htb
+  iexists γp
+  iexact Hpool
 
 end proof
 

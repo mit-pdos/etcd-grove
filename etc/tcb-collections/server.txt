@@ -25,7 +25,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
-axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -45,7 +44,6 @@ axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
@@ -138,7 +136,6 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom proto.UnmarshalRole.wp_proof
 axiom proto.UnmarshalUser.wp_proof
-axiom rafthttp.Transport.ActiveSince.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rate.Limiter.Wait.wp_proof
@@ -151,8 +148,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
-axiom semver.MustParse.wp_proof
-axiom semver.Version.LessThan.wp_proof
+axiom semver.NewVersion.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
@@ -173,14 +169,9 @@ axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
-axiom v2stats.NewServerStats.wp_proof
-axiom v2stats.ServerStats.BecomeLeader.wp_proof
-axiom v2stats.ServerStats.RecvAppendReq.wp_proof
-axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
-axiom version.Cluster.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
 axiom zap.Logger.check.wp_proof

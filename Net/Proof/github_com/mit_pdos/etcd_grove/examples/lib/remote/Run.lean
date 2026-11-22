@@ -41,7 +41,7 @@ theorem Run.wp_proof
     (wp_perclientRun : EtcdGrove.perclient.Run.spec (GF := GF) (hG := hG))
     (wp_CounterClock : CounterClock.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
-  intro R S γ m addrs addrL cd gen ops d tmo HpE HlE HS HT Hrb H31 Hops Hmul
+  intro R S γ m addrs addrL cd gen ops d tmo HpE HlE HS Hinj HT Hrb H31 Hops Hmul
   haveI := HT
   wp_start as ⟨#Hcc, #Hm, #Hgen, #Haddrs, #Hra, #Hmap, #Hcd, #Hpend, Hlib⟩
   wp_auto
@@ -72,7 +72,7 @@ theorem Run.wp_proof
     · iframe Haddrs
       ipureintro
       exact ha
-    ihave Hch := pend_choice (Gg := hG.goose_globalGS) R HpE S HS γ i
+    ihave Hch := pend_choice (Gg := hG.goose_globalGS) R HpE S HS Hinj γ i
       (fun o => iprop(∀ o', (⌜∀ s, S.M.step s (R.iv i, o') = S.M.step s (R.iv i, o)⌝ ∗
         S.ioOk (R.iv i) o' ∗ threadTok) -∗ Φ' #o')) $$ Hpend Hlc1 [HAU]
     · inext

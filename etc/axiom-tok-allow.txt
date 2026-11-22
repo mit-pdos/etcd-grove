@@ -36,9 +36,8 @@ pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.
 entry Perennial.EtcdGrove.grpc.NewClient.wp_proof 3:Q:produced1/consumedlen(credsOfDialds)  Q is produced only as `□ Q cm` in the one-credential arm of `connCredsOk`, where the credential's `perRPCCredsOk` (consumed) gives it; with no credential nothing is produced (the walk does not see the `match` on the list)
 entry Perennial.EtcdGrove.http.CloseIdleConnections_ok 3:H.proto.req:produced1/consumed0,3:H.proto.sreq:produced1/consumed0  H.proto's fields occur only in the pre of the `RoundTrip` method of the consumed `roundTripperOk`; `CloseIdleConnections` never calls `RoundTrip`, and the axiom produces only `True` and a pointer equality
 entry Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof 3:Pre:produced2/consumed1,7:Φ:GoString×GoString→IPropGF  Pre is bound in the produced `alarmApplyOk` → `isAlarmStore`: the store's write runs its critical-section contract either inside the backend's post-lock hook or on the no-lock path, never both (the two are exclusive), so the two productions are one `Pre` on one of two exclusive paths; `∃ Φ` as backend.Snapshot's (`dlIs`) (reason rewritten 2026-11-12, stage B gate triage)
-entry Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  the `∃ Φ : Unit -n> IProp` is an atomic update's greatest fixpoint (`atomic_update` = `bi_greatest_fixpoint`), bound with its own coinduction hypothesis, inside the consumed server handle; the post is `True`
-entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle; post `True`)
-entry Perennial.EtcdGrove.etcd_noRefusal 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle)
+entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  the `∃ Φ : Unit -n> IProp` is an atomic update's greatest fixpoint (`atomic_update` = `bi_greatest_fixpoint`), bound with its own coinduction hypothesis, inside the consumed server handle; the post is `True`
+entry Perennial.EtcdGrove.etcd_noRefusal 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as monitorStorageVersion (an atomic update's fixpoint witness inside the consumed server handle)
 entry Perennial.EtcdGrove.io.MultiReader.wp_proof 7:Src:Listw8→IPropGF  `∃ Src` is `streamHas`'s representation predicate, bound with the one reader contract (`streamReaderOk`) that uses it and its start `Src []`
 
 # --- CP1a: the stream content's transfer (freeze-cp1a.md §4, review m4/m1) ---
@@ -46,7 +45,7 @@ entry Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof 7:Dn:Nat→Rep.M→IProp
 entry Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof 7:Dn:Nat→Rep.M→IPropGF  as acceptRun's (the same stream arm, on an open connection after the listener failed)
 
 # --- CP3 (2026-11-11): the walks the scenario cap collapsed, now decided; the same reasons as above ---
-entry Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as adjustTicks (an atomic update's fixpoint witness inside the consumed server handle; post `True`); `∃ P` is a `*cancelCtx`'s Done proposition, held only by `isCancelCtxOf`'s mutex and invariant (neutral handles; the walk stops there at `--depth`)
+entry Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as monitorStorageVersion (an atomic update's fixpoint witness inside the consumed server handle; post `True`); `∃ P` is a `*cancelCtx`'s Done proposition, held only by `isCancelCtxOf`'s mutex and invariant (neutral handles; the walk stops there at `--depth`)
 entry Perennial.EtcdGrove.EtcdServer.publishV3.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as monitorClusterVersions (post `True`)
 # `∃ Φ : GoString × GoString → IProp` is `dlIs`'s (`InvBackend.lean:877`), bound with `dlReg`'s saved predicate at the backend's own name (fixed by the backend's creator; `saved_pred_agree`), as backend.Snapshot's; reached through the consumed `isBackend`/`openPre`
 entry Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
@@ -75,7 +74,6 @@ entry Perennial.EtcdGrove.EtcdServer.rangeStream.wp_proof 3:A:produced3/consumed
 # `--depth` whose body reaches a token, an IProp-valued opaque or an Iris binder; an irreducible
 # definition holding an atom; a projection of a program-picked record such as a triple's `cd`).
 # Known unknowns, not reviewed one by one; none may be added. ---
-trunc Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof
 trunc Perennial.EtcdGrove.EtcdServer.leaseTimeToLive.wp_proof
 trunc Perennial.EtcdGrove.EtcdServer.rangeStream.wp_proof
 trunc Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof
@@ -92,7 +90,6 @@ trunc Perennial.EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.
 trunc Perennial.EtcdGrove.metadata.AppendToOutgoingContext.wp_proof
 trunc Perennial.EtcdGrove.proto.MarshalAppendPb.wp_proof
 trunc Perennial.EtcdGrove.proto.MarshalPb.wp_proof
-trunc Perennial.EtcdGrove.rafthttp.Transport.ActiveSince.wp_proof
 trunc Perennial.EtcdGrove.snap.NewMessage.wp_proof
 trunc Perennial.EtcdGrove.storage.OpenBackend.wp_proof
 trunc Perennial.EtcdGrove.traceutil.Tracer.Start.wp_proof
@@ -103,11 +100,10 @@ trunc Perennial.EtcdGrove.withVersion.wp_proof
 # --- k8s 7f-4 Revision 1, T-e' (2026-11-12; for etcd-grove-81's re-review, notes/k8s-7f4-freeze.md, "Revision 1") ---
 # `isReqAuth`'s triples take `auth.ctxDoneAny ctx` (Proof/go_etcd_io/etcd/server/v3/auth/CtxDone.lean), whose `Done()` post is
 # `ch = nil ∨ ∃ s γch, isContextDone s ch γch`; every axiom whose statement holds the server's request facts (`isReqAuth`) shows the `∃ sDoneAny`.
-entry Perennial.EtcdGrove.EtcdServer.adjustTicks.wp_proof 7:sDoneAny:context.ContextDesc(IPropGF)  rule 7's neutral case through a defined handle (as NewStream's `cd'`): the `∃ sDoneAny` is `auth.ctxDoneAny`'s, in the pre of `isReqAuth`'s triples (the auth store's methods); `s.PDone` occurs only inside `isContextDone` (irreducible: Perennial's context handle), and the methods' posts (`RD`, `authInfoOpt`, `authApplyErrIs`, `ctxBound`) mention nothing of `s`
 entry Perennial.EtcdGrove.EtcdServer.leaseTimeToLive.wp_proof 7:sDoneAny:context.ContextDesc(IPropGF)  rule 7's neutral case through a defined handle (as NewStream's `cd'`): the `∃ sDoneAny` is `auth.ctxDoneAny`'s, in the pre of `isReqAuth`'s triples (the auth store's methods); `s.PDone` occurs only inside `isContextDone` (irreducible: Perennial's context handle), and the methods' posts (`RD`, `authInfoOpt`, `authApplyErrIs`, `ctxBound`) mention nothing of `s`
 entry Perennial.EtcdGrove.EtcdServer.rangeStream.wp_proof 7:sDoneAny:context.ContextDesc(IPropGF)  rule 7's neutral case through a defined handle (as NewStream's `cd'`): the `∃ sDoneAny` is `auth.ctxDoneAny`'s, in the pre of `isReqAuth`'s triples (the auth store's methods); `s.PDone` occurs only inside `isContextDone` (irreducible: Perennial's context handle), and the methods' posts (`RD`, `authInfoOpt`, `authApplyErrIs`, `ctxBound`) mention nothing of `s`
 entry Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof 7:sDoneAny:context.ContextDesc(IPropGF)  rule 7's neutral case through a defined handle (as NewStream's `cd'`): the `∃ sDoneAny` is `auth.ctxDoneAny`'s, in the pre of `isReqAuth`'s triples (the auth store's methods); `s.PDone` occurs only inside `isContextDone` (irreducible: Perennial's context handle), and the methods' posts (`RD`, `authInfoOpt`, `authApplyErrIs`, `ctxBound`) mention nothing of `s`
-entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 7:sDoneAny:context.ContextDesc(IPropGF)  rule 7's neutral case through a defined handle (as NewStream's `cd'`): the `∃ sDoneAny` is `auth.ctxDoneAny`'s, in the pre of `isReqAuth`'s triples (the auth store's methods); `s.PDone` occurs only inside `isContextDone` (irreducible: Perennial's context handle), and the methods' posts (`RD`, `authInfoOpt`, `authApplyErrIs`, `ctxBound`) mention nothing of `s`
+entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 7:sDoneAny:context.ContextDesc(IPropGF)  rule 7's neutral case through a defined handle (as NewStream's `cd'`): the `∃ sDoneAny` is `auth.ctxDoneAny`'s, in the pre of `isReqAuth`'s triples (the auth store's methods); `s.PDone` occurs only inside `isContextDone` (irreducible: Perennial's context handle), and the methods' posts (`RD`, `authInfoOpt`, `authApplyErrIs`, `ctxBound`) mention nothing of `s`IPropGF  the `∃ Φ : Unit -n> IProp` is an atomic update's greatest fixpoint (`atomic_update` = `bi_greatest_fixpoint`), bound with its own coinduction hypothesis, inside the consumed server handle; the post is `True`
 entry Perennial.EtcdGrove.EtcdServer.publishV3.wp_proof 7:sDoneAny:context.ContextDesc(IPropGF)  rule 7's neutral case through a defined handle (as NewStream's `cd'`): the `∃ sDoneAny` is `auth.ctxDoneAny`'s, in the pre of `isReqAuth`'s triples (the auth store's methods); `s.PDone` occurs only inside `isContextDone` (irreducible: Perennial's context handle), and the methods' posts (`RD`, `authInfoOpt`, `authApplyErrIs`, `ctxBound`) mention nothing of `s`
 entry Perennial.EtcdGrove.etcd_noRefusal 7:sDoneAny:context.ContextDesc(IPropGF)  as the `EtcdServer` entries above: `auth.ctxDoneAny`'s `∃ sDoneAny` inside `isReqAuth`, only under `isContextDone`; this axiom's walk is truncated (its `trunc` line), the binder's source is checked by definition (`isReqAuth` is the only holder of `ctxDoneAny`)
 

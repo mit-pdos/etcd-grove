@@ -1,9 +1,48 @@
 # Types and names only, but for `New`, `Version.Major` and `Version.Minor` (prove-smalllibs,
-# 2026-11-20: proved over the real code). The parser (`NewVersion`, a regular expression), `String`
-# (`fmt.Fprintf`) and `LessThan` stay the trust boundary. (The apply package's ClusterVersionSet
+# 2026-11-20: proved over the real code). The parser (`NewVersion`, a regular expression) and `String`
+# (`fmt.Fprintf`) stay the trust boundary. (The apply package's ClusterVersionSet
 # calls MustParse, Version.LessThan and Version.String.)
-translate = ["!*", "New", "Version.Major", "Version.Minor"]
-imports = ["!*"]
+# (prove-ps2-client, 2026-11-22) `MustParse` with its body, over `NewVersion`'s spec (the trust
+# boundary in its place: `Spec/github_com/Masterminds/semver/v3/NewVersion.lean`).
+# (prove-ps2-semver, 2026-11-22) `Version.LessThan` with its body and its callees' (`Compare`,
+# `Patch`, `Prerelease`, `compareSegment`, `comparePrerelease`, `comparePrePart`), over the specs
+# of `strings.Split` and `strconv.ParseUint`. `String` stays the trust boundary: its
+# `fmt.Fprintf` into a `bytes.Buffer` has no model in Perennial.
+translate = ["!*", "New", "Version.Major", "Version.Minor", "MustParse", "Version.LessThan",
+  "Version.Compare", "Version.Patch", "Version.Prerelease", "compareSegment", "comparePrerelease",
+  "comparePrePart"]
+# (prove-ps2-semver) the packages `comparePrerelease` and `comparePrePart` call.
+imports = ["!*", "strings", "strconv"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["ErrConstraintTooLong", "ErrTooManyConstraintGroups", "ErrVersionTooLong"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["CoerceNewVersion", "DetailedNewVersionErrors"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["ErrInvalidSemVer", "ErrEmptyString", "ErrInvalidCharacters", "ErrSegmentStartsZero",
+  "ErrInvalidMetadata", "ErrInvalidPrerelease"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable."""
+# --- end of skipped package variables ---

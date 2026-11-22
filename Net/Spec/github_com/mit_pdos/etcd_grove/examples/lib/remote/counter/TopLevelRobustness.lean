@@ -3,7 +3,7 @@
 which crashes — the orchestrator (`remote.Check` of two clients' increments and reads against the
 counter's model with pending increments), two client nodes (each `remote.ServeClient`, its operation
 a `remote.Do` at the server) and the server (lintest/counter's `Counter`, `remote.Serve`d) —
-deployed at `counterAddrs` (`KitDeploy`: the addresses distinct and valid, no connection, no
+deployed at `counterAddrs` (`DistDeploy`: the addresses distinct and valid, no connection, no
 listener). In every execution of fewer than `2^63` steps, with any number of threads, no thread of
 any machine is stuck and none has a top-level panic (`Robust`, `Robustness/Statement.lean`). Since
 the orchestrator panics unless porcupine accepts the history, this says porcupine accepts every
@@ -36,7 +36,7 @@ def counter_remote_robust.spec : Prop :=
     [c1_sem : cmd.client1.Assumptions] [srv_sem : cmd.server.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (σo σ0 σ1 σs : state) (g : GlobalState) (threads : Nat),
-    KitDeploy counterAddrs (system σo σ0 σ1 σs) g →
+    DistDeploy counterAddrs (system σo σ0 σ1 σs) g →
     Robustness.Robust [] (system σo σ0 σ1 σs) g threads (2 ^ 63)
 
 end github_com.mit_pdos.etcd_grove.examples.lib.remote.counter

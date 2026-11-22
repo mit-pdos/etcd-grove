@@ -101,6 +101,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hmmap : storage.openMmapOk cfg)
+    -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes (`OpenSnapshotBackend`'s,
+    -- `srvSnapRO`'s)
+    (hdd : cfg.DataDir'.length < 2 ^ 60)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')

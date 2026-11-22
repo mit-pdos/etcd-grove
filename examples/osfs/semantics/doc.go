@@ -23,7 +23,8 @@
 //	env_config.go                 the target configuration C         Impl.lean header, pageIn
 //	env_device_no_garbage.go      a device write leaves old or new   CrashFile (candidates only)
 //	env_no_failed_writeback.go    no failed writeback (F1)           Fsync (failure: no change), ReadSees
-//	env_durable_at_first_start.go durable at first start (F2)        FsInit
+//	env_durable_at_first_start.go durable at first start (F2)        FsInit (fs_semantics.initLocal)
+//	env_fresh_process.go          a first start has nothing open      FsInit (proc = ProcState.empty), fs_semantics.initLocal
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
 //	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
 //	env_roots_only.go             only the roots' trees              TreeName, TreePath, AtOrAboveRoot, CanonBelow, RootsOk

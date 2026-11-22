@@ -2,8 +2,8 @@
 `(*WAL).renameWAL` over `fsExt`: the proof (W4 of `notes/wal-fsext-plan.md`, sixteenth session; spec
 `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWAL.lean`). No `sorry`. The callees'
 specs are its hypotheses: `os.RemoveAll.specAbsentN` (`CreateCallees.lean`), `os.Rename.specDirSnc`,
-`newFilePipeline.spec`, `fileutil.OpenDir.spec`, `errors.AsLinkError.spec` (`Spec/errors/
-AsLinkError.lean`: `os.Rename`'s error is a `*LinkError`, `os.renameErrOk`, so `errors.As` matches it)
+`newFilePipeline.spec`, `fileutil.OpenDir.spec`, `errors.AsTypeMatch.spec` (`Spec/errors/
+AsTypeMatch.lean`: `os.Rename`'s error is a `*LinkError`, `os.renameErrOk`, so `errors.AsType` matches it)
 and `renameWALUnlock.spec` (a hypothesis: W4 log, sixteenth session, on why it is not provable as
 stated). `RemoveAll`'s error exit commits the update with no effect (`osAUnc_none`) for the post's
 `U none`; the spine law runs at the step after a committed rename. Lean-first.
@@ -15,7 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__renameWALUnlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.CreateCallees
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
-public import Spec.errors.AsLinkError
+public import Spec.errors.AsTypeMatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 
 @[expose] public section
@@ -65,7 +65,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     (wp_Rename : os.Rename.specDirSnc (GF := GF) (hG := hG))
     (wp_nfp : go_etcd_io.etcd.server.v3.storage.wal.newFilePipeline.spec (GF := GF) (hG := hG))
     (wp_OpenDir : go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.spec (GF := GF) (hG := hG))
-    (wp_As : errors.AsLinkError.spec (GF := GF) (hG := hG))
+    (wp_AsType : errors.AsTypeMatch.spec (GF := GF) (hG := hG))
     (wp_unlock : go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWALUnlock.spec (W := W) P Mr) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (W := W) P Mr := by
   intro R jr J r dir nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname d c off U Sp SpR UH hok
@@ -118,11 +118,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   · iframe; iframe #
   cases err
   case ok ei =>
-    -- the rename failed: `errors.As` matches its `*LinkError`, `renameWALUnlock`
+    -- the rename failed: `errors.AsType` matches its `*LinkError`, `renameWALUnlock`
     obtain ⟨le, hle⟩ := ho.2.resolve_left (by intro hc; cases hc)
     cases hle
     try wp_auto
-    wp_apply wp_As le _ null $$ [$linkErr] as Hl
+    wp_apply wp_AsType ⟨go.GoType.PointerType os.LinkError.ty, #le⟩ (T' := Loc) le
+      (by first | rfl | (rw [go.is_underlying]; rfl) | simp [go.is_underlying, go.isInterfaceType]) rfl rfl
     try wp_auto
     wp_apply wp_unlock R jr J r (child r nm) nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname
       d c off U Sp SpR UH o hok' $$ [Hp Hperm HU Hout HSp Htmps Hlg Hdir Hpre Hlk Hfp Hdf] as %w' %err' Hpost

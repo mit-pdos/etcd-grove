@@ -8,8 +8,18 @@
 # alarm store's and the cluster's methods, names-only struct pointers: Contracts.lean too) are
 # not listed.
 pbutil_MustUnmarshalMessage:
-MustParse:
-Version__LessThan:
+MustParse: NewVersion
+NewVersion:
+# (prove-ps2-semver, 2026-11-22) semver's `LessThan` proved over the real code
+Version__Major:
+Version__Minor:
+Version__Patch:
+Version__Prerelease:
+compareSegment:
+comparePrePart: =_root_.Perennial.strconv.wp_ParseUint
+comparePrerelease: =_root_.Perennial.strings.wp_Split comparePrePart
+Version__Compare: Version__Major Version__Minor Version__Patch Version__Prerelease compareSegment comparePrerelease
+Version__LessThan: Version__Compare
 Version__String:
 strconv_FormatUint:
 types_ID__String: strconv_FormatUint

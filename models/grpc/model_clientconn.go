@@ -40,6 +40,7 @@ package grpc
 import (
 	"context"
 	"errors"
+	internalbackoff "google.golang.org/grpc/internal/backoff"
 	"net"
 	"strings"
 	"sync"
@@ -350,7 +351,7 @@ func (cc *ClientConn) getTransportConn(ctx context.Context, failFast bool) (net.
 		if failFast {
 			return nil, nil, status.Error(codes.Unavailable, err.Error())
 		}
-		t := time.NewTimer(cc.dopts.bs.Backoff(retries))
+		t := time.NewTimer(internalbackoff.DefaultExponential.Backoff(retries)) // MODEL: dialOptions has no bs
 		retries++
 		select {
 		case <-t.C:

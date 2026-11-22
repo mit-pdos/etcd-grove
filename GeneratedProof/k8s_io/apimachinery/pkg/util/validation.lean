@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.api.validate.content
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.util.validation
 

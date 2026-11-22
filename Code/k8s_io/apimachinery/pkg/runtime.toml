@@ -19,3 +19,120 @@ imports = ["!*", "k8s.io/apimachinery/pkg/runtime/schema", "io", "bytes", "refle
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["AllocatorPool", "InternalGroupVersioner", "DisabledGroupVersioner", "cborNull",
+  "cborSelfDescribed", "DefaultFramer", "internalPackages"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["mapStringInterfaceType", "stringType"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So each
+terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["fieldCache"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `newFieldsCache`
+allocates an empty cache. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["DefaultUnstructuredConverter"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `parseBool` parses
+a string; `os.Getenv` reads the environment; `conversion.EqualitiesOrDie` of a fixed function
+allocates an equality table (it panics only on an ill-typed function, and this one is well typed: Go
+runs it at every start). So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["ErrInvalidLengthGenerated", "ErrIntOverflowGenerated", "ErrUnexpectedEndOfGroupGenerated"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["_@allocator.go:109"]
+reason = """
+An interface check: `&Allocator{}` converted to `MemoryAllocator`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@allocator.go:140"]
+reason = """
+An interface check: `&SimpleAllocator{}` converted to `MemoryAllocator`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@codec.go:104"]
+reason = """
+An interface check: `NoopEncoder{}` converted to `Serializer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@codec.go:124"]
+reason = """
+An interface check: `NoopDecoder{}` converted to `Serializer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@codec.go:148"]
+reason = """
+An interface check: `&parameterCodec{}` converted to `ParameterCodec`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@codec.go:324"]
+reason = """
+An interface check: `schema.GroupVersion{}` converted to `GroupVersioner`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@codec.go:325"]
+reason = """
+An interface check: `schema.GroupVersions{}` converted to `GroupVersioner`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@codec.go:326"]
+reason = """
+An interface check: `multiGroupVersioner{}` converted to `GroupVersioner`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@helper.go:34"]
+reason = """
+An interface check: `unsafeObjectConvertor{}` converted to `ObjectConvertor`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@helper.go:174"]
+reason = """
+An interface check: `MultiObjectTyper{}` converted to `ObjectTyper`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@helper.go:290"]
+reason = """
+An interface check: `nondeterministicEncoderToEncoderAdapter{}` converted to `Serializer`. No call,
+no panic, no effect."""
+
+[[skip]]
+names = ["_@mapper.go:40"]
+reason = """
+An interface check: a nil pointer converted to `EquivalentResourceMapper`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@mapper.go:41"]
+reason = """
+An interface check: a nil pointer converted to `EquivalentResourceRegistry`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

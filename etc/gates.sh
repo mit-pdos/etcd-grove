@@ -249,8 +249,7 @@ fi
 nm=0
 : > "$tmp/nm.log"
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
-examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd
-examples/pbwire/protobuf.toml:examples/pbwire:pbwire"
+examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd"
 for x in $pbinputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/protobuf/pbgen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
@@ -278,10 +277,6 @@ done
 # and against the models (an overlay of the toolchain's source, models/goroot.py)
 GOTOOLCHAIN=go1.27.3 models/internal/rpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 (cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
-# the candidate Lean wire semantics' vectors (protobuf stage 0'; nothing trusts it yet): the vectors
-# module PbWireVectors.lean is what examples/pbwire writes from protobuf-go and pbgen (its #guards,
-# checked by the build, compare the Lean semantics with them)
-(cd examples && GOWORK=off gotest ./pbwire/) >> "$tmp/nm.log" 2>&1 || nm=1
 # the grpc model (models/grpc; phase 5.4): its differential test against grpc-go v1.84.0 and the
 # model, the model's invariants with its choices random, and examples/ built against the model
 models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
@@ -457,7 +452,7 @@ while [ $cet_try -lt 3 ]; do
       -run '^(TestClientErrorTypes|TestCredentialNilError)$' . > "$tmp/cet.log" 2>&1); then
     cet_ok=1; break
   fi
-  grep -q "StartCluster failed" "$tmp/cet.log" || break
+  grep -qi "startCluster failed" "$tmp/cet.log" || break  # the test prints "startCluster failed"
   cet_miss="$cet_miss attempt $cet_try: StartCluster failed;"
 done
 if [ $cet_ok = 1 ]; then

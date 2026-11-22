@@ -4,3 +4,110 @@
 # called.
 translate = ["!*"]
 imports = ["!*"]
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["ErrNotInCluster"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable."""
+
+[[skip]]
+names = ["plugins", "noBackoff", "globalThrottledLogger", "NameMayNotBe", "NameMayNotContain",
+  "maxResponseCode", "defaultWarningHandler"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["serverIsOverloadedSet"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`sets.NewString`/`NewInt` allocate a set of constants. So it terminates, cannot panic and has no
+effect beyond its variable."""
+
+[[skip]]
+names = ["neverRetryError"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`IsRetryableErrorFunc(...)` is a conversion of a function literal. So it terminates, cannot panic
+and has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@api_result.go:29"]
+reason = """
+An interface check: `APIResultAdapter{}` converted to `metav1.APIResult`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@config.go:168"]
+reason = """
+An interface check: `new(Config)` converted to `fmt.Stringer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@config.go:169"]
+reason = """
+An interface check: `new(Config)` converted to `fmt.GoStringer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@config.go:267"]
+reason = """
+An interface check: `TLSClientConfig{}` converted to `fmt.Stringer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@config.go:268"]
+reason = """
+An interface check: `TLSClientConfig{}` converted to `fmt.GoStringer`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@urlbackoff.go:52"]
+reason = """
+An interface check: `&URLBackoff{}` converted to `BackoffManager`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@urlbackoff.go:53"]
+reason = """
+An interface check: `&URLBackoff{}` converted to `BackoffManagerWithContext`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@urlbackoff.go:169"]
+reason = """
+An interface check: `&backoffManagerNopContext{}` converted to `BackoffManager`. No call, no panic,
+no effect."""
+
+[[skip]]
+names = ["_@urlbackoff.go:170"]
+reason = """
+An interface check: `&backoffManagerNopContext{}` converted to `BackoffManagerWithContext`. No call,
+no panic, no effect."""
+
+[[skip]]
+names = ["_@warnings.go:93"]
+reason = """
+An interface check: `NoWarnings{}` converted to `WarningHandler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@warnings.go:94"]
+reason = """
+An interface check: `NoWarnings{}` converted to `WarningHandlerWithContext`. No call, no panic, no
+effect."""
+
+[[skip]]
+names = ["_@warnings.go:110"]
+reason = """
+An interface check: `WarningLogger{}` converted to `WarningHandler`. No call, no panic, no effect."""
+
+[[skip]]
+names = ["_@warnings.go:111"]
+reason = """
+An interface check: `WarningLogger{}` converted to `WarningHandlerWithContext`. No call, no panic,
+no effect."""
+# --- end of skipped package variables ---

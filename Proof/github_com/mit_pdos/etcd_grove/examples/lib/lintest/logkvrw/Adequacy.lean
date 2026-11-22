@@ -29,7 +29,9 @@ generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from `contex
   takes `threadBound GF ≤ 2^30` (the server's `RWMutex` admits `2^30 - 1` readers at once; its
   reader tokens are lent to live threads), and the thread bound is `T = n + 2` (an execution of
   `n` steps has fewer than `n + 2` live threads): `n + 2 ≤ 2^30`, so the theorem is about
-  executions of `n < 2^30 - 1` steps (the base's: `n < 2^63`).
+  executions of `n < 2^30 - 1` steps (the base's: `n < 2^63`). `logkvrw_adequate_below` takes the
+  thread bound from the execution instead (`init_adequate_below`: fewer than `T ≤ 2^30` threads live
+  along it), and so holds for every `n < 2^63`; `logkvrw_adequate` is its instance at `T = n + 2`.
 - **Non-atomic invariants.** Porcupine's `checkSingle` shares the model's state values in
   iris-lean's non-atomic invariants (`porcupine/Shared.lean`), whose camera (`NaInvF`) is not in
   Perennial's `allG`; the porcupine results take `[NaInvG GF]`. Here `logkvrwGF` has a slot for
@@ -107,6 +109,38 @@ instance logkvrwGF_naInvG : NaInvG logkvrwGF := ⟨⟨11, rfl⟩⟩
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
+/-- **`logkvrw_adequate` along executions with fewer than `T ≤ 2^30` live threads**: the same
+conclusion for every execution of `n < 2^63` steps along which fewer than `T` threads are ever
+live at once (`RealNstepsBelow`): the thread bound is a premise on the execution, not a
+consequence of its length. -/
+theorem logkvrw_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions]
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (T : Nat) (HT : T ≤ 2 ^ 30)
+    (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([logkvrwProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
+  refine init_adequate_below (GF := logkvrwGF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Main) #())
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
+    Hthreads T n κs t2 σ2 Hsteps fun hG HN HT' => ?_
+  letI : HeapGS .hasLC logkvrwGF := heapWith hG lctx
+  have Hbound : receiptBound logkvrwGF ≤ 2 ^ 63 := by rw [HN]; omega
+  have Htb : threadBound logkvrwGF ≤ 2 ^ 30 := by rw [HT']; omega
+  unfold progOk0
+  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.getIsPkgInit_wf, ?_⟩
+  iintro #Hpkg -
+  ihave #Hcc : context.isClosedchanInit (GF := logkvrwGF) $$ []
+  · iapply context.isClosedchanInit_of_init
+    iPkgInit
+  wp_apply (logkvrw.wp_Main Hbound Htb) $$ [Hpkg Hcc]
+  · iframe #
+  ipureintro
+  rfl
+
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvrwProgram` (the logkvrw package's initialization, then `Main()`) from a fresh state --
 no package initialized (`IsInit`), one live thread -- of `n < 2^30 - 1` steps: if the main thread
@@ -132,24 +166,9 @@ theorem logkvrw_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([logkvrwProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine init_adequate (GF := logkvrwGF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
-    Hthreads n κs t2 σ2 Hsteps fun hG HN HT => ?_
-  letI : HeapGS .hasLC logkvrwGF := heapWith hG lctx
-  have Hbound : receiptBound logkvrwGF ≤ 2 ^ 63 := by rw [HN]; omega
-  have Htb : threadBound logkvrwGF ≤ 2 ^ 30 := by rw [HT]; omega
-  unfold progOk0
-  refine ⟨_, _, github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.wp_initialize' _
-    github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.getIsPkgInit_wf, ?_⟩
-  iintro #Hpkg -
-  ihave #Hcc : context.isClosedchanInit (GF := logkvrwGF) $$ []
-  · iapply context.isClosedchanInit_of_init
-    iPkgInit
-  wp_apply (logkvrw.wp_Main Hbound Htb) $$ [Hpkg Hcc]
-  · iframe #
-  ipureintro
-  rfl
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
+  logkvrw_adequate_below σ g Hlctx Hinit Hthreads (n + 2) (by omega) n (by omega) κs t2 σ2
+    (RealNstepsBelow.of_one Hsteps Hthreads)
 
 end adequacy
 
@@ -159,3 +178,4 @@ end EtcdGrove
 end Perennial
 
 #print axioms Perennial.EtcdGrove.lintest.logkvrw.logkvrw_adequate
+#print axioms Perennial.EtcdGrove.lintest.logkvrw.logkvrw_adequate_below

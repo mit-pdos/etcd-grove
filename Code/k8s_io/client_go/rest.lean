@@ -353,61 +353,11 @@ opaque yellowColor [GooseExts] [GoGlobalContext] : val
 
 opaque resetColor [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNotInCluster [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.ErrNotInCluster"
-
-opaque ErrNotInCluster.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def pluginsLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.pluginsLock"
 
-noncomputable def plugins [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.plugins"
-
-opaque plugins.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noBackoff [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.noBackoff"
-
-opaque noBackoff.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def globalThrottledLogger [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.globalThrottledLogger"
-
-opaque globalThrottledLogger.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def NameMayNotBe [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.NameMayNotBe"
-
-opaque NameMayNotBe.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def NameMayNotContain [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.NameMayNotContain"
-
-opaque NameMayNotContain.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def serverIsOverloadedSet [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.serverIsOverloadedSet"
-
-opaque serverIsOverloadedSet.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def maxResponseCode [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.maxResponseCode"
-
-opaque maxResponseCode.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def defaultWarningHandler [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.defaultWarningHandler"
-
-opaque defaultWarningHandler.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultWarningHandlerLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.defaultWarningHandlerLock"
-
-noncomputable def neverRetryError [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/client-go/rest.neverRetryError"
-
-opaque neverRetryError.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewRESTClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.NewRESTClient"
@@ -595,83 +545,102 @@ noncomputable def retryAfterResponseWithDelay [GooseExts] [GoGlobalContext] : Go
 noncomputable def retryAfterResponseWithCodeAndDelay [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/rest.retryAfterResponseWithCodeAndDelay"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@api_result.go:29` (`var _ metav1.APIResult = APIResultAdapter{}`): An interface check: `APIResultAdapter{}` converted to `metav1.APIResult`. No call, no panic, no
+effect.
+- `ErrNotInCluster` (`var ErrNotInCluster = errors.New("unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVIC … [sha256:ed5da8fc753fd5aa]`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable.
+- `_@config.go:168` (`var _ fmt.Stringer = new(Config)`): An interface check: `new(Config)` converted to `fmt.Stringer`. No call, no panic, no effect.
+- `_@config.go:169` (`var _ fmt.GoStringer = new(Config)`): An interface check: `new(Config)` converted to `fmt.GoStringer`. No call, no panic, no effect.
+- `_@config.go:267` (`var _ fmt.Stringer = TLSClientConfig{}`): An interface check: `TLSClientConfig{}` converted to `fmt.Stringer`. No call, no panic, no effect.
+- `_@config.go:268` (`var _ fmt.GoStringer = TLSClientConfig{}`): An interface check: `TLSClientConfig{}` converted to `fmt.GoStringer`. No call, no panic, no effect.
+- `plugins` (`var plugins = make(map[string]Factory)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `noBackoff` (`var noBackoff = &NoBackoff{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `globalThrottledLogger` (`var globalThrottledLogger = &throttledLogger{ clock: clock.RealClock{}, settings: []*throttleSettings{ { logLevel: 2, mi … [sha256:48e2cf1ffce3c1e2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `NameMayNotBe` (`var NameMayNotBe = []string{".", ".."}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `NameMayNotContain` (`var NameMayNotContain = []string{"/", "%"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `serverIsOverloadedSet` (`var serverIsOverloadedSet = sets.NewInt(429)`): Its initializer calls, besides literals of constants and other variables' values:
+`sets.NewString`/`NewInt` allocate a set of constants. So it terminates, cannot panic and has no
+effect beyond its variable.
+- `maxResponseCode` (`var maxResponseCode = 499`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@urlbackoff.go:52` (`var _ BackoffManager = &URLBackoff{}`): An interface check: `&URLBackoff{}` converted to `BackoffManager`. No call, no panic, no effect.
+- `_@urlbackoff.go:53` (`var _ BackoffManagerWithContext = &URLBackoff{}`): An interface check: `&URLBackoff{}` converted to `BackoffManagerWithContext`. No call, no panic, no
+effect.
+- `_@urlbackoff.go:169` (`var _ BackoffManager = &backoffManagerNopContext{}`): An interface check: `&backoffManagerNopContext{}` converted to `BackoffManager`. No call, no panic,
+no effect.
+- `_@urlbackoff.go:170` (`var _ BackoffManagerWithContext = &backoffManagerNopContext{}`): An interface check: `&backoffManagerNopContext{}` converted to `BackoffManagerWithContext`. No call,
+no panic, no effect.
+- `defaultWarningHandler` (`var defaultWarningHandler WarningHandlerWithContext = WarningLogger{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@warnings.go:93` (`var _ WarningHandler = NoWarnings{}`): An interface check: `NoWarnings{}` converted to `WarningHandler`. No call, no panic, no effect.
+- `_@warnings.go:94` (`var _ WarningHandlerWithContext = NoWarnings{}`): An interface check: `NoWarnings{}` converted to `WarningHandlerWithContext`. No call, no panic, no
+effect.
+- `_@warnings.go:110` (`var _ WarningHandler = WarningLogger{}`): An interface check: `WarningLogger{}` converted to `WarningHandler`. No call, no panic, no effect.
+- `_@warnings.go:111` (`var _ WarningHandlerWithContext = WarningLogger{}`): An interface check: `WarningLogger{}` converted to `WarningHandlerWithContext`. No call, no panic,
+no effect.
+- `neverRetryError` (`var neverRetryError = IsRetryableErrorFunc(func(_ *http.Request, _ error) bool { return false })`): Its initializer calls, besides literals of constants and other variables' values:
+`IsRetryableErrorFunc(...)` is a conversion of a function literal. So it terminates, cannot panic
+and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/client-go/rest._@api_result.go:29", "An interface check: `APIResultAdapter{}` converted to `metav1.APIResult`. No call, no panic, no\neffect.", "var _ metav1.APIResult = APIResultAdapter{}"⟩,
+  ⟨"k8s.io/client-go/rest.ErrNotInCluster", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var ErrNotInCluster = errors.New(\"unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVIC … [sha256:ed5da8fc753fd5aa]"⟩,
+  ⟨"k8s.io/client-go/rest._@config.go:168", "An interface check: `new(Config)` converted to `fmt.Stringer`. No call, no panic, no effect.", "var _ fmt.Stringer = new(Config)"⟩,
+  ⟨"k8s.io/client-go/rest._@config.go:169", "An interface check: `new(Config)` converted to `fmt.GoStringer`. No call, no panic, no effect.", "var _ fmt.GoStringer = new(Config)"⟩,
+  ⟨"k8s.io/client-go/rest._@config.go:267", "An interface check: `TLSClientConfig{}` converted to `fmt.Stringer`. No call, no panic, no effect.", "var _ fmt.Stringer = TLSClientConfig{}"⟩,
+  ⟨"k8s.io/client-go/rest._@config.go:268", "An interface check: `TLSClientConfig{}` converted to `fmt.GoStringer`. No call, no panic, no effect.", "var _ fmt.GoStringer = TLSClientConfig{}"⟩,
+  ⟨"k8s.io/client-go/rest.plugins", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var plugins = make(map[string]Factory)"⟩,
+  ⟨"k8s.io/client-go/rest.noBackoff", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var noBackoff = &NoBackoff{}"⟩,
+  ⟨"k8s.io/client-go/rest.globalThrottledLogger", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var globalThrottledLogger = &throttledLogger{ clock: clock.RealClock{}, settings: []*throttleSettings{ { logLevel: 2, mi … [sha256:48e2cf1ffce3c1e2]"⟩,
+  ⟨"k8s.io/client-go/rest.NameMayNotBe", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var NameMayNotBe = []string{\".\", \"..\"}"⟩,
+  ⟨"k8s.io/client-go/rest.NameMayNotContain", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var NameMayNotContain = []string{\"/\", \"%\"}"⟩,
+  ⟨"k8s.io/client-go/rest.serverIsOverloadedSet", "Its initializer calls, besides literals of constants and other variables' values:\n`sets.NewString`/`NewInt` allocate a set of constants. So it terminates, cannot panic and has no\neffect beyond its variable.", "var serverIsOverloadedSet = sets.NewInt(429)"⟩,
+  ⟨"k8s.io/client-go/rest.maxResponseCode", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var maxResponseCode = 499"⟩,
+  ⟨"k8s.io/client-go/rest._@urlbackoff.go:52", "An interface check: `&URLBackoff{}` converted to `BackoffManager`. No call, no panic, no effect.", "var _ BackoffManager = &URLBackoff{}"⟩,
+  ⟨"k8s.io/client-go/rest._@urlbackoff.go:53", "An interface check: `&URLBackoff{}` converted to `BackoffManagerWithContext`. No call, no panic, no\neffect.", "var _ BackoffManagerWithContext = &URLBackoff{}"⟩,
+  ⟨"k8s.io/client-go/rest._@urlbackoff.go:169", "An interface check: `&backoffManagerNopContext{}` converted to `BackoffManager`. No call, no panic,\nno effect.", "var _ BackoffManager = &backoffManagerNopContext{}"⟩,
+  ⟨"k8s.io/client-go/rest._@urlbackoff.go:170", "An interface check: `&backoffManagerNopContext{}` converted to `BackoffManagerWithContext`. No call,\nno panic, no effect.", "var _ BackoffManagerWithContext = &backoffManagerNopContext{}"⟩,
+  ⟨"k8s.io/client-go/rest.defaultWarningHandler", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultWarningHandler WarningHandlerWithContext = WarningLogger{}"⟩,
+  ⟨"k8s.io/client-go/rest._@warnings.go:93", "An interface check: `NoWarnings{}` converted to `WarningHandler`. No call, no panic, no effect.", "var _ WarningHandler = NoWarnings{}"⟩,
+  ⟨"k8s.io/client-go/rest._@warnings.go:94", "An interface check: `NoWarnings{}` converted to `WarningHandlerWithContext`. No call, no panic, no\neffect.", "var _ WarningHandlerWithContext = NoWarnings{}"⟩,
+  ⟨"k8s.io/client-go/rest._@warnings.go:110", "An interface check: `WarningLogger{}` converted to `WarningHandler`. No call, no panic, no effect.", "var _ WarningHandler = WarningLogger{}"⟩,
+  ⟨"k8s.io/client-go/rest._@warnings.go:111", "An interface check: `WarningLogger{}` converted to `WarningHandlerWithContext`. No call, no panic,\nno effect.", "var _ WarningHandlerWithContext = WarningLogger{}"⟩,
+  ⟨"k8s.io/client-go/rest.neverRetryError", "Its initializer calls, besides literals of constants and other variables' values:\n`IsRetryableErrorFunc(...)` is a conversion of a function literal. So it terminates, cannot panic\nand has no effect beyond its variable.", "var neverRetryError = IsRetryableErrorFunc(func(_ *http.Request, _ error) bool { return false })"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.rest where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.rest)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val neverRetryError.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultWarningHandler.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val maxResponseCode.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val serverIsOverloadedSet.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val NameMayNotContain.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val NameMayNotBe.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val globalThrottledLogger.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noBackoff.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val plugins.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrNotInCluster.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))))
+  (Val #()))))))
 
 opaque APIResultAdapter.nonempty_type : NonemptyType.{0}
 def APIResultAdapter : Type := APIResultAdapter.nonempty_type.type

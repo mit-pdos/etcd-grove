@@ -28,7 +28,7 @@ workloads (`notes/etcd-dist-plan.md` §2, D8).
 | `Remote/Wire.lean` | `Remote/Wire.lean` | **ported** to kvnet's frame format, with prefix lemmas (§2) |
 | `Remote/Call.lean`, `Serve.lean`, `RunRemote.lean`, `Init.lean` | `Remote/{Call,Do,Serve,ServeClient,Run,Init}.lean` | **re-proved** over the net extension's canonical specs (`Net/Spec/net/`) and `GooseLang/Ext/Net/Proto.lean` (`dial_au`, `accept_au`, `writeP`/`write_acc`, `read_au`, `close_au`, `deadline_au`) |
 | `Remote/Codec.lean` and the per-model codecs (`CodecKV`, `CodecCasReg`, `CodecKVScan`, ...) | `Remote/Codec.lean` (`CodecSpec`) and one codec per instance | **ported in form**. R4 gets the counter's codec. The lab's codecs are not ported (their models are the lab's) |
-| `Remote/Start.lean` (`remote_start`), `Dist.lean` (`remoteDistSafe` over `SafeDist`), `DistSha.lean` | `Remote/Start.lean`, `Remote/Robust.lean` (`remote_robust`) | **re-stated** as `KitDeploy … → Robust [] …` through `robust_of_kitProto` (§6). SHA is not needed |
+| `Remote/Start.lean` (`remote_start`), `Dist.lean` (`remoteDistSafe` over `SafeDist`), `DistSha.lean` | `Remote/Start.lean`, `Remote/Robust.lean` (`remote_robust`) | **re-stated** as `DistDeploy … → Robust [] …` through `robust_of_distProto` (§6). SHA is not needed |
 | `RemoteKit`, `RemoteFacts`, `RemoteMainFacts`, `remoteMainImpl`/`clientNodeImpl` (`rfl` facts about kitgen's generated `Main`) | none | **dropped**. An instance proves its nodes' boot WPs itself, calling `remote.Check`'s and `remote.ServeClient`'s specs |
 | `Mux.lean` | not used by `Remote` | not needed |
 | kvnet's `kvcheck` (#22) | not edited | **reused as the reference** for the client side: one request frame per connection with a timeout, the frame format. Not imported: `remote` must not depend on kvnet |
@@ -44,8 +44,8 @@ workloads (`notes/etcd-dist-plan.md` §2, D8).
 | Abandoned dials (D16) | no | `Accept` may return a connection whose dial failed (an empty, shut direction) | `Serve` reads EOF and closes. No slot was made for it, and none is claimed |
 | Deadlines | timeouts | the value is not modeled: any operation may time out once a deadline is set (`deadline_au`) | a timeout is a failed attempt. Timing is never used for safety |
 | `Listen` | needs an exclusive address token | `addrTok` persistent; `Listen` on an address in use fails with `sys`; listening token `netLisTok` (v3.4) | `Serve` retries `Listen` (as the lab's and kvnet's do). A listening node's share includes its address's `addrUnset` and protocol |
-| Deployment | `cfg.WellFormed`, plan, hosts | `KitDeploy addrs nodes g` (v3.4): addresses distinct and `addrOk`, no connections, no listeners | the addresses are the listening nodes' (client nodes, servers). Node 0 listens on none |
-| Crashes | none (`SafeDist`) | `Robust crashing stable`. The kits use `Robust []` (`robust_of_kitBoot`) | the orchestrator and the client nodes are **stable** (they keep the history). R3 proves the `Robust []` form. Each node's boot WP is a separate lemma, so a mixed bridge (crashing servers: #22's `NetFs` adequacy, etcd-dist D3) can reuse them unchanged |
+| Deployment | `cfg.WellFormed`, plan, hosts | `DistDeploy addrs nodes g` (v3.4): addresses distinct and `addrOk`, no connections, no listeners | the addresses are the listening nodes' (client nodes, servers). Node 0 listens on none |
+| Crashes | none (`SafeDist`) | `Robust crashing stable`. The kits use `Robust []` (`robust_of_distBoot`) | the orchestrator and the client nodes are **stable** (they keep the history). R3 proves the `Robust []` form. Each node's boot WP is a separate lemma, so a mixed bridge (crashing servers: #22's `NetFs` adequacy, etcd-dist D3) can reuse them unchanged |
 | Liveness | not proved | not proved | a call that never gets a reply waits for its attempt's deadline. Safety only |
 
 No change to the net extension or to Perennial. Everything above uses specs and laws that exist
@@ -268,7 +268,7 @@ values (scalars, strings, structs of them). The counter's `bool`/`int64` qualify
 
 ## 6. The statement (R3) and the instance (R4)
 
-**R3, the generic lemma**, over `KitDeploy` and `KitBridge` as the Net examples (`echo_kit_robust`):
+**R3, the generic lemma**, over `DistDeploy` and `DistBridge` as the Net examples (`echo_dist_robust`):
 
 ```lean
 structure RemoteObligations (orch : Expr × state) (clients servers : List (Expr × state))
@@ -280,17 +280,17 @@ structure RemoteObligations (orch : Expr × state) (clients servers : List (Expr
   start : ⊢ regCtx -∗ ([∗list] a ∈ serverAddrs, addrUnset a) ={⊤}=∗
     ∃ γ : Γs, sysState B.init ∗ orchRes γ ∗ ([∗list] c ↦ _ ∈ clients, clientRes γ c) ∗
       [∗list] i ↦ _ ∈ servers, serverRes γ i
-  orch_boot : ∀ γ ρ, KitBootWp orch.1 (orchRes γ ∗ remoteOrchShare … clientAddrs ρ)
+  orch_boot : ∀ γ ρ, DistBootWp orch.1 (orchRes γ ∗ remoteOrchShare … clientAddrs ρ)
   client_boot : ∀ γ ρ c m a, clients[c]? = some m → clientAddrs[c]? = some a →
-    KitBootWp m.1 (clientRes γ c ∗ remoteNodeShare … a ρ)
-  server_boot : ∀ γ i m, servers[i]? = some m → KitBootWp m.1 (serverRes γ i)
+    DistBootWp m.1 (clientRes γ c ∗ remoteNodeShare … a ρ)
+  server_boot : ∀ γ i m, servers[i]? = some m → DistBootWp m.1 (serverRes γ i)
 
 theorem remote_robust … (H : ∀ [GooseGlobalGS .hasLC netGF] [NetProtoGS], RemoteObligations …) :
-    KitDeploy (clientAddrs ++ serverAddrs) (orch :: clients ++ servers) g →
+    DistDeploy (clientAddrs ++ serverAddrs) (orch :: clients ++ servers) g →
     Robust [] (orch :: clients ++ servers) g threads bound
 ```
 
-It is proved by `robust_of_kitProto`. `remote_start` sets the client addresses' protocols, allocates
+It is proved by `robust_of_distProto`. `remote_start` sets the client addresses' protocols, allocates
 the slot map and `pendInv`, and splits the shares; the instance's `start` does the rest. Each node's
 WP is the instance's short proof: it calls `remote.Check.wp_proof`, `remote.ServeClient.wp_proof` or
 `remote.Serve.wp_proof` with its model, codec and library. `remote_orch_boot` and
@@ -320,7 +320,7 @@ The model then shows it pending and applied.
 
 The statement goes in `Net/Spec/.../lib/remote/counter/TopLevelRobustness.lean`:
 
-`counter_remote_robust.spec := ∀ …, KitDeploy counterAddrs (system …) g → Robust [] (system …) g threads bound`
+`counter_remote_robust.spec := ∀ …, DistDeploy counterAddrs (system …) g → Robust [] (system …) g threads bound`
 
 with `#print axioms` (expected: the net extension's and Perennial's, nothing of `remote`'s), and
 `etc/tcb-collections/remote.txt`.
@@ -488,9 +488,9 @@ whose write fired at the server).
 - `perclient` (main tree): `applySpecId`, `runClient`/`Run` proved, `Link.lean` (`etc/gen-link.py
   --perclient`, list `etc/link-lean-first-perclient.txt`).
 - `Robust.lean` (R3): `remote_start` (slot map; every address's protocols for a store chosen
-  later) and `remote_robust`: `KitDeploy addrs nodes g → Robust [] nodes g threads bound` from the
+  later) and `remote_robust`: `DistDeploy addrs nodes g → Robust [] nodes g threads bound` from the
   instance's update (registry, slot map, the address-setting capability ⟹ a share per machine with
-  its `KitBootWp`), through `robust_of_kitProto`. All addresses are `remote`'s (R4's are); an
+  its `DistBootWp`), through `robust_of_distProto`. All addresses are `remote`'s (R4's are); an
   instance address of its own protocol is future work. No generic boot lemmas: each node's WP is the
   instance's (`Check.spec`, `ServeClient.spec`, `Serve.spec` at its `main`).
 
@@ -517,7 +517,7 @@ def counter_remote_robust.spec : Prop :=
     [c1_sem : cmd.client1.Assumptions] [srv_sem : cmd.server.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
     (σo σ0 σ1 σs : state) (g : GlobalState) (threads : Nat),
-    KitDeploy counterAddrs (system σo σ0 σ1 σs) g →
+    DistDeploy counterAddrs (system σo σ0 σ1 σs) g →
     Robust [] (system σo σ0 σ1 σs) g threads (bound := 2 ^ 63)
 ```
 
@@ -534,15 +534,15 @@ extension allows (cut connections, timeouts, abandoned dials), with unknown-outc
 
 1. **A ghost-state bundle with non-atomic invariants.** porcupine's linked result takes
    `[NaInvG GF]` (`porcupine/Shared.lean`), and `netGF` (`GooseLang/Ext/Net/Adequacy.lean`) has no
-   slot for `NaInvF`; `KitBridge`'s theorems are stated at `netGF`. Proposal: generalize
-   `Net/Statement/KitBridge.lean` (`KitBootWp`, `nodeWp_of_kitBoot`, `robust_of_kitBoot`,
-   `robust_of_kitProto`) over any `GF` with `[GooseGpreS GF]` (`netGF` its instance, the existing
+   slot for `NaInvF`; `DistBridge`'s theorems are stated at `netGF`. Proposal: generalize
+   `Net/Statement/DistBridge.lean` (`DistBootWp`, `nodeWp_of_distBoot`, `robust_of_distBoot`,
+   `robust_of_distProto`) over any `GF` with `[GooseGpreS GF]` (`netGF` its instance, the existing
    callers unchanged by an `abbrev` or explicit `(GF := netGF)`), and define `remoteGF` in remote's
    files: `netGF` with slot 8 `NaInvF` (as lintest/counter's `counterGF`). Alternative: add the slot
    to `netGF` itself (rebuilds every Net example; no statement changes).
 2. **The receipt bound in the bridge.** `goose_dist_adequacy` gives the obligation
    `receiptBound GF = N` with `N = n + 1` (`n` the execution's length, `< bound`), and
-   `robust_of_kitBoot` drops it. Proposal: a variant (additive) whose obligation receives
+   `robust_of_distBoot` drops it. Proposal: a variant (additive) whose obligation receives
    `receiptBound GF ≤ bound`, so that the orchestrator's WP can call `Check.spec`.
 
 Both are proved code (no trust added). R4's remaining work after them: the counter's Go model's
@@ -555,8 +555,8 @@ ghost state), `#print axioms`, `etc/tcb-collections/remote.txt`.
 
 The coordinator approved the statement and both bridge changes (2026-11-22). Done:
 
-- **`Net/Statement/KitBridge.lean`** (additive; upamanyus's dsverify-net port, told on #24 by the
-  coordinator): `KitBootWpG`, `nodeWp_of_kitBootG`, `robust_of_kitBootRB`, `robust_of_kitProtoRB`: the
+- **`Net/Statement/DistBridge.lean`** (additive; upamanyus's dsverify-net port, told on #24 by the
+  coordinator): `DistBootWpG`, `nodeWp_of_distBootG`, `robust_of_distBootRB`, `robust_of_distProtoRB`: the
   bridge over any bundle `GF` with `GooseGpreS GF`, the obligation given `receiptBound GF ≤ bound`. The
   existing theorems and every Net example are unchanged (`lake build Net` passes: echo, framed,
   acceptloop, duplex, halfclose, preface, shutdown, their `RobustLinked`/`TopLevelRobustness`).
@@ -576,3 +576,12 @@ The coordinator approved the statement and both bridge changes (2026-11-22). Don
 - `etc/tcb-collections/remote-counter.txt` (roots `^Net/Proof/.../lib/remote/`), baseline empty (as
   `#print axioms` shows). `etc/tcb-report.py --check --update` needs the whole repository built
   (`check_built` checks every root module, ~20k modules), which this worktree is not; to run at landing.
+
+## The read form (2026-11-22, branch `etcd-dist`)
+
+The far side may fire a read's update more than once (etcd's `read_ok_au`), so `opMaybe` hands it
+`slotUpd R i Φ`: a write's one-shot `lin`, a read's `□ lin`. Node 0 commits a read at the first firing
+whose output's bytes are the answered reply's, which a second prophecy in `Do` gives (the reply's length,
+then its bytes, `ResolveU64` each). `Run`/`Check` take the premise that distinct outputs have distinct
+bytes. Decision and reasons: `notes/specs-only/ledger.md`, 2026-11-22, "`remote.opMaybe`'s read form";
+the details: `notes/etcd-dist-plan.md` §2, "Stage D8".

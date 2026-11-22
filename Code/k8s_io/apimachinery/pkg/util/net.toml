@@ -5,3 +5,46 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["wordDecoder", "preferIPv4", "preferIPv6", "v4File", "v6File"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["defaultTransport"]
+reason = """
+`http.DefaultTransport.(*http.Transport)`: net/http initializes `DefaultTransport` (an import,
+initialized first) to a `*Transport`, so the assertion succeeds: no call, no panic, no effect beyond
+the variable."""
+
+[[skip]]
+names = ["defaultProxyFuncPointer"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `fmt.Sprintf` of
+constants formats a new string. So it terminates, cannot panic and has no effect beyond its
+variable."""
+
+[[skip]]
+names = ["codeMatcher"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["validSchemes"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`sets.NewString`/`NewInt` allocate a set of constants. So it terminates, cannot panic and has no
+effect beyond its variable."""
+# --- end of skipped package variables ---
