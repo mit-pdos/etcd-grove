@@ -45,7 +45,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.preallocFixed.wp_proof
   wp_auto
   ihave #Htree := errno_errTree (GF := GF) e
   wp_apply errors.wp_AsType (· = interface.ok ⟨syscall.Errno.ty, #e⟩)
-      (interface.ok ⟨syscall.Errno.ty, #e⟩) (T' := w64) (T := syscall.Errno.ty) as %v' %b
+      (interface.ok ⟨syscall.Errno.ty, #e⟩) (T' := w64) (T := syscall.Errno.ty) as %v' %b -
   · iframe Htree; ipureintro; rfl
   cases b
   · wp_auto

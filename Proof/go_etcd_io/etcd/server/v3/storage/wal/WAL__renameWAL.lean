@@ -123,7 +123,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     cases hle
     try wp_auto
     wp_apply wp_AsType ⟨go.GoType.PointerType os.LinkError.ty, #le⟩ (T' := Loc) le
-      (by simp [go.isInterfaceType]) rfl rfl
+      (by first | rfl | (rw [go.is_underlying]; rfl) | simp [go.is_underlying, go.isInterfaceType]) rfl rfl
     try wp_auto
     wp_apply wp_unlock R jr J r (child r nm) nm tmp N h lb qp dq w lg mds md e lt f snapi enti fd fname
       d c off U Sp SpR UH o hok' $$ [Hp Hperm HU Hout HSp Htmps Hlg Hdir Hpre Hlk Hfp Hdf] as %w' %err' Hpost

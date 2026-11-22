@@ -264,7 +264,7 @@ theorem leasingKV.acquire.wp_proof
     ihave #Htree := errors.isErrorTree_leaf (GF := GF) e Hleaf Htyped
     wp_apply errors.wp_AsType (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
         (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e)
-        (GoInterface.ok e) $$ [$Htree] as %v' %b
+        (GoInterface.ok e) $$ [$Htree] as %v' %b -
     · ipureintro; rfl
     cases b
     · wp_auto

@@ -50,7 +50,7 @@ theorem isSafeRetryImmutableRPC.wp_proof
   ihave #Htree := errors.isErrorTree_leaf (GF := GF) e1 Hleaf Htyped
   wp_apply errors.wp_AsType (T' := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError)
       (T := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (· = GoInterface.ok e1)
-      (GoInterface.ok e1) $$ [$Htree] as %v' %b
+      (GoInterface.ok e1) $$ [$Htree] as %v' %b -
   · ipureintro; rfl
   cases b
   · wp_auto
