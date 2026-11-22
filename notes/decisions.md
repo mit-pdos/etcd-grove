@@ -41882,3 +41882,28 @@ it** (`notes/prom-registry.md` is the full design and plan):
   initializer could not be the one the earlier-allocated rights (`ownInitResL`'s list) refer to.
   The tokens are a ghost map's exclusive elements of the IDs (finite: only the program's names and the
   builtins are allocated), so `descIdsDistinct` is what splitting them needs, as today.
+- **Why the per-run ghost name is sound across crashes** (the coordinator's request, 2026-11-22):
+  1. *Fresh in every run, by a proof step, not an axiom.* Each run's WP proof (the closed theorem's
+     `Hwp`, under `goose_adequacy*` or a crash adequacy's per-generation WP) allocates a new ghost map
+     in the universal camera (`own_alloc`, `promReg_alloc`) and makes it that run's `PromRegGS`
+     instance. No axiom produces a `PromRegGS`, a token or a `nameFree`: every `nameFree n` of a run is
+     an element of that run's map.
+  2. *Where the rights are before initialization.* The allocation gives, for the run's map `γ`, the
+     exclusive elements of the builtin IDs (`builtinToks`) and of the program's names' IDs
+     (`namesFree Ns`). The init chain carries them (`ownInitResL`): prometheus's entry `builtinToks`,
+     each registering package's `namesFree regNames`. The authority of `γ` and the builtin elements
+     go into the registry invariant when prometheus's initializer runs: `defaultRegistry.init`
+     allocates the heap registry (a fresh `promreg.Registry` at a location of this run's heap) and
+     `init.«0»`'s seeding puts the builtin elements under its mutex. A package's registration moves
+     its element into the invariant.
+  3. *The invariant ties this run's `γ` to this run's heap registry*: `isPkgInit prometheus` is
+     `∃ l, globalAddr defaultRegistry ↦□ l ∗ promreg.isRegistry l γ`, with `γ` the instance's; the
+     mutex invariant owns the maps of `l` and the elements of every ID registered in them.
+     `MustRegister`'s proof combines a `nameFree n` of `γ` with that invariant: the element held twice
+     would be invalid, so `descId n` is not registered in `l`.
+  4. *So a `nameFree` from a crashed run is useless in the next one.* Carried through a crash frame,
+     it is an element of the old run's map `γ₀`; the new run's specs ask for an element of its own
+     `γ₁` (its instance), and nothing converts one into the other. Its registry is a new heap (the
+     crash adequacy's next generation starts from `ownGoState ∅` and an empty heap) built by the new
+     run's initializer, whose invariant names `γ₁`. Double registration across runs is impossible in
+     Go anyway (the registry is process memory), and the logic now says the same without an axiom.
