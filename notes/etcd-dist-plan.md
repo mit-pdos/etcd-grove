@@ -370,8 +370,10 @@ has no proof yet, so `etc/verified-code.py` counts it unverified). The txnlin ch
 modules (`etc/importers.py --count`). Next, in order: `Report.spec` and its proof in `Net/` (one
 `attempt`, a report's postcondition handed through the slot as `Do`'s, with no model); then the kv
 instance once D2 and D7 allow (the three points above); the watch, cache and auth instances over
-`Report` after it. Open decisions: (a) whether `opMaybe` gets a read form for txnlin's persistent
-read updates (`remote-port-plan.md` §7) or `Call`'s reads are wrapped single-shot; (b) whether a
+`Report` after it. Open decisions: (a) `opMaybe`'s read form (approved by the user, 2026-11-22, as a persistent read
+update): as proposed it cannot be met by node 0 without knowing which firing's output is returned;
+ledger `notes/specs-only/ledger.md`, 2026-11-22, "`remote.opMaybe`'s read form", recommends a node-0
+prophecy of the answered output (option A); nothing edited until that is decided; (b) whether a
 writer without an answer should rather be retried as reads are (it is a write: no, by the user's
 rule; kept as "all tried, none succeeded").
 

@@ -4424,3 +4424,35 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The one caller, `newClient`, has `client/v3`'s initialization, which gives the
   credentials package's.
 - **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).
+
+## 2026-11-22: `remote.opMaybe`'s read form needs node 0 to know which firing answers (etcd-dist D8)
+
+- **Spec.** `Net/Proof/.../lib/remote/Defs.lean`, `opMaybe R tok op`: the far side gets the one-shot
+  update `lin R i Φ`; the proposed read form (the coordinator, the user's approval, 2026-11-22) gives it,
+  for a read (`R.B.isWrite i = false`), a persistent read update instead, which it may fire zero or more
+  times, returning `ov o` with `Φ o` of one firing.
+- **Defect.** As proposed, node 0 cannot provide the read form. Node 0's `Φ o` must give lintest's
+  continuation at `(i, ok o)`, which needs lintest's update committed at the firing whose output is `o`;
+  lintest's update is one-shot, so only one firing may commit, and which one is decided by the output the
+  far side *will* return (etcd may serve one read's update several times at different states, e.g. a
+  read retried at another member, `read_ok_au`, and answer from any of them). Committing at the first
+  firing leaves a later firing (whose output may differ) unable to produce its `Φ`; committing at the
+  return is not a linearization point (other clients commit in between). "A read leaves the state
+  unchanged" makes every firing a valid point, but the proof still has to pick the one whose output is
+  returned. txnlin's `Apply` picks it with its revision prophecy (`callInv`), which the user's rule (kv
+  through txnlin without prophecies) removes from the client machine. Also: `lin` (one-shot) cannot yield
+  a persistent update, so "`lin` for a read yields the read form" holds only in the other direction (a
+  read-form operation fired once meets the one-shot form).
+- **Evidence.** The argument above; no proof attempted. Separately, txnlin's `Call.spec` cannot be stated
+  against `remote`'s `opMaybe` yet: its import closure reaches the main tree's `Code.net` (through
+  `cache/v3` and grpc's `peer`), which clashes with `Net/`'s `net` (D2).
+- **Proposed change.** (A, recommended) node 0 prophesies the answered output: `remote.Do` resolves a
+  second prophecy with the answering reply's bytes (a `ResolveU64` per byte, prophecy-only Go code); the
+  answering attempt's slot for a read holds an invariant with lintest's update that commits at the first
+  firing whose output's encoding is the prophesied one, and `Φ o := (encOut (ov o) = prophesied → lintest
+  committed at o)`; with `codecOk` (decode of encode is the identity) the returned output's `Φ` is the
+  commit. The slot body, `serveConn`, `attempt`, `Do`, `Pend` change; the counter's server (one firing) and
+  client (a `Do`) meet the read form directly; `counter_remote_robust`'s statement is unchanged.
+  (B) keep the one-shot form and give `Call` a prophecy at the client machine (against the user's rule).
+  (C) an etcd-specific revision prophecy at node 0 (not generic).
+- **Decision.** Pending (asked of the coordinator, 2026-11-22); nothing edited.
