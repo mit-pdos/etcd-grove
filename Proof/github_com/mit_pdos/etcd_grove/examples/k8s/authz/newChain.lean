@@ -42,8 +42,9 @@ theorem newChain.wp_proof
     (wp_legacyAuthorize : EtcdGrove.k8s_authz.legacyAuthorize.spec (GF := GF) (hG := hG)) :
     newChain.spec (GF := GF) (hG := hG) := by
   wp_start
-  ihave #Harb : (∀ z : arbAuthorizer, isAuthorizer (interface.mkOk arbAuthorizer.ty #z) : IProp GF) $$ []
-  · iintro %z
+  ihave #Harb : (∀ z : arbAuthorizer, ⌜uint.nat z.depth' < 2 ^ 63 - 1⌝ -∗
+      isAuthorizer (interface.mkOk arbAuthorizer.ty #z) : IProp GF) $$ []
+  · iintro %z %hz
     iunfold isAuthorizer
     iexists ⟨arbAuthorizer.ty, #z⟩
     isplitr
@@ -52,9 +53,12 @@ theorem newChain.wp_proof
     · iintro %ctx %attrs
       iunfold caaOk
       iintro !> %Ψ _ HΨ
-      wp_apply (wp_arbAuthorizer_ConditionsAwareAuthorize z ctx attrs) as %d #Hd
+      wp_apply (wp_arbAuthorizer_ConditionsAwareAuthorize z ctx attrs hz) as %d #Hd
       iapply HΨ
-      iexact Hd
+      iapply isWFDecisionLe_weaken
+      isplitl []
+      · iexact Hd
+      ipureintro; omega
     · iintro %ctx %d %data
       iunfold ecOk
       iintro !> %Ψ #Hwf HΨ
@@ -73,7 +77,7 @@ theorem newChain.wp_proof
       iunfold caaOk
       iintro !> %Ψ _ HΨ
       wp_apply (wp_AuthorizerFunc_ConditionsAwareAuthorize (functions legacyAuthorize []) ctx attrs)
-        as %d #Hd
+        as %d #Hd'
       · iunfold authzFnOk
         iintro %c %a
         iunfold authzCallOk
@@ -82,7 +86,10 @@ theorem newChain.wp_proof
         iapply HΨ'
         iexact He
       iapply HΨ
-      iexact Hd
+      iapply isWFDecisionLe_weaken
+      isplitl []
+      · iexact Hd'
+      ipureintro; omega
     · iintro %ctx %d %data
       iunfold ecOk
       iintro !> %Ψ _ HΨ
@@ -108,8 +115,10 @@ theorem newChain.wp_proof
   · iframe #
     isplitr
     · iapply Harb
+      all_goals (ipureintro; word)
     isplitr
     · iapply Harb
+      all_goals (ipureintro; word)
     iapply BigSepL.bigSepL_nil.2
     itrivial
   (try wp_auto)

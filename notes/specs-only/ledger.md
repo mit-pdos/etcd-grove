@@ -4182,3 +4182,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** Replace `NewLessor`'s axiom by the narrower `Lease.expired` one (the user's choice (a),
   prove-ps2-newlessor).
 - **Decision.** Approved (the user's (a); net 0 axioms), applied.
+
+## 2026-11-22: `slices.Concat`'s axiom takes the total length `< 2 ^ 63` (claim #26, fix-slices-concat)
+
+- **Spec.** `slices.Concat.spec` (`Spec/slices/Concat.lean`, the axiom `Proof/slices/Concat.lean`), and through its
+  one caller the decision vocabulary of `k8s.io/apiserver/pkg/authorization` (`Proof/.../authorizer/Defs.lean`):
+  `collectReasonsAndErrors.spec`, `ConditionsAwareDecisionUnion.Add/ToDecision.spec`,
+  `PartiallyEvaluateConditionsAwareDecision.spec`, `ConditionsAwareDecisionConditionsMap.spec`,
+  `partiallyEvaluateConditionsMapInternal.spec`, `AuthorizerFunc.ConditionsAwareAuthorize.spec`, `caaOk`,
+  `ownBuilder`, `Dec.WF`, and the driver's `arbDecision.spec`, `arbAuthorizer.ConditionsAwareAuthorize.spec`.
+- **Defect.** The axiom had no premise ("the address space bounds strings' total length"). Go's `Concat` sums
+  `len(s)` and panics with "len out of range" once the sum is negative (go1.27.3 `slices/slices.go:491-498`), before
+  `Grow`; aliased arguments reach it without the memory (`examples/premisefix/concatlen`: `TestBoundary`, 2^63-1
+  returns and 2^63 panics; `TestStringsOverflow`; `TestStrings32` under `GOARCH=386`). In the model a slice of
+  length `2 ^ 63 - 1` passed as `collectReasonsAndErrors`'s prefix made the axiom prove a slice of length `2 ^ 63`.
+- **Evidence.** The Go source; Perennial PR #670 proves `slices.Concat.spec` over the translated code with the premise
+  `(xss.map List.length).sum < 2 ^ 63` (its post adds that an empty result is `nil`).
+- **Proposed change.** The premise, as PR #670 states it (our statement is its string instance, so the axiom becomes
+  a theorem after the pin bump). The caller extends a path of names by one per union level, so it takes
+  `pre.length + m.depth < 2 ^ 63` (`Dec.depth`, new); `Dec.WF`'s union case adds `Dec.depthL ks + 1 < 2 ^ 63`; the
+  builder keeps its children below `2 ^ 63 - 1` (`ownBuilder`, `Add`'s premise), which `caaOk` gives
+  (`isWFDecisionLe (2 ^ 63 - 2)`, new predicate); producers report depths (`ToDecision`: at most its union's;
+  `PartiallyEvaluate...`: at most its input's; the leaf constructors and `AuthorizerFunc`: `0`); the driver's
+  `arbDecision(depth)` takes `uint.nat depth < 2 ^ 63`, `arbAuthorizer.ConditionsAwareAuthorize` `z.depth < 2 ^ 63 - 1`
+  (its closed program uses 2). A fixed bound in the invariant alone cannot work: a union of invariant decisions is
+  one level deeper, so the authorizers' decisions (`caaOk`) carry the tighter one.
+- **Decision.** Applied (fix-slices-concat/2026-11-22). `k8s_authz_robust`'s statement unchanged; no axiom added or
+  removed.

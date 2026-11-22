@@ -87,7 +87,7 @@ theorem arbAuthorizer.EvaluateConditions.wp_proof
       wp_apply wp_arbMaybeEval as %r #Hr
       iapply HΨ
       iexact Hr
-    iunfold isWFDecision at Hwf'
+    iunfold isWFDecisionLe at Hwf'
     icases Hwf' with ⟨%m', #Hd', %Hm'⟩
     (try wp_auto)
     wp_apply (wp_ptr_UnconditionalPartsOrFailClosed_of
