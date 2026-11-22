@@ -91,11 +91,11 @@ moves and `node.Advance` checks. Separate from the `Ready` loop's token (`nodeDr
 may apply the conf changes on another goroutine than its `Ready` loop (etcd's server applies them on
 its apply goroutine, and hands the view back before `Advance`). (2026-10-30, stage R3: moved here
 from `InvNode.lean`, with the configuration it names, `confAt`, `nodeConfig_confAt`.) -/
-@[no_expose] def nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
+@[no_expose] def nodeConfig (n : NodeH) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
   iprop(ApiImpl.nodeConfig n γ N v ∗ ApiImpl.confAtU γ v.applied v.membership)
 
 /-- (2026-10-30, stage R3) **A node's view is the cluster's configuration** at its applied index. -/
-theorem nodeConfig_confAt (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) :
+theorem nodeConfig_confAt (n : NodeH) (γ : Cluster) (N : Namespace) (v : ConfigView) :
     nodeConfig (GF := GF) n γ N v ⊢ nodeConfig n γ N v ∗ confAt γ v.applied v.membership := by
   haveI := ApiImpl.confAtU_persistent (GF := GF) γ v.applied v.membership
   unfold nodeConfig confAt
@@ -171,12 +171,12 @@ by `StartNode`** (persistent): `n` is the node of `id` in `γ` (`isNode`), `γ` 
 the voters `vs` (`nodeBoot`), and `StartNode` made `n` (its start tag `true`, `nodeStartTag`): `StartNode.spec`'s
 precondition is an empty storage, so its log began as the bootstrap log. `RestartNode` tags its node
 `false`, so gives no such fact, even on an empty storage (etcd's join without a WAL). -/
-@[no_expose] def nodeStartedFresh (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+@[no_expose] def nodeStartedFresh (n : NodeH) (γ : Cluster) (N : Namespace) (vs : List w64)
     (ctxs : List (List w8)) (id : w64) : IProp GF :=
   iprop(isNode n γ N id ∗ nodeBoot γ N vs ctxs id ∗ ⌜id ∈ vs⌝ ∗
     ApiImpl.nodeStartTag n γ true)
 
-instance nodeStartedFresh_persistent (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+instance nodeStartedFresh_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (vs : List w64)
     (ctxs : List (List w8)) (id : w64) :
     Persistent (nodeStartedFresh (GF := GF) n γ N vs ctxs id) := by
   unfold nodeStartedFresh
@@ -353,7 +353,7 @@ theorem joinAuth_join (γ : Cluster) (N : Namespace) (U : GSet w64) (id : w64) :
 
 /-- **A running node has not stopped**: a holder of a share of `nodeRunning` refutes the stopped
 answers (`node.Advance`'s and `node.ApplyConfChange`'s stopped cases). -/
-theorem nodeRunning_stopped (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+theorem nodeRunning_stopped (n : NodeH) (γ : Cluster) (N : Namespace) (q : Qp) :
     nodeRunning (GF := GF) n γ N q ∗ nodeStopped n γ N ⊢ False := by
   unfold nodeRunning nodeStopped
   iintro H
@@ -808,21 +808,21 @@ def isStorage (γ : Cluster) (K : GName) (st : Storage)
   isStorageP γ.maxData.isSome SV (storBnd γ K) (nodeCommitLb γ K) st
 
 /-- The node pinned this certificate for snapshots returned by its storage at attach. -/
-@[no_expose] def nodeTagPin (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) : IProp GF :=
+@[no_expose] def nodeTagPin (γ : Cluster) (n : NodeH) (SV : SnapshotM → IProp GF) : IProp GF :=
   iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗ savedPredOwn γn.sn.gsv DFrac.discard SV)
 
-instance nodeTagPin_persistent (γ : Cluster) (n : Loc) (SV : SnapshotM → IProp GF) :
+instance nodeTagPin_persistent (γ : Cluster) (n : NodeH) (SV : SnapshotM → IProp GF) :
     Persistent (nodeTagPin γ n SV) := by
   unfold nodeTagPin
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
 
 /-- The certificate carried by the received-snapshot path of this node. -/
-@[no_expose] def nodeRestoreCert (γ : Cluster) (n : Loc) (sv : SnapshotM) : IProp GF :=
+@[no_expose] def nodeRestoreCert (γ : Cluster) (n : NodeH) (sv : SnapshotM) : IProp GF :=
   iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗
     ksnCert γn.sn (snapTrip sv sv.Metadata'.ConfState'.lists))
 
-instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
+instance nodeRestoreCert_persistent (γ : Cluster) (n : NodeH) (sv : SnapshotM) :
     Persistent (nodeRestoreCert (GF := GF) γ n sv) := by
   unfold nodeRestoreCert
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
@@ -831,7 +831,7 @@ instance nodeRestoreCert_persistent (γ : Cluster) (n : Loc) (sv : SnapshotM) :
 /-- For an outgoing MsgSnap, the storage supplied its pinned certificate or raft
 carried the certificate for a received snapshot. The later comes from saved
 predicate agreement and applies only to the client-selected certificate. -/
-theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64} {bound : Nat} {installed : Option w64} (ms : List QMsg)
+theorem readySnapSources_msgSnap (γ : Cluster) (n : NodeH) (id : w64) {term : w64} {bound : Nat} {installed : Option w64} (ms : List QMsg)
     (q : QMsg) (SV : SnapshotM → IProp GF) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
     ⊢ readySnapSources (GF := GF) γ n id term ms bound installed -∗ nodeTagPin γ n SV -∗
       ∃ sv : SnapshotM, ⌜q.st.snap = some sv⌝ ∗ (▷ SV sv ∨ nodeRestoreCert γ n sv ∗ nodeRestoreSource γ id (snapId sv)) := by
@@ -877,7 +877,7 @@ theorem readySnapSources_msgSnap (γ : Cluster) (n : Loc) (id : w64) {term : w64
 /-- Storage snapshots carry their client's tag. A restored snapshot is bounded by
 the log delivered in any Ready from this incarnation at the original send term,
 including when a later Ready finally drains the message. -/
-theorem readySnapSources_le (γ : Cluster) (n : Loc) (id term handoutTerm : w64)
+theorem readySnapSources_le (γ : Cluster) (n : NodeH) (id term handoutTerm : w64)
     (ms observed : List QMsg) (bound observedBound : Nat) (q : QMsg) (SV : SnapshotM → IProp GF)
     (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) (he : term = handoutTerm ∨ term = q.st.msg.Term')
     (sourceInstall observedInstall : Option w64 := none) :
@@ -929,7 +929,7 @@ theorem readySnapSources_le (γ : Cluster) (n : Loc) (id term handoutTerm : w64)
     ipureintro; exact Nat.le_trans hindex hbound
 
 
-theorem readySnapSources_sameTerm_le (γ : Cluster) (n : Loc) (id term : w64)
+theorem readySnapSources_sameTerm_le (γ : Cluster) (n : NodeH) (id term : w64)
     (ms observed : List QMsg) (bound observedBound : Nat) (q : QMsg) (SV : SnapshotM → IProp GF)
     (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) :
     ⊢ readySnapSources (GF := GF) γ n id term ms bound -∗
@@ -939,15 +939,15 @@ theorem readySnapSources_sameTerm_le (γ : Cluster) (n : Loc) (id term : w64)
   readySnapSources_le γ n id term term ms observed bound observedBound q SV hq ht (.inl rfl)
 
 /-- A snapshot actually handed out for installation on this node incarnation. -/
-@[no_expose] def nodeInstalledIndex (γ : Cluster) (n : Loc) (i : w64) : IProp GF :=
+@[no_expose] def nodeInstalledIndex (γ : Cluster) (n : NodeH) (i : w64) : IProp GF :=
   iprop(∃ γn : NodeNames, ApiImpl.nodeTabOk γ n γn ∗ installSeen γn.sn.installs (uint.nat i))
 
-instance (γ : Cluster) (n : Loc) (i : w64) : Persistent (nodeInstalledIndex (GF := GF) γ n i) := by
+instance (γ : Cluster) (n : NodeH) (i : w64) : Persistent (nodeInstalledIndex (GF := GF) γ n i) := by
   unfold nodeInstalledIndex
   haveI (γn : NodeNames) := ApiImpl.nodeTabOk_persistent (GF := GF) γ n γn
   infer_instance
 
-theorem readySnapSources_installed (γ : Cluster) (n : Loc) (id term i : w64) (ms : List QMsg)
+theorem readySnapSources_installed (γ : Cluster) (n : NodeH) (id term i : w64) (ms : List QMsg)
     (bound : Nat) : readySnapSources (GF := GF) γ n id term ms bound (some i) ⊢ nodeInstalledIndex γ n i := by
   unfold readySnapSources ApiImpl.snapSources nodeInstalledIndex
   iintro ⟨%gn, Htab, -, Hobs⟩
@@ -959,7 +959,7 @@ theorem readySnapSources_installed (γ : Cluster) (n : Loc) (id term i : w64) (m
 /-- A snapshot read back from storage can use the restore certificate issued
 when the driver installed it. The outbox's original send term suffices even
 when storage and apply are processing different Ready batches. -/
-theorem readySnapSources_installed_le (γ : Cluster) (n : Loc) (id handoutTerm : w64)
+theorem readySnapSources_installed_le (γ : Cluster) (n : NodeH) (id handoutTerm : w64)
     (ms observed : List QMsg) (bound observedBound : Nat) (sourceInstall observedInstall : Option w64)
     (q : QMsg) (sv : SnapshotM) (hq : q ∈ ms) (ht : q.st.msg.Type' = MsgSnap) (hsv : q.st.snap = some sv) :
     ⊢ readySnapSources (GF := GF) γ n id handoutTerm ms bound sourceInstall -∗

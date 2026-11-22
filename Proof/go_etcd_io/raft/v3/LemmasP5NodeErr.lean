@@ -121,9 +121,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- The node stopped, at its names: `nodeStopped`'s body. -/
-theorem nodeStoppedRaw_nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+theorem nodeStoppedRaw_nodeStopped (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64)
     (γn : NodeNames) (Hok : NodeOk γ γn) :
-    EtcdGrove.isNodeChan (GF := GF) γn id n ∗ nodeTabOk γ n γn ∗ EtcdGrove.nodeStoppedRaw γn ⊢
+    EtcdGrove.isNodeChan (GF := GF) γn id n.loc ∗ nodeTabOk γ n γn ∗ EtcdGrove.nodeStoppedRaw γn ⊢
       nodeStopped n γ N := by
   unfold nodeStopped
   iintro ⟨#Hch, #Htab, #Hst⟩
@@ -132,9 +132,9 @@ theorem nodeStoppedRaw_nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) (id 
   ipureintro; exact Hok
 
 /-- `nodeErrRaw` at a node's names: `nodeErrS`'s body. -/
-theorem nodeErrRaw_nodeErrS (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (γn : NodeNames)
+theorem nodeErrRaw_nodeErrS (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (γn : NodeNames)
     (cd : context.ContextDesc (IProp GF)) (err : GoInterface) (Hok : NodeOk γ γn) :
-    EtcdGrove.isNodeChan (GF := GF) γn id n ∗ nodeTabOk γ n γn ∗ nodeErrRaw γn cd err ⊢
+    EtcdGrove.isNodeChan (GF := GF) γn id n.loc ∗ nodeTabOk γ n γn ∗ nodeErrRaw γn cd err ⊢
       iprop(⌜err = interface.nil⌝ ∨ (errStopped err ∗ nodeStopped n γ N) ∨ ctxErr cd err) := by
   unfold nodeErrRaw
   iintro ⟨#Hch, #Htab, (%H | ⟨#He, #Hst⟩ | #H)⟩
@@ -146,9 +146,9 @@ theorem nodeErrRaw_nodeErrS (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) 
   · iright; iright; iexact H
 
 /-- `propErrRaw` at a node's names: `propErrS`'s body. -/
-theorem propErrRaw_propErrS (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (γn : NodeNames)
+theorem propErrRaw_propErrS (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (γn : NodeNames)
     (cd : context.ContextDesc (IProp GF)) (err : GoInterface) (Hok : NodeOk γ γn) :
-    EtcdGrove.isNodeChan (GF := GF) γn id n ∗ nodeTabOk γ n γn ∗ propErrRaw γn cd err ⊢
+    EtcdGrove.isNodeChan (GF := GF) γn id n.loc ∗ nodeTabOk γ n γn ∗ propErrRaw γn cd err ⊢
       iprop((⌜err = interface.nil⌝ ∨ (errStopped err ∗ nodeStopped n γ N) ∨ ctxErr cd err) ∨
         stepErr err) := by
   unfold propErrRaw

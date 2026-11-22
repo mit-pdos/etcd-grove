@@ -74,6 +74,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- A cluster's ghost names (opaque to clients). -/
 @[no_expose] def Cluster : Type 1 := ApiImpl.Cluster
 
+/-- (2026-11-22, kvnet decision B: `notes/raft-cluster-global.md`) **A node handle** (opaque to
+clients): what `StartNode`/`RestartNode` return and the node-level predicates are over. -/
+@[no_expose] def NodeH : Type 1 := ApiImpl.NodeH
+
+/-- The node struct's location, for the code (`n.loc @!! …`). -/
+@[no_expose] def NodeH.loc (n : NodeH) : Loc := ApiImpl.NodeH.loc n
+
 /-- **The cluster's network may duplicate a `MsgProp`** (2026-10-29, S1): chosen by the client at
 allocation (`cluster_alloc`; `false` for the other allocations). In such a cluster a proposal's
 update is persistent (`node.Propose`'s `□?γ.dup`), and so are a `MsgProp`'s credits
@@ -255,36 +262,36 @@ theorem readyFits_intro (γ : Cluster) (N : Namespace) :
   ipureintro; exact h
 
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent). -/
-@[no_expose] def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
+@[no_expose] def isNode (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
   ApiImpl.isNode n γ N id
 
-instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
+instance isNode_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) :
     Persistent (isNode (GF := GF) n γ N id) := by
   unfold isNode; exact ApiImpl.isNode_persistent n γ N id
 
 /-- The node's `Ready` channel `ch` (persistent). -/
-@[no_expose] def isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF :=
+@[no_expose] def isReadyChan (n : NodeH) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF :=
   ApiImpl.isReadyChan n γ N ch
 
-instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) :
+instance isReadyChan_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (ch : Loc) :
     Persistent (isReadyChan (GF := GF) n γ N ch) := by
   unfold isReadyChan; exact ApiImpl.isReadyChan_persistent n γ N ch
 
 /-- **The `Ready` loop's token** (exclusive): one per node, at the loop's state `st`. -/
-@[no_expose] def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
+@[no_expose] def nodeDriver (n : NodeH) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
   ApiImpl.nodeDriver n γ N st
 
 /-- (2026-10-29, stage U9a) **The node runs** (fractional; the whole, `q = 1`, is what `node.Stop`
 takes): the client's share of the node's liveness, from `RestartNode` (`RestartNode.spec`). It
 excludes `nodeStopped` (`nodeRunning_stopped`): its holder refutes the stopped answers. -/
-@[no_expose] def nodeRunning (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) : IProp GF :=
+@[no_expose] def nodeRunning (n : NodeH) (γ : Cluster) (N : Namespace) (q : Qp) : IProp GF :=
   ApiImpl.nodeRunning n γ N q
 
-instance nodeRunning_fractional (n : Loc) (γ : Cluster) (N : Namespace) :
+instance nodeRunning_fractional (n : NodeH) (γ : Cluster) (N : Namespace) :
     Fractional (nodeRunning (GF := GF) n γ N) where
   fractional p q := by unfold nodeRunning; exact ApiImpl.nodeRunning_split_impl n γ N p q
 
-instance nodeRunning_as_fractional (n : Loc) (γ : Cluster) (N : Namespace) (q : Qp) :
+instance nodeRunning_as_fractional (n : NodeH) (γ : Cluster) (N : Namespace) (q : Qp) :
     AsFractional (nodeRunning (GF := GF) n γ N q) ioΦ (nodeRunning n γ N) ioq q where
   as_fractional := .rfl
   as_fractional_fractional := nodeRunning_fractional n γ N
@@ -293,10 +300,10 @@ instance nodeRunning_as_fractional (n : Loc) (γ : Cluster) (N : Namespace) (q :
 closed (`node.Stop`'s post; (raft-final, K5) the stopped answer of every `node` method that returns
 an error: `nodeErrS`, `propErrS`, `node.Advance`, `node.ApplyConfChange`). It excludes `nodeRunning`
 (`nodeRunning_stopped`). -/
-@[no_expose] def nodeStopped (n : Loc) (γ : Cluster) (N : Namespace) : IProp GF :=
+@[no_expose] def nodeStopped (n : NodeH) (γ : Cluster) (N : Namespace) : IProp GF :=
   ApiImpl.nodeStopped n γ N
 
-instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
+instance nodeStopped_persistent (n : NodeH) (γ : Cluster) (N : Namespace) :
     Persistent (nodeStopped (GF := GF) n γ N) := by
   unfold nodeStopped; exact ApiImpl.nodeStopped_persistent n γ N
 
@@ -305,16 +312,16 @@ instance nodeStopped_persistent (n : Loc) (γ : Cluster) (N : Namespace) :
 `nil`, `ErrStopped` with the node stopped, or the context's. A holder of `nodeRunning` refutes the
 second (`nodeRunning_stopped`). `nodeErrS_nodeErr` forgets the stop (until then the posts' plain
 `nodeErr`). -/
-def nodeErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
+def nodeErrS (n : NodeH) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
     (err : GoInterface) : IProp GF :=
   iprop(⌜err = interface.nil⌝ ∨ (errStopped err ∗ nodeStopped n γ N) ∨ ctxErr cd err)
 
-instance nodeErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace)
+instance nodeErrS_persistent (n : NodeH) (γ : Cluster) (N : Namespace)
     (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     Persistent (nodeErrS (GF := GF) n γ N cd err) := by
   unfold nodeErrS; infer_instance
 
-theorem nodeErrS_nodeErr (n : Loc) (γ : Cluster) (N : Namespace)
+theorem nodeErrS_nodeErr (n : NodeH) (γ : Cluster) (N : Namespace)
     (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     nodeErrS (GF := GF) n γ N cd err ⊢ nodeErr cd err := by
   unfold nodeErrS nodeErr
@@ -325,16 +332,16 @@ theorem nodeErrS_nodeErr (n : Loc) (γ : Cluster) (N : Namespace)
 
 /-- (raft-final, 2026-10-29, K5) **A proposal's error, the stopped answer carrying `nodeStopped`**:
 `nodeErrS`, or the proposal's result from `run` (`stepErr`). -/
-def propErrS (n : Loc) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
+def propErrS (n : NodeH) (γ : Cluster) (N : Namespace) (cd : context.ContextDesc (IProp GF))
     (err : GoInterface) : IProp GF :=
   iprop(nodeErrS n γ N cd err ∨ stepErr err)
 
-instance propErrS_persistent (n : Loc) (γ : Cluster) (N : Namespace)
+instance propErrS_persistent (n : NodeH) (γ : Cluster) (N : Namespace)
     (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     Persistent (propErrS (GF := GF) n γ N cd err) := by
   unfold propErrS; infer_instance
 
-theorem propErrS_propErr (n : Loc) (γ : Cluster) (N : Namespace)
+theorem propErrS_propErr (n : NodeH) (γ : Cluster) (N : Namespace)
     (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
     propErrS (GF := GF) n γ N cd err ⊢ propErr cd err := by
   unfold propErrS propErr
@@ -680,14 +687,14 @@ id's vacancy back (`nodeCrash`), whatever node of `id` ran from arm `x`. -/
 /-- (2026-11-21) **The node at `n` was started from arm `x`** (persistent): `StartNode`/`RestartNode`
 give it with the node, and `node.Stop` gives the vacancy back at the arm the node was started from
 (`nodeArm_agree`), so a client keeping the arm's crash token keeps it across a stop and restart. -/
-@[no_expose] def nodeArm (n : Loc) (γ : Cluster) (x : CrashNames) : IProp GF :=
+@[no_expose] def nodeArm (n : NodeH) (γ : Cluster) (x : CrashNames) : IProp GF :=
   ApiImpl.nodeArmU n γ x
 
-instance nodeArm_persistent (n : Loc) (γ : Cluster) (x : CrashNames) :
+instance nodeArm_persistent (n : NodeH) (γ : Cluster) (x : CrashNames) :
     Persistent (nodeArm (GF := GF) n γ x) := by
   unfold nodeArm; exact ApiImpl.nodeArmU_persistent n γ x
 
-theorem nodeArm_agree (n : Loc) (γ : Cluster) (x x' : CrashNames) :
+theorem nodeArm_agree (n : NodeH) (γ : Cluster) (x x' : CrashNames) :
     ⊢ nodeArm (GF := GF) n γ x -∗ nodeArm n γ x' -∗ ⌜x = x'⌝ := by
   unfold nodeArm; exact ApiImpl.nodeArmU_agree n γ x x'
 
@@ -972,7 +979,7 @@ stopped node's batch is dead), its durable state moves to it, and it gets the lo
 state after the `Ready` (`st'`, busy) and the right to send the messages (`readyMsgs`). A
 commit-only batch leaves the durable state but its commit index, so even a durable client
 applies it at once. -/
-def readyEnter (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
+def readyEnter (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st st' : NodeDriverState)
     (ms : List QMsg) : IProp GF :=
   iprop(∀ (E : CoPset) (q : Qp), ⌜↑N ⊆ E⌝ -∗ notCrashed -∗
     raftState γ id st.durable ∗ nodeRunning n γ N q ={E}=∗
@@ -1293,21 +1300,21 @@ theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) :
 
 /-- (open) **The committed log delivered to node `n` extends `l`** (persistent; today `dlvLb`): what
 `node.ApplyConfChange.dynamicSpec` takes of the entry it applies. -/
-@[no_expose] def deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+@[no_expose] def deliveredLogLb (n : NodeH) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     IProp GF := ApiImpl.deliveredLogLb n γ N l
 
-instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+instance deliveredLogLb_persistent (n : NodeH) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     Persistent (deliveredLogLb (GF := GF) n γ N l) := by
   unfold deliveredLogLb; exact ApiImpl.deliveredLogLb_persistent n γ N l
 
 /-- The `Ready` loop knows what it was delivered. -/
-theorem nodeDriver_deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
+theorem nodeDriver_deliveredLogLb (n : NodeH) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := by
   unfold nodeDriver deliveredLogLb; exact ApiImpl.nodeDriver_deliveredLogLb_impl n γ N st
 
 /-- (2026-11-01, durability stage I-4; candidate 12's `nodeDriver_storDL`) **The `Ready` loop's
 storage holds the committed log it was delivered**: the node on it committed at least that far. -/
-theorem nodeDriver_nodeCommitLb (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
+theorem nodeDriver_nodeCommitLb (n : NodeH) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢
       nodeDriver n γ N st ∗ nodeCommitLb γ st.key st.delivered.length := by
   unfold nodeDriver nodeCommitLb; exact ApiImpl.nodeDriver_nodeCommitLb_impl n γ N st
@@ -1315,19 +1322,19 @@ theorem nodeDriver_nodeCommitLb (n : Loc) (γ : Cluster) (N : Namespace) (st : N
 /-- (2026-11-01, durability stage I-4; the user's `deliveredLogLb ⊢ nodeCommitLb`) **What was
 delivered to the node is committed for its storage**: with its `Ready` loop's token, which names
 the storage's key. -/
-theorem deliveredLogLb_nodeCommitLb (n : Loc) (γ : Cluster) (N : Namespace)
+theorem deliveredLogLb_nodeCommitLb (n : NodeH) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) (l : List LogEntry) :
     nodeDriver (GF := GF) n γ N st ∗ deliveredLogLb n γ N l ⊢
       nodeDriver n γ N st ∗ nodeCommitLb γ st.key l.length := by
   unfold nodeDriver deliveredLogLb nodeCommitLb
   exact ApiImpl.deliveredLogLb_nodeCommitLb_impl n γ N st l
 
-theorem deliveredLogLb_mono (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
+theorem deliveredLogLb_mono (n : NodeH) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
     l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := by
   unfold deliveredLogLb; exact ApiImpl.deliveredLogLb_mono_impl n γ N l1 l2
 
 /-- What was delivered is committed. -/
-theorem deliveredLogLb_committed (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+theorem deliveredLogLb_committed (n : NodeH) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
     deliveredLogLb (GF := GF) n γ N l ⊢ isCommittedLogLb γ l := by
   unfold deliveredLogLb isCommittedLogLb; exact ApiImpl.deliveredLogLb_committed_impl n γ N l
 
@@ -1362,7 +1369,7 @@ theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
 handed out (`st.hardState`, what etcd's raft loop records as `raftTerm`) is zero, or a leader of its
 term committed the log through its commit index (`committedAtTerm`), which bounds the committed log
 delivered, after a snapshot `Ready` the log up to the snapshot. -/
-theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace)
+theorem nodeDriver_hardStateCommitted (n : NodeH) (γ : Cluster) (N : Namespace)
     (st : NodeDriverState) :
     nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
       (⌜st.hardState = hsZero⌝ ∨ committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
@@ -1482,10 +1489,10 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
   rw [← Hag.2]; exact Hl1
 
 /-- The sending node's evidence about the source of the snapshots in this Ready. -/
-@[no_expose] def readySnapSources (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64 := none) : IProp GF :=
+@[no_expose] def readySnapSources (γ : Cluster) (n : NodeH) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64 := none) : IProp GF :=
   ApiImpl.snapSources γ n id term ms bound installed
 
-instance readySnapSources_persistent (γ : Cluster) (n : Loc) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64) :
+instance readySnapSources_persistent (γ : Cluster) (n : NodeH) (id term : w64) (ms : List QMsg) (bound : Nat) (installed : Option w64) :
     Persistent (readySnapSources (GF := GF) γ n id term ms bound installed) := by
   unfold readySnapSources; exact ApiImpl.snapSources_persistent γ n id term ms bound installed
 
@@ -1497,7 +1504,7 @@ of the `Ready` (`readyRest`: the entries `es` to persist, the messages `ms`, the
 soft state `ss`, the snapshot's loan `L`); at role leader the messages sent (`readyLeaderMsgs`);
 and *enter* (`readyEnter`), which gives the loop's token at the state after the `Ready`
 (`NodeDriverState.afterReady`) and the messages sent. -/
-def readyGot (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+def readyGot (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
@@ -1530,18 +1537,18 @@ keeping `ms` in the sealed `nodeDriver`, needs a field of the client-visible `No
 every client. **Also a departure from "No disjunction of alternative specs"**: its traced body is
 "nothing claimed, or the element"; the disjunction is what makes `node.Advance.spec` an instance of the
 one traced proof (`node.Advance.tracedSpec`) instead of a second proof. -/
-@[no_expose] def readyToksClaim (n : Loc) (γ : Cluster) (N : Namespace) (ms : List QMsg) : IProp GF :=
+@[no_expose] def readyToksClaim (n : NodeH) (γ : Cluster) (N : Namespace) (ms : List QMsg) : IProp GF :=
   ApiImpl.readyToksClaim n γ N ms
 
 /-- Nothing claimed: what `node.Advance.spec` (`node.Advance.tracedSpec`'s instance) passes. -/
-theorem readyToksClaim_nil (n : Loc) (γ : Cluster) (N : Namespace) :
+theorem readyToksClaim_nil (n : NodeH) (γ : Cluster) (N : Namespace) :
     ⊢ readyToksClaim (GF := GF) n γ N [] := by
   unfold readyToksClaim; exact ApiImpl.readyToksClaim_nil_impl n γ N
 
 /-- (2026-11-12, trace-check implementation step 1; the design's §3.1, Probe A's P2) **What receiving a
 `Ready` gives, traced**: `readyGot` with the driver's claim on its messages (`readyToksClaim`) as its
 last conjunct, at `readyRest`'s `ms`. -/
-def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
+def readyGotT (n : NodeH) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState)
     (rd : Ready) : IProp GF :=
   iprop(∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan)
       (ms : List QMsg) (ss : Option (w64 × StateType)),
@@ -1563,7 +1570,7 @@ def readyGotT (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriv
 
 /-- (2026-11-12, trace-check implementation step 1) **Receiving a `Ready` as a channel's receive,
 traced**: `isReadyChan_recvAu` with `readyGotT` (the driver's claim) for `readyGot`, for every `γ`. -/
-theorem isReadyChan_recvAuT (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+theorem isReadyChan_recvAuT (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) :
     st.handling = none →
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
@@ -1579,7 +1586,7 @@ theorem isReadyChan_recvAuT (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w6
 token at rest, the node's `Ready` channel is a channel of `Ready`s whose receive gives
 `node.readyRecv.spec`'s postcondition (two later credits, as a handshake's receive). (Changed from
 the draft: the token is taken before the channel's names, which are its node's.) -/
-theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+theorem isReadyChan_recvAu (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) :
     st.handling = none →
     ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
@@ -1659,7 +1666,7 @@ committed log delivered grows by `ce`; with one, it is the committed log up to t
 so that its messages are the node `id`'s, `readyRest`.) (2026-11-01, durability stage I-3: the post
 is `readyGot`; the loop's token and the messages' `sentMsg` behind *enter*, `readyEnter`.) -/
 theorem node.wp_readyRecv :
-  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
+  ∀ (n : NodeH) (ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
   st.handling = none →
   {{ isReadyChan (GF := GF) n γ N ch ∗ isNode n γ N id ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))

@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`node.Ready()`**: the node's `Ready` channel. -/
 abbrev node.Ready.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
+  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : NodeH),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
-    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
+    (App (Val (n.loc @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
   {{ (ch : Loc), RET #ch; isReadyChan n γ N ch }}
 
 end spec
