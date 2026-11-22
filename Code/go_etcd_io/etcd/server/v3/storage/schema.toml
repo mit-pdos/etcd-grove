@@ -36,10 +36,14 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   # translated (`etc/gen-init.py`; until then `opaqueInitsOk`): `schemaChanges` (a map literal keyed by
   # `version`'s `semver` versions, schema.go) with `addNewField` (changes.go), and the interface
   # assertions `var _ auth.AuthBackend = (*authBackend)(nil)`, ... (auth.go)
-  "schemaChanges", "addNewField", "_"]
+  "schemaChanges", "addNewField", "_",
+  # (prove-ps2-members, 2026-11-22) the membership backend's bucket creation (`cluster.SetBackend`'s) and
+  # member delete, with `BackendMemberKey` (`types.ID.String`), proved over the backend's specs
+  "membershipBackend.MustCreateBackendBuckets", "membershipBackend.MustDeleteMemberFromBackend",
+  "BackendMemberKey"]
 imports = ["!*", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/api/v3/version", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.uber.org/zap", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/api/v3/etcdserverpb",
-  "go.etcd.io/etcd/server/v3/lease/leasepb"]
+  "go.etcd.io/etcd/server/v3/lease/leasepb", "go.etcd.io/etcd/client/pkg/v3/types"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

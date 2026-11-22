@@ -110,7 +110,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #Hrc,
       #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg, #Hclgz, #Hsws⟩
     obtain ⟨hkb, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
-      halbi, hRO, hrb, hdd⟩ := Hp
+      halbi, hmbP, hRO, hrb, hdd⟩ := Hp
     -- (the lease-expiry plan's S2–S4 Probe, 2026-11-05: in either lease mode; until then the
     -- revocable lessor refuted the rest's leased arm, a cluster that grants none) the lessor at the
     -- environment's mode
@@ -197,7 +197,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         al ast lp cl x A r0 hRO A' u (by rw [Hoff]; exact HxA) (by rw [Hoff]; exact Hif.hst)
         (by rw [Hoff]; exact Hif.nolease) hbr hlp γp
         hrb stp γd γt
-        (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index' + 1) (Nat.le_refl _) Hif.halarm halbi
+        (srvImage γr.raft.raft) (uint.nat sv.Metadata'.Index' + 1) (Nat.le_refl _) Hif.halarm halbi hmbP
         Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
         cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq
         Hif.pre (by rw [Hoff]; exact Hif.hA') (by rw [Hoff, imageLeasesAtM_false]; exact Hif.hlease)
@@ -608,7 +608,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #Hrc,
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg, #Hclgz, #Hsws⟩
   obtain ⟨hkb, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
-    halbi, hRO, hrb, hdd⟩ := Hp
+    halbi, hmbP, hRO, hrb, hdd⟩ := Hp
   -- (auth-lease S3a §5) the lessor's mode the KV names' (`Hmo`), any lease mode
   icases HlpM with ⟨%Hmo, #HlpM⟩
   icombine Hnid Hidm gives %Hidn
@@ -704,7 +704,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       al ast lp cl x A r0 hRO A' u (by rw [hon]; exact HxA) (by rw [hon]; exact Hif.hst)
       (by rw [hon]; exact Hif.nolease) hbr hlp γp hrb stp γd γt
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index' + 1) (Nat.le_refl _) Hif.halarm
-      halbi Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
+      halbi hmbP Hif.hmemb _ Hif.himg γN tl c prs γN.dir ps' _ rfl Hdk.1 Hdk.2.1 Hcl sm0 cs
       cfg.ServerFeatureGate' cfg.QuotaBackendBytes' cfg.WarningApplyDuration' hbuq
       Hif.pre (by rw [hon]; exact Hif.hA') (by rw [hon]; exact Hif.hlease) (by rw [hraft]) Hmo hany
       (by rw [hM]; exact ⟨⟨halbi.2.1, halbi.2.2.1, halbi.2.2.2⟩, Hif.hauthI,

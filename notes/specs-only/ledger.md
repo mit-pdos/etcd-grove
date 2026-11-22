@@ -4770,3 +4770,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `srvSnapRO_succ`. No top-level statement changes.
 - **Decision.** Applied under the approved ownership-premise rule (an intermediate premise every caller
   discharges; the user's 2026-11-21 rule), bkarea, 2026-11-22.
+## 2026-11-22: the bootstrap contracts give the membership buckets in the backend's table; `SetBackend`, `MustDeleteMemberFromBackend` take them (members)
+
+- **Spec.** Top level (the user's approval, 2026-11-22): `bootOk`'s `%Hbe` (`InvBoot.lean`, the post of the trusted
+  `bootstrapContract`) and `bootOkR`'s (`InvRestart.lean`, `bootstrapRestartContract`'s) gain three conjuncts,
+  last, `d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI` (the new names: schema's
+  `Members` id 10, `MembersRemoved` id 11, `Cluster` id 5, `InvStore.lean`). Intermediate: `srvSnapRO`'s pure part
+  gains the same triple after the alarm/auth one; `EtcdServer.applySnapshot.specSnapM` and `applySnapshot_walk` a
+  premise `hmbP` of that text after `halbi`; `membership.RaftCluster.SetBackend.spec` the three `d.P.has` premises and
+  `isPkgInit schema` in its pre; `schema.membershipBackend.MustDeleteMemberFromBackend.spec` the two `d.P.has`
+  premises of its buckets. `schemaInit` (schema's package fact) gives the three buckets' values (`bucketIs`).
+- **Defect.** Both functions were trust-boundary axioms (names-only). Proved over the real code, their
+  `UnsafeCreateBucket`/`UnsafeDelete`/`UnsafePut` calls need the bucket in the backend's table (`P.has`, a ghost
+  parameter: the bucket among the backend's ghost names), which nothing carried for these three buckets (alarm/auth
+  got theirs from item E of the 2026-11-02 approved restatements). `KBReal.BT` is free; nothing derives it from data.
+- **Evidence.** `/shared/tmp/ps2/bkarea/triage.md` (the previous agent's); the proofs
+  `Proof/.../schema/membershipBackend__{MustCreateBackendBuckets,MustDeleteMemberFromBackend}.lean`,
+  `Proof/.../membership/RaftCluster__SetBackend.lean`.
+- **Why true of the code.** As item E's for alarm/auth: `bootstrap`'s `cl.SetBackend(be)` creates the three
+  buckets (`MustCreateBackendBuckets`, `schema/membership.go:168`), and the contract already states them present
+  (`%HDr`: `D.lookup "members"/"members_removed"/"cluster" = some ∅`); the table is the ghost naming of the
+  backend's buckets, which the contract picks.
+- **Proposed change.** As above. Every intermediate premise is discharged: `srvSnapRO` from `bootOk`/`bootOkR`
+  (`NewServer`, `NewServerR`), kept by `srvSnapRO_succ` (a new backend's parameters are the old one's);
+  `applySnapshot`'s from `srvSnapRO` (`ApplyAllSnap`); `SetBackend`'s at the new backend `d'` (`d'.P = d.P`);
+  `MustDeleteMemberFromBackend`'s spec has no caller that instantiates it (`applyConfChange` takes it unused).
+- **Decision.** Applied: the two contract clauses approved by the user (2026-11-22, relayed by proving session 2);
+  the intermediate premises under the approved ownership-premise rule (2026-11-21).

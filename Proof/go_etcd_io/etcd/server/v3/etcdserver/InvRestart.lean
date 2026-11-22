@@ -596,7 +596,13 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
       -- `MustCreateBackendBuckets`' `AllBuckets`): what `NewAlarmStore` and `NewAuthStore` take of
       -- the buckets they create, so that they are among the backend's ghost names
       d.P.has mvcc.alarmBI ∧ d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧
-      d.P.has mvcc.authRolesBI⌝ ∗
+      d.P.has mvcc.authRolesBI ∧
+      -- (2026-11-22, the user's approval, branch `prove-ps2-members`) the membership's buckets in the
+      -- table (schema's `Members`, `MembersRemoved`, `Cluster`, which a restart's `bootstrap`'s
+      -- `cl.SetBackend` creates again, `MustCreateBackendBuckets`): what `RaftCluster.SetBackend`
+      -- and `MustDeleteMemberFromBackend` take of them since they were proved, so that they are among
+      -- the backend's ghost names
+      d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI⌝ ∗
     -- (2026-11-02, the user's approval, branch `snap-window`) the backend's hooks are the server's
     -- `s.beHooks` (`bootstrapBackend`'s `OpenBackend(cfg, beHooks)`: `bcfg.Hooks = hooks`, which
     -- `New` stores in `b.hooks`): what the merged snapshot's window needs of its commit

@@ -1131,3 +1131,44 @@ removing `Proof/.../raft/kvnet/Robust.lean`. `CrashBootWpG` follows PR mit-pdos/
 `HasExt.localCtx_get` takes the fs component; a clone is at `.lake/perennial-genstart`). When #683 lands: prove
 `RobustOfNetFsBootG` in `Net/Statement/` from the new adequacy (the generation's `extsLocalCtx` projected to the
 fs component by `HasExt.localCtx_acc`) and drop the hypothesis; adjust `CrashBootWpG` to the exact shapes.
+
+## `raft_kvnet_robust_of_errors` proved (2026-11-22, tenth session on `kvnet-proof`)
+
+`KvNet/Proof/.../raft/kvnet/TopLevelRobustness.lean` (linking tier, by its name), all proved, no `sorry`:
+
+- `raft_kvnet_robust_of_errors (Hb : RobustOfNetFsBootG) (Herr : ∀ [hG : HeapGS .hasLC kvnetGF]
+  [s : go.Semantics], errors.IsPathErrnoNotExist.spec (GF := kvnetGF) (hG := hG) (sem := s)) :
+  raft_kvnet_robust.spec`. The statement needed no change.
+- `raft_kvnet_robust_example_of (H : raft_kvnet_robust.spec) : raft_kvnet_robust_example.spec` (the
+  premises by `decide`; the joined address string and the `mapIdx` of the five replicas match the
+  example's literals by definitional unfolding), and `raft_kvnet_robust_example_of_errors` from both.
+- `raft_kvnet_example_premises`: `exampleConfig.Ok 5`, the directory's length, the five addresses
+  distinct and `addrOk`, and `exampleFs` (one root `/var/lib/kvnet` at inode 0, empty) satisfies `FsInit`
+  with that root empty (`exampleFs_init`, `exampleFs_lookup`).
+- `#print axioms` (after the merge of `origin/lean` that retired `path.filepath.opaqueInitsOk`, which `kvRep_gen` reached): all three, Lean's three only.
+  `etc/tcb-collections/kvnet.txt` (roots: this file).
+
+How it is assembled (the handoff's steps): `Hb` at `kvnetGF`, `addrs := replicas.map (·.1)`; `Robust`'s
+premises are introduced first, so that the per-machine `FsInit` (`(hil m _).2.1`) is available to the
+first generations. The start: `netProto_alloc`, `kvnet_store_alloc` (`n` = the replicas, `v` = the
+voters), `kvnet_addrs_alloc`, bundled as `kvGlobals` (persistent). `Pc i L := kvPc γ vs rs dir (i + 1) L`
+(the globals, `∃ J R, ⌜(dir, J) ∈ R ∧ RootsOk R⌝ ∗ kvGen …`, `ownGoState ∅`): `kvGen` names neither
+`KdStor` nor `go.Semantics`, so no registry existential is needed. `kvPc_crashBoot` (the Go context
+substituted by `subst`, a fresh `kdStor_alloc` registry, `kvRep_gen`), `kvPc_first` (`kvGen_first`, with
+a dummy registry `⟨0⟩` for its unused instance), `kvClient_stable` (`kvcheck_wp_program`). The per-id
+`raftState`/`nodeVacant` list is moved from `bootVoters n` to the crashing list by `bootVoters_bigSepL`
+(`bigSepL_reindex`). The Link's package instances come from `kvcheck.Assumptions` by instance search.
+The errors law is taken through `ErrNotExistLaw GF` (an abbrev of the same statement) in the helpers.
+
+### Handoff: closing it when #683 and #677 land
+
+The old `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Robust.lean` stays until then. Then:
+1. #683: prove `RobustOfNetFsBootG` in `Net/Statement/` (as `robust_of_netFsBoot`, the crashing node's `Hwp`
+   taking `w`'s fs component by `HasExt.localCtx_get`; adjust `CrashBootWpG` to #683's final shapes if they
+   moved), say `Net.robustOfNetFsBootG_holds : RobustOfNetFsBootG`; move `TopBridge.lean`'s definitions there.
+2. #677: its theorem of `errors.IsPathErrnoNotExist.spec`, say `errors_isPathErrnoNotExist_holds`.
+3. In `TopLevelRobustness.lean`, the one-line closures:
+   `theorem raft_kvnet_robust : raft_kvnet_robust.spec := raft_kvnet_robust_of_errors Net.robustOfNetFsBootG_holds errors_isPathErrnoNotExist_holds`
+   `theorem raft_kvnet_robust_example : raft_kvnet_robust_example.spec := raft_kvnet_robust_example_of raft_kvnet_robust`
+   with `#print axioms` of each; then delete `Robust.lean` and CLAUDE.md's "(kvnet's statement, not proved
+   yet: ...Robust.lean.)", and rerun `etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt --check --update`.
