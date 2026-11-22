@@ -27,7 +27,7 @@ func durableValue(i int) string { return string([]byte{'v', byte(i)}) }
 // RunDurable is the durable workload (restartN's check, rewritten over gRPC: restartN's Puts and
 // Range go through a member's own API, in the process that runs it, and its check is exact; Lean:
 // Workload.durable, review F12): n <= MaxDurable Puts of distinct keys under durablePrefix, one
-// after the other, while members crash and restart (the harness's, not the program's); then a
+// after the other, while members crash and restart (the test's, not the program's); then a
 // linearizable Range of the prefix, tried until one returns. Panics unless every acknowledged
 // Put's key is in it with its value at version 1, and every key in it is one whose Put was
 // attempted (a Put that failed may have been applied: an unknown outcome), with that Put's value

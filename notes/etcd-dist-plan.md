@@ -9,7 +9,7 @@ statement and its definitions, no proofs. Files:
   (`Deployment`, `WellFormed`, `Workload`, `Compatible`, `ServerCfg.Supported`, the start states,
   `EtcdEnv`; placeholders marked `PLACEHOLDER`);
 - the Go programs: `examples/etcd/dist/{server,client,env}/` and `cmd/{server,client}/`, and the
-  deployment harness `examples/etcd/dist/harness/` (stage D1, done: §2, "Stage D1").
+  deployment test in `examples/etcd/dist` (`dist_test.go`) (stage D1, done: §2, "Stage D1").
 
 Neither Lean file is built (they import the server's proof cone, and the draft has placeholders for
 what is not translated yet).
@@ -133,7 +133,7 @@ builds, vets and tests (`go vet ./etcd/dist/...`, `go test ./etcd/dist/...`, go1
   writer (kv) or alone (auth), and no other prefix starts with `k`, `a`, `c/` or `z`.
 - **`cmd/server`, `cmd/client`**: JSON config in, `server.Main`/`client.Main` (the client prints its
   result). `DIST_LOG` makes the server log to standard error.
-- **`examples/etcd/dist/harness`**: the deployment harness (`TestDist`, `TestWellFormed`; see "The
+- **`examples/etcd/dist`** (`deploy.go`, `run.go`, `dist_test.go`): the deployment test (`TestDist`, `TestWellFormed`; see "The
   harness" below).
 - **`examples/lib/robust`** (shared with kvnet's driver, additive): the **bridge variant** of the
   namespace mode and `RerunInUserns`. This machine's root has no `CAP_NET_ADMIN`, a read-only
@@ -208,7 +208,7 @@ each over its own `*clientv3.Client`, from the orchestration:
   authLease's principals are sequential steps of one orchestration, kept in one function.
 - compact, putget, durable: one client each, one machine.
 
-**The harness** (`examples/etcd/dist/harness`, `TestDist`, `DIST_RUN=1`): random well-formed
+**The test** (`examples/etcd/dist`, `TestDist`, `DIST_RUN=1`): random well-formed
 deployments of three members (`RandomDeployment`; `WellFormed` is the Lean predicate's Go mirror,
 member ids from etcd's own `membership.NewClusterFromURLsMap`, the token searched until the low 16
 (15) bits are apart): a random `ServerCfg` (compactor off/revision 1, 10, 1000/periodic 10 ms, 1 s,
@@ -526,12 +526,12 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
    facts list), with the extra errors the model gives (REFUSED_STREAM, any code on a cut, idleness).
 4. **The cluster's invariants across machines**: today `etcd_adequate_members_below` allocates the
    cluster's ghost state in one process. Distributed: allocated once in the global ghost state (as
-   `KitBridge`'s `Hstart`), each member's local state rebuilt after a crash from its files and the
+   `DistBridge`'s `Hstart`), each member's local state rebuilt after a crash from its files and the
    global invariants (the raft log's durability invariant, the restart plan's `InvRestart`); the
    clients' specs over the cluster's API (`srvApi`) unchanged.
 5. **The workloads**: the drivers' workload triples (`partition.Check`, `auth.Work`, ...) carry over;
    each driver's `Run` half is its `Main` triple minus the start's resources.
-6. **Assembly**: a bridge as `KitBridge` for crashing and stable machines; `Link`s of the two programs;
+6. **Assembly**: a bridge as `DistBridge` for crashing and stable machines; `Link`s of the two programs;
    `etc/gen-init.py` entries; a TCB collection.
 
 ## 8. Open questions
@@ -585,12 +585,12 @@ For upamanyus:
 **upamanyus's answers (etcd-grove#24, 2026-11-21 22:19Z):**
 - **U1:** yes, S4's shape.
   - Keep the exact address spellings: clients dial exactly the `a.b.c.d:p` their member listens on.
-  - Reuse `Net/Statement/KitDeploy.lean`'s `NetStart`/`ServerStart` definitions rather than restating them, so `KitBridge` applies.
+  - Reuse `Net/Statement/DistDeploy.lean`'s `NetStart`/`ServerStart` definitions rather than restating them, so `DistBridge` applies.
   - A restarted member's `Listen` on the same address is allowed: net v3.4's `crash_init` drops listeners and cuts connections.
 - **U2:** S1 makes the gRPC model call the stats handler, with differential tests. `grpcStatsHandlerOk` becomes proved of otelgrpc's handler.
 - **U3:** no cmux; keep plain `grpc.Server.Serve`.
 - **U4:** the mixed adequacy already exists in Perennial at `d648cfe22`: `goose_dist_mixed_crash_adequacy` (`GooseLang/DistAdequacy.lean:852`) and `_init` (`InitAdequacy.lean:196`).
-  - Missing: our bridge to `Robust crashing stable`. `robust_of_kitBoot` covers the all-stable case only.
+  - Missing: our bridge to `Robust crashing stable`. `robust_of_distBoot` covers the all-stable case only.
   - kvnet's claim #22 is building the crashing bridge for `[netExt, fsExt]` (`GooseLang/Ext/NetFs/Adequacy.lean`). **D3 extends that; coordinate on #22.**
 - **U5:** nothing from the transport side; the extensions need only commute with the net extension's per-machine crash semantics.
 - **Extra:** rafthttp's client uses `http.ProxyFromEnvironment`, and S5 treats a non-nil proxy as `NotModelled`, so Q10's `clearProxyEnv` is what it needs. The environment as machine-local state is an `os` model question: entry for `notes/perennial-changes.md`.

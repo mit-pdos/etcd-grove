@@ -1,4 +1,4 @@
-package harness
+package dist
 
 import (
 	"encoding/json"
@@ -26,10 +26,10 @@ const (
 	RoleClient = "client"
 )
 
-// RunProcess runs a harness process: role RoleServer with a server.Config's JSON file (server.Main;
+// RunProcess runs a test process: role RoleServer with a server.Config's JSON file (server.Main;
 // with DIST_LOG set, MainLogger to standard error), or RoleClient with a client.Args JSON file
 // (client.MainReady, its result printed; its set-up done marked by the file FILE.json.ready, for
-// the harness to hold its faults until then; or, on a workload's client machine, client.NodeMain,
+// the test to hold its faults until then; or, on a workload's client machine, client.NodeMain,
 // which never returns). What cmd/server and cmd/client do, for a binary that is both
 // (the test binary).
 func RunProcess(args []string) error {
@@ -100,7 +100,7 @@ type Config struct {
 	SetupWait     time.Duration
 }
 
-// Command says how to start the harness's processes: the program and the environment added; the
+// Command says how to start the test's processes: the program and the environment added; the
 // program runs RunProcess on its arguments (role, file).
 type Command struct {
 	Path string
@@ -332,7 +332,7 @@ func Start(d Deployment, cfg Config, cmd Command, work string, n *robust.Network
 	return c, nil
 }
 
-// start starts mb's next incarnation: a process that ends without the harness killing it fails
+// start starts mb's next incarnation: a process that ends without the test killing it fails
 // the run.
 func (c *Cluster) start(mb *member) error {
 	c.mu.Lock()
@@ -407,7 +407,7 @@ func (c *Cluster) crasher(stop <-chan struct{}) {
 }
 
 // startNodes starts workload i's client machines' processes (client.NodeMain): one that ends
-// before the harness kills it (a panic: a principal's failed check) fails the run.
+// before the test kills it (a panic: a principal's failed check) fails the run.
 func (c *Cluster) startNodes(i int, eps []string) ([]*robust.Proc, error) {
 	w := c.d.Workloads[i]
 	var procs []*robust.Proc
@@ -590,7 +590,7 @@ func (c *Cluster) NetStats() string {
 func (c *Cluster) Stop() {
 	c.crashMu.Lock()
 	defer c.crashMu.Unlock()
-	c.failOnce.Do(func() { close(c.failed) }) // no failure recorded after this: the harness's kills
+	c.failOnce.Do(func() { close(c.failed) }) // no failure recorded after this: the test's kills
 	for _, mb := range c.members {
 		if mb.p != nil {
 			mb.p.Kill()

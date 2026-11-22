@@ -125,7 +125,7 @@ collections' baselines saying what it removes.
 - **S3, streams** (`NewStream`, the stream ends, `InvGrpcStream.lean`'s two queues as a fact about the
   connection's two byte streams through the model's framing).
 - **S4, the deployment statement.** Each member a machine (one node per member), the client drivers
-  machines or co-located; addresses from the plan (`KitDeploy`-like); `netAddrFree`, `netListenerAt`,
+  machines or co-located; addresses from the plan (`DistDeploy`-like); `netAddrFree`, `netListenerAt`,
   `httpProtoFree`, `addrsUnclaimed` gone; restart examples over the crash adequacy.
 - **S5, net/http.** The server first (`Serve_ok`, the response writer, `Flush`, the body reader, the
   mux) over the model's real server (the largest proof); `reserve`/`register` as a per-address

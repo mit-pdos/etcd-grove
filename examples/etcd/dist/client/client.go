@@ -169,8 +169,8 @@ func hasSetUp(k Kind) bool {
 // does (review F8). A failed check is a panic inside the workload.
 //
 // ready is called once the workload's set-up is done (at once, after the cluster's first read, for
-// a workload with none), or not at all if the workload ends before: a harness may hold its faults
-// until then (examples/etcd/dist/harness). It is an observer only: nothing the workload does
+// a workload with none), or not at all if the workload ends before: the test may hold its faults
+// until then (examples/etcd/dist (its test)). It is an observer only: nothing the workload does
 // depends on it.
 func MainReady(w Workload, eps []string, nodes []string, ready func()) Result {
 	env.ClearProxy()
