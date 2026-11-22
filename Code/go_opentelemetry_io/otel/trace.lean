@@ -285,11 +285,6 @@ noncomputable def start [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ended [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.ended"
 
-noncomputable def maxSpan [GooseExts] [GoGlobalContext] : GoString :=
-  go!"go.opentelemetry.io/otel/trace.maxSpan"
-
-opaque maxSpan.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def noopSpanInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.noopSpanInstance"
 
@@ -558,10 +553,43 @@ noncomputable def noopSpan.AddEvent.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
   (Val #())))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@auto.go:40` (`var _ TracerProvider = autoTracerProvider{}`): An interface check: `autoTracerProvider{}` converted to `TracerProvider`. No call, no panic, no
+effect.
+- `_@auto.go:57` (`var _ Tracer = autoTracer{}`): An interface check: `autoTracer{}` converted to `Tracer`. No call, no panic, no effect.
+- `maxSpan` (`var maxSpan = newSpanLimits()`): Its initializer calls, besides literals of constants and other variables' values: `newSpanLimits`
+returns a struct of constants. So it terminates, cannot panic and has no effect beyond its variable.
+- `_@config.go:229` (`var _ SpanStartEventOption = attributeOption{}`): An interface check: `attributeOption{}` converted to `SpanStartEventOption`. No call, no panic, no
+effect.
+- `_@config.go:263` (`var _ SpanEventOption = timestampOption{}`): An interface check: `timestampOption{}` converted to `SpanEventOption`. No call, no panic, no
+effect.
+- `_@noop.go:26` (`var _ TracerProvider = noopTracerProvider{}`): An interface check: `noopTracerProvider{}` converted to `TracerProvider`. No call, no panic, no
+effect.
+- `_@noop.go:36` (`var _ Tracer = noopTracer{}`): An interface check: `noopTracer{}` converted to `Tracer`. No call, no panic, no effect.
+- `_@trace.go:41` (`var _ json.Marshaler = nilTraceID`): An interface check: `nilTraceID` converted to `json.Marshaler`. No call, no panic, no effect.
+- `_@trace.go:92` (`var _ json.Marshaler = nilSpanID`): An interface check: `nilSpanID` converted to `json.Marshaler`. No call, no panic, no effect.
+- `_@trace.go:317` (`var _ json.Marshaler = SpanContext{}`): An interface check: `SpanContext{}` converted to `json.Marshaler`. No call, no panic, no effect.
+- `_@tracestate.go:178` (`var _ json.Marshaler = TraceState{}`): An interface check: `TraceState{}` converted to `json.Marshaler`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"go.opentelemetry.io/otel/trace._@auto.go:40", "An interface check: `autoTracerProvider{}` converted to `TracerProvider`. No call, no panic, no\neffect.", "var _ TracerProvider = autoTracerProvider{}"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@auto.go:57", "An interface check: `autoTracer{}` converted to `Tracer`. No call, no panic, no effect.", "var _ Tracer = autoTracer{}"⟩,
+  ⟨"go.opentelemetry.io/otel/trace.maxSpan", "Its initializer calls, besides literals of constants and other variables' values: `newSpanLimits`\nreturns a struct of constants. So it terminates, cannot panic and has no effect beyond its variable.", "var maxSpan = newSpanLimits()"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@config.go:229", "An interface check: `attributeOption{}` converted to `SpanStartEventOption`. No call, no panic, no\neffect.", "var _ SpanStartEventOption = attributeOption{}"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@config.go:263", "An interface check: `timestampOption{}` converted to `SpanEventOption`. No call, no panic, no\neffect.", "var _ SpanEventOption = timestampOption{}"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@noop.go:26", "An interface check: `noopTracerProvider{}` converted to `TracerProvider`. No call, no panic, no\neffect.", "var _ TracerProvider = noopTracerProvider{}"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@noop.go:36", "An interface check: `noopTracer{}` converted to `Tracer`. No call, no panic, no effect.", "var _ Tracer = noopTracer{}"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@trace.go:41", "An interface check: `nilTraceID` converted to `json.Marshaler`. No call, no panic, no effect.", "var _ json.Marshaler = nilTraceID"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@trace.go:92", "An interface check: `nilSpanID` converted to `json.Marshaler`. No call, no panic, no effect.", "var _ json.Marshaler = nilSpanID"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@trace.go:317", "An interface check: `SpanContext{}` converted to `json.Marshaler`. No call, no panic, no effect.", "var _ json.Marshaler = SpanContext{}"⟩,
+  ⟨"go.opentelemetry.io/otel/trace._@tracestate.go:178", "An interface check: `TraceState{}` converted to `json.Marshaler`. No call, no panic, no effect.", "var _ json.Marshaler = TraceState{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.codes, pkg_id.go_opentelemetry_io.otel.trace.embedded]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -577,8 +605,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc autoTracerProvider.ty))) (App (Val (GoInstruction (GoZeroVal autoTracerProvider.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam BAnon
   (Lam BAnon
@@ -596,48 +622,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
   (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert noopSpan.ty Span.ty))) (App (Val (GoInstruction (CompositeLiteral noopSpan.ty))) (LiteralValue [])))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr autoInstEnabled))) (Val #())) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr autoInstEnabled))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Span.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr noopSpanInstance))) (Val #())) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val maxSpan.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr ended))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType autoSpan.ty), (go.GoType.PointerType SpanContext.ty), (go.GoType.PointerType go.bool), (go.GoType.PointerType SpanContext.ty)] false []))))) (Pair (App (Val (GoInstruction (GlobalVarAddr start))) (Val #())) (Var "$r0"))))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType autoTracerProvider.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr tracerProviderInstance))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)

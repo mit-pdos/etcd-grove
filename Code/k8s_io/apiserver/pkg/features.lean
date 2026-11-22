@@ -110,13 +110,21 @@ opaque WatchListCompression [GooseExts] [GoGlobalContext] : val
 
 opaque WebhookRoundTripLoadBalancing [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultVersionedKubernetesFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/features.defaultVersionedKubernetesFeatureGates"
-
-opaque defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/features.init.0"
+
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `defaultVersionedKubernetesFeatureGates` (`var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate.VersionedSpecs{ APIResponseCompression: … [sha256:3786540b199605d0]`): Its initializer calls, besides literals of constants and other variables' values:
+`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an
+invalid constant, and these parse: Go runs the initializer at every start). So it terminates, cannot
+panic and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/features.defaultVersionedKubernetesFeatureGates", "Its initializer calls, besides literals of constants and other variables' values:\n`version.MustParse*`/`MajorMinor` of constants allocate a version (`MustParse*` panics only on an\ninvalid constant, and these parse: Go runs the initializer at every start). So it terminates, cannot\npanic and has no effect beyond its variable.", "var defaultVersionedKubernetesFeatureGates = map[featuregate.Feature]featuregate.VersionedSpecs{ APIResponseCompression: … [sha256:3786540b199605d0]"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.features where
   pkgImportedPkgs := [pkg_id.k8s_io.apiserver.pkg.util.feature]
@@ -128,11 +136,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.features)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val defaultVersionedKubernetesFeatureGates.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.util.feature.initialize') (Val #()))))))))
 

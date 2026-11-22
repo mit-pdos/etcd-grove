@@ -39,21 +39,9 @@ attribute [irreducible] Server.ty
 
 opaque healthServiceProducer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque healthCheckMethod [GooseExts] [GoGlobalContext] : val
 
 opaque maxAllowedServices [GooseExts] [GoGlobalContext] : val
-
-noncomputable def backoffStrategy [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health.backoffStrategy"
-
-opaque backoffStrategy.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def backoffFunc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"google.golang.org/grpc/health.backoffFunc"
-
-opaque backoffFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.logger"
@@ -78,6 +66,24 @@ noncomputable def registerClientSideHealthCheckListener [GooseExts] [GoGlobalCon
 noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.NewServer"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `backoffStrategy` (`var backoffStrategy = backoff.DefaultExponential`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `backoffFunc` (`var backoffFunc = func(ctx context.Context, retries int) bool { d := backoffStrategy.Backoff(retries) timer := time.NewT … [sha256:f055c0bbd9fb414f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"google.golang.org/grpc/health.backoffStrategy", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var backoffStrategy = backoff.DefaultExponential"⟩,
+  ⟨"google.golang.org/grpc/health.backoffFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var backoffFunc = func(ctx context.Context, retries int) bool { d := backoffStrategy.Backoff(retries) timer := time.NewT … [sha256:f055c0bbd9fb414f]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.sync]
 
@@ -91,18 +97,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
   (App (Val logger.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val backoffFunc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val backoffStrategy.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -157,22 +157,62 @@ attribute [instance] healthServiceProducer.TypeAssumptions.type_repr
   healthServiceProducer.TypeAssumptions.method_set
   healthServiceProducer.TypeAssumptions.ptr_method_set
 
-opaque Server.nonempty_type : NonemptyType.{0}
-def Server : Type := Server.nonempty_type.type
-instance Server.nonempty : Nonempty Server := Server.nonempty_type.property
-opaque Server.zero_val : ZeroVal Server := ⟨Classical.ofNonempty⟩
-attribute [instance] Server.zero_val
+structure Server [GooseExts] where
+  mk ::
+  UnimplementedHealthServer' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer
+  mu' : _root_.Perennial.sync.RWMutex
+  shutdown' : Bool
+  statusMap' : GoMap
+  updates' : GoMap
+
+noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
+  ⟨Server.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Server.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"UnimplementedHealthServer" _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer.ty),
+(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
+(go.field_decl.FieldDecl go!"shutdown" go.bool),
+(go.field_decl.FieldDecl go!"statusMap" (go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty)),
+(go.field_decl.FieldDecl go!"updates" (go.GoType.MapType go.string (go.GoType.MapType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty))))]
+
+@[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Server.fieldsUnsealed
+
+noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Server.fields Server.fieldsUnsealed :=
+  ⟨by unfold Server.fields; rfl⟩
+
+@[reducible] noncomputable def Server.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Server.fields)
 
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
-  isUnderlying : go.IsUnderlying Server.underlying Server.underlying
+  get_UnimplementedHealthServer : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"UnimplementedHealthServer") #x (Val #(x.UnimplementedHealthServer'))
+  set_UnimplementedHealthServer : ∀ (x : Server) (y : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"UnimplementedHealthServer") (PairV #x #y) (Val #(({ x with UnimplementedHealthServer' := y } : Server)))
+  get_mu : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"mu") #x (Val #(x.mu'))
+  set_mu : ∀ (x : Server) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Server)))
+  get_shutdown : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"shutdown") #x (Val #(x.shutdown'))
+  set_shutdown : ∀ (x : Server) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"shutdown") (PairV #x #y) (Val #(({ x with shutdown' := y } : Server)))
+  get_statusMap : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"statusMap") #x (Val #(x.statusMap'))
+  set_statusMap : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"statusMap") (PairV #x #y) (Val #(({ x with statusMap' := y } : Server)))
+  get_updates : ∀ (x : Server), go.IsGoStepPureDetTagged under (StructFieldGet Server.underlying go!"updates") #x (Val #(x.updates'))
+  set_updates : ∀ (x : Server) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Server.underlying go!"updates") (PairV #x #y) (Val #(({ x with updates' := y } : Server)))
   method_set : go.MethodSetIs Server.ty [(go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Check", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListResponse.ty), go.error]))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"SetServingStatus", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [_root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty])] false [go.error]))), (go!"google.golang.org/grpc/health.setServingStatusLocked", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Check", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListResponse.ty), go.error]))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"SetServingStatus", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.ty), _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Health_WatchServer.ty] false [go.error]))), (go!"google.golang.org/grpc/health.setServingStatusLocked", (some (go.signature.Signature [go.string, _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse_ServingStatus.ty] false []))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
-  Server.TypeAssumptions.isUnderlying
+  Server.TypeAssumptions.get_UnimplementedHealthServer
+  Server.TypeAssumptions.set_UnimplementedHealthServer
+  Server.TypeAssumptions.get_mu
+  Server.TypeAssumptions.set_mu
+  Server.TypeAssumptions.get_shutdown
+  Server.TypeAssumptions.set_shutdown
+  Server.TypeAssumptions.get_statusMap
+  Server.TypeAssumptions.set_statusMap
+  Server.TypeAssumptions.get_updates
+  Server.TypeAssumptions.set_updates
   Server.TypeAssumptions.method_set
   Server.TypeAssumptions.ptr_method_set
 

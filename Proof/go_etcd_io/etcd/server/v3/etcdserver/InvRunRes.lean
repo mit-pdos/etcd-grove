@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
 public import Perennial.Proof.context
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Defs
 public import Perennial.Ghost.Token
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Defs
 
@@ -379,7 +380,8 @@ there: `rafthttp.Transport.Start`'s axiom, D21 M2),
 `stop` (the unit channel `HardStop` sends on, a bag with predicate `SP`: `False` by default, the
 runs covered calling neither `Stop` nor `HardStop`, D19m; R2b-2, 2026-11-02: `True` for a server
 that may be stopped, R2c-4: `srvStopReq`, `run.spec`), `done`, `cancel` (the server
-context's cancel function, `WithCancel`'s), the compactor, the stats, the leader-change notifier,
+context's cancel function, `WithCancel`'s), the compactor, the stats (with `NewServerStats`' ownership,
+`v2stats.isServerStats`, for `BecomeLeader`: prove-ps2-v2stats, 2026-11-21), the leader-change notifier,
 `leadTimeMu`'s write side, the committed index's invariant, `GoAttach`'s protocol. -/
 def srvRunFieldsAt (s : Loc) (γr : ReadNames) (γg : GoNames) (γcx : context.ContextNames)
     (v : RunFields) (SP : IProp GF := iprop(False)) : IProp GF :=
@@ -390,7 +392,7 @@ def srvRunFieldsAt (s : Loc) (γr : ReadNames) (γg : GoNames) (γcx : context.C
     srvDoneAddr s ↦□ v.done ∗
     srvCancelAddr s ↦□ v.cancel ∗ context.cancelSpec v.cancel γcx iprop(True) ∗
     srvCompactorAddr s ↦□ v.compactor ∗ compactorOk v.compactor ∗
-    srvStatsAddr s ↦□ v.stats ∗
+    srvStatsAddr s ↦□ v.stats ∗ v2stats.isServerStats v.stats ∗
     srvLeaderChangedAddr s ↦□ v.leaderChanged ∗ isNotifier v.leaderChanged ∗
     sync.isRWMutexGuard (srvLeadTimeMuAddr s) (leadTimeP s) ∗
     srvCommittedInv s γr ∗ srvGoAttachOk s γg)

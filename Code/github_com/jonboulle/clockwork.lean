@@ -93,11 +93,6 @@ opaque fakeClockContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 noncomputable def keyClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.keyClock"
 
-noncomputable def ErrFakeClockDeadlineExceeded [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/jonboulle/clockwork.ErrFakeClockDeadlineExceeded"
-
-opaque ErrFakeClockDeadlineExceeded.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def NewRealClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/jonboulle/clockwork.NewRealClock"
 
@@ -176,6 +171,19 @@ noncomputable def realClock.Now.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "$res0"))))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `ErrFakeClockDeadlineExceeded` (`var ErrFakeClockDeadlineExceeded error = fmt.Errorf("clockwork.FakeClock: %w", context.DeadlineExceeded)`): Its initializer calls, besides literals of constants and other variables' values: `fmt.Errorf` of a
+constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So it terminates, cannot panic and has no effect beyond
+its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/jonboulle/clockwork.ErrFakeClockDeadlineExceeded", "Its initializer calls, besides literals of constants and other variables' values: `fmt.Errorf` of a\nconstant format and constant arguments allocates the formatted error (fmt recovers a panic of a\nformatting method; the arguments have none). So it terminates, cannot panic and has no effect beyond\nits variable.", "var ErrFakeClockDeadlineExceeded error = fmt.Errorf(\"clockwork.FakeClock: %w\", context.DeadlineExceeded)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.jonboulle.clockwork where
   pkgImportedPkgs := [pkg_id.time]
 
@@ -188,11 +196,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(go!"clock"))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val ErrFakeClockDeadlineExceeded.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore contextKey.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr keyClock))) (Val #())) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore contextKey.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr keyClock))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)

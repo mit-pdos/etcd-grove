@@ -744,9 +744,11 @@ opaque stringWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque HTTP2Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque http2Server [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def http2Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http/internal/http2.Server" [])
 
-opaque http2Transport [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def http2Transport.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"net/http/internal/http2.Transport" [])
 
 opaque http2ResponseWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -1220,267 +1222,17 @@ opaque maxPostCloseReadBytes [GooseExts] [GoGlobalContext] : val
 
 opaque maxPostCloseReadTime [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultClient [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.DefaultClient"
-
-opaque DefaultClient.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrSchemeMismatch [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrSchemeMismatch"
-
-opaque ErrSchemeMismatch.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUseLastResponse [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrUseLastResponse"
-
-opaque ErrUseLastResponse.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def testHookClientDoResult [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookClientDoResult"
-
-noncomputable def httpcookiemaxnum [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.httpcookiemaxnum"
-
-opaque httpcookiemaxnum.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errBlankCookie [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errBlankCookie"
-
-opaque errBlankCookie.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errEqualNotFoundInCookie [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errEqualNotFoundInCookie"
-
-opaque errEqualNotFoundInCookie.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInvalidCookieName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errInvalidCookieName"
-
-opaque errInvalidCookieName.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInvalidCookieValue [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errInvalidCookieValue"
-
-opaque errInvalidCookieValue.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCookieNumLimitExceeded [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errCookieNumLimitExceeded"
-
-opaque errCookieNumLimitExceeded.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cookieNameSanitizer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.cookieNameSanitizer"
-
-opaque cookieNameSanitizer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def sentinelHandler [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.sentinelHandler"
-
-opaque sentinelHandler.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCrossOriginRequest [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errCrossOriginRequest"
-
-opaque errCrossOriginRequest.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCrossOriginRequestFromOldBrowser [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errCrossOriginRequestFromOldBrowser"
-
-opaque errCrossOriginRequestFromOldBrowser.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInvalidUnsafePath [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errInvalidUnsafePath"
-
-opaque errInvalidUnsafePath.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def httpservecontentkeepheaders [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.httpservecontentkeepheaders"
-
-opaque httpservecontentkeepheaders.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errSeeker [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errSeeker"
-
-opaque errSeeker.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoOverlap [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errNoOverlap"
-
-opaque errNoOverlap.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def unixEpochTime [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.unixEpochTime"
-
-opaque unixEpochTime.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMissingSeek [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errMissingSeek"
-
-opaque errMissingSeek.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMissingReadDir [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errMissingReadDir"
-
-opaque errMissingReadDir.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def httpservecontentmaxranges [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.httpservecontentmaxranges"
-
-opaque httpservecontentmaxranges.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def timeFormats [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.timeFormats"
-
-opaque timeFormats.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def headerNewlineToSpace [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.headerNewlineToSpace"
-
-opaque headerNewlineToSpace.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def headerSorterPool [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.headerSorterPool"
-
-opaque headerSorterPool.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def aLongTimeAgo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.aLongTimeAgo"
-
-opaque aLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def omitBundledHTTP2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.omitBundledHTTP2"
 
-noncomputable def NoBody [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.NoBody"
-
-opaque NoBody.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def maxSlice [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.maxSlice"
-
-opaque maxSlice.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrMissingFile [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrMissingFile"
-
-opaque ErrMissingFile.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrNotSupported [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrNotSupported"
-
-opaque ErrNotSupported.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrUnexpectedTrailer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrUnexpectedTrailer"
-
-opaque ErrUnexpectedTrailer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrMissingBoundary [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrMissingBoundary"
-
-opaque ErrMissingBoundary.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrNotMultipart [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrNotMultipart"
-
-opaque ErrNotMultipart.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrHeaderTooLong [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrHeaderTooLong"
-
-opaque ErrHeaderTooLong.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrShortBody [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrShortBody"
-
-opaque ErrShortBody.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrMissingContentLength [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrMissingContentLength"
-
-opaque ErrMissingContentLength.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def reqWriteExcludeHeader [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.reqWriteExcludeHeader"
-
-opaque reqWriteExcludeHeader.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrNoCookie [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrNoCookie"
-
-opaque ErrNoCookie.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def multipartByReader [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.multipartByReader"
-
-opaque multipartByReader.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMissingHost [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errMissingHost"
-
-opaque errMissingHost.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def textprotoReaderPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.textprotoReaderPool"
 
-noncomputable def respExcludeHeader [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.respExcludeHeader"
-
-opaque respExcludeHeader.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrNoLocation [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrNoLocation"
-
-opaque ErrNoLocation.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def httpmuxgo121 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.httpmuxgo121"
-
-opaque httpmuxgo121.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def use121 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.use121"
-
-noncomputable def ErrBodyNotAllowed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrBodyNotAllowed"
-
-opaque ErrBodyNotAllowed.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrHijacked [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrHijacked"
-
-opaque ErrHijacked.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrContentLength [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrContentLength"
-
-opaque ErrContentLength.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrWriteAfterFlush [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrWriteAfterFlush"
-
-opaque ErrWriteAfterFlush.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ServerContextKey [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ServerContextKey"
-
-opaque ServerContextKey.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def LocalAddrContextKey [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.LocalAddrContextKey"
-
-opaque LocalAddrContextKey.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def crlf [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.crlf"
-
-opaque crlf.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def colonSpace [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.colonSpace"
-
-opaque colonSpace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bufioReaderPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.bufioReaderPool"
@@ -1491,169 +1243,14 @@ noncomputable def bufioWriter2kPool [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def bufioWriter4kPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.bufioWriter4kPool"
 
-noncomputable def copyBufPool [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.copyBufPool"
-
-opaque copyBufPool.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTooLarge [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errTooLarge"
-
-opaque errTooLarge.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def extraHeaderKeys [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.extraHeaderKeys"
-
-opaque extraHeaderKeys.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def headerContentLength [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.headerContentLength"
-
-opaque headerContentLength.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def headerDate [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.headerDate"
-
-opaque headerDate.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def rstAvoidanceDelay [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.rstAvoidanceDelay"
-
-opaque rstAvoidanceDelay.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrAbortHandler [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrAbortHandler"
-
-opaque ErrAbortHandler.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def htmlReplacer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.htmlReplacer"
-
-opaque htmlReplacer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultServeMux [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.DefaultServeMux"
-
-opaque DefaultServeMux.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def defaultServeMux [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.defaultServeMux"
-
-noncomputable def stateName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.stateName"
-
-opaque stateName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookServerServe [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookServerServe"
 
-noncomputable def ErrServerClosed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrServerClosed"
-
-opaque ErrServerClosed.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def http2server [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.http2server"
-
-opaque http2server.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrHandlerTimeout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrHandlerTimeout"
-
-opaque ErrHandlerTimeout.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def uniqNameMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.uniqNameMu"
-
-noncomputable def uniqNameNext [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.uniqNameNext"
-
-opaque uniqNameNext.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def socksnoDeadline [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.socksnoDeadline"
-
-opaque socksnoDeadline.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def socksaLongTimeAgo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.socksaLongTimeAgo"
-
-opaque socksaLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrLineTooLong [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrLineTooLong"
-
-opaque ErrLineTooLong.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def suppressedHeaders304 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.suppressedHeaders304"
-
-opaque suppressedHeaders304.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def suppressedHeadersNoBody [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.suppressedHeadersNoBody"
-
-opaque suppressedHeadersNoBody.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def excludedHeadersNoBody [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.excludedHeadersNoBody"
-
-opaque excludedHeadersNoBody.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrBodyReadAfterClose [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrBodyReadAfterClose"
-
-opaque ErrBodyReadAfterClose.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def singleCRLF [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.singleCRLF"
-
-opaque singleCRLF.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def doubleCRLF [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.doubleCRLF"
-
-opaque doubleCRLF.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTrailerEOF [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errTrailerEOF"
-
-opaque errTrailerEOF.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def httplaxcontentlength [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.httplaxcontentlength"
-
-opaque httplaxcontentlength.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def nopCloserType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.nopCloserType"
-
-opaque nopCloserType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def nopCloserWriterToType [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.nopCloserWriterToType"
-
-opaque nopCloserWriterToType.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def DefaultTransport [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.DefaultTransport"
-
-opaque DefaultTransport.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def http2client [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.http2client"
-
-opaque http2client.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCannotRewind [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errCannotRewind"
-
-opaque errCannotRewind.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrSkipAltProtocol [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.ErrSkipAltProtocol"
-
-opaque ErrSkipAltProtocol.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def envProxyOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.envProxyOnce"
@@ -1661,143 +1258,8 @@ noncomputable def envProxyOnce [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def envProxyFuncValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.envProxyFuncValue"
 
-noncomputable def errKeepAlivesDisabled [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errKeepAlivesDisabled"
-
-opaque errKeepAlivesDisabled.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errConnBroken [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errConnBroken"
-
-opaque errConnBroken.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCloseIdle [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errCloseIdle"
-
-opaque errCloseIdle.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTooManyIdle [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errTooManyIdle"
-
-opaque errTooManyIdle.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTooManyIdleHost [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errTooManyIdleHost"
-
-opaque errTooManyIdleHost.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCloseIdleConns [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errCloseIdleConns"
-
-opaque errCloseIdleConns.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errReadLoopExiting [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errReadLoopExiting"
-
-opaque errReadLoopExiting.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errIdleConnTimeout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errIdleConnTimeout"
-
-opaque errIdleConnTimeout.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errServerClosedIdle [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errServerClosedIdle"
-
-opaque errServerClosedIdle.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def zeroDialer [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.zeroDialer"
-
-noncomputable def testHookProxyConnectTimeout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookProxyConnectTimeout"
-
-opaque testHookProxyConnectTimeout.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCallerOwnsConn [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errCallerOwnsConn"
-
-opaque errCallerOwnsConn.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errClosedEarly [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errClosedEarly"
-
-opaque errClosedEarly.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def maxWriteWaitBeforeConnReuse [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.maxWriteWaitBeforeConnReuse"
-
-opaque maxWriteWaitBeforeConnReuse.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTimeout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errTimeout"
-
-opaque errTimeout.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errRequestCanceled [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errRequestCanceled"
-
-opaque errRequestCanceled.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errRequestCanceledConn [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errRequestCanceledConn"
-
-opaque errRequestCanceledConn.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errRequestDone [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errRequestDone"
-
-opaque errRequestDone.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookEnterRoundTrip [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookEnterRoundTrip"
-
-opaque testHookEnterRoundTrip.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookWaitResLoop [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookWaitResLoop"
-
-opaque testHookWaitResLoop.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookRoundTripRetried [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookRoundTripRetried"
-
-opaque testHookRoundTripRetried.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookPrePendingDial [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookPrePendingDial"
-
-opaque testHookPrePendingDial.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookPostPendingDial [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookPostPendingDial"
-
-opaque testHookPostPendingDial.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookMu [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookMu"
-
-opaque testHookMu.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookReadLoopBeforeNextRead [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.testHookReadLoopBeforeNextRead"
-
-opaque testHookReadLoopBeforeNextRead.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errReadOnClosedResBody [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errReadOnClosedResBody"
-
-opaque errReadOnClosedResBody.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errConcurrentReadOnResBody [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.errConcurrentReadOnResBody"
-
-opaque errConcurrentReadOnResBody.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def gzipPool [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net/http.gzipPool"
-
-opaque gzipPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def refererForURL [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.refererForURL"
@@ -2932,10 +2394,525 @@ noncomputable def StatusText.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `DefaultClient` (`var DefaultClient = &Client{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrSchemeMismatch` (`var ErrSchemeMismatch = errors.New("http: server gave HTTP response to HTTPS client")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrUseLastResponse` (`var ErrUseLastResponse = errors.New("net/http: use last response")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `httpcookiemaxnum` (`var httpcookiemaxnum = godebug.New("httpcookiemaxnum")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errBlankCookie` (`var errBlankCookie = errors.New("http: blank cookie")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errEqualNotFoundInCookie` (`var errEqualNotFoundInCookie = errors.New("http: '=' not found in cookie")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errInvalidCookieName` (`var errInvalidCookieName = errors.New("http: invalid cookie name")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errInvalidCookieValue` (`var errInvalidCookieValue = errors.New("http: invalid cookie value")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCookieNumLimitExceeded` (`var errCookieNumLimitExceeded = errors.New("http: number of cookies exceeded limit")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `cookieNameSanitizer` (`var cookieNameSanitizer = strings.NewReplacer("\n", "-", "\r", "-")`): Their initializers call, besides literals of constants and other variables' values:
+`strings.NewReplacer` of an even number of constants allocates a replacer. So each terminates,
+cannot panic and has no effect beyond its variable.
+- `sentinelHandler` (`var sentinelHandler Handler = &noopHandler{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errCrossOriginRequest` (`var errCrossOriginRequest = errors.New("cross-origin request detected from Sec-Fetch-Site header")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCrossOriginRequestFromOldBrowser` (`var errCrossOriginRequestFromOldBrowser = errors.New("cross-origin request detected, and/or browser is out of date: " +  … [sha256:f3e7cde385b66a3f]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errInvalidUnsafePath` (`var errInvalidUnsafePath = errors.New("http: invalid or unsafe file path")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `httpservecontentkeepheaders` (`var httpservecontentkeepheaders = godebug.New("httpservecontentkeepheaders")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errSeeker` (`var errSeeker = errors.New("seeker can't seek")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errNoOverlap` (`var errNoOverlap = errors.New("invalid range: failed to overlap")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `unixEpochTime` (`var unixEpochTime = time.Unix(0, 0)`): Their initializers call, besides literals of constants and other variables' values:
+`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no
+effect beyond its variable.
+- `errMissingSeek` (`var errMissingSeek = errors.New("io.File missing Seek method")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errMissingReadDir` (`var errMissingReadDir = errors.New("io.File directory missing ReadDir method")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `httpservecontentmaxranges` (`var httpservecontentmaxranges = godebug.New("httpservecontentmaxranges")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `timeFormats` (`var timeFormats = []string{ TimeFormat, time.RFC850, time.ANSIC, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `headerNewlineToSpace` (`var headerNewlineToSpace = strings.NewReplacer("\n", " ", "\r", " ")`): Their initializers call, besides literals of constants and other variables' values:
+`strings.NewReplacer` of an even number of constants allocates a replacer. So each terminates,
+cannot panic and has no effect beyond its variable.
+- `headerSorterPool` (`var headerSorterPool = sync.Pool{ New: func() any { return new(headerSorter) }, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `aLongTimeAgo` (`var aLongTimeAgo = time.Unix(1, 0)`): Their initializers call, besides literals of constants and other variables' values:
+`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no
+effect beyond its variable.
+- `NoBody` (`var NoBody = noBody{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@http.go:200` (`var // verify that an io.Copy from NoBody won't require a buffer: _ io.WriterTo = NoBody`): An interface check: `NoBody` converted to `io.WriterTo`. No call, no panic, no effect.
+- `_@http.go:201` (`var _ io.ReadCloser = NoBody`): An interface check: `NoBody` converted to `io.ReadCloser`. No call, no panic, no effect.
+- `_@http2.go:162` (`var _ CloseNotifier = http2ResponseWriter{}`): An interface check: `http2ResponseWriter{}` converted to `CloseNotifier`. No call, no panic, no
+effect.
+- `_@http2.go:163` (`var _ Flusher = http2ResponseWriter{}`): An interface check: `http2ResponseWriter{}` converted to `Flusher`. No call, no panic, no effect.
+- `_@http2.go:164` (`var _ io.StringWriter = http2ResponseWriter{}`): An interface check: `http2ResponseWriter{}` converted to `io.StringWriter`. No call, no panic, no
+effect.
+- `maxSlice` (`var maxSlice int = 8`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrMissingFile` (`var ErrMissingFile = errors.New("http: no such file")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrNotSupported` (`var // ErrNotSupported indicates that a feature is not supported. // // It is returned by ResponseController methods to  … [sha256:e02aa7c0d932fc43]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrUnexpectedTrailer` (`var // Deprecated: ErrUnexpectedTrailer is no longer returned by // anything in the net/http package. Callers should not … [sha256:aaa7c97f188cae11]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrMissingBoundary` (`var // ErrMissingBoundary is returned by Request.MultipartReader when the // request's Content-Type does not include a " … [sha256:717c6e623bff2c52]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrNotMultipart` (`var // ErrNotMultipart is returned by Request.MultipartReader when the // request's Content-Type is not multipart/form-d … [sha256:1ed2b88112ae834f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrHeaderTooLong` (`var // Deprecated: ErrHeaderTooLong is no longer returned by // anything in the net/http package. Callers should not //  … [sha256:577336802e44516d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrShortBody` (`var // Deprecated: ErrShortBody is no longer returned by // anything in the net/http package. Callers should not // comp … [sha256:140ca3d1dbdadee6]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrMissingContentLength` (`var // Deprecated: ErrMissingContentLength is no longer returned by // anything in the net/http package. Callers should  … [sha256:06698d44b2c60f6b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `reqWriteExcludeHeader` (`var reqWriteExcludeHeader = map[string]bool{ "Host": true, "User-Agent": true, "Content-Length": true, "Transfer-Encodin … [sha256:c1e1d66d2f0ebd1a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrNoCookie` (`var ErrNoCookie = errors.New("http: named cookie not present")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `multipartByReader` (`var multipartByReader = &multipart.Form{ Value: make(map[string][]string), File: make(map[string][]*multipart.FileHeader … [sha256:a3838eb3ca92914f]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errMissingHost` (`var errMissingHost = errors.New("http: Request.Write on Request with no Host or URL set")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `respExcludeHeader` (`var respExcludeHeader = map[string]bool{ "Content-Length": true, "Transfer-Encoding": true, "Trailer": true, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrNoLocation` (`var ErrNoLocation = errors.New("http: no Location header in response")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `httpmuxgo121` (`var httpmuxgo121 = godebug.New("httpmuxgo121")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrBodyNotAllowed` (`var // ErrBodyNotAllowed is returned by ResponseWriter.Write calls // when the HTTP method or response code does not per … [sha256:ed4a6bc5b22c694c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrHijacked` (`var // ErrHijacked is returned by ResponseWriter.Write calls when // the underlying connection has been hijacked using t … [sha256:45af05298b93fdd4]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrContentLength` (`var // ErrContentLength is returned by ResponseWriter.Write calls // when a Handler set a Content-Length response header … [sha256:8a74b59b093dc3d1]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrWriteAfterFlush` (`var // Deprecated: ErrWriteAfterFlush is no longer returned by // anything in the net/http package. Callers should not / … [sha256:c2509d86a9f45777]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ServerContextKey` (`var // ServerContextKey is a context key. It can be used in HTTP // handlers with Context.Value to access the server tha … [sha256:07f538487246acc2]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `LocalAddrContextKey` (`var // LocalAddrContextKey is a context key. It can be used in // HTTP handlers with Context.Value to access the local / … [sha256:35441265b462078d]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `crlf` (`var crlf = []byte("\r\n")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `colonSpace` (`var colonSpace = []byte(": ")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `copyBufPool` (`var copyBufPool = sync.Pool{New: func() any { return new([copyBufPoolSize]byte) }}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errTooLarge` (`var errTooLarge = errors.New("http: request too large")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `extraHeaderKeys` (`var extraHeaderKeys = [][]byte{ []byte("Content-Type"), []byte("Connection"), []byte("Transfer-Encoding"), }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `headerContentLength` (`var headerContentLength = []byte("Content-Length: ")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `headerDate` (`var headerDate = []byte("Date: ")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `rstAvoidanceDelay` (`var rstAvoidanceDelay = 500 * time.Millisecond`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@server.go:1832` (`var _ closeWriter = (*net.TCPConn)(nil)`): An interface check: a nil pointer converted to `closeWriter`. No call, no panic, no effect.
+- `ErrAbortHandler` (`var ErrAbortHandler = internal.ErrAbortHandler`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `htmlReplacer` (`var htmlReplacer = strings.NewReplacer( "&", "&amp;", "<", "&lt;", ">", "&gt;", '"', "&#34;", "'", "&#39;", )`): Their initializers call, besides literals of constants and other variables' values:
+`strings.NewReplacer` of an even number of constants allocates a replacer. So each terminates,
+cannot panic and has no effect beyond its variable.
+- `DefaultServeMux` (`var DefaultServeMux = &defaultServeMux`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `stateName` (`var stateName = map[ConnState]string{ StateNew: "new", StateActive: "active", StateIdle: "idle", StateHijacked: "hijacke … [sha256:dd2dd3853cfbc6f3]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrServerClosed` (`var ErrServerClosed = errors.New("http: Server closed")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `http2server` (`var http2server = godebug.New("http2server")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrHandlerTimeout` (`var ErrHandlerTimeout = errors.New("http: Handler timeout")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `_@server.go:4122` (`var _ Pusher = (*timeoutWriter)(nil)`): An interface check: a nil pointer converted to `Pusher`. No call, no panic, no effect.
+- `uniqNameNext` (`var uniqNameNext = make(map[string]int)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `socksnoDeadline` (`var socksnoDeadline = time.Time{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `socksaLongTimeAgo` (`var socksaLongTimeAgo = time.Unix(1, 0)`): Their initializers call, besides literals of constants and other variables' values:
+`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no
+effect beyond its variable.
+- `ErrLineTooLong` (`var ErrLineTooLong = internal.ErrLineTooLong`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `suppressedHeaders304` (`var suppressedHeaders304 = []string{"Content-Type", "Content-Length", "Transfer-Encoding"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `suppressedHeadersNoBody` (`var suppressedHeadersNoBody = []string{"Content-Length", "Transfer-Encoding"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `excludedHeadersNoBody` (`var excludedHeadersNoBody = map[string]bool{"Content-Length": true, "Transfer-Encoding": true}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrBodyReadAfterClose` (`var ErrBodyReadAfterClose = errors.New("http: invalid Read on closed Body")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `singleCRLF` (`var singleCRLF = []byte("\r\n")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `doubleCRLF` (`var doubleCRLF = []byte("\r\n\r\n")`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errTrailerEOF` (`var errTrailerEOF = errors.New("http: unexpected EOF reading trailer")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `httplaxcontentlength` (`var httplaxcontentlength = godebug.New("httplaxcontentlength")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `nopCloserType` (`var nopCloserType = reflect.TypeOf(io.NopCloser(nil))`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type; `io.NopCloser`
+wraps a reader in a new value. So each terminates, cannot panic and has no effect beyond its
+variable.
+- `nopCloserWriterToType` (`var nopCloserWriterToType = reflect.TypeOf(io.NopCloser(struct { io.Reader io.WriterTo }{}))`): Their initializers call, besides literals of constants and other variables' values:
+`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type; `io.NopCloser`
+wraps a reader in a new value. So each terminates, cannot panic and has no effect beyond its
+variable.
+- `DefaultTransport` (`var DefaultTransport RoundTripper = &Transport{ Proxy: ProxyFromEnvironment, DialContext: defaultTransportDialContext(&n … [sha256:ec190bd822dc0f8c]`): Its initializer calls, besides literals of constants and other variables' values:
+`defaultTransportDialContext` returns the dialer's method value. So it terminates, cannot panic and
+has no effect beyond its variable.
+- `http2client` (`var http2client = godebug.New("http2client")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCannotRewind` (`var errCannotRewind = errors.New("net/http: cannot rewind body after connection loss")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `ErrSkipAltProtocol` (`var ErrSkipAltProtocol = internal.ErrSkipAltProtocol`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errKeepAlivesDisabled` (`var errKeepAlivesDisabled = errors.New("http: putIdleConn: keep alives disabled")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errConnBroken` (`var errConnBroken = errors.New("http: putIdleConn: connection is in bad state")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCloseIdle` (`var errCloseIdle = errors.New("http: putIdleConn: CloseIdleConnections was called")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errTooManyIdle` (`var errTooManyIdle = errors.New("http: putIdleConn: too many idle connections")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errTooManyIdleHost` (`var errTooManyIdleHost = errors.New("http: putIdleConn: too many idle connections for host")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCloseIdleConns` (`var errCloseIdleConns = errors.New("http: CloseIdleConnections called")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errReadLoopExiting` (`var errReadLoopExiting = errors.New("http: persistConn.readLoop exiting")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errIdleConnTimeout` (`var errIdleConnTimeout = errors.New("http: idle connection timeout")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errServerClosedIdle` (`var // errServerClosedIdle is not seen by users for idempotent requests, but may be // seen by a user if the server shut … [sha256:ad647e0905389035]`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `testHookProxyConnectTimeout` (`var testHookProxyConnectTimeout = context.WithTimeout`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@transport.go:2153` (`var _ io.ReaderFrom = (*persistConnWriter)(nil)`): An interface check: a nil pointer converted to `io.ReaderFrom`. No call, no panic, no effect.
+- `errCallerOwnsConn` (`var errCallerOwnsConn = errors.New("read loop ending; caller owns writable underlying conn")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errClosedEarly` (`var errClosedEarly = errors.New("net/http: response body closed early")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `maxWriteWaitBeforeConnReuse` (`var maxWriteWaitBeforeConnReuse = 50 * time.Millisecond`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errTimeout` (`var errTimeout error = &timeoutError{"net/http: timeout awaiting response headers"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errRequestCanceled` (`var errRequestCanceled = internal.ErrRequestCanceled`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errRequestCanceledConn` (`var errRequestCanceledConn = errors.New("net/http: request canceled while waiting for connection") // TODO: unify?`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errRequestDone` (`var errRequestDone = errors.New("net/http: request completed")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `testHookEnterRoundTrip` (`var testHookEnterRoundTrip = nop`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookWaitResLoop` (`var testHookWaitResLoop = nop`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookRoundTripRetried` (`var testHookRoundTripRetried = nop`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookPrePendingDial` (`var testHookPrePendingDial = nop`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookPostPendingDial` (`var testHookPostPendingDial = nop`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookMu` (`var testHookMu sync.Locker = fakeLocker{} // guards following`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookReadLoopBeforeNextRead` (`var testHookReadLoopBeforeNextRead = nop`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errReadOnClosedResBody` (`var errReadOnClosedResBody = errors.New("http: read on closed response body")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errConcurrentReadOnResBody` (`var errConcurrentReadOnResBody = errors.New("http: concurrent read on response body")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `gzipPool` (`var gzipPool = sync.Pool{New: func() any { return new(gzip.Reader) }}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"net/http.DefaultClient", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultClient = &Client{}"⟩,
+  ⟨"net/http.ErrSchemeMismatch", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrSchemeMismatch = errors.New(\"http: server gave HTTP response to HTTPS client\")"⟩,
+  ⟨"net/http.ErrUseLastResponse", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrUseLastResponse = errors.New(\"net/http: use last response\")"⟩,
+  ⟨"net/http.httpcookiemaxnum", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var httpcookiemaxnum = godebug.New(\"httpcookiemaxnum\")"⟩,
+  ⟨"net/http.errBlankCookie", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errBlankCookie = errors.New(\"http: blank cookie\")"⟩,
+  ⟨"net/http.errEqualNotFoundInCookie", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errEqualNotFoundInCookie = errors.New(\"http: '=' not found in cookie\")"⟩,
+  ⟨"net/http.errInvalidCookieName", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidCookieName = errors.New(\"http: invalid cookie name\")"⟩,
+  ⟨"net/http.errInvalidCookieValue", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidCookieValue = errors.New(\"http: invalid cookie value\")"⟩,
+  ⟨"net/http.errCookieNumLimitExceeded", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCookieNumLimitExceeded = errors.New(\"http: number of cookies exceeded limit\")"⟩,
+  ⟨"net/http.cookieNameSanitizer", "Their initializers call, besides literals of constants and other variables' values:\n`strings.NewReplacer` of an even number of constants allocates a replacer. So each terminates,\ncannot panic and has no effect beyond its variable.", "var cookieNameSanitizer = strings.NewReplacer(\"\\n\", \"-\", \"\\r\", \"-\")"⟩,
+  ⟨"net/http.sentinelHandler", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var sentinelHandler Handler = &noopHandler{}"⟩,
+  ⟨"net/http.errCrossOriginRequest", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCrossOriginRequest = errors.New(\"cross-origin request detected from Sec-Fetch-Site header\")"⟩,
+  ⟨"net/http.errCrossOriginRequestFromOldBrowser", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCrossOriginRequestFromOldBrowser = errors.New(\"cross-origin request detected, and/or browser is out of date: \" +  … [sha256:f3e7cde385b66a3f]"⟩,
+  ⟨"net/http.errInvalidUnsafePath", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidUnsafePath = errors.New(\"http: invalid or unsafe file path\")"⟩,
+  ⟨"net/http.httpservecontentkeepheaders", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var httpservecontentkeepheaders = godebug.New(\"httpservecontentkeepheaders\")"⟩,
+  ⟨"net/http.errSeeker", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errSeeker = errors.New(\"seeker can't seek\")"⟩,
+  ⟨"net/http.errNoOverlap", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errNoOverlap = errors.New(\"invalid range: failed to overlap\")"⟩,
+  ⟨"net/http.unixEpochTime", "Their initializers call, besides literals of constants and other variables' values:\n`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no\neffect beyond its variable.", "var unixEpochTime = time.Unix(0, 0)"⟩,
+  ⟨"net/http.errMissingSeek", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errMissingSeek = errors.New(\"io.File missing Seek method\")"⟩,
+  ⟨"net/http.errMissingReadDir", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errMissingReadDir = errors.New(\"io.File directory missing ReadDir method\")"⟩,
+  ⟨"net/http.httpservecontentmaxranges", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var httpservecontentmaxranges = godebug.New(\"httpservecontentmaxranges\")"⟩,
+  ⟨"net/http.timeFormats", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var timeFormats = []string{ TimeFormat, time.RFC850, time.ANSIC, }"⟩,
+  ⟨"net/http.headerNewlineToSpace", "Their initializers call, besides literals of constants and other variables' values:\n`strings.NewReplacer` of an even number of constants allocates a replacer. So each terminates,\ncannot panic and has no effect beyond its variable.", "var headerNewlineToSpace = strings.NewReplacer(\"\\n\", \" \", \"\\r\", \" \")"⟩,
+  ⟨"net/http.headerSorterPool", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var headerSorterPool = sync.Pool{ New: func() any { return new(headerSorter) }, }"⟩,
+  ⟨"net/http.aLongTimeAgo", "Their initializers call, besides literals of constants and other variables' values:\n`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no\neffect beyond its variable.", "var aLongTimeAgo = time.Unix(1, 0)"⟩,
+  ⟨"net/http.NoBody", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var NoBody = noBody{}"⟩,
+  ⟨"net/http._@http.go:200", "An interface check: `NoBody` converted to `io.WriterTo`. No call, no panic, no effect.", "var // verify that an io.Copy from NoBody won't require a buffer: _ io.WriterTo = NoBody"⟩,
+  ⟨"net/http._@http.go:201", "An interface check: `NoBody` converted to `io.ReadCloser`. No call, no panic, no effect.", "var _ io.ReadCloser = NoBody"⟩,
+  ⟨"net/http._@http2.go:162", "An interface check: `http2ResponseWriter{}` converted to `CloseNotifier`. No call, no panic, no\neffect.", "var _ CloseNotifier = http2ResponseWriter{}"⟩,
+  ⟨"net/http._@http2.go:163", "An interface check: `http2ResponseWriter{}` converted to `Flusher`. No call, no panic, no effect.", "var _ Flusher = http2ResponseWriter{}"⟩,
+  ⟨"net/http._@http2.go:164", "An interface check: `http2ResponseWriter{}` converted to `io.StringWriter`. No call, no panic, no\neffect.", "var _ io.StringWriter = http2ResponseWriter{}"⟩,
+  ⟨"net/http.maxSlice", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var maxSlice int = 8"⟩,
+  ⟨"net/http.ErrMissingFile", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrMissingFile = errors.New(\"http: no such file\")"⟩,
+  ⟨"net/http.ErrNotSupported", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // ErrNotSupported indicates that a feature is not supported. // // It is returned by ResponseController methods to  … [sha256:e02aa7c0d932fc43]"⟩,
+  ⟨"net/http.ErrUnexpectedTrailer", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Deprecated: ErrUnexpectedTrailer is no longer returned by // anything in the net/http package. Callers should not … [sha256:aaa7c97f188cae11]"⟩,
+  ⟨"net/http.ErrMissingBoundary", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // ErrMissingBoundary is returned by Request.MultipartReader when the // request's Content-Type does not include a \" … [sha256:717c6e623bff2c52]"⟩,
+  ⟨"net/http.ErrNotMultipart", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // ErrNotMultipart is returned by Request.MultipartReader when the // request's Content-Type is not multipart/form-d … [sha256:1ed2b88112ae834f]"⟩,
+  ⟨"net/http.ErrHeaderTooLong", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Deprecated: ErrHeaderTooLong is no longer returned by // anything in the net/http package. Callers should not //  … [sha256:577336802e44516d]"⟩,
+  ⟨"net/http.ErrShortBody", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Deprecated: ErrShortBody is no longer returned by // anything in the net/http package. Callers should not // comp … [sha256:140ca3d1dbdadee6]"⟩,
+  ⟨"net/http.ErrMissingContentLength", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Deprecated: ErrMissingContentLength is no longer returned by // anything in the net/http package. Callers should  … [sha256:06698d44b2c60f6b]"⟩,
+  ⟨"net/http.reqWriteExcludeHeader", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var reqWriteExcludeHeader = map[string]bool{ \"Host\": true, \"User-Agent\": true, \"Content-Length\": true, \"Transfer-Encodin … [sha256:c1e1d66d2f0ebd1a]"⟩,
+  ⟨"net/http.ErrNoCookie", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrNoCookie = errors.New(\"http: named cookie not present\")"⟩,
+  ⟨"net/http.multipartByReader", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var multipartByReader = &multipart.Form{ Value: make(map[string][]string), File: make(map[string][]*multipart.FileHeader … [sha256:a3838eb3ca92914f]"⟩,
+  ⟨"net/http.errMissingHost", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errMissingHost = errors.New(\"http: Request.Write on Request with no Host or URL set\")"⟩,
+  ⟨"net/http.respExcludeHeader", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var respExcludeHeader = map[string]bool{ \"Content-Length\": true, \"Transfer-Encoding\": true, \"Trailer\": true, }"⟩,
+  ⟨"net/http.ErrNoLocation", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrNoLocation = errors.New(\"http: no Location header in response\")"⟩,
+  ⟨"net/http.httpmuxgo121", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var httpmuxgo121 = godebug.New(\"httpmuxgo121\")"⟩,
+  ⟨"net/http.ErrBodyNotAllowed", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // ErrBodyNotAllowed is returned by ResponseWriter.Write calls // when the HTTP method or response code does not per … [sha256:ed4a6bc5b22c694c]"⟩,
+  ⟨"net/http.ErrHijacked", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrHijacked is returned by ResponseWriter.Write calls when // the underlying connection has been hijacked using t … [sha256:45af05298b93fdd4]"⟩,
+  ⟨"net/http.ErrContentLength", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // ErrContentLength is returned by ResponseWriter.Write calls // when a Handler set a Content-Length response header … [sha256:8a74b59b093dc3d1]"⟩,
+  ⟨"net/http.ErrWriteAfterFlush", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // Deprecated: ErrWriteAfterFlush is no longer returned by // anything in the net/http package. Callers should not / … [sha256:c2509d86a9f45777]"⟩,
+  ⟨"net/http.ServerContextKey", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // ServerContextKey is a context key. It can be used in HTTP // handlers with Context.Value to access the server tha … [sha256:07f538487246acc2]"⟩,
+  ⟨"net/http.LocalAddrContextKey", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // LocalAddrContextKey is a context key. It can be used in // HTTP handlers with Context.Value to access the local / … [sha256:35441265b462078d]"⟩,
+  ⟨"net/http.crlf", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var crlf = []byte(\"\\r\\n\")"⟩,
+  ⟨"net/http.colonSpace", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var colonSpace = []byte(\": \")"⟩,
+  ⟨"net/http.copyBufPool", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var copyBufPool = sync.Pool{New: func() any { return new([copyBufPoolSize]byte) }}"⟩,
+  ⟨"net/http.errTooLarge", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errTooLarge = errors.New(\"http: request too large\")"⟩,
+  ⟨"net/http.extraHeaderKeys", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var extraHeaderKeys = [][]byte{ []byte(\"Content-Type\"), []byte(\"Connection\"), []byte(\"Transfer-Encoding\"), }"⟩,
+  ⟨"net/http.headerContentLength", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var headerContentLength = []byte(\"Content-Length: \")"⟩,
+  ⟨"net/http.headerDate", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var headerDate = []byte(\"Date: \")"⟩,
+  ⟨"net/http.rstAvoidanceDelay", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var rstAvoidanceDelay = 500 * time.Millisecond"⟩,
+  ⟨"net/http._@server.go:1832", "An interface check: a nil pointer converted to `closeWriter`. No call, no panic, no effect.", "var _ closeWriter = (*net.TCPConn)(nil)"⟩,
+  ⟨"net/http.ErrAbortHandler", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var ErrAbortHandler = internal.ErrAbortHandler"⟩,
+  ⟨"net/http.htmlReplacer", "Their initializers call, besides literals of constants and other variables' values:\n`strings.NewReplacer` of an even number of constants allocates a replacer. So each terminates,\ncannot panic and has no effect beyond its variable.", "var htmlReplacer = strings.NewReplacer( \"&\", \"&amp;\", \"<\", \"&lt;\", \">\", \"&gt;\", `\"`, \"&#34;\", \"'\", \"&#39;\", )"⟩,
+  ⟨"net/http.DefaultServeMux", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultServeMux = &defaultServeMux"⟩,
+  ⟨"net/http.stateName", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var stateName = map[ConnState]string{ StateNew: \"new\", StateActive: \"active\", StateIdle: \"idle\", StateHijacked: \"hijacke … [sha256:dd2dd3853cfbc6f3]"⟩,
+  ⟨"net/http.ErrServerClosed", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrServerClosed = errors.New(\"http: Server closed\")"⟩,
+  ⟨"net/http.http2server", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var http2server = godebug.New(\"http2server\")"⟩,
+  ⟨"net/http.ErrHandlerTimeout", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrHandlerTimeout = errors.New(\"http: Handler timeout\")"⟩,
+  ⟨"net/http._@server.go:4122", "An interface check: a nil pointer converted to `Pusher`. No call, no panic, no effect.", "var _ Pusher = (*timeoutWriter)(nil)"⟩,
+  ⟨"net/http.uniqNameNext", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var uniqNameNext = make(map[string]int)"⟩,
+  ⟨"net/http.socksnoDeadline", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var socksnoDeadline = time.Time{}"⟩,
+  ⟨"net/http.socksaLongTimeAgo", "Their initializers call, besides literals of constants and other variables' values:\n`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no\neffect beyond its variable.", "var socksaLongTimeAgo = time.Unix(1, 0)"⟩,
+  ⟨"net/http.ErrLineTooLong", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var ErrLineTooLong = internal.ErrLineTooLong"⟩,
+  ⟨"net/http.suppressedHeaders304", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var suppressedHeaders304 = []string{\"Content-Type\", \"Content-Length\", \"Transfer-Encoding\"}"⟩,
+  ⟨"net/http.suppressedHeadersNoBody", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var suppressedHeadersNoBody = []string{\"Content-Length\", \"Transfer-Encoding\"}"⟩,
+  ⟨"net/http.excludedHeadersNoBody", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var excludedHeadersNoBody = map[string]bool{\"Content-Length\": true, \"Transfer-Encoding\": true}"⟩,
+  ⟨"net/http.ErrBodyReadAfterClose", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrBodyReadAfterClose = errors.New(\"http: invalid Read on closed Body\")"⟩,
+  ⟨"net/http.singleCRLF", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var singleCRLF = []byte(\"\\r\\n\")"⟩,
+  ⟨"net/http.doubleCRLF", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var doubleCRLF = []byte(\"\\r\\n\\r\\n\")"⟩,
+  ⟨"net/http.errTrailerEOF", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errTrailerEOF = errors.New(\"http: unexpected EOF reading trailer\")"⟩,
+  ⟨"net/http.httplaxcontentlength", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var httplaxcontentlength = godebug.New(\"httplaxcontentlength\")"⟩,
+  ⟨"net/http.nopCloserType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type; `io.NopCloser`\nwraps a reader in a new value. So each terminates, cannot panic and has no effect beyond its\nvariable.", "var nopCloserType = reflect.TypeOf(io.NopCloser(nil))"⟩,
+  ⟨"net/http.nopCloserWriterToType", "Their initializers call, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type; `io.NopCloser`\nwraps a reader in a new value. So each terminates, cannot panic and has no effect beyond its\nvariable.", "var nopCloserWriterToType = reflect.TypeOf(io.NopCloser(struct { io.Reader io.WriterTo }{}))"⟩,
+  ⟨"net/http.DefaultTransport", "Its initializer calls, besides literals of constants and other variables' values:\n`defaultTransportDialContext` returns the dialer's method value. So it terminates, cannot panic and\nhas no effect beyond its variable.", "var DefaultTransport RoundTripper = &Transport{ Proxy: ProxyFromEnvironment, DialContext: defaultTransportDialContext(&n … [sha256:ec190bd822dc0f8c]"⟩,
+  ⟨"net/http.http2client", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var http2client = godebug.New(\"http2client\")"⟩,
+  ⟨"net/http.errCannotRewind", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCannotRewind = errors.New(\"net/http: cannot rewind body after connection loss\")"⟩,
+  ⟨"net/http.ErrSkipAltProtocol", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var ErrSkipAltProtocol = internal.ErrSkipAltProtocol"⟩,
+  ⟨"net/http.errKeepAlivesDisabled", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errKeepAlivesDisabled = errors.New(\"http: putIdleConn: keep alives disabled\")"⟩,
+  ⟨"net/http.errConnBroken", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errConnBroken = errors.New(\"http: putIdleConn: connection is in bad state\")"⟩,
+  ⟨"net/http.errCloseIdle", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCloseIdle = errors.New(\"http: putIdleConn: CloseIdleConnections was called\")"⟩,
+  ⟨"net/http.errTooManyIdle", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errTooManyIdle = errors.New(\"http: putIdleConn: too many idle connections\")"⟩,
+  ⟨"net/http.errTooManyIdleHost", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errTooManyIdleHost = errors.New(\"http: putIdleConn: too many idle connections for host\")"⟩,
+  ⟨"net/http.errCloseIdleConns", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCloseIdleConns = errors.New(\"http: CloseIdleConnections called\")"⟩,
+  ⟨"net/http.errReadLoopExiting", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errReadLoopExiting = errors.New(\"http: persistConn.readLoop exiting\")"⟩,
+  ⟨"net/http.errIdleConnTimeout", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errIdleConnTimeout = errors.New(\"http: idle connection timeout\")"⟩,
+  ⟨"net/http.errServerClosedIdle", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // errServerClosedIdle is not seen by users for idempotent requests, but may be // seen by a user if the server shut … [sha256:ad647e0905389035]"⟩,
+  ⟨"net/http.testHookProxyConnectTimeout", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookProxyConnectTimeout = context.WithTimeout"⟩,
+  ⟨"net/http._@transport.go:2153", "An interface check: a nil pointer converted to `io.ReaderFrom`. No call, no panic, no effect.", "var _ io.ReaderFrom = (*persistConnWriter)(nil)"⟩,
+  ⟨"net/http.errCallerOwnsConn", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCallerOwnsConn = errors.New(\"read loop ending; caller owns writable underlying conn\")"⟩,
+  ⟨"net/http.errClosedEarly", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errClosedEarly = errors.New(\"net/http: response body closed early\")"⟩,
+  ⟨"net/http.maxWriteWaitBeforeConnReuse", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var maxWriteWaitBeforeConnReuse = 50 * time.Millisecond"⟩,
+  ⟨"net/http.errTimeout", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errTimeout error = &timeoutError{\"net/http: timeout awaiting response headers\"}"⟩,
+  ⟨"net/http.errRequestCanceled", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errRequestCanceled = internal.ErrRequestCanceled"⟩,
+  ⟨"net/http.errRequestCanceledConn", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errRequestCanceledConn = errors.New(\"net/http: request canceled while waiting for connection\") // TODO: unify?"⟩,
+  ⟨"net/http.errRequestDone", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errRequestDone = errors.New(\"net/http: request completed\")"⟩,
+  ⟨"net/http.testHookEnterRoundTrip", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookEnterRoundTrip = nop"⟩,
+  ⟨"net/http.testHookWaitResLoop", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookWaitResLoop = nop"⟩,
+  ⟨"net/http.testHookRoundTripRetried", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookRoundTripRetried = nop"⟩,
+  ⟨"net/http.testHookPrePendingDial", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookPrePendingDial = nop"⟩,
+  ⟨"net/http.testHookPostPendingDial", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookPostPendingDial = nop"⟩,
+  ⟨"net/http.testHookMu", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookMu sync.Locker = fakeLocker{} // guards following"⟩,
+  ⟨"net/http.testHookReadLoopBeforeNextRead", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookReadLoopBeforeNextRead = nop"⟩,
+  ⟨"net/http.errReadOnClosedResBody", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errReadOnClosedResBody = errors.New(\"http: read on closed response body\")"⟩,
+  ⟨"net/http.errConcurrentReadOnResBody", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errConcurrentReadOnResBody = errors.New(\"http: concurrent read on response body\")"⟩,
+  ⟨"net/http.gzipPool", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var gzipPool = sync.Pool{New: func() any { return new(gzip.Reader) }}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.net.http where
   pkgImportedPkgs := [pkg_id.net.textproto]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2943,358 +2920,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val gzipPool.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errConcurrentReadOnResBody.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errReadOnClosedResBody.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookReadLoopBeforeNextRead.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookMu.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookPostPendingDial.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookPrePendingDial.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookRoundTripRetried.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookWaitResLoop.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookEnterRoundTrip.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errRequestDone.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errRequestCanceledConn.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errRequestCanceled.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTimeout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val maxWriteWaitBeforeConnReuse.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errClosedEarly.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCallerOwnsConn.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookProxyConnectTimeout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errServerClosedIdle.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errIdleConnTimeout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errReadLoopExiting.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCloseIdleConns.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTooManyIdleHost.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTooManyIdle.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCloseIdle.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errConnBroken.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errKeepAlivesDisabled.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultTransport.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrSkipAltProtocol.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCannotRewind.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val http2client.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val nopCloserWriterToType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val nopCloserType.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val httplaxcontentlength.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTrailerEOF.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val doubleCRLF.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val singleCRLF.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrBodyReadAfterClose.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val excludedHeadersNoBody.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val suppressedHeadersNoBody.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val suppressedHeaders304.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrLineTooLong.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val socksaLongTimeAgo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val socksnoDeadline.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val uniqNameNext.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrHandlerTimeout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val http2server.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrServerClosed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val stateName.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultServeMux.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val htmlReplacer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrAbortHandler.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val rstAvoidanceDelay.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val headerDate.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val headerContentLength.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val extraHeaderKeys.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTooLarge.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val copyBufPool.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val colonSpace.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val crlf.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val LocalAddrContextKey.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ServerContextKey.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrWriteAfterFlush.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrContentLength.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrHijacked.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrBodyNotAllowed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val httpmuxgo121.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrNoLocation.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val respExcludeHeader.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMissingHost.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val multipartByReader.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrNoCookie.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val reqWriteExcludeHeader.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrMissingContentLength.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrShortBody.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrHeaderTooLong.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrNotMultipart.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrMissingBoundary.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrUnexpectedTrailer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrNotSupported.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrMissingFile.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val maxSlice.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val NoBody.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val aLongTimeAgo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val headerSorterPool.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val headerNewlineToSpace.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val timeFormats.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val httpservecontentmaxranges.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMissingReadDir.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMissingSeek.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val unixEpochTime.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoOverlap.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errSeeker.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val httpservecontentkeepheaders.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidUnsafePath.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCrossOriginRequestFromOldBrowser.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCrossOriginRequest.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val sentinelHandler.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cookieNameSanitizer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCookieNumLimitExceeded.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidCookieValue.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidCookieName.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errEqualNotFoundInCookie.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errBlankCookie.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val httpcookiemaxnum.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrUseLastResponse.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrSchemeMismatch.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultClient.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.textproto.initialize') (Val #()))))))))
 

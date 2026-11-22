@@ -450,11 +450,11 @@ theorem EtcdServer.start.wp_proof
     ipureintro; exact ⟨Hscu1, Hkv0⟩
   icases Hrunb with ⟨%vr, #Hvr⟩
   iunfold srvRunBuilt at Hvr
-  icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hltg⟩
+  icases Hvr with ⟨#Herf, #Herb, #Hcpf, #Hcpo, #Hstf, #Hssi, #Hltg⟩
   ihave #Hrf : srvRunFieldsAt s γr γg γcx ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩
       (srvStopReq s E ρ cfgk.DataDir') $$ []
   · iunfold srvRunFieldsAt
-    iframe Hltg Hstf Hcpo Hcpf Herb Herf Hgok Hlc Hlcn Hcancel0 Hstop Hdone Hstb Hci'
+    iframe Hltg Hstf Hssi Hcpo Hcpf Herb Herf Hgok Hlc Hlcn Hcancel0 Hstop Hdone Hstb Hci'
     iunfold context.cancelSpec
     iexact Hcancel
   -- the apply thread's resources

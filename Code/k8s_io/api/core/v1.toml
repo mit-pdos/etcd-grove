@@ -134,3 +134,111 @@ imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1", "k8s.io/apimachinery/pk
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["ErrInvalidLengthGenerated", "ErrIntOverflowGenerated", "ErrUnexpectedEndOfGroupGenerated"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["SchemeBuilder"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values:
+`runtime.NewSchemeBuilder` allocates a slice of the given functions (it calls none). So it
+terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["AddToScheme", "map_AWSElasticBlockStoreVolumeSource", "map_Affinity",
+  "map_AppArmorProfile", "map_AttachedVolume", "map_AvoidPods", "map_AzureDiskVolumeSource",
+  "map_AzureFilePersistentVolumeSource", "map_AzureFileVolumeSource", "map_Binding",
+  "map_CSIPersistentVolumeSource", "map_CSIVolumeSource", "map_Capabilities",
+  "map_CephFSPersistentVolumeSource", "map_CephFSVolumeSource", "map_CinderPersistentVolumeSource",
+  "map_CinderVolumeSource", "map_ClientIPConfig", "map_ClusterTrustBundleProjection",
+  "map_ComponentCondition", "map_ComponentStatus", "map_ComponentStatusList", "map_ConfigMap",
+  "map_ConfigMapEnvSource", "map_ConfigMapKeySelector", "map_ConfigMapList",
+  "map_ConfigMapNodeConfigSource", "map_ConfigMapProjection", "map_ConfigMapVolumeSource",
+  "map_Container", "map_ContainerExtendedResourceRequest", "map_ContainerImage",
+  "map_ContainerPort", "map_ContainerResizePolicy", "map_ContainerRestartRule",
+  "map_ContainerRestartRuleOnExitCodes", "map_ContainerState", "map_ContainerStateRunning",
+  "map_ContainerStateTerminated", "map_ContainerStateWaiting", "map_ContainerStatus",
+  "map_ContainerUser", "map_DaemonEndpoint", "map_DownwardAPIProjection",
+  "map_DownwardAPIVolumeFile", "map_DownwardAPIVolumeSource", "map_EmptyDirVolumeSource",
+  "map_EndpointAddress", "map_EndpointPort", "map_EndpointSubset", "map_Endpoints",
+  "map_EndpointsList", "map_EnvFromSource", "map_EnvVar", "map_EnvVarSource",
+  "map_EphemeralContainer", "map_EphemeralContainerCommon", "map_EphemeralVolumeSource",
+  "map_Event", "map_EventList", "map_EventSeries", "map_EventSource", "map_EvictionResponder",
+  "map_ExecAction", "map_FCVolumeSource", "map_FileKeySelector", "map_FlexPersistentVolumeSource",
+  "map_FlexVolumeSource", "map_FlockerVolumeSource", "map_GCEPersistentDiskVolumeSource",
+  "map_GRPCAction", "map_GitRepoVolumeSource", "map_GlusterfsPersistentVolumeSource",
+  "map_GlusterfsVolumeSource", "map_HTTPGetAction", "map_HTTPHeader", "map_HostAlias",
+  "map_HostIP", "map_HostPathVolumeSource", "map_ISCSIPersistentVolumeSource",
+  "map_ISCSIVolumeSource", "map_ImageVolumeSource", "map_ImageVolumeStatus", "map_KeyToPath",
+  "map_Lifecycle", "map_LifecycleHandler", "map_LimitRange", "map_LimitRangeItem",
+  "map_LimitRangeList", "map_LimitRangeSpec", "map_LinuxContainerUser", "map_LoadBalancerIngress",
+  "map_LoadBalancerStatus", "map_LocalObjectReference", "map_LocalVolumeSource",
+  "map_ModifyVolumeStatus", "map_NFSVolumeSource", "map_Namespace", "map_NamespaceCondition",
+  "map_NamespaceList", "map_NamespaceSpec", "map_NamespaceStatus", "map_Node", "map_NodeAddress",
+  "map_NodeAffinity", "map_NodeAllocatableMappedResources", "map_NodeAllocatableOverheadResources",
+  "map_NodeAllocatableResourceClaimStatus", "map_NodeCondition", "map_NodeConfigSource",
+  "map_NodeConfigStatus", "map_NodeDaemonEndpoints", "map_NodeFeatures", "map_NodeList",
+  "map_NodePodPreemptionPolicy", "map_NodeProxyOptions", "map_NodeRuntimeHandler",
+  "map_NodeRuntimeHandlerFeatures", "map_NodeSelector", "map_NodeSelectorRequirement",
+  "map_NodeSelectorTerm", "map_NodeSpec", "map_NodeStatus", "map_NodeSwapStatus",
+  "map_NodeSystemInfo", "map_ObjectFieldSelector", "map_ObjectReference", "map_PersistentVolume",
+  "map_PersistentVolumeClaim", "map_PersistentVolumeClaimCondition",
+  "map_PersistentVolumeClaimList", "map_PersistentVolumeClaimSpec",
+  "map_PersistentVolumeClaimStatus", "map_PersistentVolumeClaimTemplate",
+  "map_PersistentVolumeClaimVolumeSource", "map_PersistentVolumeList",
+  "map_PersistentVolumeSource", "map_PersistentVolumeSpec", "map_PersistentVolumeStatus",
+  "map_PhotonPersistentDiskVolumeSource", "map_Pod", "map_PodAffinity", "map_PodAffinityTerm",
+  "map_PodAntiAffinity", "map_PodAttachOptions", "map_PodCertificateProjection",
+  "map_PodCondition", "map_PodDNSConfig", "map_PodDNSConfigOption", "map_PodExecOptions",
+  "map_PodExtendedResourceClaimStatus", "map_PodIP", "map_PodList", "map_PodLogOptions",
+  "map_PodOS", "map_PodPortForwardOptions", "map_PodProxyOptions", "map_PodReadinessGate",
+  "map_PodResourceClaim", "map_PodResourceClaimStatus", "map_PodSchedulingGate",
+  "map_PodSchedulingGroup", "map_PodSecurityContext", "map_PodSignature", "map_PodSpec",
+  "map_PodStatus", "map_PodTemplate", "map_PodTemplateList", "map_PodTemplateSpec",
+  "map_PodVolumeHealth", "map_PortStatus", "map_PortworxVolumeSource", "map_Preconditions",
+  "map_PreferAvoidPodsEntry", "map_PreferredSchedulingTerm", "map_Probe", "map_ProbeHandler",
+  "map_ProjectedVolumeSource", "map_QuobyteVolumeSource", "map_RBDPersistentVolumeSource",
+  "map_RBDVolumeSource", "map_RangeAllocation", "map_ReplicationController",
+  "map_ReplicationControllerCondition", "map_ReplicationControllerList",
+  "map_ReplicationControllerSpec", "map_ReplicationControllerStatus", "map_ResourceClaim",
+  "map_ResourceFieldSelector", "map_ResourceHealth", "map_ResourceQuota", "map_ResourceQuotaList",
+  "map_ResourceQuotaSpec", "map_ResourceQuotaStatus", "map_ResourceRequirements",
+  "map_ResourceStatus", "map_SELinuxOptions", "map_ScaleIOPersistentVolumeSource",
+  "map_ScaleIOVolumeSource", "map_ScopeSelector", "map_ScopedResourceSelectorRequirement",
+  "map_SeccompProfile", "map_Secret", "map_SecretEnvSource", "map_SecretKeySelector",
+  "map_SecretList", "map_SecretProjection", "map_SecretReference", "map_SecretVolumeSource",
+  "map_SecurityContext", "map_SerializedReference", "map_Service", "map_ServiceAccount",
+  "map_ServiceAccountList", "map_ServiceAccountTokenProjection", "map_ServiceList",
+  "map_ServicePort", "map_ServiceProxyOptions", "map_ServiceSpec", "map_ServiceStatus",
+  "map_SessionAffinityConfig", "map_SleepAction", "map_StorageOSPersistentVolumeSource",
+  "map_StorageOSVolumeSource", "map_Sysctl", "map_TCPSocketAction", "map_Taint", "map_Toleration",
+  "map_TopologySelectorLabelRequirement", "map_TopologySelectorTerm",
+  "map_TopologySpreadConstraint", "map_TypedLocalObjectReference", "map_TypedObjectReference",
+  "map_Volume", "map_VolumeDevice", "map_VolumeHealthCondition", "map_VolumeHealthStatus",
+  "map_VolumeMount", "map_VolumeMountStatus", "map_VolumeNodeAffinity", "map_VolumeProjection",
+  "map_VolumeResourceRequirements", "map_VolumeSource", "map_VolumeStatus",
+  "map_VsphereVirtualDiskVolumeSource", "map_WeightedPodAffinityTerm",
+  "map_WindowsSecurityContextOptions"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["_@types.go:5663"]
+reason = """
+A conversion check: `EphemeralContainerCommon{}` converted to `Container`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

@@ -28,7 +28,7 @@ abbrev grpc.WithKeepaliveParams.spec : Prop :=
   ∀ (kp : google_golang_org.grpc.keepalive.ClientParameters),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithKeepaliveParams)) (Val #kp))
-  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o .keepalive⌝ }}
+  {{ (o : GoInterface), RET #o; grpcDialOptIs o .keepalive }}
 
 end spec
 

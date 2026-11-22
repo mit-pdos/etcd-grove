@@ -71,17 +71,16 @@ theorem Client.dial.wp_proof
   wp_apply wp_dialSetupOpts c cfg cr sl [.resolvers [rb]] $$ [$Hc $Hcfg $Hds]
     as %o1 ⟨%si, %ic, #Ho1, Ho1c, %Hsi, #Hic⟩
   iunfold dialOptsAt at Ho1
-  icases Ho1 with ⟨%os1, #Hos1, %Hos1⟩
+  icases Ho1 with ⟨%os1, #Hos1, #Hos1d⟩
   iStructNamed Hcfg
   -- (2026-10-25, the auth plan's E2d) the token bundle, if any, as per-RPC credentials
   wp_join iprop(∃ (o1' : GoSlice) (ex : List GrpcDialOpt) (os1' : List GoInterface),
       c_ptr ↦ c ∗ opts_ptr ↦ o1' ∗ o1' ↦*□ os1' ∗ ownSliceCap GoInterface o1' (DFrac.own 1) ∗
-      ⌜List.Forall₂ grpcDialOptIs os1'
-        (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+      ([∗list] o;d ∈ os1';(kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
           [GrpcDialOpt.transportCreds, GrpcDialOpt.streamInterceptor si,
-            GrpcDialOpt.unaryInterceptor ic] ++ ex)⌝ ∗
+            GrpcDialOpt.unaryInterceptor ic] ++ ex), grpcDialOptIs o d) ∗
       (⌜ex = []⌝ ∨ ∃ pc, ⌜ex = [GrpcDialOpt.perRPCCreds pc]⌝ ∗ perRPCCredsOk pc (tokMdOk P)))
-    at next with [c opts Ho1c] as ⟨%o1', %ex, %os1', c, opts, #Hos1', Ho1c', %Hex, #Hexc⟩
+    at next with [c opts Ho1c] as ⟨%o1', %ex, %os1', c, opts, #Hos1', Ho1c', #Hex, #Hexc⟩
   · icases Htb with (%Hnil | #Hb)
     · subst Hnil
       wp_auto
@@ -89,15 +88,14 @@ theorem Client.dial.wp_proof
       iexists o1, [], os1
       iframe c opts Hos1 Ho1c
       isplitr
-      · ipureintro
-        rw [List.append_nil]; exact Hos1
+      · rw [List.append_nil]; iexact Hos1d
       · ileft; ipureintro; rfl
     iunfold tokenBundleInv at Hb
     icases Hb with ⟨%b, %rc, %Hbeq, #Hrc, #Hinv⟩
     subst Hbeq
     wp_auto
     wp_apply wp_PerRPCCredentials b rc P $$ [$Hrc $Hinv] as %pc #Hpc
-    wp_apply wp_WithPerRPCCredentials pc $$ [$Hgrpc] as %o %Ho
+    wp_apply wp_WithPerRPCCredentials pc $$ [$Hgrpc] as %o #Ho
     wp_apply wp_slice_literal (V := GoInterface) [o]
     isplitr
     · ipureintro; rfl
@@ -111,8 +109,11 @@ theorem Client.dial.wp_proof
     iexists o1', [GrpcDialOpt.perRPCCreds pc], os1 ++ [o]
     iframe c opts Ho1' Ho1c'
     isplitr
-    · ipureintro
-      exact List.Forall₂.append Hos1 (.cons Ho .nil)
+    · iapply (BigSepL2.bigSepL2_append (l1b := [o]) (l2b := [GrpcDialOpt.perRPCCreds pc])
+        (Or.inr rfl)).2
+      isplitl []
+      · iexact Hos1d
+      · iapply BigSepL2.bigSepL2_singleton.2; iexact Ho
     · iright
       iexists pc
       iframe Hpc
@@ -178,8 +179,7 @@ theorem Client.dial.wp_proof
       · iunfold dialOptsAt
         iexists _
         iframe Ho2
-        ipureintro
-        rw [List.append_nil]; exact Hex
+        simp only [List.append_nil]; iexact Hex
       isplitr
       · ipureintro; exact Hpre
       rw [Hcr, credsOfDial_nil]
@@ -211,8 +211,7 @@ theorem Client.dial.wp_proof
       · iunfold dialOptsAt
         iexists _
         iframe Ho2
-        ipureintro
-        rw [List.append_nil]; exact Hex
+        simp only [List.append_nil]; iexact Hex
       isplitr
       · ipureintro; exact Hpre
       rw [Hcr, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]]

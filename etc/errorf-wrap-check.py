@@ -78,6 +78,8 @@ REVIEWED_INIT = {
     # (prove-rpctypes, 2026-11-20) found by `init_errors`: `ErrNotReady = fmt.Errorf("cache: store not
     # ready")` goes through `EtcdGrove.fmt.wp_Errorf` (since fmtmodel a theorem over Perennial's), its steps are other functions'
     'Proof/go_etcd_io/etcd/cache/v3/InitLinked.lean': 'format without %; its Errorf step is EtcdGrove.fmt.wp_Errorf',
+    # (#23, 2026-11-22) api/meta's `errNotList`/`errNotObject` (`fmt.Errorf` of constants without `%`)
+    'Proof/k8s_io/apimachinery/pkg/api/meta/Init.lean': 'formats without %: Go returns errors.New(format); fmt.wp_Errorf',
 }
 
 

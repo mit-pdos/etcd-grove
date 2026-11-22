@@ -25,7 +25,7 @@ abbrev grpc.WithStreamInterceptor.spec : Prop :=
   ∀ (f : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithStreamInterceptor)) (Val #f))
-  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.streamInterceptor f)⌝ }}
+  {{ (o : GoInterface), RET #o; grpcDialOptIs o (.streamInterceptor f) }}
 
 end spec
 

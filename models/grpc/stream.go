@@ -499,7 +499,7 @@ func (a *csAttempt) newStream() error {
 	}
 	a.transportStream = s
 	a.ctx = s.Context()
-	a.parser = parser{r: s, bufferPool: a.cs.cc.dopts.copts.BufferPool}
+	a.parser = parser{r: s, bufferPool: mem.DefaultBufferPool()} // MODEL: the default pool (connectOptions)
 	return nil
 }
 
@@ -781,7 +781,7 @@ func (cs *clientStream) SendMsg(m any) (err error) {
 	}
 
 	// load hdr, payload, data
-	hdr, data, payload, pf, err := prepareMsg(m, cs.codec, cs.compressorV0, cs.compressorV1, cs.cc.dopts.copts.BufferPool)
+	hdr, data, payload, pf, err := prepareMsg(m, cs.codec, cs.compressorV0, cs.compressorV1, mem.DefaultBufferPool()) // MODEL: the default pool
 	if err != nil {
 		return err
 	}

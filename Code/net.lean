@@ -668,23 +668,29 @@ opaque «_».underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _Ctype__GoString_.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _Ctype___socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype___socklen_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
 opaque _Ctype_char.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _Ctype_int.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _Ctype_intgo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_intgo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_long.ty
 
 opaque _Ctype_long.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _Ctype_ptrdiff_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_ptrdiff_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_long.ty
 
-opaque _Ctype_sa_family_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_sa_family_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_ushort.ty
 
-opaque _Ctype_size_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_size_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_ulong.ty
 
-opaque _Ctype_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _Ctype_socklen_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
 opaque _Ctype_struct_addrinfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -700,21 +706,29 @@ opaque _Ctype_ushort.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque _Ctype_void.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque _C_char [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_char.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_char.ty
 
-opaque _C_uchar [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_uchar.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uchar.ty
 
-opaque _C_int [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_int.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_int.ty
 
-opaque _C_uint [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_uint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
-opaque _C_socklen_t [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_socklen_t.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_uint.ty
 
-opaque _C_struct_addrinfo [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_struct_addrinfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_struct_addrinfo.ty
 
-opaque _C_struct_sockaddr [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_struct_sockaddr.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  _Ctype_struct_sockaddr.ty
 
-opaque _C_struct___res_state [GooseExts] [GoGlobalContext] : go.GoType
+@[reducible] noncomputable def _C_struct___res_state.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType [])
 
 opaque scopeInterfaceLocal [GooseExts] [GoGlobalContext] : val
 
@@ -908,283 +922,23 @@ opaque _C_SOCK_DGRAM [GooseExts] [GoGlobalContext] : val
 
 opaque _C_SOCK_STREAM [GooseExts] [GoGlobalContext] : val
 
-noncomputable def rfc6724policyTable [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.rfc6724policyTable"
-
-opaque rfc6724policyTable.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def confOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.confOnce"
-
-noncomputable def confVal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.confVal"
-
-opaque confVal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def netdns [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.netdns"
-
-opaque netdns.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def multipathtcp [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.multipathtcp"
-
-opaque multipathtcp.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errLameReferral [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errLameReferral"
-
-opaque errLameReferral.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCannotUnmarshalDNSMessage [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errCannotUnmarshalDNSMessage"
-
-opaque errCannotUnmarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCannotMarshalDNSMessage [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errCannotMarshalDNSMessage"
-
-opaque errCannotMarshalDNSMessage.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errServerMisbehaving [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errServerMisbehaving"
-
-opaque errServerMisbehaving.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInvalidDNSResponse [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errInvalidDNSResponse"
-
-opaque errInvalidDNSResponse.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoAnswerFromDNSServer [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errNoAnswerFromDNSServer"
-
-opaque errNoAnswerFromDNSServer.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errServerTemporarilyMisbehaving [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errServerTemporarilyMisbehaving"
-
-opaque errServerTemporarilyMisbehaving.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def netedns0 [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.netedns0"
-
-opaque netedns0.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resolvConf [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.resolvConf"
 
-noncomputable def distantFuture [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.distantFuture"
-
-opaque distantFuture.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def lookupOrderName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.lookupOrderName"
-
-opaque lookupOrderName.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def defaultNS [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.defaultNS"
-
-opaque defaultNS.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def getHostname [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.getHostname"
-
-opaque getHostname.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def testHookDialTCP [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookDialTCP"
-
-noncomputable def testHookLookupIP [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.testHookLookupIP"
-
-opaque testHookLookupIP.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testPreHookSetKeepAlive [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.testPreHookSetKeepAlive"
-
-opaque testPreHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookSetKeepAlive [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.testHookSetKeepAlive"
-
-opaque testHookSetKeepAlive.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookStepTime [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.testHookStepTime"
-
-opaque testHookStepTime.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def testHookCanceledDial [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.testHookCanceledDial"
-
-opaque testHookCanceledDial.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def hostsFilePath [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.hostsFilePath"
-
-opaque hostsFilePath.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def socketFunc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.socketFunc"
-
-opaque socketFunc.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def connectFunc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.connectFunc"
-
-opaque connectFunc.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def listenFunc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.listenFunc"
-
-opaque listenFunc.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def getsockoptIntFunc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.getsockoptIntFunc"
-
-opaque getsockoptIntFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def hosts [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.hosts"
 
-noncomputable def errInvalidInterface [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errInvalidInterface"
-
-opaque errInvalidInterface.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInvalidInterfaceIndex [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errInvalidInterfaceIndex"
-
-opaque errInvalidInterfaceIndex.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errInvalidInterfaceName [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errInvalidInterfaceName"
-
-opaque errInvalidInterfaceName.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoSuchInterface [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errNoSuchInterface"
-
-opaque errNoSuchInterface.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoSuchMulticastInterface [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errNoSuchMulticastInterface"
-
-opaque errNoSuchMulticastInterface.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def flagNames [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.flagNames"
-
-opaque flagNames.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def zoneCache [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.zoneCache"
-
-opaque zoneCache.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def v4InV6Prefix [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.v4InV6Prefix"
-
-opaque v4InV6Prefix.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv4bcast [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv4bcast"
-
-opaque IPv4bcast.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv4allsys [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv4allsys"
-
-opaque IPv4allsys.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv4allrouter [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv4allrouter"
-
-opaque IPv4allrouter.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv4zero [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv4zero"
-
-opaque IPv4zero.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv6zero [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv6zero"
-
-opaque IPv6zero.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv6unspecified [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv6unspecified"
-
-opaque IPv6unspecified.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv6loopback [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv6loopback"
-
-opaque IPv6loopback.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv6interfacelocalallnodes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv6interfacelocalallnodes"
-
-opaque IPv6interfacelocalallnodes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv6linklocalallnodes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv6linklocalallnodes"
-
-opaque IPv6linklocalallnodes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def IPv6linklocalallrouters [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.IPv6linklocalallrouters"
-
-opaque IPv6linklocalallrouters.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def classAMask [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.classAMask"
-
-opaque classAMask.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def classBMask [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.classBMask"
-
-opaque classBMask.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def classCMask [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.classCMask"
-
-opaque classCMask.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ipStackCaps [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.ipStackCaps"
 
-noncomputable def protocols [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.protocols"
-
-opaque protocols.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def services [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.services"
-
-opaque services.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def dnsWaitGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.dnsWaitGroup"
-
-noncomputable def DefaultResolver [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.DefaultResolver"
-
-opaque DefaultResolver.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMalformedDNSRecordsDetail [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errMalformedDNSRecordsDetail"
-
-opaque errMalformedDNSRecordsDetail.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def readProtocolsOnce [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.readProtocolsOnce"
-
-opaque readProtocolsOnce.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def mptcpOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.mptcpOnce"
@@ -1197,66 +951,6 @@ noncomputable def hasSOLMPTCP [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def listenerBacklogCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.listenerBacklogCache"
-
-noncomputable def errNoSuitableAddress [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errNoSuitableAddress"
-
-opaque errNoSuitableAddress.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errMissingAddress [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errMissingAddress"
-
-opaque errMissingAddress.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errCanceled [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errCanceled"
-
-opaque errCanceled.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrWriteToConnected [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.ErrWriteToConnected"
-
-opaque ErrWriteToConnected.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def aLongTimeAgo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.aLongTimeAgo"
-
-opaque aLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noDeadline [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.noDeadline"
-
-opaque noDeadline.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noCancel [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.noCancel"
-
-opaque noCancel.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errTimeout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errTimeout"
-
-opaque errTimeout.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNoSuchHost [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errNoSuchHost"
-
-opaque errNoSuchHost.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errUnknownPort [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errUnknownPort"
-
-opaque errUnknownPort.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errClosed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.errClosed"
-
-opaque errClosed.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def ErrClosed [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.ErrClosed"
-
-opaque ErrClosed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def threadLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.threadLimit"
@@ -1273,85 +967,35 @@ noncomputable def onceReadServices [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def testHookSupportsSendfile [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.testHookSupportsSendfile"
 
-noncomputable def pollSplice [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net.pollSplice"
-
-opaque pollSplice.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def _Cgo_always_false [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._Cgo_always_false"
 
 noncomputable def __cgofn__cgo_77133bf98b3a_C2func_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_C2func_getaddrinfo"
 
-noncomputable def _cgo_77133bf98b3a_C2func_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_C2func_getaddrinfo"
-
-opaque _cgo_77133bf98b3a_C2func_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_C2func_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_C2func_getnameinfo"
-
-noncomputable def _cgo_77133bf98b3a_C2func_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_C2func_getnameinfo"
-
-opaque _cgo_77133bf98b3a_C2func_getnameinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_free"
 
-noncomputable def _cgo_77133bf98b3a_Cfunc_free [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_Cfunc_free"
-
-opaque _cgo_77133bf98b3a_Cfunc_free.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo"
-
-noncomputable def _cgo_77133bf98b3a_Cfunc_freeaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_Cfunc_freeaddrinfo"
-
-opaque _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror"
 
-noncomputable def _cgo_77133bf98b3a_Cfunc_gai_strerror [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_Cfunc_gai_strerror"
-
-opaque _cgo_77133bf98b3a_Cfunc_gai_strerror.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo"
-
-noncomputable def _cgo_77133bf98b3a_Cfunc_getaddrinfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_Cfunc_getaddrinfo"
-
-opaque _cgo_77133bf98b3a_Cfunc_getaddrinfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo"
 
-noncomputable def _cgo_77133bf98b3a_Cfunc_getnameinfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_Cfunc_getnameinfo"
-
-opaque _cgo_77133bf98b3a_Cfunc_getnameinfo.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc_res_search [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc_res_search"
 
-noncomputable def _cgo_77133bf98b3a_Cfunc_res_search [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_Cfunc_res_search"
-
-opaque _cgo_77133bf98b3a_Cfunc_res_search.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def __cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.__cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc"
-
-noncomputable def _cgo_77133bf98b3a_Cfunc__Cmalloc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"net._cgo_77133bf98b3a_Cfunc__Cmalloc"
-
-opaque _cgo_77133bf98b3a_Cfunc__Cmalloc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sortByRFC6724 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net.sortByRFC6724"
@@ -2196,6 +1840,341 @@ noncomputable def _C_res_nclose [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def _C_res_nsearch [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._C_res_nsearch"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `rfc6724policyTable` (`var rfc6724policyTable = policyTable{ { Prefix: netip.PrefixFrom(netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, … [sha256:b008552e71aee19d]`): Its initializer calls, besides literals of constants and other variables' values:
+`netip.AddrFrom16`/`PrefixFrom` build values from constants. So it terminates, cannot panic and has
+no effect beyond its variable.
+- `confVal` (`var confVal = &conf{goos: runtime.GOOS}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `netdns` (`var netdns = godebug.New("netdns")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `multipathtcp` (`var multipathtcp = godebug.New("multipathtcp")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errLameReferral` (`var errLameReferral = errors.New("lame referral")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCannotUnmarshalDNSMessage` (`var errCannotUnmarshalDNSMessage = errors.New("cannot unmarshal DNS message")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCannotMarshalDNSMessage` (`var errCannotMarshalDNSMessage = errors.New("cannot marshal DNS message")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errServerMisbehaving` (`var errServerMisbehaving = errors.New("server misbehaving")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errInvalidDNSResponse` (`var errInvalidDNSResponse = errors.New("invalid DNS response")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errNoAnswerFromDNSServer` (`var errNoAnswerFromDNSServer = errors.New("no answer from DNS server")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errServerTemporarilyMisbehaving` (`var // errServerTemporarilyMisbehaving is like errServerMisbehaving, except // that when it gets translated to a DNSErro … [sha256:2df23097a0e4d703]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `netedns0` (`var netedns0 = godebug.New("netedns0")`): Their initializers call, besides literals of constants and other variables' values:
+`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment
+is read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond
+its variable.
+- `distantFuture` (`var distantFuture = time.Date(3000, 1, 2, 3, 4, 5, 6, time.UTC)`): Their initializers call, besides literals of constants and other variables' values:
+`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no
+effect beyond its variable.
+- `lookupOrderName` (`var lookupOrderName = map[hostLookupOrder]string{ hostLookupCgo: "cgo", hostLookupFilesDNS: "files,dns", hostLookupDNSFi … [sha256:b2e934551da09b92]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `defaultNS` (`var defaultNS = []string{"127.0.0.1:53", "[::1]:53"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `getHostname` (`var getHostname = os.Hostname // variable for testing`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookLookupIP` (`var testHookLookupIP = func( ctx context.Context, fn func(context.Context, string, string) ([]IPAddr, error), network st … [sha256:03b1c8838fe8dfbf]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testPreHookSetKeepAlive` (`var testPreHookSetKeepAlive = func(*netFD) {}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookSetKeepAlive` (`var testHookSetKeepAlive = func(KeepAliveConfig) {}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookStepTime` (`var // testHookStepTime sleeps until time has moved forward by a nonzero amount. // This helps to avoid flakes in timeou … [sha256:5164f7d27d26274b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `testHookCanceledDial` (`var testHookCanceledDial = func() {} // for golang.org/issue/16523`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `hostsFilePath` (`var hostsFilePath = "/etc/hosts"`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `socketFunc` (`var // Placeholders for socket system calls. socketFunc func(int, int, int) (int, error) = syscall.Socket`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `connectFunc` (`var connectFunc func(int, syscall.Sockaddr) error = syscall.Connect`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `listenFunc` (`var listenFunc func(int, int) error = syscall.Listen`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `getsockoptIntFunc` (`var getsockoptIntFunc func(int, int, int) (int, error) = syscall.GetsockoptInt`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errInvalidInterface` (`var errInvalidInterface = errors.New("invalid network interface")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errInvalidInterfaceIndex` (`var errInvalidInterfaceIndex = errors.New("invalid network interface index")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errInvalidInterfaceName` (`var errInvalidInterfaceName = errors.New("invalid network interface name")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errNoSuchInterface` (`var errNoSuchInterface = errors.New("no such network interface")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errNoSuchMulticastInterface` (`var errNoSuchMulticastInterface = errors.New("no such multicast network interface")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `flagNames` (`var flagNames = []string{ "up", "broadcast", "loopback", "pointtopoint", "multicast", "running", }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `zoneCache` (`var zoneCache = ipv6ZoneCache{ toIndex: make(map[string]int), toName: make(map[int]string), }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `v4InV6Prefix` (`var v4InV6Prefix = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `IPv4bcast` (`var IPv4bcast = IPv4(255, 255, 255, 255) // limited broadcast`): Their initializers call, besides literals of constants and other variables' values:
+`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and
+has no effect beyond its variable.
+- `IPv4allsys` (`var IPv4allsys = IPv4(224, 0, 0, 1) // all systems`): Their initializers call, besides literals of constants and other variables' values:
+`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and
+has no effect beyond its variable.
+- `IPv4allrouter` (`var IPv4allrouter = IPv4(224, 0, 0, 2) // all routers`): Their initializers call, besides literals of constants and other variables' values:
+`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and
+has no effect beyond its variable.
+- `IPv4zero` (`var IPv4zero = IPv4(0, 0, 0, 0) // all zeros`): Their initializers call, besides literals of constants and other variables' values:
+`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and
+has no effect beyond its variable.
+- `IPv6zero` (`var IPv6zero = IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `IPv6unspecified` (`var IPv6unspecified = IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `IPv6loopback` (`var IPv6loopback = IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `IPv6interfacelocalallnodes` (`var IPv6interfacelocalallnodes = IP{0xff, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `IPv6linklocalallnodes` (`var IPv6linklocalallnodes = IP{0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `IPv6linklocalallrouters` (`var IPv6linklocalallrouters = IP{0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `classAMask` (`var classAMask = IPv4Mask(0xff, 0, 0, 0)`): Their initializers call, besides literals of constants and other variables' values:
+`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and
+has no effect beyond its variable.
+- `classBMask` (`var classBMask = IPv4Mask(0xff, 0xff, 0, 0)`): Their initializers call, besides literals of constants and other variables' values:
+`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and
+has no effect beyond its variable.
+- `classCMask` (`var classCMask = IPv4Mask(0xff, 0xff, 0xff, 0)`): Their initializers call, besides literals of constants and other variables' values:
+`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and
+has no effect beyond its variable.
+- `protocols` (`var protocols = map[string]int{ "icmp": 1, "igmp": 2, "tcp": 6, "udp": 17, "ipv6-icmp": 58, }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `services` (`var services = map[string]map[string]int{ "udp": { "domain": 53, }, "tcp": { "ftp": 21, "ftps": 990, "gopher": 70, "http … [sha256:7fa564e8bd69376c]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `DefaultResolver` (`var DefaultResolver = &Resolver{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errMalformedDNSRecordsDetail` (`var errMalformedDNSRecordsDetail = "DNS response contained records which contain invalid names"`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `readProtocolsOnce` (`var readProtocolsOnce = sync.OnceFunc(func() { file, err := open("/etc/protocols") if err != nil { return } defer file.c … [sha256:f2425bec6c824787]`): Its initializer calls, besides literals of constants and other variables' values: `sync.OnceFunc`
+allocates the once-closure (the function is not called). So it terminates, cannot panic and has no
+effect beyond its variable.
+- `errNoSuitableAddress` (`var // For connection setup operations. errNoSuitableAddress = errors.New("no suitable address found")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errMissingAddress` (`var // For connection setup and write operations. errMissingAddress = errors.New("missing address")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `errCanceled` (`var // For both read and write operations. errCanceled = canceledError{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrWriteToConnected` (`var ErrWriteToConnected = errors.New("use of WriteTo with pre-connected connection")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
+- `aLongTimeAgo` (`var // aLongTimeAgo is a non-zero time, far in the past, used for // immediate cancellation of dials. aLongTimeAgo = tim … [sha256:acb5338739bccd09]`): Their initializers call, besides literals of constants and other variables' values:
+`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no
+effect beyond its variable.
+- `noDeadline` (`var // noDeadline and noCancel are just zero values for // readability with functions taking too many parameters. noDead … [sha256:c8c7a4f4e7677378]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `noCancel` (`var noCancel = (chan struct{})(nil)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errTimeout` (`var errTimeout error = &timeoutError{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errNoSuchHost` (`var errNoSuchHost = &notFoundError{"no such host"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errUnknownPort` (`var errUnknownPort = &notFoundError{"unknown port"}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errClosed` (`var errClosed = poll.ErrNetClosing`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `ErrClosed` (`var ErrClosed error = errClosed`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `pollSplice` (`var pollSplice = poll.Splice`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_cgo_77133bf98b3a_C2func_getaddrinfo` (`var _cgo_77133bf98b3a_C2func_getaddrinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_C2func_getaddrinfo)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_C2func_getnameinfo` (`var _cgo_77133bf98b3a_C2func_getnameinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_C2func_getnameinfo)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_Cfunc_free` (`var _cgo_77133bf98b3a_Cfunc_free = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_free)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_Cfunc_freeaddrinfo` (`var _cgo_77133bf98b3a_Cfunc_freeaddrinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_Cfunc_gai_strerror` (`var _cgo_77133bf98b3a_Cfunc_gai_strerror = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_Cfunc_getaddrinfo` (`var _cgo_77133bf98b3a_Cfunc_getaddrinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_Cfunc_getnameinfo` (`var _cgo_77133bf98b3a_Cfunc_getnameinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_Cfunc_res_search` (`var _cgo_77133bf98b3a_Cfunc_res_search = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_res_search)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+- `_cgo_77133bf98b3a_Cfunc__Cmalloc` (`var _cgo_77133bf98b3a_Cfunc__Cmalloc = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc)`): Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's
+trampoline, a link-time constant: no call, no panic, no effect beyond the variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"net.rfc6724policyTable", "Its initializer calls, besides literals of constants and other variables' values:\n`netip.AddrFrom16`/`PrefixFrom` build values from constants. So it terminates, cannot panic and has\nno effect beyond its variable.", "var rfc6724policyTable = policyTable{ { Prefix: netip.PrefixFrom(netip.AddrFrom16([16]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, … [sha256:b008552e71aee19d]"⟩,
+  ⟨"net.confVal", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var confVal = &conf{goos: runtime.GOOS}"⟩,
+  ⟨"net.netdns", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var netdns = godebug.New(\"netdns\")"⟩,
+  ⟨"net.multipathtcp", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var multipathtcp = godebug.New(\"multipathtcp\")"⟩,
+  ⟨"net.errLameReferral", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errLameReferral = errors.New(\"lame referral\")"⟩,
+  ⟨"net.errCannotUnmarshalDNSMessage", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCannotUnmarshalDNSMessage = errors.New(\"cannot unmarshal DNS message\")"⟩,
+  ⟨"net.errCannotMarshalDNSMessage", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errCannotMarshalDNSMessage = errors.New(\"cannot marshal DNS message\")"⟩,
+  ⟨"net.errServerMisbehaving", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errServerMisbehaving = errors.New(\"server misbehaving\")"⟩,
+  ⟨"net.errInvalidDNSResponse", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidDNSResponse = errors.New(\"invalid DNS response\")"⟩,
+  ⟨"net.errNoAnswerFromDNSServer", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errNoAnswerFromDNSServer = errors.New(\"no answer from DNS server\")"⟩,
+  ⟨"net.errServerTemporarilyMisbehaving", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // errServerTemporarilyMisbehaving is like errServerMisbehaving, except // that when it gets translated to a DNSErro … [sha256:2df23097a0e4d703]"⟩,
+  ⟨"net.netedns0", "Their initializers call, besides literals of constants and other variables' values:\n`internal/godebug.New` of a constant name allocates a `*Setting` holding the name (the environment\nis read on the first `Value`, not here). So each terminates, cannot panic and has no effect beyond\nits variable.", "var netedns0 = godebug.New(\"netedns0\")"⟩,
+  ⟨"net.distantFuture", "Their initializers call, besides literals of constants and other variables' values:\n`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no\neffect beyond its variable.", "var distantFuture = time.Date(3000, 1, 2, 3, 4, 5, 6, time.UTC)"⟩,
+  ⟨"net.lookupOrderName", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var lookupOrderName = map[hostLookupOrder]string{ hostLookupCgo: \"cgo\", hostLookupFilesDNS: \"files,dns\", hostLookupDNSFi … [sha256:b2e934551da09b92]"⟩,
+  ⟨"net.defaultNS", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultNS = []string{\"127.0.0.1:53\", \"[::1]:53\"}"⟩,
+  ⟨"net.getHostname", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var getHostname = os.Hostname // variable for testing"⟩,
+  ⟨"net.testHookLookupIP", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookLookupIP = func( ctx context.Context, fn func(context.Context, string, string) ([]IPAddr, error), network st … [sha256:03b1c8838fe8dfbf]"⟩,
+  ⟨"net.testPreHookSetKeepAlive", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testPreHookSetKeepAlive = func(*netFD) {}"⟩,
+  ⟨"net.testHookSetKeepAlive", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookSetKeepAlive = func(KeepAliveConfig) {}"⟩,
+  ⟨"net.testHookStepTime", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // testHookStepTime sleeps until time has moved forward by a nonzero amount. // This helps to avoid flakes in timeou … [sha256:5164f7d27d26274b]"⟩,
+  ⟨"net.testHookCanceledDial", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var testHookCanceledDial = func() {} // for golang.org/issue/16523"⟩,
+  ⟨"net.hostsFilePath", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var hostsFilePath = \"/etc/hosts\""⟩,
+  ⟨"net.socketFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // Placeholders for socket system calls. socketFunc func(int, int, int) (int, error) = syscall.Socket"⟩,
+  ⟨"net.connectFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var connectFunc func(int, syscall.Sockaddr) error = syscall.Connect"⟩,
+  ⟨"net.listenFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var listenFunc func(int, int) error = syscall.Listen"⟩,
+  ⟨"net.getsockoptIntFunc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var getsockoptIntFunc func(int, int, int) (int, error) = syscall.GetsockoptInt"⟩,
+  ⟨"net.errInvalidInterface", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidInterface = errors.New(\"invalid network interface\")"⟩,
+  ⟨"net.errInvalidInterfaceIndex", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidInterfaceIndex = errors.New(\"invalid network interface index\")"⟩,
+  ⟨"net.errInvalidInterfaceName", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errInvalidInterfaceName = errors.New(\"invalid network interface name\")"⟩,
+  ⟨"net.errNoSuchInterface", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errNoSuchInterface = errors.New(\"no such network interface\")"⟩,
+  ⟨"net.errNoSuchMulticastInterface", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errNoSuchMulticastInterface = errors.New(\"no such multicast network interface\")"⟩,
+  ⟨"net.flagNames", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var flagNames = []string{ \"up\", \"broadcast\", \"loopback\", \"pointtopoint\", \"multicast\", \"running\", }"⟩,
+  ⟨"net.zoneCache", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var zoneCache = ipv6ZoneCache{ toIndex: make(map[string]int), toName: make(map[int]string), }"⟩,
+  ⟨"net.v4InV6Prefix", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var v4InV6Prefix = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff}"⟩,
+  ⟨"net.IPv4bcast", "Their initializers call, besides literals of constants and other variables' values:\n`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and\nhas no effect beyond its variable.", "var IPv4bcast = IPv4(255, 255, 255, 255) // limited broadcast"⟩,
+  ⟨"net.IPv4allsys", "Their initializers call, besides literals of constants and other variables' values:\n`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and\nhas no effect beyond its variable.", "var IPv4allsys = IPv4(224, 0, 0, 1) // all systems"⟩,
+  ⟨"net.IPv4allrouter", "Their initializers call, besides literals of constants and other variables' values:\n`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and\nhas no effect beyond its variable.", "var IPv4allrouter = IPv4(224, 0, 0, 2) // all routers"⟩,
+  ⟨"net.IPv4zero", "Their initializers call, besides literals of constants and other variables' values:\n`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and\nhas no effect beyond its variable.", "var IPv4zero = IPv4(0, 0, 0, 0) // all zeros"⟩,
+  ⟨"net.IPv6zero", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var IPv6zero = IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}"⟩,
+  ⟨"net.IPv6unspecified", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var IPv6unspecified = IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}"⟩,
+  ⟨"net.IPv6loopback", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var IPv6loopback = IP{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}"⟩,
+  ⟨"net.IPv6interfacelocalallnodes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var IPv6interfacelocalallnodes = IP{0xff, 0x01, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}"⟩,
+  ⟨"net.IPv6linklocalallnodes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var IPv6linklocalallnodes = IP{0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01}"⟩,
+  ⟨"net.IPv6linklocalallrouters", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var IPv6linklocalallrouters = IP{0xff, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x02}"⟩,
+  ⟨"net.classAMask", "Their initializers call, besides literals of constants and other variables' values:\n`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and\nhas no effect beyond its variable.", "var classAMask = IPv4Mask(0xff, 0, 0, 0)"⟩,
+  ⟨"net.classBMask", "Their initializers call, besides literals of constants and other variables' values:\n`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and\nhas no effect beyond its variable.", "var classBMask = IPv4Mask(0xff, 0xff, 0, 0)"⟩,
+  ⟨"net.classCMask", "Their initializers call, besides literals of constants and other variables' values:\n`IPv4`/`IPv4Mask` allocate a 16- or 4-byte slice of constants. So each terminates, cannot panic and\nhas no effect beyond its variable.", "var classCMask = IPv4Mask(0xff, 0xff, 0xff, 0)"⟩,
+  ⟨"net.protocols", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var protocols = map[string]int{ \"icmp\": 1, \"igmp\": 2, \"tcp\": 6, \"udp\": 17, \"ipv6-icmp\": 58, }"⟩,
+  ⟨"net.services", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var services = map[string]map[string]int{ \"udp\": { \"domain\": 53, }, \"tcp\": { \"ftp\": 21, \"ftps\": 990, \"gopher\": 70, \"http … [sha256:7fa564e8bd69376c]"⟩,
+  ⟨"net.DefaultResolver", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefaultResolver = &Resolver{}"⟩,
+  ⟨"net.errMalformedDNSRecordsDetail", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errMalformedDNSRecordsDetail = \"DNS response contained records which contain invalid names\""⟩,
+  ⟨"net.readProtocolsOnce", "Its initializer calls, besides literals of constants and other variables' values: `sync.OnceFunc`\nallocates the once-closure (the function is not called). So it terminates, cannot panic and has no\neffect beyond its variable.", "var readProtocolsOnce = sync.OnceFunc(func() { file, err := open(\"/etc/protocols\") if err != nil { return } defer file.c … [sha256:f2425bec6c824787]"⟩,
+  ⟨"net.errNoSuitableAddress", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // For connection setup operations. errNoSuitableAddress = errors.New(\"no suitable address found\")"⟩,
+  ⟨"net.errMissingAddress", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var // For connection setup and write operations. errMissingAddress = errors.New(\"missing address\")"⟩,
+  ⟨"net.errCanceled", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // For both read and write operations. errCanceled = canceledError{}"⟩,
+  ⟨"net.ErrWriteToConnected", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrWriteToConnected = errors.New(\"use of WriteTo with pre-connected connection\")"⟩,
+  ⟨"net.aLongTimeAgo", "Their initializers call, besides literals of constants and other variables' values:\n`time.Unix`/`time.Date` of constants compute a `Time`. So each terminates, cannot panic and has no\neffect beyond its variable.", "var // aLongTimeAgo is a non-zero time, far in the past, used for // immediate cancellation of dials. aLongTimeAgo = tim … [sha256:acb5338739bccd09]"⟩,
+  ⟨"net.noDeadline", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // noDeadline and noCancel are just zero values for // readability with functions taking too many parameters. noDead … [sha256:c8c7a4f4e7677378]"⟩,
+  ⟨"net.noCancel", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var noCancel = (chan struct{})(nil)"⟩,
+  ⟨"net.errTimeout", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errTimeout error = &timeoutError{}"⟩,
+  ⟨"net.errNoSuchHost", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errNoSuchHost = &notFoundError{\"no such host\"}"⟩,
+  ⟨"net.errUnknownPort", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errUnknownPort = &notFoundError{\"unknown port\"}"⟩,
+  ⟨"net.errClosed", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errClosed = poll.ErrNetClosing"⟩,
+  ⟨"net.ErrClosed", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var ErrClosed error = errClosed"⟩,
+  ⟨"net.pollSplice", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var pollSplice = poll.Splice"⟩,
+  ⟨"net._cgo_77133bf98b3a_C2func_getaddrinfo", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_C2func_getaddrinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_C2func_getaddrinfo)"⟩,
+  ⟨"net._cgo_77133bf98b3a_C2func_getnameinfo", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_C2func_getnameinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_C2func_getnameinfo)"⟩,
+  ⟨"net._cgo_77133bf98b3a_Cfunc_free", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_Cfunc_free = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_free)"⟩,
+  ⟨"net._cgo_77133bf98b3a_Cfunc_freeaddrinfo", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_Cfunc_freeaddrinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_freeaddrinfo)"⟩,
+  ⟨"net._cgo_77133bf98b3a_Cfunc_gai_strerror", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_Cfunc_gai_strerror = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_gai_strerror)"⟩,
+  ⟨"net._cgo_77133bf98b3a_Cfunc_getaddrinfo", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_Cfunc_getaddrinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_getaddrinfo)"⟩,
+  ⟨"net._cgo_77133bf98b3a_Cfunc_getnameinfo", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_Cfunc_getnameinfo = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_getnameinfo)"⟩,
+  ⟨"net._cgo_77133bf98b3a_Cfunc_res_search", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_Cfunc_res_search = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc_res_search)"⟩,
+  ⟨"net._cgo_77133bf98b3a_Cfunc__Cmalloc", "Generated by cgo (`_cgo_gotypes.go`): `unsafe.Pointer(&__cgofn_X)`, the address of a C function's\ntrampoline, a link-time constant: no call, no panic, no effect beyond the variable.", "var _cgo_77133bf98b3a_Cfunc__Cmalloc = unsafe.Pointer(&__cgofn__cgo_77133bf98b3a_Cfunc__Cmalloc)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.net where
   pkgImportedPkgs := []
 
@@ -2208,236 +2187,14 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_Cfunc__Cmalloc.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_Cfunc_res_search.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_Cfunc_getnameinfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_Cfunc_getaddrinfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_Cfunc_gai_strerror.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_Cfunc_freeaddrinfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_Cfunc_free.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_C2func_getnameinfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _cgo_77133bf98b3a_C2func_getaddrinfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val pollSplice.init) (Val #()))))))
+  (App (Val «_».init) (Val #())))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val ErrClosed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errClosed.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errUnknownPort.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoSuchHost.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errTimeout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noCancel.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noDeadline.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val aLongTimeAgo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val ErrWriteToConnected.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCanceled.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMissingAddress.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoSuitableAddress.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val readProtocolsOnce.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errMalformedDNSRecordsDetail.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefaultResolver.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val services.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val protocols.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val classCMask.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val classBMask.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val classAMask.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv6linklocalallrouters.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv6linklocalallnodes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv6interfacelocalallnodes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv6loopback.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv6unspecified.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv6zero.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv4zero.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv4allrouter.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv4allsys.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val IPv4bcast.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val v4InV6Prefix.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val zoneCache.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val flagNames.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoSuchMulticastInterface.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoSuchInterface.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidInterfaceName.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidInterfaceIndex.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidInterface.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val getsockoptIntFunc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val listenFunc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val connectFunc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val socketFunc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val hostsFilePath.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookCanceledDial.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookStepTime.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookSetKeepAlive.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testPreHookSetKeepAlive.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val testHookLookupIP.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val getHostname.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defaultNS.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val lookupOrderName.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val distantFuture.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val netedns0.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errServerTemporarilyMisbehaving.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errNoAnswerFromDNSServer.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errInvalidDNSResponse.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errServerMisbehaving.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCannotMarshalDNSMessage.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errCannotUnmarshalDNSMessage.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errLameReferral.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val multipathtcp.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val netdns.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val confVal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val rfc6724policyTable.init) (Val #()))))))))
+  (App (Val «_».init) (Val #()))))))))
 
 opaque ipAttr.nonempty_type : NonemptyType.{0}
 def ipAttr : Type := ipAttr.nonempty_type.type
