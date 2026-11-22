@@ -12,8 +12,8 @@ What `putMsg` (`examples/raft/kvnet/wire.go`) writes, as a function of the messa
   not written.
 
 `MsgWf st`: a message `getMsg` reads back: a type raft has (`raftpb.msgTypeNames`, the table the
-decoder looks the type up in, non-negative), entries and a snapshot `getEntry`/`getSnapshot` read
-back, a context and an entry list of Go slices' lengths.
+decoder looks the type up in, non-negative), entries and a snapshot `getMsgEntry`/`getSnapshot` read
+back (an entry of any type: `MsgEntWf`), a context and an entry list of Go slices' lengths.
 -/
 module
 
@@ -47,10 +47,13 @@ def encMsg [GooseExts] (st : MsgSt) : List w8 :=
     (u64Le st.msg.RejectHint' ++ (putB st.ctx ++ (u64Le (W64 st.ents.length) ++
     (encEntries st.ents ++ encSnapOpt st.snap))))))))))))
 
+/-- An entry of a message `getMsgEntry` reads back: of any type, its data of a Go slice's length. -/
+def MsgEntWf [GooseExts] (e : EntryM) : Prop := (e.Data'.length : Int) < 2 ^ 63
+
 /-- A message `getMsg` reads back (see the file header). -/
 def MsgWf [GooseExts] (st : MsgSt) : Prop :=
   (raftpb.msgTypeNames !! (W32 (sint.Z st.msg.Type'))).isSome ∧ 0 ≤ sint.Z st.msg.Type' ∧
-  (∀ e ∈ st.ents, EntWf e) ∧ (st.ents.length : Int) < 2 ^ 63 ∧
+  (∀ e ∈ st.ents, MsgEntWf e) ∧ (st.ents.length : Int) < 2 ^ 63 ∧
   (st.ctx.length : Int) < 2 ^ 63 ∧ (∀ s, st.snap = some s → SnapWf s)
 
 theorem encEntries_snoc [GooseExts] (l : List EntryM) (e : EntryM) :

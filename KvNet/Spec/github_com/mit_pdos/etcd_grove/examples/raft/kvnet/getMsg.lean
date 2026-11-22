@@ -5,7 +5,7 @@ capacity (`msgPtsC l 1 1 true`, what `copyMsg` gives and raft's `Step` takes), a
 the bytes `putMsg` wrote, for a message `getMsg` reads back (`MsgWf`: a type raft has, entries and a
 snapshot of Go slices' lengths).
 
-The bytes stay owned throughout: `getEntry` reads them at any fraction (the entry's data, a
+The bytes stay owned throughout: `getMsgEntry` reads them at any fraction (the entry's data, a
 slice of `b`, made read-only inside it), and `getSnapshot` takes the rest, owned (until the
 ledger's change of 2026-11-21 to `getEntry`, a premise `st.ents = [] ∨ st.snap = none`).
 -/

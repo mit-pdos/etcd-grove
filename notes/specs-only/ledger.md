@@ -4471,3 +4471,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the slice); `newReplica.lean`'s last step already named `n`.
 - **Proposed change.** As above.
 - **Decision.** Applied (weaker premises; a stronger post).
+
+## 2026-11-22: kvnet's wire reads a message's entries of any type (`getMsgEntry`; `MsgWf` weakened) (KvNet, Go and Lean)
+
+- **Spec.** `MsgWf` (`Wire.lean`, so `getMsg.spec`'s premise and `kvFacts`' `msgOkK`): a message's entries need
+  only `MsgEntWf` (data of a Go slice's length), no longer `EntWf` (also a type `≤ 2`). New `getMsgEntry.spec`
+  (wire.go's `getMsgEntry`, new): `getEntry.spec` with `MsgEntWf`.
+- **Defect.** `StartNode` must give `run`'s send callback (raft's `Ready` messages, `sentMsg`) to the transport,
+  whose protocol carries `MsgWf`. Nothing in raft's API says a sent message's entries are of raft's types (a
+  forwarded `MsgProp`'s are whatever `Propose` was given; `readyRest_ents_type` covers only the `Ready`'s
+  entries), so the type bound was not derivable. The Go decoder refused other types (`getEntry`'s `typ > 2`,
+  right for the storage file, not needed on the wire: an `EntryType` is an `int32`, written sign-extended,
+  truncated back).
+- **Evidence.** `examples/raft/kvnet/wire_test.go` (entries of types `-5` and `2^30` round-trip); the proofs
+  of `getMsgEntry` and `getMsg`.
+- **Proposed change.** `getMsg` decodes entries with `getMsgEntry` (no type check); `MsgWf` as above.
+  (Alternatively a raft API lemma `sentMsg ⊢ ∀ e ∈ st.ents, Type ≤ 2`, which needs raft's message invariant to
+  track forwarded proposals' entries: not taken.)
+- **Decision.** Applied.
