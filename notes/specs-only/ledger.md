@@ -4072,4 +4072,6 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   discharged by the semantics' `NoIoErr allIo` (every path), as `tWalFsOk` already is: no new closed premise.
 - **Made (2026-11-22, `wal-safe`, session 6).** The `os` half: `specSubS`'s post, `os.Stat.wp_dirSW`/`wp_fileAnySW`
   (`Proof/os/StatNE.lean`), over `wp_fs_postSh` (`GooseLang/Ext/Fs/WpPostShared.lean`). The `wal.Create`/tester
-  half is not made yet (`notes/wal-units/tester.md`, last section).
+  half (session 7, `57d9a044f0`): the premise widened on `wal.Create.spec`/`specFresh` and `tWalFsOk`;
+  `CreateDirAll.specTmp` (and its proof, with `TouchDirAll.specDir`) deleted; `walAreaRes`'s `TmpOk` replaced by
+  `ClRanked` of each `nm.tmp`'s claims, `tmpClTouch` gone; the tester's `BootFoNmTmp` gone.

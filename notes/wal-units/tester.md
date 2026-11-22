@@ -903,3 +903,52 @@ the context in the order it had at the `iloeb`; a lemma that returns a resource 
 moves it in the context, so the IH call's argument order changes. In a term, `⟨fun h => by cases h, x⟩` parses
 `, x` into the tactic block: parenthesize the `fun`. Without `simp only [IsFsStep] at h`, `rcases` cannot split an
 `IsFsStep "Open"`'s `let` body; with it, the main arm has ten components.
+
+# Handoff (branch `wal-safe`, 2026-11-22, session 7 of etcd-grove-03's delegates): (FNE)'s WAL half done; step 3 done short of the closed theorem
+
+**State** (`b94796513b` and this note): no axiom, no `sorry` added. Built green through the build slot: the WAL Link, the
+tester Link and `InitLinked`, `storage.WalAreaFresh`, `etcdserver.RnNewStorageLinked`, `etcdstart.WalAreasInit`
+(4479 jobs), then the new `Adequacy` module (3618 jobs). `etc/tier-check.py --check` ok.
+
+**(FNE)'s WAL half** (`57d9a044f0`):
+- `CreateCallees.lean`: `tmpCls e := ∃ ct, osClaimsW ct ∗ ⌜SubCover ct e ∧ ClRanked ct⌝`, `tmpAny j b h := osNames j [b] 1 h ∗
+  tmpCls (h.cur !! b)`; `CreateDirAll.specTmp` deleted (with `CreateDirAllTmp.lean`, `TouchDirAllDir.lean` spec and proof).
+- `CreateTmp.lean`: `wp_existTmpNE` (`false → FsNoErrAt (child d b) → absent`; over `wp_statDirW_err`/`wp_statFileW_err`,
+  `Stat`'s W specs with the `FileInfo` dropped: `Exist.spec`'s `Q` takes only the error, a post mentioning `fi` makes the
+  unifier time out), `wp_removeAllTmp` over `specSubS` (`nil → FsNoErrAt (child d b) → FsNoErrAt d → absent`).
+- `Create.lean`: `hFt`/`hFr` from the widened premise (`pathFits_area`, `CreatePure.lean`); `CreateDirAll.spec` (proved) on
+  the absent `nm.tmp`; every `tmpDirH` exit converted (`tmpDirH_any`, `CreateArea.lean`). Hypotheses `wp_RmSub`, `wp_CDA :
+  CreateDirAll.spec` replace `wp_RmDir`, `specTmp`.
+- `CreateDefs`/`CreateFree`/`CreateArea`: `areaCls` is the claims only; last conjunct `∀ nm, walNameOk nm → ClRanked (clOf cl
+  (tmpName nm))`; `area_takeTmp`/`area_give` over `tmpCls`; `osClaimsW_eq`, `tmpCls_none`, `tmpDirH_any`.
+- Boot: `BootFo` = the WAL directories' files-only part; `BootFoRest` = the pipeline names' part; `bootCls_ranked` (from
+  `TreeWf`, `ClRanked.of_tree`); `bootFiles_split` drops the `nm.tmp` probes (affine); `bootTmps`, `bootCls_touch`,
+  `bootCls_tmpOk` gone. Tester: `BootFoNmTmp` and `tester_crash`'s `hfo` gone; `TCrashed` still carries `BootFo`, now
+  produced from `walInv_crash` alone (`bootFo_of hfoX hfoT`), so nothing is carried from outside.
+- Not done (optional): `renameWALPost`'s dead arm 2. `Proof/os/MkdirAllDir.lean` (`os.MkdirAll.specDirS`) is now reached
+  by no Link (it was `TouchDirAll.specDir`'s callee): leave or delete in a cleanup.
+
+**Step 3** (`82c8eaa536`, `b94796513b`): `WalTester/Proof/.../etcd/wal/Adequacy.lean` (linking tier):
+- the semantics `tExtsSem := fsExtsSemanticsWithS tSQ tQ` (`tSQ` = `etcdSQ`: no I/O, lock or map error on any file or path;
+  `tQ := W1 walCodec`) with local instances `tFsSemOk`, `tHasFs`, `tSat`, `tSatL`; `tWalFsOk_of` (from `PathFits` only);
+- `bootWal area orDir` (`initialize'`, then `Main`), `tFirst`, `tGenPre`;
+- `tGen_wp`: one generation (osShared → `tBoot0`/`tBootCrash` → `TBoot_run`; WP: `Hinit_wp`, `Main.spec`; crash frame
+  `tester_crash`);
+- `TOpen` (the open specs) and `tMain_linked` (Link's `wp_Main` at `walRaftP`/`walRaftU`/`walRaftHsO`: `walPb_laws`,
+  `walRaftP_marshalHs`, `walRaftHsO_own`);
+- **`etcd_wal_crash_safety_bounded`** (hypotheses `Hinit_wp`, `Hopen`, stated at `tHeapAt hG lctx`).
+
+**New blocker B-4 (decision needed):** the tester's initializer registers the WAL's prometheus metrics, so
+`wp_initialize'` needs `prometheus.namesFree initNames`, handed out only by `goose_adequacy_start` (crash-free, a trust
+boundary in `Proof/runtime/Start.lean`). The crash adequacy gives a generation `ownGoState ∅` only. Options: a crash variant
+of the start axiom (every generation is a fresh process with an empty registry), or `Hinit_wp` kept as a stated premise
+(as `seglog_crash_safety` and `bootCrashSafety` do).
+
+**The proposed `etcd_wal_safe` statement**, with every premise, hypothesis and axiom: `/shared/tmp/coord-03/walsafe-log.md`,
+"PROPOSED closed statement `etcd_wal_safe`". Hard stop: not stated in Lean.
+
+**Pitfalls (new).** A Hoare-triple hypothesis whose post must unify with a callee spec's `Q err` (`Exist.spec`) cannot
+mention the result's other components (`fi`): wrap the spec first. A closed theorem's per-`hG` hypotheses need the
+program's Go local context (`tHeapAt hG lctx`, as bboltfs's `heapAt`), or `go.Semantics` is not found under `∀ [hG]`.
+`iframe` against a goal whose resource differs only by a rewritable index (`tmpCls none` vs `tmpCls (h.cur !! b)`) times
+out: `rw` first.
