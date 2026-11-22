@@ -3746,6 +3746,6 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 interpretation before each generation's WP, **one later credit in the crash obligation** (`£ 1`, or a step): the
 crash opens the generation's file invariant (allocated at the boot) and must take its contents (raft's sealed
 `raftState`, `kdFileState`) without the later. The coordinator routed both to a Perennial session (branch
-`crash-genstart`, PR pending). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
+`crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
