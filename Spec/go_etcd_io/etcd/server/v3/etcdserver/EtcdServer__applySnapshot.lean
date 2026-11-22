@@ -101,6 +101,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hmmap : storage.openMmapOk cfg)
+    -- (bkarea, 2026-11-22) the data directory shorter than `2^60` bytes (`OpenSnapshotBackend`'s,
+    -- `srvSnapRO`'s)
+    (hdd : cfg.DataDir'.length < 2 ^ 60)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
@@ -135,6 +138,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     -- (the backend-auth-split stage) the alarm bucket in the table
     (halbi : d.P.has mvcc.alarmBI ∧
       d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
+    -- (prove-ps2-members, 2026-11-22) the membership's buckets in the table (`srvSnapRO`'s), which
+    -- the cluster's `SetBackend` takes since it was proved
+    (hmbP : d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI)
     (hmemb : ((backend.rbData d.P D).lookup go!"members").isSome ∧
       ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
       ((backend.rbData d.P D).lookup go!"cluster").isSome)

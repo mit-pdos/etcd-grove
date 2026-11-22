@@ -1,8 +1,9 @@
 package dist
 
 // The compactor workload: examples/k8s/compactor's MainPartition with its writer and its API
-// servers on machines of their own. Machine 0 is the writer (compactor.writer: Writes Puts of its
-// key); machines 1 to Servers are API servers with a compactor of their own (NewCompactor); the
+// servers on machines of their own. Machine 0 is the writer (compactor.writer's Writes Puts, of
+// compactorcopy.WriteKeyShared: the cluster is the store workload's too, and the driver's writeKey
+// is inside the store's keys); machines 1 to Servers are API servers with a compactor of their own (NewCompactor); the
 // last machine is one API server process whose SharedServers storages share the process's
 // compactor (StartCompactorPerEndpoint: sharing it is a process's, so they stay in one). Each API
 // server's loop (its compactor's samples, Stop, the reads of compact_rev_key: the driver's check
@@ -102,7 +103,7 @@ func CompactorNode(c int, addr string, eps []string) {
 	case c == 0:
 		cli := client.ConnectRetry(eps)
 		op = func(any, any) any {
-			comp.Writer(cli)
+			comp.WriterAt(cli, comp.WriteKeyShared)
 			return []comp.Log{}
 		}
 		d = writerAttempt

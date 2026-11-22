@@ -435,6 +435,8 @@ PROJECTS = [
             "go.etcd.io/etcd/server/v3/storage",
             "go.etcd.io/etcd/server/v3/storage/mvcc",
             "go.etcd.io/etcd/server/v3/config",
+            # with bodies (storage/datadir.toml): the data directory's layout, `BackendPath`'s
+            "go.etcd.io/etcd/server/v3/storage/datadir",
             "go.etcd.io/etcd/server/v3/etcdserver/api/membership",
             "go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp",
             "go.etcd.io/etcd/server/v3/etcdserver/api/snap",

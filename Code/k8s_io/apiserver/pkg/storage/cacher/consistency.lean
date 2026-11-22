@@ -55,20 +55,8 @@ opaque Checker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque getLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def CheckPeriod [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/consistency.CheckPeriod"
-
-opaque CheckPeriod.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def PanicOnCacheInconsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.PanicOnCacheInconsistency"
-
-opaque PanicOnCacheInconsistency.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def checkerListPageSize [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/cacher/consistency.checkerListPageSize"
-
-opaque checkerListPageSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.init.0"
@@ -82,6 +70,24 @@ noncomputable def addListToDigest [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def addObjectToDigest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.addObjectToDigest"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `CheckPeriod` (`var // CheckPeriod is the period of checking consistency between etcd and cache. // 5 minutes were proposed to match the … [sha256:fdd9a485f4bbb1f8]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `checkerListPageSize` (`var // checkerListPageSize is the checker's request chunk size of list operations. checkerListPageSize = int64(10000)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/consistency.CheckPeriod", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // CheckPeriod is the period of checking consistency between etcd and cache. // 5 minutes were proposed to match the … [sha256:fdd9a485f4bbb1f8]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/cacher/consistency.checkerListPageSize", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // checkerListPageSize is the checker's request chunk size of list operations. checkerListPageSize = int64(10000)"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency where
   pkgImportedPkgs := [pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics]
 
@@ -93,18 +99,16 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
-  (App (Val checkerListPageSize.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (GlobalVarAddr PanicOnCacheInconsistency))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val PanicOnCacheInconsistency.init) (Val #()))))))
+  (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val CheckPeriod.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.initialize') (Val #()))))))))
+  (App (Val (go.GlobalAlloc PanicOnCacheInconsistency go.bool)) (Val #()))))))))
 
 opaque Checker.nonempty_type : NonemptyType.{0}
 def Checker : Type := Checker.nonempty_type.type

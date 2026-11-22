@@ -5,9 +5,8 @@ Package initialization of `github_com.prometheus.client_golang.prometheus`
 Its fact (`promInit γ`, `PkgInit.lean`, at the run's registry ghost name `γ`, the parameter
 `PromRegGS` of the package's fact; route (b), Option 4, 2026-11-22, notes/prom-registry.md): `defaultRegistry`
 and `DefaultRegisterer` hold the default registry, read-only, a registry over `γ` (`isRegistry`). Its
-initializer initializes its imports, runs the untranslated initializers of its variables (`X.init`, axioms of
-the translation), which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and its translated
-ones: `defaultRegistry = NewRegistry()` (stepped into) and `DefaultRegisterer`/`DefaultGatherer`,
+initializer initializes its imports and runs its translated variable initializers (the others are goose
+`[[skip]]` entries, mit-pdos/etcd-grove#23): `defaultRegistry = NewRegistry()` (stepped into) and `DefaultRegisterer`/`DefaultGatherer`,
 `defaultRegistry` converted to an interface; then its `init()`, whose trusted model inserts the built-in
 collectors' descriptor IDs, names and collector IDs into the registry's maps
 (`EtcdGrove.prometheus.wp_seed_insertAll`); the registry's lock is then made the guard of its invariant
@@ -41,36 +40,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace github_com.prometheus.client_golang.prometheus
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `github_com.prometheus.client_golang.prometheus`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([rmNamesForMemStatsMetrics.init,
-        nativeHistogramBounds.init,
-        DefBuckets.init,
-        errBucketLabelNotAllowed.init,
-        errInconsistentCardinality.init,
-        separatorByteSlice.init,
-        «_».init,
-        errQuantileLabelNotAllowed.init,
-        CounterMetricTypePtr.init,
-        GaugeMetricTypePtr.init,
-        UntypedMetricTypePtr.init,
-        labelsPool.init,
-        V2.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end github_com.prometheus.client_golang.prometheus
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -103,12 +72,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.github_com.prometheus.client_model.go.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk rmNamesForMemStatsMetrics.init (by mem_tac))
-  wp_apply (opaqueInitsOk nativeHistogramBounds.init (by mem_tac))
-  wp_apply (opaqueInitsOk DefBuckets.init (by mem_tac))
-  wp_apply (opaqueInitsOk errBucketLabelNotAllowed.init (by mem_tac))
-  wp_apply (opaqueInitsOk errInconsistentCardinality.init (by mem_tac))
-  wp_apply (opaqueInitsOk separatorByteSlice.init (by mem_tac))
   -- translated initializer of defaultRegistry))
   try wp_auto
   wp_func_call
@@ -122,13 +85,6 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of DefaultRegisterer))
   -- translated initializer of DefaultGatherer))
-  wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk errQuantileLabelNotAllowed.init (by mem_tac))
-  wp_apply (opaqueInitsOk CounterMetricTypePtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk GaugeMetricTypePtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk UntypedMetricTypePtr.init (by mem_tac))
-  wp_apply (opaqueInitsOk labelsPool.init (by mem_tac))
-  wp_apply (opaqueInitsOk V2.init (by mem_tac))
   -- the translated init.«0»
   wp_func_call
   wp_call

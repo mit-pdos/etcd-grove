@@ -12,7 +12,7 @@ Each driver panics if its check fails.
 
 `etcd_safe` is `etcd_adequate_of` (`Adequacy.lean`) applied to `Main`'s linked triple
 (`MainLinked.lean`'s `etcd_all.wp_Main`, over the eleven drivers' linked `Main` results): in every real
-execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are live, from a
+execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, from a
 fresh state with one thread, no thread is stuck, none has ended in a panic, and the main thread's
 result, if any, is `#()`. Its premises are `etcd_robust.spec`'s, at one `n`; `Hlow` (`_Hlow`: the 16
 low bits of the ids of all the process's members distinct, the condition of idutil's trusted model) is
@@ -61,7 +61,7 @@ variable [go_gctx : GoGlobalContext]
 
 /-- **The one closed etcd theorem** (see the file header): the eleven examples at once in one process,
 for every `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂, k₃, k₄ ≤ 300`, `3 ≤ k₅ ≤ 300`, every two schedules and every
-workload within the bounds: in every real execution of `n` steps (`n + 12 ≤ 2 ^ 40`) from a fresh state
+workload within the bounds: in every real execution of `n` steps (`n + 1 ≤ 2 ^ 48`) from a fresh state
 with one thread, along which fewer than `2 ^ 28` threads are live, no thread is stuck, none has ended
 in a panic, and the main thread's result, if any, is `#()`. -/
 theorem etcd_safe [lctx : GoLocalContext] [sem : go.Semantics]
@@ -165,7 +165,7 @@ theorem etcd_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps' : RealNstepsBelow (2 ^ 28) n
       ([etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅], ((σ, g) : CfgState))
       κs (t2, σ2))
-    (Hn : n + 12 ≤ 2 ^ 40) :
+    (Hn : n + 1 ≤ 2 ^ 48) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=

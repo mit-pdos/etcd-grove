@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.validation
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.api.validate.content
 
 @[expose] public section
 noncomputable section

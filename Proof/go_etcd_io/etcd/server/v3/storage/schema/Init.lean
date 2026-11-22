@@ -7,8 +7,9 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
-2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+(`auth.go`; the auth plan's S1, 2026-10-23), the lessor's `Lease` bucket (leases T3,
+2026-10-25) and the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
+2026-11-22). Its initializer allocates and sets those translated variables (with the buckets'
 names), initializes its imports and runs its other variables' initializers, all translated
 (prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
 interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated
@@ -23,6 +24,7 @@ public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.version.Init
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.Init
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init

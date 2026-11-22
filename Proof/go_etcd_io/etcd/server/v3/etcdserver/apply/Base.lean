@@ -54,6 +54,8 @@ public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
 -- (wal-link L2, 2026-11-17) `server/v3/storage` imports the WAL since its storage has bodies
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Proof.net.url.PkgInit
+-- (bkarea, 2026-11-22) `config` imports `storage/datadir` (`ServerConfig.BackendPath`)
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.PkgInit
 
 @[expose] public section
 

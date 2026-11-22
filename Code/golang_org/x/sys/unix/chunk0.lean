@@ -22351,53 +22351,8 @@ opaque IPMICTL_SEND_COMMAND [GooseExts] [GoGlobalContext] : val
 
 opaque IPMICTL_RECEIVE_MSG [GooseExts] [GoGlobalContext] : val
 
-noncomputable def fcntl64Syscall [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.fcntl64Syscall"
-
-opaque fcntl64Syscall.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def mapper [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.mapper"
-
-opaque mapper.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def _zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/sys/unix._zero"
-
-noncomputable def socketProtocol [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.socketProtocol"
-
-opaque socketProtocol.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Stdin [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.Stdin"
-
-opaque Stdin.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Stdout [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.Stdout"
-
-opaque Stdout.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def Stderr [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.Stderr"
-
-opaque Stderr.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errEAGAIN [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.errEAGAIN"
-
-opaque errEAGAIN.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errEINVAL [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.errEINVAL"
-
-opaque errEINVAL.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errENOENT [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.errENOENT"
-
-opaque errENOENT.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def signalNameMapOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/sys/unix.signalNameMapOnce"
@@ -22410,16 +22365,6 @@ noncomputable def SocketDisableIPv6 [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def ioSync [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/sys/unix.ioSync"
-
-noncomputable def errorList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.errorList"
-
-opaque errorList.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def signalList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"golang.org/x/sys/unix.signalList"
-
-opaque signalList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def schedAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/sys/unix.schedAffinity"
@@ -24068,6 +24013,69 @@ noncomputable def kexecFileLoad [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Alarm [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/sys/unix.Alarm"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `fcntl64Syscall` (`var fcntl64Syscall uintptr = SYS_FCNTL`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `mapper` (`var mapper = &mremapMmapper{ mmapper: mmapper{ active: make(map[*byte][]byte), mmap: mmap, munmap: munmap, }, mremap: mr … [sha256:194ea9f66d865871]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `socketProtocol` (`var socketProtocol = func(fd int) (int, error) { return GetsockoptInt(fd, SOL_SOCKET, SO_PROTOCOL) }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Stdin` (`var Stdin = 0`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Stdout` (`var Stdout = 1`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `Stderr` (`var Stderr = 2`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errEAGAIN` (`var errEAGAIN error = syscall.EAGAIN`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errEINVAL` (`var errEINVAL error = syscall.EINVAL`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errENOENT` (`var errENOENT error = syscall.ENOENT`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `errorList` (`var errorList = [...]struct { num syscall.Errno name string desc string }{ {1, "EPERM", "operation not permitted"}, {2,  … [sha256:bb473e88770a8ddb]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `signalList` (`var signalList = [...]struct { num syscall.Signal name string desc string }{ {1, "SIGHUP", "hangup"}, {2, "SIGINT", "int … [sha256:8f7291c12a6d349a]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"golang.org/x/sys/unix.fcntl64Syscall", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var fcntl64Syscall uintptr = SYS_FCNTL"⟩,
+  ⟨"golang.org/x/sys/unix.mapper", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var mapper = &mremapMmapper{ mmapper: mmapper{ active: make(map[*byte][]byte), mmap: mmap, munmap: munmap, }, mremap: mr … [sha256:194ea9f66d865871]"⟩,
+  ⟨"golang.org/x/sys/unix.socketProtocol", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var socketProtocol = func(fd int) (int, error) { return GetsockoptInt(fd, SOL_SOCKET, SO_PROTOCOL) }"⟩,
+  ⟨"golang.org/x/sys/unix.Stdin", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Stdin = 0"⟩,
+  ⟨"golang.org/x/sys/unix.Stdout", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Stdout = 1"⟩,
+  ⟨"golang.org/x/sys/unix.Stderr", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var Stderr = 2"⟩,
+  ⟨"golang.org/x/sys/unix.errEAGAIN", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errEAGAIN error = syscall.EAGAIN"⟩,
+  ⟨"golang.org/x/sys/unix.errEINVAL", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errEINVAL error = syscall.EINVAL"⟩,
+  ⟨"golang.org/x/sys/unix.errENOENT", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errENOENT error = syscall.ENOENT"⟩,
+  ⟨"golang.org/x/sys/unix.errorList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var errorList = [...]struct { num syscall.Errno name string desc string }{ {1, \"EPERM\", \"operation not permitted\"}, {2,  … [sha256:bb473e88770a8ddb]"⟩,
+  ⟨"golang.org/x/sys/unix.signalList", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var signalList = [...]struct { num syscall.Signal name string desc string }{ {1, \"SIGHUP\", \"hangup\"}, {2, \"SIGINT\", \"int … [sha256:8f7291c12a6d349a]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.sys.unix where
   pkgImportedPkgs := [pkg_id.syscall]
 
@@ -24077,41 +24085,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.golang_org.x.sys.unix)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val signalList.init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val errorList.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val socketProtocol.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val mapper.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errENOENT.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errEINVAL.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val errEAGAIN.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Stderr.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Stdout.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val Stdin.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val fcntl64Syscall.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.syscall.initialize') (Val #())))))))
 
 opaque CPUSet.nonempty_type : NonemptyType.{0}
 def CPUSet : Type := CPUSet.nonempty_type.type

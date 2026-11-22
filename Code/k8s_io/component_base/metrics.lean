@@ -422,46 +422,11 @@ opaque UntypedValue [GooseExts] [GoGlobalContext] : val
 
 opaque versionRegexpString [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefBuckets [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.DefBuckets"
-
-opaque DefBuckets.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def processStartedAt [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.processStartedAt"
 
-noncomputable def noopCounterVec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.noopCounterVec"
-
-opaque noopCounterVec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noopHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.noopHistogramVec"
-
-opaque noopHistogramVec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noopTimingHistogramVec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.noopTimingHistogramVec"
-
-opaque noopTimingHistogramVec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noopGaugeVec [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.noopGaugeVec"
-
-opaque noopGaugeVec.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def noop [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.noop"
-
-opaque noop.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def disabledMetricsLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.disabledMetricsLock"
-
-noncomputable def disabledMetrics [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.disabledMetrics"
-
-opaque disabledMetrics.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def showHiddenOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.showHiddenOnce"
@@ -469,69 +434,14 @@ noncomputable def showHiddenOnce [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def showHidden [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.showHidden"
 
-noncomputable def disabledMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.disabledMetricsTotal"
-
-opaque disabledMetricsTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def hiddenMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.hiddenMetricsTotal"
-
-opaque hiddenMetricsTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def cardinalityEnforcementUnexpectedCategorizationsTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.cardinalityEnforcementUnexpectedCategorizationsTotal"
-
-opaque cardinalityEnforcementUnexpectedCategorizationsTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def labelValueAllowLists [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.labelValueAllowLists"
-
-opaque labelValueAllowLists.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def allowListLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.allowListLock"
-
-noncomputable def defObjectives [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.defObjectives"
-
-opaque defObjectives.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def processStartTime [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.processStartTime"
-
-opaque processStartTime.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def registries [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.registries"
 
 noncomputable def registriesLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.registriesLock"
-
-noncomputable def registeredMetricsTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.registeredMetricsTotal"
-
-opaque registeredMetricsTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def BuildVersion [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.BuildVersion"
-
-opaque BuildVersion.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def buildInfo [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.buildInfo"
-
-opaque buildInfo.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def versionRe [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.versionRe"
-
-opaque versionRe.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def errNotRegistered [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/component-base/metrics.errNotRegistered"
-
-opaque errNotRegistered.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def LinearBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.LinearBuckets"
@@ -671,119 +581,154 @@ noncomputable def parseVersion [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrIsNotRegistered [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/metrics.ErrIsNotRegistered"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `DefBuckets` (`var DefBuckets = prometheus.DefBuckets`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@collector.go:190` (`var _ StableCollector = &BaseStableCollector{}`): An interface check: `&BaseStableCollector{}` converted to `StableCollector`. No call, no panic, no
+effect.
+- `_@counter.go:40` (`var _ Metric = &Counter{}`): An interface check: `&Counter{}` converted to `Metric`. No call, no panic, no effect.
+- `_@counter.go:141` (`var _ kubeCollector = &CounterVec{}`): An interface check: `&CounterVec{}` converted to `kubeCollector`. No call, no panic, no effect.
+- `_@counter.go:142` (`var _ CounterVecMetric = &CounterVec{}`): An interface check: `&CounterVec{}` converted to `CounterVecMetric`. No call, no panic, no effect.
+- `_@gauge.go:38` (`var _ GaugeMetric = &Gauge{}`): An interface check: `&Gauge{}` converted to `GaugeMetric`. No call, no panic, no effect.
+- `_@gauge.go:39` (`var _ Registerable = &Gauge{}`): An interface check: `&Gauge{}` converted to `Registerable`. No call, no panic, no effect.
+- `_@gauge.go:40` (`var _ kubeCollector = &Gauge{}`): An interface check: `&Gauge{}` converted to `kubeCollector`. No call, no panic, no effect.
+- `_@gauge.go:97` (`var _ GaugeVecMetric = &GaugeVec{}`): An interface check: `&GaugeVec{}` converted to `GaugeVecMetric`. No call, no panic, no effect.
+- `_@gauge.go:98` (`var _ Registerable = &GaugeVec{}`): An interface check: `&GaugeVec{}` converted to `Registerable`. No call, no panic, no effect.
+- `_@gauge.go:99` (`var _ kubeCollector = &GaugeVec{}`): An interface check: `&GaugeVec{}` converted to `kubeCollector`. No call, no panic, no effect.
+- `noopCounterVec` (`var noopCounterVec = &prometheus.CounterVec{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `noopHistogramVec` (`var noopHistogramVec = &prometheus.HistogramVec{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `noopTimingHistogramVec` (`var noopTimingHistogramVec = &promext.TimingHistogramVec{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `noopGaugeVec` (`var noopGaugeVec = &prometheus.GaugeVec{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `noop` (`var noop = &noopMetric{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `disabledMetrics` (`var disabledMetrics = map[string]struct{}{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `disabledMetricsTotal` (`var disabledMetricsTotal = NewCounter( &CounterOpts{ Name: "disabled_metrics_total", Help: "The count of disabled metric … [sha256:a3c8e9f20bbff9f8]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `hiddenMetricsTotal` (`var hiddenMetricsTotal = NewCounter( &CounterOpts{ Name: "hidden_metrics_total", Help: "The count of hidden metrics.", S … [sha256:e02424c651355205]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `cardinalityEnforcementUnexpectedCategorizationsTotal` (`var cardinalityEnforcementUnexpectedCategorizationsTotal = NewCounter( &CounterOpts{ Name: "cardinality_enforcement_unex … [sha256:07db410d8941402b]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `labelValueAllowLists` (`var labelValueAllowLists = map[string]*MetricLabelAllowList{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `defObjectives` (`var defObjectives = map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `processStartTime` (`var processStartTime = NewGaugeVec( &GaugeOpts{ Name: "process_start_time_seconds", Help: "Start time of the process sin … [sha256:46ace13245bfe3a6]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `registeredMetricsTotal` (`var registeredMetricsTotal = NewCounterVec( &CounterOpts{ Name: "registered_metrics_total", Help: "The count of register … [sha256:d3950d164cdbb2e3]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `BuildVersion` (`var BuildVersion = version.Get`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@timing_histogram.go:44` (`var _ GaugeMetric = &TimingHistogram{}`): An interface check: `&TimingHistogram{}` converted to `GaugeMetric`. No call, no panic, no effect.
+- `_@timing_histogram.go:45` (`var _ Registerable = &TimingHistogram{}`): An interface check: `&TimingHistogram{}` converted to `Registerable`. No call, no panic, no effect.
+- `_@timing_histogram.go:46` (`var _ kubeCollector = &TimingHistogram{}`): An interface check: `&TimingHistogram{}` converted to `kubeCollector`. No call, no panic, no effect.
+- `_@timing_histogram.go:113` (`var _ GaugeVecMetric = &TimingHistogramVec{}`): An interface check: `&TimingHistogramVec{}` converted to `GaugeVecMetric`. No call, no panic, no
+effect.
+- `_@timing_histogram.go:114` (`var _ Registerable = &TimingHistogramVec{}`): An interface check: `&TimingHistogramVec{}` converted to `Registerable`. No call, no panic, no
+effect.
+- `_@timing_histogram.go:115` (`var _ kubeCollector = &TimingHistogramVec{}`): An interface check: `&TimingHistogramVec{}` converted to `kubeCollector`. No call, no panic, no
+effect.
+- `buildInfo` (`var buildInfo = NewGaugeVec( &GaugeOpts{ Name: "kubernetes_build_info", Help: "A metric with a constant '1' value labele … [sha256:1017688e62e4aeb0]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `versionRe` (`var versionRe = regexp.MustCompile(versionRegexpString)`): Its initializer calls, besides literals of constants and other variables' values:
+`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and
+these compile: Go runs the initializer at every start of every program importing the package);
+compilation terminates. So it terminates, cannot panic and has no effect beyond its variable.
+- `errNotRegistered` (`var errNotRegistered = errors.New("metric vec is not registered yet")`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/component-base/metrics.DefBuckets", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var DefBuckets = prometheus.DefBuckets"⟩,
+  ⟨"k8s.io/component-base/metrics._@collector.go:190", "An interface check: `&BaseStableCollector{}` converted to `StableCollector`. No call, no panic, no\neffect.", "var _ StableCollector = &BaseStableCollector{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@counter.go:40", "An interface check: `&Counter{}` converted to `Metric`. No call, no panic, no effect.", "var _ Metric = &Counter{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@counter.go:141", "An interface check: `&CounterVec{}` converted to `kubeCollector`. No call, no panic, no effect.", "var _ kubeCollector = &CounterVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@counter.go:142", "An interface check: `&CounterVec{}` converted to `CounterVecMetric`. No call, no panic, no effect.", "var _ CounterVecMetric = &CounterVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@gauge.go:38", "An interface check: `&Gauge{}` converted to `GaugeMetric`. No call, no panic, no effect.", "var _ GaugeMetric = &Gauge{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@gauge.go:39", "An interface check: `&Gauge{}` converted to `Registerable`. No call, no panic, no effect.", "var _ Registerable = &Gauge{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@gauge.go:40", "An interface check: `&Gauge{}` converted to `kubeCollector`. No call, no panic, no effect.", "var _ kubeCollector = &Gauge{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@gauge.go:97", "An interface check: `&GaugeVec{}` converted to `GaugeVecMetric`. No call, no panic, no effect.", "var _ GaugeVecMetric = &GaugeVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@gauge.go:98", "An interface check: `&GaugeVec{}` converted to `Registerable`. No call, no panic, no effect.", "var _ Registerable = &GaugeVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@gauge.go:99", "An interface check: `&GaugeVec{}` converted to `kubeCollector`. No call, no panic, no effect.", "var _ kubeCollector = &GaugeVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics.noopCounterVec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var noopCounterVec = &prometheus.CounterVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics.noopHistogramVec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var noopHistogramVec = &prometheus.HistogramVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics.noopTimingHistogramVec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var noopTimingHistogramVec = &promext.TimingHistogramVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics.noopGaugeVec", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var noopGaugeVec = &prometheus.GaugeVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics.noop", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var noop = &noopMetric{}"⟩,
+  ⟨"k8s.io/component-base/metrics.disabledMetrics", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var disabledMetrics = map[string]struct{}{}"⟩,
+  ⟨"k8s.io/component-base/metrics.disabledMetricsTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var disabledMetricsTotal = NewCounter( &CounterOpts{ Name: \"disabled_metrics_total\", Help: \"The count of disabled metric … [sha256:a3c8e9f20bbff9f8]"⟩,
+  ⟨"k8s.io/component-base/metrics.hiddenMetricsTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var hiddenMetricsTotal = NewCounter( &CounterOpts{ Name: \"hidden_metrics_total\", Help: \"The count of hidden metrics.\", S … [sha256:e02424c651355205]"⟩,
+  ⟨"k8s.io/component-base/metrics.cardinalityEnforcementUnexpectedCategorizationsTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var cardinalityEnforcementUnexpectedCategorizationsTotal = NewCounter( &CounterOpts{ Name: \"cardinality_enforcement_unex … [sha256:07db410d8941402b]"⟩,
+  ⟨"k8s.io/component-base/metrics.labelValueAllowLists", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var labelValueAllowLists = map[string]*MetricLabelAllowList{}"⟩,
+  ⟨"k8s.io/component-base/metrics.defObjectives", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defObjectives = map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001}"⟩,
+  ⟨"k8s.io/component-base/metrics.processStartTime", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var processStartTime = NewGaugeVec( &GaugeOpts{ Name: \"process_start_time_seconds\", Help: \"Start time of the process sin … [sha256:46ace13245bfe3a6]"⟩,
+  ⟨"k8s.io/component-base/metrics.registeredMetricsTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var registeredMetricsTotal = NewCounterVec( &CounterOpts{ Name: \"registered_metrics_total\", Help: \"The count of register … [sha256:d3950d164cdbb2e3]"⟩,
+  ⟨"k8s.io/component-base/metrics.BuildVersion", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var BuildVersion = version.Get"⟩,
+  ⟨"k8s.io/component-base/metrics._@timing_histogram.go:44", "An interface check: `&TimingHistogram{}` converted to `GaugeMetric`. No call, no panic, no effect.", "var _ GaugeMetric = &TimingHistogram{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@timing_histogram.go:45", "An interface check: `&TimingHistogram{}` converted to `Registerable`. No call, no panic, no effect.", "var _ Registerable = &TimingHistogram{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@timing_histogram.go:46", "An interface check: `&TimingHistogram{}` converted to `kubeCollector`. No call, no panic, no effect.", "var _ kubeCollector = &TimingHistogram{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@timing_histogram.go:113", "An interface check: `&TimingHistogramVec{}` converted to `GaugeVecMetric`. No call, no panic, no\neffect.", "var _ GaugeVecMetric = &TimingHistogramVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@timing_histogram.go:114", "An interface check: `&TimingHistogramVec{}` converted to `Registerable`. No call, no panic, no\neffect.", "var _ Registerable = &TimingHistogramVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics._@timing_histogram.go:115", "An interface check: `&TimingHistogramVec{}` converted to `kubeCollector`. No call, no panic, no\neffect.", "var _ kubeCollector = &TimingHistogramVec{}"⟩,
+  ⟨"k8s.io/component-base/metrics.buildInfo", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var buildInfo = NewGaugeVec( &GaugeOpts{ Name: \"kubernetes_build_info\", Help: \"A metric with a constant '1' value labele … [sha256:1017688e62e4aeb0]"⟩,
+  ⟨"k8s.io/component-base/metrics.versionRe", "Its initializer calls, besides literals of constants and other variables' values:\n`regexp.MustCompile` of a constant pattern compiles it (it panics only on an invalid pattern, and\nthese compile: Go runs the initializer at every start of every program importing the package);\ncompilation terminates. So it terminates, cannot panic and has no effect beyond its variable.", "var versionRe = regexp.MustCompile(versionRegexpString)"⟩,
+  ⟨"k8s.io/component-base/metrics.errNotRegistered", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var errNotRegistered = errors.New(\"metric vec is not registered yet\")"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.metrics where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_base.metrics)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val errNotRegistered.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val versionRe.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val buildInfo.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val BuildVersion.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val registeredMetricsTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val processStartTime.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val defObjectives.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val labelValueAllowLists.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val cardinalityEnforcementUnexpectedCategorizationsTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val hiddenMetricsTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val disabledMetricsTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val disabledMetrics.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noop.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noopGaugeVec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noopTimingHistogramVec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noopHistogramVec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val noopCounterVec.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val DefBuckets.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
 opaque StableCollector.nonempty_type : NonemptyType.{0}
 def StableCollector : Type := StableCollector.nonempty_type.type

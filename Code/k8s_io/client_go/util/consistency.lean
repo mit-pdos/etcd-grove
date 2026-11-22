@@ -652,10 +652,22 @@ noncomputable def NewNoopConsistencyStore.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore ConsistencyStore.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad ConsistencyStore.ty))) (Var "$res0")))))
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@consistency.go:64` (`var _ ConsistencyStore = &consistencyStore{}`): An interface check: `&consistencyStore{}` converted to `ConsistencyStore`. No call, no panic, no
+effect.
+- `_@consistency.go:234` (`var _ ConsistencyStore = &noopConsistencyStore{}`): An interface check: `&noopConsistencyStore{}` converted to `ConsistencyStore`. No call, no panic, no
+effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/client-go/util/consistency._@consistency.go:64", "An interface check: `&consistencyStore{}` converted to `ConsistencyStore`. No call, no panic, no\neffect.", "var _ ConsistencyStore = &consistencyStore{}"⟩,
+  ⟨"k8s.io/client-go/util/consistency._@consistency.go:234", "An interface check: `&noopConsistencyStore{}` converted to `ConsistencyStore`. No call, no panic, no\neffect.", "var _ ConsistencyStore = &noopConsistencyStore{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.consistency where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.sync, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.resourceversion]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -665,14 +677,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val «_».init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.fmt.initialize') (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)

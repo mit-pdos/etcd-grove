@@ -44,7 +44,6 @@ axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
@@ -92,7 +91,6 @@ axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
-axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
@@ -146,7 +144,6 @@ axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
-axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
@@ -169,11 +166,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
-axiom v2stats.FollowerStats.Succ.wp_proof
-axiom v2stats.NewServerStats.wp_proof
-axiom v2stats.ServerStats.BecomeLeader.wp_proof
-axiom v2stats.ServerStats.RecvAppendReq.wp_proof
-axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak

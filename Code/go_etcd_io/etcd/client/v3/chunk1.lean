@@ -495,6 +495,7 @@ class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_dialSetupOpts_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"dialSetupOpts" Client.dialSetupOpts.impl
   ptr_getToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"getToken" Client.getToken.impl
   ptr_refreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"refreshToken" Client.refreshToken.impl
+  ptr_roundRobinQuorumBackoff_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"roundRobinQuorumBackoff" Client.roundRobinQuorumBackoff.impl
   ptr_shouldRefreshToken_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"shouldRefreshToken" Client.shouldRefreshToken.impl
   ptr_unaryClientInterceptor_unfold : MethodUnfold (go.GoType.PointerType Client.ty) go!"unaryClientInterceptor" Client.unaryClientInterceptor.impl
 
@@ -563,6 +564,7 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_dialSetupOpts_unfold
   Client.TypeAssumptions.ptr_getToken_unfold
   Client.TypeAssumptions.ptr_refreshToken_unfold
+  Client.TypeAssumptions.ptr_roundRobinQuorumBackoff_unfold
   Client.TypeAssumptions.ptr_shouldRefreshToken_unfold
   Client.TypeAssumptions.ptr_unaryClientInterceptor_unfold
 

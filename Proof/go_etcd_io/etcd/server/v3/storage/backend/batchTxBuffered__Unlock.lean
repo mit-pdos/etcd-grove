@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadSide
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvCommit
 public import Proof.go_etcd_io.raft.v3.FrameH
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
 import all Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
@@ -63,6 +64,7 @@ local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
       · iframe Hv
         iexists _, _, u0
         iframe
+        iframe #
         ipureintro
         exact $hb
       isplitr
@@ -102,6 +104,7 @@ local macro "bu_free0" hb:term:max hf:term:max : tactic => `(tactic| (
         iframe Hv
         iexists _, _, u0
         iframe
+        iframe #
         ipureintro
         exact $hb
       isplitr
@@ -135,6 +138,8 @@ local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| 
           iframe Hv
           iexists n - 1, w + 1, u0
           iframe
+          isplitl []
+          · first | iexact HbrW2 | iexact Hbrw
           ipureintro
           exact hbg' false (fun h => by cases h)
         · ipureintro
@@ -183,6 +188,7 @@ local macro "bu_release" : tactic => `(tactic| (
       ileft
       iexists st2, db2
       iframe
+      iframe #
       ipureintro
       exact Hfin.1
     iapply HΦ
@@ -220,7 +226,8 @@ private theorem unlock_coreC
   unfold batchLockedW batchGhostW
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Hl with ⟨%t1, %db, #Ht1, Hown, Hph, ⟨Hv, %n, %w, %u0, Hrvs, Ha, Hmo, Hus, Hopn, Hhkd, Hfkh,
-    %Hbg⟩, %Hwf⟩
+    #Hbr, %Hbg⟩, %Hwf⟩
+  ihave #Hbrw := bufRc_wbSt P st $$ Hbr
   icombine Ht Ht1 gives %Heq1
   subst Heq1
   -- (A1.5) the write-back keeps a claimed write only on a bucket it leaves deleted from
@@ -271,7 +278,7 @@ private theorem unlock_coreC
       imod ownTokAuth_sub 1 γ.wb n $$ Ha Htok with Ha
       imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
-      have hbb := bgOk_bufBound HP Hwf Hbg
+      ihave %hbb := bufRc_bufBound st $$ Hbr
       wp_apply (hWB (wbOf t) st.W (rbufOf (backend.baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
         as ⟨HW, HRB⟩
       have hver : uint.Z st.R.ver + 1 < 2 ^ 64 := by
@@ -354,7 +361,7 @@ private theorem unlock_coreC
       imod ownTokAuth_sub 1 γ.wb n $$ Ha Htok with Ha
       imod mono_nat_own_update (w + 1) (by omega) $$ Hmo with ⟨Hmo, #Hlb1⟩
       icases rtRes_wb_open γ P rt st.C st.R $$ [$Hrr $Hrvs] with ⟨HRB, %HRok, Hwb, Hrvs⟩
-      have hbb := bgOk_bufBound HP Hwf Hbg
+      ihave %hbb := bufRc_bufBound st $$ Hbr
       wp_apply (hWB (wbOf t) st.W (rbufOf (backend.baseOf rt)) st.R Hwf.1 Hwf.2.1 (fun i => hbb i)) $$ [$HW $HRB]
         as ⟨HW, HRB⟩
       have hver : uint.Z st.R.ver + 1 < 2 ^ 64 := by
@@ -396,12 +403,18 @@ private theorem unlock_coreC
         wp_if_destruct
         · ihave HWc : iprop(bView γ 1 (relog P vd st) -∗ W ∗ Q) $$ [HQw]
           · iexact HQw
+          have hbrW2 : bufRc (GF := GF) (wbSt P st) ⊢ bufRc { C := st.C, S := st.S, R := writebackR st.W st.R, W := writebackW st.W st.R, pend := st.pend, ndel := st.ndel, tx := st.tx, cnt := (wbSt P st).cnt, dl := (wbSt P st).dl, win := true, tk := (wbSt P st).tk, cw := (wbSt P st).cw } :=
+            bufRc_congr rfl rfl
+          ihave #HbrW2 := hbrW2 $$ Hbrw
           bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
           icases HWc $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release
         wp_if_destruct
         · ihave HWc : iprop(bView γ 1 (relog P vd st) -∗ W ∗ Q) $$ [HQw]
           · iexact HQw
+          have hbrW2 : bufRc (GF := GF) (wbSt P st) ⊢ bufRc { C := st.C, S := st.S, R := writebackR st.W st.R, W := writebackW st.W st.R, pend := st.pend, ndel := st.ndel, tx := st.tx, cnt := (wbSt P st).cnt, dl := (wbSt P st).dl, win := true, tk := (wbSt P st).tk, cw := (wbSt P st).cw } :=
+            bufRc_congr rfl rfl
+          ihave #HbrW2 := hbrW2 $$ Hbrw
           bu_commit ({ wbSt P st with win := true }) true (relog P vd st)
           icases HWc $$ Hbv2 with ⟨HWv, HQ⟩
           bu_release

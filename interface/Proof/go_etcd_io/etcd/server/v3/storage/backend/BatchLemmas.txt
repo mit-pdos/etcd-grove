@@ -46,10 +46,6 @@ theorem backend.sessWf_C_in_S {P : backend.BParams} {st : backend.BSess} {n kc v
     backend.sessWf P st) (hn0 : st.ndel = W64 0) (hHB : P.HB n = false) (hc : backend.bktOf st.C n
     !! kc = some vc) : ∃ vs, backend.bktOf st.S n !! kc = some vs
 
-theorem backend.bgOk_bufBound {P : backend.BParams} {st : backend.BSess} {free : Bool} {n w u : Nat}
-    (hP : P.Wf) (hst : backend.sessWf P st) (h : backend.bgOk P st free n w u) (i : w64) :
-    (backend.bkOf st.R.bks i).length + (backend.bkOf st.W.bks i).length < backend.bufBound
-
 theorem backend.hkData_put_other {P : backend.BParams} (st : backend.BSess) (bi :
     backend.BucketInfo) (kb vb : GoString) (seq : Bool) (h : P.hk bi.name kb = false) :
     backend.hkData P (st.put bi kb vb seq).S = backend.hkData P st.S

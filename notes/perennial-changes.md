@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
+
+- **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a
+  trust-boundary axiom after the IEEE 754 floats (perennial#654).
+- **Who needs it.** `v2stats.FollowerStats.Succ.wp_proof` (branch `prove-ps2-succ/2026-11-22`: proved, landed with
+  the pin).
+- **Proposed change.** perennial#675 (merged, branch `math-sqrt`): `Sqrt`, `Float64bits`/`Float64frombits` (the
+  `unsafe.Pointer` views, under the plain-memory rules), `IsNaN`, `IsInf`, `Abs`, `NaN` translated with specs and
+  proofs; `sqrt` trusted as an arbitrary float, because gc compiles it to `SQRTSD` (a compiler intrinsic), whose NaNs
+  differ from the Go body's (measured: `Sqrt(-1)` is `0xfff8000000000000`, the body's `0x7ff8000000000001`), so
+  translating the body would be unfaithful.
+- **Status.** Done: merged, pinned at Perennial `74471ecd8` (2026-11-22).
+
 ### The robustness theorems' standard-library leaf axioms: what the pinned Perennial lacks (2026-11-21, claim #26, branch `prove-stdlib-leaves/2026-11-21`)
 
 - **Done here, no Perennial change.** `bufferM.ownBuffer_new` is a theorem, `ownBuffer` a definition
@@ -47,6 +60,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
     `syscall.Getpagesize` = 4096 on linux/amd64);
   - `math.Ceil`: `math` translates only its tables (and `FloatOps` has no laws);
   - `rand.Int63n`: `math/rand` is names-only (`globalRand`, its lock and source);
+  - (2026-11-22, prove-ps2-rqb) `rand.Float64`, likewise (client/v3's `jitterUp`: the trust-boundary
+    axiom `rand.Float64.wp_proof`, `Proof/math/rand/Float64.lean`);
   - `sort.SliceIsSorted`: names-only, through `reflectlite.ValueOf(x).Len()` (the entry below);
   - `context.WithValue`: `context.toml` excludes it (`reflectlite.TypeOf(key).Comparable()`);
   - `context.WithCancelValCtx`: `WithCancel` of etcd's `valCtx` takes `propagateCancel`'s last
@@ -3649,6 +3664,25 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `zap.Time.wp_proof` and `EtcdServer.ensureLeadership.wp_proof` (written and checked against it but the
   `Location` call) retired `EtcdServer.ensureLeadership.wp_proof` (2026-11-22, `prove-srvloops2b`).
 
+## 2026-11-21: Goose refuses unnamed struct types with field tags (v2stats' `ServerStats`)
+
+- **The gap.** Goose refused an unnamed struct type whose fields have tags (`glangType`, `anonStructOf`,
+  `translate_types`' `util/autotypes.go`): tags are part of such a type's identity in Go and `go.field_decl`
+  had no tag, so dropping them would identify types Go distinguishes. etcd's `v2stats.serverStats.LeaderInfo`
+  is one, so `NewServerStats` and `ServerStats`' `RecvAppendReq`, `SendAppendReq`, `BecomeLeader` were
+  trust-boundary axioms (and `serverStats` an opaque type).
+- **Proposed (general).** mit-pdos/perennial#651 (the design), PR mit-pdos/perennial#655, revised after
+  upamanyus' review (2026-11-22): a tag on every field declaration, as Go's `FieldDecl = (IdentifierList Type |
+  EmbeddedField) [Tag]`: `go.field_decl.Field`/`Embedded name type tag` (the empty tag when there is none, which
+  Go does not tell from an absent one), with `FieldDecl`/`EmbeddedField name type` the `match_pattern`
+  shorthands for the untagged field, which goose writes as before; tagged fields of unnamed struct types are
+  written `Field name type "tag"`. The semantics, `Countable`, the type fingerprint and the struct tactics ignore
+  the tag. A defined struct type's underlying type stays untagged, and no tag-ignoring conversion rule: such
+  conversions are stuck (Perennial's `docs/KNOWN_LIMITATIONS.md`). Only v2stats has tagged fields in this
+  repository's translations. **Status.** PR open (head `fdce65a04`); etcd-grove's side on
+  `prove-ps2-v2stats/2026-11-21`, regenerated with it (`etc/goose.py --perennial`) and its v2stats and rafthttp
+  modules built against it (`--packages`); waits for the pin bump.
+
 ## 2026-11-20: goose imports a vendored package by its import path (the net/http model, phase 5.2 of `notes/dsverify-net-port-plan.md`, branch `models-rpc-http-lean`)
 
 - **The gap.** net/http imports `golang.org/x/net/http/httpguts`, which the toolchain vendors as
@@ -3706,7 +3740,7 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `Debug`, `jitterUp`'s `rand.Float64` and float operations, have specs).
 - **Worked around locally.** Not: the axiom stays (prove-ps2-client, 2026-11-22).
 - **Proposed (general).** mit-pdos/perennial#675 (prove-ps2-succ's, in review) translates `Float64bits` and
-  `Float64frombits` with specs. **Status.** Waits for #675 and a pin bump.
+  `Float64frombits` with specs. **Status.** #675 merged and pinned (`74471ecd8`, 2026-11-22); the axiom can now be proved.
 
 ## 2026-11-22: `%+v` of a map is arbitrary in the `fmt` model (`clientv3.streamKeyFromCtx`)
 
@@ -3742,11 +3776,23 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Status.** Proposed only (2026-11-22). To be designed with the single-node change as one Perennial
   branch.
 
+## 2026-11-22: goose `[[skip]]` cannot name a blank variable of a cgo-generated file (`net`; #23, branch `prove-ps2-skip/2026-11-22`)
+
+- **Limitation.** perennial#669 names a blank package variable by `"_@file.go:L"`
+  (`declfilter.BlankName`, `blankNameRx = ^_@[^/:@]+\.go:L$`), and a package that skips one must
+  list all of them. `net` (translated with cgo) has a blank in a cgo-generated file, which the build
+  cache names by a hash without `.go` (`var _ syscall.Errno`, reported as
+  `_@1c315fb5…d355-d:15`): goose demands that name be listed, and the config parser refuses it.
+- **Workaround here.** `net`'s blank variables are not skipped (its other variables are): its four
+  `«_».init`s stay in `net.opaqueInitsOk`.
+- **Proposed.** Name a blank of a generated file by the position its `//line` directive gives (the
+  cgo source, `cgo_unix_cgo.go`), or accept the build-cache name (any base name) in `blankNameRx`.
+- **Status.** Not filed yet.
 **Update (2026-11-22, kvnet's top level, branch `kvnet-proof`):** kvnet needs, besides the extensions' local
 interpretation before each generation's WP, **one later credit in the crash obligation** (`£ 1`, or a step): the
 crash opens the generation's file invariant (allocated at the boot) and must take its contents (raft's sealed
 `raftState`, `kdFileState`) without the later. The coordinator routed both to a Perennial session (branch
-`crash-genstart`, PR pending). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
+`crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
 

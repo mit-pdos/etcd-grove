@@ -20,7 +20,10 @@ translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
   "sinkRegistry.RegisterSink", "normalizeScheme",
   # (prove-srvloops2, 2026-11-21) `Time` (`ensureLeadership`'s debug log) and the bounds it compares
   # with, `_minTimeInt64`/`_maxTimeInt64` (`time.Unix`, translated in Perennial since then)
-  "Time", "_minTimeInt64", "_maxTimeInt64"]
+  "Time", "_minTimeInt64", "_maxTimeInt64",
+  # (prove-ps2-rqb, 2026-11-22) `Float64` (`roundRobinQuorumBackoff`'s debug log; `math.Float64bits`,
+  # translated in Perennial since #675)
+  "Float64"]
 # zapcore so that the generic `anyFieldC[T]` (a function type returning `zapcore.Field`) is
 # translated: Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which
 # does not elaborate (the Lean name is go.GoType).

@@ -952,7 +952,7 @@ theorem EtcdServer.run.wp_proofG
   ihave #Hrf' := Hrf
   iunfold srvRunFieldsAt at Hrf'
   icases Hrf' with ⟨#Hecf, ⟨%γe, #Hecb⟩, #Hscf, #Hscb, #Hdcf, #Hcff, #Hcfs, #Hcpf, #Hcpok, #Hstf,
-    #Hlcf, #Hlcn, #Hltg, #Hcinv, #Hgok⟩
+    #Hssi, #Hlcf, #Hlcn, #Hltg, #Hcinv, #Hgok⟩
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'
   iNamed Hrn'

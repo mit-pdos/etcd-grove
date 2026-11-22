@@ -31,3 +31,45 @@ trusted = ["init.0"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
+# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
+# translated code, so no verified code reads them; each reason says why not running the
+# initializer is unobservable.
+[[skip]]
+names = ["rmNamesForMemStatsMetrics", "nativeHistogramBounds", "DefBuckets", "separatorByteSlice",
+  "labelsPool", "V2"]
+reason = """
+Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable."""
+
+[[skip]]
+names = ["errBucketLabelNotAllowed", "errQuantileLabelNotAllowed"]
+reason = """
+Their initializers call, besides literals of constants and other variables' values: `fmt.Errorf` of
+a constant format and constant arguments allocates the formatted error (fmt recovers a panic of a
+formatting method; the arguments have none). So each terminates, cannot panic and has no effect
+beyond its variable."""
+
+[[skip]]
+names = ["errInconsistentCardinality"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
+constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
+variable."""
+
+[[skip]]
+names = ["CounterMetricTypePtr", "GaugeMetricTypePtr", "UntypedMetricTypePtr"]
+reason = """
+`func() *dto.MetricType { d := dto.MetricType_X; return &d }()` (the three `*MetricTypePtr`): each
+allocates a constant and returns its address: no panic, no effect beyond its variable."""
+
+[[skip]]
+names = ["_@registry.go:1039"]
+reason = """
+An interface check: `&MultiTRegistry{}` converted to `TransactionalGatherer`. No call, no panic, no
+effect."""
+# --- end of skipped package variables ---

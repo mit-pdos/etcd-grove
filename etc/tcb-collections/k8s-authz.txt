@@ -11,12 +11,8 @@
 # `#print axioms Perennial.EtcdGrove.k8s_authz.k8s_authz_robust`, not yet by --check --update.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/(Results|TopLevelRobustness)\.lean$
 axiom Perennial.encoding.json.initFuncsOk
-axiom Perennial.encoding.json.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.runtime.opaqueInitsOk
-axiom Perennial.k8s_io.apimachinery.pkg.util.validation.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
-axiom Perennial.net.http.opaqueInitsOk
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.SprintfSlice.wp_proof
 axiom rand.Int63n.wp_proof

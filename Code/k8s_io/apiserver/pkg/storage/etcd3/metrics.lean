@@ -69,93 +69,8 @@ opaque timestampedSample.underlying [GooseExts] [GoGlobalContext] : go.GoType
 noncomputable def ErrTransactionConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.ErrTransactionConflict"
 
-noncomputable def etcdRequestLatency [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestLatency"
-
-opaque etcdRequestLatency.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def etcdRequestCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestCounts"
-
-opaque etcdRequestCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def etcdRequestErrorCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestErrorCounts"
-
-opaque etcdRequestErrorCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def objectCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.objectCounts"
-
-opaque objectCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def resourceSizeEstimateDesc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimateDesc"
-
-opaque resourceSizeEstimateDesc.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def resourceSizeEstimate [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimate"
-
-opaque resourceSizeEstimate.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def resourceObjectsDesc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceObjectsDesc"
-
-opaque resourceObjectsDesc.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def newObjectCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.newObjectCounts"
-
-opaque newObjectCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def storageSizeDescription [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageSizeDescription"
-
-opaque storageSizeDescription.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def storageMonitor [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageMonitor"
-
-opaque storageMonitor.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def etcdEventsReceivedCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdEventsReceivedCounts"
-
-opaque etcdEventsReceivedCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def etcdBookmarkCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkCounts"
-
-opaque etcdBookmarkCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def etcdBookmarkTotal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkTotal"
-
-opaque etcdBookmarkTotal.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def etcdLeaseObjectCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdLeaseObjectCounts"
-
-opaque etcdLeaseObjectCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def decodeErrorCounts [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.decodeErrorCounts"
-
-opaque decodeErrorCounts.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def listLatency [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.listLatency"
-
-opaque listLatency.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.registerMetrics"
-
-noncomputable def sinceInSeconds [GooseExts] [GoGlobalContext] : GoString :=
-  go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.sinceInSeconds"
-
-opaque sinceInSeconds.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.Register"
@@ -205,10 +120,115 @@ noncomputable def NewEtcdMetricsTracker [GooseExts] [GoGlobalContext] : GoString
 noncomputable def newTimestampedResourceGaugeCollector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.newTimestampedResourceGaugeCollector"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `etcdRequestLatency` (`var etcdRequestLatency = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Name: "etcd_request_duration_s … [sha256:166c91831c4e2a17]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `etcdRequestCounts` (`var etcdRequestCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Name: "etcd_requests_total", Help:  … [sha256:adb8b1259c04d4e0]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `etcdRequestErrorCounts` (`var etcdRequestErrorCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Name: "etcd_request_errors_tot … [sha256:e07a09d4b26240ab]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `objectCounts` (`var objectCounts = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Name: "apiserver_storage_objects", Help: "[D … [sha256:b79f2db0becf1946]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `resourceSizeEstimateDesc` (`var resourceSizeEstimateDesc = compbasemetrics.NewDesc( "apiserver_resource_size_estimate_bytes", "Estimated size of sto … [sha256:0003d415660e6928]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `resourceSizeEstimate` (`var resourceSizeEstimate = newTimestampedResourceGaugeCollector(resourceSizeEstimateDesc, clock.RealClock{})`): Their initializers call, besides literals of constants and other variables' values:
+`newTimestampedResourceGaugeCollector(desc, nil)` allocates a collector with the real clock and an
+empty map. So each terminates, cannot panic and has no effect beyond its variable.
+- `resourceObjectsDesc` (`var resourceObjectsDesc = compbasemetrics.NewDesc( "apiserver_resource_objects", "Number of stored objects at the time o … [sha256:e550556d9be3b6e6]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `newObjectCounts` (`var newObjectCounts = newTimestampedResourceGaugeCollector(resourceObjectsDesc, clock.RealClock{})`): Their initializers call, besides literals of constants and other variables' values:
+`newTimestampedResourceGaugeCollector(desc, nil)` allocates a collector with the real clock and an
+empty map. So each terminates, cannot panic and has no effect beyond its variable.
+- `storageSizeDescription` (`var storageSizeDescription = compbasemetrics.NewDesc("apiserver_storage_size_bytes", "Size of the storage database file  … [sha256:6b39db2e03b65195]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `storageMonitor` (`var storageMonitor = &monitorCollector{monitorGetter: func() ([]Monitor, error) { return nil, nil }}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `etcdEventsReceivedCounts` (`var etcdEventsReceivedCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Subsystem: "apiserver", Name … [sha256:df32967bd00bcdf8]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `etcdBookmarkCounts` (`var etcdBookmarkCounts = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Name: "etcd_bookmark_counts", Help: "N … [sha256:1b426c2ec29870f3]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `etcdBookmarkTotal` (`var etcdBookmarkTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Name: "etcd_bookmark_total", Help:  … [sha256:a78cbb4e618bc987]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `etcdLeaseObjectCounts` (`var etcdLeaseObjectCounts = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Name: "etcd_lease_object_co … [sha256:794acb74883b3071]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `decodeErrorCounts` (`var decodeErrorCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: "apiserver", Name: "stor … [sha256:91e56bc085217bb8]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `listLatency` (`var listLatency = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Namespace: "apiserver", Name: "storag … [sha256:9a353abeab06df23]`): Their initializers call, besides literals of constants and other variables' values: component-base's
+`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a
+lazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own
+fields; registration is a separate call, not made here). So each terminates, cannot panic and has no
+effect beyond its variable.
+- `sinceInSeconds` (`var sinceInSeconds = func(start time.Time) float64 { return time.Since(start).Seconds() }`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call.
+Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
+has no effect beyond its variable.
+- `_@timestamped_resource_gauge_collector.go:64` (`var _ compbasemetrics.StableCollector = &timestampedResourceGaugeCollector{}`): An interface check: `&timestampedResourceGaugeCollector{}` converted to
+`compbasemetrics.StableCollector`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestLatency", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var etcdRequestLatency = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Name: \"etcd_request_duration_s … [sha256:166c91831c4e2a17]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestCounts", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var etcdRequestCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Name: \"etcd_requests_total\", Help:  … [sha256:adb8b1259c04d4e0]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestErrorCounts", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var etcdRequestErrorCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Name: \"etcd_request_errors_tot … [sha256:e07a09d4b26240ab]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.objectCounts", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var objectCounts = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Name: \"apiserver_storage_objects\", Help: \"[D … [sha256:b79f2db0becf1946]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimateDesc", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var resourceSizeEstimateDesc = compbasemetrics.NewDesc( \"apiserver_resource_size_estimate_bytes\", \"Estimated size of sto … [sha256:0003d415660e6928]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimate", "Their initializers call, besides literals of constants and other variables' values:\n`newTimestampedResourceGaugeCollector(desc, nil)` allocates a collector with the real clock and an\nempty map. So each terminates, cannot panic and has no effect beyond its variable.", "var resourceSizeEstimate = newTimestampedResourceGaugeCollector(resourceSizeEstimateDesc, clock.RealClock{})"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceObjectsDesc", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var resourceObjectsDesc = compbasemetrics.NewDesc( \"apiserver_resource_objects\", \"Number of stored objects at the time o … [sha256:e550556d9be3b6e6]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.newObjectCounts", "Their initializers call, besides literals of constants and other variables' values:\n`newTimestampedResourceGaugeCollector(desc, nil)` allocates a collector with the real clock and an\nempty map. So each terminates, cannot panic and has no effect beyond its variable.", "var newObjectCounts = newTimestampedResourceGaugeCollector(resourceObjectsDesc, clock.RealClock{})"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageSizeDescription", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var storageSizeDescription = compbasemetrics.NewDesc(\"apiserver_storage_size_bytes\", \"Size of the storage database file  … [sha256:6b39db2e03b65195]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageMonitor", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var storageMonitor = &monitorCollector{monitorGetter: func() ([]Monitor, error) { return nil, nil }}"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdEventsReceivedCounts", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var etcdEventsReceivedCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Subsystem: \"apiserver\", Name … [sha256:df32967bd00bcdf8]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkCounts", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var etcdBookmarkCounts = compbasemetrics.NewGaugeVec( &compbasemetrics.GaugeOpts{ Name: \"etcd_bookmark_counts\", Help: \"N … [sha256:1b426c2ec29870f3]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkTotal", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var etcdBookmarkTotal = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Name: \"etcd_bookmark_total\", Help:  … [sha256:a78cbb4e618bc987]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdLeaseObjectCounts", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var etcdLeaseObjectCounts = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Name: \"etcd_lease_object_co … [sha256:794acb74883b3071]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.decodeErrorCounts", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var decodeErrorCounts = compbasemetrics.NewCounterVec( &compbasemetrics.CounterOpts{ Namespace: \"apiserver\", Name: \"stor … [sha256:91e56bc085217bb8]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.listLatency", "Their initializers call, besides literals of constants and other variables' values: component-base's\n`NewCounter`/`NewCounterVec`/`NewGaugeVec`/`NewHistogram`/`NewHistogramVec`/`NewDesc` allocate a\nlazy metric (or descriptor) holding the options, unregistered (`lazyInit` sets the new metric's own\nfields; registration is a separate call, not made here). So each terminates, cannot panic and has no\neffect beyond its variable.", "var listLatency = compbasemetrics.NewHistogramVec( &compbasemetrics.HistogramOpts{ Namespace: \"apiserver\", Name: \"storag … [sha256:9a353abeab06df23]"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics.sinceInSeconds", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var sinceInSeconds = func(start time.Time) float64 { return time.Since(start).Seconds() }"⟩,
+  ⟨"k8s.io/apiserver/pkg/storage/etcd3/metrics._@timestamped_resource_gauge_collector.go:64", "An interface check: `&timestampedResourceGaugeCollector{}` converted to\n`compbasemetrics.StableCollector`. No call, no panic, no effect.", "var _ compbasemetrics.StableCollector = &timestampedResourceGaugeCollector{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.component_base.metrics]
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -220,62 +240,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"transaction conflict"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))
-  (App (Val doExecute)
-  (App (Val sinceInSeconds.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val listLatency.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val decodeErrorCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val etcdLeaseObjectCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val etcdBookmarkTotal.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val etcdBookmarkCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val etcdEventsReceivedCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val storageMonitor.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val storageSizeDescription.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val newObjectCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val resourceObjectsDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val resourceSizeEstimate.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val resourceSizeEstimateDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val objectCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val etcdRequestErrorCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val etcdRequestCounts.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val etcdRequestLatency.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTransactionConflict))) (Val #())) (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (App (Val (GoInstruction (GlobalVarAddr ErrTransactionConflict))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)

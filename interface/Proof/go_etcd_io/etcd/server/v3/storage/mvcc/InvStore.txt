@@ -1481,6 +1481,9 @@ theorem mvcc.fieldShare_pin (s : Loc) (γ : mvcc.StoreNames) (q : Qp) (dq : DFra
 theorem mvcc.StoreNames.withPhys_rcv (γ : mvcc.StoreNames) (p : mvcc.PhysNames) : (γ.withPhys p).rcv
     = p.rcv
 
+def mvcc.clusterBI : backend.BucketInfo :=
+  { id := W64 5, name := go!"cluster", safe := false }
+
 theorem mvcc.slotX_fractional (γ : mvcc.StoreNames) (L : mvcc.Log) (c : Int) : Fractional fun q =>
     mvcc.slotX γ q L c
 
@@ -2856,6 +2859,9 @@ theorem mvcc.isTxnWrite_join {trace : Loc} (mw s : Loc) (γ : mvcc.StoreNames) (
 
 theorem mvcc.writerInv_persistent (s : Loc) (γ : mvcc.StoreNames) : Persistent (mvcc.writerInv s γ)
 
+def mvcc.membersBI : backend.BucketInfo :=
+  { id := W64 10, name := go!"members", safe := false }
+
 def mvcc.kvPtrIs (full : Bool) (p : Loc) (kv : EtcdKv) : IProp GF :=
   iprop(∃ ks st uf sc,
       ownSlice ks kv.key DFrac.discard ∗
@@ -3410,6 +3416,11 @@ theorem mvcc.hookOk_of_init (γ : mvcc.StoreNames) (P : IProp GF) (f : val) (d :
     ⊢ mvcc.hookOk γ P (intoVal g)
 
 theorem mvcc.certOk_timeless (γ : mvcc.StoreNames) (log : mvcc.Log) : Timeless (mvcc.certOk γ log)
+
+def mvcc.membersRemovedBI : backend.BucketInfo :=
+  { id := W64 11,
+    name := go!"members_removed",
+    safe := false }
 
 theorem mvcc.crevPermAt_elim_timeless (E : CoPset) (γ : mvcc.StoreNames) (Perm : Int → IProp GF) (c
     : Int) [Timeless (Perm c)] : mvcc.crevPermIs γ Perm ∗ mvcc.crevPermAt γ c ⊢ |={E}=> ⌜c = -1⌝ ∨ □

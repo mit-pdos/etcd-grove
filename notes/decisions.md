@@ -42035,3 +42035,24 @@ change (no names; `ownLocalNames ∅` in the WP premise) is required.
   list at all.
 - **`promreg_sem` follows `Register`'s proof** through v3rpc's `Link` to every linking module above it
   (`etc/gen-link.py`'s `PROMREG_VAR`, the hand-written linking modules), as option 1 said it would.
+
+## The bootstrap contracts give the membership buckets in the table (2026-11-22 · proving session 2, #18 · branch `prove-ps2-members/2026-11-22`)
+
+**The user's decision (2026-11-22):** extend the trusted bootstrap contracts' backend clause (`bootOk`'s and
+`bootOkR`'s `%Hbe`, the posts of `bootstrapContract`/`bootstrapRestartContract`) with
+`d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI`, as item E of the 2026-11-02
+approved restatements did for the alarm and auth buckets.
+
+**What changed:** `membership.RaftCluster.SetBackend` and `schema.membershipBackend.MustDeleteMemberFromBackend`
+(trust-boundary axioms until now, names-only) are translated with their bodies (with `MustCreateBackendBuckets`
+and `BackendMemberKey`) and proved over the backend's specs. Their bucket operations need the buckets in the
+backend's ghost table; the fact travels `bootOk` → `srvSnapRO` → `applySnapshot` → `SetBackend` at the received
+backend (ledger 2026-11-22, "members").
+
+**Why it is true of the code:** the table names the backend's buckets; `bootstrap`'s `cl.SetBackend(be)` creates the
+three (`MustCreateBackendBuckets`), and the contract already says they are present in the boot data (`%HDr`). The
+contract chooses the ghost table, so naming three more buckets in it constrains nothing Go does.
+
+**Why not** derive `P.has` from the data (`D.lookup n = some _`): the table is a free parameter of `KBReal`, and
+the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
+by #30 at the time).

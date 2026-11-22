@@ -84,17 +84,25 @@ noncomputable def NewLRUExpireCache [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewLRUExpireCacheWithClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/cache.NewLRUExpireCacheWithClock"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `_@expiring.go:180` (`var _ heap.Interface = &expiringHeap{}`): An interface check: `&expiringHeap{}` converted to `heap.Interface`. No call, no panic, no effect.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"k8s.io/apimachinery/pkg/util/cache._@expiring.go:180", "An interface check: `&expiringHeap{}` converted to `heap.Interface`. No call, no panic, no effect.", "var _ heap.Interface = &expiringHeap{}"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.cache where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.cache)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
-  (App (Val «_».init) (Val #())))))))
+  (Val #()))))))
 
 opaque Expiring.nonempty_type : NonemptyType.{0}
 def Expiring : Type := Expiring.nonempty_type.type
