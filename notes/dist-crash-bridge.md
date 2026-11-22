@@ -8,7 +8,7 @@ never crash, over the network and Linux file extensions together.
 ## What is there
 
 - `Net/Statement/NetFsDeploy.lean` (**trusted**, one definition): `NetFsDeploy addrs crashing stable g`,
-  the kits' `KitDeploy` of every machine and every machine's files as on disk (`Fs.FsInit`).
+  `DistDeploy` of every machine and every machine's files as on disk (`Fs.FsInit`).
 - `Net/Statement/NetFsBridge.lean` (untrusted): `robust_of_netFsBoot`, and the per-machine obligations
   `StableBootWp`, `CrashBootWp`, the first-generation resources `fsStartRes`, and the lemmas turning
   them into Perennial's `nodeWp`/`nodeStart`.
@@ -50,7 +50,7 @@ crashed L -∗ osInv L' -∗ crashRest True L L' [] false V' -∗ ownGoState L' 
   `Q` (the client's `Pc i`) picked in `Hstart`; every generation's proof unpacks `Q` and packs the
   next `Q L'` with the same `Q`.
 - **The obligations quantify over the local ghost state `L`, not over a `HeapGS` with an equation**
-  (unlike `KitBootWp`): the WP is at `⟨G, L⟩` by a `letI` in the definition. A proof substitutes the
+  (unlike `DistBootWp`): the WP is at `⟨G, L⟩` by a `letI` in the definition. A proof substitutes the
   statement's `lctx` by `L.goose_go_local_context` (`subst`), never destructuring `GooseLocalGS`
   positionally (Perennial branch `local-names` adds a field to it). Its users must `letI` the
   `HeapGS` again after `dsimp` (the example does).
@@ -59,10 +59,10 @@ crashed L -∗ osInv L' -∗ crashRest True L L' [] false V' -∗ ownGoState L' 
   `kvnetExts`. The shared mode needs a Perennial change (below). A premise on crashes or steps
   (`fsSemWith Q`, `fsSemWithS SQ Q`) would need a `kvnetExts` variant with that semantics; none has
   been needed yet.
-- **Step and thread bounds as `robust_of_kitBootRB`**: the adequacy theorem at `n + 1` and `n + 2`
+- **Step and thread bounds as `robust_of_distBootRB`**: the adequacy theorem at `n + 1` and `n + 2`
   for an execution of `n < bound` steps; `Hstart` gets `receiptBound GF ≤ bound`.
-- **Placement**: in the `Net` part (`Net/Statement/`), beside `KitBridge.lean`, because it uses the
-  kits' `KitDeploy` and `addrUnset` and the main tree cannot import the part. KvNet can copy it with
+- **Placement**: in the `Net` part (`Net/Statement/`), beside `DistBridge.lean`, because it uses
+  `DistDeploy` and `addrUnset` and the main tree cannot import the part. KvNet can copy it with
   `etc/copy-part.py` if kvnet's statement uses it.
 
 ## The Perennial gap (shared mode)
@@ -84,7 +84,7 @@ distributed adequacy proof). D4 (shared-mode generations for etcd's bundle) need
 - The example keeps nothing on disk; an instance whose crashing machine uses its files across a crash
   (e.g. crashlog's log behind a network server) would exercise `crashRest`. Not needed for D3.
 - `etc/tcb-report.py` does not see `echo_netfs_mixed_robust` as a root (`*Linked.lean` files are not
-  roots, as `RobustLinked.lean`'s `echo_kit_robust`); its `#print axioms` is the check.
+  roots, as `RobustLinked.lean`'s `echo_dist_robust`); its `#print axioms` is the check.
 
 ## Independent review of `NetFsDeploy` (2026-11-22)
 
@@ -100,5 +100,5 @@ Verdict: sound, not vacuous, the right strength; documentation fixes (report:
 - F3 (reworded): the echo example proves the implication only. Satisfiability: `NetLocal.init ⟨∅⟩`,
   `NetGlobal.init ⟨∅⟩` (`Net/Impl.lean`), `fsInit0` (an empty root), `addrOk srvAddr` by `decide`; a Lean
   witness is not written.
-- F4 (note): `KitDeploy`'s "no listener" conjunct is unused by every bridge; drop it with F1's plan.
+- F4 (note): `DistDeploy`'s "no listener" conjunct is unused by every bridge; drop it with F1's plan.
 - F5 (note): `FsInit` asks a stable machine's files to be durable, which no step reads.
