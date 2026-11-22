@@ -1,0 +1,16 @@
+# Questions for the user: the step-bound work (branch `step-bounds-backend`, claim issue #30)
+
+## Q1 (hard stop: Scope of step 2; trusted text and top-level statements) — 2026-11-22
+
+The backend's write-back budget limits every etcd statement to `2^40 - 11` steps. Raise it to `2^56`
+and lower the hooks' cap `hookMax` from `2^16` to `4` (option A of `notes/step-bounds-plan.md`,
+"Step 2: Scope")?
+
+- What changes: `storage.OpenBackend`'s axiom keeps its text but its `P.Wf`/`wbInit` mean the new
+  constants (its soundness argument, "post = `New`'s proved post", unchanged); `bootstrapContract`'s
+  `∃ d, … d.P.Wf` asks `hookMax ≤ 4` (the server needs `≥ 3`); `etcd_robust`, `k8s_robust`,
+  `leaseexpiryN` go to `2^48` steps, `mvccrand`/`mvccfull` likely to `2^48`.
+- Options: A (recommended), B (keep the cap: the budget only reaches about `2^42`), C (budget per
+  parameter: needs the same cap in `bootOk`).
+- Recommendation: **A**. Depends on it: all of step 2's Draft. Not blocked meanwhile: nothing else
+  (step 3's Scope comes after step 2).
