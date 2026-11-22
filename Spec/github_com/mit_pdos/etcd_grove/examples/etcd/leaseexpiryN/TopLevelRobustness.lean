@@ -47,7 +47,7 @@ variable [go_gctx : GoGlobalContext]
 /-- **`etcd_leaseexpiryN_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `etcd_leaseexpiryN_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 40 - 11` steps along which fewer than `2 ^ 28` threads are
+execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are
 live, no thread is stuck and none has an unrecovered panic. -/
 def etcd_leaseexpiryN_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
@@ -70,7 +70,7 @@ def etcd_leaseexpiryN_robust.spec : Prop :=
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_leaseexpiryN.leaseexpiryNDirs k)),
     Robustness.Robust [] [(leaseexpiryNProgram k, σ)] g (threads := 2 ^ 28)
-      (bound := 2 ^ 40 - 11)
+      (bound := 2 ^ 48)
 
 end adequacy
 end EtcdGrove
