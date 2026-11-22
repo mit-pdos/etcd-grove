@@ -16,7 +16,6 @@ axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.version.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.defaultOptions_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
@@ -63,6 +62,7 @@ axiom proto.Unmarshal.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
+axiom semver.NewVersion.wp_proof
 axiom semver.Version.String.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
