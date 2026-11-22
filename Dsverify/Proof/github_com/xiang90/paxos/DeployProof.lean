@@ -851,7 +851,7 @@ theorem NetCluster.Propose.wp_proof
     ileft
     iexists m.value'
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact ⟨rfl, Hwf⟩
     iexact HQ
   iright; ipureintro; exact ⟨_, rfl⟩
 

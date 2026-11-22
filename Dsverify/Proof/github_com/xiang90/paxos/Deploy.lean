@@ -66,6 +66,9 @@ def allProtos (Γ : Names) : IProp GF :=
 def clientTok (Γ : Names) (c : w64) : IProp GF :=
   iprop(rtok Γ c ∗ ptok Γ (W64 1001 + c) ∗ dtok Γ c)
 
+instance allProtos_persistent (Γ : Names) : Persistent (allProtos (GF := GF) Γ) := by
+  unfold allProtos; infer_instance
+
 end gdefs
 
 section defs
@@ -129,7 +132,7 @@ abbrev NetCluster.Propose.spec : Prop :=
   ⊢ isPkgInit (PROP := IProp GF) pkg -∗ is_cluster Γ c clp -∗ opAU Γ v Q -∗
     WP (App (App (App (Val (clp @!! go.GoType.PointerType NetCluster.ty @!! go!"Propose"))
         (Val #c)) (Val #v)) (Val #waitMs))
-      {{ r, (∃ w : GoString, ⌜r = PairV #w #true⌝ ∗ Q w) ∨
+      {{ r, (∃ w : GoString, ⌜r = PairV #w #true ∧ (w.length : Int) < 2 ^ 48⌝ ∗ Q w) ∨
             ⌜∃ x : GoString, r = PairV #x #false⌝ }}
 
 end specs

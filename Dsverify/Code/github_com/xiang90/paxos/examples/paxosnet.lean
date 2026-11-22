@@ -726,23 +726,29 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 /-- Client is client machine c's program (c < NC): its own client node of the paxos deployment,
-    served at its address in ClientAddrs; its operation waits (c/2)*StaggerMs, then proposes.
+    served at its address in ClientAddrs; its operation waits (c/2)*StaggerMs, then proposes. The
+    node is made once, before serving (remote.ServeClient's newClient may be called any number of
+    times as far as its contract says, and a second node of client c would reuse its proposer's
+    proposal numbers).
 
-    go: kit.go:223:6 -/
+    go: kit.go:226:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "c"))
-  (Let "$r0" (Lam "id"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.github_com.xiang90.paxos.NetCluster.ty) go.any))) (Let "$a0" (App (App (Val (GoInstruction (FuncResolve PaxosAddrs []))) (Val #())) (Val #()))
+  (Let "$r0" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve PaxosAddrs []))) (Val #())) (Val #()))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))
   (Let "$a2" (Val NAcceptors)
   (Let "$a3" (Val NLearners)
   (Let "$a4" (Val NC)
-  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.xiang90.paxos.NewNetCluster []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.xiang90.paxos.NewNetCluster []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "cl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.xiang90.paxos.NetCluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.xiang90.paxos.NetCluster.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Lam "id"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.github_com.xiang90.paxos.NetCluster.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.xiang90.paxos.NetCluster.ty)))) (Var "cl")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -810,11 +816,13 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.any]))))) (Pair (Var "op") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.xiang90.paxos.NetCluster.ty)))) (Pair (Var "cl") (Var "$r0")))))))))
   (Val #())))
 
 /-- Server is server machine id's program (1 <= id <= NAcceptors+NLearners). It never returns.
 
-    go: kit.go:239:6 -/
+    go: kit.go:243:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)

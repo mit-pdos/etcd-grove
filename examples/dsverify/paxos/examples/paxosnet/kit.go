@@ -219,10 +219,14 @@ func Orch() {
 }
 
 // Client is client machine c's program (c < NC): its own client node of the paxos deployment,
-// served at its address in ClientAddrs; its operation waits (c/2)*StaggerMs, then proposes.
+// served at its address in ClientAddrs; its operation waits (c/2)*StaggerMs, then proposes. The
+// node is made once, before serving (remote.ServeClient's newClient may be called any number of
+// times as far as its contract says, and a second node of client c would reuse its proposer's
+// proposal numbers).
 func Client(c uint64) {
+	cl := paxos.NewNetCluster(PaxosAddrs(), c, NAcceptors, NLearners, NC)
 	newClient := func(id int) any {
-		return paxos.NewNetCluster(PaxosAddrs(), c, NAcceptors, NLearners, NC)
+		return cl
 	}
 	op := func(sys any, in any) any {
 		time.Sleep(time.Duration((c/2)*StaggerMs) * time.Millisecond)
