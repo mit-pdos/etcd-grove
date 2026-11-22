@@ -32,15 +32,9 @@ axiom grpc.ClientConn.NewStream.wp_proof
 axiom grpc.ClientConn.Target.wp_proof
 axiom grpc.NewClient.wp_proof
 axiom grpc.WithKeepaliveParams.wp_proof
-axiom grpc.WithPerRPCCredentials.wp_proof
-axiom grpc.WithResolvers.wp_proof
-axiom grpc.WithStreamInterceptor.wp_proof
-axiom grpc.WithTransportCredentials.wp_proof
-axiom grpc.WithUnaryInterceptor.wp_proof
 axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
-axiom grpcDialOptIs
 axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer

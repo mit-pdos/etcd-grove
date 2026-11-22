@@ -27,7 +27,7 @@ abbrev grpc.WithPerRPCCredentials.spec : Prop :=
   ∀ (creds : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithPerRPCCredentials)) (Val #creds))
-  {{ (o : GoInterface), RET #o; ⌜grpcDialOptIs o (.perRPCCreds creds)⌝ }}
+  {{ (o : GoInterface), RET #o; grpcDialOptIs o (.perRPCCreds creds) }}
 
 end spec
 

@@ -73,6 +73,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
        etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
        etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
+       etc/gen-link.py --kvnet > KvNet/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --k8s-authz > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/Link.lean
@@ -737,6 +738,16 @@ if sys.argv[1:2] in (["--walfs"], ["--durable"], ["--wal-tester"]):
     link_walfs.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
                     proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
                     cfg={"--durable": link_walfs.DURABLE, "--wal-tester": link_walfs.TESTER}.get(sys.argv[1]))
+    sys.exit(0)
+if sys.argv[1:2] == ["--kvnet"]:
+    # kvnet's Link (the part KvNet/): the callees read off the proofs' binders, the generic proofs
+    # linked at the store's model parameters (`etc/link_kvnet.py`); `--check` compares
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import link_kvnet  # noqa: E402
+    import proof_roots  # noqa: E402
+    link_kvnet.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+                    proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:])
     sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)

@@ -31,8 +31,12 @@ write deadline are set; and each end has a write lock (`NetConn.lock`, D25), hel
 that end between its first step and its last, which a program sees in the order of the bytes. A
 node's local state (`NetLocal`) is its listeners (each the address it was asked to listen at, a
 valid address or a wildcard, and whether it is open). Nothing records past operations.
-**Initial states** (`NetLocal.init`, `NetGlobal.init`): a node has no listener, and the network
-no connection.
+**Initial states** (D26: `NetLocal.init`, `NetGlobal.init`, the semantics' `initLocal`/`initGlobal`,
+since 2026-11-22): a node's process starts with no listener (a fresh process has no socket: Go's
+`os/exec` passes a child only its standard descriptors, every other fd being close-on-exec,
+`TestFreshProcessNoSocket`), and the network with no connection (before the deployment's processes
+start, none of them has a socket, and by the closed world, D13, no other process dials or accepts at
+the deployment's addresses: assumed).
 
 **Handles.** A connection end is named by a 64-bit id, `2 c + s` for the connection `c` and the
 side `s` (0 the dialer, 1 the acceptor); a listener by a 64-bit id of its node. An operation on an
@@ -214,6 +218,8 @@ modeled either, so a program calling them is stuck: no model, no proof).
   releases it, and a waiting `Write` then takes it and fails `closed` too, as Go's waiter does
   (woken by the close, `fdMutex.rwlock` fails: `ErrNetClosing`). A crash leaves the lock as it is:
   the end's handles died with the process.
+* D26 initial states (`NetLocal.init`, `NetGlobal.init`; above): no listener on a machine, no
+  connection in the network (`TestFreshProcessNoSocket`; the network's, assumed under D13).
 * D22 **Steps: every operation may stutter, which is how waiting is modeled; invalid uses panic**
   (`NetStep`, `IsNetStep`). The convention of Perennial's Grove extension (`Perennial/GooseLang/
   Ext/Grove/Impl.lean`, `GroveStep`): any call of the extension may take a step that changes nothing
@@ -790,10 +796,13 @@ def NetStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (L : NetLocal
 
 end step
 
-/-- D10. A crash drops the listeners. -/
+/-- D10. A crash drops the listeners. D26. A machine's process starts with no listener
+(`NetLocal.init`), and the network with no connection (`NetGlobal.init`). -/
 instance net_semantics : ExtSemantics netExt where
   step := NetStep
   crash L L' := L' = { L with lis := ∅ }
+  initLocal L _ := L.init
+  initGlobal g := g.init
 
 /-- A crash leaves a machine in an initial state. -/
 theorem crash_init (L L' : NetLocal) (h : net_semantics.crash L L') : L'.init := by

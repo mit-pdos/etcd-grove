@@ -3788,3 +3788,11 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `DistAdequacy.lean`); D4 decides between the copy and waiting for the Perennial change.
 - **Status.** Proposed only (2026-11-22). To be designed with the single-node change as one Perennial
   branch.
+
+**Update (2026-11-22, kvnet's top level, branch `kvnet-proof`):** kvnet needs, besides the extensions' local
+interpretation before each generation's WP, **one later credit in the crash obligation** (`£ 1`, or a step): the
+crash opens the generation's file invariant (allocated at the boot) and must take its contents (raft's sealed
+`raftState`, `kdFileState`) without the later. The coordinator routed both to a Perennial session (branch
+`crash-genstart`, PR pending). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
+(`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
+(`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
