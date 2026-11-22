@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -701,9 +702,6 @@ func NewServer(opt ...ServerOption) *Server {
 		quit:         grpcsync.NewEvent(),
 		done:         grpcsync.NewEvent(),
 	}
-	if len(opts.statsHandlers) != 0 {
-		panic(notModelled("grpc: stats handlers"))
-	}
 	if opts.cp != nil || opts.dc != nil {
 		panic(notModelled("grpc: compression"))
 	}
@@ -973,7 +971,7 @@ func (s *Server) handleRawConn(lisAddr string, rawConn net.Conn) {
 		return
 	}
 	rawConn.SetDeadline(time.Time{})
-	st := newServerTransport(rawConn, s.opts.maxReceiveMessageSize)
+	st := newServerTransport(rawConn, s.opts.maxReceiveMessageSize, s.statsHandler)
 	st.peer.AuthInfo = authInfo
 
 	if !s.addConn(lisAddr, st) {
@@ -989,9 +987,19 @@ func (s *Server) handleRawConn(lisAddr string, rawConn net.Conn) {
 // workers.
 func (s *Server) serveStreams(ctx context.Context, st *serverTransport, rawConn net.Conn) {
 	ctx = peer.NewContext(ctx, st.Peer())
+	if s.statsHandler != nil {
+		ctx = s.statsHandler.TagConn(ctx, &stats.ConnTagInfo{
+			RemoteAddr: st.Peer().Addr,
+			LocalAddr:  st.Peer().LocalAddr,
+		})
+		s.statsHandler.HandleConn(ctx, &stats.ConnBegin{})
+	}
 
 	defer func() {
 		st.Close(errors.New("finished serving streams for the server transport"))
+		if s.statsHandler != nil {
+			s.statsHandler.HandleConn(ctx, &stats.ConnEnd{})
+		}
 	}()
 
 	st.HandleStreams(ctx, func(stream *serverTransportStream) {
@@ -1164,6 +1172,16 @@ func (s *Server) wrapUnaryHandler(md *MethodDesc) StreamHandler {
 }
 
 func (s *Server) processRPC(ctx context.Context, stream *serverTransportStream, info *serviceInfo, sd *StreamDesc) (err error) {
+	sh := s.statsHandler
+	var statsBegin *stats.Begin
+	if sh != nil {
+		statsBegin = &stats.Begin{
+			BeginTime:      time.Now(),
+			IsClientStream: sd.ClientStreams,
+			IsServerStream: sd.ServerStreams,
+		}
+		sh.HandleRPC(ctx, statsBegin)
+	}
 	ctx = NewContextWithServerTransportStream(ctx, stream)
 	ss := &serverStream{
 		ctx:                   ctx,
@@ -1173,6 +1191,22 @@ func (s *Server) processRPC(ctx context.Context, stream *serverTransportStream, 
 		desc:                  sd,
 		maxReceiveMessageSize: s.opts.maxReceiveMessageSize,
 		maxSendMessageSize:    s.opts.maxSendMessageSize,
+		statsHandler:          sh,
+	}
+
+	if sh != nil {
+		// (grpc-go's deferred function for tracing, the stats handler and channelz; the model has
+		// the stats handler's part)
+		defer func() {
+			end := &stats.End{
+				BeginTime: statsBegin.BeginTime,
+				EndTime:   time.Now(),
+			}
+			if err != nil && err != io.EOF {
+				end.Error = toRPCErr(err)
+			}
+			sh.HandleRPC(ctx, end)
+		}()
 	}
 
 	// If dc is set and matches the stream's compression, use it.  Otherwise, try
@@ -1274,6 +1308,19 @@ func (s *Server) handleStream(t *serverTransport, stream *serverTransportStream)
 	service := sm[:pos]
 	method := sm[pos+1:]
 
+	// FromIncomingContext is expensive: skip if there are no statsHandlers
+	if s.statsHandler != nil {
+		md, _ := metadata.FromIncomingContext(ctx)
+		ctx = s.statsHandler.TagRPC(ctx, &stats.RPCTagInfo{FullMethodName: stream.Method()})
+		s.statsHandler.HandleRPC(ctx, &stats.InHeader{
+			FullMethod:  stream.Method(),
+			RemoteAddr:  t.Peer().Addr,
+			LocalAddr:   t.Peer().LocalAddr,
+			Compression: stream.RecvCompress(),
+			WireLength:  stream.HeaderWireLength(),
+			Header:      md,
+		})
+	}
 	// To have calls in stream callouts work. Will delete once all stats handler
 	// calls come from the gRPC layer.
 	stream.SetContext(ctx)
