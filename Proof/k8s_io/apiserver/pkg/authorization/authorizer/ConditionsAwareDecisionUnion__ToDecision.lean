@@ -299,7 +299,7 @@ theorem ConditionsAwareDecisionUnion.ToDecision.wp_proof
               iframe
               iframe #
               ipureintro; exact Hwfl
-            · wp_apply _root_.Perennial.errors.wp_New_errorString as %ee #Hee
+            · wp_apply _root_.Perennial.errors.wp_New_errorString as %ee ⟨#_, #Hee⟩
               ihave #Hee := utilerrors.errorString_errTreeOrNil ee _ $$ Hee
               wp_apply (wp_ConditionsAwareDecisionDeny _ _) $$ [] as %dd #Hdd
               · first | iassumption | iapply utilerrors.errTreeOrNil_nil

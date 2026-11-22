@@ -116,22 +116,22 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrIDRemoved))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDRemoved #MErrIDRemoved
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDRemoved ⟨#_, #MErrIDRemoved⟩
   -- translated initializer of ErrIDExists))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDExists #MErrIDExists
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDExists ⟨#_, #MErrIDExists⟩
   -- translated initializer of ErrIDNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDNotFound #MErrIDNotFound
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDNotFound ⟨#_, #MErrIDNotFound⟩
   -- translated initializer of ErrPeerURLexists))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPeerURLexists #MErrPeerURLexists
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPeerURLexists ⟨#_, #MErrPeerURLexists⟩
   -- translated initializer of ErrMemberNotLearner))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMemberNotLearner #MErrMemberNotLearner
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMemberNotLearner ⟨#_, #MErrMemberNotLearner⟩
   -- translated initializer of ErrTooManyLearners))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTooManyLearners #MErrTooManyLearners
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTooManyLearners ⟨#_, #MErrTooManyLearners⟩
   -- translated initializer of ClusterVersionMetrics))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"cluster_version"])); isplitr; (· ipureintro; rfl); iintro %sClusterVersionMetrics ⟨SClusterVersionMetrics, -⟩

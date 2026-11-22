@@ -780,7 +780,7 @@ noncomputable def backend.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #(W64 104857600))
   (Let "sendRateBytes" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Convert go.float64 go.int64))) (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.float64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "dbBytes"))) (App (Val (GoInstruction (Convert go.int64 go.float64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "sendRateBytes"))))) (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.float64))) (Val #(W64 1000000000))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.float64 go.int64))) (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.float64))) (Pair (App (Val (GoInstruction (Convert go.int64 go.float64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "dbBytes"))) (App (Val (GoInstruction (Convert go.int64 go.float64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "sendRateBytes"))))) (Val #(W64 4741671816366391296)))))
   (Let "warningTimeout" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon

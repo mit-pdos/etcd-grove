@@ -168,7 +168,7 @@ theorem ReadFull_stream_ok : ReadFull_stream_spec (GF := GF) := by
   iNamed Hi
   iunfold _root_.Perennial.errors.newVar at HEOF HErrUnexpectedEOF
   icases HEOF with ⟨%xe, #He, -⟩
-  icases HErrUnexpectedEOF with ⟨%xu, #Hu, #HuM⟩
+  icases HErrUnexpectedEOF with ⟨%xu, #Hu, #_, #HuM⟩
   ihave #Hrd : _root_.Perennial.io.readerOk ri (fun _ _ => True)
       (bodyStream (GoInterface.ok ri) Pre Φs) (fun _ e => errStrOk e) $$ []
   · unfold _root_.Perennial.io.readerOk

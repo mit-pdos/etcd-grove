@@ -92,7 +92,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of errNoEncoderNameSpecified))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrNoEncoderNameSpecified #MerrNoEncoderNameSpecified
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrNoEncoderNameSpecified ⟨#_, #MerrNoEncoderNameSpecified⟩
   -- translated initializer of _encoderNameToConstructor))
   try wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := GoFunc) go.string (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.ty] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))) as %mHenc Henc
