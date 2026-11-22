@@ -1,8 +1,8 @@
 /-
 `examples/lib/durable.Write(name, data)` over `fsExt` (the part `LinuxFs/`, W4c U2; the main tree's is
 the `durableExt` model's, one atomic step). The file `f` (`DurFs.DFile`), with its crash invariant and
-the caller's handle on it, a fraction of the call permission, and `data` of at most 1 GiB (one
-`WriteAt`). Two atomic updates on the client's half of the state (`DurFs.durSt`), because a crash
+the caller's handle on it, a fraction of the call permission, and `data` of any length a Go
+slice has (`WriteAt`'s chunked loop, `WriteAt.specLong`; until 2026-11-22 at most 1 GiB). Two atomic updates on the client's half of the state (`DurFs.durSt`), because a crash
 between the rename and the directory's sync may keep either contents:
 * the first at the rename that makes the file hold `data`: `cur := data`, and `alt` the contents
   before (`alt = none` there: the handle serializes `Write`s, and the invariant knows it);
@@ -37,7 +37,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.durable.Assu
 /-- See the file header. -/
 abbrev github_com.mit_pdos.etcd_grove.examples.lib.durable.Write.spec : Prop :=
   ∀ (γ : DurGS) (f : DFile) (R : Roots) (qc : Qp) (data : GoString), f.Ok →
-  data.length ≤ 0x40000000 →
+  data.length < 2 ^ 63 →
   ⊢ ∀ Φ : val → IProp GF,
     isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.durable -∗
     osInv (GF := GF) -∗ osSharedInv (GF := GF) R -∗ durInv (GF := GF) γ f -∗

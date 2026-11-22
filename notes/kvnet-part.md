@@ -338,7 +338,7 @@ Read against the bodied `durable`'s `Write.spec` (`WalTester/Spec/.../lib/durabl
    ⟨s.cur, none⟩, COMM notCrashed ∗ Ψ }>` (WalTester's `durable/Defs.lean`). `durInv_commit` passes the token,
    and `durWriteSync_of_au` turns a plain update into one (the tester's `storeOracle` uses it). The rename's update
    is unchanged: it fires inside the os rename's update, which gives no token. Ledger, 2026-11-22.
-2. **The 1 GiB bound (open).** `Write.spec` takes `len(data) <= 2^30` (`DCand.Ok`: one `WriteAt`, one `ReadAt` of
+2. **The 1 GiB bound (lifted 2026-11-22**: `ReadAt.specLong`, `tryWrite` over `WriteAt.specLong`, `Write.spec` takes `len(data) < 2^63`; the text below is the finding as it was). `Write.spec` takes `len(data) <= 2^30` (`DCand.Ok`: one `WriteAt`, one `ReadAt` of
    at most `maxRW`). kvnet writes `string(storage.encode())`, and its image has no size bound (the Go code checks
    none). `WriteLong` (`Spec/os/WriteLong.lean`) already covers `WriteAt` of any length. Lifting the bound needs the
    same for `ReadAt` (`durable.tryRead` reads the whole file), then `tryWrite`/`tryRead` over them. Until then

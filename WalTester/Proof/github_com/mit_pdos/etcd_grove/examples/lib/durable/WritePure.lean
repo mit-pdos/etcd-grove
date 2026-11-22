@@ -18,6 +18,7 @@ public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.lib.durabl
 public import Spec.os.RenameS
 public import GooseLang.Ext.Fs.TreeSharedCoh
 public import Spec.os.File__WriteAt
+public import Spec.os.WriteLong
 public import Spec.os.File__Sync
 
 @[expose] public section
@@ -142,6 +143,43 @@ theorem pw_whole {m : OsMeta} (hsz : m.size = 0) (data : List w8) (hd : 0 < data
     rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]; rfl
   · simp only [pwPost]; rw [hsz]; exact hps.2
 
+/-- `TrOk.pw` for a write of any length (`WriteAt.specLong`: chunks of at most 1 GiB, the first `A`
+bytes announced, `j` landed, the last whole chunk ending at `E`). -/
+theorem TrOk.pwA {m : OsMeta} (hm : TrOk m []) (hsz : m.size = 0) (data : List w8)
+    (A j E : Nat) (hjA : j ≤ A) (hj : j ≤ data.length) {ys : List ByteG}
+    (hpw : os.PwOutA m 0 data A j [] ys) :
+    TrOk (os.pwPostE m 0 A j E) ys := by
+  obtain ⟨-, hmaps, hcut, hlo, ⟨z, hz, hzs⟩⟩ := hm
+  obtain ⟨hl, -⟩ := hpw
+  have hps := pwSize_zero data.length j hj
+  have hs : (os.pwPostE m 0 A j E).size = j := by
+    simp only [os.pwPostE, pwPost]; rw [hsz]; exact hps.2
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · rw [hs, hl, hsz]; simp only [Nat.zero_add, Nat.sub_zero]; rw [hps.1, hps.2]
+  · simp only [os.pwPostE, pwPost, announce_maps]; exact hmaps
+  · simp only [os.pwPostE, pwPost, OsMeta.announce_cut]; exact hcut
+  · rw [hs]; simp only [os.pwPostE, pwPost, announce_lo]; omega
+  · refine ⟨if min 0 m.size < 0 + A then max z (0 + A) else z, ?_, ?_⟩
+    · simp only [os.pwPostE, pwPost, announce_zf, hz, Option.map_some]
+    · rw [hs]; split <;> omega
+
+/-- `pw_whole` for a write of any length that landed whole. -/
+theorem pw_wholeA {m : OsMeta} (hsz : m.size = 0) (data : List w8) (hd : 0 < data.length)
+    (A E : Nat) {ys : List ByteG} (hpw : os.PwOutA m 0 data A data.length [] ys) :
+    ys.map Prod.fst = data ∧ (os.pwPostE m 0 A data.length E).size = data.length := by
+  obtain ⟨hl, hv⟩ := hpw
+  have hps := pwSize_zero data.length data.length (Nat.le_refl _)
+  simp only [Nat.zero_add, Nat.sub_zero] at hl
+  rw [hsz, hps.1, hps.2] at hl
+  refine ⟨List.ext_getElem (by simp [hl]) (fun i h1 h2 => ?_), ?_⟩
+  · have hi : i < ys.length := by simpa using h1
+    rw [List.getElem_map, (hv i hi).1]
+    unfold pwByte
+    rw [if_pos (by omega)]
+    simp only [Nat.zero_add, Nat.sub_zero]
+    rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h2]; rfl
+  · simp only [os.pwPostE, pwPost]; rw [hsz]; exact hps.2
+
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext] [go.BasicIntoValInj] in
 /-- A successful sync keeps `TrOk`, with the bytes durable. -/
@@ -153,7 +191,7 @@ theorem TrOk.synced {m : OsMeta} {ys : List ByteG} (h : TrOk m ys) :
 
 /-- The file of `data`, written whole and synced: a candidate. -/
 theorem dcand_ok (i : Ino) {m : OsMeta} (data : List w8) (hsz : m.size = data.length)
-    (hd : data.length ≤ 0x40000000) : (DCand.mk i m.synced data).Ok :=
+    (hd : data.length < 2 ^ 63) : (DCand.mk i m.synced data).Ok :=
   ⟨hsz, rfl, rfl, hd⟩
 
 /-! ## The physical states -/
