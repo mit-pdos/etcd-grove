@@ -24,10 +24,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 /-- `NewPerRPCCredentialBundle()`: a token bundle (`tokenBundleAt`) whose tokens are `""` or meet
-any `P` the caller picks (`tokenBundleInv`; the auth plan's C1: its token starts `""`). -/
+any `P` the caller picks (`tokenBundleInv`; the auth plan's C1: its token starts `""`). Since
+2026-11-22 (prove-ps2-client) at the package's initialization, which `tokenBundleInv` keeps
+(`sync`'s, for the lock its `UpdateAuthToken` takes). -/
 abbrev credentials.NewPerRPCCredentialBundle.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 30)] (P : GoString → IProp GF),
-  {{ True }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.credentials }}
     (App (Val (@! go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle)) (Val #()))
   {{ (atb : GoInterface), RET #atb; tokenBundleInv (GF := GF) atb P }}
 

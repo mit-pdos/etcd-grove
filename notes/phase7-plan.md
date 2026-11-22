@@ -105,7 +105,16 @@ collections' baselines saying what it removes.
   attempt translating `mem` types-only added its two init axioms, which the land queue's tcb gate
   rightly refused; S2 translates `mem` with its pools). Trust base: −7 (the six, `grpcSrvOpt`).
   Users adjusted: v3rpc's `Server` spec (`[∗ list] v ∈ gvs, grpcSrvOpt v .neutral`) and proof, the
-  `etcdstart`/`cluster3` callers. Next in S1: the dial side (`dialOptions` needs `internal/transport`,
+  `etcdstart`/`cluster3` callers. **Server stats handlers in the model (2026-11-22, branch `phase7-stats`).** The model's server
+  calls a stats handler as grpc-go does, which kaashoek's `etcd_dist_safe` server needs with tracing on:
+  per connection `TagConn`/`ConnBegin`/`ConnEnd`, and per call `TagRPC`, `InHeader`, `Begin`,
+  `InPayload`, `OutHeader`, `OutPayload`, `OutTrailer` and `End`, in grpc-go's order, with grpc-go's
+  fields except `InHeader.WireLength`. That one is an HPACK size, given by a new choice point,
+  `modelChooseLength`. `internal/grpcdifftest/stats_test.go` checks the sequences of a unary call, a
+  failed call and the stream kinds against grpc-go's. One visible difference: a connection per stream
+  means one `ConnBegin`/`ConnEnd` pair per call. The trusted claim is narrowed in `models/README.md` to
+  programs whose behavior does not depend on how many connections carry their calls; otelgrpc's
+  `TagConn`/`HandleConn` do nothing. Client stats handlers still panic `NotModelled`. Next in S1: the dial side (`dialOptions` needs `internal/transport`,
   `channelz`, `internal/backoff` types), the model calling stats handlers (#24, U2), then
   `NewServer` and `RegisterService`.
 - **S2, the unary pair** (`grpc.model.*`, the trusted `Serve` body, `grpcReplyTo`, `Invoke`'s

@@ -105,6 +105,24 @@ noncomputable def perRPCCredential.RequireTransportSecurity.impl [GooseExts] [Go
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- go: credentials.go:79:29 -/
+noncomputable def perRPCCredential.UpdateAuthToken.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "rc"
+  (Lam "token"
+  (Seq (App (Val exceptionDo)
+  (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc"))
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef perRPCCredential.ty go!"authTokenMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc")))) (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef perRPCCredential.ty go!"authToken"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef perRPCCredential.ty go!"authTokenMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType perRPCCredential.ty)))) (Var "rc")))) (Val #())))))))
+  (Val #()))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.credentials where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.google_golang_org.grpc.credentials]
 
@@ -205,6 +223,7 @@ class perRPCCredential.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   method_set : go.MethodSetIs perRPCCredential.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType perRPCCredential.ty) [(go!"GetRequestMetadata", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.SliceType go.string)] true [(go.GoType.MapType go.string go.string), go.error]))), (go!"RequireTransportSecurity", (some (go.signature.Signature [] false [go.bool]))), (go!"UpdateAuthToken", (some (go.signature.Signature [go.string] false [])))]
   ptr_RequireTransportSecurity_unfold : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"RequireTransportSecurity" perRPCCredential.RequireTransportSecurity.impl
+  ptr_UpdateAuthToken_unfold : MethodUnfold (go.GoType.PointerType perRPCCredential.ty) go!"UpdateAuthToken" perRPCCredential.UpdateAuthToken.impl
 
 attribute [instance] perRPCCredential.TypeAssumptions.type_repr
   perRPCCredential.TypeAssumptions.underlying
@@ -215,6 +234,7 @@ attribute [instance] perRPCCredential.TypeAssumptions.type_repr
   perRPCCredential.TypeAssumptions.method_set
   perRPCCredential.TypeAssumptions.ptr_method_set
   perRPCCredential.TypeAssumptions.ptr_RequireTransportSecurity_unfold
+  perRPCCredential.TypeAssumptions.ptr_UpdateAuthToken_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PerRPCCredentialsBundle_instance : PerRPCCredentialsBundle.TypeAssumptions

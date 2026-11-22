@@ -68,18 +68,29 @@ marked `MODEL:`, and its difference from grpc-go is computed, never stored: `dif
 (what handlers run with which requests, metadata, deadlines and contexts; what calls and streams
 return; which program callbacks run: dialers, resolvers, credentials, interceptors, codecs), is a
 behavior of the model. Not wire compatibility: both ends run the model. Its choice points are
-`modelChoose`/`modelChooseN` (`model_choose.go`, the only declarations with a hand-written GooseLang
-body: any value; in Go the common side, or random with `GRPC_MODEL_CHOOSE=random`).
+`modelChoose`/`modelChooseN`/`modelChooseLength` (`model_choose.go`, the only declarations with a
+hand-written GooseLang body: any value; in Go the common side, or random with `GRPC_MODEL_CHOOSE=random`;
+`modelChooseLength` is the wire length the model reports where grpc-go reports an HPACK size, a
+server stats handler's `InHeader.WireLength`).
 *Over-approximations* (more behaviors than grpc-go): a stream not yet dispatched may be refused
 (REFUSED_STREAM; grpc-go's MaxConcurrentStreams and GOAWAY), and a refused first attempt is retried
 transparently, as grpc-go does; a connection failure before a stream's status ends it with any
 non-OK code; any address reported since the resolver's build may be dialed; a fail-fast RPC may fail
 with Unavailable at its pick; the ClientConn may enter idleness whenever no RPC is active. *Outside
 the model* (a panic with a `NotModelled` method): transport credentials other than insecure, a
-service config other than `{"loadBalancingPolicy": "round_robin"}`, compression, stats handlers,
-binary logging, `InTapHandle`, `Server.ServeHTTP`, a unix address with a custom dialer.
-*Invisible simplifications*: one stream per connection (only a connection's addresses could tell,
-and they are any address), no HTTP/2 framing, no server workers. `RegisterService` does not make
+service config other than `{"loadBalancingPolicy": "round_robin"}`, compression, client stats
+handlers, binary logging, `InTapHandle`, a server buffer pool other than the default,
+`Server.ServeHTTP`, a unix address with a custom dialer. *Server stats handlers* (2026-11-22, for
+etcd's otelgrpc handler) get grpc-go's events in grpc-go's order (`TagConn`/`ConnBegin`/`ConnEnd` per
+connection; per call `TagRPC`, `InHeader`, `Begin`, `InPayload`, `OutHeader`, `OutPayload`,
+`OutTrailer`, `End`, with grpc-go's fields but `InHeader.WireLength`, the model's choice:
+`internal/grpcdifftest/stats_test.go`).
+*Simplifications*: one stream per connection, visible only to a connection's addresses (any
+address) and to a server stats handler's connection events (`TagConn`/`HandleConn`: one
+`ConnBegin`/`ConnEnd` pair per call, where grpc-go has one per connection, which carries many): a
+program whose behavior depends on how many connections carry its calls is outside the claim
+(otelgrpc's `TagConn` returns its context and its `HandleConn` does nothing, v0.71.0
+`stats_handler.go:95-101`, so etcd's is not); no HTTP/2 framing, no server workers. `RegisterService` does not make
 grpc-go's reflection check of the handler's type (grpc-go exits when it fails; generated code cannot
 fail it).
 

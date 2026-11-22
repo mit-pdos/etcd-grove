@@ -273,6 +273,11 @@ KVNET_REUSED = [f"Proof.{KVNET_PKG}.{f}" for f in
                  # (2026-11-22) over kvnet's own Defs (kvdurablenoax's interface kept)
                  "Storage__SetHardState", "Storage__snapIndex", "Storage__InitialState",
                  "Storage__Snapshot", "openStorage",
+                 # (2026-11-22) StartNode's callees, the same Go text
+                 "itoa", "quietLogger__Debugf", "quietLogger__Errorf", "quietLogger__Infof",
+                 "quietLogger__Warningf",
+                 # (2026-11-22) the conf law's update (kvdurable's `kd_ccAu`)
+                 "ReconfAu",
                  ]]
 
 
