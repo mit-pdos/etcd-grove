@@ -4153,6 +4153,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   and `bodyStream_readFullAt` takes it (the snapshot handler has it).
 - **Decision.** Applied (prove-http3, 2026-11-21): `ReadFull_stream_ok` is a theorem over Perennial's `io.ReadFull`.
 
+## 2026-11-21: the etcd3 store's latency tracker: `Record` of any tracker and error, `NewEtcdMetricsTracker` of any labels (prove-metrics)
+
+- **Spec.** `metrics.OperationLatencyTracker.Record.spec` and `metrics.NewEtcdMetricsTracker.spec`
+  (`Spec/k8s_io/apiserver/pkg/storage/etcd3/metrics/`; trust-boundary axioms in `k8s_robust`'s base).
+- **Defect.** Both false of Go. `Record` took any non-nil `t` and any `err`: a zero
+  `OperationLatencyTracker` panics (`t.latency.Observe` on a nil interface), and for every tracker a
+  typed-nil `*status.Error` panics in `errorReason` (`status.FromError` calls its `GRPCStatus`), whether
+  the metrics are registered or not (`RecordEtcdRequest`'s defect of premise fixes 3).
+  `NewEtcdMetricsTracker` took any group-resource: once `metrics.Register()` has run (the apiserver runs
+  it), `NewOperationLatencyTracker`'s `WithLabelValues` panics on a label that is not valid UTF-8 (the
+  recorders' R1, `nonissues/k8s-apiserver-metrics-negative-or-non-utf8-panic.md`).
+- **Evidence.** apiserver `9c4ec15b8038` `metrics.go:360-398`; `examples/premisefix/latencytracker`
+  (both panics, and the valid inputs' returns, registered and not).
+- **Proposed change.** `NewEtcdMetricsTracker` takes `utf8Valid` of the group and the resource and posts
+  `latencyTrackerOk lt` (opaque, `Proof/.../etcd3/metrics/Tracker.lean`: built by it) in place of
+  `lt ≠ null`; `Record` takes `latencyTrackerOk t` and `statusErrOk err`. `isStore` keeps
+  `latencyTrackerOk c.lt`; `New` passes its `utf8Valid` premises, `store.Get` `Client.Get`'s error
+  (`statusErrOk_split`).
+- **Decision.** Applied (prove-metrics, 2026-11-21): both stay trust-boundary axioms (`Record` observes
+  a float latency, `sinceInSeconds`; both are names-only over component-base's metrics).
 ## 2026-11-21: `labels.Everything` needs `labels`' initialization (#25)
 
 - **Spec.** `Spec/k8s_io/apimachinery/pkg/labels/Everything.lean`, `labels.Everything.spec` (the trust-boundary
@@ -4219,6 +4239,32 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   prove-ps2-newlessor).
 - **Decision.** Approved (the user's (a); net 0 axioms), applied.
 
+## 2026-11-22: `slices.Concat`'s axiom takes the total length `< 2 ^ 63` (claim #26, fix-slices-concat)
+
+- **Spec.** `slices.Concat.spec` (`Spec/slices/Concat.lean`, the axiom `Proof/slices/Concat.lean`), and through its
+  one caller the decision vocabulary of `k8s.io/apiserver/pkg/authorization` (`Proof/.../authorizer/Defs.lean`):
+  `collectReasonsAndErrors.spec`, `ConditionsAwareDecisionUnion.Add/ToDecision.spec`,
+  `PartiallyEvaluateConditionsAwareDecision.spec`, `ConditionsAwareDecisionConditionsMap.spec`,
+  `partiallyEvaluateConditionsMapInternal.spec`, `AuthorizerFunc.ConditionsAwareAuthorize.spec`, `caaOk`,
+  `ownBuilder`, `Dec.WF`, and the driver's `arbDecision.spec`, `arbAuthorizer.ConditionsAwareAuthorize.spec`.
+- **Defect.** The axiom had no premise ("the address space bounds strings' total length"). Go's `Concat` sums
+  `len(s)` and panics with "len out of range" once the sum is negative (go1.27.3 `slices/slices.go:491-498`), before
+  `Grow`; aliased arguments reach it without the memory (`examples/premisefix/concatlen`: `TestBoundary`, 2^63-1
+  returns and 2^63 panics; `TestStringsOverflow`; `TestStrings32` under `GOARCH=386`). In the model a slice of
+  length `2 ^ 63 - 1` passed as `collectReasonsAndErrors`'s prefix made the axiom prove a slice of length `2 ^ 63`.
+- **Evidence.** The Go source; Perennial PR #670 proves `slices.Concat.spec` over the translated code with the premise
+  `(xss.map List.length).sum < 2 ^ 63` (its post adds that an empty result is `nil`).
+- **Proposed change.** The premise, as PR #670 states it (our statement is its string instance, so the axiom becomes
+  a theorem after the pin bump). The caller extends a path of names by one per union level, so it takes
+  `pre.length + m.depth < 2 ^ 63` (`Dec.depth`, new); `Dec.WF`'s union case adds `Dec.depthL ks + 1 < 2 ^ 63`; the
+  builder keeps its children below `2 ^ 63 - 1` (`ownBuilder`, `Add`'s premise), which `caaOk` gives
+  (`isWFDecisionLe (2 ^ 63 - 2)`, new predicate); producers report depths (`ToDecision`: at most its union's;
+  `PartiallyEvaluate...`: at most its input's; the leaf constructors and `AuthorizerFunc`: `0`); the driver's
+  `arbDecision(depth)` takes `uint.nat depth < 2 ^ 63`, `arbAuthorizer.ConditionsAwareAuthorize` `z.depth < 2 ^ 63 - 1`
+  (its closed program uses 2). A fixed bound in the invariant alone cannot work: a union of invariant decisions is
+  one level deeper, so the authorizers' decisions (`caaOk`) carry the tighter one.
+- **Decision.** Applied (fix-slices-concat/2026-11-22). `k8s_authz_robust`'s statement unchanged; no axiom added or
+  removed.
 ## 2026-11-22: kvnet's answers' length bound weakened to what the reply frame needs (KvNet)
 
 - **Spec.** `Replica.read.spec`, `Replica.propose.spec`, `Node.handle.spec` (KvNet, Lean-first; no SpecPlan
