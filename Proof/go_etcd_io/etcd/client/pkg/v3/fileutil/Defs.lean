@@ -7,7 +7,7 @@ Shared definitions of `fileutil`'s specs over the Linux file extension (the part
   on (`OsMeta.ZeroPg`) if `Z` (the caller's condition: a success, from `m`'s), and
   the bytes from the old size to `w` a zero run of unknown candidates (`osZerosA`, I4: the 64 MB
   segments are never held byte by byte);
-* `errno_errTree`: an `Errno` error is a leaf error tree for `errors.As` with a `*Errno` target.
+* `errno_errTree`: an `Errno` error is a leaf error tree for `errors.AsType[syscall.Errno]`.
 -/
 module
 
@@ -216,11 +216,7 @@ theorem errno_asTyped [syscall.Assumptions] (e : w64) :
   · rename_i h; exact absurd h (by decide)
   · intro _; exact ⟨e, rfl⟩
 
-/-- A `*Errno` is a valid `errors.As` target (`Errno` implements `error`). -/
-theorem errno_asTarget [syscall.Assumptions] : errors.AsTarget syscall.Errno.ty :=
-  Or.inr (by go_type_set)
-
-/-- `errors.As(errnoErr e, &errno)`'s error tree. -/
+/-- `errors.AsType[syscall.Errno](errnoErr e)`'s error tree. -/
 theorem errno_errTree [syscall.Assumptions] [errors.Assumptions] (e : w64) :
     ⊢ errors.isErrorTree (GF := GF) (· = interface.ok ⟨syscall.Errno.ty, #e⟩) w64 syscall.Errno.ty :=
   errors.isErrorTree_leaf _ (errno_leaf e) (errno_asTyped e)

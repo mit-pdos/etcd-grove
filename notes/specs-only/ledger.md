@@ -4444,6 +4444,41 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   credentials package's.
 - **Decision.** Applied (a premise every caller discharges; the user's rule of 2026-11-21).
 
+## 2026-11-22: `remote.opMaybe`'s read form needs node 0 to know which firing answers (etcd-dist D8)
+
+- **Spec.** `Net/Proof/.../lib/remote/Defs.lean`, `opMaybe R tok op`: the far side gets the one-shot
+  update `lin R i Φ`; the proposed read form (the coordinator, the user's approval, 2026-11-22) gives it,
+  for a read (`R.B.isWrite i = false`), a persistent read update instead, which it may fire zero or more
+  times, returning `ov o` with `Φ o` of one firing.
+- **Defect.** As proposed, node 0 cannot provide the read form. Node 0's `Φ o` must give lintest's
+  continuation at `(i, ok o)`, which needs lintest's update committed at the firing whose output is `o`;
+  lintest's update is one-shot, so only one firing may commit, and which one is decided by the output the
+  far side *will* return (etcd may serve one read's update several times at different states, e.g. a
+  read retried at another member, `read_ok_au`, and answer from any of them). Committing at the first
+  firing leaves a later firing (whose output may differ) unable to produce its `Φ`; committing at the
+  return is not a linearization point (other clients commit in between). "A read leaves the state
+  unchanged" makes every firing a valid point, but the proof still has to pick the one whose output is
+  returned. txnlin's `Apply` picks it with its revision prophecy (`callInv`), which `remote`'s design
+  (`notes/remote-port-plan.md` §3/§7: node 0's `Do` makes the prophecy, the client's `op` is txnlin's call
+  without its own) removes from the client machine. Also: `lin` (one-shot) cannot yield
+  a persistent update, so "`lin` for a read yields the read form" holds only in the other direction (a
+  read-form operation fired once meets the one-shot form).
+- **Evidence.** The argument above; no proof attempted. Separately, txnlin's `Call.spec` cannot be stated
+  against `remote`'s `opMaybe` yet: its import closure reaches the main tree's `Code.net` (through
+  `cache/v3` and grpc's `peer`), which clashes with `Net/`'s `net` (D2).
+- **Proposed change.** (A, recommended) node 0 prophesies the answered output: `remote.Do` resolves a
+  second prophecy with the answering reply's bytes (a `ResolveU64` per byte, prophecy-only Go code); the
+  answering attempt's slot for a read holds an invariant with lintest's update that commits at the first
+  firing whose output's encoding is the prophesied one, and `Φ o := (encOut (ov o) = prophesied → lintest
+  committed at o)`; with `codecOk` (decode of encode is the identity) the returned output's `Φ` is the
+  commit. The slot body, `serveConn`, `attempt`, `Do`, `Pend` change; the counter's server (one firing) and
+  client (a `Do`) meet the read form directly; `counter_remote_robust`'s statement is unchanged.
+  (B) keep the one-shot form and give `Call` a prophecy at the client machine (against `remote-port-plan.md` §3/§7's design).
+  (C) an etcd-specific revision prophecy at node 0 (not generic).
+- **Decision.** 2026-11-22, kaashoek via etcd-grove-03: option A (the user's decision): `remote.Do` prophesies
+  the answered reply's bytes; a read commits lintest's update at the first firing whose output encodes to them.
+  Applied on `etcd-dist` (`Defs.slotUpd`, `Do.spec`'s choice over the bytes, `pend_choice`'s read commit
+  invariant; `Run.spec`/`Check.spec` gain the premise that distinct outputs have distinct bytes).
 ## 2026-11-22: kvnet's `StartNode`: the start resource indexed by the configuration; the file invariant from the generation's boot (KvNet)
 
 - **Spec.** `StartNode.spec`/`Run.spec`/`RunNode.spec` (KvNet): the start resource `S : IProp` becomes
@@ -4532,3 +4567,43 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `preLtb`) is the same shape; its `preLtb` could now be defined as `CompareModel`'s `cmpPre … = -1`.
 - **Decision.** Applied (the approved ownership-premise rule; the cluster contract's strengthening recorded
   here and in the report to #18).
+## 2026-11-22: kvcheck's `randomChange` bounds its changes (KvNet)
+
+- **Spec.** `checker.randomChange.spec`'s post (`kvcheck/checker__randomChange.lean`): `⌜ccTransOk o⌝` becomes
+  `⌜ccTransOk o ∧ (ccToV2 o).changes.length ≤ 3⌝`.
+- **Defect.** `reconfigure` sends `PutConfChange(nil, cc)` through `checker.request`, whose premise bounds the
+  payload (`len + 17 < 2^63`, the frame's header); `encCC o` has at most `17 + 16 n` bytes (`encCC_length`),
+  so the bound needs `n` bounded, and the post said nothing of it. The code makes at most three changes
+  (`count` is `1` or `1 + below(3)`); the proof already tracked `cnt ≤ 3`.
+- **Evidence.** `checker__randomChange.lean` (the loop's invariant), `ConfCodec.lean`.
+- **Proposed change.** As above (a stronger post).
+- **Decision.** Applied.
+
+## 2026-11-22: kvcheck's `fresh`/`do`/`read` at the store; `read` gets a prophecy (KvNet, Go and Lean)
+
+- **Spec.** kvcheck's checker (`kvcheck/Defs.lean`): `CheckerNames` (the ghost maps of issued numbers) and
+  `issued` go; the lock's invariant `checkerInv c γ` holds, with the two counters `a`, `b`, a counter
+  predicate `γ false a ∗ γ true b` (`γ : CheckerCnt GF := Bool → w64 → IProp GF`, the caller's: at the
+  top, the store's op counter half and the read sequence numbers of every replica id, `kvCnt`).
+  `checker.fresh.spec` takes a minting law `∀ a, ⌜uint.Z a + 1 < 2^64⌝ -∗ γ w a ={⊤}=∗ γ w (a + 1) ∗ L (a + 1)`
+  and returns `L n` (no more `issued γ w n`). `checker.do.spec`/`checker.read.spec`: stated at the store
+  (`kvFacts γ cf`, the checker's counters `kvCnt γ ls`, `rkvInv γ`), logically atomic as kvdurable's
+  `Cluster.do`/`Read` (an `AU` over `rkvVal γ` in, `Φ` of the answer out), in place of the caller's minting
+  laws and the answer's fact. The other kvcheck specs: `CheckerNames` becomes `CheckerCnt GF` (no other change).
+  Raft: a new API module `ReadCtxLaws` (`readCtxAfter_agree`: a read context's log is unique).
+- **Defect.** The old specs cannot be linked to the store (found writing `Check`): `do` fired its minting
+  law outside the checker's lock on an `issued` token, but `kd_mint` mints at the store's op counter, in
+  order (`ghostVar γ.r.opn ½ nop`, mints `nop + 1`); `do`'s post dropped the ticket `kd_collect` needs; and
+  a linearizable read needs its answer prophesied (the linearization point is the first change after
+  which the key has the answer: kvdurable's `Cluster.Read`), which kvcheck's `read` did not have. The
+  replica's read answer names the context's committed log existentially (`ansReadK`), so the client needs
+  the log it minted the context after to be that one: agreement on raft's `ctxs` map (`readCtxAfter`,
+  sealed).
+- **Evidence.** `notes/kvnet-part.md`, "kvcheck's decoders, `conf`, `reconfigure`; the plan for `Check`";
+  kvdurable's `Cluster__do.lean`/`Cluster__Read.lean`.
+- **Proposed change.** As above. Go: `checker.read` creates `primitive.NewProph()` and resolves it with the
+  answer (`trusted_proph.ResolveBytes(p, v)`, gokv's, as kvdurable's `Cluster.Read`; no effect in Go),
+  `examples/raft/kvnet/go.mod` requires gokv, project kvnet maps gokv to the main tree. Minting under the
+  lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
+  at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
+- **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).

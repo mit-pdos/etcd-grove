@@ -1,12 +1,12 @@
 # Types and names only (unit N4, 2026-10-17: rafthttp.Transport's DialRetryFrequency), but for
 # `NewLimiter` and `Reservation.Delay`/`DelayFrom` (prove-smalllibs, 2026-11-20: proved over the real
 # code; `Limiter` and `Reservation` translate with `time` and `sync`) and `Every` with `Inf`
-# (prove-metrics3, 2026-11-21: a float division, over Perennial's uninterpreted `FloatOps`). The rest
-# stays the trust boundary: `Reserve`'s and `Wait`'s token bucket (`reserveN`) negates a `float64`
-# (`-tokens`), which Perennial's semantics does not step (`Float64Semantics` has no `GoNeg`;
-# notes/perennial-changes.md).
+# (prove-metrics3, 2026-11-21: a float division) and `Reserve`'s token bucket (`reserveN` and its
+# helpers; prove-metrics-float, 2026-11-22: over Perennial's IEEE 754 floats, c14cca87a, which step
+# the `-tokens` it negates).
 translate = ["!*", "NewLimiter", "Reservation.Delay", "Reservation.DelayFrom", "InfDuration",
-  "Every", "Inf"]
+  "Every", "Inf", "Limiter.Reserve", "Limiter.ReserveN", "Limiter.reserveN", "Limiter.advance",
+  "Limit.durationFromTokens", "Limit.tokensFromDuration"]
 imports = ["!*", "time", "sync", "context"]
 
 # translate the definitions of all type declarations goose supports

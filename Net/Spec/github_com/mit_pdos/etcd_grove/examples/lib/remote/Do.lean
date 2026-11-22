@@ -3,9 +3,12 @@
 the codec `cd` (`codecOk`). A write gets one attempt, a read `ReadTries`; `Do` returns the output
 the far side answered, or `i`'s unknown output.
 
-The caller hands the operation's update through a choice (`known`), made before the first attempt
-from `Do`'s prophecy (which attempt is answered with a known output, if any): if one will be, the
-update `lin R i Φ` (it goes to that attempt's slot, and `Do` returns the output with `Φ` of it);
+The caller hands the operation's update through a choice (`known`, `bs`), made before the first
+attempt from `Do`'s prophecies (which attempt is answered with a known output, if any, and the bytes
+`bs` of that answer): if one will be, a slot update `slotUpd R i Φb` (it goes to that attempt's slot:
+a write's one-shot `lin`, a read's `□ lin`, which the far side may fire several times) and a way from
+`Φb o` of the answered output, whose bytes are `bs`, to `Φ o` (`Do` returns the output with `Φ` of
+it; a read commits at the first firing whose output's bytes are `bs`: `pend_choice`);
 if none will be, `Ψ` and the update with no result (it goes to the one attempt's slot, a write's,
 where the far side may fire it, once, or never), `Do` returning the unknown output with `Ψ`. A
 read's other attempts get the read's update with no result, which the caller gives persistently
@@ -41,7 +44,10 @@ abbrev Do.spec : Prop :=
     (cd : remote.Codec) (d : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ mapCtx (Gg := hG.goose_globalGS) (I := I) ∗ remoteAddr (Gg := hG.goose_globalGS) R a ∗
       codecOk R cd ∗ (if R.B.isWrite i then iprop(True) else □ lin (Gg := hG.goose_globalGS) R i (fun _ => iprop(True))) ∗
-      (∀ known : Bool, |={⊤}=> if known then lin (Gg := hG.goose_globalGS) R i Φ else (Ψ ∗ lin (Gg := hG.goose_globalGS) R i (fun _ => iprop(True)))) }}
+      (∀ (known : Bool) (bs : List w8), |={⊤}=> if known then
+        (∃ Φb : O → IProp GF, slotUpd (Gg := hG.goose_globalGS) R i Φb ∗
+          (∀ o, ⌜R.encOut (R.ov o) = bs⌝ -∗ Φb o -∗ £ 1 ={⊤}=∗ Φ o))
+        else (Ψ ∗ lin (Gg := hG.goose_globalGS) R i (fun _ => iprop(True)))) }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.Do)) (Val #a)) (Val #(R.iv i))) (Val #cd)) (Val #d))
   {{ (v : GoInterface), RET #v; (∃ o, ⌜v = R.ov o⌝ ∗ Φ o) ∨ (⌜v = R.unk i⌝ ∗ Ψ) }}
 
