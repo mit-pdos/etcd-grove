@@ -232,6 +232,34 @@ theorem kvGen_first (γ : KdNames) (id : w64) (f : DFile) (st : OsState) (E : Co
   · unfold durFound; rw [hb]; ipureintro; rfl
   · unfold durFoundTmp; rw [ht]; iempintro
 
+omit [KdStor GF] in
+/-- **A generation's `kvGen` names no storage registry** (`KdStor`, per generation: its records name
+the generation's heap): the same at any registry's name. -/
+theorem kvGen_stor (k1 k2 : KdStor GF) (γ : KdNames) (id : w64) (f : DFile) (R : Roots) :
+    (letI : KdStor GF := k1; kvGen (GF := GF) γ id f R) ⊢
+      (letI : KdStor GF := k2; kvGen (GF := GF) γ id f R) := by
+  unfold kvGen fileHolds kdSnapCert
+  iintro H
+  iexact H
+
+omit [KdStor GF] in
+/-- **A generation's storage registry** (`KdStor`): a fresh name, its invariant with no wrapper
+registered. -/
+theorem kdStor_alloc (E : CoPset) :
+    ⊢ |={E}=> ∃ k : KdStor GF, letI : KdStor GF := k; kdStorInv (GF := GF) := by
+  imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := KdStorRecT) with ⟨%γs, Hm⟩
+  imod inv_alloc kdStorN E (letI : KdStor GF := ⟨γs⟩; kdStorInvBody (GF := GF)) $$ [Hm] with #Hi
+  · inext
+    unfold kdStorInvBody
+    iexists ∅
+    iframe Hm
+    iapply BigSepM.bigSepM_empty.2
+    itrivial
+  imodintro
+  iexists ⟨γs⟩
+  unfold kdStorInv
+  iexact Hi
+
 end gen
 
 end raft_kvnet
