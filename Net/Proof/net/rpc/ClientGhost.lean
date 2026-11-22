@@ -119,6 +119,26 @@ theorem req_append (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnName
     · simp at hr; subst hr; exact ⟨hsm, heb⟩
   · rw [reqsWire_append]; exact List.prefix_refl _
 
+/-- `rpc.ServerError` implements `error`. -/
+theorem serverErr_isError :
+    go.typeSetContains net.rpc.ServerError.ty go.error = true := by
+  go_type_set
+
+/-- `ServerError(msg).Error()` returns `msg`. -/
+theorem errMsg_serverErr (msg : GoString) : ⊢ errMsg (GF := GF) (serverErr msg) msg := by
+  unfold errMsg serverErr
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; exact serverErr_isError
+  imodintro
+  iintro %Φ HΦ
+  wp_method_call
+  wp_call
+  wp_auto
+  iexact HΦ
+
 /-- A request kept unsent (its token) was never written. -/
 theorem unsent_reqSent (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
     (o : Option Nat) :
