@@ -41876,3 +41876,28 @@ touch `Do`'s proof and `Pend` (the read form's commit), where `unkAns i v := v =
 unchanged. **Departure** (TaDa, not HoCAP): `reportSvc`'s `Q` is a caller-provided predicate fixed in
 the address's protocol, as a store's `sysState` already is; the far side must know what it proves
 before any call, and the deployment fixes it once (`remote_start`, now for any service).
+
+## The crash bridge for `[netExt, fsExt]`: obligations per local ghost state, the precondition chosen at start, the legacy file mode (2026-11-22 · etcd-dist D3 · branch `dist-crash-bridge`)
+
+**Context.** D3 of `notes/etcd-dist-plan.md` (branch `etcd-dist`): `Robust crashing stable` for machines
+over the network and Linux files, some crashing and restarting, from per-machine boot WPs, through
+Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge (`robust_of_kitBoot`).
+
+**Decisions** (`notes/dist-crash-bridge.md`):
+
+- `robust_of_netFsBoot` and the deployment premise `NetFsDeploy` (trusted: `KitDeploy` of every machine and
+  `Fs.FsInit` of every machine's files) live in the `Net` part (`Net/Statement/`), beside the kits' bridge,
+  since they use `KitDeploy` and the net protocol library; #22's `GooseLang/Ext/NetFs/` is used, unchanged.
+- A crashing machine's obligation `CrashBootWp e Q` is per generation: from `Q L` and its thread token, the WP
+  and a frame giving `Q L'` from `crashed`, `osInv L'`, `crashRest` and the empty package state. Perennial's
+  precondition parameter is fixed before the start update allocates anything, so the bridge's is
+  `∃ Q, ⌜CrashBootWp e Q⌝ ∗ Q L`, the client choosing `Q` in its start update.
+- The obligations quantify over the local ghost state `L` (the WP at `⟨G, L⟩`), not over a `HeapGS` with an
+  equation on its global part as `KitBootWp` does; a proof substitutes `lctx` by `L`'s context and never
+  destructures `GooseLocalGS` positionally (Perennial's `local-names` adds a field).
+- The file system in its legacy mode at the plain semantics (`kvnetExts`): the shared mode needs each
+  generation's start to reach the extension's local interpretation, which Perennial's distributed theorem
+  does not give (`notes/perennial-changes.md`, 2026-11-22). Recorded, not worked around: D4's call.
+- The minimal instance is echo (server crashing, client stable, over `kvnetExts`), since echo's proofs are
+  over any extensions with the net extension: only the boot programs (a program's syntax is over its
+  extension list) and `wp_boot` are restated.
