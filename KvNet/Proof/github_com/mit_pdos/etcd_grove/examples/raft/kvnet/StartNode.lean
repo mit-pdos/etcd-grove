@@ -117,22 +117,13 @@ theorem StartNode.wp_proof
   subst Hdir
   try wp_auto
   -- the configuration's fields, read-only
-  icases typedPointsto_split _ _ _ $$ cfg with Hcfg
+  ipersist cfg
+  ihave Hcfg := typedPointsto_split _ _ _ $$ cfg
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hcfg with ⟨cID, cDir, cAddrs, cOpts, -⟩
-  ipersist cID
-  ipersist cDir
-  ipersist cAddrs
-  icases typedPointsto_split _ _ _ $$ cOpts with Hco
+  icases Hcfg with ⟨#cID, #cDir, #cAddrs, #cOpts, -⟩
+  ihave Hco := typedPointsto_split _ _ _ $$ cOpts
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hco with ⟨oV, oP, oC, oS, oM, oMC, oI, -⟩
-  ipersist oV
-  ipersist oP
-  ipersist oC
-  ipersist oS
-  ipersist oM
-  ipersist oMC
-  ipersist oI
+  icases Hco with ⟨#oV, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
   -- the bootstrap voters
   generalize «$r0_ptr» = bp
   ihave %Hv4nn := typedPointsto_not_null $$ «$r0»
@@ -646,6 +637,7 @@ theorem StartNode.wp_proof
   have Hl0' : uint.nat F.prev ≤ l.length := by rw [Hl0]; omega
   have Htk := tick_pos rt Hrt'
   rw [Hdfn]
+  iapply wp_fupd
   wp_apply (wp_newReplica γ vs cfg.Dir' cfg.ID' n s sp ms γs K mK mA csp Kv A ap l m
       ccs ip F.hs S' o' F rf _ _ fl qc Htk rfl HFok HFSH Hap61 Hrafted HFof (by omega) Hl0' (by omega)
       Hid1 Hidm Hmsz Haplen HKfit HAfit HdfOk Hdfn)
@@ -655,7 +647,31 @@ theorem StartNode.wp_proof
     as %r ⟨%st', %sts', %sq', %ρ, #Hr⟩
   · ipureintro; exact ⟨Hcfgm, HKv, HAok, Hmd, Hns⟩
   try wp_auto
-  done
+  -- the node
+  -- (the node struct at «$r0_ptr»)
+  ihave Hnd := typedPointsto_split _ _ _ $$ «$r0»
+  simp only [TypedPointsto.typedPointstoDef, named]
+  icases Hnd with ⟨-, Hndr, Hndt, Hnds, -⟩
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hndr with #Hndr
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hndt with #Hndt
+  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hnds with #Hnds
+  ihave #Hr' := Hr
+  iunfold isReplicaR at Hr'
+  iNamed Hr'
+  iunfold isReplica at Hrep
+  iNamed Hrep
+  ihave #Hlaw := kv_confLaw (GF := GF) γ vs cfg.Dir' cfg.ID'
+  imodintro
+  iapply HΦ
+  iexists γ.r.cluster, kdRaftN, n
+  iframe Hlaw
+  unfold isNodeS
+  iexists r, t, sp
+  iframe Hndr Hndt Hnds Hstats' Hnode Htc
+  imodintro
+  unfold kvRep isRep
+  iexists n, st', sts', sq', ρ
+  iexact Hr
 
 end proof
 
