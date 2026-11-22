@@ -3,7 +3,8 @@ Package initialization of `internal.poll`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
-initializer copies, hold some error for good. Its initializer runs its variables' translated
+initializer copies, and `ErrFileClosing`, which `(*os.File).wrapErr` compares with, hold some error
+for good. Its initializer runs its variables' translated
 initializers (`sync.OnceValue(...)`, `errors.New` errors, function values, a `sync.Pool`
 literal).
 -/
@@ -95,6 +96,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply _root_.Perennial.sync.wp_OnceValue as %cfr -
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC #EFC
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xND #END
+  ipersist HErrFileClosing
   ipersist HErrNoDeadline
   wp_alloc_anon
   wp_auto

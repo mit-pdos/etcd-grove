@@ -2,7 +2,8 @@
 The package-initialization instance of this repository's `internal/poll` (project bboltfs's
 translation, `Code/internal/poll.lean`, 2026-11-07; Perennial's imports Perennial's `syscall`). Its
 fact: the two error variables `os`'s initializer copies (`ErrNoDeadline`, `ErrDeadlineExceeded`)
-hold some error, for good (Go never writes them after initialization). Its `wp_initialize'` is
+and `ErrFileClosing`, which `(*os.File).wrapErr` compares with (2026-11-22), hold some error, for good
+(Go never writes them after initialization). Its `wp_initialize'` is
 `Init.lean` (generated, `etc/gen-init.py`).
 -/
 module
@@ -34,9 +35,20 @@ namespace internal.poll
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.poll :=
   define_is_pkg_init iprop((∃ e : GoInterface, typedPointsto (globalAddr ErrNoDeadline) e DFrac.discard) ∗
-    (∃ e : GoInterface, typedPointsto (globalAddr ErrDeadlineExceeded) e DFrac.discard))
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrFileClosing) e DFrac.discard))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.poll :=
   build_get_is_pkg_init_wf
+
+/-- `poll.ErrFileClosing` holds some error, for good (`(*os.File).wrapErr` compares with it). -/
+theorem errFileClosing_of_pkgInit : isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
+    ∃ e : GoInterface, typedPointsto (globalAddr ErrFileClosing) e DFrac.discard := by
+  refine (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll).trans ?_
+  show iprop((∃ e : GoInterface, typedPointsto (globalAddr ErrNoDeadline) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr ErrFileClosing) e DFrac.discard)) ⊢ _
+  iintro ⟨-, -, He⟩
+  iexact He
 
 end internal.poll
 

@@ -657,9 +657,9 @@ function, which calls the trusted model of
         'ihave #FS : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrInvalid) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrPermission) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)) : IProp GF) $$ []',
         '· iapply isPkgInit_access $$ {Hd:io.fs}',
         'icases FS with ⟨⟨%fe1, #F1⟩, ⟨%fe2, #F2⟩, ⟨%fe3, #F3⟩, ⟨%fe4, #F4⟩, ⟨%fe5, #F5⟩⟩',
-        'ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard)) : IProp GF) $$ []',
+        'ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrFileClosing) e DFrac.discard)) : IProp GF) $$ []',
         '· iapply isPkgInit_access $$ {Hd:internal.poll}',
-        'icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩⟩',
+        'icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩, ⟨%pe3, #P3⟩⟩',
         'repeat (first',
         '  | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_',
         '  | (wp_func_call; wp_call)',
@@ -766,12 +766,14 @@ LFS_IOFS['imports'] = SPECIAL['io.fs']['imports'] + ['Proof.errors.ErrorStringOk
 LFS_IOFS['finish'] = ['ihave #HClOk := EtcdGrove.errorString_fmtErrorOk xCl _ $$ ECl'] + SPECIAL['io.fs']['finish']
 LFS_OS = dict(SPECIAL['os'])
 LFS_OS['doc'] = SPECIAL['os']['doc'].replace("which raft's\ninitializer loads (`defaultLogger`).",
-    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's).")
+    "which raft's\ninitializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an\n`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's), `checkWrapErr`\n`false`.")
 LFS_OS['before'] = {'dirBufPool': [l.replace(_lfs_fs_ex, _lfs_fs_ex_nn).replace('⟨%fe3, #F3⟩', '⟨%fe3, %hfe3, #F3⟩')
                                     .replace(_lfs_fs_cl, _lfs_fs_cl_ok).replace(_lfs_fs_ne, _lfs_fs_ne_ptr).replace('⟨%fe5, #F5⟩', '⟨%fe5, #F5ok, #F5⟩')
                                    for l in SPECIAL['os']['before']['dirBufPool']]}
+# (2026-11-22, `io.CopyFiles.spec`'s proof: `(*File).wrapErr` of an error reads `checkWrapErr`, a translated
+# `var` that only os's tests set) `os` also records `checkWrapErr` false, for good.
 LFS_OS['finish'] = ['ipersist HStderr', 'ipersist HErrExist', 'ipersist HErrNotExist', 'ipersist HErrInvalid',
-                    'ipersist HErrClosed', 'iframe Hown', 'imodintro', 'isplitr',
+                    'ipersist HErrClosed', 'ipersist HcheckWrapErr', 'iframe Hown', 'imodintro', 'isplitr',
                     '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish']
 
 # (WAL leaf specs, 2026-11-13) the part's bufio, internal/filepathlite and path/filepath: their
@@ -1026,7 +1028,8 @@ SPECIAL.update(LFS_SPECIAL)
 
 SPECIAL['internal.poll'] = dict(
     doc='''Its fact (`PkgInit.lean`): `ErrNoDeadline` and `ErrDeadlineExceeded`, which `os`'s
-initializer copies, hold some error for good. Its initializer runs its variables' translated
+initializer copies, and `ErrFileClosing`, which `(*os.File).wrapErr` compares with, hold some error
+for good. Its initializer runs its variables' translated
 initializers (`sync.OnceValue(...)`, `errors.New` errors, function values, a `sync.Pool`
 literal).''',
     imports=['Perennial.Proof.sync.Link', 'Perennial.Proof.errors.NewVar'],
@@ -1036,6 +1039,7 @@ literal).''',
         'wp_apply _root_.Perennial.sync.wp_OnceValue as %cfr -',
         'wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC #EFC',
         'wp_apply _root_.Perennial.errors.wp_New_errorString as %xND #END',
+        'ipersist HErrFileClosing',
         'ipersist HErrNoDeadline',
         'wp_alloc_anon',
         'wp_auto',
