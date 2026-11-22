@@ -56,7 +56,7 @@ theorem Replica.persist.wp_proof
   iunfold kdDmuInv at HR
   iNamed HR
   icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
-  icases Hcp with ⟨%qc, Hcp⟩
+  icases Hcpm with ⟨%qc, Hcpm⟩
   -- the pending batch: what the write takes, what it leaves, and the phase after it
   ihave Hpz : iprop(∃ pb : Option (GName × RaftState),
       ⌜StorageHolds (pbTarget S pb) (kdContents (some M))⌝ ∗ kdPendIn γ id n S pb ∗
@@ -121,23 +121,23 @@ theorem Replica.persist.wp_proof
   wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
   try wp_auto
   rw [← Hdf.2]
-  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcp
+  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
     [r Hwr Hlc1 Hrun Hpend Hpost Hlocked Himage Hmeta Hic His Hcm HΦ]
   iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Hwr Hlc1 Hrun Hcert Hpend
-  iintro Hwr Hrun Hout Hdh Hcp
+  iintro Hwr Hrun Hout Hdh Hcpm
   ihave ⟨%pz', Hph⟩ := Hpost $$ Hout
   try wp_auto
   wp_apply wp_add sts _ (by decide) (by decide) $$ [$Hpkg $Hstats]
   try wp_auto
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Himage Hmeta Hic His Hcm Hdh Hcp Hwr Hph]
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Himage Hmeta Hic His Hcm Hdh Hcpm Hwr Hph]
   · inext
     iunfold kdDmuInv
     iexists ip, M, fz
     iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh
     isplitr
     · ipureintro; exact Hfzc
-    isplitl [Hcp]
-    · iexists qc; iexact Hcp
+    isplitl [Hcpm]
+    · iexists qc; iexact Hcpm
     iexists pbTarget S pb, some M, pz'
     iframe Hwr Hcert Hph
     ipureintro; exact ⟨HMok, fun f hf => by cases hf; exact Nat.le_refl _⟩
@@ -166,7 +166,7 @@ theorem Replica.persist.wp_proofRun
   iunfold kdDmuInv at HR
   iNamed HR
   icases Hlive with ⟨%S, %o, %pz, Hwr, %HMok, #Hcert, %Hfb, Hph⟩
-  icases Hcp with ⟨%qc, Hcp⟩
+  icases Hcpm with ⟨%qc, Hcpm⟩
   -- `run`'s batch: what the write takes, and how `run` gets its results back after it
   ihave Hpz : iprop(∃ pb : Option (GName × RaftState),
       ⌜StorageHolds (pbTarget S pb) (kdContents (some M)) ∧ pbTarget S pb = st'.durable⌝ ∗
@@ -242,10 +242,10 @@ theorem Replica.persist.wp_proofRun
   wp_apply wp_bytes_to_string sl (encStor M) (DFrac.own 1) $$ [$Hsl] as -
   try wp_auto
   rw [← Hdf.2]
-  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcp
+  wp_apply (wp_Write ph.γd ph.df ph.fR qc (encStor M) Hdf.1 Hdl) $$ Hdur Hos HosS Hdi Hdh Hcpm
     [r Hwr Hlc1 Hlc2 Hrun Hpend Hpost Hph Hclaim Hlocked Himage Hmeta Hic His Hcm HΦ]
   iapply kd_writeAU γ id n ph q S o M pb _ HMok HSM' $$ HfInv Hwr Hlc1 Hrun Hcert Hpend
-  iintro Hwr Hrun Hout Hdh Hcp
+  iintro Hwr Hrun Hout Hdh Hcpm
   imod Hpost $$ Hout Hlc2 with HA
   imod ghostVar_update_halves ((none : Option GName), st'.durable) ph.ph _ _ $$ Hph Hclaim
     with ⟨Hph, Hclaim⟩
@@ -254,15 +254,15 @@ theorem Replica.persist.wp_proofRun
   try wp_auto
   rw [HS'] at HSM'
   rw [HS']
-  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Himage Hmeta Hic His Hcm Hdh Hcp Hwr Hph]
+  wp_apply sync.Mutex.wp_Unlock _ _ $$ [$Hdmu $Hlocked Himage Hmeta Hic His Hcm Hdh Hcpm Hwr Hph]
   · inext
     iunfold kdDmuInv
     iexists ip, M, fz
     iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh
     isplitr
     · ipureintro; exact Hfzc
-    isplitl [Hcp]
-    · iexists qc; iexact Hcp
+    isplitl [Hcpm]
+    · iexists qc; iexact Hcpm
     iexists st'.durable, some M, KdPhase.idle
     iframe Hwr Hcert
     isplitr

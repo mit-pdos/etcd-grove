@@ -81,7 +81,7 @@ theorem fileHolds_some (γ : KdNames) (S : RaftState) (M : StorFile) (hM : KdFil
 theorem kd_writeAU (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) (q : Qp) (S : RaftState)
     (o : Option StorFile) (M : StorFile) (pb : Option (GName × RaftState)) (Ψ0 : IProp GF)
     (hM : KdFileOk M) (hS : StorageHolds (pbTarget S pb) (kdContents (some M))) :
-    ⊢ kdFileInvK γ id n ph -∗ kdWriter γ id S o -∗ £ 1 -∗
+    ⊢ kdFileInvK γ id n ph.γd -∗ kdWriter γ id S o -∗ £ 1 -∗
       nodeRunning n γ.r.cluster kdRaftN q -∗ kdSnapCert γ M.snap -∗ kdPendIn γ id n S pb -∗
       (kdWriter γ id (pbTarget S pb) (some M) -∗ nodeRunning n γ.r.cluster kdRaftN q -∗
         kdPendOut pb -∗ Ψ0) -∗

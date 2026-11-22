@@ -73,8 +73,8 @@ instance kdSnapCert_persistent (γ : KdNames) (sv : SnapshotM) :
     Persistent (kdSnapCert (GF := GF) γ sv) := by
   unfold kdSnapCert; infer_instance
 
-instance kdFileInvK_persistent (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) :
-    Persistent (kdFileInvK (GF := GF) γ id n ph) := by
+instance kdFileInvK_persistent (γ : KdNames) (id : w64) (n : NodeH) (γd : DurFs.DurGS) :
+    Persistent (kdFileInvK (GF := GF) γ id n γd) := by
   unfold kdFileInvK; infer_instance
 
 set_option synthInstance.maxHeartbeats 400000 in

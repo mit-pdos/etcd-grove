@@ -163,7 +163,7 @@ theorem Replica.snapshot.wp_proof
     -- `dmu`'s record of the image kept; the error the image's
     ihave Hblk : iprop(|==> (⌜err = interface.nil ∨ err = interface.mkOk (go.GoType.PointerType
         _root_.Perennial.errors.errorString.ty) #xe⌝ ∗ ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph ∗
-        monoNatLbOwn ρ.ph.is (uint.nat q.index'))) $$ [Hres Hmeta Hwr Hph Hic His Hcm Hdh Hcp]
+        monoNatLbOwn ρ.ph.is (uint.nat q.index'))) $$ [Hres Hmeta Hwr Hph Hic His Hcm Hdh Hcpm]
     · by_cases Hst : imgCreateStale M q.index'
       · imodintro
         simp only [Hst, ↓reduceIte]
@@ -175,7 +175,7 @@ theorem Replica.snapshot.wp_proof
         · inext
           iunfold kdDmuInv
           iexists ip, M, fz
-          iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcp
+          iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcpm
           isplitr
           · ipureintro; exact Hfzc
           iexists S, o, pz
@@ -201,7 +201,7 @@ theorem Replica.snapshot.wp_proof
           show (imgCreateSnapshot M q.index' (some cc) bs).prev = M.prev from rfl,
           show (imgCreateSnapshot M q.index' (some cc) bs).ents = M.ents from rfl,
           show (imgCreateSnapshot M q.index' (some cc) bs).snap.Metadata'.Index' = q.index' from rfl]
-        iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcp
+        iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcpm
         isplitr
         · ipureintro; exact Hfzc
         iexists S, o, pz
@@ -302,7 +302,7 @@ theorem Replica.snapshot.wp_proof
           $$ [$Hpkg $Hrec $Himg $Himage $ErrCompacted $Hraft $HmsInv $HB $Hex $Hxlb]
         as %err ⟨-, Hres⟩
       ihave ⟨%Herr, HI⟩ : iprop(⌜err = interface.nil ∨ err = errCompacted⌝ ∗
-          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hmeta Hwr Hph Hic His Hcm Hdh Hcp]
+          ▷ kdDmuInv γ id r n st ρ.ms ρ.γs ρ.ph) $$ [Hres Hmeta Hwr Hph Hic His Hcm Hdh Hcpm]
       · by_cases Hst : imgCompactStale M (fi + rb)
         · simp only [Hst, ↓reduceIte]
           icases Hres with ⟨%Herr, Himage⟩
@@ -311,7 +311,7 @@ theorem Replica.snapshot.wp_proof
           inext
           iunfold kdDmuInv
           iexists ip, M, fz
-          iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcp
+          iframe Himg Himage Hmeta Hic Hfz His Hcm Hdh Hcpm
           isplitr
           · ipureintro; exact Hfzc
           iexists S, o, pz
@@ -335,7 +335,7 @@ theorem Replica.snapshot.wp_proof
             show (imgCompact M (fi + rb)).snap = M.snap from rfl,
             show (imgCompact M (fi + rb)).prev = fi + rb from rfl,
             show (imgCompact M (fi + rb)).ents = M.ents.drop (uint.nat (fi + rb) - uint.nat M.prev) from rfl]
-          iframe Himg Himage Hmeta Hic Hfz' His Hcm Hdh Hcp
+          iframe Himg Himage Hmeta Hic Hfz' His Hcm Hdh Hcpm
           isplitr
           · ipureintro; rcases Hfzc with h | h
             · left; exact h

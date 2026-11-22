@@ -335,16 +335,16 @@ def kdFileState (γ : KdNames) (id : w64) (n : NodeH) (S : RaftState) (s : DurFs
           ⌜st.durable = S ∧ st'.durable = S2⌝ ∗ fileHolds γ S2 s.cur))
 
 /-- The file invariant's body. -/
-def kdFileBody (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) : IProp GF :=
+def kdFileBody (γ : KdNames) (id : w64) (n : NodeH) (γd : DurFs.DurGS) : IProp GF :=
   iprop(∃ (S : RaftState) (s : DurFs.DurSt) (pb : Option (GName × RaftState)),
-    raftState γ.r.cluster id S ∗ DurFs.durSt ph.γd s ∗
+    raftState γ.r.cluster id S ∗ DurFs.durSt γd s ∗
     ghostVar (γ.wr id) (1 : Qp).half ((S, s, pb) : KdWv) ∗ kdFileState γ id n S s pb)
 
 /-- **Replica `id`'s file** (an invariant of this generation, whose node is `n`: decision C; the crash
 obligation carries its contents to the next boot): its durable state, `durable`'s client state of the
 file, the writer's other half, and what the file holds (`kdFileState`). -/
-def kdFileInvK (γ : KdNames) (id : w64) (n : NodeH) (ph : KdDmuNames) : IProp GF :=
-  inv (kdRepN .@ uint.nat id) (kdFileBody γ id n ph)
+def kdFileInvK (γ : KdNames) (id : w64) (n : NodeH) (γd : DurFs.DurGS) : IProp GF :=
+  inv (kdRepN .@ uint.nat id) (kdFileBody γ id n γd)
 
 /-- The decimal digits of `n` (`itoa`). -/
 def decimalB (n : Nat) : GoString := (Nat.toDigits 10 n).map (fun c => W8 (c.toNat : Int))
@@ -387,7 +387,7 @@ def kdDmuInv (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st ms : Loc) (γs 
     -- (2026-11-22, decision C) the file's handle and a share of its directory's call permission
     -- (`durable.Write`'s: one writer at a time)
     "Hdh" ∷ DurFs.durHandle ph.γd ph.df ph.fR ∗
-    "Hcp" ∷ (∃ qc : Qp, Fs.osCallPerm (Fs.callKey ph.fR ph.df.d) qc) ∗
+    "Hcpm" ∷ (∃ qc : Qp, Fs.osCallPerm (Fs.callKey ph.fR ph.df.d) qc) ∗
     -- (2026-11-01, stage II (h)) `M`'s shape, certificate and phase also after the crash (the run
     -- loop and the snapshotter go on changing the storage until `stop`, and their changes' premises
     -- are about `M`); the writer's half stays after the crash (`run` enters commit-only batches
@@ -422,7 +422,7 @@ def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r : Lo
     "#Hdmu" ∷ sync.isMutex (r.[KReplica, go!"dmu"]) (kdDmuInv γ id r n st ms γs ph) ∗
     -- (2026-11-22, decision C) the file: `os`'s and `durable`'s invariants, and the store's
     "#Hos" ∷ Fs.osInv ∗ "#HosS" ∷ Fs.osSharedInv ph.fR ∗ "#Hdi" ∷ DurFs.durInv ph.γd ph.df ∗
-    "#HfInv" ∷ kdFileInvK γ id n ph ∗
+    "#HfInv" ∷ kdFileInvK γ id n ph.γd ∗
     "%Hdf" ∷ ⌜ph.df.Ok ∧ ph.df.name = kdFileName dir id⌝ ∗
     -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the
     -- node API's size premises hold vacuously
@@ -492,6 +492,18 @@ def runStart (γ : KdNames) (id : w64) (r : Loc) (n : NodeH) (st : Loc) (ρ : Kd
     ⌜l.length ≤ ap.length⌝ ∗
     (∃ c : Nat, memCompacted ρ.γs c ∗ raft_kvreconf.frozenTo ρ.γs c l ∗ ⌜c ≤ l.length⌝) ∗
     monoNatLbOwn ρ.ph.ic l.length)
+
+/-- **`run`'s send callback** (kvdurable's `sendSpec`; 2026-11-22, drafted with no `.lake`): it takes
+the `Ready`'s messages, owned, each sent by `id` (`sentMsg`) with its credits. kvnet's is the transport's
+`t.Send` (`StartNode` gives it from `Transport.Send.spec`). -/
+def sendSpec (γ : KdNames) (id : w64) (f : GoFunc) : IProp GF :=
+  iprop(□ ∀ (msl : GoSlice) (ms : List QMsg),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet ∗
+        ownSlice msl (ms.map QMsg.loc) (DFrac.own 1) ∗
+        [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ.r.cluster kdRaftN id q.st ∗
+          msgCredits γ.r.cluster kdRaftN q.st }}
+      (App (Val #f) (Val #msl))
+    {{ RET #(); True }})
 
 /-- **Some incarnation `r` of replica `id`, running** (persistent; kvreconf's `isRep`): what
 `c.replicas[id]` holds. -/
