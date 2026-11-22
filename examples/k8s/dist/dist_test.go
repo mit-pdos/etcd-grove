@@ -477,8 +477,10 @@ func (r *run) runClients(n *robust.Network, members []*robust.Machine, deadline 
 				}
 			}
 			if all2 || time.Now().After(limit) {
-				r.c1.Stats.SetupsDone.Store(int64(ok))
-				r.c1.Stats.FaultsAfter.Store(int64(time.Since(t0)))
+				for _, c := range []*etcddist.Cluster{r.c1, r.c2} {
+					c.Stats.SetupsDone.Store(int64(ok))
+					c.Stats.FaultsAfter.Store(int64(time.Since(t0)))
+				}
 				break
 			}
 			select {
