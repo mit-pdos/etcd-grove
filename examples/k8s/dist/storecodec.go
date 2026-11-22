@@ -8,7 +8,8 @@ package dist
 // *metav1.Status. The API server's machine checks that the Raw it sends decodes to a value
 // reflect.DeepEqual to the store's (RawOK): Kubernetes' checker compares responses with
 // reflect.DeepEqual, so a Raw that would not survive the wire is flagged, never sent altered, and
-// the orchestrator then skips that checker (Store's result line says so).
+// the orchestrator then skips that checker (Store's result line says so). The API server also says
+// whether the store answered etcd's "compacted" (Compacted), read off the store's own answer.
 
 import (
 	"encoding/json"
@@ -26,11 +27,31 @@ import (
 	k8s "github.com/mit-pdos/etcd-grove/examples/k8s/dist/storecopy"
 )
 
-// StoreOut is an API server's answer: the driver's output, and whether its Raw crossed the wire
-// unchanged.
+// StoreOut is an API server's answer: the driver's output, whether its Raw crossed the wire
+// unchanged, and whether the store's answer was etcd's "compacted" (Compacted, which the API
+// server reads off the store's own answer, carried or not).
 type StoreOut struct {
-	Out   k8s.Output
-	RawOK bool
+	Out       k8s.Output
+	RawOK     bool
+	Compacted bool
+}
+
+// compacted says whether the store's answer raw is etcd's "compacted", as Kubernetes' etcd3
+// storage reports it (errors.go, interpretListError and interpretWatchError: ResourceExpired, 410
+// Gone with reason Expired): a List's error, or a watch's Error event.
+func compacted(raw k8s.Raw) bool {
+	if raw.Err != nil && apierrors.IsResourceExpired(raw.Err) {
+		return true
+	}
+	for _, ev := range raw.Events {
+		if ev.Type != watch.Error {
+			continue
+		}
+		if st, ok := ev.Object.(*metav1.Status); ok && st.Reason == metav1.StatusReasonExpired {
+			return true
+		}
+	}
+	return false
 }
 
 func encObj(e *enc.Enc, o k8s.Obj) {
@@ -347,6 +368,7 @@ func encOutput(o StoreOut) []byte {
 	e.Bool(out.WFailed)
 	ok := encRaw(e, out.Raw)
 	e.Bool(o.RawOK && ok)
+	e.Bool(o.Compacted)
 	return e.B
 }
 
@@ -374,18 +396,20 @@ func DecOutput(b []byte) (StoreOut, bool) {
 	out.WFailed = d.Bool()
 	out.Raw = decRaw(d)
 	rawOK := d.Bool()
-	return StoreOut{Out: out, RawOK: rawOK}, d.Done()
+	comp := d.Bool()
+	return StoreOut{Out: out, RawOK: rawOK, Compacted: comp}, d.Done()
 }
 
 // EncStoreOut is out's encoding as an API server sends it: RawOK says whether its Raw decodes to
-// one reflect.DeepEqual to out.Raw.
+// one reflect.DeepEqual to out.Raw, Compacted whether out.Raw is etcd's "compacted".
 func EncStoreOut(out k8s.Output) []byte {
-	b := encOutput(StoreOut{Out: out, RawOK: true})
+	c := compacted(out.Raw)
+	b := encOutput(StoreOut{Out: out, RawOK: true, Compacted: c})
 	back, ok := DecOutput(b)
 	if ok && back.RawOK && reflect.DeepEqual(back.Out.Raw, out.Raw) {
 		return b
 	}
-	return encOutput(StoreOut{Out: out, RawOK: false})
+	return encOutput(StoreOut{Out: out, RawOK: false, Compacted: c})
 }
 
 // StoreCodec is the store workload's remote.Codec: a Get, a List and a watch are reads (they

@@ -10,12 +10,14 @@
 # (mit-pdos/perennial#655), which `serverStats.LeaderInfo` is.
 # (prove-ps2, 2026-11-21) `FollowerStats.Fail` with its body (and the mutex's promoted methods): the
 # pipeline calls it; until then a trust-boundary axiom.
+# (prove-ps2-succ, 2026-11-22) `FollowerStats.Succ` with its body (float64 latency stats under the
+# stats' mutex, `math.Sqrt`): the msgappv2 encoder calls it; until then a trust-boundary axiom.
 translate = ["!*", "NewLeaderStats", "LeaderStats.Follower", "LeaderStats.Lock", "LeaderStats.Unlock",
-  "FollowerStats.Fail", "FollowerStats.Lock", "FollowerStats.Unlock",
+  "FollowerStats.Fail", "FollowerStats.Succ", "FollowerStats.Lock", "FollowerStats.Unlock",
   "NewServerStats", "ServerStats.RecvAppendReq", "ServerStats.SendAppendReq", "ServerStats.BecomeLeader",
   "ServerStats.becomeLeader", "ServerStats.Lock", "ServerStats.Unlock", "queueCapacity",
   "statsQueue.Insert"]
-imports = ["!*", "sync", "time", "go.uber.org/zap", "go.etcd.io/raft/v3"]
+imports = ["!*", "sync", "time", "math", "go.uber.org/zap", "go.etcd.io/raft/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

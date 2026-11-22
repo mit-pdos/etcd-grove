@@ -1476,6 +1476,18 @@ safeRangeBucket: false}`; 2026-11-02, the backend-auth-split stage). -/
 def authRolesBI : backend.BucketInfo :=
   ⟨W64 22, go_etcd_io.etcd.server.v3.storage.schema.authRolesName, false⟩
 
+/-- schema's `Members` bucket, as the backend names it (`bucket{id: 10, name: "members",
+safeRangeBucket: false}`; prove-ps2-members, 2026-11-22). -/
+def membersBI : backend.BucketInfo := ⟨W64 10, go!"members", false⟩
+
+/-- schema's `MembersRemoved` bucket, as the backend names it (`bucket{id: 11, name:
+"members_removed", safeRangeBucket: false}`; prove-ps2-members, 2026-11-22). -/
+def membersRemovedBI : backend.BucketInfo := ⟨W64 11, go!"members_removed", false⟩
+
+/-- schema's `Cluster` bucket, as the backend names it (`bucket{id: 5, name: "cluster",
+safeRangeBucket: false}`; prove-ps2-members, 2026-11-22). -/
+def clusterBI : backend.BucketInfo := ⟨W64 5, go!"cluster", false⟩
+
 /-- **The backend's parameters let the lessor delete from `Lease`**: the bucket in the table, a
 tracked one (`RB`, D22), none of its keys a hook's own (leases T3, 2026-10-25). -/
 def leaseParams (P : backend.BParams) : Prop :=

@@ -8,8 +8,9 @@ Lean-first (no Rocq counterpart).
   read-only) and its map at the fraction `q`, its values non-nil follower stats
   (`v2stats.isFollowerStats`).
 * `v2stats.isFollowerStats fs` (persistent; prove-ps2, 2026-11-21): the follower stats' embedded
-  `sync.Mutex`, guarding the failure count `Counts.Fail` (what `Fail` writes; `Succ`, assumed, writes
-  only the other fields). `Follower` allocates it with the stats (`&FollowerStats{}`). The map's writers are
+  `sync.Mutex`, guarding the counts `Counts` (`Fail` and `Succ` increment them) and the latencies
+  `Latency` (`Succ` updates them; prove-ps2-succ, 2026-11-22: until then only `Counts.Fail`, while
+  `Succ` was assumed). `Follower` allocates it with the stats (`&FollowerStats{}`). The map's writers are
   the transport's (`AddPeer`'s `Follower` call and `removePeer`'s unlocked `delete`), both under the
   transport's write lock, which therefore owns it (`trLockP`), not the stats' own mutex.
 * `v2stats.isServerStats ss` (persistent; prove-ps2-v2stats, 2026-11-21, until then opaque): the
@@ -49,8 +50,9 @@ abbrev v2stats.lsMutexAddr (ls : Loc) : Loc := structFieldRef v2stats.LeaderStat
 
 abbrev v2stats.fsMutexAddr (fs : Loc) : Loc := structFieldRef v2stats.FollowerStats go!"Mutex" fs
 
-abbrev v2stats.fsFailAddr (fs : Loc) : Loc :=
-  structFieldRef v2stats.CountsStats go!"Fail" (structFieldRef v2stats.FollowerStats go!"Counts" fs)
+abbrev v2stats.fsCountsAddr (fs : Loc) : Loc := structFieldRef v2stats.FollowerStats go!"Counts" fs
+
+abbrev v2stats.fsLatencyAddr (fs : Loc) : Loc := structFieldRef v2stats.FollowerStats go!"Latency" fs
 
 abbrev v2stats.ssInnerAddr (ss : Loc) : Loc := structFieldRef v2stats.ServerStats go!"serverStats" ss
 
@@ -76,7 +78,9 @@ instance v2stats.isLeaderStats_persistent (ls : Loc) :
 
 /-- **The follower stats `fs`** (persistent): see the file header. -/
 def v2stats.isFollowerStats (fs : Loc) : IProp GF :=
-  sync.isMutex (v2stats.fsMutexAddr fs) iprop(∃ c : w64, v2stats.fsFailAddr fs ↦ c)
+  sync.isMutex (v2stats.fsMutexAddr fs)
+    iprop(∃ (c : v2stats.CountsStats) (l : v2stats.LatencyStats),
+      v2stats.fsCountsAddr fs ↦ c ∗ v2stats.fsLatencyAddr fs ↦ l)
 
 instance v2stats.isFollowerStats_persistent (fs : Loc) :
     Persistent (v2stats.isFollowerStats (GF := GF) fs) := by

@@ -7,6 +7,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafePut
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__put
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -42,7 +43,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
-  wp_apply (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1)
+  wp_apply +noauto (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1)
     $$ [Htxf Hpend Hwtx] as ⟨%Hkv, Hw, -⟩
   · iframe #
     unfold btW
@@ -51,6 +52,14 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
   ihave %Hbb := batchGhostAt_bound γ P st false HP Hwf c $$ Hg
   have Hlen : (bkOf st.W.bks bi.id).length < bufBound := by have := Hbb bi.id; omega
+  -- (step 2 of `notes/step-bounds-plan.md`, 2026-11-22) the new entry paid by this put's own step:
+  -- the buffers' receipt `⧖ m`, raised at the write buffer's `put` resolution
+  icases batchGhostAt_bufRc γ P st false c $$ Hg with ⟨Hg, #Hbr⟩
+  iunfold bufRc at Hbr
+  icases Hbr with ⟨%m, #Hm, %Hfit, %Hrb⟩
+  wp_raise_receipt Hm
+  ihave #Hbr' := bufRc_grow (st := st) (st' := st.put bi kb vb false k) m rfl
+    (fun i => put_W_le st bi kb vb false i) Hfit Hrb $$ Hm
   imod batchGhost_step_put γ P (st := st) (st' := (st.put bi kb vb false k)) rfl rfl rfl
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb false i) bi.name kb
     (hkData_put_other st bi kb vb false) (rbData_put_other st bi kb vb false)
@@ -60,7 +69,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
       (dlsOk_put false (fun h1 _ => (Hsb h1).2)) rfl rfl hd) (fun m hm => tkSet_ne _ _ hm)
     k c (fun m hm => by cases k <;> simp [BSess.put, cwAdd, hm]) (fun h => by subst h; rfl)
     (fun h _ => by subst h; right; simp [BSess.put, cwAdd]) (fun h => by subst h; revert Hkc; cases c <;> decide)
-    $$ Hg Hhkp Hrbp Hfkp
+    $$ Hbr' Hg Hhkp Hrbp Hfkp
     with ⟨Hg, Hhkp, Hrbp, Hfkp⟩
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen) $$ [$HW] as HW
   · iframe #

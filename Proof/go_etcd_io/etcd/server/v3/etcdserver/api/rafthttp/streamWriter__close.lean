@@ -33,7 +33,7 @@ theorem rafthttp.streamWriter.close.wp_proof
   ihave #Hf' := Hf
   iunfold swFixed at Hf'
   icases Hf' with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, -, -, -, -, -, -, -, -,
-    -, -, #Hmu, -⟩
+    -, -, -, #Hmu, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto

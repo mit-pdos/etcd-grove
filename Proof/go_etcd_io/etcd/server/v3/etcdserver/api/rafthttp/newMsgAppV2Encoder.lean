@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 theorem rafthttp.newMsgAppV2Encoder.wp_proof :
     rafthttp.newMsgAppV2Encoder.spec (GF := GF) (hG := hG) := by
   intro wi fs
-  wp_start as %Hfs
+  wp_start as ⟨%Hfs, #Hfsi⟩
   iapply wp_fupd
   wp_auto
   wp_apply (wp_make_bytes_abs (W64 1048576) (by decide)) as %buf ⟨%zs, Hbufs, Hbufc, %Hbl⟩

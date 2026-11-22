@@ -70,7 +70,7 @@ theorem rafthttp.streamWriter.closeUnlocked.wp_proof
   wp_start as ⟨#Hf, Hmc, Hwk, Hcl, #Hbag, Hcls⟩
   iunfold swFixed at Hf
   icases Hf with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, #Hlg, #Hlgz, #Hlid,
-    #Hpid, -, -, -, -, #Hr, #Hraft, -, -, -, -, -, -, -⟩
+    #Hpid, -, -, -, -, -, #Hr, #Hraft, -, -, -, -, -, -, -⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   iunfold netRaftOk at Hraft
   icases Hraft with ⟨%ri, %Hri, -, -, #HRU, -⟩
