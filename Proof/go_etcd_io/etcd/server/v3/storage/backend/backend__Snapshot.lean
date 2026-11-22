@@ -264,6 +264,11 @@ theorem backend.backend.Snapshot.wp_proof
   wp_apply wp_fork $$ [Hdpend]
   · wp_auto
     wp_apply wp_with_defer as %defer2 defer2
+    (try wp_auto)
+    wp_apply wp_float64_div as %_ -
+    (try wp_auto)
+    wp_apply wp_float64_mul as %_ -
+    (try wp_auto)
     wp_apply wp_ArbitraryInt as %x -
     have h30 : sint.Z (W64 30000000000) = 30000000000 := by decide
     -- the ticker's interval: at least `minSnapshotWarningTimeout`, positive

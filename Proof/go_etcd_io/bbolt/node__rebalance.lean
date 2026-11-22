@@ -245,6 +245,8 @@ theorem rebal_loeb
   wp_apply hInc K tx r m 1 (W64 1) $$ [Hst] as %_ Hst
   · iframe; iframe #
   try wp_auto
+  wp_apply wp_float64_mul as %_ -
+  (try wp_auto)
   wp_apply wp_ArbitraryInt as %thr _
   ihave Hn : (n ↦ ({ rn.nv with unbalanced' := false } : node) : IProp GF)
     $$ [bucket isLeaf unbalanced spilled key pgid parent children inodes]
