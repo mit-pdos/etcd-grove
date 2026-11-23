@@ -33,23 +33,23 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **A client admin call's history update** (persistent): `v3rpc.authHistAuT`'s, its header told
 bound to the token of some attempt of the call on `conn` with a context of outgoing metadata `om`
 (errdesc stage 1, 2026-11-20: until then indexed by the context). -/
-def clientHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om : GrpcMd)
+def clientHistAu (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om : GrpcMd)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) : IProp GF :=
   histAu ρ.raft ρ.kv srvAuthSt0
     (fun hm => iprop(∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-      v3rpc.hdrBoundT (srvTLSId s) E.authMode (auth.mdTokenOf md) hm)) rq Q
+      v3rpc.hdrBoundT T E.authMode (auth.mdTokenOf md) hm)) rq Q
 
-instance clientHistAu_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
+instance clientHistAu_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (om : GrpcMd) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
-    Persistent (clientHistAu s E ρ conn om rq Q) := by
+    Persistent (clientHistAu T E ρ conn om rq Q) := by
   unfold clientHistAu; infer_instance
 
 /-- A client's update is one at the token of each of its attempts. -/
-theorem clientHistAu_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
+theorem clientHistAu_attempt (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (om : GrpcMd) (md : GrpcMd) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF)
     (hmd : clientAttemptMd conn om md) :
-    clientHistAu (GF := GF) s E ρ conn om rq Q ⊢
-      v3rpc.authHistAuT (srvTLSId s) E ρ (auth.mdTokenOf md) rq Q := by
+    clientHistAu (GF := GF) T E ρ conn om rq Q ⊢
+      v3rpc.authHistAuT T E ρ (auth.mdTokenOf md) rq Q := by
   unfold clientHistAu v3rpc.authHistAuT
   apply histAu_mono
   intro hm

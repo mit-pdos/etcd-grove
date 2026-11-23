@@ -751,7 +751,7 @@ theorem run.wp_proof
     iexists Lset
     iframe Hll₁
     ihave #Hpz := cell_putZAu x0.2.ρ.rd.kv γc id gs hgs
-      (client.clientGrant s0 w0.E { x0.2.ρ with wait := w0.γw } conn ctx (.put (leasePutOp zK id)) Lset) $$ [Hlb]
+      (client.clientGrant (srvTLSId s0) w0.E { x0.2.ρ with wait := w0.γw } conn ctx (.put (leasePutOp zK id)) Lset) $$ [Hlb]
     · iframe #
     iexact Hpz
   icases Hz with (%Hz | ⟨%Hz, ⟨HidsZ, #HlbZ, %hlz0⟩, %σz, #HpsZ⟩) <;> subst Hz
@@ -817,7 +817,7 @@ theorem run.wp_proof
     iexists Lset
     iframe Hll₂
     ihave #Hpa := cell_putAAu xu.2.ρ.rd.kv γc lz id gs ps1 hgs (by omega)
-      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } conn ctx (.put (leasePutOp aK id)) Lset)
+      (client.clientGrant (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } conn ctx (.put (leasePutOp aK id)) Lset)
       $$ [Hlb1]
     · iframe #
       iintro !> %σ' %hz HG
@@ -898,7 +898,7 @@ theorem run.wp_proof
   · iExactEq Hobj
     simp [TxnModel.empty, leaseTxn]
   (try wp_auto)
-  wp_apply (client.client_txn_on tp uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
+  wp_apply (client.client_txn_on tp uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
       wu.cid wu.mid (W64 0) i₂ tctx none tcd ⟨leaseTxn tK lu, false, true, false⟩ (psAtLeast γc 3) F₂
       (fun h => by simp [hro] at h) htsz (fun _ => htsh)) $$ [Hobj] as %tresp %terr Ht
   · iframe Hobj; iframe #
@@ -912,7 +912,7 @@ theorem run.wp_proof
     iexists Lset
     iframe Hll₂
     ihave #Htx := cell_txnTAu xu.2.ρ.rd.kv γc lz lu ps2 hps2
-      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } uconn none
+      (client.clientGrant (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } uconn none
         (.txn (txnWireOf (leaseTxn tK lu))) Lset) $$ []
     · iframe #
     iexact Htx
@@ -1061,7 +1061,7 @@ theorem run.wp_proof
       (opPutModel xK go!"v" [withLeaseM lz]).t = W64 2 :=
     ⟨by simp [opPutModel, OpFull.putPanics, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero],
       rfl⟩
-  wp_apply (client.client_put_on uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid
+  wp_apply (client.client_put_on uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid
       pctx none pcd xK go!"v" _ [withLeaseM lz] (fun _ => iprop(False)) F₂
       (hszL xK lz (by decide)) hokx.1 hokx.2 (Or.inr (hlm xu hxum))) as %presp %perr Hp
   · iframe #
@@ -1130,7 +1130,7 @@ theorem run.wp_proof
   · iExactEq Hobj3
     simp [TxnModel.empty, leaseTxn]
   (try wp_auto)
-  wp_apply (client.client_txn_on tp3 uapi uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
+  wp_apply (client.client_txn_on tp3 uapi uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd
       wu.cid wu.mid (W64 0) i₂ xctx none xcd ⟨leaseTxn xK lz, false, true, false⟩ (fun _ => iprop(False)) F₂
       (fun h => by simp [hro'] at h) htsz' (fun _ => htsh')) $$ [Hobj3] as %xresp %xerr Hx
   · iframe Hobj3; iframe #
@@ -1305,7 +1305,7 @@ theorem run.wp_proof
   wp_apply (client.wp_WithTimeout_bgMd wp_WithTimeout wp_ErrAny hAs _)
     as %rctx %rcd %rcancel ⟨#Hrcancel, #Hrctx, #Hrce, -, #Hrout, -⟩
   (try wp_auto)
-  wp_apply (client.client_lease_revoke_on ulp uconn xu.1.Client' su wu.E { xu.2.ρ with wait := wu.γw } rctx none rcd
+  wp_apply (client.client_lease_revoke_on ulp uconn xu.1.Client' (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } rctx none rcd
       i₂ lu (revoked γc)) as %rresp %rerr Hrv
   · iframe #
     iintro !>
@@ -1313,7 +1313,7 @@ theorem run.wp_proof
     iexists Lset
     iframe Hll₂
     ihave #Hrvk := cell_revokeUAu xu.2.ρ.rd.kv γc lz lu ps3 hps3
-      (client.clientGrant su wu.E { xu.2.ρ with wait := wu.γw } uconn none (.leaseRevoke lu) Lset)
+      (client.clientGrant (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } uconn none (.leaseRevoke lu) Lset)
       $$ [Hinvu HlbU Hps3 Hal1]
     · iframe #
     iexact Hrvk

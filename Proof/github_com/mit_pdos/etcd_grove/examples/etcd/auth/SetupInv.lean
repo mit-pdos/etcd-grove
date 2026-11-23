@@ -356,7 +356,7 @@ with its effect. -/
 theorem setup_histAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (ctx : GoInterface)
     (γz : GName) (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j rq₀) (hj7 : j < 7) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      client.clientHistAu s E ρ conn none rq₀ (fun _ => effLb ρ.kv j) := by
+      client.clientHistAu (srvTLSId s) E ρ conn none rq₀ (fun _ => effLb ρ.kv j) := by
   iintro #Hc #Hn #Hx
   unfold client.clientHistAu histAu
   imodintro
@@ -428,7 +428,7 @@ theorem setup_histAu_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn 
     (ctx : GoInterface) (γz : GName) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       (□ ∀ i, ⌜i < 7⌝ -∗ effLb ρ.kv i) -∗
-      client.clientHistAu s E ρ conn none irrAuthEnable (setupDone ρ.raft ρ.kv γz) := by
+      client.clientHistAu (srvTLSId s) E ρ conn none irrAuthEnable (setupDone ρ.raft ρ.kv γz) := by
   iintro #Hc #Hn #Hx #Hall
   unfold client.clientHistAu histAu
   imodintro
@@ -674,7 +674,7 @@ theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
   isplitr
   · imodintro
     iintro %um %hum
-    iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
+    iapply client.clientHistAu_attempt (srvTLSId s) E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ (hj um hum.1 hum.2.2) hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -702,7 +702,7 @@ theorem setup_pre_userGrantRole (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
   isplitr
   · ipureintro; exact hlen
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
+  · iapply client.clientHistAu_attempt (srvTLSId s) E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ hj hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -729,7 +729,7 @@ theorem setup_pre_roleAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
   isplitr
   · ipureintro; exact hlen
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
+  · iapply client.clientHistAu_attempt (srvTLSId s) E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ hj hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -757,7 +757,7 @@ theorem setup_pre_roleGrantPermission (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   isplitr
   · ipureintro; exact hlen
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
+  · iapply client.clientHistAu_attempt (srvTLSId s) E ρ conn none md _ _ hmd
     iapply setup_histAu s E ρ conn ctx γz j _ hj hj7 $$ Hc Hn Hx
   · iintro #Hr
     iunfold setupReplied
@@ -781,7 +781,7 @@ theorem setup_pre_authEnable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn
   · imodintro; iintro %_; itrivial
   iexists setupDone ρ.raft ρ.kv γz
   isplitr
-  · iapply client.clientHistAu_attempt s E ρ conn none md _ _ hmd
+  · iapply client.clientHistAu_attempt (srvTLSId s) E ρ conn none md _ _ hmd
     iapply setup_histAu_enable s E ρ conn ctx γz $$ Hc Hn Hx Hall
   · iintro #Hr
     iunfold setupReplied

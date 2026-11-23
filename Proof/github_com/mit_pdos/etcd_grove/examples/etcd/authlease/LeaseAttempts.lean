@@ -85,7 +85,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
           akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K -∗ Φ m) ∗
-      □ (∀ id : w64, clientOpAuOn s E ρ conn c (.leaseGrant id ttl) (Q id)) ⊢
+      □ (∀ id : w64, clientOpAuOn (srvTLSId s) E ρ conn c (.leaseGrant id ttl) (Q id)) ⊢
     □ ▷ attemptPre conn c (etcdLeaseGrantSpecOn (srvTLSId s) E ρ γl) (ttl, W64 0) Φ := by
   iintro ⟨#Htok, #Hn, #Hno, #Hau⟩
   imodintro
@@ -106,7 +106,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
     · simp only [leaseGrantPermitM]
       iintro %id
       ihave Hau1 := Hau $$ %id
-      ihave H := clientOpAuOn_attempt s E ρ conn c md _ (Q id) Hmd $$ Hau1
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ (Q id) Hmd $$ Hau1
       iapply kvOpAuOn_leaseGrant $$ H
   iintro %m %_ #_ _ _ #Hck
   ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok
@@ -115,7 +115,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
 /-- `Revoke(id)`'s attempts, with the caller's update `Q` and the reply's result. -/
 theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c : GrpcMd)
     (n : Nat) (id : w64) (Q : KVState → IProp GF) (Φ : LeaseRevokeRespM → IProp GF) :
-    auth.authPubLbM E.authMode n ∗ □ clientOpAuOn s E ρ conn c (.leaseRevoke id) Q ∗
+    auth.authPubLbM E.authMode n ∗ □ clientOpAuOn (srvTLSId s) E ρ conn c (.leaseRevoke id) Q ∗
       □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), ⌜clientAttemptMd conn c md⌝ -∗
           v3rpc.leaseRevokeResT E.authOn (srvTLSId s) E ρ (auth.mdTokenOf md) id Q -∗
           leaseCheckFrom (srvTLSId s) E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗ Φ m) ⊢
@@ -135,7 +135,7 @@ theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt s E ρ conn c md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q Hmd $$ Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #_ Hres #Hck
   iapply HΦ $$ %md %m %Hmd Hres Hck
@@ -148,7 +148,7 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
           akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K -∗ Φ m) ∗
-      □ clientOpAuOn s E ρ conn c (.leaseRevoke id) Q ⊢
+      □ clientOpAuOn (srvTLSId s) E ρ conn c (.leaseRevoke id) Q ⊢
     □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) id Φ := by
   iintro ⟨#Htok, #Hn, #Hno, #Hau⟩
   imodintro
@@ -165,7 +165,7 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt s E ρ conn c md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt (srvTLSId s) E ρ conn c md _ Q Hmd $$ Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #_ - #Hck
   ihave #Hs := akTokSeen_md γa who conn c md hout Hmd $$ Htok

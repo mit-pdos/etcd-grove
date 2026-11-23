@@ -337,7 +337,7 @@ theorem refused_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
     cellInv ρ.kv γc ∗ monoListLbOwn γc.ids pre ∗ monoListLbOwn γc.ps ps0 ∗
       akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ⊢
       □ ∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
-        ⌜ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx op Q := by
+        ⌜ctx = akOut who⌝ -∗ clientOpAuOn (srvTLSId s) E ρ conn ctx op Q := by
   iintro ⟨#Hinv, #Hi0, #Hp0, #Hf, #Htls⟩ !> %conn %ctx #Htk %hout
   iunfold clientOpAuOn
   iexists Lset
@@ -345,7 +345,7 @@ theorem refused_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
   · iunfold akAuthFixed at Hf
     icases Hf with ⟨-, -, #Hl, -⟩
     iexact Hl
-  ihave #Hau := cell_refusedAu ρ.kv γc op (clientGrant s E ρ conn ctx op Lset) Q $$ []
+  ihave #Hau := cell_refusedAu ρ.kv γc op (clientGrant (srvTLSId s) E ρ conn ctx op Lset) Q $$ []
   · isplitl []
     · iexact Hinv
     iintro !> %σ %ids %ps %gs %d %HS Hids Ha HG
@@ -373,7 +373,7 @@ theorem revokeLu_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ
     cellInv ρ.kv γc ∗ monoListLbOwn γc.ids [Lz, Lu] ∗ monoListLbOwn γc.ps ps0 ∗
       akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ⊢
       □ ∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
-        ⌜ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke Lu) (revoked γc) := by
+        ⌜ctx = akOut who⌝ -∗ clientOpAuOn (srvTLSId s) E ρ conn ctx (.leaseRevoke Lu) (revoked γc) := by
   iintro ⟨#Hinv, #Hi0, #Hp0, #Hf, #Htls⟩ !> %conn %ctx #Htk %hout
   iunfold clientOpAuOn
   iexists Lset
@@ -382,7 +382,7 @@ theorem revokeLu_update (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ
     icases Hf with ⟨-, -, #Hl, -⟩
     iexact Hl
   ihave #Hau := cell_revokeLuAu ρ.kv γc Lz Lu ps0 h3
-    (clientGrant s E ρ conn ctx (.leaseRevoke Lu) Lset) $$ []
+    (clientGrant (srvTLSId s) E ρ conn ctx (.leaseRevoke Lu) Lset) $$ []
   rotate_left
   · iexact Hau
   iframe Hinv Hi0 Hp0

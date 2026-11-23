@@ -340,7 +340,7 @@ theorem akOpGranted_of_grant (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames
     (hE : ↑authHistN ⊆ Em) :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
       □ (srvTLSId s -∗ False) ⊢
-      client.clientGrant s E ρ conn (akOut who) op Lset σ ={Em}=∗ ⌜akOpGranted who op⌝ := by
+      client.clientGrant (srvTLSId s) E ρ conn (akOut who) op Lset σ ={Em}=∗ ⌜akOpGranted who op⌝ := by
   iintro ⟨#Hf, #Hat, #Htls⟩ Hg
   unfold client.clientGrant
   icases Hg with ⟨%md, %Hmd, Hg⟩

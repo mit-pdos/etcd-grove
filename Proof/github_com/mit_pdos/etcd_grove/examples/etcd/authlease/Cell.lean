@@ -274,11 +274,11 @@ theorem cell_grantAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) 
     (γc : CellNames) (ttl : w64) (L₀ : List EntryModel) (httl : sint.Z ttl ≤ maxLeaseTTL)
     (hrev : ρ.kv.lm = .revocable) :
     cellInv (GF := GF) ρ.kv γc ⊢ □ ∀ id : w64, kvAu1G ρ.kv (kvOpStep (.leaseGrant id ttl))
-      (clientGrant s E ρ conn ctx (.leaseGrant id ttl) L₀) (gsHas γc id) := by
+      (clientGrant (srvTLSId s) E ρ conn ctx (.leaseGrant id ttl) L₀) (gsHas γc id) := by
   iintro #Hinv
   imodintro
   iintro %id
-  ihave #Hau := cell_writeAu ρ.kv γc (.leaseGrant id ttl) (clientGrant s E ρ conn ctx (.leaseGrant id ttl) L₀)
+  ihave #Hau := cell_writeAu ρ.kv γc (.leaseGrant id ttl) (clientGrant (srvTLSId s) E ρ conn ctx (.leaseGrant id ttl) L₀)
     (gsHas γc id) $$ [Hinv]
   · isplitl []
     · iexact Hinv

@@ -2523,10 +2523,10 @@ theorem etcd_kv_served_with (addr : GoString) (p q s : Loc)
     iframe; iframe #
     ipureintro; rw [hM]; simp
   rw [hon]
-  ihave #H1' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdPutSpecM_false s E ρ cid mid) $$ H1
-  ihave #H2' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdRangeSpecE_M s E γr cid mid) $$ H2
-  ihave #H3' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdDeleteSpecM_false s E ρ cid mid) $$ H3
-  ihave #H4' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdTxnSpecM_false s E ρ γr cid mid) $$ H4
+  ihave #H1' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdPutSpecM_false (srvTLSId s) E ρ cid mid) $$ H1
+  ihave #H2' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdRangeSpecE_M (srvTLSId s) E γr cid mid) $$ H2
+  ihave #H3' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdDeleteSpecM_false (srvTLSId s) E ρ cid mid) $$ H3
+  ihave #H4' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdTxnSpecM_false (srvTLSId s) E ρ γr cid mid) $$ H4
   ihave #H5' := isGrpcRpcMd_mono_upd _ _ _ _ (etcdCompactSpecM_false E ρ cid mid) $$ H5
   imodintro
   iframe Hle

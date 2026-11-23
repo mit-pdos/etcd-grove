@@ -64,7 +64,7 @@ theorem client_Put_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
   wp_pures
   wp_auto
   imod srvReqLogLb_nil (GF := GF) ρ.raft with #H0
-  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci om cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr (srvTLSId s) E ρ cid mid ci om cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
     ileft
     imodintro
@@ -101,7 +101,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
         srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        □ clientOpAuOn s E ρ conn om (.put (putKeyOp key val)) Q }}
+        □ clientOpAuOn (srvTLSId s) E ρ conn om (.put (putKeyOp key val)) Q }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -114,7 +114,7 @@ theorem client_Put_onG (cl api conn : Loc) (addr : GoString) (s : Loc) (E : appl
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_put_on_nil api conn addr s E ρ cid mid ci om cd key val sl Q F hsz) $$ [] as %resp %err Hout
+  wp_apply (client_put_on_nil api conn addr (srvTLSId s) E ρ cid mid ci om cd key val sl Q F hsz) $$ [] as %resp %err Hout
   · iframe #
   iapply HΦ
   icases Hout with (⟨%Herr, Hr⟩ | ⟨%Herr, #Hke⟩)
@@ -158,7 +158,7 @@ theorem client_Get_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_range_on api conn addr s E γr cid mid c n ci om cd key sl gs R Q F hsz)
+  wp_apply (client_range_on api conn addr (srvTLSId s) E γr cid mid c n ci om cd key sl gs R Q F hsz)
     $$ [Hopts HR Hsn] as %resp %err Hout
   · iframe #
     iframe Hopts HR Hsn
@@ -183,7 +183,7 @@ theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : ap
         kvObjAtC api conn [addr] ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn (srvTLSId s) E ρ cid mid) ∗
         srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        □ clientOpAuOn s E ρ conn om (.deleteRange (txn.deleteOpOf key [] false)) Q }}
+        □ clientOpAuOn (srvTLSId s) E ρ conn om (.deleteRange (txn.deleteOpOf key [] false)) Q }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -197,7 +197,7 @@ theorem client_Delete_on (cl api conn : Loc) (addr : GoString) (s : Loc) (E : ap
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Delete_unfold.method_unfold]
   wp_pures
   wp_auto
-  wp_apply (client_delete_on api conn addr s E ρ cid mid ci om cd key sl Q F hk hsz) $$ []
+  wp_apply (client_delete_on api conn addr (srvTLSId s) E ρ cid mid ci om cd key sl Q F hk hsz) $$ []
     as %resp %err Hout
   · iframe #
   iapply HΦ
