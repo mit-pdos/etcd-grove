@@ -9,8 +9,9 @@ The swiftpaxos kit's common base (notes/dsv-swiftpaxos.md), in place of the lab'
   ghost state and `HasExt`/`HasSha256` instances, under the lab's names (namespace `Dsv`), so the
   lab's files keep their `attribute [local instance] netShaExts ...` lines. (`Net/Statement`'s
   bridge is for `[netExt]` alone: `notes/dsv-swiftpaxos.md`, "Design findings".)
-* `SwiftNetPkgState`: the run's choice of each package's post-initialization state (`isPkgInit`),
-  as the lab's, and the `IsPkgInit` instances of the kit's packages over it.
+* `SwiftNetPkgState`: the libraries' representation hypotheses (`SwiftLibs`). The packages'
+  post-initialization facts are their `Base.lean` instances, imported here (the lab's
+  `SwiftNetPkgState` held them as a run-level choice).
 -/
 module
 
@@ -31,6 +32,30 @@ public import Proof.os.PkgInit
 public import Proof.bufio.PkgInit
 public import Proof.syscall.PkgInit
 public import Proof.math.rand.Base
+public import Dsverify.Proof.github_com.emirpasic.gods.utils.Base
+public import Dsverify.Proof.github_com.emirpasic.gods.containers.Base
+public import Dsverify.Proof.github_com.emirpasic.gods.maps.Base
+public import Dsverify.Proof.github_com.emirpasic.gods.trees.Base
+public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Base
+public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Base
+public import Dsverify.Proof.encoding.json.Init
+public import Dsverify.Proof.encoding.gob.Init
+public import Dsverify.Proof.github_com.google.uuid.Init
+public import Dsverify.Proof.os.signal.Init
+public import Dsverify.Proof.net.rpc.Init
+public import Dsverify.Proof.net.http.Init
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.config.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.hook.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Base
 public import Proof.unicode.utf8.Base
 public import Proof.internal.poll.PkgInit
 public import Perennial.Proof.log
@@ -158,292 +183,15 @@ class SwiftLibs (GF : BundledGFunctors) extends Net.NetProtoGS where
 does not solve). -/
 instance swiftGobFmt [l : SwiftLibs Dsv.netDistGF] : sp.GobFmt := l.gobFmt
 
-/-- The run's choice of each package's own post-initialization predicate (`isPkgInitDef`:
-its package-level state), for the kit's packages and the packages they import that have no
-`IsPkgInit` instance elsewhere in what this part imports (the lab's `SwiftNetPkgState`, widened).
-The library hypotheses' representation predicates are its `SwiftLibs` part. -/
-class SwiftNetPkgState (GF : BundledGFunctors) extends SwiftLibs GF where
-  /-- `github.com/emirpasic/gods/utils`'s package-level state -/
-  utils : IProp GF
-  /-- `github.com/emirpasic/gods/containers`'s package-level state -/
-  containers : IProp GF
-  /-- `github.com/emirpasic/gods/maps`'s package-level state -/
-  maps : IProp GF
-  /-- `github.com/emirpasic/gods/trees`'s package-level state -/
-  trees : IProp GF
-  /-- `encoding/json`'s package-level state -/
-  json : IProp GF
-  /-- `github.com/emirpasic/gods/trees/redblacktree`'s package-level state -/
-  redblacktree : IProp GF
-  /-- `github.com/emirpasic/gods/maps/treemap`'s package-level state -/
-  treemap : IProp GF
-  /-- `github.com/orcaman/concurrent-map` (names only)'s package-level state -/
-  concurrent_map : IProp GF
-  /-- `github.com/google/uuid` (names only)'s package-level state -/
-  uuid : IProp GF
-  /-- `encoding/gob` (names only)'s package-level state -/
-  gob : IProp GF
-  /-- `os/signal` (names only)'s package-level state -/
-  signal : IProp GF
-  /-- `internal/bytealg`'s package-level state -/
-  bytealg : IProp GF
-  /-- `crypto/tls`'s package-level state -/
-  crypto_tls : IProp GF
-  /-- `encoding/hex`'s package-level state -/
-  hex : IProp GF
-  /-- `go/token` (the net/rpc model's trusted `IsExported`)'s package-level state -/
-  token : IProp GF
-  /-- `path`'s package-level state -/
-  path : IProp GF
-  /-- `net/textproto` (names only, the part `Net/`'s)'s package-level state -/
-  textproto : IProp GF
-  /-- `golang.org/x/net/http/httpguts` (names only)'s package-level state -/
-  httpguts : IProp GF
-  /-- `net/http` (the model's)'s package-level state -/
-  nethttp : IProp GF
-  /-- `net/rpc` (the model's)'s package-level state -/
-  netrpc : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/rpc`'s package-level state -/
-  rpc : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/dlog`'s package-level state -/
-  dlog : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/config`'s package-level state -/
-  config : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/state`'s package-level state -/
-  state : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/hook`'s package-level state -/
-  hook : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/replica/defs`'s package-level state -/
-  defs : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/replica`'s package-level state -/
-  replica : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/client`'s package-level state -/
-  client : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/swift`'s package-level state -/
-  swift : IProp GF
-  /-- `github.com/imdea-software/swiftpaxos/master`'s package-level state -/
-  master : IProp GF
+/-- The lab's `SwiftNetPkgState`, here only the libraries' representation hypotheses (`SwiftLibs`):
+each package's post-initialization fact is its own `IsPkgInit` instance, in its `Base.lean`
+(`Dsverify/Proof/<package>/Base.lean`, imported above; the lab's run-level choice `pkgStates` gave
+them as fields). Kept as a class so the ported proofs' `[SwiftNetPkgState GF]` binders stand. -/
+class SwiftNetPkgState (GF : BundledGFunctors) extends SwiftLibs GF
 
 /-- A choice of `SwiftNetPkgState` at every heap. -/
 abbrev SwiftNetPkgStates [GoGlobalContext] :=
   ∀ {GF : BundledGFunctors} [HeapGS HasLC.hasLC GF] [go.Semantics], SwiftNetPkgState GF
-
-instance utils_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.emirpasic.gods.utils :=
-  define_is_pkg_init (pkgState.utils)
-instance utils_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.emirpasic.gods.utils :=
-  build_get_is_pkg_init_wf
-
-instance containers_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.emirpasic.gods.containers :=
-  define_is_pkg_init (pkgState.containers)
-instance containers_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.emirpasic.gods.containers :=
-  build_get_is_pkg_init_wf
-
-instance maps_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.emirpasic.gods.maps :=
-  define_is_pkg_init (pkgState.maps)
-instance maps_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.emirpasic.gods.maps :=
-  build_get_is_pkg_init_wf
-
-instance trees_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.emirpasic.gods.trees :=
-  define_is_pkg_init (pkgState.trees)
-instance trees_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.emirpasic.gods.trees :=
-  build_get_is_pkg_init_wf
-
-instance json_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.encoding.json :=
-  define_is_pkg_init (pkgState.json)
-instance json_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
-  build_get_is_pkg_init_wf
-
-instance redblacktree_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.emirpasic.gods.trees.redblacktree :=
-  define_is_pkg_init (pkgState.redblacktree)
-instance redblacktree_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.emirpasic.gods.trees.redblacktree :=
-  build_get_is_pkg_init_wf
-
-instance treemap_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.emirpasic.gods.maps.treemap :=
-  define_is_pkg_init (pkgState.treemap)
-instance treemap_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.emirpasic.gods.maps.treemap :=
-  build_get_is_pkg_init_wf
-
-instance concurrent_map_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.orcaman.concurrent_map :=
-  define_is_pkg_init (pkgState.concurrent_map)
-instance concurrent_map_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.orcaman.concurrent_map :=
-  build_get_is_pkg_init_wf
-
-instance uuid_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.google.uuid :=
-  define_is_pkg_init (pkgState.uuid)
-instance uuid_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.google.uuid :=
-  build_get_is_pkg_init_wf
-
-instance gob_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.encoding.gob :=
-  define_is_pkg_init (pkgState.gob)
-instance gob_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.encoding.gob :=
-  build_get_is_pkg_init_wf
-
-instance signal_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.os.signal :=
-  define_is_pkg_init (pkgState.signal)
-instance signal_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.os.signal :=
-  build_get_is_pkg_init_wf
-
-instance bytealg_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.internal.bytealg :=
-  define_is_pkg_init (pkgState.bytealg)
-instance bytealg_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.internal.bytealg :=
-  build_get_is_pkg_init_wf
-
-instance crypto_tls_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.crypto.tls :=
-  define_is_pkg_init (pkgState.crypto_tls)
-instance crypto_tls_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.crypto.tls :=
-  build_get_is_pkg_init_wf
-
-instance hex_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.encoding.hex :=
-  define_is_pkg_init (pkgState.hex)
-instance hex_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.encoding.hex :=
-  build_get_is_pkg_init_wf
-
-instance token_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.go.token :=
-  define_is_pkg_init (pkgState.token)
-instance token_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.go.token :=
-  build_get_is_pkg_init_wf
-
-instance path_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.path :=
-  define_is_pkg_init (pkgState.path)
-instance path_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.path :=
-  build_get_is_pkg_init_wf
-
-instance textproto_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.net.textproto :=
-  define_is_pkg_init (pkgState.textproto)
-instance textproto_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.net.textproto :=
-  build_get_is_pkg_init_wf
-
-instance httpguts_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts :=
-  define_is_pkg_init (pkgState.httpguts)
-instance httpguts_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts :=
-  build_get_is_pkg_init_wf
-
-instance nethttp_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.net.http :=
-  define_is_pkg_init (pkgState.nethttp)
-instance nethttp_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
-  build_get_is_pkg_init_wf
-
-instance netrpc_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.net.rpc :=
-  define_is_pkg_init (pkgState.netrpc)
-instance netrpc_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.net.rpc :=
-  build_get_is_pkg_init_wf
-
-instance rpc_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.rpc :=
-  define_is_pkg_init (pkgState.rpc)
-instance rpc_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.rpc :=
-  build_get_is_pkg_init_wf
-
-instance dlog_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.dlog :=
-  define_is_pkg_init (pkgState.dlog)
-instance dlog_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.dlog :=
-  build_get_is_pkg_init_wf
-
-instance config_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.config :=
-  define_is_pkg_init (pkgState.config)
-instance config_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.config :=
-  build_get_is_pkg_init_wf
-
-instance state_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.state :=
-  define_is_pkg_init (pkgState.state)
-instance state_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.state :=
-  build_get_is_pkg_init_wf
-
-instance hook_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.hook :=
-  define_is_pkg_init (pkgState.hook)
-instance hook_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.hook :=
-  build_get_is_pkg_init_wf
-
-instance defs_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.replica.defs :=
-  define_is_pkg_init (pkgState.defs)
-instance defs_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.replica.defs :=
-  build_get_is_pkg_init_wf
-
-instance replica_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.replica :=
-  define_is_pkg_init (pkgState.replica)
-instance replica_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.replica :=
-  build_get_is_pkg_init_wf
-
-instance client_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.client :=
-  define_is_pkg_init (pkgState.client)
-instance client_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.client :=
-  build_get_is_pkg_init_wf
-
-instance swift_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.swift :=
-  define_is_pkg_init (pkgState.swift)
-instance swift_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.swift :=
-  build_get_is_pkg_init_wf
-
-instance master_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.master :=
-  define_is_pkg_init (pkgState.master)
-instance master_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.master :=
-  build_get_is_pkg_init_wf
-
-instance swiftnet_isPkgInit_inst [pkgState : SwiftNetPkgState GF] :
-    IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet :=
-  define_is_pkg_init iprop(True)
-instance swiftnet_get_isPkgInit_wf_inst [pkgState : SwiftNetPkgState GF] :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet :=
-  build_get_is_pkg_init_wf
 
 end defs
 

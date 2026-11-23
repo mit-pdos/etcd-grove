@@ -25,6 +25,7 @@ initialization establishes, and the laws the replica's and the client's proofs u
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Base
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Base
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.sync.PoolDefs
@@ -49,11 +50,6 @@ section defs
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
-/-- What `fastAckPool` holds: owned `*MFastAck`s. -/
-def swift.fastAckP (x : GoAny) : IProp GF :=
-  iprop(∃ (l : Loc) (fa : swift.MFastAck),
-    ⌜x = interface.mkOk (go.GoType.PointerType swift.MFastAck.ty) #l⌝ ∗ l ↦ fa)
-
 /-- The mutable globals, owned (change log C14; see the file header). -/
 def swift.mutGlobals : IProp GF :=
   iprop(∃ (d : w64) (v : Bool) (n : w64), globalAddr swift.MaxDescRoutines ↦ d ∗
@@ -74,13 +70,7 @@ theorem swift.mutGlobalsInit_mutGlobals : swift.mutGlobalsInit (GF := GF) ⊢ sw
   iexists _, _, _
   iframe
 
-open Classical in
-/-- **swift's package state** (see the file header). -/
-def swift.pkgSt : IProp GF :=
-  iprop(globalAddr swift.ExecHook ↦□ func.nil ∗ globalAddr swift.SyncHook ↦□ func.nil ∗
-    globalAddr swift.ReplyHook ↦□ func.nil ∗
-    errors.newVar swift.errVarintOverflow go!"binary: varint overflows a 64-bit integer" ∗
-    (∃ f : GoFunc, sync.isPool (globalAddr swift.fastAckPool) f iprop(True) swift.fastAckP ∗ ⌜f ≠ func.nil⌝))
+-- `swift.fastAckP` and `swift.pkgSt` (swift's package fact) are defined in `swift/Base.lean`.
 
 instance swift.pkgSt_persistent : Persistent (swift.pkgSt (GF := GF)) := by
   unfold swift.pkgSt; infer_instance
