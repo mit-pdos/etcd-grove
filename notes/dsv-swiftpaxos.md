@@ -58,11 +58,11 @@ The list asked for. They are named after the lab's specs, with the reason each i
 | gods treemap | `treemap.wp_NewWith`, `Map.wp_Put`, `Map.wp_Get` (`Proof/treemap/{NewWith,Map__Put,Map__Get}`; statements in `Dsverify/Proof/.../treemap/Specs.lean`) | 3 | gods |
 | concurrent-map | none: the lab's proofs (`Proof/cmap/*`, copied to `Dsverify/Proof/github_com/orcaman/concurrent_map/`) build over the translated code (`Dsverify/Code/github_com/orcaman/concurrent_map.lean` has the bodies, `fnv32.impl` etc.), e.g. `ConcurrentMap.wp_IterCbOwn`: Lean's three axioms. To check: `concurrent-map.toml` says names only (`translate = ["!*"]`), which the generated file does not match; rerun `etc/goose.py` for the project before landing. | 27 | |
 | encoding/gob | `gob.{NewEncoder, NewDecoder, Encoder.EncodeW, Decoder.Decode, SetCodec, getCodec}.wp_proof` (`Spec/gob/*`, `Proof/gob/*`) | 8 | gob (the lab's gob model) |
-| bufio (reader half) | `bufio.{wp_NewReader, wp_ReadByte, wp_ReadByte_wf, wp_Read, wp_ReadAtLeast, wp_ReadFull}` (`Harness/Proof/bufio/{Reader,ReadFull}`), over the lab's `readerOk`/`ownReader`/`readsOk` (`lib/Bufio.lean`). The **writer half is derived** from dsv-bufio's specs (fourth session, below): no longer hypotheses. | 50 | see "bufio" below |
-| net/rpc client | `net.rpc.DialHTTP.wp` (`Harness/Proof/net/rpc`): the HTTP path, waits for `models-rpc-http`'s `rpc.DialHTTP.spec` (`rpcAddrP`). `Client.Call`/`Close` are `Net/`'s proofs (`lib/RpcClient.lean`, `Results.lean`'s client half), not hypotheses. | 13 | the HTTP path |
+| bufio | none (fifth session): both halves are derived from dsv-bufio's specs and Perennial's `io.ReadFull`/`ReadAtLeast` (`lib/Bufio.lean`, `*.labProof`); see "State (fifth session)". | 50 | |
+| net/rpc client | `net.rpc.DialHTTP.wp` (`Harness/Proof/net/rpc`): the HTTP path, waits for `models-rpc-http`'s `rpc.DialHTTP.spec` (`rpcAddrP`). `Client.Call`/`Close` are `Net/`'s proofs (`Net/Proof/net/rpc/Results.lean`), not hypotheses. | 13 | the HTTP path |
 | net/rpc server | `net.rpc.{Register, HandleHTTP, SetCodec}.wp_proof` (`Harness/Proof/net/rpc/{ServerDefs,HandleHTTP,Codec}`) | 6 | the net/rpc server and HTTP path |
 | net/http | `net.http.Serve.wp_proof` (`Harness/Proof/net/http/Serve`) | 2 | the net/http server |
-| net | none: wildcard `Listen` is `Net/`'s (`net-wildcard-listen`, landed); `TCPConn.{Close,RemoteAddr}` and `TCPAddr.String` are proved lab-shaped wrappers (`lib/NetConn.lean`), `DialTimeout` too (`lib/NetLab.lean`) | | |
+| net | none: wildcard `Listen` is `Net/`'s (`net-wildcard-listen`, landed); `TCPConn.{Close,RemoteAddr}` and `TCPAddr.String` are proved lab-shaped wrappers (`lib/NetConn.lean`), `DialTimeout`, `Dial`, `Listen` and `TCPListener.Accept` too (`lib/NetLab.lean`, over `lisProto`), `TCPConn.Write` (`lib/BufioNet.lean`) | | |
 | os/signal | `os.signal.Notify.wp_proof` (`Harness/Proof/os/signal`): **an assumption of the deployment** (no signal is delivered: `hook.HookUser1`'s proof needs the channel to stay empty). For review. | 1 | os/signal (names only) |
 | math/rand | `math.rand.{NewSource, New, Intn}.wp_proof` (`Harness/Proof/math/rand`), in `SwiftHyps` | 10 | Perennial's `math/rand` translation is names only |
 | uuid | `uuid.wp_New`, `uuid.wp_ID` (results: some `UUID`, some `w32`; the lab's `isV4`/`idOf` are unused), in `SwiftHyps` | 2 | uuid (names only) |
@@ -108,24 +108,125 @@ The list asked for. They are named after the lab's specs, with the reason each i
    arguments (`fmt.ArgWf`, or a type with no `Error`/`String`/`Format` method, the quorum values
    `handleSync` prints). Within the model's stated faithfulness claim ("no formatting method runs"),
    but it relies on the trusted model directly. Kept at the coordinator's word; to be reviewed.
-2. **`bufio.ownWriter_excl_heap` (`lib/Bufio.lean`) unfolds dsv-bufio's `ownBufWriter`/`writerRep`**,
-   the only unfold of a dsv-bufio predicate here: an exclusivity law (`ownBufWriter_excl`) belongs in
-   dsv-bufio's `Own.lean`; then this lemma becomes a one-line use of it.
+2. *(Resolved, fifth session.)* `bufio.ownWriter_excl`/`ownReader_not_null` (`lib/Bufio.lean`) are now
+   one-line uses of dsv-bufio-laws' `ownBufWriter_excl`/`ownBufReader_not_null`
+   (origin/dsv-bufio-laws `f5de3d32b8`, merged, pending review): nothing here unfolds a dsv-bufio
+   predicate.
 3. **`os.signal.Notify`'s hypothesis is an assumption about the deployment** (no signal is ever
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
 ## State (2026-11-23, fifth session; resume here)
 
-Merged **`origin/models-rpc-server` `2a6b4e5d12`** (Client.Call's decoding obligation is asked only of
-the method's answers: `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep))`, success post
-`∃ rep, Θ rep true`; and `Server.Accept` over `Listener.Accept.spec_addrOk`, so
-`Net/Proof/net/rpc/Results` builds again). `lib/RpcClient.lean` (the copy of `Results`' client half)
-is gone: `client/Client__call` uses `Net.Proof.net.rpc.Results`' `net.rpc.Client.Call.wp`.
-`client.Client.call.specI` (`client/ConnectSpecs`) takes the new premise and post; `callMasterRL`/
-`callMasterL` keep the master's answer inside `Θ` (`fun rep ok => rlPhi rep [] ∗ rlTheta rp rep ok`).
+**Merges.** `origin/models-rpc-server` `2a6b4e5d12` and then `36728bd8ed` (Client.Call's decoding is
+asked only of the method's answers; methodOk's `argDec`; `Server.Accept` over `spec_addrOk`).
+`origin/lean` `07268ddb57` (dsv-paxos, dsv-bufio, dsv-infra landed; Perennial `7b2259a12`).
+`origin/dsv-bufio-laws` `f5de3d32b8`. **Do not merge `lean` past `07268ddb57`** (coordinator: its Perennial
+`c95e92207` has no shared checkout yet). After the lean merge, `etc/gen-init.py --check` (268 files) and
+`etc/goose.py --check --project dsv-swiftpaxos` are up to date. Regenerating the paxos `PkgTable`s was
+needed: `syscall` now imports `internal/oserror`.
 
-## State (2026-11-23, fourth session)
+**net/rpc client.** `lib/RpcClient.lean` is gone. `client/Client__call` uses `Net/Proof/net/rpc/Results`'
+`net.rpc.Client.Call.wp`. `client.Client.call.specI` (`client/ConnectSpecs`) takes Call's new premise,
+`□ (D -∗ ∀ rep, Φ rep [] -∗ dec rep reply (Θ rep))`, with the success post `∃ rep, Θ rep true`.
+`callMasterRL`/`callMasterL` keep the master's answer in `Θ` (`fun rep ok => rlPhi rep [] ∗ rlTheta rp
+rep ok`) and pass it on in `decT`'s continuations.
+
+**bufio reader half: switched, no hypotheses** (the coordinator's decision). In `lib/Bufio.lean`:
+- `errsOk E` (`□ ∀ r e, E r e -∗ errAny e ∗ ⌜errWf e⌝`).
+- `readerOk rd I`: `∃ ri E`, not a `*bufio.Reader`, `errsOk E`, Perennial's `io.readerOk ri (0 < m) I E`.
+- `ownReader br rd I R`: `∃ ri E`, `errsOk E`, dsv-bufio's `ownBufReader br ri (0 < m) I E R`.
+- `readsOk rd I`: `∃ ri Pre E` with `∀ r m, Pre r m`, `errsOk E`, `io.readerOk ri Pre I E`.
+- The six lab statements (`NewReader`, `Reader.ReadByte`, `Reader.ReadByte_wf`, `Reader.Read`,
+  `io.ReadAtLeast`, `io.ReadFull`) are theorems (`*.labProof`). They come from
+  `EtcdGrove.bufio.{NewReader.wp_proofOk, Reader.ReadByte.wp_proof, Reader.Read.wp_proofOk}` and
+  Perennial's `io.wp_ReadAtLeast`/`io.wp_ReadFull`. The errors' messages come from `io`'s
+  `errors.newVar` facts (`newVar_err`, `errsOk_errE`, `io_errs`).
+- `bufioReadsOk` (moved there from `Hyps.lean`) is proved from `Reader.Read.wp_proofOk`.
+- `SwiftHyps` has no bufio field.
+
+Over a connection, `I` is `recvTokL` (`lib/BufioNet.lean`'s `readerOk_conn`, from dsv-bufio's
+`net.conn_readerOk`). Every reader index in the proof changed from `recvTok` to `recvTokL`. At
+`NewReader`, `recvTok_L` converts the token. `readsOk_conn` is gone (its only users are the lab kit's
+`AwaitConf`/`OrchSend`, which step 5 replaces).
+
+The protocol fact of what was read now comes a step later. `sp.ownReader_proto` (`replica/Stream`,
+`swift/client/ClientStream`) gives `▷ (⌜R = []⌝ ∨ ∃ ext, …)`, from `ownBufReader_fact` and
+`recvTokL_proto`, without unfolding. The fact is stripped at each site in one of three ways:
+- **Pure facts in a WP goal: `>%`.** `streamLaw` (`replica/Defs`) now has `▷ ⌜L d⌝`;
+  `streamLaw_use`/`_at`/`_mono` are adapted, and the `swift/Table*` users destruct with `>%`.
+  `rd_stOk` gives `▷ ⌜stOk⌝`.
+- **Where the goal was already the postcondition: `iapply wp_fupd` first** (`TableSync`'s tail call,
+  `TableAckN`'s loop exit), then `>%` and `imodintro` before `iapply HΦ`.
+- **Non-pure facts: a later credit** from the read's `wp_apply (lc := 1)`, spent with
+  `iapply fupd_wp; imod (lc_fupd_elim_later …) $$ Hlc1 HpL`. Sites: `rd_witness`, which gives
+  `▷ (msgOk ∗ ⌜cMsg⌝)`, in `swift/client/Readers` ×3; `replica/ReplicaListener` ×4; `replica/Conn`
+  ×2; `replica/ClientListener` ×3.
+
+Where no read precedes the use, the stripped fact is carried as `protoPrefix (sp.inP …) cid R`:
+- in `clientListener.spec`'s precondition (`replica/ClientSpecs`);
+- in `replica.pendingOk` (`replica/ConnSpecs`);
+- in ClientListener's loop invariant (`#Hpp`) and both of its joins' postconditions.
+
+`Serve` passes `protoPrefix` of `[]` (`ileft`) for a fresh connection, and the pending client's fact for a
+pending one.
+
+**Transport port: done.** `lib/NetLab.lean`:
+- `net.ownListener l lid la` is `lisAt`, `netLisOn` and `lisInv`.
+- `net.Listen.labProof la P Q`: from `lisProto la P Q`, via `Listen.wp_proof`, `listen_lis_au` and
+  `lisInv_alloc`.
+- `net.TCPListener.Accept.labProof`: via `Listener.Accept.wp_proof` and `accept_lis_shared_au`.
+- `net.Dial.labProof`: via `Dial.wp_proof` and `dial_au`.
+- `lib/BufioNet.lean` adds `net.TCPConn.Write.labProof` (the lab's, with the error code dropped).
+
+`replica.wildOf a` is `"0.0.0.0:" ++ split(a, ":")[1]`, the fork's listen address. The specs over it:
+- `waitForPeerConnections.spec` and `replica.connPre` take `lisProto (replica.wildOf a) inP outQ` in
+  place of `addrTok a ∗ nodeIp ip ∗ addrProto a …`.
+- `replica.acceptSt` and `replica.serveSt` hold `listenerOk lv (replica.wildOf a)`, and `serveSt`
+  holds the `lisProto`.
+- `replica.connPre_intro` (`Reconcile`) takes the `lisProto`.
+- **The deployment's boot must make it** with `lis_set_proto` from `lisUnset (wildOf a)` (step 5).
+
+Also fixed: the lab's `newConnResult` error pattern (`⟨%i, %Her, %Herr⟩`; Net's specs do not say
+`cv = nil`), `connEnd` destructuring (`iunfold connEnd` first), and `connIface` from `ownTCPConn`.
+Perennial drift: `wp_if_destruct` sometimes leaves `#(decide …) = #true`, and
+`ite_eq_left_of_eq_true … ⟨…⟩` is now `if_pos (show … from …)`.
+
+**Linking check (the coordinator's, after VR's finding 7).** All 13 commands link every package the
+proof relies on, including the proofs' package facts: `go list -deps` of `cmd/{orch,client0,server1}`
+lists every system package plus gods, uuid, concurrent-map, gob, os/signal, net/rpc and net/http. Two
+places that look like hooks are not:
+- The only `init` is `swift/execlog.go`'s. It is test-only (build tag `swiftexeclog`), not in the
+  translation, and no proof relies on it.
+- The net/rpc model's codec is registered by explicit calls (`examples/swiftnet/kit.go`'s
+  `Register()`, lines 334 and 707), not by an init.
+
+No premise is vacuous for this reason.
+
+**concurrent-map.toml (checked).** It says names only (`translate = ["!*"]`), but the project lists the
+package among those it translates, so goose translates its bodies. `goose.py --check` confirms the
+checked-in file is current. The toml's lines have no effect; its comment now says so. The
+concurrent-map proofs build over the bodies (Lean's three axioms).
+
+**Frontier** (build 19, after this session's changes; see the build log in scratch `sw-build19.log`).
+Still to do, in order:
+1. `swift.TableAllocH` (`iframe` of `encoding.gob.codecSet` at line 70).
+2. The HTTP hypotheses. Make a class `RpcHttpHyp` after dsv-epaxos's
+   `Interface/RpcHttpHyps.lean`, with exactly the shapes of `rpc-http-shapes.md`. Then
+   `Master__Run`'s spec (`net.http.muxOwner`, `kitNameOk`) and `Client__dialMaster`
+   (`net.rpc.DialHTTP.wp`) become premises.
+3. `master/Run` still calls the lab's `net.ListenWild` (at `"10.77.0.17"`): port it like `Conn`, over
+   `Listen.labProof` and `lisProto (":" ++ port)`.
+4. Step 5.
+   - The kit onto remote.
+   - **Finding: `replicaAddrs` is the lab's 10.77.0.x list, and `replica/ConnAddr.addr_split` assumes
+     15-byte addresses.** The kit here uses `127.0.0.1:76xx` (14 bytes): both are to be restated.
+   - The package inits: `InitHyp`s for gob, signal and uuid; `mutGlobalsInit` handed to the boot thread.
+   - `swiftpaxos_remote_robust`, with every `SwiftHyps`/`InitHyp`/`RpcHttpHyp` a visible premise and
+     `os.signal.Notify` named as an ENVIRONMENT assumption, as rabia does.
+   - `etc/theorem-loc.py`, and the TCB collection.
+
+## State (2026-11-23, fourth session; superseded where the fifth says so)
 
 Merged **`origin/dsv-bufio` `a13fdfe356`**, then its rename **`361ca5c7b7`** (`io.writerOk` →
 `io.streamWriterOk`, `net.conn_writerOk` → `net.conn_streamWriterOk`, `Proof/io/StreamWriterOk.lean`;
