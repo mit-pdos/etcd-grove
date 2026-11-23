@@ -110,6 +110,21 @@ theorem u64le_eq (x : w64) : u64le x = u64Le x := by
   rw [h0]
   rfl
 
+variable [GooseExts] [GoGlobalContext] in
+open encoding.binary in
+/-- An input's bytes: its flag, its key's length, its key, its value (a get's is `""`). -/
+theorem encInB_shape (i : KIn) : ∃ (p : Bool) (k v : GoString),
+    encInB i.1 = (if p then W8 1 else W8 0) :: (u64Le (W64 k.length) ++ k ++ v) ∧
+    inVal i.1 = In.mk p k v ∧ k.length = 8 ∧ v.length < 2 ^ 40 := by
+  rcases i with ⟨i, hi⟩
+  cases i with
+  | put k v =>
+    refine ⟨true, k, v, ?_, rfl, hi.1.1, hi.2⟩
+    simp [encInB, u64le_eq]
+  | get k =>
+    refine ⟨false, k, [], ?_, rfl, hi.1, by simp⟩
+    simp [encInB, u64le_eq]
+
 end lemmas
 
 section proof
@@ -296,6 +311,143 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
       rw [u64le_eq]
       simp only [List.cons_append, List.append_assoc, List.append_nil]
       iexact Hb
+  isplitr
+  · -- DecIn
+    iintro %i %b %dq
+    iintro !> %Φ' Hb HΦ'
+    obtain ⟨p, k, v, he, hin, hk8, hv⟩ := encInB_shape i
+    have hiv : inV i.1 = interface.mkOk In.ty #(In.mk p k v) := by
+      show interface.mkOk In.ty #(inVal i.1) = _; rw [hin]
+    rw [he, hiv]
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hb
+    ihave %Hbw := ownSlice_wf _ _ _ $$ Hb
+    have hbl : sint.Z b.len = 9 + k.length + v.length := by
+      obtain ⟨h1, h2⟩ := Hlen
+      simp only [List.length_cons, List.length_append, u64Le_length] at h1
+      have h3 : ((sint.nat b.len : Nat) : Int) = sint.Z b.len := Int.toNat_of_nonneg h2
+      omega
+    wp_auto
+    have h9 : ¬ sint.Z b.len < sint.Z (W64 9) := by
+      rw [hbl, show sint.Z (W64 9) = 9 from rfl]; omega
+    rw [decide_eq_false h9]
+    wp_auto
+    have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by
+      rw [hbl, show sint.Z (W64 0) = 0 from rfl]; omega
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq (if p then W8 1 else W8 0) (by decide)
+      $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    wp_if_destruct
+    · exfalso; cases p <;> simp only [Bool.false_eq_true, ↓reduceIte] at Hif <;> word
+    have h1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z b.len := by
+      rw [hbl, show sint.Z (W64 1) = 1 from rfl]; omega
+    rw [ite_eq_left (show 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z b.len ∧
+      sint.Z b.len ≤ sint.Z b.cap from ⟨h1.1, h1.2, Hbw.2⟩)]
+    icases (ownSlice_split_all (W64 1) b _ _ h1).1 $$ Hb with ⟨Hb1, Hb2⟩
+    rw [show sint.nat (W64 1) = 1 from rfl, List.take_one, List.drop_one, List.head?_cons,
+      Option.toList_some, List.tail_cons]
+    wp_apply wp_getU64 _ _ dq (by simp [u64Le_length]) $$ [$Hb2] as Hb2
+    ihave Hb := (ownSlice_split_all (W64 1) b dq
+      ((if p then W8 1 else W8 0) :: (u64Le (W64 k.length) ++ k ++ v)) h1).2 $$ [Hb1 Hb2]
+    · rw [show sint.nat (W64 1) = 1 from rfl, List.take_one, List.drop_one, List.head?_cons,
+        Option.toList_some, List.tail_cons]
+      iframe Hb1 Hb2
+    rw [List.append_assoc, List.take_left' (by simp [u64Le_length]), u64Le_to_word]
+    have hn : ¬ uint.Z (b.len - W64 9) < uint.Z (W64 (k.length : Int)) := by
+      rw [hk8]; rw [hk8] at hbl; word
+    rw [decide_eq_false hn]
+    wp_auto
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq (if p then W8 1 else W8 0) (by decide)
+      $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    have hkw : sint.Z (W64 9 + W64 (k.length : Int)) = 17 := by rw [hk8]; rfl
+    have hs1 : 0 ≤ sint.Z (W64 9) ∧ sint.Z (W64 9) ≤ sint.Z (W64 9 + W64 (k.length : Int)) ∧
+        sint.Z (W64 9 + W64 (k.length : Int)) ≤ sint.Z b.cap := by
+      rw [hkw, show sint.Z (W64 9) = 9 from rfl]; omega
+    rw [ite_eq_left hs1]
+    have hL : ((if p then W8 1 else W8 0) :: (u64Le (W64 (k.length : Int)) ++ (k ++ v))) =
+        ((if p then W8 1 else W8 0) :: u64Le (W64 (k.length : Int))) ++ k ++ v := by simp
+    have h3 := list_slice3 ((if p then W8 1 else W8 0) :: u64Le (W64 (k.length : Int))) k v 9 17
+      (by simp [u64Le_length]) (by rw [hk8]) (by omega)
+    rw [hL]
+    icases (ownSlice_slice (W64 9) (W64 9 + W64 (k.length : Int)) b dq _
+      ⟨hs1.1, hs1.2.1, by rw [hkw, hbl]; omega⟩).1 $$ Hb with ⟨Hb1, Hb2, Hb3⟩
+    rw [show sint.nat (W64 9) = 9 from rfl, show sint.nat (W64 9 + W64 (k.length : Int)) = 17 by
+      rw [hk8]; rfl, h3.1, h3.2.1, h3.2.2]
+    wp_apply wp_bytes_to_string $$ [Hb2] as Hb2
+    · iexact Hb2
+    rw [ite_eq_left (show 0 ≤ sint.Z (W64 9 + W64 (k.length : Int)) ∧
+      sint.Z (W64 9 + W64 (k.length : Int)) ≤ sint.Z b.len ∧ sint.Z b.len ≤ sint.Z b.cap from
+      ⟨by rw [hkw]; omega, by rw [hkw, hbl]; omega, Hbw.2⟩)]
+    wp_apply wp_bytes_to_string $$ [Hb3] as Hb3
+    · iexact Hb3
+    iapply HΦ'
+    ipureintro
+    intro _
+    cases p <;> rfl
+  isplitr
+  · -- EncOut
+    iintro %v %Hv
+    obtain ⟨x, rfl, hx⟩ : ∃ x : Out, v = interface.mkOk Out.ty #x ∧ x.V'.length + 9 < 2 ^ 63 := by
+      rcases Hv with ⟨o, h⟩ | ⟨_, h⟩
+      · exact ⟨_, h, outVal_len o⟩
+      · exact ⟨_, h, by simp⟩
+    iintro !> %Φ' - HΦ'
+    rw [encOutV_out x hx]
+    rcases x with ⟨u, pt, f, w⟩
+    simp only at hx
+    wp_auto
+    wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+    wp_apply (wp_slice_make3 (V := w8) (W64 1) (W64 1 + W64 w.length) (by word))
+      as %b ⟨Hb, Hcap, -⟩
+    ihave %Hbl := ownSlice_len _ _ _ $$ Hb
+    have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by
+      obtain ⟨h1, h2⟩ := Hbl; simp only [List.length_replicate] at h1; word
+    rw [show List.replicate 1 (zero_val w8) = [W8 0] from rfl]
+    cases u
+    · cases pt
+      · cases f
+        · wp_auto
+          wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+          wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb', -, -⟩
+          iapply HΦ'
+          simp only [encOutB, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte,
+            List.cons_append, List.nil_append, List.set_cons_zero]
+          iexact Hb'
+        · wp_auto
+          rw [ite_eq_left h0]
+          wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 1) $$ [Hb] as Hb
+          · iframe Hb; ipureintro; simp
+          wp_auto
+          wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+          wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb', -, -⟩
+          iapply HΦ'
+          simp only [encOutB, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte,
+            List.cons_append, List.nil_append, List.set_cons_zero]
+          iexact Hb'
+      · wp_auto
+        rw [ite_eq_left h0]
+        wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 2) $$ [Hb] as Hb
+        · iframe Hb; ipureintro; simp
+        wp_auto
+        wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+        wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb', -, -⟩
+        iapply HΦ'
+        simp only [encOutB, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte,
+          List.cons_append, List.nil_append, List.set_cons_zero]
+        iexact Hb'
+    · wp_auto
+      rw [ite_eq_left h0]
+      wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 3) $$ [Hb] as Hb
+      · iframe Hb; ipureintro; simp
+      wp_auto
+      wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+      wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb', -, -⟩
+      iapply HΦ'
+      simp only [encOutB, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte,
+        List.cons_append, List.nil_append, List.set_cons_zero]
+      iexact Hb'
   sorry
 
 end proof
