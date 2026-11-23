@@ -145,7 +145,7 @@ theorem Client.wp_proof
   wp_apply wp_attempt as %d -
   wp_apply (wp_ServeClient (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) (W64 (c : Int))
     (clientAddrs.getD c []) _ (functions github_com.tangledbytes.go_vsr.examples.vsrnet.Op []) cd d
-    (sysTok γ c (clientAddrs.getD c []))) $$ [Hres] as ⟨⟩
+    (sysTok γ c (clientAddrs.getD c []))) $$ [Hres sys] as ⟨⟩
   iframe #
   isplit
   · iapply codecOk_wireOk $$ Hcd
