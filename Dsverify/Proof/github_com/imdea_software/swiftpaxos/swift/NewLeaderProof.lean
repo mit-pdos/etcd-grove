@@ -32,8 +32,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderReqs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncTail
 -- round N3: gob's encoder proofs, for `MSync.marshal_proofG` at the link (the set's handler)
-public import Dsverify.Proof.encoding.gob.NewEncoder
-public import Dsverify.Proof.encoding.gob.Encoder__EncodeW
 -- round N3: the ack's `Marshal`
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalAckN
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarint

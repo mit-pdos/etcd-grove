@@ -6,11 +6,11 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/state/Link.lean (lab ma
 -/
 module
 
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.KeyComparator
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.NIL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.InitState
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Command__Execute
-public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Link
 
 @[expose] public section
 
@@ -26,7 +26,7 @@ section link
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-variable [sync.Assumptions] [SwiftNetPkgState GF]
+variable [sync.Assumptions] [SwiftNetPkgState GF] [SwiftHyps GF]
 
 theorem state.wp_KeyComparator : state.KeyComparator.spec (GF := GF) :=
   state.KeyComparator.wp_proof

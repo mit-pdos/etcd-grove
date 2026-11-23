@@ -12,6 +12,7 @@ The codec's law is `kitCodecOkC_holds` (Proof/swiftnet/KitLike.lean, decision D6
 -/
 module
 
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Servers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.SrvInit
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Link
@@ -41,8 +42,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescLink
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepHash
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CmdStr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAllocH
-public import Dsverify.Proof.encoding.gob.Decoder__Decode
-public import Dsverify.Proof.encoding.gob.NewDecoder
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnLink
 
 @[expose] public section

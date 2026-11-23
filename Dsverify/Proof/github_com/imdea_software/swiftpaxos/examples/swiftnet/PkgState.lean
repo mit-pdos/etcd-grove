@@ -9,8 +9,8 @@ current choices.
 -/
 module
 
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
-public import Dsverify.Proof.encoding.gob.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Pkg
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Pkg
 

@@ -115,6 +115,23 @@ theorem wp_ReadFull : io.ReadFull.labSpec (GF := GF) := h.bufio_ReadFull
 theorem wp_WriteByte_err : Writer.WriteByte_err.labSpec (GF := GF) := h.bufio_WriteByte_err
 theorem wp_Write_err : Writer.Write_err.labSpec (GF := GF) := h.bufio_Write_err
 theorem wp_ReadByte_wf : Reader.ReadByte_wf.labSpec (GF := GF) := h.bufio_ReadByte_wf
+
+/-- The lab's `bufio.bufioReadsOk` (`Harness/Proof/bufio/ReadFull.lean`): a `*bufio.Reader` (as an
+`io.Reader`) reads its stream, from `wp_Read`. -/
+theorem bufioReadsOk (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) :
+    (isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ readerOk rd I) ⊢
+      readsOk (interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br) (ownReader br rd I) := by
+  iintro ⟨#Hpkg, #Hrd⟩
+  unfold readsOk
+  iexists interface.mk (go.GoType.PointerType bufio.Reader.ty) #br
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %b %bs %R %Φ %Hpos Hown Hb HΦ
+  wp_apply wp_Read br rd I R b bs $$ [$Hpkg $Hrd $Hown $Hb] as %n %err ⟨%data, %Hd, Hb, Hown, #He⟩
+  obtain ⟨rfl, hdl⟩ := Hd
+  iapply HΦ $$ %data %err %hdl Hb [Hown] He
+  inext; iexact Hown
 end bufio
 
 namespace github_com.emirpasic.gods.maps.treemap
