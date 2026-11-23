@@ -75,41 +75,51 @@ and over `models/grpc` (`models/grpc/gomodel.py examples/dsverify/quepaxa test .
 ## Hypotheses (missing model pieces)
 
 The lab proved these in its `Harness/` (its own models); here they are hypotheses of the port,
-named after the lab's specs, until each comes as one shared change:
+named after the lab's specs, until each comes as one shared change. **All are in
+`Dsverify/Proof/raxos/Hyp.lean`** (no axiom, no trusted code; `Prop`s the statement will take):
 
-- **gRPC, unary** (the lab's `Harness/Proof/grpc/`, over its own `rpcmodel/grpc`; here `models/grpc`,
-  whose Lean half is not written, `notes/dsverify-net-port-plan.md` phase 5 item 4): the
-  vocabulary `GrpcWorld`, `UnarySpec`, `handlerOk`, `grpcAddr`; the specs `grpc.Dial.spec`
-  (with `WithInsecure`), `grpc.NewServer.spec`, `grpc.Server.RegisterService.spec`,
-  `grpc.Server.Serve.spec`, `grpc.ClientConn.Invoke.spec` (the recorders' `ESP`, `FetchBatches`,
-  `InformDecision`, `Consensus_ServiceDesc`'s handlers). The main tree's grpc specs are etcd's
-  trust-boundary axioms, not usable here.
-- **protobuf** (the lab's `Harness/Proof/grpc/Pb.lean` and its protobuf model's `SetCodec`):
-  `proto.Marshal`/`proto.Unmarshal` of `ClientBatch`, `ProposerMessage`, `RecorderResponse`,
-  `DecideRequest`, `DecideResponse`, `Decisions`, `Empty` (QuePaxa's `clientwrapper.go` and gRPC's
-  codec).
-- **`sync.Map`** (the lab's `Harness/Proof/sync/Map.lean`; `replica/src/clientbatchstore.go`'s
-  store): Perennial has no `sync.Map` spec.
-- **bufio's `Writer`** (`NewWriter`, `WriteByte`, `Write`, `Flush`) and `Reader.ReadByte`, `io.ReadFull`
-  over a `bufio.Reader` over a `net.Conn` (the lab's `Harness/Proof/bufio/{Writer,ReadFull,Net}`):
-  the shared change `origin/dsv-bufio` (bb18c0f3ef, under review) has them; use its names when the
-  port reaches them (namespace `Perennial.EtcdGrove`: `bufio.NewWriter.spec`, `Writer.WriteByte.spec`,
-  `Writer.Write.spec`, `Writer.Flush.spec`, `Reader.ReadByte.spec` over `ownBufReader`/`ownBufWriter`
-  (`io.readerOk`/`io.writerOk`); `ownBufReader_readerOk` with Perennial's `io.wp_ReadFull`;
-  `Net/Proof/net/ConnIo.lean`'s `conn_readerOk`/`conn_writerOk`), merging `origin/dsv-bufio` or as
-  hypotheses of those shapes until it lands.
+- **protobuf**: `hyp.proto.Marshal.spec`, `hyp.proto.Unmarshal.spec` (the lab's `Marshal.spec`,
+  `Unmarshal.spec` with its codec), over the codec of QuePaxa's messages `hyp.qpCodec :=
+  ⟨msg.marshalPre, msg.unmarshalPre⟩` (an instance of `Net/Proof/models_lab/pbcodec`'s `PbCodec`);
+  errors `models_lab.errAny`. Bundled as `class hyp.PbHyp GF`. Discharge: the kit's codec from
+  `models/protobuf/pbgen.py` and protobuf's model.
+- **gRPC, unary**: the vocabulary `hyp.grpc.GrpcVocab GF` (abstract data: `reqProto`/`respProto`
+  (`Net/` `Proto`s of a gRPC address), `worldOk`, `isServer`, `srvOwn`, `srvServed`,
+  `isClientConn`, `handlerErr`, with their persistence as fields), `UnarySpec`, `GrpcWorld`
+  (`MS`, `reg`), and defined over it as the lab's: `grpcAddr V W a := addrProto a (reqProto W a)
+  (respProto W a) ∗ worldOk W`, `replyOk`, `decOk`, `handlerOk`, `descOk`, `encPre`. The specs
+  (the lab's statements): `NewServer.spec`, `Server.RegisterService.spec`, `Server.Serve.spec` (the
+  listener as `net.Listen`'s success post gives it: `isListener li l ∗ netLis l a true ∗ netLisAt
+  l a`), `WithInsecure.spec`, `Dial.spec`, `ClientConn.Invoke.spec`, and the law `world_alloc`;
+  bundled as `class hyp.grpc.GrpcHyp V` (over `[PbCodec GF]`, to be `qpCodec`). **The deployment's
+  vocabulary is an instance `[qv : hyp.QpVocab GF]`** (data only, field `grpc`): the definitions
+  (`netProtos`, `peersP`, `replicaRes`, the proxy's state) mention `qv.grpc`; theorems that call
+  gRPC take `[GrpcHyp qv.grpc]`. The statement will quantify over the instance and the hypothesis.
+- **`sync.Map`**: vocabulary `hyp.sync.MapVocab GF` (`own m M`, string keys), `class
+  hyp.sync.MapHyp V` (`own_timeless`, `own_zero` from a zero map, logically atomic
+  `Map.Load.spec`, `Map.Store.spec`, `Map.Delete.spec`). The proxy's store packs its vocabulary
+  and hypothesis in `isStoreDef` (`∃ MV, ⌜MapHyp MV⌝ ∗ ...`, `Proxy/StoreDefs.lean`): whoever
+  allocates a store (`raxos.New`'s proof) needs one from the statement. (`ClientBatchStore.Range`,
+  used by `Remove`-less paths only, has no spec: add one if a proof reaches it.)
+- **bufio**: not a hypothesis: origin/dsv-bufio (75ef5881aa, revised after Upamanyu's review, merged
+  here at 0493c6f8bc; not landed) is used directly: `EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz
+  sent pend err` (the proxy's writers, `Proxy/SharedNet.lean`'s `wSlot`, size 4096), `ownBufReader br
+  ri Pre S E R` (`Wire.lean`), specs `bufio.NewWriter.spec`, `Writer.Write/WriteByte/Flush.spec`,
+  `Reader.Read.specOk`, laws `ownBufWriter_fact`, `ownBufReader_fact`, `ownBufReader_readerOk`,
+  `net.conn_writerOk`/`conn_readerOk` (`Net/Proof/net/ConnIo.lean`), `recvTokL_proto`. Never unfold
+  the bufio predicates. If dsv-bufio changes again before landing, re-merge it.
 - **Package initialization** (`<pkg>.InitHyp GF`, `Dsverify/Proof/<pkg>/Init.lean`): yaml.v2,
   go-redis, io/ioutil, encoding/gob, grpc, grpc/codes (names only, their variables' initializers and
   `init` functions untranslated), math/rand (Perennial's translation leaves its initializers
   untranslated; the main tree's `opaqueInitsOk` axiom). No axiom and no trusted code for them.
-- **go-redis, yaml.v2, io/ioutil, encoding/gob, grpc's initialization**: names only, never reached (benchmark mode 0; the configuration
-  made in code). Their calls need no spec unless the proof must show them unreachable (it does:
-  `Init`'s mode-1 branch is excluded by the configuration).
+- **go-redis, yaml.v2, io/ioutil, encoding/gob**: names only, never reached (benchmark mode 0; the
+  configuration made in code). Their calls need no spec unless the proof must show them
+  unreachable (it does: `Init`'s mode-1 branch is excluded by the configuration).
 - `log` (`Println`, `Fatal`), `math/rand` (`Intn`, `Seed`, `NewSource`/`New`/`(*Rand).Intn`), `os`
   (`Create`, `Exit`, `Stderr`), `fmt.Fprintf`, `strconv.Atoi`, `sort.Ints`, `time` extras (the lab's
   `Harness/Proof/{log,math/rand,os,fmt/Extra,strconv/Atoi,sort/Ints,time/Extra}`): to check against
   Perennial's and the main tree's (`Proof/math/rand`, `Proof/strconv`, Perennial's `log`, `sort`)
-  when the proof reaches them; hypotheses where missing.
+  when the proof reaches them; hypotheses (in `Hyp.lean`) where missing.
 
 ## State
 
@@ -140,28 +150,59 @@ named after the lab's specs, until each comes as one shared change:
   `raxos.replica.src` to finish the generated `Init.lean` with the descriptor's facts (its
   `before` hook already evaluates the literal), and `Base.lean`'s `define_is_pkg_init` to name
   it. Needed only once the grpc hypotheses (`grpc.Server.RegisterService.spec`) are stated.
-- **Next, in order**:
-  1. `Smr/Step.lean`, `Smr/Register.lean`, `Smr/Laws.lean`: port with
-     `python3 etc/dsv/tools/quepaxa-port.py Smr/Step.lean ...` (a helper outside `etc/dsv/*.py`, which goose.py loads) (the common edits: imports, the lab's
-     `Dsv` instances dropped, the net-extension variables, `KvInput`/`KvOutput` → `KIn`/`KOut`),
-     then by hand: `.got (some v)` → `⟨true, v⟩`, the lab's `kv`/`kvApply`/`kv_step_iff` → `kvB.step`
-     (`execCmd_step`), the registry's `Q σ σ' o` → `Φ o`, and firing the update (`smr_exec_slot`):
-     `opUpd` → for a put the one-shot `opAU`, for a get `□ opAU` (fire once, keep nothing), from
-     inside `smrN` (shrink the mask to `⊤ \ raxosN` first). `op_register`/`op_collect` take/give
-     remote's `slotUpd`/receipt shapes.
-  2. Then the lab's order: `Proposer/*`, `Replica/*` (`Replica/Fetch`, `EspImpl`, ... take the
-     grpc/sync.Map hypotheses), `Proxy/*` (`Net*` onto `Net/Spec/net/*` + `Proto.lean`'s laws as
-     paxos's `NetProof.lean`; bufio per `origin/dsv-bufio`'s revised names), `Codec/*` (pure parts
-     port; the generated-codec proofs are replaced by the protobuf hypotheses), `Kit/*` (onto
-     remote: `Kit.lean` with `qR`, `lin_opAU`, `Codec.spec`, `Gen.spec`, `Orch.spec`,
-     `Client.spec`, `Server.spec` as paxos's `Kit.lean`; `Orch.wp_proof` takes `Model.wp_proof`).
-  3. `quepaxa_remote_robust` (`TopLevelRobustness.lean`, every `InitHyp` a visible premise; check
-     `etc/theorem-loc.py` counts them), `etc/tcb-collections/dsv-quepaxa.txt` (the two trusted
-     descriptor-table inits of `TrustedCode/raxos/{replica/src,proto/client}.lean` with the etcd
-     #32 justification).
-- Size: the lab's protocol proof is 37k lines (`Quepaxa/Proof/`, without the translation), against
-  paxos's 8k: this port spans several sessions. Ported so far (lab lines): Pure (1.6k), Msg,
-  Ghost, Cons (0.85k), Smr/OpId, SumId, Exec (~0.6k), about 4.5k of 37k; plus the new model proof.
+- Done (2026-11-23, second session): `Smr/{Step,Register,Laws}` (a request's update fires by
+  `opAU_commit`, paxos's shape, from any mask holding `⊤ \ raxosN`; `smr_exec_slot` shrinks to it
+  after opening `smrN` (`raxos_mask`); the registry saves `Φ : KOut → IProp`; `op_register` takes
+  `opUpd`, `op_collect` gives `Φ o`); `Hyp.lean`; `Proto.lean`; `ReplicaDefs.lean`; the replica's
+  interface layer `Proxy/{Pure,StoreDefs,StateDefs,OwnProp,SharedNet,SharedLoop,ProxyState,Slots}`,
+  `Replica/{Defs,Slots}`, `Proposer/Slots`, `Replica.lean` (the specs of `NewProxy`,
+  `Proxy.NetworkInit/Run`, `NewProposer`, `runProposer`, `New`, `Server.NetworkInit/StartProposers/
+  Run`), `Wire.lean`. All check with `etc/lean-check.py -a`; `lake build
+  Dsverify.Proof.raxos.Smr.Laws` built. The lab's `StoreInst.lean` is not needed (Perennial's
+  generated `ClientBatchStore` points-to has no sorry here); `PkgState.lean` not ported (below).
+- Common edits beyond the helper (`etc/dsv/tools/quepaxa-port.py`, which now also maps imports,
+  `NetConn` → `Net`, `isClientConn`): add `[π : NetProtoGS] [qv : hyp.QpVocab GF]` to every HeapGS
+  section that mentions `netProtos`/`sharedFacts`/`peersP`; drop the lab's `codecSet`/`kitCodecOk`
+  conjuncts (protobuf is a hypothesis: no resource) and `nodeIp` (`Net/` has none); addresses
+  `portAddr (76xx)` (`Proto.lean`), listen addresses `"0.0.0.0:" ++ decStr port`; a `Countable` of a
+  protobuf message encodes `state'`'s `DoNotCompare'`, `DoNotCopy'`, `atomicMessageInfo'`
+  (`Proxy/SharedLoop.lean` has the instances for `NoUnkeyedLiterals`, `sync.noCopy`, `sync.Mutex`).
+- **Design points found (to settle in the proofs that meet them)**:
+  1. **Wildcard listeners.** The replicas listen on `0.0.0.0:port` (proxy, recorder), the
+     protocols are set at `127.0.0.1:port` (what the dialers dial). The proofs of `NetAccept`
+     (proxy) and of the recorder's `Serve` hypothesis must relate `net.Listen("0.0.0.0:p")`'s
+     `netLis l a` and `Accept`'s `netConnAt cn a` to the dialed address (D21: a wildcard listener
+     takes any address with its port). Check what `Net/`'s `listen_au`/`accept_au` give for a
+     wildcard address before porting `Proxy/Net*`; the `Serve` hypothesis may need the listen
+     address and the protocol address separately.
+  2. **`addrTok` is persistent** in `Net/` (exclusive in the lab): `sharedNet`'s invariant
+     `netOwn pr rm ∨ addrTok (proxyAddr k)` (the accept routine's state, given once) still
+     gives `netOwn` to one caller, but its swap no longer proves a second caller cannot
+     exist; `Proxy/NetAccept`'s proof must not need that.
+  3. **PkgState**: `Server.RegisterService.spec`'s `descOk` needs the `Consensus_ServiceDesc`
+     points-to, the lab's `srcState` (`PkgState.lean`), as `raxos/replica/src`'s package fact
+     (now `True`, `Base.lean`): `etc/dsv/quepaxa.py`'s `special(g)` entry for `raxos.replica.src`
+     must end the generated `Init.lean` with the descriptor's facts, and `Base.lean`'s
+     `define_is_pkg_init` name it. Do this when porting `Replica/Init`/`Inits`/`HarnessInit`.
+- **Next, in order** (lab sizes; ported ~7k of 37k lab lines):
+  1. `Proposer/*` (3.9k): `Strings`, `Defs`, `Max`, `Persist`, `Pure`, `Collect`, `Esp`, `Conv`,
+     `Fetch`, `Propose`, `Run`, `Results`. `Esp`/`Fetch`/`Propose` call `ClientConn.Invoke`
+     through `consensusClient` (`[GrpcHyp qv.grpc]`, `qpCodec` as the local `PbCodec` instance).
+     Port with `python3 etc/dsv/tools/quepaxa-port.py Proposer/X.lean`, then fix by hand.
+  2. `Replica/*` (3.2k; `EspImpl`, `HandleESP`, `Fetch`, `Handlers` are the recorder's handlers:
+     `handlerOk` of the hypotheses), `Proxy/*` rest (11k: `Net*` onto `Net/Spec/net/*` +
+     `GooseLang/Ext/Net/Proto.lean`'s laws as paxos's `NetProof.lean`; the writers through
+     dsv-bufio's specs), `Codec/*` (7.3k: only the pure parts port; the generated-codec proofs
+     are replaced by the protobuf hypotheses, so `Codec/Switch`, `Enc*`, `Dec*` mostly go),
+     `Kit/*` (5.8k, onto remote: `Kit.lean` with `qR`, `lin_opAU`, `Codec.spec`, `Gen.spec`,
+     `Orch.spec`, `Client.spec`, `Server.spec` as paxos's `Kit.lean`; `Orch.wp_proof` takes
+     `Model.wp_proof`).
+  3. `quepaxa_remote_robust` (`TopLevelRobustness.lean`): premises every `InitHyp`, `PbHyp`,
+     `∃ V, GrpcHyp V` (as the `QpVocab` instance), `∃ MV, MapHyp MV`, all visible in the `.spec`;
+     check `etc/theorem-loc.py` counts them. `etc/tcb-collections/dsv-quepaxa.txt` (the two trusted
+     descriptor-table inits of `TrustedCode/raxos/{replica/src,proto/client}.lean`, the etcd #32
+     justification).
+- Environment: `lake` is `~/.elan/bin/lake` (put `~/.elan/bin` on `PATH` for `etc/lean-check.py`).
 
 ## Which lab run
 
