@@ -70,7 +70,7 @@ instance facP_persistent H v : Persistent (facP H v) := by
 /-- One replica's reader: none, or a connection of kind `client cid` with its reader at the
 stream's start. -/
 def rdEnd (H : HC) (rd : Loc) : IProp netDistGF :=
-  iprop(⌜rd = null⌝ ∨ ∃ (srv : GoInterface) (c : w64),
+  iprop(⌜rd = null⌝ ∨ ∃ (srv : GoInterface) (c : Nat),
     bufio.readerOk srv (recvTok c false (sp.outQ H.γ H.γc H.γm)) ∗
     sp.connKind H.γ c (.client H.cid) ∗
     bufio.ownReader rd srv (recvTok c false (sp.outQ H.γ H.γc H.γm)) [])

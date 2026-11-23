@@ -65,7 +65,7 @@ def wrAligned (γ : sp.Names) (γc γm : GName) (cid : w32) (sent : List w8) : I
 /-- One of the client's writers: none, or over a connection of kind `client cid`, with a sticky
 error, or (no error) everything written whole frames of the client's proposals. -/
 def wrOk (γ : sp.Names) (γc γm : GName) (cid : w32) (w : Loc) : IProp netDistGF :=
-  iprop(⌜w = null⌝ ∨ ∃ (srv : GoInterface) (c : w64) (sent pend : List w8) (err : GoInterface),
+  iprop(⌜w = null⌝ ∨ ∃ (srv : GoInterface) (c : Nat) (sent pend : List w8) (err : GoInterface),
     net.rpc.connIface srv c false ∗ sp.connKind γ c (.client cid) ∗
     bufio.ownWriter w srv (sendTok c false (sp.inP γ γc γm)) (sp.inP γ γc γm c) sent pend err ∗
     (⌜err ≠ interface.nil⌝ ∨ ⌜pend = []⌝ ∗ wrAligned γ γc γm cid sent))
@@ -132,14 +132,14 @@ connection of kind `client cid` to a replica's port with its reader (`bufio`, at
 start, protocol `sp.outQ`) and writer (protocol `sp.inP`, nothing written). -/
 @[no_expose] def replicaEnd (γ : sp.Names) (γc γm : GName) (cid : w32) (srv : GoInterface) (rd wr : Loc) : IProp netDistGF :=
   iprop(⌜rd = null ∧ wr = null⌝ ∨
-    ∃ c : w64, net.rpc.connIface srv c false ∗ sp.connKind γ c (.client cid) ∗
+    ∃ c : Nat, net.rpc.connIface srv c false ∗ sp.connKind γ c (.client cid) ∗
       bufio.ownReader rd srv (recvTok c false (sp.outQ γ γc γm)) [] ∗
       bufio.ownWriter wr srv (sendTok c false (sp.inP γ γc γm)) (sp.inP γ γc γm c) [] []
         interface.nil)
 
 theorem replicaEnd_unfold (γ : sp.Names) (γc γm : GName) (cid : w32) (srv : GoInterface) (rd wr : Loc) :
     replicaEnd γ γc γm cid srv rd wr ⊣⊢ iprop(⌜rd = null ∧ wr = null⌝ ∨
-    ∃ c : w64, net.rpc.connIface srv c false ∗ sp.connKind γ c (.client cid) ∗
+    ∃ c : Nat, net.rpc.connIface srv c false ∗ sp.connKind γ c (.client cid) ∗
       bufio.ownReader rd srv (recvTok c false (sp.outQ γ γc γm)) [] ∗
       bufio.ownWriter wr srv (sendTok c false (sp.inP γ γc γm)) (sp.inP γ γc γm c) [] []
         interface.nil) := by

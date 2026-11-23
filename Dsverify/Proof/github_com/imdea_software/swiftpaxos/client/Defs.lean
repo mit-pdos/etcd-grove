@@ -45,7 +45,7 @@ laws, notes/prove-clientpkg.md). -/
 instance cmdIs_persistent (γ : sp.Names) (x : sp.CmdId) (c : sp.Cmd) :
     Persistent (sp.cmdIs γ x c : IProp netDistGF) := by
   unfold sp.cmdIs; infer_instance
-instance connKind_persistent (γ : sp.Names) (c : w64) (k : sp.ConnKind) :
+instance connKind_persistent (γ : sp.Names) (c : Nat) (k : sp.ConnKind) :
     Persistent (sp.connKind γ c k : IProp netDistGF) := by
   unfold sp.connKind; infer_instance
 instance doneRes_persistent (γ : sp.Names) (x : sp.CmdId) (o : List w8) :

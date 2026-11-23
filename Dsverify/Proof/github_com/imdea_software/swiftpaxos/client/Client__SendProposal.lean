@@ -33,7 +33,7 @@ theorem framesOf_snoc (ms : List sp.Msg) (m : sp.Msg) :
   simp [sp.framesOf]
 
 /-- Whole frames of a client's registered proposals are in `inP` on its connection. -/
-theorem inP_aligned (γ : sp.Names) (γc γm : GName) (cn : w64) (cid : w32) (ms : List sp.Msg)
+theorem inP_aligned (γ : sp.Names) (γc γm : GName) (cn : Nat) (cid : w32) (ms : List sp.Msg)
     (hms : ∀ m ∈ ms, sp.Msg.isProposeOf cid m ∧ sp.Msg.wf m) :
     sp.connKind γ cn (.client cid) ∗ ([∗list] m ∈ ms, sp.msgOk γ γc γm m) ⊢
       sp.inP γ γc γm cn (sp.framesOf ms) := by

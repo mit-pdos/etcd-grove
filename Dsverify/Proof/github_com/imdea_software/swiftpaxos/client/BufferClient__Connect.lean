@@ -41,7 +41,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [net.Assumptio
 def endI (γ : sp.Names) (γc γm : GName) (cid : w32) (srv : GoInterface) (rd wr : Loc) :
     IProp netDistGF :=
   iprop(⌜srv = interface.nil ∧ rd = null ∧ wr = null⌝ ∨
-    ∃ c : w64, net.rpc.connIface srv c false ∗ sp.connKind γ c (.client cid) ∗
+    ∃ c : Nat, net.rpc.connIface srv c false ∗ sp.connKind γ c (.client cid) ∗
       bufio.ownReader rd srv (recvTok c false (sp.outQ γ γc γm)) [] ∗
       bufio.ownWriter wr srv (sendTok c false (sp.inP γ γc γm)) (sp.inP γ γc γm c) [] []
         interface.nil)

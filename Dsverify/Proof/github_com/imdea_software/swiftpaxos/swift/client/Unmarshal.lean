@@ -198,7 +198,7 @@ variable [swift.Assumptions]
 frames of `done` and the type byte `MFastAckClient` (10): without an error, the bytes read are
 the body of an `MFastAckClient` (its hashes 32 bytes each). -/
 abbrev MFastAckClient.Unmarshal.specI : Prop :=
-  ∀ (t : Loc) (v : swift.MFastAckClient) (br : Loc) (srv : GoInterface) (c : w64)
+  ∀ (t : Loc) (v : swift.MFastAckClient) (br : Loc) (srv : GoInterface) (c : Nat)
     (γ : sp.Names) (γc γm : GName) (cl : w32) (done : List sp.Msg) (ov : GoInterface),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.io ∗ isPkgInit (PROP := IProp netDistGF) pkg_id.bufio ∗
       bufio.readerOk srv (recvTok c false (sp.outQ γ γc γm)) ∗ sp.connKind γ c (.client cl) ∗
@@ -218,7 +218,7 @@ abbrev MFastAckClient.Unmarshal.specI : Prop :=
 frames of `done` and the type byte `MReply` (15): without an error, the bytes read are
 the body of an `MReply` (its hashes 32 bytes each, at least one). -/
 abbrev MReply.Unmarshal.specI : Prop :=
-  ∀ (t : Loc) (v : swift.MReply) (br : Loc) (srv : GoInterface) (c : w64)
+  ∀ (t : Loc) (v : swift.MReply) (br : Loc) (srv : GoInterface) (c : Nat)
     (γ : sp.Names) (γc γm : GName) (cl : w32) (done : List sp.Msg) (ov : GoInterface),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.io ∗ isPkgInit (PROP := IProp netDistGF) pkg_id.bufio ∗
       bufio.readerOk srv (recvTok c false (sp.outQ γ γc γm)) ∗ sp.connKind γ c (.client cl) ∗
