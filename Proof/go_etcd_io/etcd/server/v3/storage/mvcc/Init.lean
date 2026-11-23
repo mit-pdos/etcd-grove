@@ -6,7 +6,7 @@ functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`mvccInit`, `Base.lean`): its error variables (translated `errors.New` calls), its
 metrics (`metrics.go`, translated: `prometheus.NewCounter`, `NewGauge` and `NewHistogram` of an
-options literal, the trust-boundary axioms of those constructors and of `ExponentialBuckets`; a
+options literal, the trust-boundary axioms of those constructors and `ExponentialBuckets`'s spec; a
 counter's `Add` only of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). (prove-initmisc, 2026-11-20) Its other metrics (`totalEventsCounter`, `hashSec`,
 `hashRevSec`, and the `NewGaugeFunc` gauges, over that constructor's spec) and `_` (`var _

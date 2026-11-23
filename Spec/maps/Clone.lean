@@ -1,15 +1,10 @@
 /-
-`maps.Clone(m)` (names-only here) on a non-nil `map[string]bool` (the D30g patch's
-`maps.Clone(s.NeedsRewrite)` in `Model.Clone`): a fresh map with the same entries; `m` only read.
-Stated at this one map type (`spec_strBool`; the map points-to is not indexed by the Go type). Its
-axiom will be `maps.Clone.wp_proof_strBool` (k8s 7g, `notes/k8s-7g-trust.md`), until Perennial
-translates `maps` (`notes/perennial-changes.md`, "Generic maps and slices iterators").
-
-Faithful (go1.27.3, `maps/maps.go`): `Clone(m)` returns `nil` if `m == nil` (excluded: the points-to
-holds a cell at `m`, `ownMap_not_nil`), else `clone(m)` (the runtime's `maps.clone`), a new map with
-`m`'s entries; the caller owns it alone (no other reference to it exists). Go evidence:
-`examples/k8s/etcd3/trustspecs_test.go` `TestMapsCloneEqual` (5000 random maps: the same entries; a
-write to the clone is not seen in `m`; an empty non-nil map's clone is non-nil). Lean-first.
+`maps.Clone(m)` on a non-nil `map[string]bool` (the D30g patch's `maps.Clone(s.NeedsRewrite)` in
+`Model.Clone`): a fresh map with the same entries; `m` only read. Stated at this one map type
+(`spec_strBool`), as the checker's proofs use it. Proved (2026-11-23, `Proof/maps/Clone.lean`) from
+Perennial's translation of `maps` and its generic spec (`maps.wp_Clone`, Perennial `70706ce5e`);
+until then a trust-boundary axiom (k8s 7g, `notes/k8s-7g-trust.md`). The `isPkgInit pkg_id.maps`
+premise is no longer needed by the proof; it stays so that callers' statements are unchanged.
 -/
 module
 

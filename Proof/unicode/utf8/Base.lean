@@ -1,12 +1,13 @@
 /-
-`unicode/utf8`'s package fact: the tables `first` and `acceptRanges` (`utf8.go`), which
-`ValidString` reads, hold their initializers' values, read-only for good. (Until 2026-10-26 the
-package was names-only, its fact `True`, in `v3rpc/Base.lean`.)
+`unicode/utf8`'s tables `first` and `acceptRanges` (`utf8.go`), which `ValidString` reads, as the
+functions its proof computes with (`firstTable`, `acceptTable`), and `utf8Init`, their points-to
+facts in those terms, from Perennial's package fact (`unicode.utf8.isInit`: `firstVal`,
+`acceptRangesVal`). (Until 2026-10-26 the package was names-only, its fact `True`, in
+`v3rpc/Base.lean`; until 2026-11-23 translated here, with its fact `utf8Init`; since then Perennial's.)
 -/
 module
 
-public import Code.unicode.utf8
-public import GeneratedProof.unicode.utf8
+public import Perennial.Proof.unicode.utf8.Base
 
 @[expose] public section
 
@@ -49,30 +50,27 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `unicode/utf8`'s fact: `first` and `acceptRanges` hold their tables, read-only. -/
+/-- `first` and `acceptRanges` hold their tables, read-only. -/
 abbrev utf8.utf8Init : IProp GF :=
   iprop(globalAddr unicode.utf8.first ↦□ (array.mk 256 utf8.firstTable : GoArray w8 256) ∗
     globalAddr unicode.utf8.acceptRanges ↦□
       (array.mk 16 utf8.acceptTable : GoArray unicode.utf8.acceptRange 16))
 
+theorem utf8.firstVal_eq : unicode.utf8.firstVal = array.mk 256 utf8.firstTable := by
+  set_option maxRecDepth 20000 in rfl
+
+theorem utf8.acceptRangesVal_eq :
+    unicode.utf8.acceptRangesVal = array.mk 16 utf8.acceptTable := rfl
+
+/-- Perennial's package fact, in the tables' terms. -/
+theorem utf8.utf8Init_of_pkgInit [package_sem : unicode.utf8.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8 ⊢ utf8.utf8Init (GF := GF) := by
+  refine (unicode.utf8.isInit_access (GF := GF)).trans ?_
+  unfold unicode.utf8.isInit utf8.utf8Init
+  rw [utf8.firstVal_eq, utf8.acceptRangesVal_eq]
+
 end init
 
 end EtcdGrove
-
-open Iris Iris.BI
-
-section inst
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
--- `unicode/utf8` (`ValidString`, which the server's interceptors call)
-instance utf8_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.unicode.utf8 :=
-  define_is_pkg_init EtcdGrove.utf8.utf8Init
-instance utf8_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.unicode.utf8 :=
-  build_get_is_pkg_init_wf
-
-end inst
 
 end Perennial

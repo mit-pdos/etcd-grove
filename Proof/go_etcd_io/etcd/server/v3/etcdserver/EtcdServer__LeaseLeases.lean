@@ -33,7 +33,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- `leaseCheckFrom` is monotone in its keys' verdict `K`. -/
 theorem leaseCheckFrom_mono (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
     (K K' : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (h : ∀ info, K info ⊢ K' info) :
-    leaseCheckFrom s E tok n K ⊢ leaseCheckFrom s E tok n K' := by
+    leaseCheckFrom (srvTLSId s) E tok n K ⊢ leaseCheckFrom (srvTLSId s) E tok n K' := by
   unfold leaseCheckFrom
   iintro (H | ⟨%info, Hb, (Ha | Hk)⟩)
   · ileft; iexact H

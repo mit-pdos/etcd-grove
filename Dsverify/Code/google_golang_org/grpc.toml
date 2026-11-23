@@ -1,0 +1,8 @@
+# Types and names only, into the part (notes/dsv-quepaxa.md): the main tree's grpc
+# (`Code/google_golang_org/grpc.lean`, project etcd's) imports the main tree's names-only `net`,
+# which clashes with the part `Net/`'s; the replica's gRPC calls (`Dial`, `WithInsecure`,
+# `NewServer`, `RegisterService`, `Serve`, `Invoke`) are hypotheses of the port until grpc's Lean
+# half (models/grpc) is proved over `Net/`.
+translate = ["!*"]
+imports = ["!*", "context"]
+translate_types = true

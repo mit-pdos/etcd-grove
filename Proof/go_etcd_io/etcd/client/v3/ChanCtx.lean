@@ -125,7 +125,8 @@ theorem canceledOk_of_init
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (e : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.context ∗ globalAddr context.Canceled ↦□ e ⊢
       ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e ∗ errCellOk e ∗
-      (∃ e' : GoInterfaceOk, ⌜e = GoInterface.ok e' ∧ ctxErrShape e'⌝ ∗
+      (∃ e' : GoInterfaceOk, ⌜e = GoInterface.ok e' ∧ ctxErrShape e' ∧
+          e'.ty ≠ _root_.Perennial.context.deadlineExceededError.ty⌝ ∗
         errorMsgIs e' go!"context canceled") := by
   iintro ⟨#Pctx, #He⟩
   ihave Hci : (context.isInit : IProp GF) $$ []
@@ -157,7 +158,8 @@ theorem canceledOk_of_init
   -- (incomingof Part B) its message and shape
   iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
   isplitl []
-  · ipureintro; exact ⟨rfl, hty, hl.2.2⟩
+  · ipureintro
+    exact ⟨rfl, ⟨hty, hl.2.2⟩, (_root_.Perennial.context.deadlineExceededError_ne_ptr _).symm⟩
   · iapply client.errorMsgIs_errorString $$ Hcell
 
 /-- **A `channelContext` over a broadcast channel is a context the client takes** (see the file
@@ -231,7 +233,7 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
         iright; iexists e', go!"context canceled"
         isplitl []
         · ipureintro
-          exact ⟨He'.1, Or.inl rfl, He'.2⟩
+          exact ⟨He'.1, Or.inl rfl, He'.2.1, fun h => absurd h He'.2.2⟩
         · iexact Hm'
   -- (premise fixes 8, N1) `Deadline()` returns `(zero, false)`
   ihave #HDl : ctxDeadline (chanCtxVal sc) $$ []

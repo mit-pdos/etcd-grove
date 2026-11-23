@@ -10,11 +10,9 @@
 # the build of record not up to date when the collection was added.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.lean$
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
-axiom Perennial.github_com.prometheus.client_model.go.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -23,12 +21,10 @@ axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
-axiom Perennial.net.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
 axiom Perennial.runtime.opaqueInitsOk
-axiom addrUnclaimed
 axiom backend.newBoltLoggerZap.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
@@ -36,13 +32,10 @@ axiom dataDirsApart
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
-axiom httpProtoFree
 axiom lease.Lease.expired.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom netAddrFree
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewGauge.wp_proof
@@ -66,6 +59,5 @@ axiom strings.ToLower.wp_proof
 axiom verifyEnvOff
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

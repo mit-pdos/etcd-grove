@@ -1441,7 +1441,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn om Spec m Φ Ψe ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
@@ -1486,7 +1486,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn om Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
         metadata.outMD ctx om ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
@@ -1536,7 +1536,7 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
 file header): grpc's connection with one unary interceptor, the client's retry interceptor
 (`etcdInterceptorOk`), and no default call options. -/
 def isEtcdConn (conn : Loc) (addr : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] ∗ etcdInterceptorOk ic ∗
+  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] anyRes ∗ etcdInterceptorOk ic ∗
     -- (2026-10-21, D29) a write on a refusal-free connection: ordinary, whatever the bound
     etcdInterceptorOkW ic)
 
@@ -1587,7 +1587,9 @@ file header): `isContext`'s triple of `Err()` (`"#HErr"`: a non-nil error makes 
 error"), with `clientErr` of the error returned, which grpc's `status` accepts (`statusErrOk`,
 unit P3a: `kv.Put` passes `ContextError`'s result, possibly the context's error, to a second
 `ContextError`, which passes it to `rpctypes.Error`; `context.Canceled` is an `errors.New` error,
-`DeadlineExceeded` a `deadlineExceededError`, neither with a `GRPCStatus` or `Is` method). -/
+`DeadlineExceeded` a `deadlineExceededError`, neither with a `GRPCStatus` or `Is` method). The body is
+`ctxErrsErr`'s (`ctxErrClient_eq_errs`): since errors-is-deadline (2026-11-23), an error of type
+`deadlineExceededError` holds `deadlineExceededError{}`. -/
 def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
     (match cl with
@@ -1601,7 +1603,9 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
         ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗
         (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
           ⌜err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
-            go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+            go_etcd_io.etcd.cache.v3.ctxErrShape e ∧
+            (e.ty = _root_.Perennial.context.deadlineExceededError.ty →
+              e.v = #(zero_val _root_.Perennial.context.deadlineExceededError))⌝ ∗
           go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 

@@ -24,7 +24,6 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
-axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -33,7 +32,6 @@ axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom addFeatureGateMetrics.wp_proof
-axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
@@ -43,17 +41,14 @@ axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bytes.Buffer.Write.wp_proof
-axiom ccDecodeV2_nil
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
 axiom dataDirFresh
 axiom encoding.json.MarshalConfigChangeContext.wp_proof
 axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
-axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.SprintfWalName.wp_proof
@@ -97,7 +92,6 @@ axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
@@ -136,7 +130,6 @@ axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rate.Limiter.Wait.wp_proof
-axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -145,6 +138,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
+axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
@@ -169,6 +163,5 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

@@ -66,7 +66,7 @@ theorem authTokReg_of (addr u pw : GoString) (γa : auth.AuthNames) :
   · iapply (isGrpcRpcs_singleton _ _ _).1
     iexact H
   · iintro !> !>
-    unfold etcdAuthenticateSpec
+    unfold etcdAuthenticateSpec etcdAuthenticateSpecW
     iintro %t #Ht !>
     iexact Ht
 
@@ -177,7 +177,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     simp only [pbAuthenticateResponse]
     isplitl [Hv]
     · iexists v; iframe Hv; ipureintro; exact ⟨rfl, Hvu⟩
-    iunfold etcdAuthenticateSpec at Hspec
+    iunfold etcdAuthenticateSpec, etcdAuthenticateSpecW at Hspec
     iapply Hspec
     iexact Ht
   · iunfold authnAns at Ha
@@ -265,24 +265,19 @@ theorem grpcHandlerOwnOkMd_slot {Req Rep : ProtoMsg GF} (h : val) (S S' F : IPro
   iframe
 
 /-- `Authenticate`'s slot is its handler's part of the run's slot with the interceptors' lent
-resources (`etcdIcRs`, whose `lgMu` reader is `authnSlot`'s). -/
+resources (`etcdIcRs`, whose `lgMu` reader is `authnSlot`'s), and the lent level-0 token. -/
 theorem authnSlot_lent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     iprop(iprop(srvLeadTimeReader s ∗ srvReadReader s γr ∗ E.RD) ∗ [∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
-      iprop(authnSlot s E γr ∗ True) := by
-  have hl : ([∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
-      iprop(srvLgReader s ∗ True ∗ True ∗ emp) := .rfl
+      iprop(authnSlot s E γr ∗ levelTok 0) := by
   unfold authnSlot
   constructor
   · iintro ⟨⟨Hlt, Hrr, Hrd⟩, Hl⟩
-    icases hl.1 $$ Hl with ⟨Hlg, -⟩
+    icases (etcdIcRs_eq s).1 $$ Hl with ⟨Hlg, H0⟩
     iframe
-  · iintro ⟨⟨Hlt, Hlg, Hrr, Hrd⟩, -⟩
+  · iintro ⟨⟨Hlt, Hlg, Hrr, Hrd⟩, H0⟩
     iframe
-    iapply hl.2
+    iapply (etcdIcRs_eq s).2
     iframe
-    isplitl []; · itrivial
-    isplitl []; · itrivial
-    itrivial
 
 /-- **`Authenticate`'s method as registered**, with etcd's spec at `γa`. -/
 def etcdAuthnMethod (pa : Loc) (γa : auth.AuthNames) : GrpcMethod GF :=
@@ -317,18 +312,18 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
         authnStoreOk (GoInterface.ok ast) E.RD ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
         grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
-      |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ γr cid mid) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec s E ρ) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec s E ρ) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec s E ρ) ∗
+      |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn (srvTLSId s) E γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn (srvTLSId s) E ρ cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn (srvTLSId s) E ρ γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec (srvTLSId s) E ρ) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.Auth/RoleGrantPermission"
-          (v3rpc.etcdRoleGrantPermissionSpec s E ρ) ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec s E ρ) ∗
+          (v3rpc.etcdRoleGrantPermissionSpec (srvTLSId s) E ρ) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec (srvTLSId s) E ρ) ∗
         isGrpcRpc addr authnMethod (etcdAuthenticateSpec γa) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hlb, #Hat, #HNR, #Hq, #Has, #Hast, #Hcost, #Hauthn, #Hil, #Him,
     #Hiu, #Hl, #Hb, #Hrpl⟩
@@ -358,7 +353,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
   ihave #He := v3rpc.grpcHandlerOwnOkMd_frame _ _ iprop([∗list] R ∈ etcdIcRs s, R) _ $$ He
   ihave #Hn := grpcHandlerOwnOkMd_slot _ (authnSlot s E γr)
     iprop(iprop(srvLeadTimeReader s ∗ srvReadReader s γr ∗ E.RD) ∗ [∗list] R ∈ etcdIcRs s, R)
-    iprop(True) _ (authnSlot_lent s E γr).1 (authnSlot_lent s E γr).2 $$ Hn
+    (levelTok 0) _ (authnSlot_lent s E γr).1 (authnSlot_lent s E γr).2 $$ Hn
   ihave #Hmu := v3rpc.etcd_userAddMethodOk pa _ _ [il, im, iu] (etcdIcRs s) $$ [Hu Ppb Hics]
   · iframe #
   ihave #Hmg := v3rpc.etcd_userGrantRoleMethodOk pa _ _ [il, im, iu] (etcdIcRs s) $$ [Hg Ppb Hics]
@@ -395,35 +390,35 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
     · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbAuthUserAddRequest)
         (Rep := pbAuthUserAddResponse) (@! etcdserverpb._Auth_UserAdd_Handler)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa)
-        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdUserAddSpec s E ρ))
+        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ))
       iexact Hmu'
     iapply bigSepL_cons_intro'
     isplitl []
     · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbAuthUserGrantRoleRequest)
         (Rep := pbAuthUserGrantRoleResponse) (@! etcdserverpb._Auth_UserGrantRole_Handler)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa)
-        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdUserGrantRoleSpec s E ρ))
+        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ))
       iexact Hmg'
     iapply bigSepL_cons_intro'
     isplitl []
     · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbAuthRoleAddRequest)
         (Rep := pbAuthRoleAddResponse) (@! etcdserverpb._Auth_RoleAdd_Handler)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa)
-        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdRoleAddSpec s E ρ))
+        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdRoleAddSpec (srvTLSId s) E ρ))
       iexact Hmra'
     iapply bigSepL_cons_intro'
     isplitl []
     · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbAuthRoleGrantPermissionRequest)
         (Rep := pbAuthRoleGrantPermissionResponse) (@! etcdserverpb._Auth_RoleGrantPermission_Handler)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa)
-        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdRoleGrantPermissionSpec s E ρ))
+        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdRoleGrantPermissionSpec (srvTLSId s) E ρ))
       iexact Hmrp'
     iapply bigSepL_cons_intro'
     isplitl []
     · change Iris.ProofMode.Entails' _ (grpcMethodOkMd (Req := pbAuthEnableRequest)
         (Rep := pbAuthEnableResponse) (@! etcdserverpb._Auth_AuthEnable_Handler)
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty) #pa)
-        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdAuthEnableSpec s E ρ))
+        [il, im, iu] (etcdGrpcSlot s E γr) (v3rpc.etcdAuthEnableSpec (srvTLSId s) E ρ))
       iexact Hme'
     iapply bigSepL_cons_intro'
     isplitl []
@@ -455,10 +450,10 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
     iframe #
     ipureintro; rw [hγa]; simp
   rw [hon]
-  ihave #H1' := isGrpcRpcMd_mono _ _ _ _ (etcdPutSpecM_true s E ρ cid mid) $$ H1
-  ihave #H2' := isGrpcRpcMd_mono _ _ _ _ (etcdRangeSpecM_true s E γr cid mid) $$ H2
-  ihave #H3' := isGrpcRpcMd_mono _ _ _ _ (etcdDeleteSpecM_true s E ρ cid mid) $$ H3
-  ihave #H4' := isGrpcRpcMd_mono _ _ _ _ (etcdTxnSpecM_true s E ρ γr cid mid) $$ H4
+  ihave #H1' := isGrpcRpcMd_mono _ _ _ _ (etcdPutSpecM_true (srvTLSId s) E ρ cid mid) $$ H1
+  ihave #H2' := isGrpcRpcMd_mono _ _ _ _ (etcdRangeSpecM_true (srvTLSId s) E γr cid mid) $$ H2
+  ihave #H3' := isGrpcRpcMd_mono _ _ _ _ (etcdDeleteSpecM_true (srvTLSId s) E ρ cid mid) $$ H3
+  ihave #H4' := isGrpcRpcMd_mono _ _ _ _ (etcdTxnSpecM_true (srvTLSId s) E ρ γr cid mid) $$ H4
   simp only [v3rpc.etcdAuthMethods, etcdAuthnMethod, List.cons_append, List.nil_append, pbAuthUserAddRequestT, pbAuthUserAddResponseT, pbAuthUserGrantRoleRequestT, pbAuthUserGrantRoleResponseT, pbAuthRoleAddRequestT, pbAuthRoleAddResponseT, pbAuthRoleGrantPermissionRequestT, pbAuthRoleGrantPermissionResponseT, pbAuthEnableRequestT, pbAuthEnableResponseT, pbAuthenticateRequestT, pbAuthenticateResponseT]
   icases Hms with ⟨#H5, #H6, #H7, #H8, #H9, #H10, -⟩
   imodintro
@@ -472,12 +467,12 @@ etcd's metadata specs with auth on (`etcdLeaseGrantSpecOn` at the lessor `mvccLe
 `etcdLeaseRevokeSpecOn`). -/
 def etcdLeaseMethodsOn (q s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : List (GrpcMethod GF) :=
   [⟨go!"/etcdserverpb.Lease/LeaseGrant", pbLeaseGrantRequestT, pbLeaseGrantResponseT,
-     etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ),
+     etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ),
      (functions etcdserverpb._Lease_LeaseGrant_Handler []),
      interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseGrantRequestT_reg, pbLeaseGrantResponseT_reg⟩,
    ⟨go!"/etcdserverpb.Lease/LeaseRevoke", pbLeaseRevokeRequestT, pbLeaseRevokeResponseT,
-     etcdLeaseRevokeSpecOn s E ρ,
+     etcdLeaseRevokeSpecOn (srvTLSId s) E ρ,
      (functions etcdserverpb._Lease_LeaseRevoke_Handler []),
      interface.mkOk (go.GoType.PointerType
        go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #q, pbLeaseRevokeRequestT_reg, pbLeaseRevokeResponseT_reg⟩]
@@ -503,10 +498,10 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩ s ∗
       v3rpc.leaseServerAt pl s A lcid lmid ∗
       srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
-      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+      srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
       grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
-    |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) ∗
-      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn s E ρ) := by
+    |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) := by
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #HNR, #Hq, #Hat, #Hil, #Him, #Hiu, #Hl, #Hb, #Hrpl⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
   have hlg : srvGrantsLeases E ρ := by
@@ -539,23 +534,23 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
   ihave #Hr := etcdLeaseRevokeHandlerOkMd pl s A lcid lmid E ρ hNx' (etcdKVSlot s E γr) $$ []
   · iframe #
   ihave #Hg' := v3rpc.grpcHandlerOwnOkMd_frame _ _ (srvLgReader s)
-    (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) $$ Hg
+    (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) $$ Hg
   ihave #Hqg := v3rpc.quotaLease_grantHandlerOkMd_of v3rpc.quotaLeaseServer.wp_LeaseGrant
-    (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) ql s
+    (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) ql s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩
     (etcdKVSlot s E γr) $$ [Hg']
   · iframe #
-  ihave #Hr' := grpcHandlerOkMd_frame _ _ (v3rpc.quotaRd s) (etcdLeaseRevokeSpecOn s E ρ) $$ Hr
-  ihave #Hqr := v3rpc.quotaLease_revokeHandlerOkMd (etcdLeaseRevokeSpecOn s E ρ) ql s
+  ihave #Hr' := grpcHandlerOkMd_frame _ _ (v3rpc.quotaRd s) (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) $$ Hr
+  ihave #Hqr := v3rpc.quotaLease_revokeHandlerOkMd (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) ql s
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩
     iprop(etcdKVSlot s E γr ∗ v3rpc.quotaRd s) $$ [Hq Hr']
   · iframe #
   ihave #Hqg' := grpcHandlerOwnOkMd_slot _ iprop(etcdKVSlot s E γr ∗ v3rpc.quotaRd s)
-    iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) iprop(True) _
-    (by iintro H; isplitl [H]
-        · iapply (quotaRd_lent (etcdKVSlot s E γr) s).2; iexact H
-        itrivial)
-    (by iintro ⟨H, -⟩; iapply (quotaRd_lent (etcdKVSlot s E γr) s).1; iexact H) $$ Hqg
+    iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) (levelTok 0) _
+    (by iintro H
+        icases (quotaRd_lent (etcdKVSlot s E γr) s).2 $$ H with ⟨⟨HK, H0⟩, Hq⟩
+        iframe)
+    (by iintro ⟨⟨HK, Hq⟩, H0⟩; iapply (quotaRd_lent (etcdKVSlot s E γr) s).1; iframe) $$ Hqg
   ihave #Hqr' := etcd_quotaHandler_lent _ (etcdKVSlot s E γr) s _ $$ Hqr
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk
@@ -580,7 +575,7 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
           (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #ql) [il, im, iu]
           iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R)
-          (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)))
+          (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)))
       iexact Hmg
     iapply bigSepL_cons_intro'
     isplitl []
@@ -589,7 +584,7 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
           (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty) #ql) [il, im, iu]
           iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R)
-          (etcdLeaseRevokeSpecOn s E ρ))
+          (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ))
       iexact Hmr
     iapply BigSepL.bigSepL_nil.2
     itrivial

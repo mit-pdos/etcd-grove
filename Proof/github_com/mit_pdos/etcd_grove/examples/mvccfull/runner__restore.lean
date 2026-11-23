@@ -317,7 +317,7 @@ theorem runner.restore.wp_proof
     subst Hrnb
     (try wp_auto)
     -- the snapshot's backend opened for the store, at the image (`inc_open_backend`)
-    have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.receiptBound_le
+    have hRB : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.receiptBound_le
     have hk : receiptBound GF + ((sint.Z cfg.Ops').toNat + 1) + 5 ≤ backend.wbInit := by
       rw [backend.wbInit_val]; omega
     imod inc_open_backend hopen hrest hCR γB bnb gx (limOf cfg) vb'.path D

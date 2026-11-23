@@ -44,9 +44,9 @@ theorem Run.wp_proof
     (wp_runClient : runClient.spec (GF := GF) (hG := hG))
     (wp_CheckOperationsVerbose : porcupine.CheckOperationsVerbose.spec (GF := GF) (hG := hG)) :
     Run.spec (GF := GF) (hG := hG) :=
-    fun σ S m apply gen clock inOk libState clockVal t0 Eapp Eclk clients ops dur
+    fun σ S m apply gen clock inOk libState P clockVal t0 Eapp Eclk clients ops dur
       HEapp HEclk Hc0 Hc31 Hops Hbound => by
-  wp_start as ⟨#Hcc, #Hmodel, #Happly, #Hgen, #Hclock, Hlib, Hclk⟩
+  wp_start as ⟨#Hcc, #Hmodel, #Happly, #Hgen, #Hclock, Hlib, Hclk, Hcalls⟩
   wp_auto
   wp_apply (wp_slice_make2 (V := GoSlice) clients) as %hsl ⟨Hhs, -⟩
   · ipureintro; exact Hc0
@@ -83,6 +83,9 @@ theorem Run.wp_proof
   ihave Htoks : ([∗list] c ∈ List.range' (sint.nat (W64 0)) (sint.nat clients - sint.nat (W64 0)),
       clientTok γ c ([], t0) : IProp GF) $$ [Htoks]
   · rw [H00, Nat.sub_zero, ← List.range_eq_range']; iexact Htoks
+  ihave Hcalls : ([∗list] c ∈ List.range' (sint.nat (W64 0)) (sint.nat clients - sint.nat (W64 0)),
+      calls (P c) (sint.nat ops) : IProp GF) $$ [Hcalls]
+  · rw [H00, Nat.sub_zero, ← List.range_eq_range']; iexact Hcalls
   ihave HI : (∃ (k : w64) (p : Loc) (na : w32),
       "Hiter" ∷ «$iter_id_ptr» ↦ p ∗ "idc" ∷ p ↦ k ∗
       "Hwg" ∷ sync.join.ownAdder wg_ptr na
@@ -92,8 +95,10 @@ theorem Run.wp_proof
           (DFrac.own 1)) ∗
       "Htoks" ∷ ([∗list] c ∈ List.range' (sint.nat k) (sint.nat clients - sint.nat k),
         clientTok γ c ([], t0)) ∗
+      "Hcalls" ∷ ([∗list] c ∈ List.range' (sint.nat k) (sint.nat clients - sint.nat k),
+        calls (P c) (sint.nat ops)) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z clients ∧ sint.Z na = sint.Z k⌝ : IProp GF)
-    $$ [«$iter_id» id Hwg Hcells Htoks]
+    $$ [«$iter_id» id Hwg Hcells Htoks Hcalls]
   · iexists W64 0, id_ptr, W32 0
     iframe
     ipureintro
@@ -109,12 +114,13 @@ theorem Run.wp_proof
       List.range'_succ]
     icases BigSepL.bigSepL_cons.1 $$ Hcells with ⟨Hcell, Hcells⟩
     icases BigSepL.bigSepL_cons.1 $$ Htoks with ⟨Htok, Htoks⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hcalls with ⟨Hcall, Hcalls⟩
     ipersist idc
-    wp_apply wp_fork_tok_body $$ [Hdone Hcell Htok]
+    wp_apply wp_fork_tok_body $$ [Hdone Hcell Htok Hcall]
     · iintro Htt
       wp_auto
-      wp_apply wp_runClient σ S inOk libState clockVal Eapp Eclk (sint.nat clients) γ apply gen
-        clock k ops t0 clients HEapp HEclk Hk.1 Hlt $$ [Htok Htt] as %sl ⟨%hc, %Lc, %lr', Hsl, Htok, %Hok, #Hio, Htt⟩
+      wp_apply wp_runClient σ S inOk libState P clockVal Eapp Eclk (sint.nat clients) γ apply gen
+        clock k ops t0 clients HEapp HEclk Hk.1 Hlt $$ [Htok Htt Hcall] as %sl ⟨%hc, %Lc, %lr', Hsl, Htok, %Hok, #Hio, Htt⟩
       · iframe #
         iframe
       have Hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z hsl.len := by
@@ -157,7 +163,7 @@ theorem Run.wp_proof
       have : ¬ sint.Z k < sint.Z clients := by simpa using Hif
       word
     rw [Hkc]
-    iclear Hcells Htoks
+    iclear Hcells Htoks Hcalls
     wp_apply (lc := 2) (sync.join.WaitGroup.wp_Wait_of sync.WaitGroup.wp_Wait _ na wg_ptr) $$ [$Hwg]
       as ⟨Hres, -⟩
     imod lc_fupd_elim_later $$ Hlc1 Hres with Hres

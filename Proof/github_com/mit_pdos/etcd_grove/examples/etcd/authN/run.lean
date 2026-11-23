@@ -108,7 +108,7 @@ def leaseReady (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
     grpcLeaseUp s A regs ∗
     srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
     srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
-    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+    srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
 
 instance leaseReady_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
@@ -518,7 +518,7 @@ theorem run.wp_proof
     ihave #H := akHist_setupAu x0.2.ρ.rd.kv k hk $$ Hhist
     iexact H
   ihave #Hput : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Put"
-      (client.etcdPutSpecOn s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
+      (client.etcdPutSpecOn (srvTLSId s0) w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
   · iunfold akKVOn at HKV₁
     icases HKV₁ with ⟨#H, -, -, -⟩
     iexact H

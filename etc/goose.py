@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -137,6 +137,11 @@ class Project:
     # temporary file (GOWORK, or -modfile in GOFLAGS), as models/grpc/gomodel.py does for go
     # builds. None: every module from the module cache.
     module_models: dict = None
+    # Expand tabs in the translation's comments to four spaces (Go doc comments indented with tabs:
+    # goose copies them into `/-- … -/`, where Lean rejects a tab at the start of a line; a goose gap,
+    # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
+    # writes it.
+    expand_comment_tabs: bool = False
 
     @property
     def env(self):
@@ -370,10 +375,10 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
-                    "github.com/prometheus/client_model=", "net/http=",
+                    "github.com/prometheus/client_model=",
                     "github.com/jonboulle/clockwork=",
-                    "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
-                    "encoding/hex=", "container/heap=", "unicode/utf8=",
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash=", "path=", "internal/nettrace=",
+                    "encoding/hex=", "container/heap=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
                     "crypto/tls=",
@@ -520,6 +525,11 @@ PROJECTS = [
             "go.uber.org/zap/internal/color",
             # (prove-initleft, 2026-11-21) types only: `LeveledEnabler`, which zap's `var _` asserts
             "go.uber.org/zap/internal",
+            # (zap-z1, 2026-11-23) what `Logger.check` names on paths no proof takes (stack traces,
+            # buffers): names only but the package variables of `bufferpool` (`check` reads `Get`)
+            # and the `buffer.NewPool` they call
+            "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
+            "go.uber.org/zap/buffer",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -536,14 +546,11 @@ PROJECTS = [
             # (prove-http3, 2026-11-21) `CanonicalMIMEHeaderKey` and `MIMEHeader.Set`/`Get`, with
             # their bodies (Code/net/textproto.toml): what `http.Header.Set`/`Get` call
             "net/textproto",
-            # (net: the interface net.Addr, the type of grpc's peer.Peer's fields; unit P3a)
-            "net",
+            # (net-swap, 2026-11-22) `net` is the part Net/'s (project net's, over the net extension:
+            # `net=Net` below), no longer translated here names only
             "encoding/hex",
             # (container/heap: the lessor's expiry notifier pushes and fixes its queue)
             "container/heap",
-            # (unicode/utf8: the server's unary interceptor checks the client's API version,
-            # unit P3b)
-            "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             # with bodies (client/v3/kubernetes.toml): the client the Kubernetes API server's
@@ -603,8 +610,6 @@ PROJECTS = [
             # standard library's `path` (the stream handler's URL parsing) and of etcd's
             # `pkg/v3/ioutil` (the pipeline handler's limited reader) and `pkg/v3/httputil`
             "path",
-            # (`path`'s `Split` and `Base` call `LastIndexByteString`, with its body)
-            "internal/bytealg",
             "go.etcd.io/etcd/pkg/v3/ioutil",
             "go.etcd.io/etcd/pkg/v3/httputil",
             # names only (item 4, the server start): what `v3rpc.Server` names: grpc-prometheus
@@ -638,9 +643,10 @@ PROJECTS = [
                os.path.join("github_com", "Masterminds"),
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
-               "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
+               os.path.join("net", "http"), os.path.join("net", "textproto"), os.path.join("net", "url"),
+               "hash", "path", os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
-               os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
+               os.path.join("container", "heap"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
                os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),
@@ -987,7 +993,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "lib", "etcdstart"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "etcdstart")],
     ),
@@ -1004,7 +1010,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "lib", "cluster3"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "cluster3")],
     ),
@@ -1019,9 +1025,26 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "putget"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putget")],
+    ),
+    Project(
+        name="putget-dist",
+        # putget_safe's two programs (notes/putget-dist-plan.md): the member machine's
+        # (`putget.Member`: etcdstart's StartServer and Serve) and the client machine's
+        # (`putget.Client`: Put, Get, check), and `env` (`ClearProxy`, which both call first), of
+        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md; its server and client
+        # packages are stage D2's). A package of the examples' Go module (examples/go.mod), as putget.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "dist"),
+        # `env` calls `os` (the main tree's translation, with `io/fs`, as project etcd's)
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
+                    "os=", "io/fs="],
+        packages=["./putget", "./env"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
     ),
     Project(
         name="axiomcx-bboltnan",
@@ -1044,7 +1067,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "compacted"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "compacted")],
     ),
@@ -1057,7 +1080,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "compactwatch"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "compactwatch")],
     ),
@@ -1069,7 +1092,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "lease"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "lease")],
     ),
@@ -1081,7 +1104,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "leasegrant"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leasegrant")],
     ),
@@ -1094,7 +1117,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "leaseexpiry"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseexpiry")],
     ),
@@ -1109,7 +1132,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "leasecatchup"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leasecatchup")],
     ),
@@ -1128,7 +1151,7 @@ PROJECTS = [
         local=os.path.join("examples", "etcd", "txnlin"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
+                    "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlin")],
     ),
@@ -1148,7 +1171,7 @@ PROJECTS = [
         local=os.path.join("examples", "etcd", "partition"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
+                    "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "partition")],
     ),
@@ -1164,7 +1187,7 @@ PROJECTS = [
         local=os.path.join("examples", "mvccrand"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
-                    "net="],
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccrand")],
     ),
@@ -1180,7 +1203,7 @@ PROJECTS = [
         local=os.path.join("examples", "mvccfull"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/Masterminds/semver=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=", "google.golang.org=",
-                    "net="],
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "mvccfull")],
     ),
@@ -1195,7 +1218,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "watch"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "watch")],
     ),
@@ -1211,7 +1234,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "auth"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth")],
     ),
@@ -1226,7 +1249,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "auth3"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "auth3")],
     ),
@@ -1241,7 +1264,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "cache"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "cache")],
     ),
@@ -1255,7 +1278,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "putget3"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putget3")],
     ),
@@ -1270,7 +1293,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "putgetN"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putgetN")],
     ),
@@ -1286,7 +1309,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "authN"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authN")],
     ),
@@ -1302,7 +1325,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "authlease"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authlease")],
     ),
@@ -1317,7 +1340,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "leaseN"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseN")],
     ),
@@ -1331,7 +1354,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "leaseexpiryN"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseexpiryN")],
     ),
@@ -1349,7 +1372,7 @@ PROJECTS = [
         local=os.path.join("examples", "etcd", "txnlinfaultsN"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
+                    "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "txnlinfaultsN")],
     ),
@@ -1365,7 +1388,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "restart"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
     ),
@@ -1382,7 +1405,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "restartN"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restartN")],
     ),
@@ -1398,7 +1421,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "etcd", "restart1"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "net="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart1")],
     ),
@@ -1414,7 +1437,7 @@ PROJECTS = [
         local=os.path.join("examples", "etcd", "all"),
         lean_roots=["github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                     "go.etcd.io/etcd=", "go.etcd.io/raft/v3=", "go.uber.org=",
-                    "google.golang.org=", "net="],
+                    "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "all")],
     ),
@@ -1483,7 +1506,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("third_party", "bridge"),
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "net="],
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "third_party")],
     ),
@@ -1545,7 +1568,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "k8s", "etcd3"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=", "os=", "io/fs=",
-                    "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
+                    "go.opentelemetry.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "encoding/json=", "encoding/base64=",
                     # (prove-authcrypto, 2026-11-21) base64's decoder's big-endian stores
                     # (Code/internal/byteorder.toml), with their bodies
                     "internal/byteorder=",
@@ -1560,16 +1583,15 @@ PROJECTS = [
                     # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
                     # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
                     "runtime/trace=",
-                    # (k8s 7g) go-cmp and the standard library's `maps`, names only, which the
-                    # driver's copy of Kubernetes' checker calls (their .toml)
-                    "github.com/google=", "maps="],
+                    # (k8s 7g) go-cmp, names only, which the driver's copy of Kubernetes'
+                    # checker calls (its .toml); `maps` is Perennial's (2026-11-23)
+                    "github.com/google="],
         packages=[
             ".",
             # (k8s 7g, notes/k8s-7g-scope.md §1.1) the driver's copy of Kubernetes' checker
             # (upstream plus etc/k8s-correctness/d30g.patch), with bodies (correctness.toml)
             "./correctness",
             "github.com/google/go-cmp/cmp",
-            "maps",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
             # the watch cache's store, with bodies (notes/kep-6404-plan.md)
@@ -1703,6 +1725,8 @@ PROJECTS = [
             # (pflag, names only: what featuregate's interfaces name, Code/github_com/spf13/pflag.toml)
             "github.com/spf13/pflag",
             "k8s.io/klog/v2",
+            # (klog-leaves, 2026-11-23) types and constants only: what klog's `loggingT` names
+            "k8s.io/klog/v2/internal/severity",
             # (logr: the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
             "github.com/go-logr/logr",
             "k8s.io/utils/clock",
@@ -1766,7 +1790,7 @@ PROJECTS = [
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
                os.path.join("runtime", "trace"),
-               os.path.join("github_com", "google"), "maps",
+               os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),
@@ -1829,7 +1853,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "k8s", "compactor"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "github.com/mit-pdos/etcd-grove=",
-                    "go.uber.org=", "google.golang.org=", "net=", "os=", "io/fs="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "compactor")],
     ),
@@ -1847,7 +1871,7 @@ PROJECTS = [
         # project k8s-authz-driver.
         repo="https://github.com/luxas/kubernetes",
         rev="c67a81026c8b193849a47fdc05398baeafdf55e4",
-        lean_roots=["k8s.io=", "net="],
+        lean_roots=["k8s.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=[
             # with bodies
             "k8s.io/apiserver/pkg/authorization/authorizer",
@@ -1870,7 +1894,7 @@ PROJECTS = [
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8s", "authz"),
-        lean_roots=["k8s.io=", "net=", "github.com/mit-pdos/etcd-grove="],
+        lean_roots=["k8s.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "authz")],
     ),
@@ -1886,7 +1910,7 @@ PROJECTS = [
         rev=None,
         local=os.path.join("examples", "k8s", "all"),
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "github.com/mit-pdos/etcd-grove=",
-                    "go.uber.org=", "google.golang.org=", "net=", "os=", "io/fs="],
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "os=", "io/fs="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "all")],
     ),
@@ -2095,6 +2119,30 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bbolt", "bank")],
     ),
 ]
+
+
+# The dsverify kits (notes/dsv-paxos.md; etc/dsv/README.md): each kit's project is the `GOOSE` dict
+# of its own file `etc/dsv/<kit>.py` (the fields of `Project`), so that a kit adds a file instead of
+# editing this one. Placed before project models-net, in the files' order.
+def dsv_kits():
+    """The kit files `etc/dsv/*.py`, loaded, in name order (also read by etc/gen-init.py)."""
+    import importlib.util
+    d = os.path.join(ROOT, "etc", "dsv")
+    out = []
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if not f.endswith(".py") or f.startswith("_"):
+            continue
+        spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        m.KIT = f[:-3]
+        out.append(m)
+    return out
+
+
+DSV_KITS = dsv_kits()
+_i = next(i for i, p in enumerate(PROJECTS) if p.name == "models-net")
+PROJECTS[_i:_i] = [Project(**k.GOOSE) for k in DSV_KITS if hasattr(k, "GOOSE")]
 
 
 
@@ -2379,6 +2427,58 @@ def with_proph_patches(proj, src, desc):
     return proj, proph_patch.patched_copy(proj.name, src, dest), f"{desc} + {n} prophecy patch(es)"
 
 
+def expand_comment_tabs(top):
+    """Project.expand_comment_tabs: every `.lean` file under `top` with the tabs in its comments
+    (`/- … -/`, nested, and `--` to the end of the line) replaced by four spaces; exits on a tab
+    elsewhere (in a string literal, or in code)."""
+    for d, _, fs in os.walk(top):
+        for name in fs:
+            if not name.endswith(".lean"):
+                continue
+            p = os.path.join(d, name)
+            with open(p) as f:
+                src = f.read()
+            if "\t" not in src:
+                continue
+            out, depth, i, n = [], 0, 0, len(src)
+            while i < n:
+                if not depth and src[i] == '"':
+                    j = i + 1
+                    while j < n and src[j] != '"':
+                        j += 2 if src[j] == "\\" else 1
+                    seg = src[i:j + 1]
+                    if "\t" in seg:
+                        sys.exit(f"goose.py: a tab in a string literal in {p}")
+                    out.append(seg)
+                    i = j + 1
+                    continue
+                if src.startswith("/-", i):
+                    depth += 1
+                    out.append("/-")
+                    i += 2
+                    continue
+                if depth and src.startswith("-/", i):
+                    depth -= 1
+                    out.append("-/")
+                    i += 2
+                    continue
+                if not depth and src.startswith("--", i):
+                    j = src.find("\n", i)
+                    j = n if j < 0 else j
+                    out.append(src[i:j].replace("\t", "    "))
+                    i = j
+                    continue
+                c = src[i]
+                if c == "\t":
+                    if not depth:
+                        sys.exit(f"goose.py: a tab outside a comment in {p}")
+                    c = "    "
+                out.append(c)
+                i += 1
+            with open(p, "w") as f:
+                f.write("".join(out))
+
+
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
@@ -2398,6 +2498,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
                     + packages, env=env)
             others = others_owned(root, owned)
+            if proj.expand_comment_tabs:
+                expand_comment_tabs(piece_out)
             for f, c in lean_files(piece_out, owned, others).items():
                 new[os.path.join(root, f)] = (c, os.path.join(piece_out, f))
             for f, c in lean_files(lib_dir, owned, others).items():

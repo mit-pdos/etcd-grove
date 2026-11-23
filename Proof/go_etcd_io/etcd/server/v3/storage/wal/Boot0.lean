@@ -20,7 +20,7 @@ Its premises, each a world premise of a closed theorem's first boot:
 * `hslots`: **no entry of the area at a name a WAL function may change** (`AreaSlot`: a WAL name `nm`,
   no `.` or `/`, or `nm.<sfx>`: every name not starting with `.`), so no WAL is found (as
   `absDiskInitOk`'s `s.wal = ∅`), and the program's part of the area (`walAreaRes`) holds no entry:
-  nothing for `SubCover`, `TmpOk` or a `.touch` file to say;
+  nothing for `SubCover` or `ClRanked` to say;
 * `hrb`, `henc`: `walAreaOk`'s pure parts, the receipts' bound (the adequacy theorem's constant) and the
   marshaller's law (U4).
 -/
@@ -132,7 +132,8 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
     (fun nm J h he => (hdir nm J h he).elim) (fun nm J _ h he => (hdir nm J h he).elim) hWR
     (dirsOk_roots hR (walBoot0St_dirsRoots hr) cl 0) (dirsAvoid_roots hR (walBoot0St_dirsRoots hr) jr)
     ∅ (fun dir nm J hin he => (hdir nm J hin.1 he).elim) (fun nm J h he => (hdir nm J h he).elim)
-    (fun b h hc => by simp [cl, N] at hc) (walBoot0St_bounded r) (walBoot0St_dirsRoots hr) 1 E
+    (fun b h hc => by simp [cl, N] at hc) (walBoot0St_bounded r) (walBoot0St_dirsRoots hr)
+    (fun nm J h he => (hdir nm J h he).elim) 1 E
     $$ Hst [Har] [] Hsp [] with ⟨#Hinv, %Ls, %hLs, Hnw, -, Hcl⟩
   · unfold osClaims
     simp only [cl, List.map_cons, List.map_nil]
@@ -184,16 +185,14 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   isplitr
   · unfold areaCls osClaims
     simp only [List.map_nil]
-    isplitl
-    · iapply BigSepL.bigSepL_nil.2; iempintro
-    · iapply BigSepL.bigSepL_nil.2; iempintro
+    iapply BigSepL.bigSepL_nil.2; iempintro
   isplitr
   · ipureintro
     intro b _ _ _ J hJ
     rw [hcur b] at hJ; cases hJ
   · ipureintro
     intro nm _
-    exact Or.inl (hcur _)
+    exact ⟨fun _ => 0, fun c hc => by simp [clOf] at hc⟩
 
 /-- **The first boot of several WAL areas, one ghost generation each** (`notes/wal-link-scope.md` §4.3, L4:
 one `WalGS` per area, its own lock token `walUnlockedTok` and crash token): `walBoot0` for each area `(r, jr)`

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.github_com.prometheus.client_model.go
 
 @[expose] public section
 
@@ -475,6 +476,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Exemplar_instance : Exemplar.TypeAssumptions
   Metric_instance : Metric.TypeAssumptions
   MetricFamily_instance : MetricFamily.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.MetricType_instance
   Assumptions.LabelPair_instance
@@ -489,6 +491,7 @@ attribute [instance] Assumptions.MetricType_instance
   Assumptions.Exemplar_instance
   Assumptions.Metric_instance
   Assumptions.MetricFamily_instance
+  Assumptions.«init.0_unfold»
 
 end github_com.prometheus.client_model.go
 

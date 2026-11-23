@@ -21,6 +21,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.unicode.utf8.Assumptions]
 
 /-- `word(s)` on a string of at least eight bytes: its first eight bytes, little-endian. -/
 abbrev utf8.word.spec : Prop :=

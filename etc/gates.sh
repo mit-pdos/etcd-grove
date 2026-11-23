@@ -196,6 +196,13 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
+# stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
+if python3 etc/gen-specs-pkginit.py --check > "$tmp/specpkginit.log" 2>&1; then
+  echo "gen-specs-pkginit: ok"
+else
+  echo "gen-specs-pkginit: FAILED (run etc/gen-specs-pkginit.py)"; head -10 "$tmp/specpkginit.log"; fail=1
+fi
 # the k8s API objects' deep values and deep copies, and the Goose configuration they translate
 # (Proof/k8s_io/api/Deep.lean, Proof/k8s_io/api/DeepCopy/, the generated blocks of the tomls)
 if python3 etc/gen-k8s-deep.py --check > "$tmp/k8sdeep.log" 2>&1; then
@@ -232,6 +239,8 @@ fail=0
 # the built .oleans, so only after a successful build
 # (its Lean runs are cached across worktrees by a content hash of their inputs; `--no-cache` to bypass)
 python3 etc/model-param-check.py || fail=1
+# phase 7 S2 (O2): the specs a service table holds reach no HeapGS (etc/heapfree-check.py)
+python3 etc/heapfree-check.py || fail=1
 python3 etc/pbschema-check.py || fail=1
 # raft-entsize: etcd's bootstrapped raft configuration has MaxSizePerMsg = 2^20 (`rnStartCfg`'s
 # `maxMsg`, a field of the bootstrap contract; examples/entsize, about a second)
@@ -239,6 +248,15 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
   echo "entsize: ok"
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
+fi
+# protobuf stages S1/S2 (#37): the wire codecs' vectors modules EntryWireVectors.lean,
+# MessageWireVectors.lean, RecordWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
+# codecs) are what examples/pbschema/wirevectors{,_s2}_test.go generate from protobuf-go
+# (examples/go.mod's pin); TestMessageDepthLimit checks the decoder's recursion limit in Go
+if (cd examples && GOWORK=off gotest -run '^(TestWireVectors|TestMessageWireVectors|TestRecordWireVectors|TestIrrWireVectors|TestMessageDepthLimit)$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
+  echo "wirevectors: ok"
+else
+  echo "wirevectors: FAILED"; tail -10 "$tmp/wirevec.log"; fail=1
 fi
 # the library models (models/, models/README.md; notes/dsverify-net-port-plan.md phase 5): every
 # generated codec is exactly its generator's output for its derived input (pbgen: the roots'
@@ -283,6 +301,13 @@ models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 # the encoding/json model (models/encoding/json): its stream tests against the real encoding/json's
 # golden transcripts, in the real build and in the model build (an overlay: goroot.py)
 models/internal/jsonstreamtest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
+# the third-party library models (models/{gods,uuid,concurrent-map}, the dsverify kits'): the same
+# tests against gods v1.18.1, uuid v1.3.1, concurrent-map v1.0.0 and against the models, with equal
+# transcripts
+models/internal/tpdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
+# the log/slog model (models/log/slog): the same tests against Go's log/slog and the model (an
+# overlay: goroot.py), with equal transcripts
+models/internal/slogdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # clients on machines of their own (examples/lib/remote, notes/remote-port-plan.md): the library's and
 # its counter instance's tests over real sockets (fault proxy, the four commands as processes, a

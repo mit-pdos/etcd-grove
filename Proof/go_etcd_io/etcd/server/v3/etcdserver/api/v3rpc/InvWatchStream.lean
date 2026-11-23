@@ -329,7 +329,7 @@ def watchAuthed (tag : GName) (s : Loc) (tok : Option GoString) (n : Nat)
     (key rangeEnd : GoString) : IProp GF :=
   iprop(∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
     auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
-    □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+    □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info) ∗
     ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝)
 
 instance watchAuthed_persistent (tag : GName) (s : Loc) (tok : Option GoString) (n : Nat)
@@ -346,7 +346,7 @@ theorem watchAuthed_elim (tag : GName) (s : Loc) (tok : Option GoString) (n : Na
     watchAuthed (GF := GF) tag s tok n key rangeEnd ⊢
       ∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
         auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
-        □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+        □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info) ∗
         ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
   unfold watchAuthed; iintro H; iexact H
 
@@ -406,7 +406,7 @@ instance watchDescOk_persistent : Persistent (watchDescOk (GF := GF)) := by
 `Recv()` returns a fresh response `watchRespMsg resp m` with the server's content `Dn j m`. -/
 abbrev cliWatchStreamIs (cs : GoInterface) (γ : StreamNames) (Up : Nat → WatchReqM → IProp GF)
     (Dn : Nat → WatchRespM → IProp GF) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
-  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Dn cd
+  cliBidiStreamIs cs γ pbWatchRequest pbWatchResponse Up Dn cd anyRes
 
 end defs
 

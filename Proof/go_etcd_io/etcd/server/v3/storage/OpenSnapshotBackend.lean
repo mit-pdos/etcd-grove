@@ -52,7 +52,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
-  intro _ cfg ss sn mp hk dq dq' md P D W Pk K γo R' hdd
+  intro _ _ cfg ss sn mp hk dq dq' md P D W Pk K γo R' hdd
   wp_start as ⟨#Hss, Hmdp, Hsm, Hhd, Hpo, Hpre⟩
   iunfold snapHeld at Hhd
   icases Hhd with ⟨Hf, HR'⟩

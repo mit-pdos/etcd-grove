@@ -3,23 +3,17 @@ Lean-first (no Rocq counterpart).
 
 # `reflect.Value`: the trust boundary of its uses (2026-10-22, `notes/k8s-etcd3-plan.md`)
 
-Perennial translates `reflect` names-only: `reflect.Value` is an axiomatized Lean type
-(`reflect.Type`, an interface type, is translated: its values are `GoInterface`s, with Perennial's
-instances; Perennial `090fdac23`), and the generated instances that let a program keep a `reflect.Value` in a variable
-(`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
-`sorry -- axiomatized type`. Go's implementation of `reflect` works on the runtime's
-representation (a `Value` is a type descriptor, an `unsafe.Pointer` and flags; `Interface()`
-builds an `any` from two words with `unsafe`), outside Perennial's semantics, so it cannot be
-translated and proved. Until a trusted model of the subset used is in Perennial (with proved
-reasoning principles: `notes/perennial-changes.md`, "`reflect.Value` held in a variable"), this
-repository states the reasoning principles as axioms, here and in the specs of
-`Spec/reflect/{New,Value__Addr,Value__Type,Value__Interface}.lean` and
+Perennial translates `reflect.Value` as the struct it is (`typ_ *abi.Type`, `ptr`, `flag`;
+Perennial `3eae9cd1f`, PR #672), with the generated instances that let a program keep a
+`reflect.Value` in a variable (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`,
+`Value_into_val_typed`); `reflect.Type`, an interface type, is translated too (its values are
+`GoInterface`s; Perennial `090fdac23`). `reflect`'s functions are not: Go's implementation works on
+the runtime's representation (`Interface()` builds an `any` from two words with `unsafe`), outside
+Perennial's semantics. Until a trusted model of the subset used is in Perennial (stage R1 of
+etcd-grove #40), this repository states the reasoning principles as axioms, here and in the specs
+of `Spec/reflect/{New,Value__Addr,Value__Type,Value__Interface}.lean` and
 `Spec/k8s_io/apimachinery/pkg/conversion/EnforcePtr.lean`:
 
-- the two instances, of higher priority than the generated `sorry`s (a `reflect.Value` is a value
-  like any other: allocated, loaded, stored): the points-to is the heap's (`heapTypedPointsto`), from
-  the axiom `value_intoVal_inj` (`intoVal` is injective), and `value_into_val_typed` an axiom; they
-  hold of the real `Value`, a struct;
 - `reflElem v T p`: `v` is the addressable `reflect.Value` of the `T` at `p` (what
   `conversion.EnforcePtr` of a `*T` gives); `reflPtr w T p`: `w` is the `Value` of the pointer
   `p : *T`; `reflType rt T`: `rt` is the `reflect.Type` of `T`. Opaque: the specs say what they
@@ -48,27 +42,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **`reflect.Value`'s `intoVal` is injective** (the trust boundary; see the file header): two
-`Value`s with the same GooseLang value are equal. True of the real `Value`, a struct (type, pointer,
-flags) that its representation determines. (premise-fixes-3, 2026-11-10: replaces the axiom
-`value_typed_pointsto`, which Lean elaborated as `{GF} → TypedPointsto Value`, independent of the
-heap instance `hG`: one points-to for every ghost heap. The points-to is now the heap's, as for the
-basic types: `heapTypedPointsto`.) -/
-axiom value_intoVal_inj [_root_.Perennial.reflect.Assumptions] :
-    go.IntoValInj _root_.Perennial.reflect.Value
-
-/-- **A `reflect.Value` is a value**: its points-to is the heap's (`heapTypedPointsto`), as for
-the basic types (`typedPointsto_loc`). -/
-noncomputable instance (priority := high) value_typed_pointsto [_root_.Perennial.reflect.Assumptions] :
-    TypedPointsto (GF := GF) _root_.Perennial.reflect.Value :=
-  heapTypedPointsto _root_.Perennial.reflect.Value (value_intoVal_inj (GF := GF)).intoVal_inj
-
-/-- **A `reflect.Value` is allocated, loaded and stored as a value** (the trust boundary). -/
-@[instance high]
-axiom value_into_val_typed [reflect.Assumptions] :
-    IntoValTypedUnderlying (GF := GF) _root_.Perennial.reflect.Value
-      _root_.Perennial.reflect.Value.underlying
 
 /-- `v` is the addressable `reflect.Value` of the `T` at `p`. -/
 opaque reflElem (v : _root_.Perennial.reflect.Value) (T : go.GoType) (p : Loc) : Prop

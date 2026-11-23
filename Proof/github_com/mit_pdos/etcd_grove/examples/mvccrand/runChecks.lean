@@ -113,7 +113,7 @@ theorem runChecks.wp_proof
   subst Hr
   (try wp_auto)
   -- the store's part of the backend opened; the client's rest
-  have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.le (2 ^ 38)
+  have hRB : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.le (2 ^ 48)
   have hm : receiptBound GF + (sint.nat cfg.Ops' + 3) + 2 ≤ backend.wbInit := by
     unfold backend.wbInit
     have : sint.nat cfg.Ops' = (sint.Z cfg.Ops').toNat := rfl

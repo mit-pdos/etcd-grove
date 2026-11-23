@@ -25,6 +25,7 @@ public import Spec.os.fileStat__Size
 public import Spec.os.fileStat__Name
 public import Spec.errors.IsPathErrnoEof
 public import Spec.errors.IsPathErrnoTerm
+public import Proof.errors.ErrTree
 
 @[expose] public section
 
@@ -95,7 +96,10 @@ theorem walPathErr_ueof (wp_IsEof : errors.IsPathErrnoEof.spec (GF := GF) (hG :=
   unfold notUeof
   isplitl []
   rotate_left
-  · iapply (wp_Term err e he) $$ Hos Hep
+  · ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+    · iPkgInit
+    ihave #Ht := (wp_Term err e he) $$ Hos Hep
+    iapply (errIsTerm_of_tree err) $$ Herrs Ht
   imodintro
   iintro %ueof #Hu
   ihave #Hu2 : (globalAddr _root_.Perennial.io.EOF ↦□ ueof ∨

@@ -86,7 +86,12 @@ def propConfStep (joint : Bool) (applied li : w64) (acc : List EntryM × w64) (x
 def CCDecodes (ty : w32) (bs : List w8) : Prop :=
   (ty = W32 1 → ∃ m, ccDecodeV1 bs = some m) ∧ (ty = W32 2 → ∃ m, ccDecodeV2 bs = some m) ∧ uint.Z ty ≤ 2
 
-def (sealed) ccDecodeV2 : List w8 → Option ConfChangeV2M
+def ccDecodeV2 (bs : List w8) : Option ConfChangeV2M :=
+  Option.map
+    (fun x =>
+      { transition := x.fst, changes := List.map (fun c => { Type' := c.fst, NodeId' := c.snd }) x.snd.fst,
+        context := x.snd.snd })
+    (cc2DecodeRaw bs)
 
 structure ConfChangeM : Type where
   type : raftpb.ConfChangeType

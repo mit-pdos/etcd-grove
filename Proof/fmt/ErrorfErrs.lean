@@ -20,6 +20,7 @@ public import Spec.fmt.Errorf
 public import Perennial.Proof.fmt
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrorStringOk
+public import Proof.fmt.ErrorfArgs
 
 @[expose] public section
 
@@ -36,51 +37,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [_root_.Perennial.fmt.Assumptions] [_root_.Perennial.errors.Assumptions]
-
-/-- An argument `fmt.errArgAt` its directive, the error arguments `errOk`, is `fmt.argOkAt` it under
-`Errorf`'s verbs. -/
-theorem fmt.argOkAt_of_errArgAt (errs : List GoInterfaceOk) (d : fmt.Directive) (a : GoInterface)
-    (h : fmt.errArgAt errs d a) :
-    ([∗list] e ∈ errs, errOk (GF := GF) e) ⊢ fmt.argOkAt fmt.errorfVerbs d a := by
-  iintro #Herrs
-  cases a with
-  | nil => unfold _root_.Perennial.fmt.argOkAt; itrivial
-  | ok ii =>
-    rcases h with hw | ⟨hmem, hv, hs⟩
-    · unfold _root_.Perennial.fmt.argOkAt; ileft; ipureintro; exact hw
-    · ihave #He := BigSepL.bigSepL_mem (Φ := fun e => errOk (GF := GF) e) hmem $$ Herrs
-      unfold errOk
-      icases He with ⟨%hm, #HW⟩
-      iapply fmt.argOkAt_of_error
-      isplitr
-      · ipureintro
-        refine ⟨?_, hs⟩
-        simp only [fmt.errArgVerbs, List.mem_cons, List.not_mem_nil, or_false] at hv
-        rcases hv with h | h | h <;> rw [h] <;> decide
-      isplitr
-      · rw [fmt.stringMethodSpec_unfold]; iexact HW
-      · ipureintro; exact hm
-
-theorem fmt.argsOkAt_of_errArgsAt (errs : List GoInterfaceOk) (ds : List fmt.Directive)
-    (xs : List GoInterface) (h : fmt.errArgsAt errs ds xs) :
-    ([∗list] e ∈ errs, errOk (GF := GF) e) ⊢ fmt.argsOkAt fmt.errorfVerbs ds xs := by
-  induction xs generalizing ds with
-  | nil => iintro -; cases ds <;> (unfold _root_.Perennial.fmt.argsOkAt; itrivial)
-  | cons a xs ih =>
-    iintro #Herrs
-    cases ds with
-    | nil =>
-      obtain ⟨h1, h2⟩ := h
-      unfold _root_.Perennial.fmt.argsOkAt
-      isplitl []
-      · iapply (fmt.argOkAt_of_errArgAt errs _ a h1); iexact Herrs
-      · iapply (ih [] h2); iexact Herrs
-    | cons d ds =>
-      obtain ⟨h1, h2⟩ := h
-      unfold _root_.Perennial.fmt.argsOkAt
-      isplitl []
-      · iapply (fmt.argOkAt_of_errArgAt errs d a h1); iexact Herrs
-      · iapply (ih ds h2); iexact Herrs
 
 /-- See the spec's file header: from Perennial's `fmt.wp_Errorf` (fmtmodel, 2026-11-20; until then
 proved over the previous model, which did not format or call the arguments' `Error()`). -/

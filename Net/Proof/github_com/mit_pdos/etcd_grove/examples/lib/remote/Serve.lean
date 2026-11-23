@@ -11,6 +11,7 @@ public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.listen
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.serveConn
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Serve
 public import Net.Spec.net.Listener__Accept
+public import Net.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -51,16 +52,16 @@ theorem Serve.wp_proof
       "Htok" ∷ tok sys : IProp GF) $$ [Hlis Htok]
   · iframe Hlis Htok
   wp_for HI
-  wp_apply wp_Accept t l x a
+  wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l x a
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
         connEnd (Gg := hG.goose_globalGS) cn true (repP (Gg := hG.goose_globalGS) S)
-          (reqP (Gg := hG.goose_globalGS) S) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true))
+          (reqP (Gg := hG.goose_globalGS) S a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true))
       $$ [Hlis]
     as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hend, Hfresh⟩ | ⟨%k, Hlis, #Herr⟩)
   · iframe Hlt Hla
     iunfold svcAddr at Haddr
-    iapply accept_au a (reqP S) (repP S) _ l true $$ Haddr Hlis
+    iapply accept_au a (reqP S a) (repP S) _ l true $$ Haddr Hlis
   · -- a connection: serve it
     subst Herr
     wp_auto

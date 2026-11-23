@@ -11,11 +11,10 @@
 roots \b(cache_end_to_end_(client|new)|etcd_cache_served)$
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
+axiom addrClaim
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
-axiom errors.IsCtxErr.wp_proof
-axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -29,7 +28,6 @@ axiom grpcSrvLink
 axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom mvcc.hashStorage.Store.wp_proof
-axiom netListenerAt
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
 axiom pbCompactionResponseT_reg
@@ -63,6 +61,5 @@ axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
