@@ -57,7 +57,7 @@ theorem wp_New_of (hRN : replica.New.spec (GF := GF)) (hReg : rpc.Table.Register
         epRepStart γ i ∗
         listFinal γ L ∗ sl ↦* L ∗ clientInvs γ ∗
         cfg ↦ c ∗ c.Proxy' ↦ (zeroValDef : config.ProxyInfo) ∗
-      ⌜c.Leader' = null ∧ c.Port' = W64 (7000 + k)⌝ ∗
+      ⌜c.Leader' = null ∧ c.Port' = W64 (7500 + k)⌝ ∗
         logger ↦ (zeroValDef : dlog.Logger) }}
       (App (App (App (App (App (App (App (App (App (App (App
         (Val (@! epaxos.New)) (Val #c.Alias')) (Val #(W64 i))) (Val #sl)) (Val #true))

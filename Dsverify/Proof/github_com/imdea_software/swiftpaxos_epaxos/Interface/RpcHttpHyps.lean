@@ -21,17 +21,24 @@ The names (relative to this kit's namespace, so that sibling kits' copies do not
   plain `rpcAddr` (frames from byte 0) would be false of the model. `rpcAddrP`'s `hs` part also
   states that a client sends nothing after `CONNECT` until it has read the answer (Go's
   `DialHTTPPath` waits; the kit's clients do not pipeline).
-* `handlerOk W a path h`: the net/http handler `h`, handed a `CONNECT path` request on a
-  connection of `a`, serves `W`'s frames after the handshake.
-* `muxHas W a path`: `DefaultServeMux` routes `path` to such a handler (persistent).
+* `rpcLisP W la hs hsAns` (persistent; Upamanyu's answer A1 on #24): every valid address the
+  listener address `la` takes (`lisAccepts`: `la` itself, or every valid address with its port
+  for a wildcard such as the master's `":7501"`) serves `W` behind the handshake
+  (`rpcLisP_addr`), with the right to listen at `la` (`rpcLisP_lis`); set once at the boot from
+  `lisUnset la` (`rpcLisP_set`).
+* `muxOwner R` (exclusive): the right to register paths at `DefaultServeMux`, `R` those
+  registered (`http.Handle` panics on a path registered twice); a machine's `muxOwner []` is a
+  boot resource of net/http's initialization (`rpcBootRes`, as dsv-craq's `RpcBoot`).
+* `muxHas W A path` (persistent): `DefaultServeMux` routes `path` to a handler serving `W` at
+  every address of the set `A`.
 * `defaultServer γ`: `rpc.DefaultServer` is a server with names `γ` (the package-level
   `Register`/`HandleHTTP` act on it).
-* Specs: `rpc.DialHTTPPath.spec`, `rpc.DialHTTP.spec` (at `DefaultRPCPath`, `/_goRPC_`),
-  `rpc.Server.ServeHTTP.spec` (a handler for any path), `rpc.Server.HandleHTTP.spec`,
-  `rpc.HandleHTTP.spec` (the debug path is never requested: `rpcAddrP`'s handshake names the rpc
-  path), `rpc.Register.spec` (the package-level one, on `DefaultServer`), `http.Serve.spec`
-  (with handler `nil`: `DefaultServeMux`), `http.ServeMux.ServeHTTP.spec`.
-  `http.ListenAndServe.spec` is not stated: the kit does not call it.
+* Specs: `rpc.DialHTTPPath.spec`, `rpc.DialHTTP.spec` (at `DefaultRPCPath`, `/_goRPC_`; the
+  client fields, kept until models-rpc-http is on lean), `rpc.HandleHTTP.spec` (with
+  `muxOwner`; the debug path is never requested), `rpc.Register.spec` (the package-level one,
+  on `DefaultServer`), `http.Serve.spec` (with handler `nil`: `DefaultServeMux`, over a
+  listener at `la` with `rpcLisP`). Not stated (the kit does not call them, or only through
+  these): `Server.ServeHTTP`, `Server.HandleHTTP`, `ServeMux.ServeHTTP`, `ListenAndServe`.
 -/
 module
 
@@ -62,6 +69,9 @@ def connectAns : List w8 := strBytes "HTTP/1.0 200 Connected to Go RPC\n\n"
 /-- `rpc.DefaultRPCPath`. -/
 def defaultRPCPath : GoString := strBytes "/_goRPC_"
 
+/-- `rpc.DefaultDebugPath`. -/
+def defaultDebugPath : GoString := strBytes "/debug/rpc"
+
 section hyp
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -77,10 +87,26 @@ class RpcHttpHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semant
   rpcAddrP_persistent : ∀ W a hs hsAns, Persistent (rpcAddrP W a hs hsAns)
   /-- Raw net/rpc is the empty handshake. -/
   rpcAddrP_raw : ∀ W a, rpcAddrP W a [] [] ⊣⊢ rpcAddr (Gg := hG.goose_globalGS) W a
-  handlerOk : RpcWorld GF → GoString → GoString → GoInterface → IProp GF
-  handlerOk_persistent : ∀ W a path h, Persistent (handlerOk W a path h)
-  muxHas : RpcWorld GF → GoString → GoString → IProp GF
-  muxHas_persistent : ∀ W a path, Persistent (muxHas W a path)
+  /-- A listener address's rpc protocols (the file header). -/
+  rpcLisP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
+  rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
+  rpcLisP_addr : ∀ W la hs hsAns a, addrOk a = true → lisAccepts la a →
+    rpcLisP W la hs hsAns ⊢ rpcAddrP W a hs hsAns
+  /-- They include the right to listen at `la` with some protocols (`Listen.spec`'s). -/
+  rpcLisP_lis : ∀ W la hs hsAns,
+    rpcLisP W la hs hsAns ⊢ ∃ P Q, lisProto (Gg := hG.goose_globalGS) la P Q
+  /-- The boot sets them once, from the addresses `la` takes, unset. -/
+  rpcLisP_set : ∀ (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8),
+    listenOk la = true →
+    regCtx (Gg := hG.goose_globalGS) -∗ inv regN' (regInv (Gg := hG.goose_globalGS) W) -∗
+      lisUnset (Gg := hG.goose_globalGS) la ={E}=∗ rpcLisP W la hs hsAns
+  /-- The right to register paths at `DefaultServeMux`, `R` those registered (exclusive: a
+  second registration of a path panics). A machine's comes from net/http's initialization (a
+  boot resource, `rpcBootRes`). -/
+  muxOwner : List GoString → IProp GF
+  /-- `DefaultServeMux` routes `path` to a handler serving `W` at every address of `A`. -/
+  muxHas : RpcWorld GF → (GoString → Prop) → GoString → IProp GF
+  muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
   defaultServer : GName → IProp GF
   defaultServer_persistent : ∀ γ, Persistent (defaultServer γ)
   /-- `net/rpc`'s initialized package has its `DefaultServer`. -/
@@ -103,28 +129,20 @@ class RpcHttpHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semant
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }}
-  /-- `(*Server).ServeHTTP` as a net/http handler: on `CONNECT` it hijacks, writes
-  `connectAns` and runs `ServeConn` on the frames (otherwise it answers 405). -/
-  Server_ServeHTTP_spec : ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF)
-      (a path : GoString),
-    ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ⊢
-      handlerOk W a path (interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s)
-  /-- `(*Server).HandleHTTP(rpcPath, debugPath)`: registers the server at `rpcPath` on
-  `DefaultServeMux` (the debug path is never requested). -/
-  Server_HandleHTTP_spec : ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF)
-      (a rpcPath debugPath : GoString),
+  /-- `rpc.HandleHTTP()`: `DefaultServer.HandleHTTP(DefaultRPCPath, DefaultDebugPath)`, i.e.
+  `http.Handle` of both paths on `DefaultServeMux` (which panics on a path already registered:
+  hence `muxOwner`); the debug path is never requested (`rpcAddrP`'s handshake names the rpc
+  path). Its server serves `W` at every address of `A`. -/
+  HandleHTTP_spec : ∀ (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (A : GoString → Prop)
+      (R : List GoString),
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-        isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C }}
-      (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"HandleHTTP"))
-        (Val #rpcPath)) (Val #debugPath))
-    {{ RET #(); muxHas W a rpcPath }}
-  /-- `rpc.HandleHTTP()`: `DefaultServer.HandleHTTP(DefaultRPCPath, DefaultDebugPath)`. -/
-  HandleHTTP_spec : ∀ (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-        defaultServer γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C }}
+        muxOwner R ∗ ⌜defaultRPCPath ∉ R ∧ defaultDebugPath ∉ R⌝ ∗
+        defaultServer γs ∗ (□ ∀ a, ⌜A a⌝ → srvServes γs C W a) ∗ srvEnv ∗ codecSet C }}
       (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
-    {{ RET #(); muxHas W a defaultRPCPath }}
-  /-- `rpc.Register(rcvr)`: `DefaultServer.Register(rcvr)` (as `Server.Register.spec`). -/
+    {{ RET #(); muxOwner (defaultDebugPath :: defaultRPCPath :: R) ∗
+        muxHas W A defaultRPCPath }}
+  /-- `rpc.Register(rcvr)`: `DefaultServer.Register(rcvr)` (as `Server.Register.spec`; a
+  second registration of a name is an error). -/
   Register_spec : ∀ (γ : GName) (C : CodecSpec GF) (rcvr : GoInterface) (S : MethodSpec GF)
       (nm : GoString) (c : w8) (rest : GoString),
     nm = c :: rest → uint.Z (W8 0x41) ≤ uint.Z c ∧ uint.Z c ≤ uint.Z (W8 0x5A) →
@@ -133,21 +151,20 @@ class RpcHttpHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semant
       (App (Val (@! net.rpc.Register)) (Val #rcvr))
     {{ (err : GoInterface), RET #err;
         (⌜err = interface.nil⌝ ∗ svcReg γ C nm S) ∨ ⌜err ≠ interface.nil⌝ }}
-  /-- `(*ServeMux).ServeHTTP` on `DefaultServeMux`: a handler of every path it routes. -/
-  ServeMux_ServeHTTP_spec : ∀ (W : RpcWorld GF) (a path : GoString),
-    muxHas W a path ⊢
-      handlerOk W a path (interface.mkOk (go.GoType.PointerType net.http.ServeMux.ty)
-        #(globalAddr net.http.DefaultServeMux))
   /-- `http.Serve(lis, nil)`: the net/http server on `DefaultServeMux`, up to each connection's
-  hijack, over `rpcAddrP`'s address protocol (answers no non-`CONNECT` request a client of
-  `rpcAddrP` never sends). It returns only on a listener error. -/
-  Serve_spec : ∀ (W : RpcWorld GF) (a path : GoString) (lis : GoInterface) (l : w64),
+  hijack, over the listener address's rpc protocols (it answers no non-`CONNECT` request, which
+  a client of `rpcAddrP` never sends). It returns only on a listener error. -/
+  Serve_spec : ∀ (W : RpcWorld GF) (la path : GoString) (lis : GoInterface) (l : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-        rpcAddrP W a (connectReq path) connectAns ∗ muxHas W a path ∗
-        net.isListener (GF := GF) lis l ∗ netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a ∗
-        lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l a }}
+        rpcLisP W la (connectReq path) connectAns ∗ muxHas W (lisAccepts la) path ∗
+        net.isListener (GF := GF) lis l ∗
+        netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
+        lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la }}
       (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #interface.nil))
     {{ (err : GoInterface), RET #err; True }}
+
+attribute [instance] RpcHttpHyp.rpcAddrP_persistent RpcHttpHyp.rpcLisP_persistent
+  RpcHttpHyp.muxHas_persistent RpcHttpHyp.defaultServer_persistent
 
 end hyp
 
