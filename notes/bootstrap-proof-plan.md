@@ -339,3 +339,20 @@ final stage checks that each example's `Uok` implies it (as its `peerURLsDir` al
 - **S4, build capacity.** A full build is about 49 GB; the disk had 22 GB free on 2026-11-23, and
   `bootstrap`'s cone is most of the server. Each stage's check is a target-limited `lake build`
   under `/shared/tmp/build-slot.sh`.
+
+### 7.6 J8a-4 (`bootOk`'s `#Hmeta`/`#HmetaSnap`) set aside as a backend task (2026-11-23)
+
+The coordinator approved retiring J8a-4 by proof (a token-form `metaReadTx`/`isMetaBackend`, as mvcc's
+`InvStore.lean:1018`, plus `batchLockInv`'s index disjunct `mm.1 = γ.m0.1 ∨ wrDone γ`). The attempt
+found two missing backend pieces, both untrusted but large, so it is a separate claim.
+`bootstrapBackend.wp_proof` keeps `bootstrapBackend.metaSnap.law` as a hypothesis meanwhile.
+1. **A `readTx.UnsafeRange` spec under the batch lock.** The post-lock hook (`server.go:2492`) calls
+   `ci.UnsafeConsistentIndex()`, which reads `ReadTx` with no `RLock` (`cindex.go:102-107`). The only
+   read spec needs `rtHeldF`, which only `readTx.RLock` makes. Go writes readTx's fields only while
+   holding both locks, so the batch lock can hold a share of them.
+2. **Readers that see the hook keys.** `rtHeld`'s view `vData` drops hook buckets (`Model2.lean:238`;
+   Meta is one under `ciKeys`), `rbRd` covers only tracked buckets, and `hkOwn` tracks only the
+   writer's contents. Either readers track the hook keys as they do the compaction keys (`γ.fk`,
+   `fkOpen`, `fkRd` in `rtCore`), or the rbr/rbRd pattern applies, with the readers' hook share in
+   `consInv`.
+The disjunct in `batchLockInv` is cheap, but it helps only once 2 exists, so it waits too.
