@@ -5286,7 +5286,14 @@ DSV_PKGS += [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'inte
 DSV_HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
                  'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
                  'github_com.go_redis.redis.v8.internal.proto', 'os.signal', 'math.rand']
-SPECIAL['rabia.internal.config'] = {'alloc_types': {'Conf': 'rabia.internal.config.Config'}}
+SPECIAL['rabia.internal.config'] = dict(
+    doc='''Its fact (`Base.lean`): `Conf`'s invariant `confInv`, as initialized. Its initializer
+allocates `Conf` and initializes its imports.''',
+    alloc_types={'Conf': 'rabia.internal.config.Config'},
+    finish=['imod (inv_alloc _root_.Perennial.rabia.internal.config.confN ⊤ '
+            '(_root_.Perennial.rabia.internal.config.confInv (GF := GF))) $$ [HConf] with #Hcinv',
+            '· inext; iunfold _root_.Perennial.rabia.internal.config.confInv; ileft; iexact HConf'] +
+           FIN_PRE[:6])
 # rabia's `message` (message.pb.go's variables and two `init`s): the errors (`errors.New`, verb-less
 # `fmt.Errorf`), the `MsgType` maps, the file descriptor's slice, and gogo proto's `Register*` calls,
 # whose specs are fields of the hypothesis `proto.InitHyp` (names only here: notes/dsv-rabia.md),

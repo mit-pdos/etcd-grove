@@ -2,8 +2,8 @@
 Package initialization of `rabia.internal.config`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports (it has no initialized
-variable).
+Its fact (`Base.lean`): `Conf`'s invariant `confInv`, as initialized. Its initializer
+allocates `Conf` and initializes its imports.
 -/
 module
 
@@ -51,6 +51,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := rabia.internal.config.Config) Conf _ as HConf
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
       EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
@@ -61,7 +62,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.os.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  imod (inv_alloc _root_.Perennial.rabia.internal.config.confN ⊤ (_root_.Perennial.rabia.internal.config.confInv (GF := GF))) $$ [HConf] with #Hcinv
+  · inext; iunfold _root_.Perennial.rabia.internal.config.confInv; ileft; iexact HConf
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
