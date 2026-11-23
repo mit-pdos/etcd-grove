@@ -521,6 +521,8 @@ func TestRandomSchemas(t *testing.T) {
 	r := rand.New(rand.NewSource(seed))
 	g := schemaGen{r, map[string]bool{}}
 	var types, fields, encs, encErrs, decs, decErrs int
+	var pmEncs, pmEncErrs, pmDecs, pmDecErrs, pmSizeClone int
+	pmOps := map[string]int{}
 	var cov coverage
 	for b0 := int64(0); b0 < n; b0 += batch {
 		dir := t.TempDir()
@@ -613,6 +615,50 @@ func TestRandomSchemas(t *testing.T) {
 			t.Fatalf("seed %d, schemas %d..: the generated codec differs from protobuf-go:\n%s\ntoml:\n%s\nschema:\n%s",
 				seed, b0, tail(out, 60), toml.String(), schema)
 		}
+		// the same-package methods (pbmodel mode), generated into the schemas' own packages and
+		// tested there against protobuf-go (and their concurrent test under -race)
+		out2, code := runCode(dir, nil, "python3", s.pbgen, tomlPath, dir, "--pbmodel")
+		if code != 0 {
+			t.Fatalf("seed %d, schemas %d..: pbgen --pbmodel refused or failed (exit %d) a schema of the subset:\n%s\n"+
+				"toml:\n%s\nschema:\n%s", seed, b0, code, out2, toml.String(), schema)
+		}
+		var pkgs []string
+		for _, f := range files {
+			if p := "./" + filepath.Dir(f.GetName()); !contains(pkgs, p) {
+				pkgs = append(pkgs, p)
+			}
+		}
+		out2, code = runCode(dir, goEnv("PBGEN_TEST_SCALE="+scale), "go", append([]string{"test", "-count=1", "-v",
+			"-tags", "pbmodel", "-timeout", "60m"}, pkgs...)...)
+		if code != 0 {
+			t.Fatalf("seed %d, schemas %d..: the generated methods differ from protobuf-go:\n%s\ntoml:\n%s\nschema:\n%s",
+				seed, b0, failures(out2), toml.String(), schema)
+		}
+		out3, code := runCode(dir, goEnv("PBGEN_TEST_SCALE="+scale), "go", append([]string{"test", "-count=1", "-race",
+			"-tags", "pbmodel", "-run", "TestPbModelConcurrent", "-timeout", "60m"}, pkgs...)...)
+		if code != 0 {
+			t.Fatalf("seed %d, schemas %d..: the methods' concurrent test under -race:\n%s", seed, b0, tail(out3, 60))
+		}
+		for _, m := range pbmLogRe.FindAllStringSubmatch(out2, -1) {
+			switch {
+			case m[1] != "":
+				a, _ := strconv.Atoi(m[1])
+				b, _ := strconv.Atoi(m[2])
+				pmEncs, pmEncErrs = pmEncs+a, pmEncErrs+b
+			case m[3] != "":
+				a, _ := strconv.Atoi(m[3])
+				b, _ := strconv.Atoi(m[4])
+				pmDecs, pmDecErrs = pmDecs+a, pmDecErrs+b
+			case m[5] != "":
+				a, _ := strconv.Atoi(m[5])
+				pmSizeClone += a
+			default:
+				for _, kv := range regexp.MustCompile(`([A-Za-z ]+):(\d+)`).FindAllStringSubmatch(m[6], -1) {
+					v, _ := strconv.Atoi(kv[2])
+					pmOps[strings.TrimSpace(kv[1])] += v
+				}
+			}
+		}
 		for _, m := range logRe.FindAllStringSubmatch(out, -1) {
 			if m[1] != "" {
 				a, _ := strconv.Atoi(m[1])
@@ -628,7 +674,22 @@ func TestRandomSchemas(t *testing.T) {
 	t.Logf("seed %d: %d schemas, %d message types, %d fields; Marshal: %d encodings equal, %d errors "+
 		"agreed; mutated encodings: %d decodes equal, %d errors agreed (plus the fixed field, depth "+
 		"and panic tests per type)", seed, n, types, fields, encs, encErrs, decs, decErrs)
+	t.Logf("seed %d: the same-package methods: Marshal: %d encodings equal, %d errors agreed (bytes and "+
+		"class); mutated encodings: %d decodes equal, %d errors agreed (with the message left, unknown "+
+		"fields included); %d Size and Clone comparisons; interleaved operations and changes: %v",
+		seed, pmEncs, pmEncErrs, pmDecs, pmDecErrs, pmSizeClone, pmOps)
 	t.Logf("the schemas' constructs (all declared, reached by the roots or not): %s", cov)
+}
+
+var pbmLogRe = regexp.MustCompile(`(\d+) encodings, (\d+) errors|(\d+) decoded, (\d+) errors|(\d+) Size and Clone comparisons|operations compared: map\[([^\]]*)\]`)
+
+func contains(xs []string, x string) bool {
+	for _, y := range xs {
+		if y == x {
+			return true
+		}
+	}
+	return false
 }
 
 // coverage counts the constructs of the random schemas.
@@ -863,4 +924,28 @@ roots = ["p2.P2", "p2.G2", "p2.Ext", "ed.Ed", "p3.Opt", "p3.One", "p3.Mp", "p3.F
 		}
 	}
 	t.Logf("refused as expected:\n%s", out)
+}
+
+// failures: the lines of go test's verbose output around each failure (or its tail).
+func failures(out string) string {
+	l := strings.Split(out, "\n")
+	var keep []string
+	for i, s := range l {
+		if strings.Contains(s, "--- FAIL") || strings.Contains(s, "panic:") || strings.Contains(s, "cannot use") ||
+			strings.Contains(s, ".go:") && strings.Contains(s, ": ") && !strings.Contains(s, "pbmodel_gen_test.go:") {
+			lo, hi := i-3, i+12
+			if lo < 0 {
+				lo = 0
+			}
+			if hi > len(l) {
+				hi = len(l)
+			}
+			keep = append(keep, l[lo:hi]...)
+			keep = append(keep, "...")
+		}
+	}
+	if len(keep) == 0 {
+		return tail(out, 60)
+	}
+	return strings.Join(keep, "\n")
 }

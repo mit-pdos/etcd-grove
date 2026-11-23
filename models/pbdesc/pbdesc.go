@@ -73,6 +73,17 @@ type Message struct {
 	// codec methods (Marshal, Unmarshal, XXX_Marshal, XXX_Unmarshal, XXX_Size: APIv1 and gogo
 	// types), which protobuf-go's legacy path calls instead of its coders.
 	LegacyCodec bool `json:"legacy_codec"`
+	// GoSizeCache, GoUnknownFields: the struct fields protobuf-go's struct reader
+	// (internal/impl/message.go:158-170, structInfo) takes as the size cache (named "sizeCache" or
+	// "XXX_sizecache", of type int32) and as the unknown fields (named "unknownFields" or
+	// "XXX_unrecognized", of type []byte or *[]byte), each "Name type" ("" if none): the fields the
+	// same-package methods (pbgen's pbmodel mode) read and write.
+	GoSizeCache     string `json:"go_size_cache"`
+	GoUnknownFields string `json:"go_unknown_fields"`
+	// GoPbModelMethods: the methods of *T (exported, in reflect's method set) whose name starts
+	// with "PbModel", the prefix of the methods pbgen's pbmodel mode emits (in a build without its
+	// tag, none should exist).
+	GoPbModelMethods []string `json:"go_pbmodel_methods"`
 }
 
 // Oneof is a oneof's descriptor facts and its Go holder field.
@@ -169,16 +180,17 @@ func tagNumber(tag string) int {
 
 func message(md protoreflect.MessageDescriptor) Message {
 	m := Message{
-		FullName:        string(md.FullName()),
-		File:            md.ParentFile().Path(),
-		Syntax:          syntaxOf(md.ParentFile().Syntax()),
-		MapEntry:        md.IsMapEntry(),
-		ExtensionRanges: md.ExtensionRanges().Len(),
-		Oneofs:          md.Oneofs().Len(),
-		Fields:          []Field{},
-		GoExtra:         []string{},
-		OneofDecls:      []Oneof{},
-		GoHidden:        []string{},
+		FullName:         string(md.FullName()),
+		File:             md.ParentFile().Path(),
+		Syntax:           syntaxOf(md.ParentFile().Syntax()),
+		MapEntry:         md.IsMapEntry(),
+		ExtensionRanges:  md.ExtensionRanges().Len(),
+		Oneofs:           md.Oneofs().Len(),
+		Fields:           []Field{},
+		GoExtra:          []string{},
+		OneofDecls:       []Oneof{},
+		GoHidden:         []string{},
+		GoPbModelMethods: []string{},
 	}
 	if o, ok := md.Options().(*descriptorpb.MessageOptions); ok && o != nil {
 		m.MessageSet = o.GetMessageSetWireFormat()
@@ -196,6 +208,14 @@ func message(md protoreflect.MessageDescriptor) Message {
 				switch sf.Name {
 				case "XXX_presence", "lazyFields", "XXX_lazyUnmarshalInfo":
 					m.GoHidden = append(m.GoHidden, sf.Name)
+				case "sizeCache", "XXX_sizecache":
+					if sf.Type == reflect.TypeOf(int32(0)) {
+						m.GoSizeCache = sf.Name + " " + sf.Type.String()
+					}
+				case "unknownFields", "XXX_unrecognized":
+					if sf.Type == reflect.TypeOf([]byte(nil)) || sf.Type == reflect.TypeOf((*[]byte)(nil)) {
+						m.GoUnknownFields = sf.Name + " " + sf.Type.String()
+					}
 				}
 				if !sf.IsExported() {
 					continue
@@ -225,6 +245,11 @@ func message(md protoreflect.MessageDescriptor) Message {
 			}
 			if !t.Implements(reflect.TypeOf((*protoreflect.ProtoMessage)(nil)).Elem()) {
 				m.LegacyCodec = true
+			}
+			for i := 0; i < t.NumMethod(); i++ {
+				if n := t.Method(i).Name; strings.HasPrefix(n, "PbModel") {
+					m.GoPbModelMethods = append(m.GoPbModelMethods, n)
+				}
 			}
 		}
 		if mi, ok := mt.(*protoimpl.MessageInfo); ok {

@@ -393,6 +393,48 @@ func pbChain(tp pbType, d int) proto.Message {
 	return m
 }
 
+// pbUnknownEq: a and b (messages of one type) have the same unknown fields, at every level
+// (proto.Equal compares them as bytes, but not nil-ness or what pbEq checks; pbEq skips them).
+func pbUnknownEq(a, b proto.Message) bool {
+	return pbUnknownWalk(reflect.ValueOf(a), reflect.ValueOf(b))
+}
+
+func pbUnknownWalk(a, b reflect.Value) bool {
+	switch a.Kind() {
+	case reflect.Pointer:
+		if a.IsNil() || b.IsNil() {
+			return a.IsNil() == b.IsNil()
+		}
+		if am, ok := a.Interface().(proto.Message); ok {
+			if !bytes.Equal(am.ProtoReflect().GetUnknown(), b.Interface().(proto.Message).ProtoReflect().GetUnknown()) {
+				return false
+			}
+		}
+		return pbUnknownWalk(a.Elem(), b.Elem())
+	case reflect.Interface:
+		if a.IsNil() || b.IsNil() {
+			return a.IsNil() == b.IsNil()
+		}
+		return a.Elem().Type() == b.Elem().Type() && pbUnknownWalk(a.Elem(), b.Elem())
+	case reflect.Struct:
+		for i := 0; i < a.NumField(); i++ {
+			if a.Type().Field(i).IsExported() && !pbUnknownWalk(a.Field(i), b.Field(i)) {
+				return false
+			}
+		}
+	case reflect.Slice:
+		if a.Type().Elem().Kind() == reflect.Uint8 || a.Len() != b.Len() {
+			return a.Len() == b.Len()
+		}
+		for i := 0; i < a.Len(); i++ {
+			if !pbUnknownWalk(a.Index(i), b.Index(i)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // pbEq: a and b are equal in their exported fields, strictly (nil and empty slices differ).
 func pbEq(a, b reflect.Value) bool {
 	switch a.Kind() {
@@ -431,12 +473,31 @@ var pbStats struct {
 	marshalErrs, marshalOK int
 }
 
-// pbCheckMarshal: the codec's Marshal is real proto.Marshal: bytes, nil-or-not, error-or-not.
+// pbErrClass: the class of an error, from its text (the codec models no more than this): the
+// real messages (internal/impl's errInvalidUTF8, internal/errors' RequiredNotSet and
+// MismatchedSizeCalculation) and the codec's (pbcodec.Error's Msg) share these words.
+func pbErrClass(err error) string {
+	switch {
+	case err == nil:
+		return "nil"
+	case strings.Contains(err.Error(), "invalid UTF-8"):
+		return "utf8"
+	case strings.Contains(err.Error(), "required field"):
+		return "required"
+	case strings.Contains(err.Error(), "size mismatch"):
+		return "mismatch"
+	}
+	return "other"
+}
+
+// pbCheckMarshal: the codec's Marshal is real proto.Marshal: bytes, nil-or-not, error-or-not (with
+// pbExact, the same-package methods: also the error's class, and the bytes that come with it).
 func pbCheckMarshal(t *testing.T, m proto.Message) {
 	t.Helper()
 	want, werr := proto.Marshal(m)
 	got, gerr := pbMarshal(m)
-	if (werr != nil) != (gerr != nil) || (werr == nil && (!bytes.Equal(got, want) || (got == nil) != (want == nil))) {
+	if (werr != nil) != (gerr != nil) || ((werr == nil || pbExact) && (!bytes.Equal(got, want) || (got == nil) != (want == nil))) ||
+		(pbExact && pbErrClass(werr) != pbErrClass(gerr)) {
 		t.Fatalf("Marshal(%v):\n real  %x (nil %v) %v\n codec %x (nil %v) %v", m, want, want == nil, werr, got, got == nil, gerr)
 	}
 	if werr != nil {
@@ -507,17 +568,21 @@ func pbCheckUnmarshal(t *testing.T, r *rand.Rand, tp pbType, data []byte) bool {
 		}
 		werr = proto.Unmarshal(data, a)
 		gerr := pbUnmarshal(data, b)
-		if (werr != nil) != (gerr != nil) {
+		if (werr != nil) != (gerr != nil) || (pbExact && (pbErrClass(werr) == "required") != (pbErrClass(gerr) == "required")) {
 			t.Fatalf("Unmarshal(%x) into %s (pre-filled %v): real %v, codec %v", data, tp.name, fill, werr, gerr)
+		}
+		if werr != nil && !pbExact {
+			continue
+		}
+		// (with pbExact: what an error leaves in the message too, and the unknown fields)
+		if !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) || (pbExact && !pbUnknownEq(a, b)) {
+			t.Fatalf("Unmarshal(%x) into %s (pre-filled %v, error %v):\n real  %v\n codec %v", data, tp.name, fill, werr, a, b)
 		}
 		if werr != nil {
 			continue
 		}
-		if !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) {
-			t.Fatalf("Unmarshal(%x) into %s (pre-filled %v):\n real  %v\n codec %v", data, tp.name, fill, a, b)
-		}
-		d := tp.new() // the real one's value, without unknown fields
-		if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(data, d); err != nil || !proto.Equal(d, b) {
+		d := tp.new() // the real one's value, without unknown fields (with pbExact: with them)
+		if err := (proto.UnmarshalOptions{DiscardUnknown: !pbExact}).Unmarshal(data, d); err != nil || !proto.Equal(d, b) {
 			t.Fatalf("Unmarshal(%x) into %s: not proto.Equal:\n real  %v\n codec %v", data, tp.name, a, b)
 		}
 	}
@@ -533,7 +598,7 @@ func pbCheckUnmarshalFresh(t *testing.T, tp pbType, data []byte) bool {
 	if (werr != nil) != (gerr != nil) {
 		t.Fatalf("Unmarshal(len %d) into %s: real %v, codec %v", len(data), tp.name, werr, gerr)
 	}
-	if werr == nil && !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) { // (a may have unknown fields)
+	if (werr == nil || pbExact) && (!pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) || (pbExact && !pbUnknownEq(a, b))) {
 		t.Fatalf("Unmarshal(len %d) into %s: values differ", len(data), tp.name)
 	}
 	return werr == nil
@@ -889,16 +954,11 @@ func TestProtoFields(t *testing.T) {
 			if f.kind != protoreflect.MessageKind {
 				continue
 			}
-			var ft pbType
-			for _, u := range pbTypes() {
-				if pbFullName(u.new()) == f.ref {
-					ft = u
-				}
-			}
+			newf := pbAllNew[f.ref]
 			for k := 0; k < 40; k++ {
 				var data []byte
 				for j := 2 + r.Intn(2); j > 0; j-- {
-					m := ft.new()
+					m := newf()
 					pbRandFill(r, reflect.ValueOf(m).Elem(), 0)
 					e, err := proto.Marshal(m)
 					if err != nil {
@@ -992,6 +1052,12 @@ func TestProtoPanics(t *testing.T) {
 		}
 	}
 	for _, v := range []interface{}{nil, "x", 1, struct{}{}, &struct{}{}} {
+		if pbExact && v == nil { // the real Marshal of a nil interface: nil, nil (proto/encode.go:107)
+			if b, err := pbMarshal(v); b != nil || err != nil || !pbPanics(func() { pbUnmarshal(nil, v) }) {
+				t.Fatalf("the model on a nil interface: %v %v", b, err)
+			}
+			continue
+		}
 		if !pbPanics(func() { pbMarshal(v) }) || !pbPanics(func() { pbUnmarshal(nil, v) }) {
 			t.Fatalf("the codec does not panic on %#v", v)
 		}
@@ -1000,16 +1066,23 @@ func TestProtoPanics(t *testing.T) {
 '''
 
 
-def gen_test_go(P, header, go_name):
-    """pb_gen_test.go: the tests against the real module (real builds only)."""
-    lines = [header + "//go:build !rpcmodel && !goose\n", f"package {go_name}", "",
-             "import (", '\t"bytes"', '\t"math"', '\t"math/rand"', '\t"os"', '\t"reflect"', '\t"strconv"',
-             '\t"strings"', '\t"testing"', ""]
+def gen_test_go(P, header, go_name, names=None, pbmodel=False):
+    """pb_gen_test.go: the tests against the real module (real builds only); with pbmodel, those
+    of the same-package methods of `names` (pbmodel_gen_test.go, in the external test package
+    go_name, which is `<package>_test`)."""
+    std = ['\t"bytes"', '\t"math"', '\t"math/rand"', '\t"os"', '\t"reflect"', '\t"strconv"', '\t"strings"']
+    if pbmodel:
+        std += ['\t"sync"', '\t"sync/atomic"']
+    std += ['\t"testing"']
+    if pbmodel:
+        std += ['\t"unsafe"']
+    tag = "//go:build pbmodel && !goose\n" if pbmodel else "//go:build !rpcmodel && !goose\n"
+    lines = [header + tag, f"package {go_name}", "", "import ("] + std + [""]
     pbpkgs = ["google.golang.org/protobuf/encoding/protowire", "google.golang.org/protobuf/proto",
               "google.golang.org/protobuf/reflect/protoreflect"]
     table = ["// pbTypes: the codec's message types.", "func pbTypes() []pbType {",
              "\treturn []pbType{"]
-    for n in P.names:
+    for n in (P.names if names is None else names):
         table.append(f"\t\t{{name: {go_str(n)}, new: func() proto.Message {{ return &{n}{{}} }}, "
                      f"req: {str(n in P.direct_req).lower()}, init: {str(n in P.needs_init).lower()},")
         cyc = cycle(P, n)
@@ -1036,6 +1109,11 @@ def gen_test_go(P, header, go_name):
                          f"{b(f.req)}, {b(f.utf8)}, {go_str(f.oneof or '')}, {go_str(f.holder or '')}, {wrap}}},")
         table += ["\t\t\t},", "\t\t},"]
     table += ["\t}", "}", ""]
+    table += ["// pbAllNew: every message type of the codec (all packages), by full name.",
+              "var pbAllNew = map[string]func() proto.Message{"]
+    for n in P.names:
+        table.append(f"\t{go_str(P.full[n])}: func() proto.Message {{ return &{n}{{}} }},")
+    table += ["}", ""]
     # the oneofs' holder interface types and their wrappers, for random values
     table += ["// pbOneofWrappers: each oneof holder's interface type, with its wrapper types.",
               "var pbOneofWrappers = pbOneofWrappersOf()", "",
@@ -1047,8 +1125,9 @@ def gen_test_go(P, header, go_name):
             table.append(f"\tw[pbHolderType[{n}]({go_str(h)})] = []reflect.Type{{{ws}}}")
     table += ["\treturn w", "}", ""]
     nums = sorted({f.num for fs in P.m.values() for f in fs} | {unknown_num(P)})
-    has_strings = any(f.kind == "string" and f.utf8 for fs in P.m.values() for f in fs)
-    has_req = bool(P.direct_req)
+    listed = P.names if names is None else names
+    has_strings = any(f.kind == "string" and f.utf8 for n in listed for f in P.m[n])
+    has_req = any(n in P.direct_req for n in listed)
     consts = [f"// pbUnknownNum: a field number no codec message has.",
               f"const pbUnknownNum protowire.Number = {unknown_num(P)}", "",
               "// pbNums: the listed field numbers (and pbUnknownNum), for mutations.",
@@ -1056,9 +1135,448 @@ def gen_test_go(P, header, go_name):
               "// pbHasStrings: some codec message has a UTF-8-checked string field.",
               f"const pbHasStrings = {str(has_strings).lower()}", "",
               "// pbHasRequired: some codec message has a required field.",
-              f"const pbHasRequired = {str(has_req).lower()}", ""]
+              f"const pbHasRequired = {str(has_req).lower()}", "",
+              "// pbExact: the same-package methods' tests (the bytes and the message that come with",
+              "// an error, unknown fields and size caches compared too).",
+              f"const pbExact = {str(pbmodel).lower()}", ""]
     text = "\n".join(table)
     lines += used_imports(P, text, pbpkgs) + [")", ""]
-    return "\n".join(lines + consts + table) + TEST_HELPERS
+    return "\n".join(lines + consts + table) + TEST_HELPERS + (PBMODEL_HELPERS if pbmodel else "")
 
 
+def gen_pbmodel_test_go(P, path, header, go_name):
+    """pbmodel_gen_test.go for Go package `path` (package go_name): the tests of its message types'
+    same-package methods against the real module (build tag pbmodel), in the external test
+    package."""
+    names = [n for n in P.names if P.pkg[n] == path]
+    return gen_test_go(P, header, go_name + "_test", names, pbmodel=True)
+
+
+
+
+PBMODEL_HELPERS = r'''
+// --- the same-package methods (pbgen's pbmodel mode)
+
+// pbModelMsg: the methods pbgen's pbmodel mode emits (the proto model's interface,
+// models/protobuf-go/proto/model.go).
+type pbModelMsg interface {
+	PbModelSize(cached bool) int
+	PbModelAppend(b []byte, cached bool) ([]byte, error)
+	PbModelUnmarshal(b []byte) error
+	PbModelClone() interface{}
+	PbModelIsInit() bool
+	PbModelIsNil() bool
+}
+
+func pbModelOf(m interface{}) pbModelMsg {
+	x, ok := m.(pbModelMsg)
+	if !ok {
+		panic("not a message of the model")
+	}
+	return x
+}
+
+var pbErrRequired = &pbErrText{"required field not set"}
+
+type pbErrText struct{ s string }
+
+func (e *pbErrText) Error() string { return e.s }
+
+// pbModelMarshal: the proto model's MarshalOptions{UseCachedSize: cached, AllowPartial:
+// partial}.MarshalAppend(b, m) (appending) or .Marshal(m) (models/protobuf-go/proto/model.go, its
+// composition of the methods, restated: a size pass with the options, a marshal pass reading the
+// caches, the required-field check; Marshal's nil or empty result).
+func pbModelMarshal(b []byte, m interface{}, cached, partial, appending bool) ([]byte, error) {
+	if m == nil {
+		if appending {
+			return b, nil
+		}
+		return nil, nil
+	}
+	x := pbModelOf(m)
+	n := x.PbModelSize(cached)
+	if cap(b) < len(b)+n {
+		g := make([]byte, len(b), pbGrowcap(cap(b), len(b)+n))
+		copy(g, b)
+		b = g
+	}
+	out, err := x.PbModelAppend(b, true)
+	if err == nil && !partial && !x.PbModelIsInit() {
+		err = pbErrRequired
+	}
+	if !appending && len(out) == 0 && err == nil {
+		if x.PbModelIsNil() {
+			return nil, nil
+		}
+		return []byte{}, nil
+	}
+	return out, err
+}
+
+// pbGrowcap: proto/encode.go:223-241's growcap.
+func pbGrowcap(oldcap, wantcap int) int {
+	if wantcap > oldcap*2 {
+		return wantcap
+	}
+	if oldcap < 1024 {
+		return oldcap * 2
+	}
+	newcap := oldcap
+	for 0 < newcap && newcap < wantcap {
+		newcap += newcap / 4
+	}
+	if newcap <= 0 {
+		return wantcap
+	}
+	return newcap
+}
+
+func pbMarshal(m interface{}) ([]byte, error) {
+	return pbModelMarshal(nil, m, false, false, false)
+}
+
+func pbUnmarshal(b []byte, m interface{}) error {
+	return pbModelOf(m).PbModelUnmarshal(b)
+}
+
+// pbSC: the address of m's size cache, the field protobuf-go's coders and the methods share.
+func pbSC(m proto.Message) *int32 {
+	f := reflect.ValueOf(m).Elem().FieldByName("sizeCache")
+	return (*int32)(unsafe.Pointer(f.UnsafeAddr()))
+}
+
+// pbNodes: the distinct messages reachable from m through exported fields (m included), in a
+// fixed order.
+func pbNodes(m proto.Message) []proto.Message {
+	var out []proto.Message
+	seen := map[uintptr]bool{}
+	var walk func(v reflect.Value)
+	walk = func(v reflect.Value) {
+		switch v.Kind() {
+		case reflect.Pointer:
+			if v.IsNil() {
+				return
+			}
+			if pm, ok := v.Interface().(proto.Message); ok {
+				if seen[v.Pointer()] {
+					return
+				}
+				seen[v.Pointer()] = true
+				out = append(out, pm)
+			}
+			walk(v.Elem())
+		case reflect.Interface:
+			if !v.IsNil() {
+				walk(v.Elem())
+			}
+		case reflect.Struct:
+			for i := 0; i < v.NumField(); i++ {
+				if v.Type().Field(i).IsExported() {
+					walk(v.Field(i))
+				}
+			}
+		case reflect.Slice:
+			if v.Type().Elem().Kind() != reflect.Uint8 {
+				for i := 0; i < v.Len(); i++ {
+					walk(v.Index(i))
+				}
+			}
+		}
+	}
+	walk(reflect.ValueOf(m))
+	return out
+}
+
+func pbCaches(ns []proto.Message) []int32 {
+	out := make([]int32, len(ns))
+	for i, n := range ns {
+		out[i] = atomic.LoadInt32(pbSC(n))
+	}
+	return out
+}
+
+func pbSetCaches(ns []proto.Message, cs []int32) {
+	for i, n := range ns {
+		atomic.StoreInt32(pbSC(n), cs[i])
+	}
+}
+
+func pbEqCaches(a, b []int32) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// pbTwin: a random message of type tp twice, built alike (random fields, or a real decoding of
+// a mutated encoding: unknown fields included), sharing nothing.
+func pbTwin(r *rand.Rand, tp pbType, samples [][]byte) (proto.Message, proto.Message) {
+	a, b := tp.new(), tp.new()
+	if r.Intn(2) == 0 && len(samples) > 0 {
+		data := samples[r.Intn(len(samples))]
+		for k := r.Intn(3); k > 0; k-- {
+			data = pbMutate(r, data, samples, 0)
+		}
+		if proto.Unmarshal(data, a) == nil && proto.Unmarshal(data, b) == nil {
+			return a, b
+		}
+		a, b = tp.new(), tp.new()
+	}
+	s := r.Int63()
+	pbRandFill(rand.New(rand.NewSource(s)), reflect.ValueOf(a).Elem(), 0)
+	pbRandFill(rand.New(rand.NewSource(s)), reflect.ValueOf(b).Elem(), 0)
+	return a, b
+}
+
+// TestPbModelSizeClone: Size (default and cached, over garbage caches) and Clone, by real
+// protobuf-go and by the methods on twins: the result, every level's size cache after it, and
+// (Clone) the copy: exported fields strictly (nil-ness), unknown fields, proto.Equal, caches 0.
+func TestPbModelSizeClone(t *testing.T) {
+	r := rand.New(rand.NewSource(11))
+	types := pbTypes()
+	samples := pbSamples(r, 200)
+	n := 0
+	for _, tp := range types {
+		nilm := pbNil(tp.new())
+		if c := pbModelOf(nilm).PbModelClone(); reflect.TypeOf(c) != reflect.TypeOf(proto.Clone(nilm)) ||
+			!reflect.ValueOf(c).IsNil() || proto.Size(nilm) != pbModelOf(nilm).PbModelSize(false) {
+			t.Fatalf("%s: Clone or Size of a typed nil", tp.name)
+		}
+	}
+	for it := 0; it < pbScaled(3000); it++ {
+		tp := types[r.Intn(len(types))]
+		a, b := pbTwin(r, tp, samples)
+		na, nb := pbNodes(a), pbNodes(b)
+		if len(na) != len(nb) {
+			t.Fatalf("pbTwin: unequal twins")
+		}
+		if r.Intn(3) == 0 { // garbage caches, alike
+			cs := make([]int32, len(na))
+			for i := range cs {
+				cs[i] = []int32{0, 1, 2, -1, 1 << 20, int32(r.Intn(100))}[r.Intn(6)]
+			}
+			pbSetCaches(na, cs)
+			pbSetCaches(nb, cs)
+		}
+		cached := r.Intn(2) == 0
+		ws := proto.MarshalOptions{UseCachedSize: cached}.Size(a)
+		gs := pbModelOf(b).PbModelSize(cached)
+		if ws != gs || !pbEqCaches(pbCaches(na), pbCaches(nb)) {
+			t.Fatalf("%s: Size (cached %v): real %d caches %v, methods %d caches %v\n%v", tp.name, cached, ws,
+				pbCaches(na), gs, pbCaches(nb), a)
+		}
+		ca := proto.Clone(a)
+		cb := pbModelOf(b).PbModelClone().(proto.Message)
+		if reflect.TypeOf(ca) != reflect.TypeOf(cb) || !pbEq(reflect.ValueOf(ca), reflect.ValueOf(cb)) ||
+			!pbUnknownEq(ca, cb) || !proto.Equal(ca, cb) || !proto.Equal(cb, b) {
+			t.Fatalf("%s: Clone:\n real    %v\n methods %v", tp.name, ca, cb)
+		}
+		for _, c := range pbCaches(pbNodes(cb)) {
+			if c != 0 {
+				t.Fatalf("%s: Clone copied a size cache", tp.name)
+			}
+		}
+		n++
+	}
+	t.Logf("%d Size and Clone comparisons", n)
+}
+
+// pbShare: sometimes makes a sub-message reachable twice (a DAG, never a cycle): a message
+// field of one node set to another node of its type that does not reach it.
+func pbShare(r *rand.Rand, root proto.Message) {
+	ns := pbNodes(root)
+	for k := r.Intn(3); k > 0 && len(ns) > 1; k-- {
+		x := ns[r.Intn(len(ns))]
+		y := ns[r.Intn(len(ns))]
+		if x == y {
+			continue
+		}
+		reach := false
+		for _, z := range pbNodes(x) {
+			reach = reach || z == y
+		}
+		if reach {
+			continue
+		}
+		v := reflect.ValueOf(y).Elem()
+		xt := reflect.TypeOf(x)
+		for i := 0; i < v.NumField(); i++ {
+			f := v.Field(i)
+			if !v.Type().Field(i).IsExported() {
+				continue
+			}
+			if f.Type() == xt {
+				f.Set(reflect.ValueOf(x))
+				return
+			}
+			if f.Kind() == reflect.Slice && f.Type().Elem() == xt {
+				f.Set(reflect.Append(f, reflect.ValueOf(x)))
+				return
+			}
+		}
+	}
+}
+
+// pbOp: one operation on message m by real protobuf-go (model false) or by the proto model's
+// composition of the methods: its bytes (nil-ness kept), its error's class, a size, and a clone.
+type pbOpResult struct {
+	b     []byte
+	isNil bool
+	err   string
+	n     int
+	clone proto.Message
+}
+
+func pbOp(op int, m proto.Message, prefix []byte, model bool) pbOpResult {
+	var res pbOpResult
+	var err error
+	pre := func() []byte {
+		if prefix == nil {
+			return nil
+		}
+		b := make([]byte, len(prefix), len(prefix)+len(prefix)%3)
+		copy(b, prefix)
+		return b
+	}
+	switch op {
+	case 0, 1: // Size, cached Size
+		o := proto.MarshalOptions{UseCachedSize: op == 1}
+		if model {
+			res.n = pbModelOf(m).PbModelSize(op == 1)
+		} else {
+			res.n = o.Size(m)
+		}
+	case 2, 3, 4: // Marshal, cached Marshal, Marshal with AllowPartial
+		o := proto.MarshalOptions{UseCachedSize: op == 3, AllowPartial: op == 4}
+		if model {
+			res.b, err = pbModelMarshal(nil, m, op == 3, op == 4, false)
+		} else {
+			res.b, err = o.Marshal(m)
+		}
+	case 5, 6: // MarshalAppend, cached MarshalAppend
+		o := proto.MarshalOptions{UseCachedSize: op == 6}
+		if model {
+			res.b, err = pbModelMarshal(pre(), m, op == 6, false, true)
+		} else {
+			res.b, err = o.MarshalAppend(pre(), m)
+		}
+	case 7: // Clone
+		if model {
+			res.clone = pbModelOf(m).PbModelClone().(proto.Message)
+		} else {
+			res.clone = proto.Clone(m)
+		}
+	}
+	res.isNil = res.b == nil
+	res.err = pbErrClass(err)
+	return res
+}
+
+var pbOpNames = []string{"Size", "cached Size", "Marshal", "cached Marshal", "AllowPartial Marshal",
+	"MarshalAppend", "cached MarshalAppend", "Clone"}
+
+// TestPbModelCache: random interleavings, on shared messages, of operations by real protobuf-go
+// and by the methods (each operation run by both, from the same size caches: the real one's
+// caches saved, restored for the model's run, and compared after it), of changes to fields at
+// any level (stale caches), of garbage written into caches, and of sharing (a sub-message
+// reachable twice, so that marshalling one parent re-sizes what another reads with
+// UseCachedSize): equal bytes (nil-ness kept), error classes, sizes, clones, and every level's
+// size cache after each operation.
+func TestPbModelCache(t *testing.T) {
+	r := rand.New(rand.NewSource(13))
+	types := pbTypes()
+	samples := pbSamples(r, 200)
+	counts := map[string]int{}
+	for it := 0; it < pbScaled(1500); it++ {
+		tp := types[r.Intn(len(types))]
+		root, _ := pbTwin(r, tp, samples)
+		pbShare(r, root)
+		for step := 0; step < 16; step++ {
+			ns := pbNodes(root)
+			switch k := r.Intn(10); {
+			case k == 0: // a field changed at some level
+				x := ns[r.Intn(len(ns))]
+				v := reflect.ValueOf(x).Elem()
+				i := r.Intn(v.NumField())
+				if v.Type().Field(i).IsExported() {
+					pbRandValue(r, v.Field(i), 3)
+				}
+				counts["change"]++
+			case k == 1: // garbage in a cache
+				x := ns[r.Intn(len(ns))]
+				atomic.StoreInt32(pbSC(x), []int32{0, 1, -1, 2, int32(r.Intn(200)), atomic.LoadInt32(pbSC(x)) + int32(r.Intn(5)) - 2}[r.Intn(6)])
+				counts["garbage"]++
+			default: // an operation, on the root or a sub-message
+				x := root
+				if r.Intn(3) == 0 {
+					x = ns[r.Intn(len(ns))]
+				}
+				op := r.Intn(len(pbOpNames))
+				var prefix []byte
+				if r.Intn(2) == 0 {
+					prefix = []byte{0xa, 0xb, 0xc}[:r.Intn(4)]
+				}
+				before := pbCaches(ns)
+				want := pbOp(op, x, prefix, false)
+				wantC := pbCaches(ns)
+				pbSetCaches(ns, before)
+				got := pbOp(op, x, prefix, true)
+				gotC := pbCaches(ns)
+				if !bytes.Equal(want.b, got.b) || want.isNil != got.isNil || want.err != got.err || want.n != got.n ||
+					!pbEqCaches(wantC, gotC) {
+					t.Fatalf("%s of %T (step %d):\n real    %x nil %v err %s n %d caches %v\n methods %x nil %v err %s n %d caches %v\n caches before %v\n message %v",
+						pbOpNames[op], x, step, want.b, want.isNil, want.err, want.n, wantC, got.b, got.isNil, got.err, got.n, gotC, before, root)
+				}
+				if op == 7 && (!pbEq(reflect.ValueOf(want.clone), reflect.ValueOf(got.clone)) ||
+					!pbUnknownEq(want.clone, got.clone) || !proto.Equal(want.clone, got.clone)) {
+					t.Fatalf("Clone of %T:\n real    %v\n methods %v", x, want.clone, got.clone)
+				}
+				counts[pbOpNames[op]]++
+				counts["error "+got.err]++
+			}
+		}
+	}
+	t.Logf("operations compared: %v", counts)
+}
+
+// TestPbModelConcurrent: real and model Size and Marshal (default and cached) of one shared,
+// unmodified message whose caches are fresh, from 8 goroutines: every result is the one
+// expected (under -race: the methods read and write the size cache atomically, as protobuf-go).
+func TestPbModelConcurrent(t *testing.T) {
+	r := rand.New(rand.NewSource(17))
+	types := pbTypes()
+	for it := 0; it < pbScaled(60); it++ {
+		tp := types[r.Intn(len(types))]
+		root, _ := pbTwin(r, tp, nil)
+		pbShare(r, root)
+		wantB, wantE := proto.Marshal(root)
+		wantN := proto.Size(root)
+		var wg sync.WaitGroup
+		bad := make(chan string, 64)
+		for g := 0; g < 8; g++ {
+			wg.Add(1)
+			go func(g int) {
+				defer wg.Done()
+				for i := 0; i < 40; i++ {
+					model := (g+i)%2 == 0
+					op := []int{0, 1, 2, 3}[(g*7+i)%4]
+					res := pbOp(op, root, nil, model)
+					if op < 2 && res.n != wantN || op >= 2 && (!bytes.Equal(res.b, wantB) || res.err != pbErrClass(wantE)) {
+						bad <- pbOpNames[op]
+					}
+				}
+			}(g)
+		}
+		wg.Wait()
+		close(bad)
+		for b := range bad {
+			t.Fatalf("%s: a concurrent %s differed", tp.name, b)
+		}
+	}
+}
+'''

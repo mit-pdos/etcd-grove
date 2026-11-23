@@ -5,7 +5,10 @@ This module is the trusted part of models/protobuf/pbgen.py (the decision of 202
 protobuf's wire format: a program's proof uses whatever `PbCodec` its generated code is proved to
 meet, and its final statement does not mention it. What is trusted is that running the program
 with `proto.Marshal`/`proto.Unmarshal` replaced by the code this module emits behaves as with the
-real google.golang.org/protobuf v1.36.12, for every schema this module accepts. Everything else
+real google.golang.org/protobuf v1.36.12, for every schema this module accepts: in its codec mode
+a codec in a package of its own (pb_gen.go, registered with a model by proto.SetCodec), in its
+pbmodel mode methods in each message's own package (pbmodel_gen.go, which the proto model,
+models/protobuf-go/proto, dispatches to: THE SAME-PACKAGE METHODS below). Everything else
 of pbgen (the command line, reading the toml, running the dump, the tests: `pbgen.py`,
 `pbgen_testgen.py`) is untrusted: a bug there makes a test weaker or a run fail, never wrong code
 accepted. `models/pbdesc` (the Go program that produces the dump this module reads) is trusted
@@ -187,12 +190,14 @@ protowire function of the same name, tested in `models/pbcodec/protowire_test.go
     refusal above (a oneof's non-first member) the skip happens only where the check would pass.
   - Unmarshal into a nil *T panics (protobuf-go's Reset of a nil message panics too).
 
-  Where the claim stops (documented deviations, outside "behaves as protobuf-go"):
-  - unknown fields: protobuf-go keeps them in the message (decode.go:226-229) and Marshal writes
-    them back; the emitted code checks and drops them (it cannot reach the struct's unexported
-    unknownFields). A program that re-sends a message decoded from input carrying fields its
-    schema does not know (a peer with a newer schema, or a corrupted input) behaves differently;
-    between peers of the same schema none arise.
+  Where the codec mode's claim stops (documented deviations, outside "behaves as protobuf-go"):
+  - unknown fields (the codec mode only; the pbmodel mode keeps them, below): protobuf-go keeps
+    them in the message (decode.go:226-229) and Marshal writes them back; the codec, in a package
+    of its own, cannot reach the struct's unexported unknownFields, so it checks and drops them. A
+    program that re-sends a message decoded from input carrying fields its schema does not know
+    (a peer with a newer schema, or a corrupted input) behaves differently; between peers of the
+    same schema none arise. (The codec mode stays for the dsverify kits that register it,
+    proto.SetCodec, e.g. quepaxa, until they move to the pbmodel mode: #37.)
   - error values: only error-or-not is the real one's (*pbcodec.Error, not protobuf-go's types).
   - what comes with an error (found by the review, notes/axiom-review/pbgen.md): Marshal returns
     nil with its error where protobuf-go returns the bytes written so far (proto/encode.go:111);
@@ -210,9 +215,93 @@ protowire function of the same name, tested in `models/pbcodec/protowire_test.go
     (Deterministic is moot: no maps; AllowPartial, which skips the required-field checks),
     protojson, prototext are not covered.
 
+THE SAME-PACKAGE METHODS (the pbmodel mode, `pbgen.py --pbmodel`; #37 stage S3, decisions D1, D2
+and the size cache's D-A): for each Go package of the closure, a file pbmodel_gen.go in that
+package (build tag `goose || pbmodel`: the real build never compiles it; no init, no package
+variable, no package-level function, only methods on the message types' pointer types, all named
+PbModel*, which no other code may name: Schema refuses a type with such a method or field), over
+pbcodec and sync/atomic (imported as pbmodelcodec, pbmodelatomic). The proto model
+(models/protobuf-go/proto) calls them through an interface in place of protobuf-go's reflection.
+The claim: each method is the internal/impl function of protobuf-go v1.36.12 it names, run on
+this type: its result (bytes, sizes, nil-ness, the class of an error: invalid UTF-8, a size
+mismatch, a required field missing, malformed input) and its effect on the message (fields,
+unknown fields, size caches) are the real one's, what comes with an error included; not claimed:
+the error values (*pbcodec.Error), slice capacities and which appends share an array (lengths and
+contents are claimed). The encoding of each field kind is the codec mode's (above); what differs:
+  - Schema refuses a message without protoc-gen-go's `sizeCache int32` and `unknownFields []byte`
+    fields (the ones internal/impl/message.go:158-170 finds by those names; pbdesc reports them).
+  - PbModelSize(cached) is sizePointer (internal/impl/encode.go:47-132): 0 for a nil message; under
+    cached (MarshalInputFlags' UseCachedSize), a size cache above 0 gives it minus one (52-58,
+    an atomic load) and nothing below is walked; otherwise the fields' sizes (the sizers of
+    codec_gen.go: tag size plus value size; a packed field's tag, length and values, nothing if
+    empty; a message field's tag, its size's varint and its size, by the field type's
+    PbModelSize with the same cached, a nil element or oneof member as 0, codec_field.go:159-161,
+    410-417) plus the unknown fields' length (113-117), stored into the size cache atomically, plus
+    one, or 0 past math.MaxInt32-1 (118-130). So a stale cache below a level being recomputed
+    gives a stale-derived size, stored into that level (the "stale-derived write").
+  - PbModelAppend(b, cached) is marshalAppendPointer (encode.go:148-226): b for a nil message; the
+    fields in the order of the codec mode; a message field (codec_field.go:163-173 singular,
+    419-436 repeated) writes its tag, the field type's PbModelSize(cached) as the length, then
+    the message's bytes, and if they are not that long returns nil and a size mismatch (the
+    check skipped when the message's own append fails: that error and what was appended return);
+    a UTF-8-checked string is appended, then checked: on failure what was appended returns with
+    the error (codec_gen.go:5042-5050 and the Ptr, NoZero and Slice variants); then the unknown
+    fields, as they are (220-224). The top level's cache is never read by the append: only a
+    nested level's length prefix is (so a stale top-level cache changes only the capacity
+    proto's size pass reserves).
+  - PbModelDecode(b, depth) and PbModelDecodeField are unmarshalPointerEager (decode.go:124-245)
+    as the codec mode's decoder, but an unknown field (a number the message does not have, or
+    another wire type than the field's) is appended to the message's unknown fields: its tag
+    re-encoded by AppendTag from the number and wire type read, then its value's bytes as
+    ConsumeFieldValue delimits them (218-231); a nested message's unknown fields go into it.
+    A packed record first grows the slice by the count of values it may hold (the bytes below
+    0x80 of a varint record, the length over 4 or 8 of a fixed one; growInt32Slice etc.,
+    internal/impl/pointer_unsafe.go:146-184: a new array, stored at once, so a nil slice becomes
+    non-nil, even if the record then fails), then appends the values to a copy of the header,
+    stored once the record parsed (consumeInt32Slice, codec_gen.go:741-777, and the 12 others).
+    What a failed decode leaves in the message is therefore the real one's: every store happens
+    where the real consumer's does (a string after its UTF-8 check, codec_gen.go:5053-5067; a
+    singular message allocated before its decode, codec_field.go:183-186; a repeated message
+    appended only after, 446-452; a oneof's wrapper set only after, 53-70).
+  - PbModelUnmarshal(b) is proto.Unmarshal(b, m) (proto/decode.go:61-64, 90-136): the generated
+    Reset's `*m = T{}` (reset.go:17-19; a nil m panics there, a nil dereference), the decode with
+    depth 10000, the required-field check (decode.go:132-135, as the codec mode's).
+  - PbModelIsInit is checkInitializedPointer (checkinit.go:26-95), as the codec mode's pbinit_
+    (true for a type that reaches no required field).
+  - PbModelMergeFrom(src) is mergePointer (internal/impl/merge.go:36-113): a nil m panics, a nil
+    src merges nothing; per field, the merger of its coder (codec_tables.go's fieldCoder): an
+    implicit-presence scalar copied when not zero (mergeInt32NoZero etc., merge_gen.go), bytes
+    into a new non-nil slice when not empty (mergeBytesNoZero, merge.go:191-196: so an empty
+    non-nil slice stays nil); an explicit-presence scalar into a new pointer when set
+    (mergeInt32Ptr), bytes into a new non-nil slice when non-nil (mergeBytes, 187-189; the field is
+    a pointer field, codec_message.go:136, so a nil one is skipped, merge.go:76);
+    a repeated scalar or string appended when non-nil (mergeInt32Slice: an empty non-nil one adds
+    nothing, so a fresh copy has nil), bytes elements each copied into a new non-nil slice, a nil
+    one included (mergeBytesSlice, 198-203), message elements each merged into a new message, a
+    nil one giving an empty one (mergeMessageSlice, 175-185); a singular message merged into the
+    destination's, allocated if nil (mergeMessage, 159-173); a oneof's set member (a non-nil
+    wrapper) into the destination's wrapper of that type or a new one set in place (the first
+    member's merge, codec_field.go:98-109), by the member's coder chosen with presence, which
+    copies unconditionally: a scalar copied, bytes into a new non-nil slice even when nil
+    (mergeBytes), a message allocated and merged even when nil (so a wrapper holding a nil message
+    copies to one holding an empty message); src's unknown fields appended when not empty
+    (merge.go:106-112). The size cache is not merged.
+  - PbModelClone is proto.Clone (proto/merge.go:41-60): the receiver itself if nil (a typed nil:
+    Clone of an invalid message is that type's nil, `src.Type().Zero()`), else a new message
+    merged from it; PbModelIsNil reports a nil receiver (emptyBytesForMessage, encode.go:141-146).
+  A message type embedded in another struct (etcd embeds raftpb and etcdserverpb types) promotes
+  these methods as it promotes ProtoReflect, so the model and protobuf-go act on the same
+  embedded message.
+
 The evidence (untrusted, pbgen.py --help): the generator's differential test over random schemas
-of the subset (`models/internal/pbgenrand`), the per-schema regression tests generated beside
-each codec (pb_gen_test.go), and the independent review `notes/axiom-review/pbgen.md`.
+of the subset (`models/internal/pbgenrand`, both modes), the per-schema regression tests
+generated beside each codec (pb_gen_test.go) and in each package (pbmodel_gen_test.go: also the
+bytes and message that come with an error, unknown fields, Size and Clone, and random
+interleavings of real and generated operations on shared messages with changes, garbage caches and
+shared sub-messages, comparing every level's size cache; a concurrent run under -race), the size
+cache's characterisation (`models/internal/pbcachetest`) and its fixed cases on the generated
+methods (`models/internal/pbgenrand/cache_test.go`), and the independent review
+`notes/axiom-review/pbgen.md`.
 """
 
 import re
@@ -322,9 +411,11 @@ class Schema:
     full name. aliases: the toml's {alias: import path}, used for those paths; another path's
     alias is its package name (with "_" appended until it is free)."""
 
-    def __init__(self, dump, aliases=None):
+    def __init__(self, dump, aliases=None, pbmodel=False):
         aliases = dict(aliases or {})
         why = []
+        self.pbmodel = pbmodel
+        self.pkg = {}   # name -> the Go import path of its package (messages and enums)
         msgs = {d["full_name"]: d for d in dump["messages"]}
         enums = {d["full_name"]: d for d in dump["enums"]}
 
@@ -367,6 +458,7 @@ class Schema:
                 why.append(f"{where}: Go type of kind {e.get('go_kind')}, not int32")
             enum_ref[fn] = ref(e["go"])
             self.enums.append(enum_ref[fn])
+            self.pkg[enum_ref[fn]] = e["go"]["pkg"]
 
         msg_ref = {fn: ref(d["go"]) for fn, d in msgs.items() if d.get("go")}
 
@@ -398,6 +490,21 @@ class Schema:
                            "(APIv1 or gogo: protobuf-go's legacy path)")
             if d["legacy_oneof_funcs"]:
                 why.append(f"{where}: an XXX_OneofFuncs or XXX_OneofWrappers method (APIv1 oneofs)")
+            if pbmodel:
+                # the same-package methods read and write the fields protobuf-go's struct reader
+                # takes as the size cache and the unknown fields (internal/impl/message.go:158-170),
+                # under protoc-gen-go's names, and must not collide with a method or field
+                if d.get("go_size_cache") != "sizeCache int32":
+                    why.append(f"{where}: no size cache field `sizeCache int32` (protoc-gen-go's; found "
+                               f"{d.get('go_size_cache')!r})")
+                if d.get("go_unknown_fields") != "unknownFields []uint8":
+                    why.append(f"{where}: no unknown fields field `unknownFields []byte` (protoc-gen-go's; "
+                               f"found {d.get('go_unknown_fields')!r})")
+                for x in d.get("go_pbmodel_methods", []):
+                    why.append(f"{where}: a method {x} of the generated methods' prefix PbModel")
+                for f in d["fields"]:
+                    if f["go_field"].startswith("PbModel"):
+                        why.append(f"{where}: Go field {f['go_field']} of the generated methods' prefix PbModel")
             decls = [o for o in d["oneof_decls"] if not o["synthetic"]]
             holder = {}
             for o in decls:
@@ -422,6 +529,7 @@ class Schema:
             self.oneofs[r] = [(holder.get(o["name"]), o["name"], [f for f in self.m[r] if f.oneof == o["name"]])
                               for o in decls]
             self.full[r] = fn
+            self.pkg[r] = d["go"]["pkg"]
         self.names = sorted(self.m)
         self.enums.sort()
 
@@ -885,3 +993,423 @@ def real_go(header, go_name):
     return (header + "//go:build !rpcmodel && !goose\n\n" + f"package {go_name}\n\n"
             "// registerProto: the real google.golang.org/protobuf needs no codec.\n"
             "func registerProto() {}\n")
+
+
+# ---------------------------------------------------------------------------------------------
+# The same-package methods (pbmodel_gen.go; the core's doc, "THE SAME-PACKAGE METHODS")
+
+PBMODEL_TAG = "//go:build goose || pbmodel"
+
+# The errors the methods return (only their class is modelled: the core's doc).
+ERR_UTF8 = '&pbcodec.Error{Msg: "string field contains invalid UTF-8"}'
+ERR_REQ = '&pbcodec.Error{Msg: "required field not set"}'
+ERR_PARSE = '&pbcodec.Error{Msg: "cannot parse invalid wire-format data"}'
+ERR_MISMATCH = '&pbcodec.Error{Msg: "size mismatch"}'
+
+
+def tag_size(f, wire=None):
+    """The size of field f's tag (protowire.SizeTag; the coder's tagsize, codec_message.go:131)."""
+    w = {"VarintType": 0, "Fixed64Type": 1, "BytesType": 2, "Fixed32Type": 5}[wire or f.wire()]
+    v, n = f.num << 3 | w, 1
+    while v >= 0x80:
+        v >>= 7
+        n += 1
+    return n
+
+
+class Local:
+    """Type references as the package `path` sees them: its own types without their alias."""
+
+    def __init__(self, S, path):
+        self.own = {a for a, p in S.imports.items() if p == path}
+
+    def __call__(self, ref):
+        a, _, t = ref.partition(".")
+        return t if a in self.own else ref
+
+
+def pm_value_size(f, x):
+    """A Go int expression: the size of numeric, string or bytes element x of f, without its tag
+    (protowire.SizeVarint of the varint value, 4 or 8, or the length prefix and the bytes; the
+    sizers of internal/impl/codec_gen.go)."""
+    w = f.wire()
+    if f.kind in ("string", "bytes"):
+        return f"int(pbcodec.SizeVarint(uint64(len({x})))) + len({x})"
+    if w == "VarintType":
+        return f"int(pbcodec.SizeVarint({enc_expr(f, x)}))"
+    return "4" if w == "Fixed32Type" else "8"
+
+
+def pm_size_lines(S, f, x, always=False):
+    """Go statements adding to n the size of field f's value x (a plain field, or with
+    always=True a oneof member's value, written whatever it is)."""
+    ts = tag_size(f)
+    if f.cat == "message":
+        one = lambda v: [f"k := {v}.PbModelSize(cached)", f"n = n + {ts} + int(pbcodec.SizeVarint(uint64(k))) + k"]
+        if f.rep:
+            return [f"for _, e := range {x} {{"] + ind(one("e")) + ["}"]
+        if always:
+            return one(x)
+        return [f"if {x} != nil {{"] + ind(one(x)) + ["}"]
+    if always:
+        return [f"n = n + {ts} + {pm_value_size(f, x)}"]
+    fixed = f.wire() in ("Fixed32Type", "Fixed64Type")
+    if f.rep and f.packed and fixed:
+        return [f"if len({x}) > 0 {{", f"\tc := {pm_value_size(f, '')} * len({x})",
+                f"\tn = n + {tag_size(f, 'BytesType')} + int(pbcodec.SizeVarint(uint64(c))) + c", "}"]
+    if f.rep and fixed:
+        return [f"n = n + ({ts}+{pm_value_size(f, '')})*len({x})"]
+    if f.rep and f.packed:
+        return [f"if len({x}) > 0 {{", "\tc := 0", f"\tfor _, e := range {x} {{",
+                f"\t\tc = c + {pm_value_size(f, 'e')}", "\t}",
+                f"\tn = n + {tag_size(f, 'BytesType')} + int(pbcodec.SizeVarint(uint64(c))) + c", "}"]
+    if f.rep:
+        return [f"for _, e := range {x} {{", f"\tn = n + {ts} + {pm_value_size(f, 'e')}", "}"]
+    if f.pres:
+        v = x if f.kind == "bytes" else f"*{x}"
+        return [f"if {x} != nil {{", f"\tn = n + {ts} + {pm_value_size(f, v)}", "}"]
+    return [f"if {zero_test(f, x)} {{", f"\tn = n + {ts} + {pm_value_size(f, x)}", "}"]
+
+
+def pm_append_scalar(f, x):
+    """Go statements appending element x of f (not a message), its tag first; a UTF-8-checked
+    string is appended before it is checked, and the error returns what was appended (the
+    ValidateUTF8 appenders, codec_gen.go:5042-5050, 5107-5118, 5170-5178, 5250-5260)."""
+    if f.kind == "string":
+        out = [f"b = pbcodec.AppendTag(b, {f.num}, pbcodec.BytesType)", f"b = pbcodec.AppendString(b, {x})"]
+        if f.utf8:
+            out += [f"if !pbcodec.ValidString({x}) {{", f"\treturn b, {ERR_UTF8}", "}"]
+        return out
+    if f.kind == "bytes":
+        return [f"b = pbcodec.AppendTag(b, {f.num}, pbcodec.BytesType)", f"b = pbcodec.AppendBytes(b, {x})"]
+    return [f"b = pbcodec.AppendTag(b, {f.num}, pbcodec.{f.wire()})", f"b = {append_value('b', f, x)}"]
+
+
+def pm_append_message(f, v):
+    """Go statements appending message v (a *M; nil: an empty one) as field f: tag, the size the
+    size pass gives (the size cache under `cached`), the message, then the check that the
+    message's bytes have that length (appendMessageInfo, internal/impl/codec_field.go:163-173;
+    appendMessageSliceInfo, 419-436: a mismatch returns nil, an error returns what was appended)."""
+    return [f"k := {v}.PbModelSize(cached)",
+            f"b = pbcodec.AppendTag(b, {f.num}, pbcodec.BytesType)",
+            "b = pbcodec.AppendVarint(b, uint64(k))",
+            "before := len(b)",
+            f"b2, err := {v}.PbModelAppend(b, cached)",
+            "if err != nil {", "\treturn b2, err", "}",
+            "if len(b2)-before != k {", f"\treturn nil, {ERR_MISMATCH}", "}",
+            "b = b2"]
+
+
+def pm_size(S, n, L):
+    T = L(n)
+    out = [f"// PbModelSize is the size of *m's encoding, as protobuf-go's sizePointer",
+           "// (internal/impl/encode.go:47-132): 0 for a nil m; under cached, the size cache minus one",
+           "// if the cache is above 0 (encode.go:52-58); otherwise the fields' sizes (a message field's",
+           "// by its own PbModelSize, with the same cached) and the unknown fields', stored into the",
+           "// size cache, atomically, plus one (0 past math.MaxInt32-1: encode.go:118-130).",
+           f"func (m *{T}) PbModelSize(cached bool) int {{",
+           "\tif m == nil {", "\t\treturn 0", "\t}",
+           "\tif cached {", "\t\tc := atomic.LoadInt32(&m.sizeCache)", "\t\tif c > 0 {", "\t\t\treturn int(c - 1)",
+           "\t\t}", "\t}", "\tn := 0"]
+    body = []
+    for f in S.plain[n]:
+        body += pm_size_lines(S, f, f.x())
+    for h, _, mem in S.oneofs[n]:
+        body.append(f"switch o := m.{h}.(type) {{")
+        for f in mem:
+            body += [f"case *{L(f.wrapper)}:", "\tif o != nil {"] + ind(pm_size_lines(S, f, f"o.{f.name}", True), 2) + ["\t}"]
+        body.append("}")
+    body += ["n = n + len(m.unknownFields)",
+             "if n > 2147483646 {", "\tatomic.StoreInt32(&m.sizeCache, 0)", "} else {",
+             "\tatomic.StoreInt32(&m.sizeCache, int32(n+1))", "}", "return n"]
+    return out + ind(body) + ["}", ""]
+
+
+def pm_append(S, n, L):
+    T = L(n)
+    out = [f"// PbModelAppend appends *m's encoding to b, as protobuf-go's marshalAppendPointer",
+           "// (internal/impl/encode.go:148-226): nothing for a nil m; the fields in no oneof in number",
+           "// order, then the oneofs in declaration order (codec_message.go:158, 177-184), then the",
+           "// unknown fields as they are (encode.go:220-224). A message field's length prefix is its",
+           "// PbModelSize(cached); its bytes must have that length (else nil and a size mismatch). A",
+           "// UTF-8-checked string that is not UTF-8: what was appended, with it, and an error.",
+           f"func (m *{T}) PbModelAppend(b []byte, cached bool) ([]byte, error) {{",
+           "\tif m == nil {", "\t\treturn b, nil", "\t}"]
+    body = []
+    for f in S.plain[n]:
+        x = f.x()
+        if f.cat == "message":
+            if f.rep:
+                body += [f"for _, e := range {x} {{"] + ind(pm_append_message(f, "e")) + ["}"]
+            else:
+                body += [f"if {x} != nil {{"] + ind(pm_append_message(f, x)) + ["}"]
+        elif f.pres:
+            v = x if f.kind == "bytes" else f"*{x}"
+            body += [f"if {x} != nil {{"] + ind(pm_append_scalar(f, v)) + ["}"]
+        elif not f.rep:
+            body += [f"if {zero_test(f, x)} {{"] + ind(pm_append_scalar(f, x)) + ["}"]
+        elif not f.packed:
+            body += [f"for _, e := range {x} {{"] + ind(pm_append_scalar(f, "e")) + ["}"]
+        else:
+            body += [f"if len({x}) > 0 {{", "\tp := make([]byte, 0)", f"\tfor _, e := range {x} {{",
+                     f"\t\tp = {append_value('p', f, 'e')}", "\t}",
+                     f"\tb = pbcodec.AppendTag(b, {f.num}, pbcodec.BytesType)",
+                     "\tb = pbcodec.AppendBytes(b, p)", "}"]
+    for h, _, mem in S.oneofs[n]:
+        body.append(f"switch o := m.{h}.(type) {{")
+        for f in mem:
+            v = f"o.{f.name}"
+            lines = pm_append_message(f, v) if f.cat == "message" else pm_append_scalar(f, v)
+            body += [f"case *{L(f.wrapper)}:", "\tif o != nil {"] + ind(lines, 2) + ["\t}"]
+        body.append("}")
+    body += ["b = append(b, m.unknownFields...)", "return b, nil"]
+    return out + ind(body) + ["}", ""]
+
+
+def pm_decode(S, n, L):
+    T = L(n)
+    out = [f"// PbModelDecode decodes b into *m, merging into what is there, as protobuf-go's",
+           "// unmarshalPointerEager (internal/impl/decode.go:124-245); depth is the nesting still",
+           "// allowed (this message included: decode.go:105); false where it errs (required fields",
+           "// aside: PbModelIsInit checks them).",
+           f"func (m *{T}) PbModelDecode(b []byte, depth uint64) bool {{",
+           "\tif depth == 0 {", "\t\treturn false", "\t}",
+           "\ti := uint64(0)",
+           "\tfor i < uint64(len(b)) {",
+           "\t\tnum, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])",
+           "\t\tif !ok {", "\t\t\treturn false", "\t\t}",
+           "\t\ti = i + n",
+           "\t\tif typ == pbcodec.EndGroupType {", "\t\t\treturn false", "\t\t}",
+           "\t\tk, ok2 := m.PbModelDecodeField(b[i:], num, typ, depth)",
+           "\t\tif !ok2 {", "\t\t\treturn false", "\t\t}",
+           "\t\ti = i + k",
+           "\t}",
+           "\treturn true",
+           "}", "",
+           f"// PbModelDecodeField decodes the value of field num (wire type typ) at the start of b into",
+           "// *m: the length of the value, or false. A field *m does not have, or one with another wire",
+           "// type than its own (or than packed, for a repeated scalar), is unknown: skipped as",
+           "// protowire.ConsumeFieldValue skips it and kept, its tag re-encoded, in *m's unknown fields",
+           "// (decode.go:218-231).",
+           f"func (m *{T}) PbModelDecodeField(b []byte, num uint64, typ uint64, depth uint64) (uint64, bool) {{"]
+    body = []
+    for f in S.m[n]:
+        x = f.x()
+        w = f.wire()
+        sub = L(f.kind)
+        if f.cat == "message":
+            body += [f"if num == {f.num} && typ == pbcodec.BytesType {{",
+                     "\tv, k, ok := pbcodec.ConsumeBytes(b)", "\tif !ok {", "\t\treturn 0, false", "\t}"]
+            if f.rep:
+                body += [f"\te := &{sub}{{}}",
+                         "\tif !e.PbModelDecode(v, depth-1) {", "\t\treturn 0, false", "\t}",
+                         f"\t{x} = append({x}, e)"]
+            elif f.oneof is not None:
+                y = f"o.{f.name}"
+                body += [f"\to, _ := m.{f.holder}.(*{L(f.wrapper)})", "\tif o == nil {",
+                         f"\t\to = &{L(f.wrapper)}{{}}", "\t}", f"\tif {y} == nil {{", f"\t\t{y} = &{sub}{{}}", "\t}",
+                         f"\tif !{y}.PbModelDecode(v, depth-1) {{", "\t\treturn 0, false", "\t}",
+                         f"\tm.{f.holder} = o"]
+            else:
+                body += [f"\tif {x} == nil {{", f"\t\t{x} = &{sub}{{}}", "\t}",
+                         f"\tif !{x}.PbModelDecode(v, depth-1) {{", "\t\treturn 0, false", "\t}"]
+            body += ["\treturn k, true", "}"]
+        elif f.kind in ("string", "bytes"):
+            body += [f"if num == {f.num} && typ == pbcodec.BytesType {{",
+                     "\tv, k, ok := pbcodec.ConsumeBytes(b)", "\tif !ok {", "\t\treturn 0, false", "\t}"]
+            if f.kind == "string":
+                if f.utf8:
+                    body += ["\tif !pbcodec.ValidUTF8(v) {", "\t\treturn 0, false", "\t}"]
+                val = "string(v)"
+            else:
+                val = "pbcodec.CopyBytes(v)" if (f.rep or f.pres or f.oneof is not None) else \
+                    "pbcodec.CopyBytesOrNil(v)"
+            st = [f"\t{x} = append({x}, {val})"] if f.rep else ind(store_lines(f, val))
+            body += [l.replace(f"*{f.wrapper}", f"*{L(f.wrapper)}").replace(f"&{f.wrapper}{{", f"&{L(f.wrapper)}{{")
+                     if f.wrapper else l for l in st] + ["\treturn k, true", "}"]
+        else:
+            el = dec_elem(f, "v").replace(f.kind + "(", L(f.kind) + "(") if f.cat == "enum" else dec_elem(f, "v")
+            one = [f"v, k, ok := {consume_fn(f)}(b)", "if !ok {", "\treturn 0, false", "}"]
+            st = [f"{x} = append({x}, {el})"] if f.rep else store_lines(f, el)
+            if f.wrapper:
+                st = [l.replace(f"*{f.wrapper}", f"*{L(f.wrapper)}").replace(f"&{f.wrapper}{{", f"&{L(f.wrapper)}{{")
+                      for l in st]
+            if f.pres and f.cat == "enum":
+                st = [l.replace(f"new({f.kind})", f"new({L(f.kind)})") for l in st]
+            one += st + ["return k, true"]
+            body += [f"if num == {f.num} && typ == pbcodec.{w} {{"] + ind(one) + ["}"]
+            if f.rep:
+                # packed: the slice first grown by the count of values the record may hold (the
+                # bytes below 0x80 of a varint record, its length over 4 or 8 for a fixed one),
+                # its elements copied into a new array (stored even if the record then fails to
+                # parse); then the values appended to a copy of its header, stored once the record
+                # parsed (consumeInt32Slice, codec_gen.go:741-777, consumeFixed32Slice, 3528-3551,
+                # and the 11 others alike; growInt32Slice, internal/impl/pointer_unsafe.go:154-160)
+                if f.wire() == "VarintType":
+                    count = ["\tcount := 0", "\tfor _, c := range p {", "\t\tif c < 0x80 {",
+                             "\t\t\tcount = count + 1", "\t\t}", "\t}"]
+                else:
+                    count = [f"\tcount := len(p) / {4 if f.wire() == 'Fixed32Type' else 8}"]
+                body += [f"if num == {f.num} && typ == pbcodec.BytesType {{",
+                         "\tp, k, ok := pbcodec.ConsumeBytes(b)", "\tif !ok {", "\t\treturn 0, false", "\t}"]
+                body += count + ["\tif count > 0 {", f"\t\tg := make([]{L(f.elem_go())}, len({x}), len({x})+count)",
+                                 f"\t\tcopy(g, {x})", f"\t\t{x} = g", "\t}"]
+                body += [f"\ts := {x}",
+                         "\tj := uint64(0)", "\tfor j < uint64(len(p)) {",
+                         f"\t\tv, k2, ok2 := {consume_fn(f)}(p[j:])", "\t\tif !ok2 {", "\t\t\treturn 0, false", "\t\t}",
+                         f"\t\ts = append(s, {el})",
+                         "\t\tj = j + k2", "\t}", f"\t{x} = s", "\treturn k, true", "}"]
+    body += ["k, ok := pbcodec.SkipField(num, typ, b)", "if !ok {", "\treturn 0, false", "}",
+             "m.unknownFields = pbcodec.AppendTag(m.unknownFields, num, typ)",
+             "m.unknownFields = append(m.unknownFields, b[:k]...)",
+             "return k, true"]
+    return out + ind(body) + ["}", ""]
+
+
+def pm_init(S, n, L):
+    T = L(n)
+    out = [f"// PbModelIsInit: *m has every required field, and so do the messages it holds (singular,",
+           "// repeated elements, nil ones included, and a oneof's), as protobuf-go's",
+           "// checkInitializedPointer (internal/impl/checkinit.go:26-95) checks them; a nil m: the type",
+           "// has no required field of its own (checkinit.go:30-37).",
+           f"func (m *{T}) PbModelIsInit() bool {{"]
+    if n not in S.needs_init:
+        return out + ["\treturn true", "}", ""]
+    out += ["\tif m == nil {", f"\t\treturn {'false' if n in S.direct_req else 'true'}", "\t}"]
+    body = []
+    for f in S.plain[n]:
+        x = f.x()
+        sub = f.cat == "message" and f.kind in S.needs_init
+        if f.req:
+            body += [f"if {x} == nil {{", "\treturn false", "}"]
+        if sub and f.rep:
+            body += [f"for _, e := range {x} {{", "\tif !e.PbModelIsInit() {", "\t\treturn false", "\t}", "}"]
+        elif sub:
+            body += [f"if {x} != nil && !{x}.PbModelIsInit() {{", "\treturn false", "}"]
+    for h, _, mem in S.oneofs[n]:
+        mem = [f for f in mem if f.cat == "message" and f.kind in S.needs_init]
+        if not mem:
+            continue
+        body.append(f"switch o := m.{h}.(type) {{")
+        for f in mem:
+            body += [f"case *{L(f.wrapper)}:", f"\tif o != nil && !o.{f.name}.PbModelIsInit() {{",
+                     "\t\treturn false", "\t}"]
+        body.append("}")
+    return out + ind(body) + ["\treturn true", "}", ""]
+
+
+def pm_merge_value(f, d, s):
+    """Go statements merging oneof member f's value s into d (the member's own coder, chosen
+    with presence: mergeInt32 etc. copy, mergeBytes copies into a non-nil slice,
+    internal/impl/merge.go:187-189, mergeMessage allocates and merges, merge.go:159-173)."""
+    if f.cat == "message":
+        return [f"if {d} == nil {{", f"\t{d} = &{f.kind}{{}}", "}", f"{d}.PbModelMergeFrom({s})"]
+    if f.kind == "bytes":
+        return [f"{d} = append([]byte{{}}, {s}...)"]
+    return [f"{d} = {s}"]
+
+
+def pm_merge(S, n, L):
+    T = L(n)
+    out = [f"// PbModelMergeFrom merges *src into *m, as protobuf-go's mergePointer",
+           "// (internal/impl/merge.go:36-113, the field mergers of merge.go and merge_gen.go): a nil",
+           "// m panics, a nil src changes nothing; a set scalar or bytes field is copied (bytes into a",
+           "// new non-nil slice), a repeated field appended to (each bytes element copied, each message",
+           "// element, a nil one included, merged into a new message), a message field merged into",
+           "// (allocated if nil), a oneof's set member copied into a new wrapper (unless m's oneof holds",
+           "// one of its type: then into that), src's unknown fields appended to m's.",
+           f"func (m *{T}) PbModelMergeFrom(src *{T}) {{",
+           "\tif m == nil {", "\t\tpanic(\"invalid value: merging into nil message\")", "\t}",
+           "\tif src == nil {", "\t\treturn", "\t}"]
+    body = []
+    for f in S.plain[n]:
+        x, y = f.x(), f.x("src")
+        sub = L(f.kind)
+        if f.cat == "message":
+            if f.rep:
+                body += [f"for _, e := range {y} {{", f"\tc := &{sub}{{}}", "\tc.PbModelMergeFrom(e)",
+                         f"\t{x} = append({x}, c)", "}"]
+            else:
+                body += [f"if {y} != nil {{", f"\tif {x} == nil {{", f"\t\t{x} = &{sub}{{}}", "\t}",
+                         f"\t{x}.PbModelMergeFrom({y})", "}"]
+        elif f.rep:
+            if f.kind == "bytes":
+                body += [f"for _, e := range {y} {{", f"\t{x} = append({x}, append([]byte{{}}, e...))", "}"]
+            else:
+                body += [f"if {y} != nil {{", f"\t{x} = append({x}, {y}...)", "}"]
+        elif f.pres:
+            if f.kind == "bytes":
+                body += [f"if {y} != nil {{", f"\t{x} = append([]byte{{}}, {y}...)", "}"]
+            else:
+                body += [f"if {y} != nil {{", f"\tv := *{y}", f"\t{x} = &v", "}"]
+        elif f.kind == "bytes":
+            body += [f"if len({y}) > 0 {{", f"\t{x} = append([]byte{{}}, {y}...)", "}"]
+        else:
+            body += [f"if {zero_test(f, y)} {{", f"\t{x} = {y}", "}"]
+    for h, _, mem in S.oneofs[n]:
+        body.append(f"switch o := src.{h}.(type) {{")
+        for f in mem:
+            W = L(f.wrapper)
+            mv = pm_merge_value(f, f"d.{f.name}", f"o.{f.name}")
+            if f.cat == "message":
+                mv = [l.replace(f"&{f.kind}{{", f"&{L(f.kind)}{{") for l in mv]
+            body += [f"case *{W}:", "\tif o != nil {", f"\t\td, _ := m.{h}.(*{W})", "\t\tif d == nil {",
+                     f"\t\t\td = &{W}{{}}", f"\t\t\tm.{h} = d", "\t\t}"] + ind(mv, 2) + ["\t}"]
+        body.append("}")
+    body += ["if len(src.unknownFields) > 0 {", "\tm.unknownFields = append(m.unknownFields, src.unknownFields...)", "}"]
+    return out + ind(body) + ["}", ""]
+
+
+def pm_entry(S, n, L):
+    T = L(n)
+    out = [f"// PbModelUnmarshal is proto.Unmarshal(b, m): *m reset (the generated Reset, `*m = {T}{{}}`,",
+           "// a nil m panicking: proto/decode.go:95, reset.go:17-19), b decoded into it with the",
+           "// recursion limit 10000 (proto/decode.go:62), then its required fields checked",
+           "// (proto/decode.go:132-135).",
+           f"func (m *{T}) PbModelUnmarshal(b []byte) error {{",
+           f"\t*m = {T}{{}}",
+           "\tif !m.PbModelDecode(b, pbcodec.DefaultRecursionLimit) {", f"\t\treturn {ERR_PARSE}", "\t}"]
+    if n in S.needs_init:
+        out += ["\tif !m.PbModelIsInit() {", f"\t\treturn {ERR_REQ}", "\t}"]
+    out += ["\treturn nil", "}", "",
+            f"// PbModelClone is proto.Clone(m) (proto/merge.go:41-60): m itself if nil (a typed nil),",
+            "// else a new message with *m merged into it (the size cache not copied).",
+            f"func (m *{T}) PbModelClone() interface{{}} {{",
+            "\tif m == nil {", "\t\treturn m", "\t}",
+            f"\tc := &{T}{{}}", "\tc.PbModelMergeFrom(m)", "\treturn c", "}", "",
+            "// PbModelIsNil: m is nil (proto.Marshal's emptyBytesForMessage, proto/encode.go:141-146:",
+            "// a nil *T is not a valid message).",
+            f"func (m *{T}) PbModelIsNil() bool {{", "\treturn m == nil", "}", ""]
+    return out
+
+
+PBMODEL_DOC = """// The protobuf model's methods (models/protobuf-go/proto calls them in place of protobuf-go's
+// reflection: proto.Marshal, Unmarshal, Size, Clone, MarshalOptions), for the message types of
+// this package below, derived by models/protobuf/pbgen.py (its pbmodel mode) from their
+// registered descriptors, over the wire format of models.lab/pbcodec. The trusted claim is the
+// generator's (models/protobuf/pbgen_core.py's doc, "THE SAME-PACKAGE METHODS", against
+// protobuf-go v1.36.12): each method is protobuf-go's internal/impl function it names, on this
+// type, bytes, values, unknown fields and size caches included; only the class of an error is
+// modelled, not its value. Built only for the model (tags goose, pbmodel): the real build never
+// sees these methods. No init, no package variable; methods only, all named PbModel*."""
+
+
+def pbmodel_go(S, path, header, go_name):
+    """pbmodel_gen.go for Go package `path`: the methods of its message types in S."""
+    L = Local(S, path)
+    names = [n for n in S.names if S.pkg[n] == path]
+    body = [PBMODEL_DOC, ""]
+    for n in names:
+        body += [f"// --- {S.full[n]}", ""]
+        body += pm_size(S, n, L) + pm_append(S, n, L) + pm_decode(S, n, L) + pm_init(S, n, L)
+        body += pm_merge(S, n, L) + pm_entry(S, n, L)
+    # the two imports under names no package-level identifier of a message package is expected to
+    # have (the gate on the forks checks that nothing but generated code names the prefix)
+    text = re.sub(r"\batomic\.(?=[A-Z])", "pbmodelatomic.",
+                  re.sub(r"\bpbcodec\.(?=[A-Z])", "pbmodelcodec.", "\n".join(body)))
+    code = "\n".join(l for l in body if not l.lstrip().startswith("//"))
+    imps = [l for l in used_imports(S, code) if f'"{path}"' not in l]
+    imps = sorted(imps + ['\tpbmodelcodec "models.lab/pbcodec"', '\tpbmodelatomic "sync/atomic"'],
+                  key=lambda l: l.split('"')[1])
+    return (header + PBMODEL_TAG + "\n\n" + f"package {go_name}\n\nimport (\n" + "\n".join(imps) +
+            "\n)\n\n" + text)

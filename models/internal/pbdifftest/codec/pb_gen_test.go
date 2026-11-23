@@ -33,6 +33,10 @@ const pbHasStrings = true
 // pbHasRequired: some codec message has a required field.
 const pbHasRequired = false
 
+// pbExact: the same-package methods' tests (the bytes and the message that come with
+// an error, unknown fields and size caches compared too).
+const pbExact = false
+
 // pbTypes: the codec's message types.
 func pbTypes() []pbType {
 	return []pbType{
@@ -121,6 +125,16 @@ func pbTypes() []pbType {
 			},
 		},
 	}
+}
+
+// pbAllNew: every message type of the codec (all packages), by full name.
+var pbAllNew = map[string]func() proto.Message{
+	"arith.Args": func() proto.Message { return &pb.Args{} },
+	"arith.Empty": func() proto.Message { return &pb.Empty{} },
+	"arith.Inner": func() proto.Message { return &pb.Inner{} },
+	"arith.Reply": func() proto.Message { return &pb.Reply{} },
+	"xpb.Kinds": func() proto.Message { return &xpb.Kinds{} },
+	"xpb.Other": func() proto.Message { return &xpb.Other{} },
 }
 
 // pbOneofWrappers: each oneof holder's interface type, with its wrapper types.
@@ -458,6 +472,48 @@ func pbChain(tp pbType, d int) proto.Message {
 	return m
 }
 
+// pbUnknownEq: a and b (messages of one type) have the same unknown fields, at every level
+// (proto.Equal compares them as bytes, but not nil-ness or what pbEq checks; pbEq skips them).
+func pbUnknownEq(a, b proto.Message) bool {
+	return pbUnknownWalk(reflect.ValueOf(a), reflect.ValueOf(b))
+}
+
+func pbUnknownWalk(a, b reflect.Value) bool {
+	switch a.Kind() {
+	case reflect.Pointer:
+		if a.IsNil() || b.IsNil() {
+			return a.IsNil() == b.IsNil()
+		}
+		if am, ok := a.Interface().(proto.Message); ok {
+			if !bytes.Equal(am.ProtoReflect().GetUnknown(), b.Interface().(proto.Message).ProtoReflect().GetUnknown()) {
+				return false
+			}
+		}
+		return pbUnknownWalk(a.Elem(), b.Elem())
+	case reflect.Interface:
+		if a.IsNil() || b.IsNil() {
+			return a.IsNil() == b.IsNil()
+		}
+		return a.Elem().Type() == b.Elem().Type() && pbUnknownWalk(a.Elem(), b.Elem())
+	case reflect.Struct:
+		for i := 0; i < a.NumField(); i++ {
+			if a.Type().Field(i).IsExported() && !pbUnknownWalk(a.Field(i), b.Field(i)) {
+				return false
+			}
+		}
+	case reflect.Slice:
+		if a.Type().Elem().Kind() == reflect.Uint8 || a.Len() != b.Len() {
+			return a.Len() == b.Len()
+		}
+		for i := 0; i < a.Len(); i++ {
+			if !pbUnknownWalk(a.Index(i), b.Index(i)) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // pbEq: a and b are equal in their exported fields, strictly (nil and empty slices differ).
 func pbEq(a, b reflect.Value) bool {
 	switch a.Kind() {
@@ -496,12 +552,31 @@ var pbStats struct {
 	marshalErrs, marshalOK int
 }
 
-// pbCheckMarshal: the codec's Marshal is real proto.Marshal: bytes, nil-or-not, error-or-not.
+// pbErrClass: the class of an error, from its text (the codec models no more than this): the
+// real messages (internal/impl's errInvalidUTF8, internal/errors' RequiredNotSet and
+// MismatchedSizeCalculation) and the codec's (pbcodec.Error's Msg) share these words.
+func pbErrClass(err error) string {
+	switch {
+	case err == nil:
+		return "nil"
+	case strings.Contains(err.Error(), "invalid UTF-8"):
+		return "utf8"
+	case strings.Contains(err.Error(), "required field"):
+		return "required"
+	case strings.Contains(err.Error(), "size mismatch"):
+		return "mismatch"
+	}
+	return "other"
+}
+
+// pbCheckMarshal: the codec's Marshal is real proto.Marshal: bytes, nil-or-not, error-or-not (with
+// pbExact, the same-package methods: also the error's class, and the bytes that come with it).
 func pbCheckMarshal(t *testing.T, m proto.Message) {
 	t.Helper()
 	want, werr := proto.Marshal(m)
 	got, gerr := pbMarshal(m)
-	if (werr != nil) != (gerr != nil) || (werr == nil && (!bytes.Equal(got, want) || (got == nil) != (want == nil))) {
+	if (werr != nil) != (gerr != nil) || ((werr == nil || pbExact) && (!bytes.Equal(got, want) || (got == nil) != (want == nil))) ||
+		(pbExact && pbErrClass(werr) != pbErrClass(gerr)) {
 		t.Fatalf("Marshal(%v):\n real  %x (nil %v) %v\n codec %x (nil %v) %v", m, want, want == nil, werr, got, got == nil, gerr)
 	}
 	if werr != nil {
@@ -572,17 +647,21 @@ func pbCheckUnmarshal(t *testing.T, r *rand.Rand, tp pbType, data []byte) bool {
 		}
 		werr = proto.Unmarshal(data, a)
 		gerr := pbUnmarshal(data, b)
-		if (werr != nil) != (gerr != nil) {
+		if (werr != nil) != (gerr != nil) || (pbExact && (pbErrClass(werr) == "required") != (pbErrClass(gerr) == "required")) {
 			t.Fatalf("Unmarshal(%x) into %s (pre-filled %v): real %v, codec %v", data, tp.name, fill, werr, gerr)
+		}
+		if werr != nil && !pbExact {
+			continue
+		}
+		// (with pbExact: what an error leaves in the message too, and the unknown fields)
+		if !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) || (pbExact && !pbUnknownEq(a, b)) {
+			t.Fatalf("Unmarshal(%x) into %s (pre-filled %v, error %v):\n real  %v\n codec %v", data, tp.name, fill, werr, a, b)
 		}
 		if werr != nil {
 			continue
 		}
-		if !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) {
-			t.Fatalf("Unmarshal(%x) into %s (pre-filled %v):\n real  %v\n codec %v", data, tp.name, fill, a, b)
-		}
-		d := tp.new() // the real one's value, without unknown fields
-		if err := (proto.UnmarshalOptions{DiscardUnknown: true}).Unmarshal(data, d); err != nil || !proto.Equal(d, b) {
+		d := tp.new() // the real one's value, without unknown fields (with pbExact: with them)
+		if err := (proto.UnmarshalOptions{DiscardUnknown: !pbExact}).Unmarshal(data, d); err != nil || !proto.Equal(d, b) {
 			t.Fatalf("Unmarshal(%x) into %s: not proto.Equal:\n real  %v\n codec %v", data, tp.name, a, b)
 		}
 	}
@@ -598,7 +677,7 @@ func pbCheckUnmarshalFresh(t *testing.T, tp pbType, data []byte) bool {
 	if (werr != nil) != (gerr != nil) {
 		t.Fatalf("Unmarshal(len %d) into %s: real %v, codec %v", len(data), tp.name, werr, gerr)
 	}
-	if werr == nil && !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) { // (a may have unknown fields)
+	if (werr == nil || pbExact) && (!pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) || (pbExact && !pbUnknownEq(a, b))) {
 		t.Fatalf("Unmarshal(len %d) into %s: values differ", len(data), tp.name)
 	}
 	return werr == nil
@@ -954,16 +1033,11 @@ func TestProtoFields(t *testing.T) {
 			if f.kind != protoreflect.MessageKind {
 				continue
 			}
-			var ft pbType
-			for _, u := range pbTypes() {
-				if pbFullName(u.new()) == f.ref {
-					ft = u
-				}
-			}
+			newf := pbAllNew[f.ref]
 			for k := 0; k < 40; k++ {
 				var data []byte
 				for j := 2 + r.Intn(2); j > 0; j-- {
-					m := ft.new()
+					m := newf()
 					pbRandFill(r, reflect.ValueOf(m).Elem(), 0)
 					e, err := proto.Marshal(m)
 					if err != nil {
@@ -1057,6 +1131,12 @@ func TestProtoPanics(t *testing.T) {
 		}
 	}
 	for _, v := range []interface{}{nil, "x", 1, struct{}{}, &struct{}{}} {
+		if pbExact && v == nil { // the real Marshal of a nil interface: nil, nil (proto/encode.go:107)
+			if b, err := pbMarshal(v); b != nil || err != nil || !pbPanics(func() { pbUnmarshal(nil, v) }) {
+				t.Fatalf("the model on a nil interface: %v %v", b, err)
+			}
+			continue
+		}
 		if !pbPanics(func() { pbMarshal(v) }) || !pbPanics(func() { pbUnmarshal(nil, v) }) {
 			t.Fatalf("the codec does not panic on %#v", v)
 		}
