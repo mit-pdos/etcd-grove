@@ -50,6 +50,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** (1) `NewCond.spec`'s post with `⌜c ≠ null⌝` (the proof has it). (2) `WithValue`
   translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
   `isContext` of a value context over `isContext` or `Background()`.
+### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
+
+- **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
+  `threadBound` is what its steps could have forked. Net's net/rpc server (`ServeCodec`,
+  `ServeConn`, `Accept`; hence `HandleHTTP`/`Serve`) needs `threadBound GF ≤ 2^31`, so a kit using
+  it is covered only for executions of fewer than `2^31 - 1` steps, not `2^63`.
+- **Who needs it.** dsv-epaxos (`notes/dsv-epaxos.md`, "Findings / open points" 1:
+  `epaxos_remote_robust`'s step bound `2^31 - 1`); any kit serving net/rpc.
+- **Workaround.** The statement's step bound is `2^31 - 1` (stated, honest; review of #24).
+- **Proposed change.** A dist adequacy that bounds live threads (`threads ≤ 2^31`, a premise on the
+  run) while allowing `2^63` steps would restore the `2^63` bound.
 - **Status.** Not proposed yet.
 
 ### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
@@ -3972,6 +3983,28 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
 - **Status.** Not filed yet.
 
+## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
+
+- **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body
+  is Rabin-Karp over `internal/bytealg`), and `log.toml` trusts `Printf` and `Println` but not `Print`. A call
+  of either is stuck. The net/rpc model's server calls both: `readRequestHeader` splits every request's
+  `"Service.Method"` with `strings.LastIndex(sm, ".")`, and `register` and `Accept` log with `log.Print` before
+  returning an error (`register`: no name, not exported, no methods; `Accept`: the listener's error).
+- **Workaround here.** `register`'s logging paths are excluded by its premises (`regNameOk`, `rcvrIs`'s
+  methods; ledger 2026-11-23); `Register`, `RegisterName` are proved and linked. The request loop
+  (`readRequestHeader`, hence `ServeCodec`, `ServeConn`) and `Accept` are not proved: no axiom is stated for the
+  two functions (the branch adds none).
+- **Proposed.** In Perennial: `LastIndex` trusted with a GooseLang model (a loop from the end comparing the
+  substring, `Index`-style; or `LastIndexByte` translated and `LastIndex` of a one-byte `substr` modelled on it)
+  and a spec (`strings.LastIndex.spec`: the largest `i` with `substr` at `i`, or `-1`); `Print` trusted as
+  `Println` is (`λ: "vs", #()`), with a spec like `log.Printf.spec`'s (`fmt.ArgsWf` arguments).
+- **Status.** Not needed by this repository any more (2026-11-23): the net/rpc model replaced both by code
+  Perennial models (commit `e84c1d63c9`: `strings.LastIndex(sm, ".")` as a backwards byte loop, the same
+  index; `log.Print` of one string as `log.Println`, the same output), and the request loop and `Accept` are
+  proved over them. The general change (models of `LastIndex` and `Print`) stays proposed for other users.
+  Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
+  (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
+  beside `Printf`'s. Not filed yet.
 ## 2026-11-23: bufio's generic specs over an `io.Writer` contract and slice helpers kept locally (dsv-bufio, #24, branch `dsv-bufio`)
 
 - **Limitation.** Perennial has an `io.Reader` contract (`io.readerOk`, `Perennial/Proof/io/Reader.lean`)
@@ -4016,6 +4049,11 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
   callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
   WAL uses its own `Spec/io/ReadFull.lean`.
+- **dsv-epaxos (2026-11-23).** `replica.serveConn` calls `io.ReadFull(conn, b[n:n+1])` on the
+  `net.Conn` itself. Workaround: `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/replica/IoReadFull.lean`
+  copies `readatleast-prefix`'s two specs and proofs verbatim under the names `ioReadAtLeastPre`,
+  `ioReadFullPre` (over the same translated `io` code, proved, no axiom); drop it for Perennial's on the
+  pin bump that has the change.
 
 ## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia)
 
@@ -4034,6 +4072,29 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   every spec built on it (bufio's constructors' `size` premise-free statements among them) inherits the
   gap: a Perennial-wide question about `make`'s model, not one for the bufio specs.
 - **Status.** Unchecked; recorded for Perennial's `make` model.
+
+## 2026-11-23: `sync.Map`'s typed points-to is `sorry` (dsv-quepaxa, #24, branch `dsv-quepaxa`)
+
+- **Limitation.** `Perennial/GeneratedProof/internal/sync.lean` (pin `7b2259a12`):
+  `HashTrieMap_typed_pointsto` and `HashTrieMap_into_val_typed` are `sorry -- axiomatized type`.
+  `sync.Map` has a `HashTrieMap` field, so its generated `Map_typed_pointsto`/`Map_into_val_typed`,
+  and those of any struct with a `sync.Map` field (QuePaxa's `ClientBatchStore`), depend on
+  `sorryAx`. A proof that merely steps through such a struct's methods with `wp_auto` picks these
+  instances up (opportunistically: with them erased, the same proofs go through) and its `#print
+  axioms` shows `sorryAx`.
+- **Work-around here.** `Dsverify/Proof/raxos/StoreInst.lean`: high-priority instances of
+  `sync.Map` from the deployment's hypothesis vocabulary (`QpVocab.map.tp`, the points-to, and
+  `MapHyp.ivt`, its `IntoValTypedUnderlying`; `Hyp.lean`) and `ClientBatchStore`'s restated over
+  them; `Proxy/Store.lean` erases the generated (`sorry`) instances of `sync.Map`,
+  `HashTrieMap` and `ClientBatchStore` (`attribute [-instance]`). `store_add_proof`,
+  `esp_handlerOk`, `fetch_handlerOk`: Lean's three axioms. (The lab's `StoreInst.lean` did the
+  same over its own `sync.Map` model.) So `MapHyp.ivt` is a hypothesis about Perennial's model
+  (it stands in for the `sorry` instances), not about Go's `sync.Map`; it is a premise of the
+  results until Perennial gives the instances (audit, 2026-11-23; `Hyp.lean`'s `MapHyp` says so).
+- **Proposed (general).** Perennial gives `internal/sync.HashTrieMap` (or `sync.Map` directly) a
+  model: a translated or hand-written `HashTrieMap`, or `sync.Map` as an opaque handle with a
+  heap-cell points-to and specs of `Load`/`Store`/`Delete`/`Range` (the shapes of `MapHyp`).
+  **Status.** Not proposed yet.
 ## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
 
 - **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body

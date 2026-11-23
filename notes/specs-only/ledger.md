@@ -145,6 +145,25 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   write a request). Every existing spec statement (`Dial`, `NewClient`, `NewClientWithCodec`, `ServeConn`,
   `ServeCodec`, `Accept`, ...) unchanged in text; `Dial` and `Accept` use `rpcAddr`'s `[] []`.
 - **Decision.** Accepted (the shapes posted to the kits, 2026-11-23); applied on branch `models-rpc-http`.
+## 2026-11-23: `DescribeConfChange` proved; `ConfChangeType.String`/`ConfChangeTransition.String` trusted models with exact specs (builder-fprintf-leaves, #25)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/DescribeConfChange.lean` (unchanged; `DescribeConfChange.wp_proof` an
+  axiom until this change, now a theorem); new: `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`,
+  `ConfChangeTransition__String.lean` (exact: `raftpb.ccTypeString`/`ccTransitionString`, the name table's
+  entry else the decimal), against the plan's `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`
+  (assumed, some string). raftpb's package fact (`Proof/go_etcd_io/raft/v3/Base.lean`) grows by the two tables.
+- **Defect.** None in a statement: the axiom's triple was unprovable only for want of models. `%v` of the
+  transition and of each change's type calls their `String()`, which raftpb translated names-only, and
+  Perennial's `fmt` admits such an argument only with a `stringMethodSpec`.
+- **Evidence.** `Proof/go_etcd_io/raft/v3/DescribeConfChange.lean`, over Perennial `9da0efb89`'s
+  `strings.Builder` and `7b2259a12`'s `fmt.wp_Fprintf`/`wp_Fprintf_bytes`. Go test
+  `TestConfChangeEnumStringIsNameTable` (`examples/raft/tracecheck/msgtype_string_test.go`).
+- **Proposed change.** The two methods trusted (`Code/go_etcd_io/raft/v3/raftpb.toml`; models in
+  `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, `MessageType.String`'s precedent, Q9), their specs exact as
+  `MessageType.String`'s (stronger than the plan's; the plan's follows when its raftpb is next reworked).
+  Trust base: -1 axiom (`DescribeConfChange.wp_proof`), +2 trusted models.
+- **Decision.** Trusted models approved by the coordinator under the user's delegation (2026-11-23); review
+  requested on etcd-grove#25. Applied (builder-fprintf-leaves).
 ## 2026-11-23: `addFeatureGateMetrics.spec` -- `isFeatureGate` does not give what the body needs (featuregate-2, claim #36)
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean`, `addFeatureGateMetrics.spec`

@@ -2,15 +2,13 @@
 module
 
 public import Dsverify.Proof.rabia.Core.Model
+public import Dsverify.Proof.rabia.internal.message.Varint
 
 @[expose] public section
 
 namespace Perennial.rabia.model
 
-/-! ## Varints -/
-
-theorem varint_ne_nil (n : Nat) : varint n ≠ [] := by
-  rw [varint]; split <;> simp
+/-! ## Varints (`varint_ne_nil`: `message/Varint.lean`) -/
 
 theorem varint_eq (n : Nat) : varint n =
     if n < 128 then [BitVec.ofNat 8 n] else BitVec.ofNat 8 (n % 128 + 128) :: varint (n / 128) := by

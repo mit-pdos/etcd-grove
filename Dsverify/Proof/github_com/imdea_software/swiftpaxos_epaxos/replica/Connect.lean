@@ -1,0 +1,623 @@
+/-
+`ConnectToPeers`: the lock allocated with `fwLockInv` (the framework's names fixed from
+`dialTok γ id id`, the peer cells and readers slice deposits allocated, their keys in `fwCore`),
+the listener goroutine started with the higher peers' cells, the lower peers dialed, the cells
+collected after `done`, the peer cells deposited (phase 1), a reader goroutine per connected peer
+started, the readers slice deposited (phase 2).
+-/
+module
+
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.WaitPeers
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ServeConn
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Net.Proof.net.ConnIo
+public import Proof.bufio.Own
+public import Perennial.Proof.encoding.binary.Results
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ConnectGhost
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ReplicaListener
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial.github_com.imdea_software.swiftpaxos_epaxos
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net github_com.imdea_software.swiftpaxos_epaxos.kvs model
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+section heap
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions] [io.Assumptions]
+
+/-- `New`'s initial order `(id + 1 + j) % N` is a permutation of the ids with `id` last
+(`fwPrefOwn`). -/
+theorem initOrder_perm (id n : Nat) (hn : n = 5) (hid : id < 5) :
+    ((List.range n).map fun (j : Nat) => W32 (((id + 1 + j) % n : Nat) : Int)).Perm
+        ((List.range nRep).map fun j : Nat => W32 (j : Int)) ∧
+      ((List.range n).map fun (j : Nat) => W32 (((id + 1 + j) % n : Nat) : Int))[nRep - 1]? =
+        some (W32 (id : Int)) := by
+  subst hn
+  unfold nRep
+  obtain _|_|_|_|_|id := id <;> first | decide | omega
+
+theorem lisRes_not_null (γ : EpNames) (id : Nat) (L : List GoString) (ew : GoSlice) (j : Nat)
+    (c : GoInterface) (cid : Nat) (side : Bool) (rd : Loc) :
+    lisRes (GF := GF) γ id L ew j c cid side rd ⊢ lisRes γ id L ew j c cid side rd ∗ ⌜rd ≠ null⌝ := by
+  unfold lisRes
+  iintro ⟨%t, %la, %ra, %ed, %eof, #Hc, %Hs, #Hr, Hrd, Hst⟩
+  ihave ⟨Hrd, %Hnn⟩ := persistent_entails_left (EtcdGrove.bufio.ownBufReader_not_null _ _ _ _ _ _) $$ Hrd
+  isplitl
+  · iexists t, la, ra, ed, eof; iframe; iframe #; ipureintro; exact Hs
+  · ipureintro; exact Hnn
+
+variable [EpBufioDeps GF] [EpNetDeps GF] [EpReplicaDeps GF]
+
+theorem replica.Replica.ConnectToPeers.spec_holds
+    (hWP : replica.Replica.waitForPeerConnections.specX (GF := GF)) (hRL : replica.Replica.replicaListener.spec (GF := GF))
+    (hPrintln : dlog.Logger.Println.spec (GF := GF)) (hPrintf : dlog.Logger.Printf.spec (GF := GF)) :
+    replica.Replica.ConnectToPeers.spec (GF := GF) := by
+  intro γ r id L p Rext
+  wp_start as ⟨#Hro, #Hfz, Hst, HRext⟩
+  ihave ⟨%eof, %ed, #Heof, #Hed⟩ := replica_net_errs $$ Hpkg
+  ihave #Hro' := fwRO_def $$ Hro
+  iunfold fwRODef at Hro'
+  icases Hro' with ⟨#HLog, #HLogv, #HN, -, #HId, -, #HPAL, #HL0, #HPeers, #HReaders, #HWriters, -, -, -, -,
+    #HAlive, -, #HRPC, -, -, -, #HShut, -, -, -, -, -, -, #HEwma, #HLat, #HDt, %HL, #HLf,
+    #HCI, -, -⟩
+  ihave Hst := fwStart_def $$ Hst
+  iunfold fwStartDef at Hst
+  icases Hst with ⟨Hrfs, HM, Hpeers, Hreaders, Hwriters, Halive, Hlat, Hewma, Hcw, ⟨%sm, Hsm⟩,
+    Hlis, Hpo⟩
+  unfold repFwStart
+  icases Hrfs with ⟨Hhalves, Hdials, HCWa, HRTa⟩
+  have hN : L.length = 5 := HL.1
+  have hid5 : id < 5 := by have := HL.2; omega
+  unfold fwMethod
+  wp_method_call
+  wp_call
+  wp_auto
+  -- the done channel
+  wp_apply (lc := 1) (chan.wp_make1 (V := Bool)) as %ch %γc ⟨#Hch, %Hcap, Hoc⟩
+  iapply fupd_wp
+  imod (start_bag (fun _ => wfDone γ r id L p) _ ch γc (by trivial)) $$ Hch Hoc with #Hbag
+  -- the framework's names, the deposits, the lock
+  imod dep_alloc (fwPeers γ id L p.peers p.writers p.alive p.lat p.ewma) ⊤ with
+    ⟨%γk1, %γp1, #Hi1, Hh1, Hk1⟩
+  imod dep_alloc (fwReaders L p.readers) ⊤ with ⟨%γk2, %γp2, #Hi2, Hh2, Hk2⟩
+  rw [List.range_succ]
+  icases (BigSepL.bigSepL_snoc).1 $$ Hdials with ⟨Hdials, Hdid⟩
+  imod dialTok_fwNames γ id (γk1, γk2, γp1, γp2) $$ Hdid with #Hn
+  ihave Hcore : fwCore γ id L p $$ [Hk1 Hk2 Hlc1 Hcw HCWa HRTa Hsm]
+  · rw [fwCore_unseal]; unfold fwCoreDef
+    iexists (γk1, γk2, γp1, γp2), ∅, ∅, ∅, sm
+    iframe Hn Hi1 Hi2 Hcw HCWa HRTa Hsm
+    isplitl [Hk1 Hlc1]
+    · iright; iframe
+    isplitl [Hk2]
+    · iright; iframe
+    isplitr
+    · ipureintro; intro w; rfl
+    iapply BigSepM.bigSepM_empty.2
+    iempintro
+  imod sync.init_Mutex (fwLockInv γ id L p Rext) ⊤ (fld r go!"M") $$ HM [Hcore HRext] with #Hmu
+  · inext; unfold fwLockInv; iframe
+  -- the cells, split between the dial loop and the listener goroutine
+  ihave %Hll := ownSlice_len _ _ _ $$ Hlat
+  icases cells_init γ id L p HL.1 $$ Hpeers Hreaders Hwriters Halive Hewma Hhalves
+    with ⟨Hcells, %Hlens, Wp, Wr, Ww, Wa⟩
+  icases (bigSepL_split3 id L.length (cellAt γ id L p)).1 $$ Hcells with ⟨Hdc, Hwc, Hoc⟩
+  ihave Hwc : wfOwnX γ id L p $$ [Hwc]
+  · unfold wfOwnX wfOwn
+    isplitl
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hwc
+      intro k y _
+      by_cases hy : id < y
+      · simp only [hy, ite_true]; unfold cellAt
+        simp only [show y ≠ id by omega, ite_false]; exact .rfl
+      · simp only [hy, ite_false]; exact .rfl
+    · ipureintro
+      have hl := Hll.1; have hl2 := Hll.2
+      simp only [List.length_replicate] at hl
+      refine ⟨Hlens.1, Hlens.2.1, Hlens.2.2.1, Hlens.2.2.2.1, ?_, Hlens.2.2.2.2⟩
+      rw [hl]; unfold sint.nat at *; unfold sint.Z at *; omega
+  imodintro
+  wp_apply wp_fork $$ [Hlis Hwc]
+  · wp_apply hWP γ r id L p Rext ch γc $$ [Hlis Hwc]
+    · unfold fwRun0; iframe; iframe #
+    itrivial
+  ihave Hb := slice_array (GF := GF) b_ptr 4 _ (by decide) $$ b
+  rw [show slice.mk (arrayIndexRef w8 (sint.Z (W64 0)) b_ptr) (W64 4 - W64 0) (W64 4 - W64 0) =
+      slice.mk b_ptr (W64 4) (W64 4) by
+    rw [show sint.Z (W64 0) = (0 : Int) by decide, go.arrayIndexRef_0]; rfl]
+  ihave HI : (∃ k : Nat, "i" ∷ i_ptr ↦ W64 (k : Int) ∗ "%Hk" ∷ ⌜k ≤ id⌝ ∗
+      "Hdc" ∷ ([∗list] j ∈ List.range L.length, if j < id then cellAt γ id L p j else iprop(True)) ∗
+      "Hdials" ∷ ([∗list] j ∈ List.range id, if k ≤ j then dialTok γ id j else iprop(True)) ∗
+      "Hb" ∷ (∃ bv : List w8, slice.mk b_ptr (W64 4) (W64 4) ↦* bv ∗ ⌜bv.length = 4⌝)) $$ [i Hdc Hdials Hb]
+  · iexists 0
+    iframe i Hdc
+    isplitr
+    · ipureintro; omega
+    isplitl [Hdials]
+    · iapply BigSepL.bigSepL_mono ?_ $$ Hdials
+      intro _ _ _; simp only [Nat.zero_le, ite_true]; exact .rfl
+    iexists _; iframe Hb; ipureintro; rfl
+  wp_for HI
+  rw [show sint.Z (W64 (k : Int)) = (k : Int) by word,
+    show sint.Z (W64 (sint.Z (W32 (id : Int)))) = (id : Int) by word]
+  wp_if_destruct
+  · -- dial peer `k < id`
+    have hk : k < id := by omega
+    have hkL : k < L.length := by omega
+    have hlk : (List.range L.length)[k]? = some k := by
+      rw [List.getElem?_range (by omega)]
+    icases BigSepL.bigSepL_lookup_acc_impl hlk $$ Hdc with ⟨Hck, Hdc⟩
+    simp only [hk, ite_true]
+    unfold cellAt
+    simp only [show k ≠ id by omega, ite_false]
+    unfold pendCells
+    icases Hck with ⟨%c0, %rd0, %w0, %a0, Hp0, Hr0, Hw0, Ha0, Hslot⟩
+    have hlk' : (List.range id)[k]? = some k := by
+      rw [List.getElem?_range hk]
+    icases BigSepL.bigSepL_lookup_acc_impl hlk' $$ Hdials with ⟨Hdk, Hdials⟩
+    simp only [Nat.le_refl, ite_true]
+    unfold pendSlot
+    icases Hslot with ⟨%ms, Hs, (⟨%Hnull, %Hc, %Hms, Hst⟩ | ⟨%cid', %side, Hsc, -⟩)⟩
+    rotate_left
+    · -- a connection installed already: refuted by the dial token
+      iexfalso
+      unfold slotConn
+      icases Hsc with ⟨%sent, %pend, %err, %ws, %t', %la', %ra', %ed', %eof', -, #Hpc', -⟩
+      cases side
+      · simp only [Bool.false_eq_true, ite_false]
+        iapply dialTok_peerConn $$ Hdk Hpc'
+      · simp only [ite_true]
+        ihave %H := peerConn_ids $$ Hpc'
+        exact absurd H.1 (by omega)
+    subst Hms
+    ihave #Hap := fwRO_addrProto γ L k (by omega) $$ HLf HCI
+    ihave %Hal := ownSlice_len _ _ _ $$ HL0
+    have hkz : sint.Z (W64 (k : Int)) = (k : Int) := by word
+    have hal : sint.Z p.addrs.len = 5 := by have h1 := Hal.1; have h2 := Hal.2; rw [hN] at h1; word
+    have hgl : L[k]? = some (L.getD k []) := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
+    wp_for
+    try rw [hkz]
+    try rw [if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.addrs.len by omega)]
+    wp_apply wp_load_slice_index p.addrs (k : Int) L DFrac.discard (L.getD k []) (by omega)
+      $$ [HL0] as -
+    · iframe #; ipureintro; simpa using hgl
+    ihave %Hokk := addrTok_ok _ $$ [Hap]
+    · iapply addrProto_tok $$ Hap
+    wp_apply EpNetDeps.dial go!"tcp" net.tcpNet_tcp (L.getD k []) iprop(True)
+        (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (repDialP γ (L.getD k []))
+          (repAccP γ (L.getD k [])) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
+      as %cv %err (⟨%Herr, %cid, #Hc, Hend, Hfresh⟩ | ⟨-, %x, -, #Herr⟩)
+    · isplitr
+      · ipureintro; exact Hokk
+      isplit
+      · itrivial
+      · iapply dial_au (L.getD k []) (repDialP γ (L.getD k [])) (repAccP γ (L.getD k [])) $$ Hap
+    rotate_left
+    · -- not connected yet: retry
+      icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Herr'
+      obtain ⟨pe, rfl⟩ := Herr'.2 (by simp)
+      wp_auto
+      wp_apply time.Sleep.wp_proof
+      wp_for_post
+      iframe
+    subst Herr
+    iunfold connEnd at Hend
+    icases Hend with ⟨Hsend, Hrecv⟩
+    ihave #Hc' := Hc
+    iunfold net.isConn at Hc'
+    icases Hc' with ⟨%c', %la, %ra, %Hcv, #Hca⟩
+    subst Hcv
+    ihave #Hci : connIn (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c') cid false c' la ra ed eof
+      $$ []
+    · unfold connIn; iframe #; ipureintro; rfl
+    wp_auto
+    obtain ⟨hlp, hlr, hlw, hla, hle⟩ := Hlens
+    rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.peers.len by omega)]
+    wp_auto
+    wp_for_post
+    icases Hb with ⟨%bv, Hb, %Hbv⟩
+    wp_apply (encoding.binary.wp_LittleEndian_PutUint32 _ bv [] (W32 (id : Int)) (by simpa using Hbv))
+      $$ [Hb] as Hb
+    · simp only [List.append_nil]; iframe
+    -- register the connection as `peer id`
+    ihave #HCI' := HCI
+    unfold clientInvs
+    icases HCI' with ⟨-, #Hroles⟩
+    iapply fupd_wp
+    imod peerRole_register γ ⊤ cid id k CoPset.subseteq_top $$ %(show k < id ∧ id < nRep from ⟨hk, by unfold nRep; omega⟩) Hroles
+      Hfresh Hdk with ⟨#Hrole, #Hpc⟩
+    imodintro
+    have hdl : ∀ (i : Nat) (h : i < L.length), L[i]? = some (L.getD i []) := fun i h => by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]; rfl
+    ihave #Ha := listFinal_addrId γ L k _ (hdl k (by omega)) $$ HLf
+    ihave #HQ : □ repDialP γ (L.getD k []) cid ([] ++ encId id) $$ []
+    · imodintro
+      unfold repDialP
+      iright
+      iexists _
+      iframe Hrole
+      simp only
+      unfold peerStreamOk
+      iexists k, []
+      iframe Ha
+      have hd : uint.nat (W64 (id : Int)) = id := by word
+      rw [hd]
+      simp only [Bool.false_eq_true, ite_false]
+      iframe Hpc
+      isplitr
+      · ipureintro
+        refine ⟨fun _ h => by simp at h, ?_⟩
+        simp [streamHdr]
+      simp only [protoMsgs, List.filter_nil]
+      iapply BigSepL.bigSepL_nil.2
+      iempintro
+    rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.peers.len by omega)]
+    wp_auto
+    rw [show u32Le (W32 (id : Int)) ++ [] = encId id by simp [encId]]
+    ihave #Hacc := write_acc (Gg := hG.goose_globalGS) cid false (repDialP γ (L.getD k [])) [] (encId id) $$ HQ
+    wp_apply EpNetDeps.connWrite c' cid false (L.getD k []) la ra _ (encId id) (DFrac.own 1) ed
+        (writeP (Gg := hG.goose_globalGS) cid false (repDialP γ (L.getD k [])) []) $$ [Hb Hsend]
+      as %n %err ⟨%w, %res, Hsend, Hb, %Hw, #Herr⟩
+    · iframe Hca Hed Hb Hacc
+      iapply writeP_init $$ Hsend
+    icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hre
+    obtain ⟨-, -, hnone, -⟩ := Hw
+    obtain ⟨hw0, hrd0⟩ := Hnull
+    subst hw0 hrd0
+    by_cases he : err = interface.nil
+    · -- the handshake is written: the peer is connected
+      subst he
+      have hres : res = none := by
+        cases hr : res with
+        | none => rfl
+        | some e => exact absurd rfl (net.netErr_ne_nil (Hre.2 (by simp [hr])))
+      have hw := hnone hres
+      subst hw
+      iunfold writeP at Hsend
+      wp_auto
+      rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.alive.len by omega)]
+      wp_auto
+      rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.peers.len by omega)]
+      wp_auto
+      ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
+      · iPkgInit
+      ihave #Hrdok := net.conn_readerOk EpNetDeps.connRead c' cid false _ la ra eof ed
+        (repAccP γ (L.getD k [])) $$ [Hio Hca Heof Hed]
+      · iframe #
+      ihave HrL := recvTok_L cid false _ [] $$ Hrecv
+      rw [show interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c' = GoInterface.ok (net.connIface c') from rfl]
+      wp_apply EpBufioDeps.newReaderOk (net.connIface c')
+        (fun _ m => 0 < m) (recvTokL (Gg := hG.goose_globalGS) cid false (repAccP γ (L.getD k [])))
+        (net.connReadE eof la ra ed) [] $$ [HrL] as %br Hbr
+      · isplitr
+        · ipureintro
+          simp only [net.connIface, ne_eq, go.GoType.PointerType.injEq]
+          unfold net.TCPConn.ty _root_.Perennial.bufio.Reader.ty; simp
+        isplitr
+        · iPkgInit
+        iframe Hrdok HrL
+        iapply EtcdGrove.bufio.preUpTo_trivial
+      rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.readers.len by omega)]
+      wp_auto
+      rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.peers.len by omega)]
+      wp_auto
+      ihave #Hwrok := net.conn_streamWriterOk EpNetDeps.connWrite c' cid false _ la ra ed
+        (repDialP γ (L.getD k [])) (repDialP_ppc γ _) $$ [Hca Hed]
+      · iframe #
+      rw [show ([] : List w8) ++ encId id = encId id from rfl] at *
+      wp_apply EpBufioDeps.newWriter
+        (net.connIface c') _ _ _ (encId id) $$ [Hsend] as %bw Hbw
+      · isplitr
+        · ipureintro
+          simp only [net.connIface, ne_eq, go.GoType.PointerType.injEq]
+          unfold net.TCPConn.ty _root_.Perennial.bufio.Writer.ty; simp
+        isplitr
+        · iPkgInit
+        iframe Hwrok Hsend
+        imodintro; iexact HQ
+      have hwk : 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.writers.len := ⟨Int.natCast_nonneg k, hlw ▸ Int.ofNat_lt.mpr hkL⟩
+      rw [hkz, if_pos hwk]
+      wp_auto
+      wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
+        (Val (LiteralValueV _)))
+      iapply wp_slice_literal (V := GoInterface) (t := go.any)
+      wp_auto
+      isplitr
+      · ipureintro; rfl
+      iintro %sl_ptr ⟨-, -⟩
+      wp_auto
+      wp_apply wp_rPrintf hPrintf γ r id L p $$ [$Hro]
+      wp_for_post
+      iframe
+      iexists k + 1
+      rw [show W64 (k : Int) + W64 1 = W64 ((k + 1 : Nat) : Int) by word]
+      iframe
+      isplitr
+      · ipureintro; omega
+      ihave Hdials := Hdials $$ %(fun _ j => if k + 1 ≤ j then dialTok γ id j else iprop(True)) [] []
+      · imodintro
+        iintro %k' %y %hk' %hkd H
+        have hy : y = k' := by
+          obtain ⟨_, h2⟩ := List.getElem?_eq_some_iff.mp hk'
+          simp only [List.getElem_range] at h2; exact h2.symm
+        subst hy
+        by_cases h1 : k ≤ y
+        · have h2 : k + 1 ≤ y := by omega
+          simp only [h1, h2, ite_true]; iexact H
+        · have h2 : ¬ k + 1 ≤ y := by omega
+          simp only [h1, h2, ite_false]; itrivial
+      · simp only [show ¬ k + 1 ≤ k by omega, ite_false]; itrivial
+      isplitl [Hdc Hp0 Hr0 Hw0 Ha0 Hs Hst Hbr Hbw]
+      · iapply Hdc
+        · imodintro
+          iintro %k'' %y %hk'' %hkd H
+          iexact H
+        · simp only [hk, ite_true, show k ≠ id by omega, ite_false]
+          iexists _, br, bw, true
+          iframe
+          iright
+          iexists cid, false
+          isplitl [Hbw]
+          · unfold slotConn peerPX dialerOf
+            simp only [Bool.false_eq_true, ite_false]
+            iexists encId id, [], interface.nil, [], c', la, ra, ed, eof
+            simp only [wrOwn, connWr]
+            iframe; iframe #
+            ipureintro
+            simp [streamHdr, protoMsgs]
+          · unfold lisRes peerPin dialerOf streamHdr
+            simp only [Bool.false_eq_true, ite_false, Bool.not_false, ite_true]
+            iframe; iframe #
+            simp only [rdOwn, connRd]
+            iframe Hbr
+            ipureintro; exact hk
+      iframe Hdials
+      iexists _; iframe; ipureintro; simp [encId_length]
+    · -- the handshake failed: the slot stays empty
+      cases err with
+      | nil => exact absurd rfl he
+      | ok ei =>
+      wp_auto
+      wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
+        (Val (LiteralValueV _)))
+      iapply wp_slice_literal (V := GoInterface) (t := go.any)
+      wp_auto
+      isplitr
+      · ipureintro; rfl
+      iintro %sl_ptr ⟨-, -⟩
+      wp_auto
+      wp_apply wp_rPrintln hPrintln γ r id L p $$ [$Hro]
+      wp_for_post
+      iframe
+      iexists k + 1
+      rw [show W64 (k : Int) + W64 1 = W64 ((k + 1 : Nat) : Int) by word]
+      iframe
+      isplitr
+      · ipureintro; omega
+      ihave Hdials := Hdials $$ %(fun _ j => if k + 1 ≤ j then dialTok γ id j else iprop(True)) [] []
+      · imodintro
+        iintro %k' %y %hk' %hkd H
+        have hy : y = k' := by
+          obtain ⟨_, h2⟩ := List.getElem?_eq_some_iff.mp hk'
+          simp only [List.getElem_range] at h2; exact h2.symm
+        subst hy
+        by_cases h1 : k ≤ y
+        · have h2 : k + 1 ≤ y := by omega
+          simp only [h1, h2, ite_true]; iexact H
+        · have h2 : ¬ k + 1 ≤ y := by omega
+          simp only [h1, h2, ite_false]; itrivial
+      · simp only [show ¬ k + 1 ≤ k by omega, ite_false]; itrivial
+      isplitl [Hdc Hp0 Hr0 Hw0 Ha0 Hs Hst]
+      · iapply Hdc
+        · imodintro
+          iintro %k'' %y %hk'' %hkd H
+          iexact H
+        · simp only [hk, ite_true, show k ≠ id by omega, ite_false]
+          iexists _, null, null, a0
+          iframe
+          ileft
+          iframe
+          ipureintro; exact ⟨⟨rfl, rfl⟩, fun h => absurd h (by omega), rfl⟩
+      iframe Hdials
+      iexists _; iframe; ipureintro; simp [encId_length]
+  -- dialing done: the listener goroutine's cells and the listener come back
+  wp_apply (wp_bag_receive γc ch (fun _ => wfDone γ r id L p)) as %v Hdone
+  · iexact Hbag
+  unfold wfDone wfOwnX wfOwn
+  icases Hdone with ⟨⟨Hwc, %Hlens'⟩, Hlisten⟩
+  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
+    (Val (LiteralValueV _)))
+  iapply wp_slice_literal (V := GoInterface) (t := go.any)
+  wp_auto
+  isplitr
+  · ipureintro; rfl
+  iintro %sl_ptr ⟨-, -⟩
+  wp_auto
+  wp_apply wp_rPrintf hPrintf γ r id L p $$ [$Hro]
+  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
+    (Val (LiteralValueV _)))
+  iapply wp_slice_literal (V := GoInterface) (t := go.any)
+  wp_auto
+  isplitr
+  · ipureintro; rfl
+  iintro %sl_ptr2 ⟨-, -⟩
+  wp_auto
+  wp_apply wp_rPrintf hPrintf γ r id L p $$ [$Hro]
+  -- the cells, merged, give the peer cells and the readers
+  ihave Hwc : [∗list] j ∈ List.range L.length, if id < j then cellAt γ id L p j else iprop(True) $$ [Hwc]
+  · iapply BigSepL.bigSepL_mono ?_ $$ Hwc
+    intro k y _
+    by_cases hy : id < y
+    · simp only [hy, ite_true]; unfold cellAt
+      simp only [show y ≠ id by omega, ite_false]; exact .rfl
+    · simp only [hy, ite_false]; exact .rfl
+  ihave Hcells := (bigSepL_split3 id L.length (cellAt γ id L p)).2 $$ [Hdc Hwc Hoc]
+  · iframe
+  icases cells_final γ id L p _ (by simp) $$ Hcells Wp Wr Ww Wa Hlat with ⟨Hpeers, %rs, Hrs, %Hrsl, Hstarts⟩
+  iapply fupd_wp
+  imod dep_deposit γk1 γp1 _ ⊤ CoPset.subseteq_top $$ Hi1 Hh1 Hpeers with #Hd1
+  imodintro
+  ihave #Hph1 : fwPhase1 γ id $$ []
+  · unfold fwPhase1; iexists (γk1, γk2, γp1, γp2); iframe #
+  iclear Hdials Hb
+  have hrl : sint.Z p.readers.len = 5 := by have := Hlens.2.1; rw [hN] at this; exact this
+  have hrs5 : rs.length = 5 := by rw [Hrsl, hN]
+  ihave HJ : (∃ (m : Nat) (rv : Loc) (iv : w64), "i" ∷ i_ptr ↦ W64 (m : Int) ∗ "%Hm" ∷ ⌜m ≤ 5⌝ ∗
+      "reader" ∷ reader_ptr ↦ rv ∗ "rid" ∷ rid_ptr ↦ iv ∗
+      "Hrs" ∷ ((⌜m < 5⌝ ∗ p.readers ↦* rs ∗ phaseHalf γp2 0) ∨ (⌜m = 5⌝ ∗ phaseDone γp2)) ∗
+      "Hst" ∷ ([∗list] j ∈ List.range L.length, if m ≤ j then
+        (if j = id then iprop(⌜rs.getD j null = null⌝) else readerStart γ id L p.ewma j (rs.getD j null))
+        else iprop(True))) $$ [i reader rid Hrs Hstarts Hh2]
+  · iexists 0, _, _
+    iframe i reader rid
+    isplitr
+    · ipureintro; omega
+    isplitl [Hrs Hh2]
+    · ileft; iframe; ipureintro; omega
+    iapply BigSepL.bigSepL_mono ?_ $$ Hstarts
+    intro _ _ _; simp only [Nat.zero_le, ite_true]; exact .rfl
+  wp_for HJ
+  rw [show sint.Z (W64 (m : Int)) = (m : Int) by word, hrl]
+  wp_if_destruct
+  · have hm : m < 5 := by omega
+    icases Hrs with (⟨-, Hrs, Hh2⟩ | ⟨%Hm5, -⟩)
+    rotate_left
+    · exfalso; omega
+    have hmz : sint.Z (W64 (m : Int)) = (m : Int) := by word
+    rw [hmz, if_pos (show 0 ≤ (m : Int) ∧ (m : Int) < sint.Z p.readers.len by omega)]
+    have hrm : rs[m]? = some (rs.getD m null) := by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
+    wp_apply wp_load_slice_index p.readers (m : Int) rs (DFrac.own 1) (rs.getD m null) (by omega)
+      $$ [Hrs] as Hrs
+    · iframe; ipureintro; simpa using hrm
+    iapply fupd_wp
+    ihave Hrdx : |={⊤}=> ((⌜m + 1 < 5⌝ ∗ p.readers ↦* rs ∗ phaseHalf γp2 0) ∨
+        (⌜m + 1 = 5⌝ ∗ phaseDone γp2)) $$ [Hrs Hh2]
+    · by_cases hm5 : m + 1 = 5
+      · imod dep_deposit γk2 γp2 _ ⊤ CoPset.subseteq_top $$ Hi2 Hh2 [Hrs] with #Hd2
+        · unfold fwReaders; iexists rs; iframe; ipureintro; exact Hrsl
+        imodintro; iright; iframe #; ipureintro; exact hm5
+      · imodintro; ileft; iframe; ipureintro; omega
+    imod Hrdx with Hrs
+    imodintro
+    have hlk : (List.range L.length)[m]? = some m := by rw [List.getElem?_range (by omega)]
+    icases BigSepL.bigSepL_lookup_acc_impl hlk $$ Hst with ⟨Hsm, Hst⟩
+    simp only [Nat.le_refl, ite_true]
+    by_cases hmi : m = id
+    · -- the replica's own index: skipped
+      rw [show decide (W32 (sint.Z (W64 (m : Int))) = W32 (id : Int)) = true by
+        simp only [decide_eq_true_eq]; rw [← hmi]; word]
+      wp_auto
+      ihave Hst := Hst $$ %(fun _ j => if m + 1 ≤ j then
+          (if j = id then iprop(⌜rs.getD j null = null⌝) else readerStart γ id L p.ewma j (rs.getD j null))
+          else iprop(True)) [] []
+      · imodintro
+        iintro %k' %y %hk' %hkd H
+        have hy : y = k' := by
+          obtain ⟨_, h2⟩ := List.getElem?_eq_some_iff.mp hk'
+          simp only [List.getElem_range] at h2; exact h2.symm
+        subst hy
+        by_cases h1 : m ≤ y
+        · have h2 : m + 1 ≤ y := by omega
+          simp only [h1, h2, ite_true]; iexact H
+        · have h2 : ¬ m + 1 ≤ y := by omega
+          simp only [h1, h2, ite_false]; itrivial
+      · simp only [show ¬ m + 1 ≤ m by omega, ite_false]; itrivial
+      wp_for_post
+      iframe
+      iexists m + 1, _, _
+      rw [show W64 (m : Int) + W64 1 = W64 ((m + 1 : Nat) : Int) by word]
+      iframe
+      ipureintro; omega
+    rw [show decide (W32 (sint.Z (W64 (m : Int))) = W32 (id : Int)) = false by
+      simp only [decide_eq_false_iff_not]; intro h; apply hmi
+      have : sint.Z (W64 (m : Int)) = (m : Int) := by word
+      rw [this] at h
+      have h' := congrArg (fun x : w32 => x.toNat) h
+      rw [BitVec.toNat_ofInt, BitVec.toNat_ofInt] at h'
+      omega]
+    simp only [hmi, ite_false]
+    iunfold readerStart at Hsm
+    icases Hsm with (%Hnull | ⟨%c, %cid, %side, Hlr⟩)
+    · -- no reader: skipped
+      rw [Hnull]
+      wp_auto
+      ihave Hst := Hst $$ %(fun _ j => if m + 1 ≤ j then
+          (if j = id then iprop(⌜rs.getD j null = null⌝) else readerStart γ id L p.ewma j (rs.getD j null))
+          else iprop(True)) [] []
+      · imodintro
+        iintro %k' %y %hk' %hkd H
+        have hy : y = k' := by
+          obtain ⟨_, h2⟩ := List.getElem?_eq_some_iff.mp hk'
+          simp only [List.getElem_range] at h2; exact h2.symm
+        subst hy
+        by_cases h1 : m ≤ y
+        · have h2 : m + 1 ≤ y := by omega
+          simp only [h1, h2, ite_true]; iexact H
+        · have h2 : ¬ m + 1 ≤ y := by omega
+          simp only [h1, h2, ite_false]; itrivial
+      · simp only [show ¬ m + 1 ≤ m by omega, ite_false]; itrivial
+      wp_for_post
+      iframe
+      iexists m + 1, _, _
+      rw [show W64 (m : Int) + W64 1 = W64 ((m + 1 : Nat) : Int) by word]
+      iframe
+      ipureintro; omega
+    · -- a reader: its goroutine is started
+      ihave ⟨Hlr, %Hrdn⟩ := lisRes_not_null $$ Hlr
+      wp_auto
+      rw [show decide (rs.getD m null = null) = false by
+        simp only [decide_eq_false_iff_not]; exact Hrdn]
+      wp_auto
+      wp_apply wp_fork $$ [Hlr]
+      · wp_apply hRL γ r id L p Rext m c cid side (rs.getD m null) $$ [Hlr]
+        · unfold fwRun0; iframe; iframe #; ipureintro; exact ⟨by omega, hmi⟩
+        itrivial
+      ihave Hst := Hst $$ %(fun _ j => if m + 1 ≤ j then
+          (if j = id then iprop(⌜rs.getD j null = null⌝) else readerStart γ id L p.ewma j (rs.getD j null))
+          else iprop(True)) [] []
+      · imodintro
+        iintro %k' %y %hk' %hkd H
+        have hy : y = k' := by
+          obtain ⟨_, h2⟩ := List.getElem?_eq_some_iff.mp hk'
+          simp only [List.getElem_range] at h2; exact h2.symm
+        subst hy
+        by_cases h1 : m ≤ y
+        · have h2 : m + 1 ≤ y := by omega
+          simp only [h1, h2, ite_true]; iexact H
+        · have h2 : ¬ m + 1 ≤ y := by omega
+          simp only [h1, h2, ite_false]; itrivial
+      · simp only [show ¬ m + 1 ≤ m by omega, ite_false]; itrivial
+      wp_for_post
+      iframe
+      iexists m + 1, _, _
+      rw [show W64 (m : Int) + W64 1 = W64 ((m + 1 : Nat) : Int) by word]
+      iframe
+      ipureintro; omega
+  -- all readers started; the readers slice is deposited: the framework is up
+  icases Hrs with (⟨%Hm5, -, -⟩ | ⟨%Hm5, #Hd2⟩)
+  · exfalso; omega
+  iapply HΦ
+  isplitr [Hlisten Hpo]
+  · rw [isReplicaFw_unseal]; unfold isReplicaFwDef
+    iframe #
+    unfold fwPhase2
+    iexists (γk1, γk2, γp1, γp2); iframe #
+  iframe Hlisten
+  unfold fwPrefOwn
+  icases Hpo with ⟨%po, Hpo1, Hpo2⟩
+  iexists po, _
+  iframe
+  ipureintro
+  exact initOrder_perm id L.length HL.1 (by have := HL.2; omega)
+
+end heap
+
+end Perennial.github_com.imdea_software.swiftpaxos_epaxos

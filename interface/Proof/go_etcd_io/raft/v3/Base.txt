@@ -27,6 +27,9 @@ def Perennial.go_etcd_io.raft.v3.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp G
                                           GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.tracker get_is_pkg_init ∧
                                             GetIsPkgInitProp pkg_id.encoding.binary get_is_pkg_init ∧ True }
 
+theorem Perennial.go_etcd_io.raft.v3.raftpb.nameTableOk_persistent (name : GoString) (M : GMap w32
+    GoString) : Persistent (raftpb.nameTableOk name M)
+
 def Perennial.go_etcd_io.raft.v3.raftpb_is_pkg_init_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.raft.v3.raftpb :=
   {
@@ -39,9 +42,9 @@ def Perennial.go_etcd_io.raft.v3.raftpb_is_pkg_init_inst : IsPkgInit (IProp GF)
                   isPkgInit pkg_id.google_golang_org.protobuf.reflect.protoreflect ∗
                     isPkgInit pkg_id.google_golang_org.protobuf.runtime.protoimpl ∗ True),
     isPkgInitDef :=
-      iprop(∃ m,
-          typedPointsto (globalAddr raftpb.MessageType_name) m DFrac.discard ∗
-            ownMap m DFrac.discard raftpb.msgTypeNames) }
+      iprop(raftpb.nameTableOk raftpb.MessageType_name raftpb.msgTypeNames ∗
+          raftpb.nameTableOk raftpb.ConfChangeType_name raftpb.ccTypeNames ∗
+            raftpb.nameTableOk raftpb.ConfChangeTransition_name raftpb.ccTransitionNames) }
 
 def Perennial.go_etcd_io.raft.v3.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3 :=
   {
@@ -69,6 +72,10 @@ def Perennial.go_etcd_io.raft.v3.isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go
 
 def Perennial.go_etcd_io.raft.v3.isLockedRand (lr : Loc) : IProp GF :=
   iprop("#Hmu" ∷ sync.isMutex (structFieldRef lockedRand go!"mu" lr) iprop(True))
+
+def Perennial.go_etcd_io.raft.v3.raftpb.nameTableOk (name : GoString) (M : GMap w32 GoString) :
+    IProp GF :=
+  iprop(∃ m, typedPointsto (globalAddr name) m DFrac.discard ∗ ownMap m DFrac.discard M)
 
 def Perennial.go_etcd_io.raft.v3.IsNewError (e : GoInterface) : Prop :=
   ∃ t p, e = interface.mkOk t.PointerType (intoVal p)
@@ -99,6 +106,13 @@ def Perennial.go_etcd_io.raft.v3.protoimpl_get_is_pkg_init_wf_inst : GetIsPkgIni
 
 theorem Perennial.go_etcd_io.raft.v3.isLockedRand_persistent (lr : Loc) : Persistent (isLockedRand
     lr)
+
+def Perennial.go_etcd_io.raft.v3.raftpb.ccTypeNames : GMap w32 GoString :=
+  <[W32 3 :=
+    go!"ConfChangeAddLearnerNode"]><[W32 2 :=
+      go!"ConfChangeUpdateNode"]><[W32 1 :=
+        go!"ConfChangeRemoveNode"]><[W32 0 :=
+          go!"ConfChangeAddNode"]>∅
 
 def Perennial.go_etcd_io.raft.v3.tracker_is_pkg_init_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.raft.v3.tracker :=
@@ -283,6 +297,12 @@ def Perennial.go_etcd_io.raft.v3.tracker_get_is_pkg_init_wf_inst : GetIsPkgInitW
             GetIsPkgInitProp pkg_id.strings get_is_pkg_init ∧
               GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.quorum get_is_pkg_init ∧
                 GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3.raftpb get_is_pkg_init ∧ True }
+
+def Perennial.go_etcd_io.raft.v3.raftpb.ccTransitionNames : GMap w32 GoString :=
+  <[W32 2 :=
+    go!"ConfChangeTransitionJointExplicit"]><[W32 1 :=
+      go!"ConfChangeTransitionJointImplicit"]><[W32 0 :=
+        go!"ConfChangeTransitionAuto"]>∅
 
 def Perennial.go_etcd_io.raft.v3.confchange_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.go_etcd_io.raft.v3.confchange :=
