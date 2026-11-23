@@ -55,6 +55,7 @@ theorem dialer_bridge (γ : GryffNames GF) (k q : Fin 3) (a : GoString) (c : Nat
   iintro %X #Hps
   imodintro
   unfold gryffWireP
+  iright
   iexists u32Le (peerHs k) ++ X
   isplitr
   · ipureintro; exact List.prefix_refl _

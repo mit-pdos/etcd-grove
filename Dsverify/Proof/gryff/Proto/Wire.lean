@@ -152,13 +152,17 @@ def acceptStream (γ : GryffNames GF) (a : GoString) (cid : Nat) (full : List w8
         peerStreamOk γ.proto (rid3 dst) (rid3 id) full) ∨
      (⌜hs < peerMark⌝ ∗ msgsOk (clientReplyOk γ hs) full)))
 
-/-- Gryff's protocol for what dialers of a replica's port `a` write. -/
+/-- Gryff's protocol for what dialers of a replica's port `a` write. Port: the empty stream is
+allowed outright (`Net/`'s `conn_streamWriterOk` asks the writer's protocol to be
+`ProtoPrefixClosed`, which includes the empty stream; a reader learns nothing from an empty read
+anyway, `protoPrefix`). -/
 def gryffWireP (γ : GryffNames GF) (a : GoString) : Proto GF :=
-  fun cid W => iprop(∃ full, ⌜W <+: full⌝ ∗ □ dialStream γ a cid full)
+  fun cid W => iprop(⌜W = []⌝ ∨ ∃ full, ⌜W <+: full⌝ ∗ □ dialStream γ a cid full)
 
-/-- Gryff's protocol for what the acceptor of a replica's port `a` writes. -/
+/-- Gryff's protocol for what the acceptor of a replica's port `a` writes (the empty stream
+allowed, as `gryffWireP`). -/
 def gryffWireQ (γ : GryffNames GF) (a : GoString) : Proto GF :=
-  fun cid W => iprop(∃ full, ⌜W <+: full⌝ ∗ □ acceptStream γ a cid full)
+  fun cid W => iprop(⌜W = []⌝ ∨ ∃ full, ⌜W <+: full⌝ ∗ □ acceptStream γ a cid full)
 
 end
 
