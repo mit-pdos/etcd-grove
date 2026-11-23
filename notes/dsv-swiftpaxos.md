@@ -160,6 +160,27 @@ Read with the ninth session's state below (accurate where this does not say othe
   the tables import each program's `Init.lean`, which will be hand-written (add `PROGRAMS` once
   they exist, then rerun gen-init).
 
+- **Full kit build on the new pin** (`ball.log`, before the address change): all 537 kit modules
+  but the lab kit's (`examples/swiftnet/*` of the lab: Interface, PkgState, Parts, Serve, Servers,
+  SrvInit, ServersLink, ClaimLink, ClientLink, NameOkFor, registerRPC, OrchGen, OrchAddr,
+  codec/{Prim,RoundTrip}; `netrpc.rpc.LocalRegister`, `encoding.gob.SetCodec`, as before) and
+  `client.Link` (Net's `Client.Close.wp_proof` now takes the mutex and codec specs: linked as
+  `net.rpc.Client.Close.wp` from `Net.Proof.net.rpc.Results`; the `connect` sections lacked
+  `RpcHttpHyp`; fixed after, unverified until the rebuild). The `sorry` warnings are only the
+  generated names-only type instances (Net/Perennial/GeneratedProof), as before.
+- **Addresses: the lab's port layout on loopback** (kit Go and Spec): server node `id` (master
+  `id = 1`) at `127.0.0.1:(7000+id)`, its rpc port `+1000`, its configuration port `+2000` (the
+  lab's ports, so `master/Run`'s `":7001"`, `RunDefs`' `8002 + k` etc. stand: only the host
+  strings changed, `10.77.0.x` → `127.0.0.1`, in `Spec/.../swiftnet/Base.lean`, `master/Addr`,
+  `client/ConnectSpecs` and three lab-kit files); orchestrator `127.0.0.1:6100`, client node `c`
+  at `6101+c`, its request port (`ClientAddrs`, remote's) `7101+c`, its configuration port
+  `8101+c`. `go test ./examples/swiftnet` passes (its deployment test picks its own free base).
+- **`Spec/.../swiftnet/Interface.lean`** keeps the run's names (`SwiftNames`), slots, address
+  protocols (`protoP`/`protoQ`), rpc services, node shares (`serverShare` over a new
+  `serverAddrs i`) and `ownState`, now over `[SwiftNetPkgState netDistGF]` (gob's format); the
+  lab's goal assembly over its `RemoteDistSpec` (`StartOk`, `OrchOk`, `ClientNodeOk`,
+  `ServersOk`, `goal_spec_of`) is deleted: the top level is remote's (step 5).
+
 **Next.** Unchanged from the ninth session's list (steps 2-7), with the initialization above. The
 lab-kit files that read the old `pkgStates` (`PkgState`, `Parts`, `ServersLink`, `SrvInit`,
 `ClientPkgInits`, `Orch`, `ClientNodeLink`) break; they are the lab kit's, replaced in step 5.
