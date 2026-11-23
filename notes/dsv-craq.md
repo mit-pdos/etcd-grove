@@ -5,7 +5,7 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, fifth agent: `craq_remote_robust` proved over its premises, see P8, P7, P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
+**State in one line (2026-11-23, seventh agent: F1 discharged, the statement has no finding premise left, P10; fifth agent: `craq_remote_robust` proved over its premises, see P8, P7, P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -488,6 +488,36 @@ P4 (d)); when they are, recheck that their tables list these packages.
   remote's counter) loads; all seven build on this branch. `etc/theorem-loc.py`: tcb 595 lines, all
   premises, no axioms. Dup scan (scratchpad `dups.py`): no craq duplicates. Tier check clean; gen-init
   `--check` clean; `proof_roots.namespace()` `Perennial.EtcdGrove.`; goose.py/gen-init.py equal lean's.
+- **P10. Seventh agent (2026-11-23, from 41b2955e96): C1(b), F1 discharged.** Upamanyu chose
+  option (b) for C1 (#24): net-rpc-errors e3e67f8b3d gives `callRet` a third branch,
+  `models_lab.errAny e ∗ ∀ msg, (if msg = [] then C.enc replyv (Φ · []) else Φ [] msg)` (the
+  server calls `Error()` once; `""` makes it a success response), no trusted text; merged here.
+  `Craq/Netrpc/Bindings.lean`: **`cnewArg_RemoveNode`** (`coordB cfg b svc ⊢ newArgOk …
+  (coordSpec … "RemoveNode") …`): RemoveNode's error from `isCoordSvc` (`nil ∨ errAny`) goes to
+  `callRet`'s `nil` or `errAny` branch; for the latter, the empty message gives
+  `L.enc_EmptyReply` into `Φ encEmptyReply []`, a non-empty one `Φ [] msg` (`coordSpec`'s
+  RemoveNode already accepts every message, unchanged). `coordRcv`/`coordRcv_ok`, `wp_Server1`,
+  `Server.wp_proof`, Link's `wp_Server` lose `HRN`; `removeNodeOk.spec` is deleted. The other
+  bindings' `errMsg` branches add one `ileft`. **`craq_remote_robust`'s statement loses the
+  premise** `(∀ G L, letI := heapAt G L; ∀ (π : NetProtoGS) (cfg : Cfg remoteGF), letI := ra G;
+  removeNodeOk.spec (GF := remoteGF) cfg) →` (and the header's F1 bullet). Remaining premises,
+  each argued true of the model and of Go in the final report of this agent (summary): the
+  `InitHyp`s (initializers run without panicking; facts `True`), `LogHyp` (Go's `log.Default`
+  never nil; `*Logger` methods safe for concurrent use, non-nil receiver; fmt recovers method
+  panics), `RpcHttpAddr`/`Dial`/`Serve` + `rpcAlloc` (instantiated by Net's coming
+  `rpcAddrP` over the HTTP handshake; Go's `DialHTTPPath`, `RegisterName`, `HandleHTTP`,
+  `ServeHTTP`, `ListenAndServe` behave as stated), the 11 `RpcBoot`s (each command's initializer
+  creates the codec registry, net/rpc's variables, `DefaultServeMux`, `DefaultServer`). F1 and F3
+  discharged, no false premise is known: **non-vacuous** modulo those library hypotheses.
+  `etc/theorem-loc.py --list-tcb`: tcb 463 lines (was 595), all premises, no axioms.
+  **Built on fk-lean1** (0ac5872a7a): craq's `TopLevelRobustness` and the six landed ones (swiftnet,
+  rabianet, epaxosnet, quepaxanet, paxosnet, remote's counter), 4973 jobs green; a joint import of
+  the seven loads, and `#print axioms` gives `propext`, `Classical.choice`, `Quot.sound` for each.
+  (`newArg_Ping`'s `errMsg` branch needed the `ileft` too: the first build caught it.) Dup scan:
+  no craq duplicates. Tier check ok (227 known, none new); gen-init `--check` 271 up to date;
+  `proof_roots.namespace()` `Perennial.EtcdGrove.`; goose.py/gen-init.py equal the lean base
+  76c00a8d81's (origin/lean has moved on to af67426be3, not merged). theorem-loc counts both
+  `InitHyp` premises.
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
