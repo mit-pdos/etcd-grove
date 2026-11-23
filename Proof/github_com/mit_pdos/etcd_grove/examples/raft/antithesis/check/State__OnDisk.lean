@@ -195,6 +195,54 @@ macro "odjno " h:term:max : tactic => `(tactic| (
   odjret (by subst Ho; rfl)))
 
 set_option hygiene false in
+/-- `odafter` inside a section's case (`odjoin`): where the Go returned, the case ends (`odjret`). -/
+macro "odafterj " c:ident : tactic => do
+  let r0 := Lean.mkIdent (Lean.Name.mkSimple "$res0")
+  let r1 := Lean.mkIdent (Lean.Name.mkSimple "$res1")
+  `(tactic| (
+    iintro ⟨%Hv, $r0:ident, $r1:ident⟩
+    cases $c:ident
+    rotate_left
+    simp only [Bool.true_eq_false, _root_.false_and, _root_.or_false, _root_.true_and] at Hv
+    subst Hv
+    simp only [ite_true, pure_ok, Except.ok.injEq] at Ho
+    odjret (by subst Ho; rfl)
+    simp only [Bool.false_eq_true, _root_.false_and, _root_.false_or, _root_.true_and] at Hv
+    subst Hv
+    simp only [Bool.false_eq_true, ite_false] at Ho
+    try wp_auto))
+
+set_option hygiene false in
+/-- g5's guard A after `app || snap` held (`hor : or1 = true`): `x.m().term() == x.T1()`. -/
+macro "odAterm " hor:term:max : tactic => `(tactic| (
+  have hA3 := hA2t $hor
+  obtain ⟨m', hm', hA3⟩ := bind_ok hA3
+  rw [hm] at hm'; cases hm'
+  obtain ⟨mt, hmt, hA3⟩ := bind_ok hA3
+  obtain ⟨t1', ht1', hA3⟩ := bind_ok hA3
+  rw [ht1] at ht1'; cases ht1'
+  simp only [pure_ok, Except.ok.injEq] at hA3
+  subst hA3
+  try wp_auto
+  odm m
+  wp_apply wp_m _ X m $$ [Hx] as %gmA #HmA
+  · iframe Hx; ipureintro; exact hm
+  try wp_auto
+  wp_apply wp_Msg_term gmA m mt $$ [HmA] as %ut %Hut
+  · iframe HmA; ipureintro; exact hmt
+  try wp_auto
+  odm T1
+  wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+  · iframe Hx; ipureintro; exact ht1
+  try wp_auto
+  rw [decide_w64_eq, Hut, Hu1]
+  by_cases hmt1 : mt = t1
+  · rw [decide_eq_true hmt1]
+    odskip (by rw [← hcA, hmt1]; simp)
+  · rw [decide_eq_false hmt1]
+    odretc (by rw [← hcA]; simpa using hmt1)))
+
+set_option hygiene false in
 macro "odjafter" : tactic => do
   let r0 := Lean.mkIdent (Lean.Name.mkSimple "$res0")
   let r1 := Lean.mkIdent (Lean.Name.mkSimple "$res1")
@@ -956,4 +1004,142 @@ theorem State.OnDisk.wp_proof
     odjskip Ho
   odjafter
   subst hK
+  -- g5: `if x.stores() { … }`
+  unfold g5 at Ho
+  dsimp only at Ho
+  rw [hXs, hXn, hXld, hXll, hXch, hXtl] at Ho
+  obtain ⟨st, hst, Ho⟩ := bind_ok Ho
+  generalize hK : g6 X (succ X) = K at Ho
+  odjoin K
+  · odm stores
+    wp_apply wp_stores _ X st $$ [Hx]
+    · iframe Hx; ipureintro; exact hst
+    cases st
+    · simp only [Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [ite_true] at Ho
+    obtain ⟨ld1, hld1, Ho⟩ := bind_ok Ho
+    try wp_auto
+    odm leads
+    wp_apply wp_leads _ X ld1 $$ [Hx]
+    · iframe Hx; ipureintro; exact hld1
+    cases ld1
+    case true =>
+      -- `!(x.T1() == x.T0() && x.first() == len(x.L0())+1 && SendableIn(ld, ll, ch, tl, x.f()))`
+      simp only [ite_true] at Ho
+      obtain ⟨ok, hok, Ho⟩ := bind_ok Ho
+      obtain ⟨a1, ha1, h1t, h1f⟩ := andM_ok hok
+      obtain ⟨t1', ht1', ha1⟩ := bind_ok ha1
+      rw [ht1] at ht1'; cases ht1'
+      simp only [pure_ok, Except.ok.injEq] at ha1
+      subst ha1
+      try wp_auto
+      odm T1
+      wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+      · iframe Hx; ipureintro; exact ht1
+      try wp_auto
+      odm T0
+      wp_apply wp_T0 _ X $$ [Hx] as %u0 %Hu0
+      · iexact Hx
+      try wp_auto
+      rw [decide_w64_eq, Hu0, Hu1]
+      by_cases he : t1 = X.T0
+      case neg =>
+        rw [decide_eq_false he]
+        odjno (h1f (by simpa using he))
+      rw [decide_eq_true he]
+      have h1 := h1t (by simp [he])
+      obtain ⟨a2, ha2, h2t, h2f⟩ := andM_ok h1
+      obtain ⟨fi, hfi, ha2⟩ := bind_ok ha2
+      simp only [pure_ok, Except.ok.injEq] at ha2
+      subst ha2
+      have hfib := first_bigOk HW hb hfi
+      try wp_auto
+      odm first
+      wp_apply wp_first _ X fi $$ [Hx] as %ufi %Hufi
+      · iframe Hx; ipureintro; exact hfi
+      try wp_auto
+      odm L0
+      wp_apply wp_L0 _ X $$ [Hx] as %l0 #Hl0
+      · iexact Hx
+      ihave %Hl0l := logRO_len _ _ $$ Hl0
+      have hl0b := OnDisk.L0_le HW
+      try wp_auto
+      have hadd : sint.Z (l0.len + W64 1) = (X.L0.length : Int) + 1 := by
+        rw [sint_add_one (by omega), Hl0l]
+      rw [decide_w64_eq, hadd, Hufi]
+      by_cases hfe : fi = (X.L0.length : Int) + 1
+      case neg =>
+        rw [decide_eq_false hfe]
+        odjno (h2f (by simpa using hfe))
+      rw [decide_eq_true hfe]
+      have h2 := h2t (by simp [hfe])
+      obtain ⟨f, hf, h2⟩ := bind_ok h2
+      obtain ⟨hfp, hfe', -⟩ := OnDisk.f_within hb HW hf
+      try wp_auto
+      odm f
+      wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+      · iframe Hx; ipureintro; exact hf
+      try wp_auto
+      wp_apply wp_SendableIn ldl ld lll ll chl ch tll tl gf f ok $$ [Hld Hll Hch Htl Hf]
+      · iframe Hld Hll Hch Htl Hf; ipureintro; exact ⟨h2, hfp, by omega⟩
+      cases ok
+      · odjno (rfl : false = false)
+      simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [Bool.false_eq_true, ite_false] at Ho
+    -- A: `!(x.hasM() && (x.m().typ() == "app" || x.m().typ() == "snap") && x.m().term() == x.T1())`
+    obtain ⟨okA, hokA, Ho⟩ := bind_ok Ho
+    generalize hcA : (!okA) = cA at Ho
+    obtain ⟨hm, hhm, hAt, hAf⟩ := andM_ok hokA
+    simp only [pure_ok, Except.ok.injEq] at hhm
+    try wp_auto
+    odguard cA
+    · odm hasM
+      wp_apply wp_hasM _ X $$ [Hx]
+      · iexact Hx
+      rw [hhm]
+      cases hm
+      · odretc (by rw [← hcA, hAf rfl]; rfl)
+      have hA1 := hAt rfl
+      obtain ⟨or1, hor1, hA2t, hA2f⟩ := andM_ok hA1
+      obtain ⟨oa, hoa, hoat, hoaf⟩ := orM_ok hor1
+      obtain ⟨m, hm, hoa⟩ := bind_ok hoa
+      obtain ⟨ty, hty, hoa⟩ := bind_ok hoa
+      simp only [pure_ok, Except.ok.injEq] at hoa
+      subst hoa
+      try wp_auto
+      odm m
+      wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+      · iframe Hx; ipureintro; exact hm
+      try wp_auto
+      wp_apply wp_Msg_typ gm m ty $$ [Hm]
+      · iframe Hm; ipureintro; exact hty
+      by_cases hta : ty = go!"app"
+      · rw [decide_eq_true hta]
+        have hor : or1 = true := hoat (by simp [hta])
+        subst hor
+        odAterm rfl
+      rw [decide_eq_false hta]
+      have hor := hoaf (by simpa using hta)
+      obtain ⟨m', hm', hor⟩ := bind_ok hor
+      rw [hm] at hm'; cases hm'
+      obtain ⟨ty', hty', hor⟩ := bind_ok hor
+      rw [hty] at hty'; cases hty'
+      simp only [pure_ok, Except.ok.injEq] at hor
+      subst hor
+      try wp_auto
+      odm m
+      wp_apply wp_m _ X m $$ [Hx] as %gm' #Hm'
+      · iframe Hx; ipureintro; exact hm
+      try wp_auto
+      wp_apply wp_Msg_typ gm' m ty $$ [Hm']
+      · iframe Hm'; ipureintro; exact hty
+      by_cases hts : ty = go!"snap"
+      · rw [decide_eq_true hts]
+        odAterm (by simp [hts])
+      rw [decide_eq_false hts]
+      odretc (by rw [← hcA, hA2f (by simpa using hts)]; rfl)
+    odafterj cA
+    done
   done
