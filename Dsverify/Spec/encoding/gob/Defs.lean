@@ -26,25 +26,29 @@ namespace Perennial.encoding.gob
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics] [net.rpc.RpcKit]
+variable {GF : BundledGFunctors}
 
-/-- The `*gob.Codec` `c` holds the kit's encoding and decoding functions, for good. -/
-def codecFns (c : Loc) : IProp GF :=
-  iprop(structFieldRef encoding.gob.Codec go!"Encode" c ↦□ net.rpc.kitFn go!"rpcEncode" ∗
-    structFieldRef encoding.gob.Codec go!"Decode" c ↦□ net.rpc.kitFn go!"rpcDecode")
+attribute [local instance] Dsv.netShaExts
 
-/-- The model's `codec` holds a non-nil codec with the kit's functions, for good. -/
-def codecSet : IProp GF :=
-  iprop(∃ c : Loc, ⌜c ≠ null⌝ ∗ globalAddr encoding.gob.codec ↦□ c ∗ codecFns c)
+/-- The gob codec encodes and decodes as the kit's `RpcCodec`, for good (persistent): a
+hypothesis (`SwiftLibs.gobCodecSet`). The lab's was its model's `codec` variable holding the
+kit's functions; `encoding/gob` is names only here. -/
+def codecSet [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] : IProp GF :=
+  l.gobCodecSet
 
-instance codecFns_persistent (c : Loc) : Persistent (codecFns (GF := GF) c) := by
-  unfold codecFns; infer_instance
+instance codecSet_persistent [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] :
+    Persistent (codecSet (GF := GF)) := l.gobCodecSet_persistent
 
-instance codecSet_persistent : Persistent (codecSet (GF := GF)) := by
-  unfold codecSet; infer_instance
+/-- The `*gob.Encoder` at `enc` writes to `w` (`SwiftLibs.gobEncoder`). -/
+def ownEncoder [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] (enc : Loc) (dq : DFrac)
+    (w : GoInterface) : IProp GF :=
+  l.gobEncoder enc dq w
+
+/-- The `*gob.Decoder` at `dec` reads from `r` (`SwiftLibs.gobDecoder`). -/
+def ownDecoder [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] (dec : Loc) (dq : DFrac)
+    (r : GoInterface) : IProp GF :=
+  l.gobDecoder dec dq r
 
 end defs
 

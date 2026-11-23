@@ -42,11 +42,11 @@ abbrev Decoder.Decode.spec : Prop :=
     (ptr : GoInterface) (D : IProp GF) (Ψ : List w8 → Bool → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob ∗ codecSet (GF := GF) ∗
       net.rpc.kitCodecOk (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
-      bufio.readsOk rd I ∗ I R ∗ dec ↦{dq} (⟨rd⟩ : encoding.gob.Decoder) ∗
+      bufio.readsOk rd I ∗ I R ∗ encoding.gob.ownDecoder dec dq (rd) ∗
       D ∗ □ (D -∗ ∀ bs, net.rpc.RpcCodec.dec bs ptr (Ψ bs)) }}
     (App (Val (dec @!! go.GoType.PointerType encoding.gob.Decoder.ty @!! go!"Decode"))
       (Val #ptr))
-  {{ (e : GoInterface), RET #e; dec ↦{dq} (⟨rd⟩ : encoding.gob.Decoder) ∗
+  {{ (e : GoInterface), RET #e; encoding.gob.ownDecoder dec dq (rd) ∗
       ∃ data : List w8, I (R ++ data) ∗
       -- change log C17 (SWC-G1): the frame's body is shorter than `2 ^ 64` (its length is an
       -- 8-byte field)

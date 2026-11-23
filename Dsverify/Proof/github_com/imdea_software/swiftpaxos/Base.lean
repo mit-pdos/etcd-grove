@@ -16,6 +16,7 @@ module
 
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.examples.swiftnet
 public import GooseLang.Ext.Net.Adequacy
+public import GooseLang.Ext.Net.Proto
 public import Perennial.GooseLang.Ext.Sha256.Specs
 public import Perennial.Proof.crypto.sha256
 public import Dsverify.GeneratedProof.github_com.emirpasic.gods.utils
@@ -120,13 +121,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 over, with the laws the proof uses of them, each named after the lab's definition or lemma (the
 lab proved them over its own models). A deployment's proof is given them, with their specs
 (`SwiftHyps`), and proves `swiftpaxos_remote_robust` for any choice. -/
-class SwiftLibs (GF : BundledGFunctors) where
+class SwiftLibs (GF : BundledGFunctors) extends Net.NetProtoGS where
   /-- lab `Proof/treemap/Specs.lean` `treemap.isTreeMap`: the `*treemap.Map` at `tm` holds the
   sorted entries `es`, keys encoded by `enc`. -/
   isTreeMap : Loc → (w64 → GoInterface) → github_com.emirpasic.gods.maps.treemap.Entries → IProp GF
   /-- lab `treemap.isTreeMap_sorted`. -/
   isTreeMap_sorted : ∀ tm enc es, isTreeMap tm enc es ⊢
     isTreeMap tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝
+  /-- lab `Spec/gob/Defs.lean` `gob.codecSet`: the gob codec encodes and decodes as the kit's
+  `RpcCodec` (the lab's model held the kit's functions; the real `encoding/gob` here, names only,
+  is a hypothesis). -/
+  gobCodecSet : IProp GF
+  gobCodecSet_persistent : Persistent gobCodecSet
+  /-- The `*gob.Encoder` at `enc` writes to `w` (the lab's model's `enc ↦ Encoder{w}`). -/
+  gobEncoder : Loc → DFrac → GoInterface → IProp GF
+  /-- The `*gob.Decoder` at `dec` reads from `r` (the lab's model's `dec ↦ Decoder{r}`). -/
+  gobDecoder : Loc → DFrac → GoInterface → IProp GF
 
 /-- The run's choice of each package's own post-initialization predicate (`isPkgInitDef`:
 its package-level state), for the kit's packages and the packages they import that have no

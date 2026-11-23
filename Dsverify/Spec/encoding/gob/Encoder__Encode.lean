@@ -42,8 +42,7 @@ abbrev Encoder.Encode.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob ∗ codecSet (GF := GF) ∗
       net.rpc.kitCodecOk (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗
       bufio.writerOk wr J Q ∗
-      enc ↦{dq} (⟨interface.mkOk (go.GoType.PointerType bufio.Writer.ty) #bw⟩ :
-        encoding.gob.Encoder) ∗
+      encoding.gob.ownEncoder enc dq (interface.mkOk (go.GoType.PointerType bufio.Writer.ty) #bw) ∗
       bufio.ownWriter bw wr J Q sent pend err ∗
       net.rpc.RpcCodec.enc v (fun bs =>
         iprop(□ Q (sent ++ pend ++ github_com.imdea_software.swiftpaxos.sp.gobFrame bs) ∗ Θ bs)) }}
@@ -55,8 +54,7 @@ abbrev Encoder.Encode.spec : Prop :=
         (e = interface.nil → k = (github_com.imdea_software.swiftpaxos.sp.gobFrame bs).length) ∧
         (err ≠ interface.nil → e = err ∧ k = 0)⌝ ∗
       Θ bs ∗
-      enc ↦{dq} (⟨interface.mkOk (go.GoType.PointerType bufio.Writer.ty) #bw⟩ :
-        encoding.gob.Encoder) ∗
+      encoding.gob.ownEncoder enc dq (interface.mkOk (go.GoType.PointerType bufio.Writer.ty) #bw) ∗
       bufio.ownWriter bw wr J Q sent' pend' e }}
 
 end spec

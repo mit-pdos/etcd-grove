@@ -53,12 +53,12 @@ abbrev Encoder.EncodeW.spec : Prop :=
     (v : GoInterface) (Θ : List w8 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob ∗ codecSet (GF := GF) ∗
       net.rpc.kitCodecOk (GF := GF) ∗ writeSink e S Q ∗
-      enc ↦{dq} (⟨interface.ok e⟩ : encoding.gob.Encoder) ∗ S W ∗
+      encoding.gob.ownEncoder enc dq (interface.ok e) ∗ S W ∗
       net.rpc.RpcCodec.enc v (fun bs =>
         iprop(□ Q (W ++ github_com.imdea_software.swiftpaxos.sp.gobFrame bs) ∗ Θ bs)) }}
     (App (Val (enc @!! go.GoType.PointerType encoding.gob.Encoder.ty @!! go!"Encode")) (Val #v))
   {{ (err : GoInterface), RET #err; ∃ bs : List w8, Θ bs ∗
-      enc ↦{dq} (⟨interface.ok e⟩ : encoding.gob.Encoder) ∗
+      encoding.gob.ownEncoder enc dq (interface.ok e) ∗
       S (W ++ github_com.imdea_software.swiftpaxos.sp.gobFrame bs) }}
 
 end spec

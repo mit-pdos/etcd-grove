@@ -34,7 +34,7 @@ abbrev NewDecoder.spec : Prop :=
   ∀ (r : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob }}
     (App (Val (@! encoding.gob.NewDecoder)) (Val #r))
-  {{ (dec : Loc), RET #dec; dec ↦ (⟨r⟩ : encoding.gob.Decoder) }}
+  {{ (dec : Loc), RET #dec; encoding.gob.ownDecoder dec (DFrac.own 1) (r) }}
 
 end spec
 
