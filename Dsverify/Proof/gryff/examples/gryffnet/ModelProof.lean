@@ -627,7 +627,106 @@ theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []
   · unfold cfgsOk; icases Hcs with ⟨%h, -⟩; ipureintro; exact h
   wp_auto
   cases hu : o.Unknown'
-  · sorry
+  · wp_auto
+    wp_apply wp_slice_make2 (V := Cfg) $$ [] as %q0 ⟨Hq, Hcap⟩
+    · ipureintro; word
+    rw [List.replicate_zero]
+    irename «in» => Hin
+    ihave HI : (∃ (iv : w64) (q : GoSlice) (cs2 : List Cfg) (L2 : List GCfg),
+        "i" ∷ i_ptr ↦ iv ∗ "cs" ∷ cs_ptr ↦ q ∗
+        "Hq" ∷ q ↦* cs2 ∗ "Hcap" ∷ ownSliceCap Cfg q (DFrac.own 1) ∗ "#Hcs2" ∷ cfgsOk cs2 L2 ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z iv ∧ sint.Z iv ≤ sint.Z sl.len ∧ (∀ y ∈ L2, knownCfgs L i o y) ∧
+          (∀ y, (∃ i', i' < sint.nat iv ∧ ∃ x, L[i']? = some x ∧ ∃ r, AReach x r ∧
+            applyG r.st i = (y.st, o) ∧ y.pend = r.pend) → y ∈ L2) ∧
+          ∀ y ∈ L2, y.pend.length ≤ k⌝ : IProp GF) $$ [i cs Hq Hcap]
+    · iexists W64 0, q0, [], []
+      iframe
+      isplitl []
+      · iapply cfgsOk_nil
+      ipureintro
+      have h0 : sint.nat (W64 0) = 0 := rfl
+      refine ⟨by word, by word, by simp, fun y ⟨i', hi', _⟩ => by rw [h0] at hi'; omega, by simp⟩
+    wp_for HI
+    obtain ⟨Hi0, Hil, HK, HC, HB⟩ := Hj
+    wp_if_destruct
+    · have hlt : sint.Z iv < sint.Z sl.len := Hif
+      obtain ⟨xc, Hx_lookup⟩ : ∃ x, cs[sint.nat iv]? = some x :=
+        ⟨cs[sint.nat iv]'(by rw [Hl.1]; word), List.getElem?_eq_getElem _⟩
+      ihave ⟨%xg, %Hxg, #Hx⟩ := cfgsOk_get cs L (sint.nat iv) xc Hx_lookup $$ Hcs
+      have hxg : xg ∈ L := List.mem_of_getElem? Hxg
+      rw [ite_eq_left (show 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z sl.len from ⟨Hi0, hlt⟩)]
+      wp_apply wp_load_slice_index sl (sint.Z iv) cs _ xc Hi0 $$ [Hsl] as -
+      · iframe Hsl; ipureintro; exact Hx_lookup
+      wp_apply +noauto wp_reach xc xg $$ [$Hx] as %rs ⟨%rcs, %R, Hrs, #HR, %HRm⟩
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hrs with #Hrs
+      imodintro
+      wp_auto
+      ihave %HrL := ownSlice_len _ _ _ $$ Hrs
+      ihave %HrR : ⌜rcs.length = R.length⌝ $$ []
+      · unfold cfgsOk; icases HR with ⟨%h, -⟩; ipureintro; exact h
+      ihave HJ : (∃ (jv : w64) (q : GoSlice) (cs2 : List Cfg) (L2 : List GCfg),
+          "j" ∷ j_ptr ↦ jv ∗ "cs" ∷ cs_ptr ↦ q ∗
+          "Hq" ∷ q ↦* cs2 ∗ "Hcap" ∷ ownSliceCap Cfg q (DFrac.own 1) ∗ "#Hcs2" ∷ cfgsOk cs2 L2 ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z jv ∧ sint.Z jv ≤ sint.Z rs.len ∧ (∀ y ∈ L2, knownCfgs L i o y) ∧
+            (∀ y, (∃ i', i' < sint.nat iv ∧ ∃ x, L[i']? = some x ∧ ∃ r, AReach x r ∧
+              applyG r.st i = (y.st, o) ∧ y.pend = r.pend) → y ∈ L2) ∧
+            (∀ y, (∃ j', j' < sint.nat jv ∧ ∃ r, R[j']? = some r ∧
+              applyG r.st i = (y.st, o) ∧ y.pend = r.pend) → y ∈ L2) ∧
+            ∀ y ∈ L2, y.pend.length ≤ k⌝ : IProp GF) $$ [j cs Hq Hcap]
+      · iexists W64 0, q, cs2, L2
+        iframe
+        iframe #
+        ipureintro
+        have h0 : sint.nat (W64 0) = 0 := rfl
+        refine ⟨by word, by word, HK, HC, fun y ⟨j', hj', _⟩ => by rw [h0] at hj'; omega, HB⟩
+      wp_for HJ
+      obtain ⟨Hj0, Hjl, HK', HC', HD', HB'⟩ := Hj
+      wp_if_destruct
+      · have hltj : sint.Z jv < sint.Z rs.len := Hif
+        obtain ⟨rc, Hr_lookup⟩ : ∃ x, rcs[sint.nat jv]? = some x :=
+          ⟨rcs[sint.nat jv]'(by rw [HrL.1]; word), List.getElem?_eq_getElem _⟩
+        ihave ⟨%rg, %Hrg, #Hr⟩ := cfgsOk_get rcs R (sint.nat jv) rc Hr_lookup $$ HR
+        have hrg : AReach xg rg := (HRm rg).1 (List.mem_of_getElem? Hrg)
+        ihave #Hel : (sliceIndexRef Cfg (sint.Z jv) rs ↦□ rc : IProp GF) $$ []
+        · ihave ⟨H1, -⟩ := ownSlice_elem_acc (sint.Z jv) rc rs _ rcs Hj0 Hr_lookup $$ Hrs
+          iexact H1
+        icases (Cfg.Cfg_access_load_V _ rc _).access_strict $$ Hel with ⟨#HelV, -⟩
+        icases (Cfg.Cfg_access_load_Pend _ rc _).access_strict $$ Hel with ⟨#HelP, -⟩
+        rw [ite_eq_left (show 0 ≤ sint.Z jv ∧ sint.Z jv < sint.Z rs.len from ⟨Hj0, hltj⟩)]
+        wp_auto
+        wp_apply wp_apply
+        rw [ite_eq_left (show 0 ≤ sint.Z jv ∧ sint.Z jv < sint.Z rs.len from ⟨Hj0, hltj⟩)]
+        wp_auto
+        unfold cfgOk
+        icases Hr with ⟨%HrV, #HrP⟩
+        rw [HrV]
+        have hs : sint.nat (jv + W64 1) = sint.nat jv + 1 := by word
+        let yg : GCfg := ⟨(applyG rg.st i).1, rg.pend⟩
+        -- the coverage of `j + 1` when `y`'s case is decided
+        have hcov : ∀ L2' : List GCfg, (∀ y ∈ L2, y ∈ L2') →
+            ((applyG rg.st i).2 = o → yg ∈ L2') →
+            ∀ y : GCfg, (∃ j', j' < sint.nat (jv + W64 1) ∧ ∃ rr : GCfg, R[j']? = some rr ∧
+              applyG rr.st i = (y.st, o) ∧ y.pend = rr.pend) → y ∈ L2' := by
+          intro L2' hsub hy y ⟨j', hj', r, hr, ha, hp⟩
+          rw [hs] at hj'
+          rcases Nat.lt_succ_iff_lt_or_eq.1 hj' with hj' | hj'
+          · exact hsub y (HD' y ⟨j', hj', r, hr, ha, hp⟩)
+          · subst hj'
+            rw [Hrg] at hr; cases hr
+            have h2 : (applyG rg.st i).2 = o := by rw [ha]
+            have : y = yg := by
+              cases y; simp only [yg, PCfg.mk.injEq]
+              exact ⟨(congrArg Prod.fst ha).symm, hp⟩
+            subst this; exact hy h2
+        by_cases hwo : (applyG rg.st i).2 = o
+        · rw [hwo]
+          simp only [_root_.decide_true]
+          wp_auto
+          sorry
+        · sorry
+      · sorry
+    · sorry
   · have H := pseq_unknown L hne i
     wp_auto
     wp_apply wp_isWrite
