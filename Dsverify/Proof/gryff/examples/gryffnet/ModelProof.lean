@@ -415,6 +415,184 @@ theorem wp_hasCfg (sl : GoSlice) (dq : DFrac) (cs : List Cfg) (L : List GCfg) (c
     iapply HΦ
     iexact Hsl
 
+/-- One step of `reach`: pending operation `k` of `x` takes effect. -/
+def succG (x : GCfg) (k : Nat) (hk : k < x.pend.length) : GCfg :=
+  ⟨(applyG x.st x.pend[k]).1, x.pend.eraseIdx k⟩
+
+theorem areach_trans {a b c : GCfg} (h1 : AReach a b) (h2 : AReach b c) : AReach a c := by
+  induction h1 with
+  | refl => exact h2
+  | step k hk _ ih => exact .step k hk (ih h2)
+
+theorem areach_succ {g x : GCfg} (h : AReach g x) (k : Nat) (hk : k < x.pend.length) :
+    AReach g (succG x k hk) :=
+  areach_trans h (.step k hk (.refl _))
+
+theorem areach_closed {R : List GCfg}
+    (hc : ∀ x ∈ R, ∀ k (hk : k < x.pend.length), succG x k hk ∈ R) {x y : GCfg} (hx : x ∈ R)
+    (h : AReach x y) : y ∈ R := by
+  induction h with
+  | refl => exact hx
+  | step k hk _ ih => exact ih (hc _ hx k hk)
+
+theorem wp_reach (c : Cfg) (g : GCfg) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ cfgOk c g }}
+      (App (Val (@! gryff.examples.gryffnet.reach)) (Val #c))
+    {{ (sl : GoSlice), RET #sl; ∃ (cs : List Cfg) (R : List GCfg),
+        sl ↦* cs ∗ cfgsOk cs R ∗ ⌜∀ y, y ∈ R ↔ AReach g y⌝ }} := by
+  wp_start as #Hc
+  wp_auto
+  wp_apply wp_slice_literal (V := Cfg) [c]
+  isplitr
+  · ipureintro; rfl
+  iintro %sl0 ⟨Hsl0, Hcap0⟩
+  wp_auto
+  ihave #Hcs0 := cfgsOk_snoc [] [] c g $$ [$Hc]
+  · iapply cfgsOk_nil
+  simp only [List.nil_append] at *
+  ihave HI : (∃ (k : w64) (sl : GoSlice) (cs : List Cfg) (R : List GCfg),
+      "k" ∷ k_ptr ↦ k ∗ "out" ∷ out_ptr ↦ sl ∗ "Hsl" ∷ sl ↦* cs ∗
+      "Hcap" ∷ ownSliceCap Cfg sl (DFrac.own 1) ∗ "#Hcs" ∷ cfgsOk cs R ∗
+      "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.nat k ≤ R.length ∧ g ∈ R ∧ (∀ y ∈ R, AReach g y) ∧
+        ∀ j x, j < sint.nat k → R[j]? = some x → ∀ i (hi : i < x.pend.length), succG x i hi ∈ R⌝ :
+      IProp GF) $$ [k out Hsl0 Hcap0]
+  · iexists W64 0, _, [c], [g]
+    iframe
+    iframe #
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by rw [h0]; simp, by simp, ?_, fun j x hj => by rw [h0] at hj; omega⟩
+    intro y hy; simp only [List.mem_singleton] at hy; subst hy; exact .refl _
+  wp_for HI
+  obtain ⟨Hk0, HkR, HgR, HRr, HRc⟩ := Hk
+  ihave %Hl := ownSlice_len _ _ _ $$ Hsl
+  ihave %HcsR : ⌜cs.length = R.length⌝ $$ []
+  · unfold cfgsOk; icases Hcs with ⟨%h, -⟩; ipureintro; exact h
+  wp_if_destruct
+  · have hlt : sint.Z k < sint.Z sl.len := Hif
+    obtain ⟨xc, Hx_lookup⟩ : ∃ x, cs[sint.nat k]? = some x :=
+      ⟨cs[sint.nat k]'(by rw [Hl.1]; word), List.getElem?_eq_getElem _⟩
+    rw [ite_eq_left (show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len from ⟨Hk0, hlt⟩)]
+    wp_apply wp_load_slice_index sl (sint.Z k) cs _ xc Hk0 $$ [Hsl] as Hsl
+    · iframe Hsl; ipureintro; exact Hx_lookup
+    ihave ⟨%xg, %Hxg, #Hx⟩ := cfgsOk_get cs R (sint.nat k) xc Hx_lookup $$ Hcs
+    unfold cfgOk
+    icases Hx with ⟨%HxV, #HxP⟩
+    ihave %HxL := ownSlice_len _ _ _ $$ HxP
+    ihave HJ : (∃ (iv : w64) (sl' : GoSlice) (cs' : List Cfg) (R' : List GCfg),
+        "i" ∷ i_ptr ↦ iv ∗ "out" ∷ out_ptr ↦ sl' ∗ "Hsl" ∷ sl' ↦* cs' ∗
+        "Hcap" ∷ ownSliceCap Cfg sl' (DFrac.own 1) ∗ "#Hcs" ∷ cfgsOk cs' R' ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z iv ∧ sint.nat iv ≤ xg.pend.length ∧ R <+: R' ∧
+          (∀ y ∈ R', AReach g y) ∧
+          ∀ i' (hi' : i' < xg.pend.length), i' < sint.nat iv → succG xg i' hi' ∈ R'⌝ :
+        IProp GF) $$ [i out Hsl Hcap]
+    · iexists W64 0, sl, cs, R
+      iframe
+      iframe #
+      ipureintro
+      have h0 : sint.nat (W64 0) = 0 := rfl
+      refine ⟨by word, by rw [h0]; omega, List.prefix_refl _, HRr, fun i' _ h => by rw [h0] at h; omega⟩
+    wp_for HJ
+    obtain ⟨Hi0, HiL, HRR', HR'r, HR'c⟩ := Hi
+    ihave %Hl' := ownSlice_len _ _ _ $$ Hsl
+    ihave %HcsR' : ⌜cs'.length = R'.length⌝ $$ []
+    · unfold cfgsOk; icases Hcs with ⟨%h, -⟩; ipureintro; exact h
+    wp_if_destruct
+    · have hlt : sint.Z iv < sint.Z xc.Pend'.len := Hif
+      have hiv : sint.nat iv < xg.pend.length := by rw [HxL.1]; word
+      have Hp : xg.pend[sint.nat iv]? = some xg.pend[sint.nat iv] := List.getElem?_eq_getElem hiv
+      rw [ite_eq_left (show 0 ≤ sint.Z iv ∧ sint.Z iv < sint.Z xc.Pend'.len from ⟨Hi0, hlt⟩)]
+      wp_apply wp_load_slice_index xc.Pend' (sint.Z iv) xg.pend _ _ Hi0 $$ [HxP] as -
+      · iframe HxP; ipureintro; exact Hp
+      wp_apply wp_apply
+      wp_apply +noauto wp_without xc.Pend' xg.pend iv Hi0 $$ [$HxP] as %q Hq
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hq with #Hq
+      imodintro
+      wp_auto
+      ihave #Hy : cfgOk (Cfg.mk (applyG xc.V' xg.pend[sint.nat iv]).1 q) (succG xg (sint.nat iv) hiv) $$ []
+      · unfold cfgOk succG
+        isplitr
+        · ipureintro; simp [HxV]
+        iexact Hq
+      wp_apply wp_hasCfg sl' _ cs' R' _ (succG xg (sint.nat iv) hiv) $$ [$Hsl $Hcs $Hy] as Hsl
+      have hs : sint.nat (iv + W64 1) = sint.nat iv + 1 := by word
+      by_cases hin : succG xg (sint.nat iv) hiv ∈ R'
+      · simp only [hin, _root_.decide_true, Bool.not_true]
+        wp_auto
+        wp_for_post
+        iframe
+        iexists iv + W64 1, sl', cs', R'
+        iframe
+        iframe #
+        ipureintro
+        refine ⟨by word, by rw [hs]; omega, HRR', HR'r, fun i' hi' h => ?_⟩
+        rw [hs] at h
+        rcases Nat.lt_succ_iff_lt_or_eq.1 h with h | h
+        · exact HR'c i' hi' h
+        · subst h; exact hin
+      · simp only [hin, _root_.decide_false, Bool.not_false]
+        wp_auto
+        wp_apply wp_slice_literal (V := Cfg) [_]
+        isplitr
+        · ipureintro; rfl
+        iintro %sl1 ⟨Hsl1, -⟩
+        wp_auto
+        wp_apply wp_slice_append (V := Cfg) $$ [$Hsl $Hcap $Hsl1] as %q' ⟨Hq', Hcap', -⟩
+        wp_for_post
+        iframe
+        ihave #Hcs2 := cfgsOk_snoc cs' R' _ _ $$ [$Hcs $Hy]
+        iexists iv + W64 1, q', _, R' ++ [succG xg (sint.nat iv) hiv]
+        iframe
+        iframe #
+        ipureintro
+        refine ⟨by word, by rw [hs]; omega, HRR'.trans (List.prefix_append _ _), ?_, fun i' hi' h => ?_⟩
+        · intro y hy
+          rcases List.mem_append.1 hy with hy | hy
+          · exact HR'r y hy
+          · simp only [List.mem_singleton] at hy; subst hy
+            exact areach_succ (HRr xg (List.mem_of_getElem? Hxg)) _ hiv
+        · rw [hs] at h
+          rcases Nat.lt_succ_iff_lt_or_eq.1 h with h | h
+          · exact List.mem_append_left _ (HR'c i' hi' h)
+          · subst h; exact List.mem_append_right _ (List.mem_singleton_self _)
+    · have hend : sint.nat iv = xg.pend.length := by
+        have h1 := HiL; rw [HxL.1] at h1 ⊢; word
+      have hkR : sint.nat k < R.length := by rw [← HcsR, Hl.1]; word
+      have hks : sint.nat (k + W64 1) = sint.nat k + 1 := by word
+      obtain ⟨t, rfl⟩ := HRR'
+      wp_for_post
+      iframe
+      iexists k + W64 1, sl', cs', R ++ t
+      iframe
+      iframe #
+      ipureintro
+      refine ⟨by word, by rw [hks]; simp; omega, List.mem_append_left _ HgR, HR'r, ?_⟩
+      intro j x hj hx i' hi'
+      rw [hks] at hj
+      have hjR : j < R.length := by omega
+      rw [List.getElem?_append_left hjR] at hx
+      rcases Nat.lt_succ_iff_lt_or_eq.1 hj with hj | hj
+      · exact List.mem_append_left _ (HRc j x hj hx i' hi')
+      · subst hj
+        rw [Hxg] at hx
+        cases hx
+        exact HR'c i' hi' (by omega)
+  · have hkR : sint.nat k = R.length := by
+      have h1 := HkR; rw [← HcsR, Hl.1] at h1 ⊢; word
+    iapply HΦ
+    iexists cs, R
+    iframe Hsl
+    iframe #
+    ipureintro
+    intro y
+    constructor
+    · exact HRr y
+    · intro h
+      refine areach_closed (fun x hx i hi => ?_) HgR h
+      obtain ⟨j, hj, hjx⟩ := List.getElem_of_mem hx
+      exact HRc j x (by omega) (by rw [← hjx]; exact List.getElem?_eq_getElem hj) i hi
+
 end proof
 
 end gryff.examples.gryffnet
