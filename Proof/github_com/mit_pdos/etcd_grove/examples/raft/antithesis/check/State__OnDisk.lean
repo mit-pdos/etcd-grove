@@ -244,10 +244,8 @@ macro "odAterm " hor:term:max : tactic => `(tactic| (
 
 set_option hygiene false in
 /-- g6's last guard (`app || snap` held, `hor`): `!(s.PrevOk(n, x.f()) && (x.stores() || s.HasFirst(n, x.f(), len(x.f().Entries))))`. -/
-macro "odM5body " hor:term:max : tactic => `(tactic| (
-  have hb5 := h5t $hor
-  simp only [ite_true] at hb5
-  obtain ⟨ok5, hok5, Ho⟩ := bind_ok hb5
+macro "odM5body" : tactic => `(tactic| (
+  obtain ⟨ok5, hok5, Ho⟩ := bind_ok Ho
   obtain ⟨pv, hpv, h6t, h6f⟩ := andM_ok hok5
   obtain ⟨f', hf', hpv⟩ := bind_ok hpv
   rw [hf] at hf'; cases hf'
@@ -1589,5 +1587,97 @@ theorem State.OnDisk.wp_proof
       · rw [decide_eq_false hmt1]
         odretc (by rw [← hc2]; simpa using hmt1)
     odafterj c2
-    done
+    -- M3: `!(SnapOk(ll, x.m()) && SendableIn(ld, ll, ch, tl, x.f()))`
+    obtain ⟨okC, hokC, Ho⟩ := bind_ok Ho
+    generalize hcC : (!okC) = cC at Ho
+    obtain ⟨c1', hc1', hCt, hCf⟩ := andM_ok hokC
+    obtain ⟨m, hm, hc1'⟩ := bind_ok hc1'
+    odguard cC
+    · odm m
+      wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+      · iframe Hx; ipureintro; exact hm
+      try wp_auto
+      wp_apply wp_SnapOk lll ll gm m c1' $$ [Hll Hm]
+      · iframe Hll Hm; ipureintro; exact hc1'
+      cases c1'
+      · odretc (by rw [← hcC, hCf rfl]; rfl)
+      have hC := hCt rfl
+      obtain ⟨f, hf, hC⟩ := bind_ok hC
+      obtain ⟨hfp, hfe', -⟩ := OnDisk.f_within hb HW hf
+      try wp_auto
+      odm f
+      wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+      · iframe Hx; ipureintro; exact hf
+      try wp_auto
+      wp_apply wp_SendableIn ldl ld lll ll chl ch tll tl gf f okC $$ [Hld Hll Hch Htl Hf]
+      · iframe Hld Hll Hch Htl Hf; ipureintro; exact ⟨hC, hfp, by omega⟩
+      subst hcC
+      cases okC
+      · odretc rfl
+      · odskip rfl
+    odafterj cC
+    -- M4: `!(w.commit() <= x.f().Commit)`
+    obtain ⟨cm, hcm, Ho⟩ := bind_ok Ho
+    obtain ⟨f, hf, Ho⟩ := bind_ok Ho
+    obtain ⟨hpli, hfel, -, -, -⟩ := OnDisk.fm_within HW (hfnl ▸ hf)
+    wp_apply wp_Event_commit pw X.w cm $$ [Hw] as %uc %Huc
+    · iframe Hw; ipureintro; exact hcm
+    try wp_auto
+    odm f
+    wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+    · iframe Hx; ipureintro; exact hf
+    try wp_auto
+    iunfold appendFactRO at Hf
+    icases Hf with ⟨%Hfr, #-⟩
+    rw [Huc, Hfr.2.2.2.2.2]
+    by_cases hcf : cm ≤ f.commit
+    case neg =>
+      rw [decide_eq_false hcf]
+      simp only [decide_eq_false hcf, Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+      odjret (by subst Ho; rfl)
+    rw [decide_eq_true hcf]
+    simp only [decide_eq_true hcf, Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    try wp_auto
+    -- M5: `if x.m().typ() == "app" || x.m().typ() == "snap" { … }`
+    obtain ⟨o5, ho5, Ho⟩ := bind_ok Ho
+    obtain ⟨oa, hoa, hoat, hoaf⟩ := orM_ok ho5
+    obtain ⟨m, hm, hoa⟩ := bind_ok hoa
+    obtain ⟨ty, hty, hoa⟩ := bind_ok hoa
+    simp only [pure_ok, Except.ok.injEq] at hoa
+    subst hoa
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_typ gm m ty $$ [Hm]
+    · iframe Hm; ipureintro; exact hty
+    by_cases hta : ty = go!"app"
+    · rw [decide_eq_true hta]
+      rw [hoat (by simp [hta])] at Ho
+      simp only [ite_true] at Ho
+      odM5body
+    rw [decide_eq_false hta]
+    have hor := hoaf (by simpa using hta)
+    obtain ⟨m', hm', hor⟩ := bind_ok hor
+    rw [hm] at hm'; cases hm'
+    obtain ⟨ty', hty', hor⟩ := bind_ok hor
+    rw [hty] at hty'; cases hty'
+    simp only [pure_ok, Except.ok.injEq] at hor
+    subst hor
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm' #Hm'
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_typ gm' m ty $$ [Hm']
+    · iframe Hm'; ipureintro; exact hty
+    by_cases hts : ty = go!"snap"
+    · rw [decide_eq_true hts]
+      simp only [hts, beq_self_eq_true, ite_true] at Ho
+      odM5body
+    rw [decide_eq_false hts]
+    simp only [show (ty == go!"snap") = false by simpa using hts, Bool.false_eq_true, ite_false] at Ho
+    odjskip Ho
+  odjafter
+  subst hK
   done
