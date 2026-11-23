@@ -723,8 +723,76 @@ theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []
         · rw [hwo]
           simp only [_root_.decide_true]
           wp_auto
-          sorry
-        · sorry
+          ihave #Hy : cfgOk (Cfg.mk (applyG rg.st i).1 rc.Pend') yg $$ []
+          · unfold cfgOk
+            isplitr
+            · ipureintro; rfl
+            iexact HrP
+          have hky : knownCfgs L i o yg := ⟨xg, hxg, rg, hrg, by rw [← hwo], rfl⟩
+          have hyb : yg.pend.length ≤ k := Nat.le_trans (areach_len (y := rg) hrg) (hL xg hxg)
+          wp_apply wp_hasCfg q _ cs2 L2 _ yg $$ [$Hq $Hcs2 $Hy] as Hq
+          by_cases hin : yg ∈ L2
+          · simp only [hin, _root_.decide_true, Bool.not_true]
+            wp_auto
+            wp_for_post
+            iframe
+            iexists jv + W64 1, q, cs2, L2
+            iframe
+            iframe #
+            ipureintro
+            exact ⟨by word, by word, HK', HC', hcov L2 (fun _ h => h) (fun _ => hin), HB'⟩
+          · simp only [hin, _root_.decide_false, Bool.not_false]
+            wp_auto
+            wp_apply wp_slice_literal (V := Cfg) [_]
+            isplitr
+            · ipureintro; rfl
+            iintro %sl1 ⟨Hsl1, -⟩
+            wp_auto
+            wp_apply wp_slice_append (V := Cfg) $$ [$Hq $Hcap $Hsl1] as %q' ⟨Hq', Hcap', -⟩
+            ihave #Hcs3 := cfgsOk_snoc cs2 L2 _ _ $$ [$Hcs2 $Hy]
+            wp_for_post
+            iframe
+            iexists jv + W64 1, q', _, L2 ++ [yg]
+            iframe
+            iframe #
+            ipureintro
+            refine ⟨by word, by word, ?_, fun y h => List.mem_append_left _ (HC' y h),
+              hcov _ (fun _ h => List.mem_append_left _ h)
+                (fun _ => List.mem_append_right _ (List.mem_singleton_self _)), ?_⟩
+            · intro y hy
+              rcases List.mem_append.1 hy with hy | hy
+              · exact HK' y hy
+              · simp only [List.mem_singleton] at hy; subst hy; exact hky
+            · intro y hy
+              rcases List.mem_append.1 hy with hy | hy
+              · exact HB' y hy
+              · simp only [List.mem_singleton] at hy; subst hy; exact hyb
+        · have hne' : ¬ ((applyG rg.st i).2.Unknown' = o.Unknown' ∧ (applyG rg.st i).2.V' = o.V') :=
+            fun ⟨h1, h2⟩ => hwo (by
+              revert h1 h2; generalize (applyG rg.st i).2 = w; intro h1 h2
+              cases w; cases o; simp only at h1 h2; subst h1 h2; rfl)
+          by_cases e1 : (applyG rg.st i).2.Unknown' = o.Unknown'
+          · have e2 : ¬ (applyG rg.st i).2.V' = o.V' := fun h => hne' ⟨e1, h⟩
+            simp only [e1, _root_.decide_true]
+            wp_auto
+            simp only [e2, _root_.decide_false]
+            wp_auto
+            wp_for_post
+            iframe
+            iexists jv + W64 1, q, cs2, L2
+            iframe
+            iframe #
+            ipureintro
+            exact ⟨by word, by word, HK', HC', hcov L2 (fun _ h => h) (fun h => absurd h hwo), HB'⟩
+          · simp only [e1, _root_.decide_false]
+            wp_auto
+            wp_for_post
+            iframe
+            iexists jv + W64 1, q, cs2, L2
+            iframe
+            iframe #
+            ipureintro
+            exact ⟨by word, by word, HK', HC', hcov L2 (fun _ h => h) (fun h => absurd h hwo), HB'⟩
       · sorry
     · sorry
   · have H := pseq_unknown L hne i
