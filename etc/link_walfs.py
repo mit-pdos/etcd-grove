@@ -76,8 +76,10 @@ PROOF_DIRS = ["os", "syscall", "golang_org/x/sys/unix", "io", "internal", "bufio
               "go_etcd_io/etcd/pkg/v3/crc", "go_etcd_io/etcd/pkg/v3/ioutil", "go_etcd_io/etcd/pkg/v3/pbutil",
               "go_etcd_io/etcd/server/v3/storage/wal", "go_etcd_io/raft/v3/raftpb",
               "github_com/Masterminds", "github_com/prometheus"]
+# the part Net/'s proof directories whose theorems are candidate results
+NET_DIRS = ["models_lab/pbcodec"]
 # the proofs' module prefixes (the main tree's, the part WalTester's)
-PROOF_PFX = ("Proof.", "WalTester.Proof.")
+PROOF_PFX = ("Proof.", "WalTester.Proof.", "Net.Proof.")
 # model parameters: binder types a spec is applied to
 PARAMS = [r"WalPbIn GF", r"WalMarshal", r"WalCodec", r"WalUnmarshal", r"Loc → HardStateM → IProp GF"]
 # premises (type pattern -> hypothesis name stem): facts about the model parameters, hypotheses
@@ -237,6 +239,9 @@ def scan(root, perennial, cfg=None):
         walk(os.path.join(root, "WalTester", "Proof"), "WalTester.Proof.", lambda r: True, True)
     walk(os.path.join(root, "Spec"), "Spec.", lambda r: True, False)
     walk(os.path.join(root, "Proof"), "Proof.", under(PROOF_DIRS), True)
+    # (#37 stage S3) the part Net/'s `models.lab/pbcodec`, which the protobuf model's methods call
+    walk(os.path.join(root, "Net", "Spec"), "Net.Spec.", under(NET_DIRS), False)
+    walk(os.path.join(root, "Net", "Proof"), "Net.Proof.", under(NET_DIRS), True)
     walk(os.path.join(perennial, "Perennial", "Spec"), "Perennial.Spec.", lambda r: True, False)
     walk(os.path.join(perennial, "Perennial", "Proof"), "Perennial.Proof.", lambda r: True, True,
          only_link=True)

@@ -42080,3 +42080,36 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
   - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
   - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
 - **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.
+
+## The protobuf boundary's stage S3, Lean side: the overlay, and why `proto` keeps no body yet (2026-11-23 · #37 · branch `proto-s3-lean`)
+
+- **The overlay** (D1): `etc/goose.py`'s `Project.pbmodel_roots` names message types; each run
+  generates pbgen's `pbmodel_gen.go` for their closure (`pbgen.derive` in examples/'s module, whose pins
+  `--check` keeps equal to the projects', then `pbgen_core.pbmodel_go`) into the run's scratch
+  directory and passes one `-overlay` JSON to goose and proofgen (the project's own module root only:
+  the parts' translations of the same packages stay without the methods, which is only conservative).
+  The fork is untouched; `--check` regenerates the file, so a change to pbgen's core or to a
+  descriptor shows as a translation diff. `models.lab` (the methods' `pbcodec`) joins the workspace
+  (`use`, or a `require`/`replace` for a go.mod project). First root: `walpb.Record`.
+- **`pbcodec` from the main tree**: `models.lab=Net`, as `net`; its package init is generated in the
+  main tree (`Proof/models_lab/pbcodec/Init.lean`, `etc/gen-init.py`), its specs and proofs stay in
+  `Net/` (stated over `Wire.lean`'s `varintEnc`/`tag`/`FVal.payload`), and `etc/link_walfs.py` scans
+  `Net/`'s pbcodec so the WAL's `Link` links the methods' proofs.
+- **A frozen record's unknown fields are persistent**, not in the invariant (`recHidden`): the
+  methods load the slice non-atomically, which an invariant cannot be opened around; nothing writes a
+  frozen message's unknown fields. The invariant keeps `state` and `sizeCache` (atomic loads and
+  stores): the cache mode `Any` of `PbCache.lean`.
+- **Why no `proto.*` axiom is retired in this increment.** Retiring `proto.UnmarshalWalRecord`/
+  `MarshalAppendCachedRecord` needs `proto.Unmarshal`/`MarshalOptions.MarshalAppend` translated with
+  the model's bodies (`models/protobuf-go/proto/model.go`: `modelOf(m)`, a type assertion to the
+  methods' interface, else a `NotModelled` panic). Those bodies are what every other `proto.*` axiom
+  would then be about: `MarshalPb`/`UnmarshalPb`/`SizePb`/`ClonePb` at raftpb's `Entry`, `Message`,
+  `Snapshot`, ..., `Marshal` at `mvccpb.KeyValue`, `MarshalIRR`, `MarshalUser`/`Role`, `Size` at
+  etcdserverpb's requests, `Clone` at `Compare`. At a type whose translation has no `PbModel*` methods
+  the translated `Marshal` panics, so its axiom would be false of the code (inconsistent with its
+  registration). So the step that gives `proto` its bodies must overlay, in the same commit, every
+  package with a type some `proto.*` axiom is stated at: raftpb (project raft and the parts whose
+  proofs use those axioms: RaftTla, RaftWitness), etcdserverpb, mvccpb, authpb, walpb's `Snapshot`
+  (whose `ConfState` is raftpb's). Then the axioms at the other types become claims about the model's
+  code (trusted as before, with D1's one trusted step) until their methods are proved too, and the
+  ones at `Record` become theorems from this increment's method proofs.

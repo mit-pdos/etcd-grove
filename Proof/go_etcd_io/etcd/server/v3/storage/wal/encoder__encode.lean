@@ -92,17 +92,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
   ipersist Type'
   ipersist Crc
   ipersist Data
+  ipersist unknownFields
   imod inv_alloc (nroot.@"protobuf") ⊤ (iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
-      (sc : w32) (us : GoSlice),
+      (sc : w32),
     rp.[go_etcd_io.etcd.server.v3.storage.wal.walpb.Record, go!"state"] ↦ st ∗
-    rp.[go_etcd_io.etcd.server.v3.storage.wal.walpb.Record, go!"sizeCache"] ↦ sc ∗
-      rp.[go_etcd_io.etcd.server.v3.storage.wal.walpb.Record, go!"unknownFields"] ↦ us ∗
-      us ↦* ([] : List w8))) $$ [state sizeCache unknownFields] with #Hinv
+    rp.[go_etcd_io.etcd.server.v3.storage.wal.walpb.Record, go!"sizeCache"] ↦ sc)) $$ [state sizeCache] with #Hinv
   · inext
-    iexists v.state', v.sizeCache', v.unknownFields'
+    iexists v.state', v.sizeCache'
     iframe
-    rw [Huf]
-    iapply ownSlice_nil
+  ihave #Hnil := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   ihave #Hro : recRoC rp (recOf ⟨t, hash.crc32.crc32c c d, d⟩) $$ []
   · iunfold recRoC
     iunfold recPtsCC
@@ -112,6 +110,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.wp_proofGNE
     simp only [recOf, recCell, recHidden]
     isplitr
     · ipureintro; exact Hrp
+    iframe #
+    rw [← Huf]
     iframe #
     ipureintro
     exact ufWire_nil _

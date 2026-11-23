@@ -78,12 +78,16 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **The hidden fields of a `*walpb.Record`** (see the file header). -/
+/-- **The hidden fields of a `*walpb.Record`** (see the file header): `state` and `sizeCache` in an
+invariant (protobuf-go, and the protobuf model's `PbModelSize`, store the size cache atomically into a
+frozen message: the cache mode `Any` of `PbCache.lean`), the unknown fields frozen with the other
+fields (read, never written, by `Marshal`; #37 stage S3, 2026-11-23: until then in the invariant too,
+which a non-atomic load of the slice could not open). -/
 def recHidden (l : Loc) (uf : List w8) : IProp GF :=
   iprop(inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
-      (sc : w32) (us : GoSlice),
-    l.[walpb.Record, go!"state"] ↦ st ∗ l.[walpb.Record, go!"sizeCache"] ↦ sc ∗
-      l.[walpb.Record, go!"unknownFields"] ↦ us ∗ us ↦* uf) ∗ ⌜ufWire recSchema uf⌝)
+      (sc : w32),
+    l.[walpb.Record, go!"state"] ↦ st ∗ l.[walpb.Record, go!"sizeCache"] ↦ sc) ∗
+    (∃ us : GoSlice, l.[walpb.Record, go!"unknownFields"] ↦□ us ∗ us ↦*□ uf) ∗ ⌜ufWire recSchema uf⌝)
 
 instance recHidden_persistent (l : Loc) (uf : List w8) : Persistent (recHidden (GF := GF) l uf) := by
   unfold recHidden; infer_instance
@@ -137,7 +141,7 @@ instance recRoC_persistent (l : Loc) (c : RecC) : Persistent (recRoC (GF := GF) 
 /-- The frozen record's unknown fields are valid at the schema. -/
 theorem recRoC_uf (l : Loc) (c : RecC) : recRoC (GF := GF) l c ⊢ ⌜ufWire recSchema c.uf⌝ := by
   unfold recRoC recPtsCC recHidden
-  iintro ⟨%pt, %pc, %ds, -, -, -, -, -, -, -, -, %Hu⟩
+  iintro ⟨%pt, %pc, %ds, -, -, -, -, -, -, -, -, -, %Hu⟩
   ipureintro; exact Hu
 
 /-- **The store of a record** (`Store.lean`): each scalar `nil` if zero, `Data` `nil` if empty. -/
