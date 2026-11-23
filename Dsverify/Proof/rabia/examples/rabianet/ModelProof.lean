@@ -136,7 +136,7 @@ theorem kvDec_box (i : KIn) (a : linkv.Ans KOut) : kvDec (inV i.1, ansV a) = som
   · next hn => exact absurd ⟨i, a, rfl⟩ hn
 
 /-- `Out{…}`'s bytes, for a bounded value. -/
-theorem encOutV_out (x : Out) (hx : x.V'.length < 2 ^ 40) :
+theorem encOutV_out (x : Out) (hx : x.V'.length < 2 ^ 62) :
     encOutV (interface.mkOk Out.ty #x) = encOutB x := by
   unfold encOutV
   split
@@ -145,7 +145,7 @@ theorem encOutV_out (x : Out) (hx : x.V'.length < 2 ^ 40) :
   · rename_i h
     exact absurd ⟨x, rfl, hx⟩ h
 
-theorem outVal_len (o : KOut) : (outVal o.1).V'.length < 2 ^ 40 := by
+theorem outVal_len (o : KOut) : (outVal o.1).V'.length < 2 ^ 62 := by
   rcases o with ⟨o, ho⟩
   cases o with
   | done => simp [outVal]
@@ -435,6 +435,150 @@ theorem wp_erase (p : GoSlice) (P : List GoString) (v : GoString) :
       iexact Hq
     · simp only [↓reduceIte]
       iexact Hq
+
+/-! ### Entries -/
+
+theorem ents_nil : ⊢ entsRep (GF := GF) [] [] := by
+  unfold entsRep
+  isplitr
+  · ipureintro; simp
+  · simp only [List.zip_nil_left]
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+
+theorem ents_len {evs : List Entry} {es : List EntV} :
+    entsRep (GF := GF) evs es ⊢ ⌜evs.length = es.length⌝ := by
+  unfold entsRep
+  iintro ⟨%h, -⟩
+  ipureintro
+  have := congrArg List.length h.1
+  simpa using this
+
+/-- An entry of `evs` holds the entry of `es` at its index. -/
+theorem ents_lookup {evs : List Entry} {es : List EntV} {i : Nat} {ev : Entry}
+    (h : evs[i]? = some ev) :
+    entsRep (GF := GF) evs es ⊢ ∃ e, ⌜es[i]? = some e⌝ ∗ entRep ev e := by
+  unfold entsRep
+  iintro ⟨%hm, #Hl⟩
+  have hl : evs.length = es.length := by simpa using congrArg List.length hm.1
+  have hi : i < es.length := by rw [← hl]; exact (List.getElem?_eq_some_iff.1 h).1
+  obtain ⟨e, he⟩ : ∃ e, es[i]? = some e := ⟨es[i], List.getElem?_eq_getElem hi⟩
+  have hk : ev.K' = e.k := by
+    have := congrArg (fun l => l[i]?) hm.1
+    simp only [List.getElem?_map, h, he, Option.map_some, Option.some.injEq] at this
+    exact this
+  have hc : ev.Cur' = e.cur := by
+    have := congrArg (fun l => l[i]?) hm.2
+    simp only [List.getElem?_map, h, he, Option.map_some, Option.some.injEq] at this
+    exact this
+  have hz : (evs.zip es)[i]? = some (ev, e) := List.getElem?_zip_eq_some.2 ⟨h, he⟩
+  ihave ⟨#Ho, #Hp⟩ := (BigSepL.bigSepL_lookup (Φ := fun _ p => iprop(p.1.Old' ↦*□ p.2.old ∗
+    p.1.Pend' ↦*□ p.2.new)) hz) $$ Hl
+  iexists e
+  isplitr
+  · ipureintro; exact he
+  unfold entRep
+  iframe Ho Hp
+  ipureintro; exact ⟨hk, hc⟩
+
+theorem ents_snoc (evs : List Entry) (es : List EntV) (eve : Entry) (e : EntV) :
+    entsRep (GF := GF) evs es ∗ entRep eve e ⊢ entsRep (evs ++ [eve]) (es ++ [e]) := by
+  iintro ⟨Hs, He⟩
+  ihave %hl := ents_len $$ Hs
+  unfold entsRep entRep
+  icases Hs with ⟨%hm, #Hl⟩
+  icases He with ⟨%he, #Ho, #Hp⟩
+  isplitr
+  · ipureintro
+    simp [hm.1, hm.2, he.1, he.2]
+  rw [List.zip_append hl]
+  iapply BigSepL.bigSepL_append.2
+  iframe Hl
+  simp only [List.zip_cons_cons, List.zip_nil_left]
+  iapply BigSepL.bigSepL_singleton.2
+  iframe Ho Hp
+
+/-- Every entry of `e`'s key replaced by `e` (kit.go's `set`'s loop). -/
+theorem ents_map (evs : List Entry) (es : List EntV) (eve : Entry) (e : EntV) :
+    entsRep (GF := GF) evs es ∗ entRep eve e ⊢
+      entsRep (evs.map fun x => if x.K' = eve.K' then eve else x)
+        (es.map fun x => if x.k = e.k then e else x) := by
+  induction evs generalizing es with
+  | nil =>
+    iintro ⟨Hs, -⟩
+    ihave %hl := ents_len $$ Hs
+    rw [List.length_nil] at hl
+    rw [List.eq_nil_of_length_eq_zero hl.symm]
+    simp only [List.map_nil]
+    iapply ents_nil
+  | cons ev evs ih =>
+    cases es with
+    | nil =>
+      iintro ⟨Hs, -⟩
+      ihave %hl := ents_len $$ Hs
+      simp at hl
+    | cons x xs =>
+      iintro ⟨Hs, #He⟩
+      ihave Hs' := Hs
+      iunfold entsRep at Hs'
+      icases Hs' with ⟨%hm, #Hl⟩
+      rw [List.zip_cons_cons] at *
+      ihave ⟨⟨#Ho, #Hp⟩, #Hrest⟩ := (BigSepL.bigSepL_cons).1 $$ Hl
+      simp only [List.map_cons, List.cons.injEq] at hm
+      ihave #Ht := ih xs $$ [He]
+      · isplitr
+        · unfold entsRep; isplitr
+          · ipureintro; exact ⟨hm.1.2, hm.2.2⟩
+          · iexact Hrest
+        · iexact He
+      unfold entRep
+      icases He with ⟨%hk, #Ho', #Hp'⟩
+      unfold entsRep
+      icases Ht with ⟨%hm', #Hl'⟩
+      have hkx : (ev.K' = eve.K') ↔ (x.k = e.k) := by rw [hm.1.1, hk.1]
+      isplitr
+      · ipureintro
+        simp only [List.map_cons, List.cons.injEq]
+        refine ⟨⟨?_, hm'.1⟩, ⟨?_, hm'.2⟩⟩
+        · by_cases h : x.k = e.k
+          · simp [h, hkx.2 h, hk.1]
+          · have h' : ¬ ev.K' = eve.K' := fun h2 => h (hkx.1 h2)
+            simp only [h, h', ↓reduceIte]; exact hm.1.1
+        · by_cases h : x.k = e.k
+          · simp [h, hkx.2 h, hk.2]
+          · have h' : ¬ ev.K' = eve.K' := fun h2 => h (hkx.1 h2)
+            simp only [h, h', ↓reduceIte]; exact hm.2.1
+      simp only [List.map_cons, List.zip_cons_cons]
+      iapply BigSepL.bigSepL_cons.2
+      isplitr
+      · by_cases h : x.k = e.k
+        · simp only [h, ↓reduceIte, hkx.2 h]; iframe Ho' Hp'
+        · have h' : ¬ ev.K' = eve.K' := fun h2 => h (hkx.1 h2)
+          simp only [h, h', ↓reduceIte]; iframe Ho Hp
+      · iexact Hl'
+
+/-- kit.go's `set`'s result: `setE`'s entries. -/
+theorem ents_set (evs : List Entry) (es : List EntV) (eve : Entry) (e : EntV) :
+    entsRep (GF := GF) evs es ∗ entRep eve e ⊢
+      entsRep (if evs.any (fun x => decide (x.K' = eve.K')) then
+          evs.map (fun x => if x.K' = eve.K' then eve else x) else evs ++ [eve])
+        (setE es e) := by
+  iintro ⟨#Hs, #He⟩
+  ihave #Hs' := Hs
+  iunfold entsRep at Hs'
+  icases Hs' with ⟨%hm, -⟩
+  ihave #He' := He
+  iunfold entRep at He'
+  icases He' with ⟨%hk, -⟩
+  have hany : evs.any (fun x => decide (x.K' = eve.K')) = es.any (fun x => decide (x.k = e.k)) := by
+    have : evs.any (fun x => decide (x.K' = eve.K')) = (evs.map (·.K')).any (fun x => decide (x = eve.K')) := by
+      simp [List.any_map, Function.comp_def]
+    rw [this, hm.1, hk.1]; simp [List.any_map, Function.comp_def]
+  unfold setE
+  rw [hany]
+  split
+  · iapply ents_map; iframe Hs He
+  · iapply ents_snoc; iframe Hs He
 
 end proof
 
