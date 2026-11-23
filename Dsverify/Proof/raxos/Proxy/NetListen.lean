@@ -19,20 +19,21 @@ namespace Perennial.raxos
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 open Perennial.raxos.pure Perennial.raxos.msg
+open EtcdGrove (bufio.ownBufReader)
 open raxos.replica.src
 
 section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
- 
-  [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
-  [raxos.examples.quepaxanet.Assumptions]
+variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
+variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions] [pb : hyp.PbHyp GF]
+variable [net.Assumptions] [net.FieldAssumptions]
 
 attribute [local instance] HeapGS.goose_globalGS
 
 /-- `credit_mint` at the full mask. -/
-theorem mint_top (γ : QNames) (t : Ticket) (cid : w64) (n : Nat) :
+theorem mint_top (γ : QNames) (t : Ticket) (cid : Nat) (n : Nat) :
     ⊢@{IProp GF} inv consN (consInv γ) -∗ tixAt γ t cid n -∗ rdCtr γ cid n ={⊤}=∗
       rdCtr γ cid (n + 1) ∗ credit γ t :=
   credit_mint γ ⊤ (by solve_ndisj) t cid n
@@ -51,8 +52,8 @@ theorem wp_CB_New (l : Loc) :
   iapply HΦ $$ Ht
 
 theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG) := by
-  intro γ c k pr br cv cid cl
-  wp_start as ⟨#Hsh, #Hconn, Hrd, Hctr⟩
+  intro γ c k pr br ri Pre E cid cl
+  wp_start as ⟨#Hsh, %HPre, Hrd, Hctr⟩
   ihave ⟨#Hf, -, -, #Hl, #Hn⟩ := proxyShared_net γ c k pr $$ Hsh
   iunfold sharedNet at Hn
   icases Hn with ⟨%rm, %wm, %bm, %cm, %rt, %rp1, %cb0, %BM, %γw, %CM, %RT, -, -, -, -, -, -, -,
@@ -62,14 +63,11 @@ theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG)
   iunfold chanField at Hic
   icases Hic with ⟨%ich, %gi, #Hich, #Hbag⟩
   iunfold sharedFacts at Hf
-  icases Hf with ⟨%hk, #Hcons, -, -, -, -, #Hcs, #Hko, -⟩
-  ihave #Hnet : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
-  · iPkgInit
-  ihave #Hrok := bufio.readerOk_conn cv cid true (proxyInProto γ k) $$ [Hnet Hconn]
-  · iframe Hnet Hconn
+  icases Hf with ⟨%hk, #Hcons, -⟩
   wp_auto
   ihave HI : (∃ (A : List Batch) (mt : w8) (e : GoInterface),
-      "Hrd" ∷ bufio.ownReader br cv (recvTok cid true (proxyInProto γ k)) (raxos.hs (21 + cl) ++ frs A) ∗
+      "Hrd" ∷ bufio.ownBufReader br ri Pre (recvTokL cid true (proxyInProto γ k)) E
+        (raxos.hs (21 + cl) ++ frs A) ∗
       "Hctr" ∷ rdCtr γ cid A.length ∗ "%HA" ∷ ⌜∀ b ∈ A, (encBatch b).length < 2 ^ 63⌝ ∗
       "msgType" ∷ msgType_ptr ↦ mt ∗ "err" ∷ err_ptr ↦ e : IProp GF) $$ [Hrd Hctr msgType err]
   · iexists [], _, _
@@ -77,12 +75,13 @@ theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG)
     iframe
     ipureintro; simp
   wp_for HI
-  wp_apply bufio.wp_ReadByte br cv _ _ $$ [Hrd] as %c %e1 Hres
-  · iframe Hrok Hrd
-  icases Hres with (⟨%He, Hrd⟩ | ⟨%He, -, Hrd⟩)
+  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br ri Pre (recvTokL cid true (proxyInProto γ k)) E
+    (raxos.hs (21 + cl) ++ frs A) $$ Hrd as %c %e1 Hres
+  icases Hres with (⟨%He, Hrd⟩ | ⟨%He, -, -, Hrd⟩)
   · subst He
+    ihave ⟨Hrd, #Hpp⟩ := net.connReader_proto br ri Pre cid true (proxyInProto γ k) E _ $$ Hrd
     wp_auto
-    ihave ⟨Hrd, %Hc⟩ := reader_code γ k (21 + cl) cid br cv A c HA $$ Hrd
+    ihave %Hc := reader_code γ k (21 + cl) cid A c HA $$ Hpp
     subst Hc
     wp_apply wp_map_lookup2 $$ [HRT] as -
     · iexact HRT
@@ -93,8 +92,12 @@ theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG)
     wp_auto
     wp_apply wp_CB_New cb0 as %t Ht
     ihave #Hlen := reader_len γ k (21 + cl) cid A HA
-    wp_apply unmarshal_bounded t br cv _ _ $$ [Ht Hrd] as %e2 ⟨%data, Hrd, Hres⟩
-    · iframe Hcs Hko Ht Hrok Hrd Hlen
+    wp_apply (unmarshal_bounded t br ri Pre (recvTokL cid true (proxyInProto γ k)) E _
+        (protoPrefix (proxyInProto γ k) cid) (fun _ => inferInstance)
+        (fun r => recvTokL_proto cid true _ r)
+        (fun x y => protoPrefix_le (List.prefix_append x y))) $$ [Ht Hrd] as %e2 ⟨%data, Hrd, Hres⟩
+    · iframe Ht Hrd Hlen
+      ipureintro; exact HPre
     icases Hres with (%He | ⟨%bs, %b, ⟨%He, %Hdata, %Huniq, %Hbs⟩, Hrep⟩)
     · cases e2 with
       | nil => exact absurd rfl He
@@ -103,10 +106,12 @@ theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG)
         wp_for_post
         iapply HΦ; itrivial
     subst He Hdata
+    ihave ⟨Hrd, #Hpp2⟩ := net.connReader_proto br ri Pre cid true (proxyInProto γ k) E _ $$ Hrd
     wp_auto
-    ihave ⟨%b', ⟨%Heb, %Hok, %Hlb⟩, Hrd, #Hreg, Htix⟩ :=
-      reader_frame γ k (21 + cl) cid br cv A bs HA Hbs $$ Hrd
+    ihave ⟨%b', ⟨%Heb, %Hok, %Hlb, %Heq⟩, #Hreg, Htix⟩ :=
+      reader_frame γ k (21 + cl) cid A bs HA Hbs $$ Hpp2
     obtain rfl : b = b' := Huniq b' Hok Heb
+    rw [Heq]
     icases Htix with ⟨%c', %j, Htix⟩
     imod (mint_top γ ((k : Int), c', j) cid A.length) $$ Hcons Htix Hctr
       with ⟨Hctr, Hcred⟩
