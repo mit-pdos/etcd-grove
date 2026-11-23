@@ -23,6 +23,8 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 and the logger's and handler's methods), unfolding each with its `FuncUnfold`/`MethodUnfold`. -/
 local macro "slog_steps" : tactic =>
   `(tactic| repeat (first
+    | (simp only [log.slog.LevelDebug, log.slog.LevelInfo, log.slog.LevelWarn, log.slog.LevelError];
+       try wp_auto)
     | (wp_method_call; wp_call; try wp_auto)
     | (wp_func_call; wp_call; try wp_auto)))
 
