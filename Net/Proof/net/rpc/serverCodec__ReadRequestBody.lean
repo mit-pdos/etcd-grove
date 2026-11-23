@@ -67,7 +67,7 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
     wp_auto
     wp_apply wp_getCodec C $$ Hset as %cd #Hcd
     unfold codecIs
-    icases Hcd with ⟨%v, #Hv, #Henc, #Hdecok⟩
+    icases Hcd with ⟨%v, #Hv, #Henc, #Hdecok, -⟩
     iStructNamed Hv
     wp_auto
     unfold decOk

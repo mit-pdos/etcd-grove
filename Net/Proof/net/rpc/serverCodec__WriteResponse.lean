@@ -90,7 +90,7 @@ theorem serverCodec.WriteResponse.wp_proof (wp_getCodec : getCodec.spec (GF := G
     rw [if_pos he]
     wp_apply wp_getCodec C $$ Hset as %cd #Hcd
     unfold codecIs
-    icases Hcd with ⟨%v, #Hv, #Henc', #Hdec'⟩
+    icases Hcd with ⟨%v, #Hv, #Henc', #Hdec', -⟩
     iStructNamed Hv
     wp_auto
     unfold encOk
