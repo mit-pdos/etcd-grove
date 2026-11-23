@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized (the metrics mvcc's
-# transactions and key index update: Counter, Gauge).
-translate = ["!*", "gauge.Set", "gauge.Add", "gauge.Sub", "gauge.Inc", "gauge.Dec"]
+# transactions and key index update: Counter, Gauge), but `gauge`'s methods and `ExponentialBuckets`
+# (histogram.go: panics on bad arguments, then a loop of float multiplications; small-leaves-2).
+translate = ["!*", "gauge.Set", "gauge.Add", "gauge.Sub", "gauge.Inc", "gauge.Dec", "ExponentialBuckets"]
 # `time` for `Opts`'s field `now func() time.Time`, so that `Opts` (`CounterOpts`) translates (a
 # composite literal of it can be stepped: etcd-refimpl's reference implementation).
 imports = ["!*", "time", "math", "sync/atomic", "errors", "github.com/prometheus/client_model/go"]

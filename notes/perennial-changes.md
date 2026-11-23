@@ -174,7 +174,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `Modf` and model `archCeil` (or `haveArchCeil = false` with a trusted equivalence: `ceil`'s Go body is exact),
   with a spec (the least integral float `≥ x`; NaN, `±Inf`, `±0` unchanged). Until then `math.Ceil.wp_proof` stays
   an axiom (its spec, some `float64`, is true: `Ceil` never panics).
-- **Status.** Not started (to be filed by the claim's coordinator).
+- **Status.** Not started (to be filed by the claim's coordinator). `ExponentialBuckets`: worked around locally
+  (small-leaves-2, 2026-11-23, claim #35): the doubling law and what it rests on (`pow2_add`, `pow2_lt`,
+  `floorLog2_eq`: `pow2 e ≤ a < pow2 (e + 1) → floorLog2 a = e`, `roundHalfEven_nat`, the bits of `pack`) are
+  private lemmas of `Proof/github_com/prometheus/client_golang/prometheus/ExponentialBuckets.lean`, whose
+  `wp_proof` is now a theorem over the translated body. They are proved from Perennial's definitions (no
+  assumption), so moving them to Perennial's `Theory/Float.lean` is still the proposal; the proof file then
+  drops its copies.
 
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
