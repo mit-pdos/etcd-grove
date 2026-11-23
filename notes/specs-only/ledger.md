@@ -25,6 +25,47 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: net/rpc model's server -- `decErr` gains a non-empty message; `CodecSpec` gains `rcv`; the net model's `OpError.Error` is never empty
+
+- **Spec.** `Net/Proof/net/rpc/Codec.lean`: `decErr err` (a decoding error) now also says its message is not
+  empty; `CodecSpec` gains a field `rcv : GoInterface → (Loc → IProp) → IProp` (what `Receiver(rcvr)` needs,
+  returning a `*Receiver` with `Ψ`), and `codecIs` holds `rcvOk C v.Receiver'`. `Net/TrustedCode/net.lean`
+  (trusted): `OpError.Error.impl` returns an arbitrary string that is not empty (was any string).
+- **Defect.** Found stating the server's request loop. When a request's header reads but its body does not
+  read or decode, `ServeCodec` answers it with `sendResponse(..., err.Error())`; with a message `""`
+  `sendResponse` sends a *success* response, encoding the placeholder `invalidRequest`, which no generated codec
+  lists (its `Encode` panics). Both errors that can reach there were allowed an empty message: a decoding error
+  (`decErr`) and the `Read`'s `*OpError` (the model's `AnyString`). And `register`'s dispatch goes through the
+  codec's `Receiver`, about which `CodecSpec` said nothing (the first part had left it "to state").
+- **Evidence.** `models/net/rpc/server.go` (`ServeCodec`, `sendResponse`, `readRequest`); the generated
+  codec's decoding error is `errors.New("net/rpc model: malformed value")` (`rpcgen_core.py`); Go's
+  `(*OpError).Error()` starts with `e.Op` (`net.go`), measured: `TestErrorsAreOpErrors`
+  (`examples/net/semantics/errors_test.go`, now checking every message starts with the operation and holds `": "`).
+- **Proposed change.** As above. The client's proofs destructure the longer `codecIs` and `decErr` (patterns
+  only); `errAny_opErr` is derived from the new `errNE_opErr` (`Errs.lean`). No client statement changes.
+- **Decision.** Applied (branch `models-rpc-server`): strengthenings the generated codec and Go meet; the
+  `OpError.Error` model change is a narrowing of trusted behaviour backed by the measured test (D14).
+
+## 2026-11-23: net/rpc model's server -- `Register`/`RegisterName` cover only the receivers they accept without logging; a method spec must accept error answers
+
+- **Spec.** `Net/Spec/net/rpc/Server__{register,Register,RegisterName}.lean` vs dsverify-lab's
+  `Server.RegisterName.spec`/`Register.spec` (`old/dsverify/.../ServerDefs.lean`), and `errOk`/`srvServes`
+  (`Net/Proof/net/rpc/ServerDefs.lean`) vs dsverify's `srvServes`/`rcvrOk`.
+- **Defect.** dsverify's statements return "`nil` and the registration, or some error" for any receiver. Go's
+  `register` logs (`log.Print`) before returning three of its errors (no service name, not exported, no suitable
+  methods), and Perennial has no model of `log.Print` (names only), so those paths are stuck. And dsverify's
+  `rcvrOk` gave `Φ reply msg` only through the method's run; Go's server also answers requests it does not run
+  (the body did not read or decode, the method is not registered) with an error message.
+- **Evidence.** `Net/Code/net/rpc.lean`, `Server.register.impl` (`FuncResolve log.Print`); Perennial
+  `Code/log.toml` (`trusted = ["Printf", "Println", ...]`). `server.go`'s `ServeCodec` error path.
+- **Proposed change.** `register`'s premise `regNameOk` (a non-empty `name` with `useName`; without it, `rcvr`
+  not a nil pointer, where Go panics, and its type's name starting with an upper-case ASCII letter, where the
+  model's `IsExported` is exact) and `rcvrIs`'s at-least-one-method; the remaining error (a name taken) stays.
+  `srvServes` asks each service spec for `errOk S` (an error answer, message not empty, from the deposit).
+  When Perennial models `log.Print` (`notes/perennial-changes.md`, 2026-11-23), the premises can go.
+- **Decision.** Applied (branch `models-rpc-server`); kits register receivers of exported types with methods,
+  and their specs' continuations accept `ServerError`s (Go's client returns them for any call).
+
 ## 2026-11-22: `FollowerStats.Succ` takes the stats' mutex (prove-ps2-succ)
 
 - **Spec.** `v2stats.FollowerStats.Succ.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a

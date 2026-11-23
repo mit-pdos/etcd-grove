@@ -809,6 +809,40 @@ tests kept as differential tests against the real library, a "not modelled" pani
    consuming `recvTok`. Worked around locally: `errors.New.spec` says its result is a pointer error but
    not that its type implements `error` (`errAny` needs it), so `input` uses `wp_errors_New'`, proved
    from `errors.New`'s body in the proof file (a Perennial strengthening: `notes/perennial-changes.md`).
+   **The Lean half, third part: the server (2026-11-23, branch `models-rpc-server`, stacked on
+   `models-rpc-client`).** *Proved and linked* (`Results.lean`, `#print axioms` Lean's three; `lake build
+   Net.Proof.net.rpc.Results` green): the server codec's `ReadRequestHeader` (a frame of `reqHdr seq sm`),
+   `ReadRequestBody` (as the client's, `bodyDec`/`bodyRes` moved to `Codec.lean`), `WriteResponse` (the sticky
+   `werr`; `respWire seq sm e eb` by one `Write`, the body encoded only for a success, `respEnc`; the caller's
+   `respUpd`), `Close` (the `closed` flag), `newServerCodec`; `NewServer`, the free lists
+   (`get`/`freeRequest`, `get`/`freeResponse`: `reqChain`/`respChain` under `reqLock`/`respLock`); `register` (the
+   codec's `Receiver`, its methods copied into `*methodType`s with their mutexes by `wp_map_for_range`, the
+   services map and the registry's ghost map under `mapLock`), `Register`, `RegisterName`; `go/token.IsExported`
+   on an upper-case ASCII first byte (the trusted model's exact branch).
+   *The vocabulary* (`ServerDefs.lean`): a method's obligation `methodOk C rcvr (S m) mm` (`NewArg` gives a
+   non-`nil` argument with its decoding `bodyDec`; from the deposit and a decoding, `NewReply` then `Call`,
+   `callRet`: `nil` with the reply's encoding into `Φ eb ""`, or an error with its message and `Φ [] msg`), a
+   receiver's `rcvrIs` (what `C.rcv` promises of `Receiver(rcvr)`: name, nil pointer, methods meeting `S`), a
+   service spec's `errOk` (an error answer from the deposit: Go answers with errors requests it does not run),
+   `isServer`, `svcReg` (the registry's persistent element and the `*service`), `srvServes γ C W a`; for a
+   connection served, `srvSendInv` (`sending`'s invariant: the written bytes a prefix of `respsWire Rs`, all of
+   it while no write failed), `ansPend` (the right to answer request `k` once), `readerSt` (the frames of the
+   first `k` requests read, `ctr` claimed with the acceptor's fresh token), `rpcAccepted`.
+   *Statement changes* (ledger 2026-11-23): `decErr`'s message is not empty and the net model's
+   `OpError.Error` returns a non-empty string (trusted, `Net/TrustedCode/net.lean`, measured in
+   `examples/net/semantics`' `TestErrorsAreOpErrors`): `ServeCodec` answers a request whose body does not read
+   or decode with `err.Error()`, and `""` would send a success response encoding `invalidRequest`, which no
+   generated codec lists; `CodecSpec` gains `rcv` (`codecIs` holds `rcvOk`); `register`'s three logging errors
+   are excluded by premises (`regNameOk`, at least one method), since Perennial has no model of `log.Print`.
+   *Left* (in order): the request loop. `readRequestHeader` calls `strings.LastIndex`, which Perennial neither
+   translates nor models (`notes/perennial-changes.md`, 2026-11-23): its proof needs that model, or is proved
+   over a stated `strings.LastIndex.spec` left unlinked. Then the server's ghost lemmas (dsverify's
+   `ServerGhost.lean` over the two-frame wire: `claim_role`, `take_req`, a request-header parse `req_next` over
+   `reqPls`, the answer made at write time inside `respUpd` from `ansPend`), `sendResponse` (under `sending`,
+   `srvSendInv`), `service.call` (the `methodType` counter, `callObl`, `wg.Done` of Perennial's `tokJoin`),
+   `readRequest`, `ServeCodec` (the loop over `readerSt`; `wg.Add` with the reader's thread token, the fork by
+   `wp_fork_tok_self`; `wg.Wait`, `Close` by `close_au`), `ServeConn`; `Accept` (over `Listener.Accept` with
+   `accept_shared_au`; its error path calls `log.Print`, so it waits for that model too); then the HTTP path.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
