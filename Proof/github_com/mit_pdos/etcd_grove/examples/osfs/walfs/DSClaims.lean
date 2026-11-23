@@ -330,6 +330,8 @@ theorem dinv_rekey {j : Ino} {ko : Option Ino} {hw : NamesH} (h : DInv j ko hw n
     · exact absurd (h3 hn) (by rw [hnone]; exact hn)
   exact ⟨⟨fun i => by rw [hn]; simp, fun J hJ => by rw [hn] at hJ; cases hJ⟩, fun h => absurd hn h⟩
 
+instance : Inhabited NamesH := ⟨NamesH.empty⟩
+
 /-! ## A fresh generation's claims -/
 
 theorem namesOf_nil (m : Tree) (j : Ino) (N : NameSet) : namesOf (m, []) j N = NamesH.init m j N := by
@@ -513,7 +515,8 @@ theorem ds_alloc (j : Ino) (ko : Option Ino) (mg : Bool) (hw : NamesH) (hsO : Op
   imod inv_alloc dsN E iprop(∃ (ko : Option Ino) (mg : Bool) (hw : NamesH)
       (hsO : Option (Ino × NamesH)), dsHalf (L := L) j γ ko mg hw hsO ∗
       ⌜DInv j ko (hw.restrict j wO) hsO⌝ ∗ keyRes (L := L) ko) $$ [Hv1 Hw1 Hs1 Hk] with #Hinv
-  · inext; iexists ko, mg, hw, hsO; unfold dsHalf; iframe Hv1 Hw1 Hs1 Hk; ipureintro; exact hD
+  · inext; iexists ko, mg, hw, hsO; try unfold dsHalf
+    iframe Hv1 Hw1 Hs1 Hk; ipureintro; exact hD
   imodintro
   iexists γ
   isplitr
@@ -584,7 +587,184 @@ theorem ds_start (R : Roots) (r : GoString) (j : Ino) (hr : (r, j) ∈ R) (m : T
   simp only [List.length_nil]
   iexact Hlb
 
+
+instance osClaims_timeless' (cl : List (Claim × DFrac)) : Timeless (osClaims L cl) := by
+  unfold osClaims; infer_instance
+
+instance osNames_timeless' (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) :
+    Timeless (osNames (L := L) j N dq h) := by
+  unfold osNames; split <;> infer_instance
+
+instance dsHalf_timeless (j : Ino) (γ : GName) (ko : Option Ino) (mg : Bool) (hw : NamesH)
+    (hsO : Option (Ino × NamesH)) : Timeless (dsHalf (L := L) j γ ko mg hw hsO) := by
+  unfold dsHalf; infer_instance
+
+/-- Two halves agree: the same key, claims and histories. -/
+theorem dsHalf_agree (j : Ino) (γ : GName) (ko ko' : Option Ino) (mg mg' : Bool) (hw hw' : NamesH)
+    (hsO hsO' : Option (Ino × NamesH)) :
+    ⊢ dsHalf (L := L) j γ ko mg hw hsO -∗ dsHalf (L := L) j γ ko' mg' hw' hsO' -∗
+      ⌜ko = ko' ∧ mg = mg' ∧ hw = hw' ∧ hsO = hsO'⌝ ∗ dsHalf (L := L) j γ ko mg hw hsO ∗
+        dsHalf (L := L) j γ ko mg hw hsO := by
+  unfold dsHalf
+  iintro ⟨Hv, Hw, Hs⟩ ⟨Hv', Hw', Hs'⟩
+  icases ghostVar_agree γ _ _ _ _ $$ Hv Hv' with %he
+  simp only [Prod.mk.injEq] at he
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := he
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  iframe
+
+/-- **With `wal` absent, a new key and its file deposited.** -/
+theorem ds_deposit (j : Ino) (γ : GName) (ko : Option Ino) (mg : Bool) (hw : NamesH) (k : Ino)
+    (hn : hw.cur !! walB = none) :
+    ⊢ dsInv (L := L) j γ -∗ dsHalf (L := L) j γ ko mg hw none -∗ keyRes (L := L) (some k) ={⊤}=∗
+      dsHalf (L := L) j γ (some k) mg hw none := by
+  iintro #Hinv Hh Hk
+  unfold dsInv
+  imod inv_acc (E := ⊤) (show ↑dsN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%ko1, %mg1, %hw1, %hsO1, >Hh1, >%hD, >-⟩
+  icases dsHalf_agree (L := L) j γ _ _ _ _ _ _ _ _ $$ Hh Hh1 with ⟨%he, Hh, Hh1⟩
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := he
+  unfold dsHalf
+  icases Hh with ⟨Hv, Hw, Hs⟩
+  icases Hh1 with ⟨Hv1, Hw1, Hs1⟩
+  imod ghostVar_update_halves (some k, mg, hw, (none : Option (Ino × NamesH))) γ _ _ $$ Hv Hv1
+    with ⟨Hv, Hv1⟩
+  imod Hclose $$ [Hv1 Hw1 Hs1 Hk] with -
+  · inext; iexists (some k), mg, hw, none; try unfold dsHalf
+    iframe Hv1 Hw1 Hs1 Hk
+    ipureintro
+    exact dinv_rekey hD (by rw [restrict_cur _ _ _ _ wO_wal]; exact hn) _
+  imodintro
+  iframe
+
+/-- **The claim on `wal` merged with `wal.tmp`'s**, for the rename: the facts, read through `wal`'s
+restriction, stay. -/
+theorem ds_merge (R : Roots) (j : Ino) (γ : GName) (ko : Option Ino) (hw ht : NamesH) :
+    ⊢ dsInv (L := L) j γ -∗ osSharedInv (L := L) R -∗ dsHalf (L := L) j γ ko false hw none -∗
+      osNames (L := L) j (.only [wtB]) (DFrac.own 1) ht ={⊤}=∗
+      ∃ h'', dsHalf (L := L) j γ ko true h'' none ∗
+        ⌜h''.restrict j wO = hw.restrict j wO ∧ h''.restrict j (.only [wtB]) = ht.restrict j (.only [wtB]) ∧
+          h''.next = max hw.next ht.next⌝ := by
+  iintro #Hinv #Hsh Hh Ht
+  unfold dsInv
+  imod inv_acc (E := ⊤) (show ↑dsN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%ko1, %mg1, %hw1, %hsO1, >Hh1, >%hD, >Hk⟩
+  icases dsHalf_agree (L := L) j γ _ _ _ _ _ _ _ _ $$ Hh Hh1 with ⟨%he, Hh, Hh1⟩
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := he
+  unfold dsHalf
+  icases Hh with ⟨Hv, Hw, -⟩
+  icases Hh1 with ⟨Hv1, Hw1, -⟩
+  have hfr := osNames_frac (L := L) j wO (1 : Qp).half (1 : Qp).half hw
+  rw [Qp.half_add_half] at hfr
+  ihave Hw := hfr.2 $$ [Hw Hw1]
+  · iframe Hw Hw1
+  imod osNames_merge R j wO (.only [wtB]) wN hw ht (fun b => by
+      simp only [wO, wN, NameSet.Mem, List.mem_cons, List.mem_nil_iff, or_false])
+      dsN_shN $$ Hsh Hw Ht with ⟨%h'', Hw, %hm⟩
+  have hfr' := osNames_frac (L := L) j wN (1 : Qp).half (1 : Qp).half h''
+  rw [Qp.half_add_half] at hfr'
+  icases hfr'.1 $$ Hw with ⟨Hw, Hw1⟩
+  imod ghostVar_update_halves (ko, true, h'', (none : Option (Ino × NamesH))) γ _ _ $$ Hv Hv1
+    with ⟨Hv, Hv1⟩
+  imod Hclose $$ [Hv1 Hw1 Hk] with -
+  · inext; iexists ko, true, h'', none; try unfold dsHalf
+    iframe Hv1 Hw1 Hk
+    isplitl []
+    · unfold osClaims jcl; iapply BigSepL.bigSepL_nil.2; iempintro
+    ipureintro; rw [hm.1]; exact hD
+  imodintro
+  iexists h''
+  iframe Hv Hw
+  isplitl []
+  · unfold osClaims jcl; iapply BigSepL.bigSepL_nil.2; iempintro
+  ipureintro; exact hm
+
 end res
+
+section crash
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext] [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF]
+
+/-- **A crash, from the old generation's invariant**: the tree left is `SafeT` with a key whose
+file, as the new generation starts with it, is `DataGood`. -/
+theorem ds_crash (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (R : Roots) (j : Ino)
+    (γ : GName) (V' : Hist) :
+    ⊢ dsInv (L := L) j γ -∗ osSharedInv (L := L) R -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) [] false V' ={⊤}=∗
+      ∃ (ko : Option Ino) (D : List Ino), ⌜SafeT j ko V'.now⌝ ∗ startFile (L := L') ko ∗
+        crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' := by
+  iintro #Hinv #Hsh Hr
+  unfold dsInv
+  imod inv_acc (E := ⊤) (show ↑dsN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%ko, %mg, %hw, %hsO, >Hh, >%hD, >Hk⟩
+  unfold dsHalf
+  icases Hh with ⟨Hv, Hw, Hs⟩
+  ihave Hc := osCommitLb_zero (L := L)
+  imod Hc
+  ihave Hcl : osClaims L (((j, wKey mg, hw), DFrac.own (1 : Qp).half) :: jcl (1 : Qp).half hsO)
+    $$ [Hw Hs]
+  · iapply (osClaims_cons L _ _).2; iframe Hw Hs
+  imod crashRest_region Q L L' [] false V' R _ 0 _ dsN_shN $$ Hsh Hr Hcl Hc with ⟨%hreg, Hr, Hcl⟩
+  have hsafe : SafeT j ko V'.now := by
+    have h1 := regionCrashed_restrict (c := (j, wKey mg, hw)) wO (wO_sub mg) hreg
+    refine dinv_crash (n := 0) hD ?_
+    cases hsO with
+    | none => exact h1
+    | some p => obtain ⟨J, hs⟩ := p; exact h1
+  icases (osClaims_cons L _ _).1 $$ Hcl with ⟨Hw, Hs⟩
+  cases ko with
+  | none =>
+    imod Hclose $$ [Hv Hw Hs Hk] with -
+    · inext; iexists none, mg, hw, hsO; try unfold dsHalf
+      iframe Hv Hw Hs Hk; ipureintro; exact hD
+    imodintro
+    iexists none, []
+    iframe Hr
+    isplitr
+    · ipureintro; exact hsafe
+    unfold startFile; iempintro
+  | some k =>
+    unfold keyRes
+    icases Hk with ⟨%m, %bs, Hm, Hb, %hg⟩
+    icases osCrash_take_runs_keep Q L L' [] false V' k List.not_mem_nil _ m
+      [(0, DFrac.own (1 : Qp).half, bs)] $$ Hr Hm [Hb] with ⟨%fo, %hfo, Hf, Hr, Hm, Hb⟩
+    · iapply BigSepL.bigSepL_singleton.2; iexact Hb
+    icases BigSepL.bigSepL_singleton.1 $$ Hb with Hb
+    imod Hclose $$ [Hv Hw Hs Hm Hb] with -
+    · inext; iexists (some k), mg, hw, hsO; try unfold dsHalf
+      iframe Hv Hw Hs
+      isplitr
+      · ipureintro; exact hD
+      dsimp only
+      iexists m, bs
+      iframe Hm Hb
+      ipureintro; exact hg
+    imodintro
+    obtain ⟨hfc, hnamed, -⟩ := hfo
+    cases fo with
+    | none =>
+      iexists none, [k]
+      iframe Hr
+      isplitr
+      · ipureintro
+        exact safeT_unnamed hsafe (fun hn => by have := hnamed hn; simp at this)
+      unfold startFile; iempintro
+    | some f =>
+      iexists (some k), [k]
+      iframe Hr
+      isplitr
+      · ipureintro; exact hsafe
+      unfold startFile osFileStartO
+      iexists f
+      iframe Hf
+      ipureintro; exact hg _ hfc
+
+end crash
 
 end DS
 end osfs_walfs
