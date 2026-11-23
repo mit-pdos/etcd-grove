@@ -19,6 +19,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.Bufio
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
 public import Net.Proof.net.Conn__Read
+public import Net.Proof.net.ConnIo
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.rpc.Errs
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
@@ -99,101 +100,34 @@ theorem net_facts :
   iexists _, ed
   iframe Hx Hv Hed
 
-/-- A connection is an underlying reader of `bufio`, with the end's reader token. -/
+/-- A connection is an underlying reader of `bufio`, with the end's reader token `recvTokL`
+(the protocol fact of what was read a step later): dsv-bufio's `net.conn_readerOk`. -/
 theorem readerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :
     (isPkgInit (PROP := IProp GF) pkg_id.net ∗ net.rpc.connIface cv cid side) ⊢
-      readerOk cv (recvTok (Gg := hG.goose_globalGS) cid side P) := by
+      readerOk cv (recvTokL (Gg := hG.goose_globalGS) cid side P) := by
   iintro ⟨#Hpkg, #Hc⟩
   icases net_facts $$ Hpkg with ⟨%eof, %ed, #Heof, #Hv, #Hed⟩
+  ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
+  · iPkgInit
+  icases newVar_err _ _ $$ Hv with ⟨%eof', #Heof', #Ha, %Hw⟩
+  icombine Heof Heof' gives %Heq
+  subst Heq
   iunfold net.rpc.connIface at Hc
   icases Hc with ⟨%t, %a, %la, %ra, %Hcv, #Hat, -⟩
   subst Hcv
   iunfold readerOk
-  iexists ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩
+  iexists net.connIface t, net.connReadE eof la ra ed
   isplitr
   · ipureintro; exact ⟨rfl, tcpConn_ne_reader⟩
-  imodintro
-  iintro %b %bs %R %Φ %Hpos HI Hb HΦ
-  dsimp only
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hb
-  have hpl : b.len.toNat = bs.length := by rw [Hlen.1]; word
-  ihave HL := recvTok_L cid side P R $$ HI
-  iapply net.Conn.Read.wp_proof t cid side a la ra b bs eof ed
-    (fun r => iprop(recvTokL (Gg := hG.goose_globalGS) cid side P (R ++ r.got) ∗
-      ⌜r.got.length ≤ b.len.toNat ∧ (r = .bytes [] → b.len.toNat = 0)⌝)) $$ [HL Hb]
-  · iframe Hat Hb Heof Hed
-    imod read_au cid side P R b.len.toNat $$ HL with ⟨%st, %d, HE, HD, Hcl⟩
-    imodintro
-    iexists st, d
-    iframe HE HD
-    iintro %r %d' %Hrd HE HD
-    imod Hcl $$ %r %d' %Hrd HE HD with ⟨HP, -⟩
-    imodintro
-    iframe HP
-    ipureintro
-    exact readOutcome_got_le Hrd
-  iintro !> %k %err ⟨%r, %bs', ⟨HP, %Hrl⟩, Hb, %Hout, HE⟩
-  rw [hpl] at Hrl
-  obtain ⟨Hrl, Hz⟩ := Hrl
-  ihave HP := recvTokL_later cid side P _ $$ HP
-  cases r with
-  | bytes data =>
-    obtain ⟨hk, rfl⟩ := Hout
-    simp only [ReadRes.got] at Hrl
-    isimp only [ReadRes.got] at HP
-    simp only [net.ReadErr]
-    icases HE with %Herr
-    subst Herr
-    have hd1 : 1 ≤ data.length := by
-      rcases data with _ | ⟨x, data⟩
-      · have := Hz rfl; omega
-      · simp
-    have hkd : k = W64 data.length := by
-      rw [Nat.min_eq_right Hrl] at hk
-      have : sint.nat k = (sint.Z k).toNat := rfl
-      have h63 : data.length < 2 ^ 63 := by
-        have h2 := BitVec.toInt_lt (x := b.len)
-        have h3 := Hlen.1
-        have h4 : sint.nat b.len = b.len.toInt.toNat := rfl
-        have : bs.length < 2 ^ 63 := by simp at h2; rw [h3, h4]; omega
-        omega
-      have hz : sint.Z k = data.length := by omega
-      apply BitVec.eq_of_toInt_eq
-      rw [show (W64 data.length).toInt = sint.Z (W64 data.length) from rfl,
-        net.rpc.sint_Z_W64_length h63]
-      exact hz
-    subst hkd
-    rw [List.take_of_length_le Hrl]
-    iapply HΦ $$ %data %_ %Hrl Hb HP
-    unfold errOrNil; ileft; ipureintro; rfl
-  | eof =>
-    obtain ⟨rfl, hbs⟩ := Hout
-    subst hbs
-    isimp only [ReadRes.got, List.append_nil] at HP
-    simp only [net.ReadErr]
-    icases HE with %Herr
-    ihave He := eof_errOrNil eof $$ Hv Heof
-    rw [← Herr] at *
-    ihave HΦ' := HΦ $$ %([] : List w8) %err %(Nat.zero_le _)
-    rw [show (0 : w64) = W64 (([] : List w8).length : Int) from rfl]
-    ihave Hb : (b ↦* (([] : List w8) ++ List.drop ([] : List w8).length bs') : IProp GF) $$ [Hb]
-    · simp only [List.length_nil, List.drop_zero, List.nil_append]; iexact Hb
-    ihave HP : (▷ recvTok (Gg := hG.goose_globalGS) cid side P (R ++ [])) $$ [HP]
-    · simp only [List.append_nil]; iexact HP
-    iapply HΦ' $$ Hb HP He
-  | err e =>
-    obtain ⟨rfl, hbs⟩ := Hout
-    subst hbs
-    isimp only [ReadRes.got, List.append_nil] at HP
-    simp only [net.ReadErr]
-    ihave He := resErr_errOrNil _ _ _ _ _ _ _ $$ HE
-    ihave HΦ' := HΦ $$ %([] : List w8) %err %(Nat.zero_le _)
-    rw [show (0 : w64) = W64 (([] : List w8).length : Int) from rfl]
-    ihave Hb : (b ↦* (([] : List w8) ++ List.drop ([] : List w8).length bs') : IProp GF) $$ [Hb]
-    · simp only [List.length_nil, List.drop_zero, List.nil_append]; iexact Hb
-    ihave HP : (▷ recvTok (Gg := hG.goose_globalGS) cid side P (R ++ [])) $$ [HP]
-    · simp only [List.append_nil]; iexact HP
-    iapply HΦ' $$ Hb HP He
+  isplitr
+  · unfold errsOk net.connReadE
+    iintro !> %r %e (%h | ⟨%k, #H⟩)
+    · subst h; iframe Ha; ipureintro; exact Hw.1
+    · ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ H
+      ihave #Ha' := net.rpc.errAny_resErr _ _ _ _ _ _ _ $$ H
+      iframe Ha'
+      ipureintro; exact errWf_of_ptrTyped (net.netErr_ptrTyped (Hn.2 (by simp)))
+  iapply net.conn_readerOk net.Conn.Read.wp_proof t cid side a la ra eof ed P $$ [$Hio $Hat $Heof $Hed]
 
 /-- The error evidence of a connection as a writer: an error with some message (`errOrNil`'s). -/
 def wrErr (err : GoInterface) : IProp GF :=
@@ -256,14 +190,6 @@ theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
   rw [htake]
   iframe Hb HJ
   iapply errOrNil_werrAt $$ He
-
-/-- A connection's `Read` spec over the end's reader token (`readerOk_conn`). -/
-theorem readsOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :
-    (isPkgInit (PROP := IProp GF) pkg_id.net ∗ net.rpc.connIface cv cid side) ⊢
-      readsOk cv (recvTok (Gg := hG.goose_globalGS) cid side P) := by
-  iintro H
-  iapply readerOk_readsOk
-  iapply readerOk_conn $$ H
 
 end proofs
 

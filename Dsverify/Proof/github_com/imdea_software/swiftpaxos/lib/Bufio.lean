@@ -25,6 +25,13 @@ public import Proof.bufio.NewWriterSize
 public import Proof.bufio.Writer__Write
 public import Proof.bufio.Writer__WriteByte
 public import Proof.bufio.Writer__Flush
+public import Proof.bufio.NewReaderOk
+public import Proof.bufio.NewReaderSize
+public import Proof.bufio.Reader__ReadOk
+public import Proof.bufio.Reader__ReadByte
+public import Proof.bufio.ReaderLaws
+public import Perennial.Proof.errors.NewVar
+public import Perennial.Proof.io.Link
 
 @[expose] public section
 
@@ -63,16 +70,17 @@ def errWf (err : GoInterface) : Prop :=
 def errOrNil (err : GoInterface) : IProp GF :=
   iprop(⌜err = interface.nil⌝ ∨ (models_lab.errAny err ∗ ⌜errWf err⌝))
 
-/-- The underlying `io.Reader` `rd`: see the file header (persistent). -/
+/-- The errors with the evidence `E` are errors with some message (and `errWf`) (persistent). -/
+def errsOk (E : List w8 → GoInterface → IProp GF) : IProp GF :=
+  iprop(□ ∀ (r : List w8) (e : GoInterface), E r e -∗ models_lab.errAny e ∗ ⌜errWf e⌝)
+
+/-- The underlying `io.Reader` `rd` over the stream state `I`: Perennial's `io.readerOk` for reads
+into a non-empty buffer (a connection's, `net.conn_readerOk`), with errors that have a message;
+not a `*bufio.Reader` (persistent). -/
 def readerOk (rd : GoInterface) (I : List w8 → IProp GF) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk,
-    ⌜rd = interface.ok e ∧ e.ty ≠ go.GoType.PointerType bufio.Reader.ty⌝ ∗
-    □ ∀ (b : GoSlice) (bs : List w8) (R : List w8) (Φ : val → IProp GF),
-      ⌜0 < bs.length⌝ -∗ I R -∗ b ↦* bs -∗
-      ▷ (∀ (data : List w8) (err : GoInterface), ⌜data.length ≤ bs.length⌝ -∗
-          b ↦* (data ++ bs.drop data.length) -∗ ▷ I (R ++ data) -∗ errOrNil err -∗
-          Φ (PairV #(W64 data.length) #err)) -∗
-      WP (App (Val #(methods e.ty go!"Read" e.v)) (Val #b)) {{ Φ }})
+  iprop(∃ (ri : GoInterfaceOk) (E : List w8 → GoInterface → IProp GF),
+    ⌜rd = interface.ok ri ∧ ri.ty ≠ go.GoType.PointerType bufio.Reader.ty⌝ ∗ errsOk E ∗
+    io.readerOk ri (fun _ m => 0 < m) I E)
 
 /-- The underlying `io.Writer` `wr`: dsv-bufio's `io.streamWriterOk` (`Proof/io/StreamWriterOk.lean`) at some
 error evidence `Ew`, with the lab's (stronger) `prefixClosed Q` (persistent). -/
@@ -87,6 +95,9 @@ instance prefixClosed_persistent (Q : List w8 → IProp GF) :
   unfold prefixClosed; infer_instance
 instance errOrNil_persistent (err : GoInterface) : Persistent (errOrNil (GF := GF) err) := by
   unfold errOrNil; infer_instance
+instance errsOk_persistent (E : List w8 → GoInterface → IProp GF) :
+    Persistent (errsOk (GF := GF) E) := by
+  unfold errsOk; infer_instance
 instance readerOk_persistent (rd : GoInterface) (I : List w8 → IProp GF) :
     Persistent (readerOk (GF := GF) rd I) := by
   unfold readerOk; infer_instance
@@ -94,19 +105,13 @@ instance writerOk_persistent (wr : GoInterface) (J Q : List w8 → IProp GF) :
     Persistent (writerOk (GF := GF) wr J Q) := by
   unfold writerOk; infer_instance
 
-/-- The `*bufio.Reader` `br` over `rd` buffers `pend` and has the pending error `perr`: its
-fields, its buffer `buf` (`len(buf) > 0`) holding `pend` at `[r, w)`. -/
-def readerRep (br : Loc) (rd : GoInterface) (pend : List w8) (perr : GoInterface) :
-    IProp GF :=
-  iprop(∃ (buf : GoSlice) (r w lb lrs : w64) (pre post : List w8),
-    br ↦ bufio.Reader.mk buf rd r w perr lb lrs ∗ buf ↦* (pre ++ pend ++ post) ∗
-    ⌜sint.Z r = pre.length ∧ sint.Z w = pre.length + pend.length ∧
-      0 < (pre ++ pend ++ post).length⌝ ∗ errOrNil perr)
-
-/-- The `*bufio.Reader` `br` over `rd` (with `I`) has returned `R`: see the file header. -/
+/-- The `*bufio.Reader` `br` over `rd` (with the stream state `I`) has returned `R`: dsv-bufio's
+`ownBufReader` (reads into a non-empty buffer, errors with a message). Over a connection `I` is
+`recvTokL`: the protocol fact of what was read comes a step later (`ownReader_proto`). -/
 def ownReader (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) (R : List w8) :
     IProp GF :=
-  iprop(∃ (pend : List w8) (perr : GoInterface), I (R ++ pend) ∗ readerRep br rd pend perr)
+  iprop(∃ (ri : GoInterfaceOk) (E : List w8 → GoInterface → IProp GF), ⌜rd = interface.ok ri⌝ ∗
+    errsOk E ∗ EtcdGrove.bufio.ownBufReader br ri (fun _ m => 0 < m) I E R)
 
 /-- The `*bufio.Writer` `bw` over `wr` (with `J`, `Q`) has sent `sent` and buffers `pend`; its
 sticky error is `err`: dsv-bufio's `ownBufWriter` at some error evidence and buffer size. -/
@@ -128,28 +133,15 @@ theorem writerOk_prefixClosed (wr : GoInterface) (J Q : List w8 → IProp GF) :
   iintro ⟨%e, %Ew, -, #H, -⟩
   iexact H
 
-/-- The `Read` spec of the `io.Reader` `rd` over `I`: see the file header (persistent). -/
+/-- The `io.Reader` `rd` over `I`, for `io.ReadFull`/`io.ReadAtLeast`: Perennial's `io.readerOk`
+with a condition every read meets (a `*bufio.Reader`'s), errors with a message (persistent). -/
 def readsOk (rd : GoInterface) (I : List w8 → IProp GF) : IProp GF :=
-  iprop(∃ e : GoInterfaceOk, ⌜rd = interface.ok e⌝ ∗
-    □ ∀ (b : GoSlice) (bs : List w8) (R : List w8) (Φ : val → IProp GF),
-      ⌜0 < bs.length⌝ -∗ I R -∗ b ↦* bs -∗
-      ▷ (∀ (data : List w8) (err : GoInterface), ⌜data.length ≤ bs.length⌝ -∗
-          b ↦* (data ++ bs.drop data.length) -∗ ▷ I (R ++ data) -∗ errOrNil err -∗
-          Φ (PairV #(W64 data.length) #err)) -∗
-      WP (App (Val #(methods e.ty go!"Read" e.v)) (Val #b)) {{ Φ }})
+  iprop(∃ (ri : GoInterfaceOk) (Pre : List w8 → Nat → Prop) (E : List w8 → GoInterface → IProp GF),
+    ⌜rd = interface.ok ri ∧ ∀ r m, Pre r m⌝ ∗ errsOk E ∗ io.readerOk ri Pre I E)
 
 instance readsOk_persistent (rd : GoInterface) (I : List w8 → IProp GF) :
     Persistent (readsOk (GF := GF) rd I) := by
   unfold readsOk; infer_instance
-
-theorem readerOk_readsOk (rd : GoInterface) (I : List w8 → IProp GF) :
-    readerOk (GF := GF) rd I ⊢ readsOk rd I := by
-  unfold readerOk readsOk
-  iintro ⟨%e, %He, #H⟩
-  iexists e
-  isplitr
-  · ipureintro; exact He.1
-  iexact H
 
 end defs
 
@@ -394,21 +386,331 @@ theorem Writer.Write_err.labProof : Writer.Write_err.labSpec (GF := GF) := by
   iexists e, Ew, sz
   iframe Hown; ipureintro; exact He
 
-/-- Two writers at one location exclude each other. (The one place that unfolds dsv-bufio's
-`ownBufWriter`: a law for dsv-bufio's `Own.lean`; notes/dsv-swiftpaxos.md, "For review".) -/
-theorem ownWriter_excl_heap (bw : Loc) (wr wr' : GoInterface) (J Q J' Q' : List w8 → IProp GF)
+/-- Two writers at one location exclude each other (dsv-bufio's `ownBufWriter_excl`). -/
+theorem ownWriter_excl (bw : Loc) (wr wr' : GoInterface) (J Q J' Q' : List w8 → IProp GF)
     (s p s' p' : List w8) (e e' : GoInterface) :
-    ownWriter bw wr J Q s p e ∗ ownWriter bw wr' J' Q' s' p' e' ⊢
-      ∃ (b1 b2 : GoSlice) (n1 n2 : w64) (w1 w2 : GoInterfaceOk),
-        bw ↦ bufio.Writer.mk e b1 n1 (interface.ok w1) ∗
-        bw ↦ bufio.Writer.mk e' b2 n2 (interface.ok w2) := by
-  unfold ownWriter EtcdGrove.bufio.ownBufWriter EtcdGrove.bufio.writerRep
-  iintro ⟨⟨%i1, %E1, %z1, -, -, -, -, -, %b1, %n1, %r1, H1, -⟩,
-    ⟨%i2, %E2, %z2, -, -, -, -, -, %b2, %n2, %r2, H2, -⟩⟩
-  iexists b1, b2, n1, n2, i1, i2
-  iframe H1 H2
+    ownWriter bw wr J Q s p e ∗ ownWriter bw wr' J' Q' s' p' e' ⊢ False := by
+  unfold ownWriter
+  iintro ⟨⟨%i1, %E1, %z1, -, H1⟩, ⟨%i2, %E2, %z2, -, H2⟩⟩
+  iapply EtcdGrove.bufio.ownBufWriter_excl $$ [$H1 $H2]
+
+/-- A reader is not at `null` (dsv-bufio's `ownBufReader_not_null`). -/
+theorem ownReader_not_null (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) (R : List w8) :
+    ownReader br rd I R ⊢ ⌜br ≠ null⌝ := by
+  unfold ownReader
+  iintro ⟨%ri, %E, -, -, H⟩
+  iapply EtcdGrove.bufio.ownBufReader_not_null $$ H
 
 end writerProofs
+
+/-! ### The reader's lab specs, from dsv-bufio's and Perennial's `io` -/
+
+section readerProofs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [bufio.Assumptions] [io.Assumptions]
+
+theorem errWf_of_ptrTyped {e : GoInterface} (h : io.ptrTyped e) : errWf e :=
+  fun ii hi T hT => h ii T hi hT
+
+/-- An `errors.New` variable holds an error with a message. -/
+theorem newVar_err (X msg : GoString) :
+    errors.newVar (GF := GF) X msg ⊢
+      ∃ e : GoInterface, globalAddr X ↦□ e ∗ models_lab.errAny e ∗
+        ⌜errWf e ∧ e ≠ interface.nil⌝ := by
+  iintro #Hv
+  ihave #Hv' := Hv
+  iunfold errors.newVar at Hv'
+  icases Hv' with ⟨%x, #Hx, -⟩
+  iunfold errors.newVar at Hv
+  icases Hv with ⟨%x', #Hx', -, #HE⟩
+  icombine Hx Hx' gives %Heq
+  ihave #Ha : models_lab.errAny (GF := GF)
+      (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x') $$ []
+  · unfold models_lab.errAny
+    iexists ⟨go.GoType.PointerType errors.errorString.ty, #x'⟩
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; go_type_set
+    imodintro
+    iintro %Φ HΦ
+    iapply HE
+    inext
+    iapply HΦ
+  iexists _
+  iframe Hx
+  rw [Heq]
+  iframe Ha
+  ipureintro
+  refine ⟨?_, by simp [interface.mkOk]⟩
+  intro ii hi T hT
+  simp [interface.mkOk] at hi
+  subst hi
+  exact ⟨x', rfl⟩
+
+/-- A `*bufio.Reader`'s errors (its reader's, or `io.ErrNoProgress`) have a message. -/
+theorem errsOk_errE (E : List w8 → GoInterface → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ errsOk E ⊢ errsOk (EtcdGrove.bufio.errE E) := by
+  iintro ⟨#Hio, #HE⟩
+  ihave #Hi := io.isInit_access $$ Hio
+  icases Hi with ⟨-, -, -, -, -, -, #HNP, -⟩
+  icases newVar_err _ _ $$ HNP with ⟨%enp, #Henp, #Ha, %Hw⟩
+  unfold errsOk EtcdGrove.bufio.errE
+  iintro !> %r %e (H | #H)
+  · iapply HE $$ H
+  · icombine H Henp gives %Heq
+    subst Heq
+    iframe Ha; ipureintro; exact Hw.1
+
+theorem errAt_errOrNil (E : List w8 → GoInterface → IProp GF) (r : List w8) (e : GoInterface) :
+    errsOk E ⊢ io.errAt E r e -∗ ⌜io.ptrTyped e⌝ -∗ errOrNil e := by
+  iintro #HE #He %hp
+  unfold io.errAt errOrNil
+  icases He with (%h | #H)
+  · ileft; ipureintro; exact h
+  · iright
+    iunfold errsOk at HE
+    icases HE $$ H with ⟨#Ha, %Hw⟩
+    iframe Ha; ipureintro; exact Hw
+
+theorem NewReader.labProof : NewReader.labSpec (GF := GF) := by
+  intro rd I R
+  iintro %Φ ⟨#Hpkg, #Hrd, HI⟩ HΦ
+  iunfold readerOk at Hrd
+  icases Hrd with ⟨%ri, %E, %He, #HE, #Hok⟩
+  obtain ⟨rfl, hty⟩ := He
+  wp_apply (EtcdGrove.bufio.NewReader.wp_proofOk
+      (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
+    ri (fun _ m => 0 < m) I E R $$ [HI] as %br Hown
+  · isplitr
+    · ipureintro; exact hty
+    iframe Hpkg Hok HI
+    iapply EtcdGrove.bufio.preUpTo_trivial
+  iapply HΦ
+  unfold ownReader
+  iexists ri, E
+  iframe HE Hown
+  ipureintro; rfl
+
+/-- `ReadByte`'s result, the error case with its message. -/
+theorem readByte_post (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) (R : List w8)
+    (ri : GoInterfaceOk) (E : List w8 → GoInterface → IProp GF) (hrd : rd = interface.ok ri)
+    (c : w8) (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.io ∗ errsOk E ∗
+      ((⌜err = interface.nil⌝ ∗
+          EtcdGrove.bufio.ownBufReader br ri (fun _ m => 0 < m) I E (R ++ [c])) ∨
+        (⌜err ≠ interface.nil⌝ ∗ □ EtcdGrove.bufio.errE E R err ∗ ⌜io.ptrTyped err⌝ ∗
+          EtcdGrove.bufio.ownBufReader br ri (fun _ m => 0 < m) I E R)) ⊢
+      (⌜err = interface.nil⌝ ∗ ownReader br rd I (R ++ [c])) ∨
+        (⌜err ≠ interface.nil ∧ errWf err⌝ ∗ models_lab.errAny err ∗ ownReader br rd I R) := by
+  iintro ⟨#Hio, #HE, (⟨%h, Hown⟩ | ⟨%h, #He, %hp, Hown⟩)⟩
+  · ileft
+    isplitr
+    · ipureintro; exact h
+    unfold ownReader
+    iexists ri, E
+    iframe HE Hown
+    ipureintro; exact hrd
+  · iright
+    ihave #HE' := errsOk_errE E $$ [$Hio $HE]
+    iunfold errsOk at HE'
+    icases HE' $$ He with ⟨#Ha, -⟩
+    iframe Ha
+    isplitr
+    · ipureintro; exact ⟨h, errWf_of_ptrTyped hp⟩
+    unfold ownReader
+    iexists ri, E
+    iframe HE Hown
+    ipureintro; exact hrd
+
+theorem Reader.ReadByte_wf.labProof : Reader.ReadByte_wf.labSpec (GF := GF) := by
+  intro br rd I R
+  iintro %Φ ⟨#Hpkg, -, Hown⟩ HΦ
+  ihave #Hio := EtcdGrove.bufio.io_init_of_bufio $$ Hpkg
+  iunfold ownReader at Hown
+  icases Hown with ⟨%ri, %E, %hrd, #HE, Hown⟩
+  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br ri (fun _ m => 0 < m) I E R $$ [Hown]
+    as %c %err Hr
+  · iexact Hown
+  iapply HΦ
+  iapply readByte_post br rd I R ri E hrd c err $$ [$Hio $HE $Hr]
+
+theorem Reader.ReadByte.labProof : Reader.ReadByte.labSpec (GF := GF) := by
+  intro br rd I R
+  iintro %Φ ⟨#Hpkg, #Hrd, Hown⟩ HΦ
+  wp_apply Reader.ReadByte_wf.labProof br rd I R $$ [$Hpkg $Hrd $Hown] as %c %err Hr
+  iapply HΦ
+  icases Hr with (H | ⟨⟨%h, -⟩, #Ha, Hown⟩)
+  · ileft; iexact H
+  · iright; iframe Ha Hown; ipureintro; exact h
+
+theorem Reader.Read.labProof : Reader.Read.labSpec (GF := GF) := by
+  intro br rd I R p ps
+  iintro %Φ ⟨#Hpkg, -, Hown, Hp⟩ HΦ
+  ihave #Hio := EtcdGrove.bufio.io_init_of_bufio $$ Hpkg
+  iunfold ownReader at Hown
+  icases Hown with ⟨%ri, %E, %hrd, #HE, Hown⟩
+  wp_apply EtcdGrove.bufio.Reader.Read.wp_proofOk br ri (fun _ m => 0 < m) I E R p ps
+    $$ [Hown Hp] as %n %err ⟨%ys, %Hys, Hp, Hown, #He, %hp⟩
+  · iframe Hown Hp; ipureintro; exact id
+  ihave #HE' := errsOk_errE E $$ [$Hio $HE]
+  iapply HΦ
+  iexists ys
+  isplitr
+  · ipureintro; exact ⟨EtcdGrove.bufio.w64_of_sintZ Hys.1, Hys.2⟩
+  iframe Hp
+  isplitl [Hown]
+  · unfold ownReader
+    iexists ri, E
+    iframe HE Hown
+    ipureintro; exact hrd
+  iapply errAt_errOrNil _ _ _ $$ HE' He
+  ipureintro; exact hp
+
+/-- A `*bufio.Reader` (as an `io.Reader`) reads its stream (the lab's `bufio.bufioReadsOk`). -/
+theorem bufioReadsOk (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) :
+    (isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ readerOk rd I) ⊢
+      readsOk (interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br) (ownReader br rd I) := by
+  iintro ⟨#Hpkg, -⟩
+  ihave #Hio := EtcdGrove.bufio.io_init_of_bufio $$ Hpkg
+  unfold readsOk
+  iexists EtcdGrove.bufio.readerIface br, (fun _ _ => True),
+    (fun _ e => iprop(models_lab.errAny e ∗ ⌜errWf e⌝))
+  isplitr
+  · ipureintro; exact ⟨rfl, fun _ _ => trivial⟩
+  isplitr
+  · unfold errsOk; iintro !> %r %e H; iexact H
+  unfold io.readerOk EtcdGrove.bufio.readerIface
+  iintro !> %R %p %xs
+  iintro !> %Φ ⟨-, Hown, Hp⟩ HΦ
+  dsimp only
+  iunfold ownReader at Hown
+  icases Hown with ⟨%ri, %E, %hrd, #HE, Hown⟩
+  wp_apply EtcdGrove.bufio.Reader.Read.wp_proofOk br ri (fun _ m => 0 < m) I E R p xs
+    $$ [Hown Hp] as %n %err ⟨%ys, %Hys, Hp, Hown, #He, %hp⟩
+  · iframe Hown Hp; ipureintro; exact id
+  ihave #HE' := errsOk_errE E $$ [$Hio $HE]
+  iapply HΦ
+  iexists ys
+  iframe Hp
+  isplitr
+  · ipureintro; exact Hys
+  isplitl [Hown]
+  · unfold ownReader
+    iexists ri, E
+    iframe HE Hown
+    ipureintro; exact hrd
+  isplitr
+  · unfold io.errAt
+    icases He with (%h | #H)
+    · ileft; ipureintro; exact h
+    · iright; imodintro; iunfold errsOk at HE'; iapply HE' $$ H
+  ipureintro; exact hp
+
+/-- `io.ReadAtLeast`'s result as the lab's: from `readAtLeastRes`. -/
+theorem readAtLeastRes_lab (E : List w8 → GoInterface → IProp GF) (eof ueof sb : GoInterface)
+    (r ys : List w8) (m : Nat) (min : w64) (err : GoInterface) (hmin : sint.Z min ≤ m)
+    (hys : ys.length ≤ m) (hu : errWf ueof ∧ ueof ≠ interface.nil) :
+    errsOk E ⊢ models_lab.errAny ueof -∗
+      io.readAtLeastRes E eof ueof sb r ys m (sint.Z min) err -∗
+      ⌜err = interface.nil ↔ sint.Z min ≤ ys.length⌝ ∗ errOrNil err := by
+  iintro #HE #Hu #Hr
+  unfold io.readAtLeastRes
+  icases Hr with (%h | %h | ⟨%e, %h, #H⟩)
+  · exfalso; omega
+  · obtain ⟨-, h2, rfl⟩ := h
+    isplitr
+    · ipureintro; exact ⟨fun _ => h2, fun _ => rfl⟩
+    unfold errOrNil; ileft; ipureintro; rfl
+  · obtain ⟨-, h2, hne, h3, h4⟩ := h
+    iunfold errsOk at HE
+    icases HE $$ H with ⟨#Ha, %Hw⟩
+    by_cases hc : e = eof ∧ ys ≠ []
+    · have := h3 hc; subst this
+      isplitr
+      · ipureintro; exact ⟨fun h => absurd h hu.2, fun h => by omega⟩
+      unfold errOrNil; iright; iframe Hu; ipureintro; exact hu.1
+    · have := h4 hc; subst this
+      isplitr
+      · ipureintro; exact ⟨fun h => absurd h hne, fun h => by omega⟩
+      unfold errOrNil; iright; iframe Ha; ipureintro; exact Hw
+
+/-- `io`'s error variables. -/
+theorem io_errs :
+    isPkgInit (PROP := IProp GF) pkg_id.io ⊢
+      ∃ eof ueof sb : GoInterface, globalAddr io.EOF ↦□ eof ∗
+        globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗ globalAddr io.ErrShortBuffer ↦□ sb ∗
+        models_lab.errAny ueof ∗ ⌜errWf ueof ∧ ueof ≠ interface.nil⌝ := by
+  iintro #Hio
+  ihave #Hi := io.isInit_access $$ Hio
+  icases Hi with ⟨-, -, -, #HSB, #HEOF, #HUE, -⟩
+  icases newVar_err _ _ $$ HSB with ⟨%sb, #Hsb, -⟩
+  icases newVar_err _ _ $$ HEOF with ⟨%eof, #Heof, -⟩
+  icases newVar_err _ _ $$ HUE with ⟨%ueof, #Hueof, #Ha, %Hw⟩
+  iexists eof, ueof, sb
+  iframe Heof Hueof Hsb Ha
+  ipureintro; exact Hw
+
+theorem io.ReadAtLeast.labProof : io.ReadAtLeast.labSpec (GF := GF) := by
+  intro rd I R buf bs min hmin
+  iintro %Φ ⟨#Hio, #Hrd, HI, Hb⟩ HΦ
+  iunfold readsOk at Hrd
+  icases Hrd with ⟨%ri, %Pre, %E, %He, #HE, #Hok⟩
+  obtain ⟨rfl, hPre⟩ := He
+  icases io_errs $$ Hio with ⟨%eof, %ueof, %sb, #Heof, #Hueof, #Hsb, #Hu, %Hw⟩
+  wp_apply _root_.Perennial.io.wp_ReadAtLeast ri Pre I E R buf bs min eof ueof sb $$ [HI Hb]
+    as %n %err ⟨%ys, %Hys, Hb, HI, #Hr⟩
+  · iframe Hok Heof Hueof Hsb HI Hb
+    ipureintro; intro ys _; exact hPre _ _
+  ihave ⟨%Hiff, #Herr⟩ := readAtLeastRes_lab E eof ueof sb R ys bs.length min err hmin Hys.2 Hw
+    $$ HE Hu Hr
+  iapply HΦ
+  iexists ys
+  isplitr
+  · ipureintro; exact ⟨EtcdGrove.bufio.w64_of_sintZ Hys.1, Hys.2, Hiff⟩
+  iframe Hb HI Herr
+
+theorem io.ReadFull.labProof : io.ReadFull.labSpec (GF := GF) := by
+  intro rd I R buf bs
+  iintro %Φ ⟨#Hio, #Hrd, HI, Hb⟩ HΦ
+  iunfold readsOk at Hrd
+  icases Hrd with ⟨%ri, %Pre, %E, %He, #HE, #Hok⟩
+  obtain ⟨rfl, hPre⟩ := He
+  icases io_errs $$ Hio with ⟨%eof, %ueof, %sb, #Heof, #Hueof, -, #Hu, %Hw⟩
+  wp_apply _root_.Perennial.io.wp_ReadFull ri Pre I E R buf bs eof ueof $$ [HI Hb]
+    as %n %err ⟨%ys, %Hys, Hb, HI, #Hr⟩
+  · iframe Hok Heof Hueof HI Hb
+    ipureintro; intro ys _; exact hPre _ _
+  iapply HΦ
+  iexists ys
+  iframe Hb HI
+  unfold io.readFullRes
+  icases Hr with (%h | ⟨%e, %h, #H⟩)
+  · obtain ⟨h1, rfl⟩ := h
+    isplitr
+    · ipureintro; exact ⟨EtcdGrove.bufio.w64_of_sintZ Hys.1, Hys.2, fun _ => h1, fun _ => rfl⟩
+    unfold errOrNil; ileft; ipureintro; rfl
+  · obtain ⟨h1, hne, h3, h4⟩ := h
+    iunfold errsOk at HE
+    icases HE $$ H with ⟨#Ha, %Hwe⟩
+    by_cases hc : e = eof ∧ ys ≠ []
+    · have := h3 hc; subst this
+      isplitr
+      · ipureintro
+        exact ⟨EtcdGrove.bufio.w64_of_sintZ Hys.1, Hys.2, fun h => absurd h Hw.2,
+          fun h => by omega⟩
+      unfold errOrNil; iright; iframe Hu; ipureintro; exact Hw.1
+    · have := h4 hc; subst this
+      isplitr
+      · ipureintro
+        exact ⟨EtcdGrove.bufio.w64_of_sintZ Hys.1, Hys.2, fun h => absurd h hne,
+          fun h => by omega⟩
+      unfold errOrNil; iright; iframe Ha; ipureintro; exact Hwe
+
+end readerProofs
 
 end bufio
 

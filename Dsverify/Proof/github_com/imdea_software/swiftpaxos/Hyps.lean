@@ -40,20 +40,6 @@ namespace github_com.imdea_software.swiftpaxos
 /-- The library hypotheses: see the file header. -/
 class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
     [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  /-- lab `Harness/Proof/bufio/Reader.lean` `bufio.wp_NewReader` -/
-  bufio_NewReader : ∀ [bufio.Assumptions] [io.Assumptions], bufio.NewReader.labSpec (GF := GF)
-  /-- lab `bufio.wp_ReadByte` -/
-  bufio_ReadByte : ∀ [bufio.Assumptions] [io.Assumptions], bufio.Reader.ReadByte.labSpec (GF := GF)
-  /-- lab `bufio.wp_Read` -/
-  bufio_Read : ∀ [bufio.Assumptions] [io.Assumptions], bufio.Reader.Read.labSpec (GF := GF)
-  /-- lab `Harness/Proof/bufio/ReadFull.lean` `bufio.wp_ReadAtLeast` (`io.ReadAtLeast`) -/
-  bufio_ReadAtLeast : ∀ [bufio.Assumptions] [io.Assumptions],
-    bufio.io.ReadAtLeast.labSpec (GF := GF)
-  /-- lab `bufio.wp_ReadFull` (`io.ReadFull`) -/
-  bufio_ReadFull : ∀ [bufio.Assumptions] [io.Assumptions], bufio.io.ReadFull.labSpec (GF := GF)
-  /-- lab `bufio.wp_ReadByte_wf` -/
-  bufio_ReadByte_wf : ∀ [bufio.Assumptions] [io.Assumptions],
-    bufio.Reader.ReadByte_wf.labSpec (GF := GF)
   /-- lab `Proof/treemap/NewWith.lean` `treemap.NewWith.wp_proof` -/
   treemap_NewWith : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
     github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF)
@@ -105,35 +91,19 @@ variable [h : github_com.imdea_software.swiftpaxos.SwiftHyps GF]
 
 namespace bufio
 variable [bufio.Assumptions] [io.Assumptions]
-theorem wp_NewReader : NewReader.labSpec (GF := GF) := h.bufio_NewReader
-theorem wp_ReadByte : Reader.ReadByte.labSpec (GF := GF) := h.bufio_ReadByte
-theorem wp_Read : Reader.Read.labSpec (GF := GF) := h.bufio_Read
+theorem wp_NewReader : NewReader.labSpec (GF := GF) := NewReader.labProof
+theorem wp_ReadByte : Reader.ReadByte.labSpec (GF := GF) := Reader.ReadByte.labProof
+theorem wp_Read : Reader.Read.labSpec (GF := GF) := Reader.Read.labProof
 theorem wp_NewWriter : NewWriter.labSpec (GF := GF) := NewWriter.labProof
 theorem wp_Flush : Writer.Flush.labSpec (GF := GF) := Writer.Flush.labProof
 theorem wp_WriteByte : Writer.WriteByte.labSpec (GF := GF) := Writer.WriteByte.labProof
 theorem wp_Write : Writer.Write.labSpec (GF := GF) := Writer.Write.labProof
-theorem wp_ReadAtLeast : io.ReadAtLeast.labSpec (GF := GF) := h.bufio_ReadAtLeast
-theorem wp_ReadFull : io.ReadFull.labSpec (GF := GF) := h.bufio_ReadFull
+theorem wp_ReadAtLeast : io.ReadAtLeast.labSpec (GF := GF) := io.ReadAtLeast.labProof
+theorem wp_ReadFull : io.ReadFull.labSpec (GF := GF) := io.ReadFull.labProof
 theorem wp_WriteByte_err : Writer.WriteByte_err.labSpec (GF := GF) := Writer.WriteByte_err.labProof
 theorem wp_Write_err : Writer.Write_err.labSpec (GF := GF) := Writer.Write_err.labProof
-theorem wp_ReadByte_wf : Reader.ReadByte_wf.labSpec (GF := GF) := h.bufio_ReadByte_wf
+theorem wp_ReadByte_wf : Reader.ReadByte_wf.labSpec (GF := GF) := Reader.ReadByte_wf.labProof
 
-/-- The lab's `bufio.bufioReadsOk` (`Harness/Proof/bufio/ReadFull.lean`): a `*bufio.Reader` (as an
-`io.Reader`) reads its stream, from `wp_Read`. -/
-theorem bufioReadsOk (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) :
-    (isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ readerOk rd I) ⊢
-      readsOk (interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br) (ownReader br rd I) := by
-  iintro ⟨#Hpkg, #Hrd⟩
-  unfold readsOk
-  iexists interface.mk (go.GoType.PointerType bufio.Reader.ty) #br
-  isplitr
-  · ipureintro; rfl
-  imodintro
-  iintro %b %bs %R %Φ %Hpos Hown Hb HΦ
-  wp_apply wp_Read br rd I R b bs $$ [$Hpkg $Hrd $Hown $Hb] as %n %err ⟨%data, %Hd, Hb, Hown, #He⟩
-  obtain ⟨rfl, hdl⟩ := Hd
-  iapply HΦ $$ %data %err %hdl Hb [Hown] He
-  inext; iexact Hown
 end bufio
 
 namespace github_com.emirpasic.gods.maps.treemap
