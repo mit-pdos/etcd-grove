@@ -10,8 +10,12 @@ The premise (`Run`'s, which `Main`'s proof discharges from the harness's stream,
 - `run cfg evs = .ok v`: no evaluation error. Where TLC would stop with one, the Go panics (an
   `EvalError`), which a triple's postcondition does not describe; `Main` needs `ACCEPTED`, which
   includes it (`Accepts`), so the harness's proof gives it with acceptance;
-- `Stream.Bounded evs`, `Config.Bounded cfg`: the stream's numbers and size, and the
-  configuration's sets, far from the Go `int`'s overflow (`Rep.lean`).
+- `Stream.Bounded evs`, `Config.Bounded cfg`, `Stream.ConfBounded cfg evs`: the stream's numbers
+  and size, the configuration's sets, and the names the stream's configuration changes add, far
+  from the Go `int`'s overflow (`Rep.lean`, "The state's bounds": they keep `Run`'s states within
+  the budget `State.Within`, which every action's premise `State.BoundedFor` asks for).
+  (W0, 2026-11-23: `Stream.ConfBounded` added and `Stream.Bounded`'s count of reports doubled, with
+  the budget; the statement had no proof yet.)
 The configuration and the stream are read, not written (`configRO`, `eventsRO`, persistent).
 -/
 module
@@ -40,7 +44,7 @@ abbrev Run.spec : Prop :=
   ∀ (cp : Loc) (cfg : Config) (sl : GoSlice) (evs : List Event) (v : Verdict),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
       configRO cp cfg ∗ eventsRO sl evs ∗
-      ⌜Config.Bounded cfg ∧ Stream.Bounded evs ∧ run cfg evs = .ok v⌝ }}
+      ⌜Config.Bounded cfg ∧ Stream.Bounded evs ∧ Stream.ConfBounded cfg evs ∧ run cfg evs = .ok v⌝ }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Run))
       (Val #cp)) (Val #sl))
   {{ (r : G.Verdict), RET #r; verdictRO r v }}

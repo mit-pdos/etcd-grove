@@ -53,6 +53,60 @@ theorem State.Wf.len_pending {s : State} (h : s.Wf) : s.pending.length = s.cfg.s
 theorem State.Wf.len_queue {s : State} (h : s.Wf) : s.queue.length = s.cfg.server.length := h.2.2.2.2.2.2.2.2.2.2.2.2.1
 theorem State.Wf.len_reads {s : State} (h : s.Wf) : s.reads.length = s.cfg.server.length := h.2.2.2.2.2.2.2.2.2.2.2.2.2
 
+/-! ## The budget (`State.Within`) is monotone -/
+
+theorem logWithin.mono {b b' E E' : Nat} (hb : b ≤ b') (hE : E ≤ E') {l : List Entry}
+    (h : logWithin b E l) : logWithin b' E' l :=
+  ⟨Nat.le_trans h.1 hb, fun e he => ⟨(h.2 e he).1, Nat.le_trans (h.2 e he).2 hE⟩⟩
+
+theorem confWithin.mono {V b b' E E' : Nat} (hb : b ≤ b') (hE : E ≤ E') {c : Conf}
+    (h : confWithin V b E c) : confWithin V b' E' c := by
+  have hm : b * E ≤ b' * E' := Nat.mul_le_mul hb hE
+  exact ⟨by have := h.1; omega, by have := h.2; omega⟩
+
+theorem termIntsWithin.mono {b b' : Nat} (hb : b ≤ b') {f : TermFn Int}
+    (h : termIntsWithin b f) : termIntsWithin b' f :=
+  ⟨Nat.le_trans h.1 hb, h.2⟩
+
+theorem Msg.Within.mono {b b' E E' : Nat} (hb : b ≤ b') (hE : E ≤ E') {m : Msg}
+    (h : m.Within b E) : m.Within b' E' :=
+  ⟨h.1, Nat.le_trans h.2.1 hb, fun l hl e he => Nat.le_trans (h.2.2 l hl e he) hE⟩
+
+theorem Event.Within.mono {b b' E E' : Nat} (hb : b ≤ b') (hE : E ≤ E') {ev : Event}
+    (h : ev.Within b E) : ev.Within b' E' :=
+  ⟨h.1, Nat.le_trans h.2.1 hb, fun l hl e he => Nat.le_trans (h.2.2 l hl e he) hE⟩
+
+theorem Pre.Within.mono {b b' E E' : Nat} (hb : b ≤ b') (hE : E ≤ E') {u : Pre}
+    (h : u.Within b E) : u.Within b' E' := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8.mono hb hE, by omega, by omega, h11, by omega, h13,
+    by omega, h15⟩
+
+/-- A state within a budget is within any larger one (`Ready` passes `OnDisk` the budget after the
+report, `b + ev.weight`). -/
+theorem State.Within.mono {b b' E E' : Nat} (hb : b ≤ b') (hE : E ≤ E') {s : State}
+    (h : s.Within b E) : s.Within b' E' := by
+  obtain ⟨hc, hi1, hi2, h1, h2, h3, h4, h5, h6, hlog, hch, hll1, hll2, hcf, hlc1, hlc2, hla, hel,
+    htl, hm1, hm2, hv1, hv2, hl1, hl2, hu, hp, hq, hr, hvi⟩ := h
+  refine ⟨hc, hi1, by omega, h1, h2, h3, h4, h5, h6, fun l hl => (hlog l hl).mono hb hE,
+    hch.mono hb hE, by omega, fun p hp => ⟨(hll2 p hp).1, (hll2 p hp).2.mono hb hE⟩,
+    fun c hc => (hcf c hc).mono hb hE, by omega,
+    fun p hp => ⟨(hlc2 p hp).1, (hlc2 p hp).2.mono hb hE⟩, hla.mono hb, hel.mono hb, htl.mono hb,
+    by omega, hm2, by omega, hv2, by omega, hl2, fun o ho u hou => (hu o ho u hou).mono hb hE,
+    fun ms hms => ⟨by have := (hp ms hms).1; omega, fun m hm => ((hp ms hms).2 m hm).mono hb hE⟩,
+    fun q hq' => ⟨by have := (hq q hq').1; omega, fun it hit =>
+      ⟨((hq q hq').2 it hit).1.mono hb hE, by have := ((hq q hq').2 it hit).2.1; omega,
+        fun m hm => (((hq q hq').2 it hit).2.2 m hm).mono hb hE⟩⟩,
+    fun r hr' => ⟨by have := (hr r hr').1; omega, (hr r hr').2⟩, by omega⟩
+
+/-- A state and a report within budget: the state is (`GCDue`'s, `End`'s premise). -/
+theorem State.BoundedFor.bounded {s : State} {ev : Event} (h : s.BoundedFor ev) : s.Bounded := by
+  obtain ⟨b, E, hs, -, -, hb, -⟩ := h
+  refine ⟨b, E, ?_, hs⟩
+  unfold Event.weight at hb
+  push_cast at hb
+  omega
+
 /-! ## Lists of persistent elements -/
 
 /-- A big separating conjunction of persistent elements with one pair replaced. -/
@@ -195,6 +249,102 @@ theorem logRO_len (sl : GoSlice) (l : List Entry) : logRO (GF := GF) sl l ⊢ �
   ihave %Hel := ownSlice_len $$ Hes
   ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
   ipureintro; rw [← Hl, Hel.1]; word
+
+/-- A slice of persistent elements: its length is the list's. -/
+theorem sliceRO_len {V A : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (Φ : V → A → IProp GF) (sl : GoSlice) (gs : List V) (xs : List A) :
+    sl ↦*□ gs ∗ ([∗list] g;x ∈ gs;xs, Φ g x) ⊢ ⌜sint.Z sl.len = xs.length⌝ := by
+  iintro ⟨#Hs, Hb⟩
+  ihave %Hel := ownSlice_len $$ Hs
+  ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+  ipureintro; rw [← Hl, Hel.1]; word
+
+/-- A slice of values related by `R`: its length is the list's. -/
+theorem sliceRel_len {V A : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (R : V → A → Prop) (sl : GoSlice) (gs : List V) (xs : List A) (hR : List.Forall₂ R gs xs) :
+    (sl ↦*□ gs : IProp GF) ⊢ ⌜sint.Z sl.len = xs.length⌝ := by
+  iintro #Hs
+  ihave %Hel := ownSlice_len $$ Hs
+  ipureintro; rw [← hR.length_eq, Hel.1]; word
+
+theorem strsRO_len (sl : GoSlice) (xs : List Str) : strsRO (GF := GF) sl xs ⊢ ⌜sint.Z sl.len = xs.length⌝ := by
+  iintro #H
+  iunfold strsRO at H
+  ihave %Hel := ownSlice_len $$ H
+  ipureintro; rw [Hel.1]; word
+
+theorem intsRO_len (sl : GoSlice) (xs : List Int) : intsRO (GF := GF) sl xs ⊢ ⌜sint.Z sl.len = xs.length⌝ := by
+  iintro #H
+  iunfold intsRO at H
+  icases H with ⟨%ws, #Hws, %Hm⟩
+  ihave %Hel := ownSlice_len $$ Hws
+  ipureintro; rw [← Hm, List.length_map, Hel.1]; word
+
+theorem msgsRO_len (sl : GoSlice) (ms : List Msg) : msgsRO (GF := GF) sl ms ⊢ ⌜sint.Z sl.len = ms.length⌝ := by
+  iintro #H
+  iunfold msgsRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_len (fun g m => msgRO (GF := GF) g m) sl gs ms
+  iframe Hgs Hb
+
+theorem qitemsRO_len (sl : GoSlice) (q : List QItem) : qitemsRO (GF := GF) sl q ⊢ ⌜sint.Z sl.len = q.length⌝ := by
+  iintro #H
+  iunfold qitemsRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_len (fun g x => qitemRO (GF := GF) g x) sl gs q
+  iframe Hgs Hb
+
+theorem factsRO_len (sl : GoSlice) (fs : List Fact) : factsRO (GF := GF) sl fs ⊢ ⌜sint.Z sl.len = fs.length⌝ := by
+  iintro #H
+  iunfold factsRO at H
+  icases H with ⟨%gs, #Hgs, %HR⟩
+  iapply sliceRel_len factRel sl gs fs HR
+  iexact Hgs
+
+theorem votesRO_len (sl : GoSlice) (vs : List VoteRec) : votesRO (GF := GF) sl vs ⊢ ⌜sint.Z sl.len = vs.length⌝ := by
+  iintro #H
+  iunfold votesRO at H
+  icases H with ⟨%gs, #Hgs, %HR⟩
+  iapply sliceRel_len voteRel sl gs vs HR
+  iexact Hgs
+
+theorem readRecsRO_len (sl : GoSlice) (r : List ReadRec) : readRecsRO (GF := GF) sl r ⊢ ⌜sint.Z sl.len = r.length⌝ := by
+  iintro #H
+  iunfold readRecsRO at H
+  icases H with ⟨%gs, #Hgs, %HR⟩
+  iapply sliceRel_len readRel sl gs r HR
+  iexact Hgs
+
+/-- A queue's sub-slice `sl[lo:hi]` holds the queue's items `[lo, hi)` (`Write`'s, `Flush`'s
+`s.Queue[n][1:]`). -/
+theorem qitemsRO_subslice (sl : GoSlice) (q : List QItem) (lo hi : w64)
+    (hb : 0 ≤ sint.Z lo ∧ sint.Z lo ≤ sint.Z hi ∧ sint.Z hi ≤ sint.Z sl.len) :
+    qitemsRO (GF := GF) sl q ⊢
+      qitemsRO (slice.slice sl G.QItem lo hi) (subslice (sint.nat lo) (sint.nat hi) q) := by
+  unfold qitemsRO
+  iintro ⟨%gs, #Hgs, #Hb⟩
+  ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+  icases (ownSlice_slice lo hi sl _ gs hb).1 $$ Hgs with ⟨-, #H2, -⟩
+  iexists (subslice (sint.nat lo) (sint.nat hi) gs)
+  isplitr
+  · iexact H2
+  iapply bigSepL2_subslice (fun g x => qitemRO (GF := GF) g x) gs q _ _ Hl
+  iexact Hb
+
+/-- A node's reads' sub-slice `sl[lo:hi]` (`ReadAsked`'s `q[1:]`). -/
+theorem readRecsRO_subslice (sl : GoSlice) (r : List ReadRec) (lo hi : w64)
+    (hb : 0 ≤ sint.Z lo ∧ sint.Z lo ≤ sint.Z hi ∧ sint.Z hi ≤ sint.Z sl.len) :
+    readRecsRO (GF := GF) sl r ⊢
+      readRecsRO (slice.slice sl G.ReadRec lo hi) (subslice (sint.nat lo) (sint.nat hi) r) := by
+  unfold readRecsRO
+  iintro ⟨%gs, #Hgs, %HR⟩
+  icases (ownSlice_slice lo hi sl _ gs hb).1 $$ Hgs with ⟨-, #H2, -⟩
+  iexists (subslice (sint.nat lo) (sint.nat hi) gs)
+  isplitl
+  · iexact H2
+  ipureintro
+  unfold subslice
+  exact (HR.take _).drop _
 
 /-- `s.F[k]` for an `[]int` field. -/
 theorem intsRO_at (sl : GoSlice) (xs : List Int) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < xs.length) :
@@ -1157,6 +1307,39 @@ theorem wp_set_viol (q : Loc) (s : State) (sl : GoSlice) (xs : SSet) :
   iapply stateFields_with_viol g s sl xs
   iframe Hf
   iexact Hn
+
+/-- `{ s with i := x }` (`Step`'s `ns.I = s.I + 1`). -/
+theorem stateFields_with_i (g : G.State) (s : State) (w : w64) :
+    stateFields (GF := GF) g s ⊢ stateFields { g with I' := w } { s with i := sint.Z w } := by
+  iintro Hf
+  iNamed Hf
+  iunfold stateFields
+  simp only
+  have HWf' : ({ s with i := sint.Z w } : State).Wf := by
+    exact HWf
+  iframe
+  try (ipureintro; exact ⟨rfl, HWf'⟩)
+  try (ipureintro; exact HWf')
+
+/-- `ns.I = w` on an owned successor: `{ s with i := sint.Z w }`. -/
+theorem wp_set_i (q : Loc) (s : State) (w : w64) :
+    {{ stateOwn (GF := GF) q s }}
+      (App (Val (GoInstruction (GoStore go.int)))
+        (Val (PairV #(q.[github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State, go!"I"]) #w)))
+    {{ RET #(); stateOwn q { s with i := sint.Z w } }} := by
+  iintro %Φ Hq HΦ
+  iunfold stateOwn at Hq
+  iNamed Hq
+  icases (github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.State_access_store_I (GF := GF) q g w).access_strict
+    $$ Hp with ⟨Hfld, Hclose⟩
+  wp_apply IntoValTyped.wp_store _ _ _ $$ Hfld as Hfld
+  ihave Hp := Hclose $$ Hfld
+  iapply HΦ
+  iunfold stateOwn
+  iexists _
+  iframe Hp
+  iapply stateFields_with_i g s w
+  iexact Hf
 
 /-- A successor built, frozen: read-only from now on. -/
 theorem stateOwn_persist (q : Loc) (s : State) : stateOwn (GF := GF) q s ⊢ |==> stateRO q s := by

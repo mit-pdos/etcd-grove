@@ -57,6 +57,10 @@ abbrev G.QItem := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.
 abbrev G.ReadRec := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.ReadRec
 abbrev G.State := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State
 abbrev G.AppendFact := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.AppendFact
+abbrev G.MemResult := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.MemResult
+abbrev G.inMem := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem
+abbrev G.onDisk := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk
+abbrev G.Checker := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Checker
 
 end types
 
@@ -103,9 +107,10 @@ def Event.size (ev : Event) : Nat :=
   (ev.voters.getD []).length + (ev.outgoing.getD []).length
 
 /-- **The stream's numbers and size within `numBound`** (`Run`'s premise for the Go `int`): every
-number of every report, and the number of reports plus their sizes. -/
+number of every report, and one plus twice the number of reports plus their sizes (the budget of
+`State.Within` once every report is taken: one for `Init0`'s, then each report's `Event.weight`). -/
 def Stream.Bounded (evs : List Event) : Prop :=
-  ((evs.length + (evs.map Event.size).sum : Nat) : Int) < numBound ∧ ∀ ev ∈ evs, ev.NumsOk
+  ((1 + 2 * evs.length + (evs.map Event.size).sum : Nat) : Int) < numBound ∧ ∀ ev ∈ evs, ev.NumsOk
 
 /-- The configuration's sets within `numBound` (`Majority`'s `Cardinality(...) * 2`). -/
 def Config.Bounded (cfg : Config) : Prop :=
@@ -119,6 +124,190 @@ def Entry.chgSize (e : Entry) : Nat := e.value.add.length + e.value.remove.lengt
 `len + 1`). -/
 def ConfOf.Bounded (l : List Entry) (c0 : Conf) : Prop :=
   ((c0.cin.length + c0.cout.length + (l.map Entry.chgSize).sum : Nat) : Int) < 2 ^ 61
+
+/-! ## The state's bounds (W0, 2026-11-23)
+
+What keeps the Go `int` arithmetic of `binding.go` and `check.go` from overflowing, stated over the
+Lean state, so that every action's spec takes it as one premise and `Run`'s proof carries it as its
+loop invariant (`notes/antithesis-check-design.md` §10.2, "Bounds"). It is a **budget** `b`: every
+log, and every list that grows by at most one per event, is no longer than `b`; the facts (at most
+two per event) no longer than `2 * b`; every number within `±2^62` (a number of the stream, `±2^61`,
+plus a length, `≤ b < 2^61`, at most); and a **configuration budget** `E`, the most names one entry's
+change adds or removes (`Entry.chgSize`), with every configuration's sets no larger than the initial
+voters plus `b * E`. Taking event `ev` raises `b` by `ev.weight` (two, plus the event's size), so
+`Run`'s invariant after events `evs` is `State.Within (1 + (evs.map Event.weight).sum) E`, and the
+premise `Stream.Bounded` keeps it below `numBound`. Every bound is local: each event adds to a list
+at most what it carries (a log `L1 = SubSeq(L0, 1, first - 1) \o es` is no longer than `L0` plus the
+entries `es` came from), so the invariant's proof needs no history. -/
+
+/-- A number of the state: within `±2^62` (twice the stream's), so that any two of them, or one and
+a length, add without overflow. -/
+def bigOk (x : Int) : Prop := -2 ^ 62 < x ∧ x < 2 ^ 62
+
+/-- A fact's numbers. -/
+def Fact.NumsOk (f : Fact) : Prop :=
+  bigOk f.term ∧ bigOk f.lastLogIndex ∧ bigOk f.lastLogTerm ∧ bigOk f.index
+
+/-- A log within the budget: no longer than `b`, its terms `bigOk`, each entry's change no larger
+than `E`. -/
+def logWithin (b E : Nat) (l : List Entry) : Prop :=
+  l.length ≤ b ∧ ∀ e ∈ l, bigOk e.term ∧ e.chgSize ≤ E
+
+/-- A configuration within the budget: each set no larger than the `V` initial voters plus `b * E`
+(a configuration is the initial one changed by at most `b` entries, each adding at most `E`). -/
+def confWithin (V b E : Nat) (c : Conf) : Prop :=
+  c.cin.length ≤ V + b * E ∧ c.cout.length ≤ V + b * E
+
+/-- A function on terms to `Int`s within the budget: at most `b` terms, its terms and values
+`bigOk`. -/
+def termIntsWithin (b : Nat) (f : TermFn Int) : Prop :=
+  f.length ≤ b ∧ ∀ p ∈ f, bigOk p.1 ∧ bigOk p.2
+
+/-- The entry lists a message carries. -/
+def Msg.entryLists (m : Msg) : List (List Entry) := [m.entries.getD []]
+
+/-- The entry lists a report carries: its entries, its message's, its causes'. -/
+def Event.entryLists (ev : Event) : List (List Entry) :=
+  ev.entries.getD [] :: ((ev.msg.map Msg.entryLists).getD [] ++ (ev.cause.getD []).flatMap Msg.entryLists)
+
+/-- Every entry a message carries changes at most `E` names. -/
+def Msg.ChgOk (E : Nat) (m : Msg) : Prop := ∀ l ∈ m.entryLists, ∀ e ∈ l, e.chgSize ≤ E
+
+/-- Every entry a report carries changes at most `E` names. -/
+def Event.ChgOk (E : Nat) (ev : Event) : Prop := ∀ l ∈ ev.entryLists, ∀ e ∈ l, e.chgSize ≤ E
+
+/-- A report's weight in the budget: its size, plus two (the lists that grow by one per event, and
+`Ready`'s two stages: `InMemory`'s result within `b + ev.size + 1`, `OnDisk`'s successor one more). -/
+def Event.weight (ev : Event) : Nat := ev.size + 2
+
+/-- A message held by the state (`pending`, a queued item's) within the budget. -/
+def Msg.Within (b E : Nat) (m : Msg) : Prop := m.NumsOk ∧ m.size ≤ b ∧ m.ChgOk E
+
+/-- A report held by the state (a queued item's) within the budget. -/
+def Event.Within (b E : Nat) (ev : Event) : Prop := ev.NumsOk ∧ ev.size ≤ b ∧ ev.ChgOk E
+
+/-- An announced write within the budget: its numbers `bigOk`, its suffix a log within it and the
+log it restores (`SubSeq(log, 1, keep) \o suffix`) no longer than `b`, its facts at most `2 * b`. -/
+def Pre.Within (b E : Nat) (u : Pre) : Prop :=
+  bigOk u.term ∧ bigOk u.voteTerm ∧ bigOk u.commit ∧ bigOk u.keep ∧ bigOk u.confirmed.term ∧
+  bigOk u.confirmed.index ∧ bigOk u.low ∧ logWithin b E u.suffix ∧ u.keep + u.suffix.length ≤ b ∧
+  u.msgs.length ≤ 2 * b ∧ (∀ f ∈ u.msgs, f.NumsOk) ∧ u.acks.length ≤ 2 * b ∧
+  (∀ f ∈ u.acks, f.NumsOk) ∧ u.votes.length ≤ b ∧ (∀ v ∈ u.votes, bigOk v.term)
+
+/-- **A state within budget `b` and configuration budget `E`** (`Run`'s invariant: the module
+comment above). `viol.length ≤ b`: a state the checker goes on from breaks no invariant, so its
+`viol` is empty. -/
+def State.Within (b E : Nat) (s : State) : Prop :=
+  Config.Bounded s.cfg ∧ 1 ≤ s.i ∧ s.i ≤ b ∧
+  (∀ x ∈ s.currentTerm, bigOk x) ∧ (∀ x ∈ s.voteTerm, bigOk x) ∧ (∀ x ∈ s.commitIndex, bigOk x) ∧
+  (∀ x ∈ s.lastApplied, bigOk x) ∧ (∀ x ∈ s.confAt, bigOk x) ∧
+  (∀ c ∈ s.confirmed, bigOk c.term ∧ bigOk c.index) ∧
+  (∀ l ∈ s.log, logWithin b E l) ∧ logWithin b E s.chain ∧
+  s.ledLog.length ≤ b ∧ (∀ p ∈ s.ledLog, bigOk p.1 ∧ logWithin b E p.2) ∧
+  (∀ c ∈ s.config, confWithin s.cfg.initVoters.length b E c) ∧
+  s.ledConf.length ≤ b ∧ (∀ p ∈ s.ledConf, bigOk p.1 ∧ confWithin s.cfg.initVoters.length b E p.2) ∧
+  termIntsWithin b s.ledAt ∧ termIntsWithin b s.elAt ∧ termIntsWithin b s.termLen ∧
+  s.msgs.length ≤ 2 * b ∧ (∀ f ∈ s.msgs, f.NumsOk) ∧
+  s.votes.length ≤ b ∧ (∀ v ∈ s.votes, bigOk v.term) ∧
+  s.leaders.length ≤ b ∧ (∀ l ∈ s.leaders, bigOk l.term) ∧
+  (∀ o ∈ s.undo, ∀ u, o = some u → u.Within b E) ∧
+  (∀ ms ∈ s.pending, ms.length ≤ b ∧ ∀ m ∈ ms, m.Within b E) ∧
+  (∀ q ∈ s.queue, q.length ≤ b ∧ ∀ it ∈ q, it.ev.Within b E ∧ it.m.length ≤ b ∧ ∀ m ∈ it.m, m.Within b E) ∧
+  (∀ r ∈ s.reads, r.length ≤ b ∧ ∀ x ∈ r, bigOk x.floor) ∧
+  s.viol.length ≤ b
+
+/-- **A state within some budget below `numBound`** (what `GC`, `GCDue`, `End` need). -/
+def State.Bounded (s : State) : Prop :=
+  ∃ b E : Nat, (b : Int) < numBound ∧ s.Within b E
+
+/-- **A state and the report it takes, within budget** (every action's premise, `ActionSpec`; and
+`Step`'s): the state within `b`, the report's numbers within `numBound` and its entries' changes
+within `E`, and room for the report: `b + ev.weight` below `numBound`, the configuration budget
+after it below `2^61` (`Legal`'s, `NextConf`'s and `ConfOf`'s premises). -/
+def State.BoundedFor (s : State) (ev : Event) : Prop :=
+  ∃ b E : Nat, s.Within b E ∧ ev.NumsOk ∧ ev.ChgOk E ∧
+    ((b + ev.weight : Nat) : Int) < numBound ∧
+    ((s.cfg.initVoters.length + (b + ev.weight + 1) * E : Nat) : Int) < 2 ^ 61
+
+/-- `InMemory`'s arguments within budget (`inMemRO`). -/
+def InMem.Bounded (x : InMem) : Prop := x.s.BoundedFor x.ev
+
+/-- `OnDisk`'s arguments within budget `b` (`Ready` passes `InMemory`'s result, within
+`b + ev.size + 1`; `Write`, `Flush` the state's own fields and its queued item, within `b`). -/
+def OnDisk.Within (b E : Nat) (x : OnDisk) : Prop :=
+  x.s.Within b E ∧ x.q.ev.Within b E ∧ x.q.m.length ≤ b ∧ (∀ m ∈ x.q.m, m.Within b E) ∧
+  x.ro.length = x.s.cfg.server.length ∧ x.ld.length ≤ b ∧ (∀ l ∈ x.ld, bigOk l.term) ∧
+  x.ll.length ≤ b ∧ (∀ p ∈ x.ll, bigOk p.1 ∧ logWithin b E p.2) ∧ logWithin b E x.ch ∧
+  termIntsWithin b x.tl ∧ x.vi.length ≤ b + 3
+
+/-- `OnDisk`'s arguments within some budget `b` with `b + 1` below `numBound` (`onDiskRO`; the
+successor is within `b + 1`: the announced write's facts, `2 * b + 2`, below `2^62`). -/
+def OnDisk.Bounded (x : OnDisk) : Prop :=
+  ∃ b E : Nat, ((b + 1 : Nat) : Int) < numBound ∧ x.Within b E
+
+/-- `InMemory`'s result within budget `b` (`InMemoryWithin`'s conclusion, `Ready`'s and `Mem`'s
+use of it): per-server lists of one entry per server, the rest as `State.Within`'s, its `viol` at
+most three names more than the state's. -/
+def MemResult.Within (b E : Nat) (s : State) (r : MemResult) : Prop :=
+  r.role.length = s.cfg.server.length ∧ r.leaders.length ≤ b ∧ (∀ l ∈ r.leaders, bigOk l.term) ∧
+  r.ledLog.length ≤ b ∧ (∀ p ∈ r.ledLog, bigOk p.1 ∧ logWithin b E p.2) ∧
+  r.ledConf.length ≤ b ∧ (∀ p ∈ r.ledConf, bigOk p.1 ∧ confWithin s.cfg.initVoters.length b E p.2) ∧
+  r.config.length = s.cfg.server.length ∧ (∀ c ∈ r.config, confWithin s.cfg.initVoters.length b E c) ∧
+  r.confAt.length = s.cfg.server.length ∧ (∀ x ∈ r.confAt, bigOk x) ∧
+  termIntsWithin b r.ledAt ∧ termIntsWithin b r.elAt ∧ termIntsWithin b r.termLen ∧
+  logWithin b E r.chain ∧ r.viol.length ≤ s.viol.length + 3
+
+/-! ### The budget's laws (pure; proved by the group that owns the function, §10.2)
+
+`Run`'s invariant is `State.Within` (W7); each action keeps it, its budget raised by the report's
+weight, unless the action breaks an invariant (`viol` not empty: `Run` stops there, and the
+state's `viol` is the one list the budget does not bound by the events). -/
+
+/-- **An action keeps the state within budget** (`<act>_within : ActionWithin State.<act>`, one per
+action of `Bind`, and `Bind`'s). -/
+abbrev ActionWithin (act : State → Nat → Event → EvalM (Option State)) : Prop :=
+  ∀ (s : State) (n : Nat) (ev : Event) (b E : Nat) (s' : State),
+    n < s.cfg.server.length → s.Within b E → ev.NumsOk → ev.ChgOk E →
+    ((b + ev.weight : Nat) : Int) < numBound →
+    act s n ev = .ok (some s') → s'.viol = [] → s'.Within (b + ev.weight) E
+
+/-- **`InMemory`'s result within budget** (`inMemory_within`, W3). -/
+abbrev InMemoryWithin : Prop :=
+  ∀ (s : State) (n : Nat) (ev : Event) (b E : Nat) (r : MemResult),
+    n < s.cfg.server.length → s.Within b E → ev.NumsOk → ev.ChgOk E →
+    ((b + ev.weight : Nat) : Int) < numBound →
+    s.inMemory n ev = .ok r → r.Within (b + ev.size + 1) E s
+
+/-- **`OnDisk`'s successor within budget** (`onDisk_within`, W4b): its arguments within `b`, the
+successor within `b + 1` (two facts, one vote, one term of `termLen` more). -/
+abbrev OnDiskWithin : Prop :=
+  ∀ (s : State) (n : Nat) (q : QItem) (more : Bool) (ro : List Str) (ld : List LeaderRec)
+    (ll : TermFn (List Entry)) (ch : List Entry) (tl : TermFn Int) (vi : SSet) (b E : Nat) (s' : State),
+    n < s.cfg.server.length → OnDisk.Within b E { s, n, q, more, ro, ld, ll, ch, tl, vi } →
+    ((b + 1 : Nat) : Int) < numBound →
+    s.onDisk n q more ro ld ll ch tl vi = .ok (some s') → s'.viol = [] → s'.Within (b + 1) E
+
+/-- **`GC` keeps the state within budget** (`gc_within`, W6): it only removes. -/
+abbrev GCWithin : Prop :=
+  ∀ (s s' : State) (b E : Nat), s.Within b E → s.gc = .ok s' → s'.Within b E
+
+/-- **`Step` keeps the state within budget** (`step_within`, W6, from `bind_within`): `I` one more. -/
+abbrev StepWithin : Prop :=
+  ∀ (s : State) (ev : Event) (b E : Nat) (s' : State),
+    s.Within b E → ev.NumsOk → ev.ChgOk E → ((b + ev.weight : Nat) : Int) < numBound →
+    s.step ev = .ok (some s') → s'.viol = [] → s'.Within (b + ev.weight) E
+
+/-- **`Init0` is within budget one** (`init0_within`, W7), for any `E`. -/
+abbrev Init0Within : Prop :=
+  ∀ (cfg : Config) (s : State) (E : Nat), Config.Bounded cfg → init0 cfg = .ok s → s.Within 1 E
+
+/-- **The stream's configuration changes within `2^61`** (`Run`'s premise for `ConfOf`, `Legal`,
+`NextConf`, `Majority`): some `E` bounds every reported entry's change, and the initial voters plus
+`E` per unit of the stream's weight (`State.BoundedFor`'s configuration budget, at the last report)
+stay below `2^61`. -/
+def Stream.ConfBounded (cfg : Config) (evs : List Event) : Prop :=
+  ∃ E : Nat, (∀ ev ∈ evs, ev.ChgOk E) ∧
+    ((cfg.initVoters.length + (2 + 2 * evs.length + (evs.map Event.size).sum) * E : Nat) : Int) < 2 ^ 61
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -429,15 +618,44 @@ def succOwn (q : Loc) (ok : Bool) : Option State → IProp GF
 `s.<name>(n, ev)` on a read-only state, server `n` (a position `idx` returned) and a report, where
 the Lean action `act` evaluates (to `o`), returns `act`'s successor, owned (`Step` then sets its
 `I`), or `ok = false` where `act` gives `none`. Where `act` errs the Go panics (an `EvalError`),
-which the premise excludes. -/
+which the premise excludes; `State.BoundedFor s ev` keeps its arithmetic from overflowing (one
+premise for every action, so that `Bind` dispatches to each with its own). -/
 abbrev ActionSpec (name : GoString) (act : State → Nat → Event → EvalM (Option State)) : Prop :=
   ∀ (p : Loc) (s : State) (n : w64) (e : Loc) (ev : Event) (o : Option State),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
       stateRO p s ∗ eventRO e ev ∗
-      ⌜0 ≤ sint.Z n ∧ sint.Z n < s.cfg.server.length ∧ act s (sint.nat n) ev = .ok o⌝ }}
+      ⌜0 ≤ sint.Z n ∧ sint.Z n < s.cfg.server.length ∧ s.BoundedFor ev ∧ act s (sint.nat n) ev = .ok o⌝ }}
     (App (App (Val (p @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.ty
       @!! name)) (Val #n)) (Val #e))
   {{ (q : Loc) (ok : Bool), RET (PairV #q #ok); succOwn q ok o }}
+
+/-! ## `binding.go`'s records: `MemResult`, `inMem`, `onDisk`; `check.go`'s `Checker` -/
+
+/-- A Go `MemResult` (a value) holding `r` (`InMemory`'s result). -/
+def memResultRO (g : G.MemResult) (r : MemResult) : IProp GF :=
+  iprop(⌜g.Ok' = r.ok⌝ ∗ strsRO g.Role' r.role ∗ leadersRO g.Leaders' r.leaders ∗
+    termLogsRO g.LedLog' r.ledLog ∗ termConfsRO g.LedConf' r.ledConf ∗ confsRO g.Config' r.config ∗
+    intsRO g.ConfAt' r.confAt ∗ termIntsRO g.LedAt' r.ledAt ∗ termIntsRO g.ElAt' r.elAt ∗
+    logRO g.Chain' r.chain ∗ termIntsRO g.TermLen' r.termLen ∗ strsRO g.Viol' r.viol)
+
+/-- A Go `inMem` (a value: `InMemory`'s `x`) holding `x`: its state and report read-only, its
+server a position, within budget (`InMem.Bounded`), so that every method's arithmetic stays in the
+Go `int`. -/
+def inMemRO (g : G.inMem) (x : InMem) : IProp GF :=
+  iprop(stateRO g.s' x.s ∗ eventRO g.ev' x.ev ∗
+    ⌜sint.Z g.n' = (x.n : Int) ∧ x.n < x.s.cfg.server.length ∧ x.Bounded⌝)
+
+/-- A Go `onDisk` (a value: `OnDisk`'s `x`) holding `x`: its state, item and arguments read-only,
+its server a position, within budget (`OnDisk.Bounded`). -/
+def onDiskRO (g : G.onDisk) (x : OnDisk) : IProp GF :=
+  iprop(stateRO g.s' x.s ∗ qitemRO g.q' x.q ∗ strsRO g.ro' x.ro ∗ leadersRO g.ld' x.ld ∗
+    termLogsRO g.ll' x.ll ∗ logRO g.ch' x.ch ∗ termIntsRO g.tl' x.tl ∗ strsRO g.vi' x.vi ∗
+    ⌜sint.Z g.n' = (x.n : Int) ∧ x.n < x.s.cfg.server.length ∧ g.more' = x.more ∧ x.Bounded⌝)
+
+/-- A Go `*Checker` holding `c`, owned (`Next` writes it): its state read-only, its verdict. -/
+def checkerOwn (p : Loc) (c : Checker) : IProp GF :=
+  iprop(∃ g : G.Checker, p ↦ g ∗ stateRO g.State' c.state ∗ verdictRO g.Verdict' c.verdict ∗
+    ⌜g.Done' = c.done⌝)
 
 /-! ## Persistence -/
 
@@ -537,6 +755,15 @@ instance stateFields_persistent (g : G.State) (st : State) : Persistent (stateFi
 
 instance stateRO_persistent (p : Loc) (st : State) : Persistent (stateRO (GF := GF) p st) := by
   unfold stateRO; infer_instance
+
+instance memResultRO_persistent (g : G.MemResult) (r : MemResult) : Persistent (memResultRO (GF := GF) g r) := by
+  unfold memResultRO; infer_instance
+
+instance inMemRO_persistent (g : G.inMem) (x : InMem) : Persistent (inMemRO (GF := GF) g x) := by
+  unfold inMemRO; infer_instance
+
+instance onDiskRO_persistent (g : G.onDisk) (x : OnDisk) : Persistent (onDiskRO (GF := GF) g x) := by
+  unfold onDiskRO; infer_instance
 
 instance verdictRO_persistent (r : G.Verdict) (v : Verdict) : Persistent (verdictRO (GF := GF) r v) := by
   unfold verdictRO; infer_instance

@@ -30,7 +30,7 @@ theorem State.Made.wp_proof
     (wp_setPre : setPre.spec (GF := GF) (hG := hG)) :
     State.Made.spec (GF := GF) (hG := hG) := by
   intro p s n e ev o
-  wp_start as ⟨#Hs, #He, %Hn, %Hlt, %Ho⟩
+  wp_start as ⟨#Hs, #He, %Hn, %Hlt, %_Hb, %Ho⟩
   -- read the state: its struct's fields, each field's representation, its shape
   ihave #Hs' := Hs
   iunfold stateRO at Hs'

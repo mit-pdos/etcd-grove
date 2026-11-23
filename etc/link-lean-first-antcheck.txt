@@ -113,3 +113,22 @@ LastConf: At IsConf
 ConfOf: At IsConf NextConf
 State__Granted: factsHas SetAdd votesHas
 State__Acked: SetAdd
+
+# --- The parallel phase (notes/antithesis-check-design.md §10.2): each group adds its lines under its
+# --- own header only (the headers keep the groups' hunks apart for git).
+
+# W1 (the binding's operators)
+
+# W2 (the small actions)
+
+# W3 (InMemory)
+
+# W4a (onDisk's methods)
+
+# W4b (OnDisk)
+
+# W5 (Send, Boot)
+
+# W6 (Ready .. Flush, Bind, GC, Step)
+
+# W7 (check.go, Run)

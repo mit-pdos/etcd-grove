@@ -379,7 +379,7 @@ over `Rep.lean`'s persistent representation predicates):
 ```
 Run.spec : ∀ cp cfg sl evs v,
   {{ isPkgInit check ∗ configRO cp cfg ∗ eventsRO sl evs ∗
-     ⌜Config.Bounded cfg ∧ Stream.Bounded evs ∧ run cfg evs = .ok v⌝ }}
+     ⌜Config.Bounded cfg ∧ Stream.Bounded evs ∧ Stream.ConfBounded cfg evs ∧ run cfg evs = .ok v⌝ }}
     check.Run #cp #sl
   {{ (r : Verdict), RET #r; verdictRO r v }}
 ```
@@ -388,9 +388,10 @@ So `Run` returns `ACCEPTED` exactly when `Accepts cfg evs`, and `REJECTED k` / `
 (the Lean's) otherwise; it does not panic. **The precondition the harness discharges** (`Main`'s
 proof, S4): (i) `Accepts cfg evs` (which gives `run cfg evs = .ok v` with `v.kind = .accepted`):
 the simulation argument, that every report of a run is a step of the binding; (ii)
-`Stream.Bounded evs`: every number of every report within `±2^61` and the number of reports plus
-their sizes below `2^61` (the closed statement's step bound `n < 2^61`, as tracecheck's
-`numBound`); (iii) `Config.Bounded` (three servers). Where the Lean errs (TLC's evaluation
+`Stream.Bounded evs`: every number of every report within `±2^61` and one plus twice the number
+of reports plus their sizes below `2^61` (the closed statement's step bound `n < 2^61`, as
+tracecheck's `numBound`; doubled by W0, §10.2); (iii) `Config.Bounded` (three servers); (iv)
+`Stream.ConfBounded` (W0: the names configuration changes add; none in the first harness, `E = 0`). Where the Lean errs (TLC's evaluation
 errors), the Go panics; a triple's post cannot say so, and `Main` panics there anyway, so the
 spec is silent: no "well-formed" syntactic class was found that excludes evaluation errors, which
 depend on the state (a string compared with a record, `SubSeq` past a log).
@@ -479,58 +480,72 @@ kernel ("application type mismatch"): state arithmetic as separate `have`s or le
 
 ### 10.2 The work list for the parallel phase (binding.go, check.go)
 
-Every function below still needs a spec (spec-first: one agent writes all of a group's specs
-before its proofs, or W0 writes them all), then its proof, then its line in
-`etc/link-lean-first-antcheck.txt`. Groups own disjoint files; a group may start once the specs of
-its callees exist (proofs take callees as hypotheses). Sizes: Go lines, estimated Lean proof lines
-(tracecheck's layer C ratio, about 8 to 12 per Go line for actions).
+**W0 is done (2026-11-23):** every spec below exists and typechecks, and the shared vocabulary is
+complete, so a group writes only proofs (one `Proof/.../check/<file>.lean` per spec file, the same
+name, `theorem <spec name minus .spec>.wp_proof (callee specs …) : <name>.spec`), its pure
+budget laws (below), and its lines in `etc/link-lean-first-antcheck.txt` (under its own header
+there). A group never edits `Rep.lean`, `StateLaws.lean`, another group's files or a spec; a spec
+or law that turns out false or too weak goes to the coordinator first. Every group may start at
+once: proofs take callees as hypotheses (`?` in the link list for a callee not proved yet).
 
-- **W0, first, one agent (small):** the shared vocabulary later groups need, in `Rep.lean` /
-  `StateLaws.lean` (the only edits to them in this phase): `memResultRO` (`MemResult`), `inMemRO`
-  (the `inMem` struct: `s`, `n`, `ev`), `onDiskRO` (the `onDisk` struct: `s n q more ro ld ll ch
-  tl vi`), and a pure `State.Bounded` (every number of the state within `numBound`, every list
-  shorter than the stream's size), which the overflow premises of the actions are discharged from
-  and `Run`'s invariant carries; and all the specs of W1-W6 (action specs are `ActionSpec name
-  State.<lean>`).
-- **W1, the binding's operators (24 functions, ~250 Go lines, ~2k Lean):** `VoteFact`,
-  `ToAppendFact`, `AckFact`, `IsReq`, `SnapOk`, `ReqFactIn` (Msg accessors, `TermLogs.Has/Get`,
-  `SubSeq`, `TermAt`), `State.BootTerm`, `State.VoteOf`, `State.Vote`, `RecordedIn`, `SendableIn`,
-  `State.Sendable` (`EntriesEqual`, `SubSeq`, `TermLogs.Get`, `leadersHas`, `TermAt`),
-  `Comparable`, `Matching` (`IsPrefix`, `Entry.Equal`, `Min`), `State.MemCommit`, `SameConf`
-  (`SetOf`, `Set.Equal`, Event accessors), `State.EffTerm`, `State.Over`, `Recovered`, `Lowest`,
-  `validBy`, `isForwarded`, `isUnmodelled`, `State.queued`.
-- **W2, the small actions (9, ~190 Go lines, ~2k Lean), after W1's specs:** `Wrote` (`clone`,
-  `setPre`), `SnapEv` (`TermAt`), `ReadAsked` (`setReads`), `ReadGiven` (`setReads`, `violAdd`),
-  `Recv` (`IsReq`, `SnapOk`, `ReqFactIn`, `Sendable`, `setMsgs`), `ApplyEv` (`EntriesEqual`,
-  `SubSeq`, `MemCommit`, `setInt`, `setPre`, `violAdd`), `RestoreEv` (`ConfOf`, `SameConf`,
-  `setInt`, `setPre`), `ConfEv` (`At`, `IsConf`, `Legal`, `NextConf`, `RecordedIn`, `SameConf`,
-  `TermConfs/TermInts.With`, `setConf`, `setInt`), `Net` (`EntriesEqual`, `SubSeq`, `Vote`,
-  `setPre`). `Made` is done (the template).
-- **W3, `InMemory` (inMem's 17 methods, `validBy`, `ok`, `InMemory`; ~210 Go lines, ~3-4k Lean):**
-  callees `Acked`, `AllSwitched`, `OneWaiting`, `Granted`, `IsQuorum`, `IsConf`, `Legal`,
-  `RecordedIn`, `Comparable`, `ConfOf`, `LastConf`, `IsPrefix`, `SubSeq`, `TermAt`, `leadersAdd`,
-  `TermLogs/TermConfs/TermInts.With/Get/Has`, `setConf`, `setInt`, `setStr`, `violAdd`, `Concat`.
-- **W4, `OnDisk` (onDisk's ~30 methods and `OnDisk`, ~450 Go lines, ~5-7k Lean; split in two
-  agents: W4a the methods `w`..`old`, W4b `OnDisk` itself, after W4a's specs):** callees
-  `ReqFactIn`, `PrevOk`, `HasFirst`, `SendableIn`, `IsReq`, `SnapOk`, `VoteFact`, `VoteRequest`,
-  `UpToDate`, `AckFact`, `Comparable`, `Matching`, `IsPrefix`, `EntriesEqual`, `SubSeq`, `At`,
-  `Concat`, `Lowest`, `Min`, `Max`, `factsAdd/Has/Minus/Union`, `votesAdd/Minus/Union`, `setPre`,
-  `setLog`, `setInt`, `setStr`, `setConfirmed`, `TermInts.With`, `violAdd`, `msgSeqHead`.
-- **W5, `Send` and `Boot` (~170 Go lines, ~3k Lean), after W1:** `Send` (`IsReq`, `SnapOk`,
-  `ReqFactIn`, `Sendable`, `PrevOk`, `HasFirst`, `EffTerm`, `VoteFact`, `AckFact`, `factsAdd/Has`,
-  `votesHas`, `isForwarded`, `isUnmodelled`, `msgSeqHead`, `setConfirmed`, `setPre`, `Max`);
-  `Boot` (`Recovered`, `Vote`, `VoteOf`, `Concat`, `SubSeq`, `EntriesEqual`, `ConfOf`, `LastConf`,
-  `InitConf`, `SameConf`, the `set*`, `factsMinus`, `votesMinus`).
-- **W6, after W3-W5: the composed actions and GC (~200 Go lines, ~2k Lean):** `Ready`, `Mem`,
-  `Write`, `Flush` (`InMemory`, `OnDisk`, `queued`, `setQueue`), `Bind` (the 16 actions),
-  `Garbage`, `OldVotes`, `StaleLed`, `GCDue`, `GC` (`EffTerm`, `Over`, `idx`, `factsHas`,
-  `factsMinus`, `votesMinus`, `TermX.Without`), `Step` (`idx`, `Bind`; sets `ns.I`: `wp_set_i`
-  is still to add to `StateLaws`, `I` is an `int`, not a slice).
-- **W7, last: `check.go` (~50 Go lines, ~1.5k Lean plus the pure lemmas):** `violated`
-  (`ElectionSafety`, `OneVotePerTerm`), `NewChecker` (`Init0`), `Checker.Next` (the GC loop: the
-  pure lemma that `gcFuel` suffices, the Lean errs on exhausted fuel), `Checker.End`, `Run`
-  (invariant: `stateRO` of `run`'s checker after the events taken, `State.Bounded`), then
-  `Run.spec`'s proof.
+**Bounds (`Rep.lean`, "The state's bounds").** The Go `int` arithmetic is kept from overflowing by
+one budget, stated over the Lean state:
+- `State.Within b E s`: every log (each server's, `chain`, `ledLog`'s, an announced write's suffix
+  and the log it restores) and every list that grows by at most one per report is no longer than
+  `b`, the facts (`msgs`, a write's `msgs`/`acks`) no longer than `2 * b`; every number of the state
+  `bigOk` (within `±2^62`); every entry's change at most `E` names (`Entry.chgSize`), every
+  configuration's sets at most `|initVoters| + b * E`; held reports and messages within `b`
+  (`Event.Within`, `Msg.Within`); `1 ≤ i ≤ b`; `viol` no longer than `b` (empty on every state the
+  checker goes on from). `State.Bounded s := ∃ b E, b < numBound ∧ s.Within b E`.
+- `State.BoundedFor s ev` (**every action's premise**, in `ActionSpec`, and `InMemory`'s, `Step`'s):
+  `s.Within b E`, the report's numbers `NumsOk` and its entries' changes within `E`,
+  `b + ev.weight < numBound` (`Event.weight := ev.size + 2`), and `|initVoters| + (b + ev.weight + 1) * E < 2^61`
+  (what `Legal`, `NextConf`, `ConfOf`, `IsQuorum` ask).
+- `InMem.Bounded x := x.s.BoundedFor x.ev` (inside `inMemRO`); `OnDisk.Within b E x` (the state,
+  the item and the arguments within `b`) and `OnDisk.Bounded x := ∃ b E, b + 1 < numBound ∧ x.Within b E`
+  (inside `onDiskRO`, and `State.OnDisk`'s premise); `MemResult.Within b E s r` (`InMemory`'s
+  result).
+- `Run`'s premise gains `Stream.ConfBounded cfg evs` (some `E` bounds every reported entry's
+  change, and `|initVoters| + (2 + 2|evs| + Σ size) * E < 2^61`), and `Stream.Bounded` counts each
+  report twice (`1 + 2|evs| + Σ size < numBound`): after `k` reports the state is within
+  `1 + Σ weight` (`Run`'s invariant), so each report meets `BoundedFor`. `Run.spec` had no proof.
+- **The budget laws** (`Rep.lean`, "The budget's laws"; pure, each proved by the group that owns
+  the function, in `Proof/.../check/Within/<Name>.lean`, a defs module importing `Rep`/`StateLaws`):
+  `ActionWithin act` (the action keeps the state within `b + ev.weight`, unless its `viol` is not
+  empty), `InMemoryWithin` (the result within `b + ev.size + 1`), `OnDiskWithin` (arguments within
+  `b`, successor within `b + 1`), `GCWithin`, `StepWithin`, `Init0Within`. Each bound is local (a
+  log `L1 = SubSeq(L0, 1, first - 1) \o es` is no longer than the leader log its fact was sendable
+  from, a configuration grows by one entry's change per report), so no law needs history.
+- Monotone: `State.Within.mono` (and per part), `State.BoundedFor.bounded` (`StateLaws.lean`).
 
-W1 and W3's/W4a's/W5's spec writing can run at once after W0; W2 after W1's specs; W6 after
-W3-W5; W7 last.
+**Other shared laws added (`StateLaws.lean`)**: `wp_set_i`/`stateFields_with_i` (`Step`'s
+`ns.I = s.I + 1`); lengths `strsRO_len`, `intsRO_len`, `msgsRO_len`, `qitemsRO_len`, `factsRO_len`,
+`votesRO_len`, `readRecsRO_len` (generic `sliceRO_len`, `sliceRel_len`); sub-slices
+`qitemsRO_subslice` (`Write`/`Flush`'s `Queue[n][1:]`), `readRecsRO_subslice` (`ReadAsked`'s
+`q[1:]`). Representation predicates (`Rep.lean`): `memResultRO`, `inMemRO`, `onDiskRO` (value
+structs: `g.s'`, `g.n'`, ... read directly), `checkerOwn` (`*Checker`, owned).
+
+**Changed statement:** `ActionSpec` takes `s.BoundedFor ev` (so `State.Made.spec` does; its proof
+only ignores it): one premise for every action, so that `Bind` dispatches to each with its own.
+
+**Ownership** (spec files in `Spec/.../check/`, proofs in `Proof/.../check/` under the same names;
+laws in `Proof/.../check/Within/`):
+
+| group | waits for | spec / proof files | budget laws (`Within/`) |
+|---|---|---|---|
+| W1 (24) | — | `VoteFact`, `ToAppendFact`, `AckFact`, `IsReq`, `SnapOk`, `ReqFactIn`, `State__BootTerm`, `State__VoteOf`, `State__Vote`, `RecordedIn`, `SendableIn`, `State__Sendable`, `Comparable`, `Matching`, `State__MemCommit`, `SameConf`, `State__EffTerm`, `State__Over`, `Recovered`, `Lowest`, `validBy`, `isForwarded`, `isUnmodelled`, `State__queued` | — |
+| W2 (9) | — | `State__Wrote`, `State__SnapEv`, `State__ReadAsked`, `State__ReadGiven`, `State__Recv`, `State__ApplyEv`, `State__RestoreEv`, `State__ConfEv`, `State__Net` | `State.<act>_within : ActionWithin State.<act>` for these nine and `made` (`Within/Wrote.lean`, ..., `Within/Made.lean`) |
+| W3 (18) | — | `inMem__T`, `inMem__role1`, `inMem__leads`, `inMem__wins`, `inMem__es`, `inMem__ld1`, `inMem__ll1`, `inMem__lc1`, `inMem__snapsM`, `inMem__known`, `inMem__app`, `inMem__ll2`, `inMem__L`, `inMem__c`, `inMem__cmt`, `inMem__newC`, `inMem__ok`, `State__InMemory` | `State.inMemory_within : InMemoryWithin` (`Within/InMemory.lean`; also `granted`/`acked` no longer than `server`, `IsQuorum`'s premise) |
+| W4a (33) | — | `onDisk__w`, `__hasM`, `__m`, `__T0`, `__T1`, `__elect`, `__adopt`, `__V1`, `__voted`, `__L0`, `__leads`, `__moved`, `__fm`, `__snaps`, `__bat`, `__isApp`, `__below`, `__takes`, `__K`, `__es`, `__first`, `__stores`, `__f`, `__k`, `__L1`, `__last`, `__acks`, `__ackAt`, `__conf1`, `__adv`, `__newC`, `__ch1`, `__old` (all `onDisk__<m>`) | — |
+| W4b (1) | — | `State__OnDisk` | `State.onDisk_within : OnDiskWithin` (`Within/OnDisk.lean`) |
+| W5 (2) | — | `State__Boot`, `State__Send` | `State.boot_within`, `State.send_within` (`Within/Boot.lean`, `Within/Send.lean`) |
+| W6 (11) | — | `State__Ready`, `State__Mem`, `State__Write`, `State__Flush`, `State__Bind`, `State__Garbage`, `State__OldVotes`, `State__StaleLed`, `State__GCDue`, `State__GC`, `State__Step` | `ready`/`mem`/`write`/`flush`/`bind_within` (from W2's, W3's, W4b's, W5's laws), `State.gc_within : GCWithin`, `State.step_within : StepWithin` (`Within/Ready.lean`, ..., `Within/Step.lean`) |
+| W7 (4 + `Run`) | — | `violated`, `NewChecker`, `Checker__Next`, `Checker__End`, `Run` | `init0_within : Init0Within` (`Within/Init0.lean`); `Run`'s invariant from `StepWithin`, `GCWithin` |
+
+Notes for the proofs: `onDisk__K` and `onDisk__k` differ only in case (Go's `K` and `k`). `Ready`
+gets `OnDisk.Bounded` for `InMemory`'s result from `InMemoryWithin` and `State.Within.mono`
+(budget `b + ev.size + 1`); `Write`/`Flush` from the state's own fields (budget `b`). `Next` needs
+no lemma on `gcFuel`: the premise `c.next ev = .ok c'` gives the Lean loop's iterations, which the
+Go loop follows (induction on the fuel); its intermediate states stay within budget by
+`GCWithin`. Sizes as estimated before: W1 ~2k, W2 ~2k, W3 ~3-4k, W4 ~5-7k, W5 ~3k, W6 ~2k, W7
+~1.5k Lean lines, plus the budget laws (~1-2k in all, mostly W2/W4b/W5).
