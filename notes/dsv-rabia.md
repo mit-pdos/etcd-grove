@@ -9,15 +9,17 @@ a slot's wake channel), Perennial `3afd77e35`; the lab's statement `dsv_goal_che
 `CheckOperations.wp_proof`. The lab's proof is 40.6k lines under `proof/Proof/` (plus its harness
 pieces under `proof/Harness/`).
 
-**State (2026-11-23, third agent):** done and checked: everything the second agent ported (all
-built with `lake build` of the leaves, 2026-11-23 ~04:40: ok), plus message's bufio half (`Spec`,
-`FrameDeps`, `BufWrite`, `WriteFlush`, `MarshalWriteFlush`, `BufRead`, `ReadUnmarshal`, onto the
-revised bufio, `lean-check`) and tcp's transport base (`Basics`, `ProtoLemmas`, `Hub`). In
-progress (third agent's forks, one file group each): tcp's client (`ClientTcpInit`,
-`ClientTCP__Connect`), proxy (`ProxyLemmas`, `ProxyTcpInit`, `ProxyTCP__{Connect,recvLoop,sendLoop}`)
-and network endpoints (`NetLemmas`, `NetTCPInit`, `NetTCP__{Connect,RecvHandler,SendHandler}`); the
-server layers (network `Prologue`, proxy `ProxyInit`/`Prologue`, `roles/server`) with tcp's specs as
-hypothesis arguments, and `os.signal.NoSignals`. Then: the kit and the statement (Next steps).
+**State (2026-11-23, third agent, ~06:30):** done and checked: everything the second agent ported
+(`lake build` of the leaves, ok), message's bufio half, tcp's whole transport (base: `Basics`,
+`ProtoLemmas`, `Hub`; the client, proxy and network endpoints: `ClientTcpInit`, `ClientTCP.Connect`,
+`ProxyTcpInit`, `ProxyTCP.Connect`, `NetTCPInit`, `NetTCP.Connect` proved as `tcp/Spec.lean` states
+them), the server layers and `roles/server` (`ServerInit`, `Server.Prologue`, `Server.ServerMain`,
+`Server.TerminalLogger`; linked to tcp's proofs in `roles/server/Link.lean`), `os.signal.NoSignals`
+(below), the kit's `TopLevelDefs`. `lake build` of the tcp endpoints, `roles/server/Link`,
+`TopLevelDefs` and the regenerated kit inits: ok. In progress (forks): the kit's model/codec/
+generator (`KitModel`, `ModelSet`, `ModelProof`, `CodecProof`), its configuration protocol, client
+and server machine (`Kit`, `ConfProof`, `ClientProof`, `ServerProof`), the ghost start
+(`Core/StartAlloc`, `Core/Start`). Then: `Orch`, mains, `TopLevelRobustness`.
 
 ## What is where
 
@@ -105,6 +107,29 @@ hypothesis arguments, and `os.signal.NoSignals`. Then: the kit and the statement
   `Dsverify/` (`path/Init.lean` mentions `opaqueInitsOk` in its doc only).
 - **OrdChan:** the channel idioms' atomic updates are crash-aware at Perennial `9c3b81f3`
   (`notCrashed ={⊤,∅}=∗ notCrashed ∗ …`): `ncfupd_of_fupd` at the start of each update's proof.
+
+## Design findings
+
+- **remote's `ServeClient`** (as paxos's finding): its `newClient` triple has precondition `True`, so
+  the system it returns can hold no exclusive resource; rabia's `Op` mutates its `Sys` (`next`, the
+  send channel's single producer), so the kit's `Sys` got a `sync.Mutex` and `Op` locks it (`op1` is
+  the body). `remote.Serve` runs one operation at a time, so the lock never waits in practice.
+- **bufio's `NewWriterSize` asks `□ Q W` of what was already written** (revised bufio): a writer
+  made over a fresh connection needs the protocol to allow the empty stream; rabia's framed
+  protocols (`proxyP`, `proxyQ`, `netP`) now do outright (the proxy makes its writer before it has
+  read the client's handshake, on which `proxyQ` depends).
+- **A connection read through a `*bufio.Reader` gives its protocol fact one step later**
+  (`net.connReader_proto`): each frame's fact costs a later credit (`wp_auto_lc`).
+- **Missing laws of `GooseLang/Ext/Net/Proto.lean`** (proved here from its definitions, in
+  `tcp/ProtoLemmas.lean`): `sentLb_prefix`, `sentLb_agree`, `recvTokL_sentLb`.
+- **`os/signal`**: the coordinator's decision, implemented by the third agent's fork:
+  `os.signal.Hyps` holds the library's behaviour (`Notify` registers a channel on which the
+  runtime may deliver any signal; `Stop`), and the **environment assumption** `os.signal.NoSignals`
+  (nobody sends SIGINT/SIGTERM to the deployment's processes; `NotifyQuiet`) is a class of its own,
+  which `SigListen` takes. **For the user:** the honest alternative (only `Hyps.Notify`) costs a
+  proof that every routine selecting on a server's `Done` channel is safe once `Done` is closed
+  (SigListen closes it on a signal): the tcp endpoints' loops, the layers' routines, `ServerMain`,
+  `TerminalLogger`, which today treat `Done` as never closed (safety only, not liveness).
 
 ## The hypotheses (missing model pieces; named after the lab's specs)
 
