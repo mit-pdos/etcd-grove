@@ -407,7 +407,130 @@ the loop invariant of `Run` is `stateRO` of the Lean checker's state after the e
 (`stateRO` and its parts are defined in `Rep.lean`, persistent, not yet used by a proof).
 Proved so far and linked (`Link.lean`, `etc/gen-link.py --antcheck`; no `sorry`, no axiom, `#print
 axioms` Lean's three): `TermAt`, `At`, `SubSeq`, `stringsEqual`, `Value.Equal`, `Entry.Equal`,
-`EntriesEqual`, `IsPrefix`. The rest of the checker (about 140 functions, `InMemory` and `OnDisk`
-the largest) and `Run` are not.
+`EntriesEqual`, `IsPrefix`; S3b-2 (§10.1) brought it to 110, and §10.2 lists the rest.
 
 **Questions** (for the coordinator): see the S3b report.
+
+### 10.1 S3b-2: the state's laws and how to prove an action (2026-11-23)
+
+**Representation** (`Rep.lean`). A state's struct value `g` holds a Lean `State` by
+`stateFields g s`: one named conjunct per field (`HCfg`, `HCurrentTerm`, ..., `HViol`; `%HI` the
+step counter) and `%HWf : s.Wf`, the shape (every per-server list has one entry per server, so
+`n < |server|` puts every `s.F[n]` in bounds). All persistent. Then
+- `stateRO p s := ∃ g, p ↦□ g ∗ stateFields g s`: a built state (an action's argument, `Run`'s
+  loop invariant);
+- `stateOwn p s := ∃ g, p ↦ g ∗ stateFields g s`: a successor being built (`clone`'s result, whose
+  fields the action sets; `Step` then sets `I`); `stateOwn_persist` freezes it;
+- `succOwn q ok o`: an action's `(ns, ok)` against the Lean's `Option State`;
+- `ActionSpec name act`: the one spec shape of every action of `Bind` (`s.<name>(n, ev)` on
+  `stateRO p s`, `eventRO e ev`, `0 ≤ n < |server|`, premise `act s n ev = .ok o`; post `succOwn q
+  ok o`). `State.Made.spec := ActionSpec go!"Made" State.made`.
+
+**Laws** (`StateLaws.lean`, a defs module the proofs import):
+- *reading the struct*: `iunfold stateRO at Hs; iNamed Hs; iNamed Hf; iStructNamed Hp`. The last
+  splits `p ↦□ g` into field points-tos, which `wp_auto` needs to load `s.F` (it does not load a
+  field through a persistent struct points-to);
+- *reading a per-server element* `s.F[n]` (the Lean's `s.f[n]!`): open it once with the field's
+  `<pred>_at` law (`undoRO_at`: `undoRO sl us ⊢ ∃ v, sliceAt sl n v ∗ preRO v us[n]!`; also
+  `intsRO_at`, `strsRO_at`, `logsRO_at`, `confsRO_at`, `confirmedsRO_at`, `pendingRO_at`,
+  `queueRO_at`, `readsRO_at`), then each Go read is `wp_apply wp_load_at _ _ v Hn $$ [Hua]` (the
+  same `v` each time). `sliceRO_at`/`sliceRel_at` are the generic forms, `wp_load_index` the
+  slice-level one, `logRO_len` a log's length; `State.Wf.len_<f>` turn `n < |server|` into
+  `n < |s.f|`;
+- *building a successor* `ns := s.clone(); ns.F = x`: `wp_apply wp_clone` (`stateOwn q s`), the
+  callee that computes `x` (a `set*` helper: `undoRO out (s.undo.set n u)`), then
+  `wp_apply wp_set_<f> q s out xs (len proof)` gives `stateOwn q { s with f := xs }` — one law per
+  field, the Lean's record update; `stateFields_with_<f>` is the same on the value (for a struct
+  built otherwise);
+- *framing*: what a law does not name is carried over: `stateFields_with_<f>` changes one field
+  and keeps the rest; `wp_set_<f>` keeps the struct's other fields.
+
+**The template: `State.Made`** (`Proof/.../check/State__Made.lean`, B 496-499; Lean
+`State.made`: `match s.undo[n]! with | none => none | some u => some { s with undo := s.undo.set
+n (some { u with made := true }) }`). The proof reads like the Lean step:
+1. `wp_start as ⟨#Hs, #He, %Hn, %Hlt, %Ho⟩`; open the state (above); `unfold State.made at Ho`;
+2. `s.Undo[n]`: `icases undoRO_at g.Undo' s.undo n ⟨Hn, _⟩ $$ HUndo with ⟨%u, #Hua, #Hu⟩`,
+   `wp_apply wp_load_at`; `cases hu : s.undo[n]!` splits as the Lean's `match`;
+3. `none`: `Hu` says `u = null`, the Go returns `nil, false`: `succOwn _ false none`;
+4. `some pu`: `*u` loads `gp` from `preRO`'s points-to; `nu.Made = true` is a store `wp_auto` does
+   on the allocated `nu`; `ipersist nu` and the pure facts of `preRO` give `preRO nu (some { pu
+   with made := true })`; `wp_apply wp_clone`, `wp_apply wp_setPre`, `wp_apply wp_set_undo`, and
+   the result is `succOwn q true (some { s with undo := ... })`, which is the Lean's (`cases Ho`).
+Tactics: `try wp_auto` after a `wp_apply` (it already ran the automation); a `wp_if_destruct` on a
+`decide (u = null)` substitutes the equation; the per-field laws take the length side condition
+`(by rw [List.length_set, HWf.len_<f>])`.
+
+**Checking.** `etc/lean-check.py -a FILE` for the loop; a FIRST (fresh) check can report "0
+errors" on an unfinished proof when the shared server is busy: re-run it, and confirm with
+`lake env lean FILE` before calling a proof done.
+
+**Proved and linked (S3b-2)**: 110 results in `Link.lean` (from 8): the rest of `types.go` (sets,
+`Value.rec`, `Concat`, `Min`/`Max`, `Conf.Equal`, the sets of facts, votes and leaders, the
+functions on terms), `event.go`'s accessors (32), `raft.go` (21), `state.go` (`idx`, `clone`,
+the nine `set*`, `violAdd`, `Init0`), and the template action `State.Made`. No `sorry`, no axiom:
+`#print axioms` of `wp_ConfOf`, `State.wp_Made`, `wp_Init0`, `State.wp_Granted`,
+`State.wp_HasFirst` is Lean's three. Specs strengthened by the proofs: `confsAfterCount`,
+`State.AllSwitched`, `State.OneWaiting` take `a + 1` and `len(l) + 1` within the Go `int` (the Go
+wraps and panics otherwise). Pitfalls the proofs met: `word`/`omega` inside terms (`⟨by word, by
+word⟩`) and `l[k]` with a bounds proof in rewritten hypotheses can pass elaboration and fail the
+kernel ("application type mismatch"): state arithmetic as separate `have`s or lemmas, use
+`l[k]? = some x`; a method with a pointer receiver called on a value (`Set`, `Value`) needs
+`rw [<T>.TypeAssumptions.ptr_<M>_unfold.method_unfold]` (`Set`'s are under `Set.`, not `Set'.`).
+
+### 10.2 The work list for the parallel phase (binding.go, check.go)
+
+Every function below still needs a spec (spec-first: one agent writes all of a group's specs
+before its proofs, or W0 writes them all), then its proof, then its line in
+`etc/link-lean-first-antcheck.txt`. Groups own disjoint files; a group may start once the specs of
+its callees exist (proofs take callees as hypotheses). Sizes: Go lines, estimated Lean proof lines
+(tracecheck's layer C ratio, about 8 to 12 per Go line for actions).
+
+- **W0, first, one agent (small):** the shared vocabulary later groups need, in `Rep.lean` /
+  `StateLaws.lean` (the only edits to them in this phase): `memResultRO` (`MemResult`), `inMemRO`
+  (the `inMem` struct: `s`, `n`, `ev`), `onDiskRO` (the `onDisk` struct: `s n q more ro ld ll ch
+  tl vi`), and a pure `State.Bounded` (every number of the state within `numBound`, every list
+  shorter than the stream's size), which the overflow premises of the actions are discharged from
+  and `Run`'s invariant carries; and all the specs of W1-W6 (action specs are `ActionSpec name
+  State.<lean>`).
+- **W1, the binding's operators (24 functions, ~250 Go lines, ~2k Lean):** `VoteFact`,
+  `ToAppendFact`, `AckFact`, `IsReq`, `SnapOk`, `ReqFactIn` (Msg accessors, `TermLogs.Has/Get`,
+  `SubSeq`, `TermAt`), `State.BootTerm`, `State.VoteOf`, `State.Vote`, `RecordedIn`, `SendableIn`,
+  `State.Sendable` (`EntriesEqual`, `SubSeq`, `TermLogs.Get`, `leadersHas`, `TermAt`),
+  `Comparable`, `Matching` (`IsPrefix`, `Entry.Equal`, `Min`), `State.MemCommit`, `SameConf`
+  (`SetOf`, `Set.Equal`, Event accessors), `State.EffTerm`, `State.Over`, `Recovered`, `Lowest`,
+  `validBy`, `isForwarded`, `isUnmodelled`, `State.queued`.
+- **W2, the small actions (9, ~190 Go lines, ~2k Lean), after W1's specs:** `Wrote` (`clone`,
+  `setPre`), `SnapEv` (`TermAt`), `ReadAsked` (`setReads`), `ReadGiven` (`setReads`, `violAdd`),
+  `Recv` (`IsReq`, `SnapOk`, `ReqFactIn`, `Sendable`, `setMsgs`), `ApplyEv` (`EntriesEqual`,
+  `SubSeq`, `MemCommit`, `setInt`, `setPre`, `violAdd`), `RestoreEv` (`ConfOf`, `SameConf`,
+  `setInt`, `setPre`), `ConfEv` (`At`, `IsConf`, `Legal`, `NextConf`, `RecordedIn`, `SameConf`,
+  `TermConfs/TermInts.With`, `setConf`, `setInt`), `Net` (`EntriesEqual`, `SubSeq`, `Vote`,
+  `setPre`). `Made` is done (the template).
+- **W3, `InMemory` (inMem's 17 methods, `validBy`, `ok`, `InMemory`; ~210 Go lines, ~3-4k Lean):**
+  callees `Acked`, `AllSwitched`, `OneWaiting`, `Granted`, `IsQuorum`, `IsConf`, `Legal`,
+  `RecordedIn`, `Comparable`, `ConfOf`, `LastConf`, `IsPrefix`, `SubSeq`, `TermAt`, `leadersAdd`,
+  `TermLogs/TermConfs/TermInts.With/Get/Has`, `setConf`, `setInt`, `setStr`, `violAdd`, `Concat`.
+- **W4, `OnDisk` (onDisk's ~30 methods and `OnDisk`, ~450 Go lines, ~5-7k Lean; split in two
+  agents: W4a the methods `w`..`old`, W4b `OnDisk` itself, after W4a's specs):** callees
+  `ReqFactIn`, `PrevOk`, `HasFirst`, `SendableIn`, `IsReq`, `SnapOk`, `VoteFact`, `VoteRequest`,
+  `UpToDate`, `AckFact`, `Comparable`, `Matching`, `IsPrefix`, `EntriesEqual`, `SubSeq`, `At`,
+  `Concat`, `Lowest`, `Min`, `Max`, `factsAdd/Has/Minus/Union`, `votesAdd/Minus/Union`, `setPre`,
+  `setLog`, `setInt`, `setStr`, `setConfirmed`, `TermInts.With`, `violAdd`, `msgSeqHead`.
+- **W5, `Send` and `Boot` (~170 Go lines, ~3k Lean), after W1:** `Send` (`IsReq`, `SnapOk`,
+  `ReqFactIn`, `Sendable`, `PrevOk`, `HasFirst`, `EffTerm`, `VoteFact`, `AckFact`, `factsAdd/Has`,
+  `votesHas`, `isForwarded`, `isUnmodelled`, `msgSeqHead`, `setConfirmed`, `setPre`, `Max`);
+  `Boot` (`Recovered`, `Vote`, `VoteOf`, `Concat`, `SubSeq`, `EntriesEqual`, `ConfOf`, `LastConf`,
+  `InitConf`, `SameConf`, the `set*`, `factsMinus`, `votesMinus`).
+- **W6, after W3-W5: the composed actions and GC (~200 Go lines, ~2k Lean):** `Ready`, `Mem`,
+  `Write`, `Flush` (`InMemory`, `OnDisk`, `queued`, `setQueue`), `Bind` (the 16 actions),
+  `Garbage`, `OldVotes`, `StaleLed`, `GCDue`, `GC` (`EffTerm`, `Over`, `idx`, `factsHas`,
+  `factsMinus`, `votesMinus`, `TermX.Without`), `Step` (`idx`, `Bind`; sets `ns.I`: `wp_set_i`
+  is still to add to `StateLaws`, `I` is an `int`, not a slice).
+- **W7, last: `check.go` (~50 Go lines, ~1.5k Lean plus the pure lemmas):** `violated`
+  (`ElectionSafety`, `OneVotePerTerm`), `NewChecker` (`Init0`), `Checker.Next` (the GC loop: the
+  pure lemma that `gcFuel` suffices, the Lean errs on exhausted fuel), `Checker.End`, `Run`
+  (invariant: `stateRO` of `run`'s checker after the events taken, `State.Bounded`), then
+  `Run.spec`'s proof.
+
+W1 and W3's/W4a's/W5's spec writing can run at once after W0; W2 after W1's specs; W6 after
+W3-W5; W7 last.

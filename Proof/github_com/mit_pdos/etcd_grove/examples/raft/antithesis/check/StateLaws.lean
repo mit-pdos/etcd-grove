@@ -187,6 +187,93 @@ theorem undoRO_at (sl : GoSlice) (us : List (Option Pre)) (k : w64) (hk : 0 ≤ 
   iapply sliceRO_at (fun p u => preRO (GF := GF) p u) sl ps us k hk
   iframe Hps Hb
 
+/-- A log's length is its slice's. -/
+theorem logRO_len (sl : GoSlice) (l : List Entry) : logRO (GF := GF) sl l ⊢ ⌜sint.Z sl.len = l.length⌝ := by
+  iintro #H
+  iunfold logRO at H
+  icases H with ⟨%es, #Hes, #Hb⟩
+  ihave %Hel := ownSlice_len $$ Hes
+  ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+  ipureintro; rw [← Hl, Hel.1]; word
+
+/-- `s.F[k]` for an `[]int` field. -/
+theorem intsRO_at (sl : GoSlice) (xs : List Int) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < xs.length) :
+    intsRO (GF := GF) sl xs ⊢ ∃ w : w64, sliceAt sl k w ∗ ⌜sint.Z w = xs[sint.nat k]!⌝ := by
+  iintro #H
+  iunfold intsRO at H
+  icases H with ⟨%ws, #Hws, %Hx⟩
+  have hR : List.Forall₂ (fun (w : w64) (x : Int) => sint.Z w = x) ws xs := by
+    subst Hx; clear hk; induction ws with
+    | nil => exact .nil
+    | cons _ _ ih => exact .cons rfl ih
+  iapply sliceRel_at (fun (w : w64) (x : Int) => sint.Z w = x) sl ws xs k hk hR
+  iexact Hws
+
+/-- `s.F[k]` for a `[]string` field. -/
+theorem strsRO_at (sl : GoSlice) (xs : List Str) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < xs.length) :
+    strsRO (GF := GF) sl xs ⊢ sliceAt sl k xs[sint.nat k]! := by
+  iintro #H
+  iunfold strsRO at H
+  iunfold sliceAt
+  iexists xs
+  iframe H
+  ipureintro
+  rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem (by word)]; rfl
+
+/-- `s.Log[k]`. -/
+theorem logsRO_at (sl : GoSlice) (ls : List (List Entry)) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < ls.length) :
+    logsRO (GF := GF) sl ls ⊢ ∃ v : GoSlice, sliceAt sl k v ∗ logRO v ls[sint.nat k]! := by
+  iintro #H
+  iunfold logsRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_at (fun g l => logRO (GF := GF) g l) sl gs ls k hk
+  iframe Hgs Hb
+
+/-- `s.Config[k]`. -/
+theorem confsRO_at (sl : GoSlice) (cs : List Conf) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < cs.length) :
+    confsRO (GF := GF) sl cs ⊢ ∃ v : G.Conf, sliceAt sl k v ∗ confRO v cs[sint.nat k]! := by
+  iintro #H
+  iunfold confsRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_at (fun g c => confRO (GF := GF) g c) sl gs cs k hk
+  iframe Hgs Hb
+
+/-- `s.Confirmed[k]`. -/
+theorem confirmedsRO_at (sl : GoSlice) (cs : List Confirmed) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < cs.length) :
+    confirmedsRO (GF := GF) sl cs ⊢ ∃ v : G.Confirmed, sliceAt sl k v ∗ ⌜confirmedRel v cs[sint.nat k]!⌝ := by
+  iintro #H
+  iunfold confirmedsRO at H
+  icases H with ⟨%gs, #Hgs, %Hr⟩
+  iapply sliceRel_at confirmedRel sl gs cs k hk Hr
+  iexact Hgs
+
+/-- `s.Pending[k]`. -/
+theorem pendingRO_at (sl : GoSlice) (ms : List (List Msg)) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < ms.length) :
+    pendingRO (GF := GF) sl ms ⊢ ∃ v : GoSlice, sliceAt sl k v ∗ msgsRO v ms[sint.nat k]! := by
+  iintro #H
+  iunfold pendingRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_at (fun g m => msgsRO (GF := GF) g m) sl gs ms k hk
+  iframe Hgs Hb
+
+/-- `s.Queue[k]`. -/
+theorem queueRO_at (sl : GoSlice) (qs : List (List QItem)) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < qs.length) :
+    queueRO (GF := GF) sl qs ⊢ ∃ v : GoSlice, sliceAt sl k v ∗ qitemsRO v qs[sint.nat k]! := by
+  iintro #H
+  iunfold queueRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_at (fun g q => qitemsRO (GF := GF) g q) sl gs qs k hk
+  iframe Hgs Hb
+
+/-- `s.Reads[k]`. -/
+theorem readsRO_at (sl : GoSlice) (rs : List (List ReadRec)) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < rs.length) :
+    readsRO (GF := GF) sl rs ⊢ ∃ v : GoSlice, sliceAt sl k v ∗ readRecsRO v rs[sint.nat k]! := by
+  iintro #H
+  iunfold readsRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_at (fun g r => readRecsRO (GF := GF) g r) sl gs rs k hk
+  iframe Hgs Hb
+
 /-! ## Building a successor: `ns.F = x`, the Lean's `{ s with f := x }` -/
 
 /-- `{ s with currentTerm := xs }`. -/
