@@ -5,7 +5,8 @@ acceptor's end of a connection `cn` dialed to `a`, with the right to hijack it t
 `rp` (`hijackOk`, over `a`'s rpc protocols): it hijacks the connection, writes the handshake's
 answer `W.hsAns a` (`connectAns`; the write's error is not looked at, as in Go: a cut answer leaves
 the dialer without one, and the server reads no request, `rpcAccepted`), and serves it
-(`ServeConn`), on a server whose registrations serve `a` (`srvServes`). A request of another method
+(`ServeConn`), on a server whose registrations serve `a` (`srvServes`); and gives back what the
+hijack gave for the server (`D`). A request of another method
 is answered 405 in Go; net/http's server gives this handler only `CONNECT` requests of rpc dialers
 (`reqProto`: their head is `connectReq path`). Proved in `Net/Proof/net/rpc/Server__ServeHTTP.lean`.
 -/
@@ -34,15 +35,15 @@ variable [π : NetProtoGS]
 /-- See the file header. -/
 abbrev Server.ServeHTTP.spec : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (cn : Nat)
-    (rp req : Loc),
+    (rp req : Loc) (D : IProp GF),
   {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
       globalAddr net.rpc.connected ↦□ connectedStatus ∗ ⌜W.hs a ≠ [] ∧ W.hsAns a = connectAns⌝ ∗
       net.http.reqHead req go!"CONNECT" ∗
       net.http.hijackOk rp cn a (reqProto (Gg := hG.goose_globalGS) W a)
-        (respProto (Gg := hG.goose_globalGS) W a) (W.hs a) ∗ threadTok }}
+        (respProto (Gg := hG.goose_globalGS) W a) (W.hs a) D ∗ threadTok }}
     (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"ServeHTTP"))
       (Val #(interface.mkOk (go.GoType.PointerType net.http.response.ty) #rp))) (Val #req))
-  {{ RET #(); threadTok }}
+  {{ RET #(); threadTok ∗ D }}
 
 end spec
 end net.rpc

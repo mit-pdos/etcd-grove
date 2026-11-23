@@ -56,7 +56,7 @@ theorem response_ptr_isHijacker :
 theorem Server.ServeHTTP.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (wp_ServeConn : Server.ServeConn.spec (GF := GF) (hG := hG)) :
     Server.ServeHTTP.spec (GF := GF) (hG := hG) := by
-  intro s γs C W a cn rp req
+  intro s γs C W a cn rp req D
   wp_start as ⟨%Hb, #Hsrv, #Hserves, #Henv, #Hset, #Hcon, ⟨%Hhs, %HhsA⟩, #Hreq, Hhj, Htok⟩
   iunfold net.http.reqHead at Hreq
   icases Hreq with ⟨#Hm, %ra, #Hra⟩
@@ -72,7 +72,7 @@ theorem Server.ServeHTTP.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG
     (Val #()))
   iunfold net.http.hijackOk at Hhj
   iapply Hhj
-  iintro %t %la %ra' %bw #Hca Hsend Hrecv Hfresh
+  iintro %t %la %ra' %bw #Hca Hsend Hrecv Hfresh HD
   wp_auto
   -- the head read: the connection's names, and the dialer's handshake written
   icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ Hrecv with ⟨Hrecv, #Hpp⟩
@@ -103,7 +103,7 @@ theorem Server.ServeHTTP.wp_proof (wp_Write : net.Conn.Write.spec (GF := GF) (hG
       iframe HwP Hrecv Hfresh
       ipureintro; rw [HhsA, List.nil_append]; exact Hw
     iexact Htok
-  iapply HΦ; iexact Htok
+  iapply HΦ; iframe Htok HD
 
 end proof
 

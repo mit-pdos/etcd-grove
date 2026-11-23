@@ -799,15 +799,20 @@ opaque condFalse [GooseExts] [GoGlobalContext] : val
 
 opaque defaultMaxContentRanges [GooseExts] [GoGlobalContext] : val
 
-opaque protoHTTP1 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def protoHTTP1 [GooseExts] [GoGlobalContext] : val :=
+  #(1 : Int)
 
-opaque protoHTTP2 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def protoHTTP2 [GooseExts] [GoGlobalContext] : val :=
+  #(2 : Int)
 
-opaque protoUnencryptedHTTP2 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def protoUnencryptedHTTP2 [GooseExts] [GoGlobalContext] : val :=
+  #(4 : Int)
 
-opaque protoHTTP3 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def protoHTTP3 [GooseExts] [GoGlobalContext] : val :=
+  #(8 : Int)
 
-opaque maxInt64 [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def maxInt64 [GooseExts] [GoGlobalContext] : val :=
+  #(9223372036854775807 : Int)
 
 @[reducible] noncomputable def MethodGet [GooseExts] [GoGlobalContext] : val :=
   #(go!"GET")
@@ -851,15 +856,19 @@ opaque defaultMaxMemory [GooseExts] [GoGlobalContext] : val
 
 opaque defaultUserAgent [GooseExts] [GoGlobalContext] : val
 
-opaque bufferBeforeChunkingSize [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def bufferBeforeChunkingSize [GooseExts] [GoGlobalContext] : val :=
+  #(2048 : Int)
 
 opaque TrailerPrefix [GooseExts] [GoGlobalContext] : val
 
-opaque debugServerConnections [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def debugServerConnections [GooseExts] [GoGlobalContext] : val :=
+  #false
 
 opaque copyBufPoolSize [GooseExts] [GoGlobalContext] : val
 
-opaque DefaultMaxHeaderBytes [GooseExts] [GoGlobalContext] : val
+/-- 1 MB -/
+@[reducible] noncomputable def DefaultMaxHeaderBytes [GooseExts] [GoGlobalContext] : val :=
+  #(1048576 : Int)
 
 opaque DefaultMaxHeaderValueCount [GooseExts] [GoGlobalContext] : val
 
@@ -867,7 +876,8 @@ opaque TimeFormat [GooseExts] [GoGlobalContext] : val
 
 opaque maxPostHandlerReadBytes [GooseExts] [GoGlobalContext] : val
 
-opaque runHooks [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def runHooks [GooseExts] [GoGlobalContext] : val :=
+  #true
 
 opaque skipHooks [GooseExts] [GoGlobalContext] : val
 
@@ -875,15 +885,20 @@ opaque nextProtoUnencryptedHTTP2 [GooseExts] [GoGlobalContext] : val
 
 opaque shutdownPollIntervalMax [GooseExts] [GoGlobalContext] : val
 
-opaque StateNew [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StateNew [GooseExts] [GoGlobalContext] : val :=
+  #(W64 0)
 
-opaque StateActive [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StateActive [GooseExts] [GoGlobalContext] : val :=
+  #(W64 1)
 
-opaque StateIdle [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StateIdle [GooseExts] [GoGlobalContext] : val :=
+  #(W64 2)
 
-opaque StateHijacked [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StateHijacked [GooseExts] [GoGlobalContext] : val :=
+  #(W64 3)
 
-opaque StateClosed [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def StateClosed [GooseExts] [GoGlobalContext] : val :=
+  #(W64 4)
 
 opaque socksVersion5 [GooseExts] [GoGlobalContext] : val
 
