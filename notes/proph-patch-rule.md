@@ -22,13 +22,22 @@ ORIG's directory (tests included).
 
 **Ghost declarations** (top level of a PATCHED file; collected from all pairs of the package first):
 1. A `var` spec whose name is fresh is a ghost variable. It must be alone in its spec and be
-   `var NAME = primitive.NewProph()` (optionally typed `primitive.ProphId`). Erased.
+   `var NAME = primitive.NewProph()` (optionally typed `primitive.ProphId`), or `var NAME
+   primitive.ProphId` with exactly one **ghost initializer**: an added `func init() { L :=
+   primitive.NewProph(); NAME = L }` (or `func init() { NAME = primitive.NewProph() }`). Goose
+   refuses the first form (its copy rule: "call primitive.NewProph() in the initializer of package
+   variable ...: gc may inline it and build its result ... in place") and the one-statement
+   initializer for the same reason, so a translated patch uses the two-statement initializer;
+   it is how the variable is "initialized only by `NewProph`" in Goose. Both erased. (An init
+   only allocates a prophecy and writes a ghost variable; where it runs among the package's
+   inits does not matter.)
 2. A field with a fresh name in a struct type declared in ORIG is a ghost field. It must be alone
    in its field declaration, of type `primitive.ProphId`, unexported, with no tag. Erased from the
    struct.
 3. A `func` (or method) with a fresh name, other than `init`, is a ghost helper. It must have no
    results and no type parameters; a method must be unexported. Erased after its body is checked
-   (below). An added `init` is not erased, so it fails the comparison.
+   (below). An added `init` other than a ghost initializer is not erased, so it fails the
+   comparison.
 4. A `const` or `type` with a fresh name is refused.
 
 **Helper bodies** hold only these statements (locals: the receiver, parameters and the locals the
@@ -86,7 +95,7 @@ This is conservative (a `*T` passed as `any` is refused even if only its methods
 
 ## Not admitted (interpretations of the rule)
 - Constants and types (the rule lists variables, fields and helpers): inline constants.
-- `init` functions (the variable is "initialized only by `NewProph`" in its declaration).
+- `init` functions other than a ghost initializer.
 - New files (`etc/proph_patch.py` still refuses them) and imports other than `primitive` (an
   import can change package initialization): helpers go in an existing file that has the imports.
 - Calls of another package's helpers (each package's helpers are its own).
@@ -97,7 +106,8 @@ This is conservative (a `*T` passed as `any` is refused even if only its methods
 Positive: the first rule's local prophecy with an `if`/`else`; a ghost variable with helpers (a
 method calling a function, a counted loop, locals, `op=`, `++`, an `if`, `&` of a field) called at
 statement level and inside an `if`; helpers in one file called from another; a ghost field with a
-keyed literal initialization, a `X.F = NewProph()` statement and resolutions; a struct without
+keyed literal initialization, a `X.F = NewProph()` statement and resolutions; a ghost variable
+with a ghost initializer; a struct without
 ghost fields used freely; an original `if` without statements kept (not erased).
 Negative (each checks its message): a helper that writes the heap, calls a non-helper, returns a
 value, recurses (through another helper), loops with `<=`, loops forever, assigns its counter,
@@ -105,6 +115,7 @@ ranges, starts a goroutine, defines a local from a call, is an exported method, 
 channel, or is called with a call argument; an added constant, type, non-`NewProph` variable,
 `init`, non-`ProphId` field, exported field, changed statement, added non-ghost statement, a
 function named like an original identifier, a resolution of an undeclared prophecy; a ghost
+variable without initializer, with an initializer that does more, with two initializers; a ghost
 field's struct compared (`==`, and `!=` on an array of it), a map key (directly, and an array of it in
 a struct's field type), converted to `any` (as a result, an argument, a slice element), switched
 on, a type argument, `unsafe.Sizeof`.

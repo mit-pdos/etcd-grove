@@ -348,3 +348,42 @@ func TestEmptyIfIsNotGhost(t *testing.T) {
 	patched = strings.Replace(patched, "\tv := kv.m[k]\n", "\tpr := primitive.NewProph()\n\tpr.ResolveU64(1)\n\tv := kv.m[k]\n", 1)
 	wantOK(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}))
 }
+
+// A ghost variable initialized by a ghost initializer (the form Goose translates).
+func TestGhostInitializer(t *testing.T) {
+	patched := strings.Replace(origKV, "package p\n", "package p\n\n"+primImport+"\n", 1) + `
+var trace primitive.ProphId
+
+func init() {
+	p := primitive.NewProph()
+	trace = p
+}
+
+func (kv *KV) resolveN() {
+	trace.ResolveU64(uint64(kv.n))
+}
+`
+	patched = strings.Replace(patched, "\tv := kv.m[k]\n", "\tkv.resolveN()\n\tv := kv.m[k]\n", 1)
+	wantOK(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": patched}))
+}
+
+func TestGhostInitializerRefusals(t *testing.T) {
+	head := strings.Replace(origKV, "package p\n", "package p\n\n"+primImport+"\n", 1)
+	cases := []struct{ name, extra, want string }{
+		{"no initializer", "\nvar trace primitive.ProphId\n", "with a ghost initializer"},
+		{"an initializer that does more",
+			"\nvar trace primitive.ProphId\n\nfunc init() {\n\tp := primitive.NewProph()\n\ttrace = p\n\tp.ResolveU64(1)\n}\n",
+			"with a ghost initializer"},
+		{"an initializer of an original variable",
+			"\nvar trace = primitive.NewProph()\n\nvar g int\n\nfunc init() {\n\tg = 1\n}\n",
+			"with its ghost code erased, it is not"},
+		{"two initializers",
+			"\nvar trace primitive.ProphId\n\nfunc init() {\n\ttrace = primitive.NewProph()\n}\n\nfunc init() {\n\ttrace = primitive.NewProph()\n}\n",
+			"has two initializers"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			wantErr(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": head + tc.extra}), tc.want)
+		})
+	}
+}
