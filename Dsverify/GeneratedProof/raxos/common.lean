@@ -66,7 +66,7 @@ noncomputable instance RPCPair_access_load_Obj (l : Loc) (v : raxos.common.RPCPa
  by
   solve_pointsto_access_struct
 
-noncomputable instance RPCPair_access_store_Obj (l : Loc) (v : raxos.common.RPCPair) (Obj' : raxos.proto.Serializable) :
+noncomputable instance RPCPair_access_store_Obj (l : Loc) (v : raxos.common.RPCPair) (Obj' : _root_.Perennial.raxos.proto.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Obj" l) v.Obj' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.RPCPair go!"Obj" l) Obj' (DFrac.own 1))
@@ -182,7 +182,7 @@ noncomputable instance TimerWithCancel_access_load_d (l : Loc) (v : raxos.common
  by
   solve_pointsto_access_struct
 
-noncomputable instance TimerWithCancel_access_store_d (l : Loc) (v : raxos.common.TimerWithCancel) (d' : time.Duration) :
+noncomputable instance TimerWithCancel_access_store_d (l : Loc) (v : raxos.common.TimerWithCancel) (d' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"d" l) v.d' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.common.TimerWithCancel go!"d" l) d' (DFrac.own 1))

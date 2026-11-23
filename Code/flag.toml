@@ -1,0 +1,16 @@
+# (featuregate-3, 2026-11-23) Go's `flag` (go1.27.3), project etcd's: featuregate's
+# `MutableFeatureGate` names `*flag.FlagSet` (`AddFlag`), so that goose translates the interface
+# (`featuregate.New` returns a `*featureGate` as a `MutableFeatureGate`). This repository's, as
+# `os` (Code/os.toml): Perennial's would import Perennial's `os`.
+# Names only, but for what importing `flag` runs, with bodies: its package variables' initializers
+# (`ErrHelp`, `errParse`, `errRange`: `errors.New`; `Usage`: a function literal, built, not
+# called; `CommandLine`, set by `init`) and `init` (go1.27's: `NewFlagSet(os.Args[0],
+# ExitOnError)`, or `NewFlagSet("", ...)` when `os.Args` is empty, then `CommandLine.Usage =
+# commandLineUsage`), with `NewFlagSet` (an allocation and a method value).
+translate = ["!*", "ErrHelp", "errParse", "errRange", "Usage", "CommandLine", "init.0",
+  "NewFlagSet", "ExitOnError", "ContinueOnError", "PanicOnError", "ErrorHandling",
+  "FlagSet", "Flag", "Value"]
+imports = ["!*", "errors", "fmt", "io", "os"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

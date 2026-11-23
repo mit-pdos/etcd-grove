@@ -145,7 +145,7 @@ noncomputable instance OperationLatencyTracker_access_load_groupResource (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (groupResource' : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance OperationLatencyTracker_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (groupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) groupResource' (DFrac.own 1))
@@ -161,7 +161,7 @@ noncomputable instance OperationLatencyTracker_access_load_latency (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (latency' : k8s_io.component_base.metrics.ObserverMetric) :
+noncomputable instance OperationLatencyTracker_access_store_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (latency' : _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) latency' (DFrac.own 1))
@@ -177,7 +177,7 @@ noncomputable instance OperationLatencyTracker_access_load_requests (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance OperationLatencyTracker_access_store_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (requests' : k8s_io.component_base.metrics.CounterMetric) :
+noncomputable instance OperationLatencyTracker_access_store_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (requests' : _root_.Perennial.k8s_io.component_base.metrics.CounterMetric) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) requests' (DFrac.own 1))

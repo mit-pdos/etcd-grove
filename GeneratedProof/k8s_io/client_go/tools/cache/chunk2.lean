@@ -138,7 +138,7 @@ noncomputable instance defaultCacheMutationDetector_access_load_period (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultCacheMutationDetector_access_store_period (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (period' : time.Duration) :
+noncomputable instance defaultCacheMutationDetector_access_store_period (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (period' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"period" l) v.period' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"period" l) period' (DFrac.own 1))
@@ -154,7 +154,7 @@ noncomputable instance defaultCacheMutationDetector_access_load_compareObjectsLo
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultCacheMutationDetector_access_store_compareObjectsLock (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (compareObjectsLock' : sync.Mutex) :
+noncomputable instance defaultCacheMutationDetector_access_store_compareObjectsLock (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (compareObjectsLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"compareObjectsLock" l) v.compareObjectsLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"compareObjectsLock" l) compareObjectsLock' (DFrac.own 1))
@@ -170,7 +170,7 @@ noncomputable instance defaultCacheMutationDetector_access_load_addedObjsLock (l
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultCacheMutationDetector_access_store_addedObjsLock (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (addedObjsLock' : sync.Mutex) :
+noncomputable instance defaultCacheMutationDetector_access_store_addedObjsLock (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (addedObjsLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"addedObjsLock" l) v.addedObjsLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"addedObjsLock" l) addedObjsLock' (DFrac.own 1))
@@ -218,7 +218,7 @@ noncomputable instance defaultCacheMutationDetector_access_load_retainDuration (
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultCacheMutationDetector_access_store_retainDuration (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (retainDuration' : time.Duration) :
+noncomputable instance defaultCacheMutationDetector_access_store_retainDuration (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (retainDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"retainDuration" l) v.retainDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"retainDuration" l) retainDuration' (DFrac.own 1))
@@ -234,7 +234,7 @@ noncomputable instance defaultCacheMutationDetector_access_load_lastRotated (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultCacheMutationDetector_access_store_lastRotated (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (lastRotated' : time.Time) :
+noncomputable instance defaultCacheMutationDetector_access_store_lastRotated (l : Loc) (v : k8s_io.client_go.tools.cache.defaultCacheMutationDetector) (lastRotated' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"lastRotated" l) v.lastRotated' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.defaultCacheMutationDetector go!"lastRotated" l) lastRotated' (DFrac.own 1))
@@ -474,7 +474,7 @@ noncomputable instance ReflectorOptions_access_load_ResyncPeriod (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReflectorOptions_access_store_ResyncPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.ReflectorOptions) (ResyncPeriod' : time.Duration) :
+noncomputable instance ReflectorOptions_access_store_ResyncPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.ReflectorOptions) (ResyncPeriod' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ReflectorOptions go!"ResyncPeriod" l) v.ResyncPeriod' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ReflectorOptions go!"ResyncPeriod" l) ResyncPeriod' (DFrac.own 1))
@@ -490,7 +490,7 @@ noncomputable instance ReflectorOptions_access_load_MinWatchTimeout (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReflectorOptions_access_store_MinWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.ReflectorOptions) (MinWatchTimeout' : time.Duration) :
+noncomputable instance ReflectorOptions_access_store_MinWatchTimeout (l : Loc) (v : k8s_io.client_go.tools.cache.ReflectorOptions) (MinWatchTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ReflectorOptions go!"MinWatchTimeout" l) v.MinWatchTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ReflectorOptions go!"MinWatchTimeout" l) MinWatchTimeout' (DFrac.own 1))
@@ -506,7 +506,7 @@ noncomputable instance ReflectorOptions_access_load_Clock (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReflectorOptions_access_store_Clock (l : Loc) (v : k8s_io.client_go.tools.cache.ReflectorOptions) (Clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance ReflectorOptions_access_store_Clock (l : Loc) (v : k8s_io.client_go.tools.cache.ReflectorOptions) (Clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ReflectorOptions go!"Clock" l) v.Clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ReflectorOptions go!"Clock" l) Clock' (DFrac.own 1))
@@ -568,7 +568,7 @@ noncomputable instance initialEventsEndBookmarkTicker_access_load_Ticker (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance initialEventsEndBookmarkTicker_access_store_Ticker (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (Ticker' : k8s_io.utils.clock.Ticker) :
+noncomputable instance initialEventsEndBookmarkTicker_access_store_Ticker (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (Ticker' : _root_.Perennial.k8s_io.utils.clock.Ticker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"Ticker" l) v.Ticker' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"Ticker" l) Ticker' (DFrac.own 1))
@@ -584,7 +584,7 @@ noncomputable instance initialEventsEndBookmarkTicker_access_load_clock (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance initialEventsEndBookmarkTicker_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance initialEventsEndBookmarkTicker_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"clock" l) clock' (DFrac.own 1))
@@ -616,7 +616,7 @@ noncomputable instance initialEventsEndBookmarkTicker_access_load_logger (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance initialEventsEndBookmarkTicker_access_store_logger (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (logger' : github_com.go_logr.logr.Logger) :
+noncomputable instance initialEventsEndBookmarkTicker_access_store_logger (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (logger' : _root_.Perennial.github_com.go_logr.logr.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"logger" l) v.logger' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"logger" l) logger' (DFrac.own 1))
@@ -632,7 +632,7 @@ noncomputable instance initialEventsEndBookmarkTicker_access_load_watchStart (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance initialEventsEndBookmarkTicker_access_store_watchStart (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (watchStart' : time.Time) :
+noncomputable instance initialEventsEndBookmarkTicker_access_store_watchStart (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (watchStart' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"watchStart" l) v.watchStart' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"watchStart" l) watchStart' (DFrac.own 1))
@@ -648,7 +648,7 @@ noncomputable instance initialEventsEndBookmarkTicker_access_load_tickInterval (
  by
   solve_pointsto_access_struct
 
-noncomputable instance initialEventsEndBookmarkTicker_access_store_tickInterval (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (tickInterval' : time.Duration) :
+noncomputable instance initialEventsEndBookmarkTicker_access_store_tickInterval (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (tickInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"tickInterval" l) v.tickInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"tickInterval" l) tickInterval' (DFrac.own 1))
@@ -664,7 +664,7 @@ noncomputable instance initialEventsEndBookmarkTicker_access_load_lastEventObser
  by
   solve_pointsto_access_struct
 
-noncomputable instance initialEventsEndBookmarkTicker_access_store_lastEventObserveTime (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (lastEventObserveTime' : time.Time) :
+noncomputable instance initialEventsEndBookmarkTicker_access_store_lastEventObserveTime (l : Loc) (v : k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker) (lastEventObserveTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"lastEventObserveTime" l) v.lastEventObserveTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.initialEventsEndBookmarkTicker go!"lastEventObserveTime" l) lastEventObserveTime' (DFrac.own 1))
@@ -818,7 +818,7 @@ noncomputable instance retryWithDeadlineImpl_access_load_firstErrorTime (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance retryWithDeadlineImpl_access_store_firstErrorTime (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (firstErrorTime' : time.Time) :
+noncomputable instance retryWithDeadlineImpl_access_store_firstErrorTime (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (firstErrorTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"firstErrorTime" l) v.firstErrorTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"firstErrorTime" l) firstErrorTime' (DFrac.own 1))
@@ -834,7 +834,7 @@ noncomputable instance retryWithDeadlineImpl_access_load_lastErrorTime (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance retryWithDeadlineImpl_access_store_lastErrorTime (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (lastErrorTime' : time.Time) :
+noncomputable instance retryWithDeadlineImpl_access_store_lastErrorTime (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (lastErrorTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"lastErrorTime" l) v.lastErrorTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"lastErrorTime" l) lastErrorTime' (DFrac.own 1))
@@ -850,7 +850,7 @@ noncomputable instance retryWithDeadlineImpl_access_load_maxRetryDuration (l : L
  by
   solve_pointsto_access_struct
 
-noncomputable instance retryWithDeadlineImpl_access_store_maxRetryDuration (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (maxRetryDuration' : time.Duration) :
+noncomputable instance retryWithDeadlineImpl_access_store_maxRetryDuration (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (maxRetryDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"maxRetryDuration" l) v.maxRetryDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"maxRetryDuration" l) maxRetryDuration' (DFrac.own 1))
@@ -866,7 +866,7 @@ noncomputable instance retryWithDeadlineImpl_access_load_minResetPeriod (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance retryWithDeadlineImpl_access_store_minResetPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (minResetPeriod' : time.Duration) :
+noncomputable instance retryWithDeadlineImpl_access_store_minResetPeriod (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (minResetPeriod' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"minResetPeriod" l) v.minResetPeriod' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"minResetPeriod" l) minResetPeriod' (DFrac.own 1))
@@ -898,7 +898,7 @@ noncomputable instance retryWithDeadlineImpl_access_load_clock (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance retryWithDeadlineImpl_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance retryWithDeadlineImpl_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.retryWithDeadlineImpl) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.retryWithDeadlineImpl go!"clock" l) clock' (DFrac.own 1))
@@ -1307,7 +1307,7 @@ noncomputable instance sharedProcessor_access_load_listenersLock (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance sharedProcessor_access_store_listenersLock (l : Loc) (v : k8s_io.client_go.tools.cache.sharedProcessor) (listenersLock' : sync.RWMutex) :
+noncomputable instance sharedProcessor_access_store_listenersLock (l : Loc) (v : k8s_io.client_go.tools.cache.sharedProcessor) (listenersLock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.sharedProcessor go!"listenersLock" l) v.listenersLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.sharedProcessor go!"listenersLock" l) listenersLock' (DFrac.own 1))
@@ -1355,7 +1355,7 @@ noncomputable instance sharedProcessor_access_load_clock (l : Loc) (v : k8s_io.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance sharedProcessor_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.sharedProcessor) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance sharedProcessor_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.sharedProcessor) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.sharedProcessor go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.sharedProcessor go!"clock" l) clock' (DFrac.own 1))
@@ -1371,7 +1371,7 @@ noncomputable instance sharedProcessor_access_load_wg (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance sharedProcessor_access_store_wg (l : Loc) (v : k8s_io.client_go.tools.cache.sharedProcessor) (wg' : k8s_io.apimachinery.pkg.util.wait.Group) :
+noncomputable instance sharedProcessor_access_store_wg (l : Loc) (v : k8s_io.client_go.tools.cache.sharedProcessor) (wg' : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Group) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.sharedProcessor go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.sharedProcessor go!"wg" l) wg' (DFrac.own 1))

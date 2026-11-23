@@ -36,14 +36,14 @@ theorem EtcdServer.NewUberApplier.wp_proof
     #Hal, #HGet, HT⟩
   ihave #Hgate' := Hgate
   iunfold isFeatureGate at Hgate'
-  icases Hgate' with ⟨%fi, %Hfi, #HEn⟩
+  icases Hgate' with ⟨%fi, %K, %Hfi, ⟨%HKs, -⟩, #HEn, -⟩
   wp_auto
   wp_apply hKV s kv $$ []
   · iframe #
   subst Hfi
   wp_auto
   wp_apply HEn $$ [] as %b -
-  · ipureintro; simp [serverFeatures]
+  · ipureintro; exact HKs _ (by simp [serverFeatures])
   ihave #Hapkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit

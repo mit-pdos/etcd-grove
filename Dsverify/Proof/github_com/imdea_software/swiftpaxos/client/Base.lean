@@ -20,7 +20,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.I
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Init
 public import Net.Proof.net.Init
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 
 @[expose] public section
 

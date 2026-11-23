@@ -5,7 +5,7 @@ module
 
 public import Dsverify.GeneratedProof.github_com.emirpasic.gods.trees.redblacktree
 public import Perennial.Proof.fmt.Link
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.containers.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.utils.Init

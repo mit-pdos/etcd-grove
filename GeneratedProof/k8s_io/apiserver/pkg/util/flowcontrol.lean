@@ -86,7 +86,7 @@ noncomputable instance RequestDigest_access_load_User (l : Loc) (v : k8s_io.apis
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestDigest_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (User' : k8s_io.apiserver.pkg.authentication.user.Info) :
+noncomputable instance RequestDigest_access_store_User (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (User' : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) User' (DFrac.own 1))

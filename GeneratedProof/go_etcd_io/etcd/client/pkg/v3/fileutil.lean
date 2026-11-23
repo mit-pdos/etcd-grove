@@ -117,7 +117,7 @@ noncomputable instance FileBufReader_access_load_fi (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileBufReader_access_store_fi (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (fi' : io.fs.FileInfo) :
+noncomputable instance FileBufReader_access_store_fi (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (fi' : _root_.Perennial.io.fs.FileInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) fi' (DFrac.own 1))

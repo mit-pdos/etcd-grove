@@ -396,7 +396,7 @@ noncomputable instance Propose_access_load_Command (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Propose_access_store_Command (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Propose) (Command' : github_com.imdea_software.swiftpaxos_epaxos.state.Command) :
+noncomputable instance Propose_access_store_Command (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Propose) (Command' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Propose go!"Command" l) v.Command' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Propose go!"Command" l) Command' (DFrac.own 1))
@@ -544,7 +544,7 @@ noncomputable instance ProposeReplyTS_access_load_Value (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeReplyTS_access_store_Value (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTS) (Value' : github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
+noncomputable instance ProposeReplyTS_access_store_Value (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTS) (Value' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTS go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTS go!"Value" l) Value' (DFrac.own 1))
@@ -617,7 +617,7 @@ noncomputable instance Read_access_load_Key (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_Key (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Read) (Key' : github_com.imdea_software.swiftpaxos_epaxos.state.Key) :
+noncomputable instance Read_access_store_Key (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Read) (Key' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Read go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Read go!"Key" l) Key' (DFrac.own 1))
@@ -674,7 +674,7 @@ noncomputable instance ReadReply_access_load_Value (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadReply_access_store_Value (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReply) (Value' : github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
+noncomputable instance ReadReply_access_store_Value (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReply) (Value' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReply go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReply go!"Value" l) Value' (DFrac.own 1))
@@ -732,7 +732,7 @@ noncomputable instance ProposeAndRead_access_load_Command (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndRead_access_store_Command (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead) (Command' : github_com.imdea_software.swiftpaxos_epaxos.state.Command) :
+noncomputable instance ProposeAndRead_access_store_Command (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead) (Command' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead go!"Command" l) v.Command' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead go!"Command" l) Command' (DFrac.own 1))
@@ -748,7 +748,7 @@ noncomputable instance ProposeAndRead_access_load_Key (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndRead_access_store_Key (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead) (Key' : github_com.imdea_software.swiftpaxos_epaxos.state.Key) :
+noncomputable instance ProposeAndRead_access_store_Key (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead) (Key' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndRead go!"Key" l) Key' (DFrac.own 1))
@@ -822,7 +822,7 @@ noncomputable instance ProposeAndReadReply_access_load_Value (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndReadReply_access_store_Value (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReply) (Value' : github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
+noncomputable instance ProposeAndReadReply_access_store_Value (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReply) (Value' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReply go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReply go!"Value" l) Value' (DFrac.own 1))
@@ -1291,7 +1291,7 @@ noncomputable instance PingArgsCache_access_load_mu (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance PingArgsCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgsCache) (mu' : sync.Mutex) :
+noncomputable instance PingArgsCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgsCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgsCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgsCache go!"mu" l) mu' (DFrac.own 1))
@@ -1348,7 +1348,7 @@ noncomputable instance PingReplyCache_access_load_mu (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance PingReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReplyCache) (mu' : sync.Mutex) :
+noncomputable instance PingReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1405,7 +1405,7 @@ noncomputable instance BeTheLeaderReplyCache_access_load_mu (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeTheLeaderReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReplyCache) (mu' : sync.Mutex) :
+noncomputable instance BeTheLeaderReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1462,7 +1462,7 @@ noncomputable instance ProposeCache_access_load_mu (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeCache go!"mu" l) mu' (DFrac.own 1))
@@ -1519,7 +1519,7 @@ noncomputable instance ProposeReplyTSCache_access_load_mu (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeReplyTSCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTSCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeReplyTSCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTSCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTSCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyTSCache go!"mu" l) mu' (DFrac.own 1))
@@ -1576,7 +1576,7 @@ noncomputable instance ReadCache_access_load_mu (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadCache) (mu' : sync.Mutex) :
+noncomputable instance ReadCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadCache go!"mu" l) mu' (DFrac.own 1))
@@ -1633,7 +1633,7 @@ noncomputable instance ProposeAndReadCache_access_load_mu (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndReadCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeAndReadCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadCache go!"mu" l) mu' (DFrac.own 1))
@@ -1690,7 +1690,7 @@ noncomputable instance BeaconReplyCache_access_load_mu (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeaconReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconReplyCache) (mu' : sync.Mutex) :
+noncomputable instance BeaconReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1747,7 +1747,7 @@ noncomputable instance BeTheLeaderArgsCache_access_load_mu (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeTheLeaderArgsCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgsCache) (mu' : sync.Mutex) :
+noncomputable instance BeTheLeaderArgsCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgsCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgsCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgsCache go!"mu" l) mu' (DFrac.own 1))
@@ -1804,7 +1804,7 @@ noncomputable instance ProposeReplyCache_access_load_mu (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1861,7 +1861,7 @@ noncomputable instance ReadReplyCache_access_load_mu (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReplyCache) (mu' : sync.Mutex) :
+noncomputable instance ReadReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ReadReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1918,7 +1918,7 @@ noncomputable instance ProposeAndReadReplyCache_access_load_mu (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndReadReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReplyCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeAndReadReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.ProposeAndReadReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1975,7 +1975,7 @@ noncomputable instance BeaconCache_access_load_mu (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeaconCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconCache) (mu' : sync.Mutex) :
+noncomputable instance BeaconCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeaconCache go!"mu" l) mu' (DFrac.own 1))
@@ -2065,7 +2065,7 @@ noncomputable instance LatencyTable_access_load_d (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance LatencyTable_access_store_d (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.LatencyTable) (d' : time.Duration) :
+noncomputable instance LatencyTable_access_store_d (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.LatencyTable) (d' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.LatencyTable go!"d" l) v.d' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.LatencyTable go!"d" l) d' (DFrac.own 1))
@@ -2107,7 +2107,7 @@ noncomputable instance DelayProposeChan_access_load_delay (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance DelayProposeChan_access_store_delay (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.DelayProposeChan) (delay' : time.Duration) :
+noncomputable instance DelayProposeChan_access_store_delay (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.defs.DelayProposeChan) (delay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.DelayProposeChan go!"delay" l) v.delay' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.defs.DelayProposeChan go!"delay" l) delay' (DFrac.own 1))

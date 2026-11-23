@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.GeneratedProof.encoding.json
+public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.fmt
 public import Dsverify.GeneratedProof.github_com.emirpasic.gods.containers
 public import Dsverify.GeneratedProof.github_com.emirpasic.gods.trees
@@ -158,7 +158,7 @@ noncomputable instance Tree_access_load_Comparator (l : Loc) (v : github_com.emi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Tree_access_store_Comparator (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (Comparator' : github_com.emirpasic.gods.utils.Comparator) :
+noncomputable instance Tree_access_store_Comparator (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (Comparator' : _root_.Perennial.github_com.emirpasic.gods.utils.Comparator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) Comparator' (DFrac.own 1))

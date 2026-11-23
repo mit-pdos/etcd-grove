@@ -250,7 +250,7 @@ noncomputable instance txPending_access_load_lastReleaseBegin (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance txPending_access_store_lastReleaseBegin (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (lastReleaseBegin' : go_etcd_io.bbolt.internal.common.Txid) :
+noncomputable instance txPending_access_store_lastReleaseBegin (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (lastReleaseBegin' : _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) lastReleaseBegin' (DFrac.own 1))

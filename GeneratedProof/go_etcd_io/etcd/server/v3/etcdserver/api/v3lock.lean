@@ -66,7 +66,7 @@ noncomputable instance lockServer_access_load_UnsafeLockServer (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance lockServer_access_store_UnsafeLockServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (UnsafeLockServer' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnsafeLockServer) :
+noncomputable instance lockServer_access_store_UnsafeLockServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (UnsafeLockServer' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnsafeLockServer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) UnsafeLockServer' (DFrac.own 1))
