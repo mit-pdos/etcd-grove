@@ -18,6 +18,7 @@ other than a proposal, a `*syncEntry` and a history slot (round 13, notes/prove-
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -64,7 +65,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- `r.handleMsg(m, desc, cmdId)` for a message of `ackMsgP` (see the file header). -/
@@ -91,7 +92,7 @@ theorem swift.cmdId_eq_iff (a b : swift.CommandId) (h : a.ClientId' = b.ClientId
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [sync.Assumptions] [hook.Assumptions]
   [github_com.orcaman.concurrent_map.Assumptions]
 

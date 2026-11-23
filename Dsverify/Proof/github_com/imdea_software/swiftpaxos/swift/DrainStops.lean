@@ -14,6 +14,7 @@ token is kept for the next one.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SlotSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -28,7 +29,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

@@ -4,6 +4,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/NewBufferClient.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.pkg.TimeInit
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NewBufferClient
 public import Perennial.Proof.time
 
@@ -22,7 +23,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions] [math.rand.Assumptions] [time.Assumptions]
 
 theorem client.NewBufferClient.wp_proof : client.NewBufferClient.spec (hG := hG) := by

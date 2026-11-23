@@ -8,6 +8,7 @@ proved over their callees' specs.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Conn
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClosestPure
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WriterSpecs
 
@@ -24,7 +25,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [dlog.Assumptions] [time.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]

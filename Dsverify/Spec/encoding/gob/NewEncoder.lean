@@ -7,6 +7,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Spec/gob/NewEncoder.lean (lab
 module
 
 public import Dsverify.Spec.encoding.gob.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.ReadFull, Harness.Proof.bufio.Writer
 
@@ -27,7 +28,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
-variable [net.rpc.RpcKit] [net.rpc.RpcCodec GF]
+variable [net.rpc.RpcCodec GF]
 
 /-- `NewEncoder(w)` returns a fresh `*Encoder` holding `w`. -/
 abbrev NewEncoder.spec : Prop :=

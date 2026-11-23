@@ -13,6 +13,7 @@ configuration (`sp.allPredsReg`) and returns `ownState γ init`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchParts
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchAddr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchSend
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Start
@@ -109,7 +110,7 @@ theorem ackQP_reg [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF] (γ : Swift
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 
 set_option goose.wp.extras true

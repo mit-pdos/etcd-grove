@@ -10,6 +10,7 @@ the recovery's helpers (`recReaches`, `recOrder`, `syncOrder`).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SortedIds
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecPure
 
 @[expose] public section
@@ -99,7 +100,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- `recReaches(kept, from, to)`: the model's `recReaches` (reachability through the kept
 dependencies, `sp.recReaches_iff`). -/

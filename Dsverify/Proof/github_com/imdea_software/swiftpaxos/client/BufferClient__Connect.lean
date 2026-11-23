@@ -11,6 +11,7 @@ is `""`: the change log C6 record), the servers/readers/writers slices, the mast
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.BufferClient__Connect
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.CodecG
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
@@ -131,7 +132,7 @@ end client.cn
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]
@@ -499,7 +500,7 @@ end proof
 
 section frozen
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]

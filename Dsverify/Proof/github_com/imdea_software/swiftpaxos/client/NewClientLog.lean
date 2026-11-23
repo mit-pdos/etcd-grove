@@ -4,6 +4,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/NewClientLog.lea
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NewClientLog
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 -- PORT: lab imports dropped: Harness.Proof.uuid.Specs
 
@@ -20,7 +21,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions] [github_com.google.uuid.Assumptions]
 
 theorem client.NewClientLog.wp_proof : client.NewClientLog.spec (hG := hG) := by

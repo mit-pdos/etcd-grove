@@ -11,6 +11,7 @@ deposited in `sp.inv` at its first send (`sp.client_register`) and committed the
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions]
 
 /-- `b.Write(key, val)` as client `cid`'s command of sequence number `s`: the put of

@@ -9,6 +9,7 @@ the client group's proofs until those package states are proved; owner: the swif
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ namespace swift.handler
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- **Change log C6**: the package-level variables the client node reads, as facts of the swift
 package's state on the client node: `ReplyHook` is nil (set only under the `swiftexeclog` build

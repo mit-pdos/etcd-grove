@@ -24,6 +24,7 @@ Deliver.lean / SyncEpoch.lean), so the view is `M` throughout, though it lives i
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncEpoch
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.EpochPool
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Specs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DeliverE
@@ -51,7 +52,7 @@ theorem swift.keys_delete_empty (vis : List (GoString × GoInterface))
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [github_com.orcaman.concurrent_map.Assumptions] [sync.Assumptions]
 
 /-- `delivered.Remove(k)` in removal mode (see the file header). -/

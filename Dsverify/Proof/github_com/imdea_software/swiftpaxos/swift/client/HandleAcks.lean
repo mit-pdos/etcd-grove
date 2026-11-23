@@ -10,6 +10,7 @@ is registered with a fresh delivery token.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.pkg.TimeInit
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandlerState
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.BufferClient__RegisterReply
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
@@ -29,10 +30,10 @@ namespace swift.handler
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [client.Assumptions] [time.Assumptions] [dlog.Assumptions]
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [client.Assumptions] [time.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] in
 /-- A command not delivered, of the client, has no delivery token yet. -/
 theorem fresh_seq (H : HC) (D : GMap swift.CommandId Unit) (Dn : GMap Nat Unit)

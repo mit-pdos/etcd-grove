@@ -11,6 +11,7 @@ its pre-acceptance needs.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunCtx
 
 @[expose] public section
@@ -26,7 +27,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `r.getCmdDescWith(x, &proposeMsg{gp, dep, hs, sq}, seq)` for a proposal the run loop handled

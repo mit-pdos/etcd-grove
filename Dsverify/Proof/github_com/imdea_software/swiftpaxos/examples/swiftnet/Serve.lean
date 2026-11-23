@@ -10,6 +10,7 @@ replica (`swift.New`) and serve its rpc methods, or idle. Never returns.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.AwaitConf
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServersSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServeShare
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.registerRPC
@@ -41,7 +42,7 @@ attribute [local instance 2000] examples.swiftnet.kitCodecC
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
   [io.ExtraAssumptions]
 
 set_option goose.wp.extras true

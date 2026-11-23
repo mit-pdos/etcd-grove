@@ -16,6 +16,7 @@ among the stream's frames.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableLaw
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.encoding.gob.Decoder__Decode
 public import Dsverify.Spec.encoding.gob.NewDecoder
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
@@ -68,7 +69,7 @@ theorem sync_of_next {d : List w8} (h : sp.nextOk (W8 18) d) :
 
 section entries
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]

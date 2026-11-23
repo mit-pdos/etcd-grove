@@ -9,6 +9,7 @@ the first unplaced one), the `placed` map mirroring the model's placed list.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecReaches
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -140,7 +141,7 @@ def swift.findOk (k : sp.Kept) (ids : List swift.CommandId) (P : List sp.CmdId) 
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem swift.recOrder.wp_proof : swift.recOrder.specI (hG := hG) := by

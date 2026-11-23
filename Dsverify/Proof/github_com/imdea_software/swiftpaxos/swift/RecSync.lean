@@ -10,6 +10,7 @@ the reports' Go representation (`swift.ackObj`), the premises the new leader's r
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.KeySpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSpecs
@@ -109,7 +110,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- **FRAMEWORK request** (Perennial, `slices.SortFunc.spec`): the spec with the comparator
 required only on the slice's elements (`SortFunc` compares only elements of the slice). A

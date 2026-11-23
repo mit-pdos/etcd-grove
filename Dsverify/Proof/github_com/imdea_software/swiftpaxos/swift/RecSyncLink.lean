@@ -8,6 +8,7 @@ results, `slices.SortFunc.specOn` among them (Proof/slices/SortFuncOn.lean).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSyncProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumLink
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecOrder
@@ -30,7 +31,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [slices.Assumptions]
 
 /-- `recoveredSync` linked. -/

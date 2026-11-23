@@ -7,6 +7,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Spec/master/New.lean (lab mas
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.master.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.config.Defs
 
 @[expose] public section
@@ -22,7 +23,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions]
 
 /-- The master, created (`master.created`: with the membership's writer token). -/

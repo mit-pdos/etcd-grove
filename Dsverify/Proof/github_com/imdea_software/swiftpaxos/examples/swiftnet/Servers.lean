@@ -9,6 +9,7 @@ other packages (taken as hypotheses: `ServersHyps`). Linked in `ServersLink.lean
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Serve
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Addr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Register
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.PkgState
@@ -35,7 +36,7 @@ local notation "swiftnetPkg" => pkg_id.github_com.imdea_software.swiftpaxos.exam
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [examples.swiftnet.Assumptions]
 
 /-- The test package's initialization (it initializes every package of the run): no frozen
 spec covers it; the server proof takes it as a hypothesis (the packages' initializers are
@@ -82,7 +83,7 @@ end specs
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
   [io.ExtraAssumptions]
 
 set_option goose.wp.extras true

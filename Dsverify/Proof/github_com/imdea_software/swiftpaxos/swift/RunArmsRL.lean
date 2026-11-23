@@ -13,6 +13,7 @@ descriptor and recovery arms are the other sides', notes/prove-swift.md §22):
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunInvD
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GetDescWith
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposal
 
@@ -29,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- The `leader` arm: `r.leader()` reads the run loop's quarter of `ballot` and the replica's

@@ -7,6 +7,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/Conn.lean (lab 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnAddr
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Fatal
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
@@ -30,7 +31,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
   [io.ExtraAssumptions] [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]

@@ -14,6 +14,7 @@ Its proof takes `clientListener.spec` (ClientSpecs.lean) as a hypothesis.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClientSpecs
 
 @[expose] public section
@@ -29,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- `r.WaitForClientConnections()` (see the file header). -/

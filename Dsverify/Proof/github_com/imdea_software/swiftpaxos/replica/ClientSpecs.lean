@@ -18,6 +18,7 @@ The client listener's specs (`replica/replica.go` `clientListener`) and its call
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Specs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 -- PORT: lab imports dropped: Harness.Proof.net.Base
 
@@ -56,7 +57,7 @@ end generic
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [config.Assumptions]
 
 /-- `(*LatencyTable)(nil).WaitDuration(addr)`: no delay. -/

@@ -7,6 +7,7 @@ The proof of `getFastAndSlowAcksHandler(r, desc)` (spec: Proof/swift/AcksSpecs.l
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDesc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckLemmas
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps
@@ -24,7 +25,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [sync.Assumptions]
 
 /-- The handler at the records of one `str` and `delivered` name (round 39, D43 (5)): `deliver`'s

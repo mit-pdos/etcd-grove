@@ -9,6 +9,7 @@ round 23, sv-swb): some Boolean, the lists kept. The proof is `Dep.Equals.wp_pro
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCallees
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `dep1.Equals(dep2)` (value receiver) on any lists: some Boolean. -/
@@ -40,7 +41,7 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem swift.Dep.Equals.wp_proofAnyV : swift.Dep.Equals.specAnyV (hG := hG) := by

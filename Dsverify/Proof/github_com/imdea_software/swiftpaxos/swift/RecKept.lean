@@ -8,6 +8,7 @@ inserted or replaced is the model's `Kept.set`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -262,7 +263,7 @@ end lemmas
 
 section sorted
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [slices.Assumptions]
 
 /-- `sortedIds.specI` with the result's capacity (the closure appends to its work list). -/

@@ -10,6 +10,7 @@ nodes' and the server nodes' first ports).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientAddr
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Base
 public import Perennial.Proof.fmt
 
@@ -103,7 +104,7 @@ end sprintf
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 
 set_option goose.wp.extras true

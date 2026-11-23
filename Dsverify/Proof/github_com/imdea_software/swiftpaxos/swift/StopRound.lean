@@ -20,6 +20,7 @@ read lock: `IterCbVP`'s pin `cmapPin`), and the reset after the round's `Wait`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.StopDescs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.IterCbP
 
 @[expose] public section
@@ -37,7 +38,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

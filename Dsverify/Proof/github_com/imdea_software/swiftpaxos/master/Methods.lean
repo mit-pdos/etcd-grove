@@ -7,6 +7,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/master/Methods.lean (la
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -21,7 +22,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions]
 
 /-- `m.GetReplicaList(args, reply)`: blocks until `run` has finished its initialization (the
@@ -51,7 +52,7 @@ end spec
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [dlog.Assumptions]
 
 set_option maxHeartbeats 4000000 in

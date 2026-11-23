@@ -26,6 +26,7 @@ phase and `dep` are what they are (`phaseWhy`, `depWhy`, `rowPhaseOk`) and its k
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DeliverE
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.hook.OptCondF
 
@@ -575,7 +576,7 @@ end defsOcf
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **`r.getCmdDesc(y, nil, nil)` from a descriptor's owner at its record `c`** (round 37; table rev
@@ -685,7 +686,7 @@ end specs
 
 section specsOcf
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- `r.fastAckFromLeader(msg, desc)` by `x`'s descriptor's owner, `msg` the ballot's leader's

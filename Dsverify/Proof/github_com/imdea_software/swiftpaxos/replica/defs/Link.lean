@@ -7,6 +7,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/defs/Link.lean (lab mas
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.NewBeTheLeaderReply
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -23,7 +24,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.defs.Assumptions]
 
 theorem replica.defs.wp_NewBeTheLeaderReply : replica.defs.NewBeTheLeaderReply.spec :=

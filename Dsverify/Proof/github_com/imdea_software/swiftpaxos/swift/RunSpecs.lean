@@ -22,6 +22,7 @@ group's; not frozen), stated over the local invariant (Proof/swift/Local.lean):
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Local
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ShInv
 
 @[expose] public section
@@ -166,7 +167,7 @@ end lemmas
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `cmdId.String()` (through a pointer): some string (round 16: `isPkgInit swift`;

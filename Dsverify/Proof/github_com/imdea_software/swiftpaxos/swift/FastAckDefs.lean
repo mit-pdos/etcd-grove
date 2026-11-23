@@ -15,6 +15,7 @@ row pre-accepted, `swift.preacc_row`, hence `propose ≠ nil`, `rowAcc`).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksCommon
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcceptL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckLemmas
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
@@ -71,11 +72,11 @@ end defs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [sync.Assumptions] [hook.Assumptions]
   [github_com.orcaman.concurrent_map.Assumptions]
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] [sync.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] [sync.Assumptions]
   [hook.Assumptions] [github_com.orcaman.concurrent_map.Assumptions] in
 /-- A listed quorum (`replica.Quorum`, ids below `2^31`) does not have every replica. -/
 theorem swift.qAll_noList (s : List Nat) (mem : w32 → Prop) (hm : ∀ k, mem k)

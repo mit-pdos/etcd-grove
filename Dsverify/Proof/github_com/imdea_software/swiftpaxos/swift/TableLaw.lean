@@ -21,6 +21,7 @@ below `2 ^ 62`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableFixed
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.ProposeUnmarshal
 
 @[expose] public section
@@ -173,7 +174,7 @@ abbrev SDep.Unmarshal.specS : Prop :=
 /-- `newFastAck()` (the statement of the coordinator's `swift.newFastAck.specP`, branch
 prove-swc, Proof/swift/PoolFns.lean, until the merge): a fresh `*MFastAck`, whether the pool is
 on (`v`) or not. -/
-abbrev newFastAck.specP' [SwiftNetPkgState netDistGF] [swift.Assumptions] : Prop :=
+abbrev newFastAck.specP' [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] : Prop :=
   ∀ v : Bool,
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
       typedPointsto (globalAddr swift.useFastAckPool) v DFrac.discard }}

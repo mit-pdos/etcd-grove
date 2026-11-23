@@ -7,6 +7,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Spec/client/BufferClient__Dis
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -21,7 +22,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] -- change log C4 (`failed`)
 variable [client.Assumptions]
 

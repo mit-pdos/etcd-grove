@@ -8,6 +8,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/QuorumArith.lea
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -99,7 +100,7 @@ end replica.quorum
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 set_option goose.wp.extras true
 

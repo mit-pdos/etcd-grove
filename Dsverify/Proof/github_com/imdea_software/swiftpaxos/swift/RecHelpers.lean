@@ -8,6 +8,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/RecHelpers.lean (
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSync
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -181,7 +182,7 @@ theorem swift.eqInv_end {l1 l2 : List swift.CommandId} {s1 s2 : GMap swift.Comma
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- `state.Conflict(gamma, delta)` for commands that are not `SCAN`s: the model's
 `Cmd.conflict`. -/

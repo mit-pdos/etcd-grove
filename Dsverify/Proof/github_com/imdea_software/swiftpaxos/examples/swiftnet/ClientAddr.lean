@@ -8,6 +8,7 @@ the port's digits read as a `uint64` (wrapping, as Go's arithmetic).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.strings
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
@@ -30,7 +31,7 @@ def portVal (p : GoString) : w64 :=
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 
 /-- `host(addr)`: the field before the first `":"`. -/
@@ -52,7 +53,7 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 
 set_option goose.wp.extras true

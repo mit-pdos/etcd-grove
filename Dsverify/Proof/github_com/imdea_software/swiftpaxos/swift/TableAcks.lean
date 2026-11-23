@@ -11,6 +11,7 @@ handlers take them.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAcksPure
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -436,7 +437,7 @@ theorem fastAck_of_next {d : List w8} (h : sp.nextOk (W8 9) d) : fastAckNext d :
 
 section entries
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
   [bufio.Assumptions]
 

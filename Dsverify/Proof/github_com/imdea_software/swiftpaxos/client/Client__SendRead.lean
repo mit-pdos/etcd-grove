@@ -4,6 +4,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/Client__SendRead
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ISpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Marshal
 
 @[expose] public section
@@ -19,7 +20,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions] [state.Assumptions]
 
 theorem client.Client.SendRead.wp_proof

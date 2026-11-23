@@ -12,6 +12,7 @@ is the package state's (`swift.pkgSt`, Proof/swift/Pkg.lean), taken here as the 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Batcher
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.sync.Link
 
 @[expose] public section
@@ -27,7 +28,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- The fast-ack pool, from swift's package state (`swift.pkgSt`). -/
 def swift.FastAckPoolFact : Prop :=
@@ -56,7 +57,7 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [sync.Assumptions]
 
 set_option goose.wp.extras true

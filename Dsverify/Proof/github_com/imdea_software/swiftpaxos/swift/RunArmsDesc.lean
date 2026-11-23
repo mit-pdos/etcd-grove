@@ -9,6 +9,7 @@ The descriptor side's arms (DescArms.lean: `getDesc`, `slowDesc`, `fastDesc` ove
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunInvD
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescArms
 
 @[expose] public section
@@ -24,7 +25,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- The descriptor side's `getDesc` arm (DescArms.lean) at `x.str = cmdStr` (D22 (1): `runInv`

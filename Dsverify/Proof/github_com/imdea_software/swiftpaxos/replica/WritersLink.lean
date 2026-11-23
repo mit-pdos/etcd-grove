@@ -8,6 +8,7 @@ The replica's writing side, linked: each proof applied to its callees' linked re
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Sender
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Writers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumLink
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Link
@@ -25,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [dlog.Assumptions]
   [time.Assumptions]

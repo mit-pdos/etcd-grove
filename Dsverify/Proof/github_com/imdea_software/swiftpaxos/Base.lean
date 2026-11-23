@@ -105,6 +105,19 @@ abbrev netDistGF : BundledGFunctors := netGF
 
 end Dsv
 
+namespace net.rpc
+
+open Iris Iris.BI
+
+/-- The kit's codec, as the specs see it (the lab's `RpcCodec`; `lib/NetRpc.lean`). -/
+class RpcCodec [GooseExts] (GF : BundledGFunctors) where
+  enc : GoInterface → (List w8 → IProp GF) → IProp GF
+  dec : List w8 → GoInterface → (Bool → IProp GF) → IProp GF
+  call : GoInterface → GoString → List w8 → (List w8 → GoString → Bool → IProp GF) → IProp GF
+  methods : GoInterface → IProp GF
+
+end net.rpc
+
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
 
 namespace github_com.imdea_software.swiftpaxos
@@ -131,8 +144,8 @@ class SwiftLibs (GF : BundledGFunctors) extends Net.NetProtoGS where
   /-- lab `Spec/gob/Defs.lean` `gob.codecSet`: the gob codec encodes and decodes as the kit's
   `RpcCodec` (the lab's model held the kit's functions; the real `encoding/gob` here, names only,
   is a hypothesis). -/
-  gobCodecSet : IProp GF
-  gobCodecSet_persistent : Persistent gobCodecSet
+  gobCodecSet : net.rpc.RpcCodec GF → IProp GF
+  gobCodecSet_persistent : ∀ C, Persistent (gobCodecSet C)
   /-- The `*gob.Encoder` at `enc` writes to `w` (the lab's model's `enc ↦ Encoder{w}`). -/
   gobEncoder : Loc → DFrac → GoInterface → IProp GF
   /-- The `*gob.Decoder` at `dec` reads from `r` (the lab's model's `dec ↦ Decoder{r}`). -/

@@ -13,7 +13,6 @@ Writing a message through an `io.Writer` (the generated `Marshal` methods' view 
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.BufioErr
 
 @[expose] public section
 

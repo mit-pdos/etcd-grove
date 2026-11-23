@@ -14,6 +14,7 @@ The replica group's internal specs (`replica/replica.go`, `replica/defs`), one t
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Unmarshal
 
 @[expose] public section
@@ -29,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- `(*LatencyTable)(nil).WaitDurationID(id)`: no latency table, no delay. -/

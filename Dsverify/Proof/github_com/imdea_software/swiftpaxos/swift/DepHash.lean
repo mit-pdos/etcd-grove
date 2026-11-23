@@ -8,6 +8,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/DepHash.lean (lab
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepHashPure
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleSync
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLogLink
@@ -103,7 +104,7 @@ theorem swift.keysOf.wp_proofNS : swift.keysOf.specNS := by
   wp_auto
   iapply HΦ $$ Hsl
 
-theorem swift.Replica.getDepAndHashes.wp_proof [SwiftNetPkgState netDistGF]
+theorem swift.Replica.getDepAndHashes.wp_proof [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
     (wp_keysOf : swift.keysOf.specNS)
     (wp_newLKI : swift.lki.newLightKeyInfo.spec)
     (wp_add : swift.lki.lightKeyInfo.add.spec)
@@ -385,7 +386,7 @@ end proofs
 section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [crypto.sha256.Assumptions] [SwiftNetPkgState netDistGF]
+variable [swift.Assumptions] [crypto.sha256.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- `getDepAndHashes` linked (its callees proved: keys.go's `lightKeyInfo`, the hash logs). -/
 theorem swift.Replica.wp_getDepAndHashes : swift.Replica.getDepAndHashes.specI :=

@@ -20,6 +20,7 @@ witness `sp.msgOk (.sync m)`) over `swift.runInv` (RunInvD.lean), from `handleSy
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunArmReinit
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncFacts
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncAux
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MsgRep
@@ -359,7 +360,7 @@ end conv
 
 section arm
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [examples.swiftnet.Assumptions]
 

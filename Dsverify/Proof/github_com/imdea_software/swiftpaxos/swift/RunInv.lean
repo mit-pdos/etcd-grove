@@ -44,6 +44,7 @@ descriptor goroutines.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunLoopSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.EpochPool
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CntL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
@@ -114,7 +115,7 @@ def swift.RunX.epN (x : swift.RunX) (rp : Loc) : swift.EpN :=
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- `historyL`'s lock invariant (round 13): the history's slots (`r.history[i]`, written by a

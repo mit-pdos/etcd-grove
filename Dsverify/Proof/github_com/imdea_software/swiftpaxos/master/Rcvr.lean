@@ -11,6 +11,7 @@ the codec group's (`examples/swiftnet`): hypotheses, stated in `Spec/swiftnet/Co
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Register
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Methods
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.CodecFns
@@ -39,7 +40,7 @@ theorem master.enc_getLeaderReply (i : w64) :
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.FieldAssumptions]
 

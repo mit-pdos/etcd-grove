@@ -25,20 +25,22 @@ namespace Perennial.encoding.gob
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
+attribute [local instance] Dsv.netShaExts
+
 section defs
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors}
 
-attribute [local instance] Dsv.netShaExts
 
 /-- The gob codec encodes and decodes as the kit's `RpcCodec`, for good (persistent): a
 hypothesis (`SwiftLibs.gobCodecSet`). The lab's was its model's `codec` variable holding the
 kit's functions; `encoding/gob` is names only here. -/
-def codecSet [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] : IProp GF :=
-  l.gobCodecSet
+def codecSet [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] [C : net.rpc.RpcCodec GF] :
+    IProp GF :=
+  l.gobCodecSet C
 
-instance codecSet_persistent [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] :
-    Persistent (codecSet (GF := GF)) := l.gobCodecSet_persistent
+instance codecSet_persistent [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF]
+    [C : net.rpc.RpcCodec GF] : Persistent (codecSet (GF := GF)) := l.gobCodecSet_persistent C
 
 /-- The `*gob.Encoder` at `enc` writes to `w` (`SwiftLibs.gobEncoder`). -/
 def ownEncoder [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] (enc : Loc) (dq : DFrac)

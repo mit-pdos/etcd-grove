@@ -4,6 +4,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/BufferClient__Wr
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ISpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.BufferClient__Write
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.AuLemmas
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Ghost
@@ -21,7 +22,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions]
 
 theorem client.BufferClient.Write.wp_proofI

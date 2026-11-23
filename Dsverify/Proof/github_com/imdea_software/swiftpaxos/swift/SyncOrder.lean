@@ -9,6 +9,7 @@ the dependencies, `sp.recOrder_congr`), then `recOrder` over `sortedIds`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecOrder
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -92,7 +93,7 @@ end sp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem swift.syncOrder.wp_proof (wp_sortedIds : swift.sortedIds.specI (hG := hG))

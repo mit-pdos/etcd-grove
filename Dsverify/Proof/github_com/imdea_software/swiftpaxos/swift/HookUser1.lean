@@ -10,6 +10,7 @@ receive never returns and `f` never runs. `hook.HookUser1.specI` (Proof/swift/Ne
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 -- PORT: lab imports dropped: Harness.Proof.os.signal
 
@@ -26,7 +27,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [hook.Assumptions]
 
 set_option goose.wp.extras true

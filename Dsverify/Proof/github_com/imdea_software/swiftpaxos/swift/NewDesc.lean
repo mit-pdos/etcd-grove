@@ -19,6 +19,7 @@ The accept closure reads both acks' `Dep` slices: `ackP`/`leadAckP` carry them r
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AllocDesc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunCtx
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepEqualsV
@@ -36,7 +37,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- A closure that does nothing (`func() {}`): any state is kept. -/
@@ -98,7 +99,7 @@ end defs
 
 section split
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- `descNew` split for the spawn (round 27): the four shared fields, their bags, the share map's
@@ -147,7 +148,7 @@ end split
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **The message predicates `deliver` accepts** (round 39, D43 (5)): an `int` payload is a
@@ -206,12 +207,12 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions] [replica.Assumptions] [sync.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [sync.Assumptions] [swift.Assumptions] [hook.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [sync.Assumptions] [swift.Assumptions] [hook.Assumptions] in
 /-- `ocfAny` as `ReinitCondF`'s precondition. -/
 theorem swift.ocfAny_ex (cf : Loc) :
     swift.ocfAny cf ⊢ ∃ (cond0 : GoFunc) (fs : List GoFunc), ⌜cf = null⌝ ∨ hook.ocf.ownOcf cf cond0 fs := by

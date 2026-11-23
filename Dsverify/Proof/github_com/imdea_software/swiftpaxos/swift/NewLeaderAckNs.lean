@@ -17,6 +17,7 @@ its node state (`computeSync_stepD`: `syncIs`, its order's `locAt`s and row toke
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSync
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RepsOkInv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
@@ -126,7 +127,7 @@ end ghost
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- **`r.handleNewLeaderAckNs(lm, msgs)`** (the handler of `newLeaderAckNs`'s quorum): the new
@@ -172,7 +173,7 @@ end specs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 theorem swift.Replica.handleNewLeaderAckNs.wp_proof (EpR : GMap swift.CommandId Loc → IProp netDistGF)

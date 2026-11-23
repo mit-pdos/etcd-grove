@@ -23,6 +23,7 @@ its array afterwards, so a function may retire the object's owner and hand the o
 module
 
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.hook
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 
@@ -64,7 +65,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [hook.Assumptions]
 
 /-- `NewOptCondF(cond)`. -/
@@ -116,7 +117,7 @@ namespace hook.ocf
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [hook.Assumptions]
 
 set_option goose.wp.extras true

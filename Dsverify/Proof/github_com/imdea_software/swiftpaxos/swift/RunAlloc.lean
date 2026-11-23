@@ -25,6 +25,7 @@ run loop and the descriptors share, in phases:
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunInv
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -39,7 +40,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section facts
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- The hooks are nil (swift's package state `swift.pkgSt`; proved at the link). -/
 def swift.HooksFact : Prop :=
@@ -50,7 +51,7 @@ end facts
 
 section alloc
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 theorem swift.rowsOk_init : swift.rowsOk sp.RState.init ∅ := by
@@ -274,7 +275,7 @@ end alloc
 
 section fresh
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- **A new epoch from `handleSync`'s fresh resources** (`EpS_start`, at the run loop's names
@@ -334,7 +335,7 @@ end fresh
 
 section stop
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- **The epoch once the reply goroutine stopped** (`EpH` of `replyChan.stop`/`stopDescs`): the

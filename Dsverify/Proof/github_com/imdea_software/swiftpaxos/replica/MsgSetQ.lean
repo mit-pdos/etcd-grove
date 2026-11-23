@@ -4,6 +4,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/MsgSetQ.lean (l
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumMaps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArith
 
 @[expose] public section
@@ -42,7 +43,7 @@ end defs
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 theorem quorumIs_ok (q : GoInterface) (sz : Nat) (mem : w32 → Prop) :
     quorumIs q sz mem ⊢ ⌜∃ i, q = GoInterface.ok i⌝ := by

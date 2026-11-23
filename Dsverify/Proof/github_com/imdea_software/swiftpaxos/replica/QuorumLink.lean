@@ -9,6 +9,7 @@ the underlying map type, fix3: `wp_mapDelete`, no gap).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSystem
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSubsets
 
 @[expose] public section
@@ -24,7 +25,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions]
 
 theorem replica.wp_Leader : replica.Leader.spec := replica.Leader.wp_proof

@@ -9,7 +9,6 @@ an error, `data` is an accepted varint (`uvTerm`) and the result its value.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.VarintPure
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.BufioErr
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.swift
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.ReadFull

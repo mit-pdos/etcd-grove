@@ -9,6 +9,7 @@ table and channels (`initCs`), the readers (`RegisterRPCTable`), the quorums, th
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.NewClientParts
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.NewClient
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 
@@ -29,7 +30,7 @@ open swift.rd
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [rpc.Assumptions] [replica.defs.Assumptions]

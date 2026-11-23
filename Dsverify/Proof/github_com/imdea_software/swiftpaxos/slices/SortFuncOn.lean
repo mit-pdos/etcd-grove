@@ -12,6 +12,7 @@ copies linked, and `slices.SortFunc.specOn` (Proof/swift/RecSync.lean, the hypot
 module
 
 public import Perennial.Proof.slices.SortFunc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.math.bits.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.pdqsortCmpFunc
@@ -154,7 +155,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section bridge
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [slices.Assumptions]
 
 /-- **`slices.SortFunc.specOn`** (Proof/swift/RecSync.lean): `specPhi` with `φ x := x ∈ xs`;

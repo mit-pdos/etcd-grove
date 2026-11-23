@@ -17,6 +17,7 @@ message's (`sp.cw.next_code`), the decoded message as the stream's next with its
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.Unmarshal
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleReply
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.TableC
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.LatencyTable__WaitDuration
@@ -39,7 +40,7 @@ open swift.handler
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions]
 
@@ -90,7 +91,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions]
 
@@ -115,14 +116,14 @@ end specs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] [client.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] [client.Assumptions]
   [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 /-- A buffered reader is not nil (unfolds the harness's `ownReader`: a missing law). -/
@@ -132,7 +133,7 @@ theorem ownReader_not_null (br : Loc) (rd : GoInterface) (I : List w8 → IProp 
   iintro ⟨%pend, %perr, -, %buf, %r, %w, %lb, %lrs, %pre, %post, Hb, -⟩
   iapply typedPointsto_not_null $$ Hb
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [client.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [client.Assumptions]
   [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 theorem wp_New_MFastAckClient (o : Loc) :
@@ -146,7 +147,7 @@ theorem wp_New_MFastAckClient (o : Loc) :
   wp_auto
   iapply HΦ; iframe
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [client.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [client.Assumptions]
   [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 theorem wp_New_MLightSlowAck (o : Loc) :
@@ -160,7 +161,7 @@ theorem wp_New_MLightSlowAck (o : Loc) :
   wp_auto
   iapply HΦ; iframe
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [client.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [client.Assumptions]
   [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 theorem wp_New_MReply (o : Loc) :

@@ -11,6 +11,7 @@ row pre-accepted, `swift.preacc_row`, hence `propose ≠ nil`, `rowAcc`).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepEqualsPerm
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps
 import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
@@ -690,7 +691,7 @@ macro "adoptAdds" : tactic => `(tactic| (
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [sync.Assumptions] [hook.Assumptions]
   [github_com.orcaman.concurrent_map.Assumptions]
 

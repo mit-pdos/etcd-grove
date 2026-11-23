@@ -16,6 +16,7 @@ Separate from Link.lean to keep that module's build under the memory cap; Link.l
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleSyncProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderAckNs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SortedProposes
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncOrder
@@ -47,7 +48,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section helpers
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [sync.Assumptions] [log.Assumptions] [time.Assumptions]
   [replica.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions]
 
@@ -85,7 +86,7 @@ end helpers
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [sync.atomic.Assumptions] [state.Assumptions] [log.Assumptions]
   [slices.Assumptions] [time.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]

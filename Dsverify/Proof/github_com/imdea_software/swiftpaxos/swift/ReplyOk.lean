@@ -11,6 +11,7 @@ one sequence prefix of the leader (`swift.locLbs_join`: the longest of the entri
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SortedIds
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.LeaderM
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
@@ -46,7 +47,7 @@ theorem swift.toCmdId_injective : Function.Injective toCmdId := by
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem sp.depsIn_prefix {s s' : sp.Seq} {y : sp.CmdId} (h : s <+: s') (hy : y ∈ s.map Prod.fst) :
@@ -87,7 +88,7 @@ theorem swift.execOk_of (s : sp.Seq) (Y : List swift.ExE) (hsnd : (s.map Prod.fs
     obtain ⟨h1, h2⟩ := hok e he
     exact ⟨h1, fun d hd => h2.symm.subset hd⟩
 
-omit go_gctx hG sem [SwiftNetPkgState netDistGF] [swift.Assumptions] in
+omit go_gctx hG sem [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] in
 theorem swift.keepPure {P : IProp netDistGF} {φ : Prop} (h : P ⊢ ⌜φ⌝) : P ⊢ P ∗ ⌜φ⌝ :=
   (and_intro .rfl h).trans persistent_and_sep_mp
 

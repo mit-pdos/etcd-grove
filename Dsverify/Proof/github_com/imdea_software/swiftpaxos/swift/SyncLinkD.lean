@@ -12,6 +12,7 @@ side's task 4) and `NewReplyChan.specIH` (passed by Link.lean).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescFresh
 
 @[expose] public section
@@ -27,7 +28,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [sync.atomic.Assumptions] [state.Assumptions] [log.Assumptions]
   [slices.Assumptions] [time.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]

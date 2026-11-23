@@ -9,6 +9,7 @@ model's `sortIds` (Spec/swift/Model/Defs.lean), over Perennial's proved `slices.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLogKey
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeaf
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Steps
 public import Perennial.Spec.slices.SortFunc
@@ -92,7 +93,7 @@ theorem swift.cmdIdLt_swo : slices.StrictWeakOrder (fun a b => swift.cmdIdLt a b
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 abbrev swift.cmdIdLess.specI : Prop :=
   ∀ (a b : swift.CommandId),

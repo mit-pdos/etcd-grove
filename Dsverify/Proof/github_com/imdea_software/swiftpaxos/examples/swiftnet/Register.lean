@@ -8,6 +8,7 @@ new client after a failed call), until the master's `Register` answers `Ready`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServersSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 -- PORT: lab imports dropped: Harness.Proof.net.rpc.Results
 
@@ -115,7 +116,7 @@ end regEnc
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 set_option goose.wp.extras true
 

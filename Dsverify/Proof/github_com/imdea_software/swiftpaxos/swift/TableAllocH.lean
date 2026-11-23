@@ -11,6 +11,7 @@ link), the fast-ack pool's switch, gob's codec (change log C17) and the codec's 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunLoopSpecs
 
 @[expose] public section
@@ -28,7 +29,7 @@ set_option linter.unusedSectionVars false
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]

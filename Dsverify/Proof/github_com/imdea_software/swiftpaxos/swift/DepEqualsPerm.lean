@@ -9,6 +9,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/DepEqualsPerm.lea
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCallees
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSeq
 import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
@@ -155,7 +156,7 @@ theorem swift.depEq_eqInv_perm {l1 l2 : List swift.CommandId} {s1 s2 : GMap swif
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `(&dep1).Equals(dep2)` with `dep2` without duplicates: `true` only for a permutation. -/
@@ -171,7 +172,7 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem swift.Dep.Equals.wp_proofPerm : swift.Dep.Equals.specPerm (hG := hG) := by

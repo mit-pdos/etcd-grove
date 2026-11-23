@@ -16,6 +16,7 @@ the specs of `theGhost`, `Ghost.Invoke`, `Ghost.Accept` that `Write`/`Read` are 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.L2Laws
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ISpecs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NodeGhost
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
@@ -33,7 +34,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions]
 
 /-- `theGhost()`: the node's ghost, claimed for `n`. -/

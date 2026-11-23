@@ -25,6 +25,7 @@ empty ghost view.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleSync
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncStepD
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncRemove
@@ -316,7 +317,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `sortedProposes(m)`: `proposes`' keys, sorted (as `sortedIds`; at most `2^62` entries). -/

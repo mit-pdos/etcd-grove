@@ -9,6 +9,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/InitCsR.lean (lab
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ open swift.rd
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [rpc.Assumptions] [time.Assumptions]
 
 set_option goose.wp.extras true

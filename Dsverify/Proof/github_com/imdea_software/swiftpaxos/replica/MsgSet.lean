@@ -17,6 +17,7 @@ The majority forms (`own`, `*.specI`, the client's) are corollaries (`closuresOk
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSetQ
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
 
 @[expose] public section
@@ -221,7 +222,7 @@ end specs0
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- `NewMsgSet(q, accept, freeMsg, handler)` over a quorum `q` (`quorumIs q sz mem`). -/
 abbrev NewMsgSet.specQ : Prop :=
@@ -351,7 +352,7 @@ theorem MsgSet.ReinitMsgSet.wp_proofQ (wp_New : NewMsgSet.specQ (hG := hG)) :
   rw [this] at hj2; cases hj2
   done
 
-omit [replica.Assumptions] [SwiftNetPkgState netDistGF] in
+omit [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] in
 theorem set_mid {α : Type} (l : List α) (n : Nat) (z x : α) (h : 0 < n) :
     (l ++ List.replicate n z).set l.length x = (l ++ [x]) ++ List.replicate (n - 1) z := by
   obtain ⟨n, rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩

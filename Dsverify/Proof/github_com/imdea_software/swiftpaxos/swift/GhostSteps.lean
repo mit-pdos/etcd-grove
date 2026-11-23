@@ -11,6 +11,7 @@ resolver with its step lemma (a `swift.*_stepD`) inside the update.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Steps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Ghost
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeaf
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksSpecs
@@ -39,7 +40,7 @@ end defs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [client.Assumptions]
 
 set_option goose.wp.extras true

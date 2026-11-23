@@ -9,6 +9,7 @@ map with pointer values, so the same proof (SortedIds.lean's, without the sortin
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SortedIds
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSpecs
 
 @[expose] public section
@@ -24,7 +25,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [slices.Assumptions]
 
 theorem swift.sortedProposes.wp_proof (wp_SortFunc : slices.SortFunc.spec (hG := hG))

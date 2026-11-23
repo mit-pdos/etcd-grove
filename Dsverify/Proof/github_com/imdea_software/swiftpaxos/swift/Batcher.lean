@@ -16,6 +16,7 @@ Hypotheses (open): the four messages' `Marshal` (`marshalOk`), `clientChecksum`'
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChan
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Golang.Theory.IfJoin
 
 @[expose] public section
@@ -31,7 +32,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `releaseFastAck(f)` (defs.go): gives `f` to the fast-ack pool when pooling is on
@@ -84,18 +85,18 @@ end specs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.map_to_of (l : List sp.CmdId) : (l.map swift.ofCmdId).map swift.toCmdId = l := by
   induction l with
   | nil => rfl
   | cons x xs ih => simp only [List.map_cons, ih]; rfl
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 /-- The client's copy of a fast ack carries its witness. -/
 theorem swift.facOk_of (γ : sp.Names) (γc γm : GName) (f : sp.FastAck) (d : sp.Hash) :
     sp.fastAckOk γ f ∗ swift.facClientOk γ γc γm f ∗ sp.depHash f.dep d ⊢
@@ -134,7 +135,7 @@ instance swift.slowEntry_persistent (γ : sp.Names) (γc γm : GName) (sa : swif
     Persistent (swift.slowEntry γ γc γm sa) := by
   unfold swift.slowEntry; infer_instance
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 /-- Inserting (or overwriting) an entry with its resource. -/
 theorem swift.bigSepM_overwrite {V : Type} (M : GMap swift.CommandId V)
     (E : V → IProp netDistGF) (k : swift.CommandId) (v : V) :
@@ -149,7 +150,7 @@ theorem swift.bigSepM_overwrite {V : Type} (M : GMap swift.CommandId V)
     iapply (BigSepM.bigSepM_insert_delete (Φ := fun _ v => E v)).2
     iframe
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.slots_set {A : Type} (l : List A) (m : Nat) (z v : A) (hm : 0 < m) :
     (l ++ List.replicate m z).set l.length v = (l ++ [v]) ++ List.replicate (m - 1) z := by
   obtain ⟨k, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, by omega⟩
@@ -182,11 +183,11 @@ instance swift.optNL_persistent (γc γm : GName) (me b0 : w32) (aps : List (swi
     Persistent (swift.optNL γc γm me b0 aps) := by
   unfold swift.optNL; infer_instance
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.optNL_nil (γc γm : GName) (me b0 : w32) : ⊢ swift.optNL γc γm me b0 [] := by
   iunfold swift.optNL; ileft; ipureintro; intro p hp; simp at hp
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 /-- Appending a fast-shaped entry. -/
 theorem swift.optNL_snoc (γc γm : GName) (me b0 : w32) (aps : List (swift.Ack × sp.Ack))
     (q : swift.Ack × sp.Ack) (h : q.2.dep ≠ [q.2.id]) :
@@ -198,7 +199,7 @@ theorem swift.optNL_snoc (γc γm : GName) (me b0 : w32) (aps : List (swift.Ack 
     · subst hp; exact h
   · iright; iexact H
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 /-- Any entries, `me` not the leader (a slow ack's entry). -/
 theorem swift.optNL_slow (γc γm : GName) (me b0 : w32) (aps : List (swift.Ack × sp.Ack))
     (N : Nat) (fr : Bool) (l : List GoString) :
@@ -208,7 +209,7 @@ theorem swift.optNL_slow (γc γm : GName) (me b0 : w32) (aps : List (swift.Ack 
   iunfold swift.optNL
   iright; iexists N, fr, l; iframe Hc; ipureintro; exact Hne
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 /-- Any entries, from a slow ack of `me` in `b0` (its C16 witness). -/
 theorem swift.optNL_of_slow (γc γm : GName) (me b0 : w32) (aps : List (swift.Ack × sp.Ack))
     (s : sp.SlowAck) (hr : s.rep = me) (hb : sp.bal s.bal = sp.bal b0) :
@@ -218,7 +219,7 @@ theorem swift.optNL_of_slow (γc γm : GName) (me b0 : w32) (aps : List (swift.A
   iapply swift.optNL_slow γc γm me b0 aps N fr l
   iframe Hc; ipureintro; rw [← hr, ← hb]; exact Hne
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 /-- The message's disjunct (`sp.msgOk (.optAcks ..)`). -/
 theorem swift.optNL_msg (γc γm : GName) (me b0 : w32) (aps : List (swift.Ack × sp.Ack)) :
     swift.optNL γc γm me b0 aps ⊢
@@ -240,7 +241,7 @@ def swift.optSt (γ : sp.Names) (γc γm : GName) (me b0 : w32) (o : Loc) (ism :
       ∀ k j, IM !! k = some j → 0 ≤ sint.Z j ∧ ∃ p, aps[sint.nat j]? = some p ∧ p.1.CmdId' = k⌝ ∗
     swift.optNL γc γm me b0 aps)
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.optSt_mono (γ : sp.Names) (γc γm : GName) (me b0 : w32) (o ism : Loc) (n m : Nat)
     (h : n ≤ m) :
     swift.optSt γ γc γm me b0 o ism n ⊢ swift.optSt γ γc γm me b0 o ism m := by
@@ -267,7 +268,7 @@ def swift.slowMap (γ : sp.Names) (γc γm : GName) (scm : Loc) : IProp netDistG
 /-- A fast ack's `MOptAcks` entry. -/
 def swift.ackOfFast (f : sp.FastAck) : sp.Ack := ⟨f.id, f.dep, f.cs, f.seqnum⟩
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.ackOk_of_fast (γ : sp.Names) (f : sp.FastAck) (h : f.dep ≠ [f.id]) :
     sp.fastAckOk γ f ⊢ sp.ackOk γ (sp.rid f.rep) (sp.bal f.bal) (swift.ackOfFast f) := by
   iintro #Hok
@@ -279,7 +280,7 @@ theorem swift.ackOk_of_fast (γ : sp.Names) (f : sp.FastAck) (h : f.dep ≠ [f.i
   iexists P
   iframe Hpath Hph
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem swift.ackRepr_of_fast (fa : swift.MFastAck) (f : sp.FastAck) :
     swift.fastAckRepr fa f ⊢
       swift.ackRepr (swift.Ack.mk fa.CmdId' fa.Dep' fa.Checksum' fa.Seqnum') (swift.ackOfFast f) := by
@@ -290,7 +291,7 @@ theorem swift.ackRepr_of_fast (fa : swift.MFastAck) (f : sp.FastAck) :
   iframe Hd Hc
   ipureintro; exact ⟨Hr.2.2.1, Hr.2.2.2⟩
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 /-- A map's entries' resources, the keys visited so far (`keys.take i`) taken out. -/
 theorem swift.mapIter_start {V : Type} (M : GMap swift.CommandId V) (E : V → IProp netDistGF)
     (keys : List swift.CommandId) :
@@ -299,7 +300,7 @@ theorem swift.mapIter_start {V : Type} (M : GMap swift.CommandId V) (E : V → I
   iintro %k %v H -
   iexact H
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.mapIter_step {V : Type} (M : GMap swift.CommandId V) (E : V → IProp netDistGF)
     (keys : List swift.CommandId) (i : Nat) (k : swift.CommandId) (v : V)
     (hk : keys[i]? = some k) (hM : M !! k = some v) (hnd : keys.Nodup) :
@@ -343,7 +344,7 @@ instance swift.sendCtxAt_persistent (γ : sp.Names) (γc γm : GName) (rp rr : L
     (me : w32) : Persistent (swift.sendCtxAt γ γc γm rp rr N me) := by
   unfold swift.sendCtxAt; infer_instance
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem swift.sendCtxN_at (γ : sp.Names) (γc γm : GName) (rp rr : Loc) (N : Nat) (me : w32) :
     swift.fld rp go!"Replica" ↦□ rr ∗ swift.sendCtxN γ γc γm rp N me ⊢
       swift.sendCtxAt γ γc γm rp rr N me := by
@@ -362,7 +363,7 @@ theorem swift.sendCtxN_at (γ : sp.Names) (γc γm : GName) (rp rr : Loc) (N : N
   ipureintro
   exact ⟨Hcodes, HNp.2.1, HNp.2.2.1, HNp.2.2.2⟩
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem swift.sendCtxAt_agree (γ : sp.Names) (γc γm : GName) (rp rr : Loc) (N N' : Nat)
     (me me' : w32) :
     swift.sendCtxAt γ γc γm rp rr N me ∗ swift.sendCtxAt γ γc γm rp rr N' me' ⊢

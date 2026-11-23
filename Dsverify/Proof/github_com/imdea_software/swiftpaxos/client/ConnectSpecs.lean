@@ -25,6 +25,7 @@ encoding of a `GetReplicaListReply` is injective, from the codec group's round t
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.PkgFacts
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.codec.RoundTrip
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
@@ -128,7 +129,7 @@ instance client.cn.rpcAddr_persistent [GooseExts] [GooseSemantics] [GooseInterp]
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,

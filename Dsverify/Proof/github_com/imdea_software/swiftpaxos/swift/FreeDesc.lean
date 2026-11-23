@@ -9,6 +9,7 @@ descriptor goes to `descPool` (predicate `descPoolP DF`), else it is dropped. Sp
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.sync.Link
 
 @[expose] public section
@@ -26,7 +27,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [sync.Assumptions]
 
 /-- **`freeDesc`**: `Put` with `descPoolP DF` when `poolLevel > 0`. No callee hypothesis

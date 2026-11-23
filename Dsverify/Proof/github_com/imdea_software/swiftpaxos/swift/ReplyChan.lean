@@ -19,6 +19,7 @@ Hypotheses (open): `clientChecksum`'s spec and `MReply`'s `Marshal` (`marshalOk`
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.LeaderM
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Deliver
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyOk
@@ -36,7 +37,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `clientChecksum(hs, dep)` (dpath.go): a fresh slice of `hs`'s hashes then the dependencies'
@@ -122,7 +123,7 @@ end specs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions]
 
 set_option goose.wp.extras true
@@ -152,7 +153,7 @@ instance swift.replyCellRes_timeless (rp : Loc) (b0 : w32) :
     Timeless (swift.replyCellRes rp b0) := by
   unfold swift.replyCellRes swift.replyRes; infer_instance
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.srem_bounds (a b : w64) (ha : 0 ≤ sint.Z a) (hb : 0 < sint.Z b) :
     0 ≤ sint.Z (BitVec.srem a b) ∧ sint.Z (BitVec.srem a b) < sint.Z b := by
   show 0 ≤ (BitVec.srem a b).toInt ∧ (BitVec.srem a b).toInt < b.toInt
@@ -173,12 +174,12 @@ theorem swift.srem_bounds (a b : w64) (ha : 0 ≤ sint.Z a) (hb : 0 < sint.Z b) 
     omega
   rw [BitVec.toInt_eq_toNat_of_msb hm]; omega
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.slot_succ (s : w64) (h : 0 ≤ sint.Z s ∧ sint.Z s < 10010001) :
     0 ≤ sint.Z (s + W64 1) ∧ sint.Z (s + W64 1) ≤ 10010001 := by
   word
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.snat_eq (x : w64) (h : 0 ≤ sint.Z x) : (sint.nat x : Int) = sint.Z x := by
   show ((sint.Z x).toNat : Int) = _; omega
 
@@ -186,7 +187,7 @@ theorem swift.snat_eq (x : w64) (h : 0 ≤ sint.Z x) : (sint.nat x : Int) = sint
 def swift.replyLoopSt (rp : Loc) (γl : swift.CellNames) (b0 : w32) : IProp netDistGF :=
   swift.replyBack rp γl b0
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem swift.replyLoopSt_intro (rp : Loc) (γl : swift.CellNames) (b0 : w32) (n : w64)
     (h : 0 ≤ sint.Z n ∧ sint.Z n ≤ 10010001) :
     swift.fld rp go!"historySize" ↦ n ∗ swift.replyRes rp b0 ⊢ swift.replyLoopSt rp γl b0 := by
@@ -396,7 +397,7 @@ theorem swift.NewReplyChan.wp_proof (wp_cc : swift.clientChecksum.specR (hG := h
   · iexact Hbok
   iexact Hcell
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] in
 theorem swift.copy_all {A : Type} (L : List A) (n : Nat) (z : A) (h : L.length = n) :
     List.take (List.replicate n z).length L ++ List.drop L.length (List.replicate n z) = L := by
   subst h; simp

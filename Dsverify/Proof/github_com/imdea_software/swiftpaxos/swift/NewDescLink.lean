@@ -13,6 +13,7 @@ round 45 (D54): at the replica's reply channel object `swift.RCh γ0 γc γm rp`
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDesc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescDS
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksHandler
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DeliverProofE
@@ -41,7 +42,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions] [hook.Assumptions]
   [time.Assumptions] [config.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]

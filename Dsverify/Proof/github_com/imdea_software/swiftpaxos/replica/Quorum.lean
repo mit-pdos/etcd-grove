@@ -9,6 +9,7 @@ quorums (`swift.NewClient`): `N / 2 + 1`, and some size (overwritten by `NewClie
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ namespace replica.quorum
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions]
 
 abbrev NewMajorityOf.specI : Prop :=

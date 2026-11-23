@@ -4,7 +4,7 @@ The vocabulary of the lab's `bufio` specs (dsverify-lab `harness/lean/Harness/Pr
 swiftpaxos proof uses (`*.labSpec`, hypotheses here: notes/dsv-swiftpaxos.md, "Hypotheses"; the
 main tree's own `bufio` vocabulary is `EtcdGrove.bufio`, a different one). The definitions are over
 the real `bufio` structs (the main tree's translation, whose fields are the lab's); errors with a
-message are `models_lab.errAny` (`Net/`'s, the lab's `net.rpc.errAny`).
+message are `models_lab.errAny` (`Net/`'s, the lab's `models_lab.errAny`).
 -/
 module
 
@@ -237,6 +237,35 @@ abbrev io.ReadFull.labSpec : Prop :=
         ∃ data : List w8, ⌜n = W64 data.length ∧ data.length ≤ bs.length ∧
           (err = interface.nil ↔ data.length = bs.length)⌝ ∗
         buf ↦* (data ++ bs.drop data.length) ∗ I (R ++ data) ∗ errOrNil err }}
+
+/-- lab `Proof/client/BufioErr.lean` `bufio.wp_WriteByte_err` (proved there from `bufio`'s code; a hypothesis
+here until that proof is ported onto the main tree's `bufio` lemmas). -/
+abbrev Writer.WriteByte_err.labSpec : Prop :=
+  ∀ (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF)
+    (sent pend : List w8) (err : GoInterface) (c : w8) (_herr : err ≠ interface.nil),
+  {{ ownWriter bw wr J Q sent pend err }}
+      (App (Val (bw @!! go.GoType.PointerType bufio.Writer.ty @!! go!"WriteByte")) (Val #c))
+    {{ RET #err; ownWriter bw wr J Q sent pend err }}
+
+/-- lab `Proof/client/BufioErr.lean` `bufio.wp_Write_err` (proved there from `bufio`'s code; a hypothesis
+here until that proof is ported onto the main tree's `bufio` lemmas). -/
+abbrev Writer.Write_err.labSpec : Prop :=
+  ∀ (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF)
+    (sent pend : List w8) (err : GoInterface) (p : GoSlice) (dq : DFrac) (ps : List w8)
+    (_herr : err ≠ interface.nil),
+  {{ ownWriter bw wr J Q sent pend err ∗ p ↦*{dq} ps }}
+      (App (Val (bw @!! go.GoType.PointerType bufio.Writer.ty @!! go!"Write")) (Val #p))
+    {{ (nn : w64), RET (PairV #nn #err); p ↦*{dq} ps ∗ ownWriter bw wr J Q sent pend err }}
+
+/-- lab `Proof/client/BufioErr.lean` `bufio.wp_ReadByte_wf` (proved there from `bufio`'s code; a hypothesis
+here until that proof is ported onto the main tree's `bufio` lemmas). -/
+abbrev Reader.ReadByte_wf.labSpec : Prop :=
+  ∀ (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) (R : List w8),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ readerOk rd I ∗ ownReader br rd I R }}
+      (App (Val (br @!! go.GoType.PointerType bufio.Reader.ty @!! go!"ReadByte")) (Val #()))
+    {{ (c : w8) (err : GoInterface), RET (PairV #c #err);
+        (⌜err = interface.nil⌝ ∗ ownReader br rd I (R ++ [c])) ∨
+        (⌜err ≠ interface.nil ∧ errWf err⌝ ∗ models_lab.errAny err ∗ ownReader br rd I R) }}
 
 end specs
 

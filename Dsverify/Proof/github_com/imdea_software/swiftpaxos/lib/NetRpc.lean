@@ -54,13 +54,6 @@ class RpcKit where
 def kitFn [GooseExts] [GoSemanticsFunctions] [RpcKit] (name : GoString) : GoFunc :=
   functions (RpcKit.pkg ++ go!"." ++ name) []
 
-/-- The kit's codec, as the specs see it (the lab's `RpcCodec`). -/
-class RpcCodec [GooseExts] (GF : BundledGFunctors) where
-  enc : GoInterface → (List w8 → IProp GF) → IProp GF
-  dec : List w8 → GoInterface → (Bool → IProp GF) → IProp GF
-  call : GoInterface → GoString → List w8 → (List w8 → GoString → Bool → IProp GF) → IProp GF
-  methods : GoInterface → IProp GF
-
 /-- The codec's encoding and decoding, as `Net/`'s `CodecSpec`. -/
 def RpcCodec.spec [GooseExts] {GF : BundledGFunctors} [C : RpcCodec GF] : CodecSpec GF :=
   ⟨C.enc, C.dec⟩

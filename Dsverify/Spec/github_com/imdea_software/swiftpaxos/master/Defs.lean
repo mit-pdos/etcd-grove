@@ -8,6 +8,7 @@ fresh, with the membership's writer token and the configuration it was built for
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Defs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.config.Defs
 public import Perennial.Proof.sync.CondDefs
@@ -25,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- The body of `master.created` (the master group's; change log C7): the struct (`N` and
 `port`, no replica registered, not initialized, no next leader), a quiet logger, the

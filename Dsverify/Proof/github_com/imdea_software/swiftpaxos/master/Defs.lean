@@ -22,6 +22,7 @@ The master's internal predicates (the master group's; not frozen):
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.master.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.config.Defs
 public import Perennial.Proof.sync
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Printf
@@ -108,7 +109,7 @@ theorem master.set_last {A : Type} (l : List A) (y x : A) (n : Nat) (h : n = l.l
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions]
 
 /-- Field `f` of the master at `m`. -/
@@ -297,7 +298,7 @@ end defs
 
 section logger
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [dlog.Assumptions]
 
 /-- The promoted `m.Printf(...)` (the embedded quiet logger's). -/

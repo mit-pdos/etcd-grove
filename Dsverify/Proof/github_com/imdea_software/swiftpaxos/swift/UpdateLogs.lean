@@ -11,6 +11,7 @@ a get is its key, `len(keys) == len(hs) == 1` (no `Fatal`), the key's hash log (
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecordLeaderHash
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepHash
 
 @[expose] public section
@@ -33,7 +34,7 @@ variable [swift.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem swift.Replica.updateLogs.wp_proof [SwiftNetPkgState netDistGF]
+theorem swift.Replica.updateLogs.wp_proof [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
     (wp_keysOf : swift.keysOf.specNS)
     (wp_newHL : swift.hlog.NewHashLog.spec)
     (wp_Update : swift.hlog.HashLog.Update.spec) :
@@ -156,7 +157,7 @@ end proofs
 section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [crypto.sha256.Assumptions] [SwiftNetPkgState netDistGF]
+variable [swift.Assumptions] [crypto.sha256.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 /-- `updateLogs` linked. -/
 theorem swift.Replica.wp_updateLogs : swift.Replica.updateLogs.specT :=

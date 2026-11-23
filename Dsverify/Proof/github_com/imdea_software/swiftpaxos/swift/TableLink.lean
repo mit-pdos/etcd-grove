@@ -13,6 +13,7 @@ specs (`MFastAck`, `Ack`, `SDep`) are hypotheses of `tableOk_alloc_h`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAlloc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableOptAcks
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableClient
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableSync
@@ -38,7 +39,7 @@ namespace swift.tbl
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]

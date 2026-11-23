@@ -12,6 +12,7 @@ found": `ownState`'s values are non-empty).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -173,7 +174,7 @@ theorem get_of_au (γ : SwiftNames netDistGF) (key : w64)
     iexact HQ
 
 section calls
-variable [SwiftNetPkgState netDistGF] [client.Assumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [client.Assumptions]
 
 /-- `b.Write(key, vsl)` with the driver's update for the put: the update's commit, client
 ready at `s + 1`. -/

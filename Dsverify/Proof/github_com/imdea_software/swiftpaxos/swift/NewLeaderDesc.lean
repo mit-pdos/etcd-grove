@@ -36,6 +36,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/NewLeaderDesc.lea
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderReqs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Store
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSeq
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ProposePure
@@ -155,7 +156,7 @@ end ghost
 
 section store
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -708,7 +709,7 @@ end store
 
 section reqs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

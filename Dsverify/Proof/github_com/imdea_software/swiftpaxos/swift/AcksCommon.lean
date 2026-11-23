@@ -7,6 +7,7 @@ The proof of `r.commonCaseFastAck(msg, desc)` (spec: Proof/swift/AcksSpecs.lean)
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.LeaderM
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PoolFns
 
@@ -420,7 +421,7 @@ end hdLemmas
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [sync.Assumptions] [hook.Assumptions]
   [github_com.orcaman.concurrent_map.Assumptions]
 
@@ -625,7 +626,7 @@ end proof
 
 section proofOcf
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [sync.Assumptions] [hook.Assumptions]
   [github_com.orcaman.concurrent_map.Assumptions]
 

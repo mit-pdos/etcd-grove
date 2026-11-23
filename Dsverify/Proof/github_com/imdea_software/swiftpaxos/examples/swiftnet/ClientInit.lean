@@ -12,6 +12,7 @@ their initializers' specs (`InitSpec`), hypotheses here: their packages own them
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Interface
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 -- PORT: lab imports dropped: Harness.Remote.Init, Harness.Proof.net.rpc.initialize, Harness.Proof.net.http.initialize, Harness.Proof.net.initialize, Harness.Proof.math.rand, Harness.Proof.bufio.Base, Harness.CheckerSpec, Harness.WriteOnceChecker
 
@@ -30,7 +31,7 @@ namespace adapter
 
 section init
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- A package's initializer's spec (the form of Perennial's `X.initialize'.spec`). -/

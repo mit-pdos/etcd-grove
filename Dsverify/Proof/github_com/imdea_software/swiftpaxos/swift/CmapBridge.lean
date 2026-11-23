@@ -9,6 +9,7 @@ the HOCAP-form instances the descriptor proofs state (`swift.cmapHasV.spec`,
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Deliver
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Specs
 
 @[expose] public section
@@ -24,7 +25,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [github_com.orcaman.concurrent_map.Assumptions] [sync.Assumptions]
 
 theorem swift.cmapHasV_of

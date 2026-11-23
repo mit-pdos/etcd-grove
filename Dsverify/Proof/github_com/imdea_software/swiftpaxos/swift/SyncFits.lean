@@ -16,6 +16,7 @@ discharged (round 18, sv-swc; notes/prove-swift.md §22):
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WriterSpecs
 public import Dsverify.Spec.encoding.gob.Defs
 
@@ -166,7 +167,7 @@ theorem swift.syncFits_of (me bl : w32) (M : sp.SyncMsg) (hn : M.length ≤ 6 * 
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- **`MSync.Marshal`** with gob's package and `codecSet` (change log C18; the kit codec's

@@ -12,6 +12,7 @@ replica's `SendToAll` with such a sink (`sp.marshalOk`).
 module
 
 public import Dsverify.Spec.encoding.gob.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
 
 @[expose] public section
 
@@ -30,7 +31,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
-variable [net.rpc.RpcKit] [net.rpc.RpcCodec GF]
+variable [net.rpc.RpcCodec GF]
 
 /-- `w.Write` appends to the stream `S` (see the file header). -/
 def writeSink (e : GoInterfaceOk) (S Q : List w8 → IProp GF) : IProp GF :=
@@ -52,7 +53,7 @@ abbrev Encoder.EncodeW.spec : Prop :=
   ∀ (enc : Loc) (dq : DFrac) (e : GoInterfaceOk) (S Q : List w8 → IProp GF) (W : List w8)
     (v : GoInterface) (Θ : List w8 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob ∗ codecSet (GF := GF) ∗
-      net.rpc.kitCodecOk (GF := GF) ∗ writeSink e S Q ∗
+      writeSink e S Q ∗
       encoding.gob.ownEncoder enc dq (interface.ok e) ∗ S W ∗
       net.rpc.RpcCodec.enc v (fun bs =>
         iprop(□ Q (W ++ github_com.imdea_software.swiftpaxos.sp.gobFrame bs) ∗ Θ bs)) }}

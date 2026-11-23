@@ -14,6 +14,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/HandleProposeProo
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandlePropose
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ProposePure
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PoolFns
@@ -246,7 +247,7 @@ theorem swift.rowPhaseOk_pre (N r b : Nat) (dv : swift.DescV) (rv : swift.RowV)
 /-- `Contains` decides the membership (round 33; for E7 at :515: the replica `b`'s leader is in
 `FQ`, so `Contains(r.Id)` is true at the leader). Unfolds `replica.mset.quorumIs` (listed in
 notes/prove-swift.md §41). -/
-theorem swift.wp_qContainsIff [replica.Assumptions] [SwiftNetPkgState netDistGF]
+theorem swift.wp_qContainsIff [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
     (i : GoInterfaceOk) (sz : Nat) (mem : w32 → Prop) (r : w32) :
   {{ replica.mset.quorumIs (GoInterface.ok i) sz mem }}
     (App (Val #(methods i.ty go!"Contains" i.v)) (Val #r))
@@ -432,7 +433,7 @@ macro "hasGoneP" q:term : tactic => `(tactic| (
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions] [replica.Assumptions] [sync.Assumptions]
   [github_com.orcaman.concurrent_map.Assumptions]
 

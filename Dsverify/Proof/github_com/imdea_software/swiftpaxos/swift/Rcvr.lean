@@ -12,6 +12,7 @@ notes/prove-swift.md), hypotheses, not unfolded.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BeTheLeader
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.CodecFns
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 
@@ -66,7 +67,7 @@ end spec
 
 section spec2
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 
 /-- The replica's receiver (persistent): from `rcvrRes`, it meets the replicas' service. -/
@@ -86,7 +87,7 @@ theorem swift.enc_pingReply : sp.KitVal.pingReply.encode = sp.cU64 (W64 8) ++ []
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [examples.swiftnet.Assumptions]
 

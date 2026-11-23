@@ -8,6 +8,7 @@ callees' specs (Proof/swift/RunSpecs.lean).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposal
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Fatal
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Conn
@@ -32,7 +33,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions]
 

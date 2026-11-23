@@ -14,6 +14,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/FastAckCallees.le
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSync
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcceptL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SeqBound
@@ -140,7 +141,7 @@ end dstep
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `(&dep1).Equals(dep2)` on any lists: some Boolean. -/
@@ -186,7 +187,7 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem swift.Batcher.SendLightSlowAck.wp_proof : swift.Batcher.SendLightSlowAck.specI (hG := hG) := by
@@ -339,7 +340,7 @@ theorem swift.Dep.Equals.wp_proofAny : swift.Dep.Equals.specAny (hG := hG) := by
   · iapply HΦ; iframe
 
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] in
 /-- `slice_array` at any fraction (as `swift.handler.slice_array_dq`). -/
 theorem swift.slice_array_dq' {V : Type} [ZeroVal V] [TypedPointsto (GF := netDistGF) V] (l : Loc)
     (n : Int) (a : GoArray V n) (dq : DFrac) (hn : n < 2 ^ 63) :

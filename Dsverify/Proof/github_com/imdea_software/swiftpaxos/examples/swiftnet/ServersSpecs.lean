@@ -10,6 +10,7 @@ HUB-REQUEST 2). Internal to the swiftnet group (not frozen).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServersDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.config.Defs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
@@ -115,7 +116,7 @@ end specs
 section register
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- `register(ip, port, maddr)` (runReplica's registration, retried): from replica node `k`
 of the configuration `c` (`k < c.n`), at the master's rpc address with its service: the

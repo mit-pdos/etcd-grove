@@ -11,6 +11,7 @@ channel. The hub of the replica side (HUBS.md: the constructor).
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NodeGhost
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.config.Defs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
@@ -29,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [examples.swiftnet.Assumptions]
 
 /-- From the replica node's protocol share, the protocol's invariant, the configuration (`N`

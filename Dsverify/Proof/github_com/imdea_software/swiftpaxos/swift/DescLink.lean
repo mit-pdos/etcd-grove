@@ -17,6 +17,7 @@ pool's `newFastAck`/`copyFastAck` (ServersLink's pool fact) stay hypotheses, as 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SeqSpecProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SlotProofS
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SlotProofG
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescBundle
@@ -53,7 +54,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [hook.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
 variable [sync.atomic.Assumptions] [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]

@@ -12,6 +12,7 @@ D28: Goose's `math.MaxInt32` is an opaque `axiom val`).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSystem
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArith
 
 @[expose] public section
@@ -134,7 +135,7 @@ theorem replica.sameHigher_leader (a h : w32) (M N : Nat) (X : w64)
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 open replica.quorum
 
@@ -170,7 +171,7 @@ end specs
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 set_option goose.wp.extras true
 

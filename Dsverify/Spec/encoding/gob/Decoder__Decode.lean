@@ -9,6 +9,7 @@ body) and decodes the body into `*ptr` with the codec.
 module
 
 public import Dsverify.Spec.encoding.gob.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.ReadFull, Harness.Proof.bufio.Writer
 
@@ -29,7 +30,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
-variable [net.rpc.RpcKit] [net.rpc.RpcCodec GF]
+variable [net.rpc.RpcCodec GF]
 
 /-- `dec.Decode(ptr)`: the reader delivers `data`; `nil` exactly when `data` is one whole
 frame `gobFrame bs` (`bs` shorter than `2 ^ 64`, change log C17) and the codec decoded `bs` into
@@ -41,7 +42,7 @@ abbrev Decoder.Decode.spec : Prop :=
   ∀ (dec : Loc) (dq : DFrac) (rd : GoInterface) (I : List w8 → IProp GF) (R : List w8)
     (ptr : GoInterface) (D : IProp GF) (Ψ : List w8 → Bool → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob ∗ codecSet (GF := GF) ∗
-      net.rpc.kitCodecOk (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
+      isPkgInit (PROP := IProp GF) pkg_id.io ∗
       bufio.readsOk rd I ∗ I R ∗ encoding.gob.ownDecoder dec dq (rd) ∗
       D ∗ □ (D -∗ ∀ bs, net.rpc.RpcCodec.dec bs ptr (Ψ bs)) }}
     (App (Val (dec @!! go.GoType.PointerType encoding.gob.Decoder.ty @!! go!"Decode"))

@@ -17,6 +17,7 @@ The choices (`ClientNodeSpec`): `is_sys := isSys γ c`, `client_tok := clientTok
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeAddr
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Link
 
 @[expose] public section
@@ -37,7 +38,7 @@ namespace cnode
 
 section hyps
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 
 /-- The client node's callees' specs owned by other groups (or other files), at client node

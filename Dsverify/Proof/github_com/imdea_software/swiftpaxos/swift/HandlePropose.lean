@@ -15,6 +15,7 @@ epoch `b` (round 13, notes/prove-swift.md §19): the spec, and the proof of its 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleMsg
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
 
 @[expose] public section
@@ -53,7 +54,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **`r.handlePropose(pm, desc, cmdId)`** (see the file header). -/
@@ -143,7 +144,7 @@ end lemmas
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- `handleMsg`'s proposal case (over `handlePropose`'s spec). -/

@@ -21,6 +21,7 @@ value when the caller knows it fits.
 module
 
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.replica
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.errors.NewVar
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumPure
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
@@ -109,7 +110,7 @@ end replica.quorum
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
 open replica.quorum
 

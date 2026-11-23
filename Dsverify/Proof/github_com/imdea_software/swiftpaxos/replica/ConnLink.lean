@@ -12,6 +12,7 @@ with `ReadByte`, so no `Peek` is called.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnectToPeers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Serve
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClientListener
@@ -33,7 +34,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [state.Assumptions]
 variable [github_com.emirpasic.gods.maps.treemap.Assumptions] [sync.Assumptions]
 variable [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]

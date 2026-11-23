@@ -11,6 +11,7 @@ three client messages (10, 12, 15).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.TableC
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandlerState
 
 @[expose] public section
@@ -28,7 +29,7 @@ namespace swift.rd
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- A fresh buffered channel of messages. -/
@@ -57,7 +58,7 @@ end spec
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] [time.Assumptions]
 
 set_option goose.wp.extras true

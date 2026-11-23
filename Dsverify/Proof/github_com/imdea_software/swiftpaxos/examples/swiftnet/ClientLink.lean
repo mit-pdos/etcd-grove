@@ -14,6 +14,7 @@ case.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientPkgInits
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Servers
 
@@ -36,7 +37,7 @@ attribute [local instance 2000] examples.swiftnet.kitCodecC
 
 section init
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 
 /-- The test package's initialization in the servers' statement (the same statement as

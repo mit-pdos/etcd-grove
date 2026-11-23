@@ -10,6 +10,7 @@ of `hs`. `swift.clientChecksum.specR` (ReplyChan.lean) over `slices.SortFunc`, `
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChan
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SortedIds
 
 @[expose] public section
@@ -25,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 set_option goose.wp.extras true

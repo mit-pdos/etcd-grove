@@ -7,6 +7,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/Client__dial.lea
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Perennial.Proof.errors.NewVar
 
@@ -23,7 +24,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [dlog.Assumptions] [errors.Assumptions] [time.Assumptions]
 

@@ -11,6 +11,7 @@ law `sp.clientSeq_pos` (change log C13, HUB-REQUEST 10). Linked in `Proof/client
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.NewClientBody
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [rpc.Assumptions] [replica.defs.Assumptions]

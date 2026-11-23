@@ -8,6 +8,7 @@ what the client's `accept` closure compares.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandlerInv
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.CmdKey
 public import Perennial.Proof.bytes
 
@@ -26,10 +27,10 @@ namespace swift.handler
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [bytes.Assumptions]
 
-omit [SwiftNetPkgState netDistGF] [swift.Assumptions] [bytes.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [bytes.Assumptions] in
 /-- `slice_array` at any fraction. -/
 theorem slice_array_dq {V : Type} [ZeroVal V] [TypedPointsto (GF := netDistGF) V] (l : Loc)
     (n : Int) (a : GoArray V n) (dq : DFrac) (hlen : a.arr.length < 2 ^ 63) :

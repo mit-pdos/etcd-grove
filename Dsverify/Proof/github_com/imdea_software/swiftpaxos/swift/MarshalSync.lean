@@ -41,6 +41,7 @@ retired: it was not provable, for the reasons below (round 14's report), which C
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderAckNs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 public import Dsverify.Spec.encoding.gob.NewEncoder
 public import Dsverify.Spec.encoding.gob.Encoder__EncodeW
@@ -180,7 +181,7 @@ end pure
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [net.rpc.Assumptions] [net.rpc.RpcKit]
@@ -448,7 +449,7 @@ end proof
 
 section proofG
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [net.rpc.Assumptions]

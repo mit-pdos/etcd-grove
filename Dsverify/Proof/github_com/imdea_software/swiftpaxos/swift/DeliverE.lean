@@ -28,6 +28,7 @@ proof until the descriptor side switches over (D54).
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NodeGhost
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyDefs
 
 @[expose] public section
@@ -260,7 +261,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- **`r.deliver(desc, cmdId)`, SWC-2's form** (replaces `deliver.specI`; see the file header):

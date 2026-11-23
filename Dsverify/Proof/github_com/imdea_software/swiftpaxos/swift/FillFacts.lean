@@ -21,6 +21,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/FillFacts.lean (l
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderReqs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FillOrder
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckLemmas
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Steps
@@ -341,7 +342,7 @@ end sp
 
 section wf
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- **The witnessed entries' bounds** (`Msg.wf`'s, D75 (2)): each entry's command is well formed

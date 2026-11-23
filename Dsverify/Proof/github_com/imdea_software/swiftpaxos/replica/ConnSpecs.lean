@@ -20,6 +20,7 @@ The replica's connection setup (`replica/replica.go`: `waitForPeerConnections`,
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnLemmas
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Specs
 
 @[expose] public section
@@ -35,7 +36,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- Element `i` of the slice `s`. -/

@@ -9,6 +9,7 @@ non-negative ballot, a replica id `k ≥ 0` is the result iff it is the model's 
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -25,7 +26,7 @@ namespace replica.leader
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions]
 
 /-- `Leader(b, N)` for `1 ≤ N < 2^31`. -/
@@ -37,7 +38,7 @@ abbrev Leader.specI : Prop :=
   {{ (r : w32), RET #r; ⌜0 ≤ b.toInt → ∀ k : w32, 0 ≤ k.toInt →
       (k = r ↔ sp.rid k = sp.leaderOf N (sp.bal b))⌝ }}
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] in
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem srem_leader (b : w32) (N : Nat) (hN : 1 ≤ N ∧ N < 2 ^ 31) (hb : 0 ≤ b.toInt) (k : w32)
     (hk : 0 ≤ k.toInt) :
     k = BitVec.srem b (W32 (sint.Z (W64 (N : Int)))) ↔ sp.rid k = sp.leaderOf N (sp.bal b) := by

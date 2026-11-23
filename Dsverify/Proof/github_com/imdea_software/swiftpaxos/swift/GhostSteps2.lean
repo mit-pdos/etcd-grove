@@ -12,6 +12,7 @@ spec is E's `swift.wp_ghostCmd`.)
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSync
 
 @[expose] public section
@@ -60,7 +61,7 @@ end defs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [client.Assumptions]
 
 set_option goose.wp.extras true

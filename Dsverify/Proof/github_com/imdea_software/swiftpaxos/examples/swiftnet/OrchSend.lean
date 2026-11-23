@@ -11,6 +11,7 @@ registered).
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Interface
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 -- PORT: lab imports dropped: Harness.Proof.net.Dial, Harness.Proof.net.TCPConn__Write, Harness.Proof.net.TCPConn__Read, Harness.Proof.net.TCPConn__Close, Harness.Proof.bufio.ReadFull, Harness.Proof.bufio.Net
 
@@ -29,7 +30,7 @@ namespace orch
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions]
 
 /-- `sendConf(a, b)`: the message `bs` meets `a`'s dialers' protocol; an acknowledgment carries
@@ -47,7 +48,7 @@ end spec
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 
 set_option goose.wp.extras true

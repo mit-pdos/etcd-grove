@@ -10,6 +10,7 @@ entry's `newOk` (under persistent facts `Ctx`), the run loop allocates the chann
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableBase
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -31,7 +32,7 @@ theorem code_cases : ∀ c : w8, 9 ≤ c.toNat → c.toNat ≤ 22 →
 
 section alloc
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- An entry of `tableIs`: its `entryOk` from its `newOk` and its bag. -/

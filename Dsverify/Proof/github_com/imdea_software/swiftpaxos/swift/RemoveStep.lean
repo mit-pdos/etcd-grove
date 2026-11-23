@@ -20,6 +20,7 @@ R10-1, P39-1, P39-2; rev 10a §3R10.21; plan "Revision 10a" R10a.3, "T16a step l
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.StopHome
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GetDescWithEnts
 
 @[expose] public section
@@ -37,7 +38,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

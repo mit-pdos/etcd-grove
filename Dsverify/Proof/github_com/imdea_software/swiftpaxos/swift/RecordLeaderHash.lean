@@ -20,6 +20,7 @@ the `hlog` map's lookup/insert of a fresh `HL.init`, `HashLog.Update.spec`; not 
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepHashPure
 
 @[expose] public section
@@ -115,7 +116,7 @@ end mono
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `r.updateLogs(cmd, x, s, hs)` for a put or a get whose `Update` keeps its key's `hlogOk`
@@ -218,7 +219,7 @@ end ghost
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem swift.Replica.recordLeaderHash.wp_proofT

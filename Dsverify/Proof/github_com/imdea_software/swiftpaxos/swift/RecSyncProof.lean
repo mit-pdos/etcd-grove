@@ -9,6 +9,7 @@ order; the `MSync`'s maps along the order.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSyncPure2
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecKept
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleSync
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSyncPure3
@@ -60,7 +61,7 @@ end helpers
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [slices.Assumptions]
 
 set_option maxHeartbeats 4000000 in

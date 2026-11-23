@@ -12,6 +12,7 @@ not a SwiftPaxos sequence number. Also `key` (8 bytes, little-endian) and `retur
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientAU
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
 
@@ -63,7 +64,7 @@ theorem keyName_keyAcc (k : List w8) (hk : k.length = 8) : lin.keyName (keyAcc k
 
 section small
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF]
 variable [examples.swiftnet.Assumptions]
 
@@ -132,7 +133,7 @@ end small
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF]
 
 /-- `s.connect(c)`: the node's client connected (ready at sequence number 0) or, on `false`,
@@ -153,7 +154,7 @@ end specs
 
 section op
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF]
 variable [examples.swiftnet.Assumptions] [client.Assumptions]
 

@@ -12,6 +12,7 @@ arms take: ServersLink).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Deliver
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
 public import Perennial.Proof.fmt
 
@@ -151,7 +152,7 @@ end sprintf
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 theorem swift.CommandId.String.wp_proof : swift.CommandId.String.specS swift.cmdStr := by

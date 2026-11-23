@@ -8,6 +8,7 @@ the lock invariant `master.lockInv` with the write-once membership.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Printf
 
@@ -25,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions]
 
 /-- `m.Register(args, reply)` from replica node `k` of the configuration (`masterSpec`'s
@@ -50,7 +51,7 @@ end spec
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [dlog.Assumptions]
 
 set_option maxHeartbeats 4000000 in

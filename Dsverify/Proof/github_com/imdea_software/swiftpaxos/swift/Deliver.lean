@@ -40,6 +40,7 @@ state machine keeps the value slice of a put; `execLog` keeps the dependency sli
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescNode
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ShInv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Specs
@@ -553,7 +554,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 /-- `cmdId.String()` (through a pointer, any fraction: round 10) is `str cmdId` (round 16:

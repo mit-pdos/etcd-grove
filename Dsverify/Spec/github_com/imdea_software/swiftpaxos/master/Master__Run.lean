@@ -10,6 +10,7 @@ replicas, dials their rpc ports, makes the first leader and pings them, making a
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.master.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 
 -- PORT: lab imports dropped: Harness.Proof.net.rpc.Results
@@ -27,7 +28,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
 
 /-- Never returns (change log C7: the whole service map at `masterAddr`): from the created

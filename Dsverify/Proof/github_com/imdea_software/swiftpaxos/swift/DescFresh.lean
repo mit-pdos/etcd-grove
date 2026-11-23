@@ -20,6 +20,7 @@ unconstrained: no entry yet; `g.sq := False`, so `sqOk` holds).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescDS
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SeqPark
 
@@ -36,7 +37,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -45,11 +46,11 @@ end defs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
   [rpc.Assumptions] [sync.Assumptions] in
 /-- No sequential state: `sqOk` holds trivially. -/
 theorem swift.sqOk_false (γ : sp.Names) (DR : Loc → IProp netDistGF)
@@ -60,7 +61,7 @@ theorem swift.sqOk_false (γ : sp.Names) (DR : Loc → IProp netDistGF)
   · intro d y; iintro H; iexfalso; iexact H
   · intro d y; iintro H; iexfalso; iexact H
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
   [rpc.Assumptions] [sync.Assumptions] in
 /-- `sqOk` of the concrete sequential state `sqC` with its store's element (`sqE`; round 27,
 round 29). -/
@@ -108,7 +109,7 @@ theorem swift.sqOk_C (γ : sp.Names) (DR : Loc → IProp netDistGF) (g : swift.D
     iunfold swift.sqC
     iframe
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
   [rpc.Assumptions] [sync.Assumptions] [swift.Assumptions] in
 /-- A whole points-to of a location and another whole one: impossible (round 29). -/
 theorem swift.loc_pt_excl (l : Loc) (a b : Loc) :
@@ -118,7 +119,7 @@ theorem swift.loc_pt_excl (l : Loc) (a b : Loc) :
   icombine N1' N2' gives %Hv
   exfalso; have := DFrac.valid_own_op Hv.1; simp at this
 
-omit [SwiftNetPkgState netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [replica.defs.Assumptions]
   [rpc.Assumptions] [sync.Assumptions] in
 /-- A message set as `newDesc` left it is free (`msgSetFree`, round 27). -/
 theorem swift.ownD_free (ms : Loc) (q : GoInterface) (sz : Nat) (mem : w32 → Prop)
@@ -144,7 +145,7 @@ end proofs
 
 section defsDS
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -195,7 +196,7 @@ end defsDS
 
 section proofs2
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

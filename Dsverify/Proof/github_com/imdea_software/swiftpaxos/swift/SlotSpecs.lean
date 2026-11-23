@@ -32,6 +32,7 @@ No proof is given here and no sorry is added.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RemoveStep
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FreeDesc
 
 @[expose] public section
@@ -49,7 +50,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -68,7 +69,7 @@ end defs
 section ptLemmas
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [swift.Assumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions]
 
 /-- Half a points-to as two quarters (round 44). -/
 theorem swift.pt_quarters {V : Type} [TypedPointsto (GF := netDistGF) V] (l : Loc) (v : V) :
@@ -116,7 +117,7 @@ end ptLemmas
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
