@@ -23,7 +23,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : StateTreemap GF]
 
 /-- A clock channel field's value (`r.slowClockChan`, `r.fastClockChan`: fork workaround
 EP-GLOBALS): `nil` or a channel whose contents carry nothing (`isChanBag`, never closed:

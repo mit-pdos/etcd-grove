@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/epaxos/proof/Epaxos/Interface/State.lean (notes/dsv-epaxos.md).
 Changed: the treemap is the real gods v1.18.1 (the lab's was a cut-down model), whose specs are
-**hypotheses** here (the class `TreemapHyp`, `Interface/Treemap.lean`: the coordinator's rule; a
+**hypotheses** here (the class `StateTreemap`, `Interface/Treemap.lean`: the coordinator's rule; a
 gods model is being built on dsv-tpmodels); `isTreeMap` is that class's abstract predicate.
 
 The `state` package (`state/state.go`) and the gods treemap, as the replicas use them:
@@ -62,7 +62,7 @@ def noopCmds : List WCmd := [⟨opNONE, W64 0, []⟩]
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : StateTreemap GF]
 
 /-! ## Heap representations -/
 
