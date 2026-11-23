@@ -189,9 +189,13 @@ def snapFreeAll (p : w64 → GoString) : IProp GF := snapFree p ∅
 /-- **The snapshot directory `sd`** (see the file header): the files present
 `M`, each holding its data with its certificate (`img`), and the indices ever saved `E`
 (`snapSaved`), which include `M`'s; a saved index not in `M` has the receiver's removal fact
-`Rm i`; (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81) `γd` is the ghost map
-the directory's right named (`snap.snapDirIs`, from `bootOk`'s `snap.snapDirOwn`, `snapDir_init`),
-so that every invariant the snapshot axioms take over these paths is this one. (wal-link L2, T1,
+`Rm i`; (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81; claim #34, 2026-11-23,
+approved by the owner via the coordinator) the directory's right (`snap.snapDirOwn`, `bootOk`'s, which
+`bootstrapSnapshot` carves): the claim on every other name of the directory, held here for good, so that
+no one else creates a file under a non-canonical `.snap.db` or a `tmp*` name there (what
+`ReleaseSnapDBs` removes and `SaveDBFrom` writes its temporary file under) and every invariant the
+snapshot axioms take over these paths is this one (a second one would need the claim again; until then
+the record `snap.snapDirIs` of a ghost map the right named, over an opaque predicate). (wal-link L2, T1,
 decided by etcd-grove-03, 2026-11-17: sealed. Its laws are `snapDir_init` and
 the take `snapDir_take`, which hands out no `fileHolds`, only the sealed `storage.snapHeld`; the
 snapshot axioms (`SaveDBFrom`, `ReleaseSnapDBs`, `storage.Release`) take it whole. Until then a client
@@ -201,7 +205,7 @@ by the user via etcd-grove-03: over the directory string `sd`, until then over a
 location through the opaque `snap.snapDBPath sd`: `notes/snapdir-crossworld.md`.) -/
 @[no_expose] def snapDirInv (sd : GoString) (γd : GName) (img : w64 → backend.Data → IProp GF)
     (Rm : w64 → IProp GF) : IProp GF :=
-  iprop(snap.snapDirIs (snap.snapDBPath sd) γd ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
+  iprop(snap.snapDirOwn (snap.snapDBPath sd) ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
     ghostMapAuth γd 1 E ∗ ⌜∀ i, M.lookup i ≠ none → E.lookup i ≠ none⌝ ∗
     ([∗map] i ↦ D ∈ M, backend.fileAt (snap.snapDBPath sd i) D ∗ □ img i D) ∗
     -- (S5, 2026-11-18) the names of the indices never saved, free (`snapFree`): what `SaveDBFrom`
@@ -528,18 +532,18 @@ theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GM
 names are raft's `RaftNames.reSnapLoc`, fixed before the member starts): from the directory's right
 (`snap.snapDirOwn` at the data directory `dd`'s paths, `bootOk`'s; restart S6a, M1),
 (S5) the claims on every index's snapshot name, free (`snapFreeAll`, `bootOk`'s), and the directory
-map's authority, empty, the directory's invariant (a fresh data directory: no `.snap.db` file), its
-map named by the right. -/
+map's authority, empty, the directory's invariant (a fresh data directory: no `.snap.db` file), which
+keeps the right (claim #34, 2026-11-23: the claim on the directory's other names; until then the right
+named the map). -/
 theorem snapDir_init (sd : GoString)
     (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (E : CoPset) :
     ⊢ snap.snapDirOwn (snap.snapDBPath sd) -∗ snapFreeAll (snap.snapDBPath sd) -∗
       ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗
       inv snapDirN (snapDirInv sd γd img Rm) := by
   iintro Ho Hfree Ha
-  imod (snap.snapDirOwn_claim (snap.snapDBPath sd) γd) $$ Ho with #Hdi
-  imod (inv_alloc snapDirN E (snapDirInv sd γd img Rm)) $$ [Ha Hfree] with #Hi
+  imod (inv_alloc snapDirN E (snapDirInv sd γd img Rm)) $$ [Ho Ha Hfree] with #Hi
   · iunfold snapDirInv
-    iframe Hdi
+    iframe Ho
     iexists (∅ : GMap w64 backend.Data), (∅ : GMap w64 Unit)
     iframe Ha
     isplitr
@@ -580,7 +584,7 @@ theorem snapDir_take (sd : GoString) (γd : GName) (img : w64 → backend.Data �
   iinv Hinv with Hi Hclose
   imod (lc_fupd_elim_later (P := snapDirInv sd γd img Rm)) $$ Hlc Hi with Hi
   iunfold snapDirInv at Hi
-  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, HF, #HEs, #HRm⟩
+  icases Hi with ⟨Hdi, %M, %Es, Ha, %HME, HM, HF, #HEs, #HRm⟩
   iunfold snapSaved at Hsv
   ihave %HEi := ghost_map_lookup $$ Ha Hsv
   cases hMi : M.lookup i with
@@ -593,7 +597,7 @@ theorem snapDir_take (sd : GoString) (γd : GName) (img : w64 → backend.Data �
     imod Hup $$ HR with ⟨HR', #Hrm⟩
     icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileAt
       (snap.snapDBPath sd j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
-    imod Hclose $$ [Ha HM HF] with -
+    imod Hclose $$ [Hdi Ha HM HF] with -
     · inext
       iunfold snapDirInv
       iframe Hdi
@@ -624,8 +628,9 @@ theorem snapDir_take (sd : GoString) (γd : GName) (img : w64 → backend.Data �
 -- `snapDir_alloc` (an invariant for any `ss` from a fresh ghost map, no right to the directory)
 -- deleted, unused: a second invariant over one directory made `SaveDBFrom`'s kept-file branch give
 -- `snapSaved` of an index the second invariant did not know. The directory's right
--- (`snap.snapDirOwn`, `bootOk`) is consumed by `snapDir_init`, and the invariant holds the record
--- it makes (`snap.snapDirIs`).
+-- (`snap.snapDirOwn`, `bootOk`) is consumed by `snapDir_init`, and the invariant holds it (claim #34,
+-- 2026-11-23: the file extension's claim on the directory's other names; until then the record
+-- `snap.snapDirIs` it made).
 
 end lemmas
 

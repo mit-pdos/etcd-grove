@@ -3,7 +3,8 @@ The proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapSnapshot.lean` 
 2026-11-23), over `TouchDirAll`, `RemoveMatchFile` (of the new, empty directory), `cfg.SnapDir()`,
 `snap.New` and zap's logging, at the program's file-extension instances (`backend.theFs`, which
 `bootFs.dirFresh`'s `backend.onFs` names). The snapshot directory's names are carved by
-`bootSnap.snapDir_carve` (`BootSnapCarve.lean`). Lean-first.
+`bootSnap.snapDir_carve` (`BootSnapCarve.lean`), the rest of its names into the directory's right
+(`snap.snapDirOwn`, claim #34, 2026-11-23). Lean-first.
 -/
 module
 
@@ -53,7 +54,8 @@ theorem bootstrapSnapshot.wp_proof
   · simp only [bootFs.dirFresh, backend.onFs_none hfs]
     wp_start as ⟨-, H⟩
     iexfalso; iexact H
-  simp only [bootFs.dirFresh, snapFreeAll, snapFree, backend.fileFree, backend.onFs_some hfs]
+  simp only [bootFs.dirFresh, snapFreeAll, snapFree, backend.fileFree, snap.snapDirOwn,
+    backend.onFs_some hfs]
   wp_start as ⟨#Hzlg, Hdf⟩
   icases Hdf with ⟨%R, %j, %h, ⟨%hclean, %hcur⟩, #Hinv, #Hsh, #Hab, Hp, Hc, Hn⟩
   wp_auto
@@ -173,7 +175,7 @@ theorem bootstrapSnapshot.wp_proof
     wp_join_done
   -- the snapshot directory's claims
   imod bootSnap.snapDir_carve R cfg.DataDir' J 1 1 hJ Hfits hJn $$ Hinv Hsh HpJ Hc HJ
-    with ⟨Hdb, %F, %hF, HF⟩
+    with ⟨Hdb, ⟨%F, %hF, HF⟩, %q', %qc', %h', Hp', Hc', Hrest⟩
   -- `snap.New(cfg.Logger, cfg.SnapDir())`
   wp_apply (hSnapDir cfg_ptr DFrac.discard cfg.DataDir' Hlen) as #HDDn
   · iframe DataDirF
@@ -183,10 +185,14 @@ theorem bootstrapSnapshot.wp_proof
   wp_auto
   iapply HΦ
   iframe Hss Hdb
-  iexists F
-  iframe HF
-  ipureintro
-  exact fun i _ => hF i
+  isplitr [Hp' Hc' Hrest]
+  · iexists F
+    iframe HF
+    ipureintro
+    exact fun i _ => hF i
+  iexists config.snapDirOf cfg.DataDir', R, J, q', qc', h'
+  iframe Hinv Hsh Hp' Hc' Hrest
+  ipureintro; rfl
 
 end proof
 
