@@ -20,7 +20,6 @@ roots ^backend\.snapshot\.wp_WriteTo$
 roots ^EtcdServer\.wp_createMergedSnapshotMessage$
 roots ^wp_newSnapshotReaderCloser$
 roots ^EtcdServer\.wp_sendMergedSnap$
-axiom DescribeConfChange.wp_proof
 axiom apply.irrDecode_utf8
 axiom binary.WriteUint8.wp_proof
 axiom ccDecodeV2_nil

@@ -26,7 +26,7 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/(Link|Results)\.lea
 # error formats a `ConfChangeType`, which Perennial's `fmt.wp_Errorf` no longer admits
 # (notes/STATUS.md, "Merge: `worktree-raft-rest` into `lean`").
 # Since 2026-10-16 (raft v3.7, stage R6b) the register rests on raft v3.7's trust base
-# (etc/tcb-collections/raft.txt: protobuf-go's nine `proto.*` axioms, `DescribeConfChange`;
+# (etc/tcb-collections/raft.txt: protobuf-go's nine `proto.*` axioms, `DescribeConfChange` until 2026-11-23;
 # gogoproto's and `reflect.DeepEqual` are gone), on protobuf-go `proto`'s initializer (a
 # `sorry`, as raft's Init.lean says); none of the register's own (the `InitialState` premise of
 # raft's `RestartNode` takes the conf state at any `AutoLeave`, and `deliver` steps the wire's
@@ -44,7 +44,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/(Link|Results)\.lea
 # `protoreflect` and `internal/impl` initializers (`opaqueInitsOk`, `initFuncsOk`): their
 # untranslated initializers are goose `trusted` no-op models (`TrustedCode/`), raftpb's two
 # descriptor literals translated. `os`'s and `strconv`'s (Perennial's names-only packages) remain.
-axiom DescribeConfChange.wp_proof
 axiom ccDecodeV2_nil
 axiom entryEncC_ok
 axiom pbEntryC_reg
