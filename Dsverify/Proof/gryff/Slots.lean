@@ -26,7 +26,9 @@ public import Perennial.Proof.runtime
 public import Proof.bufio.PkgInit
 public import Net.Proof.net.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
-public import Dsverify.Proof.gryff.Hyp.PkgInit
+public import Dsverify.Proof.net.rpc.Base
+public import Dsverify.Proof.net.http.Base
+public import Dsverify.Proof.math.rand.Base
 
 @[expose] public section
 
@@ -44,7 +46,6 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [libSt : hyp.LibPkgState GF]
 
 /-- The run's choice of each package's own post-initialization predicate (`isPkgInitDef`:
 its package-level state, e.g. `errors.newVar` for an `errors.New` variable); the test
