@@ -26,6 +26,7 @@ change each.
 | package facts and initialization | `Dsverify/Proof/<pkg>/Base.lean` (`True` for every QuePaxa package and names-only library; each imports its imports' fact modules), `Dsverify/Proof/google_golang_org/protobuf/Base.lean` (protobuf's five packages' facts: the main tree's live in `cache/v3/Base`, `raft/v3/Base`, which import the main tree's `net`); `etc/gen-init.py` `dsv_inits` (additive: `DSV_QP*`, `DSV_MAIN` = bufio, math/rand, protobuf's `Init` made in the part as `NET_MAIN`'s in `Net/`, `DSV_OWN` = the part's grpc without the main tree's `SPECIAL`, `SPECIAL['raxos.replica.src']` for `Consensus_ServiceDesc`); generated `Init.lean` and the twelve commands' `PkgTable.lean` all build |
 | the protocol's proof | `Dsverify/Proof/raxos/` (the lab's `Quepaxa/Proof/` layout), all building: `Pure/Conf.lean`, `Pure/Consensus.lean` (verbatim), `Pure/Smr.lean` (edited: the kit's `KIn`/`KOut`, linkv's `kvB`, `execCmd_step`; the lab's `Harness.Models` `kvAbs` moved here, recursive, `kvAbs_put` by `rfl`), `Pure/ModelSet.lean` (new: `mSet`, `step_mSet`, `mSet_empty`, `stepE_ok`); `Msg.lean` (the lab's; its `pbCodec` instance dropped: `marshalPre`/`unmarshalPre` are the shapes the protobuf hypotheses will take), `Ghost.lean` (edited, below), `Cons/{Lemmas,Laws}.lean` (the lab's; connections numbered by the net extension), `Smr/{OpId,SumId,Exec}.lean` (Exec edited: `kvAbs_mem`, `cmdPut_cmdOf`/`goodVal_of_put` over `KIn`) |
 | the kit's model | `.../raxos/examples/quepaxanet/Model.lean` (the spec `qS`: the Go state as a list `E` of keys and `Ent`s, `qRep`, `qDec`/`qDec_box`, `stepL`/`stepL_pSeq`, bounds; `Model.spec`) and `ModelProof.lean` (`Model.wp_proof`: `Model()` meets `isModel qS`; helpers `push`/`has`/`erase` (paxos's proofs), `cat`, `lookup`, `set`, `stepE`, `step`, `equalS`/`equalE`/`equal`) |
+| hypotheses | `Dsverify/Proof/raxos/Hyp.lean` (protobuf `PbHyp`, math/rand `RandHyp`, gRPC `GrpcVocab`/`GrpcHyp` and the instance class `QpVocab`, `sync.Map` `MapVocab`/`MapHyp`; below) |
 | trust base | `etc/tcb-collections/dsv-quepaxa.txt` (to come with the statement) |
 
 ## What changed against the lab (Go)
@@ -184,24 +185,52 @@ named after the lab's specs, until each comes as one shared change. **All are in
      (now `True`, `Base.lean`): `etc/dsv/quepaxa.py`'s `special(g)` entry for `raxos.replica.src`
      must end the generated `Init.lean` with the descriptor's facts, and `Base.lean`'s
      `define_is_pkg_init` name it. Do this when porting `Replica/Init`/`Inits`/`HarnessInit`.
-- **Next, in order** (lab sizes; ported ~7k of 37k lab lines):
-  1. `Proposer/*` (3.9k): `Strings`, `Defs`, `Max`, `Persist`, `Pure`, `Collect`, `Esp`, `Conv`,
-     `Fetch`, `Propose`, `Run`, `Results`. `Esp`/`Fetch`/`Propose` call `ClientConn.Invoke`
-     through `consensusClient` (`[GrpcHyp qv.grpc]`, `qpCodec` as the local `PbCodec` instance).
-     Port with `python3 etc/dsv/tools/quepaxa-port.py Proposer/X.lean`, then fix by hand.
-  2. `Replica/*` (3.2k; `EspImpl`, `HandleESP`, `Fetch`, `Handlers` are the recorder's handlers:
-     `handlerOk` of the hypotheses), `Proxy/*` rest (11k: `Net*` onto `Net/Spec/net/*` +
-     `GooseLang/Ext/Net/Proto.lean`'s laws as paxos's `NetProof.lean`; the writers through
-     dsv-bufio's specs), `Codec/*` (7.3k: only the pure parts port; the generated-codec proofs
-     are replaced by the protobuf hypotheses, so `Codec/Switch`, `Enc*`, `Dec*` mostly go),
-     `Kit/*` (5.8k, onto remote: `Kit.lean` with `qR`, `lin_opAU`, `Codec.spec`, `Gen.spec`,
-     `Orch.spec`, `Client.spec`, `Server.spec` as paxos's `Kit.lean`; `Orch.wp_proof` takes
-     `Model.wp_proof`).
+- Done (third part of this session): `Proposer/*` (all; `Results`' `NewProposer.wp_proof`,
+  `Proposer.runProposer.wp_proof` take `[GrpcHyp (cd := hyp.qpCodec) qv.grpc] [hyp.RandHyp GF]`;
+  `#print axioms`: Lean's three); math/rand's hypotheses (`hyp.RandHyp`, `Hyp.lean`); `Proxy/Store`
+  (`store_add_proof`, `store_get_proof` over `MapHyp`; `isStore_alloc_proof` from `MapVocab.zero`);
+  `Replica/{RecDefs,ReqPersist,Helpers,EspImpl,HandleESP,Handlers,Fetch}` (`esp_handlerOk`,
+  `fetch_handlerOk`, `inform_handlerOk`: the recorder's three methods meet `handlerOk qv.grpc`).
+  `lake build` of `Replica.Fetch`, `Replica.Handlers`, `Proxy.Store`, `Proposer.Results`, `Smr.Laws`,
+  `Proxy.Slots`, `ModelProof`: OK. `RecDefs` no longer imports `Proxy.Results`/`Proposer.Results`
+  (it used neither).
+- **Open: `sync.Map`'s points-to is `sorry` in Perennial** (`Perennial/GeneratedProof/internal/sync.lean`:
+  `HashTrieMap_typed_pointsto`/`_into_val_typed` are `sorry -- axiomatized type`, and `sync.Map` has
+  a `HashTrieMap` field). `#print axioms`: `store_add_proof`, `esp_handlerOk`, `fetch_handlerOk`
+  depend on `sorryAx` (through `ClientBatchStore`'s generated points-to/`IntoValTyped`, which `wp_auto`
+  uses on the store's field); `store_get` path and `inform_handlerOk`, `isStore_alloc_proof`, the
+  hypotheses (`MapHyp` uses an abstract `MapVocab.zero`, not the points-to) are clean. This is the
+  lab's `StoreInst.lean` issue (it gave `ClientBatchStore` a high-priority points-to over its own
+  `sync.Map` model). Fix options: (a) high-priority `TypedPointsto`/`IntoValTyped` instances of
+  `ClientBatchStore` (and whatever `wp_auto` needs of `sync.Map`) built from data in `MapVocab`
+  (a `sync.Map` points-to as part of the hypothesis vocabulary, with `zero` its zero value's), or
+  (b) Perennial translating `internal/sync.HashTrieMap` (a Perennial change, `notes/perennial-changes.md`).
+  Find first which instance `wp_auto` pulls in (`set_option trace.Meta.synthInstance`, or `#print
+  axioms` of the instances in `Dsverify/GeneratedProof/raxos/replica/src/chunk1.lean`).
+- **Next, in order** (ported ~13k of 37k lab lines):
+  1. `Replica/{Serve,Server,Init,Inits,HarnessInit,Results}`: `Serve` is the recorder's loop
+     (`grpc.NewServer`, `RegisterConsensusServer` → `RegisterService` with `descOk` from
+     `esp/fetch/inform_handlerOk` and the package fact `srcState` (PkgState, design point 3),
+     `net.Listen` on `0.0.0.0:port` (design point 1), `Serve`); `HarnessInit` is the lab's
+     harness initialization: drop or replace by the `InitHyp`s.
+  2. `Proxy/*` rest (11k: `Net*` onto `Net/Spec/net/*` + `GooseLang/Ext/Net/Proto.lean`'s laws as
+     paxos's `NetProof.lean`; the writers through dsv-bufio's specs), `Codec/*` (7.3k: only the pure
+     parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
+     `Codec/Switch`, `Enc*`, `Dec*` mostly go; `Wire.lean`'s `ClientBatch.Marshal/Unmarshal` are
+     proved from `PbHyp` and dsv-bufio), `Kit/*` (5.8k, onto remote: `Kit.lean` with `qR`,
+     `lin_opAU`, `Codec.spec`, `Gen.spec`, `Orch.spec`, `Client.spec`, `Server.spec` as paxos's
+     `Kit.lean`; `Orch.wp_proof` takes `Model.wp_proof`).
   3. `quepaxa_remote_robust` (`TopLevelRobustness.lean`): premises every `InitHyp`, `PbHyp`,
-     `∃ V, GrpcHyp V` (as the `QpVocab` instance), `∃ MV, MapHyp MV`, all visible in the `.spec`;
-     check `etc/theorem-loc.py` counts them. `etc/tcb-collections/dsv-quepaxa.txt` (the two trusted
-     descriptor-table inits of `TrustedCode/raxos/{replica/src,proto/client}.lean`, the etcd #32
-     justification).
+     `RandHyp`, `∃ V, GrpcHyp V` (as the `QpVocab` instance), `∃ MV, MapHyp MV`, all visible in
+     the `.spec`; check `etc/theorem-loc.py` counts them. `etc/tcb-collections/dsv-quepaxa.txt`
+     (the two trusted descriptor-table inits of `TrustedCode/raxos/{replica/src,proto/client}.lean`,
+     the etcd #32 justification).
+- Porting recipe (now mostly in `etc/dsv/tools/quepaxa-port.py`): run it, then by hand: `#Hcs,
+  #Hko` and the two codec conjuncts out of patterns/preconditions; `proposerP`'s destruct
+  patterns lose two `-`; library specs: the lab's `*.wp_proof` of its harness become the
+  hypotheses' fields (`gh.Invoke`, `hyp.RandHyp.Intn (GF := GF)`, `hMV.Load`), Perennial's
+  results where they exist (`Perennial.Proof.sync.Results` for the WaitGroup join idiom).
+
 - Environment: `lake` is `~/.elan/bin/lake` (put `~/.elan/bin` on `PATH` for `etc/lean-check.py`).
 
 ## Which lab run
