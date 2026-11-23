@@ -374,8 +374,12 @@ named after the lab's specs, until each comes as one shared change. **All are in
     `Server.spec`. lean-check clean; `lake build ...Kit` OK.
   * `KitCodec.lean` (defs tier: no `wp_proof` names): `wp_flag`, `wp_appendStr`, `wp_takeStr`
     (success on `strB s ++ r`, the slice given back, the rest `slice.slice b (8+|s|) b.len`),
-    `wp_EncIn`, `wp_DecIn`, `wp_EncOut`, `wp_DecOut`, `encOutV_outV`, all proved; `codec_proof`
-    (the closures, as paxos's `Codec.wp_proof`) in progress (see the file's `sorry`).
+    `wp_EncIn`, `wp_DecIn`, `wp_EncOut`, `wp_DecOut`, `encOutV_outV`. `KitCodecFn.lean` (defs
+    tier): **`codec_proof : Codec.spec`** (the seven closures; `DecOut` of an output too long to
+    encode gets `[]` and fails, `wp_DecOut_nil`). `#print axioms` of `codec_proof`,
+    `Model.wp_proof`, `pSeq_sub_step`: Lean's three. `lake build ...KitCodecFn` OK.
+    (`encOutV_outV` needs `GoLocalContext`, so it sits in its own section as `Model.lean`'s `dec`;
+    stated in the `HeapGS` section, the instance search did not end: the lean-check server hung.)
   * **Go changes to the kit** (`kit.go`, retranslated with `etc/goose.py --project dsv-quepaxa`,
     `gen-init --check` up to date, Go tests pass): (1) `Gens()` takes its counters under a
     `sync.Mutex`, index `c mod NC`: lintest's `genSpec` is persistent, for any `id ≥ 0` and
@@ -391,6 +395,22 @@ named after the lab's specs, until each comes as one shared change. **All are in
     (b) QuePaxa's protocol proof has a **finite ticket supply** (600 tickets: 5 replicas × 6 clients
     × 20 requests; `consInv`'s slot bound `spentLb ≤ 600`, `smrInv`'s `Cnt ≤ 20`): hence the Go
     budget (2). Neither needs a change to remote.
+  * **Next for the kit, precisely**: (i) `Gens.spec` (`Gens`' closure: a `sync.Mutex` and the
+    `next` slice in a lock invariant `next ↦* l`, `|l| = NC`; `Gen(c, j)`'s output meets `qInOk`:
+    key `"key0000" ++ digit` (8 bytes), value `"v" ++ digit c ++ digits j` (nonempty, not `"nil"`,
+    at most 22 bytes); `mix` is wrapping arithmetic, anything); (ii) `Orch.spec`: `New` (`choose`
+    over `RandHyp.Intn`, `send`/`sendConf`: `net.Dial`, `Conn.Write` of `encConf c` under
+    `confInProto` (the orchestrator turns `confTok` into `confIs γ c` first), `ioLt.ReadFull`,
+    `Close`; retry loop), `time.Sleep`, `remote.Check` with `Model.wp_proof`, `codec_proof`, Gens,
+    `PendDec (qR γ) qS` (from `qDecQ_box`, as paxos's `woS_pendDec`), `pendN`/`lintestN`
+    disjoint from `raxosN`, `encOut` injectivity on `qov`, `qR_timeless`; (iii) `Server.spec`
+    (`awaitConf` as `Proxy/NetAccept`'s accept loop over `confInProto`/`ackProto`, then
+    `replicaRes` from `serverRes` + `confIs`, `config`'s `strings.Split` (a spec is needed:
+    Perennial's?), `New`/`NetworkInit`/`StartProposers`/`Run` from `Replica/Results`; the `id > n`
+    branch sleeps forever); (iv) `Client.spec` (the lab's `Kit/{NewClient,Recv*,Conn*,Op*}`,
+    re-based: the lock invariant of `s.mu` holds `waiting` and `next` with the client's quarter of
+    `γ.cnt` and the unused tickets; `ClientBatch.Marshal/Unmarshal` from `PbHyp` over dsv-bufio);
+    (v) the start; (vi) `TopLevelRobustness.lean`.
 - **Next, in order** (ported ~20k of 37k lab lines; Replica and Proxy done but `WireProof`):
   2. `Codec/*` (7.3k: only the pure
      parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
