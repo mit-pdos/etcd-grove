@@ -74,6 +74,18 @@ netExt]`); the client's atomic update `AU <{∃∃ σ, absOwn γ σ}> @ ↑clien
 `clientN`) became `⊤ \ vsrE ⊆ E`. Step 3 instantiates remote's `RBase.Eop` with `vsrE` and
 `sysState` with `absOwn`.
 
+Step 3, begun: `examples/vsrnet/Kit.lean` (`lean-check` clean): the kit's inputs `KIn` (`InputOk`,
+`InputBounded`, a key below 256 bytes: `EncIn` writes its length in a byte), the map's step as a
+function (`kvFn`, `kvStep_fn`), linkv's pending-writes store `kvB` (gets reads, puts writes), the
+Go values and `Codec()`'s bytes (`inV`, `outV`, `unkV`, `encInB`, `encOutV`), **the far side's store
+`kvR g : RBase GF Store KIn KvOutI`** (`sysState := absOwnI g`, `Eop := vsrE`), and
+**`lin_AUof`**: remote's `lin (kvR g) i Φ ⊢ AUof g i (fun _ _ o => Φ o)` (the store's linearization
+point is the ghost layer's client update, which `ghost_register` takes). Remaining in step 3: the
+porcupine model's set (`ModelSet.lean`: the configurations `(Cur, Pend)` stands for, as paxos's
+`woSet`, and the decoding of porcupine's operations, `woDec`'s counterpart) and the Go model's proof
+(`ModelProof.lean`: `lookup`, `set`, `has`, `erase`, `push`, `equalPairs`, `step` against linkv's set
+step), then the kit's specs (`Client`, `Orch`, `Server`, `Codec`, `Gen`).
+
 **Building** (no full `lake build`): the worktree's `.lake` was seeded from `/shared/etcd-grove-netswap`
 (same Perennial pin `9c3b81f30`): `.lake/packages` and `.lake/build/lib/lean` but the parts this
 port never imports (RaftWitness, RaftTla, RaftNoAx, KvNet, WalTester, SpecPlan, PorcupineDag, Bbolt,
@@ -109,7 +121,7 @@ Perennial and `Net/` where they differ; then `lake build <targets>` and `etc/lea
    `AU <{∃∃ σ, absOwn γ σ}> @ ↑clientN, ∅ <{…}>` in the registry (helping: the replica that executes
    a request first commits it) replaced by remote's one-shot update, as paxos's `opAU`
    (`remote.lin (kvR Γ)`, `lin_opAU`): the registry's entries hold it, `Lin.lean` fires it.
-3. **The far side's store and the model** (`examples/vsrnet/Kit.lean`, `ModelSet.lean`,
+3. (begun: `Kit.lean`) **The far side's store and the model** (`examples/vsrnet/Kit.lean`, `ModelSet.lean`,
    `ModelProof.lean`, as paxos's): linkv's pending-writes store of the key-value map (`PendSpec`:
    gets are reads, puts writes), `RBase` with the VR state's abstract half as `sysState`; the Go
    `step` on `(Cur, Pend)` against linkv's set step (the representation: the configurations whose map

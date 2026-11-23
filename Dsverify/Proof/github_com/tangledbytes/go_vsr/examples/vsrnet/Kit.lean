@@ -1,0 +1,184 @@
+/-
+# The vr kit on `examples/lib/remote` (notes/dsv-vr.md, step 3): the far side's store
+* **The store** `kvB`: linkv's pending-writes store (`linkv.PendSpec`) of the key-value map
+  (`Store`, the ghost layer's abstract state), on the kit's inputs `KIn` (an input the ghost layer
+  accepts, `InputOk`, `InputBounded`, with a key shorter than 256 bytes: `Codec()`'s `EncIn` writes
+  its length in a byte). A get is a read, a put a write (one of unknown outcome is pending).
+* **The far side's store** `kvR g` (`remote.RBase`): the map's state is the ghost layer's abstract
+  half (`absOwnI g`), the update's mask `vsrE` (every invariant of the ghost layer), the Go values
+  and bytes `Codec()`'s. Its linearization point is the ghost layer's client update: `lin_AUof`.
+-/
+module
+
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Base
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Ghost.System
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Pend
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+open VsrModel VsrGhost.Impl
+
+namespace github_com.tangledbytes.go_vsr.examples.vsrnet
+
+open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote
+
+attribute [local instance] kvInCountable
+
+section store
+variable [GooseExts]
+
+/-! ## The store -/
+
+/-- What the kit's inputs satisfy: the ghost layer's `InputOk` and `InputBounded`, and a key
+shorter than 256 bytes (`EncIn` writes its length in a byte). -/
+def KInOk (i : KvInI) : Prop :=
+  InputOk i ∧ InputBounded i ∧ (match i with | .get k => k.length | .put k _ => k.length) < 256
+
+/-- The kit's inputs. -/
+abbrev KIn := {i : KvInI // KInOk i}
+
+instance KIn.countable : Pos.Countable KIn :=
+  .ofInjective (fun x : KIn => Pos.Countable.encode x.1)
+    (fun a b h => Subtype.ext (Pos.encode_inj h))
+
+@[reducible] instance (priority := high) KIn.beq : BEq KIn := instBEqOfDecidableEq
+
+/-- The key-value map's outputs, countable. -/
+instance KvOutI.countable : Pos.Countable KvOutI :=
+  countableOfLeftInverse
+    (fun o : KvOutI => match o with
+      | .got v => (Sum.inl v : Option GoString ⊕ Unit)
+      | .done => .inr ())
+    (fun x => match x with | .inl v => .got v | .inr _ => .done)
+    (fun o => by cases o <;> rfl)
+
+/-- The key-value map's step, as a function (`kvStep` is its graph: `kvStep_fn`). -/
+def kvFn (σ : VsrModel.Store) : KvInI → VsrModel.Store × KvOutI
+  | .get k => (σ, .got (σ k))
+  | .put k v => ((fun k' => if k' = k then some v else σ k'), .done)
+
+theorem kvStep_fn (σ σ' : VsrModel.Store) (i : KvInI) (o : KvOutI) :
+    kvStep σ i σ' o ↔ (σ', o) = kvFn σ i := by
+  cases i <;> simp [kvStep, kvFn, _root_.and_comm]
+
+/-- The key-value map with failed puts (linkv's pending-writes store). -/
+def kvB : linkv.PendSpec VsrModel.Store KIn KvOutI where
+  init := fun _ => none
+  step i σ := kvFn σ i.1
+  isWrite i := match i.1 with | .get _ => false | .put _ _ => true
+
+end store
+
+section vals
+variable [GooseExts] [GoGlobalContext]
+
+/-- An input as `In`'s fields. -/
+def inFields : KvInI → Bool × GoString × GoString
+  | .get k => (false, k, [])
+  | .put k v => (true, k, v)
+
+/-- An input, boxed (`any` holding an `In`). -/
+def inV (i : KvInI) : GoInterface :=
+  interface.mkOk In.ty #(In.mk (inFields i).1 (inFields i).2.1 (inFields i).2.2)
+
+/-- An output's fields (`Out{Unknown, Found, V}`): a found value's, or nothing. -/
+def outFields : KvOutI → Bool × GoString
+  | .got (some v) => (true, v)
+  | _ => (false, [])
+
+/-- An output, boxed (`any` holding an `Out`; not unknown). -/
+def outV (o : KvOutI) : GoInterface :=
+  interface.mkOk Out.ty #(Out.mk false (outFields o).1 (outFields o).2)
+
+/-- The unknown output, boxed. -/
+def unkV : GoInterface := interface.mkOk Out.ty #(Out.mk true false [])
+
+/-- `Codec()`'s bytes of an input (`EncIn`): its kind, its key's length, its key and value. -/
+def encInB (i : KvInI) : List w8 :=
+  (if (inFields i).1 then W8 1 else W8 0) :: W8 (inFields i).2.1.length ::
+    ((inFields i).2.1 ++ (inFields i).2.2)
+
+/-- `Codec()`'s bytes of an output `Out{u, f, v}` (`EncOut`). -/
+def encOutB (u f : Bool) (v : GoString) : List w8 :=
+  (if u then W8 1 else W8 0) :: (if f then W8 1 else W8 0) :: v
+
+open Classical in
+/-- `Codec()`'s bytes of a value: a short `Out`'s, or nothing for any other value (never
+encoded). -/
+def encOutV (x : GoInterface) : List w8 :=
+  if h : ∃ p : Bool × Bool × GoString, p.2.2.length < 2 ^ 16 ∧
+      x = interface.mkOk Out.ty #(Out.mk p.1 p.2.1 p.2.2)
+  then encOutB (Classical.choose h).1 (Classical.choose h).2.1 (Classical.choose h).2.2 else []
+
+theorem encInB_len (i : KIn) : (encInB i.1).length < 2 ^ 63 := by
+  obtain ⟨i, -, hb, -⟩ := i
+  cases i <;> simp only [InputBounded] at hb <;> simp [encInB, inFields] <;> omega
+
+theorem encOutV_len (x : GoInterface) : (encOutV x).length < 2 ^ 63 := by
+  unfold encOutV
+  split
+  · rename_i h
+    have := (Classical.choose_spec h).1
+    simp only [encOutB, List.length_cons]
+    omega
+  · simp
+
+end vals
+
+/-! ## The far side's store -/
+
+section base
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
+
+/-- **The far side's store**: the key-value map of the ghost layer (see the file header). -/
+def kvR (g : GN) : RBase GF VsrModel.Store KIn KvOutI where
+  B := kvB
+  sysState σ := absOwnI g σ
+  Eop := vsrE
+  iv i := inV i.1
+  ov o := outV o
+  unk _ := unkV
+  encIn i := encInB i.1
+  encOut := encOutV
+  reads_stay i st h := by
+    revert h
+    obtain ⟨i, -⟩ := i
+    cases i <;> simp [kvB, kvFn]
+  encIn_len i := encInB_len i
+  encOut_len v := encOutV_len v
+
+instance kvR_timeless (g : GN) (σ : VsrModel.Store) : Timeless ((kvR (GF := GF) g).sysState σ) := by
+  unfold kvR; simp only; infer_instance
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+/-- **The store's linearization point is the ghost layer's client update** (`AUof`, which a
+client registers with its request: `ghost_register`), for the caller's postcondition of the
+output. -/
+theorem lin_AUof [NetProtoGS] (g : GN) (i : KIn) (Φ : KvOutI → IProp GF) :
+    lin (Gg := Gg) (kvR g) i Φ ⊢ AUof g i.1 (fun _ _ o => Φ o) := by
+  unfold lin AUof
+  simp only [kvR, kvB]
+  iintro H
+  imod H with ⟨%σ, Hσ, Hc⟩
+  imodintro
+  iexists σ
+  iframe Hσ
+  iintro %σ' %o ⟨Hσ', %hs⟩
+  have h := (kvStep_fn σ σ' i.1 o).1 hs
+  rw [← h]
+  iapply Hc $$ Hσ'
+
+end base
+
+end github_com.tangledbytes.go_vsr.examples.vsrnet
+end Perennial
