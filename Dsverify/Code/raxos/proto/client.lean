@@ -728,6 +728,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
@@ -755,7 +757,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.raxos.proto.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.raxos.proto.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val file_proto_client_client_proto_rawDescOnce.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val File_proto_client_client_proto.init) (Val #()))))))))
 
 structure ClientBatch [GooseExts] where
   mk ::
