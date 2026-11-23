@@ -5,7 +5,7 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, third agent: see P4 for the current state; the line below is the first agent's):** the Go and its translation are done and tested;
+**State in one line (2026-11-23, fourth agent: see P5 for the current state; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -310,6 +310,47 @@ P4 (d)); when they are, recheck that their tables list these packages.
   `examples/craqnet/Conf.lean`, `ConfProof.lean` (a subagent, in progress: `choose`, `plan`,
   `mine`, `encode`, `decode`, `sendConf`, `configure`, `awaitConf` over a trivial protocol at the
   conf addresses).
+- **P5 (cont.), state at the fourth agent's end.** Proved and built (`lake build` green, Lean's
+  three): `Craq/CodecSrvProof.lean`, `Craq/Netrpc/{Bindings,BindingsProof}.lean`,
+  `examples/craqnet/{Conf,ConfProof}.lean` (a subagent: `wp_choose`, `wp_plan` (`planOk`),
+  `wp_mine`, `wp_Conf_encode(_ptr)`, `wp_decode` (gives `msgOk`: `confOk`, the removals
+  `remsOk`), `wp_sendConf`, `wp_configure` (`[LogHyp GF]`), `wp_awaitConf` (post `False`),
+  `wp_make_conf_chan`, `wp_recv_msg` (a bag channel of `msgOk`); `confProto` (trivial) at the
+  conf addresses (`addrProto a confProto confProto`, set at the start with `addrs_set_proto`); the
+  Net specs `net.Dial`/`Listen`/`Accept`/`Conn.Read`/`Write`/`Close` are theorem arguments, as in
+  paxos; `wp_ReadFull_lt`/`wp_ReadAtLeast_lt` are local copies of Perennial's proofs with the
+  `readatleast-prefix` branch's weaker premise: drop when the pin passes it), and
+  `examples/craqnet/ServerProof.lean`: `codecFresh`, `wp_Register`, `coordSpec_errOk`,
+  `srvServes_coord`, `srvServes_node`, `removeNodeOk.spec` (F1's premise), **`wp_Server1`** (the
+  coordinator's machine, `Server(1)`: pre `isPkgInit kpkg ∗ codecFresh ∗ muxOwner [] ∗ srvEnv ∗
+  craqCtx cfg ∗ coordRes cfg`, `cfg.cAddr = 127.0.0.1:7501`; arguments `SetCodec.spec`,
+  `coordinator.wp_New/wp_Start/coord_svc`, `netrpc.factory`, `removeNodeOk.spec cfg`;
+  `[RpcHttpServe GF]`), **`wp_runNode`** (pre adds `rpcReady`, `nodeRes cfg a ∗ joinTicket cfg.γ
+  a`, `errOk (nodeSpec …)` (F3); arguments the node's/kv's/netrpc's specs).
+  In progress at the end (a subagent): `examples/craqnet/ClientProof.lean` (`Sys.end`, `readAt`,
+  `remove`, `op`, `newSys`, `Client.spec`/`wp_proof`, `Orch.spec`/`wp_proof`); check its state
+  (`etc/lean-check.py -q -a`, `grep sorry`) before going on.
+  **Next**: (i) `Server.spec` for every `id` (id 1: `wp_Server1`; id ≥ 2: `wp_make_conf_chan`,
+  `go awaitConf` (`wp_awaitConf`), `wp_recv_msg`, then `wp_runNode` if `id ≤ N+1` (needs
+  `Register()` first: `wp_Register` at the top of `Server`, so `Server`'s pre has `codecFresh`
+  and gives `rpcReady`), then the idle loop (post `False`/`True`); `id ≤ N+1` with N ≤ 5 and
+  id ≤ 6: every machine's `nodeRes`/`joinTicket` is in its precondition regardless);
+  (ii) `Mains` (the 12 commands; generate their `PkgTable`s with `etc/gen-init.py`, recheck the
+  linkage per VR finding 7), `TopLevelDefs`, `TopLevelRobustness`, the statement, following
+  `paxos_remote_robust` (`robust_of_distProtoRB`; addresses `serverAddrs ++ clientAddrs ++
+  confAddrs`; `craq_alloc`, `pend_alloc`, `mapCtx_alloc`, `addrs_set_proto` for client (remote)
+  and conf (`confProto`) addresses; server addresses: the H4 allocation premise); premises:
+  `InitHyp`s (net/rpc, net/http), `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`, `LogHyp`, H4's two
+  open points, and the findings' premises F1 (`removeNodeOk.spec`), F2 (`codecFresh` per
+  machine: Net must decide; a `|==>` premise would be inconsistent), F3 (`errOk (nodeSpec …)`),
+  `srvEnv`. F2 means the statement cannot be closed honestly until Net gives net/rpc's
+  initialization (or a per-machine boot fact): ask the coordinator.
+  **Tier check** (land gate, `etc/tier-check.py --check`, 2026-11-23): 13 craq violations
+  (`Craq/Hyps -> Net.Proof.net.rpc.Results`; `Craq/Protocol/{All,Alloc,Fire,Laws,Simple}` proof
+  imports (ported from the lab's style); `examples/craqnet/{ConfProof,ServerProof,ClientProof}
+  -> KitProof`, `KitProof -> ModelProof`, `ClientProof -> Net.Proof.net.rpc.SetCodec` (told to
+  use the Spec)). Restructure at landing: move `KitProof`'s helpers (`wp_ServerAddrs`, …) to a
+  defs module or take them as arguments; `Protocol/` lemma files are defs, not proofs.
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
