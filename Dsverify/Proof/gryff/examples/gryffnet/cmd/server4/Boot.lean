@@ -305,7 +305,7 @@ theorem wf_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcommon
 theorem wf_math_rand : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact True.intro
+  exact ⟨wf_sync, True.intro⟩
 
 theorem wf_gryff_src_gryff : GetIsPkgInitProp pkg_id.gryff.src.gryff (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -610,7 +610,7 @@ theorem wfNo_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfNo_math_rand : GetIsPkgInitProp pkg_id.math.rand (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfNo_sync, True.intro⟩
 
 theorem wfNo_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -900,7 +900,7 @@ theorem wfS2_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfS2_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS2_sync, True.intro⟩
 
 theorem wfS2_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1180,7 +1180,7 @@ theorem wfS1_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfS1_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS1_sync, True.intro⟩
 
 theorem wfS1_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1455,7 +1455,7 @@ theorem wfS0_gryff_src_gryffcommon : GetIsPkgInitProp pkg_id.gryff.src.gryffcomm
 theorem wfS0_math_rand : GetIsPkgInitProp pkg_id.math.rand (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact True.intro
+  exact ⟨wfS0_sync, True.intro⟩
 
 theorem wfS0_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_

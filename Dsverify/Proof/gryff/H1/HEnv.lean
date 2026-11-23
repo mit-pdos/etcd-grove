@@ -9,13 +9,11 @@ module
 
 public import Dsverify.Proof.gryff.H1.PureFrame
 public import Dsverify.Proof.gryff.H1.Iparti
-public import Dsverify.Proof.gryff.H1.CoordW1
-public import Dsverify.Proof.gryff.H1.CoordRead1
-public import Dsverify.Proof.gryff.H1.CoordStart
-public import Dsverify.Proof.gryff.H1.CoordWrite
-public import Dsverify.Proof.gryff.H1.CoordRead
-public import Dsverify.Proof.gryff.H1.CoordForce
-public import Dsverify.Proof.gryff.H1.Parti
+public import Dsverify.Proof.gryff.H1.CoordW2Defs
+public import Dsverify.Proof.gryff.H1.PureWrite1
+public import Dsverify.Proof.gryff.H1.PureRead1
+public import Dsverify.Proof.gryff.H1.CoordSpecs
+public import Dsverify.Proof.gryff.H1.PartiSpecs
 public import Dsverify.Proof.gryff.H2.Env
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 

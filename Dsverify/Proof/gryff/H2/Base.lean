@@ -12,7 +12,7 @@ module
 
 public import Dsverify.Proof.gryff.Replica2.Specs
 public import Dsverify.Proof.gryff.Replica.Base
-public import Dsverify.Proof.gryff.H1.Parti -- C: `GetStoreMetadata.wp` moved to Replica2/Results.lean
+public import Dsverify.Proof.gryff.H1.PartiSpecs
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 
 @[expose] public section
@@ -91,6 +91,7 @@ theorem wp_isInitialBallot (b : w32) :
   rw [this]
   wp_end
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- `r.GetStoreMetadata(0)` (the participant's). -/
 theorem wp_Replica_GetStoreMetadata (r pa : Loc) (k : Fin 3) (tag : model.Tag)
     (ong : model.AMap 32 w32) :
@@ -104,7 +105,7 @@ theorem wp_Replica_GetStoreMetadata (r pa : Loc) (k : Fin 3) (tag : model.Tag)
           partiOwn pa (replicaIface r) k tag ong) }} := by
   wp_start as ⟨#Hpa, Hown⟩
   wp_auto
-  wp_apply GryffParticipant.GetStoreMetadata.wp_proof $$ [$Hown] as %md Hmd
+  wp_apply (GryffPartiDeps.getStoreMetadata (GF := GF) (hG := hG) _ _ _ _ _) $$ [$Hown] as %md Hmd
   wp_end
 
 /-- `r.GetCurrentValue(0)`: the store's value. -/

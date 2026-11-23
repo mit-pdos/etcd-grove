@@ -6,7 +6,12 @@ requests named at their steps).
 -/
 module
 
-public import Dsverify.Proof.gryff.Replica2.Results
+public import Dsverify.Proof.gryff.Replica2.Specs
+public import Dsverify.Proof.gryff.Replica2.SpecsN
+public import Dsverify.Proof.gryff.X.Final
+public import Dsverify.Proof.gryff.N.StrIndex
+public import Dsverify.Proof.gryff.Lib.ReadFullLt
+public import Dsverify.Proof.gryff.Lib.MathHyps
 public import Dsverify.Proof.gryff.B.Handler
 public import Dsverify.Proof.gryff.B.Ctor
 public import Dsverify.Proof.gryff.Server.SpecsDefs
@@ -100,9 +105,21 @@ theorem crt_list (gc0 gc1 gc2 : GName) :
   iapply BigSepL.bigSepL_nil.2
   iempintro
 
+/-- The replica's `run()` (the goroutine `NewReplica` starts), as a spec: the triple of
+`Replica2/Results.lean`'s `run.wp` (its `wp_rfl` applied), which `NewReplica_core` takes as an
+argument (CLAUDE.md, "Import tiers": a proof sees its callees through their specs only);
+`examples/gryffnet/Link.lean` passes `run.wp`. -/
+def Replica.run.spec : Prop :=
+  ∀ (γ : GryffNames GF) (ρ : replica2.Repl2Names) (k : Fin 3) (r gR : Loc),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗ replica2.isReplica γ ρ k r ∗
+        r.[src.gryff.Replica, go!"Replica"] ↦□ gR ∗ replica2.connectRes γ ρ k r gR }}
+      (App (replica2.repM r go!"run") (Val #()))
+    {{ RET #(); True }}
+
 set_option maxRecDepth 10000 in
 set_option maxHeartbeats 8000000 in
 theorem NewReplica_core (wp_rfl : lib.io.ReadFull.specLt (GF := GF) (hG := hG))
+    (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF)) (γ : GryffNames GF) (k : Nat)
     (id : w64) (sl : GoSlice) (nodes : List GoString) (hk : k < 3) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
@@ -318,7 +335,7 @@ theorem NewReplica_core (wp_rfl : lib.io.ReadFull.specLt (GF := GF) (hG := hG))
   -- `go e.executeCommands()` (H-X-2: the empty search state)
   try wp_auto
   wp_apply wp_fork $$ [Hxs2 Hstack Heuo]
-  · wp_apply (executeCommands.wp γ ρ kr «$r0_ptr» h xs0) $$ [Hxs2 Hstack Heuo]
+  · wp_apply (X.executeCommands_wp γ ρ kr «$r0_ptr» h xs0) $$ [Hxs2 Hstack Heuo]
     · iframe #
       isplitl
       · iapply execPriv2_init ρ h euS
@@ -681,7 +698,7 @@ theorem NewReplica_core (wp_rfl : lib.io.ReadFull.specLt (GF := GF) (hG := hG))
     iintro Hm; iexists ∅; iframe; ipureintro; intro c b hc; simp at hc
   -- `go r.run()`, then `return r`
   wp_apply wp_fork $$ [HconnRes]
-  · wp_apply (run.wp wp_rfl γ ρ kr «$r0_ptr» gR) $$ [HconnRes]
+  · wp_apply (wp_run γ ρ kr «$r0_ptr» gR) $$ [HconnRes]
     · iframe; iframe #
     itrivial
   try wp_auto

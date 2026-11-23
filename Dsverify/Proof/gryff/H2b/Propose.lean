@@ -156,6 +156,7 @@ theorem props_drop (ρ : Repl2Names) (pps : List Loc) (Q : List Proposal) (n : N
   iexists pr; iframe H; ipureintro
   simpa [List.getElem?_drop] using hpr
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- `handlePropose(propose)` (`hslot`: the new instance's slot is free, H2b-R2; `hq`: the queue's
 length fits an `int` batch size, H2b-R3). -/
 theorem handlePropose_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r gR h pa co : Loc)
@@ -507,6 +508,7 @@ theorem stepRMW_cases (k : Fin 3) (s s' : RState) (g : src.gryffproto.RMW) (outs
         simp only [Bool.and_eq_true, beq_iff_eq] at hc'
         exact hc'.1.1
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- **`HandleRMW(rmw)`** (the frozen `HandleRMW.wp`'s statement). -/
 theorem HandleRMW_wp' (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h p w : Loc)
     (g : src.gryffproto.RMW) :

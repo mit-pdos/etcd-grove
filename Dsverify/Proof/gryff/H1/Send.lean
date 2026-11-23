@@ -10,7 +10,7 @@ module
 
 public import Dsverify.Proof.gryff.H1.HEnv
 public import Dsverify.Proof.gryff.H1.PureParti
-public import Dsverify.Proof.gryff.H1.Parti
+public import Dsverify.Proof.gryff.H1.PartiSpecs
 public import Dsverify.Proof.gryff.H1.Iparti
 public import Dsverify.Proof.gryff.N.Reply
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
@@ -330,6 +330,7 @@ theorem wp_sendWrite2To (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r gR
     wp_apply hsend $$ [$Hpg $Hgen $HgR $Hrc $Hm0 $Hpend] as ⟨Hm, Hpend⟩
     iapply HΦ; iframe
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- **`SendRead1(rop, replicas)`** on `coordCtx`. -/
 theorem wp_Replica_SendRead1 (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r pa : Loc)
     (t : List Ev) (ong : AMap 32 w32) (rop : Loc) (ro : ReadOp) (sl : GoSlice) (rs : List w32)
@@ -361,7 +362,7 @@ theorem wp_Replica_SendRead1 (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) 
   wp_call
   wp_auto
   rw [hkey]
-  wp_apply GryffParticipant.GetStoreMetadata.wp_proof $$ [$Hpc $Hpo] as %md ⟨%tp, %gt, %Htag, #Htp, Hmd, Hback⟩
+  wp_apply (GryffPartiDeps.getStoreMetadata (GF := GF) (hG := hG) _ _ _ _ _) $$ [$Hpc $Hpo] as %md ⟨%tp, %gt, %Htag, #Htp, Hmd, Hback⟩
   try wp_auto
   wp_apply wp_Replica_GetCurrentValue $$ [$Hpkg $HgR $HV] as HV
   dsimp only

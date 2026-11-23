@@ -47,8 +47,8 @@ public import Net.Spec.net.rpc.NewServer
 public import Net.Spec.net.rpc.SetCodec
 public import Net.Proof.net.rpc.ServerDefs
 public import Net.Code.net.http
-public import Dsverify.Proof.net.rpc.Base
-public import Dsverify.Proof.net.http.Base
+public import Dsverify.Proof.net.rpc.Init
+public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 

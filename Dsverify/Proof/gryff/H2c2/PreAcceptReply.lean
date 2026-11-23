@@ -44,6 +44,7 @@ theorem msgAt_preAcceptReply (p : Loc) (mm : model.PreAcceptReplyM) :
       ⌜preAcceptReplyOf g = mm⌝ := by
   unfold msgAt; exact .rfl
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 set_option maxHeartbeats 8000000 in
 /-- `handlePreAcceptReply(pareply)` with the step's obligations. -/
 theorem handlePreAcceptReply_wp' (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h p : Loc)
@@ -745,6 +746,7 @@ theorem handlePreAcceptReply_wp' (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin
       · iapply coordOwn_congr ρ co _ k s s' ho5 ho6 ho7 ho8 $$ Hcoord
       · ipureintro; exact hid'
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- **`handlePreAcceptReply.wp`** (`Replica2/Specs.lean`), at its frozen statement. -/
 theorem handlePreAcceptReply_spec (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc)
     (m : model.PreAcceptReplyM) :

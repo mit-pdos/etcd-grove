@@ -15,7 +15,7 @@ public import Perennial.Golang.Theory.Slice
 
 set_option linter.unusedSectionVars false
 
-namespace Perennial
+namespace Perennial.gryff
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode BigSepL
 
@@ -65,4 +65,4 @@ theorem ownSlice_of_elems (s : GoSlice) (vs : List V) (h : sliceShape s vs.lengt
 
 end
 
-end Perennial
+end Perennial.gryff

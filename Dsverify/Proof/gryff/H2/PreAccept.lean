@@ -50,6 +50,8 @@ def paEarly (s : RState) (m : model.PreAcceptM) : Prop :=
   ∃ c, s.inst m.replica m.inst = some c ∧
     (c.status = model.St.COMMITTED ∨ c.status = model.St.ACCEPTED ∨ c.status = model.St.EXECUTED)
 
+variable [pD : GryffPartiDeps (GF := GF)]
+
 set_option maxHeartbeats 4000000 in
 theorem handlePreAccept_wp' (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h p : Loc)
     (m : model.PreAcceptM) (t : List Ev) (s s' : RState) (outs : List Out)

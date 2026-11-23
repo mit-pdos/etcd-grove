@@ -5,7 +5,7 @@ Unit H1b: `*gryff.Replica` implements `IGryffParticipant` (`ipartiOk`).
 -/
 module
 
-public import Dsverify.Proof.gryff.H1.CoordW2
+public import Dsverify.Proof.gryff.H1.CoordW2Defs
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 public import Dsverify.Proof.gryff.Lib.SortHyps
 

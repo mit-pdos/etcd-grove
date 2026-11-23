@@ -21,6 +21,12 @@ public import Dsverify.Proof.gryff.H1.CoordWrite
 public import Dsverify.Proof.gryff.H1.CoordRead1
 public import Dsverify.Proof.gryff.H1.CoordRead
 public import Dsverify.Proof.gryff.H1.CoordForce
+public import Dsverify.Proof.gryff.H1.CoordSC
+public import Dsverify.Proof.gryff.H1.CoordW1
+public import Dsverify.Proof.gryff.H1.CoordW2
+public import Dsverify.Proof.gryff.H1.GCoord
+public import Dsverify.Proof.gryff.H1.CoordSpecs
+public import Dsverify.Proof.gryff.H1.PartiSpecs
 public import Dsverify.Proof.gryff.H1.Iparti
 public import Dsverify.Proof.gryff.H1.GParti
 public import Dsverify.Proof.gryff.H2.InstOpen
@@ -123,6 +129,34 @@ variable [strconvA : strconv.Assumptions] -- N-5
 variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
 
+/-! ## The H1 callee classes, closed (`H1/PartiSpecs.lean`, `H1/CoordSpecs.lean`)
+
+The participant's and coordinator's methods' specs, which the modules above H1 see through the
+classes `GryffPartiDeps`, `GryffSCDeps`, `GryffCoordDeps` (CLAUDE.md, "Import tiers"), proved by
+`H1/Parti.lean`'s and `H1/Coord*.lean`'s proofs. Local instances of this module only. -/
+
+theorem gryffPartiDeps_holds : GryffPartiDeps (GF := GF) where
+  getStoreMetadata := GryffParticipant.GetStoreMetadata.wp_proof
+  handleOverwrite := GryffParticipant.HandleOverwrite.wp_proof
+  handleWrite2 := GryffParticipant.HandleWrite2.wp_proof
+  handleRead2 := GryffParticipant.HandleRead2.wp_proof
+  handleRead1 := GryffParticipant.HandleRead1.wp_proof
+  handleWrite1 := GryffParticipant.HandleWrite1.wp_proof
+
+theorem gryffSCDeps_holds : GryffSCDeps (GF := GF) where
+  shortCircuit := GryffCoordinator.ShortCircuit.wp_int
+
+attribute [local instance] gryffSCDeps_holds in
+theorem gryffCoordDeps_holds : GryffCoordDeps (GF := GF) where
+  startRead := GryffCoordinator.StartRead.wp_proof
+  startWrite := GryffCoordinator.StartWrite.wp_proof
+  handleRead1Reply := GryffCoordinator.HandleRead1Reply.wp_proof
+  handleRead2Reply := GryffCoordinator.HandleRead2Reply.wp_proof
+  handleWrite1Reply := GryffCoordinator.HandleWrite1Reply.wp_proof
+  handleWrite2Reply := GryffCoordinator.HandleWrite2Reply.wp_proof
+  handleForceWrite := GryffCoordinator.HandleForceWrite.wp_proof
+
+attribute [local instance] gryffPartiDeps_holds gryffSCDeps_holds gryffCoordDeps_holds
 
 /-- `GetStoreMetadata(0)` (`SendRead1`, `handlePreAccept`): the store's tag cell, borrowed. -/
 theorem GryffParticipant.GetStoreMetadata.wp (pa : Loc) (ip : GoInterface) (k : Fin 3)

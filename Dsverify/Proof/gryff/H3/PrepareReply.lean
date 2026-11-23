@@ -202,6 +202,7 @@ local macro "h3_pr_same" : tactic => `(tactic| (
   iframe
   ipureintro; exact Hid))
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 set_option maxHeartbeats 4000000 in
 theorem handlePrepareReply_wp' (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h p : Loc)
     (m : model.PrepareReplyM) (t : List Ev) (s s' : RState) (outs : List Out)
@@ -1005,6 +1006,7 @@ theorem handlePrepareReply_wp' (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3
         iframe
         ipureintro; rw [h5]; exact Hid
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- The frozen `handlePrepareReply.wp`'s statement (`Replica2/Specs.lean`), from the primed one. -/
 theorem handlePrepareReply_wp_frozen (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc)
     (m : model.PrepareReplyM) :

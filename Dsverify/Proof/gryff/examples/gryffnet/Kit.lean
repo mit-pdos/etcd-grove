@@ -15,7 +15,7 @@
 -/
 module
 
-public import Dsverify.Proof.gryff.examples.gryffnet.ModelProof
+public import Dsverify.Proof.gryff.examples.gryffnet.ModelDefs
 public import Dsverify.Proof.gryff.Proto.InvDefs
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Defs
 

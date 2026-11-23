@@ -1,7 +1,26 @@
 # dsv-gryff: dsverify-lab's gryff kit on the net extension (phase 6)
 
-**Coordinator (2026-11-23, ~06:00):** `lean` moved to `e20bbac22f` (Perennial `c95e92207`, no checkout
-on the host): do not merge it; stay on `07268ddb57` with `/shared/perennial-7b2259a12`.
+> **LANDING DEPENDENCIES (2026-11-23, landing prep, session 8). Do not land this branch before both
+> have landed on `lean`:**
+> 1. **`models-rpc-http`** (NOT landed; its trusted-model changes await the human's review). This
+>    branch merges `origin/models-rpc-http` at `7a40f81699`/`1a4d9546c9` (net/http's Request and
+>    Server translated with `mime/multipart`; `DialHTTPPath`/`DialHTTP` specs and proofs over
+>    `http.ReadResponse.spec`; `RpcWorld`'s `hs`/`hsAns` handshake fields). Landing gryff first would
+>    land those unreviewed trusted-model changes. Its trace here: `etc/goose.py` differs from lean's
+>    by exactly models-rpc-http's `mime/multipart` hunk of project `models-net` (an older state of
+>    that branch's hunk); `RpcHttpHyp`'s `rpcLisP*`, the statement's premise `net.rpc.DialHTTP.spec`
+>    and the server's use of `hs`/`hsAns` all come from it (section "Session 8", below).
+>    **Found at the landing prep:** with models-rpc-http merged at `1a4d9546c9`, lean's dsv-epaxos does
+>    not build on this branch (`examples/epaxosnet/Start.lean:251`: `RpcWorld.mk` has 4 fields, `hs`,
+>    `hsAns` new) and Net's `DialHTTPPath` proof does not compile (`Net/Proof/net/rpc/DialHTTPPath.lean:157`,
+>    `irename: unknown hypothesis`; known, hence `DialHTTP.spec` is a premise). gryff's closure needs
+>    neither. models-rpc-http must adapt epaxos's start (dsv-gryff's `Start.lean` shows how:
+>    `hs := connectReq …, hsAns := connectAns`) before it lands, and gryff then re-merges it.
+> 2. **`dsv-hyp-imports`** (`f7f9c1d190`, off lean `d1c432a3ca`, pushed, not landed): `etc/gen-init.py`'s
+>    `HYP_IMPORTS` may be a dict (per hypothesis package). gryff needs it since lean's shared
+>    `Dsverify/Proof/math/rand/Init.lean` (dsv-rabia's, over the main tree's `Proof/math/rand/Base`)
+>    constrains math/rand's import `sync`, while net/rpc's and net/http's (dsv-epaxos's) constrain
+>    none. Merged here; `etc/gen-init.py` equals lean's plus that commit.
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
@@ -656,6 +675,61 @@ are now `Results.lean` (linking tier); `proof_roots.namespace()` prints `Perenni
 **Bridge (item 2, done):** `examples/gryffnet/Bridge.lean` = dsv-epaxos's, verbatim
 (`robust_of_distProtoLisRB(T)`).
 
+## Session 8 (2026-11-23, landing prep): lean merged, tiers, duplicates
+
+**State: head after this section's commit; `gryff_remote_robust` still closed on Lean's three axioms
+(`#print axioms`: `propext`, `Classical.choice`, `Quot.sound`), checked after every change below.**
+
+- **lean merged** (`d1c432a3ca`, Perennial `70706ce5e`; `.lake/package-overrides.json` points at
+  `/shared/perennial-70706ce5e`, `PERENNIAL_DIR` likewise). `gen-init` and `_gryff_boot.py` rerun
+  (PkgTables gained `internal/bytealg`, `unicode/utf8` under `strings`). The three shared hypothesis
+  inits (`Dsverify/Proof/{net/rpc,net/http,math/rand}/Init.lean`) are lean's (dsv-epaxos's,
+  dsv-rabia's); gryff's own `Dsverify/Proof/{net/rpc,net/http,math/rand}/Base.lean` are deleted
+  (they declared the same instance names: "environment already contains"); `Rpc/RpcHttpHyps.lean`
+  imports the `Init`s, `Lib/RandHyps.lean` the main tree's `Proof/math/rand/Base`. math/rand's
+  `Init` constrains `sync`: `etc/dsv/gryff.py`'s `HYP_IMPORTS = {'net.rpc': 'none', 'net.http':
+  'none', 'math.rand': 'all'}`, over `dsv-hyp-imports` (dependency 2 above).
+- **Bridge:** `examples/gryffnet/Bridge.lean` (the verbatim copy) deleted; `TopLevelRobustness` uses
+  lean's `github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT`.
+- **dsv-protolaws:** `N/ConnLaws.lean`'s `recvTokL_sentLb`, `sentLb_le`, `sentLb_comparable` deleted;
+  their uses (`ConnLaws`, `Client/Stream`, `N/WaitPeers`) take `Net.recvTokL_sentLb`,
+  `Net.sentLb_le`, `Net.sentLb_agree`.
+- **Duplicates:** the closure scan (dups.py's logic) found one: `Perennial.ownSlice_elems`, in
+  `N/SliceElems.lean` and epaxos's `replica/SliceElems.lean` (different lemmas): gryff's file is now
+  in namespace `Perennial.gryff`. A scratch module importing rabia's, epaxos's and gryff's
+  `TopLevelRobustness` together compiles (`lake env lean`; no "environment already contains").
+  `Lab/*.lean`'s namespace `Perennial.dsverify_lab.harness`: no other kit (dsv-swiftpaxos,
+  dsv-quepaxa, dsv-craq, dsv-vr, lean) declares in it (outside `old/`).
+- **Tiers: `etc/tier-check.py --check` passes, no baseline or tier-linking entry** (20 new
+  violations fixed, as dsv-epaxos's `Interface/LibDeps.lean`):
+  * `H1/PartiSpecs.lean` (defs): the participant's six methods' triples as `GryffParticipant.<M>.spec`
+    and the class `GryffPartiDeps`; `H1/CoordSpecs.lean` (defs): `GryffCoordinator.ShortCircuit.specInt`
+    (`wp_int`'s triple) in `GryffSCDeps`, the seven coordinator methods' `.spec`s in `GryffCoordDeps`.
+    The callers take them as instance arguments: `CoordW1`/`CoordW2` (`GryffSCDeps`), `GCoord`
+    (`GryffCoordDeps`, `GryffPartiDeps`), `GParti`, and, per theorem (`variable [...] in`),
+    `Icoord.Replica_icoordOk_proof`, `Send.wp_Replica_SendRead1`, `H2/Base.wp_Replica_GetStoreMetadata`,
+    `H2/PreAccept.handlePreAccept_wp'`, `H2a/Results.handlePreAccept_wp_link`,
+    `H2b/Phase1.startPhase1_wp`, `H2b/Propose.{HandleRMW_wp', handlePropose_wp}`,
+    `H2c2/ExecOverwrite.executeOverwrite_spec`, `H2c2/PreAcceptReply.{handlePreAcceptReply_wp',
+    handlePreAcceptReply_spec}`, `H3/PrepareReply.{handlePrepareReply_wp', _wp_frozen}`.
+    `Replica2/Results.lean` closes the three (`gryffPartiDeps_holds`, `gryffSCDeps_holds`,
+    `gryffCoordDeps_holds`, local instances of its `specs` section). No `instance` of them exists.
+  * The helpers other modules used are apart from the method proofs: `H1/CoordStartDefs`,
+    `H1/CoordSCDefs`, `H1/CoordW2Defs` (everything before the proofs, verbatim); `HEnv`, `Iparti`,
+    `CoordRead1`, `CoordWrite`, `CoordW1` import those.
+  * `examples/gryffnet/ModelDefs.lean`: `ModelProof`'s definitions `Kit`/`KitProof` use (`inV`,
+    `outV`, `casDec`, `casS0`, `cfgOk`, `cfgsOk`, `casRep`, `casS`, `Model.spec`, and the helper
+    `wp_isWrite`).
+  * `B/NewReplica.lean` no longer imports `Replica2/Results`: `NewReplica_core` takes
+    `(wp_run : Replica.run.spec)` (`run.wp`'s triple, defined there) and uses
+    `X.executeCommands_wp`; `KitServer` threads `wp_run`; `Link.lean` passes
+    `replica2.run.wp lib.io.ReadFull.wp_proofLt`.
+- **Checks** (this session): `proof_roots.namespace()` = `Perennial.EtcdGrove.`; `gen-init --check`,
+  `_gryff_boot.py --check`, `copy-part --check`, `tier-check --check` pass; `errorf-wrap`'s
+  `init_errors()` = `[]`; `goose --check` (all projects): up to date (69 translations); `theorem-loc
+  --no-go --list-tcb gryff_remote_robust`: TCB 689 lines, all premises (`tcb_axioms 0`), the three
+  `InitHyp`s counted. `lake build` of the proof's `TopLevelRobustness`: builds.
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
@@ -663,6 +737,11 @@ Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff
 clients ++ servers) gryffNetCfg`, axioms Lean's three and porcupine's `CheckOperations.wp_proof`).
 
 ## Next
+
+**Session 8 (landing prep) end state:** all landing work done except the dependencies at the top of
+this file (models-rpc-http, dsv-hyp-imports) and `etc/tcb-report.py --collection
+etc/tcb-collections/dsv-gryff.txt --check` (needs the whole repository built: run at landing, after
+merging lean again). `wire.BinaryVarintHyps` stays a premise until Perennial #689 reaches the pin.
 
 **Session 7 end state (`4ec8ec43b1` and later): `gryff_remote_robust` is CLOSED.**
 `lake build Dsverify.Proof.gryff.examples.gryffnet.TopLevelRobustness`: `#print axioms

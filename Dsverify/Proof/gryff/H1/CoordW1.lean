@@ -5,7 +5,8 @@ Unit H1b: the coordinator's `HandleWrite1Reply`.
 -/
 module
 
-public import Dsverify.Proof.gryff.H1.CoordW2
+public import Dsverify.Proof.gryff.H1.CoordW2Defs
+public import Dsverify.Proof.gryff.H1.CoordSpecs
 public import Dsverify.Proof.gryff.H1.PureWrite1
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 public import Dsverify.Proof.gryff.Lib.SortHyps
@@ -77,6 +78,8 @@ theorem w1_wo (ρ : Repl2Names) (co p : Loc) (g : src.gryffcommon.WriteOp) (op :
   isplitl []
   · unfold optVtRep; iexists gm; iframe Hgm; ipureintro; exact hm
   ipureintro; exact hg
+
+variable [scD : GryffSCDeps (GF := GF)]
 
 attribute [-instance] go.InterfaceSemantics.method_interface_ok in
 theorem GryffCoordinator.HandleWrite1Reply.wp_proof (ρ : Repl2Names) (co : Loc) (ic : GoInterface)
@@ -280,7 +283,7 @@ theorem GryffCoordinator.HandleWrite1Reply.wp_proof (ρ : Repl2Names) (co : Loc)
         rw [← Hgmv'] at hsc
         have hfr := sc.shortCircuit_frame _ _ _ _ _ _ hsc
         have hrk' := shortCircuit_ropsKeyed _ _ _ _ _ _ hsc Hrk -- H1b-R1
-        wp_apply (GryffCoordinator.ShortCircuit.wp_int ρ co ic k C s _ outs2
+        wp_apply (GryffSCDeps.shortCircuit (GF := GF) (hG := hG) ρ co ic k C s _ outs2
           ([.ext (.writeReply (w1Upd w m.vt).clientId (w1Upd w m.vt).requestId 1)] ++ o) s.storeVT
           _ g'.maxValTag' gm' true ropsR wopsR orR mtR fkR arS hsc Hrk) $$ [Hr Ho HC] as ⟨Hpost, HC⟩
         · iframe Hfix Hr Ho Hic Hgm'

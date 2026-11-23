@@ -51,6 +51,7 @@ theorem epaxosOwn_valTag (ρ : Repl2Names) (h r : Loc) (xs : XS) (s : RState) (v
     epaxosOwn (GF := GF) ρ h r xs s ⊢ epaxosOwn ρ h r xs { s with val := v, tag := t } := by
   unfold epaxosOwn; exact .rfl
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 set_option maxHeartbeats 4000000 in
 theorem executeOverwrite_spec (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc)
     (m : model.ExecuteOverwriteM) :
@@ -79,7 +80,7 @@ theorem executeOverwrite_spec (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3)
   -- integration (H1b-R2): `Replica_ipartiOk` moved to `Link`, takes `gryff`'s init and `h1Fixed`
   ihave #Hfix1 := genericOk_h1Fixed γ ρ k r gR h $$ Hgen
   ihave #Hip := Replica_ipartiOk_proof r gR $$ [$Hpkg $HgR $Hfix1]
-  have hspec := GryffParticipant.HandleOverwrite.wp_proof pa (replicaIface r) k (valOwn (GF := GF) gR)
+  have hspec := (GryffPartiDeps.handleOverwrite (GF := GF) (hG := hG)) pa (replicaIface r) k (valOwn (GF := GF) gR)
     s.storeVT s.ongoing eo.V' eo.T' gt
   simp only [partiM] at hspec
   rw [show s.tag = s.storeVT.t from rfl, show s.val = s.storeVT.v from rfl]

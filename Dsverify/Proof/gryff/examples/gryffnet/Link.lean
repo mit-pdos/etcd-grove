@@ -16,6 +16,7 @@ public import Dsverify.Proof.gryff.examples.gryffnet.KitServer
 public import Dsverify.Proof.gryff.examples.gryffnet.KitProof
 public import Dsverify.Proof.gryff.examples.gryffnet.KitOp
 public import Dsverify.Proof.gryff.examples.gryffnet.ModelProof
+public import Dsverify.Proof.gryff.Replica2.Results
 public import Dsverify.Proof.gryff.Rpc.CodecProof
 public import Dsverify.Proof.gryff.Lib.ReadFullLtProof
 public import Net.Proof.net.rpc.putU64
@@ -135,7 +136,7 @@ theorem wp_Server (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)) :
   haveI := bufioSpecs (GF := GF) (hG := hG)
   haveI := netSpecs (GF := GF) (hG := hG)
   exact Server.wp_proof lib.io.ReadFull.wp_proofLt gryffCodecLaws gryffRcvLaws Call_wp
-    wp_DialHTTP SetCodec_wp
+    wp_DialHTTP SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt)
 
 end server
 

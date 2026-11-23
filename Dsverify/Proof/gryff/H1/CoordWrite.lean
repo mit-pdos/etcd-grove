@@ -5,7 +5,7 @@ Unit H1: the coordinator's `StartWrite`.
 -/
 module
 
-public import Dsverify.Proof.gryff.H1.CoordStart
+public import Dsverify.Proof.gryff.H1.CoordStartDefs
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 public import Dsverify.Proof.gryff.Lib.SortHyps
 

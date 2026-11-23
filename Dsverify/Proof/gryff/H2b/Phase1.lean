@@ -80,6 +80,8 @@ theorem depsInit_succ (j : Nat) (hj : j < 3) :
   obtain rfl | rfl | rfl : j = 0 ∨ j = 1 ∨ j = 2 := by omega
   all_goals rfl
 
+variable [pD : GryffPartiDeps (GF := GF)]
+
 /-- `startPhase1(replica, instance, ballot, proposals, cmds, batchSize)`: the step `model.startPhase1`
 (the slot is free or holds an uncommitted copy, replaced; the commands are CAS on key 0). -/
 theorem startPhase1_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r gR h pa co : Loc)

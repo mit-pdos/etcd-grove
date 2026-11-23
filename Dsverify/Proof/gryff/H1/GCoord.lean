@@ -39,6 +39,8 @@ variable [strconvA : strconv.Assumptions] -- N-5
 
 set_option goose.wp.extras true
 
+variable [pD : GryffPartiDeps (GF := GF)]
+
 /-- The coordinator's callbacks (H1c's `Replica_icoordOk_proof`, the frozen statement with H1b-R2's
 premise). -/
 theorem icoord_get (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r pa : Loc)
@@ -47,6 +49,8 @@ theorem icoord_get (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r pa : Lo
       r.[src.gryff.Replica, go!"parti"] ↦□ pa ⊢
       icoordOk ρ (replicaIface r) k (coordCtx γ ρ k r pa t ong) := by
   exact Replica_icoordOk_proof γ ρ k r pa t ong -- unit H1c (the frozen one is in `Link`)
+
+variable [cD : GryffCoordDeps (GF := GF)]
 
 theorem handleForceWrite.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r : Loc) :
     stepSpec γ ρ k r (App (repM r go!"handleForceWrite") (Val #())) iprop(True) .forceWrite := by
@@ -65,7 +69,7 @@ theorem handleForceWrite.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
   wp_method_call
   wp_call
   wp_auto
-  wp_apply (GryffCoordinator.HandleForceWrite.wp_proof ρ co (replicaIface r) k s) $$ [$Hpc $Hco]
+  wp_apply ((GryffCoordDeps.handleForceWrite (GF := GF) (hG := hG)) ρ co (replicaIface r) k s) $$ [$Hpc $Hco]
     as Hco
   iapply HΦ
   iapply coord_close γ ρ k r gR h pa co xs s s t rfl Hid $$ [$Henv $Hrest $Hco HC]
@@ -92,7 +96,7 @@ theorem handleRead2Reply.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
   wp_call
   wp_auto
   wp_apply wp_ShiftInts $$ [$Hpc]
-  have hspec := GryffCoordinator.HandleRead2Reply.wp_proof ρ co (replicaIface r) k
+  have hspec := (GryffCoordDeps.handleRead2Reply (GF := GF) (hG := hG)) ρ co (replicaIface r) k
     (coordCtx γ ρ k r pa t s.ongoing) s s' outs [] _ g.T' g.ReplicaId' hstep
   simp only [read2ReplyOf] at hspec
   wp_apply hspec $$ [$Hpc $Hco $Hic $HC]
@@ -130,7 +134,7 @@ theorem handleRead1Reply.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
   wp_apply wp_Replica_Printf $$ [$Hdlog]
   try wp_auto
   wp_apply wp_ShiftInts $$ [$Hpc]
-  have hspec := GryffCoordinator.HandleRead1Reply.wp_proof ρ co (replicaIface r) k
+  have hspec := (GryffCoordDeps.handleRead1Reply (GF := GF) (hG := hG)) ρ co (replicaIface r) k
     (coordCtx γ ρ k r pa t s.ongoing) s s' outs [] _ (p.[src.gryffproto.Read1Reply, go!"Vt"]) g.Vt' rfl Hid hstep
   simp only [read1ReplyOf] at hspec
   wp_apply hspec $$ [$Hpc $Hco $Hic $HC $fVt]
@@ -161,7 +165,7 @@ theorem handleWrite1Reply.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : F
   wp_call
   wp_auto
   wp_apply wp_ShiftInts $$ [$Hpc]
-  have hspec := GryffCoordinator.HandleWrite1Reply.wp_proof ρ co (replicaIface r) k
+  have hspec := (GryffCoordDeps.handleWrite1Reply (GF := GF) (hG := hG)) ρ co (replicaIface r) k
     (coordCtx γ ρ k r pa t s.ongoing) s s' outs [] _ g.ReplicaId'
     (p.[src.gryffproto.Write1Reply, go!"Vt"]) g.Vt' rfl Hid hstep
   simp only [write1ReplyOf] at hspec
@@ -191,7 +195,7 @@ theorem handleWrite2Reply.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : F
   wp_call
   wp_auto
   wp_apply wp_ShiftInts $$ [$Hpc]
-  have hspec := GryffCoordinator.HandleWrite2Reply.wp_proof ρ co (replicaIface r) k
+  have hspec := (GryffCoordDeps.handleWrite2Reply (GF := GF) (hG := hG)) ρ co (replicaIface r) k
     (coordCtx γ ρ k r pa t s.ongoing) s s' outs [] _ g.ReplicaId'
     (p.[src.gryffproto.Write2Reply, go!"T"]) hstep
   simp only [write2ReplyOf] at hspec
@@ -236,7 +240,7 @@ theorem handleRead.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (
   wp_apply wp_Replica_Printf $$ [$Hdlog]
   try wp_auto
   rw [show g.K' = W64 0 by rw [hK]; rfl]
-  have hspec := GryffCoordinator.StartRead.wp_proof ρ co (replicaIface r) k
+  have hspec := (GryffCoordDeps.startRead (GF := GF) (hG := hG)) ρ co (replicaIface r) k
     (coordCtx γ ρ k r pa t s.ongoing) s s' outs [] g.RequestId' g.ClientId'
     (p.[src.gryffproto.Read, go!"D"]) w g.D' Hid hstep'
   wp_apply hspec $$ [$Hpc $Hco $Hic $HC $fD $Hw]
@@ -274,7 +278,7 @@ theorem handleWrite.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) 
   wp_call
   wp_auto
   rw [show g.K' = W64 0 by rw [hK]; rfl]
-  have hspec := GryffCoordinator.StartWrite.wp_proof ρ co (replicaIface r) k
+  have hspec := (GryffCoordDeps.startWrite (GF := GF) (hG := hG)) ρ co (replicaIface r) k
     (coordCtx γ ρ k r pa t s.ongoing) s s' outs [] g.RequestId' g.ClientId' g.V'
     (p.[src.gryffproto.Write, go!"D"]) w g.D' Hid hstep'
   wp_apply hspec $$ [$Hpc $Hco $Hic $HC $fD $Hw]

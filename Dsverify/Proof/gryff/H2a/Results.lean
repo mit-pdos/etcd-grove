@@ -30,6 +30,7 @@ variable [binA : wire.BinaryVarintHyps GF] -- H1-R6 / N-1
 variable [sortA : Perennial.gryff.replica2.SortSliceHyp GF]
 variable [strconvA : strconv.Assumptions] -- N-5
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- **`handlePreAccept.wp`** (`Replica2/Specs.lean`), same statement. -/
 theorem handlePreAccept_wp_link (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc)
     (m : model.PreAcceptM) : epHandlerSpec γ ρ k r h go!"handlePreAccept" (.preAccept m) := by

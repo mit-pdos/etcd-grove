@@ -11,7 +11,7 @@ statement claims exactly that. Same shape as dsv-quepaxa's `math.rand.Seed.spec`
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.Proof.math.rand.Base
+public import Proof.math.rand.Base
 
 @[expose] public section
 

@@ -6,7 +6,7 @@ Units H1c, H1e: `*gryff.Replica` implements `IGryffCoordinator` (`icoordOk` over
 module
 
 public import Dsverify.Proof.gryff.H1.Iparti
-public import Dsverify.Proof.gryff.H1.Parti
+public import Dsverify.Proof.gryff.H1.PartiSpecs
 public import Dsverify.Proof.gryff.N.Reply
 public import Dsverify.Proof.gryff.H1.Send
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
@@ -37,6 +37,7 @@ variable [strconvA : strconv.Assumptions] -- N-5
 
 set_option goose.wp.extras true
 
+variable [pD : GryffPartiDeps (GF := GF)] in
 /-- The frozen `Replica_icoordOk` with H1b-R2's premise (`isPkgInit gryff`). -/
 theorem Replica_icoordOk_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r pa : Loc)
     (t : List Ev) (ong : AMap 32 w32) :
@@ -128,7 +129,7 @@ theorem Replica_icoordOk_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3
     wp_method_call
     wp_call
     wp_auto
-    wp_apply GryffParticipant.HandleOverwrite.wp_proof $$ [$Hpc $Hpo $Hip $HV $Htp] as ⟨Hpo, HV⟩
+    wp_apply (GryffPartiDeps.handleOverwrite (GF := GF) (hG := hG) _ _ _ _ _ _ _ _ _) $$ [$Hpc $Hpo $Hip $HV $Htp] as ⟨Hpo, HV⟩
     iapply HΦ
     isplitl []
     · ipureintro; rfl
