@@ -275,10 +275,12 @@ type In struct {
 	V   string
 }
 
-// Out is an operation's output: for a get, whether K has a value and the value; nothing for a
-// put; or Unknown (the operation's outcome is unknown).
+// Out is an operation's output: for a get, whether K has a value and the value; Done for a put
+// (so that a put's output and a get's "not found" differ: remote's codec must tell outputs apart);
+// or Unknown (the operation's outcome is unknown).
 type Out struct {
 	Unknown bool
+	Done    bool
 	Found   bool
 	V       string
 }
@@ -318,7 +320,7 @@ func Op(s any, in any) any {
 		rep, ok := x.c.CheckResult()
 		if ok {
 			if kv.Put {
-				return Out{}
+				return Out{Done: true}
 			}
 			if rep.Result == "" {
 				return Out{}
@@ -408,7 +410,7 @@ func push(p []Pair, x Pair) []Pair {
 }
 
 // step is the model's step: a put of unknown outcome is pending, a get of unknown outcome
-// changes nothing; an answered put takes effect; an answered get of K finds K's value, or V if a
+// changes nothing; an answered put (Done) takes effect; an answered get of K finds K's value, or V if a
 // pending put of V at K takes effect first (it leaves Pend), or nothing if K has no value.
 func step(s State, in In, o Out) (bool, State) {
 	if o.Unknown {
@@ -418,7 +420,13 @@ func step(s State, in In, o Out) (bool, State) {
 		return true, s
 	}
 	if in.Put {
+		if !o.Done {
+			return false, s
+		}
 		return true, State{Cur: set(s.Cur, in.K, in.V), Pend: s.Pend}
+	}
+	if o.Done {
+		return false, s
 	}
 	v, ok := lookup(s.Cur, in.K)
 	if !o.Found {
@@ -447,6 +455,11 @@ func equalPairs(a []Pair, b []Pair) bool {
 	return true
 }
 
+// Model's Equal says two states are equal only when nothing is pending: a state with pending puts
+// stands for a set of configurations that the history determines and the state does not (it
+// stands for that set up to configurations that allow no more outcomes), while a state with nothing
+// pending stands for exactly one configuration (notes/dsv-vr.md, "the model's Equal").
+//
 // Model is the key-value map with pending puts (linkv's pending-writes model of the map: puts are
 // its writes), as a porcupine model. Inputs are Ins, outputs Outs.
 func Model() porcupine.Model {
@@ -459,7 +472,7 @@ func Model() porcupine.Model {
 		Equal: func(a, b any) bool {
 			x := a.(State)
 			y := b.(State)
-			return equalPairs(x.Cur, y.Cur) && equalPairs(x.Pend, y.Pend)
+			return len(x.Pend) == 0 && len(y.Pend) == 0 && equalPairs(x.Cur, y.Cur)
 		},
 	}
 }
@@ -487,20 +500,23 @@ func Codec() remote.Codec {
 		},
 		EncOut: func(out any) []byte {
 			o := out.(Out)
-			b := make([]byte, 2, 2+len(o.V))
+			b := make([]byte, 3, 3+len(o.V))
 			if o.Unknown {
 				b[0] = 1
 			}
-			if o.Found {
+			if o.Done {
 				b[1] = 1
+			}
+			if o.Found {
+				b[2] = 1
 			}
 			return append(b, []byte(o.V)...)
 		},
 		DecOut: func(b []byte) (any, bool) {
-			if len(b) < 2 || b[0] > 1 || b[1] > 1 {
+			if len(b) < 3 || b[0] > 1 || b[1] > 1 || b[2] > 1 {
 				return nil, false
 			}
-			return Out{Unknown: b[0] == 1, Found: b[1] == 1, V: string(b[2:])}, true
+			return Out{Unknown: b[0] == 1, Done: b[1] == 1, Found: b[2] == 1, V: string(b[3:])}, true
 		},
 		IsRead:    func(in any) bool { return !in.(In).Put },
 		Unknown:   func(in any) any { return Out{Unknown: true} },

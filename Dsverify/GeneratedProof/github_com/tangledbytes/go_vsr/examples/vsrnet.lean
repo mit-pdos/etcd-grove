@@ -296,6 +296,7 @@ noncomputable instance Out_typed_pointsto :
     TypedPointsto (GF := GF) github_com.tangledbytes.go_vsr.examples.vsrnet.Out where
   typedPointstoDef l v dq := iprop(
     "Unknown" ∷ typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Unknown" l) v.Unknown' dq ∗
+    "Done" ∷ typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Done" l) v.Done' dq ∗
     "Found" ∷ typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Found" l) v.Found' dq ∗
     "V" ∷ typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"V" l) v.V' dq ∗
     "_" ∷ True)
@@ -320,6 +321,22 @@ noncomputable instance Out_access_store_Unknown (l : Loc) (v : github_com.tangle
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Unknown" l) Unknown' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := Unknown' } : github_com.tangledbytes.go_vsr.examples.vsrnet.Out) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Out_access_load_Done (l : Loc) (v : github_com.tangledbytes.go_vsr.examples.vsrnet.Out) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Done" l) v.Done' dq)
+      (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Done" l) v.Done' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Out_access_store_Done (l : Loc) (v : github_com.tangledbytes.go_vsr.examples.vsrnet.Out) (Done' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Done" l) v.Done' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrnet.Out go!"Done" l) Done' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Done' := Done' } : github_com.tangledbytes.go_vsr.examples.vsrnet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
