@@ -566,7 +566,65 @@ named after the lab's specs, until each comes as one shared change. **All are in
     kitAddrs kitLis (system σ) g threads (2^63) kitLis_pairwise kitLis_disj`, then `kit_start` and,
     per machine, paxos's `wp_boot` with `wp_Orch` (orchRes, remoteAddr list, mapCtx, pendCtx,
     pendLib), `wp_Client` (clientRes γ c, `remoteAddr (clientAddrs.getD c [])` from the list,
-    mapCtx) and `wp_Server` (serverRes γ k). The only missing proof is `Client.spec`'s.
+    mapCtx) and `wp_Server` (serverRes γ k). (`Client.spec`'s proof: done, kit fork 5 below.)
+- **The kit, session of 2026-11-23 (kit fork 5: step 4, `Client.spec`)**. Done, each `lean-check -a`
+  clean, `lake build Dsverify.Proof.raxos.examples.quepaxanet.Linked` OK (2781 jobs), `#print axioms`
+  of `wp_Codec`, `wp_Gens`, `wp_Orch`, `wp_Server`, **`wp_Client`**: Lean's three; no sorry, no axiom,
+  no new hypothesis (`Hyp.lean` unchanged), no Go change; tiers: 19 raxos non-scratch violations
+  (none added). New files (all defs tier but `KitClient`, proof tier):
+  * `KitWire.lean`: **`cbMarshal.spec`** (`ClientBatch.Marshal` into a `*bufio.Writer`: the writer's
+    protocol `Q` is asked of the stream after the 8-byte length prefix too, `□ (⌜batchFit b⌝ → Q (…
+    ++ le8 len) ∗ Q (… ++ le8 len ++ enc))`; on `nil` the batch fits and its frame body was appended)
+    and **`cbMarshal_proof`** over `PbHyp.marshal` and bufio's `Writer.Write` (two writes).
+    `Unmarshal` is `Proxy/NetUnmarshal`'s `unmarshalB.spec`/`unmarshal_bounded` (stream fact `Φ`).
+    **To do when `Wire.lean` is next edited** (it rebuilds the protocol proof): delete its
+    `ClientBatch.Marshal.spec`/`ClientBatch.Unmarshal.spec` (unused, superseded by these two).
+  * `KitConn.lean`: `connInv` (dialer end of a connection to `proxyAddr k`, `net.connAt` + `connIs`,
+    a bufio writer under `proxyInProto γ k`, stream `hs (21+c) ++ frs L`, `framesOk`: each frame's
+    `batchReg` and ticket `tixAt (k, c, j) cn n`), `repInv`, `isReplica`, `replica_init`,
+    `proxyAddr_ok` (`lisProto_addr` from the proxies' wildcard `lisProto`), `wp_drop`, `wp_connect`
+    (Dial with `dial_au`, the handshake `Write`, `NewWriter`), `wp_tryConnect`, `wp_reset`,
+    **`wp_send`** (the ticket registered before the code byte, `frameBatch` for a batch the codec
+    rejects, WriteByte/`cbMarshal_proof`/Flush, drop on any error).
+  * `KitSys.lean`: **the lock invariant `sysInv γ c s`** of `s.mu`: the `waiting` map (futures with
+    `ansContract`: an answer batch, fit, one result with `opAns`), `s.next = n ≤ 20`, `cntHalf γ c n`
+    (client `c`'s whole half of the registry counter: no quarters, the lab's `nextInv` is gone) and
+    `ticketsFrom γ c n` (requests `n..19` at replicas `1..5`; `ticketsOf_perm` reorders
+    `clientRes`'s tickets); `isSysL γ c s` (persistent); `wp_deliver`.
+  * `KitRecv.lean`: the client port's stream (`cl_hs`, `cl_len`, `cl_frame` over `NetFrames`'
+    parsing), **`wp_receive`** (bufio reader, `io.ReadFull` of the handshake, `ReadByte`/
+    `unmarshal_bounded` loop, `deliver`, close, `reset` of the replica named), `wp_accept`.
+  * `KitOpLib.lean`: `resultOf_ansOf`, **`qOutOk_of_ans`** (a fit answer's output is encodable:
+    `|v| + 9 ≤ |r| ≤ |encBatch b| < 2^63`), `cmd_len_le`, `wp_command`, `wp_result`.
+  * `KitOp.lean`: `regPost` (remote's `Φ` of the clamped output and "the output is a step's"),
+    `slotUpd_opUpd` (remote's `slotUpd (qR γ)` is `opUpd`: `lin_opAU`), **`wp_Op`**: `s.next` read
+    and, if `< 20`, the request registered (`op_register`) and its five tickets taken in one critical
+    section; else the unknown output, nothing sent; stagger sleep; the future; the batch literal;
+    `wp_send` to every replica; `select` on the future (`op_collect`, `wp_result`, `clampO_of`) or
+    `time.After` (delete, unknown).
+  * `KitNewClient.lean`: **`wp_newClient`** (awaitConf forked, the configuration from the bag,
+    the `Sys` literal, the replicas appended with `replica_init`, `sysInv` from `clientRes`, Listen
+    retry at `clientAddr c`, `accept` forked, `tryConnect` loops).
+  * `KitClient.lean` (proof): **`Client.wp_proof`** (premises: remote's `ServeClient.spec` at
+    `QIn`/`QOut`, `Codec.spec`, `net.Listen/Accept/Read/Write/Close/Dial`, `ioLt.ReadFull`,
+    `bufio.NewReader.specOk`, `time.After.spec`): `tok sys := ⌜sys = *Sys s⌝` (the closures reload
+    `s` from a variable, persisted), `opMaybe_svcOp`.
+  * Moved (no change): `wp_Addrs` from `KitServer` to `KitConf`; `wp_registerProto`,
+    `wp_make_bag1` from `KitServer` to `KitAwait` (the client needs them; proofs see only defs).
+  * `Linked.lean`: **`wp_Client`** (remote's `wp_ServeClient`, `wp_Codec`, `net`'s, `IoReadFull`'s,
+    bufio's `NewReader`, Perennial's `time.After.wp_proof`).
+  * **Design findings (remote)**: none requiring a change. Remote's `op` is persistent and may
+    overlap (retried reads): handled by the lock invariant holding `s.next` with the counter's half
+    (each call takes its own sequence number; a call past the 20-request budget registers nothing).
+    `ServeClient`'s `tok sys` is returned by every `op`: a pure `tok` (the client's `*Sys` value)
+    suffices, its facts persistent (`isSysL`). The 20-request budget is the Go guard (fork 2).
+  * **Next, precisely**: (6) the top level as paxos's (unchanged plan in kit fork 4's "Next"):
+    `TopLevelDefs.lean`, the statement `quepaxa_remote_robust.spec`, `Mains.lean`, and
+    `TopLevelRobustness.lean` composing `kit_start` with `wp_Orch`, `wp_Client`, `wp_Server` (the
+    client's premises now include remote's/lintest's/perclient's `Assumptions`, `time.Assumptions`,
+    `errors.Assumptions`); with it, `Hyp.lean`'s `GrpcHyp.world_alloc` into its own class over
+    `GooseGlobalGS` (kit fork 4's finding), and the deletion of `Wire.lean`'s two stale specs (both
+    edits rebuild the protocol proof: batch them).
 - **Hypothesis audit (2026-11-23, after the kit's codec session)**: the reviewer's rule (a
   hypothesis no stronger than the real Go library: real preconditions, no spec where Go panics or
   races; nothing Perennial gives a body for) applied to `Hyp.lean`; the changes are in
