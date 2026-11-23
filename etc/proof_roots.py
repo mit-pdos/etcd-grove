@@ -93,29 +93,19 @@ def link_modules():
     return [m for m in root_modules() if m.endswith((".Link", ".MainLinked"))]
 
 
-# Every Link's namespace is under this one; `namespace()` refuses a Link that is not: a Link
-# outside it shortens the common prefix, which silently renames every trust-base entry
-# (dsv-paxos and dsv-epaxos each failed the land queue on it, #24, 2026-11-23).
-LINK_NAMESPACE = ["Perennial", "EtcdGrove"]
-
-
 def namespace():
     """The namespace this repository's declarations are in (`A.B.`: the longest common
     prefix of the namespaces the `Link.lean` files open before their first theorem),
-    stripped from the names shown. Exits, naming the file, if a Link's namespace is not
-    under `LINK_NAMESPACE`."""
+    stripped from the names shown."""
     common = None
+    opened = []
     for m in link_modules():
         with open(path_of(m), encoding="utf-8") as f:
             text = f.read()
         first = re.search(r"^theorem\b", text, re.M)
         ns = [c for n in NAMESPACE.findall(text[: first.start() if first else None])
               for c in n.split(".")]
-        if ns[: len(LINK_NAMESPACE)] != LINK_NAMESPACE:
-            want = ".".join(LINK_NAMESPACE)
-            sys.exit(f"proof_roots: {path_of(m)}: its namespace {'.'.join(ns) or '(none)'} is "
-                     f"not under {want}; put the Link's results in `namespace {want}...` (a Link "
-                     f"outside it shortens the common prefix and renames every trust-base entry)")
+        opened.append((m, ns))
         if common is None:
             common = ns
         else:
@@ -123,6 +113,21 @@ def namespace():
             while k < min(len(common), len(ns)) and common[k] == ns[k]:
                 k += 1
             common = common[:k]
+    # A `Link.lean` whose namespace leaves the one the others share shortens the common prefix,
+    # which renames every name the reports show (each baseline entry then reads as gone): fail
+    # loudly instead, naming it (remote 2026-11-21, dsv-epaxos 2026-11-23). Generic: the shared
+    # prefix is the two-component namespace most `Link`s open.
+    heads = {}
+    for m, ns in opened:
+        heads.setdefault(".".join(ns[:2]), []).append(m)
+    if len(heads) > 1:
+        major = max(heads, key=lambda h: len(heads[h]))
+        odd = [f"{path_of(m)} (namespace {h or '(none)'})"
+               for h, ms in heads.items() if h != major for m in ms]
+        raise SystemExit("proof_roots: these Link.lean files open a namespace outside "
+                         f"{major}, which every other Link.lean shares; that would rename every "
+                         "axiom in the reports. Put their results under it (or name the file "
+                         "Results.lean if it is not a link):\n  " + "\n  ".join(odd))
     return "".join(c + "." for c in common or [])
 
 
