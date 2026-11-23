@@ -462,6 +462,27 @@ P4 (d)); when they are, recheck that their tables list these packages.
   `RpcBoot` is in the shape Net will give (a per-machine boot resource). (d) H4: the client side
   awaits models-rpc-http on lean (the adaptation patch, P6); the server side and `rpcAlloc` await
   Net's next piece. (e) Not merged: lean c4e044df92 (Perennial c95e92207).
+- **P9. Sixth agent (2026-11-23, from 240a21f95a): lean, net-rpc-errors, F3.** Merged origin/lean
+  76c00a8d81 (Perennial 160fcf12a, `/shared/perennial-160fcf12a`): lean's `Dsverify/Proof/net/{rpc,http}/Init.lean`
+  (facts `True`) replace craq's own `Base.lean` (dropped; the commands' `Base.lean` import the
+  `Init`s); `etc/dsv/craq.py` drops `HYP_IMPORTS = 'known'` (default `'all'`, dsv-inithyp-fix);
+  gen-init rerun (twice), `--check` clean. Since net/rpc's fact is `True`, `rpcBootRes` now carries
+  `net.rpc.srvEnv` (as dsv-epaxos's) and `rpcPkg_cliEnv` is gone. Remote's landed API
+  (remote-adapt.md): `mapCtx_alloc ⊤ clientAddrs 18`, `Orch.spec` and the orchestrator's boot
+  carry `[∗list] a ∈ clientAddrs, budUnits a 18` (`K = 6` operations × `readTries = 3`),
+  `wp_Check … 18 (by decide)`, `reqP` per address, `opMaybe`'s third component, `newClient` a
+  plain WP. Merged `net-rpc-errors` (Net's `errOk` over `srvErrMsg`): **F3 discharged**,
+  `ServerProof.lean`'s `nodeSpec_errOk` (Read's `notFoundMsg` is not a server message,
+  `notFoundMsg_not_srv`); the statement's `errOk (nodeSpec …)` premise is gone. Tier: clean
+  (`X.wp_proof` ghost laws of `Craq/Protocol` renamed `X.holds`; `Craq/Hyps` imports net/rpc's
+  defs and specs, the clients take `Client.Call`/`Client.Close` through `RpcClientSpecs`, whose
+  instance `Link.lean` makes from Net's proofs). **F1 stays** (`removeNodeOk.spec`): it is false of
+  the model (RemoveNode's error can be a net `*OpError`, whose model `Error()` is not deterministic,
+  so no `errMsg e msg`), so the statement is still vacuous until Net gives a deterministic
+  `OpError.Error` (trusted) or `callRet` admits `errAny` (notes/net-rpc-errors.md). Also open: the
+  `RpcHttpServe.RegisterName` premise gives `isServer` of `DefaultServer` from net/rpc's `True`
+  fact (the "defaultServer from True" shape Upamanyu rejected for epaxos; epaxos put
+  `∃ γs, defaultServer γs` in `rpcBootRes`).
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
