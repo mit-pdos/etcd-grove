@@ -63,6 +63,66 @@ theorem wp_pushPend (p : GoSlice) (P : List pend) (k v : GoString) (hP : P.lengt
   iapply HΦ
   iexact Hq
 
+/-- `copyMap(m)`: a fresh map with `m`'s contents. -/
+theorem wp_copyMap (mp : Loc) (m : GMap GoString GoString) (dq : DFrac) :
+    {{ (mp ↦${dq} m : IProp GF) }}
+      (App (Val (@! github_com.despreston.go_craq.examples.craqnet.copyMap)) (Val #mp))
+    {{ (c : Loc), RET #c; c ↦$ m ∗ mp ↦${dq} m }} := by
+  wp_start as Hm
+  wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := GoString) go.string go.string) as %c Hc
+  (try wp_auto)
+  wp_func_lits
+  wp_bind (App (App (Val (map.forRange _ _)) _) _)
+  iapply (wp_map_for_range (K := GoString) (V := GoString) (fun keys (i : Int) => iprop(
+      ⌜0 ≤ i⌝ ∗ ∃ (cm : GMap GoString GoString) (kx vx : GoString),
+        c_ptr ↦ c ∗ k_ptr ↦ kx ∗ v_ptr ↦ vx ∗ c ↦$ cm ∗
+        ⌜∀ x, cm !! x = if x ∈ keys.take i.toNat then m !! x else none⌝))) $$ Hm
+  iintro %keys %hkeys
+  isplitl [c k v Hc]
+  · isplitr
+    · ipureintro; omega
+    iexists ∅, _, _
+    iframe
+    ipureintro
+    intro x
+    simp
+  isplitl []
+  · imodintro
+    iintro %i %key %val ⟨%hk1, %hk2⟩ ⟨%hi, %cm, %kx, %vx, Hcp, Hk, Hv, Hc, %Hcm⟩
+    wp_auto
+    wp_apply (wp_mapInsert go.string c cm key val) $$ [$Hc] as Hc
+    (try wp_auto)
+    unfold forMapPostcondition
+    iright; ileft
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; omega
+    iexists _, key, val
+    iframe
+    ipureintro
+    intro x
+    rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, hk1]
+    by_cases hx : x = key
+    · subst hx
+      simp [GMap.lookup_insert, hk2]
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hx), Hcm x]
+      simp [hx]
+  · iintro ⟨%h0, %cm, %kx, %vx, Hcp, Hk, Hv, Hc, %Hcm⟩ Hm
+    wp_auto
+    iapply HΦ
+    have hcm : cm = m := by
+      apply GMap.map_eq
+      intro x
+      rw [Hcm x, ← hkeys.2.1, List.take_of_length_le (by omega)]
+      by_cases hx : x ∈ keys
+      · simp [hx]
+      · rw [ite_eq_right_iff.2 (fun h => absurd h hx)]
+        have h1 : ¬ (m !! x).isSome = true := fun h => hx ((hkeys.1 x).2 h)
+        cases h : m !! x <;> simp_all
+    rw [hcm]
+    iframe
 
 end proof
 
