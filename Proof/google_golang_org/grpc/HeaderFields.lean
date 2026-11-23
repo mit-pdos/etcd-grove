@@ -44,6 +44,22 @@ def keyOk (k : GoString) : Prop :=
 /-- A printable ASCII byte (`hasNotPrintable`'s complement): `0x20`-`0x7E`. -/
 def printable (b : w8) : Prop := W8 32 ≤ b ∧ b ≤ W8 126
 
+instance (b : w8) : Decidable (printable b) := by unfold printable; infer_instance
+
+/-- `keyByteOk` on the byte's value. -/
+theorem keyByteOk_iff (b : w8) : keyByteOk b ↔
+    (97 ≤ uint.Z b ∧ uint.Z b ≤ 122) ∨ (48 ≤ uint.Z b ∧ uint.Z b ≤ 57) ∨ uint.Z b = 46 ∨
+      uint.Z b = 45 ∨ uint.Z b = 95 := by
+  unfold keyByteOk
+  simp only [BitVec.le_def]
+  constructor <;> intro h <;> word
+
+/-- `printable` on the byte's value. -/
+theorem printable_iff (b : w8) : printable b ↔ 32 ≤ uint.Z b ∧ uint.Z b ≤ 126 := by
+  unfold printable
+  simp only [BitVec.le_def]
+  constructor <;> intro h <;> word
+
 /-- **`ValidatePair(k, vs...)` returns `nil`**: the key is `keyOk`, and it ends in `-bin` or every
 value's bytes are printable. -/
 def pairOk (k : GoString) (vs : List GoString) : Prop :=
