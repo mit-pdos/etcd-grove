@@ -1,7 +1,7 @@
 /-
 **`bootstrap`'s file-system laws over the WAL's sealed slot** (claim #34, 2026-11-23;
-`BootParts.lean`'s header). `wal.bootRes` is sealed (`WalApi.lean`), so the laws that open it are
-proved here, in the package, with `import all` of the slot's module: `bootFs.touchData.law` from
+`BootParts.lean`'s header). `wal.bootRes` is sealed (`WalApi.lean`); the laws open it through its
+API law `wal.bootRes_iff` (no `import all` of the slot's module): `bootFs.touchData.law` from
 `TouchDirAll.specExisting` (at every file-extension instance: the slot's data area names its own).
 Lean-first.
 -/
@@ -10,7 +10,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootParts
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllExisting
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllLemmas
-import all Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 
 @[expose] public section
 
@@ -40,8 +40,7 @@ theorem bootFs.touchData_law_holds
     bootFs.touchData.law (GF := GF) := by
   intro cfg lg
   iintro %Φ ⟨#Hpkg, #Hlg, Hb⟩ HΦ
-  iunfold wal.bootRes at Hb
-  icases Hb with ⟨Hdd, %hw, Hma⟩
+  icases (wal.bootRes_iff cfg).1 $$ Hb with ⟨Hdd, %hw, Hma⟩
   iunfold memberAreasFresh at Hma
   icases Hma with ⟨Hw, Hda⟩
   iunfold dataAreaFresh at Hda
@@ -77,7 +76,7 @@ theorem bootFs.touchData_law_holds
     iright
     isplitr
     · ipureintro; rfl
-    iunfold wal.bootRes
+    iapply (wal.bootRes_iff cfg).2
     iframe Hdd
     isplitr
     · ipureintro; exact hw
