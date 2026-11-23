@@ -304,6 +304,57 @@ theorem State.InMemory.wp_proof
         iframe
         isplitr; · iexact Hgch
         ipureintro; exact Hjp2
+  clear Hjp2
+  simp -zeta only [jp3] at Hjp3
+  replace Hjp3 := bind_ok Hjp3; obtain ⟨cm, hcm, Hjp3⟩ := Hjp3
+  extract_lets jp4 at Hjp3
+  wp_join iprop(∃ (gtl : GoSlice) (tl : TermFn Int),
+      x_ptr ↦ ({ s' := p, n' := n, ev' := e } : G.inMem) ∗ s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      r_ptr.[G.MemResult, go!"TermLen"] ↦ gtl ∗ termIntsRO gtl tl ∗ ⌜jp4 tl = .ok r⌝)
+    at next with [x s ev n RTermLen] as ⟨%gtl, %tl, x, s, ev, n, RTermLen, #Htl, %Hjp4⟩
+  · rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_cmt_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_cmt _ _ cm $$ [Hx]
+    · iframe Hx; ipureintro; exact hcm
+    cases cm
+    · simp only [Bool.false_eq_true, ite_false] at Hjp3
+      wp_auto
+      replace Hjp3 := bind_ok Hjp3; obtain ⟨tl, htl, Hjp3⟩ := Hjp3
+      simp only [pure_ok, Except.ok.injEq] at htl
+      subst htl
+      wp_join_done
+      iexists g.TermLen', s.termLen
+      iframe
+      isplitr; · iexact HTermLen
+      ipureintro; exact Hjp3
+    · simp only [ite_true] at Hjp3
+      wp_auto
+      replace Hjp3 := bind_ok Hjp3; obtain ⟨t, ht, Hjp3⟩ := Hjp3
+      replace Hjp3 := bind_ok Hjp3; obtain ⟨cv, hcv, Hjp3⟩ := Hjp3
+      replace Hjp3 := bind_ok Hjp3; obtain ⟨tl, htl, Hjp3⟩ := Hjp3
+      simp only [pure_ok, Except.ok.injEq] at htl
+      subst htl
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_T _ _ t $$ [Hx] as %ut %Hut
+      · iframe Hx; ipureintro; exact ht
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_c_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_c _ _ cv $$ [Hx] as %uc %Huc
+      · iframe Hx; ipureintro; exact hcv
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_With_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_With _ _ ut uc $$ [HTermLen] as %gtl #Hgtl
+      · iframe HTermLen; ipureintro; have := HW.termLen.1; omega
+      wp_join_done
+      iexists gtl, s.termLen.with (sint.Z ut) (sint.Z uc)
+      iframe
+      isplitr; · iexact Hgtl
+      ipureintro; rw [Hut, Huc]; exact Hjp3
+  clear Hjp3
+  simp -zeta only [jp4] at Hjp4
+  replace Hjp4 := bind_ok Hjp4; obtain ⟨d1, hd1, Hjp4⟩ := Hjp4
+  extract_lets jpF jpU jp5 at Hjp4
   trace_state
   sorry
 
