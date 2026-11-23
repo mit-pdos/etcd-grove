@@ -15,14 +15,21 @@ threads, **no thread of either machine is stuck or has an unrecovered panic** (`
 panics if the `Get` after an acknowledged `Put` returns another value, so it never does.
 
 **The premises.** The deployment: the two addresses distinct and valid, no connection, no listener
-(`DistDeploy`, decidable but for the network's start); the member machine's data directory and WAL area
-empty (`MemberFiles`; `Robust` itself gives the files as on disk, `FsInit`). Carried over from the
+(`DistDeploy`, decidable but for the network's start); each machine's files as on disk (`FsInit`, in
+`MemberFiles` and `ClientFiles`: `Robust`'s own initial-state premise does not give it at `etcdFsSem`), and
+the member machine's data directory and WAL area empty (`MemberFiles`). Carried over from the
 in-process `putget` (`Spec/.../examples/etcd/putget/Main.lean`) until discharged: `bootstrap`'s results
 (`BootFacts`), the server's workload and environment premises (`authRecordsFit`, ...), Go's method sets of
 the gRPC service values and `errors.As`'s target, the member's named Iris premises (`Hprem`: the
 trust-boundary contracts `bootstrapContract`, `bootMarshal`, the raft wrapper's, at every ghost-state
 instance, as the retired single-process `etcd_safe`'s `Hprem`), `context`'s two classes (`Hctx`,
 `Hcec`), and the programs' metric names (`HNs`).
+
+**The step bound** is `2 ^ 28 - 1`, not the single-process theorems' `2 ^ 40 - 11`: Perennial's distributed
+adequacy (`goose_dist_adequacy`) bounds the threads over every execution of `n` steps, which the bridge meets
+with `n + 2` threads, and the server's specs take `threadBound ≤ 2 ^ 28`; an along-the-execution form, as
+the single-process `goose_adequacy_below`, would restore the larger bound (`notes/perennial-changes.md`,
+2026-11-23).
 
 **What the semantics assumes** (not premises): the file extension at `etcdFsSem` (no file system call
 fails, on the member's machine); the request ids' issue record keyed by heap address (sound here: no
@@ -84,9 +91,9 @@ def putget_safe.spec : Prop :=
       prometheus.namesUnclaimed (bootClient client)
         github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames)
     -- the machines' start states
-    (σm σc : state) (g : GlobalState) (Hm : MemberFiles σm)
+    (σm σc : state) (g : GlobalState) (Hm : MemberFiles σm) (Hc : ClientFiles σc)
     (Hd : Net.DistDeploy (addrs peer client) (system peer client σm σc) g),
-    Robust [] (system peer client σm σc) g (threads := 2 ^ 28) (bound := 2 ^ 40 - 11)
+    Robust [] (system peer client σm σc) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
 
 end etcd_putget_dist
 end EtcdGrove

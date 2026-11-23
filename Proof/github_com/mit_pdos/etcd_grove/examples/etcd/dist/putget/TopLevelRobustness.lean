@@ -2,31 +2,31 @@
 
 # `etcd/dist/putget`: the proof skeleton of `putget_safe` (`notes/putget-dist-plan.md`, section 5)
 
-Not closed yet: `putget_safe_of_boot` proves `putget_safe.spec` from two named hypotheses, and
-`putget_safe` (the plain name, `theorem putget_safe : putget_safe.spec`) is declared once both are
-discharged. No axiom and no `sorry`.
+Not closed yet: `putget_safe_of_boot` proves `putget_safe.spec` from one named hypothesis, `PutgetBoot`, and
+`putget_safe` (the plain name, `theorem putget_safe : putget_safe.spec`) is declared once it is discharged.
+No axiom and no `sorry`. The bridge from one WP per machine to `Robust []` is proved
+(`Net.robust_of_distBootI`, `Net/Statement/DistBridgeExts.lean`, over any list of extensions with the net
+extension), with the interpretations' initial-state conditions from the statement's `FsInit` premises
+(`etcdNetExts_initP`).
 
-- `PutgetBridge`: the bridge from one WP per machine to `Robust []` for the extensions `etcdNetExts` at the
-  ghost-state bundle `putgetGF` (`Net.robust_of_distBootRB`'s statement, which is proved for `netExts` only).
-  **Provable now**: `robust_of_distBootRB`'s proof with `putgetGF`'s `GooseGpreS` instance, the three
-  extensions' init predicates and the net extension's part of the global start resources (the plan's
-  section 3). No axiom needed.
-- `PutgetBoot`: at the statement's premises, the start update from the two addresses unset (the net library's
-  start) to a share per machine, each machine's boot program safe from its share (`BootWp`). This is the
-  two machines' proofs:
-  * the member's (`putget.Member`): the in-process `putget`'s `Main.wp_proof` up to `Serve`, given its start
-    resources (`dataDirFresh`, `addrClaim` of its client address, the metric names' registration rights,
-    `envVerifyOff` through `env.ClearProxy`'s spec, a thread token), which only the single-process start
-    axiom hands out today (the plan's section 3: a question for the distributed start, S4);
-  * the client's (`putget.Client`): the in-process `Main.wp_proof`'s second half, given the member's KV
-    registrations at the client machine's own ghost-state instance; across machines this needs phase 7 S2's
-    heap-independent registration (the plan's section 4: **blocked on S2**; the in-process `isGrpcRpcMd` holds
-    a WP of the member's handler at the holder's heap and cannot cross machines).
+`PutgetBoot`: at the statement's premises, the start update from the two addresses unset (the net library's
+start) to a share per machine, each machine's boot program safe from its share and its whole start
+(`DistBootWpS`: its files' and listeners' start resources, its main thread's token, the logic's bounds). Its
+split (the plan's section 7):
+* the start: the client address's service right and the one-shot name `γE` of the member's apply
+  environment (upamanyus's S2 names, #24; not defined here until his signatures are posted);
+* the member's boot (`putget.Member`): the in-process `Main.wp_proof` up to `Serve`, given its start
+  resources: `threadTok` and the address's listen token from the bridge, its files from `MemberFiles`;
+  `addrClaim` (until S2), `dataDirFresh` (until the WAL link), the metric names' rights (until
+  `prom-registry`) and `env.ClearProxy`'s spec (until an `os.Unsetenv` model) as hypotheses;
+* the client's boot (`putget.Client`): the in-process `Main.wp_proof`'s second half over S2's `Invoke`
+  (**blocked on S2**: today's `isGrpcRpcMd` holds a WP of the member's handler at the holder's heap and cannot
+  cross machines; S2 redefines it as `grpcSvcAt` with `envAt γE E`).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopLevelRobustness
-public import Net.Statement.DistBridge
+public import Net.Statement.DistBridgeExts
 
 @[expose] public section
 
@@ -43,30 +43,6 @@ open Iris Iris.BI Iris.ProgramLogic Robustness go_etcd_io.raft.v3
 
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
   etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem GooseGlobalGS.gooseInvGS
-
-/-- **A machine's boot program `e` is safe from `P`** (`Net.DistBootWpG` for `etcdNetExts`, which is
-stated for `netExts`): under every ghost state over the global one `G` whose Go context is `lctx`, from
-no package initialized, it returns `#()` and is not stuck. -/
-def BootWp [GoGlobalContext] [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC putgetGF] (e : Expr)
-    (P : IProp putgetGF) : Prop :=
-  ∀ hG : HeapGS .hasLC putgetGF, hG.goose_globalGS = G →
-    hG.goose_localGS.goose_go_local_context = lctx →
-    P ⊢ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ -∗
-      WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }}
-
-/-- **The bridge for `etcdNetExts` at `putgetGF`** (`Net.robust_of_distBootRB`'s statement for this bundle):
-under a deployment's start, an update from the extension's start resources (every address unset) to a share
-`Ps i` for each machine `i`, each machine's boot program safe from its share, gives `Robust` with no crashing
-machine. Provable (see the file header); a hypothesis of `putget_safe_of_boot` until it is proved. -/
-def PutgetBridge : Prop :=
-  ∀ [GoGlobalContext] [lctx : GoLocalContext] (as₀ : List GoString) (nodes : List (Expr × state))
-    (g : GlobalState) (threads bound : Nat),
-    (∀ [GooseGlobalGS .hasLC putgetGF], receiptBound putgetGF ≤ bound →
-      ⊢ ([∗list] a ∈ as₀, Net.addrUnset a) ={⊤}=∗
-        ∃ Ps : Nat → IProp putgetGF,
-          ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → BootWp m.1 (Ps i)⌝ ∗
-          [∗list] i ↦ _m ∈ nodes, Ps i) →
-    Net.DistDeploy as₀ nodes g → Robust [] nodes g threads bound
 
 /-- **The two machines' boot WPs** (see the file header): at `putget_safe.spec`'s premises, the start
 update from the deployment's addresses unset to a share per machine from which its boot program is safe.
@@ -92,20 +68,28 @@ def PutgetBoot : Prop :=
         github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames ∧
       prometheus.namesUnclaimed (bootClient client)
         github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames)
-    (σm σc : state) (_Hm : MemberFiles σm),
-    ∀ [GooseGlobalGS .hasLC putgetGF], receiptBound putgetGF ≤ 2 ^ 40 - 11 →
+    (σm σc : state) (_Hm : MemberFiles σm) (_Hc : ClientFiles σc),
+    ∀ [GooseGlobalGS .hasLC putgetGF], receiptBound putgetGF ≤ 2 ^ 28 - 1 →
       ⊢ ([∗list] a ∈ addrs peer client, Net.addrUnset a) ={⊤}=∗
         ∃ Ps : Nat → IProp putgetGF,
           ⌜∀ (i : Nat) (m : Expr × state), (system peer client σm σc)[i]? = some m →
-            BootWp m.1 (Ps i)⌝ ∗
+            Net.DistBootWpS (2 ^ 28 - 1) m.1 m.2 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ system peer client σm σc, Ps i
 
-/-- **`putget_safe` from the bridge and the two machines' boot WPs** (see the file header). -/
-theorem putget_safe_of_boot (HB : PutgetBridge) (HS : PutgetBoot) : putget_safe.spec := by
+/-- **`putget_safe` from the two machines' boot WPs** (see the file header), by the all-stable bridge
+over `etcdNetExts` (`Net.robust_of_distBootI`), with each machine's `FsInit` from the statement. -/
+theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
   intro _ _ _ _ _ _ _ _ _ _ _ Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem HNs σm σc g
-    Hm Hd
-  exact HB (addrs peer client) (system peer client σm σc) g (2 ^ 28) (2 ^ 40 - 11)
-    (fun hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem HNs σm σc Hm hb) Hd
+    Hm Hc Hd
+  refine Net.robust_of_distBootI (GF := putgetGF) (addrs peer client) (system peer client σm σc) g
+    (2 ^ 28) (2 ^ 28 - 1) ?_
+    (fun hb => HS Hctx Hcec peer client id ctxs boot Hbf Haf Hbuq Hrf Hdbo Hprem HNs σm σc Hm Hc hb) Hd
+  refine etcdNetExts_initP g _ ?_
+  intro m hm
+  simp only [system, List.mem_cons, List.not_mem_nil, or_false] at hm
+  rcases hm with rfl | rfl
+  · exact Hm.1
+  · exact Hc
 
 end etcd_putget_dist
 end EtcdGrove

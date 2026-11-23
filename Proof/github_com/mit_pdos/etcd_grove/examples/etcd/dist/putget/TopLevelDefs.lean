@@ -13,6 +13,7 @@ addresses, and the member machine's file premise (`MemberFiles`).
 module
 
 public import Robustness.Statement
+public import Perennial.GooseLang.InitAdequacy
 public import Net.Statement.DistDeploy
 public import GooseLang.Ext.Net.Ghost
 public import GooseLang.Ext.IdIssue.Specs
@@ -93,6 +94,18 @@ def putgetGF : BundledGFunctors := fun i =>
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
 
+/-- The universal camera at slot 0. -/
+def putgetGF_allG : AllG putgetGF := ⟨⟨0, rfl⟩⟩
+
+/-- The ghost state of GooseLang over `etcdNetExts` (each extension's at the universal camera). -/
+instance putgetGF_gooseGpreS : GooseGpreS putgetGF where
+  goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
+  goose_preG_heap := ⟨⟨5, rfl⟩⟩
+  goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
+  goosePreGExts := (⟨putgetGF_allG⟩, ⟨putgetGF_allG⟩, ⟨putgetGF_allG⟩, PUnit.unit)
+  goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
+  goosePreGAllG := putgetGF_allG
+
 /-- **A ghost-state instance at the local context `lctx`** (the Iris premises are stated over every
 instance of the ghost state whose Go local context is the semantics' own, as the retired
 single-process `etcdHeapAt`). -/
@@ -133,11 +146,29 @@ end programs
 
 /-! ## The member machine's files -/
 
-/-- **The member machine's files at the start** (beside `Robust`'s `FsInit`, the files as on disk): the
-member's data directory and WAL area are roots of its file system, empty of what a member creates
+/-- **The member machine's files at the start**: as on disk (`FsInit`: `etcdFsSem`, `Fs.fsSemWithS`, keeps
+`ExtSemantics`'s default `initLocal`, so `Robust` does not give it; `notes/putget-dist-plan.md` section 5),
+and the member's data directory and WAL area roots of its file system, empty of what a member creates
 (`etcdWalAreasInit`, one directory: the single-process examples' premise, per machine). -/
 def MemberFiles [ElemExt Fs.fsExt] (σ : state) : Prop :=
+  Fs.FsInit (extLocal Fs.fsExt σ.world) ∧
   etcdWalAreasInit (extLocal Fs.fsExt σ.world) [memberDataDir name]
+
+/-- **The client machine's files at the start**: as on disk (`FsInit`; its `fileutil` initializer probes
+the file system, review F11 of `notes/etcd-dist-plan.md`). -/
+def ClientFiles [ElemExt Fs.fsExt] (σ : state) : Prop :=
+  Fs.FsInit (extLocal Fs.fsExt σ.world)
+
+attribute [local instance] etcdNetExts_hasIdIssue etcdNetExts_hasFs etcdNetExts_hasNet
+
+/-- **The interpretations' conditions on the machines' initial states**, for `etcdNetExts`: the network's
+from `Robust`'s `extsInitGlobal` (no connection), each machine's files from `FsInit` (the issue record's
+are `True`). -/
+theorem etcdNetExts_initP (g : GlobalState) (nodes : List (Expr × state))
+    (Hfs : ∀ m, m ∈ nodes → Fs.FsInit (extLocal Fs.fsExt m.2.world)) :
+    extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
+      extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld :=
+  fun hg _ => ⟨⟨trivial, trivial, hg.2.2.1, trivial⟩, fun m hm => ⟨trivial, Hfs m hm, trivial, trivial⟩⟩
 
 end etcd_putget_dist
 end EtcdGrove
