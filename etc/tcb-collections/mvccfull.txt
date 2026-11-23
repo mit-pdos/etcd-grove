@@ -40,7 +40,6 @@ axiom mvcc.hashStorage.Store.wp_proof
 axiom netAddrFree
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewGauge.wp_proof

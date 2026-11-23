@@ -1,28 +1,49 @@
 /-
-**A hypothesis**: `net.http`'s initializer meets Perennial's initialization spec (notes/dsv-gryff.md,
-"Hypotheses"; the pattern of dsv-vr's `Dsverify/Proof/encoding/json/Init.lean`): the net/http model's Lean half has no package initialization yet (its import
-closure, `net/url`, `crypto/tls`, `net/textproto`, `go/token`, ..., has no instances in `Net/`).
-The rule is no new axiom, so the spec is the class `InitHyp` (a `Prop`), which every theorem whose
-proof initializes `net.http` takes as an instance argument, up to the kit's closed statement. Replace
-by the proved `wp_initialize'` when it lands.
+The initializer of `net/http` as a **hypothesis** of the part's EPaxos proofs (notes/dsv-epaxos.md,
+"Hypotheses"; `etc/gen-init.py`'s `DSV_HYP_INITS`): `Net/`'s model of net/http has no initializer proof (plan 5.2 item 7; its imports' initializers are not all translated). The class `net.http.InitHyp GF` says that
+it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/http`);
+generated initializers take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`). To discharge:
+prove `net.http.wp_initialize'` (a generated `Init.lean` without axioms) and replace this module by it.
 -/
 module
 
-public import Dsverify.Proof.net.http.Base
+public import Net.GeneratedProof.net.http
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic
+open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 namespace net.http
 
-/-- **Hypothesis** (the file header): `net.http`'s initializer establishes its package fact. -/
+section def_
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- The package's fact, `True`, written by hand (not `define_is_pkg_init`, which needs the facts of
+all its imports, some of which have none in the part): no importer reads the imports' facts
+through it. -/
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
+  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
+/-- Its well-formedness: `get_is_pkg_init` gives its fact (its imports' are not constrained). -/
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
+  { get_is_pkg_init_prop_def := fun g => g pkg_id.net.http = isPkgInit pkg_id.net.http ∧ True }
+
+end def_
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
+
+/-- **Hypothesis** (the file header): `net/http`'s initializer establishes its package fact. -/
 class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
     (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] : Prop where
   wp_init : ∀ (get_is_pkg_init : GoString → IProp GF),
@@ -30,11 +51,7 @@ class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc 
     {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http }}
 
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
-
-/-- Perennial's form of `net.http`'s initialization, from the hypothesis. -/
+/-- Perennial's form of `net/http`'s initialization, from the hypothesis. -/
 theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.net.http get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
@@ -44,5 +61,4 @@ theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF
 end init
 
 end net.http
-
 end Perennial

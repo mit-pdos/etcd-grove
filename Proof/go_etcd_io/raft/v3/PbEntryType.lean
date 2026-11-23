@@ -8,10 +8,10 @@
   (`optCell`), `Data` `nil` or a non-nil slice (Go's `== nil` is `= slice.nil`) holding its bytes
   read-only (`bytesC`), the hidden fields' invariant at `c.uf`, which gives `uf`'s validity
   (`pbMsg` records `ufWire` at the type's schema, `pbSchemaOf`: `pbMsg_uf_entry`).
-- `entryEncC` (opaque) and its one trusted fact `entryEncC_ok`, backed by Go round-trip tests of
-  `proto.Size` against `entrySize` and of `Unmarshal(Marshal)`.
+- `entryEncC` and `entryEncC_ok` (until 2026-11-23 opaque and its one trusted fact; since protobuf
+  stage S1, #37, the wire codec `entryEncRaw` and a theorem, `PbWireRaft.lean`).
 - `pbEntryM` (the data, no axiom), `pbEntryC` (with the encoder), its registration `pbEntryC_reg`,
-  and `pbEntryC_sat : pbEntryM.Sat` (`pbEntryC.data` is `pbEntryM`; whose axioms do not include `entryEncC_ok`).
+  and `pbEntryC_sat : pbEntryM.Sat` (`pbEntryC.data` is `pbEntryM`).
 
 **Why `ro` is not today's `entRO`.** `entRO` (`InvPb.lean`) reads a `nil` cell and a zero one
 alike, and an empty non-nil `Data` as a nil one: `ro_iff` at `ro := entRO` is unprovable. (Its

@@ -233,7 +233,7 @@ theorem osFsQ_crash_adequacy (Q : OsState → OsState → Prop) [hPre : GooseGpr
     imodintro
     isplitl [Hwp]
     · rw [← hw]; iexact Hwp
-    iintro %L' Hcr Hcs Hgs
+    iintro %L' Hcr Hcs Hgs _
     have Hc : @extsCrashStart osFsExts (osFsExtsSemanticsWith Q) osFsExtsInterp
         (osFsExtsCrashInterpWith Q) GF hG.goose_localGS L' ⊢
         osCrashStartQ Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) := by

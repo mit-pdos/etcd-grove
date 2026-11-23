@@ -1,14 +1,16 @@
 /-
-**A hypothesis**: `math.rand`'s initializer meets Perennial's initialization spec (notes/dsv-gryff.md,
-"Hypotheses"; the pattern of dsv-vr's `Dsverify/Proof/encoding/json/Init.lean`): Perennial translates `math/rand` but proves no initialization of it (the lab's
-`Harness/Proof/math/rand.lean` stated its own).
-The rule is no new axiom, so the spec is the class `InitHyp` (a `Prop`), which every theorem whose
-proof initializes `math.rand` takes as an instance argument, up to the kit's closed statement. Replace
-by the proved `wp_initialize'` when it lands.
+**A hypothesis**: `math/rand`'s initializer meets Perennial's initialization spec (notes/dsv-rabia.md,
+"The hypotheses"). Perennial translates `math.rand`'s variables' initializers names only (the main
+tree's trust-boundary axiom `opaqueInitsOk`; dsv-quepaxa's hypothesis too), so its `initialize'`
+cannot be proved here, and the rule is no new axiom: the spec is the class `InitHyp`
+(a `Prop`), which every theorem whose proof initializes `math.rand` takes as an instance argument
+(`etc/gen-init.py`'s `dsv_inits` adds the section variable, `dsv_hyp_fix`, as for dsv-vr), up to the
+kit's closed statement. Replace by the model's proved `wp_initialize'` when it lands.
 -/
 module
 
-public import Dsverify.Proof.math.rand.Base
+public import Proof.math.rand.Base
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -44,5 +46,4 @@ theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF
 end init
 
 end math.rand
-
 end Perennial

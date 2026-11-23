@@ -75,6 +75,48 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   write a request). Every existing spec statement (`Dial`, `NewClient`, `NewClientWithCodec`, `ServeConn`,
   `ServeCodec`, `Accept`, ...) unchanged in text; `Dial` and `Accept` use `rpcAddr`'s `[] []`.
 - **Decision.** Accepted (the shapes posted to the kits, 2026-11-23); applied on branch `models-rpc-http`.
+## 2026-11-23: `DescribeConfChange` proved; `ConfChangeType.String`/`ConfChangeTransition.String` trusted models with exact specs (builder-fprintf-leaves, #25)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/DescribeConfChange.lean` (unchanged; `DescribeConfChange.wp_proof` an
+  axiom until this change, now a theorem); new: `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`,
+  `ConfChangeTransition__String.lean` (exact: `raftpb.ccTypeString`/`ccTransitionString`, the name table's
+  entry else the decimal), against the plan's `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`
+  (assumed, some string). raftpb's package fact (`Proof/go_etcd_io/raft/v3/Base.lean`) grows by the two tables.
+- **Defect.** None in a statement: the axiom's triple was unprovable only for want of models. `%v` of the
+  transition and of each change's type calls their `String()`, which raftpb translated names-only, and
+  Perennial's `fmt` admits such an argument only with a `stringMethodSpec`.
+- **Evidence.** `Proof/go_etcd_io/raft/v3/DescribeConfChange.lean`, over Perennial `9da0efb89`'s
+  `strings.Builder` and `7b2259a12`'s `fmt.wp_Fprintf`/`wp_Fprintf_bytes`. Go test
+  `TestConfChangeEnumStringIsNameTable` (`examples/raft/tracecheck/msgtype_string_test.go`).
+- **Proposed change.** The two methods trusted (`Code/go_etcd_io/raft/v3/raftpb.toml`; models in
+  `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, `MessageType.String`'s precedent, Q9), their specs exact as
+  `MessageType.String`'s (stronger than the plan's; the plan's follows when its raftpb is next reworked).
+  Trust base: -1 axiom (`DescribeConfChange.wp_proof`), +2 trusted models.
+- **Decision.** Trusted models approved by the coordinator under the user's delegation (2026-11-23); review
+  requested on etcd-grove#25. Applied (builder-fprintf-leaves).
+## 2026-11-23: `addFeatureGateMetrics.spec` -- `isFeatureGate` does not give what the body needs (featuregate-2, claim #36)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean`, `addFeatureGateMetrics.spec`
+  (the premise `isFeatureGate fg`, `Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`); the plan's
+  `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean` (over `Features.serverGate`).
+- **Defect.** Unprovable over the real body (`server.go:2496-2506`) as stated. `isFeatureGate fg` is only a
+  contract on `Enabled(f)` for `f ∈ serverFeatures`. The body calls `fg.(MutableFeatureGate).GetAll()`, which
+  loads `f.known`: the premise owns nothing of the gate's fields, so the load cannot be stepped (and in the
+  logic a `*featureGate` whose `enabled` holds the server's features but whose `known` is empty meets the
+  premise, and `GetAll`'s type assertion of `nil` panics). And `GetAll` returns `known`, which holds
+  `featuregate`'s own `AllAlpha` and `AllBeta` (`defaultFeatures`, cloned by `New`), not in `serverFeatures`:
+  the loop's `fg.Enabled("AllAlpha")` is outside the contract.
+- **Evidence.** The body read against the predicate; no proof attempted (the gate's provider,
+  `features.NewDefaultServerFeatureGate.wp_proof`, is still an axiom: its post states `isFeatureGate`).
+- **Proposed change.** `isFeatureGate fg` also gives `GetAll`'s contract: it returns a fresh map whose keys
+  are features `Enabled` answers (the contract's feature set widened from `serverFeatures` to a set `S ⊇
+  serverFeatures` the gate's `known` has, `AllAlpha`/`AllBeta` included) and whose `PreRelease` strings are
+  valid UTF-8 (`labelMapOk` for `serverFeatureEnabled`'s `With`). The five proofs that destructure the
+  predicate (`EtcdServer__{FeatureEnabled,NewUberApplier,Txn}`, `NewServer`, `NewServerR`) take one more
+  component. Made after `NewDefaultServerFeatureGate` is proved (until then the change strengthens that
+  axiom's post, a trust-boundary spec).
+- **Decision.** Pending: waits for `NewDefaultServerFeatureGate`'s proof (blocked on `maps.Clone`,
+  `notes/perennial-changes.md`).
 
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
@@ -5183,6 +5225,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Applied: an axiom retired, callee contracts restated so that every caller proves on top; no
   top-level statement changes.
 
+## 2026-11-23: `semver.Version.LessThan` back to the trust boundary; `apply.isCluster`'s `Version()` law back to `True` (prove-ps2-version)
+
+- **Spec.** Reverts the 2026-11-22 entry (prove-ps2-semver). `semver.Version.LessThan.spec`
+  (`Spec/github_com/Masterminds/semver/v3/Version__LessThan.lean`): again of any `v`, `o` not nil, some boolean;
+  `semver.Version.LessThan.wp_proof` again an axiom. `apply.isCluster`'s `Version` law (`apply/Contracts.lean`):
+  the post `⌜v = null⌝ ∨ ∃ x, v ↦□ x` again `True`. The callers' proofs (`version/LessThan`,
+  `rafthttp/compareMajorMinorVersion`, `apply/applierV3backend__ClusterVersionSet`) as before 2026-11-22.
+- **Defect.** The 2026-11-22 change was a stronger trusted premise, not a proved fact: `isCluster` reaches every
+  top-level theorem through `clusterApplyOk`, `bootOk`, `bootstrapContract` and `bootPremise` (`bootstrap` and
+  `RaftCluster.Version` are not verified: `membership` translates `Version` names-only, and the cluster's lock
+  invariant `rcLockInv` holds nothing of `c.version`). Upamanyu's ruling on etcd-grove#18 (2026-11-23): no
+  axiom is retired by growing a top-level premise.
+- **Evidence.** `semver.Version.Compare` and its callees stay proved over the real code
+  (`Proof/github_com/Masterminds/semver/v3/{Version__Compare,…}.lean`), linked but used by no proof until
+  `LessThan` can take ownership; `LessThan` stays translated with its body (`v.Compare(o) < 0`).
+- **Proposed change.** Retire the axiom again once `ClusterVersionSet`'s `prev` has a proved ownership: the
+  cluster's version field in `rcLockInv` (`c.version` nil or read-only), `RaftCluster.Version`/`SetVersion`/
+  `Recover` translated and proved over it, and the cluster's construction in `bootstrap` verified so that
+  `bootOk`'s `isRaftCluster` is proved, not assumed.
+- **Decision.** Applied (reverted).
 ## 2026-11-23: `Client.Call.spec` asks the codec to decode only the method's answers (net/rpc model)
 
 - **Spec.** `Net/Spec/net/rpc/Client__Call.lean` (and `Client__Go.lean`, `Client__send.lean`): the decoding

@@ -3,7 +3,9 @@
 # `DefaultFeatureGate`'s methods, `featuregate.FeatureGate`, is in scope of its importers: the
 # etcd3 store and the storage package call `utilfeature.DefaultFeatureGate.Enabled` without
 # importing featuregate, and Goose adds no import for it (gap G3).
-translate = ["!*"]
+# (featuregate, 2026-11-23, #36) `DefaultFeatureGate = DefaultMutableFeatureGate`, an interface
+# conversion: translated (until then the trust-boundary axiom `DefaultFeatureGate_init`).
+translate = ["!*", "DefaultFeatureGate"]
 imports = ["!*", "k8s.io/component-base/featuregate"]
 
 # translate the definitions of all type declarations goose supports
