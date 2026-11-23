@@ -464,6 +464,61 @@ errors as `rdErr`, `errOverflow` included). To check as they are written: `math/
   boot resource (never `|==> codecFresh`). Keep these open points (callRet errMsg, codecFresh,
   errOk, wildcard listeners) as visible premises.
 
+## Session 6 (2026-11-23, sixth agent): the two designs, decided
+
+**Base.** `origin/models-rpc-http` `1a4d9546c9` merged (`7a40f81699`): `rpcAddrP`, `connectReq`,
+`connectAns`, `defaultRPCPath`, `DialHTTPPath.spec`/`DialHTTP.spec` (proved over
+`http.ReadResponse.spec`) are `Net/`'s now. Coordinator (07:2x): models-rpc-server LANDED, `lean` is
+`c4e044df92` with Perennial `c95e92207` (`/shared/perennial-c95e92207`); we stay on `07268ddb57` +
+`36728bd8ed`; when merging lean (at landing), repoint the overrides and `PERENNIAL_DIR` to
+`/shared/perennial-c95e92207` and regenerate the PkgTables.
+
+**Design (1), the connections on `Net/` (decided, in `Replica2/Specs.lean` and `N/ConnLaws.lean`):**
+- A replica listens at the wildcard `lisAddrOf a0` (`a0[strings.Index(a0, ":"):]`, `":7502"` for
+  `portAddr 0`) of its node address `a0 ∈ replicaAddrs` (`Proto/Wire.lean`). The start sets, once,
+  `lisProto (lisAddrOf a0) (gryffWireP γ a0) (gryffWireQ γ a0)` (`lis_set_proto` from
+  `lisUnset`): every address the listener takes has `a0`'s protocols, so the acceptor's facts are
+  about `a0` whatever address a dialer used; dialers dial `a0` itself (`lisProto_addr`).
+- `connectRes` holds that `lisProto` (in place of the lab's `nodeIp ip ∗ addrTok (ip:port)`) and
+  each peer address's `addrProto a (gryffWireP γ a) (gryffWireQ γ a)`; `listenerOwn` holds Net's
+  listener (`isListener`, `netLisOn`, owned `netLis … o`, the `lisProto`); `clientConnIn` holds
+  `net.connAt t c true a la ra` (any accepted `a`), dsv-bufio's reader over `recvTokL c true
+  (gryffWireP γ a0)` with its peek as an update of the reader resource, the writer contract
+  `wire.writerOk ⟨connIface t, connWriteE la ra ed, 4096⟩ (sendTok c true (gryffWireQ γ a0))
+  (gryffWireQ γ a0 c)` (what `net.conn_streamWriterOk` gives), `sendTok … []`, the reply bridge,
+  `clientConnAt`, `connFresh c true`, `□ protoInvs γ`. The lab's `sharedInvs` is `protoInvs`.
+- The reader's protocol fact is under a later (`recvTokL`): the laws are stated of `protoPrefix`
+  (`acc_dial`, `acc_peer_ids`, `acc_client_conn`), and the reader-level bridges take it from the
+  reader and strip the later under the update: Gryff's wire protocols are **timeless**
+  (`gryffWireP_timeless`, …, `protoPrefix_timeless`; `ownReader_protoNow`). `ownReader_sentLb`
+  (what a reader returned was written) replaces the lab's `recvTok_sentLb`.
+- **The wire protocols allow the empty stream** (`gryffWireP γ a cid W := ⌜W = []⌝ ∨ ∃ full, …`):
+  `net.conn_streamWriterOk` asks `ProtoPrefixClosed`, which includes `[]`
+  (`gryffWireP_closed`, `gryffWireQ_closed`); readers lose nothing (`protoPrefix` has `[]` anyway).
+- `serveClient.wp`, `WaitForClientConnections.wp`, `NewReplicaDurable.wp` moved from `Replica2/Specs`
+  to `Replica2/SpecsN.lean` (they need N's proofs; Specs is then below N/Boot and the H layers port
+  against it now).
+- `strings.Index`: the hypothesis `netN.StringsIndexHyp GF` (`N/StrIndex.lean`, one-byte
+  separators, Go's exact result `indexOfByte`; Perennial translates it names only).
+- Net's specs reach N through a Prop class `netN.NetConnSpecs GF` (`N/NetSpecs.lean`, like
+  `wire.BufioSpecs`), discharged at linking by Net's `wp_proof`s.
+
+**Design (2), the Rpc layer (decided):** the kit's generated codec (rpcgen's format: string type
+tags, gob-like zero-field skipping; NOT the lab's encodings, so the lab's `Rpc/Codec*` 2.6k lines
+are superseded) as a `CodecSpec` whose transformers are the WPs of the generated
+`rpcEncode`/`rpcDecode`/`rpcReceiver` (dsv-craq's `Craq/Codec.lean` pattern), with codec lemmas per
+type (`Rpc/Codec.lean`, `Rpc/CodecProof.lean`); one hypothesis class `RpcHttpHyp GF`
+(`Rpc/RpcHttpHyps.lean`) for the server side only (`rpcLisP`, `handlerOk`, `muxHas`,
+`defaultServer`, `ServeHTTP`, `HandleHTTP`, `Register`, `ServeMux.ServeHTTP`, `http.Serve`); the
+codec's per-machine boot resource as a named premise (never `|==> codecFresh`); services accept
+error answers as swiftpaxos's `withErr` (to become `srvErrMsg`).
+
+**Work split this session** (forks of the sixth agent, in this worktree; the agent commits): F1 H1;
+F2 X/Bridge, X/Final, B/Handler, B/Tables, B/BootLem, then H2..H3; F4 the Rpc layer + Server/Deploy;
+F5 N/ConnErr, N/NetSpecs, N/Serve, N/ClientConn, Replica2/SpecsN; F6 N/WaitPeers, ConnSlots,
+Connect, Boot. Status per file: `git log` and the list at the end of this section (updated at each
+commit).
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
