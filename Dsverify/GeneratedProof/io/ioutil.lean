@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Dsverify.ManualProof.io.ioutil
 public import Perennial.Golang.Theory
 public import Dsverify.Code.io.ioutil
 

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Dsverify.ManualProof.encoding.gob
 public import Perennial.Golang.Theory
 public import Dsverify.Code.encoding.gob
 

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import Dsverify.TrustedCode.io.ioutil
 
 @[expose] public section
 
@@ -22,8 +23,6 @@ namespace io.ioutil
 
 noncomputable def Discard [GooseExts] [GoGlobalContext] : GoString :=
   go!"io/ioutil.Discard"
-
-opaque Discard.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ReadAll [GooseExts] [GoGlobalContext] : GoString :=
   go!"io/ioutil.ReadAll"

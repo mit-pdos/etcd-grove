@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import Dsverify.TrustedCode.github_com.go_redis.redis.v8
 
 @[expose] public section
 
@@ -925,17 +926,11 @@ opaque TxFailedErr [GooseExts] [GoGlobalContext] : val
 noncomputable def errClusterNoNodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-redis/redis/v8.errClusterNoNodes"
 
-opaque errClusterNoNodes.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ErrClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-redis/redis/v8.ErrClosed"
 
-opaque ErrClosed.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def errRingShardsDown [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-redis/redis/v8.errRingShardsDown"
-
-opaque errRingShardsDown.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newClusterNode [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-redis/redis/v8.newClusterNode"
@@ -1365,8 +1360,6 @@ noncomputable def Version [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.go_redis.redis.v8 where
   pkgImportedPkgs := []
-
-opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

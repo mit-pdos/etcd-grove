@@ -623,8 +623,6 @@ opaque initial_string_size [GooseExts] [GoGlobalContext] : val
 noncomputable def disableLineWrapping [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.disableLineWrapping"
 
-opaque disableLineWrapping.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def mapItemType [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.mapItemType"
 
@@ -1308,6 +1306,8 @@ noncomputable def width [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable instance info' : PkgInfo pkg_id.gopkg_in.yaml_v2 where
   pkgImportedPkgs := []
+
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

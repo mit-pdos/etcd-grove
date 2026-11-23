@@ -6,3 +6,6 @@
 translate = ["!*"]
 imports = ["!*", "context"]
 translate_types = true
+
+# no-op models of the initializers (`Dsverify/TrustedCode/google_golang_org/grpc.lean`)
+trusted = ["init.0", "init.1", "init.2", "DefaultBackoffConfig", "ErrClientConnClosing", "ErrClientConnTimeout", "ErrServerStopped", "PickFirstBalancerName", "defaultServerOptions", "emptyMethodConfig", "errConnClosing", "errConnDrain", "errConnIdling", "errContextCanceled", "errContextDeadline", "errIllegalHeaderWrite", "errMalformedFrame", "errNoTransportCredsInBundle", "errNoTransportSecurity", "errStreamDone", "errTransportClosing", "errTransportCredentialsMissing", "errTransportCredsAndBundle", "grpcStatusDetailsBinHeader", "http2ErrCodeNames", "http2ErrConvTab", "invalidDefaultServiceConfigErrPrefix", "logger", "metadataFromOutgoingContextRaw", "modelChooseRandom", "statusOK", "transportFailureCodes", "unaryStreamDesc", "_"]

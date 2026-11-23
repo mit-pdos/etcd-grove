@@ -2,3 +2,6 @@
 # never reaches it.
 translate = ["!*"]
 imports = ["!*"]
+
+# no-op models of the initializers (`Dsverify/TrustedCode/encoding/gob.lean`)
+trusted = ["init.0", "init.1", "init.2", "binaryMarshalerInterfaceType", "binaryUnmarshalerInterfaceType", "decArrayHelper", "decIgnoreOpMap", "decOpTable", "decSliceHelper", "emptyStructType", "encArrayHelper", "encBufferPool", "encOpTable", "encSliceHelper", "errBadCount", "errBadType", "errBadUint", "errRange", "gobDecoderInterfaceType", "gobEncoderInterfaceType", "idToTypeSlice", "maxIgnoreNestingDepth", "spaceForLength", "tBool", "tBytes", "tComplex", "tFloat", "tInt", "tInterface", "tReserved1", "tReserved2", "tReserved3", "tReserved4", "tReserved5", "tReserved6", "tReserved7", "tString", "tUint", "tWireType", "textMarshalerInterfaceType", "textUnmarshalerInterfaceType", "typeInfoMapInit", "types", "wireTypeType"]

@@ -1,0 +1,116 @@
+/-
+Package initialization of `github_com.go_redis.redis.v8`
+(item 8, 2026-10-17): its `wp_initialize'`.
+
+Its fact is `True`. Its initializer initializes its imports and runs the trusted
+initializers of its variables (`X.init`, models in `TrustedCode/` that do nothing).
+-/
+module
+
+public import Dsverify.Proof.github_com.go_redis.redis.v8.Base
+public import Net.Proof.runtime.PkgInitExt
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+set_option linter.iris.dupNamespace false
+
+noncomputable section
+
+namespace Perennial
+
+/-- `x ∈ [a, ..., x, ...]`, linear in the list (`simp` overflows on the long ones). -/
+local macro "mem_tac" : tactic =>
+  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
+
+namespace github_com.go_redis.redis.v8
+
+theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.go_redis.redis.v8 get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.go_redis.redis.v8 }} := by
+  wp_start as Hown
+  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
+  iframe Hown
+  iintro Hown
+  wp_auto
+  wp_call  -- errClusterNoNodes: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- ErrClosed: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- errRingShardsDown: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  wp_call  -- «_»: its trusted initializer does nothing
+  iframe Hown
+  is_pkg_init_finish
+
+/-- Perennial's form, from `wp_initialize'_lb`. -/
+theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.go_redis.redis.v8 get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }}
+      (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.go_redis.redis.v8 }} :=
+  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
+
+
+end github_com.go_redis.redis.v8
+
+end init
+
+end Perennial

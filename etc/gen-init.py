@@ -5266,32 +5266,71 @@ DSV_PKGS = [DSV_PAXOS, f'{DSV_PAXOS}.examples.paxosnet'] + \
 DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
                 f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
                 for n in DSV_NODES}
+# (dsv-quepaxa, notes/dsv-quepaxa.md) QuePaxa's packages, its kit's and its names-only libraries;
+# the main tree's packages they import beside `NET_MAIN`'s (`DSV_MAIN`)
+DSV_QP = 'raxos'
+DSV_QP_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
+DSV_PKGS += ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'io.ioutil', 'encoding.gob',
+             'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'google_golang_org.grpc.status',
+             f'{DSV_QP}.common', f'{DSV_QP}.configuration', f'{DSV_QP}.proto', f'{DSV_QP}.proto.client',
+             f'{DSV_QP}.replica.src', f'{DSV_QP}.examples.quepaxanet'] + \
+    [f'{DSV_QP}.examples.quepaxanet.cmd.{n}' for n in DSV_QP_NODES]
+DSV_PROGRAMS.update({f'{DSV_QP}.examples.quepaxanet.cmd.{n}':
+                     f'Proof/{DSV_QP}/examples/quepaxanet/cmd/{n}/PkgTable.lean'
+                     for n in DSV_QP_NODES})
+# (their `Init.lean` are made here, in the part, as `NET_MAIN`'s in `Net/`: the main tree's import the
+# main tree's `PkgInitExt`, and protobuf's facts live in modules that import the main tree's `net`;
+# their facts here: `Dsverify/Proof/google_golang_org/protobuf/Base.lean`)
+DSV_MAIN = ['bufio', 'math.rand', 'google_golang_org.protobuf.proto',
+            'google_golang_org.protobuf.reflect.protoreflect',
+            'google_golang_org.protobuf.runtime.protoimpl', 'google_golang_org.protobuf.internal.impl',
+            'google_golang_org.protobuf.internal.pragma']
+# the part's own names-only translations of packages the main tree translates otherwise (grpc's):
+# the main tree's configurations (`SPECIAL`) do not apply
+DSV_OWN = {'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'google_golang_org.grpc.status'}
+
+# (dsv-quepaxa) QuePaxa's replica: its translated gRPC service descriptor (the fact keeps nothing yet;
+# the lab's `srcState` is the descriptor's points-to, for the recorder's `RegisterService`)
+SPECIAL['raxos.replica.src'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service
+descriptor `Consensus_ServiceDesc` (a `grpc.ServiceDesc` literal), initializes its imports and runs
+the trusted initializers of protoc-gen-go's descriptor tables and `init` (models in `TrustedCode/`
+that do nothing).''',
+    alloc_types={'Consensus_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
+    before={'$inits': ['try wp_auto',
+                       'repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; try wp_auto)',
+                       'try wp_auto']},
+)
 
 
 def dsv_inits():
     """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
-    global inv, inst, CFG_OVERRIDE
+    global inv, inst, CFG_OVERRIDE, RAFT_INIT
     saved = inv, inst, CFG_OVERRIDE
+    saved_raft = RAFT_INIT
     try:
+        RAFT_INIT = RAFT_INIT - set(DSV_MAIN)  # (dsv-quepaxa) protobuf's `Init` is the part's
         CFG_OVERRIDE = NET_SPECIAL
         inv = inventory(f'{NET_ROOT}/Code')
         inst = instances(f'{NET_ROOT}/Proof/')
-        for p in NET_MAIN:
+        for p in NET_MAIN + DSV_MAIN:
             inv[p] = saved[0][p]
-            inst[p] = saved[1][p]
+            if p in saved[1]:
+                inst[p] = saved[1][p]
         for q, d in inventory(f'{DSV_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
         inst.update(instances(f'{DSV_ROOT}/Proof/'))
-        raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
-               if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
-               for path, txt in gen(p, SPECIAL.get(p))]
+        raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS + DSV_MAIN
+               if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean') or p in DSV_MAIN
+               for path, txt in gen(p, None if p in DSV_OWN else SPECIAL.get(p))]
         made = {path for path, _ in raw}
         for p, path in DSV_PROGRAMS.items():
             path, txt = gen_table(p, path)
             raw.append((f'{DSV_ROOT}/{path}', txt))
     finally:
         inv, inst, CFG_OVERRIDE = saved
+        RAFT_INIT = saved_raft
     made = {path for path, _ in raw}
 
     def imp(m):

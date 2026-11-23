@@ -2,4 +2,6 @@
 # `yaml.UnmarshalStrict`; the kit makes its configuration in code and never reaches it.
 translate = ["!*"]
 imports = ["!*"]
-trusted = ["init.0", "_", "mapItemType", "durationType", "defaultMapType", "ifaceType", "timeType", "ptrTimeType", "base60float", "default_tag_directives", "resolveTable", "resolveMap", "yamlStyleFloat", "allowedTimestampFormats", "structMap", "eventStrings"]
+
+# no-op models of the initializers (`Dsverify/TrustedCode/gopkg_in/yaml_v2.lean`)
+trusted = ["init.0", "allowedTimestampFormats", "base60float", "defaultMapType", "default_tag_directives", "disableLineWrapping", "durationType", "eventStrings", "ifaceType", "mapItemType", "ptrTimeType", "resolveMap", "resolveTable", "structMap", "timeType", "yamlStyleFloat"]
