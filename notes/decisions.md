@@ -6023,6 +6023,9 @@ apply→request handoff is a transfer (the apply thread never touches `ar.Trace`
 `Trigger`).
 
 `LogWithStepThreshold` stays at the trust boundary (`fmt` of `any`/`Duration`, `rand`, zap).
+(*Superseded* 2026-11-23, traceutil-log: proved over Perennial's `fmt`, `strings`, `time` and a
+`rand.Int31` trust-boundary spec; its subtrace merge's aliasing is handled by owning regions,
+`traceutil/LogLemmas.lean`.)
 `InsertStep` (an overlapping `append`) was too until unit P4, which proved it over a lemma of this
 repository, `wp_slice_append_shift` (`traceutil/SliceShift.lean`: `append(s[:a+1], s[a:]...)`
 from Perennial's `wp_slice_copy_within` and `wp_slice_copy`; no Perennial change).
