@@ -5334,6 +5334,10 @@ def dsv_kit_raw(k, base):
     pkgs, programs = getattr(k, 'PKGS', []), getattr(k, 'PROGRAMS', {})
     hyp = list(getattr(k, 'HYP_INITS', []))
     hyp_imports = getattr(k, 'HYP_IMPORTS', 'all')
+    # (a dict: per package, `'all'` for a package it does not list)
+    hyp_mode = (lambda q: hyp_imports.get(q, 'all')) if isinstance(hyp_imports, dict) \
+        else (lambda q: hyp_imports)
+    hyp_none = [q for q in hyp if hyp_mode(q) == 'none']
     main = list(getattr(k, 'MAIN', []))
     main_gen = list(getattr(k, 'MAIN_GEN', main))
     own = set(getattr(k, 'OWN', ()))
@@ -5342,10 +5346,10 @@ def dsv_kit_raw(k, base):
     try:
         CFG_OVERRIDE = NET_SPECIAL
         RAFT_INIT = RAFT_INIT - set(main)  # a `MAIN` package's `Init` is the part's
-        if hyp_imports == 'none':
+        if hyp_none:
             # a hypothesis package's imports, as its `GetIsPkgInitWf` sees them: none (its
             # `Init.lean`), so the programs' tables stop there
-            pkginfo_imports = lambda q: [] if q in hyp else saved_pi(q)
+            pkginfo_imports = lambda q: [] if q in hyp_none else saved_pi(q)
         inv, inst = dict(net_inv), dict(net_inst)
         _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
@@ -5370,9 +5374,9 @@ def dsv_kit_raw(k, base):
         # class `InitHyp`): external here, their imports as `HYP_IMPORTS` says
         for q in hyp:
             inv[q] = dict(inv[q], perennial=True)
-            if hyp_imports == 'none':
+            if hyp_mode(q) == 'none':
                 inv[q]['imports'] = []
-            elif hyp_imports == 'known':
+            elif hyp_mode(q) == 'known':
                 inv[q]['imports'] = [i for i in inv[q]['imports'] if i in inv]
         PERENNIAL_HERE.difference_update(hyp)
         gen_pkgs = [p for p in pkgs if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')] + main_gen
