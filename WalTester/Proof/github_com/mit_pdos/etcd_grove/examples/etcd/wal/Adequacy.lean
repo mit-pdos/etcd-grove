@@ -294,7 +294,7 @@ theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     imodintro
     unfold tGen tGenPre
     iframe Hos
-    iexists _
+    iexists ((extLocal fsExt σ.world).fs.treeDur, [])
     iframe Hsh Hgs
     ileft; ipureintro; exact Hfirst
   · -- every generation
