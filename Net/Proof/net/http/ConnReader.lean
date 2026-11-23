@@ -162,6 +162,17 @@ def crOwn (cr : Loc) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp
     structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗
     crConnOk c ∗ crRead cr cn P Z hs hb)
 
+/-- What a hijack leaves of the reader with the main thread: the main phase, the fields. -/
+def crLeft (cr : Loc) (γ : CrNames) (hs : List w8) : IProp GF :=
+  iprop(ghostVar γ.ph (1 : Qp).half false ∗ ghostVar γ.r (1 : Qp) hs ∗
+    ∃ (c : Loc) (hb ab fl : Bool),
+    structFieldRef net.http.connReader go!"conn" cr ↦ c ∗
+    structFieldRef net.http.connReader go!"hasByte" cr ↦ hb ∗
+    structFieldRef net.http.connReader go!"inRead" cr ↦ false ∗
+    structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
+    structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗
+    ∃ arr : GoArray w8 1, structFieldRef net.http.connReader go!"byteBuf" cr ↦ arr)
+
 /-- See the file header. -/
 def crIs (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :
     IProp GF :=
