@@ -256,34 +256,57 @@ named after the lab's specs, until each comes as one shared change. **All are in
   * MabLeader's section `variable [ha : hyp.AtoiHyp GF]` makes every theorem there (and in the
     Run* files that add the same variable) take `AtoiHyp`. That is harmless, since the statement
     takes it anyway.
-- **Remaining Proxy files** (the network side and the constructor, ~3.1k lab lines; the remaining
-  premises `hNP : NewProxy.spec` of `New.wp_proof` and `hNI : Proxy.NetworkInit.spec` of
-  `Server.NetworkInit.wp_proof`): `WireProof` (298), `MsgBuf` (136), `NetSpecs` (129),
-  `NetFrames` (178), `NetUnmarshal` (179), `NetReader` (119), `NetWriter` (224), `NetDial` (171),
-  `NetSend` (263), `NetPrint` (114), `NetAcceptLib` (71), `NetAccept` (207), `NetListen` (150),
-  `NetInit` (55), `NewHelpers` (244), `NewOwn` (187), `NewShared` (96), `NewProxy` (366), then
-  `Proxy/Results`' `NewProxy.wp_proof`/`Proxy.NetworkInit.wp_proof`. Plan:
-  * The lab's net model (`NetConn`: `connIface`, the lab's `bufio.ownReader`, `net.model`) goes
-    onto Net/'s specs as in paxos's `NetProof.lean`: `net.Listen.wp_proof` with `listen_lis_au`;
-    `net.Listener.Accept.spec` with `accept_lis_au`; `net.Dial`; `net.Conn.Write`/`Close`;
-    `io.ReadFull` (`Spec/io/ReadFull.lean`) for the 4-byte handshake. The readers and writers
-    use the landed bufio specs (`bufio.NewReader`, `Reader.ReadByte`, `NewWriter`,
-    `Writer.WriteByte`/`Write`/`Flush`, `ownBufReader`/`ownBufWriter`;
-    `net.conn_streamWriterOk`/`conn_readerOk`). Never unfold the bufio predicates.
-  * Wildcard: replace `netProtos`' `addrProto (proxyAddr k) (proxyInProto γ k) silentProto` with
-    `lisProto (go!"0.0.0.0:" ++ decStr (7606 + k)) (proxyInProto γ k) silentProto`. Clients get
-    `addrProto (proxyAddr k)` by `lisProto_addr`, as `recLisP_grpcAddr` does for the recorders;
-    `Replica/Serve`'s `recLis_*` lemmas are the model.
-  * `addrTok` exclusivity: `sharedNet`'s `inv netN (netOwn pr rm ∨ addrTok (proxyAddr k))` and
-    `waitForConnections`' `addrTok (proxyAddr k)`, also in `replicaRes`, `srvRecorder` and
-    `Proxy.NetworkInit.spec`, become a ghost token. Options: a `token γn` that `NewProxy`
-    allocates and returns (a sealed slot, `proxyNetTok γn pr`, consumed by `NetworkInit`), with
-    the invariant `netOwn pr rm ∨ token γn`; or the proxy's `lisUnset`.
-  * `ClientBatch.Marshal`/`Unmarshal` (`Wire.lean`'s specs, via the `msgBuffer` writer and the
-    `bufio.Reader`) come from `PbHyp` (`proto.Marshal`/`Unmarshal` with `hyp.qpCodec`), in place
-    of the lab's generated-codec proofs (`WireProof`).
-  * Files that step through `ClientBatchStore` code (`NewHelpers`/`NewProxy` if they do)
-    must copy the `attribute [-instance]` block of `Proxy/Store.lean`; check `#print axioms`.
+- **Proxy network side and constructor (third Proxy session, 2026-11-23)**. Done, each
+  `lean-check -a` clean and `lake build` of `Proxy.{NetDial,NetSend,NetListen,NewProxy}` and
+  `IoReadFull` OK; `#print axioms` Lean's three for `newProxy_proof`, `connectToClient_proof`,
+  `internalSendMessage_proof`, `startOutgoingLinks_proof`, `connectionListener_proof`,
+  `unmarshal_bounded`, `marshal_buf`, `ioLt.ReadFull.wp_proof`:
+  * `MsgBuf` (`marshal_buf` over `PbHyp`; the lab's `WireProof` lemmas on little-endian lengths
+    moved here; the lab's `WireProof` proofs of `Wire.lean`'s specs over the lab's bufio are
+    dropped: the kit's client proves `ClientBatch.Marshal/Unmarshal.spec` over the landed bufio
+    when `Kit/` is ported; note that `Wire.lean`'s `Marshal.spec` must then also ask `Q` of the
+    length prefix (`ownBufWriter`'s prefix closure is sealed) and `Unmarshal.spec` should take the
+    stream fact `Φ` as `NetUnmarshal`'s `unmarshalB.spec` does);
+  * `NetSpecs` (the statements: `connectionListener.spec` over `ownBufReader br ri Pre (recvTokL cn
+    true (proxyInProto γ k)) E (hs (21+cl))`; `waitForConnections.spec` takes `netTok γ k`),
+    `NetFrames` (`recv_frames` over `protoPrefix`), `NetUnmarshal` (`unmarshalB.spec`: the length
+    bound from a prefix-closed stream fact `Φ` that `S` gives a step later; Perennial's
+    `io.wp_ReadFull` over `bufio.ownBufReader_readerOk`), `NetReader` (`reader_code/len/frame`
+    over `protoPrefix`, the reader's pending buffer is never looked at), `NetListen`
+    (`connectionListener_proof`, `net.connReader_proto` after each read), `NetWriter` (only
+    `clientInProto_prefixClosed : ProtoPrefixClosed`; the lab's sticky `WriteByte` and
+    `marshal_strong` go), `NetSend` (`internalSendMessage_proof` over the landed `WriteByte`/
+    `Write`/`Flush` specs), `NetDial` (`connectToClient_proof`: `net.Dial.wp_proof` with
+    `dial_au`, `net.Conn.Write.wp_proof` with `writeP_init`/`write_acc`, `Close` with `close_au`,
+    `net.conn_streamWriterOk` and `bufio.NewWriter`; `ed` from `examples/net/wire`'s `ed_of_poll`);
+  * `NewHelpers`, `NewOwn`, `NewShared`, `NewProxy` (`newProxy_proof [AtoiHyp] [UtcHyp] [RandHyp]`:
+    `NewProxy.spec`; `np_sharedNet` allocates `inv netN (netOwn pr rm ∨ netTok γ k)`).
+  * **The wildcard and the token** (done): `netProtos`' proxies' conjunct is `lisProto (proxyLis k)
+    (proxyInProto γ k) silentProto` (`Proto.lean`, `proxyLis k = "0.0.0.0:" ++ decStr (7606+k)`);
+    clients get `addrProto (proxyAddr k)` by `lisProto_addr`. `addrTok (proxyAddr k)` is replaced by
+    `netTok γ k := ghostMapElem γ.net k (own 1) ()` (`Ghost.lean`, new field `QNames.net`,
+    `netTok_excl`) in `replicaRes`, `srvRecorder`, `Proxy.NetworkInit.spec`, `sharedNet`'s
+    invariant: the kit's start must allocate `γ.net` with keys `1..5` and hand `netTok γ k` to
+    replica `k`.
+  * **New hypotheses** (`Hyp.lean`): `hyp.time.Time.UTC.spec`, class `hyp.UtcHyp` (Perennial
+    leaves `time.Time.UTC` untranslated, `Perennial/Code/time.toml`; the lab's `Time.wp_UTC`).
+  * **Local copy of a Perennial branch**: `Dsverify/Proof/raxos/IoReadFull.lean` is Perennial
+    `readatleast-prefix` (`af905abba`)'s `io.ReadAtLeast`/`io.ReadFull` specs and proofs under
+    `raxos.ioLt.*` (premise only at the reads made): `waitForConnections`' `io.ReadFull(conn, bs)`
+    needs it (a connection's `conn_readerOk` refuses empty reads). Drop it at the pin bump.
+  * **Remaining Proxy files** (the tool-ported lab text is committed but does not build yet; not
+    imported by anything that builds): `NetPrint` (114), `NetAcceptLib` (71), `NetAccept` (207:
+    `waitForConnections_proof`: `net.Listen.wp_proof` with `listen_lis_au` on `proxyLis k`'s
+    `lisProto` (from `netProtos`), retry loop; open `inv netN` with `netTok γ k` (exclusive:
+    `netTok_excl`) to take `netOwn`; `net.Listener.Accept.wp_proof` with `accept_lis_au`
+    (gives `connEnd cn true silentProto (proxyInProto γ k) [] []` and `connFresh`; `rdCtr γ cn 0`
+    from `Ghost`'s registry for a fresh connection: the lab's `connFresh` use); `ioLt.ReadFull`
+    over `net.conn_readerOk` (`Pre := 0 < m`) for the 4-byte handshake, then
+    `bufio.NewReader.wp_proofOk` (with `bufio.preUpTo_of_pure`) to get `connectionListener.spec`'s
+    reader at `hs (21 + cl)`; the handshake's value from `protoPrefix` of `hs n`
+    (`hs_decode`)), `NetInit` (55: `Proxy.NetworkInit` = `startOutgoingLinks` + fork of
+    `waitForConnections`), then `Proxy/Results`' `NewProxy.wp_proof := newProxy_proof` and
+    `Proxy.NetworkInit.wp_proof`, and `Replica/Results`' `hNP`/`hNI` discharged.
 - **Next, in order** (ported ~19k of 37k lab lines; Replica done, Proxy's protocol side done):
   2. `Proxy/*` rest (the network side and the constructor, above; 3.1k: `Net*` onto `Net/Spec/net/*` + `GooseLang/Ext/Net/Proto.lean`'s laws as
      paxos's `NetProof.lean`; the writers through dsv-bufio's specs), `Codec/*` (7.3k: only the pure
