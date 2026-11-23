@@ -163,3 +163,126 @@ defined terms, with `BootFacts` a pure premise about them (or proved; Go tests a
 | 4 | `Proof/…/etcdserver/{bootstrapSnapshot,bootstrapBackend,bootstrapNewWAL,bootstrapRaftFromCluster,raftConfig,isMemberBootstrapped}.lean`; `snap.toml`; `schema/CreateMetaBucket`; json/sha1/http trust specs if approved |
 | 5 | `Proof/…/etcdserver/{bootstrapClusterWithWAL,recoverSnapshot,bootstrapWALFromSnapshot,openWALFromSnapshot,databaseFileMissing,buildConfStateFromV3store,InvRestart,NewServerR}.lean`; `storage/RecoverSnapshotBackend` |
 | final | `Spec/…/etcdserver/{NewServer,NewServerR}.lean`; `examples/lib/etcdstart/{Defs,OneMember,MembersDefs,MembersAuthDefs,Restart,newServerMode,AllocNOn}.lean`, `lib/cluster3/Defs.lean`; every `examples/{etcd,k8s}/*/{Defs,Main,Run,startMember,startCluster}.lean` that names `bootPremise` (about 40); `Spec/…/examples/**/TopLevelRobustness.lean` |
+
+## 7. The proof plan (refined 2026-11-23, after the owner's decisions and the stage-1 handover)
+
+Decided on #34: the top-level statements stop quantifying over `id`/`ps`/`ctxs` (they become the
+definitions of §7.2); stage 1's interim `bootOk` change is approved; new trust only where Perennial's
+semantics can't support the code, each case brought to the owner first. **Stage 1 is proving
+session 2's** (zeldovich, branch `prove-ps2-bootstage1/2026-11-23`). This claim keeps out of
+`membership/` and the cluster parts of `InvBoot`/`InvRestart` until it lands. The order here becomes
+**3 → 2 → 4 → 5 → final**: stage 3 needs nothing from stage 1 (its callees are hypotheses), and stage 2
+builds `isRaftCluster`, whose lock invariant stage 1 changes.
+
+### 7.1 The stage-1 interface (what stages 2-5 assume; proving session 2 takes it verbatim)
+
+- **I1 (the version slot).** `rcLockInv` gains the field `c.version`, read through a new
+  `membership.rcVersionAddr c` (`structFieldRef membership.RaftCluster go!"version" c`). Under the
+  lock it is nil, or read-only (`vp ↦□ ver`) with the witness `monoNatLbOwn γcv 1`, where `γcv` is
+  the slot's `monoNatAuthOwn` name. If `γcv` must be visible (`Recover`'s link to the snapshot
+  image), the predicate becomes `membership.isRaftClusterV c γcv`, and `bootOk`/`bootOkR` say
+  `∃ γcv, isRaftClusterV bc.cl' γcv` in place of `Hrc` and `Hcvm`'s existential. Otherwise
+  `isRaftCluster c` keeps its arity.
+- **I2 (the starting-state claim, the approved interim premise).** At boot the slot is nil.
+  `bootOk`'s clause is the widened `Hrc` alone, no separate conjunct. Its construction lemma is
+  `membership.rcLockInv_boot : <rcLockInv's other fields as today> ∗ rcVersionAddr c ↦ null ⊢ |==>
+  ∃ γcv, <the widened rcLockInv at γcv>`. Stage 2 proves `isRaftCluster` through it: `NewCluster`'s
+  literal leaves `version` nil.
+- **I3 (what leaves `bootOk`).** `Hcvm` becomes a lemma of `Hrc`, and so does `Hclok`
+  (`lease.clusterOk` of the cluster's interface). In `Hisc`, the `Version`/`ID`/`SetVersion` rows (and
+  `UpdateAttributes`/`SetDowngradeInfo` if proved) become lemmas from `Hrc` with `HclBe` and
+  `Hvcn`'s read-only form. `clusterApplyOk`'s statement does not change, so its consumers
+  (`SnapApply*`, `apply/Contracts`) do not move. No other clause of `bootOk`/`bootOkR` changes.
+- **I4.** `rcLockInv`'s other fields (members `memAt` half, `rcLocalIn`, `removed` empty) stay as they
+  are. Stage 2 relies on them.
+
+### 7.2 Go's values (a defs module `Proof/…/etcdserver/BootValues.lean`, written in stage 3)
+
+These are pure definitions, not trust. They are what the final stage substitutes for the quantified
+`id ps ctxs boot dir` (decision 1). Each is proved to be what Go computes in the stage named.
+
+- `bootGo.sha1 : List w8 → List w8`, FIPS 180-4 written out in Lean (computable, so `decide`/kernel
+  evaluation settles the examples' `BootFacts`). Stage 2 proves `crypto/sha1.Sum` (goose over the
+  `purego` generic block) equal to it.
+- `bootGo.memberID urls token : w64`: big-endian first 8 bytes of
+  `sha1(join(sort(urls), "") ++ token)` (`computeMemberID`, `now = nil`). `bootGo.ps U cfg` is the
+  sorted `memberID` of each `initMap` entry. `bootGo.id cfg U` is the entry named `cfg.Name'`.
+  `bootGo.cid` is `genID`'s value over `ps`. `bootGo.dir U` maps an id to its member's URL strings.
+- `bootGo.memberJSON : MemberM → List w8` is the bytes `json.Marshal(*Member)` writes. Its field
+  order, escaping and `omitempty` follow `encoding/json` on `membership.Member`'s tags, cross-checked
+  against `models/json/jsongen.py`'s codec and a Go test. `bootGo.ctxs` maps `memberJSON` over the
+  members in `ps` order. `bootGo.bootLog` is `BootLog ps ctxs`'s log.
+
+### 7.3 Stage 3: `bootstrap`'s body (first start), over its callees' specs
+
+- Translate `bootstrap` with its body (`etcdserver.toml`), plus `config`'s path methods `MemberDir`,
+  `WALDir`, `SnapDir` (`filepath.Join` over the proved `filepathlite`). The callees stay names-only.
+- **`bootstrap.spec`** has `bootstrapContract`'s precondition. Its post is `err ≠ nil ∨ bootOk cfg γ
+  (bootGo.id cfg U) (bootGo.ctxs cfg U) N (bootGo.dir U) b`, for every `γ` with `γ.vs = bootGo.ps`,
+  `γ.boot = bootGo.bootLog`, `γ.rule = srvRule 0 γ.boot` (`bootPremise`'s conditions). It is not
+  stated at an arbitrary `id`, which would be false (§0). **`bootstrapContract_holds`** (linking)
+  restates it as `⊢ bootstrapContract cfg U γ (bootGo.id …) …`. The restart branch (`haveWAL`) is
+  excluded by `wal.Exist`'s `false` on `wal.bootRes`. Stage 5 adds `bootstrap.specR`.
+- **New callee specs** (`?` in the server's `Link`, so hypotheses of the linked result, and no trust
+  change), one triple each, shaped so their posts join into `bootOk` row for row:
+  - `bootstrapSnapshot.spec`: the snapshot directory's part of the data area. Post: `ss` with
+    `isSnapshotter … (snapDirOf DataDir)`, `snapDirOwn`, `snapFreeAll` (`Hss Hsdo Hsfree`).
+  - `bootstrapBackend.spec` (`haveWAL = false`): the backend file's part of the data area,
+    `bootCfgOk`, `dbOpensOk`, the gate, `envVerifyOff`, and the logger. Post: an error, or `bk` with
+    `Hci … Hbfile` (`γA`, `d`, `D` existential) and `bk.snapshot = nil`. It does not include `HDr`'s
+    membership buckets.
+  - `bootstrapCluster.spec` (`bwal = nil`, `bootCfgFresh`): `bootCfgRO`, the logger, `prt`. Post: an
+    error, or `bc` with `bc.nodeID = bootGo.id`, `bc.remotes = nil`, and `clusterBuilt bc.cl' U cfg`.
+    That is a **new def**, the cluster's fields owned before `SetID` and before the lock is shared:
+    `members` as `memAt` at `1` over the `initMap` members, `removed` empty, `version` nil (I2),
+    `cid ↦ bootGo.cid`, `lg` a zap logger, `localID`, `be`, `versionChanged` owned. It is written with
+    `structFieldRef`, not with `rcLockInv`, so stage 1 cannot break it.
+  - `bootstrapStorage.spec` (`wal = nil`): `walAreaFresh`, a share of `bc.nodeID`/`cid`. Post: `sto`
+    with `Hwal` (`wal.bootOk cfg id cid`).
+  - `bootstrappedCluster.Finalize.spec` (no WAL): `clusterBuilt`, `bk`'s backend. Post: `Hrc` (I1-I2),
+    `Hcl Hcid Hclg Hvcn Hrms Hrmsi Hrms0 Hmembers Hmem HclBe`, and `HDr`'s membership buckets, or an
+    error from `ValidateMaxLearnerConfig`. On a new cluster without learners it returns nil.
+  - `bootstrapRaft.spec` (`bootstrapRaftFromCluster`): the cluster from `Finalize`, `bw`, the registry
+    authority. Post: `Hraft Hc Hlok Hreg Hγsz Hrauth Hmlock Hlog0 Hend Hsnone Hmeta Hfresh Hpeers Hctx`
+    at `bootGo.ctxs`.
+- **The data area's split law** (`WalApi.lean`/`WalAreaFresh.lean`, a new law in the WAL's slot API; #15's
+  files, coordinated through the owner): `wal.bootRes cfg ⊢` the claims the two `TouchDirAll`s take
+  (`DataDir`, `member/`), then the snapshot part, the backend-file part, and the WAL area.
+- **`bootstrap.wp_proof`**: straight-line over these. It covers the `MaxRequestBytes` warning
+  (`humanize.Bytes`, translated), the two `TouchDirAll`s (proved), `NewRoundTripper` (proved),
+  `wal.Exist` (proved), and `backend.Close` on the error paths (`bootstrappedBackend.Close`, proved).
+  Trust change: none. The hypotheses are new specs of names-only functions, below the contract's
+  premise.
+
+### 7.4 Stages 2, 4, 5 and the final stage (unchanged scope; shapes)
+
+- **Stage 2** (after stage 1 lands) proves `bootstrapCluster`/`bootstrapNewClusterNoWAL` (with
+  `VerifyBootstrap`, `NewClusterFromURLsMap`, `NewCluster`, `NewMember`, `computeMemberID`, `genID`,
+  `MemberByName`) and `Finalize` (`SetID`, `buildMembershipMetric`, `SetBackend` proved,
+  `ValidateMaxLearnerConfig`) against §7.3's specs. The invariant of `NewClusterFromURLsMap`'s loop
+  over `initMap` (in Go's unspecified order) is `members` = the map of the names seen so far, at
+  `memberID`, all distinct and nonzero. `isMemberBootstrapped` belongs to stage 4.
+- **Stage 4** proves the other callees: `bootstrapSnapshot`, `bootstrapBackend`, `bootstrapNewWAL`
+  (#15), `bootstrapRaftFromCluster`/`raftConfig`, and `isMemberBootstrapped`. With them,
+  `bootstrapContract_holds` is closed.
+- **Stage 5** proves `bootstrap.specR`, the restart branches, and `bootstrapRestartContract_holds`.
+  `walReadFacts σ` stays a hypothesis (#15's C6).
+- **Final** (after #28 `net-swap`): `bootPremise` goes, and the top-level `∀ id ps ctxs` become §7.2's
+  terms. `BootFacts` becomes a pure fact of concrete terms, proved by evaluation where it can be.
+
+### 7.5 Stops (each reported to the owner before any trusted statement changes)
+
+- **S1, `json.Marshal(*Member)`** (stages 4 and final, `Hctx`). `encoding/json` is reflection
+  (`reflect`, `unsafe`). Goose has no `reflect`, so this is a case where the semantics genuinely
+  can't support the code. The options to bring: (a) a trusted triple `json.Marshal(m) = memberJSON
+  mm`; (b) replace the call by a generated codec (`models/json`). (b) changes the Go code, so it is
+  not available. Expected: (a), +1 axiom, brought first.
+- **S2, `ccMemberOf`** (`Hmem`, `SrvRaftLog.lean:460`) is `opaque`. The proof needs
+  `ccMemberOf (memberJSON m) = m`, which means defining it (`json.Unmarshal`'s model). That is a
+  change to a trusted definition, brought first.
+- **S3, `crypto/sha1`, `netutil.URLStringsEqual` (IP literals), the `net/http` client in
+  `isMemberBootstrapped`.** Translation is tried first. If goose or the semantics fails (e.g.
+  `crypto/internal/fips140` build tags, `net.Resolver`), I stop with the reason.
+- **S4, build capacity.** A full build is about 49 GB; the disk had 22 GB free on 2026-11-23, and
+  `bootstrap`'s cone is most of the server. Each stage's check is a target-limited `lake build`
+  under `/shared/tmp/build-slot.sh`.
