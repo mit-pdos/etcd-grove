@@ -790,6 +790,80 @@ sequenced on #28).
   Still at a heap: `clusterAllocN` moves to the global classes with (c) and (d), its statement then the global
   start's. The auth-on `allocNOnM` is not cut yet (same shape, `clusterFactsOn`).
 
+**(d), the re-sectioning (branch `d7-resection`, 2026-11-23).** Moved to global sections (over
+`[GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]`, as `KVStoreApi`'s `defs`), statements unchanged, roots of the heap-free
+gate (`etc/heapfree-roots.txt`): `SrvRaftLog` (`srvPropTk`, `srvQInv`, `srvReadAu`, `srvLogCore`, `srvPendRead`,
+`srvLogRegs`, `srvLogInv`, `srvSnapsReg`, `srvClusterOk` (its unused `letI := srvStor` dropped), `srvRaftLogInv`,
+`srvRdCtxInv`, `srvRdCtxInv_alloc`); `InvRequest` (`idRegdAt`, `entryClaim`, `kvWork`, `kvGrantIds`,
+`kvGrantIds_nil`, `kvInv`, `floorAt`, `srvFloorFacts`); `InvProposer` (`srvPropMint`); `KVStoreApi`
+(`newServerStoreFreshA`); `BuildAlloc` (`buildGhostVarHalves`, `entryClaims_conf`, `kvInv_alloc_boot`,
+`srvPropMint_alloc`); `NewServerAlloc` (`newServerNames_alloc`); idutil (`idUnclaimed`, `idClaim`, `idClaimAny`,
+`idNoZero`, `idKeyFactAt`, `idShare`, `idWaitTokAt`, `idWaitTok`, `idWaitIs`); `wait` (`waitRegd`); rafthttp
+(`netSlot`, `netNames_alloc`, `streamRegInv`). **Not heap-free, left at a heap:** `idClusterInv` (below; a negative
+test of the gate), hence `idCluster_alloc`, `srvClusterBoot_alloc`, `clusterFacts`, `clusterAllocN`; and `nodeBoot`
+(step (c)). rafthttp's payload `srvNet γ` (message bundles on the receiver's heap) is S5's.
+
+#### The idutil split (design, 2026-11-23, for review on #28; not implemented)
+
+**The defect.** `idClusterInv issued cnt wn fs Φs` (`idutil/Defs.lean`), the cluster's claims, holds for every key
+`k` with a generator `g` (`C !! k = some (L, some g)`) `idKeyGenFacts k e`: `g`'s `prefix` field
+(`structFieldRef Generator "prefix" g ↦□ k.1`, a points-to on the heap of the machine running `g`) and, for each id
+of `L`, `idIssueFragD id g` (the issue record of `idIssueExt`, the **local** ghost state of that machine,
+`GooseLocalGS`); and `idClusterOk`'s clause "distinct keys' generators distinct" compares the `Loc`s of all keys.
+In one process this is sound; across machines one global invariant cannot hold points-to and local-extension facts
+of several heaps, and two machines' `Loc`s may be equal. So the cluster's claims cannot be allocated by the
+distributed start as they are.
+
+**What the generator facts are for** (the proofs that open them): (U1) `NewGenerator`: the new generator `g` is
+fresh (it owns `g.prefix` whole), so no key's `↦□` names it: the distinctness clause is kept; (U2)
+`Generator.Next`: an id `id` just issued by `g` (the record's fresh `idIssueFrag id g`) is not in the issued map
+already: if a key `k'` had it, its generator `g'` holds `idIssueFragD id g'`, so `g' = g` (`idIssueFragD_agree`),
+so `k' = k` (distinctness), and `k`'s own count rules it out. **Both arguments are per prefix**: an id's key has the
+id's prefix (`idClusterOk`'s second clause: `idPfx id = k.1`), so (U2) only meets keys `k'` with `k'.1 = k.1`, and
+(U1) needs distinctness only among them. And a prefix is one member's (the member id's 16 low bits, distinct:
+`BootCore.lowNodup`), so all keys of a prefix (the member's incarnations) live on **one machine**.
+
+**The split.**
+- **Global** (heap-free; allocated by the distributed start; same name and parameters):
+  `idClusterInv issued cnt wn fs Φs` keeps the issued map `I`, the keys' entries `C : GMap IdKey IdKeyEntry` (the
+  `Option Loc` kept as data: compared only between keys of one prefix, so of one machine), the registries `R`, the
+  facts `Fm`, `idClusterOk` with the generator clauses restricted to keys of one prefix, and the claimers' facts;
+  **without `idKeyGenFacts`**. Each key's entry is split in two halves (`ghostMapElem` at `1/2`): one in the key's
+  generator (`idGen`'s invariant, as today the whole), one in its prefix's invariant (below).
+- **Per prefix, on the member's heap**: `idPfxInv γi.gen p` (persistent, new, heap-level): an invariant holding, for
+  every key `(p, inc)` with a generator, the other half of its entry and its `idKeyGenFacts`. Its ghost name is
+  published once per prefix in a new global map `gen` (`p ↪[gen]□ γpg`, a new field `IdNames.gen` and a new
+  parameter of `idCluster_alloc`'s output), so that every incarnation of the member finds the same one. (U1) and
+  (U2) open it instead of the cluster's invariant; nothing else does.
+- **Allocation**: the distributed start allocates `idClusterInv` and, per member, the token `p ↪[gen] none` in the
+  member's slice; the member's boot allocates `idPfxInv` at its own heap and sets the token. The single process does
+  the same per member (`memberBoot_of`).
+
+**Statements that change** (definitions' bodies aside):
+- `idutil`: `IdNames` gains `gen`; `idClusterInv`'s body (type unchanged); `idClusterOk`'s generator clauses
+  (per prefix); new `idPfxInv`, `idPfxInv_alloc`; `idCluster_alloc`'s post (the `gen` map's tokens per prefix);
+  `idGen`'s body (the entry's half, `idPfxInv`); `NewGenerator.spec` (pre: `idPfxInv γi.gen γi.pfx`).
+  `Generator.Next.spec` unchanged (over `idGen`).
+- server: `NewServer.spec` and `NewServerR.spec` (pre: `idPfxInv`, passed to `NewGenerator`);
+  `srvClusterBoot_alloc`/`On` (the per-member token in their per-member output); `memberBoot`/`memberBootOn`
+  (`idPfxInv ρ.ids.gen ρ.ids.pfx`); `memberBoot_of`/`memberSlice` (the token), `alloc1`/`alloc3`/`allocN`/`On` and
+  the restart's `Restart.lean` (its four uses) follow; `InvRequest`/`Results` (one use each).
+- **No top-level theorem's statement changes**: checked on `lean` (`FETCH_HEAD` 2026-11-23) that no
+  `TopLevelRobustness` or `TopLevelDefs` (single-process `etcd/all`, `k8s/all`, `leaseexpiryN`, `mvccfull`, the dist
+  ones) names `idClusterInv`, `idGen`, `idShare`, `memberBoot`, `NewGenerator` or `idKeyGenFacts` (`etcd/all`'s one
+  match is prose naming `idIssueExt`), and that `etcdstart.premises` and `bootstrapContract` do not; they reach the
+  changed definitions only through proofs. To recheck by `#print axioms`-free statement diff when implemented
+  (`etc/gen-interface.py` on the closed results' modules).
+
+**F3/D4 (the issue record after a crash).** The split puts the record's facts where the record lives: `idPfxInv` is
+on the machine whose extension state holds `idIssueFrag`. With crashes, `idPfxInv` must survive a crash of its
+machine (its keys' facts are about ids already issued); that is the issue record's crash semantics, D4's: keyed by
+incarnation (`idIssueFrag id (epoch, g)`), the record survives and a restarted generator at an old address cannot be
+confused with the old one, so (U2)'s `g' = g` then compares `(epoch, g)` pairs. Today's `Restart.lean` (single
+process, `HardStop`, no crash) keeps the heap, so nothing changes for it. The global part has no crash concern.
+
+Ledger: `notes/specs-only/ledger.md`, 2026-11-23, "idutil's cluster claims hold every machine's generator facts".
+
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
 **Decided (the user, 2026-11-22, relayed by the coordinator).** (1) **Retire** the single-process `etcd_robust`/`etcd_safe`,
