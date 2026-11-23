@@ -208,6 +208,11 @@ def bufio_conv(t):
 
 # hand fixes after the mechanical port, by lab path: (old, new) replacements, each must apply
 FIXUPS = {
+    'Epaxos/Proof/epaxos/Slot.lean': [
+        # the lab's `netConnExts` local instance gave `GooseExts`; here a binder
+        ("def lbFields (y", "def lbFields [GooseExts] (y"),
+        ("def instFields (y", "def instFields [GooseExts] (y"),
+    ],
     'Epaxos/Proof/epaxos/HCtx.lean': [
         ("      | none => iprop(⌜pt = null⌝)\n      | some w => ownInst γ i",
          "      | none => iprop(⌜pt = null⌝)\n      | some w => ownInst (GF := GF) γ i"),
