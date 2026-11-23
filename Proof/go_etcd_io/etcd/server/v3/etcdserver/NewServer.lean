@@ -8,6 +8,7 @@ before the call: N1).
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ClusterLaws
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RestMemId
 public import Spec.github_com.prometheus.client_golang.prometheus.GaugeVec__With
@@ -262,6 +263,8 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (h35 : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (h36 : config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG))
     (h37 : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
+    -- (prove-ps2-bootstage1, 2026-11-23) the cluster's `Version()`, for `bootOk`'s former `Hclok`/`Hcvm`/`Hisc` rows
+    (hRCV : membership.RaftCluster.Version.spec (GF := GF) (hG := hG))
     (h38 : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
     (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
@@ -400,6 +403,19 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     ipureintro; exact ⟨rfl, Herr⟩
   subst Herr
   iNamed Hb
+  -- (prove-ps2-bootstage1, 2026-11-23, #34 stage 1) the cluster's contracts `bootOk` held as trusted
+  -- rows until then, proved of its lock (`Hrc`, with the version slot) and its id (`Hcid`)
+  ihave #Hpmem0 : isPkgInit (PROP := IProp GF)
+    pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
+  · iPkgInit
+  irename Hisc => HiscR
+  ihave %Hclnn := clusterApplyRest_nn bc.cl' $$ HiscR
+  ihave #Hclok := clusterOk_of hRCV bc.cl' $$ []
+  · iframe #
+  ihave #Hcvm := clusterVersionMono_ex hRCV bc.cl' Hclnn $$ []
+  · iframe #
+  ihave #Hisc := clusterApplyOk_of hRCV h37 bc.cl' cid $$ []
+  · iframe #
   -- (premise fixes 5) the Key bucket's size bound, proved (until then `bootOk`'s `#Hsz`)
   ihave #Hsz := mvcc.keySized_at (GF := GF) d.P
   -- (2026-11-03, the WAL's API) the opened WAL's parts (its records, metadata and the purge's right
@@ -2805,6 +2821,8 @@ theorem NewServer.wp_proofM (on : Bool)
     (h35 : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (h36 : config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG))
     (h37 : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
+    -- (prove-ps2-bootstage1, 2026-11-23) the cluster's `Version()`, for `bootOk`'s former `Hclok`/`Hcvm`/`Hisc` rows
+    (hRCV : membership.RaftCluster.Version.spec (GF := GF) (hG := hG))
     (h38 : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
     (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
@@ -2884,7 +2902,7 @@ theorem NewServer.wp_proofM (on : Bool)
     NewServer.specM (GF := GF) (hG := hG) on :=
   -- `specG` at `cmp = false`: the compaction mode's specs are not asked for
   NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18
-    h19 h20 h21 h22 h23 h24 hTP hKit h26 Hp Hr hsh hfresh hopen hrest hRS hCR hSR h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46
+    h19 h20 h21 h22 h23 h24 hTP hKit h26 Hp Hr hsh hfresh hopen hrest hRS hCR hSR h27 h28 h29 h31 h32 h33 h34 h35 h36 h37 hRCV h38 h39 h41 hPeerStop hRemoteStop h42 h46
     h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70
     h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88
     h89 h90 h91 h92 h93 h94 h95 hAG hBSC
@@ -2947,6 +2965,8 @@ theorem NewServer.wp_proof
     (h35 : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (h36 : config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG))
     (h37 : membership.RaftCluster.ID.spec (GF := GF) (hG := hG))
+    -- (prove-ps2-bootstage1, 2026-11-23) the cluster's `Version()`, for `bootOk`'s former `Hclok`/`Hcvm`/`Hisc` rows
+    (hRCV : membership.RaftCluster.Version.spec (GF := GF) (hG := hG))
     (h38 : rafthttp.Transport.Start.spec (GF := GF) (hG := hG))
     (h39 : rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG))
     (h41 : rafthttp.Transport.AddPeer.spec (GF := GF) (hG := hG))
@@ -3030,7 +3050,7 @@ theorem NewServer.wp_proof
   -- `specG` at auth off, in the caller's compaction mode
   NewServer.wp_proofG false cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
     h17 h18 h19 h20 h21 h22 h23 h24 (authSrvTP_off h25 h30) trivial h26 Hp Hr hsh hfresh hopen hrest hRS hCR hSR h27 h28 h29 h31 h32 h33 h34 h35
-    h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
+    h36 h37 hRCV h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hBSC
     (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hCmpS) hNodeStart
