@@ -121,6 +121,48 @@ raft starts). The model does nothing: no translated code reads the registries, `
 def init.«0».impl : val :=
   λ: <>, #()
 
+/-- `HardState`'s type, by name (the translation's `HardState.ty`, which this file, imported by
+the translation, cannot name; `HardState.ty` unfolds to it). -/
+@[reducible] def model.HardState : go.GoType :=
+  go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" []
+
+/-- `(*HardState).Reset()` (2026-11-22, the user's approval of the WAL's `WalHsOwn.reset`; `raft.pb.go`,
+protoc-gen-go v1.36.11):
+
+```go
+func (x *HardState) Reset() {
+	*x = HardState{}
+	mi := &file_raft_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+```
+
+The model is the first statement, `*x = HardState{}`: a store of `HardState`'s zero value through
+`x` (every field zeroed: `state`, `Term`, `Vote`, `Commit` to `nil`, `unknownFields` to `nil`,
+`sizeCache` to 0), as `walpb`'s `Record.Reset.impl`
+(`TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean`). Why leaving out the other two
+statements is faithful: `MessageStateOf(x)` is `x`'s first field `state` seen through `unsafe` (a
+`*messageState`, no allocation, no check), and `StoreMessageInfo(mi)` is an atomic store of `mi`,
+the package's fixed descriptor of `HardState` (`file_raft_proto_msgTypes[4]`, built once by `init`),
+into `state`'s message-info cache. That cache is private to the protobuf runtime: no translated code
+reads `state`, and the runtime reads it only through `ProtoReflect`, which stores the same `mi`
+when it finds the cache `nil` (`if ms.LoadMessageInfo() == nil { ms.StoreMessageInfo(mi) }`,
+`raft.pb.go`) before any use. So a `HardState` whose cache is `nil` (the model's) and one whose
+cache holds `mi` (Go's) behave alike under every operation on them. The model's `state` is zero
+where Go's is not; a spec over the result must leave `state` unspecified (the WAL's `hsOwnC`
+quantifies it existentially). Go's statement panics on a `nil` `x` (the store's dereference): so
+does the model's store. The other fields: Go's composite literal `HardState{}` is the zero value,
+so the old `Term`/`Vote`/`Commit` cells and the old unknown-fields slice are only unreferenced,
+not written, in both. Evidence: `TestT4Reset` (go1.27.3 `-race`, in the review of `WalHsOwn.reset`,
+`notes/axiom-review/hsown-reset.md`, whose suggestion this model follows): after `Reset` of a decoded
+state carrying an unknown field, the three fields and the unknown fields are `nil`, `state` is
+non-zero, the old `Term` cell is unchanged, the message marshals to zero bytes; a `nil` receiver
+panics. -/
+noncomputable def HardState.Reset.impl : val :=
+  λ: "x" <>,
+    "x" <-[model.HardState] GoZeroVal model.HardState #()
+
 /-- `MessageType`'s type (the translation's `MessageType.ty`: this module is imported by the
 translation, not the other way round). -/
 @[reducible] def model.MessageType : go.GoType :=

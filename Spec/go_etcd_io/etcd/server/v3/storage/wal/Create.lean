@@ -62,8 +62,15 @@ commit (the program holds its registration half, `walSplitFrag`); the view is be
 (Until 2026-11-15 the update was from `walAbsent dir` only: `notes/specs-only/ledger.md`, "the update
 from `walAbsent` only"; `notes/wal-units/fresh.md`.)
 
-*The commit* is at the step of the rename of `nm.tmp` onto `nm` (`renameWAL`'s, or the retry in
-`renameWALUnlock`), to `walDurFresh md` (`named = false`). Before it, `nm.tmp` holds the first
+*The premise* that the file system does not fail on `dir`, `dir.tmp` and the area `r`, and that `dir`
+and `dir.tmp` fit (`FsNoErrOn (fun p => p = dir ∨ p = dir ++ ".tmp" ∨ p = r) ∧ PathFits …`, as `cut`'s
+and `Save`'s `walCov Sio → DirFits dir ∧ …`) makes the rename of `nm.tmp` onto `nm` succeed, so
+`renameWAL`'s retry (`renameWALUnlock`) is never reached (ledger 2026-11-21: that retry's spec was false as
+stated), and makes `Exist(dir.tmp)` and `RemoveAll(dir.tmp)` exact: `CreateDirAll` then only meets an absent
+`dir.tmp`, whatever a crash left there (ledger 2026-11-22).
+
+*The commit* is at the step of the rename of `nm.tmp` onto `nm` (`renameWAL`'s), to `walDurFresh md`
+(`named = false`). Before it, `nm.tmp` holds the first
 segment, its records (`saveCrc`, the metadata, the empty snapshot) fdatasynced and `nm.tmp` fsynced
 (F-N1), so every crash after the rename decodes to the fresh WAL or (the rename lost) finds `nm`
 absent: the fresh WAL's `CrashOk`. The parent's fsync after it commits the rename (`osCommitLb`):
@@ -81,7 +88,7 @@ other half of the call permission, the client's while the WAL is open (`Close` r
 writes, `dir.tmp`'s fsync, or a rename that failed with no effect): nothing committed; the token, the
 update and the whole permission back.
 
-*An error after the rename* (`renameWAL`'s `OpenDir`, `renameWALUnlock`'s `Open`/`ReadAll`, the
+*An error after the rename* (`renameWAL`'s `OpenDir`, the
 parent's `OpenDir`/fsync/close, then `cleanupWAL`): the update committed (`Q`); the WAL is fresh and
 unnamed, its directory at `dir` or moved aside to `dir.broken.*` by the cleanup (whose rename is not
 fsynced, so a crash may bring it back: no later state can be promised). The handle, the token and half
@@ -94,6 +101,7 @@ abbrev wal.Create.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     (Q : IProp GF) (Pv : Option WalDur → Prop),
   InArea r dir nm → NameOk nm → dir.length < 2 ^ 59 → cleanAbsPath r → mp ≠ slice.nil →
   md.length < 2 ^ 41 → md ≠ [] → WalMarshalCreateOk Mr →
+  FsNoErrOn (fun p => p = dir ∨ p = dir ++ go!".tmp" ∨ p = r) ∧ PathFits (dir ++ go!".tmp") ∧ PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗

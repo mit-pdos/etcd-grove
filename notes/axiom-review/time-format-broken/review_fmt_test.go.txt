@@ -1,0 +1,114 @@
+package reviewtimefmt
+
+import (
+	"math"
+	"math/rand"
+	"os"
+	"strings"
+	"testing"
+	"time"
+	"unsafe"
+)
+
+const layout = "20060102.150405.999999"
+
+type rawTime struct {
+	wall uint64
+	ext  int64
+	loc  *time.Location
+}
+
+func mk(wall uint64, ext int64, loc *time.Location) time.Time {
+	r := rawTime{wall, ext, loc}
+	return *(*time.Time)(unsafe.Pointer(&r))
+}
+
+func check(t *testing.T, s string) {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if !(c >= '0' && c <= '9' || c == '.' || c == '-') {
+			t.Fatalf("bad byte %q in %q", c, s)
+		}
+	}
+	if strings.ContainsAny(s, "/\x00") {
+		t.Fatalf("bad %q", s)
+	}
+}
+
+// Every (wall, ext) bit pattern, including nsec fields >= 1e9 (what the model's Now can make from
+// an arbitrary int32 nsec), with loc nil, Local, UTC, a fixed zone and a real zone.
+func TestArbitraryBits(t *testing.T) {
+	ny, err := time.LoadLocation("America/New_York")
+	if err != nil {
+		t.Fatal(err)
+	}
+	locs := []*time.Location{nil, time.Local, time.UTC, time.FixedZone("a/b\x00", -86400*365*100), ny}
+	edge := []uint64{0, 1, 1<<30 - 1, 999999999, 1e9, 1 << 30, 1<<63 - 1, 1 << 63, math.MaxUint64,
+		1<<63 | (1<<33-1)<<30 | (1<<30 - 1)}
+	exts := []int64{0, 1, -1, math.MaxInt64, math.MinInt64, math.MaxInt64 / 2, math.MinInt64 / 2}
+	n := 0
+	for _, loc := range locs {
+		for _, w := range edge {
+			for _, e := range exts {
+				check(t, mk(w, e, loc).Format(layout))
+				n++
+			}
+		}
+		r := rand.New(rand.NewSource(1))
+		for i := 0; i < 200000; i++ {
+			check(t, mk(r.Uint64(), int64(r.Uint64()), loc).Format(layout))
+			n++
+		}
+	}
+	t.Logf("%d values ok; sample min: %q max: %q", n,
+		mk(0, math.MinInt64, nil).Format(layout), mk(0, math.MaxInt64, nil).Format(layout))
+}
+
+// Model-reachable constructors at their extremes.
+func TestModelConstructors(t *testing.T) {
+	for _, s := range []int64{math.MinInt64, math.MinInt64 + 1, -1, 0, math.MaxInt64} {
+		for _, ns := range []int64{math.MinInt64, -1, 0, 999999999, math.MaxInt64} {
+			u := time.Unix(s, ns)
+			check(t, u.Format(layout))
+			check(t, u.Add(math.MaxInt64).Format(layout))
+			check(t, u.Add(math.MinInt64).Format(layout))
+		}
+	}
+	check(t, time.Time{}.Format(layout))
+	check(t, time.Now().Format(layout))
+}
+
+// The TZ variants, in child processes (Local is initialized once per process).
+func TestTZ(t *testing.T) {
+	if os.Getenv("SUBTZ") != "" {
+		check(t, time.Now().Format(layout))
+		check(t, mk(0, math.MinInt64, time.Local).Format(layout))
+		check(t, mk(0, math.MaxInt64, time.Local).Format(layout))
+		return
+	}
+	t.Skip("run by run-tz.sh")
+}
+
+// Real Go CAN panic here: a racy overwrite of a *Location that a Time points to tears the
+// Location (zone from one, tx from another). Not reachable in the model: no client owns
+// localLoc (Local is ↦□) and Now/Unix only make Times pointing at Local or nil.
+func TestRacyLocation(t *testing.T) {
+	if os.Getenv("RACY") == "" {
+		t.Skip("set RACY=1")
+	}
+	ny, _ := time.LoadLocation("America/New_York")
+	fz := time.FixedZone("X", 0)
+	loc := new(time.Location)
+	*loc = *ny
+	tm := time.Date(1950, 6, 1, 0, 0, 0, 0, loc)
+	go func() {
+		for {
+			*loc = *ny
+			*loc = *fz
+		}
+	}()
+	for i := 0; i < 100000000; i++ {
+		check(t, tm.Format(layout))
+	}
+	t.Log("no panic")
+}

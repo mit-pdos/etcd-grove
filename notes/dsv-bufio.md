@@ -15,8 +15,8 @@ three PkgTables; `Proof/bufio/PkgInit.lean` imports `bytes`' and `strings`' pack
 the WAL's specs (`bufio.NewReader.spec`, `bufio.Reader.Read.spec`, over `io.readerStream` and
 `bufio.ownReader`) are since the review proved from the generic proofs (below).
 
-**Contracts.** Reader: Perennial's `io.readerOk ri Pre S E`. Writer: `io.writerOk wi J Q Ew`
-(`Proof/io/WriterOk.lean`, new; short writes, `Q` prefix-closed, errors with `Ew`'s evidence).
+**Contracts.** Reader: Perennial's `io.readerOk ri Pre S E`. Writer: `io.streamWriterOk wi J Q Ew`
+(`Proof/io/StreamWriterOk.lean`, new; short writes, `Q` prefix-closed, errors with `Ew`'s evidence).
 
 **Vocabulary** (`Proof/bufio/Own.lean`): `bufio.ownBufReader br ri Pre S E R` (returned `R`; it is
 `bufio.ownBufReaderE … (bufio.errE E) (fun _ => True) R`), `bufio.ownBufWriter bw wi J Q Ew sz sent
@@ -47,7 +47,7 @@ laws `bufio.ownBufReader_fact`, `bufio.ownBufWriter_fact`, `bufio.ownBufWriter_s
 **Laws.** `bufio.ownBufReader_readerOk` (`Proof/bufio/ReaderLaws.lean`): a `*bufio.Reader` is an
 `io.readerOk` reader, so Perennial's `io.wp_ReadFull`/`io.wp_ReadAtLeast` read through it.
 `Net/Proof/net/ConnIo.lean`: `net.conn_readerOk` (`recvTokL cn s P` as the stream state, reads of
-`len(p) > 0`), `net.conn_writerOk` (`sendTok cn s P`, `Q = P cn`, `ProtoPrefixClosed P`),
+`len(p) > 0`), `net.conn_streamWriterOk` (`sendTok cn s P`, `Q = P cn`, `ProtoPrefixClosed P`),
 `net.connIface t`, `net.connReadE`, `net.connWriteE`, `net.connIface_ne_bufioReader/Writer`.
 
 **Not done / left.**
@@ -57,7 +57,7 @@ laws `bufio.ownBufReader_fact`, `bufio.ownBufWriter_fact`, `bufio.ownBufWriter_s
   `etc/gen-link.py` owns `Link.lean` files).
 - The WAL still uses the old `bufio.NewReader.spec`/`Reader.Read.spec` (`io.readerStream`);
   moving it onto the generic specs is a follow-up.
-- `notes/perennial-changes.md` (2026-11-23 entry): `io.writerOk` and the slice helpers are
+- `notes/perennial-changes.md` (2026-11-23 entry): `io.streamWriterOk` and the slice helpers are
   candidates for Perennial; `io.ReadFull`/`ReadAtLeast` were already there.
 
 **Checked** (2026-11-23).
@@ -126,7 +126,7 @@ Verdict "revise before landing"; every item done except R5's `ReadString` (below
 - **C3.** `net.eof_ptrTyped` (from `isPkgInit io`); `conn_readerOk` takes `isPkgInit pkg_id.io` in its
   entailment instead of `heof`. `bufio.newVar_ptrTyped` removed.
 - **C4.** `connReadE`'s docstring: an EOF claims nothing about `R` being the peer's whole stream.
-- **Minor.** `Proof/io/WriterOk.lean`'s header: why no law links `writerOk` and `writerStream`, and why
+- **Minor.** `Proof/io/StreamWriterOk.lean`'s header: why no law links `streamWriterOk` and `writerStream`, and why
   `Ew` is position-free.
 
 **Changed names and shapes (the kit ports must follow).**
@@ -161,7 +161,7 @@ New: `bufio.ownBufReaderE`, `bufio.ownBufReaderE_fact`, `bufio.ownBufReader_fact
 `wp_proofE`, `bufio.Writer.{Available,Buffered,Size}.spec`/`wp_proof`, `bufio.walPre`,
 `bufio.ownReader_toE`, `bufio.ownReader_ofE` (`OwnReaderE.lean`), `net.eof_ptrTyped`,
 `net.connReader_proto`, `Net.recvTokL_proto`. Unchanged names and shapes: `bufio.Reader.ReadByte.spec`,
-`bufio.errE`, `io.writerOk`, `net.conn_writerOk`, `net.connIface*`, `net.connWriteE`.
+`bufio.errE`, `io.streamWriterOk`, `net.conn_streamWriterOk`, `net.connIface*`, `net.connWriteE`.
 
 **Checked** (2026-11-23, revision). `etc/lean-check.py -a` on every changed file; `lake build` of the
 `Proof/bufio/` modules, `Net.Proof.net.ConnIo` (with `GooseLang.Ext.Net.Proto`) and
@@ -169,3 +169,55 @@ New: `bufio.ownBufReaderE`, `bufio.ownBufReaderE_fact`, `bufio.ownBufReader_fact
 ok. `#print axioms` of every new or changed theorem: `propext`, `Classical.choice`, `Quot.sound` (or a
 subset). `etc/tier-check.py --check`: ok. Not built: the other importers of `Proto.lean` (228 modules:
 a theorem added, no statement changed) and of the WAL `Link`.
+
+## Round 2 of the review on #24 (2026-11-23)
+
+Upamanyu: ready to land once N1 and N2 are settled.
+
+- **N1 (the WAL `Link.lean` "edited by hand").** It is exactly what `etc/gen-link.py --walfs` produces:
+  `gen-link.py --walfs --check` passes on the branch and on `origin/lean` (`6f6bf7d881`), and with
+  N4 the file is regenerated, not edited. The earlier note that the check "fails on unmodified
+  `lean`" was an environment mistake: without `LAKE_OPTS=--packages=.lake/package-overrides.json`
+  (`etc/gates.sh` sets it from `LAKE_PACKAGES`) `etc/proof_roots.py` resolves Perennial to
+  `.lake/packages/perennial`, which a worktree on a shared Perennial checkout does not have; the
+  scanner then misses Perennial's `Link.lean` results, reports 27 root proofs "with a binder of no
+  known kind" and generates 51 results fewer, on `lean` as on the branch. With Perennial found, no
+  root proof is skipped and both checks exit 0.
+- **N2.** The `.claude/skills/spec/PRINCIPLES.md` edit is reverted on this branch (Upamanyu proposes
+  the text to the user separately).
+- **N4.** `bufio.NewReader.specE` (`Spec/bufio/NewReaderOk.lean`: `ownBufReaderE` at any `Eb`, `szOk`,
+  `⌜szOk 4096⌝`), proved once (`bufio.NewReader.wp_proofE`, `Proof/bufio/NewReaderOk.lean`, from
+  `NewReaderSize.specE`); `wp_proofOk` (at `errE E`) and the WAL's `wp_proof` (`Proof/bufio/NewReader.lean`)
+  are its instances, without unfolding the body. WAL `Link`: `bufio.wp_NewReaderE` added,
+  `bufio.wp_NewReader` from it.
+- **N5.** `Spec/bufio/Writer__WriteByte.lean`'s header cites `bufio.go:702-703`.
+- **N6.** `net.connReader_proto` no longer takes `[bufio.Assumptions]`; `bufio.wand_pure_persistent` is
+  listed for Perennial (`notes/perennial-changes.md`, the dsv-bufio entry).
+- **N3.** Perennial `readatleast-prefix` (`af905abba`): `io.ReadAtLeast.spec`'s premise is now
+  `(ys.length : Int) < sint.Z min ∧ ys.length < xs.length → Pre …` (with `min > len(buf)`, the
+  `ErrShortBuffer` path, the first version asked `Pre _ 0`); `ReadFull`'s proof uses the second conjunct.
+
+**Follow-ups (after landing).**
+- Retire `bufio.ownReader` (the WAL's view, `Spec/bufio/Reader__Read.lean`, `OwnReaderE.lean`), and
+  `szOk` with it (it exists only for that view): move the WAL's callers (`fileutil.NewFileBufReader`,
+  the decoder) onto `ownBufReader`.
+- The WAL specs' remaining premises outside the triple (R3): `bufio.NewReader.spec`'s Lean implication
+  `ri.ty ≠ *bufio.Reader →` and `bufio.Reader.Read.spec`'s `io.readerStream … -∗ (□ bound) -∗` before the
+  triple, into the preconditions as in the generic specs (with the WAL's callers).
+
+- Unify `io.streamWriterOk` (`Proof/io/StreamWriterOk.lean`, the kits' `bufio.Writer` over a connection)
+  with `lean`'s `io.writerOk w Wr` (`Proof/io/SectionReader.lean`, S4's `Tx.WriteTo`/`io.CopyN`): two
+  contracts of `io.Writer`, with no law between them. (Ours was `io.writerOk` until the two met on
+  `lean`, 2026-11-23: renamed `io.streamWriterOk`, `io.streamWriterOk_persistent`,
+  `io.streamWriterOk_prefixClosed`, `io.wp_streamWriter_Write` (lean's `Proof/io/CopyN.lean` has an
+  `io.wp_writer_Write`), `net.conn_streamWriterOk`; file `Proof/io/WriterOk.lean` →
+  `Proof/io/StreamWriterOk.lean`.)
+
+**Checked** (2026-11-23, round 2). `lake build` of `Proof.bufio.{NewReaderOk,NewReader,Writer__WriteByte}`,
+`Net.Proof.net.ConnIo` and the WAL `Link` (3442 jobs): ok. `#print axioms` of `bufio.NewReader.wp_proofE`,
+`wp_proofOk`, `wp_proof`, `walfs.bufio.wp_NewReaderE`, `walfs.bufio.wp_NewReader`, `net.connReader_proto`:
+`propext`, `Classical.choice`, `Quot.sound`. `etc/gen-link.py --walfs --check` (with
+`LAKE_OPTS=--packages=.lake/package-overrides.json`), `etc/tier-check.py --check`: ok. Perennial
+`af905abba`: `Perennial.Proof.io.{ReadAtLeast,ReadFull,Link}` built, both proofs' axioms Lean's three.
+Not built: the WAL `Link`'s importers (`WalTester/.../wal/Link`, `etcdserver.RnNewStorageLinked`; no
+statement they use changed).

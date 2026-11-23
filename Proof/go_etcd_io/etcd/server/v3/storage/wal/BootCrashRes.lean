@@ -236,15 +236,21 @@ theorem tmpDirFiles (L : GooseLocalGS GF) (m : Tree) (J : Ino) (nm : GoString) (
 
 /-- **A WAL directory, as the new invariant takes it**: from its whole claim and its files, its claim
 on the non-pipeline names, its pipeline names (`walTmpsRes`) and its others (`walOthers`). -/
-theorem walDir_boot (L : GooseLocalGS GF) (R : Roots) (V : Hist) (J : Ino) (nm : GoString)
-    (hnm : walNameOk nm) (hfo : FilesOnly (entsOf V.now J)) (E : CoPset) (hE : ↑osShN ⊆ E) :
+theorem walDir_boot (L : GooseLocalGS GF) (R : Roots) (V : Hist) (hV : V.2 = []) (J : Ino)
+    (nm : GoString) (hnm : walNameOk nm) (hfo : FilesOnly (entsOf V.now J)) (E : CoPset)
+    (hE : ↑osShN ⊆ E) :
     ⊢ osSharedInv (L := L) R -∗
       osNames (L := L) J (.except []) (DFrac.own 1) (namesOf V J (.except [])) -∗
       ([∗list] i ∈ dirBootFiles V.now nm J, trFile (hG := ⟨G, L⟩) i False) ={E}=∗
       osNames (L := L) J (.except walTmps) (DFrac.own 1) (namesOf V J (.except walTmps)) ∗
-      walTmpsRes (hG := ⟨G, L⟩) J ∗
+      (walTmpsRes (hG := ⟨G, L⟩) J ∗ walTmpsHalf (hG := ⟨G, L⟩) J) ∗
       walOthers (L := L) [] J (restrictN (.except walTmps) (entsOf V.now J)) := by
   iintro #Hsh H Hf
+  have hcm0 : ⊢ |==> osCommitLb (L := L) 0 := by
+    unfold osCommitLb gCommitLb
+    letI := (gooseOsGS (L := L)).osAllG
+    exact monoNatLbOwn_0 _
+  imod hcm0 with #H0
   imod osNames_split_only L R V J E hE walTmps [] (by decide) (fun _ _ h => by cases h) $$ Hsh H
     with ⟨H, Ht⟩
   rw [List.nil_append]
@@ -252,23 +258,36 @@ theorem walDir_boot (L : GooseLocalGS GF) (R : Roots) (V : Hist) (J : Ino) (nm :
   icases Hf with ⟨Hf, Ho⟩
   imodintro
   iframe H Ho
-  have hmono : ([∗list] b ∈ walTmps, osNames (L := L) J (.only [b]) (DFrac.own 1)
-      (namesOf V J (.only [b])) ∗ tmpEnt (hG := ⟨G, L⟩) (entsOf V.now J !! b)) ⊢
-      [∗list] b ∈ walTmps, tmpClaim (hG := ⟨G, L⟩) J b := by
-    refine BigSepL.bigSepL_mono (fun {k b} _ => ?_)
-    iintro ⟨Hn, Hb⟩
-    unfold tmpClaim
-    iexists namesOf V J (.only [b])
-    iframe Hn
+  have helt : ∀ b, osNames (L := L) J (.only [b]) (DFrac.own 1) (namesOf V J (.only [b])) ∗
+      tmpEnt (hG := ⟨G, L⟩) (entsOf V.now J !! b) ∗ osCommitLb (L := L) 0 ⊢
+      tmpClaim (hG := ⟨G, L⟩) J b ∗ tmpHalf (hG := ⟨G, L⟩) J b := by
+    intro b
     have e : (namesOf V J (.only [b])).cur !! b = entsOf V.now J !! b := by
       show restrictN _ (entsOf V.now J) !! b = _
       exact restrictN_lookup _ _ _ (List.mem_singleton_self _)
-    rw [e]
-    iexact Hb
-  unfold walTmpsRes
-  iapply hmono
-  iapply BigSepL.bigSepL_sep_eqv.2
-  iframe Ht Hf
+    have hf : HistFoP (fun _ => True) 0 J (.only [b]) (namesOf V J (.only [b])) := by
+      refine HistFoP.of_boot (by simp [namesOf, hV]) (fun b' hb' _ J' hd => ?_)
+      have e' : b' = b := List.mem_singleton.1 hb'
+      subst e'
+      have hb2 : (namesOf V J (.only [b'])).boot !! b' = entsOf V.now J !! b' := by
+        show restrictN _ (entsOf V.1 J) !! b' = _
+        rw [restrictN_lookup _ _ _ (List.mem_singleton_self _)]
+        simp [Hist.now, Hist.ops, hV, replay]
+      rw [hb2] at hd
+      obtain ⟨i, hi⟩ := hfo _ _ hd
+      cases hi
+    rw [← e]
+    exact tmpWhole_split (hG := ⟨G, L⟩) J b _ 0 hf
+  iunfold walTmps at Ht Hf
+  icases Ht with ⟨Ht0, Ht1, -⟩
+  icases Hf with ⟨Hf0, Hf1, -⟩
+  ihave ⟨Hc0, Hh0⟩ := helt _ $$ [$Ht0 $Hf0 $H0]
+  ihave ⟨Hc1, Hh1⟩ := helt _ $$ [$Ht1 $Hf1 $H0]
+  unfold walTmpsRes walTmpsHalf walTmps
+  iframe Hc0 Hc1 Hh0 Hh1
+  isplitl []
+  · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
+  · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro
 
 end res
 

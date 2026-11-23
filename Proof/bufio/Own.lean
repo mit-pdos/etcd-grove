@@ -6,7 +6,7 @@ generic specs (`Spec/bufio/`: `NewReaderSize`, `NewReaderOk`, `Reader__ReadOk`, 
 `Writer__Available`, `Writer__Buffered`, `Writer__Size`). Nothing here is about `net`: a
 connection's instances of the contracts are laws of `Net/Proof/net/ConnIo.lean`. Ported from
 dsverify-lab's `Harness/Proof/bufio/Defs.lean` (its `readerOk`/`writerOk` replaced by Perennial's
-`io.readerOk` and `io.writerOk`, `Proof/io/WriterOk.lean`; its errors "with some message" by the
+`io.readerOk` and `io.streamWriterOk`, `Proof/io/StreamWriterOk.lean`; its errors "with some message" by the
 contracts' evidence).
 
 **The buffered reader** `bufio.ownBufReader br ri Pre S E R`: `br` is a `*bufio.Reader` over the
@@ -28,7 +28,7 @@ it, so one proof of each serves both (`bufio.NewReaderSize.specE`, `bufio.Reader
 
 **The buffered writer** `bufio.ownBufWriter bw wi J Q Ew sz sent pend err`: `bw` is a
 `*bufio.Writer` with a buffer of `sz` bytes (`0 < sz`, fixed by `NewWriterSize`) over `wi`
-(`io.writerOk wi J Q Ew`, held); `sent` has gone to the underlying writer (`J sent`, held), `pend`
+(`io.streamWriterOk wi J Q Ew`, held); `sent` has gone to the underlying writer (`J sent`, held), `pend`
 is buffered, not sent (`pend.length ≤ sz`); `□ Q (sent ++ pend)` (what the buffer will send is
 allowed); `err` is the writer's sticky error (`nil` while healthy, else with `Ew`'s evidence; once
 not `nil`, every later `Write`, `WriteByte` and `Flush` returns it and sends nothing). Clients
@@ -39,7 +39,7 @@ module
 
 public import Proof.bufio.Base
 public import Proof.bufio.PkgInit
-public import Proof.io.WriterOk
+public import Proof.io.StreamWriterOk
 
 @[expose] public section
 
@@ -168,7 +168,7 @@ def bufio.writerRep (bw : Loc) (wi : GoInterfaceOk) (Ew : GoInterface → IProp 
 def bufio.ownBufWriter (bw : Loc) (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
     (Ew : GoInterface → IProp GF) (sz : Nat) (sent pend : List w8) (err : GoInterface) :
     IProp GF :=
-  iprop(isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ io.writerOk wi J Q Ew ∗ J sent ∗
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ io.streamWriterOk wi J Q Ew ∗ J sent ∗
     □ Q (sent ++ pend) ∗ bufio.writerRep bw wi Ew sz pend err)
 
 /-- **A fact of the sent bytes' state** (review W4): a persistent fact `Ψ` that the writer's

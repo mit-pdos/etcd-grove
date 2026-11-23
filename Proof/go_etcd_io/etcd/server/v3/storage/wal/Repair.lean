@@ -47,6 +47,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndexLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairLocked
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairBrokenOpen
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairReg
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecTerm
 
 @[expose] public section
 
@@ -325,7 +326,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       · ihave #Hde2 := Hde
         iunfold decEnv at Hde2
         icases Hde2 with ⟨-, -, #Hfmt, -, -, -, -, -, -, ⟨%ecm, #Hcm, #Hcmok, #Hcmnot⟩, -⟩
-        wp_apply wp_Validate «$r0_ptr» r c1x ecm _ eof $$ [Hr] as %verr ⟨Hr, Hv⟩
+        ihave %heofT := decEnv_eof_target _ _ _ $$ Hde
+        wp_apply wp_Validate «$r0_ptr» r c1x ecm eof heofT $$ [Hr] as %verr ⟨Hr, Hv⟩
         · iframe Hr; iframe #
         icases Hv with (⟨%hv1, %hv2⟩ | ⟨%hne, %ei, %hei, -, -⟩)
         · subst hv1
@@ -504,7 +506,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
       -- `io.Copy(bf, f)`
       have hbw : (openFd bi (wal.walOpenFlag true ||| W64 0x80000)).writable = true := by
         unfold openFd wal.walOpenFlag; simp only [↓reduceIte]; decide
-      have hm62 : gL.om.size < 2 ^ 62 := by omega
+      have hm62 : gL.om.size < 2 ^ 61 := by
+        have h2 : Fs.maxBytes = 0xffffffff000 := rfl; omega
       wp_apply (wp_Copy bf bfd (child dir (repBroken gL.name)) (openFd bi (wal.walOpenFlag true ||| W64 0x80000))
           lf f fd (child dir gL.name) ⟨gL.ino, true, true, lo, lk⟩ (W64 0) (DFrac.own (1 : Qp).half)
           (DFrac.own (1 : Qp).half) gL.om gL.bs hbw rfl hbfd hfd (by decide) (by simp) hSz.symm hm62)
@@ -559,7 +562,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
         iexists gL.om, gL.bs
         iframe Hm Hb
         isplitr
-        · ipureintro; exact ⟨rfl, hTM, hm62, hfd, hTM.loWr _⟩
+        · ipureintro; exact ⟨rfl, hTM, by omega, hfd, hTM.loWr _⟩
         iunfold tailVar at Hv; iexact Hv
       icases Htr with (⟨%hte, Htw⟩ | ⟨%hte, Hf, ⟨%rd, %lo, %lk, Hfd, Hlks⟩, Hoff⟩)
       rotate_left
