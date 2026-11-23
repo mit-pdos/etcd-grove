@@ -698,6 +698,88 @@ theorem enc_PropagateRequest : enc_PropagateRequest.spec (GF := GF) := by
   refine ⟨es, Hes, ?_⟩
   simp only [encPropReqL, tagged, encU64, List.append_assoc]
 
+/-! ## Decoding -/
+
+/-- A suffix of a slice, with the way back to the whole. -/
+theorem ownSlice_suffix (k : w64) (s : GoSlice) (dq : DFrac) (vs : List w8)
+    (hk : 0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z s.len) :
+    (s ↦*{dq} vs : IProp GF) ⊢
+      slice.slice s w8 k s.len ↦*{dq} vs.drop (sint.nat k) ∗
+      (slice.slice s w8 k s.len ↦*{dq} vs.drop (sint.nat k) -∗ s ↦*{dq} vs) := by
+  iintro Hs
+  ihave Hs := (ownSlice_trivial_slice s dq vs).1 $$ Hs
+  icases (ownSlice_split k s dq vs (W64 0) s.len ⟨by decide, hk.1, hk.2⟩).1 $$ Hs with ⟨Hp, Hs⟩
+  have h0 : sint.nat k - sint.nat (W64 0) = sint.nat k := by
+    rw [show sint.nat (W64 0) = 0 from rfl]; omega
+  rw [h0]
+  iframe Hs
+  iintro Hs
+  iapply (ownSlice_trivial_slice s dq vs).2
+  iapply (ownSlice_split k s dq vs (W64 0) s.len ⟨by decide, hk.1, hk.2⟩).2
+  rw [h0]
+  iframe
+
+/-- The pure `rpcGetU64`. -/
+def getU64 (bs : List w8) : Option (w64 × List w8) :=
+  if 8 ≤ bs.length then some (leToU64 (bs.take 8), bs.drop 8) else none
+
+theorem getU64_enc (x : w64) (rest : List w8) : getU64 (u64Le x ++ rest) = some (x, rest) := by
+  unfold getU64
+  rw [ite_eq_left (by simp [u64Le_length])]
+  have h8 := u64Le_length x
+  rw [List.take_append_of_le_length (by omega), List.take_of_length_le (by omega),
+    List.drop_append_of_le_length (by omega), List.drop_of_length_le (by omega), List.nil_append,
+    u64Le_to_word]
+
+theorem wp_rpcGetU64 (b : GoSlice) (bs : List w8) (dq : DFrac) (Φ : val → IProp GF) :
+    b ↦*{dq} bs -∗
+    ▷ (∀ (x : w64) (r : GoSlice) (ok : Bool),
+        (match getU64 bs with
+          | some (x', rest) => ⌜ok = true ∧ x = x'⌝ ∗ r ↦*{dq} rest ∗ (r ↦*{dq} rest -∗ b ↦*{dq} bs)
+          | none => ⌜ok = false⌝ ∗ b ↦*{dq} bs) -∗
+        Φ (PairV (PairV #x #r) #ok)) -∗
+    WP (App (Val (@! examples.craqnet.rpcGetU64)) (Val #b)) {{ Φ }} := by
+  iintro Hb HΦ
+  ihave %Hl := ownSlice_len _ _ _ $$ Hb
+  ihave %Hwf := ownSlice_wf _ _ _ $$ Hb
+  wp_func_call
+  wp_call
+  wp_auto
+  have hlenZ : (bs.length : Int) = sint.Z b.len := by
+    rw [Hl.1]; show ((sint.Z b.len).toNat : Int) = _; exact Int.toNat_of_nonneg Hl.2
+  by_cases h8 : bs.length < 8
+  · rw [decide_eq_true (show sint.Z b.len < sint.Z (W64 8) by
+      rw [show sint.Z (W64 8) = 8 from rfl]; omega)]
+    wp_auto
+    iapply HΦ
+    unfold getU64
+    rw [ite_eq_right (by omega)]
+    dsimp only
+    iframe
+    ipureintro; rfl
+  · have hb8 : 8 ≤ sint.Z b.len := by omega
+    rw [decide_eq_false (show ¬ sint.Z b.len < sint.Z (W64 8) by
+      rw [show sint.Z (W64 8) = 8 from rfl]; omega)]
+    rcases bs with _ | ⟨w0, _ | ⟨w1, _ | ⟨w2, _ | ⟨w3, _ | ⟨w4, _ | ⟨w5, _ | ⟨w6, _ | ⟨w7, rest⟩⟩⟩⟩⟩⟩⟩⟩ <;>
+      try (simp at h8; done)
+    wp_auto
+    iterate 8
+      rw [ite_eq_left (show _ ∧ _ by constructor <;> word)]
+      wp_apply wp_load_slice_index b _ _ dq _ (by decide) $$ [Hb] with Hb
+      · iframe; ipureintro; rfl
+      (try wp_auto)
+    have hcap : sint.Z b.len ≤ sint.Z b.cap := Hwf.2
+    rw [ite_eq_left ⟨by decide, by rw [show sint.Z (W64 8) = 8 from rfl]; omega, hcap⟩]
+    wp_auto
+    icases ownSlice_suffix (W64 8) b dq _ ⟨by decide, by rw [show sint.Z (W64 8) = 8 from rfl]; omega⟩
+      $$ Hb with ⟨Hr, Hback⟩
+    iapply HΦ
+    simp only [getU64, List.length_cons, show 8 ≤ rest.length + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 by omega,
+      ite_true, List.take_succ_cons, List.take_zero, List.drop_succ_cons, List.drop_zero,
+      encoding.binary.leToU64_8]
+    iframe
+    ipureintro; simp
+
 end proof
 
 end github_com.despreston.go_craq
