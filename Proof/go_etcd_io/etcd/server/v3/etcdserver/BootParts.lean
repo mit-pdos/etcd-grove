@@ -24,17 +24,23 @@ The states:
   `bootstrapStorage` takes.
 
 **Three laws, hypotheses of `bootstrap.wp_proof` until the data area's split law is proved** (plan
-§7.3; "a proof takes a linked lemma as a law", CLAUDE.md). Each is true of Go; none is provable yet:
+§7.3; "a proof takes a linked lemma as a law", CLAUDE.md). Each is true of Go:
 
-- `bootFs.touchData.law`: the proved `TouchDirAll.spec` covers only an absent name, and the data
-  directory is an existing root (its parent's sync is outside the root's tree);
+- `bootFs.touchData.law`: **proved** (2026-11-23), `bootFs.touchData_law_holds` (`BootFsLaws.lean`), from
+  `TouchDirAll.specExisting` (an existing directory; proved, `TouchDirAll.wp_proofExisting`) and the slot's
+  `dataAreaFresh`, which since then holds `Fs.osAboveInv` (the root's parent is synced above the roots) and
+  the bound `d.length < 4096`;
 - `bootFs.touchMember.law`: `TouchDirAll.spec` covers it (`member` is absent in the data directory),
   but `wal.bootRes` is sealed, and two things are missing from its body today: (1) **the snapshot
   directory's right `snap.snapDirOwn`** (opaque: only `bootOk` gives it, plan §1's "Check": the
   slot's body must grow by it), and (2) `dataAreaFresh` quantifies the file extension's instances
   existentially, where the file claims `bootOk` gives (`backend.fileFree`, `backend.bPath`) are at the
   program's (`backend.onFs`): its body must say they are the program's;
-- `bootFs.walExist.law`: `wal.Exist.spec` gives `false → no WAL`, not the converse (its `false` arm
+- `bootFs.walExist.law`: unprovable under the trusted semantics as it stands (2026-11-23): `open` of an
+  absent path may fail with any nonzero errno (`Impl.lean`'s `Open`), and `NoIoErr`'s `PathErrno` names no
+  errno for `open` (only `unlink`/`rmdir`), so `ReadDir`'s error need not be `ENOENT` and `Exist` may answer
+  `true`; and `walAreaFresh`'s area covers by path the paths below the WAL directory (`covP`), not the
+  directory itself. Before: `wal.Exist.spec` gives `false → no WAL`, not the converse (its `false` arm
   rests on `ENOENT`, `ExistCallees.lean`): `Exist` of a fresh area's absent directory reads `ENOENT`
   and answers `false` in Go (`server/storage/wal/util.go`), so the restart branch is not taken.
 
@@ -122,10 +128,14 @@ def bootFs.walPart (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp
 /-- **A fresh directory `d`, wholly the caller's**, at the program's file-extension instances
 (`backend.onFs`, where `backend.fileFree` and `backend.bPath` are): `dataAreaFresh`'s shape (a clean
 absolute path, the whole of its spine, of its root's call permission and of its names, none naming an
-entry), for a directory `TouchDirAll` has just made (its post: the new directory's whole claim, empty). -/
+entry), for a directory `TouchDirAll` has just made (its post: the new directory's whole claim, empty); and
+(2026-11-23) the dispenser of the call permission above the roots (`Fs.osAboveInv`, persistent), which a
+`TouchDirAll` inside it takes (`TouchDirAll.spec`; `syncDir` above the roots), and `d` shorter than `PATH_MAX`
+(4096 bytes; the bound `TouchDirAll.spec` takes of a path below it follows). -/
 def bootFs.dirFresh (d : GoString) : IProp GF :=
   backend.onFs iprop(∃ (R : Fs.Roots) (j : Fs.Ino) (h : Fs.NamesH),
-    ⌜cleanAbsPath d ∧ ∀ b, h.cur !! b = none⌝ ∗ Fs.osInv ∗ Fs.osSharedInv R ∗
+    ⌜cleanAbsPath d ∧ d.length < 4096 ∧ ∀ b, h.cur !! b = none⌝ ∗ Fs.osInv ∗ Fs.osSharedInv R ∗
+    Fs.osAboveInv ∗
     Fs.osPathS R d (DFrac.own 1) j ∗ Fs.osCallPerm (Fs.callKey R d) 1 ∗
     Fs.osNames j (.except []) (DFrac.own 1) h)
 
