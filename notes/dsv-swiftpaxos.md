@@ -197,7 +197,9 @@ Read with the ninth session's state below (accurate where this does not say othe
 - **Kit Go: `MaxVal`** (`op1` answers unknown for a put value of `2^16` bytes or more):
   `BufferClient.Write`'s spec takes values below `2^16` and remote's decoded inputs are only below
   `2^48`. Retranslated.
-- **`examples/swiftnet/ClientLin.lean`** (new, in progress): remote's store `swRK γk = swR (sysK γk)
+- **`examples/swiftnet/ClientLin.lean`** (new, **builds; `put_of_lin`, `get_of_lin` on Lean's three
+  axioms**; `linkI` holds the lin ghost list `ps` rather than `linOwn`, to keep `▷`-destructuring
+  over a list): remote's store `swRK γk = swR (sysK γk)
   swEop`, `sysK γk σ` half of a ghost variable of the two keys' values, `linkInv γ γk` (the other
   half with `linOwn γ.lin σ'` related, `relP`), `put_of_lin`/`get_of_lin`: `Write`'s/`Read`'s
   logically atomic triples from remote's one-shot `lin` (the AU's abort gives `linOwn` back to the
@@ -207,6 +209,24 @@ Read with the ninth session's state below (accurate where this does not say othe
 - **`AwaitConf.lean`** (the lab's, reused by the client and server machines) now gets past
   `Interface` and fails on `errNone` and an `addrTok` frame (exact `Listen` of the configuration
   port: needs `Net/`'s current `Listen` spec): to repair in step 2.
+
+- Tier violations of the kit (`etc/tier-check.py | grep swiftpaxos`): **254** (none in the files
+  added this session).
+
+**Next (concretely).** Step 2, the client machine, over `ClientLin`: (a) `KitSpecs`-like file
+(epaxos's `KitSpecs.lean`): `Client.spec` from `isPkgInit` of the kit, `clientNodeShare γ c`, the
+first-init resources the client node's boot hands over (`client.freshAt`), `linkInv γ γk`,
+`remoteAddr (swRK γk) (ClientAddrs[c])`, `mapCtx`; never returns. (b) `op`/`op1` over
+`opMu`'s lock invariant `∃ j, s.ops ↦ j ∗ clSt γ s c j` (`tok sys := isSysL γ c s ∗ is_lock opMu …`,
+persistent, as `ServeClient`'s `newClient` contract asks), the lab's `ClientOp` (`Op.wp_proof`)
+with `ClientAU`'s `wp_Write_au`/`wp_Read_au` replaced by `put_of_lin`/`get_of_lin` (drop the
+non-empty value requirement; `MaxVal` gives `hlen`, `MaxOps` the `2^10` bound). (c) `newClient`
+(lab `ClientNodeNew`: `Register` for `registerRPC`, `Sys`'s new fields `opMu`, `ops`), `AwaitConf`
+(repair: `errNone`, the exact `Listen` frame), `ClientLeaders` (DialHTTP now needs `rpcHttp`'s
+`dialEnv`), `ClientConnect`. Then steps 3-7 as the ninth session lists them, with: the start
+discharging `rpcLisP_set`'s handshake premise by `worldHs_http`, the boot resource giving
+`dialEnv` and `muxOwner []` (EPaxos's `rpcBootRes`), `γk`/`linkInv` allocated at the start.
+Also: `client.Link` builds again (Net's `Client.Close.wp`).
 
 **Next.** Unchanged from the ninth session's list (steps 2-7), with the initialization above. The
 lab-kit files that read the old `pkgStates` (`PkgState`, `Parts`, `ServersLink`, `SrvInit`,

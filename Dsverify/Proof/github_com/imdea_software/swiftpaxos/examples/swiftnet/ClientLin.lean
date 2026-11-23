@@ -62,11 +62,15 @@ instance sysK_timeless (γk : GName) (σ : St) : Timeless (sysK γk σ) := by
 
 /-- **The link invariant**: the other half of `γk`, and the slot's state at those values. -/
 def linkI (γ : SwiftNames netDistGF) (γk : GName) : IProp netDistGF :=
-  iprop(∃ (p : GoString × GoString) (σ' : (kv GoString GoString).State),
-    ghostVar γk (1 : Qp).half p ∗ linOwn γ.lin σ' ∗ ⌜relP p σ'⌝)
+  iprop(∃ (p : GoString × GoString) (ps : List (GoString × GoString)),
+    ghostVar γk (1 : Qp).half p ∗ ghostVar γ.lin (1 : Qp).half ps ∗ ⌜relP p (lin.stateOf ps)⌝)
 
 def linkInv (γ : SwiftNames netDistGF) (γk : GName) : IProp netDistGF :=
   inv linkN (linkI γ γk)
+
+instance linkInv_persistent (γ : SwiftNames netDistGF) (γk : GName) :
+    Persistent (linkInv γ γk) := by
+  unfold linkInv; infer_instance
 
 /-- The kit's store over the slot. -/
 abbrev swRK (γk : GName) : RBase netDistGF St KIn BStr := swR (sysK γk) swEop
@@ -129,12 +133,17 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
   unfold atomic_acc
   iunfold linkInv at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%p, %σ', Hp, Hσ, %Hrel⟩
+  · exact linkN_spN
+  iunfold linkI at Hi
+  icases Hi with ⟨%p, %ps, Hp, Hσ, Hrel⟩
   imod Hp
   imod Hσ
+  imod Hrel with %Hrel
+  ihave Hσ : linOwn γ.lin (lin.stateOf ps) $$ [Hσ]
+  · iunfold linOwn; iexists ps; iframe Hσ; ipureintro; rfl
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
-  iexists (⟨σ', ⟨⟩⟩ : (Tele.cons fun _ : (kv GoString GoString).State => Tele.nil).Arg)
+  iexists (⟨lin.stateOf ps, ⟨⟩⟩ : (Tele.cons fun _ : (kv GoString GoString).State => Tele.nil).Arg)
   dsimp only [Tele.lam, Tele.app, Tele.bind, BI.tforall_cons, BI.tforall_nil, BIBase.wandM]
   iframe Hσ
   isplit
@@ -142,9 +151,12 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
     imod Hmask with -
     imod Hclose $$ [Hσ Hp] with -
     · inext
-      iexists p, σ'
+      iunfold linkI
+      iunfold linOwn at Hσ
+      icases Hσ with ⟨%ps', Hσ, %Hps'⟩
+      iexists p, ps'
       iframe Hσ Hp
-      ipureintro; exact Hrel
+      ipureintro; rw [← Hps']; exact Hrel
     imodintro
     iframe
   · iintro Hσ'
@@ -152,7 +164,8 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
     iunfold lin at Hlin
     rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
-    iunfold sysK at Hst
+    ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]
+    · simp only [swRK, swR, sysK]; iexact Hst
     icombine Hst Hp gives %Hg
     have Hpe := Hg.2
     subst Hpe
@@ -160,16 +173,18 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
     imod ghostVar_update_halves (kpair (upd st i.key i.bval)) γk (kpair st) (kpair st) $$ Hst Hp
       with ⟨Hst, Hp⟩
     imod Hc $$ [Hst] with HΦ
-    · iunfold sysK; iexact Hst
+    · unfold sysK; iexact Hst
     imod Hclose $$ [Hσ' Hp] with -
     · inext
-      iexists _, _
+      iunfold linkI
+      iunfold linOwn at Hσ'
+      icases Hσ' with ⟨%ps', Hσ', %Hps'⟩
+      iexists _, ps'
       iframe Hσ' Hp
-      ipureintro; exact relP_put st σ' i Hrel
+      ipureintro; rw [← Hps']; exact relP_put st _ i Hrel
     imodintro
     iintro HP
     iframe HP HΦ
-    ipureintro; rfl
 
 /-- A get through `Read`'s atomic triple: remote's update committed at the triple's commit, the
 returned slice holding the key's value. -/
@@ -187,12 +202,17 @@ theorem get_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hget : i
   unfold atomic_acc
   iunfold linkInv at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%p, %σ', Hp, Hσ, %Hrel⟩
+  · exact linkN_spN
+  iunfold linkI at Hi
+  icases Hi with ⟨%p, %ps, Hp, Hσ, Hrel⟩
   imod Hp
   imod Hσ
+  imod Hrel with %Hrel
+  ihave Hσ : linOwn γ.lin (lin.stateOf ps) $$ [Hσ]
+  · iunfold linOwn; iexists ps; iframe Hσ; ipureintro; rfl
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
-  iexists (⟨σ', ⟨⟩⟩ : (Tele.cons fun _ : (kv GoString GoString).State => Tele.nil).Arg)
+  iexists (⟨lin.stateOf ps, ⟨⟩⟩ : (Tele.cons fun _ : (kv GoString GoString).State => Tele.nil).Arg)
   dsimp only [Tele.lam, Tele.app, Tele.bind, BI.tforall_cons, BI.tforall_nil, BIBase.wandM]
   iframe Hσ
   isplit
@@ -200,9 +220,12 @@ theorem get_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hget : i
     imod Hmask with -
     imod Hclose $$ [Hσ Hp] with -
     · inext
-      iexists p, σ'
+      iunfold linkI
+      iunfold linOwn at Hσ
+      icases Hσ with ⟨%ps', Hσ, %Hps'⟩
+      iexists p, ps'
       iframe Hσ Hp
-      ipureintro; exact Hrel
+      ipureintro; rw [← Hps']; exact Hrel
     imodintro
     iframe
   · iintro Hσ'
@@ -210,24 +233,31 @@ theorem get_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hget : i
     iunfold lin at Hlin
     rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
-    iunfold sysK at Hst
+    ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]
+    · simp only [swRK, swR, sysK]; iexact Hst
     icombine Hst Hp gives %Hg
     have Hpe := Hg.2
     subst Hpe
     simp only [swRK, swR, swB_get i hget]
     imod Hc $$ [Hst] with HΦ
-    · iunfold sysK; iexact Hst
+    · unfold sysK; iexact Hst
     imod Hclose $$ [Hσ' Hp] with -
     · inext
-      iexists _, _
+      iunfold linkI
+      iunfold linOwn at Hσ'
+      icases Hσ' with ⟨%ps', Hσ', %Hps'⟩
+      iexists _, ps'
       iframe Hσ' Hp
-      ipureintro; exact Hrel
+      ipureintro; rw [← Hps']; exact Hrel
     imodintro
     iintro %sl ⟨#Hsl, HP⟩
     iexists sl, st i.key
-    rw [relP_get st σ' i Hrel]
-    iframe Hsl HP HΦ
-    ipureintro; rfl
+    rw [← relP_get st _ i Hrel]
+    iframe HP HΦ
+    isplitr
+    · ipureintro; rfl
+    unfold Option.getD
+    iexact Hsl
 
 end au
 

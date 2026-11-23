@@ -234,7 +234,11 @@ theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }} := by
-  iintro %Φ ⟨%Hb, #Hc, ⟨#He, #Hcon⟩, #Ha⟩ HΦ
+  iintro %Φ Hp HΦ
+  iunfold rpcHttp at Hp
+  icases Hp with ⟨%Hb, #Hc, Hd, #Ha⟩
+  iunfold dialEnv at Hd
+  icases Hd with ⟨#He, #Hcon⟩
   iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ [] HΦ
   iframe Hc He Hcon Ha
   ipureintro; exact Hb
