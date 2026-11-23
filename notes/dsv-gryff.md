@@ -652,6 +652,8 @@ level instead: `examples/gryffnet/KitServer.lean`, `Server.wp_proof`), the kit (
    imports: KitServer, Replica2/Link, H2c2/ExecOverwrite's `…wp_proof` call; restructure as
    needed); `etc/goose.py --check --project dsv-gryff`, `gen-init --check`, `_gryff_boot.py --check`.
 
+**Tiers at `f6213e1528`: 20 new violations** (`etc/tier-check.py --check`), mostly `defs->proof` from H1/H2 modules importing H1 modules that hold lab-style `…wp_proof` theorems (Parti, CoordW2, …) and `Kit -> ModelProof`: rename those theorems or split statements from proofs before landing.
+
 **Design findings this session (for the report):** remote's `ServeClient` needs the client state
 behind a persistent token (kit `Sys.mu`); remote gives no per-client bound on operations (kit
 `ops ≥ K`); `Check`'s `codecOk` needs an injective `EncIn` (24 bytes); Net's `NewServer.spec` does
