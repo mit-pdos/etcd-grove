@@ -6,8 +6,8 @@ onto the net extension (`net.Dial`/`Listen`/`Listener.Accept`/`Conn.Write`/`Conn
 hypotheses, `GooseLang/Ext/Net/Proto.lean`'s laws) and Perennial's `io.ReadFull` (`io.wp_ReadFull`,
 over an `io.readerOk` of the connection: the hypothesis `conn_readerOk`).
 
-* `cfgAddrs`: the kit's `CfgAddrs()`, machine `n`'s configuration address at `n` (the
-  orchestrator's, `n = 0`, unused).
+* `cfgAddrs` (`Wire/Addrs.lean`): the kit's `CfgAddrs()`, machine `n`'s configuration address at
+  `n` (the orchestrator's, `n = 0`, unused).
 * `confBytes n h r`, `ConfOk n h r`: a configuration's three bytes; one `decode` accepts.
 * `confProto γ`, `ackProto`, `confProtos γ`: the configuration's wire: what the orchestrator writes
   to a configuration address is a prefix of the bytes of one accepted configuration whose number
@@ -21,6 +21,7 @@ module
 
 public import Net.Proof.net.AtAddr
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Kit
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.Addrs
 public import Perennial.Proof.github_com.goose_lang.primitive.RandomUint64
 public import Perennial.Proof.io.Link
 public import Perennial.Golang.Theory.Chan.Idioms.Future
@@ -32,6 +33,7 @@ public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
 public import Net.Spec.net.Conn__Close
 public import GooseLang.Ext.Net.Stream
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
 
 @[expose] public section
 
@@ -50,12 +52,6 @@ namespace github_com.tangledbytes.go_vsr.examples.vsrnet
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-! ## The configuration's wire -/
-
-/-- Every machine's configuration address (`CfgAddrs()`), machine `n` at `n`. -/
-def cfgAddrs : List GoString :=
-  [go!"127.0.0.1:7520", go!"127.0.0.1:7521", go!"127.0.0.1:7522", go!"127.0.0.1:7523",
-   go!"127.0.0.1:7524", go!"127.0.0.1:7525", go!"127.0.0.1:7526", go!"127.0.0.1:7527",
-   go!"127.0.0.1:7528", go!"127.0.0.1:7529", go!"127.0.0.1:7530", go!"127.0.0.1:7531"]
 
 /-- The configuration's three bytes (`Conf.encode`: N, the heartbeat's and the request timeout's
 positions in their lists). -/
@@ -333,27 +329,6 @@ theorem wp_decode (sl : GoSlice) (x y z : w8) (dq : DFrac) :
     | (intro _; exact decode_ok x y z (by first | exact Or.inl ‹_› | exact Or.inr ‹_›) ‹_› ‹_›)
     | (intro h; cases h)
 
-/-! ### A connection as an `io.Reader` -/
-
-/-- The errors of a connection's reads: `io.EOF`'s value, or a read `*OpError` (the
-`net.connReadE` of the unlanded `Net/Proof/net/ConnIo.lean`, dsv-bufio). -/
-def connReadE (eof la ra ed : GoInterface) : List w8 → GoInterface → IProp GF :=
-  fun _ e => iprop(⌜e = eof⌝ ∨ ∃ k, net.resErr (some k) go!"read" la ra (some ed) (· = go!"read") e)
-
-/-- **Hypothesis** (`conn_readerOk`): the end `s` of a connection `cn` (a `*TCPConn` `t`) is an
-`io.Reader` (Perennial's `io.readerOk`) whose stream state is `recvTokL cn s P`. The law of the
-unlanded `Net/Proof/net/ConnIo.lean` (branch `dsv-bufio`), but for any buffer: that branch's
-`net.conn_readerOk` asks `0 < len(p)` of each read, which Perennial's `io.ReadFull.spec` cannot
-give (its premise asks `Pre` of every remaining length, `0` included, though `ReadAtLeast` reads
-only while bytes remain). -/
-abbrev connReaderOk : Prop :=
-  ∀ (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra eof ed : GoInterface) (P : Proto GF),
-    io.ptrTyped eof →
-    net.connAt (GF := GF) t cn s a la ra ∗ globalAddr io.EOF ↦□ eof ∗
-        globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ⊢
-      io.readerOk ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (fun _ _ => True)
-        (recvTokL (Gg := hG.goose_globalGS) cn s P) (connReadE eof la ra ed)
-
 /-- The values the connection's specs and `io.ReadFull` name: `io.EOF`'s (a pointer),
 `io.ErrUnexpectedEOF`'s (not `nil`), `poll.ErrDeadlineExceeded`'s. -/
 theorem errs_init :
@@ -473,7 +448,7 @@ theorem wp_sendConf (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     show (W64 1 - W64 0) = W64 1 from rfl,
     show (zero_val (GoArray w8 1)).arr = [W8 0] from rfl]
   wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (fun _ _ => True)
-      (recvTokL (Gg := hG.goose_globalGS) cn false ackProto) (connReadE eof la ra ed) [] (slice.mk a_ptr (W64 1) (W64 1)) [W8 0] eof ueof
+      (recvTokL (Gg := hG.goose_globalGS) cn false ackProto) (net.connReadE eof la ra ed) [] (slice.mk a_ptr (W64 1) (W64 1)) [W8 0] eof ueof
       $$ [Hrv Hs2] as %n2 %err2 ⟨%ys, %Hys, Hs2, Hrv, #Hres⟩
   · iframe Hrd Heof Hue Hrv Hs2; ipureintro; intro _ _; trivial
   iunfold io.readFullRes at Hres
@@ -699,7 +674,7 @@ theorem wp_awaitConf (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     show (W64 3 - W64 0) = W64 3 from rfl,
     show (zero_val (GoArray w8 3)).arr = [W8 0, W8 0, W8 0] from rfl]
   wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #tc⟩ (fun _ _ => True)
-      (recvTokL (Gg := hG.goose_globalGS) cn true (confProto γ)) (connReadE eof la ra ed) []
+      (recvTokL (Gg := hG.goose_globalGS) cn true (confProto γ)) (net.connReadE eof la ra ed) []
       (slice.mk b_ptr (W64 3) (W64 3)) [W8 0, W8 0, W8 0] eof ueof
       $$ [Hrv Hb] as %n2 %err2 ⟨%ys, %Hys, Hb, Hrv, #Hres⟩
   · iframe Hrd Heof Hue Hrv Hb; ipureintro; intro _ _; trivial

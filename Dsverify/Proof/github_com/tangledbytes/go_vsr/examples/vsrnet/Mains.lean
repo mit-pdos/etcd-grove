@@ -2,8 +2,7 @@
 The vr kit's twelve commands' `main`s (`examples/vsrnet/cmd/*`, notes/dsv-vr.md), each its kit
 function on its constant, from the kit functions' specs (`Orch.spec`, `Client.spec`,
 `Server.spec`), as paxos's `Mains.lean`. Each `wp_main`'s precondition is its function's, which the
-start (`Start.lean`) gives but for the packages' state the package facts do not carry yet
-(`pkgStates`/`srvLibState`: the kit's codec registered, blocker (2) on #24).
+start (`Start.lean`) gives.
 -/
 module
 
@@ -86,12 +85,12 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client0 ∗
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-        nextReq (G := hG.goose_globalGS) γ (0 + 1) 1 ∗ pkgStates ∗
+        nextReq (G := hG.goose_globalGS) γ (0 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 0 []) ∗
         ⌜ρ.bud (clientAddrs.getD 0 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -119,12 +118,12 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client1 ∗
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-        nextReq (G := hG.goose_globalGS) γ (1 + 1) 1 ∗ pkgStates ∗
+        nextReq (G := hG.goose_globalGS) γ (1 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 1 []) ∗
         ⌜ρ.bud (clientAddrs.getD 1 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -152,12 +151,12 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client2 ∗
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-        nextReq (G := hG.goose_globalGS) γ (2 + 1) 1 ∗ pkgStates ∗
+        nextReq (G := hG.goose_globalGS) γ (2 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 2 []) ∗
         ⌜ρ.bud (clientAddrs.getD 2 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -185,12 +184,12 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client3 ∗
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-        nextReq (G := hG.goose_globalGS) γ (3 + 1) 1 ∗ pkgStates ∗
+        nextReq (G := hG.goose_globalGS) γ (3 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 3 []) ∗
         ⌜ρ.bud (clientAddrs.getD 3 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -218,12 +217,12 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client4 ∗
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-        nextReq (G := hG.goose_globalGS) γ (4 + 1) 1 ∗ pkgStates ∗
+        nextReq (G := hG.goose_globalGS) γ (4 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 4 []) ∗
         ⌜ρ.bud (clientAddrs.getD 4 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -251,12 +250,12 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client5 ∗
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-        nextReq (G := hG.goose_globalGS) γ (5 + 1) 1 ∗ pkgStates ∗
+        nextReq (G := hG.goose_globalGS) γ (5 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 5 []) ∗
         ⌜ρ.bud (clientAddrs.getD 5 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -281,11 +280,11 @@ variable [bvi : go.BasicIntoValInj]
 variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server1 ∗ srvLibState (GF := GF) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server1 ∗
         srvShare (G := hG.goose_globalGS) γ 1 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hls, Hsh⟩
+  wp_start as Hsh
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -311,11 +310,11 @@ variable [bvi : go.BasicIntoValInj]
 variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server2 ∗ srvLibState (GF := GF) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server2 ∗
         srvShare (G := hG.goose_globalGS) γ 2 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hls, Hsh⟩
+  wp_start as Hsh
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -341,11 +340,11 @@ variable [bvi : go.BasicIntoValInj]
 variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server3 ∗ srvLibState (GF := GF) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server3 ∗
         srvShare (G := hG.goose_globalGS) γ 3 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hls, Hsh⟩
+  wp_start as Hsh
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -371,11 +370,11 @@ variable [bvi : go.BasicIntoValInj]
 variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server4 ∗ srvLibState (GF := GF) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server4 ∗
         srvShare (G := hG.goose_globalGS) γ 4 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hls, Hsh⟩
+  wp_start as Hsh
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -401,11 +400,11 @@ variable [bvi : go.BasicIntoValInj]
 variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server5 ∗ srvLibState (GF := GF) ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server5 ∗
         srvShare (G := hG.goose_globalGS) γ 5 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hls, Hsh⟩
+  wp_start as Hsh
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)

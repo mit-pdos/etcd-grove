@@ -84,13 +84,13 @@ theorem Op_svcOp (wp_Op : Op.spec (GF := GF) (hG := hG)) (γ : Names) (c : Nat) 
 
 /-- `Client(c)`: client machine `c`; it never returns. Its share of the start: the configuration
 addresses' and go-vsr addresses' protocols, the ghost layer's invariants, client `c + 1`'s request
-counter, the packages' states (`pkgStates`), and its address serving the far side's store. -/
+counter, and its address serving the far side's store. -/
 abbrev Client.spec : Prop :=
   ∀ (γ : Names) (c : Nat), c < 6 →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ confProtos (G := hG.goose_globalGS) γ ∗
       pkg.network.netProtos γ ∗ sysInv (G := hG.goose_globalGS) γ ∗
       regInv (G := hG.goose_globalGS) γ ∗ nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗
-      pkgStates ∗ remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD c []) ∗
+      remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD c []) ∗
       ⌜ρ.bud (clientAddrs.getD c []) = some 24⌝ }}
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Client)) (Val #(W64 (c : Int))))
   {{ RET #(); False }}
@@ -102,10 +102,11 @@ theorem Client.wp_proof
     (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
     (codec_ok : vsrnet.codecOk (GF := GF) (hG := hG))
     (wp_Op : Op.spec (GF := GF) (hG := hG))
+    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG))
     (wp_ServeClient : github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient.spec (GF := GF) (hG := hG) (I := KIn) (O := KOut)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro γ c hc
-  wp_start as ⟨#Hcp, #Hnp, #HsysI, #HregI, Hnext, #Hst, #Hra, %Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #HsysI, #HregI, Hnext, #Hra, %Hbud⟩
   ihave #Hrp : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
   · iPkgInit
@@ -122,7 +123,7 @@ theorem Client.wp_proof
   wp_apply (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof conn_readerOk γ cfgs
     (DFrac.own 1) (W64 1 + W64 (c : Int)) (by word)) $$ [Hcfgs] as %cf ⟨-, #Hcf⟩
   · iframe; iframe #
-  wp_apply (mkClient.wp_proof wp_NewTCP wp_New wp_Discard γ c asl cf hc) $$ [Hnext] as %x Hres
+  wp_apply (mkClient.wp_proof wp_NewTCP wp_New wp_Discard wp_RegisterJSON_set γ c asl cf hc) $$ [Hnext] as %x Hres
   · iframe; iframe #
   wp_apply wp_ClientAddrs as %casl Hcasl
   ihave %Hal := ownSlice_len _ _ _ $$ Hcasl

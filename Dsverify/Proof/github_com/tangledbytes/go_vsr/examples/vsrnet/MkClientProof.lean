@@ -75,23 +75,13 @@ theorem wp_replicas (sl : GoSlice) (n h r : Nat) (hc : ConfOk n h r) :
   rw [e1, e2]
   iexact Hm
 
-/-- What a machine running go-vsr needs of the packages' states beyond their package facts
-(persistent): the kit's JSON codec registered. Nothing establishes it yet (`RegisterJSON` is empty:
-jsongen refuses go-vsr's `log.Logs`, notes/dsv-vr.md finding 2; blocker (2) on #24); the hook set
-(`vsrwire`'s fact) and `ErrNoConn`'s value (`network`'s) are package facts (`kit_frameDecoderSet`). -/
-def pkgStates : IProp GF :=
-  iprop(encoding.json.codecSet (GF := GF))
-
-instance pkgStates_persistent : Persistent (pkgStates (GF := GF) (hG := hG)) := by
-  unfold pkgStates; infer_instance
-
 /-- `mkClient(addrs, conf, c)`: client `c`'s system, its counter at 1. -/
 abbrev mkClient.spec : Prop :=
   ∀ (γ : Names) (c : Nat) (sl : GoSlice) (cf : Conf), c < 6 →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ VsrWire.addrs ∗
       confOk (G := hG.goose_globalGS) γ cf ∗ pkg.network.netProtos γ ∗
       sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-      nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗ pkgStates ∗
+      nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗
       encoding.json.kitCodecOk vsrnet.scanF }}
     (App (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.mkClient)) (Val #sl))
       (Val #cf)) (Val #(W64 (c : Int))))
@@ -99,12 +89,11 @@ abbrev mkClient.spec : Prop :=
 
 theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
     (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
-    (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG)) :
+    (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
+    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG)) :
     mkClient.spec (GF := GF) (hG := hG) := by
   intro γ c sl cf hc
-  wp_start as ⟨#Hsl, #Hcf, #Hprotos, #HsysI, #HregI, Hnext, #Hst, #Hkit⟩
-  unfold pkgStates
-  icases Hst with #Hcs
+  wp_start as ⟨#Hsl, #Hcf, #Hprotos, #HsysI, #HregI, Hnext, #Hkit⟩
   ihave #Hfd := kit_frameDecoderSet $$ []
   · iPkgInit
   unfold confOk
@@ -117,7 +106,7 @@ theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG :=
   ihave #Htp : isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.time $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_RegisterJSON
+  wp_apply wp_RegisterJSON_set as #Hcs
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   have h12 : VsrWire.addrs.length = 12 := rfl
   have hb : 0 ≤ sint.Z (W64 1 + W64 (c : Int)) ∧ sint.Z (W64 1 + W64 (c : Int)) < sint.Z sl.len := by

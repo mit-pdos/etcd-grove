@@ -37,11 +37,6 @@ open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- The client machines' addresses (`ClientAddrs()`), client `c`'s at `c`. -/
-def clientAddrs : List GoString :=
-  [go!"127.0.0.1:7541", go!"127.0.0.1:7542", go!"127.0.0.1:7543", go!"127.0.0.1:7544",
-   go!"127.0.0.1:7545", go!"127.0.0.1:7546"]
-
 /-! ## Masks, the model's decoder -/
 
 theorem pendN_vsr : (↑pendN : CoPset) ⊆ ⊤ \ Impl.vsrE := by

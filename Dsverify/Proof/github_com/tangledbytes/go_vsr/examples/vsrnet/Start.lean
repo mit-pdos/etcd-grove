@@ -1,19 +1,18 @@
 /-
-The vr kit's deployment start (notes/dsv-vr.md), kept apart from the top-level statement (which
-waits for #24's blockers (1) and (2)): from the protocol library's registry and the deployment's
+The vr kit's deployment start (notes/dsv-vr.md): from the protocol library's registry and the deployment's
 addresses unset (what `robust_of_distProtoRB`'s start gets), the ghost layer (`ghost_alloc`), the
 addresses' protocols (go-vsr's `VsrWire.protoOf γ` both ways, the configuration addresses'
 `confProto γ`/`ackProto`, the client machines' remote's `reqP`/`repP` of the far side's store
 `kvR γ.gn`), remote's slot map and the client addresses' call budgets, 24 each (`mapCtx_alloc`) and pending library (`pend_alloc` over the
 abstract state `absOwn γ`), and each machine's share: the orchestrator's (`orchShare`), client
 `c`'s (`clientShare`, with its request counter `nextReq γ (c + 1) 1`), server `id`'s (`srvShare`,
-`ServerProof.lean`). With `Mains.lean`, each machine's `main` runs from its share, but for the
-kit's codec registered (`pkgStates`/`srvLibState`: blocker (2)); the client machines' `Client.spec`
-is proved over `ServeClientB.spec`, the remote contract #24 proposes (blocker (1)).
+`ServerProof.lean`), the orchestrator's with the client addresses' call units, client `c`'s with
+its address's budget. With `Mains.lean`, each machine's `main` runs from its share.
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Mains
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.TopLevelDefs
 
 @[expose] public section
 
@@ -33,10 +32,6 @@ open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- The deployment's addresses: go-vsr's (`Addrs()`), the configuration's (`CfgAddrs()`) and the
-client machines' (`ClientAddrs()`). -/
-def vrKitAddrs : List GoString := VsrWire.addrs ++ cfgAddrs ++ clientAddrs
-
 section start
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
@@ -49,8 +44,7 @@ def orchShare [ρ : RemoteGS] (γ : Names) (γp : PendNames) : IProp GF :=
     pendLib (Gg := G) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
     [∗list] a ∈ clientAddrs, budUnits (Gg := G) a 24)
 
-/-- Client machine `c`'s share: `Client.spec`'s precondition but its package's fact and the
-packages' state (`pkgStates`, blocker (2)). -/
+/-- Client machine `c`'s share: `Client.spec`'s precondition but its package's fact. -/
 def clientShare [ρ : RemoteGS] (γ : Names) (c : Nat) : IProp GF :=
   iprop(confProtos γ ∗ VsrWire.protos γ ∗ sysInv γ ∗ regInv γ ∗ nextReq γ (c + 1) 1 ∗
     remoteAddr (Gg := G) (kvR γ.gn) (clientAddrs.getD c []) ∗

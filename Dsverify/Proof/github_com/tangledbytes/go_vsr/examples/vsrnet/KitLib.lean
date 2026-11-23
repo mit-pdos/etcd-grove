@@ -10,6 +10,7 @@ had their own).
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Conf
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.JsonHyps
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.LibHyps
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.Addrs
 public import Net.Proof.net.Dial

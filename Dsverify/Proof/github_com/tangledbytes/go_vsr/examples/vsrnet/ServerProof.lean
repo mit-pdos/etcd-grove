@@ -8,10 +8,8 @@ notes/dsv-vr.md), ported from dsverify-lab `examples/vr/proof/VsrProof/Top/{Serv
   the ghost layer's invariants, and replica `id - 1`'s initial model state (used only if `id ≤ N`:
   the start gives it to every server machine, N being chosen later by the orchestrator, as the lab).
   No address token: the net extension's `addrTok` is the pure `addrOk`, which `addrProto` holds.
-* `srvLibState`: the packages' state the server's calls need that the package facts do not give
-  (notes/dsv-vr.md, finding 2): the kit's codec registered (`encoding.json.codecSet`, the lab's
-  `registerJSON`; here `RegisterJSON` is empty until jsongen writes the codec: blocker (2) on #24).
-  Persistent; a precondition of `Server` until the codec's registration establishes it. The
+* The kit's codec registered (`encoding.json.codecSet`, the lab's `registerJSON`) comes from
+  `RegisterJSON()`'s call by the JSON premise `RegisterJSON.codecSet_spec` (`JsonHyps.lean`). The
   frame-decoder hook set (`events.frameDecoderSet`) and `network.ErrNoConn`'s value are the
   package facts of `vsrwire` (which the kit links) and `network` (`kit_frameDecoderSet`,
   `Conf.lean`).
@@ -71,14 +69,6 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions]
 variable [π : NetProtoGS] [encoding.json.DecoderRep GF]
 
-/-- The packages' state the server's calls need beyond their package facts (see the file header;
-persistent): the kit's codec registered. -/
-def srvLibState : IProp GF :=
-  iprop(encoding.json.codecSet (GF := GF))
-
-instance srvLibState_persistent : Persistent (srvLibState (GF := GF)) := by
-  unfold srvLibState; infer_instance
-
 end defs2
 
 section proof
@@ -116,7 +106,7 @@ machine `id`'s address `addrs[NC + id]`, the configuration's replicas its member
 forever. -/
 abbrev runReplica.spec : Prop :=
   ∀ (γ : Names) (i : Nat) (n h r : Nat), ConfOk n h r → i < n → ∀ (sl : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ srvLibState (GF := GF) ∗ sl ↦*□ VsrWire.addrs ∗
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ VsrWire.addrs ∗
       VsrWire.protos (G := hG.goose_globalGS) γ ∗ sysInv (G := hG.goose_globalGS) γ ∗
       regInv (G := hG.goose_globalGS) γ ∗ repOwn (G := hG.goose_globalGS) γ i VsrModel.initRep ∗
       fact (G := hG.goose_globalGS) γ (.size n) }}
@@ -139,12 +129,11 @@ theorem runReplica.wp_proof
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
     (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
-    (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
+    (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG))
+    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG)) :
     runReplica.spec (GF := GF) (hG := hG) := by
   intro γ i n h r hconf hi sl
-  wp_start as ⟨#Hls, #Hsl, #Hprotos, #HsysI, #HregI, Hrep, #Hsize⟩
-  iunfold srvLibState at Hls
-  icases Hls with #Hset
+  wp_start as ⟨#Hsl, #Hprotos, #HsysI, #HregI, Hrep, #Hsize⟩
   ihave #Hfd := kit_frameDecoderSet $$ []
   · iPkgInit
   have hk := codec_ok
@@ -158,7 +147,7 @@ theorem runReplica.wp_proof
   have hlen : sint.Z sl.len = 12 := by
     have := Hslen.1; simp [VsrWire.addrs] at this; word
   wp_auto
-  wp_apply wp_RegisterJSON
+  wp_apply wp_RegisterJSON_set as #Hset
   have hix : 0 ≤ sint.Z (W64 6 + W64 ((i + 1 : Nat) : Int)) ∧
       sint.Z (W64 6 + W64 ((i + 1 : Nat) : Int)) < sint.Z sl.len := by
     rw [hlen]; constructor <;> word
@@ -252,10 +241,10 @@ theorem runReplica.wp_proof
   iframe
 
 /-- **`Server(id)`**: server machine `id` (`1 ≤ id ≤ 5`, machine `NC + id`), given the start's
-share (`srvShare`) and the packages' state (`srvLibState`); it never returns. -/
+share (`srvShare`); it never returns. -/
 abbrev Server.spec : Prop :=
   ∀ (γ : Names) (id : w64), 1 ≤ uint.nat id ∧ uint.nat id ≤ 5 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ srvLibState (GF := GF) ∗
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗
       srvShare (G := hG.goose_globalGS) γ (uint.nat id) }}
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Server)) (Val #id))
   {{ RET #(); False }}
@@ -276,7 +265,8 @@ theorem Server.wp_proof
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
     (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
-    (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
+    (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG))
+    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG)) :
     Server.spec (GF := GF) (hG := hG) := by
   intro γ id hid
   obtain ⟨i, hi_eq⟩ : ∃ i : Nat, uint.nat id = i + 1 := ⟨uint.nat id - 1, by omega⟩
@@ -284,7 +274,7 @@ theorem Server.wp_proof
   subst hex
   have hi5 : i < 5 := by omega
   rw [hi_eq]
-  wp_start as ⟨#Hls, Hsh⟩
+  wp_start as Hsh
   iunfold srvShare at Hsh
   rw [Nat.add_sub_cancel]
   icases Hsh with ⟨#Hprotos, #Hcps, #HsysI, #HregI, Hrep⟩
@@ -307,7 +297,7 @@ theorem Server.wp_proof
     imodintro
     wp_apply (runReplica.wp_proof wp_New wp_Discard wp_Debug wp_LDebug wp_LInfo wp_LWarn wp_LError
       wp_newDecoder wp_Decode_frame wp_Unmarshal wp_NewEncoder
-      wp_Encode codec_ok γ i n h r hconf hin sl) $$ [Hrep] as %hf
+      wp_Encode codec_ok wp_RegisterJSON_set γ i n h r hconf hin sl) $$ [Hrep] as %hf
     · iframe; iframe #
     exact hf.elim
   · wp_for
