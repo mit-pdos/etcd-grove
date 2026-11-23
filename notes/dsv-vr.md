@@ -48,8 +48,31 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 ## State
 
 Done: the Go (`go vet`, `go test ./...` green: the deployment test, ~5 s, the fork's own tests), the
-translation (builds), the pure model and the ghost layer's pure part (`lean-check` clean, `Model/Basic`
-built). **No `sorry`, no axiom in the part's vr files.** Not started: everything else (below).
+translation (builds), the pure model, **the package initialization** (step 1) and **the ghost layer**
+(step 2; `lean-check` clean). **No `sorry`, no axiom in the part's vr files**: every node's
+`wp_initialize'` (orch, server1 checked) prints Lean's three axioms only, over the two init
+hypotheses (below).
+
+Step 1, as done: `Base.lean` for every vr package (fact `True` but `events`'), the hand-written
+`Dsverify/Proof/{encoding/json,log/slog}/{Base,Init}.lean` (fact `True`; `Init.lean`'s class
+`InitHyp GF`, a `Prop`, is the hypothesis, its `wp_initialize'` is read off it), and the additive
+gen-init entry (`DSV_VR`, `DSV_HYP_INITS`: gen-init treats the two packages as external, imports
+their `Init.lean` instead of Perennial's `Link`, and adds `variable [<pkg>.InitHyp GF]` to the
+sections of every generated file whose package's closure holds them, `dsv_hyp_fix`; `SPECIAL`
+entries for `events` (its error, the hook's mutex and `frameDecoder`), `network` (`ErrNoConn`) and
+`vsrwire` (its `init()`, through `pkg/events/SetFrameDecoder.lean`)). Facts weaker than the lab's
+for now: `events`' `hookKnown` keeps only `frameDecoder ↦ _` under the mutex (the lab's also the set
+decoder's spec and the flag `γh`), `vsrwire`'s is `True` (the lab's `frameDecoderSet`), `network`'s
+`True` (the lab's `ErrNoConn` value); each is strengthened with the proof that needs it.
+
+Step 2, as done: `Ghost/Impl/*`, `Ghost/System` over any `GF` (`[GooseGlobalGS .hasLC GF]`, `[HasExt
+netExt]`); the client's atomic update `AU <{∃∃ σ, absOwn γ σ}> @ ↑clientN, ∅ <{…}>` is now
+`Impl.AUof g i Q`, remote's one-shot update (`remote.lin`'s shape, relational as the lab's AU:
+`|={⊤ \ vsrE, ∅}=> ∃ σ, absOwnI g σ ∗ ∀ σ' o, absOwnI g σ' ∗ ⌜kvStep σ i σ' o⌝ -∗ |={∅, ⊤ \ vsrE}=> Q σ σ' o`,
+`vsrE` the namespace `vsr` all the layer's invariants are in); `lin_commit` fires it as paxos's
+`opAU_commit` (`fupd_mask_subseteq`). The mask premises `↑clientN ⊆ E` (+ the disjointness of
+`clientN`) became `⊤ \ vsrE ⊆ E`. Step 3 instantiates remote's `RBase.Eop` with `vsrE` and
+`sysState` with `absOwn`.
 
 **Building** (no full `lake build`): the worktree's `.lake` was seeded from `/shared/etcd-grove-netswap`
 (same Perennial pin `9c3b81f30`): `.lake/packages` and `.lake/build/lib/lean` but the parts this
@@ -60,7 +83,7 @@ Perennial and `Net/` where they differ; then `lake build <targets>` and `etc/lea
 
 ### Next steps, in order
 
-1. **Package initialization** (`etc/gen-init.py`, `dsv_inits`). Every package needs a `Base.lean`
+1. (done) **Package initialization** (`etc/gen-init.py`, `dsv_inits`). Every package needs a `Base.lean`
    with its `IsPkgInit` instance (`define_is_pkg_init`; `instances()` finds it) before gen-init runs
    (it raises on a package without one). Facts (the lab's `Top/PkgStates.lean`): `True` but
    `network` (`errors.newVar ErrNoConn "network: no connection to the source address"`), `events`
@@ -81,7 +104,7 @@ Perennial and `Net/` where they differ; then `lake build <targets>` and `etc/lea
                         f'Proof/{DSV_VR.replace(".", "/")}/examples/vsrnet/cmd/{n}/PkgTable.lean'
                         for n in DSV_VR_NODES})
    ```
-2. **The ghost layer** (`Ghost/Impl/{Defs,Basic,Alloc,Client,Lin,Step}`, `Ghost/System`): over a
+2. (done) **The ghost layer** (`Ghost/Impl/{Defs,Basic,Alloc,Client,Lin,Step}`, `Ghost/System`): over a
    generic `GF` (the lab's fixed `netDistGF` gone, as paxos), and the client's atomic update
    `AU <{∃∃ σ, absOwn γ σ}> @ ↑clientN, ∅ <{…}>` in the registry (helping: the replica that executes
    a request first commits it) replaced by remote's one-shot update, as paxos's `opAU`
@@ -106,8 +129,10 @@ Perennial and `Net/` where they differ; then `lake build <targets>` and `etc/lea
 
 ## Hypotheses (missing model pieces; the coordinator's rule of 2026-11-23)
 
-Not stated in Lean yet (no file); each to be a hypothesis of the kit's theorems named after the lab's
-spec, until the piece lands:
+Stated in Lean so far: `encoding.json.InitHyp GF` and `log.slog.InitHyp GF`
+(`Dsverify/Proof/{encoding/json,log/slog}/Init.lean`: the packages' `wp_initialize'`, a class every
+generated init theorem above them takes as an instance). The rest not stated yet; each to be a
+hypothesis of the kit's theorems named after the lab's spec, until the piece lands:
 - **encoding/json** (the model's Lean half: `models/encoding/json`'s translation with its bodies in
   `Net/` and its specs; `notes/dsverify-net-port-plan.md` 5.1 "For the Lean half"): the lab's
   `encoding.json.SetCodec.spec`, `Marshal.spec`, `Unmarshal.spec`, `Valid.spec`,

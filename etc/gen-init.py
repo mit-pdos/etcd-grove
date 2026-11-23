@@ -5267,6 +5267,64 @@ DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
                 f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
                 for n in DSV_NODES}
 
+# The vr kit (notes/dsv-vr.md; project dsv-vr): go-vsr's packages, the kit and its twelve
+# machines' commands. The names-only `encoding.json` (the model) and `log.slog` are external here:
+# their `wp_initialize'` is a hypothesis (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which
+# every generated theorem initializing them takes as an instance (`DSV_HYP_INITS`: a section
+# variable added to the files that name it).
+DSV_VR = 'github_com.tangledbytes.go_vsr'
+DSV_VR_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
+DSV_PKGS += [f'{DSV_VR}.pkg.{p}' for p in ['assert', 'log', 'ipv4port', 'events', 'queue', 'time',
+                                           'network', 'client', 'replica']] + \
+    [f'{DSV_VR}.examples.{p}' for p in ['vsrwire', 'vsrkv', 'vsrnet']] + \
+    [f'{DSV_VR}.examples.vsrnet.cmd.{n}' for n in DSV_VR_NODES]
+DSV_PROGRAMS.update({f'{DSV_VR}.examples.vsrnet.cmd.{n}':
+                     f'Proof/{DSV_VR.replace(".", "/")}/examples/vsrnet/cmd/{n}/PkgTable.lean'
+                     for n in DSV_VR_NODES})
+DSV_HYP_INITS = ['encoding.json', 'log.slog']
+# their package variables: `events`' error, mutex and frame decoder (`nil` until `vsrwire`'s `init`
+# sets it) and `network`'s error (translated `errors.New` calls; the facts are `True` for now)
+SPECIAL[f'{DSV_VR}.pkg.events'] = newvars_cfg(dict(
+    doc='''Its fact (`hookKnown`, `Base.lean`): the frame-decoder hook's lock. Its initializer
+allocates its variables (`ErrInvalidEventType`, an `errors.New` call; `frameDecoderMu`, a new mutex
+guarding `frameDecoder`, `nil`) and initializes its imports.''',
+    alloc_types={'frameDecoderMu': 'Loc', 'frameDecoder': 'GoFunc'},
+    finish=['imod _root_.Perennial.sync.init_Mutex (hookLockInv (GF := GF)) ⊤ _ $$ «$r0» [HframeDecoder] with #Hmu',
+            '· inext; iunfold hookLockInv; iexists _; iexact HframeDecoder',
+            'imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HframeDecoderMu with #HframeDecoderMu'] +
+           FIN_PRE[:6] + ['imodintro', 'iunfold hookKnown', 'iexists _', 'iframe HframeDecoderMu', 'iexact Hmu']),
+    ['ErrInvalidEventType'])
+SPECIAL[f'{DSV_VR}.examples.vsrwire'] = dict(
+    doc='''Its fact is `True` (for now; the lab's is `frameDecoderSet`, the hook set for good). Its
+initializer initializes its imports and runs its `init()`, which sets `events`' frame-decoder hook
+(`events.wp_SetFrameDecoder`).''',
+    imports=[f'Dsverify.Proof.{DSV_VR}.pkg.events.SetFrameDecoder'],
+    after={'init.«0»': [f'wp_apply _root_.Perennial.{DSV_VR}.pkg.events.wp_SetFrameDecoder', 'try wp_auto']},
+)
+SPECIAL[f'{DSV_VR}.pkg.network'] = newvars_cfg(dict(
+    doc='''Its fact is `True` (for now). Its initializer allocates `ErrNoConn` (an `errors.New` call)
+and initializes its imports.'''), ['ErrNoConn'])
+
+
+DSV_HYP_NEED = {}
+
+
+def dsv_hyp_fix(path, txt):
+    """A generated file of the part whose package's closure holds a hypothesis package: its import
+    of that package's initialization is the part's `Init.lean`, and its sections take the
+    hypothesis (`InitHyp`) as an instance."""
+    d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
+    for q in DSV_HYP_NEED.get(d, []):
+        txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                          f'public import {DSV_ROOT}.Proof.{q}.Init\n')
+        if f'public import {DSV_ROOT}.Proof.{q}.Init\n' not in txt:
+            txt = re.sub(r'(?m)^(public import .*\n)(?!public import)',
+                         lambda m: m.group(1) + f'public import {DSV_ROOT}.Proof.{q}.Init\n', txt,
+                         count=1)
+        txt = re.sub(r'(?m)^(variable \[sem : go\.Semantics\].*)$',
+                     lambda m: m.group(1) + f'\nvariable [_root_.Perennial.{q}.InitHyp GF]', txt)
+    return txt
+
 
 def dsv_inits():
     """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
@@ -5282,6 +5340,11 @@ def dsv_inits():
         for q, d in inventory(f'{DSV_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
+        for q in DSV_HYP_INITS:
+            inv[q] = dict(inv[q], perennial=True)
+        for p in DSV_PKGS:
+            if p in inv:
+                DSV_HYP_NEED[dirof(p)] = [q for q in DSV_HYP_INITS if q in closure(p)]
         inst.update(instances(f'{DSV_ROOT}/Proof/'))
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
                if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
@@ -5322,7 +5385,8 @@ def dsv_inits():
             new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
                               'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
         return new
-    return [(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))) for path, txt in raw]
+    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))))
+            for path, txt in raw]
 
 
 def main(argv):
