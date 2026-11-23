@@ -1,5 +1,5 @@
 /- Lean-first (no Rocq counterpart). One generation of `BootMinibolt(dir)` (`minibolt.go`): from
-the database file as the generation starts with it (`csOwn (dir ++ "/db") R γc s V`, `StartSt`: absent or
+the database file as the generation starts with it (`csOwn (dir ++ "/db") R γc s`, `StartSt`: absent or
 a file as on disk and `Good`, in its crash invariant), `BootMinibolt` reaches no panic. It is proved over the
 crash-aware specs of `Open`, `Get`, `Commit` and `Close` (hypotheses, as the other proofs take
 their callees' specs).
@@ -89,14 +89,14 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
     (wp_Get : DB.Get.specCrash (GF := GF) (hG := hG))
     (wp_Commit : DB.Commit.specCrash (GF := GF) (hG := hG))
     (wp_Close : DB.Close.specCrash (GF := GF) (hG := hG))
-    (dir : GoString) (R : Roots) (V : Hist) (j : Ino) (γc : GName) (s : CState)
-    (hd : lookupH R V dir = some (.dir j)) (hs : StartSt s) :
-    {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗
+    (dir : GoString) (R : Roots) (q : Qp) (γc : GName) (s : CState) (hs : StartSt s) :
+    {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗
+        osCallPerm (GF := GF) (callKey R dir) q ∗
         csInv (GF := GF) dbCrashN (child dir dbB) R γc Good dbOk ∗
-        csOwn (GF := GF) (child dir dbB) R γc s V ∗ threadTok }}
+        csOwn (GF := GF) (child dir dbB) R γc s ∗ threadTok }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.BootMinibolt)) (Val #dir))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hpkg, #Hos, #Hci, Hown, Htok⟩
+  wp_start as ⟨#Hpkg, #Hos, #Hsi, Hperm, #Hci, Hown, Htok⟩
   obtain ⟨t, vo, n, hfresh⟩ : ∃ t vo n, freshTx ((startImg s).map durB) = (t, vo, n) :=
     ⟨_, _, _, rfl⟩
   have hgi : goodImg (startImg s) := startSt_good hs
@@ -109,7 +109,7 @@ theorem wp_BootMinibolt [ThreadBoundLe GF (2 ^ 30)]
     exact ⟨htx.1, by omega⟩
   wp_auto
   try rw [show dir ++ go!"/db" = child dir dbB from rfl]
-  wp_apply wp_Open dir dbB R V j γc s t vo n bootOk dbB_ok hd hs hfresh hvp (fun _ _ h => h) $$ [Hown]
+  wp_apply wp_Open dir dbB R q γc s t vo n bootOk dbB_ok hs hfresh hvp (fun _ _ h => h) $$ [Hperm Hown]
     as %db %err (⟨%Herr, %γ, %Hvp, #Hdb, -, Hown, #Hlast, #Htx⟩ | ⟨%Herr, -⟩)
   · iframe; iframe #
   rotate_left

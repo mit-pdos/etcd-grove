@@ -1,9 +1,10 @@
 /- Lean-first (no Rocq counterpart). `Open(path)` (`examples/osfs/bboltfs/minibolt.go`): opens (or creates) the database at `path`, given the file there as `dbFile` describes it, whose current transaction is `t`, holding `vo`: no file, or a file of whole bytes that `fileOk` accepts (`dbFresh`: `init` lays out a file shorter than four pages or with no valid meta, at transaction 1 with no value; otherwise its current meta is read), or what a `Close` gives back (`dbStored`: committed pages as discarded `pageIs`, the meta pages clean, the current root page holding `vo`). Either way no mapping of the file, and no byte that may not be durable (`m.dhi ≤ m.dlo`). The client also gives `pkgFacts` (for the package's `isPkgInit`, see `DB.lean`). The client also gives the predicate `vp` the transactions' values must satisfy (`dbTx`, `Commit`), which `vo` does. On success, an open database (`isDB`) on `path` (`db.path`, which `Close` gives back) at transaction `t` holding `vo` (`dbTx`), whose predicate is `vp`, its committer token at `t` and the high water mark `n`, a lower bound of the txid. `isDB` holds the pool of `mmaplock`'s reader slots, which `Open` builds (with `threadBound GF ≤ 2 ^ 30`, `ThreadBoundLe`): a reader brings its thread token (`Get`, `Snapshot`). On an error, the file is closed, and its `OsMeta` is that of the path after an open (it may have been created); its bytes are lost to the caller (a crash proof would keep them).
 
-The database file lives in the directory tree: `path` is `d/b`, `d` a directory of the tree
-`(R, V)`, of which the caller gives the whole history (the open may create the file); the history
-comes back, with the create logged if it made the file, and the database's file is the one the
-path then names (`γ.ino`). -/
+The database file lives in the directory tree: `path` is `d/b`, the caller giving the tree's shared
+invariant (`osSharedInv R`), a spine to `d`'s directory `j`, a share of the call permission of `d`'s
+key, and the whole claim on `b` (`osNames j (.only [b])`, history `h`: the open may create the
+file); the spine, the permission and the claim come back, the claim with the create logged if it
+made the file, and the database's file is the one `b` then names (`γ.ino`). -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB
@@ -59,11 +60,11 @@ def FreshOk (m : OsMeta) (xs : List ByteG) (t : Nat) (vo : Option w64) (n : Nat)
   xs.length = m.size ∧ m.maps = ∅ ∧ m.dhi ≤ m.dlo ∧ m.size ≤ 2 ^ 30 ∧ fileOk xs ∧
     freshTx xs = (t, vo, n)
 
-/-- No file at the path `p` of the tree `(R, V)`, at transaction 1 with no value (`freshTx []`), or
-a file there of inode `i` whose whole bytes `xs` are `FreshOk`. -/
-def dbFresh (R : Roots) (V : Hist) (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) : IProp GF :=
-  iprop((⌜lookupH R V p = none ∧ freshTx [] = (t, vo, n)⌝) ∨
-    ∃ (i : Ino) (m : OsMeta) (xs : List ByteG), ⌜lookupH R V p = some (.file i)⌝ ∗
+/-- No file at the name `b` (the claim's history `h`), at transaction 1 with no value
+(`freshTx []`), or a file there of inode `i` whose whole bytes `xs` are `FreshOk`. -/
+def dbFresh (h : NamesH) (b : GoString) (t : Nat) (vo : Option w64) (n : Nat) : IProp GF :=
+  iprop((⌜h.cur !! b = none ∧ freshTx [] = (t, vo, n)⌝) ∨
+    ∃ (i : Ino) (m : OsMeta) (xs : List ByteG), ⌜h.cur !! b = some (.file i)⌝ ∗
       osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes (GF := GF) i 0 (DFrac.own 1) xs ∗
       ⌜FreshOk m xs t vo n⌝)
 
@@ -83,33 +84,34 @@ def dbStoredAt (i : Ino) (t : Nat) (vo : Option w64) (n : Nat) (m : OsMeta) : IP
 def dbStored (i : Ino) (t : Nat) (vo : Option w64) (n : Nat) : IProp GF :=
   iprop(∃ m : OsMeta, osMeta (GF := GF) i (DFrac.own 1) m ∗ dbStoredAt (GF := GF) i t vo n m)
 
-/-- The file `Open` opens at the path `p` of the tree `(R, V)`, at transaction `t` holding `vo`,
-high water mark `n` (see the file header). -/
-def dbFile (R : Roots) (V : Hist) (p : GoString) (t : Nat) (vo : Option w64) (n : Nat) : IProp GF :=
-  iprop(dbFresh (GF := GF) R V p t vo n ∨
-    ∃ i : Ino, ⌜lookupH R V p = some (.file i)⌝ ∗ dbStored (GF := GF) i t vo n)
+/-- The file `Open` opens at the name `b` (the claim's history `h`), at transaction `t` holding
+`vo`, high water mark `n` (see the file header). -/
+def dbFile (h : NamesH) (b : GoString) (t : Nat) (vo : Option w64) (n : Nat) : IProp GF :=
+  iprop(dbFresh (GF := GF) h b t vo n ∨
+    ∃ i : Ino, ⌜h.cur !! b = some (.file i)⌝ ∗ dbStored (GF := GF) i t vo n)
 
-/-- What a failed `Open` leaves at the path `p` of the tree `(R, V)`: the file of inode `i` there
-(it may have been created), with its `OsMeta`, or nothing. -/
-def openFail (R : Roots) (V : Hist) (p : GoString) : IProp GF :=
-  iprop((∃ (i : Ino) (m : OsMeta), ⌜lookupH R V p = some (.file i)⌝ ∗
-    osMeta (GF := GF) i (DFrac.own 1) m) ∨ ⌜lookupH R V p = none⌝)
+/-- What a failed `Open` leaves at the name `b` (the claim's history `h`): the file of inode `i`
+there (it may have been created), with its `OsMeta`, or nothing. -/
+def openFail (h : NamesH) (b : GoString) : IProp GF :=
+  iprop((∃ (i : Ino) (m : OsMeta), ⌜h.cur !! b = some (.file i)⌝ ∗
+    osMeta (GF := GF) i (DFrac.own 1) m) ∨ ⌜h.cur !! b = none⌝)
 
 /-- See the file header. -/
 abbrev Open.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 30)] (d b : GoString) (R : Roots) (V : Hist) (j : Ino) (t : Nat)
-    (vo : Option w64) (n : Nat) (vp : Nat → Option w64 → Prop),
-  RootsOk R → NameOk b → lookupH R V d = some (.dir j) → vp t vo →
-  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own 1) R V ∗
-      dbFile (GF := GF) R V (child d b) t vo n }}
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (d b : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp)
+    (h : NamesH) (t : Nat) (vo : Option w64) (n : Nat) (vp : Nat → Option w64 → Prop),
+  NameOk b → vp t vo →
+  {{ pkgFacts (GF := GF) ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗
+      osPathS (GF := GF) R d dq j ∗ osCallPerm (GF := GF) (callKey R d) qc ∗
+      osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∗ dbFile (GF := GF) h b t vo n }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Open)) (Val #(child d b)))
-  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); ∃ V' : Hist,
-      osTree (DFrac.own 1) R V' ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ γ : DBNames, ⌜γ.vp = vp ∧ lookupH R V' (child d b) = some (.file γ.ino) ∧
-          lookupH R V' d = some (.dir j)⌝ ∗
+  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
+      osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ ∃ h' : NamesH,
+      osNames j (.only [b]) (DFrac.own 1) h' ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ γ : DBNames, ⌜γ.vp = vp ∧ h'.cur !! b = some (.file γ.ino)⌝ ∗
           isDB (GF := GF) γ db ∗ db.[DB, go!"path"] ↦□ (child d b) ∗ dbOwner (GF := GF) γ t n ∗
           dbLast (GF := GF) γ t ∗ dbTx (GF := GF) γ t vo) ∨
-      (⌜err ≠ interface.nil ∧ db = null⌝ ∗ openFail (GF := GF) R V' (child d b))) }}
+      (⌜err ≠ interface.nil ∧ db = null⌝ ∗ openFail (GF := GF) h' b)) }}
 
 end spec
 
