@@ -64,6 +64,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrUnexpectedEndOfGroupMessage _ as HErrUnexpectedEndOfGroupMessage
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrIntOverflowMessage _ as HErrIntOverflowMessage
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidLengthMessage _ as HErrInvalidLengthMessage
@@ -151,8 +152,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterFile
   try wp_auto
+  ipersist HerrFrameTooLarge
+  ipersist HerrFrameTooLong
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  iunfold _root_.Perennial.rabia.internal.message.msgFact
+  iexists _, _
+  iframe HerrFrameTooLarge HerrFrameTooLong
+  ipureintro
+  simp [interface.mkOk]
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

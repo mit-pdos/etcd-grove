@@ -106,6 +106,11 @@ allocates `Conf` and initializes its imports.''',
         },
         'rec_depth': 100000,
         'heavy': True,
+        # its fact (`message/Base.lean`'s `msgFact`): the framing's two errors, non-`nil`
+        'finish': ['ipersist HerrFrameTooLarge', 'ipersist HerrFrameTooLong'] + FIN_PRE[:6] +
+                  ['iunfold _root_.Perennial.rabia.internal.message.msgFact',
+                   'iexists _, _', 'iframe HerrFrameTooLarge HerrFrameTooLong',
+                   'ipureintro', 'simp [interface.mkOk]'],
     }, ['errFrameTooLong', 'errFrameTooLarge', 'ErrInvalidLengthMessage', 'ErrIntOverflowMessage',
         'ErrUnexpectedEndOfGroupMessage'],
        errorf={'ErrInvalidLengthMessage': 'proto: negative length found during unmarshaling',

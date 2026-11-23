@@ -1,5 +1,9 @@
 /-
-The package fact of `rabia.internal.message`: `True` (no package-level state yet (notes/dsv-rabia.md: the lab's facts are to be ported)).
+The package fact of `rabia.internal.message` (the lab's `msgState`, the part the framing needs):
+the globals `errFrameTooLarge` and `errFrameTooLong` hold non-`nil` errors, read-only for good
+(`errors.New` errors, which Go never writes after initialization). `BufRead` returns the first, a
+frame longer than the caller's buffer (N6); `BufWrite` the second, a payload longer than a `uint32`
+header (N8).
 -/
 module
 
@@ -35,8 +39,13 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- See the file header. -/
+def msgFact : IProp GF :=
+  iprop(∃ e1 e2 : GoInterface, globalAddr errFrameTooLarge ↦□ e1 ∗ globalAddr errFrameTooLong ↦□ e2 ∗
+    ⌜e1 ≠ interface.nil ∧ e2 ≠ interface.nil⌝)
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.rabia.internal.message :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init (msgFact (GF := GF))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.rabia.internal.message :=
   build_get_is_pkg_init_wf
 
