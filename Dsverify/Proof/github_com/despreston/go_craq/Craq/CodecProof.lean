@@ -472,6 +472,96 @@ theorem wp_rpcEnc_t28 (m : MetaV) :
     (try wp_auto)
     enc_close)
 
+/-- `rpcPutTag(tag)`: a new slice, the string `tag`'s encoding. -/
+theorem wp_rpcPutTag (tag : GoString) :
+    {{ (True : IProp GF) }} (App (Val (@! examples.craqnet.rpcPutTag)) (Val #tag))
+    {{ (b : GoSlice), RET #b; b ↦* encStr tag ∗ ownSliceCap w8 b (DFrac.own 1) }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_string_len tag as %Hlen
+  ihave Hn := ownSlice_nil (V := w8) (DFrac.own 1)
+  ihave Hnc := ownSliceCap_nil (V := w8)
+  wp_apply wp_rpcPutU64 $$ [$Hn $Hnc] as %b1 ⟨Hb, Hcap⟩
+  wp_apply wp_string_to_bytes tag as %sl ⟨Hsl, -⟩
+  wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl] as %b2 ⟨Hb, Hcap, -⟩
+  iapply HΦ
+  unfold encStr
+  iframe
+
+/-- The entries of a request map, in the order of `keys`. -/
+def reqEntries (req : GMap GoString w64) (keys : List GoString) : List (GoString × w64) :=
+  keys.map fun k => (k, reqVer req k)
+
+theorem wp_rpcEnc_t4 (mp : Loc) (dq : DFrac) (req : GMap GoString w64) (b : GoSlice) (bs : List w8) :
+    {{ (b ↦* bs ∗ ownSliceCap w8 b (DFrac.own 1) ∗ ownMap mp dq req : IProp GF) }}
+      (App (App (Val (@! examples.craqnet.rpcEnc_t4)) (Val #b)) (Val #mp))
+    {{ (b' : GoSlice), RET #b'; ∃ es, ⌜entriesOf req es⌝ ∗
+        b' ↦* (bs ++ encU64 (W64 es.length) ++ (es.map fun e => encStr e.1 ++ encU64 e.2).flatten) ∗
+        ownSliceCap w8 b' (DFrac.own 1) ∗ ownMap mp dq req }} := by
+  wp_start as ⟨Hb, Hcap, Hm⟩
+  wp_auto
+  wp_apply wp_map_len_lt mp req dq $$ [$Hm] as ⟨Hm, %Hsz⟩
+  wp_apply wp_rpcPutU64 $$ [$Hb $Hcap] as %b1 ⟨Hb, Hcap⟩
+  wp_func_lits
+  wp_bind (App (App (Val (map.forRange _ _)) _) _)
+  iapply (wp_map_for_range (K := GoString) (V := w64) (fun keys (i : Int) => iprop(
+      ⌜0 ≤ i⌝ ∗ ∃ (bb : GoSlice) (xs : GoString) (ys : w64), b_ptr ↦ bb ∗ x_ptr ↦ xs ∗ y_ptr ↦ ys ∗
+        bb ↦* (bs ++ u64Le (W64 (GMap.size req)) ++
+          ((reqEntries req (keys.take i.toNat)).map fun e => encStr e.1 ++ encU64 e.2).flatten) ∗
+        ownSliceCap w8 bb (DFrac.own 1)))) $$ Hm
+  iintro %keys %hkeys
+  isplitl [b x y Hb Hcap]
+  · isplitr
+    · ipureintro; omega
+    iexists b1, _, _
+    simp only [Int.toNat_zero, List.take_zero, reqEntries, List.map_nil, List.flatten_nil,
+      List.append_nil]
+    iframe
+  isplitl []
+  · imodintro
+    iintro %i %key %v ⟨%hk1, %hk2⟩ ⟨%hi, %bb, %xs, %ys, Hbp, Hx, Hy, Hb, Hcap⟩
+    wp_auto
+    wp_apply wp_rpcEnc_t5 key _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩
+    wp_apply wp_rpcEnc_t6 v _ _ $$ [$Hb $Hcap] as %b3 ⟨Hb, Hcap, -⟩
+    unfold forMapPostcondition
+    iright; ileft
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; omega
+    iexists b3, key, v
+    have hv : reqVer req key = v := by
+      unfold reqVer; rw [show req.lookup key = req !! key from rfl, hk2]; rfl
+    rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, hk1]
+    simp only [reqEntries, Option.toList_some, List.map_append, List.map_cons, List.map_nil,
+      List.flatten_append, List.flatten_cons, List.flatten_nil, List.append_nil, hv,
+      ← List.append_assoc]
+    unfold encU64
+    iframe
+  · iintro ⟨%h0, %bb, %xs, %ys, Hbp, Hx, Hy, Hb, Hcap⟩ Hm
+    wp_auto
+    iapply HΦ
+    iexists reqEntries req keys
+    rw [← hkeys.2.1, List.take_of_length_le (by omega)]
+    simp only [reqEntries, List.length_map]
+    unfold encU64
+    iframe
+    ipureintro
+    refine ⟨by rw [List.map_map]; exact (List.map_id' keys ▸ hkeys.2.2 : _), fun k v => ?_⟩
+    constructor
+    · intro h
+      exact List.mem_map.2 ⟨k, (hkeys.1 k).2 (by
+        rw [show req !! k = req.lookup k from rfl, h]; rfl), by
+          simp [reqVer, h]⟩
+    · intro h
+      obtain ⟨k', hk', he⟩ := List.mem_map.1 h
+      simp only [Prod.mk.injEq] at he
+      obtain ⟨rfl, rfl⟩ := he
+      have := (hkeys.1 k').1 hk'
+      unfold reqVer
+      rw [show req !! k' = req.lookup k' from rfl] at this
+      cases h' : req.lookup k' <;> simp_all
+
 end proof
 
 end github_com.despreston.go_craq
