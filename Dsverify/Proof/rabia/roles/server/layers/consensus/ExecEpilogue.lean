@@ -15,7 +15,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 set_option linter.unusedSectionVars false
@@ -26,7 +26,7 @@ local macro "slice_index_if" : tactic =>
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable {cf : RCfg}
 
 theorem SlotOk.set_done {s : Nat} {st : SlotSt} {ents : List Ent} {ql : List (Option Nat)}
@@ -68,7 +68,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS] [math.rand.Hyps GF]
 
 theorem wp_putBackMyProposal_proof (D : ExDeps (GF := GF)) (γ : Names) (k : Nat) (γl : SrvNames)
     (γc : ConsNames) (ch : SrvChans) (c : Loc) (s : Nat) (e : SlotV) (pv : PrivSt)

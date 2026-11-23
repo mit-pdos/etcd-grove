@@ -15,7 +15,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 set_option linter.unusedSectionVars false
@@ -29,7 +29,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS]
 
 /-- `c.UpdateTermIfNecessary(seq, pan)` of a slot number below `LenLedger`: the term is 0.
 (Its branch that resets a slot under `Slot.Lock` is unreachable in this scope, no slot being
@@ -218,7 +218,7 @@ def coinOk (c : Loc) : IProp GF :=
   iprop(∃ (r : Loc) (v : math.rand.Rand), structFieldRef Consensus go!"Coin" c ↦ r ∗ r ↦ v)
 
 /-- `c.ResetCommonCoin()`: a fresh `Rand` in `Coin`. -/
-theorem wp_ResetCommonCoin (c : Loc) :
+theorem wp_ResetCommonCoin [math.rand.Hyps GF] (c : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.roles.server.layers.consensus ∗
         ∃ coin : Loc, structFieldRef Consensus go!"Coin" c ↦ coin }}
       (App (Val (c @!! go.GoType.PointerType Consensus.ty @!! go!"ResetCommonCoin")) (Val #()))
@@ -235,7 +235,7 @@ theorem wp_ResetCommonCoin (c : Loc) :
   iframe
 
 /-- `c.CommonCoinFlip()`: some bit. -/
-theorem wp_CommonCoinFlip (c : Loc) :
+theorem wp_CommonCoinFlip [math.rand.Hyps GF] (c : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.roles.server.layers.consensus ∗ coinOk c }}
       (App (Val (c @!! go.GoType.PointerType Consensus.ty @!! go!"CommonCoinFlip")) (Val #()))
     {{ (x : w32), RET #x; coinOk c ∗ ⌜x.toNat ≤ 1⌝ }} := by

@@ -13,7 +13,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 section proof
@@ -21,7 +21,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS]
 
 theorem Consensus.MsgHandler.wp_proof (hGID : Slot.GetIsDone.spec (GF := GF))
     (hGRD : Slot.GetHasRecvDec.spec (GF := GF)) (hSRD : Slot.SetHasRecvDec.spec (GF := GF))

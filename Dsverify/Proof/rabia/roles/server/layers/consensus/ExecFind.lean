@@ -16,7 +16,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 set_option linter.unusedSectionVars false
@@ -61,7 +61,7 @@ theorem af_keys_client_disj (k : Nat) :
     (↑(srvKeysN k) : CoPset) ## cliE := by
   have h : cliE ## ↑(srvKeysN k) := cliE_disj_of_sub (by
     unfold srvKeysN rabiaE
-    exact (nclose_subseteq _ _).trans (nclose_subseteq _ _))
+    exact fun x hx => nclose_subseteq _ _ x (nclose_subseteq _ _ x hx))
   exact fun x hx => h x ⟨hx.2, hx.1⟩
 
 theorem af_client_rabia_disj : cliE ## ↑rabiaN := cliE_rabiaN
@@ -156,7 +156,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS] [math.rand.Hyps GF]
 
 /-- The configuration's fact and its validity. -/
 theorem cfgIs_fact (γ : Names) :
@@ -587,7 +587,7 @@ end Perennial.rabia.roles.server.layers.consensus
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 section find
@@ -595,7 +595,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS] [math.rand.Hyps GF]
 
 local macro "slice_index_if" : tactic =>
   `(tactic| (rw [ite_eq_left_of_eq_true _ _ (eq_true (by constructor <;> word))]))

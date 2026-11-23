@@ -16,7 +16,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 set_option linter.unusedSectionVars false
@@ -26,7 +26,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS] [math.rand.Hyps GF]
 
 /-- `decideSlot`'s spec (ExecDefs' `wp_decideSlot`), as a hypothesis. -/
 abbrev decideSlot.spec : Prop :=
@@ -45,6 +45,7 @@ theorem done_nb (γd : ChanNames) (ch : GoChan) (Φ : Unit → Bool → IProp GF
   unfold isChanBagDef
   iintro ⟨#Hch, #Hinv⟩ HQ
   unfold nonblockingRecvAuAlt
+  iapply ncfupd_of_fupd
   iinv Hinv with Hi Hclose
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask

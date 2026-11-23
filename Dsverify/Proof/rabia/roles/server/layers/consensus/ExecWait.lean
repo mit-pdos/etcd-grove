@@ -16,7 +16,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 set_option linter.unusedSectionVars false
@@ -70,7 +70,7 @@ local macro "ledger_idx" : tactic =>
 
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable {cf : RCfg}
 
 instance ex_isRabia_persistent (γ : RabiaNames) : Persistent (isRabia (GF := GF) γ) := by
@@ -119,7 +119,7 @@ theorem keys_client_disj (k : Nat) :
     (↑(srvKeysN k) : CoPset) ## cliE := by
   have h : cliE ## ↑(srvKeysN k) := cliE_disj_of_sub (by
     unfold srvKeysN rabiaE
-    exact (nclose_subseteq _ _).trans (nclose_subseteq _ _))
+    exact fun x hx => nclose_subseteq _ _ x (nclose_subseteq _ _ x hx))
   exact fun x hx => h x ⟨hx.2, hx.1⟩
 
 theorem client_rabia_disj : cliE ## ↑rabiaN := cliE_rabiaN
@@ -350,7 +350,7 @@ theorem unit_prefix' (dl : List Unit) : [()] <+: dl ++ [()] := by
 
 section steps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable {cf : RCfg}
 
 /-- `GetHasRecvDec`'s step in `wait`: a `true` mints the flag `rdW`; a `false` excludes it. -/
@@ -417,7 +417,7 @@ end steps
 
 section ro
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable {cf : RCfg}
 
 theorem exRun_ro (γ : Names) (k : Nat) (γl : SrvNames) (γc : ConsNames) (ch : SrvChans) (c : Loc)
@@ -434,9 +434,9 @@ end ro
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS]
 
 theorem ex_GetIsDone_t (hGID : Slot.GetIsDone.spec (GF := GF)) (γ : Names) (k : Nat)
     (γl : SrvNames) (γc : ConsNames) (s : Nat) (e : SlotV) (he : γl.slots[s]? = some e)
@@ -583,10 +583,10 @@ theorem wp_wait_proof (D : ExDeps (GF := GF)) (γ : Names) (k : Nat) (γl : SrvN
     rcases eo with _ | ρ
     · icases He with ⟨%o, %d, ⟨%hty6, %hobj, %hsv, %hnone⟩, #Hdec, #Hdo⟩
       have hv6 : v.Type' = W32 6 := hmf.1.trans hty6
-      have h3 : decide (v.Type' = W32 3) = false := by rw [hv6]; decide
-      have h2 : decide (v.Type' = W32 2) = false := by rw [hv6]; decide
-      have h1 : decide (v.Type' = W32 1) = false := by rw [hv6]; decide
-      have h6 : decide (v.Type' = W32 6) = true := by rw [hv6]; decide
+      have h3 : decide (v.Type' = W32 3) = false := by rw [hv6]; simp
+      have h2 : decide (v.Type' = W32 2) = false := by rw [hv6]; simp
+      have h1 : decide (v.Type' = W32 1) = false := by rw [hv6]; simp
+      have h6 : decide (v.Type' = W32 6) = true := by rw [hv6]; simp
       wp_auto
       repeat (first | (simp only [h1, h2, h3, h6]) | (wp_auto))
       ledger_idx

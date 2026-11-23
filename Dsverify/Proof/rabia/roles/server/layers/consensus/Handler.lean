@@ -15,7 +15,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 set_option linter.unusedSectionVars false
@@ -35,7 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable {cf : RCfg}
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS]
 
 theorem bmsgOk_obj (γ : Names) (X : Nat) (m : MsgV)
     (hty : m.ty = tyProposal ∨ m.ty = tyState ∨ m.ty = tyVote ∨ m.ty = tyDecision) :
@@ -993,8 +993,8 @@ theorem wp_binConMsgHandling
       (Φ := fun s e => iprop(slotChan (GF := GF) γ cf γc s e)) he) $$ HSC
     unfold slotChan
     ihave Hqp := mk_slotQPx_dec γ γc o.svrSeq.toNat ql v m o d hty ho rfl hnot
-      ⟨by intro h; rw [htv] at h; exact absurd h (by decide),
-       by intro h; rw [htv] at h; exact absurd h (by decide)⟩ $$ [Hqlb Hm Hfd Hdo]
+      ⟨by intro h; rw [htv] at h; exact absurd h (by simp [tyProposal]),
+       by intro h; rw [htv] at h; exact absurd h (by simp [tyState])⟩ $$ [Hqlb Hm Hfd Hdo]
     · iframe; iframe Hqlb Hm Hfd; iexact Hdo
     rw [← hsl]
     wp_apply wp_spsc_send (γc.queue o.svrSeq.toNat) e.q (slotQPx γ cf γc o.svrSeq.toNat)

@@ -32,6 +32,7 @@ public import Dsverify.Proof.rabia.Core.PkgState
 public import Dsverify.Proof.rabia.internal.queue.Spec
 public import Perennial.Proof.sync.Base
 public import Perennial.Golang.Theory.Map
+public import Dsverify.Proof.rabia.roles.server.layers.consensus.Base
 
 @[expose] public section
 
@@ -39,7 +40,7 @@ noncomputable section
 
 namespace Perennial.rabia.roles.server.layers.consensus
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model NetConn Dsv rabia.internal.message
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode model Net rabia.internal.message
   rabia.internal.config rabia.internal.ledger rabia rabia.internal.queue
 
 /-- The consensus layer's own ghost names (allocated by `slotsInv_alloc`). -/
@@ -606,7 +607,7 @@ section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : rabia.roles.server.layers.consensus.Assumptions]
+variable [package_sem : rabia.roles.server.layers.consensus.Assumptions] [π : NetProtoGS]
 
 /-- `ConsensusInit(k, 0, done, wg, NetToMsgHandler, MsgHandlerToNet, NetToConExecutor,
 ConExecutorToNet, ledger)`. -/
