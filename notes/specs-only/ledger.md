@@ -4756,9 +4756,11 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`SnapApplyWalk.lean:338`), has no receipt bound in scope (`isServerM` holds only the thread
   bound), so the change threads a receipt-bound fact into the walk (from `isServerM`, as its thread
   bound, or a premise of `applySnapshot`'s spec).
-- **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
-  scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
-  stays false above `2 ^ 60` until then; no closed theorem reaches that.
+- **Decision.** Deferred from step 2, then applied at the user's request (2026-11-22, branch
+  `openbackend-receipt`, `notes/step-bounds-questions.md`, Q2): the axiom and `OpenSnapshotBackend`'s
+  spec take `[ReceiptBoundLe GF (2 ^ 60)]`; `srvSnapRO`'s receipt conjunct and `applySnapshot`'s
+  `hrbw` become `receiptBound GF ≤ 2 ^ 60` (implying the `wbInit - 6` they stated), which the walk
+  passes as the instance.
 ## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
 
 - **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
@@ -4853,3 +4855,33 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   write it, each after removing the entry from `pending`.
 - **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
 - **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).
+
+## 2026-11-23: grpc's contracts take a resource parameter (#24's S2 signatures, item (c))
+
+- **Spec.** `Proof/google_golang_org/grpc/InvGrpc.lean`, `InvGrpcStream.lean`, `InvGrpcRun.lean` and the axioms
+  stated over them. Server: `srvChainWP R`, `grpcSrvChain R`, `srvStreamChainWP R`, `grpcSrvStreamChain R`
+  (each call `R -∗ WP … {{ v, R ∗ Ψ v }}`); the Go facts a run is given (`grpcAccepted`, so `acceptRun`/
+  `acceptRunConns`; the run and method contracts `grpcRunOkMd`, `grpcMethodOk(Md)`) at every resource
+  (`grpcSrvChainAll`, `grpcSrvStreamChainAll`); the stream run contract's chain at `R := True` (the run keeps its
+  `threadTok` in its own pre/post). Client: `grpcConn conn addrs ics dopts Ok` (the family `Ok` the credentials
+  were dialed for), `perRPCCredsOk pc Ok Q` (`GetRequestMetadata` given `R` with `Ok R`, given back),
+  `grpcInvokerOk conn addrs Ok inv` (each attempt given `R` with `Ok R`), `chainWP R`; `ClientConn.Invoke`,
+  `ClientConn.NewStream` take `⌜Ok R⌝ ∗ R` and give `R` back; `cliStreamIs`/`cliBidiStreamIs … Ok`: `SendMsg`,
+  `RecvMsg`, `CloseSend` (and the wrappers' `Send`/`Recv`/`CloseSend`) likewise; `NewClient` takes the
+  credentials at `Ok` and returns `grpcConn … Ok`.
+- **Defect.** None of grpc-go's: the contracts did not let a caller lend a resource (a reader slot of a pool) to
+  the per-RPC credentials grpc calls, so `perRPCCredential.GetRequestMetadata`, `Client.Endpoints` (the retry
+  interceptor) and `api.IsCapabilityEnabled` (the server's interceptors) could only be axioms reading under a
+  lock without a reader token.
+- **Evidence.** #24 ("draft signatures for the resource parameter (S2)", the per-call `R` / family `Ok`
+  exchange, item (c)). Found while restating: the credentials also run inside a client stream's
+  `SendMsg`/`RecvMsg`/`CloseSend` (a transparent retry before the stream commits, `stream.go:800-819,930`), so
+  the agreed `NewStream` `R` alone was not enough: the stream's operations take one too.
+- **Why true of the code.** grpc-go v1.84: the server's chain closures (`server.go:1227-1276`) and the client's
+  (`chainUnaryInterceptors`, `getChainUnaryInvoker`) call the next interceptor synchronously and touch no
+  program resource; the credentials are called only by `http2Client.createHeaderFields` → `getTrAuthData` when
+  an attempt's transport stream is made, synchronously inside the caller's `Invoke`/`NewStream`/stream
+  operation, transparent retries included.
+- **Proposed change.** As above. etcd's client instantiates `Ok := anyRes` (every resource; its credentials'
+  axiom needs none yet) and passes `R := True`; etcd's handlers use the chains at `R := True`.
+- **Decision.** Applied (agreed on #24; reviewed there before landing). No top-level statement changes.

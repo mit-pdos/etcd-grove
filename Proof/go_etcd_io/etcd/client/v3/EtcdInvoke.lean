@@ -132,14 +132,20 @@ theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (
   · -- any number of attempts
     iunfold isEtcdConn at Hconn0
     icases Hconn0 with ⟨%ic, #Hgc, #Hic, -⟩
-    iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
+    iapply wp_true_sep
+    iapply (wp_Invoke conn addr [ic] [] anyRes (GoInterface.ok ctx) method
       (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
-      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
+      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs iprop(True) Ψ)
     iframe #
+    isplitr
+    · ipureintro; trivial
+    isplitr
+    · itrivial
     iintro %inv %opts' #Hinv #Hopts'
     simp only [List.nil_append, chainWP]
-    iintro %inv' #Hinv'
-    ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
+    iintro %inv' #Hinv' -
+    iapply wp_true_sep_intro
+    ihave #Hinv'' := grpcInvokerOk_of_chainTrue conn addr anyRes inv inv' $$ [Hinv Hinv']
     · iframe #
     iunfold etcdInterceptorOk at Hic
     ihave Hic' := Hic $$ %conn %addr %([ic] : List GoFunc) %([] : List GoInterface) %inv' %method %Req
@@ -151,14 +157,20 @@ theorem etcdConn_InvokeMdE (wp_Invoke : grpc.ClientConn.Invoke.spec (GF := GF) (
     -- retried
     iunfold isEtcdConn at Hconn0
     icases Hconn0 with ⟨%ic, #Hgc, -, #Hic⟩
-    iapply (wp_Invoke conn addr [ic] [] (GoInterface.ok ctx) method
+    iapply wp_true_sep
+    iapply (wp_Invoke conn addr [ic] [] anyRes (GoInterface.ok ctx) method
       (interface.mkOk (go.GoType.PointerType Req.ty) #inp)
-      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs Ψ)
+      (interface.mkOk (go.GoType.PointerType Rep.ty) #out) opts vs iprop(True) Ψ)
     iframe #
+    isplitr
+    · ipureintro; trivial
+    isplitr
+    · itrivial
     iintro %inv %opts' #Hinv #Hopts'
     simp only [List.nil_append, chainWP]
-    iintro %inv' #Hinv'
-    ihave #Hinv'' := grpcInvokerOk_of_wp conn addr inv inv' $$ [Hinv Hinv']
+    iintro %inv' #Hinv' -
+    iapply wp_true_sep_intro
+    ihave #Hinv'' := grpcInvokerOk_of_chainTrue conn addr anyRes inv inv' $$ [Hinv Hinv']
     · iframe #
     iunfold etcdInterceptorOkW at Hic
     iunfold etcdInterceptorOkM at Hic

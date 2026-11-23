@@ -242,8 +242,12 @@ theorem watchGRPCStream.run.wp_proof
           Hstok, Hrcons, %Hrcv, Hepst, #HDlb, %HgOk, Hans, Hids, Hwsa, Hels, Had, Htt, Hdn, Hgen⟩
         wp_auto
         wp_apply wp_ptoPB pr as %preq Hpsend
-        wp_apply HSend $$ %S.L %preq %(.progress) [Hstok Hpsend] as %err ⟨-, Hres'⟩
-        · iframe
+        wp_apply HSend $$ %S.L %preq %(.progress) %iprop(True) [Hstok Hpsend] as %err ⟨-, -, Hres'⟩
+        · isplitr
+          · ipureintro; trivial
+          isplitr
+          · itrivial
+          iframe
           isplitl []; rotate_left
           · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
           unfold v3rpc.watchUp v3rpc.watchReqOk
@@ -521,8 +525,12 @@ theorem watchGRPCStream.run.wp_proof
         ihave #Hbdc := wsBdOk_cur V P0 $$ [Hconn Hbd0]
         · iframe Hconn Hbd0
         wp_apply HSend $$ %S.L %preq %(.create (createOf P0.key P0.ed P0.rev P0.pn P0.sr P0.bd P0.o.base.prevKV))
-          [Hstok Hpsend] as %err ⟨-, Hres⟩
-        · iframe
+          %iprop(True) [Hstok Hpsend] as %err ⟨-, -, Hres⟩
+        · isplitr
+          · ipureintro; trivial
+          isplitr
+          · itrivial
+          iframe
           isplitl []; rotate_left
           · ipureintro; exact wsReqOk_wire Hok _ _ _ _ _
           unfold v3rpc.watchUp
@@ -1650,9 +1658,13 @@ theorem watchGRPCStream.run.wp_proof
           wp_apply wp_toPB (wsF P2.ws go!"initReq") P2.key P2.ed B2.rr P2.pn P2.flt
             (DFrac.own q2) B2.srr P2.bd P2.o.base.prevKV $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
           · iframe Rprev Rflts Rflt Rfrag Rpn Rend Rkey; iframe
-          wp_apply HSend $$ %S.L %preq %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) [Hstok Hpsend]
-            as %err ⟨-, Hres'⟩
-          · iframe
+          wp_apply HSend $$ %S.L %preq %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) %iprop(True) [Hstok Hpsend]
+            as %err ⟨-, -, Hres'⟩
+          · isplitr
+            · ipureintro; trivial
+            isplitr
+            · itrivial
+            iframe
             isplitl []; rotate_left
             · iapply wsIs_wire V P2; iexact HP2
             unfold v3rpc.watchUp
@@ -2208,8 +2220,12 @@ theorem watchGRPCStream.run.wp_proof
           wp_auto
           wp_apply wp_Debug V.lg _ _ $$ []
           · iexact Hlg
-          wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
-          · iframe
+          wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) %iprop(True) [Hstok Hsend] as %err ⟨-, -, Hres'⟩
+          · isplitr
+            · ipureintro; trivial
+            isplitr
+            · itrivial
+            iframe
             isplitl []; rotate_left
             · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
             unfold v3rpc.watchUp v3rpc.watchReqOk
@@ -2466,8 +2482,12 @@ theorem watchGRPCStream.run.wp_proof
             wp_auto
             wp_apply wp_Debug V.lg _ _ $$ []
             · iexact Hlg
-            wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) [Hstok Hsend] as %err ⟨-, Hres'⟩
-            · iframe
+            wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ρ.id) %iprop(True) [Hstok Hsend] as %err ⟨-, -, Hres'⟩
+            · isplitr
+              · ipureintro; trivial
+              isplitr
+              · itrivial
+              iframe
               isplitl []; rotate_left
               · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
               unfold v3rpc.watchUp v3rpc.watchReqOk
@@ -2767,9 +2787,13 @@ theorem watchGRPCStream.run.wp_proof
           (DFrac.own q2) B2.srr P2.bd P2.o.base.prevKV $$ [Hrv2] as %preq ⟨Hrv2, Hpsend⟩
         · iframe Rprev Rflts Rflt Rfrag Rpn Rend Rkey; iframe
         wp_apply HSend2 $$ %([] : List v3rpc.WatchReqM) %preq
-          %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) [Hstok2 Hpsend]
-          as %err3 ⟨-, Hres'⟩
-        · iframe
+          %(.create (createOf P2.key P2.ed B2.rr P2.pn B2.srr P2.bd P2.o.base.prevKV)) %iprop(True) [Hstok2 Hpsend]
+          as %err3 ⟨-, -, Hres'⟩
+        · isplitr
+          · ipureintro; trivial
+          isplitr
+          · itrivial
+          iframe
           isplitl []; rotate_left
           · iapply wsIs_wire V P2; iexact HP2
           unfold v3rpc.watchUp
@@ -3053,8 +3077,12 @@ theorem watchGRPCStream.run.wp_proof
       wp_auto
       wp_apply wp_Debug V.lg _ _ $$ []
       · iexact Hlg
-      wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ph.id) [Hstok Hsend] as %err ⟨-, Hres⟩
-      · iframe
+      wp_apply HSend $$ %S.L %«$r0_ptr» %(.cancel ph.id) %iprop(True) [Hstok Hsend] as %err ⟨-, -, Hres⟩
+      · isplitr
+        · ipureintro; trivial
+        isplitr
+        · itrivial
+        iframe
         isplitl []; rotate_left
         · ipureintro; exact (by decide : wireSlack < grpcMsgMax)
         unfold v3rpc.watchUp v3rpc.watchReqOk
