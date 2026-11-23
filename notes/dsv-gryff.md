@@ -720,6 +720,54 @@ are now `Results.lean` (linking tier); `proof_roots.namespace()` prints `Perenni
   --no-go --list-tcb gryff_remote_robust`: TCB 689 lines, all premises (`tcb_axioms 0`), the three
   `InitHyp`s counted. `lake build` of the proof's `TopLevelRobustness`: builds.
 
+## Session 9 (2026-11-23, pre-adaptation to models-rpc-http)
+
+Goal: the branch lands right after `models-rpc-http`, with only a final merge and rebuild.
+- **Merged** `origin/lean` `76c00a8d81` (Perennial `160fcf12a`; remote-serveclient, dsv-inithyp-fix,
+  dsv-hyp-imports, swiftpaxos, quepaxa) and `origin/models-rpc-http` `fda1e58c0a`, both without
+  conflicts. `.lake/package-overrides.json` and `PERENNIAL_DIR` point at `/shared/perennial-160fcf12a`.
+  `etc/gen-init.py` equals lean's. `etc/goose.py` differs from lean's by exactly models-rpc-http's
+  hunk (`mime/multipart`, `net/http/internal/ascii` in project models-net).
+- **Init fix:** `etc/dsv/gryff.py` has no `HYP_IMPORTS` (the default `'all'`; `'none'` for net/rpc and
+  net/http was unsound). PkgTables and `cmd/server*/Boot.lean` were regenerated (gen-init twice,
+  `_gryff_boot.py`). Because models-rpc-http's net/http imports `mime/multipart`,
+  `net/http/internal/ascii`, `slices` and `log`, the shared `Dsverify/Proof/net/http/Init.lean` now
+  imports their facts: new `True` facts `Dsverify/Proof/{mime/multipart,net/http/internal/ascii}/Base.lean`
+  (the dsv-inithyp-fix pattern), plus Perennial's `slices`/`log` `Base`. epaxos's and swiftpaxos's
+  PkgTables were regenerated the same way. **models-rpc-http needs the same files when it merges
+  lean** (or it takes them from here). `RpcBootHyp` is unchanged: its tables before (`gNoPkg q g`) and
+  after (`g`) agree beyond `q`, and its `GetIsPkgInitProp q g` premise is the shared Init's condition
+  over the whole closure (docstring added; the swiftpaxos `RpcFirstInit` property).
+- **Remote's landed API** (remote-adapt.md): `mapCtx_alloc ⊤ clientAddrs 12`, where 12 =
+  `K · readTries` = 4·3, so `budUnits a 12` per client, threaded through `Orch.spec`/`wp_main`/the
+  start/the system's node 0. `wp_Check … 12 (by decide)`. `addrs_set_proto` takes
+  `fun a => reqP … a`. `opMaybe`'s third component is dropped. The newClient premise is a plain WP.
+- **models-rpc-http's bufio:** `NewWriterSize.wp_proof` now takes `wp_proofRep`, as epaxos/rabia/
+  quepaxa use it on lean. Fixed in gryff's `Link.lean` and in swiftpaxos's `lib/LibDepsLinked.lean`
+  (a proof, not its statement; swiftpaxos landed after models-rpc-http forked, so models-rpc-http must
+  make the same fix when it merges lean).
+- **Statement changes** (`gryff_remote_robust.spec`): the premise
+  `∀ G L π, net.rpc.DialHTTP.spec` is **dropped**, now discharged by Net's `net.rpc.DialHTTP.wp`
+  (models-rpc-http, `Net/Proof/net/rpc/Results.lean`) in `Link.wp_Server`. Nothing else changed in the
+  statement's text. `MathPowHyp`'s field is now the main tree's `EtcdGrove.math.Pow.spec` (the old
+  field had precondition `True`; it now also needs `isPkgInit math`, so the premise is weaker).
+  `RandSeedHyp`'s field is the shared `math.rand.Seed.spec` (the same triple). No landed kit's
+  statement changed (Upamanyu's rule #8).
+- **One canonical spec per function:** dups.py over all Dsverify roots: no duplicate names (only
+  parse noise). math/rand: gryff calls only `Seed`; the shared `Dsverify/Proof/math/rand/Spec.lean`
+  now has `math.rand.Seed.spec` (rabia's `math.rand.Hyps` is unchanged; quepaxa's
+  `Perennial.raxos.hyp.math.rand.{Seed,Intn}.spec` are textual duplicates of the shared ones, left
+  for quepaxa). math.Pow: the main tree's spec (its axiom is not used). os/signal, gods treemap,
+  gob: gryff uses none of them. log.Println: gryff proves `Perennial.gryff.log.wp_Println_logArg`
+  from Perennial's body (error arguments, which Net's `log.Println.spec`'s `fmt.ArgsWf` excludes); it
+  is a lemma, not a premise. bufio: `wire.BufioSpecs` fields are the landed `EtcdGrove.bufio.*` specs.
+  sort.Slice: the main tree's `EtcdGrove.sort.Slice.spec` is for `[]int64`, permutation only; gryff's
+  `SortSliceHyp` is `[]int32`, sorted, so it stays a separate hypothesis (a generalized main-tree spec
+  would retire it). strings.Index, binary varints: no other spec exists (swiftpaxos copies varint
+  code into its fork).
+- **Statement header:** the step bound (`2^31-1`: net/rpc's int32 WaitGroup, prefixes only) and the
+  deployment (no narrowing beyond `DistDeploy`; the kit's `K` = 4 cap and `Sys` lock).
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof

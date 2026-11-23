@@ -596,8 +596,9 @@ instance clientTok_persistent (γ : GryffNames GF) (c : Nat) (sys : GoInterface)
   unfold clientTok replicaLises; infer_instance
 
 /-- `Op(sys, in)`: client `c`'s operation, under `Sys.mu` (remote's `opMaybe`). -/
-theorem wp_Op (wp_op : op.spec (GF := GF) (hG := hG)) (γ : GryffNames GF) (c : Nat) (hc : c < 6) :
-    ⊢ opMaybe (hG := hG) (casR γ.proto) (clientTok γ c)
+theorem wp_Op (wp_op : op.spec (GF := GF) (hG := hG)) (γ : GryffNames GF) (c : Nat) (hc : c < 6)
+    (a : GoString) :
+    ⊢ opMaybe (hG := hG) (casR γ.proto) a (clientTok γ c)
         (functions gryff.examples.gryffnet.Op []) := by
   unfold opMaybe
   iintro %sys %i %Φo
