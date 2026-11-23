@@ -56,7 +56,7 @@ def kitFn [GooseExts] [GoSemanticsFunctions] [RpcKit] (name : GoString) : GoFunc
 
 /-- The codec's encoding and decoding, as `Net/`'s `CodecSpec`. -/
 def RpcCodec.spec [GooseExts] {GF : BundledGFunctors} [C : RpcCodec GF] : CodecSpec GF :=
-  ⟨C.enc, C.dec⟩
+  ⟨C.enc, C.dec, C.rcv⟩
 
 /-- The service names of the kit's receivers, as `Register` sees them. -/
 class RpcNames [GooseExts] where

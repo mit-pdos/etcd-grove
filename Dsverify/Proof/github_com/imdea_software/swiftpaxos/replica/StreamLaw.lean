@@ -109,7 +109,7 @@ theorem stream_nextOk (k : RdKind) (hk : ∀ m, k.ok m → m.isPeer) (cid : Nat)
 end laws
 
 section reader
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable {γ : Names} {γc γm : GName}
 
 /-- **The peer reader's stream law** after the frames of `done` and the type byte `c`. -/

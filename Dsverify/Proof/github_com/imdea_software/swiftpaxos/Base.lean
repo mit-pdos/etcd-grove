@@ -115,6 +115,8 @@ class RpcCodec [GooseExts] (GF : BundledGFunctors) where
   dec : List w8 → GoInterface → (Bool → IProp GF) → IProp GF
   call : GoInterface → GoString → List w8 → (List w8 → GoString → Bool → IProp GF) → IProp GF
   methods : GoInterface → IProp GF
+  /-- the receivers' representations (`Net/`'s `CodecSpec.rcv`, the net/rpc server's) -/
+  rcv : GoInterface → (Loc → IProp GF) → IProp GF
 
 end net.rpc
 
