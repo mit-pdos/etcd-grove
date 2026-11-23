@@ -16,19 +16,6 @@ noncomputable section
 
 namespace net.http
 
-class connLRU.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying connLRU.underlying connLRU
-  underlying : go.UnderlyingDirectedEq connLRU.ty connLRU.underlying
-  isUnderlying : go.IsUnderlying connLRU.underlying connLRU.underlying
-  method_set : go.MethodSetIs connLRU.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connLRU.ty) [(go!"net/http.add", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.len", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.remove", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.removeOldest", (some (go.signature.Signature [] false [(go.GoType.PointerType persistConn.ty)])))]
-
-attribute [instance] connLRU.TypeAssumptions.type_repr
-  connLRU.TypeAssumptions.underlying
-  connLRU.TypeAssumptions.isUnderlying
-  connLRU.TypeAssumptions.method_set
-  connLRU.TypeAssumptions.ptr_method_set
-
 class wantConnQueue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying wantConnQueue.underlying wantConnQueue
   underlying : go.UnderlyingDirectedEq wantConnQueue.ty wantConnQueue.underlying

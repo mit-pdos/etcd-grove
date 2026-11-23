@@ -31,15 +31,11 @@ import (
 
 var modelChooseRandom = os.Getenv("GRPC_MODEL_CHOOSE") == "random"
 
-// notModelled is the value the model panics with where it does not model grpc-go's behavior
-// (models/README.md: a model's panics outside its scope have a NotModelled method), so that a
-// proof that the program does not panic shows it never gets there: TLS and transport credentials
-// other than insecure, a service config other than round robin's, compression, stats handlers,
-// binary logging, an InTapHandle, Server.ServeHTTP, a unix address with a custom dialer.
-type notModelled string
-
-// NotModelled marks the value as the models' panic.
-func (notModelled) NotModelled() {}
+// Where the model does not model grpc-go's behavior (TLS and transport credentials other than
+// insecure, a service config other than round robin's, compression, stats handlers, binary
+// logging, an InTapHandle, Server.ServeHTTP, a unix address with a custom dialer) it blocks forever (`select {}`, after a comment `MODEL: not modelled (stuck): ...`), never a panic:
+// a panic can be recovered (Go's recover, Perennial's with_defer_recover), so a value panic would add
+// behaviors the library does not have; being stuck only removes behaviors (models/README.md).
 
 // modelChoose is an arbitrary boolean.
 func modelChoose() bool {

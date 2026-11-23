@@ -611,9 +611,9 @@ func validateHeaders(hdrs Header) string {
 
 // roundTrip implements a RoundTripper over HTTP.
 //
-// MODEL: the Transport is not modelled (textproto_model.go): a round trip panics.
+// MODEL: the Transport is not modelled (textproto_model.go): a round trip blocks forever.
 func (t *Transport) roundTrip(req *Request) (_ *Response, err error) {
-	panic(notModelled("net/http model: Transport's round trip is not modelled"))
+	select {} // MODEL: not modelled (stuck): net/http model: Transport's round trip is not modelled
 }
 
 func http2isNoCachedConnError(err error) bool {

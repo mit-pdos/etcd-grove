@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
+
+	"models.lab/internal/stuck"
 )
 
 const alpha = "{}[],:\" \n\t0123-.eE+tfrulnasx\\/bAF\xff\x7f\x01"
@@ -143,20 +145,23 @@ func (m raw) MarshalJSON() ([]byte, error) { return m, nil }
 // TestCompact: AppendCompact is what real encoding/json makes of a MarshalJSON method's output.
 func TestCompact(t *testing.T) {
 	r := rand.New(rand.NewSource(4))
+	nStuck := 0
+	defer func() { t.Logf("AppendCompact: %d stuck (not modelled)", nStuck) }()
 	for it := 0; it < 300000; it++ {
 		b := rndText(r, 16)
 		w, werr := json.Marshal(raw(b))
 		var g []byte
 		var ok bool
-		if func() (p bool) {
-			defer func() { p = recover() != nil }()
-			g, ok = AppendCompact([]byte("x"), b)
-			return
-		}() {
-			// outside the subset: a string with an escape or a non-ASCII byte
+		o, pv := stuck.Run(func() { g, ok = AppendCompact([]byte("x"), b) })
+		if o == stuck.Panicked {
+			t.Fatalf("AppendCompact(%q) panicked: %v; real %q %v", b, pv, w, werr)
+		}
+		if o == stuck.Stuck {
+			// outside the subset (not modelled: it blocks): a string with an escape or a non-ASCII byte
 			if !bytes.ContainsAny(b, "\\\xff\x7f") || werr != nil {
-				t.Fatalf("AppendCompact(%q) panicked; real %q %v", b, w, werr)
+				t.Fatalf("AppendCompact(%q) blocked; real %q %v", b, w, werr)
 			}
+			nStuck++
 			continue
 		}
 		if (werr == nil) != ok || (ok && string(g) != "x"+string(w)) {
@@ -264,20 +269,18 @@ func TestScalars(t *testing.T) {
 	}
 }
 
-// escaped runs f; it reports whether f returned. f may panic with NotModelled only for a string
-// holding an escape sequence (real encoding/json unescapes it first); any other panic fails.
+// escaped runs f; it reports whether f returned. f may block (not modelled) only for a string
+// holding an escape sequence (real encoding/json unescapes it first); a panic fails.
 func escaped(t *testing.T, ty, v string, err error, f func()) (returned bool) {
 	t.Helper()
-	defer func() {
-		if x := recover(); x != nil {
-			if _, ok := x.(NotModelled); !ok || !strings.Contains(v, "\\") {
-				t.Errorf("%s from %s: panic %v (real: %v)", ty, v, x, err)
-			}
-			returned = false
-		}
-	}()
-	f()
-	return true
+	o, x := stuck.Run(f)
+	switch {
+	case o == stuck.Panicked:
+		t.Errorf("%s from %s: panic %v (real: %v)", ty, v, x, err)
+	case o == stuck.Stuck && !strings.Contains(v, "\\"):
+		t.Errorf("%s from %s: blocked (not modelled) (real: %v)", ty, v, err)
+	}
+	return o == stuck.Returned
 }
 
 func check(t *testing.T, ty, v string, err error, kept, same bool, st, k uint64, data []byte) {

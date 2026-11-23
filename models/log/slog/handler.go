@@ -66,10 +66,6 @@ func (dh discardHandler) Handle(context.Context, Record) error { return nil }
 func (dh discardHandler) WithAttrs(attrs []Attr) Handler       { return dh }
 func (dh discardHandler) WithGroup(name string) Handler        { return dh }
 
-// MODEL: the models' panic value: what the model does not model (a program-supplied Handler).
-type notModelled struct{ what string }
-
-func (e notModelled) Error() string { return "log/slog model: not modelled: " + e.what }
-
-// NotModelled marks the value as the models' panic.
-func (notModelled) NotModelled() {}
+// MODEL: where the model does not model log/slog (a program-supplied Handler) it blocks forever (`select {}`, after a comment `MODEL: not modelled (stuck): ...`), never a panic:
+// a panic can be recovered (Go's recover, Perennial's with_defer_recover), so a value panic would add
+// behaviors the library does not have; being stuck only removes behaviors (models/README.md).

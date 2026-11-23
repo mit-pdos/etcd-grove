@@ -6,7 +6,7 @@ proved in `NetRpc/CodecProof.lean`. As dsv-craq's `Craq/Codec.lean`; the lab's k
 (`Interface/Rpc.lean`'s `wp_rpcEncode_*`/`wp_rpcDecode_*`, `Proof/codec/*`) is replaced, not
 ported.
 
-`rpcDecode(data, ptr)` reads `data`'s type tag and **panics** (`rpcNotModelled`) when the tag
+`rpcDecode(data, ptr)` reads `data`'s type tag and **blocks forever** (not modelled) when the tag
 parses but names another type than `ptr`'s: so each decoding lemma assumes `tagOk t rep` (the
 tag, if it parses, is the target's). Net's `Client.Call.spec` asks for decoding only of the
 method's answers (`Φ rep []` in hand), from which the clients derive `tagOk`. A struct field

@@ -33,7 +33,7 @@ func rpcReceiver(rcvr any) *rpcmodel.Receiver {
 			"Ping":        {NewArg: rpcNewArg_r1_Ping, NewReply: rpcNewReply_r1_Ping, Call: rpcCall_r1_Ping},
 		}}
 	}
-	panic(rpcNotModelled("net/rpc model: Register of a receiver of a type the codec does not list"))
+	select {} // MODEL: not modelled (stuck): net/rpc model: Register of a receiver of a type the codec does not list
 }
 
 func rpcNewArg_r0_GetLeader() any {

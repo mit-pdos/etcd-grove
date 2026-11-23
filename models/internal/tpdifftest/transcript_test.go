@@ -9,23 +9,20 @@ import (
 )
 
 // outcome runs f: "ok", or "panic: " and the panic's text (a runtime error's message, which the
-// model's panics must match), or "panic: NotModelled" for the models' panic value.
-func outcome(f func()) (s string) {
-	defer func() {
-		if r := recover(); r != nil {
-			if _, ok := r.(interface{ NotModelled() }); ok {
-				s = "panic: NotModelled"
-			} else {
-				s = fmt.Sprintf("panic: %v", r)
-			}
-		}
-	}()
-	f()
+// model's panics must match), or "stuck" where f blocks forever in an empty select (a model's
+// not-modelled points, models/README.md).
+func outcome(f func()) string {
+	switch o, r := stuckRun(f); o {
+	case stuckPanicked:
+		return fmt.Sprintf("panic: %v", r)
+	case stuckStuck:
+		return "stuck"
+	}
 	return "ok"
 }
 
-// notModelled reports whether f panics with the models' panic value.
-func notModelled(f func()) bool { return outcome(f) == "panic: NotModelled" }
+// notModelled reports whether f blocks forever (a model's not-modelled point).
+func notModelled(f func()) bool { return outcome(f) == "stuck" }
 
 // A transcript is what a test observed of a library, line by line: run.sh runs every test against
 // the real library and against the model, each writing its transcripts to $TPDIFF_OUT, and

@@ -14,8 +14,8 @@ type Attr struct {
 
 // String returns a string representation of a.
 //
-// MODEL: a panic with a NotModelled value (Go: Key=Value; fmt reaches it through fmt.Stringer):
+// MODEL: blocks forever, not modelled (Go: Key=Value; fmt reaches it through fmt.Stringer):
 // the model's Attr is opaque, and a program that makes Attr values of its own is outside the model.
 func (a Attr) String() string {
-	panic(notModelled{"Attr.String (an Attr the program made)"})
+	select {} // MODEL: not modelled (stuck): Attr.String (an Attr the program made)
 }

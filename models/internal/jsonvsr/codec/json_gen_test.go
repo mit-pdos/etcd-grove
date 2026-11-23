@@ -5,13 +5,18 @@
 package codec
 
 import (
+	"bytes"
+	"context"
 	json "encoding/json"
 	"math/rand"
 	"os"
 	"reflect"
+	"runtime"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	events "models.lab/internal/jsonvsr/events"
 	log "models.lab/internal/jsonvsr/log"
@@ -208,20 +213,94 @@ func jtRnd(r *rand.Rand, t reflect.Type, depth int) reflect.Value {
 	return v
 }
 
-// jtCall runs f; a panic is returned (nil if none).
-func jtCall(f func()) (p any) {
-	defer func() { p = recover() }()
-	f()
-	return nil
+// jtCall runs f in a goroutine of its own: stuck reports that f blocked forever in an empty select
+// (the codec's not-modelled points, models/README.md), p a panic of f (nil if none). A copy of
+// models.lab/internal/stuck's Run (which a package outside models.lab cannot import): the goroutine
+// is labelled, and it is stuck once the goroutine profile counts one more labelled goroutine parked
+// in runtime.block (the empty select's) than the calls found stuck so far.
+func jtCall(f func()) (stuck bool, p any) {
+	type end struct{ p any }
+	done := make(chan end, 1)
+	go pprof.Do(context.Background(), pprof.Labels("jt-stuck-run", "1"), func(context.Context) {
+		panicking := true
+		defer func() {
+			if panicking {
+				done <- end{recover()}
+			}
+		}()
+		f()
+		panicking = false
+		done <- end{nil}
+	})
+	start := time.Now()
+	wait := 20 * time.Microsecond
+	for {
+		select {
+		case e := <-done:
+			return false, e.p
+		case <-time.After(wait):
+		}
+		if jtBlocked() > jtLeaked {
+			jtLeaked++
+			return true, nil
+		}
+		if time.Since(start) > time.Minute {
+			panic("jtCall: the codec neither returned, panicked nor blocked in an empty select")
+		}
+		if wait < 10*time.Millisecond {
+			wait *= 2
+		}
+	}
+}
+
+var jtLeaked int
+
+func jtBlocked() int {
+	var b bytes.Buffer
+	if err := pprof.Lookup("goroutine").WriteTo(&b, 1); err != nil {
+		panic(err)
+	}
+	total := 0
+	for _, rec := range strings.Split(b.String(), "\n\n") {
+		if !strings.Contains(rec, `"jt-stuck-run":"1"`) {
+			continue
+		}
+		head := rec
+		if i := strings.Index(head, " @ "); i >= 0 {
+			if j := strings.LastIndexByte(head[:i], '\n'); j >= 0 {
+				head = head[j+1:]
+			}
+		}
+		head, _, _ = strings.Cut(head, "\n")
+		cnt, pcs, ok := strings.Cut(head, " @ ")
+		if !ok {
+			continue
+		}
+		n, err := strconv.Atoi(cnt)
+		if err != nil {
+			continue
+		}
+		for _, a := range strings.Fields(pcs) {
+			pc, err := strconv.ParseUint(a, 0, 64)
+			if err != nil {
+				break
+			}
+			if fn := runtime.FuncForPC(uintptr(pc) - 1); fn != nil && fn.Name() == "runtime.block" {
+				total += n
+				break
+			}
+		}
+	}
+	return total
 }
 
 type jtStats struct {
-	encEqual, encErr, encPanic, decEqual, decErr, decPanic, decSyntax int
+	encEqual, encErr, encStuck, decEqual, decErr, decStuck, decSyntax int
 }
 
 func (s *jtStats) log(t *testing.T) {
-	t.Logf("JSONGEN-STATS types=%d enc_equal=%d enc_err=%d enc_panic=%d dec_equal=%d dec_err=%d dec_syntax=%d dec_panic=%d",
-		len(jtTypes), s.encEqual, s.encErr, s.encPanic, s.decEqual, s.decErr, s.decSyntax, s.decPanic)
+	t.Logf("JSONGEN-STATS types=%d enc_equal=%d enc_err=%d enc_stuck=%d dec_equal=%d dec_err=%d dec_syntax=%d dec_stuck=%d",
+		len(jtTypes), s.encEqual, s.encErr, s.encStuck, s.decEqual, s.decErr, s.decSyntax, s.decStuck)
 }
 
 // jtEscaped: b has an escape sequence, a DEL or a non-ASCII byte (a string the codec does not write).
@@ -239,14 +318,15 @@ func jtCheckEncode(t *testing.T, st *jtStats, v any) {
 	want, werr := json.Marshal(v)
 	var got []byte
 	var gerr error
-	if p := jtCall(func() { got, gerr = jsonMarshal(v) }); p != nil {
-		if _, ok := p.(jsoncodec.NotModelled); !ok {
-			t.Fatalf("Marshal(%#v): the codec panicked: %v", v, p)
-		}
+	stuck, p := jtCall(func() { got, gerr = jsonMarshal(v) })
+	if p != nil {
+		t.Fatalf("Marshal(%#v): the codec panicked: %v", v, p)
+	}
+	if stuck {
 		if werr == nil && !jtEscaped(want) {
-			t.Fatalf("Marshal(%#v): the codec panicked (%v) where the real output %s has no escape", v, p, want)
+			t.Fatalf("Marshal(%#v): the codec blocked (not modelled) where the real output %s has no escape", v, want)
 		}
-		st.encPanic++
+		st.encStuck++
 		return
 	}
 	if (werr != nil) != (gerr != nil) || string(got) != string(want) {
@@ -353,11 +433,12 @@ func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any
 		return
 	}
 	var gerr error
-	if p := jtCall(func() { gerr = jsonUnmarshal(data, b) }); p != nil {
-		if _, ok := p.(jsoncodec.NotModelled); !ok {
-			t.Fatalf("Unmarshal(%q) into %s: the codec panicked: %v", data, name, p)
-		}
-		st.decPanic++
+	stuck, p := jtCall(func() { gerr = jsonUnmarshal(data, b) })
+	if p != nil {
+		t.Fatalf("Unmarshal(%q) into %s: the codec panicked: %v", data, name, p)
+	}
+	if stuck {
+		st.decStuck++
 		return
 	}
 	if (werr != nil) != (gerr != nil) || !reflect.DeepEqual(a, b) {

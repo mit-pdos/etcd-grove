@@ -27,7 +27,7 @@ func jencAnyExtra(b []byte, v any, d uint64) ([]byte, error) {
 		}
 		return jenc_root0(b, *x, d)
 	}
-	panic(jsoncodec.NotModelled("json model: encoding a value of a type the codec does not know"))
+	select {} // MODEL: not modelled (stuck): json model: encoding a value of a type the codec does not know
 }
 
 // jsonUnmarshalExtra decodes into an unnamed root type (outside Goose).
@@ -49,7 +49,7 @@ func jsonUnmarshalExtra(data []byte, v any) error {
 	}:
 		return &jsoncodec.Error{Msg: "Unmarshal(non-pointer struct { Type events.EventType \"json:\\\"@type\\\"\"; Data json.RawMessage \"json:\\\"data\\\"\" })"}
 	}
-	panic(jsoncodec.NotModelled("json model: decoding into a type the codec does not know"))
+	select {} // MODEL: not modelled (stuck): json model: decoding into a type the codec does not know
 }
 
 // jenc_root0 appends the encoding of a struct { Type events.EventType "json:\"@type\""; Data json.RawMessage "json:\"data\"" } inside d arrays and objects.

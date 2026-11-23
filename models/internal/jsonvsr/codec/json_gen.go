@@ -11,7 +11,7 @@ import (
 
 // jsonMarshal is the codec's Marshal: v's encoding as real encoding/json's Marshal writes it,
 // for v nil, a value of one of the codec's types or a basic type, or a pointer to one; any
-// other v panics (NotModelled).
+// other v blocks forever (not modelled).
 func jsonMarshal(v any) ([]byte, error) {
 	b, err := jencAny(make([]byte, 0), v, 0)
 	if err != nil {
@@ -23,7 +23,7 @@ func jsonMarshal(v any) ([]byte, error) {
 // jsonUnmarshal is the codec's Unmarshal: decodes data (one valid JSON value, whitespace
 // around it) into *v as real encoding/json's Unmarshal does, v a non-nil pointer to one of the
 // codec's types; real encoding/json's error for a nil pointer, a non-pointer of one of its
-// types, or nil; any other v panics (NotModelled).
+// types, or nil; any other v blocks forever (not modelled).
 func jsonUnmarshal(data []byte, v any) error {
 	var err error
 	switch p := v.(type) {
@@ -179,7 +179,7 @@ func jsonUnmarshal(data []byte, v any) error {
 }
 
 // jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and
-// objects; a type the codec does not know panics (NotModelled).
+// objects; a type the codec does not know blocks forever (not modelled).
 func jencAny(b []byte, v any, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
@@ -552,7 +552,7 @@ func jdecMember_events_Event(b []byte, i uint64, key string, p *events.Event, e 
 		return k
 	}
 	if key == "data" {
-		panic(jsoncodec.NotModelled("json model: decoding into an interface (any)"))
+		select {} // MODEL: not modelled (stuck): json model: decoding into an interface (any)
 	}
 	if jsoncodec.FoldEq(key, "@type") {
 		var k uint64
@@ -566,7 +566,7 @@ func jdecMember_events_Event(b []byte, i uint64, key string, p *events.Event, e 
 		return k
 	}
 	if jsoncodec.FoldEq(key, "data") {
-		panic(jsoncodec.NotModelled("json model: decoding into an interface (any)"))
+		select {} // MODEL: not modelled (stuck): json model: decoding into an interface (any)
 	}
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
@@ -1503,7 +1503,7 @@ func jdec_log_Logs(b []byte, i uint64, p *log.Logs, e *error) uint64 {
 		return k
 	}
 	if *p != nil {
-		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
+		select {} // MODEL: not modelled (stuck): json model: decoding a non-empty array into a non-nil slice
 	}
 	s := make(log.Logs, 0)
 	for {

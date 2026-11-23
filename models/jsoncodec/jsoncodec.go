@@ -16,7 +16,7 @@
 // those bytes for a string of such bytes that has no '<', '>' or '&' (it escapes those three for
 // HTML). Where a string leaves the subset (encoding one that real encoding/json would escape;
 // decoding one with an escape sequence or a non-ASCII byte, which real encoding/json would
-// unescape or replace), these functions panic: the model is then stricter than Go, never more
+// unescape or replace), these functions block forever: the model is then stricter than Go, never more
 // permissive, and a proof must show such strings never reach them. A string that is only skipped
 // (an unknown member's, or inside a value decoded raw) may be any string.
 //
@@ -402,14 +402,12 @@ func (e *Error) Error() string {
 	return "json: " + e.Msg
 }
 
-// NotModelled is the value these functions (and the generated codec) panic with where real
-// encoding/json does something the model does not reproduce (a string outside the plain subset,
-// a type the codec does not know): the models' convention (models/README.md), so that a proof
-// that the program does not panic shows it never gets there.
-type NotModelled string
-
-// NotModelled marks the value as the models' panic.
-func (NotModelled) NotModelled() {}
+// Where real encoding/json does something the model does not reproduce (a string outside the
+// plain subset, a type the codec does not know), these functions (and the generated codec) block
+// forever (`select {}`), never panic: a panic can be recovered (Go's recover, Perennial's
+// with_defer_recover), so a value panic would add behaviors encoding/json does not have; being
+// stuck only removes behaviors (models/README.md), and a proof of the program shows nothing
+// about a run that gets there.
 
 // AppendRaw appends s's bytes to b.
 func AppendRaw(b []byte, s string) []byte {
@@ -423,12 +421,12 @@ func htmlByte(c byte) bool {
 
 // AppendString appends s as a JSON string, as real encoding/json does for a plain s (its bytes
 // in 0x20..0x7e, other than '"', '\\', '<', '>' and '&': written as they are, in quotes). It
-// panics for any other s (real encoding/json would escape or replace bytes: outside the model).
+// blocks forever for any other s (real encoding/json would escape or replace bytes: outside the model).
 func AppendString(b []byte, s string) []byte {
 	i := 0
 	for i < len(s) {
 		if !plainByte(s[i]) || htmlByte(s[i]) {
-			panic(NotModelled("json model: a string outside the model's plain subset"))
+			select {} // MODEL: not modelled (stuck): json model: a string outside the model's plain subset
 		}
 		i++
 	}
@@ -487,7 +485,7 @@ func AppendBool(b []byte, x bool) []byte {
 
 // AppendCompact appends a MarshalJSON method's output raw as real encoding/json does: false
 // (an error) if raw is not one valid JSON value; else raw without its whitespace outside strings.
-// It panics if a string in raw has '<', '>', '&' (real encoding/json would escape them), an escape
+// It blocks forever (not modelled) if a string in raw has '<', '>', '&' (real encoding/json would escape them), an escape
 // sequence or a non-ASCII byte (outside the model).
 func AppendCompact(b []byte, raw []byte) ([]byte, bool) {
 	if !Valid(raw) {
@@ -500,7 +498,7 @@ func AppendCompact(b []byte, raw []byte) ([]byte, bool) {
 		c := raw[i]
 		if inStr {
 			if htmlByte(c) || c == '\\' || c >= 0x80 {
-				panic(NotModelled("json model: '<', '>', '&', an escape or a non-ASCII byte in a MarshalJSON string (outside the model)"))
+				select {} // MODEL: not modelled (stuck): json model: '<', '>', '&', an escape or a non-ASCII byte in a MarshalJSON string (outside the model)
 			}
 			if c == '"' {
 				inStr = false
@@ -520,7 +518,7 @@ func AppendCompact(b []byte, raw []byte) ([]byte, bool) {
 // ---------------------------------------------------------------------------------------------
 // Decoding (the generated decoders' helpers). Their input b is valid JSON (the model's
 // Unmarshal and Decode validate it with Scan first), and i is at a value or at whitespace before
-// one. A string they decode (a member's key, a string value) must be plain (they panic otherwise).
+// one. A string they decode (a member's key, a string value) must be plain (they block forever otherwise).
 
 // At returns the index of the value at or after i (after whitespace) and its first byte.
 func At(b []byte, i uint64) (uint64, byte) {
@@ -534,7 +532,7 @@ func Str(b []byte, i uint64) (string, uint64) {
 	j := i + 1
 	for b[j] != '"' {
 		if b[j] == '\\' || b[j] >= 0x80 {
-			panic(NotModelled("json model: decoding a string with an escape or a non-ASCII byte (outside the model's plain subset)"))
+			select {} // MODEL: not modelled (stuck): json model: decoding a string with an escape or a non-ASCII byte (outside the model's plain subset)
 		}
 		j++
 	}
@@ -668,14 +666,14 @@ func QuotedUint(b []byte, i uint64, max uint64) (uint64, uint64, uint64) {
 	return x, Set, k
 }
 
-// noEscape panics if b[i:j] (a string's contents) has an escape sequence: real encoding/json
+// noEscape blocks forever if b[i:j] (a string's contents) has an escape sequence: real encoding/json
 // unescapes a ",string" field's string before parsing it (an escaped digit is a digit), which the
 // model does not.
 func noEscape(b []byte, i uint64, j uint64) {
 	k := i
 	for k < j {
 		if b[k] == '\\' {
-			panic(NotModelled("json model: an escape sequence in a \",string\" field's string (outside the model's plain subset)"))
+			select {} // MODEL: not modelled (stuck): json model: an escape sequence in a ",string" field's string (outside the model's plain subset)
 		}
 		k++
 	}

@@ -57,9 +57,9 @@ func (dec *Decoder) UseNumber() {
 // is a struct and the input contains object keys which do not match any
 // non-ignored, exported fields in the destination.
 //
-// MODEL: not modelled (the codec decodes as Unmarshal does): a panic.
+// MODEL: not modelled (the codec decodes as Unmarshal does): blocks forever.
 func (dec *Decoder) DisallowUnknownFields() {
-	panic(notModelled("encoding/json model: Decoder.DisallowUnknownFields (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: Decoder.DisallowUnknownFields (not modelled)
 }
 
 // Decode reads the next JSON-encoded value from its
@@ -122,7 +122,7 @@ func (dec *Decoder) readValue(c *Codec) ([]byte, error) {
 				err := dec.fetch()
 				pos = int(abs - dec.baseOffset)
 				if err == nil {
-					panic(notModelled("encoding/json model: a reader returned data after io.EOF"))
+					select {} // MODEL: not modelled (stuck): encoding/json model: a reader returned data after io.EOF
 				}
 				if err != io.ErrUnexpectedEOF {
 					return nil, err
@@ -272,7 +272,7 @@ func NewEncoder(w io.Writer) *Encoder {
 // See the documentation for [Marshal] for details about the
 // conversion of Go values to JSON.
 //
-// MODEL: the program's codec encodes; indentation (SetIndent) is not modelled (a panic).
+// MODEL: the program's codec encodes; indentation (SetIndent) is not modelled (blocks forever).
 func (enc *Encoder) Encode(v any) error {
 	if enc.err != nil {
 		return enc.err
@@ -282,7 +282,7 @@ func (enc *Encoder) Encode(v any) error {
 		return err
 	}
 	if len(enc.indentPrefix)+len(enc.indentValue) > 0 {
-		panic(notModelled("encoding/json model: Encoder.SetIndent (indentation is not modelled)"))
+		select {} // MODEL: not modelled (stuck): encoding/json model: Encoder.SetIndent (indentation is not modelled)
 	}
 	b = append(b, '\n')
 
@@ -321,7 +321,7 @@ func (enc *Encoder) SetEscapeHTML(on bool) {
 //
 // MODEL: a type of its own with encoding/json/jsontext.Value's methods (jsontext/value.go; the
 // real RawMessage is an alias of jsontext.Value): Clone, String, MarshalJSON and UnmarshalJSON as
-// jsontext's; IsValid, Format, Compact, Indent and Canonicalize panic (not modelled; they take
+// jsontext's; IsValid, Format, Compact, Indent and Canonicalize block forever (not modelled; they take
 // the model's Options, where jsontext's take jsontext.Options); Kind is not part of the model.
 type RawMessage []byte
 
@@ -344,37 +344,37 @@ func (m RawMessage) String() string {
 
 // IsValid reports whether the raw JSON value is syntactically valid.
 //
-// MODEL: not modelled: a panic.
+// MODEL: not modelled: blocks forever.
 func (m RawMessage) IsValid(opts ...Options) bool {
-	panic(notModelled("encoding/json model: RawMessage.IsValid (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: RawMessage.IsValid (not modelled)
 }
 
 // Format formats the raw JSON value in place.
 //
-// MODEL: not modelled: a panic.
+// MODEL: not modelled: blocks forever.
 func (m *RawMessage) Format(opts ...Options) error {
-	panic(notModelled("encoding/json model: RawMessage.Format (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: RawMessage.Format (not modelled)
 }
 
 // Compact removes all whitespace from the raw JSON value.
 //
-// MODEL: not modelled: a panic.
+// MODEL: not modelled: blocks forever.
 func (m *RawMessage) Compact(opts ...Options) error {
-	panic(notModelled("encoding/json model: RawMessage.Compact (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: RawMessage.Compact (not modelled)
 }
 
 // Indent reformats the whitespace in the raw JSON value.
 //
-// MODEL: not modelled: a panic.
+// MODEL: not modelled: blocks forever.
 func (m *RawMessage) Indent(opts ...Options) error {
-	panic(notModelled("encoding/json model: RawMessage.Indent (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: RawMessage.Indent (not modelled)
 }
 
 // Canonicalize canonicalizes the raw JSON value.
 //
-// MODEL: not modelled: a panic.
+// MODEL: not modelled: blocks forever.
 func (m *RawMessage) Canonicalize(opts ...Options) error {
-	panic(notModelled("encoding/json model: RawMessage.Canonicalize (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: RawMessage.Canonicalize (not modelled)
 }
 
 // MarshalJSON returns m as the JSON encoding of m.
@@ -430,17 +430,17 @@ func (d Delim) String() string {
 // to mark the start and end of arrays and objects.
 // Commas and colons are elided.
 //
-// MODEL: not modelled (token-level decoding): a panic.
+// MODEL: not modelled (token-level decoding): blocks forever.
 func (dec *Decoder) Token() (Token, error) {
-	panic(notModelled("encoding/json model: Decoder.Token (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: Decoder.Token (not modelled)
 }
 
 // More reports whether there is another element in the
 // current array or object being parsed.
 //
-// MODEL: not modelled (token-level decoding): a panic.
+// MODEL: not modelled (token-level decoding): blocks forever.
 func (dec *Decoder) More() bool {
-	panic(notModelled("encoding/json model: Decoder.More (not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: Decoder.More (not modelled)
 }
 
 // InputOffset returns the input stream byte offset of the current decoder position.

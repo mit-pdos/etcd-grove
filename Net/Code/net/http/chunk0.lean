@@ -562,11 +562,6 @@ noncomputable def socksUsernamePassword.ty [GooseExts] [GoGlobalContext] : go.Go
 
 attribute [irreducible] socksUsernamePassword.ty
 
-noncomputable def notModelled.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"net/http.notModelled" [])
-
-attribute [irreducible] notModelled.ty
-
 noncomputable def errorReader.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/http.errorReader" [])
 
@@ -3896,9 +3891,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
   (If (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.crypto.tls.ConnectionState.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.crypto.tls.ConnectionState.ty)))) (App (Val (GoInstruction (StructFieldRef conn.ty go!"tlsState"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType conn.ty)))) (Var "c")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.crypto.tls.ConnectionState.ty)))) (Val UntypedNil)))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Protocols.ty) go!"UnencryptedHTTP2"))) (Var "protos")) (Val #())) (Val #false))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/http model: unencrypted HTTP/2 is not modelled")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -3968,9 +3961,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/http model: serving a TLS connection is not modelled")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -4016,7 +4007,6 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "err" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.InterfaceType [])))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.InterfaceType [])))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "err")) (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrAbortHandler))) (Val #()))))))) (Val #false)))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (let size := #(65536 : Int);
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val size)))
   (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -4036,26 +4026,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0"))))))))))
-  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NotModelled" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "err")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "nm" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NotModelled" (go.signature.Signature [] false []))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NotModelled" (go.signature.Signature [] false []))])))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NotModelled" (go.signature.Signature [] false []))]) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NotModelled" (go.signature.Signature [] false []))])))) (Var "nm")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NotModelled" (go.signature.Signature [] false []))])))) (Pair (Var "nm") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0"))))))))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -4083,7 +4054,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Hijack implements the [Hijacker.Hijack] method. Our response is both a [ResponseWriter]
     and a [Hijacker].
 
-    go: server.go:2251:20 -/
+    go: server.go:2246:20 -/
 noncomputable def response.Hijack.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -4192,7 +4163,7 @@ noncomputable def response.Hijack.impl [GooseExts] [GoGlobalContext] : val :=
     populate named path wildcards, so r.PathValue will always return
     the empty string.
 
-    go: server.go:2670:22 -/
+    go: server.go:2665:22 -/
 noncomputable def ServeMux.Handler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "r"
@@ -4261,7 +4232,7 @@ noncomputable def ServeMux.Handler.impl [GooseExts] [GoGlobalContext] : val :=
     Otherwise it returns a Redirect or NotFound handler with the path that would match
     after the redirect.
 
-    go: server.go:2682:22 -/
+    go: server.go:2677:22 -/
 noncomputable def ServeMux.findHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "r"
@@ -4551,7 +4522,7 @@ noncomputable def ServeMux.findHandler.impl [GooseExts] [GoGlobalContext] : val 
     after appending "/" to the path. If that second match succeeds, the last
     return value is the URL to redirect to.
 
-    go: server.go:2744:22 -/
+    go: server.go:2739:22 -/
 noncomputable def ServeMux.matchOrRedirect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "host"
@@ -4661,7 +4632,7 @@ noncomputable def ServeMux.matchOrRedirect.impl [GooseExts] [GoGlobalContext] : 
 /-- ServeHTTP dispatches the request to the handler whose
     pattern most closely matches the request URL.
 
-    go: server.go:2860:22 -/
+    go: server.go:2855:22 -/
 noncomputable def ServeMux.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "w"
@@ -4740,7 +4711,7 @@ noncomputable def ServeMux.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
 
     See [ServeMux] for details on valid patterns and conflict rules.
 
-    go: server.go:2885:22 -/
+    go: server.go:2880:22 -/
 noncomputable def ServeMux.Handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "pattern"
@@ -4763,7 +4734,7 @@ noncomputable def ServeMux.Handle.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Handle registers the handler for the given pattern in [DefaultServeMux].
     The documentation for [ServeMux] explains how patterns are matched.
 
-    go: server.go:2908:6 -/
+    go: server.go:2903:6 -/
 noncomputable def Handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pattern"
   (Lam "handler"
@@ -4781,7 +4752,7 @@ noncomputable def Handle.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServeMux.ty) go!"register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServeMux.ty)))) (App (Val (GoInstruction (GlobalVarAddr DefaultServeMux))) (Val #())))) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: server.go:2926:22 -/
+/-- go: server.go:2921:22 -/
 noncomputable def ServeMux.register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "pattern"
@@ -4805,7 +4776,7 @@ noncomputable def ServeMux.register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: server.go:2932:22 -/
+/-- go: server.go:2927:22 -/
 noncomputable def ServeMux.registerErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "patstr"
@@ -5019,7 +4990,7 @@ noncomputable def ServeMux.registerErr.impl [GooseExts] [GoGlobalContext] : val 
 
     Serve always returns a non-nil error.
 
-    go: server.go:2987:6 -/
+    go: server.go:2982:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "handler"
@@ -5045,7 +5016,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: the linkname declaration badServeHTTP (a body-less function, which goose cannot take)
     is gone: no program of the model's links to serverHandler.ServeHTTP by name.
 
-    go: server.go:3371:25 -/
+    go: server.go:3366:25 -/
 noncomputable def serverHandler.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sh"
   (Lam "rw"
@@ -5088,7 +5059,7 @@ noncomputable def serverHandler.ServeHTTP.impl [GooseExts] [GoGlobalContext] : v
     ListenAndServe always returns a non-nil error. After [Server.Shutdown] or [Server.Close],
     the returned error is [ErrServerClosed].
 
-    go: server.go:3415:18 -/
+    go: server.go:3410:18 -/
 noncomputable def Server.ListenAndServe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5162,7 +5133,7 @@ noncomputable def Server.ListenAndServe.impl [GooseExts] [GoGlobalContext] : val
     Serve always returns a non-nil error and closes l.
     After [Server.Shutdown] or [Server.Close], the returned error is [ErrServerClosed].
 
-    go: server.go:3471:18 -/
+    go: server.go:3466:18 -/
 noncomputable def Server.Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "l"
@@ -5435,7 +5406,7 @@ noncomputable def Server.Serve.impl [GooseExts] [GoGlobalContext] : val :=
 
     ListenAndServe always returns a non-nil error.
 
-    go: server.go:3776:6 -/
+    go: server.go:3771:6 -/
 noncomputable def ListenAndServe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "handler"
@@ -5458,22 +5429,11 @@ noncomputable def ListenAndServe.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Server.ty)))) (Pair (Var "server") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- NotModelled marks the value as the models' panic.
-
-    go: textproto_model.go:49:20 -/
-noncomputable def notModelled.NotModelled.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Val #())))
-  (Val #()))))
-
 /-- modelReadLine is textproto's (*Reader).ReadLine over b: the next line, without its "\n" or
     "\r\n"; at the end of the input, the bytes before it (without error) if there are any, else
     the read error (bufio's ReadLine, which textproto's readLineSlice calls).
 
-    go: textproto_model.go:54:6 -/
+    go: textproto_model.go:50:6 -/
 noncomputable def modelReadLine.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -5563,7 +5523,7 @@ noncomputable def modelReadLine.impl [GooseExts] [GoGlobalContext] : val :=
 /-- trimLine is textproto's trim (reader.go): the line without leading and trailing spaces and
     tabs.
 
-    go: textproto_model.go:76:6 -/
+    go: textproto_model.go:72:6 -/
 noncomputable def trimLine.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -5608,7 +5568,7 @@ noncomputable def trimLine.impl [GooseExts] [GoGlobalContext] : val :=
     heads without continuation lines: header lines up to an empty line, each "Name: value" (the
     name canonicalized, the value without the space around it), at most maxHeaders of them.
 
-    go: textproto_model.go:94:6 -/
+    go: textproto_model.go:90:6 -/
 noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "maxHeaders"
@@ -5747,9 +5707,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 32)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/http model: a header name holding a space is not modelled")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -5794,9 +5752,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "next")) (Val #(W64 0))))) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "next")) (Val #(W64 0))))) (Val #(W8 9))))) (Val #false)))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/http model: a header continuation line is not modelled")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -5886,9 +5842,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")) (Val #(W64 0))))) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf")) (Val #(W64 0))))) (Val #(W8 9))))) (Val #false)))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/http model: a header block starting with a space is not modelled")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -5901,15 +5855,13 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- modelChunked stands for a chunked body's reader: not modelled.
 
-    go: textproto_model.go:160:6 -/
+    go: textproto_model.go:156:6 -/
 noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/http model: a chunked message body is not modelled")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.net.http where
@@ -8158,11 +8110,6 @@ noncomputable instance equals_unfold_socksUsernamePassword [GooseExts] [GoGlobal
 
 @[reducible] noncomputable def socksUsernamePassword.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType socksUsernamePassword.fields)
-
-abbrev notModelled [GooseExts] : Type := GoString
-
-@[reducible] noncomputable def notModelled.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.string
 
 structure errorReader [GooseExts] where
   mk ::

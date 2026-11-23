@@ -151,11 +151,6 @@ noncomputable def StreamServerInterceptor.ty [GooseExts] [GoGlobalContext] : go.
 
 attribute [irreducible] StreamServerInterceptor.ty
 
-noncomputable def notModelled.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"google.golang.org/grpc.notModelled" [])
-
-attribute [irreducible] notModelled.ty
-
 noncomputable def modelPicks.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc.modelPicks" [])
 
@@ -2395,20 +2390,6 @@ class StreamServerInterceptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
 attribute [instance] StreamServerInterceptor.TypeAssumptions.underlying
   StreamServerInterceptor.TypeAssumptions.method_set
   StreamServerInterceptor.TypeAssumptions.ptr_method_set
-
-abbrev notModelled [GooseExts] : Type := GoString
-
-@[reducible] noncomputable def notModelled.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.string
-
-class notModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq notModelled.ty notModelled.underlying
-  method_set : go.MethodSetIs notModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] notModelled.TypeAssumptions.underlying
-  notModelled.TypeAssumptions.method_set
-  notModelled.TypeAssumptions.ptr_method_set
 
 opaque modelPicks.nonempty_type : NonemptyType.{0}
 def modelPicks : Type := modelPicks.nonempty_type.type
@@ -4919,7 +4900,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnaryServerInterceptor_instance : UnaryServerInterceptor.TypeAssumptions
   StreamServerInfo_instance : StreamServerInfo.TypeAssumptions
   StreamServerInterceptor_instance : StreamServerInterceptor.TypeAssumptions
-  notModelled_instance : notModelled.TypeAssumptions
   modelPicks_instance : modelPicks.TypeAssumptions
   addrHealth_instance : addrHealth.TypeAssumptions
   ccResolverWrapper_instance : ccResolverWrapper.TypeAssumptions
@@ -5044,7 +5024,6 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.UnaryServerInterceptor_instance
   Assumptions.StreamServerInfo_instance
   Assumptions.StreamServerInterceptor_instance
-  Assumptions.notModelled_instance
   Assumptions.modelPicks_instance
   Assumptions.addrHealth_instance
   Assumptions.ccResolverWrapper_instance

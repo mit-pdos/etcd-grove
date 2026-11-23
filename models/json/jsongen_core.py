@@ -41,7 +41,7 @@ THE SUBSET (accepted):
     is built outside Goose, which cannot translate a struct type with tags: below);
   - `any` (the empty interface) as a field or element type: encoded by its dynamic type
     (v2_encode.go:175-176), which must be one of the codec's types, a pointer to one, or a basic
-    type above; decoding into it is not modelled (a panic);
+    type above; decoding into it is not modelled (it blocks forever);
   - encoding/json.RawMessage (a field, element or root).
   Struct fields: unexported fields are ignored (as encoding/json ignores them, `v2/fields.go`:410-431);
   an exported field's `json` tag is `-` (the field ignored, v2_encode.go:89), or a name followed by
@@ -75,7 +75,7 @@ THE EMITTED CODE. Marshal (jsonMarshal; jencAny on the argument, by its dynamic 
     same in quotes (v2_encode.go:127-132);
   - string: the bytes in quotes (jsoncodec.AppendString), for strings of bytes 0x20..0x7e other
     than `"`, `\\`, `<`, `>`, `&`: real encoding/json writes exactly those bytes for them; any
-    other string panics (NotModelled: escaping, UTF-8 coercion and HTML escaping, v2_encode.go:60-67,
+    other string blocks forever (not modelled: escaping, UTF-8 coercion and HTML escaping, v2_encode.go:60-67,
     are not reproduced);
   - a slice: `null` if nil, else `[`, the elements separated by `,`, `]` (v2_encode.go:69-71);
   - a struct: `{`, then per field in declaration order (`v2/fields.go`:80, index order) that is not
@@ -84,19 +84,20 @@ THE EMITTED CODE. Marshal (jsonMarshal; jencAny on the argument, by its dynamic 
     (v2_encode.go:84-87; isLegacyEmpty, `v2/arshal_default.go`:1449-1466);
   - RawMessage: `null` if nil (its MarshalJSON, `jsontext/value.go`:234-240), else an error if it is
     not one valid JSON value, else the value without its whitespace outside strings
-    (jsoncodec.AppendCompact, which panics, NotModelled, on a string with `<`, `>`, `&`, an escape or
+    (jsoncodec.AppendCompact, which blocks forever, not modelled, on a string with `<`, `>`, `&`, an escape or
     a non-ASCII byte: real encoding/json escapes or rewrites those);
   - no whitespace anywhere; nesting: an array or object inside 10000 others, or a RawMessage whose
     nesting (jsoncodec.Nesting) with the containers around it exceeds 10000, is an error, as the
     encoder's nesting limit (`jsontext` maxNestingDepth; measured: jsoncodec_test.go, TestNesting).
-  Any value of another type panics (NotModelled; real encoding/json would encode it by
+  Any value of another type blocks forever (not modelled; real encoding/json would encode it by
   reflection or return an UnsupportedTypeError).
 
 Unmarshal (the model's Unmarshal first checks that the input is one valid JSON value with only
 whitespace around it, jsoncodec.Scan, and returns a syntax error with nothing decoded otherwise, as
 the real one, v2_decode.go:91; then jsonUnmarshal) decodes into `*p`, p a non-nil pointer to one of
 the codec's types (a nil pointer, or a non-pointer value of one of the codec's types, or nil: an
-error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else panics, NotModelled):
+error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else blocks forever, not
+modelled):
   - null into a slice sets it to nil; null into anything else (bool, string, integer, struct)
     leaves it (v2_decode.go:100-105; `MergeWithLegacySemantics`, `v2/arshal_default.go`:504-509);
   - a value of the wrong kind, or a number out of range or with a fraction or exponent for an
@@ -106,23 +107,23 @@ error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else panics,
     (`v2/arshal_default.go`:531-554, 632-647); with the `string` option a JSON string holding
     strconv.ParseInt/ParseUint(s, 10, bits) syntax (a `+` or `-` sign for signed kinds, leading
     zeros allowed) or the string "null" (the field left), and nothing else
-    (`v2/arshal_default.go`:510-528, 609-627); a string with an escape sequence panics
-    (NotModelled: the real one unescapes first);
-  - strings: a JSON string without escape sequences or non-ASCII bytes (else a panic, NotModelled:
+    (`v2/arshal_default.go`:510-528, 609-627); a string with an escape sequence blocks
+    forever (not modelled: the real one unescapes first);
+  - strings: a JSON string without escape sequences or non-ASCII bytes (else it blocks forever, not modelled:
     unescaping and invalid UTF-8 replacement are not reproduced);
   - slices: a JSON array; `[]` gives a new empty slice (v2_decode.go:75-76); a non-empty array into
     a nil slice gives a new slice of the decoded elements (an element of the wrong kind is
-    appended as its zero value); a non-empty array into a non-nil slice panics (NotModelled: the
+    appended as its zero value); a non-empty array into a non-nil slice blocks forever (not modelled: the
     real one decodes into the existing elements in place, v2_decode.go:71-74);
   - structs: a JSON object; each member's key matched to the field of that JSON name, else to the
     one equal to it ignoring ASCII case (v2_decode.go:55-59; `v2/fields.go`:367-386 with
     `MatchCaseSensitiveDelimiter`: strings.EqualFold, which for the ASCII keys the codec accepts is
     ASCII case folding); its value decoded into that field (merging: the other fields stay; a repeated
     key decodes again, so the last wins); members matching no field skipped; a key with an escape
-    or a non-ASCII byte panics (NotModelled);
+    or a non-ASCII byte blocks forever (not modelled);
   - RawMessage: a copy of the value's bytes (without the whitespace around it), also for null
     (its UnmarshalJSON, `jsontext/value.go`:242-251, reusing the target's storage);
-  - `any`: panics (NotModelled).
+  - `any`: blocks forever (not modelled).
 
 WHERE THE CLAIM STOPS (documented deviations, outside "behaves as encoding/json"):
   - error values: only error-or-not is the real one's (*jsoncodec.Error, not *SyntaxError,
@@ -136,7 +137,7 @@ WHERE THE CLAIM STOPS (documented deviations, outside "behaves as encoding/json"
     otherwise; lengths and contents agree.
   - only the API the encoding/json model covers (`models/encoding/json`, its doc): Marshal,
     Unmarshal, Valid, Encoder.Encode, Decoder.Decode and their companions; MarshalIndent, Indent,
-    Compact, HTMLEscape, Token-level decoding and DisallowUnknownFields panic there.
+    Compact, Token-level decoding and DisallowUnknownFields block forever there.
 
 The evidence (untrusted, jsongen.py --help): the generator's differential test over random Go
 types of the subset (`models/internal/jsongenrand`), the regression test generated beside each
@@ -435,7 +436,10 @@ class Schema:
 # The emitter
 
 def nm(msg):
-    return f"panic(jsoncodec.NotModelled({go_str('json model: ' + msg)}))"
+    """The statement where the codec does not model encoding/json: it blocks forever (an empty
+    select, never a panic: a program can recover a panic, which would add behaviors encoding/json
+    does not have; blocking only removes behaviors, models/README.md)."""
+    return "select {} // MODEL: not modelled (stuck): json model: " + msg
 
 
 def int_append(S, i, expr, quoted):
@@ -634,10 +638,13 @@ def imports(S, text, extra=()):
     imps = list(extra)
     if re.search(r"\bjson\.", text):
         imps.insert(0, '\tjson "encoding/json"')
-    imps.append('\t"models.lab/jsoncodec"')
+    if re.search(r"\bjsoncodec\.", text):
+        imps.append('\t"models.lab/jsoncodec"')
     for p, a in sorted(S.alias.items(), key=lambda x: x[1]):
         if p != "encoding/json" and re.search(r"\b" + re.escape(a) + r"\.", text):
             imps.append(f'\t{a} "{p}"')
+    if not [l for l in imps if l]:
+        return []
     return ["import ("] + imps + [")", ""]
 
 
@@ -647,7 +654,7 @@ def codec_go(S, header, pkg):
     body = [
         "// jsonMarshal is the codec's Marshal: v's encoding as real encoding/json's Marshal writes it,",
         "// for v nil, a value of one of the codec's types or a basic type, or a pointer to one; any",
-        "// other v panics (NotModelled).",
+        "// other v blocks forever (not modelled).",
         "func jsonMarshal(v any) ([]byte, error) {",
         "\tb, err := jencAny(make([]byte, 0), v, 0)",
         "\tif err != nil {",
@@ -659,7 +666,7 @@ def codec_go(S, header, pkg):
         "// jsonUnmarshal is the codec's Unmarshal: decodes data (one valid JSON value, whitespace",
         "// around it) into *v as real encoding/json's Unmarshal does, v a non-nil pointer to one of the",
         "// codec's types; real encoding/json's error for a nil pointer, a non-pointer of one of its",
-        "// types, or nil; any other v panics (NotModelled).",
+        "// types, or nil; any other v blocks forever (not modelled).",
         "func jsonUnmarshal(data []byte, v any) error {"]
     uc = unmarshal_cases(S, ids)
     if uc:
@@ -667,7 +674,7 @@ def codec_go(S, header, pkg):
     body += ["\tif v == nil {", "\t\treturn &jsoncodec.Error{Msg: \"Unmarshal(nil)\"}", "\t}",
              "\treturn jsonUnmarshalExtra(data, v)", "}", "",
              "// jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and",
-             "// objects; a type the codec does not know panics (NotModelled).",
+             "// objects; a type the codec does not know blocks forever (not modelled).",
              "func jencAny(b []byte, v any, d uint64) ([]byte, error) {",
              "\tif v == nil {", "\t\treturn jsoncodec.AppendRaw(b, \"null\"), nil", "\t}",
              "\tswitch x := v.(type) {"]
@@ -735,12 +742,12 @@ def extra_go(S, header, pkg):
     sees (json_extra_goose_gen.go); without unnamed roots, json_extra_gen.go is the stub."""
     stub = [
         "// jencAnyExtra: under Goose the codec has no unnamed type; encoding a value of a type it does",
-        "// not know panics (NotModelled).",
+        "// not know blocks forever (not modelled).",
         "func jencAnyExtra(b []byte, v any, d uint64) ([]byte, error) {",
         "\t" + nm("encoding a value of a type the codec does not know"),
         "}",
         "",
-        "// jsonUnmarshalExtra: decoding into a type the codec does not know panics (NotModelled).",
+        "// jsonUnmarshalExtra: decoding into a type the codec does not know blocks forever (not modelled).",
         "func jsonUnmarshalExtra(data []byte, v any) error {",
         "\t" + nm("decoding into a type the codec does not know"),
         "}"]
