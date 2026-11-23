@@ -12,7 +12,7 @@
 # Unit 3a (2026-10-12): `put_end_to_end`/`deleteRange_end_to_end` (Results.lean) link the server's
 # `EtcdServer.Put`/`DeleteRange`, so the collection reaches the request path's trust boundary too
 # (the proposal's: otel, prometheus, traceutil, the transport queries, `MarshalIRR`, the context
-# axioms, `errors.IsCtxErr`, the new `context.ErrDone`); the handlers' own results do not.
+# axioms, `errors.IsCtxErr` (proved since 2026-11-22), the new `context.ErrDone`); the handlers' own results do not.
 # Unit W-S (2026-10-14): the watch service (watch.go) adds mvcc's watch stream (its Link) and
 # the watch path's trust boundary: `isClientCtxErr`, `math/rand.Int63n`, `(*time.Duration).Seconds`,
 # zap's `NewNop`/`Debug`/`Duration`, verify's `Assert`, time's ticker (see watch.txt).
@@ -33,7 +33,6 @@ axiom context.madeCancelCtx_of_isCancelCtx
 axiom encoding.json.MarshalConfigChangeContext.wp_proof
 axiom encoding.json.MarshalMember.wp_proof
 axiom envVerifyOffTok
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
