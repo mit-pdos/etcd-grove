@@ -1587,7 +1587,9 @@ file header): `isContext`'s triple of `Err()` (`"#HErr"`: a non-nil error makes 
 error"), with `clientErr` of the error returned, which grpc's `status` accepts (`statusErrOk`,
 unit P3a: `kv.Put` passes `ContextError`'s result, possibly the context's error, to a second
 `ContextError`, which passes it to `rpctypes.Error`; `context.Canceled` is an `errors.New` error,
-`DeadlineExceeded` a `deadlineExceededError`, neither with a `GRPCStatus` or `Is` method). -/
+`DeadlineExceeded` a `deadlineExceededError`, neither with a `GRPCStatus` or `Is` method). The body is
+`ctxErrsErr`'s (`ctxErrClient_eq_errs`): since errors-is-deadline (2026-11-23), an error of type
+`deadlineExceededError` holds `deadlineExceededError{}`. -/
 def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
     (match cl with
@@ -1601,7 +1603,9 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
         ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗
         (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
           ⌜err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
-            go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+            go_etcd_io.etcd.cache.v3.ctxErrShape e ∧
+            (e.ty = _root_.Perennial.context.deadlineExceededError.ty →
+              e.v = #(zero_val _root_.Perennial.context.deadlineExceededError))⌝ ∗
           go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
