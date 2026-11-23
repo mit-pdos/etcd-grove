@@ -2,8 +2,9 @@
 Package initialization of `gryff.src.dlog`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, allocates `DLOG` and stores
-`false`.
+Its fact (`dlog/Base.lean`): `DLOG` holds `false`, read-only for good (no code writes it; what
+`dlog.Printf`'s no-op needs, the lab's `dlog_init_access`). Its initializer initializes its imports,
+allocates `DLOG` (`false`, its zero value).
 -/
 module
 
@@ -47,11 +48,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Bool) DLOG _ as HDLOG
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.log _root_.Perennial.log.initialize'
       EtcdGrove.ExternalInit.log _root_.Perennial.log.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of DLOG))
+  ipersist HDLOG
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

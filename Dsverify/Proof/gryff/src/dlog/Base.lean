@@ -1,5 +1,5 @@
 /-
-The package fact of `gryff.src.dlog` (dsv-gryff, notes/dsv-gryff.md): `True` (`DLOG`, `false`, is read only to decide whether to print).
+The package fact of `gryff.src.dlog` (dsv-gryff, notes/dsv-gryff.md): `DLOG` holds `false`, read-only for good (no code writes it; `dlog.Printf` is then a no-op).
 -/
 module
 
@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.gryff.src.dlog :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(globalAddr gryff.src.dlog.DLOG ↦□ false)
 instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.gryff.src.dlog :=
   build_get_is_pkg_init_wf

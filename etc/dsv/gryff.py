@@ -56,9 +56,11 @@ def special(g):
     """Configurations of the kit's packages (`g`: etc/gen-init.py's globals)."""
     SPECIAL = {}
     SPECIAL[f'{GRYFF}.src.dlog'] = dict(
-        doc='''Its fact is `True`. Its initializer initializes its imports, allocates `DLOG` and stores
-`false`.''',
-        alloc_types={'DLOG': 'Bool'})
+        doc='''Its fact (`dlog/Base.lean`): `DLOG` holds `false`, read-only for good (no code writes it; what
+`dlog.Printf`'s no-op needs, the lab's `dlog_init_access`). Its initializer initializes its imports,
+allocates `DLOG` (`false`, its zero value).''',
+        alloc_types={'DLOG': 'Bool'},
+        finish=['ipersist HDLOG'] + g.FIN_PRE[:6])
     SPECIAL[f'{GRYFF}.src.gryff'] = dict(
         doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables, stores
 `stack` (`make([]*Instance, 0, 100)`), `cpcounter` (0) and `deferMap` (`make(map[uint64]uint64)`), and
