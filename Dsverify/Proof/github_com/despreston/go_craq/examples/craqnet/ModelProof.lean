@@ -3,7 +3,8 @@
 P4): the state's helpers over read-only maps and slices of `pend`, `step` (`goStep` of the decoded
 answer), and the pure `sim_step` (`ModelSet.lean`).
 
-In progress: `pushPend`. Still to do: `copyMap`, `set`, `findPend`, `erasePend`, `step`, `Model`.
+Proved: `pushPend`, `copyMap`, `set`, `findPend`, `erasePend`, `step` (`wp_step`: `stepPost`, `goStep` of
+the decoded answer). Still to do: `Model.wp_proof` (`Model.spec`).
 -/
 module
 
@@ -106,7 +107,7 @@ theorem wp_copyMap (mp : Loc) (m : GMap GoString GoString) (dq : DFrac) :
     rw [show (i + 1).toNat = i.toNat + 1 by omega, List.take_add_one, hk1]
     by_cases hx : x = key
     · subst hx
-      simp [GMap.lookup_insert, hk2]
+      simp [hk2]
     · rw [GMap.lookup_insert_ne _ _ (Ne.symm hx), Hcm x]
       simp [hx]
   · iintro ⟨%h0, %cm, %kx, %vx, Hcp, Hk, Hv, Hc, %Hcm⟩ Hm
@@ -632,6 +633,11 @@ theorem wp_step (mp : Loc) (sl : GoSlice) (m : GMap GoString GoString) (a : St) 
     isplit
     · iexact Hm
     · iexact Hq
+/-- `Model()`: porcupine's model of the store (`kvS`). Proof: still to do (notes/dsv-craq.md, P4). -/
+abbrev Model.spec : Prop :=
+  {{ isPkgInit (PROP := IProp GF) kpkg }}
+    (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Model)) (Val #()))
+  {{ (m : github_com.anishathalye.porcupine.Model), RET #m; isModel (kvS (GF := GF)) m }}
 
 end proof
 

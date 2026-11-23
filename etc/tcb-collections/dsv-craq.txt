@@ -1,0 +1,17 @@
+# dsv-craq (notes/dsv-craq.md): dsverify-lab's craq kit (craq-bump-1) being ported onto the net
+# extension and examples/lib/remote, in the part Dsverify/. NOT YET a closed theorem: the statement
+# `craq_remote_robust` (examples/craqnet/TopLevelRobustness.lean, as `paxos_remote_robust`) is still
+# to be written (notes/dsv-craq.md, P4); until then the roots are every module of the port. Its
+# hypotheses are not axioms: they are Prop classes / premises (InitHyp of net/rpc and net/http,
+# RpcHttpAddr, RpcHttpDial, RpcHttpServe, LogHyp, and the codec's decoding lemmas, H5), so the
+# baseline below stays empty. When the statement lands, narrow `roots` to its module and record its
+# `#print axioms` (expected: `propext`, `Classical.choice`, `Quot.sound` only).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-craq.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-craq.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-craq.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline. Written by hand (2026-11-23): this repository's axioms and
+# `sorry`s the roots rest on, none.
+roots ^Dsverify/Proof/github_com/despreston/go_craq/
