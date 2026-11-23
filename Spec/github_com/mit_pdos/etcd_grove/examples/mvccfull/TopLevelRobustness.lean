@@ -43,7 +43,7 @@ variable [go_gctx : GoGlobalContext]
 /-- **`mvccfull_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `mvccfull_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 38` steps along which fewer than `2 ^ 28` threads are live, no thread
+execution of fewer than `2 ^ 48` steps along which fewer than `2 ^ 28` threads are live, no thread
 is stuck and none has an unrecovered panic. -/
 def mvccfull_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
@@ -59,7 +59,7 @@ def mvccfull_robust.spec : Prop :=
     (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
     (Hrfit : Fs.DirFits r),
     Robustness.Robust [] [(mvccfullProgram r, σ)] g (threads := 2 ^ 28)
-      (bound := 2 ^ 38)
+      (bound := 2 ^ 48)
 
 end adequacy
 end EtcdGrove
