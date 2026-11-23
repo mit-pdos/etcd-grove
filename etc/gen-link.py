@@ -735,6 +735,9 @@ EXTRA_IMPORTS.setdefault("--common", []).extend(["Proof.go_etcd_io.etcd.client.v
                              "Proof.go_etcd_io.etcd.client.v3.ClientPutGet"])
 EXTRA_IMPORTS.setdefault("--linkv3p", []).append(
     "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked")
+# the checker of Antithesis's model: the budget laws (pure, defs modules) its proofs take (`=AntCheck.State.*`)
+EXTRA_IMPORTS["--antcheck"] = ["Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within." + m
+                               for m in ["Combined", "GC", "ActionCfg", "Init0"]]
 EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
                               "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,

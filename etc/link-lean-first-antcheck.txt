@@ -173,6 +173,8 @@ inMem__newC: inMem__L inMem__c SubSeq
 inMem__cmt: inMem__leads inMem__c inMem__known inMem__L inMem__T TermAt
 inMem__ok: inMem__T inMem__leads inMem__wins inMem__snapsM inMem__ll1 inMem__lc1 inMem__L inMem__c inMem__es inMem__app inMem__cmt Event__by Event__role Event__snap Event__has Event__first validBy TermLogs__Has TermLogs__Get TermConfs__Get State__Granted State__Acked State__OneWaiting State__AllSwitched IsQuorum RecordedIn IsConf Legal
 
+State__InMemory: inMem__ok inMem__role1 inMem__ld1 inMem__ll2 inMem__lc1 inMem__snapsM inMem__wins inMem__T inMem__cmt inMem__c inMem__newC setStr setConf setInt ConfOf LastConf State__InitConf Event__snap Event__role TermInts__With Comparable violAdd IsPrefix SubSeq Set__Has
+
 # W4a (onDisk's methods)
 onDisk__w:
 onDisk__K: onDisk__fm onDisk__L0 At
@@ -213,8 +215,26 @@ onDisk__voted: onDisk__w onDisk__V1 Event__vote
 # W5 (Send, Boot)
 
 # W6 (Ready .. Flush, Bind, GC, Step)
+State__OldVotes: State__idx State__EffTerm
+State__StaleLed: State__Over
+State__Garbage: State__idx State__EffTerm State__Over factsHas
+State__GCDue: State__Garbage State__OldVotes State__StaleLed
+State__GC: State__Garbage State__OldVotes State__StaleLed State__Over State__clone factsMinus votesMinus TermLogs__Without TermConfs__Without TermInts__Without
+State__Flush: =AntCheck.State.onDisk_keeps State__OnDisk Event__more setQueue
+State__Write: =AntCheck.State.onDisk_keeps State__OnDisk Event__term Event__vote Event__commit Event__first Event__entries EntriesEqual setQueue
+State__Mem: =AntCheck.State.inMemory_lengths State__InMemory State__clone State__queued Event__w setQueue
+State__Ready: =AntCheck.State.onDisk_keeps =AntCheck.State.inMemory_lengths =AntCheck.State.inMemory_within State__InMemory State__OnDisk State__queued
+State__Bind: State__Boot State__Recv State__Ready State__Mem State__Write State__Wrote State__Flush State__Net State__Made State__Send State__ApplyEv State__RestoreEv State__ConfEv State__SnapEv State__ReadAsked State__ReadGiven
+State__Step: State__idx State__Bind
 
 # W7 (check.go, Run)
 violated: State__ElectionSafety State__OneVotePerTerm
 NewChecker: Init0
 Checker__End:
+Checker__Next: State__ElectionSafety State__OneVotePerTerm State__GCDue State__GC State__Step =AntCheck.State.gc_within
+
+# pending (proofs in progress)
+State__Boot: State__clone setPre setMsgs setQueue setReads setStr Recovered State__Vote SubSeq Concat State__VoteOf setInt setLog setConfirmed factsMinus votesMinus Event__has Event__applied EntriesEqual ConfOf State__InitConf setConf LastConf SameConf
+State__Send: State__clone Event__msg Event__has Event__cause Msg__from Msg__typ Msg__to Msg__term Msg__reject Msg__index isForwarded Set__Has setPre factsHas VoteFact votesHas factsAdd IsReq SnapOk ReqFactIn State__Sendable AckFact msgSeqHead State__PrevOk State__HasFirst Max setConfirmed State__EffTerm isUnmodelled
+State__OnDisk: ?
+Run: NewChecker Checker__Next Checker__End =AntCheck.State.step_within =AntCheck.State.gc_within =AntCheck.State.step_cfg
