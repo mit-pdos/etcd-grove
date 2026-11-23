@@ -35,7 +35,7 @@ translation, and `Closures.lean`, the func literals its package fact names (`DAG
   etc/gen-init.py --check    exit 1 if a file differs from what would be generated
   etc/gen-init.py PKG...     regenerate these packages (Lean names, `go_etcd_io.etcd.pkg.v3.wait`)
 """
-import glob, json, os, re, sys
+import glob, json, os, re, sys, types
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
@@ -5272,101 +5272,24 @@ def kvnet_inits(ext_txt):
     return outs
 
 
-# The part `Dsverify/` (the dsverify kits ported onto the net extension, notes/dsv-paxos.md;
-# project dsv-paxos): its packages over the part `Net/`'s `net` and remote, and the main tree's
-# lintest and porcupine (`NET_MAIN`). Generated as `Net/`'s, from `Net/`'s translation and instances
-# with the part's added, the imports of the part's modules prefixed `Dsverify.` and of `Net/`'s
-# `Net.`; the programs' `PkgTable`s (`DSV_PROGRAMS`).
+# The part `Dsverify/` (the dsverify kits ported onto the net extension, notes/dsv-paxos.md): each
+# kit's packages over the part `Net/`'s `net` and remote, and the main tree's lintest and porcupine
+# (`NET_MAIN`). Generated as `Net/`'s, from `Net/`'s translation and instances with the part's added,
+# the imports of the part's modules prefixed `Dsverify.` and of `Net/`'s `Net.`; the programs'
+# `PkgTable`s. Each kit configures its own generation in its own file, `etc/dsv/<kit>.py` (format:
+# etc/dsv/README.md; `goose.dsv_kits()` loads them), so that a kit adds a file instead of editing
+# this one; each kit's packages are generated in a context of its own (`dsv_kit_raw`).
 DSV_ROOT = 'Dsverify'
-DSV_PAXOS = 'github_com.xiang90.paxos'
-DSV_NODES = ['orch'] + [f'client{c}' for c in range(4)] + [f'server{s}' for s in range(1, 6)]
-DSV_PKGS = [DSV_PAXOS, f'{DSV_PAXOS}.examples.paxosnet'] + \
-    [f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}' for n in DSV_NODES]
-DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
-                f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
-                for n in DSV_NODES}
-
-# project dsv-rabia (notes/dsv-rabia.md): Rabia's packages, the names-only libraries the lab
-# modelled, the kit and its programs
-# the main tree's packages the kits import beside `NET_MAIN`'s (rabia: bufio, container/heap, path)
-# (their `Init.lean` generated into the part, over `Net/`'s `PkgInitExt`, as `Net/`'s `NET_MAIN`; the
-# instances of `container.heap`, `path` and `internal.bytealg`, which the main tree declares in etcd's
-# packages, the part's own `Base.lean`)
-DSV_MAIN = ['bufio', 'container.heap', 'path', 'internal.bytealg']
-DSV_RABIA_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
-DSV_PKGS += [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
-                            'internal.ledger', 'internal.tcp', 'internal.logger', 'internal.system',
-                            'roles.server.layers.network', 'roles.server.layers.consensus',
-                            'roles.server.layers.proxy', 'roles.server', 'examples.rabianet']] + \
-    [f'rabia.examples.rabianet.cmd.{n}' for n in DSV_RABIA_NODES]
-# the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a hypothesis
-# (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which every generated theorem initializing
-# them takes as an instance (`dsv_hyp_fix`). (Merging with dsv-vr: the two lists concatenate.)
-DSV_HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
-                 'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
-                 'github_com.go_redis.redis.v8.internal.proto', 'os.signal', 'math.rand']
-SPECIAL['rabia.internal.config'] = dict(
-    doc='''Its fact (`Base.lean`): `Conf`'s invariant `confInv`, as initialized. Its initializer
-allocates `Conf` and initializes its imports.''',
-    alloc_types={'Conf': 'rabia.internal.config.Config'},
-    finish=['imod (inv_alloc _root_.Perennial.rabia.internal.config.confN ⊤ '
-            '(_root_.Perennial.rabia.internal.config.confInv (GF := GF))) $$ [HConf] with #Hcinv',
-            '· inext; iunfold _root_.Perennial.rabia.internal.config.confInv; ileft; iexact HConf'] +
-           FIN_PRE[:6])
-# rabia's `message` (message.pb.go's variables and two `init`s): the errors (`errors.New`, verb-less
-# `fmt.Errorf`), the `MsgType` maps, the file descriptor's slice, and gogo proto's `Register*` calls,
-# whose specs are fields of the hypothesis `proto.InitHyp` (names only here: notes/dsv-rabia.md),
-# carried by every package above (`DSV_HYP_INITS`)
-_DSV_MSG = 'rabia.internal.message'
-_DSV_IMI = '_root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo'
-SPECIAL[_DSV_MSG] = newvars_cfg({
-    'alloc_types': {'MsgType_name': 'Loc', 'MsgType_value': 'Loc',
-                    'fileDescriptor_33c57e4bae7b9afd': 'GoSlice', 'xxx_messageInfo_Msg': _DSV_IMI,
-                    'xxx_messageInfo_ConsensusObj': _DSV_IMI, 'xxx_messageInfo_Command': _DSV_IMI},
-    'before': {
-        'MsgType_name': ['try wp_auto',
-                         'wp_apply (wp_map_make1 (K := w32) (V := GoString)) as %mName Hm',
-                         'repeat (wp_apply wp_mapInsert $$ Hm as Hm)'],
-        'MsgType_value': ['try wp_auto',
-                          'wp_apply (wp_map_make1 (K := GoString) (V := w32)) as %mVal Hm2',
-                          'repeat (wp_apply wp_mapInsert $$ Hm2 as Hm2)'],
-        'fileDescriptor_33c57e4bae7b9afd': [
-            'try wp_auto', 'wp_apply wp_slice_literal (V := w8) _', 'isplitr',
-            '· ipureintro; first | rfl | (with_unfolding_all rfl) | simp | decide',
-            'iintro %fdp ⟨Hfds, _⟩'],
-    },
-    'after': {
-        'init.«0»': ['wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterEnum',
-                     'try wp_auto',
-                     'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
-                     'try wp_auto',
-                     'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
-                     'try wp_auto',
-                     'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
-                     'try wp_auto'],
-        'init.«1»': ['wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterFile',
-                     'try wp_auto'],
-    },
-    'rec_depth': 100000,
-    'heavy': True,
-}, ['errFrameTooLong', 'errFrameTooLarge', 'ErrInvalidLengthMessage', 'ErrIntOverflowMessage',
-    'ErrUnexpectedEndOfGroupMessage'],
-   errorf={'ErrInvalidLengthMessage': 'proto: negative length found during unmarshaling',
-           'ErrIntOverflowMessage': 'proto: integer overflow',
-           'ErrUnexpectedEndOfGroupMessage': 'proto: unexpected end of group'})
-DSV_PROGRAMS.update({f'rabia.examples.rabianet.cmd.{n}':
-                     f'Proof/rabia/examples/rabianet/cmd/{n}/PkgTable.lean' for n in DSV_RABIA_NODES})
+DSV_KITS = _goose.DSV_KITS
 
 
-DSV_HYP_NEED = {}
-
-
-def dsv_hyp_fix(path, txt):
-    """A generated file of the part whose package's closure holds a hypothesis package: its import
-    of that package's initialization is the part's `Init.lean`, and its sections take the
-    hypothesis (`InitHyp`) as an instance."""
+def dsv_hyp_fix(path, txt, need):
+    """A generated file of the part whose package's closure holds a hypothesis package (`need`:
+    the package directory -> its hypothesis packages): its import of that package's
+    initialization is the part's `Init.lean`, and its sections take the hypothesis (`InitHyp`)
+    as an instance."""
     d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
-    for q in DSV_HYP_NEED.get(d, []):
+    for q in need.get(d, []):
         txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
                           f'public import {DSV_ROOT}.Proof.{q}.Init\n')
         if f'public import {DSV_ROOT}.Proof.{q}.Init\n' not in txt:
@@ -5378,47 +5301,107 @@ def dsv_hyp_fix(path, txt):
     return txt
 
 
-def dsv_inits():
-    """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
-    global inv, inst, CFG_OVERRIDE
-    saved = inv, inst, CFG_OVERRIDE
+def dsv_special():
+    """The kits' `special(g)` configurations, added to `SPECIAL` (a package configured twice is
+    an error)."""
+    g = types.SimpleNamespace(**globals())
+    for k in DSV_KITS:
+        for p, cfg in (k.special(g) if hasattr(k, 'special') else {}).items():
+            if p in SPECIAL:
+                sys.exit(f'gen-init: etc/dsv/{k.KIT}.py configures {p}, which already has a configuration')
+            SPECIAL[p] = cfg
+            DSV_CFG[p] = k.KIT
+
+
+DSV_CFG = {}  # a kit-configured package -> its kit
+dsv_special()
+
+
+def dsv_kit_raw(k, base):
+    """Kit `k`'s generated files (paths under the part, imports not yet redirected), and the
+    package directory -> hypothesis packages map of `dsv_hyp_fix`. `base`: the main tree's
+    (`inv`, `inst`), and the inventory and instances of `Net/` and of `Dsverify/`."""
+    global inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports
+    main_inv, main_inst, net_inv, net_inst, dsv_inv, dsv_inst = base
+    pkgs, programs = getattr(k, 'PKGS', []), getattr(k, 'PROGRAMS', {})
+    hyp = list(getattr(k, 'HYP_INITS', []))
+    hyp_imports = getattr(k, 'HYP_IMPORTS', 'all')
+    main = list(getattr(k, 'MAIN', []))
+    main_gen = list(getattr(k, 'MAIN_GEN', main))
+    own = set(getattr(k, 'OWN', ()))
+    saved = inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, set(PERENNIAL_HERE)
+    saved_pi = pkginfo_imports
     try:
         CFG_OVERRIDE = NET_SPECIAL
-        inv = inventory(f'{NET_ROOT}/Code')
-        inst = instances(f'{NET_ROOT}/Proof/')
+        RAFT_INIT = RAFT_INIT - set(main)  # a `MAIN` package's `Init` is the part's
+        if hyp_imports == 'none':
+            # a hypothesis package's imports, as its `GetIsPkgInitWf` sees them: none (its
+            # `Init.lean`), so the programs' tables stop there
+            pkginfo_imports = lambda q: [] if q in hyp else saved_pi(q)
+        inv, inst = dict(net_inv), dict(net_inst)
+        _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
-            inv[p] = saved[0][p]
-            inst[p] = saved[1][p]
-        st = list(DSV_MAIN)
+            inv[p] = main_inv[p]
+            inst[p] = main_inst[p]
+        # the main tree's packages `MAIN` (always the main tree's inventory), and those of their
+        # imports that `Net/` lacks
+        st, seen = list(main), set()
         while st:
             p = st.pop()
-            if (p in inv and p not in DSV_MAIN) or p not in saved[0] or p in inst:
+            if p in seen or p not in main_inv or (p not in main and (p in inv or p in inst)):
                 continue
-            inv[p] = saved[0][p]
-            if p in saved[1]:
-                inst[p] = saved[1][p]
-            st += saved[0][p]['imports']
-        for q, d in inventory(f'{DSV_ROOT}/Code').items():
+            seen.add(p)
+            inv[p] = main_inv[p]
+            if p in main_inst:
+                inst[p] = main_inst[p]
+            st += main_inv[p]['imports']
+        for q, d in dsv_inv.items():
             if not d['perennial']:
                 inv[q] = d
-        for q in DSV_HYP_INITS:
+        # the packages whose `wp_initialize'` is a hypothesis (`Dsverify/Proof/<pkg>/Init.lean`'s
+        # class `InitHyp`): external here, their imports as `HYP_IMPORTS` says
+        for q in hyp:
             inv[q] = dict(inv[q], perennial=True)
-        PERENNIAL_HERE.difference_update(DSV_HYP_INITS)
-        for p in DSV_PKGS:
-            if p in inv:
-                DSV_HYP_NEED[dirof(p)] = [q for q in DSV_HYP_INITS if q in closure(p)]
-        inst.update(instances(f'{DSV_ROOT}/Proof/'))
-        raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
-               if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
-               for path, txt in gen(p, SPECIAL.get(p))]
-        raw += [(f'{DSV_ROOT}/{path}', txt) for p in DSV_MAIN for path, txt in gen(p, SPECIAL.get(p))]
-        made = {path for path, _ in raw}
-        for p, path in DSV_PROGRAMS.items():
+            if hyp_imports == 'none':
+                inv[q]['imports'] = []
+            elif hyp_imports == 'known':
+                inv[q]['imports'] = [i for i in inv[q]['imports'] if i in inv]
+        PERENNIAL_HERE.difference_update(hyp)
+        gen_pkgs = [p for p in pkgs if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')] + main_gen
+        gen_pkgs = [p for p in dict.fromkeys(gen_pkgs) if p not in hyp]
+        need = {dirof(p): [q for q in hyp if q in closure(p)] for p in pkgs + main_gen if p in inv}
+        inst.update(dsv_inst)
+        raw = [(f'{DSV_ROOT}/{path}', txt) for p in gen_pkgs
+               for path, txt in gen(p, None if p in own and DSV_CFG.get(p) != k.KIT
+                                    else SPECIAL.get(p))]
+        for p, path in programs.items():
             path, txt = gen_table(p, path)
             raw.append((f'{DSV_ROOT}/{path}', txt))
     finally:
-        inv, inst, CFG_OVERRIDE = saved
-        PERENNIAL_HERE.add('math.rand')
+        inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, here = saved
+        PERENNIAL_HERE.clear()
+        PERENNIAL_HERE.update(here)
+    return raw, need
+
+
+_DSV_KEEP = []
+
+
+def dsv_inits():
+    """The part's `Init.lean` files and its programs' `PkgTable.lean`, every kit's."""
+    base = (inv, inst, inventory(f'{NET_ROOT}/Code'), instances(f'{NET_ROOT}/Proof/'),
+            inventory(f'{DSV_ROOT}/Code'), instances(f'{DSV_ROOT}/Proof/'))
+    raw, need, by = [], {}, {}
+    for k in DSV_KITS:
+        r, n = dsv_kit_raw(k, base)
+        for path, txt in r:
+            if path in by:
+                if by[path][1] != txt:
+                    sys.exit(f'gen-init: kits {by[path][0]} and {k.KIT} generate {path} differently')
+                continue
+            by[path] = (k.KIT, txt)
+            raw.append((path, txt))
+            need[path] = n
     made = {path for path, _ in raw}
 
     def imp(m):
@@ -5449,7 +5432,9 @@ def dsv_inits():
             new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
                               'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
         return new
-    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt)))) for path, txt in raw]
+    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt)),
+                               need[path]))
+            for path, txt in raw]
 
 
 def main(argv):

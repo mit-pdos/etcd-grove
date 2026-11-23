@@ -922,59 +922,6 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "remote")],
     ),
     Project(
-        name="dsv-paxos",
-        # dsverify-lab's paxos kit (notes/dsv-paxos.md; notes/dsverify-net-port-plan.md, phase 6):
-        # the lab's fork of xiang90/paxos (examples/paxos/fork/paxos at lab master 7a84fb35) with
-        # its kit ported onto examples/lib/remote, `examples/dsverify/paxos` (a Go module of its
-        # own, module path the fork's). Into the part `Dsverify/` (modules `Dsverify.*`), with
-        # remote and `net` the part `Net/`'s, lintest and porcupine the main tree's, marshal
-        # Perennial's.
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "dsverify", "paxos"),
-        root="Dsverify",
-        lean_roots=["github.com/xiang90/paxos=Dsverify",
-                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
-                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
-        packages=[".", "./examples/paxosnet", "./examples/paxosnet/cmd/orch"]
-                 + ["./examples/paxosnet/cmd/client%d" % c for c in range(4)]
-                 + ["./examples/paxosnet/cmd/server%d" % s for s in range(1, 6)],
-        owned=[os.path.join("github_com", "xiang90")],
-    ),
-    Project(
-        name="dsv-rabia",
-        # dsverify-lab's rabia kit (notes/dsv-rabia.md; notes/dsverify-net-port-plan.md, phase 6):
-        # the lab's Rabia fork (examples/rabia/fork/rabia at lab master 915f964, fork ef2a93b, run
-        # rabia-r1wake-1) with its kit ported onto examples/lib/remote, `examples/dsverify/rabia`
-        # (module `rabia`). Into the part `Dsverify/`, with remote and `net` the part `Net/`'s,
-        # lintest, porcupine, bufio, container/heap and path the main tree's; zerolog, gogo/protobuf,
-        # go-redis and os/signal names only into the part (no model here: notes/dsv-rabia.md).
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "dsverify", "rabia"),
-        root="Dsverify",
-        expand_comment_tabs=True,
-        lean_roots=["rabia=Dsverify", "github.com/rs/zerolog=Dsverify",
-                    "github.com/gogo/protobuf=Dsverify", "github.com/go-redis/redis/v8=Dsverify",
-                    "os/signal=Dsverify",
-                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
-                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
-                    "bufio=", "container/heap=", "path="],
-        packages=["github.com/rs/zerolog", "github.com/gogo/protobuf/proto",
-                  "github.com/gogo/protobuf/gogoproto", "github.com/go-redis/redis/v8",
-                  "github.com/go-redis/redis/v8/internal/proto", "os/signal", "./internal/config", "./internal/message", "./internal/queue", "./internal/ledger",
-                  "./internal/tcp", "./internal/logger", "./internal/system",
-                  "./roles/server/layers/network", "./roles/server/layers/consensus",
-                  "./roles/server/layers/proxy", "./roles/server", "./examples/rabianet",
-                  "./examples/rabianet/cmd/orch"]
-                 + ["./examples/rabianet/cmd/client%d" % c for c in range(6)]
-                 + ["./examples/rabianet/cmd/server%d" % s for s in range(1, 6)],
-        owned=["rabia", os.path.join("github_com", "rs"), os.path.join("github_com", "gogo"),
-               os.path.join("github_com", "go_redis"), os.path.join("os", "signal")],
-    ),
-    Project(
         name="models-net",
         # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
         # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take
@@ -2136,6 +2083,30 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "bbolt", "bank")],
     ),
 ]
+
+
+# The dsverify kits (notes/dsv-paxos.md; etc/dsv/README.md): each kit's project is the `GOOSE` dict
+# of its own file `etc/dsv/<kit>.py` (the fields of `Project`), so that a kit adds a file instead of
+# editing this one. Placed before project models-net, in the files' order.
+def dsv_kits():
+    """The kit files `etc/dsv/*.py`, loaded, in name order (also read by etc/gen-init.py)."""
+    import importlib.util
+    d = os.path.join(ROOT, "etc", "dsv")
+    out = []
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if not f.endswith(".py") or f.startswith("_"):
+            continue
+        spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        m.KIT = f[:-3]
+        out.append(m)
+    return out
+
+
+DSV_KITS = dsv_kits()
+_i = next(i for i, p in enumerate(PROJECTS) if p.name == "models-net")
+PROJECTS[_i:_i] = [Project(**k.GOOSE) for k in DSV_KITS if hasattr(k, "GOOSE")]
 
 
 
