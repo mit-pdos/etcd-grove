@@ -59,8 +59,8 @@ theorem wp_errorsNew_NE (msg : GoString) (h : msg ≠ []) :
   · ipureintro; exact errorString_isError
   iexact Hx
 
-theorem wp_sendCommitToPrev (cfg : Cfg GF) (n : Loc) (lg : Loc) (prev : node.neighbor)
-    (k : GoString) (v : w64) :
+theorem wp_sendCommitToPrev (cfg : Cfg GF) (n : Loc) (lg : Loc) (hlg : lg ≠ null)
+    (prev : node.neighbor) (k : GoString) (v : w64) :
     ⊢ ∀ Φ : val → IProp GF,
       isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node -∗
       structFieldRef node.Node go!"log" n ↦□ lg -∗ nbrOk cfg prev -∗ cvLb cfg.γ k v -∗
@@ -222,7 +222,7 @@ theorem wp_Write (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
       iexists h, true, nbrs, _, _
       iframe; iframe #
       ipureintro; exact HlatS'
-    wp_apply wp_sendCommitToPrev $$ Hpkg Hlog Hprev Hcv
+    wp_apply wp_sendCommitToPrev (hlg := Hch.2) $$ Hpkg Hlog Hprev Hcv
     iintro %err -
     wp_auto
     iapply HΦ; ileft; iframe Hcv; ipureintro; rfl
@@ -287,7 +287,7 @@ theorem wp_commitAndSend (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : Go
       ipureintro; exact HlatS
     wp_if_destruct
     · iapply HΦ; ileft; ipureintro; rfl
-    · wp_apply wp_sendCommitToPrev $$ Hpkg Hlog Hprev Hcv
+    · wp_apply wp_sendCommitToPrev (hlg := Hch.2) $$ Hpkg Hlog Hprev Hcv
       iintro %err Herr
       wp_auto
       iapply HΦ $$ Herr

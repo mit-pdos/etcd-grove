@@ -38,8 +38,8 @@ theorem sendCommitToPrev_ok : sendCommitToPrev.spec (GF := GF) (hG := hG) := by
   intro cfg n a st γs nbM latM prev k v
   iintro %Φ ⟨#Hpkg, #Hctx, #Hf, #Hnb, #Hcv⟩ HΦ
   iunfold nodeFields at Hf
-  icases Hf with ⟨%f, %lg, %ch, -, -, -, -, -, -, -, #Hlog, -⟩
-  wp_apply wp_sendCommitToPrev cfg n lg prev k v $$ Hpkg Hlog Hnb Hcv
+  icases Hf with ⟨%f, %lg, %ch, -, -, -, -, -, -, -, #Hlog, -, %Hch, -⟩
+  wp_apply wp_sendCommitToPrev cfg n lg Hch.2 prev k v $$ Hpkg Hlog Hnb Hcv
   iintro %err -
   iapply HΦ
 

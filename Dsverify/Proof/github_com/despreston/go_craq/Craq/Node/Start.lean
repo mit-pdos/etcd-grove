@@ -209,7 +209,7 @@ theorem node.wp_Start (HL : NodeP.Laws (GF := GF)) : node.wp_Start.spec (GF := G
     obtain ⟨ei, rfl⟩ := Hok
     ihave #Hf' := Hf
     unfold NodeP.nodeFields
-    icases Hf' with ⟨%f, %lg, %ch, -, -, -, -, -, -, -, #Hlog, -⟩
+    icases Hf' with ⟨%f, %lg, %ch, -, -, -, -, -, -, -, #Hlog, -, %Hch, -⟩
     wp_auto
     wp_log [GoInterface.ok ei]
     · iapply NodeP.argOks1; iapply NodeP.argOk_err $$ Herr

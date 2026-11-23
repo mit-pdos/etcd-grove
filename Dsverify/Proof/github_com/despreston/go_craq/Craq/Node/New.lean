@@ -31,7 +31,7 @@ theorem node.wp_New : node.wp_New.spec (GF := GF) (hG := hG) := by
   intro cfg a st γs f cc
   wp_start as ⟨#Hctx, %Ha, Hres, #Hst, HS, #Hfac, Hcc⟩
   wp_auto
-  wp_apply LogHyp.wp_Default as %lg -
+  wp_apply LogHyp.wp_Default as %lg %Hlg
   wp_apply (wp_map_make1 (K := GoString) (V := w64)) as %latM Hlatm
   wp_apply +noauto (wp_map_make2 (K := w64) (V := node.neighbor)) as %nbM Hnbm
   iapply wp_fupd
@@ -82,7 +82,7 @@ theorem node.wp_New : node.wp_New.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   unfold isNode nodeStartRes NodeP.isNodeDef NodeP.nodeFields NodeP.startResDef
   iframe; iframe #
-  ipureintro; exact ⟨Ha, rfl⟩
+  ipureintro; exact ⟨Ha, rfl, Hlg⟩
   done
 
 end newp

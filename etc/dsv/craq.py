@@ -37,12 +37,14 @@ CRAQ_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s i
 PKGS = [f'{CRAQ}.{p}' for p in ['transport', 'store', 'store.kv', 'node', 'coordinator',
                                 'transport.netrpc', 'examples.craqnet']] + \
     [f'{CRAQ}.examples.craqnet.cmd.{n}' for n in CRAQ_NODES]
-# (no `PkgTable.lean` for the commands yet: a program's table walks its whole closure, and
-# net/http's names-only imports (crypto/tls, net/url, ...) are outside the inventory)
-PROGRAMS = {}
+# the twelve commands' package tables (the deployment's boots)
+PROGRAMS = {f'{CRAQ}.examples.craqnet.cmd.{n}':
+            f'Proof/{CRAQ.replace(".", "/")}/examples/craqnet/cmd/{n}/PkgTable.lean'
+            for n in CRAQ_NODES}
 HYP_INITS = ['net.rpc', 'net.http']
-# their imports: those in the inventory (net/http's names-only imports are outside it)
-HYP_IMPORTS = 'known'
+# their imports: none (net/http's names-only imports are outside the inventory; the programs'
+# tables stop at net/rpc and net/http, as gryff's)
+HYP_IMPORTS = 'none'
 
 
 def special(g):

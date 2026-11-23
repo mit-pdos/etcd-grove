@@ -2,8 +2,9 @@
 **Hypothesis H6** (notes/dsv-craq.md, "Hypotheses"; `notes/perennial-changes.md`, 2026-11-23):
 the `log` calls go-craq makes that Perennial's `log` model does not specify. Perennial proves
 `log.Printf` on `fmt.ArgsWf` arguments only (`log.Printf.wp_proof`, used where it suffices);
-go-craq's node logs through a `*log.Logger` (`log.Default()`, its `Printf` and `Println`), the
-coordinator calls `log.Println`, and both the node and the coordinator pass errors (Go calls their `Error()`) and values without formatting methods (`%+v`, `%#v`: no
+go-craq's node logs through a `*log.Logger` (`log.Default()`, its `Printf` and `Println`: no
+body in the model, the hypothesis), the coordinator calls `log.Println` (proved: a body in the
+model), and both the node and the coordinator pass errors (Go calls their `Error()`) and values without formatting methods (`%+v`, `%#v`: no
 method called). The specs are the lab's (`Harness/Proof/log.lean`, whose `log` model was its own),
 with the arguments `argOk` allows. They are the class `LogHyp` (a `Prop`), taken as an instance by
 the proofs that log, up to the kit's statement; never an axiom.
@@ -59,36 +60,57 @@ theorem argOks_of_wf (xs : List GoInterface) (h : fmt.ArgsWf xs) :
 
 end defs
 
-/-- **H6** (the file header). -/
+/-- **H6** (the file header): the `log` functions Perennial's trusted model leaves without a body
+(`log.Default` reads `std`, not allocated in the model; `*Logger`'s methods are not translated),
+with Go's preconditions: `Default` returns the standard logger (never nil); a `*Logger`'s
+`Printf`/`Println` need a non-nil logger (a nil one panics); a `Logger` is safe for concurrent
+use, so the calls need no ownership of it. -/
 class LogHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
     (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] [log.Assumptions] : Prop where
-  /-- `log.Default()` returns a logger. -/
+  /-- `log.Default()` returns the standard logger, not nil. -/
   wp_Default :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log }}
       (App (Val (@! log.Default)) (Val #()))
-    {{ (l : Loc), RET #l; True }}
-  /-- `l.Printf(format, args...)` on any `*Logger`. -/
+    {{ (l : Loc), RET #l; ⌜l ≠ null⌝ }}
+  /-- `l.Printf(format, args...)` on a non-nil `*Logger`. -/
   wp_Logger_Printf : ∀ (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface)
-      (dq : DFrac),
+      (dq : DFrac), l ≠ null →
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
       (App (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Printf")) (Val #msg))
         (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }}
-  /-- `l.Println(args...)` on any `*Logger`. -/
+  /-- `l.Println(args...)` on a non-nil `*Logger`. -/
   wp_Logger_Println : ∀ (l : Loc) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac),
+      l ≠ null →
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
       (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Println")) (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }}
-  /-- `log.Printf(format, args...)` on arguments `argOk` allows. -/
-  wp_Printf : ∀ (msg : GoString) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac),
+
+/-! `log.Printf` and `log.Println` have bodies in Perennial's trusted model
+(`Perennial/TrustedCode/log.lean`: they do nothing), so their specs are proved, not assumed. -/
+
+section printf
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics] [package_sem : log.Assumptions]
+
+/-- `log.Printf(format, args...)` on arguments `argOk` allows. -/
+theorem LogHyp.wp_Printf (msg : GoString) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
       (App (App (Val (@! log.Printf)) (Val #msg)) (Val #arg))
-    {{ RET #(); arg ↦*{dq} xs }}
-  /-- `log.Println(args...)` on arguments `argOk` allows. -/
-  wp_Println : ∀ (arg : GoSlice) (xs : List GoInterface) (dq : DFrac),
+    {{ RET #(); arg ↦*{dq} xs }} := by
+  wp_start as ⟨Hsl, -⟩
+  wp_end
+
+/-- `log.Println(args...)` on arguments `argOk` allows. -/
+theorem LogHyp.wp_Println (arg : GoSlice) (xs : List GoInterface) (dq : DFrac) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk x }}
       (App (Val (@! log.Println)) (Val #arg))
-    {{ RET #(); arg ↦*{dq} xs }}
+    {{ RET #(); arg ↦*{dq} xs }} := by
+  wp_start as ⟨Hsl, -⟩
+  wp_end
+
+end printf
 
 end github_com.despreston.go_craq
 

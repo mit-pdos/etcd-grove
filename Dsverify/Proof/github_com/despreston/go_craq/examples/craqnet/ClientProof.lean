@@ -24,7 +24,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Specs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Netrpc.New
 public import Net.Spec.net.rpc.SetCodec
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.ConfProof
-public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.ServerProof
+public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitSpecs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Proof.time.Link
@@ -49,35 +49,6 @@ open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote
 open github_com.despreston.go_craq github_com.despreston.go_craq.netrpcP
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- An input's code. -/
-def kinCode (i : KIn) : Bool × GoString × GoString :=
-  match i with
-  | ⟨.get k, _⟩ => (false, k, [])
-  | ⟨.put k x, _⟩ => (true, k, x)
-
-/-- The store's inputs' `Pos.Countable` (remote's slots keep them in ghost state). -/
-instance KIn_countable : Pos.Countable KIn :=
-  .ofInjective (fun i => Pos.Countable.encode (kinCode i)) (fun a b h => by
-    have h := Pos.encode_inj h
-    obtain ⟨a | ⟨a1, a2⟩, ha⟩ := a <;> obtain ⟨b | ⟨b1, b2⟩, hb⟩ := b <;>
-      simp only [kinCode, Prod.mk.injEq] at h
-    · obtain ⟨-, rfl, -⟩ := h; rfl
-    · exact absurd h.1 (by decide)
-    · exact absurd h.1 (by decide)
-    · obtain ⟨-, rfl, rfl⟩ := h; rfl)
-
-/-- An output's code. -/
-def koutCode : KOut → Option (Option GoString)
-  | .got v => some (v.map Subtype.val)
-  | .bad => none
-
-/-- The store's outputs' `Pos.Countable`. -/
-instance KOut_countable : Pos.Countable KOut :=
-  .ofInjective (fun o => Pos.Countable.encode (koutCode o)) (fun a b h => by
-    have h := Pos.encode_inj h
-    rcases a with (_ | ⟨a, ha⟩) | _ <;> rcases b with (_ | ⟨b, hb⟩) | _ <;>
-      simp_all [koutCode])
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -153,20 +124,6 @@ theorem wp_Sys_readAt (s : Loc) (conf : Conf) (c : w64) :
     iapply HΦ
     ipureintro
     exact readAt_mod c conf.N' Hok.1 Hok.2.1
-
-/-- The run's configuration as the kit deploys it: the coordinator at `ServerAddrs()[0]`, the chain
-all of the others. -/
-def cfgKit (cfg : Cfg GF) : Prop := cfg.cAddr = serverAddrs.headD [] ∧ cfg.chain = serverAddrs.tail
-
-/-- Chain machines' addresses: `ServerAddrs()[j]`, `1 ≤ j ≤ 5`, is in the chain. -/
-theorem serverAddrs_chain (j : Nat) (h1 : 1 ≤ j) (h5 : j ≤ 5) :
-    ∃ a, serverAddrs[j]? = some a ∧ a ∈ serverAddrs.tail := by
-  have hj : j < serverAddrs.length := by simp only [serverAddrs, List.length_cons, List.length_nil]; omega
-  refine ⟨serverAddrs[j], List.getElem?_eq_getElem hj, ?_⟩
-  obtain ⟨j', rfl⟩ : ∃ j', j = j' + 1 := ⟨j - 1, by omega⟩
-  have := List.getElem_mem (l := serverAddrs.tail) (n := j')
-    (by simp [serverAddrs]; omega)
-  simpa [List.getElem_tail] using this
 
 /-- The output `op` returns, boxed: an output of the store with `Φ` of it, or unknown. -/
 def opPost (_γ : CraqNames) (Φ : KOut → IProp GF) (o : Out) : IProp GF :=
@@ -513,16 +470,6 @@ theorem wp_Sys_remove [LogHyp GF]
     iapply HΦ
     itrivial
 
-/-- `awaitConf(a, ch)`'s spec (ConfProof.lean's `wp_awaitConf`, there from the net specs). -/
-abbrev awaitConf.spec : Prop :=
-  ∀ (a : GoString) (γch : ChanNames) (ch : Loc),
-    {{ isPkgInit (PROP := IProp GF) kpkg ∗
-        addrProto (Gg := hG.goose_globalGS) a confProto confProto ∗
-        isChanBag γch ch (V := msg) (msgOk (hG := hG)) }}
-      (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.awaitConf)) (Val #a))
-        (Val #ch))
-    {{ RET #(); False }}
-
 /-- `newSys(c)`: client machine `c`'s `Sys`, once its configuration arrived; the codec is
 registered (`rpcReady`); its removals run in a goroutine. -/
 theorem wp_newSys [LogHyp GF]
@@ -588,17 +535,6 @@ theorem wp_newSys [LogHyp GF]
   iapply HΦ
   iexists m.conf'
   iframe #
-
-/-- `Client(c)`: client machine `c` (`cfgKit`: the coordinator at `ServerAddrs()[0]`, the chain
-the others); it never returns. Its machine's codec registry is fresh (`codecFresh`). -/
-abbrev Client.spec : Prop :=
-  ∀ (cfg : Cfg GF) (c : w64), cfgKit cfg → uint.nat c < 5 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ craqCtx cfg ∗ codecFresh ∗
-      addrProto (Gg := hG.goose_globalGS) (confAddrs.getD (uint.nat c) []) confProto confProto ∗
-      remoteAddr (Gg := hG.goose_globalGS) (kvR cfg.γ) (clientAddrs.getD (uint.nat c) []) ∗
-      mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
-    (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Client)) (Val #c))
-  {{ RET #(); False }}
 
 theorem Client.wp_proof [LogHyp GF]
     (wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG))
@@ -676,15 +612,6 @@ theorem Client.wp_proof [LogHyp GF]
 
 /-! ## The orchestrator -/
 
-/-- `configure(conf, rs)`'s spec (ConfProof.lean's `wp_configure`, there from the net specs). -/
-abbrev configure.spec : Prop :=
-  ∀ (conf : Conf) (rs : GoSlice) (rl : List removal) (dq : DFrac),
-    {{ isPkgInit (PROP := IProp GF) kpkg ∗ rs ↦*{dq} rl ∗ ⌜confOk conf ∧ rl.length ≤ 2⌝ ∗
-        [∗list] a ∈ confAddrs, addrProto (Gg := hG.goose_globalGS) a confProto confProto }}
-      (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.configure)) (Val #conf))
-        (Val #rs))
-    {{ RET #(); rs ↦*{dq} rl }}
-
 theorem pendN_craq : (↑pendN : CoPset) ⊆ ⊤ \ craqEop := by
   intro p hp
   have h1 := nclose_subseteq (nroot.@"remote") "pend" p hp
@@ -718,18 +645,6 @@ theorem pendCtx_kvS (γ : CraqNames) (γp : PendNames) :
 theorem pendLib_kvS (γp : PendNames) :
     pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init =
       pendLib (Gg := hG.goose_globalGS) (kvS (GF := GF)) γp (kvS (GF := GF)).M.init := rfl
-
-/-- `Orch()`: the orchestrator; it returns (porcupine accepts the history). -/
-abbrev Orch.spec : Prop :=
-  ∀ (γ : CraqNames) (γp : PendNames), receiptBound GF ≤ 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗
-      ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (kvR γ) a) ∗
-      mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
-      pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
-      [∗list] a ∈ confAddrs, addrProto (Gg := hG.goose_globalGS) a confProto confProto }}
-    (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Orch)) (Val #()))
-  {{ RET #(); True }}
 
 /-- **Orch**, from `remote.Check`'s spec, with its premises on the store `kvR γ` and its model
 `kvS` (`ModelDefs.lean`'s `kvS_pendDec`, `kvR_encOut_inj`). -/

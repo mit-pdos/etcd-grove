@@ -11,7 +11,6 @@ public import Dsverify.Proof.github_com.despreston.go_craq.transport.netrpc.Base
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.Init
 public import Dsverify.Proof.runtime.PkgInitDsv
-public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 
@@ -34,7 +33,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.net.http.InitHyp GF]
 variable [_root_.Perennial.net.rpc.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.despreston.go_craq.transport.netrpc.Assumptions]
 

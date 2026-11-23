@@ -11,7 +11,7 @@ net/rpc's server variables (`srvEnv`).
 -/
 module
 
-public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitDefs
+public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitSpecs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Specs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Netrpc.BindingsProof
 public import Net.Spec.net.rpc.SetCodec
@@ -44,42 +44,6 @@ variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [ra : RpcHttpAddr GF] [bvi : go.BasicIntoValInj]
 
 local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet
-
-/-- A machine's codec registry at its initial state (net/rpc's initialization's; open point). -/
-def codecFresh : IProp GF :=
-  iprop(sync.isMutex (globalAddr net.rpc.codecMu) net.rpc.codecInv ∗ net.rpc.codecUnset)
-
-/-- `Register()`: the kit's codec registered. -/
-theorem wp_Register (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG)) :
-    {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh }}
-      (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Register)) (Val #()))
-    {{ RET #(); net.rpc.codecSet craqCodec }} := by
-  unfold codecFresh
-  wp_start as ⟨#Hmu, Hun⟩
-  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
-  · iPkgInit
-  wp_auto
-  ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a0»
-  ipersist «$a0»
-  wp_apply wp_SetCodec craqCodec _ $$ [Hun]
-  · isplitr
-    · iexact Hmu
-    isplitl [Hun]
-    · iexact Hun
-    isplitr
-    · unfold net.rpc.codecIs
-      iexists _
-      iframe «$a0»
-      isplitr
-      · iapply craqCodec_encOk
-      isplitr
-      · iapply craqCodec_decOk
-      · iapply craqCodec_rcvOk
-    · ipureintro; exact Hnn
-  iintro #Hcs
-  wp_auto
-  iapply HΦ
-  iexact Hcs
 
 /-- The coordinator's methods accept the server's error answers. -/
 theorem coordSpec_errOk (γ : CraqNames) (ch : List GoString) :
@@ -363,6 +327,115 @@ theorem wp_runNode [rs : RpcHttpServe GF]
       wp_auto
       iapply HΦ
       itrivial
+
+/-- The server addresses are valid listen addresses. -/
+theorem serverAddrs_addrOk : serverAddrs.all addrOk = true := by decide
+
+/-- **A server machine**, `Server(id)`: the coordinator (`wp_Server1`), or chain machine `id`:
+its codec registered, it waits for the configuration (`awaitConf` in a goroutine), runs its node
+(`wp_runNode`) if `id ≤ N + 1`, then idles. The findings' premises: RemoveNode's method obligation
+(F1, `HRN`) and the nodes' `errOk` (F3, `HE`). -/
+theorem Server.wp_proof [rs : RpcHttpServe GF]
+    (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
+    (wp_cNew : coordinator.wp_New.spec (GF := GF) (hG := hG))
+    (wp_cStart : coordinator.wp_Start.spec (GF := GF) (hG := hG))
+    (h_csvc : coordinator.coord_svc.spec (GF := GF) (hG := hG))
+    (h_fact : netrpc.factory.spec (GF := GF) (hG := hG))
+    (wp_kvNew : kv.wp_New.spec (GF := GF) (hG := hG))
+    (wp_nNew : node.wp_New.spec (GF := GF) (hG := hG))
+    (wp_nStart : node.wp_Start.spec (GF := GF) (hG := hG))
+    (h_nsvc : node.node_svc.spec (GF := GF) (hG := hG))
+    (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF) (hG := hG))
+    (wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG))
+    (HRN : ∀ cfg : Cfg GF, removeNodeOk.spec cfg)
+    (HE : ∀ (cfg : Cfg GF) (a : GoString),
+      ⊢ net.rpc.errOk (nodeSpec (G := hG.goose_globalGS) cfg.γ cfg.chain a)) :
+    Server.spec (GF := GF) (hG := hG) := by
+  intro cfg id hcfg h1 h6
+  have hc : cfg.cAddr = go!"127.0.0.1:7501" := hcfg.1
+  by_cases hid : id = W64 1
+  · subst hid
+    have hres : serverRes cfg (uint.nat (W64 1)) = coordRes cfg := by simp [serverRes]
+    rw [hres]
+    exact wp_Server1 wp_SetCodec wp_cNew wp_cStart h_csvc h_fact cfg (HRN cfg) hc
+      (by rw [hcfg.2]; decide)
+  have hn1 : uint.nat id ≠ 1 := fun h => hid (by word)
+  obtain ⟨a, ha, hmem⟩ := serverAddrs_chain (uint.nat id - 1) (by omega) (by omega)
+  have hga : serverAddrs.getD (uint.nat id - 1) [] = a := by
+    simp [List.getD_eq_getElem?_getD, ha]
+  have hres : serverRes cfg (uint.nat id) = iprop(nodeRes cfg a ∗ joinTicket cfg.γ a ∗
+      addrProto (Gg := hG.goose_globalGS) (confAddrs.getD (5 + uint.nat id - 1) []) confProto
+        confProto) := by
+    unfold serverRes; rw [if_neg hn1, hga]
+  rw [hres]
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres, Htk, #Hca⟩
+  ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply wp_Register wp_SetCodec $$ [Hcf] as #Hcs
+  · iframe
+  wp_apply wp_ServerAddrs as %sl Hsl
+  ihave %Hal := ownSlice_len _ _ _ $$ Hsl
+  have hsl : sint.Z sl.len = 6 := by
+    have := Hal.1; simp only [serverAddrs, List.length_cons, List.length_nil] at this; word
+  rw [ite_eq_left ⟨by word, by rw [hsl]; word⟩]
+  wp_apply wp_load_slice_index sl (sint.Z (id - W64 1)) serverAddrs _ a (by word) $$ [Hsl]
+    with Hsl
+  · iframe; ipureintro; rw [show (sint.Z (id - W64 1)).toNat = uint.nat id - 1 by word]; exact ha
+  (try wp_auto)
+  wp_if_destruct
+  · exact absurd (by word) hn1
+  wp_apply wp_make_conf_chan as %ch ⟨%γch, #Hbag⟩
+  wp_apply wp_ConfAddrs as %cfgs Hcfgs
+  ihave %Hcl := ownSlice_len _ _ _ $$ Hcfgs
+  have hcl : sint.Z cfgs.len = 11 := by
+    have := Hcl.1; simp only [confAddrs, List.length_cons, List.length_nil] at this; word
+  have hidx : (sint.Z (W64 5 + id - W64 1)).toNat = 5 + uint.nat id - 1 := by word
+  have hcn : 5 + uint.nat id - 1 < confAddrs.length := by
+    simp only [confAddrs, List.length_cons, List.length_nil]; omega
+  list_elem confAddrs (5 + uint.nat id - 1) as ca
+  have hca : ca = confAddrs.getD (5 + uint.nat id - 1) [] := by
+    rw [List.getD_eq_getElem?_getD, Hca_lookup]; rfl
+  subst hca
+  rw [ite_eq_left ⟨by word, by rw [hcl]; word⟩]
+  wp_apply wp_load_slice_index cfgs (sint.Z (W64 5 + id - W64 1)) confAddrs _ _ (by word)
+    $$ [Hcfgs] with Hcfgs
+  · iframe; ipureintro; rw [hidx]; exact Hca_lookup
+  wp_apply wp_fork $$ []
+  · wp_apply wp_awaitConf _ γch ch $$ [] as %hf
+    · iframe #
+    exact hf.elim
+  wp_apply wp_recv_msg γch ch $$ [] as %m Hm
+  · iframe #
+  unfold msgOk
+  icases Hm with ⟨%Hcok, -⟩
+  (try wp_auto)
+  wp_if_destruct
+  · wp_apply wp_runNode wp_kvNew wp_nNew wp_nStart h_nsvc h_fact wp_NewCC cfg id a _ hc
+      (by rw [hcfg.2]; exact hmem)
+      (List.all_eq_true.1 serverAddrs_addrOk a (List.mem_of_mem_tail hmem)) $$ [Hmux Hres Htk]
+    · iframe Hmux Hres Htk
+      iframe #
+      isplitr
+      · unfold rpcReady; iframe #
+      iapply HE
+    (try wp_auto)
+    ihave HI : (True : IProp GF) $$ []
+    · itrivial
+    wp_for HI
+    (try rw [if_pos (by simp)])
+    (try wp_auto)
+    wp_apply time.wp_Sleep
+    wp_for_post
+    iframe
+  · ihave HI : (True : IProp GF) $$ []
+    · itrivial
+    wp_for HI
+    (try rw [if_pos (by simp)])
+    (try wp_auto)
+    wp_apply time.wp_Sleep
+    wp_for_post
+    iframe
 
 end proof
 

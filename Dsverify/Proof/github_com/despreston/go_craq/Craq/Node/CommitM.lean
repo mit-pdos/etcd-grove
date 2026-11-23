@@ -161,6 +161,7 @@ theorem wp_commitM (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString
     subst Herr
     wp_auto
     wp_apply wp_map_lookup1 $$ Hlatm with Hlatm
+    obtain ⟨Hch, -⟩ := Hch
     subst Hch
     wp_if_destruct
     · wp_apply wp_mapInsert $$ Hlatm with Hlatm

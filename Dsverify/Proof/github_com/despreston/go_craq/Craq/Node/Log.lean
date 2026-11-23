@@ -93,44 +93,46 @@ theorem argOks3 (a b c : GoInterface) :
 
 /-- `l.Printf(format, args...)` on arguments `argOk` allows. -/
 theorem wp_Logger_Printf (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface)
-    (dq : DFrac) :
+    (dq : DFrac) (hl : l ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk (GF := GF) x }}
       (App (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Printf")) (Val #msg))
         (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }} := by
-  exact LogHyp.wp_Logger_Printf l msg arg xs dq
+  exact LogHyp.wp_Logger_Printf l msg arg xs dq hl
 
 /-- `l.Println(args...)` on arguments `argOk` allows. -/
-theorem wp_Logger_Println (l : Loc) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac) :
+theorem wp_Logger_Println (l : Loc) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac)
+    (hl : l ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.log ∗ arg ↦*{dq} xs ∗ [∗list] x ∈ xs, argOk (GF := GF) x }}
       (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Println")) (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }} := by
-  exact LogHyp.wp_Logger_Println l arg xs dq
+  exact LogHyp.wp_Logger_Println l arg xs dq hl
 
 /-- `wp_Logger_Printf` with the argument slice first (for `wp_log`). -/
 theorem wp_Logger_Printf' (l : Loc) (msg : GoString) (arg : GoSlice) (xs : List GoInterface) :
-    ⊢ ∀ Φ : val → IProp GF, arg ↦* xs -∗ isPkgInit (PROP := IProp GF) pkg_id.log -∗
+    ⊢ ∀ Φ : val → IProp GF, ⌜l ≠ null⌝ -∗ arg ↦* xs -∗ isPkgInit (PROP := IProp GF) pkg_id.log -∗
       ([∗list] x ∈ xs, argOk (GF := GF) x) -∗ Φ #() -∗
       WP (App (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Printf")) (Val #msg))
         (Val #arg)) {{ Φ }} := by
-  iintro %Φ Hs #Hpkg #Hok HΦ
-  wp_apply wp_Logger_Printf l msg arg xs (DFrac.own 1) $$ [$Hs $Hok] as -
+  iintro %Φ %hl Hs #Hpkg #Hok HΦ
+  wp_apply wp_Logger_Printf l msg arg xs (DFrac.own 1) hl $$ [$Hs $Hok] as -
   iexact HΦ
 
 theorem wp_Logger_Println' (l : Loc) (arg : GoSlice) (xs : List GoInterface) :
-    ⊢ ∀ Φ : val → IProp GF, arg ↦* xs -∗ isPkgInit (PROP := IProp GF) pkg_id.log -∗
+    ⊢ ∀ Φ : val → IProp GF, ⌜l ≠ null⌝ -∗ arg ↦* xs -∗ isPkgInit (PROP := IProp GF) pkg_id.log -∗
       ([∗list] x ∈ xs, argOk (GF := GF) x) -∗ Φ #() -∗
       WP (App (Val (l @!! go.GoType.PointerType log.Logger.ty @!! go!"Println")) (Val #arg))
         {{ Φ }} := by
-  iintro %Φ Hs #Hpkg #Hok HΦ
-  wp_apply wp_Logger_Println l arg xs (DFrac.own 1) $$ [$Hs $Hok] as -
+  iintro %Φ %hl Hs #Hpkg #Hok HΦ
+  wp_apply wp_Logger_Println l arg xs (DFrac.own 1) hl $$ [$Hs $Hok] as -
   iexact HΦ
 
 end log
 
 set_option hygiene false in
 /-- A `n.log.Printf(fmt, args...)` call at the head of the program, with the arguments `l`: the
-argument slice, then the call; leaves the goal `[∗list] x ∈ l, argOk x`, then the
+argument slice, then the call (the logger non-nil: a hypothesis `_ ≠ null` or `Hch`, `nodeFields`'
+pure part); leaves the goal `[∗list] x ∈ l, argOk x`, then the
 continuation. -/
 macro "wp_log " l:term : tactic => `(tactic| (
   wp_bind (App (Val (GoInstruction (CompositeLiteral _))) (Val (LiteralValueV _)))
@@ -140,7 +142,8 @@ macro "wp_log " l:term : tactic => `(tactic| (
   focus (ipureintro; rfl)
   iintro %args_sl ⟨Hargs, -⟩
   wp_auto
-  wp_apply wp_Logger_Printf' $$ Hargs))
+  wp_apply wp_Logger_Printf' $$ [] Hargs
+  focus (ipureintro; first | assumption | exact Hch.2)))
 
 set_option hygiene false in
 /-- The same for `n.log.Println(args...)`. -/
@@ -152,7 +155,8 @@ macro "wp_logln " l:term : tactic => `(tactic| (
   focus (ipureintro; rfl)
   iintro %args_sl ⟨Hargs, -⟩
   wp_auto
-  wp_apply wp_Logger_Println' $$ Hargs))
+  wp_apply wp_Logger_Println' $$ [] Hargs
+  focus (ipureintro; first | assumption | exact Hch.2)))
 
 end NodeP
 
