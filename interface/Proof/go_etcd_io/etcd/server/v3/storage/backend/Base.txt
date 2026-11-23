@@ -5,8 +5,8 @@
 theorem Perennial.go_etcd_io.etcd.server.v3.storage.backend.histSpec_persistent (h : GoInterfaceOk)
     : Persistent (go_etcd_io.etcd.server.v3.storage.backend.histSpec h)
 
-def Perennial.go_etcd_io.etcd.server.v3.storage.backend.get_isPkgInit_wf_inst : GetIsPkgInitWf
-    (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
+def Perennial.go_etcd_io.etcd.server.v3.storage.backend.get_isPkgInit_wf_inst [prometheus.PromRegGS
+    GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
   {
     get_is_pkg_init_prop_def := fun get_is_pkg_init =>
       get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.storage.backend =
@@ -48,7 +48,7 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.isPkgInit_inst : IsPkgIn
                               isPkgInit pkg_id.math ∗
                                 isPkgInit pkg_id.go_etcd_io.bbolt.errors ∗
                                   isPkgInit pkg_id.syscall ∗
-                                    isPkgInit pkg_id.github_com.prometheus.client_golang.prometheus ∗
+                                    isPkgInitSome pkg_id.github_com.prometheus.client_golang.prometheus ∗
                                       isPkgInit pkg_id.encoding.hex ∗ isPkgInit pkg_id.sort ∗ True),
     isPkgInitDef := go_etcd_io.etcd.server.v3.storage.backend.backendInit }
 

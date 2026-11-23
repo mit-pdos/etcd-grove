@@ -61,11 +61,16 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regNames : List GoString :=
       go!"mvcc"
       go!"total_put_size_in_bytes"]
 
-def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regQs : List (GoString × List GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.auth, go_etcd_io.etcd.server.v3.auth.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.lease, go_etcd_io.etcd.server.v3.lease.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, go_etcd_io.etcd.server.v3.storage.backend.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, go_etcd_io.etcd.server.v3.storage.mvcc.regNames)]
+def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regKeys : List w64 :=
+  []
 
-def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.initNames : List GoString :=
-  List.flatMap (fun x => x.snd) go_etcd_io.etcd.server.v3.storage.mvcc.regQs
+def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.regQs : List (GoString × List GoString × List
+    w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.auth, go_etcd_io.etcd.server.v3.auth.regNames,
+      go_etcd_io.etcd.server.v3.auth.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.lease, go_etcd_io.etcd.server.v3.lease.regNames,
+      go_etcd_io.etcd.server.v3.lease.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, go_etcd_io.etcd.server.v3.storage.backend.regNames,
+      go_etcd_io.etcd.server.v3.storage.backend.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, go_etcd_io.etcd.server.v3.storage.mvcc.regNames,
+      go_etcd_io.etcd.server.v3.storage.mvcc.regKeys)]

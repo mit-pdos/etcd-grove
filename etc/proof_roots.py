@@ -183,6 +183,15 @@ def shadows_perennial(mod):
         os.path.join(PERENNIAL, "Perennial", *mod.split(".")) + ".lean")
 
 
+def shadows_part(mod):
+    """Whether `mod` is a main-tree translation `Code.<pkg>` that a part translates too
+    (`<Part>.Code.<pkg>`, e.g. `Net/`'s `net/textproto`, which declares the main tree's names): a run
+    importing both cannot load. (prom-registry, 2026-11-23: since the net swap a `Net/` root can reach the
+    main tree's `Code.net.textproto` while another reaches `Net.Code.net.textproto`.)"""
+    return mod.startswith("Code.") and any(
+        os.path.exists(os.path.join(ROOT, r, *mod.split(".")) + ".lean") for r in PART_ROOTS)
+
+
 def parts_reached(mod):
     """The part roots whose modules `mod` imports, transitively, and the local translations it
     imports that shadow Perennial's (`shadows_perennial`)."""
@@ -194,7 +203,7 @@ def parts_reached(mod):
         seen.add(m)
         if m.split(".")[0] in PART_ROOTS:
             reached.add(m.split(".")[0])
-        if shadows_perennial(m):
+        if shadows_perennial(m) or shadows_part(m):
             reached.add(m)
         todo += _imports(m)
     return tuple(sorted(reached))

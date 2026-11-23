@@ -3,22 +3,31 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs : List (GoString × List
-    GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.auth, go_etcd_io.etcd.server.v3.auth.regNames),
+    GoString × List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.auth, go_etcd_io.etcd.server.v3.auth.regNames,
+      go_etcd_io.etcd.server.v3.auth.regKeys),
     (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership,
-      go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp,
-      go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, go_etcd_io.etcd.server.v3.etcdserver.apply.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, go_etcd_io.etcd.server.v3.etcdserver.read.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, go_etcd_io.etcd.server.v3.etcdserver.txn.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.lease, go_etcd_io.etcd.server.v3.lease.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.storage, go_etcd_io.etcd.server.v3.storage.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, go_etcd_io.etcd.server.v3.storage.backend.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, go_etcd_io.etcd.server.v3.storage.mvcc.regNames),
-    (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, go_etcd_io.etcd.server.v3.storage.wal.regNames)]
-
-def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initNames : List GoString :=
-  List.flatMap (fun x => x.snd) github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.regNames,
+      go_etcd_io.etcd.server.v3.etcdserver.api.membership.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regNames,
+      go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, go_etcd_io.etcd.server.v3.etcdserver.api.snap.regNames,
+      go_etcd_io.etcd.server.v3.etcdserver.api.snap.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.regNames,
+      go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, go_etcd_io.etcd.server.v3.etcdserver.apply.regNames,
+      go_etcd_io.etcd.server.v3.etcdserver.apply.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, go_etcd_io.etcd.server.v3.etcdserver.read.regNames,
+      go_etcd_io.etcd.server.v3.etcdserver.read.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, go_etcd_io.etcd.server.v3.etcdserver.txn.regNames,
+      go_etcd_io.etcd.server.v3.etcdserver.txn.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.lease, go_etcd_io.etcd.server.v3.lease.regNames,
+      go_etcd_io.etcd.server.v3.lease.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage, go_etcd_io.etcd.server.v3.storage.regNames,
+      go_etcd_io.etcd.server.v3.storage.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage.backend, go_etcd_io.etcd.server.v3.storage.backend.regNames,
+      go_etcd_io.etcd.server.v3.storage.backend.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, go_etcd_io.etcd.server.v3.storage.mvcc.regNames,
+      go_etcd_io.etcd.server.v3.storage.mvcc.regKeys),
+    (pkg_id.go_etcd_io.etcd.server.v3.storage.wal, go_etcd_io.etcd.server.v3.storage.wal.regNames,
+      go_etcd_io.etcd.server.v3.storage.wal.regKeys)]

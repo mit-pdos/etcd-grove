@@ -3,21 +3,21 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initialize'_res
-    [errors.Assumptions] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [ContextReadErrs]
-    [log.NewModel] (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
-    pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart get_is_pkg_init) : ⊢ ∀ Φ,
-    ownInitResL get_is_pkg_init (regResL
+    [promreg_gs : prometheus.PromRegGS GF] [errors.Assumptions] [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+    [HasExt Fs.fsExt] [ContextReadErrs] [log.NewModel] (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
+    get_is_pkg_init) : ⊢ ∀ Φ, ownInitResL get_is_pkg_init (regResL
     github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs) -∗ ▷ (ownInitResL get_is_pkg_init
     (regResL github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs) ∗ isPkgInit
     pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗ Φ (intoVal ())) -∗ WP
     (github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize' (intoVal ())) {{ Φ }}
 
-theorem Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initialize'
-    [errors.Assumptions] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [ContextReadErrs]
-    [log.NewModel] (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
-    pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart get_is_pkg_init) : ⊢ ∀ Φ,
-    ownInitializing get_is_pkg_init ∗ prometheus.namesFree
-    github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initNames -∗ ▷ (ownInitializing
+theorem Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.wp_initialize' [promreg_gs :
+    prometheus.PromRegGS GF] [errors.Assumptions] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [ContextReadErrs] [log.NewModel] (get_is_pkg_init : GoString → IProp GF) (Hinit :
+    GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart get_is_pkg_init) :
+    ⊢ ∀ Φ, ownInitializing get_is_pkg_init ∗ prometheus.regsFree
+    github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.regQs -∗ ▷ (ownInitializing
     get_is_pkg_init ∗ isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart -∗ Φ
     (intoVal ())) -∗ WP (github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.initialize' (intoVal
     ())) {{ Φ }}

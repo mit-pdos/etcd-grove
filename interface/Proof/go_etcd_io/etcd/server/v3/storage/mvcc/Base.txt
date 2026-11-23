@@ -10,8 +10,8 @@ def Perennial.go_etcd_io.etcd.pkg.v3.traceutil.isPkgInit_inst : IsPkgInit (IProp
   { isPkgInitDeps := iprop(isPkgInit pkg_id.context ∗ isPkgInit pkg_id.time ∗ isPkgInit pkg_id.go_uber_org.zap ∗ True),
     isPkgInitDef := go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit }
 
-def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp
-    GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
+def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.get_isPkgInit_wf_inst [prometheus.PromRegGS GF]
+    : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   {
     get_is_pkg_init_prop_def := fun get_is_pkg_init =>
       get_is_pkg_init pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc =
@@ -101,7 +101,7 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.isPkgInit_inst : IsPkgInit 
                                             isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.schedule ∗
                                               isPkgInit pkg_id.encoding.binary ∗
                                                 isPkgInit pkg_id.github_com.dustin.go_humanize ∗
-                                                  isPkgInit pkg_id.github_com.prometheus.client_golang.prometheus ∗
+                                                  isPkgInitSome pkg_id.github_com.prometheus.client_golang.prometheus ∗
                                                     isPkgInit pkg_id.go_etcd_io.etcd.client.v3 ∗
                                                       isPkgInit pkg_id.go_opentelemetry_io.otel.trace ∗
                                                         isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.adt ∗ True),

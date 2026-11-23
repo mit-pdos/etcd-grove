@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def Perennial.go_etcd_io.etcd.server.v3.storage.backend.initNames : List GoString :=
-  List.flatMap (fun x => x.snd) go_etcd_io.etcd.server.v3.storage.backend.regQs
+def Perennial.go_etcd_io.etcd.server.v3.storage.backend.regKeys : List w64 :=
+  []
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames : List GoString :=
   [prometheus.fqName go!"etcd" go!"disk"
@@ -26,5 +26,7 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.regNames : List GoString
     prometheus.fqName go!"etcd" go!"disk"
       go!"defrag_inflight"]
 
-def Perennial.go_etcd_io.etcd.server.v3.storage.backend.regQs : List (GoString × List GoString) :=
-  [(pkg_id.go_etcd_io.etcd.server.v3.storage.backend, go_etcd_io.etcd.server.v3.storage.backend.regNames)]
+def Perennial.go_etcd_io.etcd.server.v3.storage.backend.regQs : List (GoString × List GoString ×
+    List w64) :=
+  [(pkg_id.go_etcd_io.etcd.server.v3.storage.backend, go_etcd_io.etcd.server.v3.storage.backend.regNames,
+      go_etcd_io.etcd.server.v3.storage.backend.regKeys)]

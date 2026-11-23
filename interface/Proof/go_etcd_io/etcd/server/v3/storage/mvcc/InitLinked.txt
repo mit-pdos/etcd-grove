@@ -2,17 +2,18 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize'_res [errors.Assumptions]
-    (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
-    pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc get_is_pkg_init) : ⊢ ∀ Φ, ownInitResL
-    get_is_pkg_init (regResL go_etcd_io.etcd.server.v3.storage.mvcc.regQs) -∗ ▷ (ownInitResL
-    get_is_pkg_init (regResL go_etcd_io.etcd.server.v3.storage.mvcc.regQs) ∗ isPkgInit
+theorem Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize'_res [promreg_gs :
+    prometheus.PromRegGS GF] [errors.Assumptions] (get_is_pkg_init : GoString → IProp GF) (Hinit :
+    GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc get_is_pkg_init) : ⊢ ∀ Φ,
+    ownInitResL get_is_pkg_init (regResL go_etcd_io.etcd.server.v3.storage.mvcc.regQs) -∗ ▷
+    (ownInitResL get_is_pkg_init (regResL go_etcd_io.etcd.server.v3.storage.mvcc.regQs) ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc -∗ Φ (intoVal ())) -∗ WP
     (go_etcd_io.etcd.server.v3.storage.mvcc.initialize' (intoVal ())) {{ Φ }}
 
-theorem Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize' [errors.Assumptions]
-    (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
-    pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc get_is_pkg_init) : ⊢ ∀ Φ, ownInitializing
-    get_is_pkg_init ∗ prometheus.namesFree go_etcd_io.etcd.server.v3.storage.mvcc.initNames -∗ ▷
-    (ownInitializing get_is_pkg_init ∗ isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc -∗ Φ
-    (intoVal ())) -∗ WP (go_etcd_io.etcd.server.v3.storage.mvcc.initialize' (intoVal ())) {{ Φ }}
+theorem Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.wp_initialize' [promreg_gs :
+    prometheus.PromRegGS GF] [errors.Assumptions] (get_is_pkg_init : GoString → IProp GF) (Hinit :
+    GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc get_is_pkg_init) : ⊢ ∀ Φ,
+    ownInitializing get_is_pkg_init ∗ prometheus.regsFree
+    go_etcd_io.etcd.server.v3.storage.mvcc.regQs -∗ ▷ (ownInitializing get_is_pkg_init ∗ isPkgInit
+    pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc -∗ Φ (intoVal ())) -∗ WP
+    (go_etcd_io.etcd.server.v3.storage.mvcc.initialize' (intoVal ())) {{ Φ }}

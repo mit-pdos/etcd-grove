@@ -827,3 +827,50 @@ Built against `/shared/tmp/manifest-pip1016.json` (Perennial `101637598` plus Op
   instance's `γ`, fact `promInit γ` (`INST_HAND`); the registering packages take `idToks γ [descId n]` per
   registration (`idToks_names_cons`) and call `MustRegister.wp_proof (Registry.MustRegister.wp_proof
   Registry.Register.wp_proof)`; `REG_KEYS` (v3rpc: `grpcKeys`, stored in `metricsP`).
+
+### Step 2, milestone 3 (2026-11-23): the closed proofs allocate the rights; `Start.lean`'s names part removed
+
+Built against `/shared/tmp/manifest-1a03.json` (Perennial `1a0322fc6`, lean's pin at `aa1eb4da33`, which has
+Option 4 as perennial#684).
+* **Merges.** `lean` at `aa1eb4da33` (14 conflicts: generated files and baselines from lean's side, regenerated
+  with `etc/goose.py --project etcd` and `etc/gen-init.py`; `gen-init.py` and `decisions.md` both sides). lean's #23
+  replaced `opaqueInitsOk` by goose `[[skip]]` entries; `defaultRegistry`, `DefaultRegisterer`, `DefaultGatherer`
+  are taken off prometheus's skip list (this branch translates their initializers), the other skips kept.
+  `dto`'s variables are not skipped (its `opaqueInitsOk` stays; skipping them is a possible follow-up). Then
+  **`net-swap` as a branch** (not in `lean` yet): first `df4369bae2`, then its newer tip `a711639023`; its side
+  for what it retires (`etcd/all`, `k8s/all`, `leaseexpiryN`'s closed theorems, Start.lean's address part).
+* **net-swap follow-up**: its tip did not build: 34 hand-written linked results reaching `net.Listen` lacked the
+  `[_root_.Perennial.net.FieldAssumptions]` binder its own rule gives them (`restart`, `restartN`, `putget*`,
+  `lease*`, `auth*`, `compact*`, `txnlinfaultsN`, `etcd/all`'s and `k8s/*`'s `MainLinked`/`Results`); added
+  here, the same edit net-swap's session will make (no other change to them).
+* **Other net-swap follow-ups** (its tip fails these checks too): `etc/api/etcdstart.txt` listed the deleted
+  `AdequacyMembers`; and `etc/proof_roots.py` grouped `Net/` roots that reach the main tree's
+  `Code.net.textproto` with ones that reach `Net.Code.net.textproto` (the same names) into one Lean run of
+  `etc/tcb-report.py`, which could not load ("environment already contains ..."): `shadows_part` now keys a run
+  also by the main-tree translations a part translates too. `etc/ModelParamCheck.lean` (gates' model-param) has
+  the same clash, not fixed here.
+* **`Start.lean`, removal only**: `prometheus.nameFree` out of `startRights`; `Ns`/`hNs`/`hNsFree` out of
+  `goose_adequacy_start` and `goose_adequacy_start_all`, and `hNsIds` out of the latter; the axiom
+  `prometheus.nameUnclaimed` and `prometheus.namesUnclaimed` deleted. Then dead and deleted: the axiom
+  `prometheus.nameFree` (`Registry.lean`), `prometheus.namesFree` (`PkgInitRes.lean`), `descIdsDistinct`,
+  `read.readRegPerm`, `mvccrandNames`, `mvccfullMetricNames`, the etcd/dist draft's `serverNames`/`clientNames`.
+* **The closed proofs** (mvccrand, mvccfull): in `Hwp`, `prometheus.regKeys_alloc` (`PkgInitRes.lean`: a fresh
+  ghost map with the elements of `regKeysOf regQs`, from `regQsOk regQs`), `letI : PromRegGS GF := ⟨γreg⟩`,
+  `idToks_regsFree`, then the program's `wp_initialize'` at it. `regQsOk` is decided once per program,
+  `<ex>_regQsOk`, through `regQsOk_of_keys` over the IDs as literals (`<ex>RegKeys`, computed with
+  cespare/xxhash and checked by the kernel): deciding `regQsOk` directly made the kernel rehash the names for
+  every pair `Nodup` compares (21 GB before it was stopped), and `∀ k ∈ L, k ∉ builtinKeys` timed out in the
+  elaborator's `whnf` (`(L ++ builtinKeys).Nodup` does not). The WAL tester has no closed adequacy theorem over
+  its initializer (`tester_crash` runs none), so nothing to allocate there; the generic etcdstart theorems that
+  survive net-swap take no names.
+* **Statements**: each closed statement loses only `HNs` (`notes/prom-registry-start-change.md`, part 5).
+* **Trust base** (`etc/tcb-report.py --check --update`; collections `mvccfull`, `v3rpc`, and net-swap's
+  `client`, `cache-client` updated): this branch's changes are `prometheus.nameFree`, `nameUnclaimed`,
+  `collectorName`, `MustRegister.wp_proof`, `Register.wp_proof`, prometheus's `initFuncsOk` gone, client_model
+  `dto`'s `initFuncsOk`/`opaqueInitsOk` new (`notes/prom-registry-start-change.md`, part 3, which also lists the
+  baseline's net-swap changes). Interfaces of `backend`, `etcdstart`, `mvcc` regenerated (their
+  `wp_initialize'` take `regsFree regQs` at `[PromRegGS GF]`, milestone 2).
+* **Pending**: `lean` has since moved to Perennial `9c3b81f30` (`82950b71a3`, manifest
+  `/shared/tmp/manifest-9c3b.json`), and `net-swap` has merged it (`876c4a595a`); merging them here (conflicts
+  expected in the package-init proofs: lean's side) is the next step. Then sign-off (#15) and landing (after
+  net-swap lands).

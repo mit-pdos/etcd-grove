@@ -1,7 +1,7 @@
 # prometheus's default registry, route (b): the final trusted diff (for Upamanyu's sign-off, #15)
 
 Branch `prom-registry` (notes/prom-registry.md, "Route (b)"). **Status: final** (step 2, milestone 3, 2026-11-22:
-everything builds; `@@TCB@@`). Parts 1-2 are as of step 1 (commit `8168da033b`); parts 3-5 are step 2's (milestones 2
+the full build passes (manifest-1a03); `etc/tcb-report.py --check --update`, commit after `b956ee3ffd`). Parts 1-2 are as of step 1 (commit `8168da033b`); parts 3-5 are step 2's (milestones 2
 and 3). Nothing lands before sign-off.
 
 ## 1. Points for the sign-off
@@ -226,6 +226,16 @@ Removed:
 
 Added:
 - client_model `dto`'s `opaqueInitsOk` and `initFuncsOk` (point 1; step 1).
+
+`etc/tcb-report.py` (global baseline, 2026-11-23, against `lean`'s `aa1eb4da33` baseline) confirms, of these: gone
+`prometheus.nameFree`, `prometheus.nameUnclaimed`, `prometheus.collectorName`, `prometheus.MustRegister.wp_proof`,
+`prometheus.Register.wp_proof`, prometheus's `initFuncsOk`; new `client_model.go.initFuncsOk` and
+`client_model.go.opaqueInitsOk`. (The same diff of the baseline also has net-swap's changes, not this branch's:
+`addrClaim` new; `addrUnclaimed`, `netAddrFree`, `netListenerAt`, `net.Listen.wp_proof`, `net.opaqueInitsOk`
+gone; and 23 axioms no remaining root reaches since net-swap retired `etcd_safe`/`k8s_safe`/leaseexpiryN's,
+among them `prometheus.NewCounterVec/NewGaugeVec/NewHistogramVec.wp_proof`, which stay axioms in the source.)
+Collection `mvccfull`: the six prometheus changes above, plus net-swap's (`addrUnclaimed`, `httpProtoFree`,
+`netAddrFree`, `net.opaqueInitsOk` gone); `v3rpc`: `prometheus.Register.wp_proof` gone.
 
 Changed:
 - `goose_adequacy_start` (part 4);

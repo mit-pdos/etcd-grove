@@ -76,7 +76,6 @@ axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
-axiom prometheus.Register.wp_proof
 axiom proto.Marshal.wp_proof
 axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof

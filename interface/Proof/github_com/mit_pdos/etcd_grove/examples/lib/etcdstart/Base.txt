@@ -25,8 +25,9 @@ def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.isPkgInit_in
                                         isPkgInit pkg_id.go_etcd_io.etcd.api.v3.mvccpb ∗ True),
     isPkgInitDef := iprop(True) }
 
-def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart :=
+def Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.get_isPkgInit_wf_inst
+    [prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF)
+    pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart :=
   {
     get_is_pkg_init_prop_def := fun get_is_pkg_init =>
       get_is_pkg_init pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart =
