@@ -268,11 +268,11 @@ theorem etcd_cache_served [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         v3rpc.isWatchServer pw V.R ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
-        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
+        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
         client.srvKVFacts V ∗ client.eofOk ∗
         -- (watches across a compaction, 2026-11-01; until then `hoff : V.R.E.γ.cm = false`) the
         -- watch condition (R8, 2026-11-08: R7's restatement, `v3rpc.srvOnce`, in place of the

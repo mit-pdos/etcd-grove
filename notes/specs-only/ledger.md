@@ -4300,6 +4300,149 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** The post gives `Int.toNat actualMaxReaders - 1` slots (the loop keeps one); the rest unchanged.
 - **Decision.** Approved by the user (2026-11-21), on the condition that every caller still proves: applied, the callers'
   slot arithmetic adjusted (`NewServer`, `NewServerR`, `mvccfull`'s `runner.open`, `mvccrand`'s `runChecks`).
+
+## 2026-11-21: `wal.WAL.renameWALUnlock.spec` -- its call made unreachable (supersedes the open parts of the 2026-11-14 entries)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__renameWALUnlock.lean` (a hypothesis of
+  `renameWAL.wp_proof`, and so of `wal.Create`'s and every result over it: the WAL tester's `wp_Boot`/`wp_Main`,
+  `h_wal_WAL_renameWALUnlock`).
+- **Defect.** False as stated (entries of 2026-11-14): (1) its `w.Close()` needs the encoder and the tail file,
+  which `walPreIn` does not carry; (2) its `Open`/`ReadAll` need an atomic update on `walDirIs dir` that the client
+  spent at the first rename's commit; (3) after a rename that committed with an error, the second
+  `os.Rename(nm.tmp, nm)` has an absent source, which no `os.Rename` spec covers. A false hypothesis makes
+  every result over it vacuous.
+- **Evidence.** The 2026-11-14 entries; `renameWAL.wp_proof` (`WAL__renameWAL.lean:116-125`) reaches the call only
+  when `os.Rename(nm.tmp, nm)` returned an error. The WAL's other specs already rule out such errors when the file
+  system cannot fail on the path (`cut.spec`, `Save.spec`: `walCov Sio → DirFits dir ∧ …`; `os.Rename.specFileS`'s
+  witness `err ≠ nil → ¬ (FsNoErrOn (· = target) ∧ PathFits src ∧ PathFits target)`, wal-fsfix2).
+- **Proposed change.** (a) `os.Rename.specDirS`/`specDirSnc` (`Spec/os/RenameS.lean`) gain the same error witness
+  as `specFileS` (a stronger post; proof over a new `wp_osRenameDirSW`/`wp_osRenameDirSNE` in
+  `GooseLang/Ext/Fs/NoErrSpecsRename.lean`, as for files: `NoIoErr` gives a directory rename with a success, the
+  source a directory, the target absent, the whole call permission held, errno 0). (b) `renameWAL.spec` and
+  `wal.Create.spec`/`specFresh` take the premise `FsNoErrOn (· = dir) ∧ PathFits (child r tmp) ∧ PathFits dir`
+  (the file system does not fail on the WAL's name, and both names fit). `renameWAL`'s rename-error branch is
+  then refuted, and `renameWALUnlock.spec` leaves `renameWAL.wp_proof`'s hypotheses, so it leaves every Link. The spec
+  file is deleted, and `renameWALPost`'s arm 2 (the reopened handle) can go, with its handling in `Create`.
+  Clients: the WAL tester (premise from its semantics, `NoIoErr allIo`, and its area's path fitting); no
+  etcdserver proof calls `wal.Create` (C6 unwritten).
+- **Decision.** (a) and (b) decided by the coordinator (etcd-grove-03, 2026-11-21, issue #15): (b) as an internal
+  spec premise. The user signs off at the closed statement, whose world premises will list "the area's `wal` and
+  `wal.tmp` paths fit (`PathFits`)" explicitly.
+- **Made (2026-11-21, `wal-safe` `15fb2e2e44`, `26904191fa`).** (a) `wp_osRenameDirSNE`/`wp_osRenameDirSW`
+  (`GooseLang/Ext/Fs/NoErrSpecsRenameDir.lean`), `specDirS`/`specDirSnc`'s witness; (b) the premise on
+  `renameWAL.spec`, `wal.Create.spec`/`specFresh`; the error branch refuted, `errors.As` no longer reached
+  (`h_errors_AsLinkError` left the Links too); `WAL__renameWALUnlock.lean` deleted; the tester's `Boot`/`Main`
+  take `tWalFsOk area`. `renameWALPost`'s arm 2 is now dead but kept (its removal is a cleanup).
+
+## 2026-11-22: `wal.Create.spec`'s no-failure premise widened to `dir.tmp` and the area; `os.RemoveAll.specSubS` and `os.Stat` witness their errors (wal-safe, step 2 (D), design (FNE))
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/{Create,CreateFresh}.lean` (premise
+  `FsNoErrOn (· = dir) ∧ PathFits (dir ++ ".tmp") ∧ PathFits dir`, from the entry of 2026-11-21);
+  `Spec/go_etcd_io/etcd/server/v3/storage/wal/CreateCallees.lean`'s `fileutil.CreateDirAll.specTmp`; the WAL tester's
+  `tWalFsOk` (`WalTester/.../RestartOk.lean`); `Spec/os/RemoveAll.lean`'s `os.RemoveAll.specSubS`.
+- **Defect.** `Create` must cope with any leftover `dir.tmp` (a crash's): `RemoveAll` may return `nil` with it still
+  there (a spurious `ENOENT`, no effect) and `Exist` may miss it (a `Stat` error), so `CreateDirAll` can meet a
+  `dir.tmp` holding anything (a file, a directory with directories, a directory `.touch`). `specTmp` covers only a
+  directory of files, and the tester bridges the rest with the premise `BootFoNmTmp` on every crashed tree, which
+  no premise on the initial state can discharge.
+- **Evidence.** `TrustedCode/os.lean` (`RemoveAll.impl`, `model.removeAllFrom`, `model.stat`) and `NoIoErr`/`PathErrno`
+  (`GooseLang/Ext/Fs/Premises.lean`): with `dir.tmp` and its parent covered and fitting, every `nil` exit of
+  `RemoveAll(dir.tmp)` is an `unlink`/`rmdir` of `dir.tmp` answering 0 or `ENOENT`, the parent's `open`
+  answering `ENOENT`, or a read of `dir.tmp` answering `ENOENT`, each only with `dir.tmp` gone; `Stat` of an
+  existing covered path succeeds. Notes: `notes/wal-units/tester.md`, handoffs of sessions 5 and 6.
+- **Proposed change.** (FNE) `wal.Create.spec`/`specFresh` and `tWalFsOk` take `FsNoErrOn (fun p => p = dir ∨ p =
+  dir ++ ".tmp" ∨ p = r)` (`r` the area, `filepath.Dir dir`), `PathFits` unchanged; `specSubS`'s post gains
+  `err = nil → FsNoErrAt (child d b) → FsNoErrAt d → b gone`; `os.Stat.wp_dirSW`/`wp_fileAnySW` (new) witness
+  their error; `CreateDirAll.specTmp` is deleted (`Create` then calls `CreateDirAll` only on an absent `dir.tmp`:
+  `CreateDirAll.spec`, proved), and with it `walAreaRes`'s `TmpOk`/`tmpClTouch` and the tester's `BootFoNmTmp`.
+  The rejected alternative (G): make `TouchDirAll`/`CreateDirAll` cope with any leftover (3-4 sessions).
+- **Decision.** (FNE), the coordinator (etcd-grove-03, 2026-11-22). At the closed theorem the widened premise is
+  discharged by the semantics' `NoIoErr allIo` (every path), as `tWalFsOk` already is: no new closed premise.
+- **Made (2026-11-22, `wal-safe`, session 6).** The `os` half: `specSubS`'s post, `os.Stat.wp_dirSW`/`wp_fileAnySW`
+  (`Proof/os/StatNE.lean`), over `wp_fs_postSh` (`GooseLang/Ext/Fs/WpPostShared.lean`). The `wal.Create`/tester
+  half (session 7, `57d9a044f0`): the premise widened on `wal.Create.spec`/`specFresh` and `tWalFsOk`;
+  `CreateDirAll.specTmp` (and its proof, with `TouchDirAll.specDir`) deleted; `walAreaRes`'s `TmpOk` replaced by
+  `ClRanked` of each `nm.tmp`'s claims, `tmpClTouch` gone; the tester's `BootFoNmTmp` gone.
+
+## 2026-11-22: `WalPbIn.CloneHsLaw` narrowed to a non-nil source; `WalHsOwn.notNull` (wal-safe, session 9)
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/wal/ReadAllCallees.lean`: `WalPbIn.CloneHsLaw` (a hypothesis of
+  `WAL.ReadAll.wp_proof`) and `structure WalHsOwn`.
+- **Defect.** The law covered `proto.Clone` of a nil `*raftpb.HardState` (`P.hsIn` allows nil), which no trusted
+  spec covers (`proto.ClonePb.spec` takes a frozen message, non-nil), so the law could not be derived for the raftpb
+  instance without new trust.
+- **Evidence.** In `ReadAll` (fork `d7c7f6434`, wal.go:717) `state` is `&raftpb.HardState{}` or
+  `MustUnmarshalState`'s `&s`, never nil; the reviewer's `clone-hs-law.md` (`/shared/tmp/coord-03/review-wal4/`)
+  suggested dropping the nil case.
+- **Proposed change.** `CloneHsLaw` takes `p ≠ null`; `WalHsOwn` gains `notNull : HsO p h ⊢ ⌜p ≠ null⌝`, which
+  `ReadAll` uses before freezing its `state` (`walRaftHsO_notNull`: `hsOwnC` holds it).
+- **Decision.** Made (coordinator's task 2, "narrow the law that way if needed"). `walRaftP_cloneHs` and
+  `walRaftHsO_unmarshal` (`RaftModel/LawsHsPb.lean`) discharge `CloneHsLaw walRaftP` and `WalHsOwn.unmarshal` over
+  `proto.ClonePb.wp_proof`/`proto.UnmarshalPb.wp_proof` (axioms already reached); both leave `TOpen`.
+
+## 2026-11-22: `io.CopyFiles.spec`'s size premise `m.size < 2^62` too weak (wal-safe, session 9)
+- **Spec.** `Spec/io/CopyFiles.lean` (`io.CopyFiles.spec`, a hypothesis of `wal.Repair.wp_proof`).
+- **Defect.** With a source of size in `[2^62 - 2^31, 2^62)` the triple is false of the model: the translated
+  dispatch reaches `model.pollCopyFileRange`, whose first round asks `min(remain, 0x7ffff000)` bytes at the
+  source's offset, and `model.copyFileRangeRound` panics when `offMax (= 2^62) ≤ soff + max`.
+- **Evidence.** `TrustedCode/os.lean`, `model.copyFileRangeRound`'s third check; `remain = 2^63 - 1`
+  (`tryLimitedReader` of a non-`LimitedReader`).
+- **Proposed change.** `m.size < 2 ^ 61` (then every round's `soff + max < 2^62`, and the fallback's `Read`/`Write`
+  of 32 KiB stay below `2^62`). `Repair` has `size ≤ Fs.maxBytes = 0xffffffff000`.
+- **Decision.** Made (the premise's own statement; no client but `Repair`, which supplies it).
+
+## 2026-11-22: `time.Time.Format.specBroken` weakened to what the WAL uses, and made an axiom (wal-safe, session 11)
+- **Spec.** `Spec/time/Time__FormatBroken.lean` (a hypothesis of `wal.WAL.cleanupWAL.wp_proof`, through the WAL and
+  tester Links); `cleanupLaw`'s timestamp premise (`Spec/.../wal/WAL__cleanupWAL.lean`).
+- **Defect.** Stronger than the WAL needs: its post said every byte is a digit, `.` or `-`, but the WAL uses only that
+  the broken name `nm.broken.<s>` is a name (`brokenName_nameOk`: no `/`, no NUL). As a trust-boundary axiom (the
+  user's decision, 2026-11-22: "a minimal axiom claiming only what the WAL relies on") the extra claim would be
+  trusted for nothing.
+- **Evidence.** `brokenName_nameOk`'s proof uses only `/ ∉ s` and `NUL ∉ s`; `create_cleanupLaw` ignores the premise.
+- **Proposed change.** Post `⌜timeStampOk s⌝` (`timeStampOk s := 47 ∉ s ∧ 0 ∉ s`); `cleanupLaw` takes the same;
+  `timeStampChars` deleted. The axiom `time.Time.Format.wp_proofBroken` (`Proof/time/Time__FormatBroken.lean`),
+  reviewed by the `axiom` skill (`notes/axiom-review/time-format-broken.md`: survives).
+- **Decision.** Made (the user's approval of item (4), 2026-11-22). Closes the 2026-11-14 entry ("its result
+  unconstrained").
+
+## 2026-11-22: `fmt.ErrorfErrsNot.spec`/`fmt.ErrorfErrsTerm.spec` -- premises no proof can use (wal-safe, session 11)
+- **Spec.** `Spec/fmt/ErrorfErrsNot.lean`, `Spec/fmt/ErrorfErrsTerm.lean` (hypotheses of the WAL's `decodeRecord`,
+  `Record.Validate`, `readWALNames(Absent)`, `openWALFiles`; `TOpen`'s `errorfErrsNot`/`errorfErrsTerm`).
+- **Defect.** The premises on each error argument `e` are `errIsNot e t`/`errIsTerm e`: triples of `errors.Is(e, _)`.
+  But `errors.Is` on `Errorf`'s result never calls `errors.Is` on the argument: Go's `Is` runs `is(err, target, c)`, a
+  loop that on a `*fmt.wrapError` calls `Unwrap()` and continues the loop at the child (and recurses through `is`,
+  not `Is`, for `Unwrap() []error`). So a proof of the result's triple needs facts about every error of the
+  argument's tree (its `==` with the target, its `Is` and `Unwrap` methods: Perennial's `errors.Is.spec` takes
+  `errorWalkTree S I U target`), and a triple of `Is(e, _)` gives none of them. True of Go, unprovable from its
+  premises: hypotheses that could never be discharged. Second gap: with no `%w`, `errIsNot`'s `err ≠ t` needs the
+  result `*errorString` to differ from `t` (also an `*errorString`), and Perennial's `fmt.errorfErr` gives only
+  `l.[errorString, "s"] ↦□ s` (persistent: no freshness against `t`'s pointer).
+- **Evidence.** Go 1.27.3 `errors/wrap.go` (`Is`, `is`); Perennial `Spec/errors/Is.lean`, `Proof/fmt/Args.lean`
+  (`errorfErr`); session 8's analysis (`notes/wal-units/tester.md`).
+- **Proposed change.** State both over error trees, as `errors.Is.spec` takes them: `errTreeNot e t` (`e ≠ t`, and an
+  `errorIsTree S M t` containing `e` in which no error is `t` and no `Is` method answers `true`, `TreeTyped S t`) and
+  `errTreeTerm e` (for every pointer target `u`, an `errorIsTree S M u` containing `e`, `TreeTyped S u`), in
+  `Spec/errors/ErrTree.lean`; `errIsNot`/`errIsTerm` follow from them (`errIsNot_of_tree`, `errIsTerm_of_tree`).
+  Narrow both specs to what the WAL calls: a format with at most one `%w` argument (`ErrorfErrsTerm`), exactly one
+  (`ErrorfErrsNot`, all five call sites), so that the result is a fresh `*fmt.wrapError` (or, for `Term`, a leaf
+  `*errorString`); `ErrorfErrsNot` takes a target that is not a `*fmt.wrapError` (`io.EOF`, an `*errorString`), so
+  `err ≠ t` follows from the types, without freshness. A `*fmt.wrapErrors` (two `%w`s) is left out: Perennial's
+  `errorfErr` says nothing of its `errs` field, so its `Unwrap` cannot be stepped.
+- **Decision.** Made (the user's approval of item (3), 2026-11-22).
+
+## 2026-11-22: `time.Time.Format.specBroken` -- precondition `True` admits a writable `Location` (wal-safe, independent review)
+- **Spec.** `Spec/time/Time__FormatBroken.lean` (the trust-boundary axiom `time.Time.Format.wp_proofBroken`), called by
+  `wal.WAL.cleanupWAL.wp_proof` on `time.Now()`'s `Time`.
+- **Defect.** Precondition `True` for every `t`. `Format` reads `*t.loc`; in Go a write to that `Location` racing with
+  `Format` tears it and `Format` panics (`index out of range` in `Location.lookup`, `zoneinfo.go:200`). The axiom was
+  sound only because no model program can yet get a `Time` whose `Location` it can write (`Local` read-only by `time`'s
+  initializer, no specs of `In`/`Date`/`FixedZone`/`LoadLocation`): a fact outside the statement, which a future spec
+  could break.
+- **Evidence.** The independent review's `TestRacyLocation` and `TestRacyLocal` (go1.27.3, rerun 2026-11-22: both
+  panic in `time.(*Location).lookup`), `notes/axiom-review/time-format-broken/review_*.txt`.
+- **Proposed change.** `∀ t l, {{ globalAddr time.Local ↦□ l ∗ ⌜t.loc' = Loc.null ∨ t.loc' = l⌝ }}` (the location is
+  `UTC`'s or the read-only `Local`'s, whose `Location`s `time`'s initializer leaves no one the points-to of); the post
+  unchanged. `cleanupWAL` discharges it with the new `time.Now.specLoc` (`Spec/time/NowLoc.lean`, proved over
+  Perennial's translation of `Now`: the result's `loc'` is `Local`'s value).
+- **Decision.** Made (the independent review's recommendation, relayed by the coordinator, 2026-11-22).
 ## 2026-11-21: `resolver.EtcdManualResolver.Close` had no premise (prove-grpc3)
 
 - **Spec.** `resolver.EtcdManualResolver.Close.spec` (an axiom until this change), `resolver.New.spec`.
@@ -4956,3 +5099,72 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. etcd's client instantiates `Ok := anyRes` (every resource; its credentials'
   axiom needs none yet) and passes `R := True`; etcd's handlers use the chains at `R := True`.
 - **Decision.** Applied (agreed on #24; reviewed there before landing). No top-level statement changes.
+
+## 2026-11-23: `api.IsCapabilityEnabled.spec` takes a level-0 token; etcd's interceptors' resource is that token (prove-ps2-cap)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/IsCapabilityEnabled.lean`: under
+  `[ThreadBoundLe GF (2 ^ 30)]`, the pre gains `levelTok 0` and the post gives it back (the key `c : GoString`,
+  `Capability`'s type, in place of any `val`). `v3rpc.newUnaryInterceptor.spec` (under the same instance):
+  `srvInterceptorOk ic (levelTok 0) learnerReqOk` in place of `… iprop(True) …`; `v3rpc.newStreamInterceptor.spec`:
+  `srvStreamInterceptorWOk ic (levelTok 0)` in place of `… iprop(True)`; `v3rpc.Server.spec`'s post likewise for
+  `iu` and `is`. `etcdserver/api`'s package fact: `capInit` (`api/CapPool.lean`) in place of `True`.
+  `client.etcdIcRs s` (the unary chain's lent resources) is `[srvLgReader s, True, levelTok 0]`, so
+  `etcdGrpcSlot` holds the run's level 0 (`etcdGrpcSlot_bundle : srvRunBundle ⊣⊢ etcdGrpcSlot`, until then
+  `⊣⊢ etcdGrpcSlot ∗ levelTok 0`) and the lease handlers take the level 0 the interceptors lend.
+- **Defect.** The trust-boundary axiom `api.IsCapabilityEnabled.wp_proof` read-locked `enableMapMu` with no
+  reader token (`{{ isPkgInit api }} … {{ b, True }}`): a reader slot of an `RWMutex` for free, which is
+  false of Go without a bound on concurrent readers (`notes/bounds-plan.md`).
+- **Evidence.** `IsCapabilityEnabled` translated with its body (`api.toml`) and proved
+  (`Proof/.../api/IsCapabilityEnabled.lean`): the package's initializer builds `enableMapMu`'s reader slots into
+  a level-0 thread pool (`capInit_alloc`, `sync.init_RWMutex_threadPoolL`), and a reader borrows one with a
+  level-0 token. The callers are v3rpc's interceptors, run by grpc on a gRPC run's goroutine before the handler:
+  the run's bundle holds its level 0 (`srvRunBundle`/`srvStreamBundle`), free during the interceptor's call
+  (`RevokeCtx.lean`'s header).
+- **Why true of the code.** `IsCapabilityEnabled` (`capability.go:85`) `RLock`s, reads `enabledMap` (nil or a
+  map nothing writes after `init()`: `UpdateCapability` stores one of `capabilityMaps`' inner maps under the write
+  lock; `EnableCapability`, the only writer of entries, is called by tests only) and `RUnlock`s by `defer`;
+  `newUnaryInterceptor`'s and `newStreamInterceptor`'s closures call it first (`interceptor.go:49,220`), before
+  the handler. The unary contract lends the token to the handler (`srvInterceptorOk`), so the lease handlers'
+  level-0 pools use it after; the stream contract keeps it (`srvStreamInterceptorWOk`), and the watch handler,
+  the one stream handler proved, does not use level 0.
+- **Proposed change.** As above; callers updated (`v3rpc.Server`'s proof, the served theorems' slots: the KV,
+  lease, auth and watch ones, `etcdstart`'s `grpcUp`).
+- **Decision.** Applied: an axiom retired, callee contracts restated so that every caller proves on top; no
+  top-level statement changes.
+
+## 2026-11-23: `Client.Call.spec` asks the codec to decode only the method's answers (net/rpc model)
+
+- **Spec.** `Net/Spec/net/rpc/Client__Call.lean` (and `Client__Go.lean`, `Client__send.lean`): the decoding
+  obligation `□ (D -∗ ∀ rep, C.dec rep reply (Θ rep))` becomes `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply
+  (Θ rep))`; `Call`'s success post `Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true` becomes `Rargs ∗ ∃ rep, Θ rep true`
+  (the answer went into the decoding; `Θ` keeps what the caller needs of it), as `callPost`'s `nil` case
+  (`ClientDefs.lean`). `callRes` holds `bodyDecG C reply D (fun rep => Φ rep []) Θ`.
+  `Net/Spec/net/rpc/clientCodec__ReadResponseBody.lean`: `bodyDec C body D Θ` becomes `bodyDecG C body D G Θ`
+  (`Codec.lean`: the `dec` of every payload `pl` with `G pl`), with a new premise `□ (∀ pl, ⌜pl.length ≤
+  maxFrameN⌝ -∗ P (frameOf pl) -∗ ▷ (P (frameOf pl) ∗ G pl))` (the guard from the reader predicate, a step
+  after the read; `guard_true` for a `nil` body). `decErr`'s docstring (`Codec.lean`): the generated `Decode`
+  also panics `rpcNotModelled` on a tag naming another type (and on a `nil` or unlisted target), outside any
+  `C.dec` a generated codec meets; `CodecSpec`'s: a decoding that fails partway leaves fields written, so
+  `dec`'s `Ψ false` can only promise some value of the target's type.
+- **Defect.** No program using rpcgen's codec with two types or more could meet `Call`'s premise: its
+  `rpcDecode` (`models/net/rpc/rpcgen_core.py`) panics `rpcNotModelled("... decoding a <tag> into a <T> is not
+  modelled")` when the tag parses but names another listed type (a documented deviation from gob), so
+  `C.dec rep reply Ψ` is false of such `rep` and `∀ rep, C.dec rep reply _` unprovable: a kit cannot call
+  `Call`.
+- **Evidence.** kaashoek's craq port, report on etcd-grove#24. The new statement is proved:
+  `Client.input`'s proof (`Net/Proof/net/rpc/Client__input.lean`) trades the call's collection token for the
+  answer `Φ reply []` at the header (`resp_hdr`, `ans_trade`), before the body, and gives `ReadResponseBody`
+  the guard `pl = reply` (`body_guard`: by `resp_body` and the `ans` element's agreement, the body frame is
+  that answer's reply); `lake build Net.Proof.net.rpc.Results` green, every linked result Lean's three axioms.
+- **Why true of the code.** A success response's body is the server's encoding of the handler's reply
+  (`sendResponse`, `callRet`: `C.enc replyv (fun eb => Φ eb [])`), and `Φ rep []` reaches the client only
+  through the run's answer (`answerRes`, `replyEscrow`), so a method spec that gives `Φ rep []` only for `rep`
+  an encoding of the reply type (as a caller's `Φ` can require) makes the decoding provable. `decOk`'s failure
+  branch claimed nothing about the target (it is `C.dec`'s `Ψ false`, the codec spec's choice); no concrete
+  `CodecSpec` exists yet to overclaim.
+- **Proposed change.** As above; callers updated (`Client.input`'s, `Client.send`'s, `Client.Call`'s,
+  `ReadResponseBody`'s proofs). Open, same defect: the server's `methodOk` (`ServerDefs.lean`) gives
+  `bodyDec C argv D Θ`, a decoding of every request body, which a generated codec with two types does not meet
+  either (`serverCodec.ReadRequestBody`, `Server.readRequest`); the same guard from the deposit `S m args Φ`
+  would fix it.
+- **Decision.** Applied for the client (branch `models-rpc-server`); the server's request decoding open.

@@ -29,7 +29,7 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) := by
-  intro t l x a Qfail Qok
+  intro t l x la Qfail Qok
   unfold lisAt
   wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hx, %hl0⟩, #Hla, HQ⟩
   (try wp_method_call)
@@ -40,16 +40,16 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
   wp_auto
   (try (rw [show decide (l = W64 0) = false by simpa using hl0]; wp_auto))
   wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Accept l a $$ Hla
-  imod HQ with ⟨%o, %S, Hl, Hpend, HQ⟩
-  imodintro
-  iexists o, S
-  iframe Hl Hpend
+  iapply wp_net_Accept l la $$ Hla
   isplit
   · -- a failure
-    iintro Hl Hpend
     icases HQ with ⟨HQ, -⟩
-    imod HQ $$ Hl Hpend with HQ
+    imod HQ with ⟨%o, Hl, HQ⟩
+    imodintro
+    iexists o
+    iframe Hl
+    iintro Hl
+    imod HQ $$ Hl with HQ
     imodintro
     rw [Conn_ty_eq]
     wp_auto
@@ -78,9 +78,14 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
       unfold resErr
       iexists e
       iframe Herr He
-  · -- a connection
+  · -- a connection, dialed to `a`
+    iintro %a %ha
+    icases HQ with ⟨-, HQ⟩
+    imod HQ $$ %a %ha with ⟨%o, %S, Hl, Hpend, Hk⟩
+    imodintro
+    iexists o, S
+    iframe Hl Hpend
     iintro %ho %cn %HcS Hl Hpend #Hat
-    icases HQ with ⟨-, Hk⟩
     imod Hk $$ %ho %cn %HcS Hl Hpend Hat with HQ
     imodintro
     wp_auto
@@ -89,8 +94,9 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     ileft
     isplitr
     · ipureintro; rfl
-    iexists cn
+    iexists cn, a
     iframe HQ Hc
+    ipureintro; exact ha
 
 end proof
 
