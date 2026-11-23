@@ -12,6 +12,7 @@ module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.BufferClient__Connect
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.BufferClient__Disconnect
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
 
@@ -68,6 +69,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF]
 
 /-- The frozen `client.BufferClient.Connect.spec` over the codec `C`. -/
@@ -76,7 +78,7 @@ abbrev client.BufferClient.Connect.specG : Prop :=
     (γ : sp.Names) (γc γm γl : GName),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       client.bufFresh b cid maddr mport ∗ ⌜sp.addrPort maddr mport = masterAddr⌝ ∗
-      net.rpc.rpcAddr W masterAddr ∗ ⌜W.SS masterAddr go!"Master" = some (sp.masterSpec γc γm)⌝ ∗
+      rpcHttp W masterAddr ∗ ⌜W.SS masterAddr go!"Master" = some (sp.masterSpec γc γm)⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       ([∗list] a ∈ replicaAddrs, addrProto a (sp.inP γ γc γm) (sp.outQ γ γc γm)) ∗
       sp.inv γ γc γm γl }}
@@ -92,6 +94,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
 
 /-- The frozen `Connect` statement from its form at `kitCodec`. -/
 theorem client.BufferClient.Connect.spec_of_G

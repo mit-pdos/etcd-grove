@@ -12,6 +12,7 @@ module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.BufferClient__Connect
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.CodecG
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
@@ -135,6 +136,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statement,
 -- `kitCodecC` in the link
@@ -509,6 +511,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]
 
 /-- The frozen statement: `Connect.wp_proofG` at `kitCodec`. -/

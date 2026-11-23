@@ -26,6 +26,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.PkgFacts
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.codec.RoundTrip
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
@@ -136,13 +137,14 @@ variable [examples.swiftnet.Assumptions]
 -- `kitCodecC` in the link
 variable [C : net.rpc.RpcCodec netDistGF]
 
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF] in
 /-- `c.dialMaster()` from no master client, at the master's address. -/
 abbrev client.Client.dialMaster.specI : Prop :=
   ∀ (cl : Loc) (v : client.Client) (W : net.rpc.RpcWorld netDistGF),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       cl ↦ v ∗ dlog.quiet v.Logger' ∗
       ⌜v.master' = null ∧ sp.addrPort v.masterAddr' v.masterPort' = masterAddr⌝ ∗
-      net.rpc.rpcAddr W masterAddr }}
+      rpcHttp W masterAddr }}
     (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"dialMaster")) (Val #()))
   {{ (m : Loc) (err : GoInterface), RET (PairV #m #err);
       (⌜err = interface.nil⌝ ∗ cl ↦ { v with master' := m } ∗ net.rpc.isClient m W masterAddr) ∨

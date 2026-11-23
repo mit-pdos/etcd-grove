@@ -33,6 +33,7 @@ variable [examples.swiftnet.Assumptions] [dlog.Assumptions] [fmt.Assumptions] [e
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link
 variable [C : net.rpc.RpcCodec netDistGF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
 
 set_option goose.wp.extras true
 
@@ -62,7 +63,7 @@ theorem client.Client.dialMaster.wp_proof
   · iexists _; iframe; ipureintro; word
   wp_for HI
   wp_if_destruct
-  · wp_apply net.rpc.DialHTTP.wp W masterAddr $$ [$Ha] as %mc %err Hd
+  · wp_apply DialHTTP_tcp W masterAddr $$ [$Ha] as %mc %err Hd
     icases Hd with (⟨%Herr, #Hmc⟩ | ⟨%Herr, -⟩)
     · subst Herr
       wp_auto
