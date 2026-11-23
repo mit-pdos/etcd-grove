@@ -609,3 +609,12 @@ new file of its own (named below), and it reports its link lines, which the inte
   by the integrator: `Run`'s invariant from `StepWithin`/`GCWithin`.
 - The integrator merges each group's branch, adds its link lines and runs the full build
   (`build.sh`, under the build slot).
+- **Integrated so far (parallel phase):** H3's `boot_within`, `send_within` (`BootSendLaws.lean`);
+  H6's W7: `init0_within`, `violated`, `NewChecker`, `Checker.End` (linked), `Checker.Next` and `Run`
+  (proved, linked once `GCWithin`, `StepWithin` and `CheckLaws.StepCfg` are). H6's findings:
+  (1) `violated.spec` does not say an empty result is `nil`, which `Next`'s `v != nil` needs, so
+  `Checker__Next.lean` re-proves the call with that fact (`Checker.Next.violated_wp`); the clean fix
+  is that fact in `violated.spec`'s post (a spec change, for the coordinator). (2) `Run` needs
+  `s.step ev = .ok (some s') → s'.cfg = s.cfg` (`CheckLaws.StepCfg`: `Stream.ConfBounded` is over
+  `Run`'s `cfg`, `BoundedFor` over the state's), not in the plan; it holds (no action writes `cfg`),
+  owner W6.

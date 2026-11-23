@@ -10,6 +10,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.AckFact
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.At
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Checker__End
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Comparable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Concat
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.ConfOf
@@ -59,6 +60,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg__term
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg__to
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg__typ
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.NewChecker
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.NextConf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.RecordedIn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Recovered
@@ -193,6 +195,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.stringsEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.validBy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.violAdd
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.violated
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.votesAdd
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.votesHas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.votesMinus
@@ -221,6 +224,10 @@ theorem AntCheck.wp_AckFact :
 theorem AntCheck.wp_At :
     AntCheck.At.spec (GF := GF) (hG := hG) :=
   AntCheck.At.wp_proof
+
+theorem AntCheck.Checker.wp_End :
+    AntCheck.Checker.End.spec (GF := GF) (hG := hG) :=
+  AntCheck.Checker.End.wp_proof
 
 theorem AntCheck.wp_SubSeq :
     AntCheck.SubSeq.spec (GF := GF) (hG := hG) :=
@@ -473,6 +480,10 @@ theorem AntCheck.Msg.wp_term :
 theorem AntCheck.Msg.wp_to :
     AntCheck.Msg.to.spec (GF := GF) (hG := hG) :=
   AntCheck.Msg.to.wp_proof AntCheck.Msg.wp_need
+
+theorem AntCheck.wp_NewChecker :
+    AntCheck.NewChecker.spec (GF := GF) (hG := hG) :=
+  AntCheck.NewChecker.wp_proof AntCheck.wp_Init0
 
 theorem AntCheck.wp_RecordedIn :
     AntCheck.RecordedIn.spec (GF := GF) (hG := hG) :=
@@ -957,6 +968,10 @@ theorem AntCheck.wp_setStr :
 theorem AntCheck.wp_validBy :
     AntCheck.validBy.spec (GF := GF) (hG := hG) :=
   AntCheck.validBy.wp_proof
+
+theorem AntCheck.wp_violated :
+    AntCheck.violated.spec (GF := GF) (hG := hG) :=
+  AntCheck.violated.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm
 
 theorem AntCheck.wp_votesAdd :
     AntCheck.votesAdd.spec (GF := GF) (hG := hG) :=

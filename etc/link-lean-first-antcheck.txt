@@ -211,3 +211,6 @@ onDisk__voted: onDisk__w onDisk__V1 Event__vote
 # W6 (Ready .. Flush, Bind, GC, Step)
 
 # W7 (check.go, Run)
+violated: State__ElectionSafety State__OneVotePerTerm
+NewChecker: Init0
+Checker__End:
