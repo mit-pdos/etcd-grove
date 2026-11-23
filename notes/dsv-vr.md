@@ -88,12 +88,25 @@ netExt]`); the client's atomic update `AU <{∃∃ σ, absOwn γ σ}> @ ↑clien
 and `examples/vsrnet/KitProof.lean` (`wp_digit`, `wp_digits`, `Gen.spec`/`Gen.wp_proof`: `Gen` meets
 lintest's `genSpec` with inputs `∃ i : KIn, x = inV i.1`; `kin_get`/`kin_put`); both `lean-check`
 clean, no `sorry`. `digit`/`digits`/`Gen` need no `isPkgInit` (genSpec's precondition has none).
-Being ported (by helper agents of this session, files not yet committed when absent): the leaves
-`Spec/{queue,assert,time,vsrkv,ipv4port}.lean` + `Proof/<p>/*.lean` (lab paths kept under
-`Dsverify/Proof/github_com/tangledbytes/go_vsr/`), and the configuration protocol
-`examples/vsrnet/Conf.lean` (`confBytes`, `ConfOk`, `cfgAddrs`, `confProto`, `ackProto`; `choose`,
-`encode`, `decode`, `sendConf`, `Configure`, `awaitConf`, `waitConf`; `io.ReadFull` over a
-connection through a hypothesis `conn_readerOk`, mirroring dsv-bufio's `Net/Proof/net/ConnIo.lean`).
+Ported since (lean-check clean, no `sorry`, committed): the leaves `Spec/{queue,assert,time,vsrkv,ipv4port}.lean`
++ `Proof/<p>/*.lean` (no hypotheses: Perennial proves `time.Now`, `Time.UnixNano`, `strings.Split`;
+**ipv4port changed**: the kit's addresses share one IP (`127.0.0.1:75xx`), so `ByLess` sorts by port,
+`ipv4port.portLt`, over `ipv4port.addrs` (a hand copy of `Addrs()`; the lab's single port made `Less`
+always false and the order empty); `ipCfgDef` states the exact IP and `a ∈ addrs`; client/replica
+`New` callers must name `portLt`/`addrs`), the pure JSON theory `Proof/jsoncodec/{ScanDef, StrSteps,
+NumSteps, ScanSteps, ScanBounds, ScanIdx, Enc, ScanLemmas, ScanTop, Facts, Inj, Frame, DigVal}` and
+the wire `Wire/{LineBound,Basic}.lean` (`protoOf γ : Proto GF`, connection ids `Nat`; `protos γ` over
+`addrProto` of `VsrWire.addrs`, a second hand copy of `Addrs()`: merge with `ipv4port.addrs` and prove
+`Addrs()` returns it; the configuration section moved to `examples/vsrnet/Conf.lean`).
+In progress (helper agents; absent files not yet done): `examples/vsrnet/Conf.lean` (the configuration
+protocol: `confBytes`, `ConfOk`, `cfgAddrs`, `confProto`, `ackProto`; `choose`, `encode`, `decode`,
+`sendConf`, `Configure`, `awaitConf`, `waitConf`; `io.ReadFull` over a connection through a hypothesis
+`conn_readerOk` mirroring dsv-bufio's `Net/Proof/net/ConnIo.lean`), and the spec hubs
+`Spec/{json,log,events,vsrwire,network,client,replica}.lean` (+ `Proof/network/Defs`, `Proof/log/*`).
+After the hubs, the package proofs are independent of each other (each imports only hubs):
+`events`+`vsrwire`, `network`, `client`, `replica` (31 files, ~7k lines), then `Top/` (kit specs
+`Orch`/`Client`/`Server`, mains, `Linked`, `TopLevelRobustness`). The Go JSON codec proofs
+(`Proof/jsoncodec/Go*`, `vsrnetjson`, `jsonstream`) stay out (finding 2): hypotheses.
 
 Step 3, done (but the kit specs `Orch`, `Client`, `Server`, next):
 `examples/vsrnet/ModelSet.lean` (the pure side: `Rep s Cur Pend` (`s` holds `(lk Cur, Pend)` and every
