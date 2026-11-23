@@ -1,6 +1,6 @@
 /-
 `bufio.NewWriter(wr)` (Go 1.27.3 `bufio.go`: `NewWriterSize(wr, 4096)`) over a writer `wr` by the
-`io.Writer` contract `io.writerOk wi J Q Ew`: a fresh writer with a 4096-byte buffer that has
+`io.Writer` contract `io.streamWriterOk wi J Q Ew`: a fresh writer with a 4096-byte buffer that has
 sent `W` and buffers nothing (`bufio.ownBufWriter`). Scope: `wr` is not a `*bufio.Writer`
 (`NewWriterSize`'s spec says why). Proved in `Proof/bufio/NewWriter.lean`. dsv-bufio, 2026-11-23
 (#24); revised after the review (W2, W5).
@@ -29,7 +29,7 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 abbrev bufio.NewWriter.spec : Prop :=
   ∀ (wi : GoInterfaceOk) (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF) (W : List w8),
   {{ ⌜wi.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Writer.ty⌝ ∗
-      isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ io.writerOk wi J Q Ew ∗ J W ∗ □ Q W }}
+      isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ io.streamWriterOk wi J Q Ew ∗ J W ∗ □ Q W }}
     (App (Val (@! _root_.Perennial.bufio.NewWriter)) (Val #(GoInterface.ok wi)))
   {{ (bw : Loc), RET #bw; bufio.ownBufWriter bw wi J Q Ew 4096 W [] interface.nil }}
 
