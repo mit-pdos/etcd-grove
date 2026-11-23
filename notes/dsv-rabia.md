@@ -9,13 +9,14 @@ a slot's wake channel), Perennial `3afd77e35`; the lab's statement `dsv_goal_che
 `CheckOperations.wp_proof`. The lab's proof is 40.6k lines under `proof/Proof/` (plus its harness
 pieces under `proof/Harness/`).
 
-**State (2026-11-23, evening): Go, translation and every initializer done (the kit's and the twelve
-programs' `PkgTable`s build); the foundation's first five files are ported (`Dsverify/Proof/rabia/
-Core/{Model,Protocol,Ghost,Proto,PkgState}.lean`, each checks with `etc/lean-check.py -a`); the
-per-package proofs, the kit's proofs and the statement are not.** Missing model pieces are
-hypotheses named after the lab's specs (the coordinator's rule, 2026-11-23; list below): those of
-the initializers are stated (`InitHyp` classes); the rest are listed, to be stated when a ported
-proof needs them.
+**State (2026-11-23, night, second agent): Go, translation, initializers done; ported and checked
+with `etc/lean-check.py -a` (not yet `lake build`): the foundation (`Core/{Model,Protocol,Ghost,
+Proto,PkgState,Chans}`, `Lib/OrdChan`), queue, ledger, logger, system, config, message's wire format
+and Marshal/Unmarshal, the whole consensus layer, tcp's interface (`Defs`, `Spec`, `Enc`, `Frames`,
+`Wg`, `ClientSendChan`, `NumConns`), network (`Spec`, `Basics`, `MsgRouter`, `MsgSerializer`), proxy
+(`Spec`, `Basics`, `CmdReceiver`, `naiveExecuteCmd`, `singleExecuteAndReply`, `KVSExecutor`). Not
+ported: message's bufio half, tcp's transport proofs, the layers' prologues/inits, server, the kit,
+the statement (Next steps). The revised dsv-bufio (`75ef5881aa`) is merged.**
 
 ## What is where
 
@@ -137,32 +138,52 @@ an axiom; the closed statement carries it until the shared change (bufio, #24) o
 
 ## State, in detail
 
-- Built (`lake build`): the translation; every `Init.lean` of the part's rabia packages and the
-  libraries' hypothesis files, `rabianet`'s and the twelve programs' `PkgTable.lean`
-  (`lake build Dsverify.Proof.rabia.examples.rabianet.Init` plus the twelve
-  `…cmd.<n>.PkgTable`). `gen-init.py --check` and `goose.py --check` up to date.
-- Checked with `etc/lean-check.py -a` (not yet `lake build`): `Lib/OrdChan`, `Core/{Model,
-  Protocol,Ghost,Proto,PkgState}`, `internal/config/{Base,Init}`.
-- Not ported: the lab's `Proof/Rabia/{Chans,Start,StartAlloc,GoalSpec}.lean` (`Chans` needs
-  `internal/ledger/Spec`; `Start`/`StartAlloc` become the top level's allocation, `GoalSpec` the
-  statement) and every per-package file under the lab's `Proof/rabia/` (about 35k lines).
+- Porting recipe: imports `Proof.Rabia.X` -> `Dsverify.Proof.rabia.Core.X`, `Proof.…` ->
+  `Dsverify.Proof.…`, `Rabia.GeneratedProof` -> `Dsverify.GeneratedProof`, the lab's
+  `<pkg>/Base.lean` -> `Basics.lean` (`Base.lean` is the generated package fact), `message.Spec` ->
+  `message.SpecPure` (until message's bufio half), `Harness.Proof.math.rand` ->
+  `Dsverify.Proof.math.rand.Spec`, `Harness.Proof.os.signal` -> `Dsverify.Proof.os.signal.Spec`,
+  `zerolog.Methods` -> `zerolog.Spec`; `attribute [local instance] Dsv.netConnExts … pkgStates` ->
+  `variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]`; `open … NetConn Dsv` ->
+  `open … Net`; `[π : NetProtoGS]` on each section's GF line lacking one; a Spec file imports its
+  package's `Base.lean`; `dsverify_lab.harness.KvInput` -> `model.KvInput`.
+- Namespaces: whatever invariant may be open when the client's update fires is below `rabiaR`
+  (`cliE = ⊤ \ rabiaE`): `slotN` (consensus `Spec`), `srvKeysN`, tcp's `wgN` and `rcptN` moved there;
+  the lab's `clientN` lemmas (`keys_client_disj`, `client_rabia_disj`) are stated with `cliE`.
+- Perennial drift fixed in place: `decide` on goals with `W32` literals -> `simp`;
+  `nonblockingRecvAuAlt`/`nonblockingRecvAuInner` are `|NC={⊤,∅}=>`: `iapply ncfupd_of_fupd` before
+  `iinv`; proxy's `StoreRel` takes `(kv GoString GoString).State` (with `KStore` a later goal was
+  ill-typed at `implicit` transparency).
+- Hypothesis classes (no instance anywhere): `github_com.rs.zerolog.Hyps`, `os.signal.Hyps`
+  (`Notify` says **no signal is delivered**: an assumption on the environment, the lab's model's;
+  `Stop`), `math.rand.Hyps` (`NewSource`, `New`, `Rand.Intn`, the package-level `Intn` for the kit's
+  `choose`; taken by the coin's theorems and the executor's proof sections). With the `InitHyp`s,
+  each must be a premise of `rabia_remote_robust`.
+- tcp's `Spec`: the lab's `net.ownListener l lid a` is `ownListener li l a` = `net.isListener li l ∗
+  netLis NL l a true ∗ netLisAt NL l a` (`net.Listen`'s post); `ProxyTcpInit`/`NetTCPInit` take
+  `shared γ` (it holds the address's `addrProto`, which `listen_au` needs) instead of the lab's
+  `addrTok`; `tableEntry` holds `net.isConn cv cid true a` (`cid : Nat`) instead of
+  `net.rpc.connIface`.
 
 ## Next steps
 
-1. The leaves by editing the lab's files (imports `Proof.Rabia.*` → `Dsverify.Proof.rabia.Core.*`,
-   `NetConn` → `Net`, `[HasExt netConnExt]` → `[HasExt netExt] [π : NetProtoGS]`, the lab's
-   `inits.<pkg>.init.spec` and `pkgStates` → the generated `wp_initialize'`/`Base.lean` facts,
-   `(↑dsverify_lab.harness.clientN : CoPset)` → `cliE`, `ndot nroot "rabia_…"` → `ndot rabiaR "…"`):
-   queue, ledger (`Pure`, `Sorting`, `Spec`, the `Slot__*`), then `Core/Chans`.
-2. message (wire format; the bufio hypotheses; `message`'s fact `msgState` into its `Base.lean` and
-   `SPECIAL[...]['finish']`, from the lab's `message/initialize.lean`'s end), tcp (the transport:
-   `net.Conn` specs + `Proto.lean`'s laws `write_acc`/`read_au`/`dial_au`/`accept_au`, as paxos's
-   `NetProof`), network, consensus (`srvKeysN` below `rabiaR`), proxy, server.
-3. The kit: `Configure` (`confClaim` in place of the lab's client claim), `NewClient`, `Op` (its
-   update is `opAU`: `lin_opAU : remote.lin (kvR γ) i Φ ⊢ opAU γ i (fun _ _ o => Φ o)`, with `kvR`
-   the kit's `RBase` over `kvState` and `Eop = rabiaE`, as dsv-vr's `kvR`/`lin_AUof`), `Server`, the
-   porcupine model's proof (`Model`/`step` of `kit.go` against linkv's pending-writes map, as dsv-vr's
-   and dsv-paxos's `ModelSet`/`ModelProof`), `gens()`'s `genSpec`.
-4. The mains, `TopLevelDefs`, `TopLevelRobustness` (`rabia_remote_robust`, with a `wp_boot` that
-   hands the package state to `main`; the stated hypotheses as premises), `#print axioms`, the
-   collection's baseline.
+1. message's bufio half onto the revised bufio (`notes/dsv-bufio.md`'s table; never unfold its
+   predicates): the lab's `Spec.lean` part (`frameBound`, `frameIs`, `BufWrite`/`WriteFlush`/
+   `*.MarshalWriteFlush`/`BufRead`/`*.ReadUnmarshal` specs) over `bufio.ownBufReader br ri Pre S E R`
+   (`S` = the connection's `recvTokL cn s P`, `ri = net.connIface t`, `Pre` from `net.conn_readerOk`)
+   and `bufio.ownBufWriter bw wi J Q Ew sz sent pend err`; `BufRead` reads with Perennial's
+   `io.wp_ReadFull` through `bufio.ownBufReader_readerOk`; a frame's protocol fact with
+   `net.connReader_proto`; `FrameDeps` needs message's package fact (`errFrameTooLarge`,
+   `errFrameTooLong` non-nil: the lab's `msgState`, into `message/Base.lean` via `etc/dsv/rabia.py`'s
+   `special` for `rabia.internal.message`, `finish`).
+2. tcp's transport (lab `Base`, `ProtoLemmas`, `ProxyLemmas`, `NetLemmas`, `Hub`, `ClientTCP__Connect`,
+   `ClientTcpInit`, `ProxyTcpInit`, `ProxyTCP__{Connect,recvLoop,sendLoop}`, `NetTCPInit`,
+   `NetTCP__{Connect,RecvHandler,SendHandler}`): over `Net/Spec/net/*` and `Proto.lean`'s laws as
+   paxos's `NetProof.lean` (`dial_au`, `accept_au`, `listen_au`, `write_acc`, `read_au`); the
+   `TCPConn.Set*` calls of `GetReaderWriter` have Net specs.
+3. network `Prologue`, proxy `ProxyInit`/`Prologue`, server (`Alloc`, `ServerInit`, `Server__*`).
+4. The kit (`Configure` with `confClaim`, `NewClient`, `Op` with `opAU`/`lin_opAU`, `Server`, the
+   porcupine model's proof as paxos's `ModelSet`/`ModelProof`, `gens()`'s `genSpec`), mains,
+   `TopLevelDefs`, `TopLevelRobustness` (`rabia_remote_robust`; every `InitHyp` and `Hyps` class a
+   visible premise; confirm `etc/theorem-loc.py` counts them), `#print axioms`, the collection's
+   baseline, then `lake build` of the leaves (so far only `lean-check`).
