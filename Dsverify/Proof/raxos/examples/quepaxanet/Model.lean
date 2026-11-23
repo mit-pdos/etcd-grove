@@ -10,7 +10,7 @@ model's state `M` of `Pure/ModelSet`, and the state stands for `mSet (lk E)`. `s
 module
 
 public import Dsverify.Proof.raxos.examples.quepaxanet.Base
-public import Dsverify.Proof.raxos.Pure.ModelSet
+public import Dsverify.Proof.raxos.Pure.QIn
 public import Proof.github_com.anishathalye.porcupine.Defs
 
 @[expose] public section
@@ -263,12 +263,20 @@ def qDec (io : OpV) : Option (KIn × Ans KOut) :=
     some (kin (Classical.choose h), kans (Classical.choose (Classical.choose_spec h)))
   else none
 
-/-- **The store's porcupine model**, as the pending library's invariant sees it: `pSeq kvB`
-through `qDec`. -/
-def qS0 {GF : BundledGFunctors} : ModelSpec GF (PSet raxos.pure.Store KIn) where
-  M := pM kvB qDec
+open Classical in
+/-- porcupine's operations as the kit's store's (remote's inputs `QIn`): `qDec`'s, if the input is
+one the kit makes (`inputOk`); anything else decodes to nothing. -/
+def qDecQ (io : OpV) : Option (QIn × Ans KOut) :=
+  match qDec io with
+  | some (i, a) => if h : inputOk i then some (⟨i, h⟩, a) else none
+  | none => none
+
+/-- **The store's porcupine model**, as the pending library's invariant sees it: `pSeq qB`
+(`kvB` on the kit's inputs) through `qDecQ`. -/
+def qS0 {GF : BundledGFunctors} : ModelSpec GF (PSet raxos.pure.Store QIn) where
+  M := pM qB qDecQ
   rep _ _ _ := iprop(True)
-  ioOk i o := iprop(⌜(∃ x : In, i = inV x) ∧ ∃ y : Out, o = outV y⌝)
+  ioOk i o := iprop(⌜(∃ x : In, i = inV x ∧ inputOk (kin x)) ∧ ∃ y : Out, o = outV y⌝)
   ioOk_pers _ _ := by infer_instance
 
 end vals
@@ -346,6 +354,13 @@ theorem qDec_box (i : In) (o : Out) : qDec (inV i, outV o) = some (kin i, kans o
   generalize Classical.choose hx = i' at h1 ⊢
   rw [← inV_inj h1, ← outV_inj h2]
 
+/-- `qDecQ` on a boxed `In` the kit makes and a boxed `Out`. -/
+theorem qDecQ_box (i : In) (o : Out) (h : inputOk (kin i)) :
+    qDecQ (inV i, outV o) = some (⟨kin i, h⟩, kans o) := by
+  unfold qDecQ
+  rw [qDec_box]
+  simp only [h, ↓reduceDIte]
+
 end dec
 
 /-! ## The model's spec -/
@@ -364,15 +379,17 @@ instance entRep_persistent (e : Entry) (p : KEnt) : Persistent (entRep (GF := GF
   unfold entRep; infer_instance
 
 /-- A model value: the boxed `State` `sl`, read-only, whose entries hold `E` (distinct keys,
-entries `Ok`); its set is `mSet (lk E)`, which is not empty; at most `k` entries and `k` pending
-values per entry (a step adds at most one of each). -/
-def qRep (k : Nat) (v : GoInterface) (S : PSet raxos.pure.Store KIn) : IProp GF :=
+entries `Ok`); its set is `mSet (lk E)` on the kit's inputs (`pre`), which is not empty and whose
+pending inputs are the kit's (`AllP inputOk`); at most `k` entries and `k` pending values per
+entry (a step adds at most one of each). -/
+def qRep (k : Nat) (v : GoInterface) (S : PSet raxos.pure.Store QIn) : IProp GF :=
   iprop(∃ (sl : State) (es : List Entry) (E : List KEnt),
-    ⌜v = stV sl ∧ S = mSet (lk E) ∧ qOk E ∧ (∃ c, mSet (lk E) c) ∧ E.length ≤ k ∧ allLe k E⌝ ∗
+    ⌜v = stV sl ∧ S = pre (mSet (lk E)) ∧ AllP inputOk (mSet (lk E)) ∧ qOk E ∧
+      (∃ c, mSet (lk E) c) ∧ E.length ≤ k ∧ allLe k E⌝ ∗
     sl ↦*□ es ∗ [∗list] e;p ∈ es;E, entRep e p)
 
-/-- **The store's porcupine model** (pending puts): `pSeq kvB` through `qDec`. -/
-def qS : ModelSpec GF (PSet raxos.pure.Store KIn) where
+/-- **The store's porcupine model** (pending puts): `pSeq qB` through `qDecQ`. -/
+def qS : ModelSpec GF (PSet raxos.pure.Store QIn) where
   M := (qS0 (GF := GF)).M
   rep k v s := qRep k v s
   ioOk := (qS0 (GF := GF)).ioOk

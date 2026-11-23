@@ -886,7 +886,8 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     iframe Hsl
     isplitr
     · ipureintro
-      refine ⟨rfl, by rw [lk_nil_fun, mSet_empty], ⟨List.nodup_nil, nofun⟩,
+      refine ⟨rfl, by rw [lk_nil_fun, mSet_empty]; exact pInit_sub,
+        by rw [lk_nil_fun, mSet_empty]; exact AllP_pInit, ⟨List.nodup_nil, nofun⟩,
         ⟨⟨kvB.init, []⟩, by rw [lk_nil_fun, mSet_empty]; rfl⟩, Nat.le_refl _, nofun⟩
     · iapply BigSepL2.bigSepL2_nil.2; itrivial
   isplitr
@@ -899,36 +900,38 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     iintro !> %Φ' Hpre HΦ'
     simp only [qS, qS0]
     icases Hpre with ⟨%Hk, Hrep, %Hio⟩
-    obtain ⟨⟨x, rfl⟩, y, rfl⟩ := Hio
+    obtain ⟨⟨x, rfl, hx⟩, y, rfl⟩ := Hio
     unfold qRep
     icases Hrep with ⟨%sl, %es, %E, %Hr, #Hsl, #HE⟩
-    obtain ⟨rfl, rfl, hE, hne, hl, ha⟩ := Hr
+    obtain ⟨rfl, rfl, hall, hE, hne, hl, ha⟩ := Hr
     wp_auto
     wp_apply wp_step sl es E x y k (by omega) ha Hk $$ [$Hsl $HE] as %ok %t ⟨%Hok, %es', #Ht, #HE'⟩
-    have hpm := pM_step kvB qDec (mSet (lk E)) _ (kin x) _ (qDec_box x y)
+    have hpm := pM_step qB qDecQ (pre (mSet (lk E))) _ ⟨kin x, hx⟩ _ (qDecQ_box x y hx)
+    have hsub := pSeq_sub_step (B := kvB) hall ⟨kin x, hx⟩ (kans y)
     have H := stepL_pSeq hE hne (kin x) (kans y)
     obtain ⟨hb1, hb2⟩ := stepL_bounds hl ha (kin x) (kans y)
     iapply HΦ'
     isplitr
     · iexists sl, es, E
       iframe Hsl HE
-      ipureintro; exact ⟨rfl, rfl, hE, hne, hl, ha⟩
+      ipureintro; exact ⟨rfl, rfl, hall, hE, hne, hl, ha⟩
     isplitr
     · ipureintro
-      rw [hpm, H, Hok]
+      rw [hpm, hsub, H, Hok]
       cases (stepL E (kin x) (kans y)).1 <;> rfl
     · unfold stepPost
-      simp only [hpm, H]
+      simp only [hpm, hsub, H]
       cases hok : (stepL E (kin x) (kans y)).1
-      · simp only [Bool.false_eq_true, ↓reduceIte]
+      · simp only [Bool.false_eq_true, ↓reduceIte, Option.map_none]
         itrivial
-      · simp only [↓reduceIte]
+      · simp only [↓reduceIte, Option.map_some]
         iexists t, es', (stepL E (kin x) (kans y)).2
         iframe Ht HE'
         ipureintro
-        refine ⟨rfl, rfl, stepL_ok hE _ _, ?_, hb1, hb2⟩
-        have := pSeq_some_ne (H.trans (by rw [hok]; rfl))
-        exact this
+        have H' : (pSeq kvB).step (mSet (lk E)) ((⟨kin x, hx⟩ : QIn).1, kans y) =
+            some (mSet (lk (stepL E (kin x) (kans y)).2)) := H.trans (by rw [hok]; rfl)
+        refine ⟨rfl, rfl, AllP_step hall _ _ H', stepL_ok hE _ _, ?_, hb1, hb2⟩
+        exact pSeq_some_ne H'
   isplitr
   · ipureintro; nofun
   isplitr
@@ -939,19 +942,19 @@ theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
     simp only [qS]
     unfold qRep
     icases Hpre with ⟨⟨%sl, %es, %E, %Hr, #Hsl, #HE⟩, ⟨%sl', %fs, %F, %Hr', #Hsl', #HF⟩⟩
-    obtain ⟨rfl, rfl, hE, hne, hl, ha⟩ := Hr
-    obtain ⟨rfl, rfl, hF, hne', hl', ha'⟩ := Hr'
+    obtain ⟨rfl, rfl, hall, hE, hne, hl, ha⟩ := Hr
+    obtain ⟨rfl, rfl, hall', hF, hne', hl', ha'⟩ := Hr'
     wp_auto
     wp_apply wp_equal sl sl' es fs E F $$ [$Hsl $Hsl' $HE $HF] as %r %Hr
     iapply HΦ'
     isplitr
     · iexists sl, es, E
       iframe Hsl HE
-      ipureintro; exact ⟨rfl, rfl, hE, hne, hl, ha⟩
+      ipureintro; exact ⟨rfl, rfl, hall, hE, hne, hl, ha⟩
     isplitr
     · iexists sl', fs, F
       iframe Hsl' HF
-      ipureintro; exact ⟨rfl, rfl, hF, hne', hl', ha'⟩
+      ipureintro; exact ⟨rfl, rfl, hall', hF, hne', hl', ha'⟩
     ipureintro
     intro h
     rw [Hr h]
