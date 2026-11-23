@@ -89,18 +89,30 @@ named after the lab's specs, until each comes as one shared change. **All are in
   `isClientConn`, `handlerErr`, with their persistence as fields), `UnarySpec`, `GrpcWorld`
   (`MS`, `reg`), and defined over it as the lab's: `grpcAddr V W a := addrProto a (reqProto W a)
   (respProto W a) ∗ worldOk W`, `replyOk`, `decOk`, `handlerOk`, `descOk`, `encPre`. The specs
-  (the lab's statements): `NewServer.spec`, `Server.RegisterService.spec`, `Server.Serve.spec` (the
-  listener as `net.Listen`'s success post gives it: `isListener li l ∗ netLis l a true ∗ netLisAt
-  l a`), `WithInsecure.spec`, `Dial.spec`, `ClientConn.Invoke.spec`, and the law `world_alloc`;
+  (the lab's statements): `NewServer.spec`, `Server.RegisterService.spec`, `Server.Serve.spec`
+  (**changed for the wildcard**: the listener at `la` as `net.Listen`'s success post gives it,
+  `isListener li l ∗ netLis l la true ∗ netLisOn l la`, with `lisProto la (reqProto W a)
+  (respProto W a) ∗ worldOk W` for the server's address `a`, in place of the lab's listener at
+  `a` and `grpcAddr W a`), `WithInsecure.spec` and `Dial.spec` (**as the lab's `dialPost`**: the
+  vocabulary's `credsOpt o` (the lab's `DialOption.creds = true`) for `WithInsecure()`'s option;
+  `Dial` fails only if no option sets credentials, so QuePaxa's error branch, `fmt.Fprintf` +
+  `os.Exit`, is unreachable and needs no spec), `ClientConn.Invoke.spec`, and the law `world_alloc`;
   bundled as `class hyp.grpc.GrpcHyp V` (over `[PbCodec GF]`, to be `qpCodec`). **The deployment's
   vocabulary is an instance `[qv : hyp.QpVocab GF]`** (data only, field `grpc`): the definitions
   (`netProtos`, `peersP`, `replicaRes`, the proxy's state) mention `qv.grpc`; theorems that call
   gRPC take `[GrpcHyp qv.grpc]`. The statement will quantify over the instance and the hypothesis.
-- **`sync.Map`**: vocabulary `hyp.sync.MapVocab GF` (`own m M`, string keys), `class
-  hyp.sync.MapHyp V` (`own_timeless`, `own_zero` from a zero map, logically atomic
-  `Map.Load.spec`, `Map.Store.spec`, `Map.Delete.spec`). The proxy's store packs its vocabulary
-  and hypothesis in `isStoreDef` (`∃ MV, ⌜MapHyp MV⌝ ∗ ...`, `Proxy/StoreDefs.lean`): whoever
-  allocates a store (`raxos.New`'s proof) needs one from the statement. (`ClientBatchStore.Range`,
+- **`strconv.Atoi`**: `hyp.strconv.Atoi.spec` (the lab's `wp_Atoi`: for 1 to 18 decimal digits,
+  the value `decVal s` and `nil`), class `hyp.AtoiHyp GF`. Perennial's `strconv.Atoi.spec` does not
+  give the value (`setupgRPC`'s peer names, `NewRecorder`'s address need it). Discharge: the lab's
+  proof (`Harness/Proof/strconv/Atoi.lean`) redone over Perennial's translation of
+  `internal/strconv.Atoi`'s fast path (it now ranges over the bytes; the lab's stepped a loop).
+- **`sync.Map`**: vocabulary `hyp.sync.MapVocab GF` (`own m M`, string keys; `tp`, the points-to
+  of a `sync.Map` value), `class hyp.sync.MapHyp V` (`ivt`: `tp`'s `IntoValTypedUnderlying`,
+  `own_timeless`, `own_zero` from `m ↦ zero_val sync.Map`, logically atomic `Map.Load.spec`,
+  `Map.Store.spec`, `Map.Delete.spec`). The deployment's is `qv.map` (`QpVocab`'s field), whose
+  `tp` is `sync.Map`'s instance (`StoreInst.lean`). The proxy's store packs a vocabulary and its
+  hypothesis in `isStoreDef` (`∃ MV, ⌜MapHyp MV⌝ ∗ ...`, `Proxy/StoreDefs.lean`); `raxos.New`'s
+  proof allocates with `qv.map` and takes `[MapHyp qv.map]`. (`ClientBatchStore.Range`,
   used by `Remove`-less paths only, has no spec: add one if a proof reaches it.)
 - **bufio**: not a hypothesis: origin/dsv-bufio (75ef5881aa, revised after Upamanyu's review, merged
   here at 0493c6f8bc; not landed) is used directly: `EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz
@@ -116,8 +128,10 @@ named after the lab's specs, until each comes as one shared change. **All are in
 - **go-redis, yaml.v2, io/ioutil, encoding/gob**: names only, never reached (benchmark mode 0; the
   configuration made in code). Their calls need no spec unless the proof must show them
   unreachable (it does: `Init`'s mode-1 branch is excluded by the configuration).
+- `fmt.Printf` (the main tree's `Proof/fmt/Printf.lean`), `time.Sleep` (Perennial's), `net.Listen`
+  (`Net/`): proved specs, used by `Replica/{Serve,Server}`.
 - `log` (`Println`, `Fatal`), `math/rand` (`Intn`, `Seed`, `NewSource`/`New`/`(*Rand).Intn`), `os`
-  (`Create`, `Exit`, `Stderr`), `fmt.Fprintf`, `strconv.Atoi`, `sort.Ints`, `time` extras (the lab's
+  (`Create`, `Exit`, `Stderr`), `fmt.Fprintf`, `sort.Ints`, `time` extras (the lab's
   `Harness/Proof/{log,math/rand,os,fmt/Extra,strconv/Atoi,sort/Ints,time/Extra}`): to check against
   Perennial's and the main tree's (`Proof/math/rand`, `Proof/strconv`, Perennial's `log`, `sort`)
   when the proof reaches them; hypotheses (in `Hyp.lean`) where missing.
@@ -145,12 +159,11 @@ named after the lab's specs, until each comes as one shared change. **All are in
   lab's `Q σ σ' o`); executed: `▷ Φ o ∨ token tok`. `Ticket`/`tixAt`/`rdCtr`/`Rd` use the net
   extension's connection numbers (`Nat`) and `netFresh (extGlobalGS netExt) cid true` (exclusive
   by `netDir_excl`; `netFresh_timeless` in `Ghost.lean`) for the lab's `NetConn.connFresh`.
-- **PkgState (not done)**: the lab's `srcState` (the `Consensus_ServiceDesc` points-to, for the
-  recorder's `RegisterService`) is not the package fact yet: `replica/src`'s fact is `True`
-  (`Base.lean`). Making it `srcState` needs `etc/dsv/quepaxa.py`'s `special(g)` entry for
-  `raxos.replica.src` to finish the generated `Init.lean` with the descriptor's facts (its
-  `before` hook already evaluates the literal), and `Base.lean`'s `define_is_pkg_init` to name
-  it. Needed only once the grpc hypotheses (`grpc.Server.RegisterService.spec`) are stated.
+- **PkgState (done)**: `raxos/replica/src`'s package fact is the lab's `srcState` (the
+  `Consensus_ServiceDesc` points-to: its three methods with their generated handlers, no streams;
+  `Dsverify/Proof/raxos/replica/src/Base.lean`), proved by the generated `Init.lean` through
+  `etc/dsv/quepaxa.py`'s `special(g)` entry (`before['$inits']` keeps the methods' slice literal,
+  `finish` frames the fact).
 - Done (2026-11-23, second session): `Smr/{Step,Register,Laws}` (a request's update fires by
   `opAU_commit`, paxos's shape, from any mask holding `⊤ \ raxosN`; `smr_exec_slot` shrinks to it
   after opening `smrN` (`raxos_mask`); the registry saves `Φ : KOut → IProp`; `op_register` takes
@@ -168,23 +181,25 @@ named after the lab's specs, until each comes as one shared change. **All are in
   `portAddr (76xx)` (`Proto.lean`), listen addresses `"0.0.0.0:" ++ decStr port`; a `Countable` of a
   protobuf message encodes `state'`'s `DoNotCompare'`, `DoNotCopy'`, `atomicMessageInfo'`
   (`Proxy/SharedLoop.lean` has the instances for `NoUnkeyedLiterals`, `sync.noCopy`, `sync.Mutex`).
-- **Design points found (to settle in the proofs that meet them)**:
-  1. **Wildcard listeners.** The replicas listen on `0.0.0.0:port` (proxy, recorder), the
-     protocols are set at `127.0.0.1:port` (what the dialers dial). The proofs of `NetAccept`
-     (proxy) and of the recorder's `Serve` hypothesis must relate `net.Listen("0.0.0.0:p")`'s
-     `netLis l a` and `Accept`'s `netConnAt cn a` to the dialed address (D21: a wildcard listener
-     takes any address with its port). Check what `Net/`'s `listen_au`/`accept_au` give for a
-     wildcard address before porting `Proxy/Net*`; the `Serve` hypothesis may need the listen
-     address and the protocol address separately.
-  2. **`addrTok` is persistent** in `Net/` (exclusive in the lab): `sharedNet`'s invariant
-     `netOwn pr rm ∨ addrTok (proxyAddr k)` (the accept routine's state, given once) still
-     gives `netOwn` to one caller, but its swap no longer proves a second caller cannot
-     exist; `Proxy/NetAccept`'s proof must not need that.
-  3. **PkgState**: `Server.RegisterService.spec`'s `descOk` needs the `Consensus_ServiceDesc`
-     points-to, the lab's `srcState` (`PkgState.lean`), as `raxos/replica/src`'s package fact
-     (now `True`, `Base.lean`): `etc/dsv/quepaxa.py`'s `special(g)` entry for `raxos.replica.src`
-     must end the generated `Init.lean` with the descriptor's facts, and `Base.lean`'s
-     `define_is_pkg_init` name it. Do this when porting `Replica/Init`/`Inits`/`HarnessInit`.
+- **Design points found**:
+  1. **Wildcard listeners** (settled for the recorder, open for the proxy). The replicas listen on
+     `0.0.0.0:port`, the dialers dial `127.0.0.1:port`. Recorder: `netProtos` holds, per recorder
+     `r`, `recLisP qv.grpc (world γ) r := lisProto (recLis r) (reqProto W (recAddr r)) (respProto W
+     (recAddr r)) ∗ worldOk W` (`Proto.lean`; `recLis r = "0.0.0.0:" ++ decStr (7626 + r)`), in
+     place of the lab's `grpcAddr (recAddr r)`; dialers get `grpcAddr` from it
+     (`recLisP_grpcAddr`, `lisProto_addr`, `Replica/Serve.lean`); `wp_serve` listens by
+     `listen_lis_au` and gives `Serve` the listener's `lisProto`. **The kit's start must set it**:
+     `addrs_lis_start` with the recorders' (and proxies') wildcards in `las` and their dialed
+     addresses out of `addrs` (`hdisj`), then `lis_set_proto` per wildcard. Proxy (`Proxy/NetAccept`,
+     to port): the same with `accept_lis_au`; `netProtos`' `addrProto (proxyAddr k)` must become a
+     `lisProto` of `"0.0.0.0:" ++ decStr (7606 + k)` likewise.
+  2. **`addrTok` is persistent** in `Net/` (exclusive in the lab). The recorder needs none (its
+     `addrTok (recAddr k)` is gone from `replicaRes` and `srvRecorder`). Still there:
+     `addrTok (proxyAddr k)` in `replicaRes`, `srvRecorder` and `Proxy.NetworkInit.spec`, for
+     `sharedNet`'s invariant `netOwn pr rm ∨ addrTok (proxyAddr k)`: its swap no longer proves a
+     second caller cannot exist; replace it by a ghost token of the proxy's (or `lisUnset` of its
+     wildcard) when porting `Proxy/NetAccept`.
+  3. **PkgState**: done (above).
 - Done (third part of this session): `Proposer/*` (all; `Results`' `NewProposer.wp_proof`,
   `Proposer.runProposer.wp_proof` take `[GrpcHyp (cd := hyp.qpCodec) qv.grpc] [hyp.RandHyp GF]`;
   `#print axioms`: Lean's three); math/rand's hypotheses (`hyp.RandHyp`, `Hyp.lean`); `Proxy/Store`
@@ -194,25 +209,25 @@ named after the lab's specs, until each comes as one shared change. **All are in
   `lake build` of `Replica.Fetch`, `Replica.Handlers`, `Proxy.Store`, `Proposer.Results`, `Smr.Laws`,
   `Proxy.Slots`, `ModelProof`: OK. `RecDefs` no longer imports `Proxy.Results`/`Proposer.Results`
   (it used neither).
-- **Open: `sync.Map`'s points-to is `sorry` in Perennial** (`Perennial/GeneratedProof/internal/sync.lean`:
-  `HashTrieMap_typed_pointsto`/`_into_val_typed` are `sorry -- axiomatized type`, and `sync.Map` has
-  a `HashTrieMap` field). `#print axioms`: `store_add_proof`, `esp_handlerOk`, `fetch_handlerOk`
-  depend on `sorryAx` (through `ClientBatchStore`'s generated points-to/`IntoValTyped`, which `wp_auto`
-  uses on the store's field); `store_get` path and `inform_handlerOk`, `isStore_alloc_proof`, the
-  hypotheses (`MapHyp` uses an abstract `MapVocab.zero`, not the points-to) are clean. This is the
-  lab's `StoreInst.lean` issue (it gave `ClientBatchStore` a high-priority points-to over its own
-  `sync.Map` model). Fix options: (a) high-priority `TypedPointsto`/`IntoValTyped` instances of
-  `ClientBatchStore` (and whatever `wp_auto` needs of `sync.Map`) built from data in `MapVocab`
-  (a `sync.Map` points-to as part of the hypothesis vocabulary, with `zero` its zero value's), or
-  (b) Perennial translating `internal/sync.HashTrieMap` (a Perennial change, `notes/perennial-changes.md`).
-  Find first which instance `wp_auto` pulls in (`set_option trace.Meta.synthInstance`, or `#print
-  axioms` of the instances in `Dsverify/GeneratedProof/raxos/replica/src/chunk1.lean`).
-- **Next, in order** (ported ~13k of 37k lab lines):
-  1. `Replica/{Serve,Server,Init,Inits,HarnessInit,Results}`: `Serve` is the recorder's loop
-     (`grpc.NewServer`, `RegisterConsensusServer` → `RegisterService` with `descOk` from
-     `esp/fetch/inform_handlerOk` and the package fact `srcState` (PkgState, design point 3),
-     `net.Listen` on `0.0.0.0:port` (design point 1), `Serve`); `HarnessInit` is the lab's
-     harness initialization: drop or replace by the `InitHyp`s.
+- **`sync.Map`'s points-to is `sorry` in Perennial** (settled): `StoreInst.lean`'s high-priority
+  instances over `qv.map.tp`/`MapHyp.ivt`; files that step through `ClientBatchStore` code erase the
+  generated instances (`attribute [-instance]` block of `Proxy/Store.lean`, `Replica/Server.lean`);
+  `notes/perennial-changes.md`.
+- Done (2026-11-23, fourth part): `Replica/Serve` (`consensus_descOk` from `srcState` and the three
+  `handlerOk`s; `wp_RegisterConsensusServer`, `wp_serve`, `wp_Recorder_NetworkInit`; address
+  lemmas `recLis_k`, `recAddr_ok`, `recLis_listenOk`, `decStr_small`), `Replica/Server`
+  (`wp_Server_Run`, `wp_Server_NetworkInit`, `wp_setupgRPC`, `wp_createProposers`,
+  `wp_Server_StartProposers`, `wp_NewRecorder`, `wp_make_bag`, `wp_New`), `Replica/Results`
+  (`New.wp_proof [MapHyp qv.map] [GrpcHyp] [RandHyp] [AtoiHyp] (hNP : NewProxy.spec)`,
+  `Server.NetworkInit.wp_proof (hNI : Proxy.NetworkInit.spec)`, `Server.StartProposers.wp_proof`,
+  `Server.Run.wp_proof (hRun : Proxy.Run.spec)`: the proxy's three entry points are premises
+  until `Proxy/` is ported). `#print axioms` of all four and of `wp_serve`, `consensus_descOk`:
+  Lean's three. **Not ported (subsumed)**: the lab's `Replica/{Init,Inits,HarnessInit}.lean` (its
+  `src_initialize'` from its imports' initializers, the harness's grpc/protobuf initializer
+  proofs): the generated `raxos.replica.src.wp_initialize'` and the `InitHyp`s replace them.
+  `lake build Dsverify.Proof.raxos.Replica.Results Dsverify.Proof.raxos.Replica
+  Dsverify.Proof.raxos.Proxy.Slots`: OK.
+- **Next, in order** (ported ~14k of 37k lab lines; the Replica group is done):
   2. `Proxy/*` rest (11k: `Net*` onto `Net/Spec/net/*` + `GooseLang/Ext/Net/Proto.lean`'s laws as
      paxos's `NetProof.lean`; the writers through dsv-bufio's specs), `Codec/*` (7.3k: only the pure
      parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
@@ -221,7 +236,8 @@ named after the lab's specs, until each comes as one shared change. **All are in
      `lin_opAU`, `Codec.spec`, `Gen.spec`, `Orch.spec`, `Client.spec`, `Server.spec` as paxos's
      `Kit.lean`; `Orch.wp_proof` takes `Model.wp_proof`).
   3. `quepaxa_remote_robust` (`TopLevelRobustness.lean`): premises every `InitHyp`, `PbHyp`,
-     `RandHyp`, `∃ V, GrpcHyp V` (as the `QpVocab` instance), `∃ MV, MapHyp MV`, all visible in
+     `RandHyp`, `AtoiHyp`, `GrpcHyp qv.grpc` and `MapHyp qv.map` (over the `QpVocab` instance),
+     `net.Assumptions`/`net.FieldAssumptions`/`go.BasicIntoValInj` as paxos's, all visible in
      the `.spec`; check `etc/theorem-loc.py` counts them. `etc/tcb-collections/dsv-quepaxa.txt`
      (the two trusted descriptor-table inits of `TrustedCode/raxos/{replica/src,proto/client}.lean`,
      the etcd #32 justification).
