@@ -47,7 +47,7 @@ noncomputable instance Buffer_access_load_Buffer (l : Loc) (v : k8s_io.klog.v2.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance Buffer_access_store_Buffer (l : Loc) (v : k8s_io.klog.v2.internal.buffer.Buffer) (Buffer' : bytes.Buffer) :
+noncomputable instance Buffer_access_store_Buffer (l : Loc) (v : k8s_io.klog.v2.internal.buffer.Buffer) (Buffer' : _root_.Perennial.bytes.Buffer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.internal.buffer.Buffer go!"Buffer" l) v.Buffer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.klog.v2.internal.buffer.Buffer go!"Buffer" l) Buffer' (DFrac.own 1))
