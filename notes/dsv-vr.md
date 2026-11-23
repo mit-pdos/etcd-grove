@@ -161,6 +161,19 @@ result < 2^16, so `Op`'s output is a `KOut`), `OpProof.lean` (`Op.spec`/`Op.wp_p
 `frameDecoderSet ∗ codecSet ∗ ErrNoConn`'s value: package facts missing, see events' open item;
 hypotheses `slogNew.spec`, `slogDiscard.spec` (DiscardHandler's type is names-only: no points-to)),
 `ClientProof.lean` (`Client.spec`/`Client.wp_proof` over **`ServeClientB.spec`**, finding 6).
+`ServerProof.lean` (clean): `srvShare γ id` (the lab's `serverRes`: protos, confProtos, sysInv,
+regInv, replica `id-1`'s initial share, given to every server machine since N is known only after
+`waitConf`), `srvLibState` (= the client's `pkgStates`: `frameDecoderSet ∗ codecSet ∗ ErrNoConn`),
+`runReplica.spec`/`wp_proof`, `Server.spec`/`Server.wp_proof` (replica's `Run` hypotheses discharged
+from network's and events' Results). New slog hypotheses `log.slog.New.spec`,
+`log.slog.DiscardHandler.load_spec` (duplicates of MkClientProof's `slogNew`/`slogDiscard`: merge).
+**Why no statement yet (blockers, in order):** (1) finding 6 (remote's `ServeClient`); (2) `codecSet`
+in `srvLibState`/`pkgStates`: nothing establishes it (`RegisterJSON` is empty here because jsongen
+refuses go-vsr's `log.Logs`, finding 2), so no start can supply it and a top statement over it would be
+vacuous: needs the generated codec and its registration; (3) `frameDecoderSet`/`ErrNoConn` as package
+facts (events' open item below). Then: the start (ghost alloc, protocols, pend state, `nextReq` per
+client), `Mains`, `Linked`, `TopLevelRobustness` (`vr_remote_robust` with every `InitHyp`, `DecoderRep`,
+`EncoderRep` and library hypothesis as visible premises), `etc/tcb-collections/dsv-vr.txt`.
 **Open (events' package facts):** `pkg/events/Base.lean`/`examples/vsrwire/Base.lean` still
 have the weak facts; the hub specs take `hookKnownFull`/`frameDecoderSet` as preconditions. To make
 them package facts: move `frameDecOk`, `rstream`, `hookLockInvFull`, `hookKnownFull`,
