@@ -1,0 +1,193 @@
+/-
+Lean-first (no Rocq counterpart). #33 S3b W3b (2026-11-23): the proof of `s.InMemory(n, ev)` (B 213-275,
+`State.inMemory`).
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__InMemory
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__ok
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__role1
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__ld1
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__ll2
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__lc1
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__snapsM
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__wins
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__T
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__cmt
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__c
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__newC
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.setStr
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.setConf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.setInt
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.ConfOf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.LastConf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__InitConf
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event__snap
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event__role
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts__With
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Comparable
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.violAdd
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.IsPrefix
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.SubSeq
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set__Has
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.StateLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.EvalLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.InMemoryLaws
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace AntCheck
+
+open Iris Iris.BI Iris.ProofMode
+
+section proof
+set_option linter.unusedSimpArgs false
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
+
+theorem State.InMemory.wp_proof
+    (wp_ok : inMem.ok.spec (GF := GF) (hG := hG))
+    (wp_role1 : inMem.role1.spec (GF := GF) (hG := hG))
+    (wp_ld1 : inMem.ld1.spec (GF := GF) (hG := hG))
+    (wp_ll2 : inMem.ll2.spec (GF := GF) (hG := hG))
+    (wp_lc1 : inMem.lc1.spec (GF := GF) (hG := hG))
+    (wp_snapsM : inMem.snapsM.spec (GF := GF) (hG := hG))
+    (wp_wins : inMem.wins.spec (GF := GF) (hG := hG))
+    (wp_T : inMem.T.spec (GF := GF) (hG := hG))
+    (wp_cmt : inMem.cmt.spec (GF := GF) (hG := hG))
+    (wp_c : inMem.c.spec (GF := GF) (hG := hG))
+    (wp_newC : inMem.newC.spec (GF := GF) (hG := hG))
+    (wp_setStr : setStr.spec (GF := GF) (hG := hG))
+    (wp_setConf : setConf.spec (GF := GF) (hG := hG))
+    (wp_setInt : setInt.spec (GF := GF) (hG := hG))
+    (wp_ConfOf : ConfOf.spec (GF := GF) (hG := hG))
+    (wp_LastConf : LastConf.spec (GF := GF) (hG := hG))
+    (wp_InitConf : State.InitConf.spec (GF := GF) (hG := hG))
+    (wp_snap : Event.snap.spec (GF := GF) (hG := hG))
+    (wp_role : Event.role.spec (GF := GF) (hG := hG))
+    (wp_With : TermInts.With.spec (GF := GF) (hG := hG))
+    (wp_Comparable : Comparable.spec (GF := GF) (hG := hG))
+    (wp_violAdd : violAdd.spec (GF := GF) (hG := hG))
+    (wp_IsPrefix : IsPrefix.spec (GF := GF) (hG := hG))
+    (wp_SubSeq : SubSeq.spec (GF := GF) (hG := hG))
+    (wp_Has : Set.Has.spec (GF := GF) (hG := hG)) :
+    State.InMemory.spec (GF := GF) (hG := hG) := by
+  intro p s n e ev r
+  wp_start as ⟨#Hs, #He, %Hn, %Hlt, %HBd, %Ho⟩
+  ihave #Hs' := Hs
+  iunfold stateRO at Hs'
+  iNamed Hs'
+  iNamed Hf
+  iStructNamed Hp
+  ihave #Hx : inMemRO { s' := p, n' := n, ev' := e } { s, n := sint.nat n, ev } $$ []
+  · iunfold inMemRO; iframe Hs He; ipureintro
+    have := sint_nat_cast Hn
+    exact ⟨this.symm, show sint.nat n < s.cfg.server.length by omega, HBd⟩
+  obtain ⟨bb, EE, HW, HN, HC, hbb, hE⟩ := HBd
+  unfold numBound Event.weight at hbb
+  unfold State.inMemory at Ho
+  replace Ho := bind_ok Ho; obtain ⟨ok, hok, Ho⟩ := Ho
+  wp_auto
+  iStructNamedPrefix r "R"
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_ok_unfold.method_unfold]
+  try wp_auto
+  wp_apply wp_ok _ _ ok $$ [Hx]
+  · iframe Hx; ipureintro; exact hok
+  have hnr : 0 ≤ sint.Z n ∧ sint.Z n < s.role.length := ⟨Hn, by rw [HWf.len_role]; exact Hlt⟩
+  replace Ho := bind_ok Ho; obtain ⟨r1, hr1, Ho⟩ := Ho
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_role1_unfold.method_unfold]
+  try wp_auto
+  wp_apply wp_role1 _ _ r1 $$ [Hx]
+  · iframe Hx; ipureintro; exact hr1
+  wp_apply wp_setStr _ _ n r1 $$ [HRole] as %grole #Hrole
+  · iframe HRole; ipureintro; exact hnr
+  replace Ho := bind_ok Ho; obtain ⟨ld, hld, Ho⟩ := Ho
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_ld1_unfold.method_unfold]
+  try wp_auto
+  wp_apply wp_ld1 _ _ ld $$ [Hx] as %gld #Hld
+  · iframe Hx; ipureintro; exact hld
+  replace Ho := bind_ok Ho; obtain ⟨l2, hl2, Ho⟩ := Ho
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_ll2_unfold.method_unfold]
+  try wp_auto
+  wp_apply wp_ll2 _ _ l2 $$ [Hx] as %gl2 #Hl2
+  · iframe Hx; ipureintro; exact hl2
+  replace Ho := bind_ok Ho; obtain ⟨lc, hlc, Ho⟩ := Ho
+  rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_lc1_unfold.method_unfold]
+  try wp_auto
+  wp_apply wp_lc1 _ _ lc $$ [Hx] as %glc #Hlc
+  · iframe Hx; ipureintro; exact hlc
+  extract_lets viol0 lc0 me vCS jp1 at Ho
+  wp_join iprop(∃ (gcf gca : GoSlice) (cc : List Conf × List Int),
+      x_ptr ↦ ({ s' := p, n' := n, ev' := e } : G.inMem) ∗ s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      r_ptr.[G.MemResult, go!"Config"] ↦ gcf ∗ r_ptr.[G.MemResult, go!"ConfAt"] ↦ gca ∗ confsRO gcf cc.1 ∗ intsRO gca cc.2 ∗ ⌜jp1 cc = .ok r⌝)
+    at next with [x s ev n RConfig RConfAt] as ⟨%gcf, %gca, %cc, x, s, ev, n, RConfig, RConfAt, #Hcf, #Hca, %Hjp⟩
+  · rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_snapsM_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_snapsM _ _ $$ [Hx] as -
+    · iexact Hx
+    split at Ho
+    · rename_i hsm
+      simp only [hsm]
+      wp_auto
+      replace Ho := bind_ok Ho; obtain ⟨sn, hsn, Ho⟩ := Ho
+      replace Ho := bind_ok Ho; obtain ⟨c, hc, Ho⟩ := Ho
+      replace Ho := bind_ok Ho; obtain ⟨sn', hsn', Ho⟩ := Ho
+      rw [hsn] at hsn'; cases hsn'
+      replace Ho := bind_ok Ho; obtain ⟨a, ha, Ho⟩ := Ho
+      replace Ho := bind_ok Ho; obtain ⟨cc, hcc, Ho⟩ := Ho
+      simp only [pure_ok, Except.ok.injEq] at hcc
+      subst hcc
+      have hsnn : numOk sn.index ∧ numOk sn.term := HN.2.2.2.2.2.2.2.2.2.1 sn (need_ok hsn)
+      unfold numOk numBound at hsnn
+      wp_apply wp_snap e ev sn $$ [He] as %gsn %Hgsn
+      · iframe He; ipureintro; exact hsn
+      wp_apply wp_InitConf p s $$ [Hs] as %gic #Hic
+      · iexact Hs
+      wp_apply wp_ConfOf _ _ gsn.Index' _ _ c $$ [HChain Hic] as %gc #Hgc
+      · iframe HChain Hic; ipureintro
+        rw [Hgsn.1]
+        exact ⟨hc, by omega, confOf_bounded_init HW hE⟩
+      wp_apply wp_setConf _ _ n _ c $$ [HConfig Hgc] as %gcf #Hgcf
+      · iframe HConfig Hgc; ipureintro; exact ⟨Hn, by rw [HWf.len_config]; exact Hlt⟩
+      wp_apply wp_snap e ev sn $$ [He] as %gsn2 %Hgsn2
+      · iframe He; ipureintro; exact hsn
+      wp_apply wp_LastConf _ _ gsn2.Index' a $$ [HChain] as %ga %Hga
+      · iframe HChain; ipureintro
+        rw [Hgsn2.1]
+        exact ⟨ha, by omega⟩
+      wp_apply wp_setInt _ _ n ga $$ [HConfAt] as %gca #Hgca
+      · iframe HConfAt; ipureintro; exact ⟨Hn, by rw [HWf.len_confAt]; exact Hlt⟩
+      wp_join_done
+      iexists gcf, gca, (s.config.set (sint.nat n) c, s.confAt.set (sint.nat n) (sint.Z ga))
+      iframe
+      isplitr; · iexact Hgcf
+      isplitr; · iexact Hgca
+      ipureintro; rw [Hga]; exact Ho
+    · rename_i hsm
+      simp only [Bool.not_eq_true] at hsm
+      simp only [hsm]
+      wp_auto
+      replace Ho := bind_ok Ho; obtain ⟨cc, hcc, Ho⟩ := Ho
+      simp only [pure_ok, Except.ok.injEq] at hcc
+      subst hcc
+      wp_join_done
+      iexists g.Config', g.ConfAt', (s.config, s.confAt)
+      iframe
+      isplitr; · iexact HConfig
+      isplitr; · iexact HConfAt
+      ipureintro; exact Ho
+  trace_state
+  sorry
+
+end proof
+
+end AntCheck
+end EtcdGrove
+end Perennial
