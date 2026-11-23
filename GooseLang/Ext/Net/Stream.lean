@@ -292,6 +292,41 @@ theorem closeWriteOutcome_dead {st : NetEnd} {d d' : NetDir} {res : Option NetEr
     · exact shut_dead hd
     · exact hd
 
+/-- A close keeps the end's read deadline. -/
+theorem closeOutcome_rdl {st st' : NetEnd} {d d' : NetDir} {res : Option NetErr}
+    (h : CloseOutcome st d res st' d') : st'.rdl = st.rdl := by
+  unfold CloseOutcome at h
+  split at h
+  · rw [h.2.1]
+  · rw [h.2.1]
+
+/-- Setting the write deadline (kind `2`) keeps the end's read deadline. -/
+theorem deadlineOutcome_w_rdl {st st' : NetEnd} {set : Bool} {res : Option NetErr}
+    (h : DeadlineOutcome st (W64 2) set res st') : st'.rdl = st.rdl := by
+  unfold DeadlineOutcome at h
+  split at h
+  · rw [h.2]
+  · rw [h.2]; simp
+
+/-- Without a read deadline, a read does not time out. -/
+theorem readOutcome_no_timeout {st : NetEnd} {d d' : NetDir} {n : Nat}
+    (hst : st.rdl = false) (h : ReadOutcome st d n (.err .timeout) d') : False := by
+  have hav : ∀ d0, ReadAvail st d0 n (.err .timeout) d' → False := by
+    intro d0 h
+    rcases h with ⟨_, _, _, _, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, -, h, -⟩ | ⟨h, -, -⟩
+    · cases h
+    · cases h
+    · cases h
+    · rw [hst] at h; cases h
+  unfold ReadOutcome at h
+  split at h
+  · cases h.1
+  split at h
+  · cases h.1
+  rcases h with h | ⟨k, -, h⟩
+  · exact hav _ h
+  · exact hav _ h
+
 end pure
 
 /-! ## Sets as maps, namespaces -/
