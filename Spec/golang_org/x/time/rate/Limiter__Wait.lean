@@ -1,6 +1,6 @@
 /-
-`(*rate.Limiter).Wait`: the trust boundary (`golang.org/x/time/rate`'s token bucket is not
-translated; rafthttp stage 5c, the stream reader's dial retries). Lean-first (no Rocq counterpart).
+`(*rate.Limiter).Wait` (rafthttp stage 5c, the stream reader's dial retries; rate-wait, 2026-11-23:
+proved over the real code, until then the trust boundary). Lean-first (no Rocq counterpart).
 -/
 module
 

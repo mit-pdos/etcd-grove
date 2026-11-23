@@ -3,11 +3,13 @@
 # code; `Limiter` and `Reservation` translate with `time` and `sync`) and `Every` with `Inf`
 # (prove-metrics3, 2026-11-21: a float division) and `Reserve`'s token bucket (`reserveN` and its
 # helpers; prove-metrics-float, 2026-11-22: over Perennial's IEEE 754 floats, c14cca87a, which step
-# the `-tokens` it negates).
+# the `-tokens` it negates) and `Wait` (rate-wait, 2026-11-23: `WaitN`, `wait`, `Reservation.Cancel`
+# and `CancelAt`; `wait`'s errors are `fmt.Errorf`'s).
 translate = ["!*", "NewLimiter", "Reservation.Delay", "Reservation.DelayFrom", "InfDuration",
   "Every", "Inf", "Limiter.Reserve", "Limiter.ReserveN", "Limiter.reserveN", "Limiter.advance",
-  "Limit.durationFromTokens", "Limit.tokensFromDuration"]
-imports = ["!*", "time", "sync", "context"]
+  "Limit.durationFromTokens", "Limit.tokensFromDuration",
+  "Limiter.Wait", "Limiter.WaitN", "Limiter.wait", "Reservation.Cancel", "Reservation.CancelAt"]
+imports = ["!*", "time", "sync", "context", "fmt"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
