@@ -101,32 +101,80 @@ The list asked for. They are named after the lab's specs, with the reason each i
 - **gods:** dsv-epaxos and this branch translate it into the same files under `Dsverify/Code/github_com/emirpasic`, and both projects own the directory.
 - **Package inits:** the lab's `SwiftNetPkgState` (one class of package-state predicates) needs widening here. It also needs `go/token`, `path`, `net/textproto`, `vendor/.../httpguts`, `crypto/tls`, `internal/bytealg`, `encoding/{hex,json}` and the gods packages, because the net/rpc and net/http models import them and nothing in the imported parts gives them an `IsPkgInit`.
 
-## State (2026-11-23, second session)
+## State (2026-11-23, third session)
 
-- Branch merged with `lean` (rpcgen's import fix, `660918251a`: `gen-rpc.sh` no longer edits)
-  and migrated onto `dsv-infra` (`a1046d9c4f`): the goose project is `etc/dsv/swiftpaxos.py`;
-  `encoding/json` is the part's names-only one (as dsv-epaxos), so `Dsverify/{Code,GeneratedProof}/
-  github_com/emirpasic` is byte-identical with dsv-epaxos's.
-- Steps 1–2 done: the vocabulary (`lib/Bufio`, `lib/NetRpc`, `lib/Model`), `Hyps.lean`, the
-  variable lines; the ported files that use a hypothesis are on `netShaExts`
-  (`etc/dsv-swiftpaxos/fixext.py`).
-- Step 3 in progress: 130 of 476 copied modules build. **Frontier:**
-  - `Spec/.../swift/Inv.lean` (the protocol invariant, which most of the rest imports): the
-    transport port proper. The lab's connection ids are `w64` (`cid`), `Net/`'s `Nat` (`cn`);
-    `connKind γ cid`, `connIface`, `recvTok`/`sendTok` move to `Net/`'s `Proto.lean`; it needs
-    `lib/NetRpc`'s import (`MethodSpec`). This is step 4 started early: Inv must be ported onto
-    `Proto.lean` before the tiers above it build.
-  - `swift/Pkg.lean` (package facts, lab's harness `net` init facts → `Net/`'s, as dsv-paxos's
-    `Pkg.lean`).
-  - The lab kit's files (`examples/swiftnet/{OrchGen,OrchAddr,codec/*}`, `Spec/.../CodecFns`,
-    `registerRPC`): to be replaced (step 5): the kit's codec is rpcgen's here (`Net/`'s
-    `CodecSpec`/`codecSet`, proved by the model's codec lemmas), its addresses `127.0.0.1:76xx`,
-    and its checker remote's `Model` (the invariant's `kv` state related to remote's pending-puts
-    model, as dsv-paxos's `ModelSet`).
-- Steps 4–7 not started beyond the above. Hypotheses still to add to `SwiftHyps` as their users
-  build: concurrent-map, uuid, net/rpc server + HTTP path (`DialHTTP`, `Register`, `HandleHTTP`,
-  `http.Serve`), `net.ListenWild`, os/signal, math/rand, and the two-extension bridge (as a
-  hypothesis, per the coordinator, with wildcard `Listen`).
+Merges: `origin/dsv-infra` `884cb306c9` (InitHyp rule, etc/dsv/README.md) and, at the
+coordinator's word, **`origin/models-rpc-server` `040ef5e808`** (the net/rpc server proved on
+Lean's three axioms; not landed, its statements stable unless review changes them). With it came
+`lean`'s newer head (dsv-tpmodels: `models/{gods,uuid,concurrent-map}`, models only, no proofs).
+`Net/`'s `CodecSpec` now has the receivers' `rcv`: the lab's `RpcCodec` class got the same field.
+
+Done this session (each builds; the counts are of the 474 copied modules under
+`Dsverify/{Proof,Spec}/github_com/{imdea_software,orcaman,emirpasic}`, `.../encoding`):
+- **`swift/Inv`** over `Proto.lean`: connection ids `Nat` (the lab's `w64` `cid`; `cid : w64` →
+  `Nat` everywhere), `[π : NetProtoGS]` in every section without `SwiftNetPkgState`
+  (scratch script `addpi.py`: appends it to a section's `variable` line), `connFresh_excl`,
+  `lib/NetRpc`'s `MethodSpec`.
+- **`swift/Pkg`** without the node IP (the lab's `netIp`/`replicaNode`): every node is on loopback
+  and `Net/` has no node IP, so the package state is uniform: the mutable globals
+  (`MaxDescRoutines`, `useFastAckPool`, `SHARD_COUNT`) are in no package state; every node's boot
+  thread owns them at their initial values (`swift.mutGlobalsInit`, 100/false/32); the client node
+  persists `useFastAckPool ↦□ false` (`swift.mutGlobalsInit_poolOff`). `cmap.pkgSt := True`.
+  **To do with the package inits**: the generated `Init` must hand `mutGlobalsInit` to the boot
+  thread (or the main's proof must get it from the variables' initializers).
+- **`log.Println`** (`swift/SyncTail`): Perennial's trusted `log.Println` does nothing; its
+  faithfulness claim is "no formatting method runs". `swift.wp_PrintlnT` is proved directly from
+  the model for `swift.printable` arguments (`fmt.ArgWf`, or a type with no `Error`/`String`/
+  `Format` method: the quorum values `handleSync` prints). The lab's `touch` model is gone. For
+  review: this uses the model beyond `Net/Spec/log/Println`'s `ArgsWf` (within its stated claim).
+- **The bufio/net bridge** (`lib/BufioNet.lean`, proved, no hypothesis): `readerOk_conn`,
+  `writerOk_conn`, `readsOk_conn`, over `Net/Proof/net/Conn__{Read,Write}` and `read_au`,
+  `recvTokL_later`, `write_acc`/`writeP`. Two changes to the lab's vocabulary (`lib/Bufio.lean`,
+  header): `readerOk`/`readsOk` specify only reads into a non-empty buffer (`Net/`'s `Read`
+  fixes no count for an empty one; the real `bufio`/`io.ReadAtLeast` never pass one), and give
+  the reader's state a step later (`▷ I`): a `Read` gives `recvTokL`. The `bufio` hypotheses are
+  stated over these and stay true of the real code.
+- Perennial drift: `fmt.wp_Sprintf_argsWf` (the `ArgsWf` form), `forMapPostcondition`'s fifth
+  case (`iright; iright; iright; ileft` for a return).
+- The lab's slice lemmas (`ownSlice_drop_acc`, `ownSlice_sub_acc`, `sint_Z_W64_length`) are in
+  `lib/NetRpc.lean`; `examples/swiftnet/codec/Base` builds (it blocked 244 modules).
+- `swift/SyncFits` takes `[C : net.rpc.RpcCodec netDistGF]` (gob's `codecSet` is over the kit
+  codec here); add the same where a file fails on `RpcCodec`.
+
+**Frontier** (scratch `frontier.py`: unbuilt modules whose imports all build, by how many
+modules wait on them). Before this session's last build: 187 of 474 build; the frontier was
+`codec.Base` (fixed), `replica.ConnSpecs` (132 waiting), `examples.swiftnet.Interface` (36),
+`registerRPC` (19), `state.Link` (17), `CodecFns` (12), `ReplicaListener`, `ClientListener`
+(both: `bufio.readerOk_conn`, now proved), `OrchAddr`, `OrchGen`, and `slices.SortFuncOn.*`
+(missing `Spec` files of the lab's `slices` proofs). Missing files: the lab's gob proofs
+(`Proof/encoding/gob/*`: hypotheses now, importers to point at `Hyps`), `treemap.Link`,
+`netrpc.rpc.LocalRegister` (the lab's library proofs, removed).
+- **`replica.ConnSpecs`** is the transport port proper: `net.ownListener ll lid a` (the lab's
+  persistent listener) → `Net/`'s `lisAt` + `lisInv l a` (`accept_shared_au`); `nodeIp ip` and
+  `ip ++ ":" <+: a` go (no node IP; the wildcard `Listen` is the hypothesis `net.ListenWild`,
+  below); `net.TCPConn.{RemoteAddr,Close}.spec` → `net.Conn.{RemoteAddr,Close}.spec` with
+  `close_au`.
+- **Wildcard `Listen`** (replicas `"0.0.0.0:"+port`, master `":"+port`): `Net/Spec/net/Listen`
+  needs `addrOk a`. A wildcard listener accepts connections dialed to any address with its port
+  (D21). The coordinator reports a wildcard-listen piece in progress (upamanyus, before
+  `models-rpc-http`); until then a hypothesis named after the future spec.
+- **The HTTP path** (`rpc.DialHTTP`, `rpc.HandleHTTP`, `http.Serve`): NOT yet in `SwiftHyps`. A
+  hypothesis returning `Net/`'s `isClient` over `rpcAddr` (frames from byte 0) is FALSE of the
+  model (`DialHTTPPath` writes `CONNECT` first). Upamanyu's intended shapes (branch
+  `models-rpc-http`, stacked on `models-rpc-server`; scratch `rpc-http-shapes.md` of the
+  coordinator): `rpcAddrP a hs …` (client bytes `hs ++ reqsWire`, server bytes
+  `hsAns ++ ansWire`; `rpcAddr a := rpcAddrP a [] []`), `hs := connectReq path`;
+  `rpc.DialHTTPPath.spec`, `rpc.DialHTTP.spec` (at `DefaultRPCPath`), `rpc.Server.ServeHTTP.spec`,
+  `rpc.Server.HandleHTTP.spec`, `rpc.HandleHTTP.spec` (debug path never requested),
+  `http.ListenAndServe.spec`, `http.Serve.spec`, `ServeMux.ServeHTTP.spec` (handlers as
+  `handlerOk` per path). Match these exactly; `lib/NetRpc`'s `rpcHttpAddr` is to become
+  `rpcAddrP`'s instance.
+- The server side: `models-rpc-server`'s `Server.Register.spec` etc. are for a `*Server`; the fork
+  uses the package-level `rpc.Register` (DefaultServer) and `HandleHTTP`, which that branch does
+  not prove: hypotheses named `rpc.Register.spec` (over `svcReg`) until `models-rpc-http`.
+- Kit files (`examples/swiftnet/{Interface,CodecFns,registerRPC,OrchAddr,OrchGen,...}`): step 5,
+  replace by remote's kit (the lab's `RemoteDistSpec` interface, its addresses `10.77.0.x`, its
+  kitgen codec go).
 
 ## How to resume
 
