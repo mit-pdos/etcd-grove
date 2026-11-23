@@ -57,7 +57,7 @@ theorem coordSpec_errOk (γ : CraqNames) (ch : List GoString) :
     imodintro
     unfold errOk
     iapply HE
-    ipureintro; exact Hmsg
+    ipureintro; exact net.rpc.srvErrMsg_ne msg Hmsg
   by_cases h2 : m = go!"Write"
   · subst h2
     rw [coordSpec_Write]
@@ -65,7 +65,7 @@ theorem coordSpec_errOk (γ : CraqNames) (ch : List GoString) :
     imodintro
     unfold errOk
     iapply HE
-    ipureintro; exact Hmsg
+    ipureintro; exact net.rpc.srvErrMsg_ne msg Hmsg
   by_cases h3 : m = go!"RemoveNode"
   · subst h3
     rw [coordSpec_RemoveNode]
