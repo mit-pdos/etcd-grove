@@ -47,7 +47,7 @@ noncomputable instance typePair_access_load_source (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance typePair_access_store_source (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (source' : reflect.Type') :
+noncomputable instance typePair_access_store_source (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (source' : _root_.Perennial.reflect.Type') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) v.source' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"source" l) source' (DFrac.own 1))
@@ -63,7 +63,7 @@ noncomputable instance typePair_access_load_dest (l : Loc) (v : k8s_io.apimachin
  by
   solve_pointsto_access_struct
 
-noncomputable instance typePair_access_store_dest (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (dest' : reflect.Type') :
+noncomputable instance typePair_access_store_dest (l : Loc) (v : k8s_io.apimachinery.pkg.conversion.typePair) (dest' : _root_.Perennial.reflect.Type') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) v.dest' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.conversion.typePair go!"dest" l) dest' (DFrac.own 1))

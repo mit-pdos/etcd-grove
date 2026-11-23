@@ -22,7 +22,6 @@ axiom NewLoggableTxnRequest.wp_proof
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
@@ -82,7 +81,6 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
-axiom etcdserverpb.AlarmType.String.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ClientConn.Invoke.wp_proof
@@ -159,7 +157,6 @@ axiom klog.Verbose.InfoS.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom klog.Warningf.wp_proof
 axiom lease.Lease.expired.wp_proof
-axiom maps.Keys.wp_proof_objMap
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
@@ -177,7 +174,6 @@ axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -238,7 +234,6 @@ axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
 axiom rand.Int63n.wp_proof
-axiom rate.Limiter.Wait.wp_proof
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
 axiom reflect.DeepEqual.wp_proof_k8s

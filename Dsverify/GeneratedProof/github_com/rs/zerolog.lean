@@ -98,7 +98,7 @@ noncomputable instance ConsoleWriter_access_load_Out (l : Loc) (v : github_com.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsoleWriter_access_store_Out (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (Out' : io.Writer) :
+noncomputable instance ConsoleWriter_access_store_Out (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (Out' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"Out" l) Out' (DFrac.own 1))
@@ -1142,7 +1142,7 @@ noncomputable instance levelWriterAdapter_access_load_Writer (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance levelWriterAdapter_access_store_Writer (l : Loc) (v : github_com.rs.zerolog.levelWriterAdapter) (Writer' : io.Writer) :
+noncomputable instance levelWriterAdapter_access_store_Writer (l : Loc) (v : github_com.rs.zerolog.levelWriterAdapter) (Writer' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) Writer' (DFrac.own 1))

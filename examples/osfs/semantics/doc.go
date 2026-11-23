@@ -123,6 +123,11 @@
 //	                              (assumed, measured as support:     NoIoErr.lean: noIoErr_good)
 //	                              TestNoIoErrPathErrno; user,
 //	                              2026-11-19)
+//	                              + errno of a failing open of an    PathErrno "Open" (ENOENT, with a free fd;
+//	                              absent name, no O_CREAT            NoIoErr.lean: noIoErr_good;
+//	                              (assumed, measured as support:     NoMapLockErr.lean:
+//	                              TestNoIoErrOpenAbsent; user,       noIoErr_noMapLockErr_keeps)
+//	                              2026-11-23, claim #34)
 //	                              + C's permissions: search (also    NoIoErr's docstring, Impl.lean's
 //	                              of ancestors)/write, file write,   "Environment" (env_config.go)
 //	                              no sticky, immutable, append-only,

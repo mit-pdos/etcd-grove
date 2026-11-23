@@ -189,11 +189,31 @@ theorem noIoErr_good {S : IoSet} {o : String} {v : val} {st : OsState} {e' : Exp
         rw [if_pos h.1]
       · show Val (#(if st.lookup p = none then ENOENT else ENOTEMPTY)) = _
         rw [if_neg (by rw [h]; exact Option.some_ne_none _)]
+  by_cases ho : o = "Open"
+  · subst ho
+    have hs0 := hs
+    simp only [IsFsStep] at hs
+    rcases hs with ⟨p, fl, t, start, hv, htp, hfl, hc, htr, -⟩ |
+      ⟨p, fl, t, start, hv, hntp, hab, hfl, hc, -⟩ <;>
+    by_cases hA : fl.toNat / O_CREAT % 2 = 0 ∧ st.lookup p = none ∧ st.ParentDir p ∧
+      ∃ fd, FdFree st fd
+    · refine ⟨osRes (#(-1 : w64)) ENOENT, st.metaEnd t, ?_, fun h => hno h _,
+        fun _ => ⟨t, p, fl, hv, fun _ => rfl⟩⟩
+      simp only [IsFsStep]
+      exact .inl ⟨p, fl, t, start, hv, htp, hfl, hc, htr,
+        .inr ⟨ENOENT, by decide, fun _ => hA.2.1, rfl, .inl rfl⟩⟩
+    · exact ⟨e', st', hs0, fun h => hno h _, fun _ => ⟨t, p, fl, hv, fun h => absurd h hA⟩⟩
+    · refine ⟨osRes (#(-1 : w64)) ENOENT, st.metaEnd t, ?_, fun h => hno h _,
+        fun _ => ⟨t, p, fl, hv, fun _ => rfl⟩⟩
+      simp only [IsFsStep]
+      exact .inr ⟨p, fl, t, start, hv, hntp, hab, hfl, hc, .inr ⟨ENOENT, by decide, rfl, rfl⟩⟩
+    · exact ⟨e', st', hs0, fun h => hno h _, fun _ => ⟨t, p, fl, hv, fun h => absurd h hA⟩⟩
   refine ⟨e', st', hs, fun h => hno h _, fun _ => ?_⟩
   unfold PathErrno
   split
   · exact absurd rfl hu
   · exact absurd rfl hr
+  · exact absurd rfl ho
   · trivial
 
 end keeps

@@ -71,7 +71,7 @@ noncomputable instance jsonFallbackEncoder_access_load_encoder (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance jsonFallbackEncoder_access_store_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (encoder' : k8s_io.apimachinery.pkg.runtime.Encoder) :
+noncomputable instance jsonFallbackEncoder_access_store_encoder (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (encoder' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Encoder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) v.encoder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"encoder" l) encoder' (DFrac.own 1))
@@ -87,7 +87,7 @@ noncomputable instance jsonFallbackEncoder_access_load_identifier (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance jsonFallbackEncoder_access_store_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (identifier' : k8s_io.apimachinery.pkg.runtime.Identifier) :
+noncomputable instance jsonFallbackEncoder_access_store_identifier (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder) (identifier' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Identifier) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) v.identifier' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured.jsonFallbackEncoder go!"identifier" l) identifier' (DFrac.own 1))

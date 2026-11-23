@@ -5,6 +5,8 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.traceutil
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.time.Base
+public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.trace
+public import SpecPlan.Spec.PkgInit.go_opentelemetry_io.otel.trace.noop
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 
 @[expose] public section

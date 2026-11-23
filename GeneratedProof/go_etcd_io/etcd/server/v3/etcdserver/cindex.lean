@@ -134,7 +134,7 @@ noncomputable instance consistentIndex_access_load_mutex (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance consistentIndex_access_store_mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (mutex' : sync.Mutex) :
+noncomputable instance consistentIndex_access_store_mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex) (mutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"mutex" l) v.mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex go!"mutex" l) mutex' (DFrac.own 1))

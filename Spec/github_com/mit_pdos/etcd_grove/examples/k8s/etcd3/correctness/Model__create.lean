@@ -4,6 +4,8 @@
 with `key` the store key of `x`'s key and `obj` a read-only `*Obj` holding `createObjL x`
 (`realRequest(x)`'s object): the response, the next model and the change of `rcreateL x m`
 (k8s 7g step 3).
+The model has fewer than `2^62` items (a write may add one; `itemsRO` keeps at most `2^62`, the bound of
+`slices.Sorted(maps.Keys(s.Items))`).
 -/
 module
 
@@ -31,6 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correc
 /-- See the file header. -/
 abbrev Model.create.spec : Prop :=
   ∀ (mp : Loc) (m : RM) (x : Input) (op : Loc),
+  GMap.size m.items < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness ∗
       modelOwn mp m ∗ op ↦□ createObjL x }}
     (App (App (Val #(methods (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model.ty) go!"create" #mp))

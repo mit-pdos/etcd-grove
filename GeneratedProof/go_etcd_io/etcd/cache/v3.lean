@@ -97,7 +97,7 @@ noncomputable instance Config_access_load_ResyncInterval (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ResyncInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (ResyncInterval' : time.Duration) :
+noncomputable instance Config_access_store_ResyncInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (ResyncInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"ResyncInterval" l) v.ResyncInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"ResyncInterval" l) ResyncInterval' (DFrac.own 1))
@@ -113,7 +113,7 @@ noncomputable instance Config_access_load_InitialBackoff (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_InitialBackoff (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (InitialBackoff' : time.Duration) :
+noncomputable instance Config_access_store_InitialBackoff (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (InitialBackoff' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"InitialBackoff" l) v.InitialBackoff' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"InitialBackoff" l) InitialBackoff' (DFrac.own 1))
@@ -129,7 +129,7 @@ noncomputable instance Config_access_load_MaxBackoff (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_MaxBackoff (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (MaxBackoff' : time.Duration) :
+noncomputable instance Config_access_store_MaxBackoff (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (MaxBackoff' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"MaxBackoff" l) v.MaxBackoff' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"MaxBackoff" l) MaxBackoff' (DFrac.own 1))
@@ -145,7 +145,7 @@ noncomputable instance Config_access_load_GetTimeout (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_GetTimeout (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (GetTimeout' : time.Duration) :
+noncomputable instance Config_access_store_GetTimeout (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (GetTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"GetTimeout" l) v.GetTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"GetTimeout" l) GetTimeout' (DFrac.own 1))
@@ -161,7 +161,7 @@ noncomputable instance Config_access_load_WaitTimeout (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_WaitTimeout (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (WaitTimeout' : time.Duration) :
+noncomputable instance Config_access_store_WaitTimeout (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (WaitTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"WaitTimeout" l) v.WaitTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"WaitTimeout" l) WaitTimeout' (DFrac.own 1))
@@ -193,7 +193,7 @@ noncomputable instance Config_access_load_ProgressRequestInterval (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProgressRequestInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (ProgressRequestInterval' : time.Duration) :
+noncomputable instance Config_access_store_ProgressRequestInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (ProgressRequestInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"ProgressRequestInterval" l) v.ProgressRequestInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"ProgressRequestInterval" l) ProgressRequestInterval' (DFrac.own 1))
@@ -209,7 +209,7 @@ noncomputable instance Config_access_load_ProgressNotifyInterval (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProgressNotifyInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (ProgressNotifyInterval' : time.Duration) :
+noncomputable instance Config_access_store_ProgressNotifyInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.Config) (ProgressNotifyInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"ProgressNotifyInterval" l) v.ProgressNotifyInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Config go!"ProgressNotifyInterval" l) ProgressNotifyInterval' (DFrac.own 1))
@@ -292,7 +292,7 @@ noncomputable instance Cache_access_load_watcher (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cache_access_store_watcher (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (watcher' : go_etcd_io.etcd.client.v3.Watcher) :
+noncomputable instance Cache_access_store_watcher (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (watcher' : _root_.Perennial.go_etcd_io.etcd.client.v3.Watcher) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"watcher" l) v.watcher' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"watcher" l) watcher' (DFrac.own 1))
@@ -308,7 +308,7 @@ noncomputable instance Cache_access_load_kv (l : Loc) (v : go_etcd_io.etcd.cache
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cache_access_store_kv (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (kv' : go_etcd_io.etcd.client.v3.KV) :
+noncomputable instance Cache_access_store_kv (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (kv' : _root_.Perennial.go_etcd_io.etcd.client.v3.KV) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"kv" l) v.kv' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"kv" l) kv' (DFrac.own 1))
@@ -372,7 +372,7 @@ noncomputable instance Cache_access_load_stop (l : Loc) (v : go_etcd_io.etcd.cac
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cache_access_store_stop (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (stop' : context.CancelFunc) :
+noncomputable instance Cache_access_store_stop (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (stop' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"stop" l) v.stop' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"stop" l) stop' (DFrac.own 1))
@@ -388,7 +388,7 @@ noncomputable instance Cache_access_load_waitGroup (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cache_access_store_waitGroup (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (waitGroup' : sync.WaitGroup) :
+noncomputable instance Cache_access_store_waitGroup (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (waitGroup' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"waitGroup" l) v.waitGroup' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"waitGroup" l) waitGroup' (DFrac.own 1))
@@ -404,7 +404,7 @@ noncomputable instance Cache_access_load_internalCtx (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cache_access_store_internalCtx (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (internalCtx' : context.Context) :
+noncomputable instance Cache_access_store_internalCtx (l : Loc) (v : go_etcd_io.etcd.cache.v3.Cache) (internalCtx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"internalCtx" l) v.internalCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.Cache go!"internalCtx" l) internalCtx' (DFrac.own 1))
@@ -654,7 +654,7 @@ noncomputable instance demux_access_load_mu (l : Loc) (v : go_etcd_io.etcd.cache
  by
   solve_pointsto_access_struct
 
-noncomputable instance demux_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.demux) (mu' : sync.RWMutex) :
+noncomputable instance demux_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.demux) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.demux go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.demux go!"mu" l) mu' (DFrac.own 1))
@@ -702,7 +702,7 @@ noncomputable instance demux_access_load_resyncInterval (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance demux_access_store_resyncInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.demux) (resyncInterval' : time.Duration) :
+noncomputable instance demux_access_store_resyncInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.demux) (resyncInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.demux go!"resyncInterval" l) v.resyncInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.demux go!"resyncInterval" l) resyncInterval' (DFrac.own 1))
@@ -807,7 +807,7 @@ noncomputable instance notifier_access_load_mu (l : Loc) (v : go_etcd_io.etcd.ca
  by
   solve_pointsto_access_struct
 
-noncomputable instance notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.notifier) (mu' : sync.RWMutex) :
+noncomputable instance notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.notifier) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.notifier go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.notifier go!"mu" l) mu' (DFrac.own 1))
@@ -869,7 +869,7 @@ noncomputable instance conditionalProgressRequestor_access_load_mux (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance conditionalProgressRequestor_access_store_mux (l : Loc) (v : go_etcd_io.etcd.cache.v3.conditionalProgressRequestor) (mux' : sync.Mutex) :
+noncomputable instance conditionalProgressRequestor_access_store_mux (l : Loc) (v : go_etcd_io.etcd.cache.v3.conditionalProgressRequestor) (mux' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.conditionalProgressRequestor go!"mux" l) v.mux' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.conditionalProgressRequestor go!"mux" l) mux' (DFrac.own 1))
@@ -949,7 +949,7 @@ noncomputable instance conditionalProgressRequestor_access_load_requestInterval 
  by
   solve_pointsto_access_struct
 
-noncomputable instance conditionalProgressRequestor_access_store_requestInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.conditionalProgressRequestor) (requestInterval' : time.Duration) :
+noncomputable instance conditionalProgressRequestor_access_store_requestInterval (l : Loc) (v : go_etcd_io.etcd.cache.v3.conditionalProgressRequestor) (requestInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.conditionalProgressRequestor go!"requestInterval" l) v.requestInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.conditionalProgressRequestor go!"requestInterval" l) requestInterval' (DFrac.own 1))
@@ -1007,7 +1007,7 @@ noncomputable instance ready_access_load_mu (l : Loc) (v : go_etcd_io.etcd.cache
  by
   solve_pointsto_access_struct
 
-noncomputable instance ready_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.ready) (mu' : sync.Mutex) :
+noncomputable instance ready_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.ready) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.ready go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.ready go!"mu" l) mu' (DFrac.own 1))
@@ -1197,7 +1197,7 @@ noncomputable instance store_access_load_mu (l : Loc) (v : go_etcd_io.etcd.cache
  by
   solve_pointsto_access_struct
 
-noncomputable instance store_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.store) (mu' : sync.RWMutex) :
+noncomputable instance store_access_store_mu (l : Loc) (v : go_etcd_io.etcd.cache.v3.store) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.store go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.store go!"mu" l) mu' (DFrac.own 1))
@@ -1409,7 +1409,7 @@ noncomputable instance watcher_access_load_stopOnce (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance watcher_access_store_stopOnce (l : Loc) (v : go_etcd_io.etcd.cache.v3.watcher) (stopOnce' : sync.Once) :
+noncomputable instance watcher_access_store_stopOnce (l : Loc) (v : go_etcd_io.etcd.cache.v3.watcher) (stopOnce' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.watcher go!"stopOnce" l) v.stopOnce' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.cache.v3.watcher go!"stopOnce" l) stopOnce' (DFrac.own 1))

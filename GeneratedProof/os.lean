@@ -55,7 +55,7 @@ noncomputable instance dirInfo_access_load_mu (l : Loc) (v : os.dirInfo) (dq : D
  by
   solve_pointsto_access_struct
 
-noncomputable instance dirInfo_access_store_mu (l : Loc) (v : os.dirInfo) (mu' : sync.Mutex) :
+noncomputable instance dirInfo_access_store_mu (l : Loc) (v : os.dirInfo) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.dirInfo go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef os.dirInfo go!"mu" l) mu' (DFrac.own 1))
@@ -347,7 +347,7 @@ noncomputable instance ProcessState_access_load_status (l : Loc) (v : os.Process
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProcessState_access_store_status (l : Loc) (v : os.ProcessState) (status' : syscall.WaitStatus) :
+noncomputable instance ProcessState_access_store_status (l : Loc) (v : os.ProcessState) (status' : _root_.Perennial.syscall.WaitStatus) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.ProcessState go!"status" l) v.status' (DFrac.own 1))
       (typedPointsto (structFieldRef os.ProcessState go!"status" l) status' (DFrac.own 1))
@@ -689,7 +689,7 @@ noncomputable instance unixDirent_access_load_typ (l : Loc) (v : os.unixDirent) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance unixDirent_access_store_typ (l : Loc) (v : os.unixDirent) (typ' : io.fs.FileMode) :
+noncomputable instance unixDirent_access_store_typ (l : Loc) (v : os.unixDirent) (typ' : _root_.Perennial.io.fs.FileMode) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.unixDirent go!"typ" l) v.typ' (DFrac.own 1))
       (typedPointsto (structFieldRef os.unixDirent go!"typ" l) typ' (DFrac.own 1))
@@ -705,7 +705,7 @@ noncomputable instance unixDirent_access_load_info (l : Loc) (v : os.unixDirent)
  by
   solve_pointsto_access_struct
 
-noncomputable instance unixDirent_access_store_info (l : Loc) (v : os.unixDirent) (info' : io.fs.FileInfo) :
+noncomputable instance unixDirent_access_store_info (l : Loc) (v : os.unixDirent) (info' : _root_.Perennial.io.fs.FileInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.unixDirent go!"info" l) v.info' (DFrac.own 1))
       (typedPointsto (structFieldRef os.unixDirent go!"info" l) info' (DFrac.own 1))
@@ -845,7 +845,7 @@ noncomputable instance root_access_load_mu (l : Loc) (v : os.root) (dq : DFrac) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance root_access_store_mu (l : Loc) (v : os.root) (mu' : sync.Mutex) :
+noncomputable instance root_access_store_mu (l : Loc) (v : os.root) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.root go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef os.root go!"mu" l) mu' (DFrac.own 1))

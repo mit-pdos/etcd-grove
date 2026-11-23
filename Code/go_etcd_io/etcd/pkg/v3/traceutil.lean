@@ -3,6 +3,8 @@ module
 
 public import Perennial.Code.context
 public import Perennial.Code.time
+public import Code.go_opentelemetry_io.otel.trace
+public import Code.go_opentelemetry_io.otel.trace.noop
 public import Code.go_uber_org.zap
 public import Perennial.Golang.Defn
 
@@ -48,12 +50,11 @@ noncomputable def step.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] step.ty
 
-opaque instrumentationScope [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def instrumentationScope [GooseExts] [GoGlobalContext] : val :=
+  #(go!"go.etcd.io/etcd")
 
 noncomputable def Tracer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Tracer"
-
-opaque Tracer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Init"
@@ -517,7 +518,7 @@ noncomputable def Trace.enableStep.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.traceutil where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_opentelemetry_io.otel.trace.noop, pkg_id.go_uber_org.zap]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -528,14 +529,26 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val instrumentationScope))
+  (Let "$a1" (Val #slice.nil)
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_opentelemetry_io.otel.trace.noop.TracerProvider.ty go!"Tracer"))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_opentelemetry_io.otel.trace.noop.NewTracerProvider []))) (Val #())) (Val #()))) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val Tracer.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_opentelemetry_io.otel.trace.Tracer.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Tracer))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_opentelemetry_io.otel.trace.noop.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Tracer _root_.Perennial.go_opentelemetry_io.otel.trace.Tracer.ty)) (Val #()))))))))
 
 structure TraceKey [GooseExts] where
   mk ::
@@ -808,6 +821,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   EnsureTrace_unfold : FuncUnfold EnsureTrace [] EnsureTrace.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
+  import_trace_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions
+  import_noop_Assumption : _root_.Perennial.go_opentelemetry_io.otel.trace.noop.Assumptions
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
 
 attribute [instance] Assumptions.TraceKey_instance
@@ -821,6 +836,8 @@ attribute [instance] Assumptions.TraceKey_instance
   Assumptions.EnsureTrace_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_time_Assumption
+  Assumptions.import_trace_Assumption
+  Assumptions.import_noop_Assumption
   Assumptions.import_zap_Assumption
 
 end go_etcd_io.etcd.pkg.v3.traceutil

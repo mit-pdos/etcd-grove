@@ -214,8 +214,9 @@ theorem Model.list.wp_proof
           wp_join_done
         · rw [decide_eq_false hEx]; wp_auto
           wp_join_done
+      ihave %HszM := itemsRO_size_map M m.items $$ Hit
       wp_apply (wp_Keys il) as %f #Hf
-      wp_apply Hf $$ %M %DFrac.discard [] [HI] as %sl %ks - Hs %Hks
+      wp_apply Hf $$ %M %DFrac.discard [] [HI] %HszM as %sl %ks - Hs %Hks
       · iexact HI
       repeat (irename : ("_" ∷ True : IProp GF) => Htriv; iclear Htriv)
       ihave Hpr : (opts_ptr.[k8s_io.apiserver.pkg.storage.ListOptions, go!"Predicate"] ↦ predV x :

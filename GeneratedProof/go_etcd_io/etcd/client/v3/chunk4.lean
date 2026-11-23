@@ -221,7 +221,7 @@ noncomputable instance Client_access_load_creds (l : Loc) (v : go_etcd_io.etcd.c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_creds (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (creds' : google_golang_org.grpc.credentials.TransportCredentials) :
+noncomputable instance Client_access_store_creds (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (creds' : _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"creds" l) v.creds' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"creds" l) creds' (DFrac.own 1))
@@ -285,7 +285,7 @@ noncomputable instance Client_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (ctx' : context.Context) :
+noncomputable instance Client_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" l) ctx' (DFrac.own 1))
@@ -301,7 +301,7 @@ noncomputable instance Client_access_load_cancel (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (cancel' : context.CancelFunc) :
+noncomputable instance Client_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (cancel' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"cancel" l) v.cancel' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"cancel" l) cancel' (DFrac.own 1))
@@ -365,7 +365,7 @@ noncomputable instance Client_access_load_authTokenBundle (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_authTokenBundle (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (authTokenBundle' : go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle) :
+noncomputable instance Client_access_store_authTokenBundle (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (authTokenBundle' : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.PerRPCCredentialsBundle) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"authTokenBundle" l) v.authTokenBundle' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"authTokenBundle" l) authTokenBundle' (DFrac.own 1))
@@ -397,7 +397,7 @@ noncomputable instance Client_access_load_lg (l : Loc) (v : go_etcd_io.etcd.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_lg (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (lg' : (sync.atomic.Pointer go_uber_org.zap.Logger)) :
+noncomputable instance Client_access_store_lg (l : Loc) (v : go_etcd_io.etcd.client.v3.Client) (lg' : (_root_.Perennial.sync.atomic.Pointer _root_.Perennial.go_uber_org.zap.Logger)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"lg" l) v.lg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.Client go!"lg" l) lg' (DFrac.own 1))

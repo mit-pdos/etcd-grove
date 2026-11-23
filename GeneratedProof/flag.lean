@@ -207,7 +207,7 @@ noncomputable instance FlagSet_access_load_output (l : Loc) (v : flag.FlagSet) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance FlagSet_access_store_output (l : Loc) (v : flag.FlagSet) (output' : io.Writer) :
+noncomputable instance FlagSet_access_store_output (l : Loc) (v : flag.FlagSet) (output' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef flag.FlagSet go!"output" l) v.output' (DFrac.own 1))
       (typedPointsto (structFieldRef flag.FlagSet go!"output" l) output' (DFrac.own 1))

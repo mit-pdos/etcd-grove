@@ -50,7 +50,7 @@ noncomputable instance StatusError_access_load_ErrStatus (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatusError_access_store_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (ErrStatus' : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) :
+noncomputable instance StatusError_access_store_ErrStatus (l : Loc) (v : k8s_io.apimachinery.pkg.api.errors.StatusError) (ErrStatus' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) v.ErrStatus' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.errors.StatusError go!"ErrStatus" l) ErrStatus' (DFrac.own 1))

@@ -73,7 +73,7 @@ noncomputable instance checker_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance checker_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (mu' : sync.Mutex) :
+noncomputable instance checker_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvnet.kvcheck.checker go!"mu" l) mu' (DFrac.own 1))
