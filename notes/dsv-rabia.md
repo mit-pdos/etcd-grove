@@ -9,26 +9,28 @@ a slot's wake channel), Perennial `3afd77e35`; the lab's statement `dsv_goal_che
 `CheckOperations.wp_proof`. The lab's proof is 40.6k lines under `proof/Proof/` (plus its harness
 pieces under `proof/Harness/`).
 
-**State (2026-11-23, third agent, ~08:30):** merged `origin/lean` (`361ca5c7b7`: dsv-bufio
-landed, its renames followed: `io.streamWriterOk`, `net.conn_streamWriterOk`; Net's `Listen`/
-`Accept` now through `Net/Proof/net/AtAddr.lean`'s `spec_addrOk` instances; PkgTables regenerated).
-Done and built (`lake build`, after the merge): message, tcp (all endpoints), the server layers,
-`roles/server` and its `Link.lean`, `Core/Start{,Alloc}.lean` (the ghost start: `start`, from
-`regCtx` and `rabiaKitAddrs`' `addrUnset`s, gives `orchCore`, the clients' `cliCore`s, the servers'
-`serverShare`s, `kvState γ.rab init` for remote's pending library, and the client addresses still
-unset), `TopLevelDefs`. The kit: pure model `ModelSet.lean` (`KIn`, `KOut` (outputs below
-`2^62`), `kvB`, `stepG_pSeq`), `KitModel.lean` (`kvR γ`, `kvS0`/`kvS`, `lin_opAU`, `slotUpd_opAU`,
-`kvS_pendDec`, `kvR_encOut_inj`, the specs `Model.spec`, `Codec.spec`, `gens.spec`), part of
-`ModelProof.lean` (lean-check). In progress (agents): the Go proofs of `Model()`'s helpers,
-`Model.wp_proof`, `Codec.wp_proof`, `gens.wp_proof` (`ModelProof.lean`, `CodecProof.lean`); the
-configuration protocol, client and server machine (`Kit.lean`, `ConfProof.lean`,
-`ClientProof.lean`, `ServerProof.lean`, `ConnReadFull.lean`, `GhostAux.lean`). Then: `Orch`
-(`remote.Check` over `kvS`, `Model.wp_proof`, `Codec.wp_proof`, `gens.wp_proof`), the twelve mains
-(a `wp_boot` that hands the machine's `ownInitializing` to `main`: clients and servers claim
-`config.Conf` with `confClaim`), `TopLevelRobustness` (as paxos's: `robust_of_distProtoRB` at
-`remoteGF`, `start`, `mapCtx_alloc`, `addrs_set_proto` of the client addresses with remote's
-`reqP`/`repP`, `pend_alloc`), the statement's premises (each `InitHyp`, `zerolog.Hyps`,
-`math.rand.Hyps`, `os.signal.NoSignals`, quantified over the machine's `HeapGS`).
+**State (2026-11-23, third agent, ~11:30): done.** `rabia_remote_robust :
+rabia_remote_robust.spec` (`Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`;
+statement `Dsverify/Spec/rabia/examples/rabianet/TopLevelRobustness.lean`): twelve machines
+(`TopLevelDefs.system`) deployed at `rabiaKitAddrs` (`DistDeploy`) are `Robust [] … (2^63)`, for
+every Go semantics with the twelve programs' `Assumptions`, `net.FieldAssumptions`,
+`go.BasicIntoValInj` and these **visible premises** (each quantified over the machine's heap,
+`heapAt G L`): the `InitHyp`s of zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`,
+`math/rand` (go-redis' `internal/proto` `InitHyp` is not needed: no initializer reaches it),
+`github_com.rs.zerolog.Hyps`, `math.rand.Hyps`, `log.Hyps` (`log.Println`), and the environment
+assumption `os.signal.NoSignals`. `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
+`lake build` of the top module (2937 jobs): ok. `etc/theorem-loc.py --file … rabia_remote_robust`
+counts every one of these classes as a statement premise (`--list-tcb`: `stmt class …InitHyp`, …,
+`os.signal.NoSignals`, `NotifyQuiet.spec`). Not run: `etc/tcb-report.py --check` of the collection
+(it wants a full `lake build`, which the shared host's rules forbid here); the baseline is written
+by hand from `#print axioms`. Files: the kit's `Kit`, `ConfProof`, `ConnReadFull`, `GhostAux`,
+`ClientProof`, `ServerProof`, `OrchProof`, `KitModel`, `ModelSet`, `ModelProof`, `CodecProof`,
+`Mains`, `Linked`, `TopLevelRobustness`; the start `Core/{StartAlloc,Start}`; tcp, the layers and the
+server as above. **zerolog's names-only translation now sees `io`** (`Dsverify/Code/github_com/rs/
+zerolog.toml`): `Logger`'s field `w : LevelWriter` embeds `io.Writer`, and without `io` goose
+axiomatized the type with a `sorry` instance, which the server's proofs reached (the claim below
+that no linked result reaches those instances was wrong for this one; the remaining ones, e.g.
+`encoder`, `BurstSampler`, `syncWriter`, are not reached: `#print axioms` is clean).
 
 **Kit Go changes (third agent and its agents):** `Sys` has a mutex, `Op` locks it (`op1` the body);
 `op1` answers unknown once the sequence numbers reach `SeqBudget = 2^29` (`proxyP`'s budget;
