@@ -42,7 +42,6 @@ axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcSrvCfgRaw
 axiom metadata.FromIncomingContext.wp_proof
-axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom promSrvMetrics

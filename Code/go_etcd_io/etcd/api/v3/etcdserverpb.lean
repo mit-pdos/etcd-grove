@@ -187,6 +187,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   AuthServer_instance : AuthServer.TypeAssumptions
   UnimplementedAuthServer_instance : UnimplementedAuthServer.TypeAssumptions
   UnsafeAuthServer_instance : UnsafeAuthServer.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
+  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
   NewKVClient_unfold : FuncUnfold NewKVClient [] NewKVClient.impl
   RegisterKVServer_unfold : FuncUnfold RegisterKVServer [] RegisterKVServer.impl
   _KV_Range_Handler_unfold : FuncUnfold _KV_Range_Handler [] _KV_Range_Handler.impl
@@ -389,6 +392,9 @@ attribute [instance] Assumptions.Metadata_instance
   Assumptions.AuthServer_instance
   Assumptions.UnimplementedAuthServer_instance
   Assumptions.UnsafeAuthServer_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.«init.1_unfold»
+  Assumptions.«init.2_unfold»
   Assumptions.NewKVClient_unfold
   Assumptions.RegisterKVServer_unfold
   Assumptions._KV_Range_Handler_unfold

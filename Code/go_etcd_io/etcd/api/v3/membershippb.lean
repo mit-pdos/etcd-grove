@@ -3,6 +3,7 @@ module
 
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.api.v3.membershippb
 
 @[expose] public section
 
@@ -470,6 +471,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ClusterVersionSetRequest_instance : ClusterVersionSetRequest.TypeAssumptions
   ClusterMemberAttrSetRequest_instance : ClusterMemberAttrSetRequest.TypeAssumptions
   DowngradeInfoSetRequest_instance : DowngradeInfoSetRequest.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
 attribute [instance] Assumptions.RaftAttributes_instance
@@ -478,6 +480,7 @@ attribute [instance] Assumptions.RaftAttributes_instance
   Assumptions.ClusterVersionSetRequest_instance
   Assumptions.ClusterMemberAttrSetRequest_instance
   Assumptions.DowngradeInfoSetRequest_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_protoimpl_Assumption
 
 end go_etcd_io.etcd.api.v3.membershippb

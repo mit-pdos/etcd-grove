@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.apimachinery.pkg.apis.«meta».internalversion
 
 @[expose] public section
 
@@ -160,9 +161,13 @@ attribute [instance] List.TypeAssumptions.type_repr
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ListOptions_instance : ListOptions.TypeAssumptions
   List_instance : List.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
 
 attribute [instance] Assumptions.ListOptions_instance
   Assumptions.List_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.«init.1_unfold»
 
 end k8s_io.apimachinery.pkg.apis.«meta».internalversion
 

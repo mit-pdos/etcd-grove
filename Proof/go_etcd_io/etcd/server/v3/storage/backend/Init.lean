@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.bbolt.errors.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_uber_org.zap.Init
 public import Proof.syscall.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

@@ -29,7 +29,6 @@ axiom grpcSrvCfgRaw
 axiom grpcSrvLink
 axiom grpcSrvNew
 axiom grpcWrotePeer
-axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
