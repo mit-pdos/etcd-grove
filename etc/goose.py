@@ -400,7 +400,11 @@ PROJECTS = [
                     "internal/byteorder=",
                     # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
                     # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
-                    "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall="],
+                    "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall=",
+                    # (featuregate-3, 2026-11-23) `flag`, which featuregate's `MutableFeatureGate`
+                    # names (`AddFlag(*flag.FlagSet, ...)`): this repository's, as `os=` (Perennial's
+                    # would import Perennial's `os`, which must never meet project bboltfs's)
+                    "flag="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -505,6 +509,8 @@ PROJECTS = [
             "hash/crc32", "bufio", "path/filepath", "internal/filepathlite",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
+            # (featuregate-3) names only, but for its initializers and `init` (Code/flag.toml)
+            "flag",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
             # (go.etcd.io/bbolt, etcd's go.mod: v1.5.0, is the bbolt project's translation, from
             # the fork: not translated here)
@@ -656,7 +662,8 @@ PROJECTS = [
                os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
                os.path.join("github_com", "grpc_ecosystem"),
-               "bufio", os.path.join("path", "filepath"), os.path.join("internal", "filepathlite")],
+               "bufio", os.path.join("path", "filepath"), os.path.join("internal", "filepathlite"),
+               "flag"],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",
