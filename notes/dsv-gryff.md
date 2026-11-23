@@ -473,6 +473,15 @@ errors as `rdErr`, `errOverflow` included). To check as they are written: `math/
 `36728bd8ed`; when merging lean (at landing), repoint the overrides and `PERENNIAL_DIR` to
 `/shared/perennial-c95e92207` and regenerate the PkgTables.
 
+**Coordinator (later, session 6):** `Net.sentLb_agree`, `Net.sentLb_le`, `Net.recvTokL_sentLb` are
+in `GooseLang/Ext/Net/Proto.lean` on `origin/dsv-protolaws` `4a7645929b` (pending Upamanyu's OK);
+dsv-rabia landed (`lean` `06fe42e389`, Perennial `48401b6ba`; rabia's tcp layer is a template).
+`dsv-protolaws` sits on that new `lean` (Perennial `48401b6ba`), so it is not merged here yet (we
+stay on `07268ddb57`/`7b2259a12`). **When merging `lean`/`dsv-protolaws`:** delete
+`N/ConnLaws.lean`'s local `sentLb_comparable`, `sentLb_le`, `recvTokL_sentLb` and use
+`Net.sentLb_agree`, `Net.sentLb_le`, `Net.recvTokL_sentLb` (callers: `ownReader_sentLb`,
+`dial_reader` in N/ConnLaws; grep the N/ and Client/ files).
+
 **Design (1), the connections on `Net/` (decided, in `Replica2/Specs.lean` and `N/ConnLaws.lean`):**
 - A replica listens at the wildcard `lisAddrOf a0` (`a0[strings.Index(a0, ":"):]`, `":7502"` for
   `portAddr 0`) of its node address `a0 ∈ replicaAddrs` (`Proto/Wire.lean`). The start sets, once,
