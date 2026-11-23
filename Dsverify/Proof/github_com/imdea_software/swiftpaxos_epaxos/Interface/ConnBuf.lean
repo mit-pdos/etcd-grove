@@ -112,6 +112,15 @@ def connRd (t : Loc) (cn : Nat) (s : Bool) (eof la ra ed : GoInterface) (P : Pro
   F_pre := fun x y => later_mono (protoPrefix_le (List.prefix_append x y))
   Pre_pos := fun _ _ h => h
 
+/-- The `net.Conn` `c` is the end `s` of connection `cn` (a `*TCPConn`, `net.isConn`, at some
+address; persistent). The lab's `net.rpc.connIface c cn s`. -/
+def connIf (c : GoInterface) (cn : Nat) (s : Bool) : IProp GF :=
+  iprop(∃ a : GoString, net.isConn c cn s a)
+
+instance connIf_persistent (c : GoInterface) (cn : Nat) (s : Bool) :
+    Persistent (connIf (GF := GF) c cn s) := by
+  unfold connIf; infer_instance
+
 end conn
 
 end Perennial.github_com.imdea_software.swiftpaxos_epaxos

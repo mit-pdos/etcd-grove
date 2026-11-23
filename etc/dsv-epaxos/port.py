@@ -20,6 +20,8 @@ def modmap(m):
     if m.startswith('Epaxos.Interface.'): return E + '.Interface.' + m[len('Epaxos.Interface.'):]
     if m.startswith('Epaxos.Proof.'): return E + '.' + m[len('Epaxos.Proof.'):]
     if m.startswith('Epaxos.Top.'): return E + '.Top.' + m[len('Epaxos.Top.'):]
+    if m.startswith('Epaxos.GeneratedProof.'): return 'Dsverify.GeneratedProof.' + m[len('Epaxos.GeneratedProof.'):]
+    if m.startswith('Epaxos.Code.'): return 'Dsverify.Code.' + m[len('Epaxos.Code.'):]
     return m
 
 def dstpath(p):
@@ -125,6 +127,19 @@ def gf_annotate(t, names):
 
 def generic_conv(t):
     # rules every port needs (after `conv`)
+    # the lab's net model's assumptions -> `Net/`'s extension and protocol world; the store's
+    # assumptions and gods' treemap hypothesis alongside (unused ones are not included)
+    # (`TreemapHyp GF` only where the store is used: a section instance whose dependencies are
+    # included is included in every declaration that mentions `GF`)
+    TS = ('\nvariable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]'
+          ' [TH : TreemapHyp GF]') if 'isState' in t else ''
+    t = re.sub(r'(?m)^(variable \[.*)\[net\.model\.Assumptions\](.*)$',
+               lambda m: m.group(1) + '[HasExt netExt] [π : NetProtoGS]' + m.group(2) + TS, t)
+    t = t.replace('[io.ExtraAssumptions]', '[io.Assumptions]')
+    # `have h := thm γ …` (no expected type): nothing determines the theorem's `GF`
+    t = re.sub(r'(have \w+ := )(?!outOkB_of_toks)([a-zA-Z][\w.]*) γ ', r'\1\2 (GF := GF) γ ', t)
+    # a spec taken as a hypothesis: its `GF` is not determined by anything else
+    t = re.sub(r'\((h\w* : [\w.]+\.spec)\)', r'(\1 (GF := GF))', t)
     t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
                r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',
                'attribute [local instance] GooseGlobalGS.gooseInvGS', t)
@@ -183,6 +198,22 @@ def bufio_conv(t):
 
 # hand fixes after the mechanical port, by lab path: (old, new) replacements, each must apply
 FIXUPS = {
+    'Epaxos/Proof/replica/Stream.lean': [
+        # a connection's reader is `connRd` (Interface/ConnBuf): its stream fact is
+        # `▷ protoPrefix`, bufio's `ownBufReader_fact` (the lab's `ownReader_proto` is not needed)
+        ('/-- A buffered reader over a connection', '/-- What the unmarshalers need', ''),
+        ("""    (side : Bool) (cid : Nat) (dl : Nat) (hdl : dl = dialerOf id j side) (hd : dl < 5)
+    (ws : List Msg)""", """    (side : Bool) (cid : Nat) (t : Loc) (eof la ra ed : GoInterface) (dl : Nat)
+    (hdl : dl = dialerOf id j side) (hd : dl < 5) (ws : List Msg)"""),
+        ("""      nextIs (recvTok cid side (peerPin γ id L j side))""", """      nextIs (connRd t cid side eof la ra ed (peerPin γ id L j side))"""),
+        ("""  iintro %S HI
+  ihave ⟨HI, #Hp⟩ := recvTok_proto $$ HI
+  iframe HI
+  by_cases hS""", """  iintro %S #Hp
+  simp only [connRd]
+  inext
+  by_cases hS"""),
+    ],
     'Epaxos/Proof/epaxos/GhostSend.lean': [
         # `S'` is a `let`: the lab's `iframe` closed `kvHalf γ S'.kv` by unification, ours does not
         ('''    isplitr; · ipureintro; exact InvX_rep_eq hX rfl rfl
@@ -255,8 +286,7 @@ theorem peerAddrOf_inj (k k' : Nat) (hk : k ∈ replicaNodes) (hk' : k' ∈ repl
         ('public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.RpcTable',
          'public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.RpcTable\n'
          'public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.ConnBuf'),
-        ('[epaxos.Assumptions] [net.model.Assumptions]', '[epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]'),
-        ('''/-- The dialer of a connection''', '''theorem peerPX_ppc (γ : EpNames) (id : Nat) (L : List GoString) (j : Nat) (side : Bool) :
+                ('''/-- The dialer of a connection''', '''theorem peerPX_ppc (γ : EpNames) (id : Nat) (L : List GoString) (j : Nat) (side : Bool) :
     ProtoPrefixClosed (peerPX (GF := GF) γ id L j side) := by
   unfold peerPX; split
   · exact repAccP_ppc γ _
@@ -351,5 +381,7 @@ for p in [a for a in sys.argv[1:] if a != '--bufio']:
     # sealed definitions' unseal equations (`@X = @XDef`; more instance arguments here)
     s = re.sub(r'(_unseal : )@(\w+)(?: \(GF := GF\))? = @(\w+)', r'\1\2 (GF := GF) = \3', s)
     s = fixup(p, s)
+    # the lab harness's `net.rpc.connIface c cn s` is `connIf` (Interface/ConnBuf.lean)
+    s = s.replace('net.rpc.connIface', 'connIf')
     open(out, 'w').write(s)
     print(out[len(DST) + 1:])

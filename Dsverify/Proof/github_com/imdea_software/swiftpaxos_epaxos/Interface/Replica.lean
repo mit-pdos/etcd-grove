@@ -205,13 +205,6 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
-
-/-- The right to listen at address `a`: `Net/`'s listening token (`netLisTok`, exclusive, one per
-valid address, from the extension's start resources; `net.Listen.spec` takes it by an atomic
-update and gives it back). The lab's `addrTok` (its harness's address token). -/
-abbrev addrTok (a : GoString) : IProp GF :=
-  netLisTok (extGlobalGS netExt (G := hG.goose_globalGS)) a
 
 /-! ## The framework's pointers -/
 
@@ -380,12 +373,13 @@ instance fwFrozen_persistent (γ : EpNames) (r : Loc) (id : Nat) (p : FwPtrs) :
     Persistent (fwFrozen (GF := GF) γ r id p) := by
   rw [fwFrozen_unseal]; unfold fwFrozenDef; infer_instance
 
-/-- What `ConnectToPeers` starts from (exclusive, package-internal): the replica address's token,
+/-- What `ConnectToPeers` starts from (exclusive, package-internal; the right to listen at the
+replica's address is its `addrProto`'s, in `clientInvs`: `listen_au`; the lab's `addrTok` is gone),
 the fresh lock, the mutable slices' and maps' initial contents, `Listener` and
 `PreferredPeerOrder`, and the framework's start ghost state (`repFwStart`). -/
 def fwStartDef (γ : EpNames) (r : Loc) (id : Nat) (L : List GoString) (p : FwPtrs) :
     IProp GF :=
-  iprop(addrTok (L.getD id []) ∗ repFwStart γ id ∗
+  iprop(repFwStart γ id ∗
     fld r go!"M" ↦ (zeroValDef : sync.Mutex) ∗
     p.peers ↦* List.replicate L.length (interface.nil : GoInterface) ∗
     p.readers ↦* List.replicate L.length (null : Loc) ∗
@@ -406,7 +400,7 @@ theorem fwStart_unseal : fwStart (GF := GF) = fwStartDef := by funext; with_unfo
 /-- What `replica.New` returns (exclusive): the read-only part, the fields and table `epaxos.New`
 then sets up (`Beacon`, `Durable`, the table with next code 9 and no entry), the `Stats` map
 (epaxos initializes its counters), an empty store, and `fwStart`. -/
-def fwFresh (γ : EpNames) (r : Loc) (id : Nat) (L : List GoString) (p : FwPtrs) :
+def fwFresh [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TreemapHyp GF] (γ : EpNames) (r : Loc) (id : Nat) (L : List GoString) (p : FwPtrs) :
     IProp GF :=
   iprop(fwRO γ r id L p ∗ fld r go!"Beacon" ↦ false ∗ fld r go!"Durable" ↦ false ∗
     ownTable p.tbl (W8 9) ∅ ∗ isState p.st ∅ ∗ fwStart γ r id L p)

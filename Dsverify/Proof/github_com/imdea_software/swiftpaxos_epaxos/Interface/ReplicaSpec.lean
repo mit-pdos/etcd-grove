@@ -48,7 +48,6 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
 
 /-- The replica package's initialization. -/
 abbrev pkgInit_replica : IProp GF :=
@@ -58,11 +57,11 @@ abbrev pkgInit_replica : IProp GF :=
 /-- `replica.New(alias, id, 2, addrs, true, true, false, cfg, logger)` as `epaxos.New` calls it
 (failures 2, thrifty, exec, no local reads) for replica `id` of the final list `L` (node `k`'s
 address at `id`), from the replica's start resources. -/
-def replica.New.spec : Prop :=
+def replica.New.spec [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TreemapHyp GF] : Prop :=
   ∀ (γ : EpNames) (k id : Nat) (L : List GoString) (sl : GoSlice) (als : GoString)
     (cfg logger proxy : Loc) (c : config.Config),
   {{ pkgInit_replica (GF := GF) ∗ ⌜k ∈ replicaNodes ∧ L[id]? = some (peerAddrOf k)⌝ ∗ listFinal γ L ∗
-      sl ↦*□ L ∗ addrTok (peerAddrOf k) ∗ clientInvs γ ∗ repFwStart γ id ∗
+      sl ↦*□ L ∗ clientInvs γ ∗ repFwStart γ id ∗
       cfg ↦□ c ∗ ⌜c.Proxy' = proxy⌝ ∗ proxy ↦□ (zeroValDef : config.ProxyInfo) ∗
       logger ↦□ (zeroValDef : dlog.Logger) }}
     (App (App (App (App (App (App (App (App (App (Val (@! replica.New)) (Val #als))
