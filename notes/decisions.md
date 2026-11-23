@@ -42103,3 +42103,17 @@ name; the closures run only when `expvar`'s registry is served, which no transla
 (`notes/perennial-changes.md`, 2026-11-23), so `initFuncsOk` stays, narrowed to `init.«0»`. The plan for it
 (etcdserver into `PRE_RES`, its 19 names added to the closed theorems' `namesUnclaimed` lists) was approved
 by the coordinator under the user's delegation; review requested (#39).
+
+## The net laws' read-deadline token and dead witness: variants, not new statements (2026-11-23 · #24 · branch `net-sticky-read`)
+
+Supersedes nothing. `notes/net-sticky-read.md`'s plan had the read-deadline token `rdlTok` "given at
+dial and accept". Adding it to `dial_au`'s and the `accept_*au` laws' results would change the
+statement every kit restates as its `Dial`/`Accept` post (twenty-odd files); instead the laws gain
+variants (`dial_rdl_au`, `accept_rdl_au`, `accept_shared_rdl_au`) whose results add the token, and
+the old laws are derived from them by dropping it, so only the proofs that set a read deadline (or,
+later, need no timeout) use the variants. `deadline_au` takes the token (anyone holding the
+connection could otherwise change the deadline the token records); a write deadline does not touch
+it, so `deadline_w_au` needs only `connIs`. `readDead` also covers a closed end (a counter per end,
+`c s`): a reader whose end may be closed by another thread has no exclusive knowledge that it is
+not, and `closed` is as sticky as EOF, so the witness says "reads nothing more" for either reason.
+

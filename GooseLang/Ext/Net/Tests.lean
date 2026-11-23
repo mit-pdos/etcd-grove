@@ -34,13 +34,22 @@ private def b3 : List w8 := [97, 98, 99]
 
 private theorem readAvail_bytes {st : NetEnd} {d d' : NetDir} {n : Nat} {bs : List w8}
     (h : ReadAvail st d n (.bytes bs) d') : bs.length ≤ n ∧ bs <+: d.bytes ∧ bs ≠ [] := by
-  rcases h with ⟨k, h1, h2, h3, h4, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨-, h, -⟩ <;>
+  rcases h with ⟨k, h1, h2, h3, h4, -⟩ | ⟨-, -, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ <;>
     try cases h
   cases h4
   refine ⟨by rw [List.length_take]; omega, List.take_prefix _ _, ?_⟩
   intro he
   have := congrArg List.length he
   rw [List.length_take, List.length_nil] at this; omega
+
+/-- A `sys` read error (D1 v3.5): only from a cut direction with nothing unread, which it keeps. -/
+private theorem readAvail_sys {st : NetEnd} {d d' : NetDir} {n : Nat}
+    (h : ReadAvail st d n (.err .sys) d') : d.status = .cut ∧ d.bytes = [] ∧ d' = d := by
+  rcases h with ⟨_, _, _, _, h, -⟩ | ⟨-, -, h, -⟩ | ⟨hs, hb, -, rfl⟩ | ⟨-, h, -⟩
+  · cases h
+  · cases h
+  · exact ⟨hs, hb, rfl⟩
+  · cases h
 
 /-- What a read returns is a prefix of the unread bytes, at most `n` of them (no byte invented,
 none past the oldest unread: in order, once). -/
@@ -64,7 +73,7 @@ private theorem readOutcome_timeout {st : NetEnd} {d d' : NetDir} {n : Nat}
   · split at h
     · cases h.1
     · rcases h with h | ⟨k, -, h⟩ <;>
-      rcases h with ⟨_, _, _, _, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ | ⟨h, -, -⟩ <;>
+      rcases h with ⟨_, _, _, _, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, -, h, -⟩ | ⟨h, -, -⟩ <;>
         first | exact h | cases h
 
 /-! ## Reads (D1) -/
@@ -105,6 +114,46 @@ example : ReadOutcome st0 ⟨b3, .open⟩ 4 .eof ⟨[], .cut⟩ := by
 reset, the bytes received, then an error (`sys`), then EOF. -/
 example : ReadOutcome st0 ⟨[], .cut⟩ 4 (.err .sys) ⟨[], .cut⟩ := by
   unfold ReadOutcome ReadAvail; simp [st0, NetEnd.fresh]
+
+/-- `TestStickyReset`, `TestStickyKilledPeer`, `TestStickyTimedOut` (excluded, v3.5): no `sys`
+error while a byte is unread, so no byte after one (Linux returns an error from `read(2)` only when
+it copied nothing). -/
+example : ¬ ReadOutcome st0 ⟨b3, .cut⟩ 4 (.err .sys) ⟨b3, .cut⟩ := fun h => by
+  unfold ReadOutcome at h
+  simp only [st0, NetEnd.fresh, Bool.false_eq_true, ↓reduceIte, show (4 : Nat) ≠ 0 by decide] at h
+  rcases h with h | ⟨k, -, h⟩
+  · have := (readAvail_sys h).2.1; simp [b3] at this
+  · obtain ⟨-, hb, he⟩ := readAvail_sys h
+    simp only [NetDir.mk.injEq, and_true] at hb he
+    rw [← he] at hb; simp [b3] at hb
+
+/-- `TestStickyResetBlockedRead`, `TestResetInNetwork` (v3.5): a read may break the connection and
+fail `sys`, the cut keeping nothing (the unread bytes are lost, as a reset that arrives before
+them loses them). -/
+example : ReadOutcome st0 ⟨b3, .open⟩ 4 (.err .sys) ⟨[], .cut⟩ := by
+  unfold ReadOutcome
+  simp only [st0, NetEnd.fresh, Bool.false_eq_true, ↓reduceIte, show (4 : Nat) ≠ 0 by decide]
+  exact .inr ⟨0, by simp, .inr (.inr (.inl ⟨rfl, rfl, rfl, rfl⟩))⟩
+
+/-- `TestStickyReset`, `TestStickyResetBlockedRead`, `TestStickyKilledPeer`, `TestStickyTimedOut`
+(v3.5): after a `sys` error the direction is dead (`⟨[], .cut⟩`), and every later read, without a
+deadline, is EOF or `sys` again, with no byte, the direction staying dead (Linux: EOF). -/
+example (r : ReadRes) (d' : NetDir) (h : ReadOutcome st0 ⟨[], .cut⟩ 4 r d') :
+    d' = ⟨[], .cut⟩ ∧ (r = .eof ∨ r = .err .sys) := by
+  unfold ReadOutcome at h
+  simp only [st0, NetEnd.fresh, Bool.false_eq_true, ↓reduceIte,
+    show (4 : Nat) ≠ 0 by decide] at h
+  rcases h with h | ⟨k, -, h⟩
+  · rcases h with ⟨k, h1, -, hk, -⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨h, -⟩
+    · simp at hk; omega
+    · exact ⟨rfl, .inl rfl⟩
+    · exact ⟨rfl, .inr rfl⟩
+    · simp at h
+  · rcases h with ⟨k, h1, -, hk, -⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨h, -⟩
+    · simp at hk; omega
+    · exact ⟨by simp, .inl rfl⟩
+    · exact ⟨by simp, .inr rfl⟩
+    · simp at h
 
 /-- `TestCloseTwice`, `TestCloseUnblocksRead`: a read on one's own closed end is `closed`, never
 data. -/
@@ -590,7 +639,7 @@ example (r : ReadRes) (d' : NetDir) (h : ReadOutcome st0 ⟨[], .open⟩ 3 r d')
   rcases h with h | ⟨k, hk, h⟩
   · rcases h with ⟨k, h1, -, hk, -⟩ | ⟨-, h, -⟩ | ⟨h, -⟩ | ⟨h, -⟩ <;> simp_all
   · obtain rfl : k = 0 := by simpa using hk
-    rcases h with ⟨k, h1, -, hk, -⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨h, -⟩
+    rcases h with ⟨k, h1, -, hk, -⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨h, -⟩
     · simp at hk; omega
     · exact ⟨rfl, .inl rfl⟩
     · exact ⟨rfl, .inr rfl⟩
