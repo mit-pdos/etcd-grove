@@ -134,6 +134,10 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    re-proved over `TreemapHyp` (`Select_spec` with the closure's triple, `Iterator_spec`, a loop
    over `ownIter`; pure: `ScanPure.scan_flatten_sorted`, `Execute.vals_es`); `ScanPure` defines
    `keysSorted` (was `TreemapLemmas`'). `#print axioms`: Lean's three (2026-11-23).
+3e. **`Interface/Varint.lean`** (`epaxos.putVarint.spec`, `pkgInit_{state,defs,epaxos}` and
+   `sint_Z_W64_length`, split out of the lab's `Interface/Marshal`, which the marshal port must
+   import instead of restating) and `wire/Varint/{PutUvarint,PutVarint,Decode}`: ported, 0 errors.
+   `ReadByte`/`ReadUvarint`/`ReadVarint` wait for bufio.
 3d. **`Interface/Misc.lean`** (dlog's non-verbose `Println`/`Printf`/`Fatal`, config's
    `IsProxy` on an empty `ProxyInfo`) and its proofs `wire/Misc/{Dlog,IsProxy}.lean`: ported, check
    with 0 errors (2026-11-23). The lab's import of `Top/PkgState` is dropped (not needed).
@@ -152,6 +156,18 @@ that needs it):
 - `net.rpc.InitHyp GF` (`Dsverify/Proof/net/rpc/Init.lean`): net/rpc's initializer.
 - `net.http.InitHyp GF` (`Dsverify/Proof/net/http/Init.lean`): net/http's initializer.
 - `encoding.json.InitHyp GF` (`Dsverify/Proof/encoding/json/Init.lean`, dsv-vr's): encoding/json's.
+
+- `RpcHttpHyp GF` (`Interface/RpcHttpHyps.lean`, 2026-11-23): net/rpc over HTTP with Upamanyu's
+  names and shapes (#24): abstract `rpcAddrP W a hs hsAns` (`rpcAddrP_raw`: `[] []` is `Net/`'s
+  `rpcAddr`), `handlerOk`, `muxHas`, `defaultServer`; concrete `connectReq path`, `connectAns`,
+  `defaultRPCPath`; specs `DialHTTPPath_spec`, `DialHTTP_spec`, `Server_ServeHTTP_spec`,
+  `Server_HandleHTTP_spec`, `HandleHTTP_spec`, `Register_spec` (package-level, `DefaultServer`),
+  `ServeMux_ServeHTTP_spec`, `Serve_spec` (handler nil). The handshake is in the protocol, so the
+  class is true of the model. `ListenAndServe` not stated (the kit does not call it). To be
+  discharged by `models-rpc-http`; a visible premise of `epaxos_remote_robust`, never an instance.
+  Field names use `_spec` (`DialHTTP_spec` for Upamanyu's `rpc.DialHTTP.spec`): rename to his
+  `def …spec` names when his branch lands.
+- `TreemapHyp GF` (`Interface/Treemap.lean`): gods' treemap (above).
 
 To be stated when the code proofs reach them (the library specs below, named after the lab's):
 
