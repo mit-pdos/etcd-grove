@@ -9,9 +9,10 @@ is a field of `SwiftHyps` (Hyps.lean; notes/dsv-swiftpaxos.md, "Hypotheses").
 * `uuid.New`/`UUID.ID`: the lab's results were functions of the UUID's bytes (`isV4`, `idOf`, proved from
   its model of `uuid`'s code); the proof uses neither, so here `New` returns some `UUID` and `ID` some `w32`.
 * `os.signal.Notify`: the lab's model never delivers a signal (its `Notify` keeps no reference to the
-  channel), and `hook.HookUser1`'s proof relies on it (the channel's bag holds no message). The
-  hypothesis states the same: **an assumption of the deployment** (no `SIGUSR1` is sent to a node), not
-  a fact of Go's `os/signal`. For review.
+  channel), and `hook.HookUser1`'s proof relies on it (the channel's bag holds no message). Here that
+  is `os.signal.NotifyQuiet.spec`, **an assumption of the deployment** (no `SIGUSR1` is sent to a
+  node), not a fact of Go's `os/signal`: the separate class `SwiftNoSignals` (Hyps.lean), over the
+  one signal `HookUser1` passes.
 -/
 module
 
@@ -54,12 +55,17 @@ abbrev math.rand.Intn.spec : Prop :=
       (App (Val (@! math.rand.Intn)) (Val #n))
     {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
 
-/-- lab `Harness/Proof/os/signal.lean` `os.signal.Notify.spec`: see the file header. -/
-abbrev os.signal.Notify.spec : Prop :=
-  ∀ (c : GoChan) (sig : GoSlice), c ≠ chan.nil →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.os.signal }}
+/-- `signal.Notify(c, SIGUSR1)` (the fork's `hook.HookUser1`; `SIGUSR1` is the literal
+`syscall.Signal(0xa)`) in a deployment where no signal is sent: nothing. **Not a library spec**: real
+Go's `Notify` registers `c`, and the runtime sends every `SIGUSR1` the process receives on it. It is
+the environment assumption `SwiftNoSignals` (Hyps.lean), as dsv-rabia's `os.signal.NoSignals`
+(`NotifyQuiet.spec`), restricted (Upamanyu's rabia review, #24) to the signals actually passed. -/
+abbrev os.signal.NotifyQuiet.spec : Prop :=
+  ∀ (c : GoChan) (sig : GoSlice) (dq : DFrac), c ≠ chan.nil →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.os.signal ∗
+        sig ↦*{dq} [interface.mkOk syscall.Signal.ty #(W64 10)] }}
       (App (App (Val (@! os.signal.Notify)) (Val #c)) (Val #sig))
-    {{ RET #(); True }}
+    {{ RET #(); sig ↦*{dq} [interface.mkOk syscall.Signal.ty #(W64 10)] }}
 
 /-- lab `Harness/Proof/uuid/Specs.lean` `uuid.wp_New` (see the file header). -/
 abbrev github_com.google.uuid.New.spec : Prop :=

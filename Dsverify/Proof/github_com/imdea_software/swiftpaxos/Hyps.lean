@@ -71,13 +71,18 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
   math_rand_New : ∀ [math.rand.Assumptions], math.rand.New.spec (GF := GF)
   /-- lab `math.rand.Intn.wp_proof` -/
   math_rand_Intn : math.rand.Intn.spec (GF := GF)
-  /-- lab `Harness/Proof/os/signal.lean` `os.signal.Notify.wp_proof` (an assumption of the
-  deployment: lib/LibSpecs.lean's header) -/
-  os_signal_Notify : os.signal.Notify.spec (GF := GF)
   /-- lab `Harness/Proof/uuid/Specs.lean` `uuid.wp_New` -/
   uuid_New : github_com.google.uuid.New.spec (GF := GF)
   /-- lab `uuid.wp_ID` -/
   uuid_ID : ∀ [github_com.google.uuid.Assumptions], github_com.google.uuid.UUID.ID.spec (GF := GF)
+
+/-- **The environment assumption** (not a library spec; dsv-rabia's `os.signal.NoSignals`): no
+signal is sent to the deployment's processes, so the channel `hook.HookUser1` registers for
+`SIGUSR1` never receives one (`lib/LibSpecs.lean`, `os.signal.NotifyQuiet.spec`). A premise of
+`swiftpaxos_remote_robust` beside the library hypotheses, kept apart from them. -/
+class SwiftNoSignals [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
+    [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
+  notifyQuiet : os.signal.NotifyQuiet.spec (GF := GF)
 
 end github_com.imdea_software.swiftpaxos
 
@@ -129,7 +134,8 @@ theorem New.wp_hyp [math.rand.Assumptions] : New.spec (GF := GF) := h.math_rand_
 theorem Intn.wp_hyp : Intn.spec (GF := GF) := h.math_rand_Intn
 end math.rand
 
-theorem os.signal.Notify.wp_hyp : os.signal.Notify.spec (GF := GF) := h.os_signal_Notify
+theorem os.signal.NotifyQuiet.wp_hyp [hs : github_com.imdea_software.swiftpaxos.SwiftNoSignals GF] :
+    os.signal.NotifyQuiet.spec (GF := GF) := hs.notifyQuiet
 
 namespace github_com.google.uuid
 theorem wp_New : New.spec (GF := GF) := h.uuid_New
