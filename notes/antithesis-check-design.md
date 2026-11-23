@@ -207,7 +207,7 @@ Costs of (a), which are raft-side work:
 
 ## 7. S1: the Go checker (done)
 
-`examples/raft/antithesis/check` (own `go.mod`, no dependencies): `types.go` (values), `raft.go`
+`examples/raft/antithesis/check` (a package of the `examples/raft/antithesis` module since S2; it imports nothing outside the standard library): `types.go` (values), `raft.go`
 (the `EtcdRaft.tla` operators the binding uses), `state.go` (variables, `Init0`), `binding.go` (every
 operator and action of `EtcdBinding.tla`, each citing its lines), `check.go` (`Checker.Next`, `Run`:
 GC when due, then `Step`; invariants on each new state), `verdict.go` (`Check`: `Run` with
@@ -268,3 +268,68 @@ unequal later. Both only matter for malformed streams, and either outcome makes 
 Recommend accepting this.
 
 **Q5. API.** (a) `RawNode` (recommended, §6) or (b) the node API.
+
+## 9. S2: the harness (2026-11-23)
+
+The five recommendations of §8 taken (the coordinator, pending the user's veto; posted on #33).
+`examples/raft/antithesis` (one Go module with `check/`; raft replaced by the fork at `RAFT_REV`, main
+build): `harness.go` (`RunCluster`, `DefaultConfig`), `main.go` (`Main`: `RunCluster(DefaultConfig())`,
+`check.Run` with `EtcdBindingEmpty.cfg`'s constants, panic unless ACCEPTED), `harness_test.go`
+(`TestRuns`: five schedule variants, `RUNS` runs each, `KEEP=dir` writes the streams for TLC,
+`check/testdata/tlc-dir.sh`).
+
+**Shape.** Three `RawNode`s, each owned by one goroutine that takes one input at a time from its
+channel or its ticker (a message: `Step`; a proposal: `Propose`; a tick: `Tick`) and then drains
+`Ready`s in `rawnode`'s default mode: the `ready` report then the write (`MemoryStorage.Append`,
+`SetHardState`: one step of the node's goroutine, which alone touches its storage), a `send` report
+per message then the message handed to the network, an `apply` report, `Advance`. The network
+delivers each message from a goroutine of its own after a random delay or drops it; the proposer
+hands 60 proposals to random nodes (forwarding on: a follower's proposal becomes a `prop` message);
+the isolator cuts a random node off three times. Random choices are `primitive.RandomUint64`'s.
+Each node's storage is a `bootStorage`: a `MemoryStorage` whose `InitialState` reports the voters as
+its `ConfState` while it holds no snapshot (a `MemoryStorage` cannot hold a `ConfState` at index 0,
+and `Bootstrap`'s entries match neither initial state, §2). This wrapper is a `raft.Storage` of the
+harness's own: the raft-side constructor law (S3a) must take a storage given by its specs, not only
+a `MemoryStorage`.
+
+**The stream's order** (as tracecheck's `SyncRecorder` note). One `Recorder` lock orders every report.
+A node's reports are recorded from its goroutine, one at a time, in `rawnode`'s program order (`recv`
+just before the first report the message causes, then per `Ready` `ready`, `send`s, `apply`). A
+message is recorded as sent before the network has it, so before any receipt of it. What the binding
+needs at a receipt was recorded by the sender before its `send`: a request's leader log and commits
+(its earlier `ready`s: `Sendable`, B 117-126), a vote request's fact (the candidate's `ready` that wrote
+its term, B 406); what later steps need of an answer (a grant, B 539-540; an ack, B 407, 573, 579) is
+recorded by the answering node's `send` or `ready` before the answer reaches the network. Nothing
+else relates two nodes (a proposal is one node's input; the isolator only drops). So the stream is a
+linearization of the run consistent with every causal dependency the binding reads.
+
+**Out of scope, panics in the harness:** a snapshot in a `Ready`, an entry that is not a normal one
+(no conf change is ever proposed, and raft makes none by itself outside a joint configuration): the
+proof shows them unreachable.
+
+**Results** (2026-11-23): 500 runs under `-race` (5 variants x 100: default; lossy, 30% dropped and
+delays up to 10ms; churn, 10 isolations of 30ms and 1ms ticks; long, 300 proposals; slow, delays up
+to 25ms), no race reported, every stream ACCEPTED by `check`, and by TLC (`streamcheck.py`, `manifest-empty`): 500 of 500, Go
+and TLC agreeing on each. No divergence between the verified raft and the model was found, so
+nothing went to `issues/` or `nonissues/`. A typical run: ~1,300-1,600 reports, terms up to ~11, 3-4
+leaders, 20-30 entries committed.
+
+**Goose.** The pinned translator (Perennial `9c3b81f3`, as `etc/goose.py`'s project `tracecheck`
+lean roots) translates both packages (`antithesis`, `check`) with no error and no stub, and
+`proofgen` writes their `GeneratedProof` likewise; the two `Code` files compile in Lean against a
+built tree (raft's `Code`, Perennial's `strconv`, `sync`, `time`, `primitive`, the local
+`protobuf/proto`). Not translated by design: `check/verdict.go` (`!goose`: `recover`, `fmt`),
+`check/ndjson`, `check/cmd`, tests. Not yet done: an `etc/goose.py` project and the checked-in
+translation (S3).
+
+**Targeted negative streams** (`check/testdata/gen-targeted.py`, 37 streams, TLC verdicts recorded):
+8 of the 9 surviving self-mutants are now killed (`leader-new-term-write`: OnDisk's "no new term while
+leading", reachable only with `AsyncStorageWrites`, a campaign queued before a win; `boot-undo-made`;
+`net-low`; `gc-stale-leader`, StaleLed's GC; `old-grant-21-*`, the ack rule of `Garbage` through the
+count that makes GC due; `has-first`; `apply-beyond-commit`; `up-to-date`). The ninth, `BootInit`'s
+`confirmed = [term |-> 1, index |-> 1]` set to index 0, is equivalent: the index of a `confirmed[n]` of term 1 only feeds later values of `confirmed[n]`
+(the `Max`es, B 342, 576) and the test `CommitBeyondConfirmed` (B 435), which runs only when a commit
+advances under term 1; none can in a bootstrapped run: its term-1 leader `First` starts a follower
+and cannot lead term 1 again (`wins` needs a candidate whose term has no leader log, B 236-237), so
+nothing records a prefix under term 1 (B 264, 424), so no request of term 1 carries a commit
+(B 126), so no node's commit moves under term 1 (B 390-398).

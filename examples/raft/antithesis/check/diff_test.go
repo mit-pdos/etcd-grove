@@ -4,12 +4,14 @@ package check_test
 // gen-fixtures.sh recorded (testdata/verdicts.txt): Antithesis's recorded streams, the mutations
 // of their scripts/mutate.py (cut after the event TLC stops at), and simulator streams of several
 // modes; and (testdata/verdicts-fuzz.txt, testdata/gen-fuzz.py) random perturbations of the
-// recorded streams. EXTRA_VERDICTS=<file> checks another verdicts file of the same format (paths relative
+// recorded streams; and (testdata/verdicts-targeted.txt, testdata/gen-targeted.py) hand-built
+// streams for the guards nothing else reaches. EXTRA_VERDICTS=<file> checks another verdicts file of the same format (paths relative
 // to it), e.g. a larger simulator batch.
 
 import (
 	"bufio"
 	"compress/gzip"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -47,7 +49,7 @@ type fixture struct {
 
 func readVerdicts(t *testing.T, path string) []fixture {
 	f, err := os.Open(path)
-	if os.IsNotExist(err) && strings.HasSuffix(path, "verdicts-fuzz.txt") {
+	if os.IsNotExist(err) && (strings.HasSuffix(path, "verdicts-fuzz.txt") || strings.HasSuffix(path, "verdicts-targeted.txt")) {
 		return nil
 	}
 	if err != nil {
@@ -74,11 +76,15 @@ func readStream(t *testing.T, path string) []*check.Event {
 		t.Fatal(err)
 	}
 	defer f.Close()
-	z, err := gzip.NewReader(f)
-	if err != nil {
-		t.Fatal(err)
+	var r io.Reader = f
+	if strings.HasSuffix(path, ".gz") {
+		z, err := gzip.NewReader(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r = z
 	}
-	evs, err := ndjson.Read(z)
+	evs, err := ndjson.Read(r)
 	if err != nil {
 		t.Fatalf("%s: %v", path, err)
 	}
@@ -151,6 +157,7 @@ func runFixtures(t *testing.T, fx []fixture) {
 func TestDifferential(t *testing.T) {
 	fx := readVerdicts(t, "testdata/verdicts.txt")
 	fx = append(fx, readVerdicts(t, "testdata/verdicts-fuzz.txt")...)
+	fx = append(fx, readVerdicts(t, "testdata/verdicts-targeted.txt")...)
 	runFixtures(t, fx)
 }
 
