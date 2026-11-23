@@ -1231,6 +1231,314 @@ theorem nodeRcv (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec
   iapply BI.BigSepM.bigSepM_empty.2
   itrivial
 
+/-- The binding `b` of the coordinator service `svc`, and the packages (persistent). -/
+def coordB (cfg : Cfg GF) (b : Loc) (svc : GoInterface) : IProp GF :=
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.transport.netrpc ∗
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet ∗
+    net.rpc.codecSet craqCodec ∗
+    b ↦□ transport.netrpc.CoordinatorBinding.mk svc ∗ isCoordSvc cfg svc)
+
+instance coordB_persistent (cfg : Cfg GF) (b : Loc) (svc : GoInterface) :
+    Persistent (coordB (hG := hG) cfg b svc) := by
+  unfold coordB; infer_instance
+
+theorem coordB_nn (cfg : Cfg GF) (b : Loc) (svc : GoInterface) :
+    coordB cfg b svc ⊢ ⌜b ≠ null⌝ := by
+  unfold coordB
+  iintro ⟨-, -, -, #Hbs, -⟩
+  iapply typedPointsto_not_null _ _ _ $$ Hbs
+
+theorem cnewArg_AddNode (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) :
+    coordB cfg b svc ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
+      (coordSpec cfg.γ cfg.chain go!"AddNode")
+      (mOf examples.craqnet.rpcNewArg_r1_AddNode examples.craqnet.rpcNewReply_r1_AddNode
+        examples.craqnet.rpcCall_r1_AddNode) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold coordB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface go.string p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface go.string p) (p ↦ (go!"" : GoString))
+      (coordSpec cfg.γ cfg.chain go!"AddNode")
+      (fun args ok => iprop(if ok then ∃ k : GoString, ⌜args = encString k⌝ ∗ p ↦ k else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    rw [coordSpec_AddNode]
+    icases HS with ⟨%k, %Hargs, HS⟩
+    isplitl [HS]
+    · iexists k
+      isplitr
+      · ipureintro; exact Hargs
+      iexact HS
+    iapply L.decA_string _ _ k
+    iframe
+    isplitr
+    · ipureintro; exact Hargs.1
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      iexists k
+      iframe
+      ipureintro; exact Hargs.1
+  ihave Hp : p ↦ (go!"" : GoString) $$ [Hp]
+  · rw [show (go!"" : GoString) = zero_val GoString from rfl]; iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS Hp
+  simp only [ite_true]
+  icases Hp with ⟨%k, %Hm, Hp⟩
+  rw [coordSpec_AddNode]
+  icases HS with ⟨%k', ⟨%Hargs, %Hin⟩, Hjt, HS⟩
+  have hk : k = k' := I.encString_inj k k' (Hm ▸ Hargs)
+  subst hk
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_method_call
+  wp_call
+  iStructNamed Hbs
+  wp_auto
+  unfold isCoordSvc
+  icases Hsvc with ⟨%e, %He, #Hm⟩
+  subst He
+  icases Hm with ⟨#HA, -⟩
+  wp_apply HA $$ %k %_ %Hin Hjt as %mp %err Herr
+  (try wp_auto)
+  unfold errNE
+  icases Herr with (⟨%Herr, %md, Hmp⟩ | ⟨%msg, %Hmsg, #Hem⟩)
+  · subst Herr
+    unfold metaPtr
+    wp_auto
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    unfold net.rpc.callRet
+    ileft
+    isplitr
+    · ipureintro; rfl
+    icases HS with ⟨HΦ, -⟩
+    iapply L.enc_NodeMeta _ _ md
+    isplitr [HΦ]
+    · unfold metaPtr
+      iexact «$r0»
+    iintro _
+    iapply HΦ
+  · unfold net.rpc.errMsg
+    icases Hem with ⟨%ee, %Hee, %Hty, #HE⟩
+    subst Hee
+    wp_auto
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    unfold net.rpc.callRet
+    iright
+    iexists msg
+    isplitr [HS]
+    · unfold net.rpc.errMsg
+      iexists ee
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; exact Hty
+      iexact HE
+    rw [if_neg Hmsg]
+    icases HS with ⟨-, HΦ⟩
+    unfold errOk
+    iapply HΦ
+    ipureintro; exact Hmsg
+
+theorem cnewArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) :
+    coordB cfg b svc ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
+      (coordSpec cfg.γ cfg.chain go!"Write")
+      (mOf examples.craqnet.rpcNewArg_r1_Write examples.craqnet.rpcNewReply_r1_Write
+        examples.craqnet.rpcCall_r1_Write) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold coordB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface transport.netrpc.ClientWriteArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface transport.netrpc.ClientWriteArgs.ty p)
+      (p ↦ transport.netrpc.ClientWriteArgs.mk go!"" slice.nil)
+      (coordSpec cfg.γ cfg.chain go!"Write")
+      (fun args ok => iprop(⌜args.length < 2 ^ 63⌝ ∗ if ok then ∃ (k x : GoString) (sl : GoSlice),
+        ⌜args = encClientWriteArgs k x⌝ ∗ p ↦ transport.netrpc.ClientWriteArgs.mk k sl ∗
+        sl ↦* x else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    rw [coordSpec_Write]
+    icases HS with ⟨%k, %x, %Q, %Hargs, HS⟩
+    isplitl [HS]
+    · iexists k, x, Q
+      isplitr
+      · ipureintro; exact Hargs
+      iexact HS
+    iapply Hlen
+    iintro %_
+    iapply L.decA_ClientWriteArgs _ _ k x
+    iframe
+    isplitr
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      icases Hp with ⟨%sl, Hp, Hsl⟩
+      iexists k, x, sl
+      iframe
+      ipureintro; exact Hargs
+  ihave Hp : p ↦ transport.netrpc.ClientWriteArgs.mk go!"" slice.nil $$ [Hp]
+  · rw [show transport.netrpc.ClientWriteArgs.mk go!"" slice.nil = zero_val transport.netrpc.ClientWriteArgs from rfl]; iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS ⟨%Hl, Hp⟩
+  simp only [ite_true]
+  icases Hp with ⟨%k, %x, %sl, %Hm, Hp, Hsl⟩
+  rw [coordSpec_Write]
+  icases HS with ⟨%k', %x', %Q, %Hargs, HAU, HS⟩
+  obtain ⟨rfl, rfl⟩ := I.encClientWriteArgs_inj k k' x x' (Hm ▸ Hl) (Hm ▸ Hargs)
+  unfold net.rpc.callObl
+  imod ownSlice_persist $$ Hsl with #Hsl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_method_call
+  wp_call
+  iStructNamed Hbs
+  wp_auto
+  unfold isCoordSvc
+  icases Hsvc with ⟨%e, %He, #Hm⟩
+  subst He
+  icases Hm with ⟨-, #HW, -⟩
+  iStructNamed Hp
+  (try wp_auto)
+  wp_apply HW $$ %k %sl %x %Q %_ Hsl HAU as %err Herr
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  unfold errNE
+  icases Herr with (⟨%Herr, Hpost⟩ | ⟨%msg, %Hmsg, #Hem⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact Herr
+    icases HS with ⟨HΦ, -⟩
+    iapply L.enc_EmptyReply
+    isplitr [HΦ Hpost]
+    · iexact «$r0»
+    iintro _
+    iapply HΦ $$ Hpost
+  · iright
+    iexists msg
+    iframe Hem
+    rw [if_neg Hmsg]
+    icases HS with ⟨-, HΦ⟩
+    unfold errOk
+    iapply HΦ
+    ipureintro; exact Hmsg
+
+theorem coordRcv (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface)
+    (HRN : coordB cfg b svc ⊢ newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
+      (coordSpec cfg.γ cfg.chain go!"RemoveNode")
+      (mOf examples.craqnet.rpcNewArg_r1_RemoveNode examples.craqnet.rpcNewReply_r1_RemoveNode
+        examples.craqnet.rpcCall_r1_RemoveNode)) :
+    coordB cfg b svc ⊢
+    craqCodec.rcv (ptrIface transport.netrpc.CoordinatorBinding.ty b)
+      (net.rpc.rcvrIs craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
+        (coordSpec cfg.γ cfg.chain) go!"CoordinatorBinding" false) := by
+  iintro #Hb
+  rw [craqCodec_rcv_eq]
+  iintro %Φ HΦ
+  ihave %Hnn := coordB_nn $$ Hb
+  iapply wp_fupd
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Loc) _ _) as %mp Hm
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m0 as H0
+  ipersist H0
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m1 as H1
+  ipersist H1
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m2 as H2
+  ipersist H2
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  ipersist «$r0»
+  imod ownMap_persist $$ Hm with #Hm
+  iapply HΦ
+  unfold net.rpc.rcvrIs
+  iexists _, _
+  iframe «$r0» Hm
+  isplitr
+  · ipureintro
+    refine ⟨rfl, ?_, ?_⟩
+    · simp [Hnn]
+    · exact GMap.map_size_ne_0_lookup_2 _ (GMap.lookup_insert _ _ _)
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.CoordinatorBinding.ty b) (coordSpec cfg.γ cfg.chain m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H2
+    iapply cnewArg_Write L I Hlen $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.CoordinatorBinding.ty b) (coordSpec cfg.γ cfg.chain m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H1
+    iapply HRN $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.CoordinatorBinding.ty b) (coordSpec cfg.γ cfg.chain m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H0
+    iapply cnewArg_AddNode L I Hlen $$ Hb
+  iapply BI.BigSepM.bigSepM_empty.2
+  itrivial
+
 end proofs
 
 end netrpcP
