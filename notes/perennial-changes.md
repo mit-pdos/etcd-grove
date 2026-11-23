@@ -1747,32 +1747,6 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   needs a points-to the package's fact (`True`) does not give; they stay names only until a model
   of `encoding/base64` (and of `golang.org/x/crypto/bcrypt`'s `GenerateFromPassword`) exists.
 
-### `reflect.Value` held in a variable: its typed points-to is `sorry`
-
-- **Limitation.** `reflect` is names-only, and its axiomatized types' generated instances
-  (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
-  `sorry -- axiomatized type`. Any function that stores a `reflect.Value` in a variable (a
-  parameter is one: Goose allocates it) needs them, so a proof of it rests on a `sorry`.
-- **Needed by.** The k8s etcd3 store's `Delete` and `GuaranteedUpdate`: `v, _ :=
-  conversion.EnforcePtr(out)` is passed to `conditionalDelete`, `deleteOnce`, `updateOnce`,
-  `getCurrentState`, `stateFromEtcdResponse`, which make a fresh object with
-  `reflect.New(v.Type()).Interface().(runtime.Object)` (`notes/k8s-etcd3-plan.md`, "What blocks
-  where"). `Get` and `Create` do not use it.
-- **Proposed.** An opaque `reflect.Value` with real instances (a translated struct whose fields
-  are not modelled, or a hand-written typed points-to that only allows moving the value), plus
-  specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
-  values. Designed and reviewed on its own (Perennial's trusted base).
-- **Workaround here** (the user's choice, 2026-10-22: axioms here now, a trusted model with proved
-  reasoning principles later). `Proof/reflect/Values.lean`: the two instances as axioms of higher
-  priority than the generated `sorry`s; opaque predicates relating a `Value` to a Go type and a
-  location (`reflElem`, `reflPtr`, `reflType`) and `reflect.New`'s allocation (`reflNew`, with
-  `reflNew_pointsto`); the specs of `reflect.New`, `Value.Addr`/`Type`/`Interface` and
-  `conversion.EnforcePtr` as axioms (`Spec/reflect/`, `Spec/k8s_io/apimachinery/pkg/conversion/`).
-  Go's `reflect` works on the runtime's representation (type descriptors, `unsafe.Pointer`,
-  interfaces as two words), outside the semantics, so the model will be trusted, its principles
-  proved from it.
-- **Status.** Not started in Perennial.
-
 ### `reflect.Type` in a struct field: the struct's instances rest on a `sorry` (2026-10-27, client-go reflector)
 
 - **Limitation.** `reflect` is names-only (`Perennial/Code/reflect.toml`: `translate = ["!*"]`), so
@@ -2080,6 +2054,54 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `reflect.Value` held in a variable: its typed points-to is `sorry` (2026-10-22, k8s etcd3; landed: Perennial `3eae9cd1f`, PR #672, in the pin `078ceec6f`; workaround dropped 2026-11-23, branch `reflect-r0`)
+
+- **Limitation.** `reflect` is names-only, and its axiomatized types' generated instances
+  (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
+  `sorry -- axiomatized type`. Any function that stores a `reflect.Value` in a variable (a
+  parameter is one: Goose allocates it) needs them, so a proof of it rests on a `sorry`.
+- **Needed by.** The k8s etcd3 store's `Delete` and `GuaranteedUpdate`: `v, _ :=
+  conversion.EnforcePtr(out)` is passed to `conditionalDelete`, `deleteOnce`, `updateOnce`,
+  `getCurrentState`, `stateFromEtcdResponse`, which make a fresh object with
+  `reflect.New(v.Type()).Interface().(runtime.Object)` (`notes/k8s-etcd3-plan.md`, "What blocks
+  where"). `Get` and `Create` do not use it.
+- **Proposed.** An opaque `reflect.Value` with real instances (a translated struct whose fields
+  are not modelled, or a hand-written typed points-to that only allows moving the value), plus
+  specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
+  values. Designed and reviewed on its own (Perennial's trusted base).
+- **Workaround here** (the user's choice, 2026-10-22: axioms here now, a trusted model with proved
+  reasoning principles later). `Proof/reflect/Values.lean`: the two instances as axioms of higher
+  priority than the generated `sorry`s; opaque predicates relating a `Value` to a Go type and a
+  location (`reflElem`, `reflPtr`, `reflType`) and `reflect.New`'s allocation (`reflNew`, with
+  `reflNew_pointsto`); the specs of `reflect.New`, `Value.Addr`/`Type`/`Interface` and
+  `conversion.EnforcePtr` as axioms (`Spec/reflect/`, `Spec/k8s_io/apimachinery/pkg/conversion/`).
+  Go's `reflect` works on the runtime's representation (type descriptors, `unsafe.Pointer`,
+  interfaces as two words), outside the semantics, so the model will be trusted, its principles
+  proved from it.
+- **Status.** Landed for the variable: Perennial translates `reflect.Value` as its struct (`typ_ *abi.Type`,
+  `ptr`, `flag`), and the generated `Value_typed_pointsto`/`Value_into_val_typed` are real. The axioms
+  `reflectM.value_intoVal_inj` and `reflectM.value_into_val_typed` and the high-priority instances of
+  `Proof/reflect/Values.lean` are deleted (branch `reflect-r0`, etcd-grove #40 stage R0). The rest
+  (the specs of `reflect.New`, `Value.*`, still axioms here) is stage R1 of #40, a trusted model of
+  `reflect`'s `Value` primitives in Perennial.
+
+### `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2; landed: Perennial `3eae9cd1f`, in the pin `078ceec6f`; axiom retired 2026-11-23, branch `reflect-r0`)
+
+- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
+  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
+  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
+- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
+- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
+  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
+  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
+  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
+  below would remove it.
+- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
+  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
+- **Status.** Landed: Perennial translates `Kind` as `w64` with `Kind.underlying := go.uint` (reducible), so
+  `reflect.KindCompare.wp_proof` is now a theorem (`uint`'s `go_eq_uint`); the axiom is retired (etcd-grove
+  #40 stage R0).
 
 ### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`, in the pin since the ncfupd bump)
 
@@ -3184,21 +3206,6 @@ name in the macro (`_root_.decide_true`), and consider failing loudly instead of
 - **Proposed change.** The same rule in `Perennial/Golang/Theory/Loop.lean` for `n = 0, 1, 2`, with
   a sealed postcondition in `wp_for`'s style and a panicking-body case; a `wp_for_range` tactic.
 - **Status.** Candidate; not started in Perennial.
-
-## `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2)
-
-- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
-  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
-  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
-- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
-- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
-  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
-  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
-  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
-  below would remove it.
-- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
-  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
-- **Status.** Recorded; not started in Perennial (the axiom here stands in for it).
 
 ## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
 
