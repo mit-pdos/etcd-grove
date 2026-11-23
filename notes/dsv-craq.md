@@ -25,6 +25,7 @@ net/rpc (`rpc.Dial`, `Server.Accept`).
 | package facts | `Dsverify/Proof/github_com/despreston/go_craq/**/Base.lean` (hand-written: `store`, `node`, `coordinator` are their `errors.newVar`s, as the lab's `PkgState.lean`; the rest `True`) |
 | initializers | `etc/gen-init.py` (the block after `DSV_PROGRAMS`, before `dsv_inits`): `transport`, `store`, `store/kv`, `node`, `coordinator` (`Init.lean`, built). Not `transport/netrpc`, `examples/craqnet`, the commands (their closure reaches net/rpc's and net/http's initializers: hypothesis H1) |
 | the proof | `Dsverify/Proof/github_com/despreston/go_craq/Craq/`: the lab's `Craq/Proof/` tree, ported by editing. Ported and built: `Store`, `Kv/`, `Protocol.lean` + `Protocol/` (P1 done), `Wire`, `Methods`, `Iface`, `Codec` (H5), `Hyps` (H4), `LogHyp` (H6), `Specs`, `Netrpc/`, `Node/`, `Coord/`. Not yet: the lab's `Kit/`, `Link`, `Top` (rewritten onto remote) |
+| the kit (in progress) | `Dsverify/Proof/github_com/despreston/go_craq/examples/craqnet/`: `ModelSet.lean` (pure: the store `kvB`, the bracket `Sim`, `sim_init`, `sim_step`; done), `Kit.lean` (the store `kvR γ` over the protocol's `ownState`, `lin_opAU`, the model spec `kvS0`/`kvS`, the addresses; done). Not yet: `ModelProof`, `KitProof`, `Mains`, the statement |
 | porting aid | `Dsverify/Proof/github_com/despreston/go_craq/Craq/wip/port.py SRC DST PKGS` (the mechanical edits of a lab file: imports, opens, section variables; used for `Kv/`) |
 
 Build: `lake build Dsverify.Proof.github_com.despreston.go_craq.Craq.Kv.Write` (and the `Init`
@@ -89,15 +90,32 @@ the shared piece lands; none is an axiom.
   `pkg_id.net.rpc`, `pkg_id.net.http`, and their `wp_initialize'` (plan 5.2, item 5). Now instance
   variables in `transport/netrpc/Base.lean`, `examples/craqnet/Base.lean`, the commands' `Base.lean`;
   blocks `gen-init` for those packages.
-- **H2. net/rpc's server** (plan 5.2, third part, branch `models-rpc-server`, not landed): proved there:
-  `Register`, `RegisterName`, the server codec, `NewServer`; not proved: `ServeCodec`/`ServeConn`,
-  `service.call`, `readRequest(Header)`, `Accept`. craq needs `RegisterName("RPC", rcvr)` with the
-  receiver's methods meeting their `MethodSpec` (`methodOk`/`rcvrIs`: the lab's `net.rpc.rcvrOk`,
-  `RpcCodec.methods`) and **`HandleHTTP`** + `ServeHTTP` (the CONNECT hijack, then `ServeConn`).
-- **H3. net/http's server**: `http.ListenAndServe(addr, nil)` with `DefaultServeMux` serving net/rpc's
-  path (plan 5.2, item 7: `Serve`, `conn.serve` up to the hijack). The lab's `net.http` spec.
-- **H4. net/rpc's `DialHTTP`** (plan 5.2, item 6: `DialHTTPPath`, `http.ReadResponse` of the CONNECT
-  answer over a `bufio.Reader`), then the client (`Client.Call`, `Close`: proved on `lean`).
+- **H2. net/rpc's server**: `origin/models-rpc-server` (040ef5e808, the whole net/rpc server on Lean's
+  three axioms; not landed, waits for the human reviewer) is **merged** here (2026-11-23, the
+  coordinator's decision; its statements are not expected to change). It proves the `*Server`
+  methods (`Server.RegisterName.spec`, `Server.ServeConn.spec`, `Server.Accept.spec` over
+  `isServer s γ`, `svcReg`, `srvServes`, `rpcAddr`, `codecSet`); its `CodecSpec` gained `rcv`
+  (`Codec.lean`'s `craqCodec.rcv`, `craqCodec_rcvOk`). Still missing for craq: the **package-level**
+  `rpc.RegisterName` (`DefaultServer`, a package variable: its fact needs net/rpc's `Init`, H1) and
+  **`rpc.HandleHTTP`** + `(*Server).ServeHTTP` (the CONNECT hijack, then `ServeConn`).
+- **H3. net/http's server**: `http.ListenAndServe(addr, nil)` with `DefaultServeMux` routing net/rpc's
+  path to the `DefaultServer` (plan 5.2, item 7: `Serve`, `conn.serve` up to the hijack). Nothing in
+  `Net/` yet (the lab had `Harness/Proof/net/http/{Base,Mux,Serve}.lean`).
+- **H4. net/rpc's `DialHTTP`** (`Hyps.lean`'s `DialHTTP.spec`, used by `Netrpc/Connect.lean`).
+  **Finding: as stated it is false of the model.** `DialHTTPPath` (models/net/rpc/client.go) writes
+  `CONNECT /_goRPC_ HTTP/1.0\n\n` on the connection before `NewClient(conn)`, but Net's `isClient`
+  (`ClientDefs.lean`'s `sendInv`) holds the dialer's `sendTok cn false (reqProto W a) Wd` with
+  `Wd <+: reqsWire L`: every byte written on the connection is a prefix of the request frames, which
+  the handshake is not. The server side likewise reads the handshake first, where `rpcAddr`'s
+  `reqProto` speaks of frames from byte 0. So rpc over HTTP needs a **shared Net piece**: an address
+  protocol `handshake ++ frames` (or `sendTok`/`recvTok` from an offset), `DialHTTP.spec` and
+  `HandleHTTP`/`ServeHTTP`/`ListenAndServe` specs over it, and `isClient` for a connection whose
+  first bytes were the handshake. epaxos and gryff use rpc over HTTP too (their forks call
+  `DialHTTP`/`HandleHTTP`). **Alternative** (a kit decision for the coordinator/user): plain net/rpc
+  over TCP -- `transport/netrpc`'s `Connect` calls `rpc.Dial` (proved on `lean`, `Net/Proof/net/rpc/
+  Dial.lean`), the servers `rpc.NewServer()` + `RegisterName` + `net.Listen` + `server.Accept(l)`
+  (all proved on models-rpc-server): then H2-H4 disappear (only H1, net/rpc's `Init`, remains of
+  the rpc pieces). It changes go-craq's transport (one call) and the kit's `Server`/`runNode`.
 - **H5. The generated codec**: the kit's `rpcEncode`/`rpcDecode` meet a `CodecSpec` (`encOk`/`decOk`,
   `decErr`), and `rpcReceiver`'s methods (`NewArg`, `NewReply`, `Call` through the bindings) meet
   `methodOk` for `nodeSpec`/`coordSpec` (the lab's `Methods.lean`). Per-kit proofs of rpcgen output
@@ -113,13 +131,29 @@ the shared piece lands; none is an axiom.
   one-shot `remote.lin R i Φ` (paxos made `opAU` a one-shot fancy update, `lin_opAU`, `Inv.lean`).
   craq fires each operation's update once (a put's at the tail's commit, a get's at the tail's
   read), so the same change works; `Protocol/Commit.lean`, `Laws.lean` (AU elimination) change with it.
-- **P2. The model.** `remote.Check` needs the Go `Model` to accept every history the abstract
-  `linkv.PendSpec` (the map, puts writes) accepts. Unlike paxos's write-once register, the Go state
-  `(M, Pend)` is not the exact set of configurations: after a get fires pending put `p1`, the abstract
-  set also has configurations where another pending put of the same key fired earlier (and is no
-  longer pending). Prove a simulation (the Go state's configurations, closed downward in `Pend`,
-  contain the abstract ones), not set equality (`ModelSet.lean` of paxos).
-- **P3. Order of the port** (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
+- **P2. The model (done: `examples/craqnet/ModelSet.lean`).** The Go state `(M, Pend)` does not
+  determine the set of configurations the history reached (put a unknown; put b ok gives `({k:b},
+  [a])` and allows "a fired before b, dropped"; put b ok; put a unknown gives the same Go state
+  without it), so **kit.go's `Equal` is now always false** (porcupine only merges fewer states) and
+  `kvRep` lets the Go state **bracket** the set: `Sim a P S` = every configuration reachable from
+  `⟨a, P⟩` is in `S` (`Funl`) and every one in `S` is reachable from `a` with a sub-multiset of `P`
+  pending (`Fall`). `sim_init`, `sim_step`: the model's step is defined exactly when `goStep` (kit.go's
+  `step` on the decoded answer, `Kit.lean`'s `decAns`) is, and the next set is bracketed by `goStep`'s
+  next state. Values are bounded (`Str8`, < 256 bytes: `encStr`'s length byte), so the store `kvB` is
+  over `St = GoString → Option Str8`; `Kit.lean`'s `lift` maps it to the protocol's `KvM.State`.
+- **P4. Next steps** (2026-11-23): (1) `ModelProof.lean`: kit.go's `copyMap`, `set`, `pushPend`,
+  `findPend`, `erasePend`, `step` (= `goStep` of `decAns`, over `kvRep`), `Model` (`isModel kvS`,
+  `Equal` trivially), as paxos's `ModelProof.lean` (maps: `wp_map_for_range`, `wp_map_lookup2`,
+  `wp_map_insert`, `ownMap mp DFrac.discard`); (2) `KitProof.lean`: `Codec` (`codecOk (kvR γ)`),
+  `Gen`, `digit`, `Sys.end`, `readAt`, `op` (put: `isCoordClient`'s `Write` with `opAU` from
+  `lin_opAU`; get: `isNodeClient`'s `Read` with `opAU` from the read's `□ lin`; `errNotFound` is
+  `net.rpc.serverErr notFoundMsg`), `newSys`/`awaitConf`/`decode`, `remove`, `Client`
+  (`remote.ServeClient`), `choose`/`plan`/`configure`/`sendConf`/`Orch` (`remote.Check`), `Server`/
+  `runNode` (blocked on H2-H4, see H4's finding); (3) `Mains`, `TopLevelDefs`, `TopLevelRobustness`
+  as paxos's (with the craq protocol's allocation `craq_alloc` at the start, `Specs.lean`'s
+  `nodeRes`/`coordRes` handed to the servers), the statement's InitHyp premises (net.rpc, net.http)
+  visible in the `.spec`.
+- **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
   `errMsg`, `serverErr`, `models_lab.errAny`), `Node/`, `Coord/`, `Netrpc/` (over the proved client),
