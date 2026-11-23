@@ -42,9 +42,11 @@ PROGRAMS = {f'{CRAQ}.examples.craqnet.cmd.{n}':
             f'Proof/{CRAQ.replace(".", "/")}/examples/craqnet/cmd/{n}/PkgTable.lean'
             for n in CRAQ_NODES}
 HYP_INITS = ['net.rpc', 'net.http']
-# their imports: none (net/http's names-only imports are outside the inventory; the programs'
-# tables stop at net/rpc and net/http, as gryff's)
-HYP_IMPORTS = 'none'
+# their imports: those in the inventory, with the main tree's packages net/http's closure needs
+# added to `NET_MAIN` (as gryff and EPaxos)
+HYP_IMPORTS = 'known'
+MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
+MAIN_GEN = ['bufio']
 
 
 def special(g):

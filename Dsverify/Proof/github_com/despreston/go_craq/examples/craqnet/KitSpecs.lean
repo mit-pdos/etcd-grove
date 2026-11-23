@@ -12,6 +12,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.Conf
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Specs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Netrpc.New
 public import Net.Spec.net.rpc.SetCodec
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Netrpc.Bindings
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
@@ -194,6 +195,32 @@ abbrev Server.spec [RpcHttpServe GF] : Prop :=
       net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg (uint.nat id) }}
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #id))
   {{ RET #(); True }}
+
+/-- RemoveNode's method obligation (finding F1: a premise until Net's `callRet` admits `errAny`). -/
+abbrev removeNodeOk.spec (cfg : Cfg GF) : Prop :=
+  ∀ (b : Loc) (svc : GoInterface), coordB cfg b svc ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
+      (coordSpec cfg.γ cfg.chain go!"RemoveNode")
+      (mOf examples.craqnet.rpcNewArg_r1_RemoveNode examples.craqnet.rpcNewReply_r1_RemoveNode
+        examples.craqnet.rpcCall_r1_RemoveNode)
+
+/-- **Finding F2's premise, in the shape Net will give** (#24: net/rpc's initialization returns a
+per-machine resource once, like gryff's replicas' `wp_initialize'_own`): a machine's boot
+resources, made by its program's initialization: the codec registry at its initial state
+(`codecFresh`), net/rpc's `invalidRequest` (`srvEnv`'s part beyond the package fact), and
+`DefaultServeMux` with nothing registered (`muxOwner []`, net/http's; H4). -/
+def rpcBootRes [RpcHttpServe GF] : IProp GF :=
+  iprop(codecFresh ∗ globalAddr net.rpc.invalidRequest ↦□ () ∗ RpcHttpServe.muxOwner [])
+
+/-- **F2's premise**: command `pkg`'s initializer `init`, run once from the machine's empty
+package state (only the deployment's boot holds `ownGoState ∅`, once per machine), initializes
+the program (any package table `getIs` consistent with `pkg`'s) and returns the machine's boot resources. -/
+def RpcBoot [RpcHttpServe GF] (init : val) (pkg : GoString) [IsPkgInit (IProp GF) pkg]
+    [GetIsPkgInitWf (IProp GF) pkg] : Prop :=
+  ∀ getIs : GoString → IProp GF, GetIsPkgInitProp pkg getIs →
+  {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
+    (App (Val init) (Val #()))
+  {{ RET #(); ownInitializing getIs ∗ isPkgInit (PROP := IProp GF) pkg ∗ rpcBootRes }}
 
 end proof
 

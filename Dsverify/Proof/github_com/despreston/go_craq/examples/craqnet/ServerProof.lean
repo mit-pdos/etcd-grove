@@ -102,14 +102,6 @@ instance handlerOk_persistent [rs : RpcHttpServe GF] (h : GoInterface) (p : GoSt
     (W : net.rpc.RpcWorld GF) (a : GoString) :
     Persistent (RpcHttpServe.handlerOk (GF := GF) h p W a) := rs.handlerOk_pers h p W a
 
-/-- RemoveNode's method obligation (finding F1: a premise until Net's `callRet` admits `errAny`). -/
-abbrev removeNodeOk.spec (cfg : Cfg GF) : Prop :=
-  ∀ (b : Loc) (svc : GoInterface), coordB cfg b svc ⊢
-    newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
-      (coordSpec cfg.γ cfg.chain go!"RemoveNode")
-      (mOf examples.craqnet.rpcNewArg_r1_RemoveNode examples.craqnet.rpcNewReply_r1_RemoveNode
-        examples.craqnet.rpcCall_r1_RemoveNode)
-
 /-- **The coordinator's machine**, `Server(1)`. -/
 theorem wp_Server1 [rs : RpcHttpServe GF]
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
