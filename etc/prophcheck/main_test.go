@@ -116,9 +116,9 @@ func (kv *KV) Get(k string) string {
 	wantOK(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": patched}))
 }
 
-// A ghost variable, ghost helpers (a method calling a function, a loop, locals, an if, `&` of a
+// A prophecy-only variable, prophecy-only helpers (a method calling a function, a loop, locals, an if, `&` of a
 // field) and their calls at statement level and in an if on a read-only condition.
-func TestGhostVariableAndHelpers(t *testing.T) {
+func TestProphOnlyVariableAndHelpers(t *testing.T) {
 	patched := `package p
 
 ` + primImport + `
@@ -196,7 +196,7 @@ func TestHelperRefusals(t *testing.T) {
 		{"writes the heap", "func (kv *KV) g() {\n\tkv.n = 1\n}\n", "kv.g()",
 			"assigns to something other than its own locals"},
 		{"calls a non-helper", "func (kv *KV) g() {\n\tkv.Get(\"x\")\n}\n", "kv.g()",
-			"neither a resolution nor a ghost helper's call"},
+			"neither a resolution nor a prophecy-only helper's call"},
 		{"returns a value", "func (kv *KV) g() int {\n\treturn 1\n}\n", "kv.g()", "has results"},
 		{"recurses", "func (kv *KV) g() {\n\tkv.h()\n}\n\nfunc (kv *KV) h() {\n\tkv.g()\n}\n",
 			"kv.g()", "can call itself"},
@@ -224,30 +224,30 @@ func TestHelperRefusals(t *testing.T) {
 	}
 }
 
-// Negative: declarations a patch may not add, and code that is not ghost code.
+// Negative: declarations a patch may not add, and code that is not prophecy-only code.
 func TestDeclarationRefusals(t *testing.T) {
 	cases := []struct{ name, patched, want string }{
 		{"a constant", origKV + "\nconst evGet uint64 = 1\n", "adds the constant evGet"},
-		{"a type", origKV + "\ntype ghost struct{}\n", "adds the type ghost"},
+		{"a type", origKV + "\ntype extra struct{}\n", "adds the type extra"},
 		{"a variable not from NewProph", origKV + "\nvar trace = 3\n",
 			"`var NAME = primitive.NewProph()`"},
 		{"an init", strings.Replace(origKV, "package p\n", "package p\n\n"+primImport+"\n", 1) +
 			"\nvar trace = primitive.NewProph()\n\nfunc init() {\n\ttrace.ResolveU64(1)\n}\n",
-			"with its ghost code erased, it is not"},
+			"with its prophecy-only code erased, it is not"},
 		{"a field of another type", strings.Replace(origKV, "\tn int\n", "\tn int\n\tg int\n", 1),
 			"`NAME primitive.ProphId`"},
 		{"an exported field", strings.Replace(
 			strings.Replace(origKV, "package p\n", "package p\n\n"+primImport+"\n", 1),
 			"\tn int\n", "\tn int\n\tG primitive.ProphId\n", 1), "is exported"},
 		{"a changed statement", strings.Replace(origKV, "v := kv.m[k]", "v := kv.m[k+\"\"]", 1),
-			"with its ghost code erased, it is not"},
+			"with its prophecy-only code erased, it is not"},
 		{"an added statement", strings.Replace(origKV, "\tv := kv.m[k]\n", "\tkv.n++\n\tv := kv.m[k]\n", 1),
-			"with its ghost code erased, it is not"},
+			"with its prophecy-only code erased, it is not"},
 		{"an added assignment",
 			strings.Replace(origKV, "\tv := kv.m[k]\n", "\tv := kv.m[k]\n\t_ = kv.n\n", 1),
-			"with its ghost code erased, it is not"},
+			"with its prophecy-only code erased, it is not"},
 		{"a helper named like an original identifier", origKV + "\nfunc m() {\n}\n",
-			"with its ghost code erased, it is not"},
+			"with its prophecy-only code erased, it is not"},
 		{"a resolution of an undeclared prophecy",
 			strings.Replace(origKV, "\tv := kv.m[k]\n", "\tq.ResolveU64(1)\n\tv := kv.m[k]\n", 1),
 			"which the patch has not declared before"},
@@ -259,7 +259,7 @@ func TestDeclarationRefusals(t *testing.T) {
 	}
 }
 
-// Ghost fields: the program's uses of the struct are type-checked, so these files import the
+// Prophecy-only fields: the program's uses of the struct are type-checked, so these files import the
 // test module's stand-in for primitive under its real name `primitive` (prophcheck recognizes the
 // import of github.com/goose-lang/primitive by path; these files keep their import and the
 // original has it too).
@@ -289,7 +289,7 @@ func fieldPatched(extra string) string {
 	return s + extra
 }
 
-func TestGhostField(t *testing.T) {
+func TestProphOnlyField(t *testing.T) {
 	extra := `
 func (r *R) reset() {
 	r.pr.ResolveBool(r.n == 0)
@@ -304,11 +304,11 @@ func Reset(r *R) {
 	wantOK(t, run(t, map[string]string{"r.go": orig}, map[string]string{"r.go": fieldPatched(extra)}))
 }
 
-func TestGhostFieldRefusals(t *testing.T) {
+func TestProphOnlyFieldRefusals(t *testing.T) {
 	cases := []struct{ name, use, want string }{
-		{"compared", "func Same(a, b R) bool {\n\treturn a == b\n}\n", "compares a struct with a ghost field"},
+		{"compared", "func Same(a, b R) bool {\n\treturn a == b\n}\n", "compares a struct with a prophecy-only field"},
 		{"compared in an array", "func Same(a, b [2]R) bool {\n\treturn a != b\n}\n",
-			"compares a struct with a ghost field"},
+			"compares a struct with a prophecy-only field"},
 		{"a map key", "var seen map[R]bool\n", "a map type whose key contains"},
 		{"a map key in a struct", "type S struct {\n\tm map[[1]R]int\n}\n", "a map type whose key contains"},
 		{"converted to any", "func Show(r *R) any {\n\treturn r\n}\n", "to an interface"},
@@ -334,23 +334,23 @@ func TestGhostFieldRefusals(t *testing.T) {
 	}
 }
 
-// The original program's own uses of a struct without ghost fields are not refused.
-func TestFieldUsesOnlyGhostStructs(t *testing.T) {
+// The original program's own uses of a struct without prophecy-only fields are not refused.
+func TestFieldUsesOnlyProphOnlyFieldStructs(t *testing.T) {
 	orig := origField + "\ntype Q struct{ a int }\n\nvar seen map[Q]bool\n\nfunc Show(q Q) any {\n\treturn q == q\n}\n"
 	patched := fieldPatched("\ntype Q struct{ a int }\n\nvar seen map[Q]bool\n\nfunc Show(q Q) any {\n\treturn q == q\n}\n")
 	wantOK(t, run(t, map[string]string{"r.go": orig}, map[string]string{"r.go": patched}))
 }
 
-// An original `if` without statements is not ghost code (it stays, and the files match).
-func TestEmptyIfIsNotGhost(t *testing.T) {
+// An original `if` without statements is not prophecy-only code (it stays, and the files match).
+func TestEmptyIfIsNotProphOnly(t *testing.T) {
 	orig := strings.Replace(origKV, "\tv := kv.m[k]\n", "\tif kv.n > 0 {\n\t}\n\tv := kv.m[k]\n", 1)
 	patched := strings.Replace(orig, "package p\n", "package p\n\n"+primImport+"\n", 1)
 	patched = strings.Replace(patched, "\tv := kv.m[k]\n", "\tpr := primitive.NewProph()\n\tpr.ResolveU64(1)\n\tv := kv.m[k]\n", 1)
 	wantOK(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}))
 }
 
-// A ghost variable initialized by a ghost initializer (the form Goose translates).
-func TestGhostInitializer(t *testing.T) {
+// A prophecy-only variable initialized by a prophecy-only initializer (the form Goose translates).
+func TestProphOnlyInitializer(t *testing.T) {
 	patched := strings.Replace(origKV, "package p\n", "package p\n\n"+primImport+"\n", 1) + `
 var trace primitive.ProphId
 
@@ -367,16 +367,16 @@ func (kv *KV) resolveN() {
 	wantOK(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": patched}))
 }
 
-func TestGhostInitializerRefusals(t *testing.T) {
+func TestProphOnlyInitializerRefusals(t *testing.T) {
 	head := strings.Replace(origKV, "package p\n", "package p\n\n"+primImport+"\n", 1)
 	cases := []struct{ name, extra, want string }{
-		{"no initializer", "\nvar trace primitive.ProphId\n", "with a ghost initializer"},
+		{"no initializer", "\nvar trace primitive.ProphId\n", "with a prophecy-only initializer"},
 		{"an initializer that does more",
 			"\nvar trace primitive.ProphId\n\nfunc init() {\n\tp := primitive.NewProph()\n\ttrace = p\n\tp.ResolveU64(1)\n}\n",
-			"with a ghost initializer"},
+			"with a prophecy-only initializer"},
 		{"an initializer of an original variable",
 			"\nvar trace = primitive.NewProph()\n\nvar g int\n\nfunc init() {\n\tg = 1\n}\n",
-			"with its ghost code erased, it is not"},
+			"with its prophecy-only code erased, it is not"},
 		{"two initializers",
 			"\nvar trace primitive.ProphId\n\nfunc init() {\n\ttrace = primitive.NewProph()\n}\n\nfunc init() {\n\ttrace = primitive.NewProph()\n}\n",
 			"has two initializers"},
