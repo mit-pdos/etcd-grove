@@ -155,6 +155,16 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `featureGate` is then translated, and what remains is a local spec of `maps.Copy` (translated in
   Perennial, no spec), the facts of `featuregate`/`features` (`apply/Base.lean`/`BaseApply.lean`), and
   the proofs.
+  (2026-11-23, branch `featuregate-3`) **Done, without a Perennial change and without an axiom:**
+  `features.NewDefaultServerFeatureGate.wp_proof` is a theorem. go1.27's `flag.init` handles an empty
+  `os.Args` itself (`if len(os.Args) == 0 { CommandLine = NewFlagSet("", ExitOnError) }`), so no
+  non-empty fact of `os.Args` is needed: `os`'s fact only records `Args`' slice read-only. `flag` is
+  translated here (project etcd, `flag=`, `Code/flag.toml`), as `os` is, because a Perennial `flag`
+  would import Perennial's `os`, which must never meet this repository's. `maps.Copy`'s spec is proved
+  here (`Spec/maps/Copy.lean`, generic, over Perennial's translation), and the same spec is in
+  Perennial `6965e6194` (`maps` below). `featureGate.Add`'s `Store` into the filled `known` uses
+  `71de6f043`'s `sameTypeOrNil` (same map type). Still open from this entry: `init_0_ok`,
+  `DefaultMutableFeatureGate_init` (k8s `component-base/featuregate`, `regexp`), `addFeatureGateMetrics`.
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
@@ -492,6 +502,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
   axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
   only; a second local instance would be a new trust-boundary axiom, for approval).
+  (2026-11-23, `featuregate-3`) Perennial's `maps` (`70706ce5e`) specifies `Clone` and `Equal`
+  generically; `Copy` is translated with no spec. This repository proves one (`Spec/maps/Copy.lean`,
+  `maps.Copy.spec`, at any `M1 M2 ↓u map[Kt]Vt` with safe keys: `dst ↦$ D ∗ src ↦${dq} S` to
+  `dst ↦$ (S ∪ D)`, by `wp_map_for_range`; its loop state `maps.copyPrefix`, `Proof/maps/CopyPrefix.lean`).
+  **Landed in Perennial** `6965e6194` (2026-11-23, the same spec and proof: `Perennial/Spec/maps/Copy.lean`,
+  `maps.wp_Copy`, `maps.copyPrefix` in `Proof/maps/Base.lean`), not yet in the pin; this repository's
+  copy (`Spec/maps/Copy.lean`, `Proof/maps/{Copy,CopyPrefix}.lean`) goes at the pin bump that brings it
+  (requested on #9).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go

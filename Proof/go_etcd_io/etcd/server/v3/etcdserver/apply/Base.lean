@@ -58,6 +58,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Proof.net.url.PkgInit
 -- (bkarea, 2026-11-22) `config` imports `storage/datadir` (`ServerConfig.BackendPath`)
 public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.PkgInit
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.PkgInit
 
 @[expose] public section
 
@@ -795,14 +796,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.client.pkg.v3.transport
 
-namespace go_etcd_io.etcd.pkg.v3.featuregate
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.featuregate
+-- `featuregate`'s instance: `Proof/go_etcd_io/etcd/pkg/v3/featuregate/PkgInit.lean` (featuregate-3,
+-- 2026-11-23: its fact, `featuregateInit`, is no longer `True`)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
 

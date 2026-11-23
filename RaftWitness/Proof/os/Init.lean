@@ -5,7 +5,7 @@ Package initialization of `os`
 Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
 initializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an
 `*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's), `checkWrapErr`
-`false`. `os` is this repository's translation (project bboltfs's): its
+`false`, `Args` some `[]string`, read-only. `os` is this repository's translation (project bboltfs's): its
 initializer initializes its imports and runs its variables' translated initializers (`errors.New`
 errors, io/fs's and internal/poll's error variables, `sync.OnceValue`, function values) and the
 trusted models of the standard streams' (`TrustedCode/os.lean`: `Stdin`, `Stdout` nothing, `Stderr`
@@ -152,7 +152,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   repeat (first
     | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩
     | (set_option maxRecDepth 20000 in wp_apply _root_.Perennial.sync.wp_OnceValue as %_ -)
-    | (wp_func_call; wp_apply wp_runtime_args_impl as %_ ⟨%_, _, _⟩)
+    | (wp_func_call; wp_apply wp_runtime_args_impl as %argsl ⟨%argsxs, Hargs, -⟩)
     | wp_auto)
   -- translated initializer of _root_.Perennial.io.fs.ErrClosed))
   -- translated initializer of _root_.Perennial.io.fs.ErrNotExist))
@@ -165,6 +165,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrInvalid
   ipersist HErrClosed
   ipersist HcheckWrapErr
+  ipersist HArgs
+  ipersist Hargs
   iframe Hown
   imodintro
   isplitr

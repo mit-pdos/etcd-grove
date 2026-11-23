@@ -10,8 +10,7 @@
 pbutil_MustUnmarshalMessage:
 MustParse: NewVersion
 NewVersion:
-# (prove-ps2-semver, 2026-11-22) semver's `Compare` proved over the real code (`LessThan`, over it,
-# back to the trust boundary 2026-11-23: prove-ps2-version)
+# (prove-ps2-semver, 2026-11-22) semver's `LessThan` proved over the real code
 Version__Major:
 Version__Minor:
 Version__Patch:
@@ -20,8 +19,8 @@ compareSegment:
 comparePrePart: =_root_.Perennial.strconv.wp_ParseUint
 comparePrerelease: =_root_.Perennial.strings.wp_Split comparePrePart
 Version__Compare: Version__Major Version__Minor Version__Patch Version__Prerelease compareSegment comparePrerelease
-Version__LessThan:
-Version__String:
+Version__LessThan: Version__Compare
+Version__String: =_root_.Perennial.bytes.Buffer.wp_Write =_root_.Perennial.bytes.Buffer.wp_String =_root_.Perennial.fmt.wp_Fprintf
 strconv_FormatUint:
 types_ID__String: strconv_FormatUint
 etcdserverpb_AlarmType__String:

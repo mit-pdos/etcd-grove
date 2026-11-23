@@ -111,7 +111,7 @@ noncomputable instance DaemonSetsController_access_load_kubeClient (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_kubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (kubeClient' : k8s_io.client_go.kubernetes.Interface) :
+noncomputable instance DaemonSetsController_access_store_kubeClient (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (kubeClient' : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"kubeClient" l) v.kubeClient' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"kubeClient" l) kubeClient' (DFrac.own 1))
@@ -127,7 +127,7 @@ noncomputable instance DaemonSetsController_access_load_eventBroadcaster (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_eventBroadcaster (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (eventBroadcaster' : k8s_io.client_go.tools.record.EventBroadcaster) :
+noncomputable instance DaemonSetsController_access_store_eventBroadcaster (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (eventBroadcaster' : _root_.Perennial.k8s_io.client_go.tools.record.EventBroadcaster) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"eventBroadcaster" l) v.eventBroadcaster' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"eventBroadcaster" l) eventBroadcaster' (DFrac.own 1))
@@ -143,7 +143,7 @@ noncomputable instance DaemonSetsController_access_load_eventRecorder (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_eventRecorder (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (eventRecorder' : k8s_io.client_go.tools.record.EventRecorder) :
+noncomputable instance DaemonSetsController_access_store_eventRecorder (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (eventRecorder' : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorder) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"eventRecorder" l) v.eventRecorder' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"eventRecorder" l) eventRecorder' (DFrac.own 1))
@@ -159,7 +159,7 @@ noncomputable instance DaemonSetsController_access_load_podControl (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_podControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podControl' : k8s_io.kubernetes.pkg.controller.PodControlInterface) :
+noncomputable instance DaemonSetsController_access_store_podControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podControl' : _root_.Perennial.k8s_io.kubernetes.pkg.controller.PodControlInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podControl" l) v.podControl' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podControl" l) podControl' (DFrac.own 1))
@@ -175,7 +175,7 @@ noncomputable instance DaemonSetsController_access_load_crControl (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_crControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (crControl' : k8s_io.kubernetes.pkg.controller.ControllerRevisionControlInterface) :
+noncomputable instance DaemonSetsController_access_store_crControl (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (crControl' : _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControllerRevisionControlInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"crControl" l) v.crControl' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"crControl" l) crControl' (DFrac.own 1))
@@ -239,7 +239,7 @@ noncomputable instance DaemonSetsController_access_load_expectations (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_expectations (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (expectations' : k8s_io.kubernetes.pkg.controller.ControllerExpectationsInterface) :
+noncomputable instance DaemonSetsController_access_store_expectations (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (expectations' : _root_.Perennial.k8s_io.kubernetes.pkg.controller.ControllerExpectationsInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"expectations" l) v.expectations' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"expectations" l) expectations' (DFrac.own 1))
@@ -255,7 +255,7 @@ noncomputable instance DaemonSetsController_access_load_dsLister (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_dsLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (dsLister' : k8s_io.client_go.listers.apps.v1.DaemonSetLister) :
+noncomputable instance DaemonSetsController_access_store_dsLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (dsLister' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.DaemonSetLister) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"dsLister" l) v.dsLister' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"dsLister" l) dsLister' (DFrac.own 1))
@@ -271,7 +271,7 @@ noncomputable instance DaemonSetsController_access_load_dsStoreSynced (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_dsStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (dsStoreSynced' : k8s_io.client_go.tools.cache.InformerSynced) :
+noncomputable instance DaemonSetsController_access_store_dsStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (dsStoreSynced' : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"dsStoreSynced" l) v.dsStoreSynced' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"dsStoreSynced" l) dsStoreSynced' (DFrac.own 1))
@@ -287,7 +287,7 @@ noncomputable instance DaemonSetsController_access_load_historyLister (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_historyLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (historyLister' : k8s_io.client_go.listers.apps.v1.ControllerRevisionLister) :
+noncomputable instance DaemonSetsController_access_store_historyLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (historyLister' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.ControllerRevisionLister) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"historyLister" l) v.historyLister' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"historyLister" l) historyLister' (DFrac.own 1))
@@ -303,7 +303,7 @@ noncomputable instance DaemonSetsController_access_load_historyStoreSynced (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_historyStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (historyStoreSynced' : k8s_io.client_go.tools.cache.InformerSynced) :
+noncomputable instance DaemonSetsController_access_store_historyStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (historyStoreSynced' : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"historyStoreSynced" l) v.historyStoreSynced' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"historyStoreSynced" l) historyStoreSynced' (DFrac.own 1))
@@ -319,7 +319,7 @@ noncomputable instance DaemonSetsController_access_load_podLister (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_podLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podLister' : k8s_io.client_go.listers.core.v1.PodLister) :
+noncomputable instance DaemonSetsController_access_store_podLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podLister' : _root_.Perennial.k8s_io.client_go.listers.core.v1.PodLister) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podLister" l) v.podLister' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podLister" l) podLister' (DFrac.own 1))
@@ -335,7 +335,7 @@ noncomputable instance DaemonSetsController_access_load_podIndexer (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_podIndexer (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podIndexer' : k8s_io.client_go.tools.cache.Indexer) :
+noncomputable instance DaemonSetsController_access_store_podIndexer (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podIndexer' : _root_.Perennial.k8s_io.client_go.tools.cache.Indexer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podIndexer" l) v.podIndexer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podIndexer" l) podIndexer' (DFrac.own 1))
@@ -351,7 +351,7 @@ noncomputable instance DaemonSetsController_access_load_podStoreSynced (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_podStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podStoreSynced' : k8s_io.client_go.tools.cache.InformerSynced) :
+noncomputable instance DaemonSetsController_access_store_podStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (podStoreSynced' : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podStoreSynced" l) v.podStoreSynced' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"podStoreSynced" l) podStoreSynced' (DFrac.own 1))
@@ -367,7 +367,7 @@ noncomputable instance DaemonSetsController_access_load_nodeLister (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_nodeLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (nodeLister' : k8s_io.client_go.listers.core.v1.NodeLister) :
+noncomputable instance DaemonSetsController_access_store_nodeLister (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (nodeLister' : _root_.Perennial.k8s_io.client_go.listers.core.v1.NodeLister) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"nodeLister" l) v.nodeLister' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"nodeLister" l) nodeLister' (DFrac.own 1))
@@ -383,7 +383,7 @@ noncomputable instance DaemonSetsController_access_load_nodeStoreSynced (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_nodeStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (nodeStoreSynced' : k8s_io.client_go.tools.cache.InformerSynced) :
+noncomputable instance DaemonSetsController_access_store_nodeStoreSynced (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (nodeStoreSynced' : _root_.Perennial.k8s_io.client_go.tools.cache.InformerSynced) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"nodeStoreSynced" l) v.nodeStoreSynced' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"nodeStoreSynced" l) nodeStoreSynced' (DFrac.own 1))
@@ -399,7 +399,7 @@ noncomputable instance DaemonSetsController_access_load_queue (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_queue (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (queue' : (k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)) :
+noncomputable instance DaemonSetsController_access_store_queue (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (queue' : (_root_.Perennial.k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"queue" l) v.queue' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"queue" l) queue' (DFrac.own 1))
@@ -415,7 +415,7 @@ noncomputable instance DaemonSetsController_access_load_nodeUpdateQueue (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_nodeUpdateQueue (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (nodeUpdateQueue' : (k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)) :
+noncomputable instance DaemonSetsController_access_store_nodeUpdateQueue (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (nodeUpdateQueue' : (_root_.Perennial.k8s_io.client_go.util.workqueue.TypedRateLimitingInterface GoString)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"nodeUpdateQueue" l) v.nodeUpdateQueue' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"nodeUpdateQueue" l) nodeUpdateQueue' (DFrac.own 1))
@@ -447,7 +447,7 @@ noncomputable instance DaemonSetsController_access_load_consistencyStore (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetsController_access_store_consistencyStore (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (consistencyStore' : k8s_io.client_go.util.consistency.ConsistencyStore) :
+noncomputable instance DaemonSetsController_access_store_consistencyStore (l : Loc) (v : k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController) (consistencyStore' : _root_.Perennial.k8s_io.client_go.util.consistency.ConsistencyStore) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"consistencyStore" l) v.consistencyStore' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.controller.daemon.DaemonSetsController go!"consistencyStore" l) consistencyStore' (DFrac.own 1))

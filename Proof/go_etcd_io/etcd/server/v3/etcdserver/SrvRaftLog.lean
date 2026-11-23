@@ -596,11 +596,31 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+end regs
+
+section regsG6
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A proposal's one-shot token** (exclusive): it fires once. -/
 def srvPropTk (γt : GName) : IProp GF := dghostVar γt (DFrac.own 1) ()
 
 instance srvPropTk_timeless (γt : GName) : Timeless (srvPropTk (GF := GF) γt) := by
   unfold srvPropTk; infer_instance
+
+end regsG6
+
+section regs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 theorem srvPropTk_excl (γt : GName) : ⊢ srvPropTk (GF := GF) γt -∗ srvPropTk γt -∗ False := by
   iintro H1 H2
@@ -621,6 +641,16 @@ instance srvDeposited_persistent (γ : ServerRaftNames) (d : List w8) :
     Persistent (srvDeposited (GF := GF) γ d) := by
   unfold srvDeposited; infer_instance
 
+end regs
+
+section regsG5
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A result predicate the server's two logs agree on** (persistent): it holds of a log as of
 any log with the same requested entries (`srvEqv`), a step later (an update at `⊤`: a server
 result's invariance reads the KV invariant's facts). The server's results are of the
@@ -631,6 +661,16 @@ def srvQInv (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) : IProp GF
 instance srvQInv_persistent (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) :
     Persistent (srvQInv (GF := GF) γ Q) := by
   unfold srvQInv; infer_instance
+
+end regsG5
+
+section regs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- A predicate of the log's requested entries is one the logs agree on. -/
 theorem srvQInv_of_eq (γ : ServerRaftNames) (Q : List EntryModel → IProp GF)
@@ -687,6 +727,16 @@ def srvPropWits (γ : ServerRaftNames) : IProp GF :=
 instance srvPropWits_persistent (γ : ServerRaftNames) : Persistent (srvPropWits (GF := GF) γ) := by
   unfold srvPropWits; infer_instance
 
+end regs
+
+section regsG4
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A read's persistent update** (the server's; unchanged): the log unchanged, a persistent
 result; and (2026-10-27) the result predicate one the logs agree on. -/
 def srvReadAu (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF) : IProp GF :=
@@ -696,6 +746,16 @@ def srvReadAu (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF) : IProp
 instance srvReadAu_persistent (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF) :
     Persistent (srvReadAu (GF := GF) γ Qr) := by
   unfold srvReadAu; infer_instance
+
+end regsG4
+
+section regs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **A read's witness at the read index `i`** (persistent): `□ Qr L` of every committed log `L`
 through a raft index at least `i`, for five later credits (raft's read state, two; the server's
@@ -713,6 +773,16 @@ instance srvReadWit_persistent (γ : ServerRaftNames) (Qr : List EntryModel → 
 def srvRdFresh (γ : ServerRaftNames) (c : List w8) : IProp GF := c ↪[γ.raft.rdFresh] ()
 
 /-! ### The server's log invariant -/
+
+end regs
+
+section regsG3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The log invariant's timeless part**, at the server's log `Lf` of requested entries: the node
 API's committed requested entries (`pre`'s and `Lf`'s), the other half of `Lf`; the proposals'
@@ -777,6 +847,16 @@ def srvSnapsReg (cl : Cluster) : IProp GF :=
 instance srvSnapsReg_timeless (cl : Cluster) : Timeless (srvSnapsReg (GF := GF) cl) := by
   unfold srvSnapsReg; infer_instance
 
+end regsG3
+
+section regs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- The registry at its allocation: no snapshot made. -/
 theorem srvSnapsReg_nil (cl : Cluster) : ownSnapsMade cl [] ⊢ srvSnapsReg (GF := GF) cl := by
   unfold srvSnapsReg
@@ -799,6 +879,16 @@ theorem srvSnapsReg_insert (cl : Cluster) (S : List SnapRec) (r : SnapRec)
   · exact hS r' h
   · simp only [List.mem_singleton] at h; subst h; exact hr
 
+end regs
+
+section regsG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The cluster** (persistent; 2026-10-30, the repair: one kind of cluster, raft's unified API):
 the node API's cluster at the server's storage model (`srvStor`); its conf entries decided by the
 server's rule (`confPolicy` at `γ.raft.rule`; `rnEnvOk` ties it to `srvRule`); the voters it started
@@ -810,7 +900,6 @@ content: etcd's raft snapshot data is nil, the image travels as `srvImage`). Sna
 allowed: raft may send a `MsgSnap` and hand out a `Ready` snapshot. Until the repair: a static or dynamic cluster (`isStaticCluster`/`isDynamicCluster`), leader transfer off,
 `bootedCluster`. -/
 def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
-  letI := srvStor (GF := GF) γ.raft
   iprop(isCluster γ.raft.cl srvClusterN ∗ confPolicy γ.raft.cl srvConfN γ.raft.rule ∗
     confAt γ.raft.cl 0 (Membership.simple γ.raft.cfg) ∗ readyFits γ.raft.cl srvClusterN ∗
     ⌜γ.raft.cl.dup = false⌝ ∗
@@ -836,6 +925,16 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
 
+end regsG2
+
+section regs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 open Iris.ProofMode in
 /-- (2026-11-12, trace-check implementation step 1) The server's cluster is untraced: what the node
 API's `stepIn_intro` (the message's token) and refused calls (`ReadIndex`, `ReportSnapshot`) take. -/
@@ -844,6 +943,16 @@ theorem srvClusterOk_untraced (γ : ServerRaftNames) :
   unfold srvClusterOk
   iintro ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
   ipureintro; exact H.1
+
+end regs
+
+section regsG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **Raft's committed log, at the server** (persistent; the contract's ghost interface): the
 server's log invariant, the cluster, the start log committed and the start index its length; and
@@ -863,6 +972,16 @@ def srvRaftLogInv (γ : ServerRaftNames) : IProp GF :=
 instance srvRaftLogInv_persistent (γ : ServerRaftNames) :
     Persistent (srvRaftLogInv (GF := GF) γ) := by
   unfold srvRaftLogInv; infer_instance
+
+end regsG1
+
+section regs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- (raft-entsize §2, 2026-11-10) The server's cluster bounds proposed data at `2^30`. -/
 theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
@@ -2029,6 +2148,16 @@ def srvRdUsedN : Namespace := nroot .@ "server_rdused"
 @[simp] theorem srvRdCtxN_rdUsedN : (↑srvRdCtxN : CoPset) ⊆ ⊤ \ ↑srvRdUsedN :=
   mask_ndot_ne' nroot "server_rdctx" "server_rdused" (by decide)
 
+end mint
+
+section mintG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The cluster's read contexts** (persistent; stage M4, 2026-10-19): the authority of raft's
 fresh read-context tokens (`rdFresh`, `srvRdFresh`), minted for the contexts `beBytes id` of the
 request ids `U` the members' read loops took from their generators, each id's element of the
@@ -2048,6 +2177,16 @@ instance srvRdCtxInv_persistent (γ : ServerRaftNames) (issued : GName) :
     Persistent (srvRdCtxInv (GF := GF) γ issued) := by
   unfold srvRdCtxInv; infer_instance
 
+end mintG2
+
+section mint
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- **The read contexts' mint** (persistent; 2026-10-16, stage R7b; split at stage M4,
 2026-10-19): the member's read credits not yet spent, out of its share of raft's budget (`2 ^ 48`
 of `2 ^ 64 - 2`, `rdCredInv`), one per request id `U` its read loop took from its generator `γi`
@@ -2066,6 +2205,16 @@ def srvRdFreshInv (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
 instance srvRdFreshInv_persistent (γ : ServerRaftNames) (γi : IdNames) :
     Persistent (srvRdFreshInv (GF := GF) γ γi) := by
   unfold srvRdFreshInv; infer_instance
+
+end mint
+
+section mintG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The cluster's read contexts, allocated** (stage M4): from raft's authority of the fresh
 read-context tokens (`allocClientBoot`'s continuation output). -/
@@ -2091,6 +2240,16 @@ theorem srvRdCtxInv_alloc (γ : ServerRaftNames) (issued : GName) (E : CoPset) :
   isplitl
   · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   ipureintro; intro c; simp [GMap.not_elem_of_empty]
+
+end mintG1
+
+section mint
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The mint's allocation**: from the cluster's read contexts. (2026-10-30, the repair: no read
 credits, raft's `ReadIndex` takes none; until then the member's share of raft's read budget,

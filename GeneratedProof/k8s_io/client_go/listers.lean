@@ -52,7 +52,7 @@ noncomputable instance ResourceIndexer_access_load_indexer {T' : Type} [TypedPoi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceIndexer_access_store_indexer {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T')) (indexer' : k8s_io.client_go.tools.cache.Indexer) :
+noncomputable instance ResourceIndexer_access_store_indexer {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T')) (indexer' : _root_.Perennial.k8s_io.client_go.tools.cache.Indexer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T') go!"indexer" l) v.indexer' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T') go!"indexer" l) indexer' (DFrac.own 1))
@@ -68,7 +68,7 @@ noncomputable instance ResourceIndexer_access_load_resource {T' : Type} [TypedPo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceIndexer_access_store_resource {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T')) (resource' : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance ResourceIndexer_access_store_resource {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T')) (resource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T') go!"resource" l) v.resource' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T') go!"resource" l) resource' (DFrac.own 1))

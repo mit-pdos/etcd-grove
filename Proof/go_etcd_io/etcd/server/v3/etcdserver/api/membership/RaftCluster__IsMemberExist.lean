@@ -30,6 +30,8 @@ theorem membership.RaftCluster.IsMemberExist.wp_proof :
   intro c id
   wp_start as #Hrc
   iunfold membership.isRaftCluster at Hrc
+  icases Hrc with ⟨%γcv, #Hrc⟩
+  iunfold membership.isRaftClusterV at Hrc
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)

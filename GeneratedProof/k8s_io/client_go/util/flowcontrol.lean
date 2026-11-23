@@ -53,7 +53,7 @@ noncomputable instance backoffEntry_access_load_backoff (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffEntry_access_store_backoff (l : Loc) (v : k8s_io.client_go.util.flowcontrol.backoffEntry) (backoff' : time.Duration) :
+noncomputable instance backoffEntry_access_store_backoff (l : Loc) (v : k8s_io.client_go.util.flowcontrol.backoffEntry) (backoff' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.backoffEntry go!"backoff" l) v.backoff' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.backoffEntry go!"backoff" l) backoff' (DFrac.own 1))
@@ -69,7 +69,7 @@ noncomputable instance backoffEntry_access_load_lastUpdate (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance backoffEntry_access_store_lastUpdate (l : Loc) (v : k8s_io.client_go.util.flowcontrol.backoffEntry) (lastUpdate' : time.Time) :
+noncomputable instance backoffEntry_access_store_lastUpdate (l : Loc) (v : k8s_io.client_go.util.flowcontrol.backoffEntry) (lastUpdate' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.backoffEntry go!"lastUpdate" l) v.lastUpdate' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.backoffEntry go!"lastUpdate" l) lastUpdate' (DFrac.own 1))
@@ -116,7 +116,7 @@ noncomputable instance Backoff_access_load_RWMutex (l : Loc) (v : k8s_io.client_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_RWMutex (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (RWMutex' : sync.RWMutex) :
+noncomputable instance Backoff_access_store_RWMutex (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (RWMutex' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"RWMutex" l) v.RWMutex' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"RWMutex" l) RWMutex' (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance Backoff_access_load_Clock (l : Loc) (v : k8s_io.client_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_Clock (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (Clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance Backoff_access_store_Clock (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (Clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"Clock" l) v.Clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"Clock" l) Clock' (DFrac.own 1))
@@ -164,7 +164,7 @@ noncomputable instance Backoff_access_load_defaultDuration (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_defaultDuration (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (defaultDuration' : time.Duration) :
+noncomputable instance Backoff_access_store_defaultDuration (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (defaultDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"defaultDuration" l) v.defaultDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"defaultDuration" l) defaultDuration' (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance Backoff_access_load_maxDuration (l : Loc) (v : k8s_io.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance Backoff_access_store_maxDuration (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (maxDuration' : time.Duration) :
+noncomputable instance Backoff_access_store_maxDuration (l : Loc) (v : k8s_io.client_go.util.flowcontrol.Backoff) (maxDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"maxDuration" l) v.maxDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.Backoff go!"maxDuration" l) maxDuration' (DFrac.own 1))
@@ -302,7 +302,7 @@ noncomputable instance tokenBucketPassiveRateLimiter_access_load_clock (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance tokenBucketPassiveRateLimiter_access_store_clock (l : Loc) (v : k8s_io.client_go.util.flowcontrol.tokenBucketPassiveRateLimiter) (clock' : k8s_io.utils.clock.PassiveClock) :
+noncomputable instance tokenBucketPassiveRateLimiter_access_store_clock (l : Loc) (v : k8s_io.client_go.util.flowcontrol.tokenBucketPassiveRateLimiter) (clock' : _root_.Perennial.k8s_io.utils.clock.PassiveClock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.tokenBucketPassiveRateLimiter go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.tokenBucketPassiveRateLimiter go!"clock" l) clock' (DFrac.own 1))
@@ -422,7 +422,7 @@ noncomputable instance fakeNeverRateLimiter_access_load_wg (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance fakeNeverRateLimiter_access_store_wg (l : Loc) (v : k8s_io.client_go.util.flowcontrol.fakeNeverRateLimiter) (wg' : sync.WaitGroup) :
+noncomputable instance fakeNeverRateLimiter_access_store_wg (l : Loc) (v : k8s_io.client_go.util.flowcontrol.fakeNeverRateLimiter) (wg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.fakeNeverRateLimiter go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.flowcontrol.fakeNeverRateLimiter go!"wg" l) wg' (DFrac.own 1))
