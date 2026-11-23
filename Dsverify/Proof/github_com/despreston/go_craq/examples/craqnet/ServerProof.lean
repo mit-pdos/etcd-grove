@@ -235,6 +235,135 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
       iapply HΦ
       itrivial
 
+/-- The chain node's registration serves its address (given that its methods accept the
+server's error answers: finding F3). -/
+theorem srvServes_node (cfg : Cfg GF) (a : GoString) (γs : GName)
+    (hss : cfg.W.SS = craqSS cfg.γ cfg.cAddr cfg.chain) (ha : a ∈ cfg.chain) (hac : a ≠ cfg.cAddr) :
+    net.rpc.svcReg γs craqCodec go!"RPC" (nodeSpec cfg.γ cfg.chain a) ∗
+      net.rpc.errOk (nodeSpec cfg.γ cfg.chain a) ⊢
+      net.rpc.srvServes γs craqCodec cfg.W a := by
+  iintro ⟨#Hreg, #HE⟩
+  unfold net.rpc.srvServes
+  iintro !> %svc %S %Hs
+  rw [hss] at Hs
+  unfold craqSS at Hs
+  by_cases hsvc : svc = go!"RPC"
+  · subst hsvc
+    simp only [if_true, hac, if_false, ha] at Hs
+    cases Hs
+    iframe Hreg HE
+  · simp [hsvc] at Hs
+
+theorem rpcReady_codecSet : rpcReady (hG := hG) ⊢ net.rpc.codecSet craqCodec := by
+  unfold rpcReady; iintro ⟨-, #H⟩; iexact H
+
+/-- `runNode(id, a, conf)`: chain machine `id`'s node at `a`. -/
+theorem wp_runNode [rs : RpcHttpServe GF]
+    (wp_kvNew : kv.wp_New.spec (GF := GF) (hG := hG))
+    (wp_nNew : node.wp_New.spec (GF := GF) (hG := hG))
+    (wp_nStart : node.wp_Start.spec (GF := GF) (hG := hG))
+    (h_nsvc : node.node_svc.spec (GF := GF) (hG := hG))
+    (h_fact : netrpc.factory.spec (GF := GF) (hG := hG))
+    (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF) (hG := hG))
+    (cfg : Cfg GF) (id : w64) (a : GoString) (conf : Conf)
+    (hc : cfg.cAddr = go!"127.0.0.1:7501") (ha : a ∈ cfg.chain) (hok : addrOk a = true) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ rpcReady ∗ RpcHttpServe.muxOwner [] ∗
+        net.rpc.srvEnv ∗ craqCtx cfg ∗ nodeRes cfg a ∗ joinTicket cfg.γ a ∗
+        net.rpc.errOk (nodeSpec cfg.γ cfg.chain a) }}
+      (App (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.runNode)) (Val #id))
+        (Val #a)) (Val #conf))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hready, Hmux, #Henv, #Hctx, Hres, Htk, #HE⟩
+  ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
+  · iPkgInit
+  ihave #Hno : isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node $$ []
+  · iPkgInit
+  ihave #Hkv : isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.store.kv $$ []
+  · iPkgInit
+  ihave #Hnr : isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.transport.netrpc $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply wp_ServerAddrs as %sl Hsl
+  ihave %Hal := ownSlice_len _ _ _ $$ Hsl
+  have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z sl.len := by
+    have := Hal.1; simp only [serverAddrs, List.length_cons, List.length_nil] at this; word
+  simp only [hb, _root_.and_self, ↓reduceIte]
+  wp_apply wp_load_slice_index sl (sint.Z (W64 0)) serverAddrs _ go!"127.0.0.1:7501" hb.1
+    $$ [Hsl] with Hsl
+  · iframe; ipureintro; rfl
+  (try wp_auto)
+  wp_apply wp_kvNew as %st ⟨%γst, #Hst, Hso⟩
+  (try wp_auto)
+  wp_apply wp_NewCC cfg as %cc Hcc
+  · iframe Hready Hctx
+  (try wp_auto)
+  ihave #Hfact := h_fact cfg $$ [Hnr Hready Hctx]
+  · iframe Hnr Hready Hctx
+  rw [← hc]
+  wp_apply wp_nNew cfg a _ γst _ cc $$ [Hres Hso Hcc] as %n ⟨#Hn, Hnst⟩
+  · iframe Hctx Hres Hso Hcc Hfact Hst
+    ipureintro; exact ha
+  (try wp_auto)
+  ipersist «nb»
+  ihave #Hsvc := h_nsvc cfg n a $$ [Hno Hn]
+  · iframe Hno Hn
+  ihave #Hcs := rpcReady_codecSet $$ Hready
+  ihave #HnB : nodeB cfg nb_ptr (ptrIface node.Node.ty n) a $$ []
+  · unfold nodeB
+    iframe Hnr Hpkg Hcs Hsvc
+    iexact «nb»
+  ihave #Hrcv := nodeRcv_ok cfg nb_ptr _ a $$ HnB
+  wp_apply rs.RegisterName craqCodec go!"RPC" _ (nodeSpec cfg.γ cfg.chain a) go!"NodeBinding" false
+    (by decide) $$ [] as %err Herr
+  · iframe Hcs Hrcv
+  icases Herr with (⟨%Herr, %srv, %γs, #Hds, #Hsrv, #Hreg⟩ | %Herr)
+  · subst Herr
+    wp_auto
+    wp_apply rs.HandleHTTP [] $$ [Hmux] as ⟨Hmux, %srv', #Hds', #Hroute⟩
+    · iframe Hmux
+      ipureintro; simp
+    ihave %Hss := typedPointsto_agree_wand _ _ _ _ _ $$ Hds Hds'
+    subst Hss
+    (try wp_auto)
+    wp_apply wp_fork $$ [Hnst Htk «id» «conf» «n»]
+    · wp_auto
+      wp_func_call
+      wp_call
+      repeat (first | wp_auto | (wp_if_destruct))
+      all_goals (
+        wp_apply time.wp_Sleep
+        (try wp_auto)
+        wp_apply wp_nStart cfg n a $$ [Hnst Htk]
+        · iframe Hn Hnst Htk
+        iintro %err -
+        wp_auto
+        ipureintro; first | rfl | simp)
+    (try wp_auto)
+    unfold craqCtx
+    icases Hctx with ⟨-, %Hss, Haddrs⟩
+    icases BigSepL.bigSepL_cons.1 $$ Haddrs with ⟨-, Haddrs⟩
+    obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 ha
+    ihave #Ha := BigSepL.bigSepL_lookup hi $$ Haddrs
+    have hac : a ≠ cfg.cAddr := fun h => Hss.2.2.1 (h ▸ ha)
+    ihave #Hserves := srvServes_node cfg a γs Hss.1 ha hac $$ [Hreg HE]
+    · iframe Hreg HE
+    ihave #Hh := rs.ServeHTTP srv γs craqCodec cfg.W a $$ [Hsrv Hserves Henv Hcs]
+    · iframe Hsrv Hserves Henv Hcs
+    wp_apply rs.ListenAndServe cfg.W a defaultRPCPath (serverHandler srv) $$ []
+      as %e -
+    · iframe Ha Hroute Hh
+      ipureintro; exact hok
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  · have hne : err ≠ interface.nil := Herr
+    cases err with
+    | nil => exact absurd rfl hne
+    | ok e =>
+      wp_auto
+      iapply HΦ
+      itrivial
+
 end proof
 
 end github_com.despreston.go_craq.examples.craqnet
