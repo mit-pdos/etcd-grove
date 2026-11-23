@@ -13,9 +13,9 @@ the targets the code accepts (`decTarget`). Its `kitCodecOk` is proved with no g
 (`kitCodecOkC_holds`).
 
 * `KitLike C`: what the master's and client's proofs use of their codec `C` (a section
-  variable there, so that the frozen statements stay proved at `kitCodec` and the linked ones are
-  proved at `kitCodecC`): `C`'s `enc`, `call`, `methods` are `kitCodec`'s, and `C.dec` follows from
-  `kitCodec`'s decoding premise on an accepted target (`decT`). Instances for both codecs.
+  variable there): `C`'s `enc`, `dec`, `call`, `methods` are `kitCodec`'s (since the codec switch
+  `kitCodec`'s `enc`/`dec` are the generated rpcgen codec's, `swiftCodec`; the lab's `decT`
+  premise is gone: the callers use the per-type lemmas of `NetRpc/Codec{,Cli}.lean`).
 * (PORT: the lab's `kitCodecC` instance, `kitCodecOkC`, `kitCodecOkC_holds` are about kitgen's
   codec functions and are not ported; this kit's codec is rpcgen's, step 5.)
 * `rcvrOk_of`, `methods_of`: `kitCodec`'s `rcvrOk`/`methods` facts (the frozen specs' form) give
@@ -47,34 +47,18 @@ def examples.swiftnet.decTarget : sp.KitVal → Prop
   | .msync m => sp.KitVal.msync m = examples.swiftnet.syncZero
   | _ => True
 
-/-- `kitCodec`'s decoding premise, on a target the code accepts (`decTarget`: not a non-zero
-`MSync`). -/
-def decT (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IProp GF) : IProp GF :=
-  iprop(∃ x0 : sp.KitVal, ⌜examples.swiftnet.decTarget x0⌝ ∗ kitValOwn ptr (DFrac.own 1) x0 ∗
-    ((∀ y : sp.KitVal, ⌜bs = y.encode ∧ y.tag = x0.tag ∧ sp.KitVal.wf y⌝ -∗
-        kitValOwn ptr (DFrac.own 1) (sp.KitVal.merge x0 y) -∗ Ψ true) ∧
-      (⌜∀ y : sp.KitVal, y.tag = x0.tag → sp.KitVal.wf y → bs ≠ y.encode⌝ -∗
-        ∀ ok : Bool, (∃ x1 : sp.KitVal, ⌜x1.tag = x0.tag⌝ ∗ kitValOwn ptr (DFrac.own 1) x1) -∗
-          Ψ ok)))
-
 /-- The laws of `kitCodec` the master's and client's proofs use of their codec. -/
 class KitLike (C : net.rpc.RpcCodec GF) : Prop where
   enc_eq : @net.rpc.RpcCodec.enc _ GF C = @net.rpc.RpcCodec.enc _ GF kitCodec
   call_eq : @net.rpc.RpcCodec.call _ GF C = @net.rpc.RpcCodec.call _ GF kitCodec
   methods_eq : @net.rpc.RpcCodec.methods _ GF C = @net.rpc.RpcCodec.methods _ GF kitCodec
-  dec_intro : ∀ (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IProp GF),
-    decT bs ptr Ψ ⊢ @net.rpc.RpcCodec.dec _ GF C bs ptr Ψ
+  dec_eq : @net.rpc.RpcCodec.dec _ GF C = @net.rpc.RpcCodec.dec _ GF kitCodec
 
 instance kitLike_kitCodec : KitLike (kitCodec (GF := GF)) where
   enc_eq := rfl
   call_eq := rfl
   methods_eq := rfl
-  dec_intro bs ptr Ψ := by
-    unfold decT
-    iintro ⟨%x0, -, Hown, Hk⟩
-    unfold kitCodec; dsimp only
-    iexists x0
-    iframe
+  dec_eq := rfl
 
 theorem rcvrOk_of (C : net.rpc.RpcCodec GF) [KitLike C] (r : GoInterface)
     (S : net.rpc.MethodSpec GF) :
@@ -89,6 +73,22 @@ theorem methods_of (C : net.rpc.RpcCodec GF) [KitLike C] (r : GoInterface) :
 theorem enc_of (C : net.rpc.RpcCodec GF) [KitLike C] (v : GoInterface) (Ψ : List w8 → IProp GF) :
     @net.rpc.RpcCodec.enc _ GF kitCodec v Ψ ⊢ @net.rpc.RpcCodec.enc _ GF C v Ψ := by
   rw [KitLike.enc_eq (C := C)]
+
+theorem dec_of (C : net.rpc.RpcCodec GF) [KitLike C] (bs : List w8) (ptr : GoInterface)
+    (Ψ : Bool → IProp GF) :
+    @net.rpc.RpcCodec.dec _ GF kitCodec bs ptr Ψ ⊢ @net.rpc.RpcCodec.dec _ GF C bs ptr Ψ := by
+  rw [KitLike.dec_eq (C := C)]
+
+/-- The generated codec's encoding is `C`'s. -/
+theorem enc_sw (C : net.rpc.RpcCodec GF) [KitLike C] (v : GoInterface) (Ψ : List w8 → IProp GF) :
+    swiftCodec.enc v Ψ ⊢ @net.rpc.RpcCodec.enc _ GF C v Ψ := by
+  rw [KitLike.enc_eq (C := C)]; exact .rfl
+
+/-- The generated codec's decoding is `C`'s. -/
+theorem dec_sw (C : net.rpc.RpcCodec GF) [KitLike C] (bs : List w8) (ptr : GoInterface)
+    (Ψ : Bool → IProp GF) :
+    swiftCodec.dec bs ptr Ψ ⊢ @net.rpc.RpcCodec.dec _ GF C bs ptr Ψ := by
+  rw [KitLike.dec_eq (C := C)]; exact .rfl
 
 end kitlike
 

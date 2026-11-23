@@ -52,15 +52,4 @@ theorem master.signExtend_inj {x y : w32} (h : BitVec.signExtend 64 x = BitVec.s
   have := congrArg (fun z => z[i]'(by omega)) h
   simpa [BitVec.getElem_signExtend, hi] using this
 
-/-- A decoded `BeTheLeaderReply` of the encoding of `beTheLeaderReply l n` is that value. -/
-theorem master.btl_decode {l n : w32} {y : sp.KitVal}
-    (h : (sp.KitVal.beTheLeaderReply l n).encode = y.encode) (ht : y.tag = 10) :
-    y = sp.KitVal.beTheLeaderReply l n := by
-  cases y <;> simp [sp.KitVal.tag] at ht
-  rename_i l' n'
-  simp only [sp.KitVal.encode, sp.KitVal.tag, sp.cI32, sp.cU64] at h
-  have h1 := List.append_inj' h (by simp [u64Le_length])
-  have h2 := List.append_inj' h1.2 (by simp [u64Le_length])
-  rw [master.signExtend_inj (u64Le_inj h2.1), master.signExtend_inj (u64Le_inj h2.2)]
-
 end Perennial.github_com.imdea_software.swiftpaxos

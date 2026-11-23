@@ -27,6 +27,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Wire
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.Codec
 -- PORT: the lab kit's codec proofs (`examples/swiftnet/codec/Ok`, kitgen's `rpc_gen.go`) are not
 -- imported: the kit's codec here is rpcgen's (notes/dsv-swiftpaxos.md, step 5).
 
@@ -153,24 +154,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.swiftnet.Assumptions]
 
 /-- The kit's codec (see the file header).
-* `enc v Ψ`: `v` holds some `x` (fraction `dq`); `Encode(v)` gives it back and the bytes of
-  `x'.encode` for an `x'` equal to `x` up to the order of its maps.
-* `dec bs ptr Ψ`: `ptr` is a fully owned pointer to a listed type holding `x0`; if `bs` is the
-  encoding of a well-formed `y` of the same type, `Decode` succeeds and the target holds
-  `KitVal.merge x0 y`; otherwise it fails or not, and the target holds some value of its type.
+* `enc`, `dec`, `rcv`: the generated rpcgen codec's (`swiftCodec`, `NetRpc/Codec.lean`: the
+  weakest preconditions of `rpcEncode`, `rpcDecode`, `rpcReceiver`); the facts the proofs use of
+  them are the per-type codec lemmas (`NetRpc/Codec{,Cli,Srv}.lean`), whose bytes are
+  `KitVal.encode`'s.
 * `call rcvr m bs Ψ`: the dispatch `rpcCall(rcvr, m, s)` on a slice `s` holding `bs` returns a
   fresh reply slice with `Ψ reply msg found`.
 * `methods rcvr`: `rcvr` is a `*master.Master` or a `*swift.Replica` (`rpcMethods` panics on
   any other value). -/
 instance kitCodec : net.rpc.RpcCodec GF where
-  enc v Ψ := iprop(∃ (dq : DFrac) (x : sp.KitVal), kitValOwn v dq x ∗
-    ∀ x' : sp.KitVal, ⌜sp.KitVal.equiv x x'⌝ -∗ kitValOwn v dq x -∗ Ψ x'.encode)
-  dec bs ptr Ψ := iprop(∃ x0 : sp.KitVal, kitValOwn ptr (DFrac.own 1) x0 ∗
-    ((∀ y : sp.KitVal, ⌜bs = y.encode ∧ y.tag = x0.tag ∧ sp.KitVal.wf y⌝ -∗
-        kitValOwn ptr (DFrac.own 1) (sp.KitVal.merge x0 y) -∗ Ψ true) ∧
-      (⌜∀ y : sp.KitVal, y.tag = x0.tag → sp.KitVal.wf y → bs ≠ y.encode⌝ -∗
-        ∀ ok : Bool, (∃ x1 : sp.KitVal, ⌜x1.tag = x0.tag⌝ ∗ kitValOwn ptr (DFrac.own 1) x1) -∗
-          Ψ ok)))
+  enc := swiftCodec.enc
+  dec := swiftCodec.dec
   call rcvr m bs Ψ := iprop(∀ (s : GoSlice) (dq : DFrac), s ↦*{dq} bs -∗
     WP (App (App (App (Val #(net.rpc.kitFn go!"rpcCall")) (Val #rcvr)) (Val #m)) (Val #s))
       {{ v, ∃ (rep : GoSlice) (rbs : List w8) (msg : GoString) (found : Bool),
@@ -178,9 +172,7 @@ instance kitCodec : net.rpc.RpcCodec GF where
   methods rcvr := iprop(⌜∃ p : Loc,
     rcvr = interface.mkOk (go.GoType.PointerType master.Master.ty) #p ∨
     rcvr = interface.mkOk (go.GoType.PointerType swift.Replica.ty) #p⌝)
-  -- PORT (step 5): `Net/`'s `CodecSpec.rcv` (the server's receiver wrapper), rpcgen's `Receiver`;
-  -- `False` until the kit's codec is related to rpcgen's.
-  rcv _ _ := iprop(False)
+  rcv := swiftCodec.rcv
 
 end codec
 

@@ -24,6 +24,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecSrvProof
 public import Net.Proof.net.rpc.Results
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.replica.defs.NewBeTheLeaderReply
 
@@ -65,6 +66,13 @@ theorem master.wp_UpdateBTL (p : Loc) (l n : w32) :
     · iapply HΦ; simp [Hif]; iexact Hp
     · iapply HΦ; simp [Hif, *]; iexact Hp
 
+/-- A tagged encoding's type tag is its own. -/
+theorem master.tagOk_tagged (t body : List w8) (ht : t.length < 2 ^ 64) :
+    tagOk t (netrpcw.tagged t body) := by
+  intro t' rest h
+  rw [getTag_tagged t body ht] at h
+  cases h; rfl
+
 /-- The master's `c.Call("Replica.BeTheLeader", &BeTheLeaderArgs{}, btl)` with `btl` the initial
 reply: no error and the reply's fields in `btlOk`'s range (by `replicaRpcSpec`'s law), or an
 error. -/
@@ -87,14 +95,15 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
       ∃ N fr l, sp.cfg γc γm N fr l ∗ ⌜sp.btlOk N ld nl⌝)
   let rp := interface.mkOk (go.GoType.PointerType replica.defs.BeTheLeaderReply.ty) #btl
   let Θ : List w8 → Bool → IProp netDistGF := fun rep ok =>
-    iprop(∃ x1, kitValOwn rp (DFrac.own 1) x1 ∗
-      ⌜ok = true → (∃ y, rep = y.encode ∧ y.tag = 10 ∧
-        x1 = sp.KitVal.merge (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1))) y) ∨
-        (∀ y : sp.KitVal, y.tag = 10 → sp.KitVal.wf y → rep ≠ y.encode)⌝)
+    if ok then iprop(∃ (l nl : w32), btl ↦ replica.defs.BeTheLeaderReply.mk l nl ∗
+        ⌜∀ l' nl', rep = netrpcw.encBtlReply l' nl' → l = mergeI32 (W32 (-1)) l' ∧
+          nl = mergeI32 (W32 (-1)) nl'⌝)
+    else iprop(∃ v : replica.defs.BeTheLeaderReply, btl ↦ v ∗
+        ⌜∀ l' nl', rep ≠ netrpcw.encBtlReply l' nl'⌝)
   wp_apply net.rpc.Client.Call.wp c W a go!"Replica.BeTheLeader" go!"Replica" go!"BeTheLeader"
     (withErr (sp.replicaRpcSpec γc γm)) _ rp (fun rep msg => iprop(⌜msg ≠ []⌝ ∨ Φr rep msg))
     iprop(True)
-    (kitValOwn rp (DFrac.own 1) (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1))))
+    (btl ↦ replica.defs.BeTheLeaderReply.mk (W32 (-1)) (W32 (-1)))
     (fun rep ok => iprop(Φr rep [] ∗ Θ rep ok))
     $$ [$Hc Hpa Hbtl] as %err Hres
   · ihave %Hpan := typedPointsto_not_null _ _ _ $$ Hpa
@@ -104,21 +113,11 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
     · ipureintro; exact ⟨by decide, HSS, by simp [rp, interface.mkOk]⟩
     isplitl [Hpa]
     · simp only [net.rpc.RpcCodec.spec]
-      iapply enc_of C
-      unfold net.rpc.RpcCodec.enc kitCodec
-      simp only
-      iexists DFrac.own 1, sp.KitVal.beTheLeaderArgs
+      iapply enc_sw C
+      iapply (swiftCodecLaws (GF := netDistGF)).enc_BtlArgs
       isplitl [Hpa]
-      · unfold kitValOwn structOwn
-        iexists replica.defs.BeTheLeaderArgs.ty, pa
-        isplitr
-        · ipureintro; exact ⟨rfl, Hpan⟩
-        isplitr
-        · ipureintro; rfl
-        iexists _; iexact Hpa
-      iintro %x' %Hx' -
-      simp only [sp.KitVal.equiv] at Hx'
-      subst Hx'
+      · iexact Hpa
+      iintro -
       isplitl
       · unfold withErr
         isplit
@@ -135,70 +134,46 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
         · ipureintro; rfl
         iexact Hok
       itrivial
-    isplitl [Hbtl]
-    · unfold kitValOwn structOwn
-      iexists replica.defs.BeTheLeaderReply.ty, btl
-      isplitr
-      · ipureintro; exact ⟨rfl, Hbn⟩
-      isplitr
-      · ipureintro; rfl
-      iexact Hbtl
+    iframe Hbtl
     imodintro
-    iintro HD %rep HΦr
+    iintro Hbtl %rep HΦr
     icases HΦr with (%Hne | HΦr)
     · exfalso; exact Hne rfl
     simp only [net.rpc.RpcCodec.spec]
-    iapply KitLike.dec_intro
-    unfold decT
-    iexists _
-    iframe HD
+    iapply dec_sw C
+    icases HΦr with ⟨%ld, %nl, %Hrep, Hc⟩
+    iapply (swiftCodecLaws (GF := netDistGF)).dec_BtlReply
     isplitr
-    · ipureintro; trivial
-    isplit
-    · iintro %y %Hy Hown
-      isplitl [HΦr]
-      · iexact HΦr
-      iexists _
-      iframe Hown
-      ipureintro
-      intro _; left; exact ⟨y, Hy.1, Hy.2.1, rfl⟩
-    · iintro %Hno %ok ⟨%x1, %Htag, Hown⟩
-      isplitl [HΦr]
-      · iexact HΦr
-      iexists x1
-      iframe Hown
-      ipureintro
-      intro _; right; exact Hno
+    · ipureintro; rw [Hrep]; exact master.tagOk_tagged _ _ (by decide)
+    iframe Hbtl
+    iintro %ok Hok
+    isplitl [Hc]
+    · iexists ld, nl; iframe Hc; ipureintro; exact Hrep
+    iexact Hok
   iapply HΦ
-  icases Hres with (⟨%He, -, %rep, ⟨%ld, %nl, %Hrep, %N', %fr, %l, #Hcfg, %Hok⟩, ⟨%x1, Hown, %Hx1⟩⟩ |
+  icases Hres with (⟨%He, -, %rep, ⟨%ld, %nl, %Hrep, %N', %fr, %l, #Hcfg, %Hok⟩, Hth⟩ |
     ⟨%msg, %Hm, -⟩ | ⟨%Hne, -⟩)
   · ileft
     isplitr
     · ipureintro; exact He
     ihave %HN' := sp.cfg_conf (γc := γc) (γm := γm) N' fr l cc $$ [$Hcfg $Hcc]
-    rcases Hx1 rfl with ⟨y, Hy, Hyt, rfl⟩ | Hno
-    · have hy := master.btl_decode (Hrep ▸ Hy) Hyt
-      subst hy
-      have hld : ld ≠ 0 := by
-        intro h; subst h; rcases Hok.1 with h | h
-        · exact absurd h (by decide)
-        · simp at h
-      have hnl : nl ≠ 0 := by
-        intro h; subst h; rcases Hok.2 with h | h | h
-        · exact absurd h (by decide)
-        · exact absurd h (by decide)
-        · simp at h
-      try simp only [sp.KitVal.merge, hld, hnl, ↓reduceIte]
-      unfold kitValOwn structOwn
-      icases Hown with ⟨%ty, %p, %Hp, %Hty, Hp'⟩
-      obtain ⟨Hp1, -⟩ := Hp
-      simp only [rp, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at Hp1
-      have := go.intoVal_inj Hp1.2
-      subst this
-      iexists ld, nl
-      iframe Hp'
-      ipureintro; rw [HN'.1]; exact Hok
-    · exact absurd Hrep (Hno (sp.KitVal.beTheLeaderReply ld nl) rfl (by simp [sp.KitVal.wf]))
+    simp only [Θ, ite_true]
+    icases Hth with ⟨%l1, %n1, Hp', %Hy⟩
+    obtain ⟨rfl, rfl⟩ := Hy ld nl Hrep
+    have hld : ld ≠ W32 0 := by
+      intro h; subst h; rcases Hok.1 with h | h
+      · exact absurd h (by decide)
+      · simp at h
+    have hnl : nl ≠ W32 0 := by
+      intro h; subst h; rcases Hok.2 with h | h | h
+      · exact absurd h (by decide)
+      · exact absurd h (by decide)
+      · simp at h
+    have e1 : mergeI32 (W32 (-1)) ld = ld := if_neg hld
+    have e2 : mergeI32 (W32 (-1)) nl = nl := if_neg hnl
+    iexists mergeI32 (W32 (-1)) ld, mergeI32 (W32 (-1)) nl
+    iframe Hp'
+    ipureintro; rw [e1, e2, HN'.1]; exact Hok
   · iright; ipureintro; rw [Hm.2]; exact net.rpc.serverErr_ne_nil msg
   · iright; ipureintro; exact Hne.1
 
@@ -216,8 +191,9 @@ theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoSt
   wp_start_folded as ⟨#Hcs, #Hko, #Hc, %HSS, Hpa, Hpr⟩
   let rp := interface.mkOk (go.GoType.PointerType replica.defs.PingReply.ty) #pr
   wp_apply net.rpc.Client.Call.wp c W a go!"Replica.Ping" go!"Replica" go!"Ping"
-    (withErr (sp.replicaRpcSpec γc γm)) _ rp (fun _ _ => iprop(True)) iprop(True)
-    (kitValOwn rp (DFrac.own 1) sp.KitVal.pingReply) (fun _ _ => iprop(True))
+    (withErr (sp.replicaRpcSpec γc γm)) _ rp
+    (fun rep msg => iprop(⌜msg ≠ [] ∨ rep = netrpcw.encPingReply⌝)) iprop(True)
+    (pr ↦ replica.defs.PingReply.mk) (fun _ _ => iprop(True))
     $$ [$Hc Hpa Hpr] as %err -
   · ihave %Hpan := typedPointsto_not_null _ _ _ $$ Hpa
     ihave %Hprn := typedPointsto_not_null _ _ _ $$ Hpr
@@ -226,52 +202,35 @@ theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoSt
     · ipureintro; exact ⟨by decide, HSS, by simp [rp, interface.mkOk]⟩
     isplitl [Hpa]
     · simp only [net.rpc.RpcCodec.spec]
-      iapply enc_of C
-      unfold net.rpc.RpcCodec.enc kitCodec
-      simp only
-      iexists DFrac.own 1, sp.KitVal.pingArgs (W8 0)
+      iapply enc_sw C
+      iapply (swiftCodecLaws (GF := netDistGF)).enc_PingArgs
       isplitl [Hpa]
-      · unfold kitValOwn structOwn
-        iexists replica.defs.PingArgs.ty, pa
-        isplitr
-        · ipureintro; exact ⟨rfl, Hpan⟩
-        isplitr
-        · ipureintro; rfl
-        iexact Hpa
-      iintro %x' %Hx' -
-      simp only [sp.KitVal.equiv] at Hx'
-      subst Hx'
+      · iexact Hpa
+      iintro -
       isplitl
       · unfold withErr
         isplit
         rotate_left
-        · iintro %msg %Hmsg; itrivial
+        · iintro %msg %Hmsg; ipureintro; left; exact Hmsg
         iapply (sp.replicaRpcSpec_ping (γc := γc) (γm := γm) _ _).2
         iexists W8 0
         isplitr
         · ipureintro; rfl
-        itrivial
+        ipureintro; right; rfl
       itrivial
-    isplitl [Hpr]
-    · unfold kitValOwn structOwn
-      iexists replica.defs.PingReply.ty, pr
-      isplitr
-      · ipureintro; exact ⟨rfl, Hprn⟩
-      isplitr
-      · ipureintro; rfl
-      iexists _; iexact Hpr
+    iframe Hpr
     imodintro
-    iintro HD %rep -
+    iintro Hpr %rep %Hrep
+    rcases Hrep with Hne | Hrep
+    · exact absurd rfl Hne
     simp only [net.rpc.RpcCodec.spec]
-    iapply KitLike.dec_intro
-    unfold decT
-    iexists _
-    iframe HD
+    iapply dec_sw C
+    iapply (swiftCodecLaws (GF := netDistGF)).dec_PingReply
     isplitr
-    · ipureintro; trivial
-    isplit
-    · iintro %y %Hy -; itrivial
-    · iintro %Hno %ok -; itrivial
+    · ipureintro; rw [Hrep]; exact master.tagOk_tagged _ _ (by decide)
+    iframe Hpr
+    iintro %ok -
+    itrivial
   iapply HΦ; itrivial
 
 /-- The range of a `BeTheLeaderReply` the master holds before `UpdateBeTheLeaderReply`: the

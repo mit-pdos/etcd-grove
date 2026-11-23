@@ -28,7 +28,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.PkgFact
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.codec.RoundTrip
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
 
 -- PORT: lab imports dropped: Harness.Proof.net.rpc.Results, Harness.Proof.net.DialTimeout
@@ -66,56 +65,8 @@ theorem masterAddr_port {ip : GoString} {port : w64} (h : sp.addrPort ip port = 
   simp only [W64, BitVec.toNat_ofInt]
   omega
 
-open examples.swiftnet in
-/-- The codec's encoding of a `GetReplicaListReply` (of a bounded body) is injective. -/
-theorem grl_inj (y : sp.KitVal) (nodes : List GoString) (alive : List Bool) (r : Bool)
-    (ht : y.tag = 6) (hl : (kitBody (.getReplicaListReply nodes alive r)).length < 2 ^ 64)
-    (h : y.encode = (sp.KitVal.getReplicaListReply nodes alive r).encode) :
-    y = .getReplicaListReply nodes alive r := by
-  rw [encode_eq, encode_eq, ht] at h
-  have hb : kitBody y = kitBody (.getReplicaListReply nodes alive r) :=
-    List.append_cancel_left (h.trans (by simp [sp.KitVal.tag]))
-  have h1 := rt_getReplicaListReply y ht (by rw [hb]; exact hl)
-  have h2 := rt_getReplicaListReply (.getReplicaListReply nodes alive r) rfl hl
-  rw [hb, h2] at h1
-  simp only [Option.some.injEq, Prod.mk.injEq] at h1
-  exact h1.1.symm
-
-theorem flat_len_le : ∀ (ns : List GoString), (∀ a ∈ ns, a.length ≤ 15) →
-    (ns.map sp.cBytes).flatten.length ≤ 23 * ns.length
-  | [], _ => by simp
-  | a :: t, h => by
-    have ha := h a (by simp)
-    have ht := flat_len_le t (fun x hx => h x (by simp [hx]))
-    simp only [List.map_cons, List.flatten_cons, List.length_append, sp.cBytes, sp.cU64,
-      u64Le_length, List.length_cons] at ht ⊢
-    omega
-
-theorem replicaAddrs_len : ∀ a ∈ replicaAddrs, a.length ≤ 15 := by decide
-
-open examples.swiftnet in
-/-- A membership's reply has a bounded body. -/
-theorem nodes_body_bound (nodes : List GoString) (alive : List Bool) (r : Bool)
-    (hn : nodes.Nodup) (hs : ∀ a ∈ nodes, a ∈ replicaAddrs) (ha : alive.length = nodes.length) :
-    (kitBody (.getReplicaListReply nodes alive r)).length < 2 ^ 64 := by
-  have h1 := flat_len_le nodes (fun a h => replicaAddrs_len a (hs a h))
-  have h2 : nodes.length ≤ replicaAddrs.length := List.Nodup.length_le_of_subset hn hs
-  have h3 : replicaAddrs.length = 5 := rfl
-  have h4 : (alive.map sp.cBool).flatten.length = alive.length := by
-    clear ha; induction alive with
-    | nil => rfl
-    | cons b t ih => simp [sp.cBool] at ih ⊢; omega
-  simp only [kitBody, sp.cList, sp.cU64, List.length_append, u64Le_length, sp.cBool,
-    List.length_singleton]
-  omega
-
-theorem merge_grl (nodes : List GoString) (alive : List Bool) (r : Bool) :
-    sp.KitVal.merge (.getReplicaListReply [] [] false) (.getReplicaListReply nodes alive r) =
-      .getReplicaListReply nodes alive r := by
-  simp only [sp.KitVal.merge, Bool.false_or]
-  have h1 : (if nodes = [] then ([] : List GoString) else nodes) = nodes := by split <;> simp_all
-  have h2 : (if alive = [] then ([] : List Bool) else alive) = alive := by split <;> simp_all
-  rw [h1, h2]
+-- (The lab codec's injectivity facts `grl_inj`, `nodes_body_bound`, `merge_grl` are gone with
+-- the codec switch: `dec_GetReplicaListReply` gives the fields of a decoded encoding.)
 
 end client.cn
 

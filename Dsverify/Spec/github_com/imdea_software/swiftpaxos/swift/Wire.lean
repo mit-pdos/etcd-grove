@@ -38,6 +38,7 @@ module
 
 public import Perennial.Std.Word.LittleEndian
 public import Perennial.Std.Countable
+public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.RpcWire
 public import Perennial.Std.ByteString
 
 @[expose] public section
@@ -284,20 +285,22 @@ def SyncWire.cEnc (m : SyncWire) : List w8 :=
     cMapOpt (fun p : CmdId × Cmd => cCmdId p.1 ++ cCmd p.2) m.cmds ++
     cMapOpt (fun p : CmdId × List CmdId => cCmdId p.1 ++ cList cCmdId p.2) m.deps
 
-/-- The codec's encoding of a value (`rpcEncode`): its tag, then its fields. -/
-def KitVal.encode (v : KitVal) : List w8 :=
-  cU64 (W64 v.tag) ++ match v with
-  | .registerArgs a p => cBytes a ++ cU64 p
-  | .registerReply i ns r l => cU64 i ++ cList cBytes ns ++ cBool r ++ cBool l
-  | .getLeaderArgs => []
-  | .getLeaderReply i => cU64 i
-  | .getReplicaListArgs => []
-  | .getReplicaListReply rs al r => cList cBytes rs ++ cList cBool al ++ cBool r
-  | .pingArgs a => cU64 (BitVec.zeroExtend 64 a)
-  | .pingReply => []
-  | .beTheLeaderArgs => []
-  | .beTheLeaderReply l n => cI32 l ++ cI32 n
-  | .msync m => m.cEnc
+/-- The codec's encoding of a value: the bytes the kit's generated net/rpc codec (`rpcEncode`,
+`examples/swiftnet/rpc_gen.go`, rpcgen) writes for it (`netrpcw`, Spec/.../swiftnet/RpcWire.lean).
+`MSync` is not an rpc type (it goes through the real `encoding/gob`, `GobFmt`): its case is
+only the size measure `GobFmt.fits` is bounded by (`cU64` of its tag, then `SyncWire.cEnc`). -/
+def KitVal.encode : KitVal → List w8
+  | .registerArgs a p => netrpcw.encRegisterArgs a p
+  | .registerReply i ns r l => netrpcw.encRegisterReply i ns r l
+  | .getLeaderArgs => netrpcw.encGetLeaderArgs
+  | .getLeaderReply i => netrpcw.encGetLeaderReply i
+  | .getReplicaListArgs => netrpcw.encGetReplicaListArgs
+  | .getReplicaListReply rs al r => netrpcw.encGetReplicaListReply rs al r
+  | .pingArgs a => netrpcw.encPingArgs a
+  | .pingReply => netrpcw.encPingReply
+  | .beTheLeaderArgs => netrpcw.encBtlArgs
+  | .beTheLeaderReply l n => netrpcw.encBtlReply l n
+  | .msync m => cU64 (W64 17) ++ m.cEnc
 
 /-- Two codec values that differ only in the iteration order of an `MSync`'s maps (the encoder
 iterates Go maps in an arbitrary order). -/

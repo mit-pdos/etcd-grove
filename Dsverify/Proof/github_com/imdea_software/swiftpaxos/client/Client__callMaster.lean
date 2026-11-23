@@ -6,14 +6,18 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/Client__callMast
 `call`s of the master's method, each with a fresh (zero) reply decoded by the kit codec; the
 master's answer is the frozen `masterSpec`'s, served as `withErr masterSpec` (an error answer
 `([], msg)` with `msg ≠ []` is the caller's `Φ`'s left disjunct), (`masterSpec_getReplicaList`,
-`masterSpec_getLeader`), and the decoded reply is that answer (`grl_inj`: the codec's encoding is
-injective).
+`masterSpec_getLeader`), and the decoded reply is that answer (the generated codec's lemmas
+`dec_GetReplicaListReply`/`dec_GetLeaderReply`, NetRpc/CodecCli.lean: a successful decoding of an
+encoding gives back its fields).
 -/
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.errors.NewVar
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecCliProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecSrvProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
 
 @[expose] public section
 
@@ -38,29 +42,23 @@ def rlPhi (γc γm : GName) : List w8 → GoString → IProp netDistGF := fun re
     ⌜rep = (sp.KitVal.getReplicaListReply nodes alive true).encode ∧
       alive.length = nodes.length⌝ ∗ ∃ fr, sp.cfg γc γm nodes.length fr nodes)
 
-/-- The zero `GetReplicaListReply`. -/
-abbrev rlX0 : sp.KitVal := .getReplicaListReply [] [] false
-
-/-- What decoding the reply into `rp` gives. -/
-def rlTheta (rp : Loc) : List w8 → Bool → IProp netDistGF := fun rep _ =>
-  iprop((∃ y : sp.KitVal, ⌜rep = y.encode ∧ y.tag = 6⌝ ∗
-      kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetReplicaListReply.ty) #rp)
-        (DFrac.own 1) (sp.KitVal.merge rlX0 y)) ∨
-    ⌜∀ y : sp.KitVal, y.tag = 6 → sp.KitVal.wf y → rep ≠ y.encode⌝)
+/-- What decoding the reply into `rp` gives (`dec_GetReplicaListReply`). -/
+def rlTheta (rp : Loc) : List w8 → Bool → IProp netDistGF := fun rep ok =>
+  if ok then iprop(∃ (s1 s2 : GoSlice) (rl : List GoString) (al : List Bool) (r : Bool),
+      rp ↦ replica.defs.GetReplicaListReply.mk s1 s2 r ∗ s1 ↦* rl ∗ s2 ↦* al ∗
+      ⌜∀ rl' al' r', rep = netrpcw.encGetReplicaListReply rl' al' r' →
+        rl = rl' ∧ al = al' ∧ r = r'⌝)
+  else iprop(∃ v : replica.defs.GetReplicaListReply, rp ↦ v)
 
 /-- The master's answer to `GetLeader`. -/
 def glPhi : List w8 → GoString → IProp netDistGF := fun rep _ =>
   iprop(⌜∃ id : w64, rep = (sp.KitVal.getLeaderReply id).encode⌝)
 
-/-- The zero `GetLeaderReply`. -/
-abbrev glX0 : sp.KitVal := .getLeaderReply 0
-
-/-- What decoding the reply into `rp` gives. -/
-def glTheta (rp : Loc) : List w8 → Bool → IProp netDistGF := fun rep _ =>
-  iprop((∃ y : sp.KitVal, ⌜rep = y.encode ∧ y.tag = 4⌝ ∗
-      kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetLeaderReply.ty) #rp)
-        (DFrac.own 1) (sp.KitVal.merge glX0 y)) ∨
-    ⌜∀ y : sp.KitVal, y.tag = 4 → sp.KitVal.wf y → rep ≠ y.encode⌝)
+/-- What decoding the reply into `rp` gives (`dec_GetLeaderReply`). -/
+def glTheta (rp : Loc) : List w8 → Bool → IProp netDistGF := fun rep ok =>
+  if ok then iprop(∃ id : w64, rp ↦ replica.defs.GetLeaderReply.mk id ∗
+      ⌜∀ id', rep = netrpcw.encGetLeaderReply id' → id = id'⌝)
+  else iprop(∃ v : replica.defs.GetLeaderReply, rp ↦ v)
 
 end defs
 
@@ -76,6 +74,13 @@ variable [examples.swiftnet.Assumptions] [errors.Assumptions] [replica.defs.Assu
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 
 set_option goose.wp.extras true
+
+/-- A tagged encoding's type tag is its own. -/
+theorem client.cn.tagOk_tagged (t body : List w8) (ht : t.length < 2 ^ 64) :
+    tagOk t (netrpcw.tagged t body) := by
+  intro t' rest h
+  rw [getTag_tagged t body ht] at h
+  cases h; rfl
 
 theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI (hG := hG)) :
     client.Client.callMasterRL.specI (hG := hG) := by
@@ -95,45 +100,22 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
       replica.defs.GetReplicaListReply)) => Hrp
     ihave %Hrpnn := typedPointsto_not_null $$ Hrp
     ihave %Hapnn := typedPointsto_not_null $$ «$r0»
-    ihave HD : kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetReplicaListReply.ty)
-        #rp) (DFrac.own 1) client.cn.rlX0 $$ [Hrp]
-    · unfold kitValOwn structOwn
-      iexists replica.defs.GetReplicaListReply.ty, rp
-      isplitr
-      · ipureintro; exact ⟨rfl, Hrpnn⟩
-      isplitr
-      · ipureintro; rfl
-      iexists slice.nil, slice.nil
-      isplitl [Hrp]
-      · iexact Hrp
-      isplitr
-      · iapply ownSlice_nil
-      · iapply ownSlice_nil
+    ihave HD : rp ↦ replica.defs.GetReplicaListReply.mk slice.nil slice.nil false $$ [Hrp]
+    · iexact Hrp
     wp_apply wp_call cl v v.master' W masterAddr _ go!"Master" go!"GetReplicaList"
       (withErr (sp.masterSpec γc γm)) _ _
       (fun rep msg => iprop(⌜msg ≠ []⌝ ∨ (client.cn.rlPhi γc γm) rep msg)) iprop(True)
-      (kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetReplicaListReply.ty) #rp)
-        (DFrac.own 1) client.cn.rlX0)
+      (rp ↦ replica.defs.GetReplicaListReply.mk slice.nil slice.nil false)
       (fun rep ok => iprop((client.cn.rlPhi γc γm) rep [] ∗ client.cn.rlTheta rp rep ok))
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
       · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
       isplitl [«$r0»]
-      · iapply enc_of C
-        simp only [net.rpc.RpcCodec.enc]
-        iexists DFrac.own 1, sp.KitVal.getReplicaListArgs
+      · iapply enc_sw C
+        iapply (swiftCliCodecLaws (GF := netDistGF)).enc_GetReplicaListArgs
         isplitl [«$r0»]
-        · unfold kitValOwn structOwn
-          iexists replica.defs.GetReplicaListArgs.ty, «$r0_ptr»
-          isplitr
-          · ipureintro; exact ⟨rfl, Hapnn⟩
-          isplitr
-          · ipureintro; rfl
-          iexists _
-          iexact «$r0»
-        iintro %x' %Heq -
-        simp only [sp.KitVal.equiv] at Heq
-        subst Heq
+        · iexact «$r0»
+        iintro -
         isplitl
         rotate_left
         · itrivial
@@ -155,23 +137,17 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
       iintro !> HD %rep HΦr
       icases HΦr with (%Hne | HΦr)
       · exfalso; exact Hne rfl
-      iapply KitLike.dec_intro
-      unfold decT
-      iexists client.cn.rlX0
-      iframe HD
+      iapply dec_sw C
+      iunfold client.cn.rlPhi at HΦr
+      icases HΦr with ⟨%nodes, %alive, %Hrep, Hc⟩
+      iapply (swiftCliCodecLaws (GF := netDistGF)).dec_GetReplicaListReply
       isplitr
-      · ipureintro; trivial
-      isplit
-      · iintro %y %Hy Hown
-        isplitl [HΦr]
-        · iexact HΦr
-        unfold client.cn.rlTheta
-        ileft; iexists y; iframe Hown; ipureintro; exact ⟨Hy.1, Hy.2.1⟩
-      · iintro %Hn %ok -
-        isplitl [HΦr]
-        · iexact HΦr
-        unfold client.cn.rlTheta
-        iright; ipureintro; intro y hy hw; exact Hn y hy hw
+      · ipureintro; rw [Hrep.1]; exact client.cn.tagOk_tagged _ _ (by decide)
+      iframe HD
+      iintro %ok Hok
+      isplitl [Hc]
+      · unfold client.cn.rlPhi; iexists nodes, alive; iframe Hc; ipureintro; exact Hrep
+      unfold client.cn.rlTheta; iexact Hok
     icases Hres with (⟨%Herr, -, %rep, Hphi, Hth⟩ | %Herr)
     rotate_left
     · cases err with
@@ -190,22 +166,10 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
     icases Hmem with ⟨#Hm, %-⟩
     ihave %Hok := memIs_ok γm nodes $$ Hm
     unfold client.cn.rlTheta
-    icases Hth with (⟨%y, %Hy, Hown⟩ | %Hn)
-    rotate_left
-    · exfalso
-      exact Hn (.getReplicaListReply nodes alive true) rfl (by simp [sp.KitVal.wf]) Hrep.1
-    have hy := client.cn.grl_inj y nodes alive true Hy.2
-      (client.cn.nodes_body_bound nodes alive true Hok.1 Hok.2 Hrep.2) (Hy.1.symm.trans Hrep.1)
-    subst hy
-    rw [client.cn.merge_grl]
-    unfold kitValOwn structOwn
-    icases Hown with ⟨%ty, %p, %Hv, %Hty, %s1, %s2, Hp, Hs1, Hs2⟩
-    subst Hty
-    have hp : p = rp := by
-      have h := Hv.1
-      simp [interface.mkOk] at h
-      exact (go.intoVal_inj h).symm
-    subst hp
+    simp only [ite_true]
+    icases Hth with ⟨%s1, %s2, %rl, %al, %r, Hp, Hs1, Hs2, %Hy⟩
+    obtain ⟨h1, h2, h3⟩ := Hy nodes alive true Hrep.1
+    subst rl; subst al; subst r
     wp_auto
     wp_for_post
     iapply HΦ
@@ -213,7 +177,7 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
     ileft
     isplitr
     · ipureintro; rfl
-    iexists p, s1, s2, nodes, alive, fr
+    iexists rp, s1, s2, nodes, alive, fr
     iframe
     isplitr
     · ipureintro; rfl
@@ -243,40 +207,24 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
       replica.defs.GetLeaderReply)) => Hrp
     ihave %Hrpnn := typedPointsto_not_null $$ Hrp
     ihave %Hapnn := typedPointsto_not_null $$ «$r0»
-    ihave HD : kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetLeaderReply.ty)
-        #rp) (DFrac.own 1) client.cn.glX0 $$ [Hrp]
-    · unfold kitValOwn structOwn
-      iexists replica.defs.GetLeaderReply.ty, rp
-      isplitr
-      · ipureintro; exact ⟨rfl, Hrpnn⟩
-      isplitr
-      · ipureintro; rfl
-      iexact Hrp
+    have hz : (Perennial.zero_val replica.defs.GetLeaderReply) =
+        replica.defs.GetLeaderReply.mk (W64 0) := rfl
+    ihave HD : rp ↦ replica.defs.GetLeaderReply.mk (W64 0) $$ [Hrp]
+    · rw [← hz]; iexact Hrp
     wp_apply wp_call cl v v.master' W masterAddr _ go!"Master" go!"GetLeader"
       (withErr (sp.masterSpec γc γm)) _ _
       (fun rep msg => iprop(⌜msg ≠ []⌝ ∨ client.cn.glPhi rep msg)) iprop(True)
-      (kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetLeaderReply.ty) #rp)
-        (DFrac.own 1) client.cn.glX0)
+      (rp ↦ replica.defs.GetLeaderReply.mk (W64 0))
       (fun rep ok => iprop(client.cn.glPhi rep [] ∗ client.cn.glTheta rp rep ok))
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
       · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
       isplitl [«$r0»]
-      · iapply enc_of C
-        simp only [net.rpc.RpcCodec.enc]
-        iexists DFrac.own 1, sp.KitVal.getLeaderArgs
+      · iapply enc_sw C
+        iapply (swiftCliCodecLaws (GF := netDistGF)).enc_GetLeaderArgs
         isplitl [«$r0»]
-        · unfold kitValOwn structOwn
-          iexists replica.defs.GetLeaderArgs.ty, «$r0_ptr»
-          isplitr
-          · ipureintro; exact ⟨rfl, Hapnn⟩
-          isplitr
-          · ipureintro; rfl
-          iexists _
-          iexact «$r0»
-        iintro %x' %Heq -
-        simp only [sp.KitVal.equiv] at Heq
-        subst Heq
+        · iexact «$r0»
+        iintro -
         isplitl
         rotate_left
         · itrivial
@@ -296,23 +244,18 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
       iintro !> HD %rep HΦr
       icases HΦr with (%Hne | HΦr)
       · exfalso; exact Hne rfl
-      iapply KitLike.dec_intro
-      unfold decT
-      iexists client.cn.glX0
-      iframe HD
+      iapply dec_sw C
+      iunfold client.cn.glPhi at HΦr
+      icases HΦr with %Hrep
+      obtain ⟨id0, Hrep⟩ := Hrep
+      iapply (swiftCliCodecLaws (GF := netDistGF)).dec_GetLeaderReply
       isplitr
-      · ipureintro; trivial
-      isplit
-      · iintro %y %Hy Hown
-        isplitl [HΦr]
-        · iexact HΦr
-        unfold client.cn.glTheta
-        ileft; iexists y; iframe Hown; ipureintro; exact ⟨Hy.1, Hy.2.1⟩
-      · iintro %Hn %ok -
-        isplitl [HΦr]
-        · iexact HΦr
-        unfold client.cn.glTheta
-        iright; ipureintro; intro y hy hw; exact Hn y hy hw
+      · ipureintro; rw [Hrep]; exact client.cn.tagOk_tagged _ _ (by decide)
+      iframe HD
+      iintro %ok Hok
+      isplitr
+      · unfold client.cn.glPhi; ipureintro; exact ⟨id0, Hrep⟩
+      unfold client.cn.glTheta; iexact Hok
     icases Hres with (⟨%Herr, -, %rep, Hphi, Hth⟩ | %Herr)
     rotate_left
     · cases err with
@@ -329,21 +272,9 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
     icases Hphi with %Hrep
     obtain ⟨id, Hrep⟩ := Hrep
     unfold client.cn.glTheta
-    icases Hth with (⟨%y, %Hy, Hown⟩ | %Hn)
-    rotate_left
-    · exfalso
-      exact Hn (.getLeaderReply id) rfl (by simp [sp.KitVal.wf]) Hrep
-    obtain ⟨i', rfl⟩ : ∃ i', y = .getLeaderReply i' := by
-      cases y <;> simp_all [sp.KitVal.tag]
-    unfold kitValOwn structOwn
-    simp only [sp.KitVal.merge]
-    icases Hown with ⟨%ty, %p, %Hv, %Hty, Hp⟩
-    subst Hty
-    have hp : p = rp := by
-      have h := Hv.1
-      simp [interface.mkOk] at h
-      exact (go.intoVal_inj h).symm
-    subst hp
+    simp only [ite_true]
+    icases Hth with ⟨%i', Hp, %Hy⟩
+    obtain rfl := Hy id Hrep
     wp_auto
     wp_for_post
     iapply HΦ
@@ -351,7 +282,7 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
     ileft
     isplitr
     · ipureintro; rfl
-    iexists p, _
+    iexists rp, _
     iframe
     ipureintro; rfl
   · wp_apply errors.wp_New_errorString as %x _
