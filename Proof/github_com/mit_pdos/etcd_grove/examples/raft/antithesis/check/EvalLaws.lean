@@ -68,6 +68,14 @@ theorem need_ok {α : Type} {x : Option α} {a : α} (h : need x = .ok a) : x = 
   | none => cases h
   | some b => cases h; rfl
 
+theorem decide_eq_beq' {α : Type} [DecidableEq α] [BEq α] [LawfulBEq α] (a b : α) :
+    decide (a = b) = (a == b) := by
+  by_cases h : a = b <;> simp [h]
+
+theorem not_decide_eq_bne {α : Type} [DecidableEq α] [BEq α] [LawfulBEq α] (a b : α) :
+    (!decide (a = b)) = (a != b) := by
+  by_cases h : a = b <;> simp [h]
+
 /-- Go's `==` on `int`s is the Lean's `=` on their values. -/
 theorem decide_w64_eq (r u : w64) : decide (r = u) = decide (sint.Z r = sint.Z u) := by
   by_cases h : r = u

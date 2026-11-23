@@ -559,3 +559,14 @@ no lemma on `gcFuel`: the premise `c.next ev = .ok c'` gives the Lean loop's ite
 Go loop follows (induction on the fuel); its intermediate states stay within budget by
 `GCWithin`. Sizes as estimated before: W1 ~2k, W2 ~2k, W3 ~3-4k, W4 ~5-7k, W5 ~3k, W6 ~2k, W7
 ~1.5k Lean lines, plus the budget laws (~1-2k in all, mostly W2/W4b/W5).
+
+**Progress (one session, sequentially, 2026-11-23):**
+- **W1 done:** the 24 operators. Shared pure laws for the proofs in `Proof/.../check/EvalLaws.lean`
+  (new, not one of the W0 files): `bind_ok`, `andM_ok`, `orM_ok`, `fieldEq_ok`, `need_ok`, the
+  per-bit `Event.hasF_<F>`, and the Go `int` arithmetic as lemmas (`sint_add`, `sint_sub`,
+  `sint_add_one_lt`, ...): a `word`/`omega` inside a long proof's terms can pass elaboration and fail
+  the kernel (§10.1's pitfall, met again in `Matching` and `RecordedIn`), as a separate lemma it does not.
+- **W4a done:** the 33 `onDisk` methods. Their pure laws in `Proof/.../check/OnDiskLaws.lean` (new):
+  `OnDisk.fm_within` (the request's numbers `numOk`, its entries within `b`), `K_bounds`, `es_le`,
+  `first_bounds` (`-2^61 < first < 2^62`), `f_within`, `L0_le`, and `kStep` (`K`'s fold step).
+  W4b and W6 use them for `OnDisk`'s arithmetic. No spec or shared file changed.

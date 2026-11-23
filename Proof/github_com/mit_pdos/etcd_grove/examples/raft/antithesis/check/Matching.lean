@@ -19,13 +19,6 @@ namespace AntCheck
 
 open Iris Iris.BI Iris.ProofMode
 
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
-
 /-- One step of `matching`'s fold (the Lean's lambda). -/
 def matchStep (a b : List Entry) (ok : Bool) (i : Nat) : EvalM Bool := do
   if !ok then return false
@@ -44,6 +37,14 @@ theorem matchStep_fold_false (a b : List Entry) (l : List Nat) : l.foldlM (match
 
 theorem range_drop_cons (m j : Nat) (h : j < m) : (List.range m).drop j = j :: (List.range m).drop (j + 1) := by
   rw [List.drop_eq_getElem_cons (by simpa using h)]; simp
+
+section proof
+set_option linter.unusedSimpArgs false
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
 theorem Matching.wp_proof (wp_Min : Min.spec (GF := GF) (hG := hG))
     (wp_EntryEqual : Entry.Equal.spec (GF := GF) (hG := hG)) :

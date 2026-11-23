@@ -149,6 +149,38 @@ State__queued: Event__by
 
 # W4a (onDisk's methods)
 onDisk__w:
+onDisk__K: onDisk__fm onDisk__L0 At
+onDisk__L0:
+onDisk__L1: onDisk__stores onDisk__L0 onDisk__first onDisk__es SubSeq Concat
+onDisk__T0:
+onDisk__T1: onDisk__w Event__term
+onDisk__V1: onDisk__T0 onDisk__T1 State__Vote
+onDisk__ackAt: onDisk__below onDisk__last
+onDisk__acks: onDisk__stores onDisk__leads onDisk__moved onDisk__hasM onDisk__m Msg__typ onDisk__takes onDisk__below
+onDisk__adopt: onDisk__T0 onDisk__T1 onDisk__elect
+onDisk__adv: onDisk__w Event__commit
+onDisk__bat: onDisk__w Event__has
+onDisk__below: onDisk__isApp onDisk__fm
+onDisk__ch1: onDisk__adv onDisk__newC
+onDisk__conf1: onDisk__stores onDisk__T1 onDisk__last onDisk__acks onDisk__below Max
+onDisk__elect: onDisk__w onDisk__T0 onDisk__T1 Event__role
+onDisk__es: onDisk__w onDisk__snaps onDisk__takes onDisk__fm onDisk__K onDisk__bat SubSeq Event__entries
+onDisk__f: onDisk__leads onDisk__T1 onDisk__es onDisk__stores onDisk__first onDisk__moved onDisk__fm onDisk__w Event__commit TermLogs__Has TermLogs__Get TermAt
+onDisk__first: onDisk__w onDisk__snaps onDisk__takes onDisk__fm onDisk__K onDisk__L0 Event__has Event__first
+onDisk__fm: onDisk__m ReqFactIn
+onDisk__hasM:
+onDisk__isApp: onDisk__bat onDisk__hasM onDisk__m onDisk__T1 Msg__typ Msg__term
+onDisk__k_i: onDisk__first onDisk__f
+onDisk__last: onDisk__f
+onDisk__leads: onDisk__w Event__role
+onDisk__m: msgSeqHead
+onDisk__moved: onDisk__w Event__commit
+onDisk__newC: onDisk__L1 onDisk__w Event__commit SubSeq
+onDisk__old: onDisk__T1 TermInts__Has TermInts__Get
+onDisk__snaps: onDisk__w Event__has
+onDisk__stores: onDisk__es
+onDisk__takes: onDisk__isApp onDisk__below onDisk__fm State__PrevOk
+onDisk__voted: onDisk__w onDisk__V1 Event__vote
 
 # W4b (OnDisk)
 
