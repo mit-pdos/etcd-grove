@@ -133,7 +133,16 @@ writer's errors and no `OpError.Error` spec exists), plus the hubs' `vsrnet.code
 `client.addrs_eq : VsrWire.addrs = ipv4port.addrs := rfl`; `sort.wp_Sort` at `portLt`). The slog
 vocabulary `log.slog.argOk` (ArgWf ∨ errAny ∨ NoFmtArg) and the `Logger.*` specs live in
 `Proof/replica/LibHyps.lean` (canonical; client and network import it; move to `Spec/sloglib.lean`
-later). **Open (events' package facts):** `pkg/events/Base.lean`/`examples/vsrwire/Base.lean` still
+later). `Proof/network/*` (`0d3e2b63df`; Results on Lean's three axioms over `net.{Dial,Listen,Listener.Accept,
+Conn.Close,Conn.RemoteAddr}.spec`, `events.{Event.FromDecoder,newDecoder,NewNetworkEvent}.spec`,
+`log.slog.Debug.spec` (`Proof/network/LibHyps.lean`); `OpError`'s and `TCPAddr.String`'s strings
+proved via the extension's `AnyString`; internal specs over `net.connAt`/`isListener`/`netLis`; no
+`Log.lean` (the lab's slog model is a hypothesis)). Network findings: (a) under `attribute [local
+instance] GooseGlobalGS.gooseInvGS` a lemma's fupd is not eliminable by `imod` inside a WP goal (the
+semireducible instance does not unify with `goose_irisGS.invGS`): drop the attribute in files with
+such lemmas; (b) `json.NewDecoder` swallows `recvTok` (into `decOk`), so `handleConn` takes the
+connection's `connIs` before making the decoder (and `Send` before calling `f`).
+**Open (events' package facts):** `pkg/events/Base.lean`/`examples/vsrwire/Base.lean` still
 have the weak facts; the hub specs take `hookKnownFull`/`frameDecoderSet` as preconditions. To make
 them package facts: move `frameDecOk`, `rstream`, `hookLockInvFull`, `hookKnownFull`,
 `frameDecoderSet` out of `Spec/events.lean` into a module importing no package `Base` (now a cycle),
