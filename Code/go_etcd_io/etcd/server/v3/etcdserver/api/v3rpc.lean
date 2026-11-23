@@ -19,7 +19,7 @@ public import Code.go_etcd_io.etcd.client.v3.credentials
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import Code.go_etcd_io.etcd.server.v3.features
 public import Perennial.Code.time
-public import Code.unicode.utf8
+public import Perennial.Code.unicode.utf8
 public import Code.google_golang_org.grpc.metadata
 public import Code.google_golang_org.protobuf.proto
 public import Code.go_etcd_io.etcd.api.v3.v3rpc.rpctypes

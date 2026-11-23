@@ -1,0 +1,7 @@
+# The receivers the kit's programs register with net/rpc (the master's, a replica's). The codec
+# (rpc_gen.go, rpc_model_gen.go, rpc_real_gen.go, rpc_gen_test.go) is generated from this by
+# models/net/rpc/rpcgen.py:
+#   models/net/rpc/rpcgen.py examples/dsverify/epaxos/examples/epaxosnet/rpc.toml examples/dsverify/epaxos/examples/epaxosnet --pkg epaxosnet
+[rpc]
+imports = { master = "github.com/imdea-software/swiftpaxos-epaxos/master", epaxos = "github.com/imdea-software/swiftpaxos-epaxos/epaxos" }
+receivers = ["*master.Master", "*epaxos.Replica"]

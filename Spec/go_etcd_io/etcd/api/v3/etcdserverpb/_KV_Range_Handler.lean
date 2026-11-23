@@ -29,7 +29,7 @@ implements `KVServer` (a method-set fact) and whose `Range` meets `Spec` with th
 (`grpcHandlerOkMd`: at the run's incoming metadata; a plain spec is `GrpcSpec.md`'s), for messages
 whose types are `*RangeRequest`/`*RangeResponse` (a zero `*RangeRequest` is the request's blank),
 under the chain `ics` of transparent interceptors with their resources `Rs`, for requests with `Q`
-(which the decoded request has; `srvInterceptorsOk`, given `grpcSrvChain ics interceptor`), with
+(which the decoded request has; `srvInterceptorsOk`, given `grpcSrvChainAll ics interceptor`), with
 grpc's `dec` for the request at `m` and `Spec` of the run's metadata at `m` and `Φ`: decodes a new
 `*RangeRequest` and runs `srv.Range` through the chain; the resources come back, and on success the
 response (as `any`) is at some `m'` with `Φ m'`. -/
@@ -46,7 +46,7 @@ abbrev etcdserverpb._KV_Range_Handler.spec : Prop :=
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.RangeRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+      grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! etcdserverpb._KV_Range_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗

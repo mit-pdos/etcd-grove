@@ -9,19 +9,9 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update. (2026-11-10: no baseline yet,
 # the build of record not up to date when the collection was added.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.lean$
-axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
-axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
-axiom Perennial.github_com.prometheus.client_model.go.initFuncsOk
-axiom Perennial.github_com.prometheus.client_model.go.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
-axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -45,7 +35,6 @@ axiom lease.Lease.expired.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewGauge.wp_proof
 axiom prometheus.NewGaugeFunc.wp_proof

@@ -105,7 +105,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of errUnmarshalNilLevel))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrUnmarshalNilLevel #MerrUnmarshalNilLevel
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xerrUnmarshalNilLevel ⟨#_, #MerrUnmarshalNilLevel⟩
   -- translated initializer of _levelToColor))
   try wp_auto
   wp_apply (wp_map_make1 (K := w8) (V := w8) go_uber_org.zap.zapcore.Level.ty _root_.Perennial.go_uber_org.zap.internal.color.Color.ty) as %mHlc Hlc

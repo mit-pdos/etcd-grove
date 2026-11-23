@@ -285,8 +285,24 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF :=
                                                                                               go_etcd_io.etcd.server.v3.storage.mvcc.ErrEmptyWatcherRange
                                                                                               go!"mvcc: watcher range is empty" ∗
                                                                                             errVarCell
-                                                                                              go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherNotExist
-                                                                                              go!"mvcc: watcher does not exist")
+                                                                                                go_etcd_io.etcd.server.v3.storage.mvcc.ErrWatcherNotExist
+                                                                                                go!"mvcc: watcher does not exist" ∗
+                                                                                              (∃ c,
+                                                                                                  typedPointsto
+                                                                                                      (globalAddr
+                                                                                                        go_etcd_io.etcd.server.v3.storage.mvcc.totalEventsCounter)
+                                                                                                      (GoInterface.ok c)
+                                                                                                      DFrac.discard ∗
+                                                                                                    prometheus.metric.counterSpec
+                                                                                                      c) ∗
+                                                                                                ∃ g,
+                                                                                                  typedPointsto
+                                                                                                      (globalAddr
+                                                                                                        go_etcd_io.etcd.server.v3.storage.mvcc.pendingEventsGauge)
+                                                                                                      (GoInterface.ok g)
+                                                                                                      DFrac.discard ∗
+                                                                                                    prometheus.metric.isGauge
+                                                                                                      g)
 
 def Perennial.go_opentelemetry_io.otel.trace.embedded.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp
     GF) pkg_id.go_opentelemetry_io.otel.trace.embedded :=

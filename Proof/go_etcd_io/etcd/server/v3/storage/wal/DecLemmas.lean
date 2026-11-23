@@ -146,7 +146,7 @@ theorem errOk_newVar (X msg : GoString) :
         errOk ⟨go.GoType.PointerType errors.errorString.ty, #x⟩ := by
   iintro H
   iunfold errors.newVar at H
-  icases H with ⟨%x, #Hx, #HE⟩
+  icases H with ⟨%x, #Hx, #_, #HE⟩
   iexists x
   iframe Hx
   iapply errorString_errOk

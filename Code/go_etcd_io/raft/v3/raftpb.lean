@@ -2697,14 +2697,19 @@ class ConfChangeTransition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   method_set : go.MethodSetIs ConfChangeTransition.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeTransition.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChangeTransition.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeTransition.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   Enum_unfold : MethodUnfold ConfChangeTransition.ty go!"Enum" ConfChangeTransition.Enum.impl
+  String_unfold : MethodUnfold ConfChangeTransition.ty go!"String" ConfChangeTransition.String.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType ConfChangeTransition.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConfChangeTransition.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad ConfChangeTransition.ty))) (Var "$r"))))
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType ConfChangeTransition.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChangeTransition.ty go!"String"))) (App (Val (GoInstruction (GoLoad ConfChangeTransition.ty))) (Var "$r"))))
 
 attribute [instance] ConfChangeTransition.TypeAssumptions.underlying
   ConfChangeTransition.TypeAssumptions.method_set
   ConfChangeTransition.TypeAssumptions.ptr_method_set
   ConfChangeTransition.TypeAssumptions.Enum_unfold
+  ConfChangeTransition.TypeAssumptions.String_unfold
   ConfChangeTransition.TypeAssumptions.ptr_Enum_unfold
+  ConfChangeTransition.TypeAssumptions.ptr_String_unfold
 
 abbrev ConfChangeType [GooseExts] : Type := w32
 
@@ -2716,14 +2721,19 @@ class ConfChangeType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   method_set : go.MethodSetIs ConfChangeType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConfChangeType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumDescriptor.ty]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumNumber.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.EnumType.ty]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   Enum_unfold : MethodUnfold ConfChangeType.ty go!"Enum" ConfChangeType.Enum.impl
+  String_unfold : MethodUnfold ConfChangeType.ty go!"String" ConfChangeType.String.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType ConfChangeType.ty) go!"Enum" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ConfChangeType.ty go!"Enum"))) (App (Val (GoInstruction (GoLoad ConfChangeType.ty))) (Var "$r"))))
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType ConfChangeType.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ConfChangeType.ty go!"String"))) (App (Val (GoInstruction (GoLoad ConfChangeType.ty))) (Var "$r"))))
 
 attribute [instance] ConfChangeType.TypeAssumptions.underlying
   ConfChangeType.TypeAssumptions.method_set
   ConfChangeType.TypeAssumptions.ptr_method_set
   ConfChangeType.TypeAssumptions.Enum_unfold
+  ConfChangeType.TypeAssumptions.String_unfold
   ConfChangeType.TypeAssumptions.ptr_Enum_unfold
+  ConfChangeType.TypeAssumptions.ptr_String_unfold
 
 structure Entry [GooseExts] where
   mk ::
@@ -3156,6 +3166,7 @@ class HardState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetTerm" HardState.GetTerm.impl
   ptr_GetVote_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetVote" HardState.GetVote.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"ProtoMessage" HardState.ProtoMessage.impl
+  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"Reset" HardState.Reset.impl
 
 attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.underlying
@@ -3177,6 +3188,7 @@ attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.ptr_GetTerm_unfold
   HardState.TypeAssumptions.ptr_GetVote_unfold
   HardState.TypeAssumptions.ptr_ProtoMessage_unfold
+  HardState.TypeAssumptions.ptr_Reset_unfold
 
 structure ConfState [GooseExts] where
   mk ::

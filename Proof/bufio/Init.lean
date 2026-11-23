@@ -8,8 +8,10 @@ variable).
 module
 
 public import Proof.bufio.PkgInit
+public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.errors.NewVar
 public import Proof.runtime.PkgInitExt
 
@@ -61,10 +63,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) ErrBufferFull _ as HErrBufferFull
   wp_apply wp_GlobalAlloc (V := _) ErrInvalidUnreadRune _ as HErrInvalidUnreadRune
   wp_apply wp_GlobalAlloc (V := _) ErrInvalidUnreadByte _ as HErrInvalidUnreadByte
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
+      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrInvalidUnreadByte))
   -- translated initializer of ErrInvalidUnreadRune))
   -- translated initializer of ErrBufferFull))
@@ -77,17 +83,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of ErrBadReadCount))
   -- translated initializer of ErrFinalToken))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 #E0
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x1 #E1
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x2 #E2
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x3 #E3
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x4 #E4
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x5 #E5
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x6 #E6
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x7 #E7
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x8 #E8
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x9 #E9
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %x10 #E10
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 ⟨#_, #E0⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x1 ⟨#_, #E1⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x2 ⟨#_, #E2⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x3 ⟨#_, #E3⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x4 ⟨#_, #E4⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x5 ⟨#_, #E5⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x6 ⟨#_, #E6⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x7 ⟨#_, #E7⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x8 ⟨#_, #E8⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x9 ⟨#_, #E9⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x10 ⟨#_, #E10⟩
   iframe Hown
   is_pkg_init_finish
 

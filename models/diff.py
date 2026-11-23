@@ -37,6 +37,9 @@ MODELS = goroot.MODELS
 # tree mirrors the module's (a package at <dir>/<sub> models the module's <path>/<sub>).
 MODULE_MODELS = {
     "grpc": ("google.golang.org/grpc", "v1.84.0"),
+    "gods": ("github.com/emirpasic/gods", "v1.18.1"),
+    "uuid": ("github.com/google/uuid", "v1.3.1"),
+    "concurrent-map": ("github.com/orcaman/concurrent-map", "v1.0.0"),
 }
 
 

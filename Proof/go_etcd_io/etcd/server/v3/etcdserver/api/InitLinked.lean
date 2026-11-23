@@ -49,7 +49,9 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Loc) enabledMap _ as HenabledMap
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.RWMutex) enableMapMu _ as HenableMapMu
   wp_apply wp_GlobalAlloc (V := Loc) capabilityMaps _ as HcapabilityMaps
   wp_apply (EtcdGrove.initResL_sub _ (EtcdGrove.regResL (GF := GF) regQs)
       (EtcdGrove.regResL (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.regQs)
@@ -146,7 +148,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_mapInsert (K := GoString) (V := Bool) go_etcd_io.etcd.server.v3.etcdserver.api.Capability.ty) $$ He as He
   try wp_auto
+  ipersist He
+  imod (go_etcd_io.etcd.server.v3.etcdserver.api.capInit_alloc ⊤ _ _) $$ [HenabledMap HenableMapMu] with #HCI
+  · iframe HenabledMap HenableMapMu; iexact He
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form with the rights to register the closure's metric names (decision D16),

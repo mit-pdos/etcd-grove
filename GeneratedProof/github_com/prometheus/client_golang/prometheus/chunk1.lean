@@ -3,9 +3,12 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.github_com.prometheus.client_golang.prometheus
+public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.prometheus.client_model.go
+public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.sync
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.prometheus.client_golang.prometheus
@@ -660,84 +663,6 @@ noncomputable instance histogramCounts_access_store_nativeHistogramBucketsNegati
 end def_
 end histogramCounts
 
-namespace histogram
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
-
-noncomputable instance histogram_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.histogram :=
-  sorry -- axiomatized type
-
-noncomputable instance histogram_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.histogram github_com.prometheus.client_golang.prometheus.histogram.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end histogram
-
-namespace HistogramVec
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
-
-noncomputable instance HistogramVec_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramVec where
-  typedPointstoDef l v dq := iprop(
-    "MetricVec" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance HistogramVec_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramVec github_com.prometheus.client_golang.prometheus.HistogramVec.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance HistogramVec_access_load_MetricVec (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVec) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' dq)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance HistogramVec_access_store_MetricVec (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVec) (MetricVec' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) MetricVec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MetricVec' := MetricVec' } : github_com.prometheus.client_golang.prometheus.HistogramVec) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end HistogramVec
-
-namespace constHistogram
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
-
-noncomputable instance constHistogram_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.constHistogram :=
-  sorry -- axiomatized type
-
-noncomputable instance constHistogram_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.constHistogram github_com.prometheus.client_golang.prometheus.constHistogram.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end constHistogram
-
 namespace nativeExemplars
 section def_
 
@@ -811,6 +736,65 @@ noncomputable instance nativeExemplars_access_store_exemplars (l : Loc) (v : git
 
 end def_
 end nativeExemplars
+
+namespace HistogramVec
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
+
+noncomputable instance HistogramVec_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramVec where
+  typedPointstoDef l v dq := iprop(
+    "MetricVec" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance HistogramVec_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramVec github_com.prometheus.client_golang.prometheus.HistogramVec.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance HistogramVec_access_load_MetricVec (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance HistogramVec_access_store_MetricVec (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVec) (MetricVec' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) v.MetricVec' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVec go!"MetricVec" l) MetricVec' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MetricVec' := MetricVec' } : github_com.prometheus.client_golang.prometheus.HistogramVec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end HistogramVec
+
+namespace constHistogram
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
+
+noncomputable instance constHistogram_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.constHistogram :=
+  sorry -- axiomatized type
+
+noncomputable instance constHistogram_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.constHistogram github_com.prometheus.client_golang.prometheus.constHistogram.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end constHistogram
 
 namespace constNativeHistogram
 section def_

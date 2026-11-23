@@ -251,7 +251,10 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply (wp_mapInsert (K := github_com.Masterminds.semver.v3.Version) (V := GoSlice) github_com.Masterminds.semver.v3.Version.ty) $$ Hmsc as Hmsc
   try wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
   -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_8))
   -- translated initializer of _root_.Perennial.go_etcd_io.etcd.api.v3.version.V3_7))
   -- translated initializer of emptyStorageVersion))

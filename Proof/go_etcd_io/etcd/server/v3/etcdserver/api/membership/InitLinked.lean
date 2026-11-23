@@ -26,6 +26,10 @@ public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBu
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Inc
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Dec
 public import Proof.path.Join
 public import Proof.path.Clean
 public import Proof.path.lazybuf__index
@@ -122,22 +126,22 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrIDRemoved))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDRemoved #MErrIDRemoved
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDRemoved ⟨#_, #MErrIDRemoved⟩
   -- translated initializer of ErrIDExists))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDExists #MErrIDExists
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDExists ⟨#_, #MErrIDExists⟩
   -- translated initializer of ErrIDNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDNotFound #MErrIDNotFound
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrIDNotFound ⟨#_, #MErrIDNotFound⟩
   -- translated initializer of ErrPeerURLexists))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPeerURLexists #MErrPeerURLexists
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrPeerURLexists ⟨#_, #MErrPeerURLexists⟩
   -- translated initializer of ErrMemberNotLearner))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMemberNotLearner #MErrMemberNotLearner
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMemberNotLearner ⟨#_, #MErrMemberNotLearner⟩
   -- translated initializer of ErrTooManyLearners))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTooManyLearners #MErrTooManyLearners
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrTooManyLearners ⟨#_, #MErrTooManyLearners⟩
   -- translated initializer of ClusterVersionMetrics))
   try wp_auto
   wp_apply (wp_slice_literal (l := [go!"cluster_version"])); isplitr; (· ipureintro; rfl); iintro %sClusterVersionMetrics ⟨SClusterVersionMetrics, -⟩
@@ -151,7 +155,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGaugeVec.wp_proof _ _ _ _ _ [go!"Local", go!"Remote"] _ _ rfl (by decide) (by decide) $$ [$SknownPeers] as %vknownPeers ⟨#LknownPeers, #NknownPeers⟩
   try wp_auto
   -- translated initializer of isLearner))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisLearner ⟨#CisLearner, #DisLearner, #NisLearner⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisLearner ⟨#RisLearner, #NisLearner⟩
+  ihave #CisLearner : (EtcdGrove.prometheus.metric.gaugeSpec cisLearner : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DisLearner : (EtcdGrove.prometheus.metric.gaugeSetSpec cisLearner : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of StoreMembersPrefix))
   try wp_auto
@@ -214,6 +224,8 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrPeerURLexists
   ipersist HErrMemberNotLearner
   ipersist HErrTooManyLearners
+  ipersist HisLearner
+  ipersist HknownPeers
   iframe Hown
   imodintro
   isplitr

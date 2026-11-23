@@ -167,17 +167,30 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   iintro %depIdxs ⟨-, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   wp_auto
-  -- (Q9, 2026-11-09) the package fact: `MessageType_name`'s table, read-only
+  -- (Q9, 2026-11-09) the package fact: `MessageType_name`'s table, read-only; (#25, 2026-11-23)
+  -- `ConfChangeTransition_name`'s and `ConfChangeType_name`'s too
   ipersist HMessageType_name
   imod ownMap_persist _ _ _ $$ Hm2 with Hm2
   ipersist Hm2
+  ipersist HConfChangeTransition_name
+  imod ownMap_persist _ _ _ $$ Hm4 with Hm4
+  ipersist Hm4
+  ipersist HConfChangeType_name
+  imod ownMap_persist _ _ _ $$ Hm6 with Hm6
+  ipersist Hm6
   -- init.0: its trusted model does nothing
   wp_func_call
   wp_call
   iframe Hown
   is_pkg_init_finish
-  unfold go_etcd_io.raft.v3.raftpb.msgTypeNames
-  iexact Hm2
+  iunfold go_etcd_io.raft.v3.raftpb.nameTableOk
+  unfold go_etcd_io.raft.v3.raftpb.msgTypeNames go_etcd_io.raft.v3.raftpb.ccTypeNames
+    go_etcd_io.raft.v3.raftpb.ccTransitionNames
+  isplitr
+  · iexists m2; iframe #
+  isplitr
+  · iexists m6; iframe #
+  · iexists m4; iframe #
 
 end init_lc
 
@@ -337,7 +350,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   iapply wp_fupd
   repeat (first
     | (wp_apply log.wp_New as %_ _)
-    | (wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_)
+    | (wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩)
     | wp_auto)
   iStructNamed «$r0»
   imod sync.init_Mutex iprop(True) ⊤ («$r0_ptr».[lockedRand, go!"mu"]) $$ mu [] with #Hmu

@@ -877,3 +877,23 @@ Option 4 as perennial#684).
   `/shared/tmp/manifest-9c3b.json`), and `net-swap` has merged it (`876c4a595a`); merging them here (conflicts
   expected in the package-init proofs: lean's side) is the next step. Then sign-off (#15) and landing (after
   net-swap lands).
+
+### On `lean` after net-swap landed (2026-11-23)
+
+Merged `lean` at `82847d941b` (net-swap landed; Perennial `70706ce5e`, manifest `/shared/tmp/manifest-7070.json`).
+* **Conflicts**: `prometheus.toml` (both: our registry's translate list plus #35's/prove-ps2-metrics' `gauge`
+  methods and `ExponentialBuckets`, the union of the imports); client_model `dto` (lean's side: lean now imports it
+  for the metrics' `labelPairs`, with its variables skipped and its `init()` a trusted no-op model, so its
+  `opaqueInitsOk`/`initFuncsOk`, which step 1 had added, are gone); `NewGauge.spec` (lean's `isGauge` with our
+  `IProp` `collectorName`); `apply/Base.lean` (lean's `capInit` fact, our `[PromRegGS GF]` binder);
+  `etc/proof_roots.py` (lean's `shared_net`, which supersedes this branch's `shadows_part`); `etc/gen-init.py` (the
+  registration patterns also over lean's `⟨#R…, -⟩` gauges); generated files, baselines and the mvcc* Adequacy
+  docstrings (lean's side, then regenerated). net-swap's content is lean's; this branch's earlier direct merges
+  of it reconcile with no further change.
+* **Follow-ups of the merge**: lean's new `gauge.{Set,Add,Sub,Inc,Dec}` specs and `MetricLaws` name prometheus's
+  fact as `isPkgInit`; under Option 4 they take `isPkgInitSome` (as the vectors' specs), and so do
+  `ReportEventReceived` and `RaftCluster.updateMembershipMetric`; the generated gauge steps close that premise by
+  `iPkgInit`; mvcc's initializer (23 registrations over persistent `collectorName`s) gets `maxRecDepth 20000`.
+* **#39** (the etcdserver `init.0` registrations as a `register(SPECIAL[etcdserver], …)` entry) is not on `lean`
+  at `82847d941b`: nothing to port yet. When it lands, its entry goes through `register()`/`reg_steps` like the
+  others (each registration takes `idToks γ [descId n]`, its `With(..).Set(1)` steps after).

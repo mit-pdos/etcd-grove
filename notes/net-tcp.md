@@ -216,6 +216,32 @@ post; a waiting operation (`Read`, `Accept`) opens its update only at the step t
 and listeners can live in invariants shared by threads (duplex's reader and writer, shutdown's
 blocked `Accept` and `Read`).
 
+**Wildcard listeners (D21; 2026-11-23, branch `net-wildcard-listen`).** No change to the semantics:
+`Impl.lean` already lets `Listen` take a wildcard (`listenOk`) and its `Accept` take a connection
+dialed to any valid address with its port (`lisAccepts`). The specs now cover it, one canonical spec
+per function: `net.Listen.spec` takes `listenOk a` and the right to listen at `a`, `lisToks a` (the
+listening tokens of every valid address `a` takes: `a`'s own for a valid address,
+`lisToks_addrOk`, every valid address with its port for a wildcard), and gives `netLisOn l a`
+(`Ghost.lean`: the listener exists, at a valid address or a wildcard; `netLisAt` is it at a valid
+address). `net.Listener.Accept.spec` takes two updates: one for a failure, over the listener's state
+only, and one, for every valid address `a` the listener takes, over the listener's state and `a`'s
+pending set; its post names the address the connection was dialed to (`isConn c cn true a`,
+`Qok a cn`). `Listener.Close.spec` takes `netLisOn`. The former shapes, at a valid address, are
+instances, proved from the canonical specs (`Net/Proof/net/AtAddr.lean`: `Listen.spec_addrOk`,
+`Listener.Accept.spec_addrOk`), which the existing callers use unchanged. The kits' vocabulary
+(`Proto.lean`): `lisUnset la` (every address `la` takes unset, from the start resources beside a list
+of single addresses: `addrs_lis_start`, the listeners pairwise disjoint and disjoint from the list),
+`lis_set_proto` (one pair of protocols for all of them: `lisProto la P Q`), `lisProto_addr` (each
+address's `addrProto`, so a dialer dials any of them with `dial_au`), `listen_lis_au`,
+`accept_lis_au` and `accept_lis_shared_au`. `addrProto`'s listening token is in an invariant of its
+own or in that of a `lisProto` (`lisTokInv`), so `listen_au` works at an address a wildcard covers.
+What the semantics does not give: a wildcard takes every address with its port in the model, on every
+machine (Linux: only its machine's, `TestWildcardListen`), so two machines listening on the same port
+through wildcards cannot be told apart (their `lisUnset`s overlap); dsverify-lab's kits use a
+distinct port per node (`notes/dsverify-net-port-plan.md`, phase 0), so `lisProto` per port fits
+them. Telling machines apart would need the machine's addresses in the semantics (dsverify-lab's
+`nodeIp`), a trusted change.
+
 **What proofs add on top, as ghost state** (`wire/Stream.lean`, proved, not trusted): per direction,
 the writer's written bytes and the reader's read bytes, tied to the unread bytes by `dirInv`
 (`DirOk`: read ++ unread = written until a cut, a prefix after); `read_au` gives `sentLb` (what was

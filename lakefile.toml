@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvNet"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvNet", "Dsverify"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineD
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "1a0322fc663199081043d40d59794028ce4fa85a"
+rev = "70706ce5e5f5d93bde54153df3d3e3a256d8fbc5"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -128,6 +128,13 @@ globs = ["Net.+"]
 [[lean_lib]]
 name = "KvNet"
 globs = ["KvNet.+"]
+
+# The dsverify kits ported onto the net extension (notes/dsverify-net-port-plan.md, phase 6;
+# notes/dsv-paxos.md): each kit's Go (etc/goose.py's project dsv-<kit>) and proof, over the part
+# Net's `net` and remote, the main tree's lintest and porcupine. Nothing outside Dsverify imports it.
+[[lean_lib]]
+name = "Dsverify"
+globs = ["Dsverify.+"]
 
 # The Lean certification of the TCP conformance checker's witnesses
 # (examples/net/conform/check/README.md, "Certification in Lean"): replays a witness and the run's

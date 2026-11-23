@@ -2,7 +2,8 @@
 The package fact of `server/v3/storage/wal/walpb` (the part's translation): `ErrCRCMismatch`
 (record.go, `errors.New("walpb: crc mismatch")`, a translated initializer) holds for good an error whose
 `Error()` returns (`errOk`), which `Record.Validate`'s spec takes, and on which `errors.Is` returns for every
-pointer target (`errIsTerm`, an `*errorString` leaf; 2026-11-14, `wal-vsnap4`). WAL package init, 2026-11-13.
+pointer target (`errIsTerm`, an `*errorString` leaf; 2026-11-14, `wal-vsnap4`), its message in its field (`errors.New`'s
+`*errorString`, 2026-11-22: `WalDecEnvSupply`'s proof). WAL package init, 2026-11-13.
 -/
 module
 
@@ -30,11 +31,14 @@ variable [sem : go.Semantics]
 namespace EtcdGrove
 
 /-- `walpb`'s fact: `ErrCRCMismatch` holds an error whose `Error()` returns and on which `errors.Is` returns,
-read-only. -/
+read-only: an `*errorString` whose field holds `"walpb: crc mismatch"` (2026-11-22, so that it differs from
+`io.EOF`, `WalDecEnvSupply`). -/
 abbrev walpb.walpbInit : IProp GF :=
   iprop(∃ e : GoInterfaceOk,
     globalAddr go_etcd_io.etcd.server.v3.storage.wal.walpb.ErrCRCMismatch ↦□ GoInterface.ok e ∗
-    errOk e ∗ errIsTerm (GoInterface.ok e))
+    errOk e ∗ errIsTerm (GoInterface.ok e) ∗
+    ∃ x : Loc, ⌜e = ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩⌝ ∗
+      x.[errors.errorString, go!"s"] ↦□ go!"walpb: crc mismatch")
 
 end EtcdGrove
 

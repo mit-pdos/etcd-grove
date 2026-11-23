@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.apiserver.pkg.audit
 
 @[expose] public section
 
@@ -355,6 +356,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Sink_instance : Sink.TypeAssumptions
   Backend_instance : Backend.TypeAssumptions
   union_instance : union.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
 
 attribute [instance] Assumptions.key_instance
   Assumptions.AuditContext_instance
@@ -363,6 +366,8 @@ attribute [instance] Assumptions.key_instance
   Assumptions.Sink_instance
   Assumptions.Backend_instance
   Assumptions.union_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.«init.1_unfold»
 
 end k8s_io.apiserver.pkg.audit
 

@@ -45,6 +45,7 @@ public import Proof.path.filepath.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrIsTerm
 public import Proof.errors.ErrorStringOk
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

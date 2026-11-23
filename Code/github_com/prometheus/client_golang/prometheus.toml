@@ -1,5 +1,6 @@
-# Types and names only, but for the default registry (below): function and method bodies are
-# axiomatized (the metrics mvcc's transactions and key index update: Counter, Gauge).
+# Types and names only, but for the default registry and `gauge`'s methods and `ExponentialBuckets`
+# (below): the other function and method bodies are axiomatized (the metrics mvcc's transactions and
+# key index update: Counter, Gauge).
 #
 # (prom-registry, route (b), 2026-11-22: notes/prom-registry.md; Upamanyu's decision on
 # mit-pdos/etcd-grove#15) the default registry is client_golang v1.24.1's real code: registry.go's
@@ -14,14 +15,18 @@
 # Not translated (no verified code reaches them): `NewDesc`/`V2.NewDesc`/`Desc.String` (they would
 # import common/model, prometheus/internal and xxhash, whose package variables compile regexps:
 # their initializers would join the trust base), `Unregister`, `Gather`/`Collect`/`Describe`.
+# (prove-ps2-metrics, small-leaves-2) `gauge`'s methods and `ExponentialBuckets` (histogram.go:
+# panics on bad arguments, then a loop of float multiplications).
 translate = ["!*", "capMetricChan", "capDescChan", "defaultRegistry", "DefaultRegisterer",
   "DefaultGatherer", "NewRegistry", "Register", "MustRegister", "Registry.Register",
-  "Registry.MustRegister", "AlreadyRegisteredError.Error", "NewInvalidDesc", "Desc.Err"]
+  "Registry.MustRegister", "AlreadyRegisteredError.Error", "NewInvalidDesc", "Desc.Err",
+  "gauge.Set", "gauge.Add", "gauge.Sub", "gauge.Inc", "gauge.Dec", "ExponentialBuckets"]
 # `time` for `Opts`'s field `now func() time.Time`, so that `Opts` (`CounterOpts`) translates (a
 # composite literal of it can be stepped: etcd-refimpl's reference implementation); `sync` for
 # `Registry`'s `mtx sync.RWMutex`; `fmt` for `Register`'s `fmt.Errorf`; client_model's `dto` (names
-# only) for `Desc`'s field `constLabelPairs []*dto.LabelPair`.
-imports = ["!*", "time", "sync", "fmt", "github.com/prometheus/client_model/go"]
+# only) for `Desc`'s field `constLabelPairs []*dto.LabelPair` and the metrics' `labelPairs`; `math`,
+# `sync/atomic`, `errors` for `gauge`'s methods and `ExponentialBuckets`.
+imports = ["!*", "time", "sync", "fmt", "math", "sync/atomic", "errors", "github.com/prometheus/client_model/go"]
 
 # The package's `init()` (`init.0`: registry.go's, which registers the process and Go collectors) is
 # the one trusted declaration: TrustedCode/github_com/prometheus/client_golang/prometheus.lean

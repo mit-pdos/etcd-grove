@@ -39,7 +39,7 @@ theorem membership.errVar_cell (X msg : GoString)
   iintro #Hpkg
   ihave Hmi : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hmi with ⟨-, #Hev⟩
+  icases Hmi with ⟨-, #Hev, -⟩
   ihave #N := EtcdGrove.errorsNewVars_mem h $$ Hev
   iunfold EtcdGrove.errorsNewVar at N
   icases N with ⟨%x, #Hx, -⟩

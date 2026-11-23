@@ -8,6 +8,8 @@
 # `Patch`, `Prerelease`, `compareSegment`, `comparePrerelease`, `comparePrePart`), over the specs
 # of `strings.Split` and `strconv.ParseUint`. `String` stays the trust boundary: its
 # `fmt.Fprintf` into a `bytes.Buffer` has no model in Perennial.
+# (prove-ps2-version, 2026-11-23) `LessThan`'s proof reverted to the trust boundary (its caller
+# `ClusterVersionSet` has no ownership of the cluster's `Version()`); `Compare` and below stay proved.
 translate = ["!*", "New", "Version.Major", "Version.Minor", "MustParse", "Version.LessThan",
   "Version.Compare", "Version.Patch", "Version.Prerelease", "compareSegment", "comparePrerelease",
   "comparePrePart"]
@@ -15,6 +17,9 @@ translate = ["!*", "New", "Version.Major", "Version.Minor", "MustParse", "Versio
 imports = ["!*", "strings", "strconv"]
 
 # translate the definitions of all type declarations goose supports
+# (etcd-grove#32, 2026-11-22) the `init` functions trusted: a model that does nothing
+# (TrustedCode/github_com/Masterminds/semver/v3.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0", "init.1"]
 translate_types = true
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---

@@ -1,28 +1,19 @@
 # prometheus's default registry, route (b): the final trusted diff (for Upamanyu's sign-off, #15)
 
-Branch `prom-registry` (notes/prom-registry.md, "Route (b)"). **Status: final** (step 2, milestone 3, 2026-11-22:
-the full build passes (manifest-1a03); `etc/tcb-report.py --check --update`, commit after `b956ee3ffd`). Parts 1-2 are as of step 1 (commit `8168da033b`); parts 3-5 are step 2's (milestones 2
-and 3). Nothing lands before sign-off.
+Branch `prom-registry` (notes/prom-registry.md, "Route (b)"). **Status: final** (2026-11-23, on `lean` at `82847d941b` with net-swap
+landed, Perennial `70706ce5e`: the full build passes; `etc/tcb-report.py --check --update`). Parts 1-2 are as of
+step 1 (commit `8168da033b`), but point 1, which `lean` has since settled; parts 3-5 are step 2's. Nothing lands
+before sign-off.
 
 ## 1. Points for the sign-off
 
-1. **New package-init axioms from `dto`.** `Desc` is translated as a struct, and its field
-   `constLabelPairs []*dto.LabelPair` needs client_model's `go` package (`dto`). So prometheus now imports `dto`,
-   which is translated types and names only (`Code/github_com/prometheus/client_model/go.toml`, no bodies, no
-   imports). prometheus's initializer therefore runs `dto`'s, and the generated
-   `Proof/github_com/prometheus/client_model/go/Init.lean` has the usual two trust-boundary axioms of a names-only
-   protobuf package:
-   - `github_com.prometheus.client_model.go.opaqueInitsOk`: its untranslated variable initializers
-     (`MetricType_name`, `MetricType_value`, the file descriptor's variables) return without panicking;
-   - `github_com.prometheus.client_model.go.initFuncsOk`: its `init()` (`file_..._metrics_proto_init()`, the
-     protobuf type builder) returns.
-
-   Both are true of the Go program: real prometheus imports `dto`, so Go runs these too. They are new entries in
-   the trust base, the price of reading `Desc`'s fields. Alternatives:
-   - trusted no-op models, as `proto`'s initializers have (`TrustedCode/google_golang_org/protobuf/proto.lean`).
-     These would be more trusted code, against "init() the only trusted code";
-   - leaving `Desc` opaque. That is not possible: `Register` reads `desc.id`, `desc.fqName`, `desc.dimHash` and
-     `desc.err`.
+1. **`dto`'s initializer: settled on `lean`, no new axiom.** `Desc` is translated as a struct, and its field
+   `constLabelPairs []*dto.LabelPair` needs client_model's `go` package (`dto`), so prometheus imports `dto` and
+   its initializer runs `dto`'s. When step 1 was written, that added `dto`'s `opaqueInitsOk` and `initFuncsOk` to
+   the trust base. Since then `lean` imports `dto` itself (prove-ps2-metrics: the metrics' `labelPairs`) and has
+   made its variables goose `[[skip]]` entries and its `init()` a trusted no-op model
+   (`TrustedCode/github_com/prometheus/client_model/go.lean`, prove-ps2-cminit, etcd-grove#32's pattern), so
+   neither axiom exists. This branch takes `lean`'s `dto` unchanged.
 2. **`NewDesc` is not translated.** desc.go's `NewDesc`, `V2.NewDesc`, `Desc.String` and `WithUnit` stay names
    only. Translated are `Desc` (the struct), `NewInvalidDesc` and `Desc.Err`. Translating the others would mean
    importing prometheus/common's `model`, prometheus's `internal` and cespare's `xxhash`. Their package variables
@@ -224,18 +215,14 @@ Removed:
   (milestone 3). With them the definitions `prometheus.namesUnclaimed`, `prometheus.namesFree`,
   `prometheus.descIdsDistinct` and `read.readRegPerm` are deleted.
 
-Added:
-- client_model `dto`'s `opaqueInitsOk` and `initFuncsOk` (point 1; step 1).
+Added: none. (Step 1 added client_model `dto`'s `opaqueInitsOk` and `initFuncsOk`; `lean` has since retired
+both for its own `dto` import, point 1.)
 
-`etc/tcb-report.py` (global baseline, 2026-11-23, against `lean`'s `aa1eb4da33` baseline) confirms, of these: gone
-`prometheus.nameFree`, `prometheus.nameUnclaimed`, `prometheus.collectorName`, `prometheus.MustRegister.wp_proof`,
-`prometheus.Register.wp_proof`, prometheus's `initFuncsOk`; new `client_model.go.initFuncsOk` and
-`client_model.go.opaqueInitsOk`. (The same diff of the baseline also has net-swap's changes, not this branch's:
-`addrClaim` new; `addrUnclaimed`, `netAddrFree`, `netListenerAt`, `net.Listen.wp_proof`, `net.opaqueInitsOk`
-gone; and 23 axioms no remaining root reaches since net-swap retired `etcd_safe`/`k8s_safe`/leaseexpiryN's,
-among them `prometheus.NewCounterVec/NewGaugeVec/NewHistogramVec.wp_proof`, which stay axioms in the source.)
-Collection `mvccfull`: the six prometheus changes above, plus net-swap's (`addrUnclaimed`, `httpProtoFree`,
-`netAddrFree`, `net.opaqueInitsOk` gone); `v3rpc`: `prometheus.Register.wp_proof` gone.
+`etc/tcb-report.py --check` against `lean`'s own baseline at `82847d941b` (net-swap landed), 2026-11-23: exactly
+six axioms gone, none new: `prometheus.nameFree`, `prometheus.nameUnclaimed`, `prometheus.collectorName`,
+`prometheus.MustRegister.wp_proof`, `prometheus.Register.wp_proof`, prometheus's `initFuncsOk` (baseline 366 to 360
+entries). Collection `mvccfull`: the same, but `Register.wp_proof`, which it does not reach; `v3rpc`:
+`prometheus.Register.wp_proof` gone. The other 49 collections unchanged.
 
 Changed:
 - `goose_adequacy_start` (part 4);
@@ -249,8 +236,9 @@ Changed:
 
 ## 4. `Proof/runtime/Start.lean`: removal only
 
-net-swap (etcd-dist D2, branch `net-swap`, merged here before it is on `lean`) removed the address part; this
-branch removes the names part. Nothing is added to the statements (the file header gains a sentence saying the
+net-swap (etcd-dist D2, landed on `lean`) removed the address part; this branch removes the names part. (A
+separate branch, `single-process-restore`, restores the address part (`addrClaim`/`httpProtoFree` only): an
+independent hunk, merged by whichever lands second.) Nothing is added to the statements (the file header gains a sentence saying the
 names part is gone). Removed by this branch:
 - `prometheus.nameFree n` from `startRights` (which becomes `startRights Ds`);
 - `goose_adequacy_start`'s `Ns`, `hNs` and `hNsFree`, and `goose_adequacy_start_all`'s `hNsIds` (and its `Ns`,
@@ -263,20 +251,18 @@ packages register (`prometheus.regKeys_alloc`, `Proof/runtime/PkgInitRes.lean`, 
 and makes its name the run's `PromRegGS`. The registry's invariant, built by that run's prometheus initializer,
 owns every registered ID's element.
 
-**Before** (`lean` at `aa1eb4da33`, both parts):
+**Before** (`lean` at `82847d941b`, net-swap landed: only the names part is left):
 
 ```lean
-def startRights {GF : BundledGFunctors} [GooseExts] (Ns As Ds : List GoString) : IProp GF :=
-  iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] a ∈ As, netAddrFree a) ∗
-    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
+def startRights {GF : BundledGFunctors} [GooseExts] (Ns Ds : List GoString) : IProp GF :=
+  iprop(([∗list] n ∈ Ns, prometheus.nameFree n) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
     envVerifyOff)
 
 axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
-    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
-    (hAsLit : ∀ a ∈ As, netAddrLit a = true)
-    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
+    (Ns Ds : List GoString) (hNs : Ns.Nodup) (hDs : Ds.Nodup)
+    (hNsFree : prometheus.namesUnclaimed e Ns)
     (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
     (Hwp : ∀ [hG : HeapGS .hasLC GF],
       receiptBound GF = N →
@@ -284,7 +270,7 @@ axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
       hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
       ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
         extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns Ds ={⊤}=∗
         WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -301,8 +287,11 @@ theorem goose_adequacy_start_all ... -- the same binders, but
 axiom prometheus.nameUnclaimed [GooseExts] (e : Expr) (n : GoString) : Prop
 def prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop :=
   ∀ n ∈ Ns, prometheus.nameUnclaimed e n
--- (InvNet.lean, net-swap's part) axiom addrUnclaimed, def addrsUnclaimed
 ```
+
+(Before net-swap, `lean` at `aa1eb4da33`, `startRights` was `(Ns As Ds)` with `netAddrFree a` and
+`httpProtoFree a` for each address, and the axiom also took `As`, `hAs`, `hAsLit` and `hAsFree : addrsUnclaimed e
+As`: net-swap's part.)
 
 **After** (this branch):
 

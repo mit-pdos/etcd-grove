@@ -247,9 +247,6 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringNotWriter",
     # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
     "EtcdGrove.MutexLitSemantics",
-    # (client-go's work queue) `float64(n)` of an untyped integer constant
-    # (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`)
-    "EtcdGrove.UntypedIntToFloat64Semantics",
     # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
     # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
     "_root_.Perennial.net.FieldAssumptions",
@@ -686,6 +683,9 @@ EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
                               "Perennial.Proof.crypto.rand.Link", "Perennial.Proof.math.big.Link",
                               # (prove-ps2-succ, 2026-11-22) `v2stats.FollowerStats.Succ`'s `math.Sqrt`
                               "Perennial.Proof.math.Link",
+                              # (2026-11-23) `path.Split`/`Base`'s `bytealg.LastIndexByteString`,
+                              # Perennial's since its pin 940c686dd (until then translated here)
+                              "Perennial.Proof.internal.bytealg.Link",
                               "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
                               # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
                               # axiom, net/http's errors not `errMemberRemoved`

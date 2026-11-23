@@ -33,6 +33,7 @@ public import Proof.go_uber_org.zap.Init
 public import Proof.errors.NewVarCell
 public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.errors.NewVar
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
 public import Proof.go_etcd_io.raft.v3.Base
 public import Perennial.Proof.sync
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.CapPool
 public import Perennial.Proof.context.Base
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.wait
 public import Perennial.Proof.time
@@ -690,11 +691,13 @@ instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgIni
 end go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm
 
 -- `etcdserver/api` (names only: `UpdateCapability`, passed as a value; the `Cluster` interface type,
--- whose methods name `types`, `membership` and `semver`: after their instances)
+-- whose methods name `types`, `membership` and `semver`: after their instances). (prove-ps2-cap,
+-- 2026-11-23) Its fact is `capInit` (`api/CapPool.lean`): `enableMapMu`'s guard and reader slots,
+-- pooled, for `IsCapabilityEnabled` (translated with its body); until then `True`.
 namespace go_etcd_io.etcd.server.v3.etcdserver.api
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init capInit
 instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api :=
   build_get_is_pkg_init_wf
 

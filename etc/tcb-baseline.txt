@@ -10,19 +10,9 @@ axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom Perennial.encoding.json.initFuncsOk
-axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
-axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
-axiom Perennial.github_com.prometheus.client_model.go.initFuncsOk
-axiom Perennial.github_com.prometheus.client_model.go.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
-axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -40,7 +30,6 @@ axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrClaim
-axiom api.IsCapabilityEnabled.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
@@ -64,7 +53,6 @@ axiom bridge.bridgeAt
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom cache.wp_Errorf_setArgs
-axiom ccDecodeV2_nil
 axiom cmp.Diff.wp_proof_eventRefs
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -83,10 +71,8 @@ axiom encoding.json.MarshalConfigChangeContext.wp_proof
 axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
@@ -189,11 +175,9 @@ axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
-axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom membership.setIsLearnerMetric.wp_proof
 axiom meta.SetList.wp_proof_objList
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
@@ -207,7 +191,6 @@ axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
-axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom os.Getenv.wp_proof
@@ -257,7 +240,6 @@ axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
@@ -323,6 +305,7 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
+axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom slices.Clone.wp_proof
@@ -345,6 +328,7 @@ axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
+axiom time.Time.Format.wp_proofBroken
 axiom trace.Trace.LogIfLong.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof

@@ -80,10 +80,17 @@ REVIEWED_INIT = {
     'Proof/go_etcd_io/etcd/cache/v3/InitLinked.lean': 'format without %; its Errorf step is EtcdGrove.fmt.wp_Errorf',
     # (#23, 2026-11-22) api/meta's `errNotList`/`errNotObject` (`fmt.Errorf` of constants without `%`)
     'Proof/k8s_io/apimachinery/pkg/api/meta/Init.lean': 'formats without %: Go returns errors.New(format); fmt.wp_Errorf',
+    # (dsv-rabia, 2026-11-23) gogo-generated `ErrInvalidLengthMessage`/`ErrIntOverflowMessage`/
+    # `ErrUnexpectedEndOfGroupMessage = fmt.Errorf("proto: ...")` (constants without `%`); its
+    # `var _ = fmt.Errorf` is a function value, not a call
+    'Dsverify/Proof/rabia/internal/message/Init.lean': 'formats without %: Go returns errors.New(format); fmt.wp_Errorf',
 }
 
 
-INIT_CALL = re.compile(r'FuncResolve _root_\.Perennial\.fmt\.Errorf\b')
+# a call: `(App (App (App (Val (GoInstruction (FuncResolve ... fmt.Errorf []))) ...` (format, args);
+# not the bare function value `(App (Val (GoInstruction (FuncResolve ... fmt.Errorf []))) (Val #()))`,
+# which `var _ = fmt.Errorf` (gogo-generated code) translates to and which calls nothing (2026-11-23)
+INIT_CALL = re.compile(r'\(App \(App \(App \(Val \(GoInstruction \(FuncResolve _root_\.Perennial\.fmt\.Errorf\b')
 # `(Let "$a0" (Val #(go!"<format>")) (Let "$a1" ...) (App ... (FuncResolve ... fmt.Errorf [])))`
 INIT_FMT = re.compile(r'\(Let "\$a0" \(Val #\(go!"((?:[^"\\]|\\.)*)"\)\)\s*\(Let "\$a1" [^\n]*\n\s*'
                       r'\(App \(App \(App \(Val \(GoInstruction \(FuncResolve _root_\.Perennial\.fmt\.Errorf\b')

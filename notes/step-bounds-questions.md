@@ -25,14 +25,19 @@ draft works, please proceed, do not wait for me." The first put proved with its 
 if it works, Draft, Review and Prove go on without a stop. A trust-base growth (a new axiom) would
 still stop.
 
-## Q2 (trusted text: a false axiom weakened) — 2026-11-22, decided by the agent, pending the user
+## Q2 (trusted text: a false axiom weakened) — 2026-11-22, approved by the user (applied before step 3)
 
 `storage.OpenBackend.wp_proof` gives `backend.New`'s post without `New`'s receipt-bound premise, so it
 is false at a receipt bound above `2 ^ 62` (since 2026-11-17) and, after step 2, above `2 ^ 60`
 (ledger 2026-11-22). The fix: its spec takes `[ReceiptBoundLe GF (2 ^ 60)]` (and so does
 `OpenSnapshotBackend`'s). This only weakens the axiom; no closed theorem changes (they fix
-`receiptBound ≤ 2 ^ 48`). **Deferred, not in step 2**: its caller, the server's `applySnapshot` walk
-(`SnapApplyWalk.lean:338`), has no receipt bound in scope, so the fix threads one into the server's
-proof (from `isServerM`, beside its thread bound, or a premise of `applySnapshot`'s spec), outside
-step 2's backend-internal scope. Proposed as a follow-up of #30. Until then the axiom stays false
-above `2 ^ 60` (it was above `2 ^ 62` before step 2), where no closed theorem reaches.
+`receiptBound ≤ 2 ^ 48`). **Deferred from step 2, then applied** at the user's request (2026-11-22: "Please do that before step
+3"), branch `openbackend-receipt`: the server's `srvSnapRO` and `applySnapshot` carry
+`receiptBound ≤ 2 ^ 60` (in place of `wbInit - 6`, which it implies), and the walk passes it to
+`OpenSnapshotBackend`.
+## Q3 (step 3's Scope) — 2026-11-22, decided by the user: B (defer)
+
+Step 3 (`K` receipts per request id) is deferred until the `net` swap has landed and
+`etcd_dist_safe` is proved: the statements it would raise (`etcd_safe`, `k8s_safe`, leaseexpiryN's)
+retire at the swap, and its proof work is in request-path files proving session 2 is changing
+(`notes/step-bounds-plan.md`, step 3's Scope). Meanwhile: the `mvcc*` follow-up and `bboltfs` (1b).

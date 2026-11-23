@@ -18,10 +18,9 @@ WALs' and those given back), each WAL directory's on its non-pipeline names (`wa
 names to `walTmpsRes`), each WAL name's own (`.only [nm]`); `walAreaRes` the area claim's other half and
 the whole claims of every directory under an `nm.<sfx>`, tagged with it (`bootCls`).
 
-Premises beyond the first boot's (`walBoot0`): **`hfo : BootFo V.now jr`** (every WAL directory and every
-`nm.tmp` directory holds only files, no `nm.tmp` is a file: true of the Go code, not derivable from the WAL
-invariant as it stands; ledger 2026-11-14, "`hfo` not derivable"; the client's crash invariant must carry
-it until `walFoRes` lands), and the facts `walInv_crash` returns (`hwf`, `har`, `hbd`, `hdr`).
+Premises beyond the first boot's (`walBoot0`): **`hfo : BootFo V.now jr`** (every WAL directory holds only
+files: `walInv_crash` gives it, `bootFo_of`; its `nm.tmp` parts retired 2026-11-22), and the facts
+`walInv_crash` returns (`hwf`, `har`, `hbd`, `hdr`).
 -/
 module
 
@@ -245,38 +244,6 @@ theorem bootAreaCl_not {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {
   · exact (hst.2.2.2.2.2 dir lay hl).1 hj.symm
   · unfold bootAreaCl bootN at hN; cases hN
 
-/-- The tagged temporary directories (`walAreaRes`'s `tmpClTouch`). -/
-def IsTmpN (a : GoString) : Prop := ∃ nm, walNameOk nm ∧ a = tmpName nm
-
-open Classical in
-/-- The directories under a WAL name's `nm.tmp` (under `BootFo`, the directory itself). -/
-def bootTmps (m : Tree) (jr : Ino) : List (GoString × Ino) :=
-  (bootSubs m jr).filter (fun aj => decide (IsTmpN aj.1))
-
-open Classical in
-theorem bootTmps_entry {m : Tree} {jr : Ino} (hfo : BootFo m jr) {aj : GoString × Ino}
-    (h : aj ∈ bootTmps m jr) : m.entry jr aj.1 = some (.dir aj.2) := by
-  obtain ⟨hs, ht⟩ := List.mem_filter.1 h
-  obtain ⟨nm, hnm, ha⟩ := of_decide_eq_true ht
-  obtain ⟨a, j⟩ := aj
-  obtain ⟨-, J, he, hd, -⟩ := mem_bootSubs.1 hs
-  simp only at ha ⊢
-  subst ha
-  rw [tDesc_filesOnly (hfo.1 nm J hnm (.inr he)) hd]
-  exact he
-
-open Classical in
-theorem bootTmps_keys {m : Tree} {jr : Ino} (hfo : BootFo m jr) :
-    ((bootTmps m jr).map (·.1)).Nodup :=
-  List.Nodup.mapOnW ((bootSubs_nodup m jr).filter _) (fun x hx y hy e => by
-    have h1 := bootTmps_entry hfo hx
-    have h2 := bootTmps_entry hfo hy
-    rw [e, h2] at h1
-    obtain ⟨a, j⟩ := x
-    obtain ⟨a', j'⟩ := y
-    simp only at e h1
-    cases h1; rw [e])
-
 end pure
 
 
@@ -318,12 +285,11 @@ theorem bigSepL_fupd_wand [L : GooseLocalGS GF] {A : Type} (P : IProp GF) [Persi
     iapply BigSepL.bigSepL_cons.2
     iframe Hx Hr
 
-/-- **The crash boot's files, by directory**: the WALs' and the temporary directories'. -/
-theorem bootFiles_split (L : GooseLocalGS GF) (R : Roots) (m : Tree) (jr : Ino) (hfo : BootFo m jr) :
+/-- **The crash boot's files, by directory**: the WALs' (the temporary directories' probes dropped:
+`walAreaRes` holds no file since 2026-11-22). -/
+theorem bootFiles_split (L : GooseLocalGS GF) (R : Roots) (m : Tree) (jr : Ino) :
     ([∗list] i ∈ bootFiles m jr, trFile (hG := ⟨G, L⟩) i False) ⊢
-      ([∗list] p ∈ bootWals m jr, [∗list] i ∈ dirBootFiles m p.1 p.2, trFile (hG := ⟨G, L⟩) i False) ∗
-      ([∗list] aj ∈ bootTmps m jr,
-        [∗list] i ∈ dirBootFiles m aj.1 aj.2, trFile (hG := ⟨G, L⟩) i False) := by
+      ([∗list] p ∈ bootWals m jr, [∗list] i ∈ dirBootFiles m p.1 p.2, trFile (hG := ⟨G, L⟩) i False) := by
   classical
   let F : GoString → Node → IProp GF := fun a n => iprop([∗list] i ∈ (match n with
     | .dir J => dirBootFiles m a J
@@ -334,16 +300,11 @@ theorem bootFiles_split (L : GooseLocalGS GF) (R : Roots) (m : Tree) (jr : Ino) 
     rw [BigSepL.bigSepL_flatMap]
     rfl
   rw [e]
-  refine ((BigSepL.bigSepL_mono (Ψ := fun _ an => iprop((if walNameOk an.1 then F an.1 an.2 else emp) ∗
-      (if IsTmpN an.1 then F an.1 an.2 else emp))) (fun {k an} _ => ?_)).trans
-      BigSepL.bigSepL_sep_eqv.1).trans (sep_mono ?_ ?_)
+  refine (BigSepL.bigSepL_mono (Ψ := fun _ an => iprop(if walNameOk an.1 then F an.1 an.2 else emp))
+      (fun {k an} _ => ?_)).trans ?_
   · by_cases hw : walNameOk an.1
-    · rw [if_pos hw, if_neg (fun ⟨nm, _, ha⟩ => tmpName_not_walName' nm (ha ▸ hw))]
-      exact sep_emp.2
-    · rw [if_neg hw]
-      by_cases ht : IsTmpN an.1
-      · rw [if_pos ht]; exact emp_sep.2
-      · rw [if_neg ht]; exact Affine.affine.trans emp_sep.2
+    · rw [if_pos hw]
+    · rw [if_neg hw]; exact Affine.affine
   · refine (bigSepM_sub_list (entsOf m jr) (fun a n => if walNameOk a then F a n else emp)
       (bootWals m jr) Prod.fst (fun p => .dir p.2) (bootWn_nodup m jr) (fun p hp => by
         rw [entsOf_lookup]; exact (mem_bootWals.1 hp).2)).trans (BigSepL.bigSepL_mono
@@ -351,42 +312,6 @@ theorem bootFiles_split (L : GooseLocalGS GF) (R : Roots) (m : Tree) (jr : Ino) 
     have hp := List.mem_of_getElem? hk
     show (if walNameOk p.1 then F p.1 (.dir p.2) else emp) ⊢ _
     rw [if_pos (mem_bootWals.1 hp).1]
-  · refine (bigSepM_sub_list (entsOf m jr) (fun a n => if IsTmpN a then F a n else emp)
-      (bootTmps m jr) Prod.fst (fun aj => .dir aj.2) (bootTmps_keys hfo) (fun aj haj => by
-        rw [entsOf_lookup]; exact bootTmps_entry hfo haj)).trans (BigSepL.bigSepL_mono
-        (fun {k aj} hk => ?_))
-    have haj := List.mem_of_getElem? hk
-    show (if IsTmpN aj.1 then F aj.1 (.dir aj.2) else emp) ⊢ _
-    rw [if_pos (of_decide_eq_true (List.mem_filter.1 haj).2)]
-
-/-- **`walAreaRes`'s probe files** (`tmpClTouch`), from the temporary directories' `.touch`s. -/
-theorem bootCls_touch (L : GooseLocalGS GF) (V : Hist) (jr : Ino) :
-    ([∗list] aj ∈ bootTmps V.now jr, tmpEnt (hG := ⟨G, L⟩) (entsOf V.now aj.2 !! go!".touch")) ⊢
-      [∗list] c ∈ bootCls V jr, tmpClTouch (L := L) c := by
-  classical
-  unfold bootCls
-  rw [BigSepL.bigSepL_map]
-  refine Entails.trans ?_ (BigSepL.bigSepL_perm (List.filter_append_perm
-    (fun aj => decide (IsTmpN aj.1)) (bootSubs V.now jr))).1
-  refine Entails.trans ?_ BigSepL.bigSepL_append.2
-  refine (sep_emp.2).trans (sep_mono (BigSepL.bigSepL_mono (fun {k aj} _ => ?_)) ?_)
-  · unfold tmpClTouch
-    iintro H %_
-    have e : (namesOf V aj.2 (.except [])).cur !! go!".touch" = entsOf V.now aj.2 !! go!".touch" := by
-      show restrictN _ (entsOf V.now aj.2) !! _ = _
-      rw [restrictN_except_nil]
-    simp only
-    rw [e]
-    iexact H
-  · refine (BigSepL.bigSepL_emp (l := (bootSubs V.now jr).filter
-      (fun aj => !decide (IsTmpN aj.1)))).2.trans (BigSepL.bigSepL_mono (fun {k aj} hk => ?_))
-    have h := List.mem_filter.1 (List.mem_of_getElem? hk)
-    unfold tmpClTouch
-    iintro - %hc
-    exfalso
-    simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not] at h
-    exact h.2 hc.1
-
 
 /-- **The crash boot of the WAL area `r`** (the root directory `jr`), at the new generation's shared
 mode's switch (`V` the crashed history, nothing logged), from `walInv_crash`'s outputs: the WAL's area
@@ -420,30 +345,19 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   icases BigSepL.bigSepL_append.1 $$ Ht with ⟨Hw, Hs⟩
   rw [BigSepL.bigSepL_map, BigSepL.bigSepL_map]
   -- the files
-  ihave Hfiles := bootFiles_split L R V.now jr hfo $$ Hfiles
-  icases Hfiles with ⟨Hwf, Htf⟩
+  ihave Hwf := bootFiles_split L R V.now jr $$ Hfiles
   -- each WAL directory
   imod bigSepL_fupd_wand (L := L) (osSharedInv (L := L) R)
     (fun p => osNames (L := L) p.2 (.except []) (DFrac.own 1) (namesOf V p.2 (.except [])))
     (fun p => iprop([∗list] i ∈ dirBootFiles V.now p.1 p.2, trFile (hG := ⟨G, L⟩) i False))
     (fun p => iprop(osNames (L := L) p.2 (.except walTmps) (DFrac.own 1) (namesOf V p.2 (.except walTmps)) ∗
-      walTmpsRes (hG := ⟨G, L⟩) p.2 ∗
+      (walTmpsRes (hG := ⟨G, L⟩) p.2 ∗ walTmpsHalf (hG := ⟨G, L⟩) p.2) ∗
       walOthers (L := L) [] p.2 (restrictN (.except walTmps) (entsOf V.now p.2))))
     E (bootWals V.now jr) (fun p hp => by
       obtain ⟨hnm, he⟩ := mem_bootWals.1 hp
-      exact walDir_boot L R V p.2 p.1 hnm (hfo.1 _ _ hnm (.inl he)) E hE) $$ Hsh Hw Hwf with Hw
+      exact walDir_boot L R V hV p.2 p.1 hnm (hfo _ _ hnm he) E hE) $$ Hsh Hw Hwf with Hw
   icases BigSepL.bigSepL_sep_eqv.1 $$ Hw with ⟨Hwc, Hw⟩
   icases BigSepL.bigSepL_sep_eqv.1 $$ Hw with ⟨Hwt, Hwo⟩
-  -- each temporary directory's probe
-  ihave Htf := (BigSepL.bigSepL_mono (Ψ := fun _ aj =>
-      tmpEnt (hG := ⟨G, L⟩) (entsOf V.now aj.2 !! go!".touch")) (fun {k aj} hk => by
-    have haj := List.mem_of_getElem? hk
-    obtain ⟨nm, hnm, ha⟩ := of_decide_eq_true (List.mem_filter.1 haj).2
-    have he := bootTmps_entry hfo haj
-    rw [ha]
-    rw [ha] at he
-    exact tmpDirFiles L V.now aj.2 nm hnm (hfo.1 nm aj.2 hnm (.inr he)))) $$ Htf
-  ihave Htf := bootCls_touch L V jr $$ Htf
   -- the area's claim: the names given back, the WALs' names, the rest
   imod osNames_split R jr (.except []) (bootOthers V.now jr) _ hE $$ Hsh Hjr with ⟨Hoth, Har⟩
   rw [namesOf_restrict V jr (.except []) ((NameSet.except []).inter (bootOthers V.now jr))
@@ -464,7 +378,8 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (fun nm J h he => ⟨_, bootCl_dirs h he⟩) (bootCl_dirs1 hwf hr) hWR
     (dirsOk_roots hR hdr _ 0) (dirsAvoid_roots hR hdr jr) (bootJm V jr r)
     (fun dir nm J hin he => bootJm_lookup dir nm J hin he) (fun nm J h he => ⟨_, bootCl_names h he⟩)
-    (bootCl_nok hwf) hbd hdr 1 E $$ Hst [Har Hwc Hnc] [Hwt] Hsp [Hwo]
+    (bootCl_nok hwf) hbd hdr
+    (fun nm J h he b J' _ hd => by obtain ⟨i, hi⟩ := hfo nm J h he b _ hd; cases hi) 1 E $$ Hst [Har Hwc Hnc] [Hwt] Hsp [Hwo]
     with ⟨#Hinv, %Ls, %hLs, Hnw, %hnc, Hcl⟩
   · unfold osClaims bootCl
     rw [List.map_cons, List.map_append]
@@ -538,16 +453,15 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       exact .inr ((hnc nm).2 (bootWals_lay hLs hJ))
   isplitr
   · ipureintro; exact fun nm sfx h => bootN_sfx nm sfx h
-  isplitl [Htf Hs]
+  isplitl [Hs]
   · unfold areaCls
-    iframe Htf
     unfold osClaims bootCls
     rw [List.map_map, BigSepL.bigSepL_map]
     dsimp only [Function.comp]
     iexact Hs
   isplitr
   · ipureintro; exact fun b hb hnw _ => bootCls_subCover hwf hr b hb hnw
-  · ipureintro; exact fun nm h => bootCls_tmpOk hfo nm h
+  · ipureintro; exact fun nm _ => bootCls_ranked hwf jr (tmpName nm)
 
 end boot
 

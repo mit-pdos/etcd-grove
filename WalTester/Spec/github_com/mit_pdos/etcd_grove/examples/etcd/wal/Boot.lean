@@ -41,7 +41,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- See the file header. -/
 abbrev Boot.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (o : TOracle) (od : Option WalDur) (seed nOps : w64),
-  e.orFile.Ok → tWalPathsOk e.area → (e.area, e.jr) ∈ e.R →
+  e.orFile.Ok → tWalPathsOk e.area → (e.area, e.jr) ∈ e.R → tWalFsOk e.area →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       TRun W e γ o od }}
     (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.wal.Boot)) (Val #e.area))

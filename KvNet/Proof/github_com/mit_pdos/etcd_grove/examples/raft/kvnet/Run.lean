@@ -11,6 +11,7 @@ public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.list
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__serve
 public import KvNet.Spec.net.Listener__Accept
 public import Perennial.Proof.time.Link
+public import KvNet.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -59,7 +60,7 @@ theorem Run.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF)
     IProp GF) $$ [Hlis]
   · iexact Hlis
   wp_for HI
-  wp_apply wp_Accept t l xl a
+  wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l xl a
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
         connEnd cn true (kvQ F cfg.ID') (kvP F cfg.ID') [] [] ∗ connFresh cn true)) $$ [Hlis]

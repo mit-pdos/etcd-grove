@@ -1,7 +1,7 @@
 /-
-The package-initialization instance of client_model's `go` package (`dto`, the protobuf messages of
-prometheus's metrics): fact `True` (types and names only, no import; prom-registry, route (b),
-2026-11-22: imported by prometheus for `Desc`'s field type).
+The package-initialization instance of `github.com/prometheus/client_model/go`'s names-only translation: fact `True`
+(prove-ps2-metrics, 2026-11-22: the package of the type of a prometheus metric's field, imported so
+that prometheus's `counter` and `gauge` translate as structs).
 -/
 module
 
@@ -29,7 +29,6 @@ namespace github_com.prometheus.client_model.go
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_model.go :=
   define_is_pkg_init iprop(True)
-
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.prometheus.client_model.go :=
   build_get_is_pkg_init_wf
 

@@ -2,7 +2,7 @@
 `c.ReadResponseHeader(r)` on the model's client codec `c` (`codec.go`), whose `rwc` holds the end
 `s` of the connection `cn` (kept, `↦□`): `readFrame` of the next frame (through the caller's reader
 predicate `P` and accessor, as `readFrame.spec`), its payload parsed as a response header. It
-returns `nil` when what it read is a frame of `respHdr seq sm e`, and then `r`'s `ServiceMethod`,
+returns `nil` when what it read is a frame of `respHdr seq sm e` (at most `maxFrameN` bytes), and then `r`'s `ServiceMethod`,
 `Seq`, `Error` are `sm`, `seq`, `e`; otherwise an error, `r` unchanged: `errFrame` (`ef`; a frame
 that is not a response header, or too long) or `readFrame`'s (`readErr`). Proved in
 `Net/Proof/net/rpc/clientCodec__ReadResponseHeader.lean`.
@@ -48,7 +48,8 @@ abbrev clientCodec.ReadResponseHeader.spec : Prop :=
       (Val #r))
   {{ (err : GoInterface), RET #err; ∃ got : List w8, P got ∗
       ((∃ (seq : w64) (sm e : GoString),
-          ⌜err = interface.nil ∧ got = frameOf (respHdr seq sm e)⌝ ∗
+          ⌜err = interface.nil ∧ got = frameOf (respHdr seq sm e) ∧
+            (respHdr seq sm e).length ≤ maxFrameN⌝ ∗
           r ↦ { rv with ServiceMethod' := sm, Seq' := seq, Error' := e }) ∨
         ⌜err ≠ interface.nil⌝ ∗ r ↦ rv ∗ (⌜err = ef⌝ ∨ readErr la ra eof ueof ed true got err)) }}
 

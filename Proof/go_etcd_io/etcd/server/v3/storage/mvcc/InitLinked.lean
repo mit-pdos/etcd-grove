@@ -36,6 +36,10 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Inc
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Dec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeFunc
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry__MustRegister
@@ -70,6 +74,7 @@ variable [_root_.Perennial.errors.Assumptions]
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 
 set_option maxHeartbeats 8000000 in
+set_option maxRecDepth 20000 in
 theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc get_is_pkg_init) :
     {{ EtcdGrove.ownInitResL get_is_pkg_init (EtcdGrove.regResL (GF := GF) regQs) }}
@@ -226,22 +231,52 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %ctxnCounter ⟨#CtxnCounter, #NtxnCounter⟩
   try wp_auto
   -- translated initializer of keysGauge))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %ckeysGauge ⟨#CkeysGauge, #DkeysGauge, #NkeysGauge⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %ckeysGauge ⟨#RkeysGauge, #NkeysGauge⟩
+  ihave #CkeysGauge : (EtcdGrove.prometheus.metric.gaugeSpec ckeysGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DkeysGauge : (EtcdGrove.prometheus.metric.gaugeSetSpec ckeysGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of watchStreamGauge))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwatchStreamGauge ⟨#CwatchStreamGauge, #DwatchStreamGauge, #NwatchStreamGauge⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwatchStreamGauge ⟨#RwatchStreamGauge, #NwatchStreamGauge⟩
+  ihave #CwatchStreamGauge : (EtcdGrove.prometheus.metric.gaugeSpec cwatchStreamGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DwatchStreamGauge : (EtcdGrove.prometheus.metric.gaugeSetSpec cwatchStreamGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of watcherGauge))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwatcherGauge ⟨#CwatcherGauge, #DwatcherGauge, #NwatcherGauge⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwatcherGauge ⟨#RwatcherGauge, #NwatcherGauge⟩
+  ihave #CwatcherGauge : (EtcdGrove.prometheus.metric.gaugeSpec cwatcherGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DwatcherGauge : (EtcdGrove.prometheus.metric.gaugeSetSpec cwatcherGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of slowWatcherGauge))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cslowWatcherGauge ⟨#CslowWatcherGauge, #DslowWatcherGauge, #NslowWatcherGauge⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cslowWatcherGauge ⟨#RslowWatcherGauge, #NslowWatcherGauge⟩
+  ihave #CslowWatcherGauge : (EtcdGrove.prometheus.metric.gaugeSpec cslowWatcherGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DslowWatcherGauge : (EtcdGrove.prometheus.metric.gaugeSetSpec cslowWatcherGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of totalEventsCounter))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %ctotalEventsCounter ⟨#CtotalEventsCounter, #NtotalEventsCounter⟩
   try wp_auto
   -- translated initializer of pendingEventsGauge))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cpendingEventsGauge ⟨#CpendingEventsGauge, #DpendingEventsGauge, #NpendingEventsGauge⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cpendingEventsGauge ⟨#RpendingEventsGauge, #NpendingEventsGauge⟩
+  ihave #CpendingEventsGauge : (EtcdGrove.prometheus.metric.gaugeSpec cpendingEventsGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DpendingEventsGauge : (EtcdGrove.prometheus.metric.gaugeSetSpec cpendingEventsGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of indexCompactionPauseMs))
   wp_apply EtcdGrove.prometheus.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %bindexCompactionPauseMs BindexCompactionPauseMs
@@ -259,7 +294,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewHistogram.wp_proof _ _ _ _ _ _ _ _ (by rfl) (EtcdGrove.prometheus.expBuckets_ok (by decide)) (by decide) $$ BdbCompactionTotalMs as %cdbCompactionTotalMs ⟨#CdbCompactionTotalMs, #NdbCompactionTotalMs⟩
   try wp_auto
   -- translated initializer of dbCompactionLast))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cdbCompactionLast ⟨#CdbCompactionLast, #DdbCompactionLast, #NdbCompactionLast⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cdbCompactionLast ⟨#RdbCompactionLast, #NdbCompactionLast⟩
+  ihave #CdbCompactionLast : (EtcdGrove.prometheus.metric.gaugeSpec cdbCompactionLast : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DdbCompactionLast : (EtcdGrove.prometheus.metric.gaugeSetSpec cdbCompactionLast : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of dbCompactionKeysCounter))
   wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cdbCompactionKeysCounter ⟨#CdbCompactionKeysCounter, #NdbCompactionKeysCounter⟩
@@ -300,7 +341,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.prometheus.NewGaugeFunc.wp_proof _ _ _ _ _ _ rfl as %ccompactRev #NcompactRev
   try wp_auto
   -- translated initializer of totalPutSizeGauge))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %ctotalPutSizeGauge ⟨#CtotalPutSizeGauge, #DtotalPutSizeGauge, #NtotalPutSizeGauge⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %ctotalPutSizeGauge ⟨#RtotalPutSizeGauge, #NtotalPutSizeGauge⟩
+  ihave #CtotalPutSizeGauge : (EtcdGrove.prometheus.metric.gaugeSpec ctotalPutSizeGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals first | iassumption | iPkgInit
+  ihave #DtotalPutSizeGauge : (EtcdGrove.prometheus.metric.gaugeSetSpec ctotalPutSizeGauge : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals first | iassumption | iPkgInit
   try wp_auto
   -- translated initializer of chanBufLen))
   -- translated initializer of maxWatchersPerSync))
@@ -611,6 +658,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HindexCompactionPauseMs
   ipersist HdbCompactionPauseMs
   ipersist HdbCompactionTotalMs
+  ipersist HtotalEventsCounter
   ipersist HdefaultCompactionBatchLimit
   ipersist HdefaultCompactionSleepInterval
   ipersist HchanBufLen

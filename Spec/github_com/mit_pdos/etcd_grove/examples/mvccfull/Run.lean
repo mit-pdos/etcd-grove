@@ -63,7 +63,7 @@ def runCfgOk (cfg : Config) (wr : List w64) : Prop :=
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=
-  ∀ (cfg : Config) (wr : List w64) [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)],
+  ∀ (cfg : Config) (wr : List w64) [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)],
   runCfgOk cfg wr → backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗
       mixOwn cfg.Mix' wr ∗ ([∗list] p ∈ filePathsM cfg, backend.fileHolds p ∅) ∗

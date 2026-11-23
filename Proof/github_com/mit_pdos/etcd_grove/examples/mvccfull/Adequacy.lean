@@ -40,9 +40,9 @@ the tester's lease checks compare the lessor's list against the model's without 
 * pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset) and the execution's
   length (prom-registry, route (b), 2026-11-22: no longer `namesUnclaimed` of `mvccfullMetricNames`:
   the proof allocates the registration rights of the packages' metric IDs itself, `mvccfull_regQsOk`)
-  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`;
+  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 48`;
   `mvccfull_adequate_below` takes the thread bound `T ≤ 2 ^ 28` along the execution instead, and
-  only `n + 1 ≤ 2 ^ 38`);
+  only `n + 1 ≤ 2 ^ 48`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccfull`'s, mvcc's, the server's,
   the cache's) and (S3e) the `os` structs' field facts; the file extension's steps restricted by
   `etcdSQ` (no file I/O error);
@@ -379,7 +379,7 @@ section adequacy
 variable [go_gctx : GoGlobalContext]
 
 /-- **`mvccfull_adequate` along executions with fewer than `T ≤ 2 ^ 28` live threads**: the
-same conclusion for every execution of `n` steps, `n + 1 ≤ 2 ^ 38` (the receipt bound the proof
+same conclusion for every execution of `n` steps, `n + 1 ≤ 2 ^ 48` (the receipt bound the proof
 needs), along which fewer than `T` threads are ever live at once (`RealNstepsBelow`): the thread
 bound is a premise on the execution, not a consequence of its length (`goose_adequacy_start`). -/
 theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
@@ -399,7 +399,7 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (T : Nat) (HT28 : T ≤ 2 ^ 28)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow T n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 1 ≤ 2 ^ 38) :
+    (Hn : n + 1 ≤ 2 ^ 48) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
@@ -416,7 +416,7 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   unfold IsInit at Hinit
   rw [Hinit]
   haveI : ThreadBoundLe mvccfullGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
-  haveI : ReceiptBoundLe mvccfullGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
+  haveI : ReceiptBoundLe mvccfullGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
   icases Hrights with ⟨-, #Hvoff⟩

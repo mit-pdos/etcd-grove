@@ -98,12 +98,14 @@ def namespace():
     prefix of the namespaces the `Link.lean` files open before their first theorem),
     stripped from the names shown."""
     common = None
+    opened = []
     for m in link_modules():
         with open(path_of(m), encoding="utf-8") as f:
             text = f.read()
         first = re.search(r"^theorem\b", text, re.M)
         ns = [c for n in NAMESPACE.findall(text[: first.start() if first else None])
               for c in n.split(".")]
+        opened.append((m, ns))
         if common is None:
             common = ns
         else:
@@ -111,6 +113,21 @@ def namespace():
             while k < min(len(common), len(ns)) and common[k] == ns[k]:
                 k += 1
             common = common[:k]
+    # A `Link.lean` whose namespace leaves the one the others share shortens the common prefix,
+    # which renames every name the reports show (each baseline entry then reads as gone): fail
+    # loudly instead, naming it (remote 2026-11-21, dsv-epaxos 2026-11-23). Generic: the shared
+    # prefix is the two-component namespace most `Link`s open.
+    heads = {}
+    for m, ns in opened:
+        heads.setdefault(".".join(ns[:2]), []).append(m)
+    if len(heads) > 1:
+        major = max(heads, key=lambda h: len(heads[h]))
+        odd = [f"{path_of(m)} (namespace {h or '(none)'})"
+               for h, ms in heads.items() if h != major for m in ms]
+        raise SystemExit("proof_roots: these Link.lean files open a namespace outside "
+                         f"{major}, which every other Link.lean shares; that would rename every "
+                         "axiom in the reports. Put their results under it (or name the file "
+                         "Results.lean if it is not a link):\n  " + "\n  ".join(odd))
     return "".join(c + "." for c in common or [])
 
 
@@ -183,13 +200,17 @@ def shadows_perennial(mod):
         os.path.join(PERENNIAL, "Perennial", *mod.split(".")) + ".lean")
 
 
-def shadows_part(mod):
-    """Whether `mod` is a main-tree translation `Code.<pkg>` that a part translates too
-    (`<Part>.Code.<pkg>`, e.g. `Net/`'s `net/textproto`, which declares the main tree's names): a run
-    importing both cannot load. (prom-registry, 2026-11-23: since the net swap a `Net/` root can reach the
-    main tree's `Code.net.textproto` while another reaches `Net.Code.net.textproto`.)"""
-    return mod.startswith("Code.") and any(
-        os.path.exists(os.path.join(ROOT, r, *mod.split(".")) + ".lean") for r in PART_ROOTS)
+# (net-swap, etcd-dist D2, 2026-11-22) the part `Net/`'s `net` is also the main tree's: its modules
+# (the translation's and `Net/{Spec,Proof}/net/`'s, not `net/http`, `net/rpc`, `net/textproto` nor the
+# part's `Init` over its own initializer copies) do not make a module one of the part's.
+def shared_net(m):
+    if m in ("Net.Code.net", "Net.TrustedCode.net", "Net.GeneratedProof.net", "Net.ManualProof.net"):
+        return True
+    for d in ("Net.Spec.net.", "Net.Proof.net."):
+        if m.startswith(d):
+            rest = m[len(d):]
+            return not rest.startswith(("http", "rpc", "textproto")) and rest != "Init"
+    return False
 
 
 def parts_reached(mod):
@@ -201,9 +222,9 @@ def parts_reached(mod):
         if m in seen:
             continue
         seen.add(m)
-        if m.split(".")[0] in PART_ROOTS:
+        if m.split(".")[0] in PART_ROOTS and not shared_net(m):
             reached.add(m.split(".")[0])
-        if shadows_perennial(m) or shadows_part(m):
+        if shadows_perennial(m):
             reached.add(m)
         todo += _imports(m)
     return tuple(sorted(reached))

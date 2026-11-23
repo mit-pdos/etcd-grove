@@ -32,10 +32,14 @@ theorem raftpb.MessageType.String.wp_proof
   wp_start as #Hpkg
   ihave #Hsc : isPkgInit (PROP := IProp GF) pkg_id.strconv $$ []
   · iPkgInit
-  ihave #Hfact : iprop(∃ m : Loc,
-      (globalAddr go_etcd_io.raft.v3.raftpb.MessageType_name ↦□ m : IProp GF) ∗
-      m ↦$□ go_etcd_io.raft.v3.raftpb.msgTypeNames) $$ []
+  ihave #Hfact : iprop(
+      raftpb.nameTableOk go_etcd_io.raft.v3.raftpb.MessageType_name raftpb.msgTypeNames ∗
+      raftpb.nameTableOk go_etcd_io.raft.v3.raftpb.ConfChangeType_name raftpb.ccTypeNames ∗
+      raftpb.nameTableOk go_etcd_io.raft.v3.raftpb.ConfChangeTransition_name
+        raftpb.ccTransitionNames) $$ []
   · iapply isPkgInit_access $$ Hpkg
+  icases Hfact with ⟨Hfact, -, -⟩
+  iunfold raftpb.nameTableOk at Hfact
   icases Hfact with ⟨%m, #Hg, #Hm⟩
   -- the trusted model names the translation's type and table by their names
   have hty : (go_etcd_io.raft.v3.raftpb.model.MessageType : go.GoType) =

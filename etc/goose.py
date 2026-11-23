@@ -137,6 +137,11 @@ class Project:
     # temporary file (GOWORK, or -modfile in GOFLAGS), as models/grpc/gomodel.py does for go
     # builds. None: every module from the module cache.
     module_models: dict = None
+    # Expand tabs in the translation's comments to four spaces (Go doc comments indented with tabs:
+    # goose copies them into `/-- … -/`, where Lean rejects a tab at the start of a line; a goose gap,
+    # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
+    # writes it.
+    expand_comment_tabs: bool = False
 
     @property
     def env(self):
@@ -372,8 +377,8 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
                     "github.com/prometheus/client_model=",
                     "github.com/jonboulle/clockwork=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
-                    "encoding/hex=", "container/heap=", "unicode/utf8=",
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash=", "path=", "internal/nettrace=",
+                    "encoding/hex=", "container/heap=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
                     "crypto/tls=",
@@ -525,8 +530,12 @@ PROJECTS = [
             "github.com/dustin/go-humanize",
             # names only: the metrics mvcc's transactions and key index update
             "github.com/prometheus/client_golang/prometheus",
-            # (prom-registry, route (b), 2026-11-22) types and names only: client_model's messages,
-            # the type of prometheus's `Desc.constLabelPairs` (the default registry is translated)
+            # (prove-ps2-metrics, 2026-11-22) names only: the package of the type of prometheus's
+            # `gauge`'s field `labelPairs` (`[]*dto.LabelPair`), so that the struct is translated (its
+            # methods are, with their bodies). (`counter` also needs `timestamppb`, whose names-only
+            # initializer would add two trust-boundary axioms: not taken.)
+            # (prom-registry, route (b), 2026-11-22) and of `Desc.constLabelPairs` (the default registry
+            # is translated)
             "github.com/prometheus/client_model/go",
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
@@ -539,9 +548,6 @@ PROJECTS = [
             "encoding/hex",
             # (container/heap: the lessor's expiry notifier pushes and fixes its queue)
             "container/heap",
-            # (unicode/utf8: the server's unary interceptor checks the client's API version,
-            # unit P3b)
-            "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             # with bodies (client/v3/kubernetes.toml): the client the Kubernetes API server's
@@ -601,8 +607,6 @@ PROJECTS = [
             # standard library's `path` (the stream handler's URL parsing) and of etcd's
             # `pkg/v3/ioutil` (the pipeline handler's limited reader) and `pkg/v3/httputil`
             "path",
-            # (`path`'s `Split` and `Base` call `LastIndexByteString`, with its body)
-            "internal/bytealg",
             "go.etcd.io/etcd/pkg/v3/ioutil",
             "go.etcd.io/etcd/pkg/v3/httputil",
             # names only (item 4, the server start): what `v3rpc.Server` names: grpc-prometheus
@@ -637,9 +641,9 @@ PROJECTS = [
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
                os.path.join("net", "http"), os.path.join("net", "textproto"), os.path.join("net", "url"),
-               "hash", "path", os.path.join("internal", "bytealg"), os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
+               "hash", "path", os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
-               os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
+               os.path.join("container", "heap"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
                os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),
@@ -2079,6 +2083,30 @@ PROJECTS = [
 ]
 
 
+# The dsverify kits (notes/dsv-paxos.md; etc/dsv/README.md): each kit's project is the `GOOSE` dict
+# of its own file `etc/dsv/<kit>.py` (the fields of `Project`), so that a kit adds a file instead of
+# editing this one. Placed before project models-net, in the files' order.
+def dsv_kits():
+    """The kit files `etc/dsv/*.py`, loaded, in name order (also read by etc/gen-init.py)."""
+    import importlib.util
+    d = os.path.join(ROOT, "etc", "dsv")
+    out = []
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if not f.endswith(".py") or f.startswith("_"):
+            continue
+        spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        m.KIT = f[:-3]
+        out.append(m)
+    return out
+
+
+DSV_KITS = dsv_kits()
+_i = next(i for i, p in enumerate(PROJECTS) if p.name == "models-net")
+PROJECTS[_i:_i] = [Project(**k.GOOSE) for k in DSV_KITS if hasattr(k, "GOOSE")]
+
+
 
 # The Go modules of this repository that build the examples against the forks, and which project's
 # pinned `rev` each replaced Go path must be at (a replace's pseudo-version names the commit): the
@@ -2360,6 +2388,58 @@ def with_proph_patches(proj, src, desc):
     return proj, proph_patch.patched_copy(proj.name, src, dest), f"{desc} + {n} prophecy patch(es)"
 
 
+def expand_comment_tabs(top):
+    """Project.expand_comment_tabs: every `.lean` file under `top` with the tabs in its comments
+    (`/- … -/`, nested, and `--` to the end of the line) replaced by four spaces; exits on a tab
+    elsewhere (in a string literal, or in code)."""
+    for d, _, fs in os.walk(top):
+        for name in fs:
+            if not name.endswith(".lean"):
+                continue
+            p = os.path.join(d, name)
+            with open(p) as f:
+                src = f.read()
+            if "\t" not in src:
+                continue
+            out, depth, i, n = [], 0, 0, len(src)
+            while i < n:
+                if not depth and src[i] == '"':
+                    j = i + 1
+                    while j < n and src[j] != '"':
+                        j += 2 if src[j] == "\\" else 1
+                    seg = src[i:j + 1]
+                    if "\t" in seg:
+                        sys.exit(f"goose.py: a tab in a string literal in {p}")
+                    out.append(seg)
+                    i = j + 1
+                    continue
+                if src.startswith("/-", i):
+                    depth += 1
+                    out.append("/-")
+                    i += 2
+                    continue
+                if depth and src.startswith("-/", i):
+                    depth -= 1
+                    out.append("-/")
+                    i += 2
+                    continue
+                if not depth and src.startswith("--", i):
+                    j = src.find("\n", i)
+                    j = n if j < 0 else j
+                    out.append(src[i:j].replace("\t", "    "))
+                    i = j
+                    continue
+                c = src[i]
+                if c == "\t":
+                    if not depth:
+                        sys.exit(f"goose.py: a tab outside a comment in {p}")
+                    c = "    "
+                out.append(c)
+                i += 1
+            with open(p, "w") as f:
+                f.write("".join(out))
+
+
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
@@ -2379,6 +2459,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
                     + packages, env=env)
             others = others_owned(root, owned)
+            if proj.expand_comment_tabs:
+                expand_comment_tabs(piece_out)
             for f, c in lean_files(piece_out, owned, others).items():
                 new[os.path.join(root, f)] = (c, os.path.join(piece_out, f))
             for f, c in lean_files(lib_dir, owned, others).items():

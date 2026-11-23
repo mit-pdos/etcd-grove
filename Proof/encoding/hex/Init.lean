@@ -55,7 +55,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrLength))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩
   try wp_auto
   iframe Hown
   imodintro

@@ -241,7 +241,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRa
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
-public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
 public import Proof.github_com.jonboulle.clockwork.realClock__After
 public import Proof.github_com.jonboulle.clockwork.realClock__Now
@@ -398,6 +397,7 @@ public import Proof.github_com.prometheus.client_golang.prometheus.CounterVec__W
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__With
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.github_com.prometheus.client_golang.prometheus.HistogramVec__WithLabelValues
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
 public import Proof.google_golang_org.protobuf.proto.MarshalAppendPb
 public import Proof.google_golang_org.protobuf.proto.MarshalIRR
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
@@ -688,6 +688,7 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.crypto.rand.Link
 public import Perennial.Proof.math.big.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.internal.bytealg.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.bytes.Buffer__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
@@ -1050,33 +1051,9 @@ theorem semver.Version.wp_Minor :
     semver.Version.Minor.spec (GF := GF) (hG := hG) :=
   semver.Version.Minor.wp_proof
 
-theorem semver.Version.wp_Patch :
-    semver.Version.Patch.spec (GF := GF) (hG := hG) :=
-  semver.Version.Patch.wp_proof
-
-theorem semver.Version.wp_Prerelease :
-    semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
-  semver.Version.Prerelease.wp_proof
-
-theorem semver.wp_compareSegment :
-    semver.compareSegment.spec (GF := GF) (hG := hG) :=
-  semver.compareSegment.wp_proof
-
-theorem semver.wp_comparePrePart :
-    semver.comparePrePart.spec (GF := GF) (hG := hG) :=
-  semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
-
-theorem semver.wp_comparePrerelease :
-    semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
-  semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
-
-theorem semver.Version.wp_Compare :
-    semver.Version.Compare.spec (GF := GF) (hG := hG) :=
-  semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
-
 theorem semver.Version.wp_LessThan :
     semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
-  semver.Version.LessThan.wp_proof semver.Version.wp_Compare
+  semver.Version.LessThan.wp_proof
 
 theorem types.ID.wp_String_ptr :
     types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
@@ -1410,9 +1387,13 @@ theorem membership.RaftCluster.wp_ValidateConfigurationChange :
     membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.ValidateConfigurationChange.wp_proof encoding.json.wp_Unmarshal raftpb.ConfChange.wp_GetNodeId raftpb.ConfChange.wp_GetType
 
+theorem prometheus.gauge.wp_Set :
+    prometheus.gauge.Set.spec (GF := GF) (hG := hG) :=
+  prometheus.gauge.Set.wp_proof
+
 theorem membership.RaftCluster.wp_updateMembershipMetric :
     membership.RaftCluster.updateMembershipMetric.spec (GF := GF) (hG := hG) :=
-  membership.RaftCluster.updateMembershipMetric.wp_proof
+  membership.RaftCluster.updateMembershipMetric.wp_proof types.ID.wp_String_ptr prometheus.GaugeVec.wp_WithLabelValues prometheus.gauge.wp_Set
 
 theorem membership.wp_setIsLearnerMetric :
     membership.setIsLearnerMetric.spec (GF := GF) (hG := hG) :=
@@ -1826,6 +1807,30 @@ theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
   storage.NewBackendHooks.wp_proof
 
+theorem semver.Version.wp_Patch :
+    semver.Version.Patch.spec (GF := GF) (hG := hG) :=
+  semver.Version.Patch.wp_proof
+
+theorem semver.Version.wp_Prerelease :
+    semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
+  semver.Version.Prerelease.wp_proof
+
+theorem semver.wp_compareSegment :
+    semver.compareSegment.spec (GF := GF) (hG := hG) :=
+  semver.compareSegment.wp_proof
+
+theorem semver.wp_comparePrePart :
+    semver.comparePrePart.spec (GF := GF) (hG := hG) :=
+  semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem semver.wp_comparePrerelease :
+    semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
+  semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
+
+theorem semver.Version.wp_Compare :
+    semver.Version.Compare.spec (GF := GF) (hG := hG) :=
+  semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -1951,7 +1956,7 @@ theorem wp_getRequestType :
 
 theorem errors.wp_IsCtxErr :
     errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
-  errors.IsCtxErr.wp_proof
+  errors.IsCtxErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem EtcdServer.wp_getLead :
     EtcdServer.getLead.spec (GF := GF) (hG := hG) :=
@@ -2293,13 +2298,9 @@ theorem rafthttp.streamType.wp_endpoint :
     rafthttp.streamType.endpoint.spec (GF := GF) (hG := hG) :=
   rafthttp.streamType.endpoint.wp_proof path.wp_Join
 
-theorem bytealg.wp_LastIndexByteString :
-    bytealg.LastIndexByteString.spec (GF := GF) (hG := hG) :=
-  bytealg.LastIndexByteString.wp_proof
-
 theorem path.wp_Split :
     path.Split.spec (GF := GF) (hG := hG) :=
-  path.Split.wp_proof bytealg.wp_LastIndexByteString
+  path.Split.wp_proof _root_.Perennial.internal.bytealg.wp_LastIndexByteString
 
 theorem path.wp_Dir :
     path.Dir.spec (GF := GF) (hG := hG) :=
@@ -2307,7 +2308,7 @@ theorem path.wp_Dir :
 
 theorem path.wp_Base :
     path.Base.spec (GF := GF) (hG := hG) :=
-  path.Base.wp_proof bytealg.wp_LastIndexByteString
+  path.Base.wp_proof _root_.Perennial.internal.bytealg.wp_LastIndexByteString
 
 theorem types.wp_IDFromString :
     types.IDFromString.spec (GF := GF) (hG := hG) :=

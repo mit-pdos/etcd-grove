@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.github_com.prometheus.client_model.go
 
 @[expose] public section
 
@@ -85,6 +86,8 @@ noncomputable def MetricFamily.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] MetricFamily.ty
 
+opaque MetricType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+
 opaque LabelPair.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Gauge.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -121,51 +124,11 @@ opaque MetricType_HISTOGRAM [GooseExts] [GoGlobalContext] : val
 
 opaque MetricType_GAUGE_HISTOGRAM [GooseExts] [GoGlobalContext] : val
 
-noncomputable def MetricType_name [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.MetricType_name"
-
-opaque MetricType_name.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def MetricType_value [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.MetricType_value"
-
-opaque MetricType_value.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def File_io_prometheus_client_metrics_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_model/go.File_io_prometheus_client_metrics_proto"
 
-noncomputable def file_io_prometheus_client_metrics_proto_rawDesc [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_rawDesc"
-
-opaque file_io_prometheus_client_metrics_proto_rawDesc.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def file_io_prometheus_client_metrics_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_rawDescOnce"
-
-noncomputable def file_io_prometheus_client_metrics_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_rawDescData"
-
-opaque file_io_prometheus_client_metrics_proto_rawDescData.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_io_prometheus_client_metrics_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_enumTypes"
-
-opaque file_io_prometheus_client_metrics_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_io_prometheus_client_metrics_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_msgTypes"
-
-opaque file_io_prometheus_client_metrics_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_io_prometheus_client_metrics_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_goTypes"
-
-opaque file_io_prometheus_client_metrics_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
-
-noncomputable def file_io_prometheus_client_metrics_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_depIdxs"
-
-opaque file_io_prometheus_client_metrics_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_io_prometheus_client_metrics_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_rawDescGZIP"
@@ -176,6 +139,70 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def file_io_prometheus_client_metrics_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_init"
 
+/-- The package variables goose does not translate (the `skip` entries of the package's
+goose config): no Lean name, allocation or initialization step, so no translated code names
+them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
+panic, and has no effect beyond the variable), for the reason given.
+
+- `MetricType_name` (`var MetricType_name = map[int32]string{ 0: "COUNTER", 1: "GAUGE", 2: "SUMMARY", 3: "UNTYPED", 4: "HISTOGRAM", 5: "GAUGE_ … [sha256:2ded75751d74e147]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+- `MetricType_value` (`var MetricType_value = map[string]int32{ "COUNTER": 0, "GAUGE": 1, "SUMMARY": 2, "UNTYPED": 3, "HISTOGRAM": 4, "GAUGE_HI … [sha256:d1dc91f3ad72d949]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+- `file_io_prometheus_client_metrics_proto_rawDesc` (`var file_io_prometheus_client_metrics_proto_rawDesc = []byte{ 0x0a, 0x22, 0x69, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x6d, 0x65 … [sha256:8fb443d4adde16cf]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+- `file_io_prometheus_client_metrics_proto_rawDescData` (`var file_io_prometheus_client_metrics_proto_rawDescData = file_io_prometheus_client_metrics_proto_rawDesc`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+- `file_io_prometheus_client_metrics_proto_enumTypes` (`var file_io_prometheus_client_metrics_proto_enumTypes = make([]protoimpl.EnumInfo, 1)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+- `file_io_prometheus_client_metrics_proto_msgTypes` (`var file_io_prometheus_client_metrics_proto_msgTypes = make([]protoimpl.MessageInfo, 12)`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+- `file_io_prometheus_client_metrics_proto_goTypes` (`var file_io_prometheus_client_metrics_proto_goTypes = []interface{}{ (MetricType)(0), (*LabelPair)(nil), (*Gauge)(nil),  … [sha256:990bb931acf8732b]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+- `file_io_prometheus_client_metrics_proto_depIdxs` (`var file_io_prometheus_client_metrics_proto_depIdxs = []int32{ 10, 13, 4, 13, 8, 13, 9, 9, 10, 10, 1, 13, 1, 2, 3, 5, 6, … [sha256:8e275ca244313d87]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
+function values (built, not called) and other package variables' values or addresses, with no call
+(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and
+`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the
+Go types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and
+keys are constants the compiler checks) and has no effect beyond its variable.
+-/
+noncomputable def skipped' : List go.SkippedVar := [
+  ⟨"github.com/prometheus/client_model/go.MetricType_name", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var MetricType_name = map[int32]string{ 0: \"COUNTER\", 1: \"GAUGE\", 2: \"SUMMARY\", 3: \"UNTYPED\", 4: \"HISTOGRAM\", 5: \"GAUGE_ … [sha256:2ded75751d74e147]"⟩,
+  ⟨"github.com/prometheus/client_model/go.MetricType_value", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var MetricType_value = map[string]int32{ \"COUNTER\": 0, \"GAUGE\": 1, \"SUMMARY\": 2, \"UNTYPED\": 3, \"HISTOGRAM\": 4, \"GAUGE_HI … [sha256:d1dc91f3ad72d949]"⟩,
+  ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_rawDesc", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_rawDesc = []byte{ 0x0a, 0x22, 0x69, 0x6f, 0x2f, 0x70, 0x72, 0x6f, 0x6d, 0x65 … [sha256:8fb443d4adde16cf]"⟩,
+  ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_rawDescData", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_rawDescData = file_io_prometheus_client_metrics_proto_rawDesc"⟩,
+  ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_enumTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_enumTypes = make([]protoimpl.EnumInfo, 1)"⟩,
+  ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_msgTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_msgTypes = make([]protoimpl.MessageInfo, 12)"⟩,
+  ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_goTypes = []interface{}{ (MetricType)(0), (*LabelPair)(nil), (*Gauge)(nil),  … [sha256:990bb931acf8732b]"⟩,
+  ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_depIdxs = []int32{ 10, 13, 4, 13, 8, 13, 9, 9, 10, 10, 1, 13, 1, 2, 3, 5, 6, … [sha256:8e275ca244313d87]"⟩]
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.prometheus.client_model.go where
   pkgImportedPkgs := []
 
@@ -185,44 +212,25 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.prometheus.client_model.go)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
-  (App (Val doExecute)
-  (App (Val file_io_prometheus_client_metrics_proto_depIdxs.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_io_prometheus_client_metrics_proto_goTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_io_prometheus_client_metrics_proto_msgTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_io_prometheus_client_metrics_proto_enumTypes.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_io_prometheus_client_metrics_proto_rawDescData.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val file_io_prometheus_client_metrics_proto_rawDesc.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val MetricType_value.init) (Val #()))))))
-  (App (Val doExecute)
-  (App (Val MetricType_name.init) (Val #()))))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
 
-abbrev MetricType [GooseExts] : Type := w32
-
-@[reducible] noncomputable def MetricType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.int32
+opaque MetricType.nonempty_type : NonemptyType.{0}
+def MetricType : Type := MetricType.nonempty_type.type
+instance MetricType.nonempty : Nonempty MetricType := MetricType.nonempty_type.property
+opaque MetricType.zero_val : ZeroVal MetricType := ⟨Classical.ofNonempty⟩
+attribute [instance] MetricType.zero_val
 
 class MetricType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying MetricType.underlying MetricType
   underlying : go.UnderlyingDirectedEq MetricType.ty MetricType.underlying
+  isUnderlying : go.IsUnderlying MetricType.underlying MetricType.underlying
   method_set : go.MethodSetIs MetricType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType MetricType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MetricType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType MetricType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
-attribute [instance] MetricType.TypeAssumptions.underlying
+attribute [instance] MetricType.TypeAssumptions.type_repr
+  MetricType.TypeAssumptions.underlying
+  MetricType.TypeAssumptions.isUnderlying
   MetricType.TypeAssumptions.method_set
   MetricType.TypeAssumptions.ptr_method_set
 
@@ -468,6 +476,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Exemplar_instance : Exemplar.TypeAssumptions
   Metric_instance : Metric.TypeAssumptions
   MetricFamily_instance : MetricFamily.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.MetricType_instance
   Assumptions.LabelPair_instance
@@ -482,6 +491,7 @@ attribute [instance] Assumptions.MetricType_instance
   Assumptions.Exemplar_instance
   Assumptions.Metric_instance
   Assumptions.MetricFamily_instance
+  Assumptions.«init.0_unfold»
 
 end github_com.prometheus.client_model.go
 

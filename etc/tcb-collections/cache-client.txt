@@ -15,7 +15,6 @@ axiom addrClaim
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -29,7 +28,6 @@ axiom grpcSrvCfgRaw
 axiom grpcSrvLink
 axiom grpcSrvNew
 axiom grpcWrotePeer
-axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg

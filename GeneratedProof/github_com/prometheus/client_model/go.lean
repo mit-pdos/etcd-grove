@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.github_com.prometheus.client_model.go
 public import Perennial.Golang.Theory
 public import Code.github_com.prometheus.client_model.go
 
@@ -15,6 +16,25 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.prometheus.client_model.go
+
+namespace MetricType
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+
+noncomputable instance MetricType_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.MetricType :=
+  sorry -- axiomatized type
+
+noncomputable instance MetricType_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.MetricType github_com.prometheus.client_model.go.MetricType.underlying :=
+  sorry -- axiomatized type
+
+end def_
+end MetricType
 
 namespace LabelPair
 section def_

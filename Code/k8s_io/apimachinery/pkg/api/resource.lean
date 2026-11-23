@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.apimachinery.pkg.api.resource
 
 @[expose] public section
 
@@ -839,6 +840,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   listSuffixer_instance : listSuffixer.TypeAssumptions
   suffixHandler_instance : suffixHandler.TypeAssumptions
   fastLookup_instance : fastLookup.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.Scale_instance
   Assumptions.widenedScale_instance
@@ -856,6 +858,7 @@ attribute [instance] Assumptions.Scale_instance
   Assumptions.listSuffixer_instance
   Assumptions.suffixHandler_instance
   Assumptions.fastLookup_instance
+  Assumptions.«init.0_unfold»
 
 end k8s_io.apimachinery.pkg.api.resource
 

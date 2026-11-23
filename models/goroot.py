@@ -22,7 +22,8 @@ model build substitutes the files in the toolchain's source tree, in one of two 
 
 Both are the same substitution (`mapping`). The toolchain is `go env GOROOT`'s: it must be
 go1.27.3 (etc/goose.py's GO_TOOLCHAIN), the version the models are of (the command refuses
-another). The models' own modules are `models/net/go.mod` and `models/encoding/go.mod` (modules
+another). The models' own modules are `models/net/go.mod`, `models/encoding/go.mod` and
+`models/log/go.mod` (modules
 nothing builds: they keep the files out of `models.lab`'s `./...`, since they compile only as
 standard-library packages).
 """
@@ -42,6 +43,7 @@ STD_MODELS = {
     "net/rpc": "net/rpc",
     "net/http": "net/http",
     "encoding/json": "encoding/json",
+    "log/slog": "log/slog",
 }
 
 
