@@ -84,8 +84,13 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         "HRt" ∷ cliRecvTok (Rep := pbLeaseKeepAliveResponse) γ L) $$ [HRt]
     · iexists []; iframe
     wp_for IH
-    ihave #HR := HRecv $$ %L
-    wp_apply HR $$ [$HRt] as %resp %rerr Hres
+    ihave #HR := HRecv $$ %L %iprop(True)
+    wp_apply HR $$ [HRt] as %resp %rerr ⟨-, Hres⟩
+    · isplitr
+      · ipureintro; trivial
+      isplitr
+      · itrivial
+      iframe
     (try wp_auto)
     icases Hres with (⟨%Herr, %m, #Hm, -, HRt⟩ | ⟨%Hresp, #Heofe, %Hne, HRt, -⟩ | ⟨%Hresp, #Hse0, HRt⟩)
     · subst Herr
