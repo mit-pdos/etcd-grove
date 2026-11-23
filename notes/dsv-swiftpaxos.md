@@ -116,7 +116,57 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, tenth session; resume here)
+## State (2026-11-23, eleventh session; resume here)
+
+Read with the tenth session's state below (accurate where this does not say otherwise).
+
+**Done (pushed).**
+- **Kit Go: a start round** (`kit.go`, `StartOff = 3000`): `configure` sends, after every node
+  acknowledged its configuration, the configuration again to each client node's start port
+  (`127.0.0.1:9101+c`), and `newClient` waits for it (a second `awaitConf`) before `Register()`.
+  Why: SwiftPaxos's client connect (`swift.NewClient`) needs `sp.allPredsReg` (every predicted
+  node registered, L2). The lab's driver update was abortable and carried it (`ownState`);
+  remote's `lin` is one-shot and cannot be peeked (a design finding for remote), so the fact
+  now travels in the start port's protocol `conf.startP` (Interface.lean). `go test` passes;
+  retranslated. Spec: `clientStartAddrs`, `plainAddrs` (+ start ports), `protoP`/`protoQ`,
+  `clientNodeShare` (+ the start port's token), `addrs` (the 13 node addresses),
+  `clientAddrs` (remote's request addresses), `rpcLis` (`":7001"` and the replicas' rpc ports).
+- **`services` over `withErr`**; `common` holds the rpc listeners' `RpcHttpAddr.rpcLisP` (not
+  `net.rpc.rpcAddr`); a client derives `rpcAddrP` by `rpcLisP_addr` (`ClientNodeShare`).
+- **`lib/RpcHttpHyps.lean`, after Upamanyu's EPaxos review** (scratchpad `ep-review.txt`): split
+  into `RpcHttpAddr GF` (global: `rpcAddrP`, `worldHs(Ans)`, `httpW` with laws `httpW_hs`,
+  `httpW_hsAns`, `httpW_SS` — `worldHs_http` is gone, it had no true instance — and `rpcLisP*`
+  incl. `rpcLisP_set`) and `RpcHttpHyp GF` (per heap; `defaultServer_init` is gone: `master.Run`'s
+  spec now takes `∃ γs, H.defaultServer γs`, a boot resource beside `muxOwner []`). **The start
+  must build the world as `httpW` of the raw world and discharge `rpcLisP_set`'s premise from
+  `httpW_hs`/`httpW_hsAns`.**
+- **The client machine, proved** (all `lean-check -a` clean): `KitDeps.lean` (defs: `SwNetDeps`,
+  the net callees as hypotheses, rabia's `io.ReadFull.specLt`/`wp_connReadFull` reused;
+  `awaitConf.spec`, generalized by a protocol resource `X` handed to `hclaim`; `conf.startP`
+  laws), `AwaitConf.lean` (`awaitConf.wp_proof D`, over `Net/`'s Listen/Accept/Read/Write/Close,
+  rabia's structure), `ClientNodeDefs.lean` (defs: `nodeEnv` over `rpcHttp`, `isSysL` with
+  `opMu`'s `opInv` (ops ≤ `maxOps`, `clSt`) and `allPredsReg`, `codecFresh`, `cliBoot`,
+  `clientRes`, the specs `Register`, `atRpc`, `atConf`, `atStart`, `hostMaster`, `portMaster`,
+  `AddrsC`, `ClientAddrs`, `callBtl` (= `master.wp_call_btl`), `Sys.changeLeaders`,
+  `Sys.connect`, `op`, `newClient`, `clientNode`, `Client`), `ClientLeaders.lean`
+  (`Sys.changeLeaders.wp_proof`), `ClientConnect.lean` (`Sys.connect.wp_proof`, + the stagger's
+  `Sleep`), `ClientOp.lean` (`op1`/`op.wp_proof`, `wp_put`/`wp_get` over `ClientLin`),
+  `ClientNodeShare.lean`, `ClientNodeAddr.lean` (address instances incl. `atStart_proof`,
+  `ClientAddrs_proof`; `Addr.lean`, `ServersSpecs.lean` on the new ports), `ClientMachine.lean`
+  (`newClient`, `clientNode`, `Client`). Boot resources a client machine needs (`clientRes`):
+  `client.ghostFresh`, `codecFresh`, `cliBoot` (receipt bound, `cliEnv`, `dialEnv`), plus
+  `linkInv γ γk`, `remoteAddr (swRK γk) (clientAddrs[c])`, `mapCtx`.
+- Deleted: `ClientAU.lean`. Obsolete lab files still present (to delete with the lab kit):
+  `ClientNode`, `ClientNodeNew`, `ClientInit`, `ClientLink`, `ClientNodeLink`, `ClientPkgInits`
+  (but reuse its `init_*` for the boot), `Client.lean`.
+
+**Next.** (2) the orchestrator: `New`/`configure` (three loops now; the third sends with
+`conf.startP`, which needs `allPredsReg` gathered from the acks: lab `OrchNew`), `sendConf` over
+`SwNetDeps` (rabia's `sendConf.wp_proof` shape), `orch`/`Orch` with `pend_alloc` *after* or at
+the start (sysState is `sysK γk`, half of `γk` at `("","")`); (3) the servers; (4)-(5) as the
+tenth session lists, with the client machine's boot resources above and `httpW`.
+
+## State (2026-11-23, tenth session; superseded where the eleventh says so)
 
 Read with the ninth session's state below (accurate where this does not say otherwise).
 
