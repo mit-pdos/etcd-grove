@@ -903,7 +903,179 @@ theorem Tree.Put.wp_proof (wp_ic1 : Tree.insertCase1.spec (GF := GF)) :
             simp only [show sint.Z (W64 0) = 0 from rfl] at *
             have : sint.Z cv = 0 := by omega
             exact this
-    · done
+    · -- inserted: the new node's parent pointer, the fix-up, the size
+      have hb : b = false := by
+        cases b
+        · rfl
+        · exact absurd rfl Hif
+      subst hb
+      rw [if_pos (by simp)]
+      obtain ⟨C, s, k', v', X, l, hDc, hlD, hln, hil, hnd', hbd, hcl, hco, hside⟩ := Hst
+      subst Dc il nd
+      have hndl : (l :: D).Nodup := List.nodup_cons.mpr ⟨hlD, hnd⟩
+      wp_auto
+      ihave ⟨Hl, Hback⟩ := ownNodes_acc' hc (l :: D) l (newNode enc k v) (by simp) hndl hcl $$ Hns
+      wp_auto
+      ihave Hns := Hback $$ Hl
+      generalize hh2 : upd hc l { newNode enc k v with Parent' := s } = h2
+      have hsD0 : ∀ t : RB GoInterface, T = Ctx.plug C t → s ∈ t.locs → s ∈ D :=
+        fun t hT hm => hperm.symm.subset (hT ▸ mem_plug hm)
+      rcases hside with ⟨hT, hlt, hcs⟩ | ⟨hT, hgt, hcs⟩
+      · subst hT
+        obtain ⟨hhs, hsn, hNL, hNR, hC⟩ := Rep_plug_node hrep
+        obtain ⟨hndt, hndC, hdis⟩ := nodup_plug hndT
+        have hsD : s ∈ D := hperm.symm.subset (mem_plug (by simp))
+        have hsl : s ≠ l := fun e => hlD (e ▸ hsD)
+        have h2s : h2 s = nodeOf enc k' v' (h2 s).color' l X.loc (Ctx.parent C null) := by
+          rw [← hh2, upd_ne _ _ _ _ hsl, hcs]
+        have h2l : h2 l = nodeOf enc k v (h2 l).color' (RB.leaf : RB GoInterface).loc (RB.leaf : RB GoInterface).loc s := by
+          rw [← hh2, upd_same]; rfl
+        have h2o : ∀ x, x ≠ s → x ≠ l → h2 x = h x := by
+          intro x hxs hxl; rw [← hh2, upd_ne _ _ _ _ hxl, hco x hxs hxl]
+        have hlT : ∀ x ∈ (Ctx.plug C (.node s k' v' .leaf X)).locs, x ≠ l := fun x hx e =>
+          hlD (e ▸ hperm.symm.subset hx)
+        have hrep2 : Rep enc h2 (Ctx.plug C (.node s k' v' (.node l k v .leaf .leaf) X)) null := by
+          refine Rep_plug_replace h2 hrep rfl
+            (fun x hx => h2o x (fun e => hdis s (by simp) (e ▸ hx)) (hlT x (mem_plug_ctx hx)))
+            ⟨hsn, h2s, ?_⟩
+          simp only [RB.locs_node, List.nodup_cons, List.mem_append, not_or] at hndt
+          refine ⟨⟨hln, h2l, trivial, trivial⟩, Rep_congr h2 X s (fun x hx => h2o x
+            (fun e => hndt.1.2 (e ▸ hx)) (hlT x (mem_plug (by simp [hx])))) hNR⟩
+        have hpermT' : (l :: D).Perm (Ctx.plug C (.node s k' v' (.node l k v .leaf .leaf) X)).locs := by
+          refine (List.Perm.cons l hperm).trans (Ctx.plug_locs_insert C l ?_).symm
+          rw [List.perm_iff_count]; intro a; simp only [RB.locs_node, RB.locs_leaf,
+            List.count_cons, List.count_append, List.count_nil, List.nil_append, List.append_nil]
+          omega
+        have hloc' : (Ctx.plug C (.node s k' v' (.node l k v .leaf .leaf) X)).loc = (Ctx.plug C (.node s k' v' .leaf X)).loc := Ctx.plug_loc_congr C rfl
+        have hrb' : rootBlack h2 (Ctx.plug C (.node s k' v' (.node l k v .leaf .leaf) X)) := by
+          unfold rootBlack; right
+          rw [hloc']
+          have hTn' : (Ctx.plug C (.node s k' v' .leaf X)).loc ≠ null :=
+            Rep_loc_ne_null _ _ hrep (Ctx.plug_ne_leaf C (by simp))
+          have hc0 := hrb.resolve_left hTn'
+          have hTD : (Ctx.plug C (.node s k' v' .leaf X)).loc ∈ (Ctx.plug C (.node s k' v' .leaf X)).locs :=
+            RB.loc_mem_locs _ (fun h0 => hTn' (by rw [h0]; rfl))
+          by_cases hxs : (Ctx.plug C (.node s k' v' .leaf X)).loc = s
+          · rw [hxs] at hc0 ⊢
+            have hcs' : (h2 s).color' = (h s).color' := by rw [← hh2, upd_ne _ _ _ _ hsl, hcs]
+            rw [hcs']; exact hc0
+          · rw [h2o _ hxs (hlT _ hTD)]; exact hc0
+        rw [← hloc']
+        have wp1 := wp_ic1 tr enc cmp (.L s k' v' X :: C) h2 (l :: D) l k v .leaf .leaf
+        wp_apply wp1 $$ [Htr Hns]
+        · isplitl
+          · iapply (treeRaw_of tr enc cmp (Ctx.plug (.L s k' v' X :: C) (.node l k v .leaf .leaf)) h2
+              (l :: D) sz ⟨hrep2, hpermT', hndl⟩)
+            iframe
+          ipureintro; left; exact hrb'
+        iintro Hfix
+        iunfold fixPost at Hfix
+        icases Hfix with ⟨%T'', %h'', Hraw, %Hq⟩
+        iunfold treeRaw at Hraw
+        icases Hraw with ⟨%sz', Htr, Hns, %Hr⟩
+        wp_auto
+        have heT'' : T''.entries = putE (Ctx.plug C (.node s k' v' .leaf X)).entries k v := by
+          rw [Hq.1]
+          have hsN := sortedE_plug_node hs
+          show (Ctx.plug C (.node s k' v' (.node l k v .leaf .leaf) X)).entries = _
+          rw [Ctx.plug_entries, Ctx.plug_entries]
+          simp only [RB.entries_node, RB.entries_leaf, List.nil_append, List.append_assoc,
+            List.cons_append]
+          have := putE_between (Ctx.pre C) ((k', v') :: (X.entries ++ Ctx.post C)) k v
+            (by have := hs; rw [Ctx.plug_entries] at this; simpa [List.append_assoc] using this)
+            hbd.1 (by
+              intro e he
+              simp only [List.mem_cons, List.mem_append] at he
+              rcases he with rfl | he | he
+              · exact hlt
+              · have := hsN.2.1 e he; omega
+              · exact hbd.2 e he)
+          rw [this]
+        have hsT'' : sortedE T''.entries := by rw [heT'']; exact sortedE_putE _ k v hs
+        iapply HΦ
+        iapply (isTree_of tr enc cmp T'' h'' (l :: D) _ ⟨hsT'', heT'', Hq.2⟩)
+        isplitl
+        · iapply (treeRaw_of tr enc cmp T'' h'' _ _ Hr); iframe
+        iexact Hcmp
+      · subst hT
+        obtain ⟨hhs, hsn, hNL, hNR, hC⟩ := Rep_plug_node hrep
+        obtain ⟨hndt, hndC, hdis⟩ := nodup_plug hndT
+        have hsD : s ∈ D := hperm.symm.subset (mem_plug (by simp))
+        have hsl : s ≠ l := fun e => hlD (e ▸ hsD)
+        have h2s : h2 s = nodeOf enc k' v' (h2 s).color' X.loc l (Ctx.parent C null) := by
+          rw [← hh2, upd_ne _ _ _ _ hsl, hcs]
+        have h2l : h2 l = nodeOf enc k v (h2 l).color' (RB.leaf : RB GoInterface).loc (RB.leaf : RB GoInterface).loc s := by
+          rw [← hh2, upd_same]; rfl
+        have h2o : ∀ x, x ≠ s → x ≠ l → h2 x = h x := by
+          intro x hxs hxl; rw [← hh2, upd_ne _ _ _ _ hxl, hco x hxs hxl]
+        have hlT : ∀ x ∈ (Ctx.plug C (.node s k' v' X .leaf)).locs, x ≠ l := fun x hx e =>
+          hlD (e ▸ hperm.symm.subset hx)
+        have hrep2 : Rep enc h2 (Ctx.plug C (.node s k' v' X (.node l k v .leaf .leaf))) null := by
+          refine Rep_plug_replace h2 hrep rfl
+            (fun x hx => h2o x (fun e => hdis s (by simp) (e ▸ hx)) (hlT x (mem_plug_ctx hx)))
+            ⟨hsn, h2s, ?_⟩
+          simp only [RB.locs_node, List.nodup_cons, List.mem_append, not_or] at hndt
+          refine ⟨Rep_congr h2 X s (fun x hx => h2o x
+            (fun e => hndt.1.1 (e ▸ hx)) (hlT x (mem_plug (by simp [hx])))) hNL,
+            ⟨hln, h2l, trivial, trivial⟩⟩
+        have hpermT' : (l :: D).Perm (Ctx.plug C (.node s k' v' X (.node l k v .leaf .leaf))).locs := by
+          refine (List.Perm.cons l hperm).trans (Ctx.plug_locs_insert C l ?_).symm
+          rw [List.perm_iff_count]; intro a; simp only [RB.locs_node, RB.locs_leaf,
+            List.count_cons, List.count_append, List.count_nil, List.nil_append, List.append_nil]
+          omega
+        have hloc' : (Ctx.plug C (.node s k' v' X (.node l k v .leaf .leaf))).loc = (Ctx.plug C (.node s k' v' X .leaf)).loc := Ctx.plug_loc_congr C rfl
+        have hrb' : rootBlack h2 (Ctx.plug C (.node s k' v' X (.node l k v .leaf .leaf))) := by
+          unfold rootBlack; right
+          rw [hloc']
+          have hTn' : (Ctx.plug C (.node s k' v' X .leaf)).loc ≠ null :=
+            Rep_loc_ne_null _ _ hrep (Ctx.plug_ne_leaf C (by simp))
+          have hc0 := hrb.resolve_left hTn'
+          have hTD : (Ctx.plug C (.node s k' v' X .leaf)).loc ∈ (Ctx.plug C (.node s k' v' X .leaf)).locs :=
+            RB.loc_mem_locs _ (fun h0 => hTn' (by rw [h0]; rfl))
+          by_cases hxs : (Ctx.plug C (.node s k' v' X .leaf)).loc = s
+          · rw [hxs] at hc0 ⊢
+            have hcs' : (h2 s).color' = (h s).color' := by rw [← hh2, upd_ne _ _ _ _ hsl, hcs]
+            rw [hcs']; exact hc0
+          · rw [h2o _ hxs (hlT _ hTD)]; exact hc0
+        rw [← hloc']
+        have wp1 := wp_ic1 tr enc cmp (.R s k' v' X :: C) h2 (l :: D) l k v .leaf .leaf
+        wp_apply wp1 $$ [Htr Hns]
+        · isplitl
+          · iapply (treeRaw_of tr enc cmp (Ctx.plug (.R s k' v' X :: C) (.node l k v .leaf .leaf)) h2
+              (l :: D) sz ⟨hrep2, hpermT', hndl⟩)
+            iframe
+          ipureintro; left; exact hrb'
+        iintro Hfix
+        iunfold fixPost at Hfix
+        icases Hfix with ⟨%T'', %h'', Hraw, %Hq⟩
+        iunfold treeRaw at Hraw
+        icases Hraw with ⟨%sz', Htr, Hns, %Hr⟩
+        wp_auto
+        have heT'' : T''.entries = putE (Ctx.plug C (.node s k' v' X .leaf)).entries k v := by
+          rw [Hq.1]
+          have hsN := sortedE_plug_node hs
+          show (Ctx.plug C (.node s k' v' X (.node l k v .leaf .leaf))).entries = _
+          rw [Ctx.plug_entries, Ctx.plug_entries]
+          simp only [RB.entries_node, RB.entries_leaf, List.nil_append, List.append_assoc,
+            List.cons_append, List.append_nil]
+          have := putE_between (Ctx.pre C ++ X.entries ++ [(k', v')]) (Ctx.post C) k v
+            (by have := hs; rw [Ctx.plug_entries] at this; simpa [List.append_assoc] using this)
+            (by
+              intro e he
+              simp only [List.mem_append, List.mem_cons, List.not_mem_nil, _root_.or_false] at he
+              rcases he with (he | he) | rfl
+              · exact hbd.1 e he
+              · have := hsN.1 e he; omega
+              · exact hgt)
+            hbd.2
+          simp only [List.append_assoc, List.cons_append, List.nil_append] at this
+          rw [this]
+        have hsT'' : sortedE T''.entries := by rw [heT'']; exact sortedE_putE _ k v hs
+        iapply HΦ
+        iapply (isTree_of tr enc cmp T'' h'' (l :: D) _ ⟨hsT'', heT'', Hq.2⟩)
+        isplitl
+        · iapply (treeRaw_of tr enc cmp T'' h'' _ _ Hr); iframe
+        iexact Hcmp
 
 end proof
 

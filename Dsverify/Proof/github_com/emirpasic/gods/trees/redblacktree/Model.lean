@@ -279,6 +279,17 @@ theorem Ctx.plug_loc_congr {α : Type u} (C : Ctx α) {t t' : RB α} (h : t'.loc
   | nil => exact h
   | cons f C => exact Ctx.plug_loc_cons f C t' t
 
+theorem Ctx.plug_locs_insert {α : Type u} (C : Ctx α) {t t' : RB α} (l : Loc)
+    (h : t'.locs.Perm (l :: t.locs)) : (Ctx.plug C t').locs.Perm (l :: (Ctx.plug C t).locs) :=
+  (Ctx.plug_locs_perm C t').trans ((h.append_right _).trans
+    (List.Perm.cons l (Ctx.plug_locs_perm C t).symm))
+
+theorem Ctx.plug_ne_leaf {α : Type u} (C : Ctx α) {t : RB α} (ht : t ≠ .leaf) :
+    Ctx.plug C t ≠ .leaf := by
+  induction C generalizing t with
+  | nil => exact ht
+  | cons f C ih => exact ih (by cases f <;> simp [Frame.fill])
+
 /-! ## Search: the keys around a subtree -/
 
 section search
