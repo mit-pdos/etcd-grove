@@ -2,8 +2,8 @@
 The proofs of `Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`'s `ReadDir` specs,
 from `fileutil.ReadDir.wp_core` (`ReadDirCore.lean`) over the `os` layer's explicit-error specs
 (`NsChildS.lean`: `os.Open.wp_dirChildS`, `File.Readdirnames.wp_dirChildS`, `os.Open.wp_absentErrS`;
-`NsS.lean`: `File.Close.wp_dirS`), given `errors.IsPathErrnoNotExist.spec` (not proved: the error tree
-of the part's `os` errors). Lean-first.
+`NsS.lean`: `File.Close.wp_dirS`), given `errors.IsPathErrnoNotExist.spec` as a callee spec (proved
+since 2026-11-22, `Proof/errors/IsPathErrnoNotExist.lean`; the Link passes the proof). Lean-first.
 -/
 module
 
