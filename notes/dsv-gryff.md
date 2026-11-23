@@ -63,8 +63,9 @@ TCB collection. No `sorry`, no axiom under `Dsverify/`.
 
 ## Hypotheses (missing model pieces; the coordinator's rule of 2026-11-23)
 
-No widening of bufio's goose config, no rpc-server or library models in this branch: a spec the
-proof needs from a missing piece is a hypothesis, named after the lab's spec, that the kit's
+No library models of this branch's own; the unlanded shared branches `models-rpc-server` and
+`dsv-bufio` (revised) are merged (coordinator's instructions) and used directly. A spec the proof
+needs from a piece still missing (rpc over HTTP, net/http's server) is a hypothesis, named after the lab's spec, that the kit's
 theorems take as an instance (a `Prop` class), up to `gryff_remote_robust`.
 
 **Stated in Lean so far** (dsv-vr's pattern for names-only package inits,
@@ -90,9 +91,8 @@ lab's spec):
 2. **net/http's server** (plan 5.2 item 7): `http.Serve`, `Server.Serve`, `conn.serve` up to the
    hijack, `ServeMux.ServeHTTP`/`Handle`, `ReadResponse` on the CONNECT answer. The lab's:
    `Harness/Proof/net/http/{Serve,Mux,Handler,Head}.lean`.
-3. **bufio**: the shared change is `origin/dsv-bufio` (`bb18c0f3ef`, in review); this branch uses its
-   names when it reaches the call sites (merging it, or as hypotheses of the same names and shapes
-   until it lands): `EtcdGrove.bufio.NewReader.specOk`, `Reader.Read.specOk`, `Reader.ReadByte.spec`,
+3. **bufio**: no longer a hypothesis: the revised `origin/dsv-bufio` (`75ef5881aa`) is merged
+   (see "Next", item 3, for the current names). Older list (pre-revision names): `EtcdGrove.bufio.NewReader.specOk`, `Reader.Read.specOk`, `Reader.ReadByte.spec`,
    `NewWriter.spec`, `Writer.Write.spec`, `Writer.WriteByte.spec`, `Writer.Flush.spec` over
    `ownBufReader`/`ownBufWriter` (contracts `io.readerOk`/`io.writerOk`), `ownBufReader_readerOk`
    for Perennial's `io.wp_ReadFull`/`ReadAtLeast`, `Net/Proof/net/ConnIo.lean`'s
@@ -265,12 +265,19 @@ implicitly. The order (the frontier of modules whose imports are ported):
    members are exactly the `AReach`-reachable ones; `step`'s second loop builds a `cs'` with
    `knownCfgs`' members (`hasCfg` dedups by exact equality). Then the `ModelSpec` (as paxos's
    `woS0`/`woS`) and `Model()`'s spec.
-3. **bufio**: wait for the revised `dsv-bufio` (review in the coordinator's scratchpad,
-   `bufio-review.md`: R1-R3, W1-W4, `ownBufReader_fact`, `ownBufWriter_fact`, `recvTokL_proto`),
-   or mirror its revised shapes as hypotheses; the lab's uses: `bufio.ownReader`/`ownWriter`,
-   `readerOk_conn`/`writerOk_conn`, `wp_NewReader`, `wp_ReadByte`, `wp_Read`, `wp_ReadFull`,
-   `wp_NewWriter`, `wp_Write`, `wp_WriteByte`, `wp_Flush`, the lab's own `writerRoom`/
-   `wp_WriteByte_room`/`wp_Write_room` (= the review's W2) and `ownReader_proto` (= R2 + C2).
+3. **bufio**: the revised `origin/dsv-bufio` (`75ef5881aa`, under re-review, not landed) is
+   **merged** into this branch (coordinator, 2026-11-23); use its names directly and never unfold
+   the bufio predicates (the table in the last section of `notes/dsv-bufio.md`). The lab's uses
+   map to: `bufio.ownReader`/`ownWriter` -> `ownBufReader`/`ownBufWriter` (a size index `sz`
+   after `Ew`); `readerOk_conn`/`writerOk_conn` -> `Net/Proof/net/ConnIo.lean`'s
+   `conn_readerOk`/`conn_writerOk`; `wp_NewReader`, `wp_ReadByte`, `wp_Read` (takes
+   `⌜0 < xs.length → Pre R xs.length⌝`; `preUpTo S Pre n` is an `IProp`), `wp_ReadFull` (Perennial's
+   `io.ReadFull` through `ReaderLaws`), `wp_NewWriter`, `wp_Write`/`wp_WriteByte` (take
+   `⌜err = nil⌝ -∗ □ Q`; a write that fits gives `e = nil ∧ sent' = sent`: the lab's
+   `writerRoom`/`wp_Write_room`/`wp_WriteByte_room`), `wp_Flush`; the lab's `ownWriter_sentLb` ->
+   `bufio.ownBufWriter_fact`, its `ownReader_proto` -> `net.connReader_proto` (with
+   `bufio.ownBufReader_fact`, `Net.recvTokL_proto`); `ownBufWriter_size`, `Writer.Available`/
+   `Buffered`/`Size` specs are new.
    Then `N/NetDefs` and the rest of N (the replica's connections), `Wire/Specs` and
    `Wire/Proof/*` (the messages' Marshal/Unmarshal over bufio).
 4. **net/rpc**: `Rpc/Defs` -> `Net/`'s vocabulary: the lab's `RpcCodec` (`enc`, `dec`, `call`,
