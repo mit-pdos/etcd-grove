@@ -7,6 +7,8 @@ arguments `realRequest(x)` passes: `key` the store key of `x`'s key, `x.IgnoreNo
 the nil func) and any cached object (unused): the response, the next model and the change of
 `rupdateL x m` (k8s 7g step 3). The model's items are the driver's objects (`itemsFitL`) and the
 input fits (`inFits`), so that the stored object is an `objAtD` that `Check` and the closure take.
+The model has fewer than `2^62` items (a write may add one; `itemsRO` keeps at most `2^62`, the bound of
+`slices.Sorted(maps.Keys(s.Items))`).
 -/
 module
 
@@ -37,7 +39,7 @@ variable [driver_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumpt
 abbrev Model.update.spec : Prop :=
   ∀ (mp : Loc) (m : RM) (x : Input) (ctx : GoInterface) (pp : Loc) (uf : GoFunc)
       (cx : GoInterface),
-  itemsFitL m → k8s_etcd3.inFits x → uf ≠ func.nil →
+  itemsFitL m → k8s_etcd3.inFits x → uf ≠ func.nil → GMap.size m.items < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness ∗
       modelOwn mp m ∗ k8s.preAt pp (k8s_etcd3.kpreOf x) ∗ k8s_etcd3.tryUpdateD x uf }}
     (App (App (App (App (App (App

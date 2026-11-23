@@ -46,7 +46,7 @@ theorem Model.Step.wp_proof
     (wp_TMR : apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG))
     (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (hG := hG)) :
     Model.Step.spec (GF := GF) (hG := hG) := by
-  intro mp m x r ro out hfit hin hparse hlist hnoth hfo hlo hoo
+  intro mp m x r ro out hfit hin hparse hlist hnoth hfo hlo hoo hsz
   cases ro with | mk o2 e2 =>
   cases out with | mk oo oe =>
   simp only at hfo hlo hoo
@@ -71,7 +71,7 @@ theorem Model.Step.wp_proof
       wp_join_done
   have hlx : x.Kind' = W64 4 → (parseRVD x.MinRV').isSome ∧ 0 ≤ sint.Z x.Limit' ∧
       (0 < sint.Z x.Limit' → x.MinRV' ≠ go!"0") := fun h => ⟨hparse, (hlist h).1, (hlist h).2⟩
-  wp_apply (wp_exec mp m x r hfit hin hlx) $$ [] as %resp %np %cp ⟨#Hresp, #Hcp, Hnp⟩
+  wp_apply (wp_exec mp m x r hfit hin hlx hsz) $$ [] as %resp %np %cp ⟨#Hresp, #Hcp, Hnp⟩
   · iframe Hm Hr
   cases resp with | mk o1 e1 =>
   by_cases k4 : x.Kind' = W64 4

@@ -534,6 +534,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   theorems from them (trust base -2). Still open: iterator specs (`Keys`, `slices.Sorted`/`Collect`,
   item 3's protocol), so `maps.Keys.wp_proof_objMap` stays an axiom; and a spec of `maps.Copy`
   (translated, no spec), which `featuregate.Add` needs.
+- **Status (2026-11-23, maps-keys).** The iterator specs are in Perennial `ccfeb3895` (in the pin):
+  `maps.wp_Sorted_Keys_string`. `maps.Keys.wp_proof_objMap` is a theorem from it (trust base -1), with
+  its premise `GMap.size M ≤ 2^62` added to `spec_objMap` (ledger, 2026-11-23) and supplied by the
+  k8s checker's model invariant (`itemsRO`).
 
 
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
