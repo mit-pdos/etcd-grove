@@ -265,24 +265,19 @@ theorem grpcHandlerOwnOkMd_slot {Req Rep : ProtoMsg GF} (h : val) (S S' F : IPro
   iframe
 
 /-- `Authenticate`'s slot is its handler's part of the run's slot with the interceptors' lent
-resources (`etcdIcRs`, whose `lgMu` reader is `authnSlot`'s). -/
+resources (`etcdIcRs`, whose `lgMu` reader is `authnSlot`'s), and the lent level-0 token. -/
 theorem authnSlot_lent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     iprop(iprop(srvLeadTimeReader s ∗ srvReadReader s γr ∗ E.RD) ∗ [∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
-      iprop(authnSlot s E γr ∗ True) := by
-  have hl : ([∗list] R ∈ etcdIcRs (GF := GF) s, R) ⊣⊢
-      iprop(srvLgReader s ∗ True ∗ True ∗ emp) := .rfl
+      iprop(authnSlot s E γr ∗ levelTok 0) := by
   unfold authnSlot
   constructor
   · iintro ⟨⟨Hlt, Hrr, Hrd⟩, Hl⟩
-    icases hl.1 $$ Hl with ⟨Hlg, -⟩
+    icases (etcdIcRs_eq s).1 $$ Hl with ⟨Hlg, H0⟩
     iframe
-  · iintro ⟨⟨Hlt, Hlg, Hrr, Hrd⟩, -⟩
+  · iintro ⟨⟨Hlt, Hlg, Hrr, Hrd⟩, H0⟩
     iframe
-    iapply hl.2
+    iapply (etcdIcRs_eq s).2
     iframe
-    isplitl []; · itrivial
-    isplitl []; · itrivial
-    itrivial
 
 /-- **`Authenticate`'s method as registered**, with etcd's spec at `γa`. -/
 def etcdAuthnMethod (pa : Loc) (γa : auth.AuthNames) : GrpcMethod GF :=
@@ -317,7 +312,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
         authnStoreOk (GoInterface.ok ast) E.RD ∗
         srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
         srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
         grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
@@ -358,7 +353,7 @@ theorem etcd_kv_auth_served_on (addr : GoString) (p q pa s : Loc)
   ihave #He := v3rpc.grpcHandlerOwnOkMd_frame _ _ iprop([∗list] R ∈ etcdIcRs s, R) _ $$ He
   ihave #Hn := grpcHandlerOwnOkMd_slot _ (authnSlot s E γr)
     iprop(iprop(srvLeadTimeReader s ∗ srvReadReader s γr ∗ E.RD) ∗ [∗list] R ∈ etcdIcRs s, R)
-    iprop(True) _ (authnSlot_lent s E γr).1 (authnSlot_lent s E γr).2 $$ Hn
+    (levelTok 0) _ (authnSlot_lent s E γr).1 (authnSlot_lent s E γr).2 $$ Hn
   ihave #Hmu := v3rpc.etcd_userAddMethodOk pa _ _ [il, im, iu] (etcdIcRs s) $$ [Hu Ppb Hics]
   · iframe #
   ihave #Hmg := v3rpc.etcd_userGrantRoleMethodOk pa _ _ [il, im, iu] (etcdIcRs s) $$ [Hg Ppb Hics]
@@ -503,7 +498,7 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty, #pl⟩ s ∗
       v3rpc.leaseServerAt pl s A lcid lmid ∗
       srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗ srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
-      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+      srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
       grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
     |={⊤}=> isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) ∗
       isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn s E ρ) := by
@@ -551,11 +546,11 @@ theorem etcd_lease_auth_served_on (addr : GoString) (ql pl s : Loc) (A : v3rpc.K
     iprop(etcdKVSlot s E γr ∗ v3rpc.quotaRd s) $$ [Hq Hr']
   · iframe #
   ihave #Hqg' := grpcHandlerOwnOkMd_slot _ iprop(etcdKVSlot s E γr ∗ v3rpc.quotaRd s)
-    iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) iprop(True) _
-    (by iintro H; isplitl [H]
-        · iapply (quotaRd_lent (etcdKVSlot s E γr) s).2; iexact H
-        itrivial)
-    (by iintro ⟨H, -⟩; iapply (quotaRd_lent (etcdKVSlot s E γr) s).1; iexact H) $$ Hqg
+    iprop((etcdKVSlot s E γr ∗ srvBemuReader s) ∗ [∗list] R ∈ etcdIcRs s, R) (levelTok 0) _
+    (by iintro H
+        icases (quotaRd_lent (etcdKVSlot s E γr) s).2 $$ H with ⟨⟨HK, H0⟩, Hq⟩
+        iframe)
+    (by iintro ⟨⟨HK, Hq⟩, H0⟩; iapply (quotaRd_lent (etcdKVSlot s E γr) s).1; iframe) $$ Hqg
   ihave #Hqr' := etcd_quotaHandler_lent _ (etcdKVSlot s E γr) s _ $$ Hqr
   ihave #Hics : srvInterceptorsOk (GF := GF) v3rpc.learnerReqOk [il, im, iu] (etcdIcRs s) $$ []
   · unfold etcdIcRs srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk srvInterceptorsOk

@@ -76,6 +76,41 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType Capability.ty go.bool)))) (Pair (App (Val (GoInstruction (GlobalVarAddr enabledMap))) (Val #())) (Var "$r0"))))))
   (Val #())))
 
+/-- go: capability.go:85:6 -/
+noncomputable def IsCapabilityEnabled.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "c" (App (Val (GoInstruction (GoAlloc Capability.ty))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 Capability.ty go.bool)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType Capability.ty go.bool)))) (App (Val (GoInstruction (GlobalVarAddr enabledMap))) (Val #())))) (App (Val (GoInstruction (GoLoad Capability.ty))) (Var "c")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.MapType Capability.ty go.bool)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.MapType Capability.ty go.bool)))) (App (Val (GoInstruction (GlobalVarAddr enabledMap))) (Val #()))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.MapType Capability.ty go.bool)))) (Val UntypedNil)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (GlobalVarAddr enableMapMu))) (Val #())))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (GlobalVarAddr enableMapMu))) (Val #()))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api where
   pkgImportedPkgs := [pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership]
 
@@ -85,6 +120,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -150,6 +186,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc capabilityMaps (go.GoType.MapType go.string (go.GoType.MapType Capability.ty go.bool)))) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc enableMapMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc enabledMap (go.GoType.MapType Capability.ty go.bool))) (Val #()))))))))
 
 abbrev Capability [GooseExts] : Type := GoString
@@ -184,6 +222,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Capability_instance : Capability.TypeAssumptions
   Cluster_instance : Cluster.TypeAssumptions
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  IsCapabilityEnabled_unfold : FuncUnfold IsCapabilityEnabled [] IsCapabilityEnabled.impl
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_membership_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions
@@ -191,6 +230,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 attribute [instance] Assumptions.Capability_instance
   Assumptions.Cluster_instance
   Assumptions.«init.0_unfold»
+  Assumptions.IsCapabilityEnabled_unfold
   Assumptions.import_semver_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_membership_Assumption

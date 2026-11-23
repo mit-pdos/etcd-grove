@@ -2031,30 +2031,33 @@ theorem etcd_watch_served (addr : GoString) (p : Loc) (R : WSrv GF) (W : SrvW GF
   simp only [m, pbWatchRequestT, pbWatchResponseT]
   iexact Hs
 
-/-- **etcd's stream run bundle as the watch method's slot** under a chain of two resource-free
-interceptors: a store reader token, the two interceptors' `True`, and the rest. -/
+/-- **etcd's stream run bundle as the watch method's slot** under a chain of two interceptors, a
+resource-free one and one with the run's level-0 token (`newStreamInterceptor`'s, prove-ps2-cap,
+2026-11-23: `IsCapabilityEnabled`'s): a store reader token, the interceptors' `True` and level 0,
+and the rest. -/
 theorem srvStreamBundle_watchSlot (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvStreamBundle s E γr ⊣⊢
       iprop((mvcc.api.mvccReaders E.γ 1 ∗ levelTok v3rpc.ctxErrLvl) ∗
-        [∗list] R' ∈ [iprop(True)] ++ [iprop(True)], R') ∗
-      iprop(levelTok 0 ∗ srvLgReader s ∗ (srvLeadTimeReader s ∗ E.RD) ∗
+        [∗list] R' ∈ [iprop(True)] ++ [levelTok 0], R') ∗
+      iprop(srvLgReader s ∗ (srvLeadTimeReader s ∗ E.RD) ∗
         (srvReadReader s γr ∗ srvBemuReader s)) := by
   unfold srvStreamBundle
   simp only [List.cons_append, List.nil_append]
   constructor
   · iintro ⟨H0, H4, Hlg, Hlt, Hrd, Hrr, Hbe⟩
-    isplitl [Hrd H4]
+    isplitl [Hrd H4 H0]
     · iframe Hrd H4
       iapply BigSepL.bigSepL_cons.2
       isplitl []
       · itrivial
       iapply BigSepL.bigSepL_cons.2
-      isplitl []
-      · itrivial
+      iframe H0
       iapply BigSepL.bigSepL_nil.2
       itrivial
     iframe
-  · iintro ⟨⟨⟨Hrd, H4⟩, -⟩, H0, Hlg, Hlt, Hrr, Hbe⟩
+  · iintro ⟨⟨⟨Hrd, H4⟩, HRs⟩, Hlg, Hlt, Hrr, Hbe⟩
+    icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨-, HRs⟩
+    icases BigSepL.bigSepL_cons.1 $$ HRs with ⟨H0, -⟩
     iframe
 
 /-- **The watch service is served by etcd's server** (`etcd_watch_served` at the stream chain
@@ -2075,7 +2078,7 @@ theorem etcd_watch_served_chain (addr : GoString) (p : Loc) (R : WSrv GF) (W : S
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isWatchServer p R ∗ srvWOk W R.wsl wsN ∗ srvStreamInterceptorOk im iprop(True) ∗
-      srvStreamInterceptorWOk is iprop(True) ∗ grpcStreamServerAt addr [im, is] sregs γ ∗
+      srvStreamInterceptorWOk is (levelTok 0) ∗ grpcStreamServerAt addr [im, is] sregs γ ∗
       srvRevokeBuilt R.s R.E ∗ srvRunPool R.s R.E γr ⊢
     |={⊤}=> isGrpcStreamMd (Req := pbWatchRequest) (Rep := pbWatchResponse) addr
       go!"/etcdserverpb.Watch/Watch" (watchUp R)
@@ -2084,7 +2087,7 @@ theorem etcd_watch_served_chain (addr : GoString) (p : Loc) (R : WSrv GF) (W : S
   have hb := srvStreamBundle_watchSlot (GF := GF) R.s R.E γr
   rw [← hγ] at hb
   iintro ⟨#Hpb, #Hinit, #Hws, #HW, #Him, #His, #Hsrv, #Hb, #Hrp⟩
-  iapply (etcd_watch_served addr p R W [im] [iprop(True)] is iprop(True) sregs γ γr _ hb.1 hb.2
+  iapply (etcd_watch_served addr p R W [im] [iprop(True)] is (levelTok 0) sregs γ γr _ hb.1 hb.2
     hγ Htb HL hset hreg)
   iframe #
   iunfold srvStreamInterceptorsOk
