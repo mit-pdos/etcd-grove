@@ -45,7 +45,7 @@ only, and every replica's rpc port the replica's. -/
 def master.worldOk (γc γm : GName) (W : net.rpc.RpcWorld netDistGF) : Prop :=
   (∀ a svc, lisAccepts go!":7001" a →
       W.SS a svc = if svc = go!"Master" then some (withErr (sp.masterSpec γc γm)) else none) ∧
-    ∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)
+    ∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (withErr (sp.replicaRpcSpec γc γm))
 
 /-- Returns only if `http.Serve` does (on a listener error): see the file header. -/
 abbrev master.Master.Run.spec : Prop :=

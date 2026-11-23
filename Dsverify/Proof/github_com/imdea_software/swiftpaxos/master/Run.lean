@@ -57,7 +57,7 @@ abbrev master.Master.run.spec : Prop :=
       master.isMaster m γc γm N ∗ master.fld m go!"nodes" ↦□ nodesS ∗
       nodesS ↦* List.replicate N null ∗ master.fld m go!"nextLeader" ↦ nl ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗
-      ⌜(∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)) ∧
+      ⌜(∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (withErr (sp.replicaRpcSpec γc γm))) ∧
         nl = W64 (-1)⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"run")) (Val #()))

@@ -71,7 +71,7 @@ error. -/
 theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
     (γc γm : GName) (cc : Conf) (pa btl : Loc) :
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
-        net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)⌝ ∗
+        net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (withErr (sp.replicaRpcSpec γc γm))⌝ ∗
         confIs γc cc ∗ pa ↦ replica.defs.BeTheLeaderArgs.mk ∗
         btl ↦ replica.defs.BeTheLeaderReply.mk (W32 (-1)) (W32 (-1)) }}
       (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
@@ -92,7 +92,8 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
         x1 = sp.KitVal.merge (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1))) y) ∨
         (∀ y : sp.KitVal, y.tag = 10 → sp.KitVal.wf y → rep ≠ y.encode)⌝)
   wp_apply net.rpc.Client.Call.wp c W a go!"Replica.BeTheLeader" go!"Replica" go!"BeTheLeader"
-    (sp.replicaRpcSpec γc γm) _ rp Φr iprop(True)
+    (withErr (sp.replicaRpcSpec γc γm)) _ rp (fun rep msg => iprop(⌜msg ≠ []⌝ ∨ Φr rep msg))
+    iprop(True)
     (kitValOwn rp (DFrac.own 1) (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1))))
     (fun rep ok => iprop(Φr rep [] ∗ Θ rep ok))
     $$ [$Hc Hpa Hbtl] as %err Hres
@@ -119,10 +120,16 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
       simp only [sp.KitVal.equiv] at Hx'
       subst Hx'
       isplitl
-      · iapply (sp.replicaRpcSpec_beTheLeader (γc := γc) (γm := γm) _ Φr).2
+      · unfold withErr
+        isplit
+        rotate_left
+        · iintro %msg %Hmsg
+          ileft; ipureintro; exact Hmsg
+        iapply (sp.replicaRpcSpec_beTheLeader (γc := γc) (γm := γm) _ _).2
         isplitr
         · ipureintro; rfl
         iintro %ld %nl Hok
+        iright
         iexists ld, nl
         isplitr
         · ipureintro; rfl
@@ -138,6 +145,8 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
       iexact Hbtl
     imodintro
     iintro HD %rep HΦr
+    icases HΦr with (%Hne | HΦr)
+    · exfalso; exact Hne rfl
     simp only [net.rpc.RpcCodec.spec]
     iapply KitLike.dec_intro
     unfold decT
@@ -197,7 +206,7 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
 theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
     (γc γm : GName) (pa pr : Loc) :
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
-        net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)⌝ ∗
+        net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (withErr (sp.replicaRpcSpec γc γm))⌝ ∗
         pa ↦ replica.defs.PingArgs.mk (W8 0) ∗ pr ↦ replica.defs.PingReply.mk }}
       (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
         (Val #(go!"Replica.Ping")))
@@ -207,7 +216,7 @@ theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoSt
   wp_start_folded as ⟨#Hcs, #Hko, #Hc, %HSS, Hpa, Hpr⟩
   let rp := interface.mkOk (go.GoType.PointerType replica.defs.PingReply.ty) #pr
   wp_apply net.rpc.Client.Call.wp c W a go!"Replica.Ping" go!"Replica" go!"Ping"
-    (sp.replicaRpcSpec γc γm) _ rp (fun _ _ => iprop(True)) iprop(True)
+    (withErr (sp.replicaRpcSpec γc γm)) _ rp (fun _ _ => iprop(True)) iprop(True)
     (kitValOwn rp (DFrac.own 1) sp.KitVal.pingReply) (fun _ _ => iprop(True))
     $$ [$Hc Hpa Hpr] as %err -
   · ihave %Hpan := typedPointsto_not_null _ _ _ $$ Hpa
@@ -233,7 +242,11 @@ theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoSt
       simp only [sp.KitVal.equiv] at Hx'
       subst Hx'
       isplitl
-      · iapply (sp.replicaRpcSpec_ping (γc := γc) (γm := γm) _ _).2
+      · unfold withErr
+        isplit
+        rotate_left
+        · iintro %msg %Hmsg; itrivial
+        iapply (sp.replicaRpcSpec_ping (γc := γc) (γm := γm) _ _).2
         iexists W8 0
         isplitr
         · ipureintro; rfl
@@ -436,7 +449,7 @@ theorem master.Master.run.wp_proof
           simp only [List.length_set] at Hcsl'; have := Hj.2.2.1; word)]
         wp_apply wp_load_slice_index _ (sint.Z j) _ _ c Hj.1 $$ [Hns] as Hns
         · iframe; ipureintro; rw [List.getElem?_set_self (by have := Hj.2.2.1; word)]
-        wp_apply master.wp_call_btl c W _ γc γm _ pa btl $$ [$Hc $Hconf $Hpa $Hbtl] as %berr Hbr
+        wp_apply master.wp_call_btl (C := kitCodec) c W _ γc γm _ pa btl $$ [$Hc $Hconf $Hpa $Hbtl] as %berr Hbr
         · iframe Hcs Hko; ipureintro; exact HSS.1 _ ha
         wp_join iprop(∃ (p : Loc) (l n : w32), btlReply_ptr ↦ p ∗
             p ↦ replica.defs.BeTheLeaderReply.mk l n ∗ ⌜master.btlR N l n⌝)
@@ -631,7 +644,7 @@ theorem master.Master.run.wp_proof
       try wp_auto
       wp_alloc pr as Hpr
       try wp_auto
-      wp_apply master.wp_call_ping cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
+      wp_apply master.wp_call_ping (C := kitCodec) cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
       · iframe Hcs Hko
         isplitr
         · ipureintro; exact HSS.1 _ Hacn
@@ -753,7 +766,7 @@ theorem master.Master.run.wp_proof
           rw [if_pos (show 0 ≤ sint.Z t ∧ sint.Z t < sint.Z nodesS0.len by rw [Hcs'] at htc; word)]
           wp_apply wp_load_slice_index _ (sint.Z t) _ _ cn Htn.1 $$ [Hns] as Hns
           · iframe; ipureintro; exact Hcn_lookup
-          wp_apply master.wp_call_btl cn W acn γc γm _ pa btl $$ [$Hcn $Hconf $Hpa $Hbtl] as %berr Hbr
+          wp_apply master.wp_call_btl (C := kitCodec) cn W acn γc γm _ pa btl $$ [$Hcn $Hconf $Hpa $Hbtl] as %berr Hbr
           · iframe Hcs Hko; ipureintro; exact HSS.1 _ Hacn
           icases Hbr with (⟨%He, %l, %n, Hb, %Hok⟩ | %He)
           · subst He
@@ -850,7 +863,7 @@ theorem master.Master.run.wp_proof
         try wp_auto
         wp_alloc pr as Hpr
         try wp_auto
-        wp_apply master.wp_call_ping cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
+        wp_apply master.wp_call_ping (C := kitCodec) cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
         · iframe Hcs Hko
           isplitr
           · ipureintro; exact HSS.1 _ Hacn
