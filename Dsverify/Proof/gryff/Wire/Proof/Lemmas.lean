@@ -516,8 +516,11 @@ theorem wst_congr (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF) (sent pe
 
 /-- The wrapped writer's prefix closure (the lab's `bufio.writerOk`'s third conjunct). -/
 theorem writerOk_prefixClosed (wr : WSt GF) (J Q : List w8 → IProp GF) :
-    writerOk wr J Q ⊢ EtcdGrove.io.prefixClosed Q :=
-  EtcdGrove.io.streamWriterOk_prefixClosed _ _ _ _
+    writerOk wr J Q ⊢ iprop(□ (∀ (x y : List w8), □ Q (x ++ y) -∗ Q x)) := by
+  iintro #H
+  ihave #Hpc := EtcdGrove.io.streamWriterOk_prefixClosed _ _ _ _ $$ H
+  iunfold EtcdGrove.io.prefixClosed at Hpc
+  iexact Hpc
 
 /-- `Flush()` (the lab's `bufio.wp_Flush`): dsv-bufio's `Writer.Flush.spec`. -/
 theorem wp_Flush (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)

@@ -423,8 +423,11 @@ wp_WriteByte/wp_NewWriter/wp_NewReader` -> `wire.…`, `bufio.prefixClosed` -> `
 Remaining, in order:
 1. **N** (26 lab modules left): `N/Generic` (in progress: renamed, `wp_WriteByte_sticky` and
    `writerOk_prefixClosed` redone over the wrappers; check it), `N/Marshal` (renamed, unchecked), then the
-   frontier `N/{WireDefs✓,WireInj✓,WireLaws✓,SliceElems✓}` -> `NetDefs` (needs `Proto2/Replica`,
-   ported? check) -> `Stats`, `SpecsDefs` (needs `Replica2/State`), ... The lab's room lemmas
+   frontier `N/{WireDefs✓,WireInj✓,WireLaws✓,SliceElems✓}` -> `NetDefs` (needs `Proto2/Replica`, NOT
+   ported yet: it imports `Proto2/{Laws✓,Wire✓}`, `Proto/WireLaws✓`, `Proto2P/Done✓` and the lab's
+   `Harness/Proof/github_com/goose_lang/primitive/Proph.lean`, a proved helper (no axiom:
+   `go.NotInterface go.prophId` and `ResolveU64` through a pointer) to copy into
+   `Dsverify/Proof/gryff/Lib/` if Perennial `7b2259a12` still lacks it) -> `Stats`, `SpecsDefs` (needs `Replica2/State`), ... The lab's room lemmas
    (`bufio.writerRoom`, `wp_WriteByte_room`, `wp_Write_room`, `wp_NewWriter_room`, `ownWriter_room`) are
    dsv-bufio's fit clauses (`err = nil ∧ pend.length + n ≤ sz → e = nil ∧ sent' = sent`) with
    `bufio.ownBufWriter_size`; `bufio.ownWriter_sentLb` -> `bufio.ownBufWriter_fact` with
