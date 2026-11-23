@@ -3,7 +3,10 @@
 # `val`, which a `let` cannot bind without knowing it is not a panic).
 # (prove-smallinits, 2026-11-20) `capabilityMaps` (a map literal of map literals) and the `init`
 # function setting `enabledMap` (until then `opaqueInitsOk` and `initFuncsOk`).
-translate = ["!*", "V3rpcCapability", "AuthCapability", "capabilityMaps", "enabledMap", "init.0"]
+# (prove-ps2-cap, 2026-11-23) `IsCapabilityEnabled` with its body, and the lock it read-locks
+# (`enableMapMu`; until then the trust-boundary axiom `api.IsCapabilityEnabled.wp_proof`).
+translate = ["!*", "V3rpcCapability", "AuthCapability", "capabilityMaps", "enabledMap", "init.0",
+  "enableMapMu", "IsCapabilityEnabled"]
 # The packages `Cluster`'s methods name (types.ID, *membership.Member, *semver.Version), so that
 # the interface type is translated (v3rpc's newHeader calls `s.Cluster().ID()` through it).
 imports = ["!*", "go.etcd.io/etcd/client/pkg/v3/types",

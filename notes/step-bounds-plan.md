@@ -7,8 +7,9 @@ allows. Steps, as in #30:
 1. **Done** (branch `step-bounds-mechanical`, enqueued 2026-11-22): `logkvrw` (`2^63`), `mvccrand`,
    `mvccfull` (`2^38`), `k8s/all` (`2^40 - 11`) off the thread-induced step bound.
    1b. `bboltfs`: needs crash adequacy along the execution (Perennial; open).
-2. **The backend's write-back budget** (this Scope, below).
-3. **`K` time receipts per request id** (after 2; its Scope later).
+2. **Done** (landed `0f20102d32`): the backend's buffered entries paid by time receipts; the etcd
+   statements at `2^48`. 2b. `OpenBackend`'s receipt premise (Q2): branch `openbackend-receipt`.
+3. **`K` time receipts per request id** (its Scope below, 2026-11-22: a hard stop for the user).
 4. **The ceiling recorded**: `nonissues/etcd-request-id-suffix-wrap-dup-panic.md` (done), and
    `notes/robustness.md` once 2-3 land.
 
@@ -127,5 +128,58 @@ session 2) are in this chain.
   before this change, `2 ^ 60` now). Harmless in every closed theorem (`receiptBound ≤ 2 ^ 48`), but
   the axiom claims `New`'s post for any receipt bound. Fix: add `[ReceiptBoundLe GF (2 ^ 60)]` to its
   spec (only weakens the axiom). Not done in this step: its caller, the server's `applySnapshot`
-  walk, has no receipt bound in scope (follow-up; Q2).
+  walk, has no receipt bound in scope (follow-up; Q2). Done after it (2b, the user's request,
+  2026-11-22, branch `openbackend-receipt`): `srvSnapRO`'s receipt conjunct, which the walk's write
+  stock used (`receiptBound ≤ wbInit - 6`), is now `receiptBound ≤ 2 ^ 60` (its builders in
+  `NewServer`/`NewServerR` prove it from `2 ^ 48`; it implies the old one), so is `applySnapshot`'s
+  `hrbw`, and the walk passes it to `OpenSnapshotBackend` as the instance.
 - **Build fix**: `mvcc/BackendBridge.lean`'s `batchLocked_dls` names the new `bufRc` conjunct.
+
+## Step 3: Scope (2026-11-22; a hard stop: the user's approval)
+
+### What changed since the outline
+
+- **The statements it would raise are retiring.** kaashoek's coordinator (#30, 2026-11-22):
+  `etcd_safe`, `k8s_safe` and `leaseexpiryN`'s closed theorem retire at the `net` swap (tagged for the
+  paper), replaced by `etcd_dist_safe`/`k8s_dist_safe` (#24/#28: stated as drafts, not proved; their
+  bound to be `2^48`, matching step 2). No new work on the retiring three. So step 3 has no proved
+  top-level statement to raise today: its gain lands in the dist theorems once they are proved.
+- **Hot files.** Proving session 2 (#18) is working in the request path's neighbourhood (members,
+  `succ`, `bridge` after the swap).
+
+### What limits the bound
+
+`idutil.Generator.Next` (`Spec/.../idutil/Generator__Next.lean`) takes `idCred γi 1`, which is the pure
+fact `receiptBound GF ≤ 2 ^ 48` (`Defs.lean:284`): the generator's invariant holds `⧗ k` for the `k`
+ids issued and `Next` adds one from its own `AddUint64` step, so `k < receiptBound ≤ 2^48` and the
+48-bit suffix does not wrap (the wrap is a real `dup id` panic: `nonissues/etcd-request-id-suffix-wrap-dup-panic.md`).
+131 Spec/Proof files state `receiptBound GF ≤ 2 ^ 48` or `ReceiptBoundLe GF (2 ^ 48)`: the server and
+its examples carry the generator's fact; some (mvcc, apply, auth's fuel) may use it for their own
+counters, to audit.
+
+### The change (options)
+
+**A. `K` exclusive receipts per id** (the outline). `idCred γi n` becomes `⧗ (K · n)` (exclusive;
+`K = 2^6`); the generator's invariant holds `⧗ (K · k)`, so `K · k < receiptBound ≤ K · 2^48`.
+Every caller of `Next` (`processInternalRaftRequestOnce`, `LeaseGrant` (two ids), the read loop's
+`requestCurrentIndex`) collects `K` tokens from its own counted Go steps since its last id
+(`wp_go_step_receipt`, one per step), instead of the unbounded supply `□ |==> idCred ρ.ids 1` it uses
+now (`InvStart`, `InvBuild`, `AuthCompRows`: `#HNR`). The static count (#30) says each path has
+100-150 Go steps before `Next` (`LeaseGrant` 50-75 per id). Then every other `2^48` premise is
+audited: raised to `K · 2^48` where it is the generator's, kept (with a separate argument) where it is
+a counter of its own. Cost: the three callers' proofs (long: the request path's), a token-collecting
+idiom (each harvested step is a tactic step), the 131 files' premises; trusted text: none, top-level
+statements: the dist theorems' bound (kaashoek's files).
+
+**B. Defer A until `etcd_dist_safe` is proved** (and the swap has landed): same work, done against
+the statements that will exist, after the request path's current work settles. Nothing is lost
+meanwhile: no closed theorem would show the gain before then.
+
+**C. A only below the theorems now** (idutil and the three callers, the premises as they are): the
+generator's proof and callers ready, the `2^48` premises raised later with the dist theorems.
+
+**Decision: B, the user's (2026-11-22): "let's defer and do other things first".** The agent's
+recommendation was B: A's gain (about `2^54` steps, 200+ days at 10^9 steps/s) appears in no proved
+statement until the dist theorems are proved, and its proof work sits in files others are changing
+now; C pays most of A's cost early and collides with them. In the meantime: the `mvcc*` follow-up
+(`2^38`, step 2's note) and `bboltfs` (1b, Perennial) are independent of the swap.
