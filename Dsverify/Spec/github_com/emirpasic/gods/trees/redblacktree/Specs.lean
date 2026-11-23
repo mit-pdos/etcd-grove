@@ -112,14 +112,16 @@ abbrev Tree.replaceNode.spec : Prop :=
   {{ RET #(); tr ↦ Tree.mk (replaceRes rt h old new).1 sz cmp ∗
       ownNodes (replaceRes rt h old new).2 D }}
 
-/-- `tree.rotateLeft(n)` at the subtree `node n A (node r B E)` in the context `C`. -/
+/-- `tree.rotateLeft(n)` at the subtree `node n A (node r B E)` in the context `C`; the colors
+unchanged. -/
 abbrev Tree.rotateLeft.spec : Prop :=
   ∀ (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (C : Ctx GoInterface) (h : Loc → Node)
     (D : List Loc) (n : Loc) (k : w64) (v : GoInterface) (A : RB GoInterface)
     (r : Loc) (k' : w64) (v' : GoInterface) (B E : RB GoInterface),
   {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v A (.node r k' v' B E))) h D }}
     (App (Val (tr @!! go.GoType.PointerType Tree.ty @!! go!"rotateLeft")) (Val #n))
-  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node r k' v' (.node n k v A B) E)) h' D }}
+  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node r k' v' (.node n k v A B) E)) h' D ∗
+      ⌜∀ x, (h' x).color' = (h x).color'⌝ }}
 
 /-- `tree.rotateRight(n)` at the subtree `node n (node l A B) E` in the context `C`. -/
 abbrev Tree.rotateRight.spec : Prop :=
@@ -128,7 +130,8 @@ abbrev Tree.rotateRight.spec : Prop :=
     (v' : GoInterface) (A B E : RB GoInterface),
   {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v (.node l k' v' A B) E)) h D }}
     (App (Val (tr @!! go.GoType.PointerType Tree.ty @!! go!"rotateRight")) (Val #n))
-  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node l k' v' A (.node n k v B E))) h' D }}
+  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node l k' v' A (.node n k v B E))) h' D ∗
+      ⌜∀ x, (h' x).color' = (h x).color'⌝ }}
 
 /-- The fix-up's result: the same entries, the root black. -/
 def fixPost (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface)

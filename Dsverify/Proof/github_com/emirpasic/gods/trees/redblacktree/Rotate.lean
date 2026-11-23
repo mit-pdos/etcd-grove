@@ -201,28 +201,36 @@ theorem Tree.rotateLeft.wp_proof (wp_replace : Tree.replaceNode.spec (GF := GF))
     ihave Hns := Hback $$ Hn
     iapply HΦ
     iexists _
-    iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
-    rotate_left
-    · iframe
-    refine Rep_rotL hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
-    · simp [upd_apply, hnr]
-    · simp [upd_apply, hnr, Ne.symm hnr]
-    · intro b kb vb BL BR e; cases e
-    · intro f C' hC'
-      obtain ⟨hfn1, hfr1, -⟩ := hpD f C' hC'
-      subst hC'
-      obtain ⟨hf, hC'⟩ := hC
-      have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
-      simp only [Ctx.parent_cons] at h1p
-      simp only [upd_apply, if_neg hfn1, if_neg hfr1]
-      rw [h1p hfn]
-      exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
-    · intro l hl1 hl2 _ hl4
-      simp only [upd_apply, if_neg hl1, if_neg hl2]
-      apply h1o l _ hl2
-      cases C with
-      | nil => right; rfl
-      | cons f C' => left; exact hl4 f C' rfl
+    isplitl
+    · iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
+      rotate_left
+      · iframe
+      refine Rep_rotL hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
+      · simp [upd_apply, hnr]
+      · simp [upd_apply, hnr, Ne.symm hnr]
+      · intro b kb vb BL BR e; cases e
+      · intro f C' hC'
+        obtain ⟨hfn1, hfr1, -⟩ := hpD f C' hC'
+        subst hC'
+        obtain ⟨hf, hC'⟩ := hC
+        have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
+        simp only [Ctx.parent_cons] at h1p
+        simp only [upd_apply, if_neg hfn1, if_neg hfr1]
+        rw [h1p hfn]
+        exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
+      · intro l hl1 hl2 _ hl4
+        simp only [upd_apply, if_neg hl1, if_neg hl2]
+        apply h1o l _ hl2
+        cases C with
+        | nil => right; rfl
+        | cons f C' => left; exact hl4 f C' rfl
+    · ipureintro
+      have hc1 : ∀ y, (h1 y).color' = (h y).color' := fun y => hh1 ▸ replaceRes_color _ h n r y
+      repeat (first | exact hc1 | refine color_upd' ?_ ?_)
+      all_goals first
+        | rfl
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr]; done)
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr, hbr', Ne.symm hbr', hbn', Ne.symm hbn']; done)
   | node b kb vb BL BR =>
     obtain ⟨hbnn, hhb, -, -⟩ := hB
     have hbn' : b ≠ n := fun e => hnB (by simp [e])
@@ -255,33 +263,41 @@ theorem Tree.rotateLeft.wp_proof (wp_replace : Tree.replaceNode.spec (GF := GF))
     ihave Hns := Hback $$ Hn
     iapply HΦ
     iexists _
-    iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
-    rotate_left
-    · iframe
-    refine Rep_rotL hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
-    · simp [upd_apply, hnr, Ne.symm hbn']
-    · simp [upd_apply, hnr, Ne.symm hnr, Ne.symm hbr']
-    · intro b' kb' vb' BL' BR' e
-      cases e
-      rw [hhb]
-      simp [upd_apply, hbn', hbr']
-    · intro f C' hC'
-      obtain ⟨hfn1, hfr1, hfB⟩ := hpD f C' hC'
-      subst hC'
-      obtain ⟨hf, hC'⟩ := hC
-      have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
-      simp only [Ctx.parent_cons] at h1p
-      have hfb1 : f.loc ≠ b := hfB b (by simp)
-      simp only [upd_apply, if_neg hfn1, if_neg hfr1, if_neg hfb1]
-      rw [h1p hfn]
-      exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
-    · intro l hl1 hl2 hl3 hl4
-      have hl3' : l ≠ b := hl3 b kb vb BL BR rfl
-      simp only [upd_apply, if_neg hl1, if_neg hl2, if_neg hl3']
-      apply h1o l _ hl2
-      cases C with
-      | nil => right; rfl
-      | cons f C' => left; exact hl4 f C' rfl
+    isplitl
+    · iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
+      rotate_left
+      · iframe
+      refine Rep_rotL hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
+      · simp [upd_apply, hnr, Ne.symm hbn']
+      · simp [upd_apply, hnr, Ne.symm hnr, Ne.symm hbr']
+      · intro b' kb' vb' BL' BR' e
+        cases e
+        rw [hhb]
+        simp [upd_apply, hbn', hbr']
+      · intro f C' hC'
+        obtain ⟨hfn1, hfr1, hfB⟩ := hpD f C' hC'
+        subst hC'
+        obtain ⟨hf, hC'⟩ := hC
+        have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
+        simp only [Ctx.parent_cons] at h1p
+        have hfb1 : f.loc ≠ b := hfB b (by simp)
+        simp only [upd_apply, if_neg hfn1, if_neg hfr1, if_neg hfb1]
+        rw [h1p hfn]
+        exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
+      · intro l hl1 hl2 hl3 hl4
+        have hl3' : l ≠ b := hl3 b kb vb BL BR rfl
+        simp only [upd_apply, if_neg hl1, if_neg hl2, if_neg hl3']
+        apply h1o l _ hl2
+        cases C with
+        | nil => right; rfl
+        | cons f C' => left; exact hl4 f C' rfl
+    · ipureintro
+      have hc1 : ∀ y, (h1 y).color' = (h y).color' := fun y => hh1 ▸ replaceRes_color _ h n r y
+      repeat (first | exact hc1 | refine color_upd' ?_ ?_)
+      all_goals first
+        | rfl
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr]; done)
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr, hbr', Ne.symm hbr', hbn', Ne.symm hbn']; done)
 
 
 theorem Tree.rotateRight.wp_proof (wp_replace : Tree.replaceNode.spec (GF := GF)) :
@@ -372,28 +388,36 @@ theorem Tree.rotateRight.wp_proof (wp_replace : Tree.replaceNode.spec (GF := GF)
     ihave Hns := Hback $$ Hn
     iapply HΦ
     iexists _
-    iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
-    rotate_left
-    · iframe
-    refine Rep_rotR hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
-    · simp [upd_apply, hnr]
-    · simp [upd_apply, hnr, Ne.symm hnr]
-    · intro b kb vb BL BR e; cases e
-    · intro f C' hC'
-      obtain ⟨hfn1, hfr1, -⟩ := hpD f C' hC'
-      subst hC'
-      obtain ⟨hf, hC'⟩ := hC
-      have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
-      simp only [Ctx.parent_cons] at h1p
-      simp only [upd_apply, if_neg hfn1, if_neg hfr1]
-      rw [h1p hfn]
-      exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
-    · intro l hl1 hl2 _ hl4
-      simp only [upd_apply, if_neg hl1, if_neg hl2]
-      apply h1o l _ hl2
-      cases C with
-      | nil => right; rfl
-      | cons f C' => left; exact hl4 f C' rfl
+    isplitl
+    · iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
+      rotate_left
+      · iframe
+      refine Rep_rotR hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
+      · simp [upd_apply, hnr]
+      · simp [upd_apply, hnr, Ne.symm hnr]
+      · intro b kb vb BL BR e; cases e
+      · intro f C' hC'
+        obtain ⟨hfn1, hfr1, -⟩ := hpD f C' hC'
+        subst hC'
+        obtain ⟨hf, hC'⟩ := hC
+        have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
+        simp only [Ctx.parent_cons] at h1p
+        simp only [upd_apply, if_neg hfn1, if_neg hfr1]
+        rw [h1p hfn]
+        exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
+      · intro l hl1 hl2 _ hl4
+        simp only [upd_apply, if_neg hl1, if_neg hl2]
+        apply h1o l _ hl2
+        cases C with
+        | nil => right; rfl
+        | cons f C' => left; exact hl4 f C' rfl
+    · ipureintro
+      have hc1 : ∀ y, (h1 y).color' = (h y).color' := fun y => hh1 ▸ replaceRes_color _ h n r y
+      repeat (first | exact hc1 | refine color_upd' ?_ ?_)
+      all_goals first
+        | rfl
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr]; done)
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr, hbr', Ne.symm hbr', hbn', Ne.symm hbn']; done)
   | node b kb vb BL BR =>
     obtain ⟨hbnn, hhb, -, -⟩ := hB
     have hbn' : b ≠ n := fun e => hnB (by simp [e])
@@ -426,33 +450,41 @@ theorem Tree.rotateRight.wp_proof (wp_replace : Tree.replaceNode.spec (GF := GF)
     ihave Hns := Hback $$ Hn
     iapply HΦ
     iexists _
-    iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
-    rotate_left
-    · iframe
-    refine Rep_rotR hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
-    · simp [upd_apply, hnr, Ne.symm hbn']
-    · simp [upd_apply, hnr, Ne.symm hnr, Ne.symm hbr']
-    · intro b' kb' vb' BL' BR' e
-      cases e
-      rw [hhb]
-      simp [upd_apply, hbn', hbr']
-    · intro f C' hC'
-      obtain ⟨hfn1, hfr1, hfB⟩ := hpD f C' hC'
-      subst hC'
-      obtain ⟨hf, hC'⟩ := hC
-      have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
-      simp only [Ctx.parent_cons] at h1p
-      have hfb1 : f.loc ≠ b := hfB b (by simp)
-      simp only [upd_apply, if_neg hfn1, if_neg hfr1, if_neg hfb1]
-      rw [h1p hfn]
-      exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
-    · intro l hl1 hl2 hl3 hl4
-      have hl3' : l ≠ b := hl3 b kb vb BL BR rfl
-      simp only [upd_apply, if_neg hl1, if_neg hl2, if_neg hl3']
-      apply h1o l _ hl2
-      cases C with
-      | nil => right; rfl
-      | cons f C' => left; exact hl4 f C' rfl
+    isplitl
+    · iapply (treeRaw_of tr enc cmp _ _ D sz ⟨?_, hpermT, hnd⟩)
+      rotate_left
+      · iframe
+      refine Rep_rotR hrep0 hndT _ ?_ ?_ ?_ ?_ ?_
+      · simp [upd_apply, hnr, Ne.symm hbn']
+      · simp [upd_apply, hnr, Ne.symm hnr, Ne.symm hbr']
+      · intro b' kb' vb' BL' BR' e
+        cases e
+        rw [hhb]
+        simp [upd_apply, hbn', hbr']
+      · intro f C' hC'
+        obtain ⟨hfn1, hfr1, hfB⟩ := hpD f C' hC'
+        subst hC'
+        obtain ⟨hf, hC'⟩ := hC
+        have hfn : f.loc ≠ null := RepC_parent_ne_null (C := f :: C') ⟨hf, hC'⟩ (by simp)
+        simp only [Ctx.parent_cons] at h1p
+        have hfb1 : f.loc ≠ b := hfB b (by simp)
+        simp only [upd_apply, if_neg hfn1, if_neg hfr1, if_neg hfb1]
+        rw [h1p hfn]
+        exact ((holeSet_eq hf hnn (fun hm => hnC (by simp [Ctx.locs, hm])) r).2).symm
+      · intro l hl1 hl2 hl3 hl4
+        have hl3' : l ≠ b := hl3 b kb vb BL BR rfl
+        simp only [upd_apply, if_neg hl1, if_neg hl2, if_neg hl3']
+        apply h1o l _ hl2
+        cases C with
+        | nil => right; rfl
+        | cons f C' => left; exact hl4 f C' rfl
+    · ipureintro
+      have hc1 : ∀ y, (h1 y).color' = (h y).color' := fun y => hh1 ▸ replaceRes_color _ h n r y
+      repeat (first | exact hc1 | refine color_upd' ?_ ?_)
+      all_goals first
+        | rfl
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr]; done)
+        | (simp [hc1, upd_apply, hnr, Ne.symm hnr, hbr', Ne.symm hbr', hbn', Ne.symm hbn']; done)
 
 end proof
 

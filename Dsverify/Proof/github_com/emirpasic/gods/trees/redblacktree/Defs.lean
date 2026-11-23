@@ -239,6 +239,33 @@ theorem replaceRes_facts {rt : Loc} {h : Loc → Node} {old new : Loc}
       · intro _; simp [upd_apply, hnp', hL]
       · simp [hp]
 
+theorem replaceRes_color (rt : Loc) (h : Loc → Node) (old new x : Loc) :
+    ((replaceRes rt h old new).2 x).color' = (h x).color' := by
+  simp only [replaceRes]
+  by_cases hp : (h old).Parent' = null
+  · simp only [hp, if_true]
+    by_cases hn : new = null
+    · simp [hn]
+    · simp only [hn, if_false, upd_apply]; split <;> simp_all
+  · simp only [hp, if_false]
+    by_cases hL : (h (h old).Parent').Left' = old
+    · simp only [hL, if_true]
+      by_cases hn : new = null
+      · simp only [hn, if_true, upd_apply]; split <;> simp_all
+      · simp only [hn, if_false, upd_apply]; split <;> split <;> simp_all
+    · simp only [hL, if_false]
+      by_cases hn : new = null
+      · simp only [hn, if_true, upd_apply]; split <;> simp_all
+      · simp only [hn, if_false, upd_apply]; split <;> split <;> simp_all
+
+theorem color_upd' {h h0 : Loc → Node} {l : Loc} {X : Node}
+    (hh : ∀ y, (h y).color' = (h0 y).color') (hX : X.color' = (h l).color') :
+    ∀ y, (upd h l X y).color' = (h0 y).color' := by
+  intro y
+  by_cases hy : y = l
+  · subst hy; rw [upd_same, hX, hh]
+  · rw [upd_ne h l y X hy, hh]
+
 /-- The leftmost node of `T` (`tree.Left()`): `nil` for an empty tree. -/
 def leftmost (T : RB GoInterface) (m : Loc) : Prop :=
   (T = .leaf ∧ m = null) ∨
