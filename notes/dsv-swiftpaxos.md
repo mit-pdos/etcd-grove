@@ -148,6 +148,23 @@ Read with the eighth session's state below (accurate where this does not say oth
   operations (`ops` counter), for the proof's `2^10` sequence-number bound. Retranslated; `go test`
   (TestModel, TestRPC*, TestGenCodec, TestDeployment) passes.
 
+- **The receivers over the generated `rpcReceiver`** (Net's shape): `NetRpc/Bind.lean` (defs:
+  `mOf`, `newArgOk`, `methodOk_of`, `rpcCodec_spec_eq : RpcCodec.spec = swiftCodec`,
+  `swiftCodec_rcv_eq`, `withErr_pure`: a pure fact off a `withErr` deposit), after dsv-epaxos's
+  `NetRpc/Bindings.lean`. `master/Rcvr.lean`: `master.rcvr.wp_proof (wp_Printf) : master.rcvr.spec`
+  (`master.rcvr.spec`, master/Run.lean, now `⌜m ≠ null⌝ ∗ codecSet RpcCodec.spec ∗ isMaster … ⊢
+  RpcCodec.spec.rcv mptr (rcvrIs … (withErr masterSpec) "Master" false)`), from the master's
+  method proofs and `swiftSrvCodecLaws`/`swiftArgFacts`/`swiftDecLen`. `swift/Rcvr.lean`:
+  `swift.rcvr.wp_proof (wp_BTL) : swift.rcvr.spec` (the spec moved to Spec/swift/New.lean, in the
+  same shape for `withErr replicaRpcSpec`/`"Replica"`). **`swift.New.spec` changed:** its post is
+  that receiver fact (the lab's `rcvrOk`/`methods`/name gone), its pre adds `codecSet
+  RpcCodec.spec` and, instead of `addrTok a`, the replica's persistent `lisProto (replica.wildOf a)
+  (sp.inP …) (sp.outQ …)` (what `replica.connPre` needs since the transport port; the boot must give
+  it). Deleted: the kitgen `CodecFns` (Spec/…/swiftnet, swift/, swiftnet/codec/). `master.Run`,
+  `swift.NewProof`, `master.Link` build; `swift.Link` fails only through the lab kit
+  (`examples.swiftnet.ServersSpecs` → `Interface`, for `setMaxDesc.wp_proof`). Left for the lab
+  kit's removal: `net.rpc.rcvrOk`, `RpcCodec.call`/`methods`, `KitLike.call_eq`/`methods_eq`.
+
 **Kit build (`sw-build36.log`, after the codec switch):** the only failures are the lab kit
 (`examples.swiftnet.*`: Interface, OrchGen, codec/{Prim,RoundTrip}, CodecFns, ServersLink, …),
 the missing lab files (`netrpc.rpc.LocalRegister`, `encoding.gob.SetCodec` ×2) and `client.Link`
