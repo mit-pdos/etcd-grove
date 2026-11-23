@@ -82,6 +82,28 @@ theorem etcdNetExts_initP (g : GlobalState) (nodes : List (Expr × state))
       extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld :=
   fun hg _ => ⟨⟨trivial, trivial, hg.2.2.1, trivial⟩, fun m hm => ⟨trivial, Hfs m hm, trivial, trivial⟩⟩
 
+open Iris.ProofMode in
+/-- **The file extension's start resources on a machine of `etcdNetExts`** (`etcdFs_start`'s, without the
+files): from the machine's local start resources, the invariant of the mapped cells and the tree's whole
+history (what `wp_walAreas` takes; the net extension's, the listeners, are not taken). -/
+theorem etcdNetFs_start [GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] (σ : state) :
+    ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
+      Fs.osInv (L := hG.goose_localGS) ∗
+      Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) (extLocal Fs.fsExt σ.world).fs.roots
+        ((extLocal Fs.fsExt σ.world).fs.treeDur, []) := by
+  haveI : Fs.FsSemOk := etcdFsSemOk
+  have Hl : extsLocalStart (GF := GF) σ.world ⊢
+      Fs.osStart (Fs.gooseOsGS (L := hG.goose_localGS)) (extLocal Fs.fsExt σ.world) :=
+    (sep_elim_right (P := iprop(True))).trans sep_elim_left
+  iintro Hs
+  icases Hl $$ Hs with Hs
+  unfold Fs.osStart Fs.osStartF Fs.treeStart
+  icases Hs with ⟨⟨-, -, Hv⟩, Hd⟩
+  imod Fs.osInv_alloc (L := hG.goose_localGS) ⊤ $$ Hv with #Hinv
+  imodintro
+  iframe Hinv
+  unfold Fs.osTree; iexact Hd
+
 end EtcdGrove
 end Perennial
 

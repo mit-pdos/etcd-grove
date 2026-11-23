@@ -1,0 +1,67 @@
+/-
+`Member(peer, client)` (`examples/etcd/dist/putget/putget.go`): the member machine's program of
+`putget_safe` -- `env.ClearProxy()`, the one member of a new cluster (`etcdstart.StartServer(Name, peer,
+client, zap.NewNop())`), etcd's gRPC API served at `client` (`etcdstart.Serve`), then `holdForever()`; an
+error from a step returns. Lean-first (no Rocq counterpart); `notes/putget-dist-plan.md`, section 10.
+
+**The triple:** from the package's `isPkgInit`, the main thread's token, the member's named Iris premises
+(`etcdstart.premises`, the in-process putget's), its data directory fresh (`dataDirFresh`) and its WAL area
+fresh (`memberAreasFresh`), its share of the distributed start against phase 7 S2's draft names
+(`memberShare`: its client address set to serve etcd's table at the publication name `γE` and its member id
+`id`, its half of the publication token, the publication invariant at `Pub`) and the obligation on `Pub`
+(`memberPubOk`: a putget invariant at a view's read names gives `Pub` of the view), `Member` does not panic.
+It publishes its view at `γE` once `Serve` succeeds (S2's `Serve_s2`), with the client's putget invariant
+allocated from the bootstrap log's KV state.
+
+**The pure premises:** the in-process putget's (`Spec/.../examples/etcd/putget/Main.lean`): `bootstrap`'s
+results (`BootFacts`), the logic's bounds, the server's workload and environment premises, the gRPC service
+values' method sets; and the peer URL `http://peer` plain (`host:port`, what the one-member directory
+takes).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace etcd_putget_dist
+
+open Iris Iris.BI Net go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
+
+/-- See the file header. -/
+abbrev Member.spec : Prop :=
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS] (S : S2Draft (G := hG.goose_globalGS) GF)
+    (peer client : GoString) (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (γE : GName) (Pub : S.EnvView → IProp GF),
+  etcdstart.BootFacts id ctxs boot →
+  types.plainPeerURL (go!"http://" ++ peer) →
+  threadBound GF ≤ 2 ^ 28 → srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
+  receiptBound GF ≤ N + 1 → N + 7 + bootWB ≤ backend.wbInit →
+  authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
+  v3rpc.ServerMethodSets →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
+      threadTok ∗ etcdstart.premises (GF := GF) name peer client N id ctxs boot ∗
+      dataDirFresh (GF := GF) (memberDataDir name) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
+      memberShare (G := hG.goose_globalGS) S client γE id Pub ∗ memberPubOk S Pub }}
+    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member)) (Val #peer))
+      (Val #client))
+  {{ RET #(); True }}
+
+end spec
+
+end etcd_putget_dist
+end EtcdGrove
+end Perennial

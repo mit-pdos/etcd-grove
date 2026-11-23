@@ -412,3 +412,57 @@ hypothesis (`S2Holds`) of `putget_safe_of_s2`. The trust-base reports see no new
 `putget_safe` theorem yet), and the skeleton is a linking module under `Proof/` (tier check ok). What to watch at
 the gates: `etc/tcb-report.py --check` (no `Link`/`Results` of ours, so no new root), the interface of
 `etcdstart/NetExts` (generated, committed), `etc/api-check.py etc/api/etcdstart.txt --check`.
+
+## 10. The member's boot, proved against S2's draft (2026-11-23, branch `putget-boot`)
+
+`putget_safe_of_s2` now takes only the **client** half as a boot hypothesis: the member machine's boot is
+proved (`member_boot`, `Proof/.../dist/putget/MemberLinked.lean`) from `S2Holds` and four named hypotheses
+(`MemberBootHyps`), no axiom, no `sorry`.
+
+**What is proved.**
+- `Member.wp_proof` (`Proof/.../dist/putget/Member.lean`, spec `Spec/.../dist/putget/Member.lean`):
+  `env.ClearProxy` (callee spec, gives `envVerifyOff`), `zap.NewNop`, the member's start bundle
+  (`etcdstart.memberStartRes_one`), `StartServer` from the named premises (`etcdstart.wp_StartServer1`,
+  new in `etcdstart/StartOne.lean`, **shared with the in-process `Main.wp_proof`**, which now uses it in
+  place of its own copy of the glue: `bootPremise_of`, `commonPremises`, `alloc1`, the one-member directory),
+  the client's putget invariant from the bootstrap log's KV state, `Serve` in S2's form (`S2Draft.Serve_s2`),
+  publishing the view with `Pub`, then `holdForever` (`holdForever.wp_proof`, a `time.Sleep` loop).
+- `member_boot`: `DistBootWpSL srvLevelK (2^28-1) (bootMember peer client) σm (memberShare S client γE id
+  (putgetPub S))`: the file extension's start on a machine of `etcdNetExts` (`etcdNetFs_start`, new in
+  `etcdstart/NetExts.lean`), the member's WAL area from `MemberFiles` (`wp_walAreas`), `putget`'s
+  `wp_initialize'`, `Member.wp_proof` at its linked callees.
+- `Pub` is fixed: `putgetPub S ν := ∃ γf, ∀ L, client.putGetInv (hG := heapAt G L lctx) (viewRd ν) γf k v`
+  (`Defs.lean`): the client's invariant at every local ghost state over the global one (it reads only the
+  global part, `putGetInv_heap`, by `rfl`). The member's obligation on `Pub` is `memberPubOk`.
+- `memberShare`/`clientShare` moved from `TopLevelRobustness` to the defs module `Defs.lean`.
+
+**`S2Draft.Serve_s2` (PLACEHOLDER, this skeleton's statement of his §3 prose).** At the member's heap: from
+`memberUp s ρ E₀ lg γn mid` (the started member, its id `mid` = the table's), today's `Serve.spec` premises
+(logger, method sets, quota, bounds, plus `grpcRepliesFit`, `srvLevels`, `receiptBound ≤ 2^48`, which today's
+caller-side `kv_served` takes), `grpcAddrAt a (etcdSvc γE mid) ∗ envPubHalf γE ∗ envPubInv γE Pub` and the
+caller's `∀ ν, ⌜viewRd ν = ρ.rd⌝ ={⊤}=∗ □ Pub ν`: an error, or `∃ ν, envAt γE ν ∗ ⌜viewRd ν = ρ.rd⌝`.
+Taking the whole `memberUp` (not its parts) is what ties the table's `mid` to the server's member id; to
+check with upamanyus.
+
+**The receipt floor.** `Serve` needs `srvLevels` (`srvLevelK ≤ threadBound`), which `DistBootWpS` (receipts
+`≤ bound` only) cannot give for short executions. `Net/Statement/DistBridgeExts.lean` gains
+`DistBootWpSL lo bound` and `robust_of_distBootIL` (an execution of `n` steps run at `max (n+1) lo`
+receipts); `robust_of_distBootI` is its floor-0 corollary (statement unchanged). `PutgetBoot` and the boots
+now use the floor `srvLevelK`, and `PutgetBoot` takes the addresses' `addrOk` (from `DistDeploy`).
+
+**The named hypotheses (`MemberBootHyps`), each with no source yet on a distributed machine:**
+- `clearProxy`: `dist_env.ClearProxy.spec` (`Spec/.../dist/env/ClearProxy.lean`, no proof file) — needs an
+  `os.Unsetenv` model with the environment as machine-local state (Perennial change, not made);
+- `names`: `⊢ prometheus.namesFree initNames` — until `prom-registry` (registry on the machine's heap);
+- `dataDir`: `⊢ dataDirFresh (memberDataDir name)` — until `dataDirFresh` is a definition over the machine's
+  file tree (WAL link; blocked on the fs redesign, #15). Consistent: no axiom says `nameFree`/`dataDirFresh`
+  is exclusive (`Start.lean`'s satisfiability argument);
+- `peerPlain`: `addrOk a = true → types.plainPeerURL ("http://" ++ a)` — a pure fact, provable, not yet done.
+
+**What remains for `putget_safe`:** `S2Holds` (S2, including `Serve_s2`), `MemberBootHyps`, and the client
+half `PutgetClientS2` (`ClientBootS2`: `DistBootWpSL srvLevelK _ (bootClient client) σc (clientShare S client
+γE id (putgetPub S))`): the in-process second half over S2's `Invoke`; `NewClient`'s `srvWEnv` names the
+member's watch server state `R` (heap-dependent), which S2's `NewClient`/view must replace; the view comes
+from the first call's `etcdPubSpec` reply, then `kvRegsPub_at` and `putgetPub` (opened at the client's heap)
+give `kvRegsAt` and the putget invariant. The client also needs `names` for its own initializer and
+`plainEndpoint client`.
