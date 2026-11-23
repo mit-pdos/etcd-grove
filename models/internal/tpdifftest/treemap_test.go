@@ -264,41 +264,61 @@ func TestTreemapEdges(t *testing.T) {
 	tr.save(t)
 }
 
-// TestTreemapOutside: what the model does not model panics with a NotModelled value in the model
-// (a change to a map while an iterator over it is in use, Select's f included; JSON); gods does
-// something (not compared).
-func TestTreemapOutside(t *testing.T) {
-	m := treemap.NewWith(tmCompare)
-	for i := 0; i < 5; i++ {
-		m.Put(tmKey{i, 0}, i)
+// TestTreemapMutation: what the earlier sorted-slice model left outside it (a change to a map while
+// an iterator over it is in use, Select's f included; JSON) is gods' own code in the model since
+// 2026-11-23 (only the red-black tree iterator's Next/Prev are rewritten): the outcomes are
+// written to the transcript, compared between the builds.
+func TestTreemapMutation(t *testing.T) {
+	tr := newTranscript("treemap-mutation")
+	fresh := func() *treemap.Map {
+		m := treemap.NewWith(tmCompare)
+		for i := 0; i < 5; i++ {
+			m.Put(tmKey{i, 0}, i)
+		}
+		return m
 	}
-	cases := map[string]func(){
-		"put during iteration": func() {
+	cases := []struct {
+		name string
+		f    func(m *treemap.Map)
+	}{
+		{"put during iteration", func(m *treemap.Map) {
 			it := m.Iterator()
 			it.Next()
 			m.Put(tmKey{10, 0}, 10)
-			it.Next()
-		},
-		"put inside Select": func() {
-			m.Select(func(k, v interface{}) bool { m.Put(tmKey{20, 0}, 20); return true })
-		},
-		"overwrite during iteration": func() {
+			for it.Next() {
+				tr.printf("  %v", it.Value())
+			}
+		}},
+		{"put inside Select", func(m *treemap.Map) {
+			sel := m.Select(func(k, v interface{}) bool { m.Put(tmKey{20, k.(tmKey).K}, 20); return true }) // one key past the end: the walk ends
+			tr.printf("  sel %s / m %s", sel.String(), m.String())
+		}},
+		{"overwrite during iteration", func(m *treemap.Map) {
 			it := m.Iterator()
 			it.Next()
-			m.Put(tmKey{0, 1}, 0)
-			it.Value()
-		},
-		"MarshalJSON": func() { m.MarshalJSON() },
-		"UnmarshalJSON": func() { m.UnmarshalJSON([]byte(`{"1":1}`)) },
+			m.Put(tmKey{0, 1}, 100)
+			tr.printf("  %v", it.Value())
+		}},
+		{"remove during iteration", func(m *treemap.Map) {
+			it := m.Iterator()
+			it.Next()
+			it.Next()
+			m.Remove(tmKey{1, 0})
+			for it.Next() {
+				tr.printf("  %v", it.Value())
+			}
+		}},
+		{"MarshalJSON", func(m *treemap.Map) {
+			b, err := m.MarshalJSON()
+			tr.printf("  %q %v", b, err)
+		}},
+		{"UnmarshalJSON", func(m *treemap.Map) {
+			err := m.UnmarshalJSON([]byte(`{"1":1}`))
+			tr.printf("  %v", err)
+		}},
 	}
-	for name, f := range cases {
-		nm := notModelled(f)
-		t.Logf("%s: NotModelled %v (model=%v)", name, nm, model)
-		if model && !nm {
-			t.Errorf("model: %s did not panic NotModelled", name)
-		}
-		if !model && nm {
-			t.Errorf("gods: %s panicked NotModelled", name)
-		}
+	for _, c := range cases {
+		tr.printf("%s: %s", c.name, outcome(func() { c.f(fresh()) }))
 	}
+	tr.save(t)
 }
