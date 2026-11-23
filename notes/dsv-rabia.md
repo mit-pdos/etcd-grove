@@ -74,6 +74,9 @@ it; all 230 modules under `Dsverify/{Proof,Spec}/rabia` and the libraries' build
    `os.Signal` values `SigListen`'s literal makes) and gives it back: Go's `Notify(c)` with no
    signals relays every signal, the runtime's `SIGURG` included. `NoSignals` stays the environment
    assumption, over exactly those two. `os.signal.Hyps` (`Notify`, `Stop`) was unused: removed.
+   (2026-11-23, dsv-swiftpaxos review fix 3: one `NotifyQuiet.spec (sigs : List os.Signal)`, with
+   `sigs ≠ []`, and one class `NoSignals sigs`, shared with swiftpaxos (`[SIGUSR1]`); rabia's
+   premise is `os.signal.NoSignals quietSigs`.)
 2. gogo `proto`'s `InitHyp` holds only its `wp_initialize'` (`etc/dsv/README.md`'s rule); the three
    `Register*` specs are a premise of their own, `github_com.gogo.protobuf.proto.Hyps`
    (`proto/Spec.lean`): each holds the package state `ownGoState σ` (registrations are made by

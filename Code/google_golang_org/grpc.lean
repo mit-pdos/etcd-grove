@@ -6,7 +6,7 @@ public import Perennial.Code.context
 public import Perennial.Code.io
 public import Code.google_golang_org.grpc.keepalive
 public import Code.google_golang_org.grpc.resolver
-public import Code.net
+public import Net.Code.net
 public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
 public import Code.google_golang_org.grpc.metadata

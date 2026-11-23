@@ -292,9 +292,9 @@ theorem run.wp_proof
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
-      iunfold etcdLeaseGrantSpecLive
-      iunfold etcdLeaseGrantSpecGR
-      iunfold etcdLeaseGrantSpecG
+      iunfold etcdLeaseGrantSpecLive, etcdLeaseGrantSpecLiveW
+      iunfold etcdLeaseGrantSpecGRW
+      iunfold etcdLeaseGrantSpecGW
       isplitr
       · ipureintro; rfl
       iintro %r - - ⟨%i, %l, #Hlv, -⟩
@@ -430,7 +430,7 @@ theorem run.wp_proof
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
-      iunfold etcdLeaseLeasesSpecLive
+      iunfold etcdLeaseLeasesSpecLive, etcdLeaseLeasesSpecLiveW
       iexists k
       iframe Hlbk
       iintro %r Hr

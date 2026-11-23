@@ -12,8 +12,9 @@ of raft's `PbEntryType.lean`, for the WAL: W6 of `notes/wal-fsext-plan.md`, §2.
 - `recPtsCC l dq c`: a `*walpb.Record` at `l` holding exactly `c`, its fields at `dq` (cells and
   bytes persistent); `recRoC l c` its frozen form (`dq = □`), what `Size`/`Marshal` read; the
   decoded object (`decC`) is the owned form.
-- **The encoder is a transparent Lean function** (`WalEnc.recEnc`, the wire format), and the
-  decoder `recDecode` opaque: what `proto.Unmarshal` makes of the bytes.
+- **The encoder and the decoder are transparent Lean functions** (`WalEnc.recEnc`, the wire format,
+  and `recDecode`, `WalEnc.recDecodeRaw`: what `proto.Unmarshal` makes of the bytes; opaque until
+  2026-11-23).
 - **The decoded object is owned whole** (`recOwnC l c`, the instance's `decC`; 2026-11-13, W3a):
   every field, the hidden ones (`state`, `sizeCache`, `unknownFields`) included, at `1`, and `Data`'s
   bytes owned. Unlike raft's types, whose decoded objects put the hidden fields in an invariant
@@ -23,14 +24,16 @@ of raft's `PbEntryType.lean`, for the WAL: W6 of `notes/wal-fsext-plan.md`, §2.
   decoded message is fresh (`Data` copied out of the input), and protobuf-go keeps no reference to
   it after `Unmarshal` returns. A frozen record (`recRoC`, what `Marshal` reads) keeps the invariant.
 
-**Trusted, pending the user's review** (two axioms, as for every registered type):
-- `recEncC_ok`: protobuf-go decodes `recEnc c` back to `c`'s model when `c`'s unknown fields are
-  valid at the schema. With `recEnc`'s definition this is the claim that `recEnc` is protobuf-go's
-  encoding. Measured: `examples/stdlib/walpb` (`TestRecordEncoder`: 200,000 random contents,
-  `proto.Marshal`, `MarshalOptions{UseCachedSize: true}.MarshalAppend` and `proto.Size` against
-  `recEnc`/`recSize`, and `proto.Unmarshal(recEnc c)` giving back exactly `c`; `TestRecordSchema`:
-  the descriptor against `recSchema`; protobuf-go v1.36.12, go1.27.3).
-- `pbRecordC_reg`: the registration, of the exact shape `pbModelOf GF walpb.Record.ty = some …`.
+**Trusted, pending the user's review**: the registration `pbRecordC_reg`, of the exact shape
+`pbModelOf GF walpb.Record.ty = some …`. (Until 2026-11-23, protobuf stage S2, also `recEncC_ok`,
+that protobuf-go decodes `recEnc c` back to `c`'s model when `c`'s unknown fields are valid at the
+schema; now a theorem, `recDecode` being `WalPbWire.lean`'s `recDecodeRaw`, so that the trusted
+`proto.UnmarshalWalRecord` claims agreement with that Lean decoder, checked against protobuf-go by
+`Proof/google_golang_org/protobuf/proto/RecordWireVectors.lean`.) `recEnc`'s evidence:
+`examples/stdlib/walpb` (`TestRecordEncoder`: 200,000 random contents, `proto.Marshal`,
+`MarshalOptions{UseCachedSize: true}.MarshalAppend` and `proto.Size` against `recEnc`/`recSize`;
+`TestRecordSchema`: the descriptor against `recSchema`; protobuf-go v1.36.12, go1.27.3), and the
+vectors module.
 `recSchema` is `pbSchemaOf walpb.Record.ty` (`PbSchema.lean`), which `etc/pbschema-check.py` reads
 against the Go descriptor, as raftpb's (and `examples/stdlib/walpb`'s `TestRecordSchema`).
 -/
@@ -51,14 +54,23 @@ namespace EtcdGrove
 
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.wal WalEnc
 
-/-- **Decoding a `walpb.Record`'s bytes** (opaque: `proto.Unmarshal`): the decoder's view, or
-`none`. -/
-opaque recDecode (bs : List w8) : Option WalRec
+/-- **Decoding a `walpb.Record`'s bytes** (`proto.Unmarshal`): the decoder's view, or `none`.
+`recDecodeRaw` (`WalPbWire.lean`, protobuf stage S2: until 2026-11-23 opaque), checked against
+protobuf-go by `RecordWireVectors.lean`. -/
+def recDecode (bs : List w8) : Option WalRec := recDecodeRaw bs
 
-/-- **The trust boundary: `walpb.Record`'s encoding** (pending the user's review; see the file
-header). -/
-axiom recEncC_ok (c : RecC) : ufWire recSchema c.uf → recSize c < 2 ^ 63 →
-    recDecode (recEnc c) = some c.model
+/-- **`walpb.Record`'s encoding round-trips** (until 2026-11-23 the axiom at the trust boundary; now
+a theorem, from `Wire.decode_encode`; see the file header). -/
+theorem recEncC_ok (c : RecC) : ufWire recSchema c.uf → recSize c < 2 ^ 63 →
+    recDecode (recEnc c) = some c.model := by
+  intro hu hs
+  refine recDecodeRaw_enc c hu ?_
+  intro d hd
+  rcases c with ⟨t, k, d', u⟩
+  simp only at hd
+  subst hd
+  simp only [recSize] at hs
+  omega
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

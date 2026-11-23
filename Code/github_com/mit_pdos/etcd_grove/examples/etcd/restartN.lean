@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.context
-public import Code.net
+public import Net.Code.net
 public import Code.net.http
 public import Perennial.Code.sync
 public import Perennial.Code.time

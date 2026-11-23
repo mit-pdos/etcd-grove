@@ -77,7 +77,7 @@ abbrev EtcdServer.LeaseRenew.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); E.RD ∗
       levelTok lease.lessorLvl ∗ levelTok v3rpc.ctxErrLvl ∗ srvLgReader s ∗ srvReadReader s γr ∗
-      ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
+      ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom (srvTLSId s) E tok n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
        (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 

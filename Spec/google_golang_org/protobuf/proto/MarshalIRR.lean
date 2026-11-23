@@ -122,7 +122,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header.
+(errors-is-deadline, 2026-11-23) Since then the post's `applyErrIs` also says that the error tree's
+errors of type `context.deadlineExceededError` hold `deadlineExceededError{}` (`deTyped`). Go's
+typing makes this true of every Go error: `deadlineExceededError` is a field-less struct type, whose
+only value is `deadlineExceededError{}`. The model does not type interface values, and `togRPCError`
+compares the error with `context.DeadlineExceeded`, so the fact is stated. It was accepted by the
+coordinator under the user's approval of the same typing class (2026-11-23), and review was
+requested on #31. -/
 abbrev proto.MarshalIRR.spec : Prop :=
   ∀ (p : Loc) (rq : apply.IRRModel),
   -- (2026-10-31, `axiom/txn-nested-wire`'s attack 9) the request within protobuf-go's recursion

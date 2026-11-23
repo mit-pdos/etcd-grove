@@ -1621,7 +1621,11 @@ attempt's error would carry a non-handler description with no handler run), and 
 context error's (`ctxErrShape`: not an `EtcdError`, no `Is` method; `examples/axiomcx/incomingof-real`). The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`); `ctxErrs` adds `Done()`'s (`ctxDone`, premise fixes 5). It is what a context
 outside Perennial's model meets: k8s's `wait.ContextForChannel(stopCh)` (a `channelContext`, whose
 `Done()` is `stopCh` and whose `Err()` is `Canceled` once `stopCh` is closed; not an `isContext`,
-whose `parentCancelCtx` finds a `*cancelCtx`). -/
+whose `parentCancelCtx` finds a `*cancelCtx`). (errors-is-deadline, 2026-11-23, approved by the user)
+An error of dynamic type `deadlineExceededError` holds `deadlineExceededError{}`. Go guarantees this
+by typing (the type's only value), but the model has no typing of interface values. It is what
+`errors.Is(err, context.DeadlineExceeded)` needs to compare the error with its target
+(`errors.IsDeadlineExceeded`, the client's `contextErrToGRPCErr`). -/
 def ctxErrsErr (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IProp GF :=
   iprop(□ ∀ (cl : Broadcast) (Φ : val → IProp GF),
     (match cl with
@@ -1636,7 +1640,9 @@ def ctxErrsErr (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IPro
         go_etcd_io.etcd.cache.v3.errCellOk err -∗
         (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
           ⌜err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
-            go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+            go_etcd_io.etcd.cache.v3.ctxErrShape e ∧
+            (e.ty = _root_.Perennial.context.deadlineExceededError.ty →
+              e.v = #(zero_val _root_.Perennial.context.deadlineExceededError))⌝ ∗
           go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 

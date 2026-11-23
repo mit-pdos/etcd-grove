@@ -8,7 +8,8 @@ distributed deployment's (`Robust []`, under `DistDeploy`: `Net/Statement/DistBr
 `robust_of_distProto`:
 
 - `remote_start`: from the protocol library's registry and the addresses unset, the slot map
-  (`mapCtx`, `mapCtx_alloc`) and, for any service `S` chosen later (a store `R.svc`, once the
+  (`mapCtx`, `mapCtx_alloc`), the call budgets (`N` for each of the distinct addresses `baddrs`, the
+  client nodes', with their units; none for the others) and, for any service `S` chosen later (a store `R.svc`, once the
   instance has made the ghost state its `R.sysState` names; or a report), every address's protocols
   (`addrs_set_proto`, `svcAddr`).
 - `remote_robust`: for a store `R` (the counter's statement); the instance's obligation is an update from those to a share per machine, each
@@ -40,21 +41,25 @@ section start
 variable [GoGlobalContext]
 variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 
-/-- **The deployment's start**: the slot map, and the addresses' protocols for a service chosen
-later. -/
+/-- **The deployment's start**: the slot map, the call budgets (`N` for each of `baddrs`, with
+their units), and the addresses' protocols for a service chosen later. -/
 theorem remote_start {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
-    (addrs : List GoString) :
+    (addrs baddrs : List GoString) (N : Nat) (hnd : baddrs.Nodup) :
     ⊢ regCtx (Gg := G) -∗ ([∗list] a ∈ addrs, addrUnset (Gg := G) a) ={⊤}=∗
-      ∃ ρ : RemoteGS, mapCtx (Gg := G) (ρ := ρ) (I := I) ∗
+      ∃ ρ : RemoteGS, ⌜∀ a, ρ.bud a = if a ∈ baddrs then some N else none⌝ ∗
+        mapCtx (Gg := G) (ρ := ρ) (I := I) ∗
+        ([∗list] a ∈ baddrs, budUnits (Gg := G) (ρ := ρ) a N) ∗
         ∀ S : RSvc GF I O, |={⊤}=> [∗list] a ∈ addrs, svcAddr (Gg := G) S a := by
   iintro #Hreg Hs
-  imod mapCtx_alloc (Gg := G) (I := I) ⊤ with ⟨%ρ, #Hm⟩
+  imod mapCtx_alloc (Gg := G) (I := I) ⊤ baddrs N hnd with ⟨%ρ, %Hb, #Hm, Hu⟩
   imodintro
   iexists ρ
-  iframe Hm
+  iframe Hm Hu
+  isplitr
+  · ipureintro; exact Hb
   iintro %S
   unfold svcAddr
-  iapply addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) S) (fun _ => repP (Gg := G) S) addrs
+  iapply addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) S a) (fun _ => repP (Gg := G) S) addrs
     $$ Hreg Hs
 
 end start
@@ -67,9 +72,11 @@ variable {St I O : Type} [Pos.Countable I] [Pos.Countable O]
 slot map and the addresses' protocols set for a store of its choice, to a share per machine from
 which the machine's boot program is safe, `Robust []` under the deployment. -/
 theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g : GlobalState)
-    (threads bound : Nat)
+    (threads bound : Nat) (baddrs : List GoString) (N : Nat) (hnd : baddrs.Nodup)
     (Hstart : ∀ [G : GooseGlobalGS .hasLC netGF] [π : NetProtoGS] [ρ : RemoteGS],
+      (∀ a, ρ.bud a = if a ∈ baddrs then some N else none) →
       ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
+        ([∗list] a ∈ baddrs, budUnits (Gg := G) a N) -∗
         (∀ R : RBase netGF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
         ∃ Ps : Nat → IProp netGF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → DistBootWp m.1 (Ps i)⌝ ∗
@@ -78,8 +85,9 @@ theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g 
   refine robust_of_distProto addrs nodes g threads bound ?_
   intro G π
   iintro #Hreg Hs
-  imod remote_start (GF := netGF) (I := I) (O := O) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩
-  iapply @Hstart G π ρ $$ Hreg Hm [Hset]
+  imod remote_start (GF := netGF) (I := I) (O := O) addrs baddrs N hnd $$ Hreg Hs
+    with ⟨%ρ, %Hb, #Hm, Hu, Hset⟩
+  iapply @Hstart G π ρ Hb $$ Hreg Hm Hu [Hset]
   iintro %R
   iapply Hset
 
@@ -88,9 +96,11 @@ theorem remote_robust (addrs : List GoString) (nodes : List (Expr × state)) (g 
 lintest's clock uses (the counter, R4). -/
 theorem remote_robustRB {GF : BundledGFunctors} [GooseGpreS GF] (addrs : List GoString)
     (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
+    (baddrs : List GoString) (N : Nat) (hnd : baddrs.Nodup)
     (Hstart : ∀ [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS] [ρ : RemoteGS],
-      receiptBound GF ≤ bound →
+      receiptBound GF ≤ bound → (∀ a, ρ.bud a = if a ∈ baddrs then some N else none) →
       ⊢ regCtx (Gg := G) -∗ mapCtx (Gg := G) (I := I) -∗
+        ([∗list] a ∈ baddrs, budUnits (Gg := G) a N) -∗
         (∀ R : RBase GF St I O, |={⊤}=> [∗list] a ∈ addrs, remoteAddr (Gg := G) R a) ={⊤}=∗
         ∃ Ps : Nat → IProp GF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m → DistBootWpG m.1 (Ps i)⌝ ∗
@@ -99,8 +109,9 @@ theorem remote_robustRB {GF : BundledGFunctors} [GooseGpreS GF] (addrs : List Go
   refine robust_of_distProtoRB (GF := GF) addrs nodes g threads bound ?_
   intro G π hb
   iintro #Hreg Hs
-  imod remote_start (GF := GF) (I := I) (O := O) addrs $$ Hreg Hs with ⟨%ρ, #Hm, Hset⟩
-  iapply @Hstart G π ρ hb $$ Hreg Hm [Hset]
+  imod remote_start (GF := GF) (I := I) (O := O) addrs baddrs N hnd $$ Hreg Hs
+    with ⟨%ρ, %Hbud, #Hm, Hu, Hset⟩
+  iapply @Hstart G π ρ hb Hbud $$ Hreg Hm Hu [Hset]
   iintro %R
   iapply Hset
 

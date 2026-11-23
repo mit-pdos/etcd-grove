@@ -47,7 +47,12 @@ def perennial_instances():
 def fpath(pkg):
     return pkg.replace("«", "").replace("»", "").replace(".", "/")
 
+# (net-swap, etcd-dist D2, 2026-11-22) the main tree's `net` is the part `Net/`'s translation
+NET_PART = {"net"}
+
 def genproof_module(pkg, ours):
+    if pkg in NET_PART:
+        return "Net.GeneratedProof." + pkg
     path = fpath(pkg)
     if os.path.exists(os.path.join(ROOT, "GeneratedProof", path + ".lean")):
         return "GeneratedProof." + pkg
@@ -65,13 +70,14 @@ def inst_name(pkg):
 def main():
     check = "--check" in sys.argv
     ours = scan_pkginfo(ROOT, "Code")
+    ours.update({k: v for k, v in scan_pkginfo(ROOT, os.path.join("Net", "Code")).items() if k in NET_PART})
     theirs = scan_pkginfo(os.path.join(PER, "Perennial"), "Code")
     info = dict(theirs); info.update(ours)
     pinst = perennial_instances()
     # A package this repository translates itself (Code/<pkg>.lean: os, io/fs, net/http, ...) is
     # not Perennial's: its names clash with Perennial's translation, so its instance is local.
     for pkg in ours:
-        if os.path.exists(os.path.join(ROOT, "GeneratedProof", fpath(pkg) + ".lean")):
+        if pkg in NET_PART or os.path.exists(os.path.join(ROOT, "GeneratedProof", fpath(pkg) + ".lean")):
             pinst.pop(pkg, None)
     lasts = {}
     for pkg in info:

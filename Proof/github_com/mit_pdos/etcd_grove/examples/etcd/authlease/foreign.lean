@@ -63,7 +63,7 @@ theorem foreign.wp_proof
   ihave #Hout : metadata.outMD ci (akOut who) $$ []
   · unfold akOut; iexact Hout0
   (try wp_auto)
-  wp_apply (wp_Revoke lp conn [addr] (etcdLeaseRevokeSpecOn s E ρ) _
+  wp_apply (wp_Revoke lp conn [addr] (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) _
       ci (akOut who) cd id) as %r %err Hr
   · iframe #
     iapply (revoke_attempt s E ρ conn _ n id Qr (fun _ => iprop(∃ σ, Qr σ)))
@@ -103,9 +103,9 @@ theorem foreign.wp_proof
   ihave #Hopts := leaseOptsAt_one (GF := GF) _ f (fun _ => true) $$ [Hslo Hf]
   · iframe #
   (try wp_auto)
-  wp_apply (wp_TimeToLive lp conn [addr] (etcdLeaseTTLSpecMd s E (mvcc.api.mvccLeases E.γ))
+  wp_apply (wp_TimeToLive lp conn [addr] (etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s (mvcc.api.mvccLeases E.γ)) E (mvcc.api.mvccLeases E.γ))
       (fun _ => iprop(∃ tok : Option GoString, akTokSeen γa who tok ∗
-        leaseCheckFrom s E tok n (fun info =>
+        leaseCheckFrom (srvTLSId s) E tok n (fun info =>
           leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) m id .read))) ci (akOut who) cd id _ [fun _ => true])
     as %r %err Hr
   · iframe #
@@ -132,10 +132,10 @@ theorem foreign.wp_proof
   ihave #Hout : metadata.outMD ci (akOut who) $$ []
   · unfold akOut; iexact Hout0
   (try wp_auto)
-  wp_apply (wp_Leases lp conn [addr] (etcdLeaseLeasesSpecMd s E (mvcc.api.mvccLeases E.γ))
+  wp_apply (wp_Leases lp conn [addr] (etcdLeaseLeasesSpecMd (srvTLSId s) E (mvcc.api.mvccLeases E.γ))
       (fun r => iprop(∃ (tok : Option GoString) (i : Nat), ⌜m ≤ i⌝ ∗ akTokSeen γa who tok ∗
         lease.leaseIdsAt (mvcc.api.mvccLeases E.γ) i r.ids ∗
-        leaseCheckFrom s E tok n (fun info => iprop([∗list] id' ∈ r.ids,
+        leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id' ∈ r.ids,
           leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) i id' .read)))) ci (akOut who) cd) as %r %err Hr
   · iframe #
     iapply (leases_attempt_seen s E (mvcc.api.mvccLeases E.γ) γa who conn _ n m _ hout)

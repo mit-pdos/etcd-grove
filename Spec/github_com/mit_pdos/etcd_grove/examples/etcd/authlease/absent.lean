@@ -38,7 +38,7 @@ abbrev absent.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease ∗
       clientTokAt root [addr] P ∗
-      isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn (srvTLSId s) E γr cid mid) ∗
       committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
       □ (⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu γr.kv Q) ∗
       □ (∀ m : RangeRespM, rangeReplyOk E γr c F (rangeWireOf (opGetModel k [])) cid mid Q m -∗

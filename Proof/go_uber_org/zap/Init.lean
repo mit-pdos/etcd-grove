@@ -28,7 +28,9 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Proof.go_uber_org.zap.internal.Init
+public import Proof.go_uber_org.zap.internal.bufferpool.Init
 public import Proof.go_uber_org.zap.internal.pool.Init
+public import Proof.go_uber_org.zap.internal.stacktrace.Init
 public import Proof.go_uber_org.zap.zapcore.Init
 public import Proof.net.url.Init
 public import Proof.os.Init
@@ -99,7 +101,7 @@ theorem EtcdGrove.zap_wp_NewNop_init :
   iexists _
   iframe
   ipureintro
-  exact ⟨⟨_, rfl⟩, rfl, rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl, rfl⟩
 
 /-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/
 theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :

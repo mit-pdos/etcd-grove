@@ -236,7 +236,7 @@ theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
 
-theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Run [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcd_auth.Run.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_auth.Run.wp_proof etcdstart.wp_Serve etcdstart.wp_NewClient auth.authStore.wp_BcryptCost context.wp_ErrAny wp_SetUp wp_newUserClient wp_Work wp_Principals wp_CheckHistory wp_LastIn context.wp_WithTimeoutBackground etcdstart.wp_Collect client.v3.watcher.wp_Watch v3.wp_WithPrefix v3.wp_WithRev v3.wp_WithRange wp_Permitted mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
@@ -253,7 +253,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 variable (h_auth_startServer : EtcdGrove.etcd_auth.startServer.spec (GF := GF) (hG := hG))
 include h_auth_startServer
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcd_auth.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcd_auth.Main.wp_proof zap.wp_NewNop h_auth_startServer wp_Run mvcc.api.mvccApi_names_nonempty_law_holds
 
