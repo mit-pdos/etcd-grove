@@ -1,47 +1,47 @@
-// Command prophcheck checks that a prophecy patch of Go files only adds ghost code:
+// Command prophcheck checks that a prophecy patch of Go files only adds prophecy-only code:
 //
 //	prophcheck ORIG PATCHED [ORIG PATCHED]...
 //
 // The pairs are the files a project's prophecy patches change (etc/proph_patch.py): ORIG, the
-// project's file, and PATCHED, the same file with the patches applied. PATCHED with its ghost
+// project's file, and PATCHED, the same file with the patches applied. PATCHED with its prophecy-only
 // code erased must be ORIG, as syntax trees (positions, comments and formatting do not matter).
-// notes/proph-patch-rule.md lists the checks. The ghost code is:
+// notes/proph-patch-rule.md lists the checks. The prophecy-only code is:
 //
-// Ghost declarations (top level), each with a name that occurs in no Go file of ORIG's directory
+// Prophecy-only declarations (top level), each with a name that occurs in no Go file of ORIG's directory
 // (the package; "fresh"):
 //
-//	var NAME = primitive.NewProph()                      a ghost variable
-//	var NAME primitive.ProphId                           a ghost variable, with its ghost
+//	var NAME = primitive.NewProph()                      a prophecy-only variable
+//	var NAME primitive.ProphId                           a prophecy-only variable, with its prophecy-only
 //	func init() { L := primitive.NewProph(); NAME = L }  initializer (Goose's form)
-//	type T struct { ...; NAME primitive.ProphId; ... }   a ghost field (in a struct type of ORIG)
-//	func NAME(PARAMS) { BODY }                           a ghost helper
-//	func (R RT) NAME(PARAMS) { BODY }                    a ghost helper method (NAME unexported)
+//	type T struct { ...; NAME primitive.ProphId; ... }   a prophecy-only field (in a struct type of ORIG)
+//	func NAME(PARAMS) { BODY }                           a prophecy-only helper
+//	func (R RT) NAME(PARAMS) { BODY }                    a prophecy-only helper method (NAME unexported)
 //
-// A ghost field is unexported, has no tag, and the program must not compare its struct with ==,
+// A prophecy-only field is unexported, has no tag, and the program must not compare its struct with ==,
 // use it in a map key, or reflect on it: checked on the type-checked packages of the field's Go
 // module (fieldUses, uses.go). A helper has no results and no type parameters, and its BODY holds
 // only helper statements:
 //
-//	P.ResolveBool(E)   P.ResolveU64(E)        P a ghost prophecy: a ghost variable, X.F for a
-//	                                          ghost field F, or a local prophecy of the patch
-//	H(E...)   X.H(E...)                       a call of a ghost helper (helpers do not recurse)
+//	P.ResolveBool(E)   P.ResolveU64(E)        P an added prophecy: a prophecy-only variable, X.F for a
+//	                                          prophecy-only field F, or a local prophecy of the patch
+//	H(E...)   X.H(E...)                       a call of a prophecy-only helper (helpers do not recurse)
 //	NAME := E   NAME = E   NAME op= E         NAME a local of the helper (a parameter or a local
 //	NAME++   NAME--                           it defines)
 //	if C { S... } else { S... }               (no init statement)
 //	for I := E; I < E2; I++ { S... }          (the body does not assign I)
 //	{ S... }   return                         (no results)
 //
-// Ghost statements (in any statement list of the PATCHED file outside the helpers):
+// Prophecy-only statements (in any statement list of the PATCHED file outside the helpers):
 //
 //	NAME := primitive.NewProph()              NAME not in ORIG: a local prophecy
-//	P.ResolveBool(E)   P.ResolveU64(E)        P a ghost prophecy
-//	H(E...)   X.H(E...)                       a call of a ghost helper
-//	X.F = primitive.NewProph()                F a ghost field
+//	P.ResolveBool(E)   P.ResolveU64(E)        P an added prophecy
+//	H(E...)   X.H(E...)                       a call of a prophecy-only helper
+//	X.F = primitive.NewProph()                F a prophecy-only field
 //	if C { S... } else { S... }               (no init statement; the branches, the else
 //	                                           optional or an `else if` of the same kind, hold
-//	                                           ghost statements only, at least one)
+//	                                           prophecy-only statements only, at least one)
 //
-// and, in a composite literal, a ghost field's keyed element `F: primitive.NewProph()`; and the
+// and, in a composite literal, a prophecy-only field's keyed element `F: primitive.NewProph()`; and the
 // import "github.com/goose-lang/primitive" when ORIG does not have it (ORIG must then not use the
 // name `primitive`). E, E2, C and X are read-only expressions: identifiers, literals, field
 // selections, dereferences, indexing, slicing, type assertions, `&` of a field selection or of an
@@ -53,12 +53,12 @@
 // dereference, an out-of-range index, a failed assertion, a division by zero, a data race). A
 // helper only evaluates read-only expressions, writes its own locals, resolves prophecies and
 // calls helpers, and it terminates or fails: its calls do not recurse, and its loops count up to a
-// bound (run without interleaving, which some execution does, the bound is fixed). The ghost
-// declarations' names are fresh, so the original code cannot refer to them; a ghost field changes
+// bound (run without interleaving, which some execution does, the bound is fixed). The prophecy-only
+// declarations' names are fresh, so the original code cannot refer to them; a prophecy-only field changes
 // what the program could observe of its struct only through ==, hashing or reflection, which it
-// does not use on it; a ghost method is unexported, so it changes no interface the type
+// does not use on it; a prophecy-only method is unexported, so it changes no interface the type
 // implements. So every execution of ORIG is, step for step, an execution of PATCHED with the
-// extra ghost steps, unless one of those fails: the patched program may have more failing
+// extra prophecy-only steps, unless one of those fails: the patched program may have more failing
 // executions, never fewer behaviors, and a proof that PATCHED does not fail covers ORIG.
 //
 // Exits 1, printing what is wrong, if the files do not check.
@@ -86,22 +86,22 @@ var conversions = map[string]bool{
 	"len": true, "cap": true,
 }
 
-// pkgGhost: the ghost declarations of one package (the PATCHED files of ORIG's directory).
-type pkgGhost struct {
+// pkgProphOnly: the prophecy-only declarations of one package (the PATCHED files of ORIG's directory).
+type pkgProphOnly struct {
 	origDir, dir string
 	origNames    map[string]bool          // every identifier of the original package's Go files
 	shadowed     map[string]bool          // the names the original package declares
-	vars         map[string]bool          // ghost variables
-	fields       map[string]string        // ghost field -> its struct type
-	helpers      map[string]*ast.FuncDecl // ghost helpers (functions and methods) by name
+	vars         map[string]bool          // prophecy-only variables
+	fields       map[string]string        // prophecy-only field -> its struct type
+	helpers      map[string]*ast.FuncDecl // prophecy-only helpers (functions and methods) by name
 	calls        map[string]map[string]bool
-	inits        map[*ast.FuncDecl]string // ghost initializers -> the ghost variable they set
+	inits        map[*ast.FuncDecl]string // prophecy-only initializers -> the prophecy-only variable they set
 }
 
 type checker struct {
 	errs []string
 	fset *token.FileSet
-	pkg  *pkgGhost
+	pkg  *pkgProphOnly
 	// the local prophecies the patch declares (NAME := primitive.NewProph()) in the current file
 	declared map[string]bool
 	// the identifiers of the current ORIG file
@@ -198,9 +198,9 @@ func isProphType(e ast.Expr) bool {
 	return ok && pkg.Name == "primitive"
 }
 
-// ghostProph reports whether p is a ghost prophecy: a ghost variable, X.F for a ghost field F and
+// addedProph reports whether p is an added prophecy: a prophecy-only variable, X.F for a prophecy-only field F and
 // a read-only X, or a local prophecy the patch declared; locals: a helper's locals (which shadow).
-func (c *checker) ghostProph(p ast.Expr, locals map[string]bool) bool {
+func (c *checker) addedProph(p ast.Expr, locals map[string]bool) bool {
 	switch p := p.(type) {
 	case *ast.Ident:
 		if locals[p.Name] {
@@ -214,8 +214,8 @@ func (c *checker) ghostProph(p ast.Expr, locals map[string]bool) bool {
 	return false
 }
 
-// resolveCall reports whether call is a resolution `P.ResolveBool(E)` / `P.ResolveU64(E)` of a
-// ghost prophecy (and reports a bad argument).
+// resolveCall reports whether call is a resolution `P.ResolveBool(E)` / `P.ResolveU64(E)` of an
+// added prophecy (and reports a bad argument).
 func (c *checker) resolveCall(call *ast.CallExpr, locals map[string]bool) bool {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok || (sel.Sel.Name != "ResolveBool" && sel.Sel.Name != "ResolveU64") {
@@ -226,7 +226,7 @@ func (c *checker) resolveCall(call *ast.CallExpr, locals map[string]bool) bool {
 		c.errorf(call.Pos(), "resolves %s, which the patch has not declared before", id.Name)
 		return true
 	}
-	if !c.ghostProph(sel.X, locals) {
+	if !c.addedProph(sel.X, locals) {
 		return false
 	}
 	if len(call.Args) != 1 || call.Ellipsis.IsValid() || !c.readOnly(call.Args[0]) {
@@ -235,7 +235,7 @@ func (c *checker) resolveCall(call *ast.CallExpr, locals map[string]bool) bool {
 	return true
 }
 
-// helperCall reports whether call calls a ghost helper (`H(E...)` or `X.H(E...)`; reporting
+// helperCall reports whether call calls a prophecy-only helper (`H(E...)` or `X.H(E...)`; reporting
 // arguments that are not read-only), and its name.
 func (c *checker) helperCall(call *ast.CallExpr, locals map[string]bool) (string, bool) {
 	var name string
@@ -247,31 +247,31 @@ func (c *checker) helperCall(call *ast.CallExpr, locals map[string]bool) (string
 		}
 		name = f.Name
 	case *ast.SelectorExpr:
-		// a method name fresh in the package and unexported: only the ghost method has it
+		// a method name fresh in the package and unexported: only the prophecy-only method has it
 		h := c.pkg.helpers[f.Sel.Name]
 		if h == nil || h.Recv == nil {
 			return "", false
 		}
 		if !c.readOnly(f.X) {
-			c.errorf(call.Pos(), "a call of the ghost helper %s: its receiver is not read-only", f.Sel.Name)
+			c.errorf(call.Pos(), "a call of the prophecy-only helper %s: its receiver is not read-only", f.Sel.Name)
 		}
 		name = f.Sel.Name
 	default:
 		return "", false
 	}
 	if call.Ellipsis.IsValid() {
-		c.errorf(call.Pos(), "a call of the ghost helper %s with ...", name)
+		c.errorf(call.Pos(), "a call of the prophecy-only helper %s with ...", name)
 	}
 	for _, a := range call.Args {
 		if !c.readOnly(a) {
-			c.errorf(a.Pos(), "a call of the ghost helper %s: an argument is not read-only", name)
+			c.errorf(a.Pos(), "a call of the prophecy-only helper %s: an argument is not read-only", name)
 		}
 	}
 	return name, true
 }
 
-// ghostStmt reports whether s is a ghost statement (checking its parts when it is one).
-func (c *checker) ghostStmt(s ast.Stmt) bool {
+// prophOnlyStmt reports whether s is a prophecy-only statement (checking its parts when it is one).
+func (c *checker) prophOnlyStmt(s ast.Stmt) bool {
 	if name, ok := isNewProphStmt(s); ok {
 		if c.origNames[name] {
 			// the original's own prophecy (or a name it uses): not the patch's
@@ -292,7 +292,7 @@ func (c *checker) ghostStmt(s ast.Stmt) bool {
 		_, ok = c.helperCall(call, nil)
 		return ok
 	case *ast.AssignStmt:
-		// X.F = primitive.NewProph(), F a ghost field
+		// X.F = primitive.NewProph(), F a prophecy-only field
 		if s.Tok != token.ASSIGN || len(s.Lhs) != 1 || len(s.Rhs) != 1 || !isNewProph(s.Rhs[0]) {
 			return false
 		}
@@ -303,17 +303,17 @@ func (c *checker) ghostStmt(s ast.Stmt) bool {
 		_, ok = c.pkg.fields[sel.Sel.Name]
 		return ok && c.readOnly(sel.X)
 	case *ast.IfStmt:
-		// an if without statements is not ghost code (the original may have one)
-		if s.Init != nil || !c.readOnly(s.Cond) || !c.allGhost(s.Body.List) || !holdsStmt(s) {
+		// an if without statements is not prophecy-only code (the original may have one)
+		if s.Init != nil || !c.readOnly(s.Cond) || !c.allProphOnly(s.Body.List) || !holdsStmt(s) {
 			return false
 		}
 		switch e := s.Else.(type) {
 		case nil:
 			return true
 		case *ast.BlockStmt:
-			return c.allGhost(e.List)
+			return c.allProphOnly(e.List)
 		case *ast.IfStmt:
-			return c.ghostStmt(e)
+			return c.prophOnlyStmt(e)
 		}
 	}
 	return false
@@ -333,9 +333,9 @@ func holdsStmt(s *ast.IfStmt) bool {
 	return false
 }
 
-func (c *checker) allGhost(l []ast.Stmt) bool {
+func (c *checker) allProphOnly(l []ast.Stmt) bool {
 	for _, s := range l {
-		if !c.ghostStmt(s) {
+		if !c.prophOnlyStmt(s) {
 			return false
 		}
 	}
@@ -350,7 +350,7 @@ func copyLocals(m map[string]bool) map[string]bool {
 	return out
 }
 
-// helperBody checks the statements of a ghost helper's body (locals: its parameters and the
+// helperBody checks the statements of a prophecy-only helper's body (locals: its parameters and the
 // locals it has defined; calls: the helpers it calls).
 func (c *checker) helperBody(l []ast.Stmt, locals, calls map[string]bool) {
 	for _, s := range l {
@@ -370,39 +370,39 @@ func (c *checker) helperStmt(s ast.Stmt, locals, calls map[string]bool) {
 				return
 			}
 		}
-		c.errorf(s.Pos(), "a ghost helper's statement that is neither a resolution nor a ghost helper's call")
+		c.errorf(s.Pos(), "a prophecy-only helper's statement that is neither a resolution nor a prophecy-only helper's call")
 	case *ast.AssignStmt:
 		if len(s.Lhs) != len(s.Rhs) {
-			c.errorf(s.Pos(), "a ghost helper's assignment of a multi-valued expression")
+			c.errorf(s.Pos(), "a prophecy-only helper's assignment of a multi-valued expression")
 		}
 		for _, r := range s.Rhs {
 			if !c.readOnly(r) {
-				c.errorf(r.Pos(), "a ghost helper's assignment: not a read-only expression")
+				c.errorf(r.Pos(), "a prophecy-only helper's assignment: not a read-only expression")
 			}
 		}
 		for _, l := range s.Lhs {
 			id, ok := l.(*ast.Ident)
 			switch {
 			case !ok:
-				c.errorf(l.Pos(), "a ghost helper assigns to something other than its own locals")
+				c.errorf(l.Pos(), "a prophecy-only helper assigns to something other than its own locals")
 			case s.Tok == token.DEFINE:
 				if id.Name != "_" {
 					locals[id.Name] = true
 				}
 			case !locals[id.Name]:
-				c.errorf(l.Pos(), "a ghost helper assigns to %s, not one of its own locals", id.Name)
+				c.errorf(l.Pos(), "a prophecy-only helper assigns to %s, not one of its own locals", id.Name)
 			}
 		}
 	case *ast.IncDecStmt:
 		if id, ok := s.X.(*ast.Ident); !ok || !locals[id.Name] {
-			c.errorf(s.Pos(), "a ghost helper increments something other than its own locals")
+			c.errorf(s.Pos(), "a prophecy-only helper increments something other than its own locals")
 		}
 	case *ast.IfStmt:
 		if s.Init != nil {
-			c.errorf(s.Pos(), "a ghost helper's if with an init statement")
+			c.errorf(s.Pos(), "a prophecy-only helper's if with an init statement")
 		}
 		if !c.readOnly(s.Cond) {
-			c.errorf(s.Cond.Pos(), "a ghost helper's if: its condition is not read-only")
+			c.errorf(s.Cond.Pos(), "a prophecy-only helper's if: its condition is not read-only")
 		}
 		c.helperBody(s.Body.List, copyLocals(locals), calls)
 		if s.Else != nil {
@@ -414,10 +414,10 @@ func (c *checker) helperStmt(s ast.Stmt, locals, calls map[string]bool) {
 		c.helperFor(s, locals, calls)
 	case *ast.ReturnStmt:
 		if len(s.Results) != 0 {
-			c.errorf(s.Pos(), "a ghost helper returns a value")
+			c.errorf(s.Pos(), "a prophecy-only helper returns a value")
 		}
 	default:
-		c.errorf(s.Pos(), "a ghost helper's statement of a kind not allowed (%T)", s)
+		c.errorf(s.Pos(), "a prophecy-only helper's statement of a kind not allowed (%T)", s)
 	}
 }
 
@@ -448,7 +448,7 @@ func (c *checker) helperFor(s *ast.ForStmt, locals, calls map[string]bool) {
 		return ok && pi.Name == i.Name
 	}()
 	if !ok {
-		c.errorf(s.Pos(), "a ghost helper's loop not of the form `for I := E; I < E2; I++`")
+		c.errorf(s.Pos(), "a prophecy-only helper's loop not of the form `for I := E; I < E2; I++`")
 		return
 	}
 	inner := copyLocals(locals)
@@ -526,13 +526,13 @@ func origPackage(dir string, idents, declared map[string]bool) {
 	}
 }
 
-// erase removes the ghost statements of every statement list under n (outside the helpers,
-// already removed), and the ghost fields' keyed elements of composite literals.
+// erase removes the prophecy-only statements of every statement list under n (outside the helpers,
+// already removed), and the prophecy-only fields' keyed elements of composite literals.
 func (c *checker) erase(n ast.Node) {
 	filter := func(l []ast.Stmt) []ast.Stmt {
 		out := l[:0:0]
 		for _, s := range l {
-			if !c.ghostStmt(s) {
+			if !c.prophOnlyStmt(s) {
 				out = append(out, s)
 			}
 		}
@@ -650,16 +650,16 @@ func equal(a, b reflect.Value) bool {
 	}
 }
 
-// collect records the ghost declarations of pf (top-level declarations and struct fields whose
+// collect records the prophecy-only declarations of pf (top-level declarations and struct fields whose
 // names are fresh in the original package) in pkg, reporting added declarations of other kinds.
-func collect(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)) {
+func collect(pf *ast.File, pkg *pkgProphOnly, errorf func(token.Pos, string, ...any)) {
 	fresh := func(name string) bool { return name != "_" && !pkg.origNames[name] }
 	for _, d := range pf.Decls {
 		switch d := d.(type) {
 		case *ast.FuncDecl:
 			if d.Name.Name == "init" && d.Recv == nil {
-				// a ghost initializer, `func init() { L := primitive.NewProph(); V = L }`, is
-				// recognized below (after the ghost variables); any other added init is not ghost
+				// a prophecy-only initializer, `func init() { L := primitive.NewProph(); V = L }`, is
+				// recognized below (after the prophecy-only variables); any other added init is not prophecy-only
 				// code: erasure leaves it, and the comparison fails
 				continue
 			}
@@ -667,7 +667,7 @@ func collect(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)
 				continue
 			}
 			if pkg.helpers[d.Name.Name] != nil {
-				errorf(d.Pos(), "two ghost helpers named %s", d.Name.Name)
+				errorf(d.Pos(), "two prophecy-only helpers named %s", d.Name.Name)
 			}
 			pkg.helpers[d.Name.Name] = d
 		case *ast.GenDecl:
@@ -681,13 +681,13 @@ func collect(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)
 						if d.Tok == token.VAR {
 							pkg.vars[id.Name] = true
 						} else {
-							errorf(id.Pos(), "adds the constant %s (a patch adds only ghost "+
+							errorf(id.Pos(), "adds the constant %s (a patch adds only prophecy-only "+
 								"variables, fields and helpers)", id.Name)
 						}
 					}
 				case *ast.TypeSpec:
 					if fresh(sp.Name.Name) {
-						errorf(sp.Pos(), "adds the type %s (a patch adds only ghost variables, "+
+						errorf(sp.Pos(), "adds the type %s (a patch adds only prophecy-only variables, "+
 							"fields and helpers)", sp.Name.Name)
 						continue
 					}
@@ -708,14 +708,14 @@ func collect(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)
 	}
 }
 
-// collectInits records the ghost initializers of pf (after every file's ghost variables).
-func collectInits(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)) {
+// collectInits records the prophecy-only initializers of pf (after every file's prophecy-only variables).
+func collectInits(pf *ast.File, pkg *pkgProphOnly, errorf func(token.Pos, string, ...any)) {
 	for _, d := range pf.Decls {
 		if f, ok := d.(*ast.FuncDecl); ok && f.Name.Name == "init" && f.Recv == nil {
-			if v, ok := ghostInit(f, pkg); ok {
+			if v, ok := prophOnlyInit(f, pkg); ok {
 				for _, w := range pkg.inits {
 					if w == v {
-						errorf(f.Pos(), "the ghost variable %s has two initializers", v)
+						errorf(f.Pos(), "the prophecy-only variable %s has two initializers", v)
 					}
 				}
 				pkg.inits[f] = v
@@ -724,10 +724,10 @@ func collectInits(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ..
 	}
 }
 
-// ghostInit reports whether f is `func init() { L := primitive.NewProph(); V = L }` (or
-// `func init() { V = primitive.NewProph() }`) for a ghost variable V (Goose refuses a package
+// prophOnlyInit reports whether f is `func init() { L := primitive.NewProph(); V = L }` (or
+// `func init() { V = primitive.NewProph() }`) for a prophecy-only variable V (Goose refuses a package
 // variable's initializer that calls NewProph, and an assignment of its call), and V.
-func ghostInit(f *ast.FuncDecl, pkg *pkgGhost) (string, bool) {
+func prophOnlyInit(f *ast.FuncDecl, pkg *pkgProphOnly) (string, bool) {
 	if f.Body == nil || f.Type.Params.NumFields() != 0 {
 		return "", false
 	}
@@ -762,7 +762,7 @@ func ghostInit(f *ast.FuncDecl, pkg *pkgGhost) (string, bool) {
 	return "", false
 }
 
-// eraseDecls checks pf's ghost declarations and removes them (and the ghost fields) from pf.
+// eraseDecls checks pf's prophecy-only declarations and removes them (and the prophecy-only fields) from pf.
 func (c *checker) eraseDecls(pf *ast.File) {
 	keep := pf.Decls[:0:0]
 	for _, d := range pf.Decls {
@@ -780,11 +780,11 @@ func (c *checker) eraseDecls(pf *ast.File) {
 				specs := d.Specs[:0:0]
 				for _, sp := range d.Specs {
 					vs := sp.(*ast.ValueSpec)
-					ghost := false
+					prophOnly := false
 					for _, id := range vs.Names {
-						ghost = ghost || c.pkg.vars[id.Name]
+						prophOnly = prophOnly || c.pkg.vars[id.Name]
 					}
-					if !ghost {
+					if !prophOnly {
 						specs = append(specs, sp)
 						continue
 					}
@@ -793,13 +793,13 @@ func (c *checker) eraseDecls(pf *ast.File) {
 					byInit := len(vs.Values) == 0 && vs.Type != nil && isProphType(vs.Type) &&
 						c.pkg.initialized(vs.Names[0].Name)
 					if len(vs.Names) != 1 || !(byValue || byInit) {
-						c.errorf(vs.Pos(), "a ghost variable must be declared alone, as "+
+						c.errorf(vs.Pos(), "a prophecy-only variable must be declared alone, as "+
 							"`var NAME = primitive.NewProph()`, or as `var NAME primitive.ProphId` "+
-							"with a ghost initializer `func init() { L := primitive.NewProph(); NAME = L }`")
+							"with a prophecy-only initializer `func init() { L := primitive.NewProph(); NAME = L }`")
 					}
 				}
 				if len(specs) == 0 && len(d.Specs) > 0 {
-					continue // a declaration of ghost variables only
+					continue // a declaration of prophecy-only variables only
 				}
 				d.Specs = specs
 			}
@@ -811,20 +811,20 @@ func (c *checker) eraseDecls(pf *ast.File) {
 					}
 					fl := st.Fields.List[:0:0]
 					for _, f := range st.Fields.List {
-						ghost := false
+						prophOnly := false
 						for _, id := range f.Names {
 							_, g := c.pkg.fields[id.Name]
-							ghost = ghost || g
+							prophOnly = prophOnly || g
 						}
-						if !ghost {
+						if !prophOnly {
 							fl = append(fl, f)
 							continue
 						}
 						if len(f.Names) != 1 || !isProphType(f.Type) || f.Tag != nil {
-							c.errorf(f.Pos(), "a ghost field must be declared alone, as "+
+							c.errorf(f.Pos(), "a prophecy-only field must be declared alone, as "+
 								"`NAME primitive.ProphId` (no tag)")
 						} else if ast.IsExported(f.Names[0].Name) {
-							c.errorf(f.Pos(), "the ghost field %s is exported", f.Names[0].Name)
+							c.errorf(f.Pos(), "the prophecy-only field %s is exported", f.Names[0].Name)
 						}
 					}
 					st.Fields.List = fl
@@ -836,8 +836,8 @@ func (c *checker) eraseDecls(pf *ast.File) {
 	pf.Decls = keep
 }
 
-// initialized reports whether a ghost initializer sets the ghost variable v.
-func (p *pkgGhost) initialized(v string) bool {
+// initialized reports whether a prophecy-only initializer sets the prophecy-only variable v.
+func (p *pkgProphOnly) initialized(v string) bool {
 	for _, w := range p.inits {
 		if w == v {
 			return true
@@ -846,20 +846,20 @@ func (p *pkgGhost) initialized(v string) bool {
 	return false
 }
 
-// checkHelper checks a ghost helper's signature and body.
+// checkHelper checks a prophecy-only helper's signature and body.
 func (c *checker) checkHelper(d *ast.FuncDecl) {
 	if d.Type.TypeParams != nil && len(d.Type.TypeParams.List) > 0 {
-		c.errorf(d.Pos(), "the ghost helper %s has type parameters", d.Name.Name)
+		c.errorf(d.Pos(), "the prophecy-only helper %s has type parameters", d.Name.Name)
 	}
 	if d.Type.Results != nil && len(d.Type.Results.List) > 0 {
-		c.errorf(d.Pos(), "the ghost helper %s has results", d.Name.Name)
+		c.errorf(d.Pos(), "the prophecy-only helper %s has results", d.Name.Name)
 	}
 	if d.Recv != nil && ast.IsExported(d.Name.Name) {
-		c.errorf(d.Pos(), "the ghost helper method %s is exported (it may change the interfaces "+
+		c.errorf(d.Pos(), "the prophecy-only helper method %s is exported (it may change the interfaces "+
 			"its type implements)", d.Name.Name)
 	}
 	if d.Body == nil {
-		c.errorf(d.Pos(), "the ghost helper %s has no body", d.Name.Name)
+		c.errorf(d.Pos(), "the prophecy-only helper %s has no body", d.Name.Name)
 		return
 	}
 	locals := map[string]bool{}
@@ -880,7 +880,7 @@ func (c *checker) checkHelper(d *ast.FuncDecl) {
 	c.pkg.calls[d.Name.Name] = calls
 }
 
-// recursive: the ghost helpers that can call themselves.
+// recursive: the prophecy-only helpers that can call themselves.
 func recursive(calls map[string]map[string]bool) []string {
 	var out []string
 	for n := range calls {
@@ -919,9 +919,9 @@ func check(pairs [][2]string) []string {
 	type pair struct {
 		orig, patched string
 		of, pf        *ast.File
-		pkg           *pkgGhost
+		pkg           *pkgProphOnly
 	}
-	pkgs := map[string]*pkgGhost{} // by ORIG's directory
+	pkgs := map[string]*pkgProphOnly{} // by ORIG's directory
 	var order []string
 	var ps []*pair
 	for _, pr := range pairs {
@@ -938,7 +938,7 @@ func check(pairs [][2]string) []string {
 		dir := filepath.Dir(pr[0])
 		pkg := pkgs[dir]
 		if pkg == nil {
-			pkg = &pkgGhost{origDir: dir, dir: filepath.Dir(pr[1]), origNames: map[string]bool{},
+			pkg = &pkgProphOnly{origDir: dir, dir: filepath.Dir(pr[1]), origNames: map[string]bool{},
 				shadowed: map[string]bool{}, vars: map[string]bool{}, fields: map[string]string{},
 				helpers: map[string]*ast.FuncDecl{}, calls: map[string]map[string]bool{},
 				inits: map[*ast.FuncDecl]string{}}
@@ -976,18 +976,18 @@ func check(pairs [][2]string) []string {
 			c.errorf(p.pf.Pos(), "declares prophecies but does not import %q (unnamed)", primPath)
 		}
 		if !equal(reflect.ValueOf(p.of), reflect.ValueOf(p.pf)) {
-			c.errs = append(c.errs, fmt.Sprintf("%s: with its ghost code erased, it is not %s "+
-				"(a patch may only add ghost code; see etc/prophcheck/main.go)", p.patched, p.orig))
+			c.errs = append(c.errs, fmt.Sprintf("%s: with its prophecy-only code erased, it is not %s "+
+				"(a patch may only add prophecy-only code; see etc/prophcheck/main.go)", p.patched, p.orig))
 		}
 		errs = append(errs, c.errs...)
 	}
 	for _, dir := range order {
 		pkg := pkgs[dir]
 		for _, n := range recursive(pkg.calls) {
-			errs = append(errs, fmt.Sprintf("%s: the ghost helper %s can call itself (a helper "+
+			errs = append(errs, fmt.Sprintf("%s: the prophecy-only helper %s can call itself (a helper "+
 				"must terminate)", pkg.dir, n))
 		}
-		// ghost fields: the program must not compare, hash or reflect on their structs
+		// prophecy-only fields: the program must not compare, hash or reflect on their structs
 		if len(pkg.fields) > 0 {
 			structs := map[string]bool{}
 			for _, t := range pkg.fields {

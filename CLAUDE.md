@@ -478,7 +478,7 @@ A proof that needs a prophecy the Go code does not have gets it from a **prophec
 translating (and `etc/verified-code.py` reads): it may only add `primitive.NewProph()`, its
 `ResolveBool`/`ResolveU64` calls (which do nothing in Go) on read-only expressions, and `if`s on
 read-only conditions holding only such statements. The rule widens (Upamanyu, #24):
-- a patch may add ghost-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
+- a patch may add prophecy-only declarations: a `ProphId` field or package variable initialized only by `NewProph`, and helper functions whose bodies hold only read-only computation plus `Resolve*`;
 - it may add calls to them at statement level or inside `if`s on read-only conditions;
 - `etc/prophcheck` checks that erasing every added declaration and call gives back the original files, and refuses an added field in a struct the program compares with `==`, uses as a map key, or reflects on.
 

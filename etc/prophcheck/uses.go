@@ -1,6 +1,6 @@
 package main
 
-// fieldUses: the check that a struct with a ghost field is never compared, hashed or reflected
+// fieldUses: the check that a struct with a prophecy-only field is never compared, hashed or reflected
 // on, on the type-checked packages of the struct's Go module.
 
 import (
@@ -53,8 +53,8 @@ type importerFunc func(path string) (*types.Package, error)
 func (f importerFunc) Import(path string) (*types.Package, error) { return f(path) }
 
 // fieldUses type-checks the packages of the Go module that holds dir (the package that declares
-// the ghost fields) and reports any use of the struct types `structs` (of that package) that may
-// observe a ghost field:
+// the prophecy-only fields) and reports any use of the struct types `structs` (of that package) that may
+// observe a prophecy-only field:
 //   - an operand of == or != (or of a switch's comparisons) whose type contains one of them (the
 //     struct itself, or an array or struct type with such an element or field);
 //   - a map type whose key type contains one;
@@ -225,7 +225,7 @@ func (u *uses) conv(e ast.Expr, dst types.Type) {
 		return
 	}
 	if u.reaches(src) {
-		u.errorf(e.Pos(), "converts a value of type %s, which reaches a struct with a ghost field, "+
+		u.errorf(e.Pos(), "converts a value of type %s, which reaches a struct with a prophecy-only field, "+
 			"to an interface (where it may be compared, hashed or reflected on)", src)
 	}
 }
@@ -248,7 +248,7 @@ func (u *uses) mapKeys(pos token.Pos, t types.Type, seen map[types.Type]bool) {
 		u.mapKeys(pos, t.Underlying(), seen)
 	case *types.Map:
 		if u.contains(t.Key()) {
-			u.errorf(pos, "a map type whose key contains a struct with a ghost field: %s", t)
+			u.errorf(pos, "a map type whose key contains a struct with a prophecy-only field: %s", t)
 		}
 		u.mapKeys(pos, t.Key(), seen)
 		u.mapKeys(pos, t.Elem(), seen)
@@ -296,7 +296,7 @@ func (u *uses) file(f *ast.File) {
 		case *ast.BinaryExpr:
 			if n.Op == token.EQL || n.Op == token.NEQ {
 				if u.contains(u.typeOf(n.X)) || u.contains(u.typeOf(n.Y)) {
-					u.errorf(n.Pos(), "compares a struct with a ghost field (%s)", n.Op)
+					u.errorf(n.Pos(), "compares a struct with a prophecy-only field (%s)", n.Op)
 				}
 				// comparing with an interface converts the other operand
 				if tx, ty := u.typeOf(n.X), u.typeOf(n.Y); tx != nil && ty != nil {
@@ -308,12 +308,12 @@ func (u *uses) file(f *ast.File) {
 			if n.Tag != nil {
 				tt := u.typeOf(n.Tag)
 				if u.contains(tt) {
-					u.errorf(n.Pos(), "switches on a struct with a ghost field")
+					u.errorf(n.Pos(), "switches on a struct with a prophecy-only field")
 				}
 				for _, cl := range n.Body.List {
 					for _, e := range cl.(*ast.CaseClause).List {
 						if u.contains(u.typeOf(e)) {
-							u.errorf(e.Pos(), "compares a struct with a ghost field (a switch case)")
+							u.errorf(e.Pos(), "compares a struct with a prophecy-only field (a switch case)")
 						}
 						u.conv(e, tt)
 						if ct := u.typeOf(e); ct != nil {
@@ -366,7 +366,7 @@ func (u *uses) file(f *ast.File) {
 				for i := 0; i < inst.TypeArgs.Len(); i++ {
 					if u.reaches(inst.TypeArgs.At(i)) {
 						u.errorf(n.Pos(), "instantiates %s with a type that reaches a struct "+
-							"with a ghost field", n.Name)
+							"with a prophecy-only field", n.Name)
 					}
 				}
 			}
@@ -457,7 +457,7 @@ func (u *uses) call(n *ast.CallExpr) {
 			case "Sizeof", "Alignof", "Offsetof":
 				for _, a := range n.Args {
 					if u.reaches(u.typeOf(a)) {
-						u.errorf(n.Pos(), "unsafe.%s of a value that reaches a struct with a ghost field", b.Name())
+						u.errorf(n.Pos(), "unsafe.%s of a value that reaches a struct with a prophecy-only field", b.Name())
 					}
 				}
 			}
