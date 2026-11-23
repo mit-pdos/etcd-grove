@@ -327,9 +327,21 @@ P4 (d)); when they are, recheck that their tables list these packages.
   `coordinator.wp_New/wp_Start/coord_svc`, `netrpc.factory`, `removeNodeOk.spec cfg`;
   `[RpcHttpServe GF]`), **`wp_runNode`** (pre adds `rpcReady`, `nodeRes cfg a ∗ joinTicket cfg.γ
   a`, `errOk (nodeSpec …)` (F3); arguments the node's/kv's/netrpc's specs).
-  In progress at the end (a subagent): `examples/craqnet/ClientProof.lean` (`Sys.end`, `readAt`,
-  `remove`, `op`, `newSys`, `Client.spec`/`wp_proof`, `Orch.spec`/`wp_proof`); check its state
-  (`etc/lean-check.py -q -a`, `grep sorry`) before going on.
+  `examples/craqnet/ClientProof.lean` (a subagent; `lake build` green, no tier violations):
+  `wp_Sys_end`, `wp_Sys_readAt`, `wp_Sys_remove`, `wp_op` (both paths, `notFoundMsg`,
+  `lin_opAU`), `wp_newSys`, `Client.spec`/`Client.wp_proof` (pre adds `codecFresh`, the conf
+  address's `addrProto … confProto`, `cfgKit cfg`), `Orch.spec`/`Orch.wp_proof`; its own
+  `awaitConf.spec`, `configure.spec` (ConfProof's `wp_awaitConf`/`wp_configure` with the Net
+  specs applied), `KIn_countable`, `KOut_countable`.
+  **Finding F4 (blocks `Orch`, in the kit's `Kit.lean`)**: remote's `Check.spec` needs
+  `PendDec (kvR γ) kvS` and the output encoding injective, and neither holds: `ovK (.got none)`
+  and `ovK .done` are both `Out{}` (`kvR_encOut_not_inj`), and `kvDec` decodes `Out{}` to a put
+  as `.done`, so `PendDec.ok` fails for (put, `.got none`) and (get, `.done`). `Orch.wp_proof`
+  takes them as arguments `hdec`/`hinj`, which are false: fix before the statement. Either (a)
+  one `KOut` value for both (a put answers `got none`), with `liftOut` depending on the input in
+  `lin_opAU` (`none` is `.done` for a put, `.got none` for a get), re-checking `ModelSet`/
+  `ModelProof`; or (b) remote's `Check` asks injectivity and `PendDec.ok` only of outputs the
+  input can produce (a change to examples/lib/remote: ask the coordinator).
   **Next**: (i) `Server.spec` for every `id` (id 1: `wp_Server1`; id ≥ 2: `wp_make_conf_chan`,
   `go awaitConf` (`wp_awaitConf`), `wp_recv_msg`, then `wp_runNode` if `id ≤ N+1` (needs
   `Register()` first: `wp_Register` at the top of `Server`, so `Server`'s pre has `codecFresh`
