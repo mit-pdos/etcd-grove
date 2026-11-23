@@ -1744,4 +1744,131 @@ theorem State.OnDisk.wp_proof
       simp only [ns0, OnDiskProofLaws.vf0, ite_true, hw, Option.getD_some]
       subst hX; rfl
     rw [this]; iexact Hq
+  -- u1: `ns.Log = setLog(s.Log, n, x.L1()); ns.CommitIndex = …; ns.Role = ro; ns.Confirmed = …`
+  obtain ⟨L1, cm, cf1, el, hL1, hcm, hcf1, hel, Ho⟩ := u1_ok Ho
+  rw [hXs, hXn, hXro] at Ho
+  generalize hS1 : ns0 X t1 vd (OnDiskProofLaws.vf0 X vd) = S1 at Ho ⊢
+  odm L1
+  wp_apply wp_L1 _ X L1 $$ [Hx] as %l1 #Hl1
+  · iframe Hx; ipureintro; exact hL1
+  try wp_auto
+  wp_apply wp_setLog g.Log' s.log n l1 L1 $$ [HLog Hl1] as %lgl #Hlgl
+  · iframe HLog Hl1; ipureintro; exact ⟨Hn, by rw [HWf.len_log]; exact Hlt⟩
+  try wp_auto
+  wp_apply wp_set_log q S1 lgl (s.log.set (sint.nat n) L1)
+    (by rw [List.length_set, HWf.len_log, ← hS1]; subst hX; rfl) $$ [Hq Hlgl] as Hq
+  · iframe Hq Hlgl
+  try wp_auto
+  wp_apply wp_Event_commit pw X.w cm $$ [Hw] as %uc %Huc
+  · iframe Hw; ipureintro; exact hcm
+  try wp_auto
+  wp_apply wp_setInt g.CommitIndex' s.commitIndex n uc $$ [HCommitIndex] as %cil #Hcil
+  · iframe HCommitIndex; ipureintro; exact ⟨Hn, by rw [HWf.len_commitIndex]; exact Hlt⟩
+  try wp_auto
+  rw [Huc]
+  wp_apply wp_set_commitIndex q { S1 with log := s.log.set (sint.nat n) L1 } cil (s.commitIndex.set (sint.nat n) cm)
+    (by rw [List.length_set, HWf.len_commitIndex, ← hS1]; subst hX; rfl) $$ [Hq Hcil] as Hq
+  · iframe Hq Hcil
+  try wp_auto
+  wp_apply wp_set_role q { { S1 with log := s.log.set (sint.nat n) L1 } with
+      commitIndex := s.commitIndex.set (sint.nat n) cm } rol ro
+    (by rw [Hrol, ← hS1]; subst hX; rfl) $$ [Hq Hro] as Hq
+  · iframe Hq Hro
+  try wp_auto
+  have hcfg1 : S1.cfg = s.cfg := by rw [← hS1]; subst hX; rfl
+  generalize hS2 : ({ { { S1 with log := s.log.set (sint.nat n) L1 } with
+      commitIndex := s.commitIndex.set (sint.nat n) cm } with role := ro } : State) = S2
+  have hcfg2 : S2.cfg = s.cfg := by rw [← hS2]; exact hcfg1
+  odm conf1
+  wp_apply wp_conf1 _ X cf1 $$ [Hx] as %gcf %Hgcf
+  · iframe Hx; ipureintro; exact hcf1
+  try wp_auto
+  wp_apply wp_setConfirmed g.Confirmed' s.confirmed n gcf cf1 $$ [HConfirmed] as %cfl #Hcfl
+  · iframe HConfirmed; ipureintro; exact ⟨Hgcf, Hn, by rw [HWf.len_confirmed]; exact Hlt⟩
+  try wp_auto
+  wp_apply wp_set_confirmed q S2 cfl (s.confirmed.set (sint.nat n) cf1)
+    (by rw [List.length_set, HWf.len_confirmed, hcfg2]) $$ [Hq Hcfl] as Hq
+  · iframe Hq Hcfl
+  try wp_auto
+  generalize hS3 : ({ S2 with confirmed := s.confirmed.set (sint.nat n) cf1 } : State) = S3
+  have hcfg3 : S3.cfg = s.cfg := by rw [← hS3]; exact hcfg2
+  -- `msgs := s.Msgs; if x.elect() { msgs = factsAdd(msgs, s.VoteRequest(n, x.T1())) }`
+  have hml := HW.1.msgs_len
+  wp_join (v := executeVal) iprop(∃ ml, msgs_ptr ↦ ml ∗
+      factsRO ml (if el then lset.add s.msgs (s.voteRequest (sint.nat n) t1) else s.msgs))
+    at next with [msgs] as ⟨%ml, msgs, #Hml⟩
+  · odm elect
+    wp_apply wp_elect _ X el $$ [Hx]
+    · iframe Hx; ipureintro; exact hel
+    cases el
+    · try wp_auto
+      wp_join_done
+      iexists _; iframe; iexact HMsgs
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    wp_apply wp_SVoteRequest p s n u1 $$ [Hs] as %gvr %Hgvr
+    · iframe Hs; ipureintro; exact ⟨Hn, Hlt⟩
+    try wp_auto
+    wp_apply wp_factsAdd g.Msgs' s.msgs gvr _ $$ [HMsgs] as %ml1 #Hml1
+    · iframe HMsgs; ipureintro; exact ⟨Hgvr, by unfold numBound at hb; omega⟩
+    try wp_auto
+    wp_join_done
+    rw [Hu1] at Hml1
+    iexists _; iframe; iexact Hml1
+  -- u2: `if x.acks() { msgs = factsAdd(msgs, AckFact(me, x.f().Src, x.T1(), x.ackAt())) }`
+  obtain ⟨msgs2, Ho, hmsgs2⟩ := u2_ok Ho
+  rw [hXs, hXn] at hmsgs2
+  have hm1l : ((if el then lset.add s.msgs (s.voteRequest (sint.nat n) t1) else s.msgs).length : Int) ≤ 2 * b + 1 := by
+    split
+    · have := lset_add_len s.msgs (s.voteRequest (sint.nat n) t1); omega
+    · omega
+  wp_join (v := executeVal) iprop(∃ ml, msgs_ptr ↦ ml ∗ factsRO ml msgs2) at next with [msgs] as ⟨%ml2, msgs, #Hml2⟩
+  · rcases hmsgs2 with ⟨hac, rfl⟩ | ⟨f, a, hac, hf, ha, rfl⟩
+    · odm acks
+      wp_apply wp_acks _ X false $$ [Hx]
+      · iframe Hx; ipureintro; exact hac
+      try wp_auto
+      wp_join_done
+      iexists _; iframe; iexact Hml
+    odm acks
+    wp_apply wp_acks _ X true $$ [Hx]
+    · iframe Hx; ipureintro; exact hac
+    try wp_auto
+    odm f
+    wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+    · iframe Hx; ipureintro; exact hf
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    odm ackAt
+    wp_apply wp_ackAt _ X a $$ [Hx] as %ua %Hua
+    · iframe Hx; ipureintro; exact ha
+    try wp_auto
+    iunfold appendFactRO at Hf
+    icases Hf with ⟨%Hfr, #-⟩
+    rw [Hfr.1]
+    wp_apply wp_AckFact (s.cfg.server[sint.nat n]!) f.src u1 ua as %gak %Hgak
+    try wp_auto
+    wp_apply wp_factsAdd ml _ gak _ $$ [Hml] as %ml1 #Hml1
+    · iframe Hml; ipureintro; exact ⟨Hgak, by unfold numBound at hb; omega⟩
+    try wp_auto
+    wp_join_done
+    rw [Hu1, Hua] at Hml1
+    iexists _; iframe; iexact Hml1
+  wp_apply wp_set_msgs q S3 ml2 msgs2 $$ [Hq Hml2] as Hq
+  · iframe Hq Hml2
+  try wp_auto
+  generalize hS4 : ({ S3 with msgs := msgs2 } : State) = S4
+  have hcfg4 : S4.cfg = s.cfg := by rw [← hS4]; exact hcfg3
   done
+
+end proof
+
+end AntCheck
+end EtcdGrove
+end Perennial
