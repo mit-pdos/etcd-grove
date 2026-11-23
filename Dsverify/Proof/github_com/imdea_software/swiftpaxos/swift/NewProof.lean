@@ -11,7 +11,6 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Rcvr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.LeaderM
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Fatal
@@ -32,7 +31,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions] [hook.Assumptions]
-  [time.Assumptions] [config.Assumptions]
+  [time.Assumptions] [config.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
 
 set_option goose.wp.extras true
 
@@ -72,8 +71,8 @@ theorem swift.New.wp_proof (facts : swift.SrvPkgFacts)
     (rcvr : swift.rcvr.spec (hG := hG)) :
     swift.New.spec (hG := hG) := by
   intro al rid addrs l N k fr pl f cfgp lg γ γc γm γl a ip
-  wp_start as ⟨#Hinv, #Hcfg, #Haddrs, %Hpure, Hstart, Htok, #Hip, Hprotos, #Hconf, #Hlg, %Hplf,
-    ⟨%d, %v0, %n0, %Hdb, Hmax, Hpool, Hshard⟩, #Hgcs, #Hng⟩
+  wp_start as ⟨#Hinv, #Hcfg, #Haddrs, %Hpure, Hstart, #Hip, #Hlis, Hprotos, #Hconf, #Hlg, %Hplf,
+    ⟨%d, %v0, %n0, %Hdb, Hmax, Hpool, Hshard⟩, #Hgcs, #Hrcs, #Hng⟩
   haveI := swift.hlog.cmdId_intoValInj (sem := sem)
   wp_auto
   ipersist Hshard
@@ -123,6 +122,7 @@ theorem swift.New.wp_proof (facts : swift.SrvPkgFacts)
   wp_apply chan.wp_make2 (V := swift.CommandId) (W64 2000000) as %kch %γkc ⟨#Hkch, %Hkcap, Hkown⟩
   · ipureintro; decide
   wp_apply (wp_map_make1 (K := GoString) (V := Unit)) as %sam Hsam
+  icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨«$r0», %Hrnn⟩
   iStructNamedPrefix «$r0» "F"
   wp_for
   iunfold replica.created at Hrr
@@ -375,18 +375,10 @@ theorem swift.New.wp_proof (facts : swift.SrvPkgFacts)
     ipureintro; simp
   try wp_auto
   iapply HΦ
-  isplitl
-  · iapply rcvr; iframe Hpkg Hres
-  isplitl
-  · unfold net.rpc.RpcCodec.methods kitCodec; ipureintro; exact ⟨«$r0_ptr», Or.inr rfl⟩
-  ipureintro
-  simp only [net.rpc.RpcNames.name]
-  rw [if_neg, if_pos ⟨«$r0_ptr», rfl⟩]
-  rintro ⟨p, hp⟩
-  simp [interface.mkOk] at hp
-  have h1 := hp.1
-  simp only [swift.Replica.ty, master.Master.ty, go.GoType.Named.injEq] at h1
-  revert h1; decide
+  iapply rcvr
+  isplitr
+  · ipureintro; exact Hrnn
+  iframe Hrcs Hpkg Hres
 
 end proof
 

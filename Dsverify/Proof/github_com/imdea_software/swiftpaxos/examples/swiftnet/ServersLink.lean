@@ -20,7 +20,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.registerRPC
 public import Dsverify.Proof.encoding.gob.SetCodec
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.codec.CodecFns
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HookUser1
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunLoop
@@ -152,15 +151,8 @@ theorem servers_hyps (hclaim : ClaimHyp) : ServersHyps := by
     exact registerRPC.wp_proof net.rpc.SetCodec.wp_proof (encoding.gob.SetCodec.wp_proof rfl)
   case mnew => exact master.wp_New
   case mrun =>
-    exact master.Master.wp_Run' dlog.Logger.wp_Printf dlog.Logger.wp_Fatal
+    exact master.Master.wp_Run dlog.Logger.wp_Printf dlog.Logger.wp_Fatal
       replica.defs.wp_NewBeTheLeaderReply
-      examples.swiftnet.rpcDecodeAs_defs_RegisterArgs.wp_proof
-      examples.swiftnet.rpcDecodeAs_defs_GetReplicaListArgs.wp_proof
-      examples.swiftnet.rpcDecodeAs_defs_GetLeaderArgs.wp_proof
-      examples.swiftnet.rpcPutU64.specNil.wp_proof
-      examples.swiftnet.rpcEnc_defs_RegisterReply.wp_proof
-      examples.swiftnet.rpcEnc_defs_GetReplicaListReply.wp_proof
-      examples.swiftnet.rpcEnc_defs_GetLeaderReply.wp_proof
   case max =>
     -- the swift group's (Proof/swift/Link.lean), proved (D9/C14: the globals come from the first
     -- package initialization; HUB-REQUEST SW1 closed, D45 (4))

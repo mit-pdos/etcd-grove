@@ -3,17 +3,16 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/Link.lean (lab ma
 -/
 /-
 The swift replica's linked results: each proof applied to its callees' proved results (the
-replica group's quorum system and the concurrent map's). The codec functions' specs the
-receiver's dispatch calls are hypotheses until the codec group proves them (Rcvr.lean).
+replica group's quorum system and the concurrent map's). The receiver is proved over the
+generated codec (Rcvr.lean).
 `handleSync` and `handleNewLeaderAckNs` are linked in Proof/swift/SyncLink.lean (imported here:
 `swift.Replica.wp_handleSync`, `swift.Replica.wp_handleNewLeaderAckNs`, with their open hypotheses
 marked OPEN).
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CodecFns
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.codec.CodecFns
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Rcvr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSystem
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServersSpecs
@@ -51,7 +50,7 @@ section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
-  [sync.Assumptions] [examples.swiftnet.Assumptions]
+  [sync.Assumptions] [examples.swiftnet.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
 
 /-- `BeTheLeader`, linked. -/
 theorem swift.Replica.wp_BeTheLeader : swift.Replica.BeTheLeader.spec :=
@@ -61,11 +60,6 @@ theorem swift.Replica.wp_BeTheLeader : swift.Replica.BeTheLeader.spec :=
 /-- The receiver, linked. -/
 theorem swift.rcvr_ok : swift.rcvr.spec :=
   swift.rcvr.wp_proof swift.Replica.wp_BeTheLeader
-    examples.swiftnet.rpcDecodeAs_defs_BeTheLeaderArgs.wp_proof
-    examples.swiftnet.rpcDecodeAs_defs_PingArgs.wp_proof
-    examples.swiftnet.rpcPutU64.specNil.wp_proof
-    examples.swiftnet.rpcEnc_defs_BeTheLeaderReply.wp_proof
-    examples.swiftnet.rpcEnc_defs_PingReply.wp_proof
 
 end link
 
@@ -77,7 +71,7 @@ variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurren
   [time.Assumptions] [config.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
   [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
   [io.Assumptions] [errors.Assumptions] [bufio.Assumptions]
-  [net.Assumptions] [net.FieldAssumptions]
+  [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 
 /-- `swift.New`, linked to its proved callees; the hypotheses still open: the package states'
 facts (proved at the link with `pkgStates`), the batcher's and the reply channel's goroutines,

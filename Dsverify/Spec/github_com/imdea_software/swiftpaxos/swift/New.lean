@@ -16,6 +16,9 @@ public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NodeGhos
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.config.Defs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 public import Dsverify.Spec.encoding.gob.Defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Defs
 
 @[expose] public section
 
@@ -31,14 +34,30 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [swift.Assumptions] [examples.swiftnet.Assumptions]
+variable [swift.Assumptions] [examples.swiftnet.Assumptions] [net.rpc.Assumptions]
+  [net.FieldAssumptions]
+
+/-- `rpc.Register`'s obligation on the codec's `Receiver` for the replica `r` (not nil), once the
+codec is registered and the replica's persistent facts (`rcvrRes`) hold: it returns a
+`*Receiver` serving `withErr replicaRpcSpec` under the name `"Replica"` (`Net/`'s `rcvrIs`). -/
+abbrev swift.rcvr.spec : Prop :=
+  ∀ (r : Loc) (γc γm : GName),
+  ⌜r ≠ null⌝ ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗
+    isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
+    swift.rcvrRes r γc γm ⊢
+    net.rpc.RpcCodec.spec.rcv (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #r)
+      (net.rpc.rcvrIs net.rpc.RpcCodec.spec
+        (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #r)
+        (withErr (sp.replicaRpcSpec γc γm)) go!"Replica" false)
 
 /-- From the replica node's protocol share, the protocol's invariant, the configuration (`N`
 replicas, fast reads `fr`) and the membership `l` naming the node's port as replica `rid`'s,
-the node's port's token, the replicas' ports' protocols, and the node's IP (its peer listener is
-on `":port"`): the replica, running, whose rpc methods meet the replicas' service
-(`rcvrOk`, for `rpc.Register`). The pool level `pl` and `f` are the adapter's. Change log C14:
-`New` stores `cmap.SHARD_COUNT` and `useFastAckPool`, and its descriptors read
+the replicas' ports' protocols, the node's IP and its peer listener's protocols (it listens at
+the wildcard `replica.wildOf a`, `":port"`), and the registered net/rpc codec: the replica,
+running, and the codec's `Receiver` for it, serving the replicas' service
+(`withErr replicaRpcSpec`) under the name `"Replica"` (`Net/`'s `rcvrIs`: what
+`rpc.Register(rep)` asks; `swift.rcvr.spec`, a premise of `New`'s proof). The pool level `pl`
+and `f` are the adapter's. Change log C14: `New` stores `cmap.SHARD_COUNT` and `useFastAckPool`, and its descriptors read
 `MaxDescRoutines`: it takes the three globals' exclusive points-to, which the boot thread of a
 replica node owns (a Go store is not atomic in Perennial). Change log C17: gob's codec is set
 (`serve` calls `registerRPC` before `swift.New`): the run loop's message table decodes `MSync`s
@@ -50,7 +69,9 @@ abbrev swift.New.spec : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
       sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗ addrs ↦*□ l ∗
       ⌜replicaAddrs[k]? = some a ∧ l[uint.nat rid]? = some a ∧ ip ++ [W8 58] <+: a⌝ ∗
-      sp.replicaStart γ k ∗ addrTok a ∗ nodeIp ip ∗
+      sp.replicaStart γ k ∗ nodeIp ip ∗
+      -- the peer listener's address (`waitForPeerConnections`' wildcard) and its protocols
+      lisProto (replica.wildOf a) (sp.inP γ γc γm) (sp.outQ γ γc γm) ∗
       ([∗list] a' ∈ replicaAddrs, addrProto a' (sp.inP γ γc γm) (sp.outQ γ γc γm)) ∗
       config.plain cfgp fr ∗ dlog.quiet lg ∗
       ⌜uint.Z pl ≤ 2 ∧ uint.nat f = (N - 1) / 2⌝ ∗
@@ -62,17 +83,17 @@ abbrev swift.New.spec : Prop :=
           n (DFrac.own 1)) ∗
       -- change log C17
       encoding.gob.codecSet (GF := netDistGF) ∗
+      net.rpc.codecSet net.rpc.RpcCodec.spec ∗
       -- L2 (notes/prove-s2-e.md, item 4): the node's claimed ghost, for its protocol steps
       client.nodeGhostOk γ (sp.PNode.rep k) }}
     (App (App (App (App (App (App (App (App (App (App (App (App (Val (@! swift.New))
       (Val #al)) (Val #rid)) (Val #addrs)) (Val #true)) (Val #fr)) (Val #true)) (Val #false))
       (Val #pl)) (Val #f)) (Val #cfgp)) (Val #lg)) (Val #slice.nil))
   {{ (rep : Loc), RET #rep;
-      net.rpc.rcvrOk (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #rep)
-        (sp.replicaRpcSpec γc γm) ∗
-      net.rpc.RpcCodec.methods (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #rep) ∗
-      ⌜net.rpc.RpcNames.name (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #rep) =
-        go!"Replica"⌝ }}
+      net.rpc.RpcCodec.spec.rcv (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #rep)
+        (net.rpc.rcvrIs net.rpc.RpcCodec.spec
+          (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #rep)
+          (withErr (sp.replicaRpcSpec γc γm)) go!"Replica" false) }}
 
 end spec
 

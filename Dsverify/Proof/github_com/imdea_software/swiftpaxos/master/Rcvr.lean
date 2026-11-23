@@ -1,12 +1,13 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/master/Rcvr.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
--/
-/-
-The master's receiver meets `sp.masterSpec` through the kit's dispatch (`master.rcvr.spec`,
-`Proof/master/Run.lean`), over the master's method specs and the specs of the kit's codec
-functions it calls (`rpc_gen.go`: decoding the arguments, encoding the replies). The latter are
-the codec group's (`examples/swiftnet`): hypotheses, stated in `Spec/swiftnet/CodecFns.lean`
-(change log C7, request 6), not unfolded.
+The master's receiver (`master.rcvr.spec`, `Proof/master/Run.lean`): the generated `rpcReceiver`
+(`examples/swiftnet/rpc_model_gen.go`) on a `*master.Master` gives a `*Receiver` meeting Net's
+`rcvrIs` for `withErr sp.masterSpec` under the name `"Master"`. Per method (`methodOk`):
+`NewArg()` allocates the argument, whose decoding of a deposit's argument bytes is
+`swiftSrvCodecLaws`' `decA_*` (Net's `argDec`); the call obligation: `NewReply()`, then `Call`,
+the master's method (`master.Master.Register.wp_proof`, `GetLeader`, `GetReplicaList`), whose
+reply `swiftSrvCodecLaws`' `enc_*` encodes into the method spec's success answer. As dsv-epaxos's
+`NetRpc/Bindings.lean` (`masterRcv_holds`). Replaces the lab's proof (lab master 915f964,
+`Proof/master/Rcvr.lean`) through kitgen's dispatch `rpcCall` and its codec functions' specs.
 -/
 module
 
@@ -14,163 +15,363 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Registe
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Methods
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
-public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.CodecFns
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.Bind
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecSrvProof
 
 @[expose] public section
 
 noncomputable section
 
+set_option linter.unusedSectionVars false
+
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Dsv
+open netrpcw
 
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
-
-theorem master.enc_registerReply (i : w64) (ns : List GoString) (r l : Bool) :
-    (sp.KitVal.registerReply i ns r l).encode =
-      sp.cU64 (W64 2) ++ (sp.cU64 i ++ sp.cList sp.cBytes ns ++ sp.cBool r ++ sp.cBool l) := rfl
-
-theorem master.enc_getReplicaListReply (rs : List GoString) (al : List Bool) (r : Bool) :
-    (sp.KitVal.getReplicaListReply rs al r).encode =
-      sp.cU64 (W64 6) ++ (sp.cList sp.cBytes rs ++ sp.cList sp.cBool al ++ sp.cBool r) := rfl
-
-theorem master.enc_getLeaderReply (i : w64) :
-    (sp.KitVal.getLeaderReply i).encode = sp.cU64 (W64 4) ++ sp.cU64 i := rfl
 
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.FieldAssumptions]
+variable [net.rpc.Assumptions] [net.FieldAssumptions]
 
-set_option maxHeartbeats 4000000 in
-theorem master.rcvr.wp_proof
-    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
-    (wp_decRA : examples.swiftnet.rpcDecodeAs_defs_RegisterArgs.spec) (wp_decGRL : examples.swiftnet.rpcDecodeAs_defs_GetReplicaListArgs.spec)
-    (wp_decGL : examples.swiftnet.rpcDecodeAs_defs_GetLeaderArgs.spec) (wp_put : examples.swiftnet.rpcPutU64.specNil)
-    (wp_encRR : examples.swiftnet.rpcEnc_defs_RegisterReply.spec)
-    (wp_encGRL : examples.swiftnet.rpcEnc_defs_GetReplicaListReply.spec)
-    (wp_encGL : examples.swiftnet.rpcEnc_defs_GetLeaderReply.spec) :
-    master.rcvr.spec := by
-  intro m γc γm N
-  iintro #Hm
-  ihave #Hpm := master.isMaster_pkg m γc γm N $$ Hm
-  unfold net.rpc.rcvrOk
+set_option goose.wp.extras true
+
+theorem master.masterSpec_GL_args (γc γm : GName) (args : List w8)
+    (Φ : List w8 → GoString → IProp netDistGF) :
+    sp.masterSpec γc γm go!"GetLeader" args Φ ⊢ ⌜args = encGetLeaderArgs⌝ :=
+  (sp.masterSpec_getLeader args Φ).1.trans (by iintro ⟨%h, -⟩; ipureintro; exact h)
+
+theorem master.masterSpec_GRL_args (γc γm : GName) (args : List w8)
+    (Φ : List w8 → GoString → IProp netDistGF) :
+    sp.masterSpec γc γm go!"GetReplicaList" args Φ ⊢ ⌜args = encGetReplicaListArgs⌝ :=
+  (sp.masterSpec_getReplicaList args Φ).1.trans (by iintro ⟨%h, -⟩; ipureintro; exact h)
+
+theorem master.masterSpec_Reg_args (γc γm : GName) (args : List w8)
+    (Φ : List w8 → GoString → IProp netDistGF) :
+    sp.masterSpec γc γm go!"Register" args Φ ⊢
+      ⌜∃ (ip : GoString) (port : w64), args = encRegisterArgs ip port⌝ :=
+  (sp.masterSpec_register args Φ).1.trans (by
+    iintro ⟨%ip, %port, %c, %k, ⟨%h, -⟩, -⟩
+    ipureintro; exact ⟨ip, port, h⟩)
+
+theorem master.newArg_GetLeader (γc γm : GName) (N : Nat) (m : Loc) :
+    net.rpc.codecSet swiftCodec ∗ master.isMaster m γc γm N ⊢
+    newArgOk swiftCodec (ptrIface master.Master.ty m)
+      (withErr (sp.masterSpec γc γm) go!"GetLeader")
+      (mOf examples.swiftnet.rpcNewArg_r0_GetLeader examples.swiftnet.rpcNewReply_r0_GetLeader
+        examples.swiftnet.rpcCall_r0_GetLeader) := by
+  iintro ⟨#Hcs, #HM⟩
+  ihave #Hpm := master.isMaster_pkg m γc γm N $$ HM
+  unfold newArgOk
   imodintro
-  iintro %meth %args %Φ HS
-  unfold net.rpc.RpcCodec.call kitCodec
-  simp only
-  iintro %s %dq Hs
-  have hfn : net.rpc.kitFn go!"rpcCall" = functions examples.swiftnet.rpcCall [] := rfl
-  rw [hfn]
+  iintro %Ψ HΨ
+  simp only [mOf]
   wp_func_call
   wp_call
   wp_auto
-  wp_if_destruct
-  · -- Register
-    ihave HS := (sp.masterSpec_register (γc := γc) (γm := γm) args Φ).1 $$ HS
-    icases HS with ⟨%ip, %port, %c, %k, %Hargs, #Hc, HΦ⟩
-    obtain ⟨rfl, Hk⟩ := Hargs
-    wp_func_call
-    wp_call
-    wp_auto
-    wp_apply wp_decRA $$ [$Hs] as Hs
-    wp_apply master.Master.Register.wp_proof wp_Printf m γc γm N _ _ ip port c k _
-      $$ [$Hm $a $«$r0» $Hc] as ⟨%rv', Hrep, Hready⟩
-    · ipureintro; exact Hk
-    wp_apply wp_put as %b ⟨Hb, Hcb⟩
-    obtain ⟨id, nlS, ready, isL⟩ := rv'
-    cases ready
-    · simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Hready with %Hrv
-      simp only [replica.defs.RegisterReply.mk.injEq] at Hrv
-      obtain ⟨rfl, rfl, -, rfl⟩ := Hrv
-      ihave Hnil := ownSlice_nil (V := GoString) (GF := netDistGF) (DFrac.own 1)
-      wp_apply wp_encRR b _ _ [] (DFrac.own 1) $$ [$Hb $Hcb Hnil] as %b' ⟨Hb', Hcb', -⟩
-      · iexact Hnil
-      simp only [master.enc_registerReply]
-      iexists b', _, [], true
-      isplitr
-      · ipureintro; rfl
-      isplitl [Hb']
-      · iexact Hb'
-      isplitr
-      · ipureintro; rfl
-      iapply HΦ
-      simp only [Bool.false_eq_true, ↓reduceIte]
-      itrivial
-    · simp only [↓reduceIte]
-      icases Hready with ⟨%nodes, #Hnodes, #Hcfg, %Hid⟩
-      wp_apply wp_encRR b _ _ nodes DFrac.discard $$ [$Hb $Hcb] as %b' ⟨Hb', Hcb', -⟩
-      · iexact Hnodes
-      simp only [master.enc_registerReply]
-      iexists b', _, [], true
-      isplitr
-      · ipureintro; rfl
-      isplitl [Hb']
-      · iexact Hb'
-      isplitr
-      · ipureintro; rfl
-      iapply HΦ
-      simp only [↓reduceIte]
-      icases Hcfg with ⟨%fr, #Hcfg⟩
-      iexists fr
-      iframe Hcfg
-      ipureintro; exact Hid
-    done
-  wp_if_destruct
-  · -- GetLeader
-    ihave HS := (sp.masterSpec_getLeader (γc := γc) (γm := γm) args Φ).1 $$ HS
-    icases HS with ⟨%Hargs, HΦ⟩
-    subst Hargs
-    wp_func_call
-    wp_call
-    wp_auto
-    wp_apply wp_decGL $$ [$Hs] as Hs
-    wp_apply master.Master.GetLeader.wp_proof m γc γm N _ _ _ $$ [$Hm $«$r0»] as ⟨%id, Hrep⟩
-    wp_apply wp_put as %b ⟨Hb, Hcb⟩
-    wp_apply wp_encGL $$ [$Hb $Hcb] as %b' ⟨Hb', Hcb'⟩
-    simp only [master.enc_getLeaderReply]
-    iexists b', _, [], true
+  wp_alloc p as Hp
+  wp_auto
+  have hne : ptrIface replica.defs.GetLeaderArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec swiftCodec (ptrIface replica.defs.GetLeaderArgs.ty p)
+      (p ↦ replica.defs.GetLeaderArgs.mk) (withErr (sp.masterSpec γc γm) go!"GetLeader")
+      (fun _ _ => p ↦ replica.defs.GetLeaderArgs.mk) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    icases withErr_pure _ _ _ _ _ (master.masterSpec_GL_args γc γm args Φ) $$ HS
+      with ⟨%Hargs, HS⟩
+    iframe HS
+    iapply (swiftSrvCodecLaws (GF := netDistGF)).decA_GetLeaderArgs
+    iframe
     isplitr
-    · ipureintro; rfl
-    isplitl [Hb']
-    · iexact Hb'
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS Hp
+  unfold withErr
+  icases HS with ⟨HS, -⟩
+  ihave HS := (sp.masterSpec_getLeader (γc := γc) (γm := γm) args Φ).1 $$ HS
+  icases HS with ⟨-, HS⟩
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (master.Master.GetLeader.wp_proof m γc γm N p «$r0_ptr» _) $$ [$Hpm $HM $«$r0»]
+    as ⟨%id, Hr⟩
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iapply (swiftSrvCodecLaws (GF := netDistGF)).enc_GetLeaderReply
+  iframe
+  iintro _
+  rw [show encGetLeaderReply id = (sp.KitVal.getLeaderReply id).encode from rfl]
+  iapply HS
+
+theorem master.newArg_GetReplicaList
+    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
+    (γc γm : GName) (N : Nat) (m : Loc) :
+    net.rpc.codecSet swiftCodec ∗ master.isMaster m γc γm N ⊢
+    newArgOk swiftCodec (ptrIface master.Master.ty m)
+      (withErr (sp.masterSpec γc γm) go!"GetReplicaList")
+      (mOf examples.swiftnet.rpcNewArg_r0_GetReplicaList
+        examples.swiftnet.rpcNewReply_r0_GetReplicaList
+        examples.swiftnet.rpcCall_r0_GetReplicaList) := by
+  iintro ⟨#Hcs, #HM⟩
+  ihave #Hpm := master.isMaster_pkg m γc γm N $$ HM
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  have hne : ptrIface replica.defs.GetReplicaListArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec swiftCodec (ptrIface replica.defs.GetReplicaListArgs.ty p)
+      (p ↦ replica.defs.GetReplicaListArgs.mk)
+      (withErr (sp.masterSpec γc γm) go!"GetReplicaList")
+      (fun _ _ => p ↦ replica.defs.GetReplicaListArgs.mk) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    icases withErr_pure _ _ _ _ _ (master.masterSpec_GRL_args γc γm args Φ) $$ HS
+      with ⟨%Hargs, HS⟩
+    iframe HS
+    iapply (swiftSrvCodecLaws (GF := netDistGF)).decA_GetReplicaListArgs
+    iframe
     isplitr
-    · ipureintro; rfl
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS Hp
+  unfold withErr
+  icases HS with ⟨HS, -⟩
+  ihave HS := (sp.masterSpec_getReplicaList (γc := γc) (γm := γm) args Φ).1 $$ HS
+  icases HS with ⟨-, HS⟩
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (master.Master.GetReplicaList.wp_proof wp_Printf m γc γm N p «$r0_ptr» _)
+    $$ [$Hpm $HM $«$r0»] as ⟨%s1, %s2, %nodes, %alive, Hr, Hs1, Hs2, #Hcfg, %Hal⟩
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  ileft
+  isplitr
+  · ipureintro; rfl
+  iapply (swiftSrvCodecLaws (GF := netDistGF)).enc_GetReplicaListReply
+  iframe
+  iintro _ _ _
+  rw [show encGetReplicaListReply nodes alive true =
+    (sp.KitVal.getReplicaListReply nodes alive true).encode from rfl]
+  iapply HS $$ Hcfg
+  ipureintro; exact Hal
+
+theorem master.newArg_Register
+    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
+    (γc γm : GName) (N : Nat) (m : Loc) :
+    net.rpc.codecSet swiftCodec ∗ master.isMaster m γc γm N ⊢
+    newArgOk swiftCodec (ptrIface master.Master.ty m)
+      (withErr (sp.masterSpec γc γm) go!"Register")
+      (mOf examples.swiftnet.rpcNewArg_r0_Register examples.swiftnet.rpcNewReply_r0_Register
+        examples.swiftnet.rpcCall_r0_Register) := by
+  iintro ⟨#Hcs, #HM⟩
+  ihave #Hpm := master.isMaster_pkg m γc γm N $$ HM
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  have hne : ptrIface replica.defs.RegisterArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec swiftCodec (ptrIface replica.defs.RegisterArgs.ty p)
+      (p ↦ replica.defs.RegisterArgs.mk go!"" (W64 0))
+      (withErr (sp.masterSpec γc γm) go!"Register")
+      (fun args ok => iprop(⌜args.length < 2 ^ 63⌝ ∗ if ok then ∃ (addr : GoString) (port : w64),
+        ⌜args = encRegisterArgs addr port⌝ ∗ p ↦ replica.defs.RegisterArgs.mk addr port
+        else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    icases withErr_pure _ _ _ _ _ (master.masterSpec_Reg_args γc γm args Φ) $$ HS
+      with ⟨%Hargs, HS⟩
+    obtain ⟨ip, port, Hargs⟩ := Hargs
+    iframe HS
+    iapply swiftDecLen
+    iintro %_
+    iapply (swiftSrvCodecLaws (GF := netDistGF)).decA_RegisterArgs _ _ ip port
+    iframe
+    isplitr
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      iexists ip, port
+      iframe
+      ipureintro; exact Hargs
+  ihave Hp : p ↦ replica.defs.RegisterArgs.mk go!"" (W64 0) $$ [Hp]
+  · rw [show replica.defs.RegisterArgs.mk go!"" (W64 0) = zero_val replica.defs.RegisterArgs
+      from rfl]
+    iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS ⟨%Hl, Hp⟩
+  simp only [ite_true]
+  icases Hp with ⟨%addr, %port', %Hm, Hp⟩
+  unfold withErr
+  icases HS with ⟨HS, -⟩
+  ihave HS := (sp.masterSpec_register (γc := γc) (γm := γm) args Φ).1 $$ HS
+  icases HS with ⟨%ip, %port, %c, %k, %Hargs, #Hc, HΦ⟩
+  obtain ⟨Hargs, Hk, Hkc⟩ := Hargs
+  obtain ⟨rfl, rfl⟩ := swiftArgFacts.encRegisterArgs_inj addr ip port' port
+    (by rw [← Hm]; exact Hl) (Hm.symm.trans Hargs)
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (master.Master.Register.wp_proof wp_Printf m γc γm N p «$r0_ptr» addr port' c k _)
+    $$ [$Hpm $HM $Hp $«$r0» $Hc] as ⟨%rv', Hr, Hready⟩
+  · ipureintro; exact ⟨Hk, Hkc⟩
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  ileft
+  isplitr
+  · ipureintro; rfl
+  obtain ⟨id, nlS, ready, isL⟩ := rv'
+  cases ready
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    icases Hready with %Hrv
+    simp only [replica.defs.RegisterReply.mk.injEq] at Hrv
+    obtain ⟨rfl, rfl, -, rfl⟩ := Hrv
+    ihave Hnil := ownSlice_nil (V := GoString) (GF := netDistGF) (DFrac.own 1)
+    iapply (swiftSrvCodecLaws (GF := netDistGF)).enc_RegisterReply
+    iframe Hr Hnil
+    iintro _ _
+    rw [show ∀ i nl r l, encRegisterReply i nl r l = (sp.KitVal.registerReply i nl r l).encode
+      from fun _ _ _ _ => rfl]
     iapply HΦ
-  wp_if_destruct
-  · -- GetReplicaList
-    ihave HS := (sp.masterSpec_getReplicaList (γc := γc) (γm := γm) args Φ).1 $$ HS
-    icases HS with ⟨%Hargs, HΦ⟩
-    subst Hargs
-    wp_func_call
-    wp_call
-    wp_auto
-    wp_apply wp_decGRL $$ [$Hs] as Hs
-    wp_apply master.Master.GetReplicaList.wp_proof wp_Printf m γc γm N _ _ _ $$ [$Hm $«$r0»]
-      as ⟨%s1, %s2, %nodes, %alive, Hrep, Hs1, Hs2, #Hcfg, %Hal⟩
-    wp_apply wp_put as %b ⟨Hb, Hcb⟩
-    wp_apply wp_encGRL b _ _ nodes alive (DFrac.own 1) (DFrac.own 1) $$ [$Hb $Hcb Hs1 Hs2]
-      as %b' ⟨Hb', Hcb', -⟩
-    · isplitl [Hs1]
-      · iexact Hs1
-      iexact Hs2
-    simp only [master.enc_getReplicaListReply]
-    iexists b', _, [], true
-    isplitr
-    · ipureintro; rfl
-    isplitl [Hb']
-    · iexact Hb'
-    isplitr
-    · ipureintro; rfl
-    iapply HΦ $$ Hcfg
-    ipureintro; exact Hal
-  -- another method: excluded by the spec
-  iexfalso
-  iapply sp.masterSpec_other (γc := γc) (γm := γm) meth args Φ ⟨by assumption, by assumption,
-    by assumption⟩ $$ HS
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    itrivial
+  · simp only [↓reduceIte]
+    icases Hready with ⟨%nodes, #Hnodes, #Hcfg, %Hid⟩
+    iapply (swiftSrvCodecLaws (GF := netDistGF)).enc_RegisterReply
+    iframe Hr Hnodes
+    iintro _ _
+    rw [show ∀ i nl r l, encRegisterReply i nl r l = (sp.KitVal.registerReply i nl r l).encode
+      from fun _ _ _ _ => rfl]
+    iapply HΦ
+    simp only [↓reduceIte]
+    icases Hcfg with ⟨%fr, #Hcfg⟩
+    iexists fr
+    iframe Hcfg
+    ipureintro; exact Hid
+
+set_option maxHeartbeats 4000000 in
+theorem master.rcvr.wp_proof
+    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG)) :
+    master.rcvr.spec := by
+  intro m γc γm N
+  rw [rpcCodec_spec_eq]
+  iintro ⟨%Hnn, #Hcs, #HM⟩
+  rw [swiftCodec_rcv_eq]
+  iintro %Φ HΦ
+  iapply wp_fupd
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Loc) _ _) as %mp Hm
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m0 as H0
+  ipersist H0
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m1 as H1
+  ipersist H1
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m2 as H2
+  ipersist H2
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  ipersist «$r0»
+  imod ownMap_persist $$ Hm with #Hm
+  iapply HΦ
+  unfold net.rpc.rcvrIs
+  iexists _, _
+  iframe «$r0» Hm
+  isplitr
+  · ipureintro
+    refine ⟨rfl, ?_, ?_⟩
+    · simp [Hnn]
+    · exact GMap.map_size_ne_0_lookup_2 _ (GMap.lookup_insert _ _ _)
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun k mm => net.rpc.methodOk swiftCodec
+    (ptrIface master.Master.ty m) (withErr (sp.masterSpec γc γm) k) mm) ?_).2
+  · rfl
+  isplitr
+  · iapply methodOk_of
+    iframe H2
+    iapply master.newArg_Register wp_Printf γc γm N m
+    iframe Hcs HM
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun k mm => net.rpc.methodOk swiftCodec
+    (ptrIface master.Master.ty m) (withErr (sp.masterSpec γc γm) k) mm) ?_).2
+  · rfl
+  isplitr
+  · iapply methodOk_of
+    iframe H1
+    iapply master.newArg_GetReplicaList wp_Printf γc γm N m
+    iframe Hcs HM
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun k mm => net.rpc.methodOk swiftCodec
+    (ptrIface master.Master.ty m) (withErr (sp.masterSpec γc γm) k) mm) ?_).2
+  · rfl
+  isplitr
+  · iapply methodOk_of
+    iframe H0
+    iapply master.newArg_GetLeader γc γm N m
+    iframe Hcs HM
+  iapply BI.BigSepM.bigSepM_empty.2
+  itrivial
 
 end proof
 

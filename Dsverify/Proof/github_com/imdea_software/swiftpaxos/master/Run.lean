@@ -37,12 +37,13 @@ variable [master.Assumptions] [examples.swiftnet.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
 variable [H : RpcHttpHyp netDistGF]
 
-/-- `rpc.Register`'s obligation on the codec's `Receiver` for the master `m`, once the master's
-persistent facts hold: it returns a `*Receiver` serving `withErr masterSpec` under the name
-`"Master"` (`Net/`'s `rcvrIs`). To be proved of the kit's rpcgen codec (`master/Rcvr.lean`). -/
+/-- `rpc.Register`'s obligation on the codec's `Receiver` for the master `m` (not nil), once the
+codec is registered and the master's persistent facts hold: it returns a `*Receiver` serving
+`withErr masterSpec` under the name `"Master"` (`Net/`'s `rcvrIs`). Proved of the kit's rpcgen
+codec in `master/Rcvr.lean`. -/
 abbrev master.rcvr.spec : Prop :=
   ∀ (m : Loc) (γc γm : GName) (N : Nat),
-  master.isMaster m γc γm N ⊢
+  ⌜m ≠ null⌝ ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ master.isMaster m γc γm N ⊢
     net.rpc.RpcCodec.spec.rcv (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
       (net.rpc.rcvrIs net.rpc.RpcCodec.spec
         (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
@@ -100,6 +101,7 @@ theorem master.Master.Run.wp_proof_full
   ihave %Hv := confIs_valid γc c $$ Hc
   have hN5 : N ≤ 5 := by rcases Hv.1 with h | h <;> omega
   have hN3 : 3 ≤ N := by rcases Hv.1 with h | h <;> omega
+  icases typedPointsto_not_null_dup _ _ _ $$ Hm with ⟨Hm, %Hmnn⟩
   icases typedPointsto_split _ _ _ $$ Hm with Hm
   simp only [TypedPointsto.typedPointstoDef]
   icases Hm with ⟨Logger, N, port, nodeList, addrList, portList, lock, nodes, leader, alive,
@@ -156,7 +158,8 @@ theorem master.Master.Run.wp_proof_full
   -- rpc.Register(master), on DefaultServer
   ihave #Hds0 := H.defaultServer_init $$ Hrpc
   icases Hds0 with ⟨%γs, #Hds⟩
-  ihave Hrc := rcvr_ok m γc γm N $$ HisM
+  ihave Hrc := rcvr_ok m γc γm N $$ [$Hcs $HisM]
+  · ipureintro; exact Hmnn
   wp_apply H.Register_spec γs net.rpc.RpcCodec.spec
     (interface.mkOk (go.GoType.PointerType master.Master.ty) #m) (withErr (sp.masterSpec γc γm))
     go!"Master" (W8 77) go!"aster" rfl ⟨by decide, by decide⟩ $$ [$Hrpc $Hds $Hcs $Hrc]
