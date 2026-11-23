@@ -107,6 +107,27 @@ theorem onDisk_within_self {s : State} {b E n : Nat} {q : QItem} {rest : List QI
 theorem subslice_tail {α : Type} (q : α) (rest : List α) :
     subslice 1 (q :: rest).length (q :: rest) = rest := by simp [subslice]
 
+/-- `s.Within b E` with its queue replaced by one within the budget. -/
+theorem within_set_queue {s : State} {b E : Nat} (hW : s.Within b E) {Q : List (List QItem)}
+    (hQ : ∀ q ∈ Q, q.length ≤ b ∧ ∀ it ∈ q, it.ev.Within b E ∧ it.m.length ≤ b ∧ ∀ m ∈ it.m, m.Within b E) :
+    ({ s with queue := Q } : State).Within b E := by
+  obtain ⟨hc, hi1, hi2, h1, h2, h3, h4, h5, h6, hlog, hch, hll1, hll2, hcf, hlc1, hlc2, hla, hel,
+    htl, hm1, hm2, hv1, hv2, hl1, hl2, hu, hp, -, hr, hvi⟩ := hW
+  exact ⟨hc, hi1, hi2, h1, h2, h3, h4, h5, h6, hlog, hch, hll1, hll2, hcf, hlc1, hlc2, hla, hel,
+    htl, hm1, hm2, hv1, hv2, hl1, hl2, hu, hp, hQ, hr, hvi⟩
+
+/-- The queue after `Write`/`Flush` drops node `n`'s first item, within the state's budget. -/
+theorem queue_set_tail {s : State} {b E n : Nat} {q : QItem} {rest : List QItem} (hW : s.Within b E)
+    (hq : s.queue[n]! = q :: rest) :
+    ∀ x ∈ s.queue.set n rest, x.length ≤ b ∧ ∀ it ∈ x, it.ev.Within b E ∧ it.m.length ≤ b ∧ ∀ m ∈ it.m, m.Within b E := by
+  obtain ⟨-, hm⟩ := getElem!_cons_mem hq
+  intro x hx
+  rcases mem_set_or hx with h | h
+  · subst h
+    obtain ⟨h1, h2⟩ := hW.queue _ hm
+    exact ⟨by simp at h1; omega, fun it hit => h2 it (List.mem_cons_of_mem _ hit)⟩
+  · exact hW.queue x h
+
 end W6Laws
 
 end AntCheck
