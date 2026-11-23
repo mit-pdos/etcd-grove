@@ -1,8 +1,8 @@
 /-
 The vr kit's small functions both machine kinds call (`kit.go`; notes/dsv-vr.md): `Addrs()` (the
 go-vsr addresses, `VsrWire.addrs`), `RegisterJSON()` (nothing, until jsongen writes the codec:
-finding 2), `logger()` (`slog.New(slog.DiscardHandler)`, over the `log/slog` hypotheses
-`log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`, `Proof/replica/LibHyps.lean`), and
+finding 2), `logger()` (`slog.New(slog.DiscardHandler)`, over its callees' specs
+`log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`, `Dsverify/Spec/log/slog/Logger.lean`), and
 `kit_frameDecoderSet`: the hook is set for good, `vsrwire`'s package fact (the kit links
 `vsrwire`). One copy each (the client's `MkClientProof.lean` and the server's `ServerProof.lean`
 had their own).
@@ -11,7 +11,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Conf
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.JsonHyps
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.LibHyps
+public import Dsverify.Spec.log.slog.Logger
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.Addrs
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
@@ -88,7 +88,8 @@ theorem wp_logger (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
   ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.log.slog $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_Discard as %h -
+  wp_apply wp_Discard as %h %Hh
+  subst Hh
   wp_apply wp_New as %l #Hl
   iapply HΦ
   iexact Hl

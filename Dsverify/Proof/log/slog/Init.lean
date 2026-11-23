@@ -69,8 +69,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of DiscardHandler))
   -- translated initializer of defaultLogger))
   try wp_auto
-  iapply wp_alloc_untyped
-  all_goals sorry
+  done
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

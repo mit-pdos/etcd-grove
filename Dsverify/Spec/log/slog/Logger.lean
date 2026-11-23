@@ -1,22 +1,24 @@
 /-
-The `log/slog` specs the replica's proof takes as hypotheses (notes/dsv-vr.md, "Hypotheses":
-`log/slog` has no model here, so its specs are theorem arguments, never axioms or instances).
-Stated over `Spec/sloglib.lean`'s `isLogger`. Also the kit's two (`examples/vsrnet/KitLib.lean`'s
-`logger()`, `slog.New(slog.DiscardHandler)`): `New.spec`, `DiscardHandler.load_spec`. These are
-all of the vr proof's `log/slog` hypotheses but `Debug.spec` (`Proof/network/LibHyps.lean`).
+The specs of `log/slog` (the model `models/log/slog`, translated with its bodies into the part;
+proved in `Dsverify/Proof/log/slog/Logger.lean`), the ones the vr kit calls (notes/dsv-vr.md):
+`New`, the package variable `DiscardHandler`, `Logger.{Debug,Info,Warn,Error}` and the
+package-level `Debug`.
 
-The lab's `Harness/Proof/log/slog.lean` (lab master 915f964) proved `Logger.{Debug,Info,Warn,Error}`
-for arguments `fmt.ArgsWf` allows; its replica proof (`VsrProof/Proof/replica/Log.lean`, with
-`VsrProof/Proof/network/Log.lean`) then stepped through the model's `touch` (a `fmt.Stringer`
-type assertion, then an `error` one) to log other values: an error with some message (its
-`Error()` called) and values of types with neither a `String()` nor an `Error()` method (nothing
-called). Those steps read the lab model's code, which does not exist here; so the hypotheses
-below are the lab's specs at the arguments the lab proved them for (`argOk`), what the lab's
-`replica.wp_logMethod` gave. Names are the lab's.
+**Narrowed to `DiscardHandler`**: `New(h)` panics in Go for `h = nil` (and, in the model, for any
+handler other than `DiscardHandler`), so `New.spec` is stated at `dhV`, `DiscardHandler`'s value
+(`Base.lean`), which `DiscardHandler.load_spec` returns; a logger (`isLogger l`) is one whose
+handler is `dhV`, read-only for good. A `DiscardHandler` logger's methods return at once (its
+`Enabled` is false), and so does the package-level `Debug` (the default logger's handler is
+enabled from `LevelInfo` up; the model has no `SetDefault`, Go's own default is at `LevelInfo` too).
+
+The logging calls take their arguments as `argOk` values (the lab's vocabulary,
+`Harness/Proof/log/slog.lean`, lab master 915f964: `nil` or `fmt.ArgWf`, an error with some
+message, or a value with neither a `String()` nor an `Error()` method): a premise the proofs do not
+use (a discard handler formats nothing), kept as the vr proofs' call sites state it.
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.sloglib
+public import Dsverify.Proof.log.slog.Base
 public import Net.Proof.models_lab.Errors
 
 @[expose] public section
@@ -55,6 +57,13 @@ def argOk (v : GoInterface) : IProp GF :=
 instance argOk_persistent (v : GoInterface) : Persistent (argOk (GF := GF) v) := by
   unfold argOk; infer_instance
 
+/-- The `*Logger` `l`, its handler `DiscardHandler`'s value for good (persistent). -/
+def isLogger (l : Loc) : IProp GF :=
+  iprop(structFieldRef log.slog.Logger go!"handler" l ↦□ dhV)
+
+instance isLogger_persistent (l : Loc) : Persistent (isLogger (GF := GF) l) := by
+  unfold isLogger; infer_instance
+
 end defs
 
 section spec
@@ -80,21 +89,27 @@ abbrev Logger.Warn.spec : Prop := Logger.method.spec (GF := GF) (hG := hG) go!"W
 /-- `l.Error(msg, args...)`. -/
 abbrev Logger.Error.spec : Prop := Logger.method.spec (GF := GF) (hG := hG) go!"Error"
 
-/-- **Hypothesis** (no `log/slog` model; the lab's `New.wp_DiscardHandler`, over any handler):
-`slog.New(h)` is a logger. -/
+/-- `slog.New(DiscardHandler)` is a logger (Go's `New(nil)` panics: the spec is at `dhV`, the
+handler the vr kit passes). -/
 abbrev New.spec : Prop :=
-  ∀ (h : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog }}
-    (App (Val (@! log.slog.New)) (Val #h))
+    (App (Val (@! log.slog.New)) (Val #dhV))
   {{ (l : Loc), RET #l; isLogger l }}
 
-/-- **Hypothesis** (no `log/slog` model): reading the package variable `DiscardHandler`, `log/slog`
-initialized, returns (some handler; the lab's package state fixed its value). -/
+/-- Reading the package variable `DiscardHandler`, `log/slog` initialized, returns `dhV`. -/
 abbrev DiscardHandler.load_spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog }}
     (App (Val (GoInstruction (GoLoad log.slog.Handler.ty)))
       (Val #(globalAddr log.slog.DiscardHandler)))
-  {{ (h : GoInterface), RET #h; True }}
+  {{ (h : GoInterface), RET #h; ⌜h = dhV⌝ }}
+
+/-- `slog.Debug(msg, args...)` (package-level, the default logger), its arguments `argOk`. -/
+abbrev Debug.spec : Prop :=
+  ∀ (msg : GoString) (arg : GoSlice) (xs : List GoInterface) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog ∗ arg ↦*{dq} xs ∗
+      [∗list] x ∈ xs, argOk (GF := GF) x }}
+    (App (App (Val (@! log.slog.Debug)) (Val #msg)) (Val #arg))
+  {{ RET #(); arg ↦*{dq} xs }}
 
 end spec
 

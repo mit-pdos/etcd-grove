@@ -6,7 +6,7 @@ notes/dsv-vr.md), and the lab's `network.argOk_of_errOrNil` (`VsrProof/Proof/net
 `slog` with the arguments the client logs: the lab proved `Logger.Error`/`Debug` for arguments of
 types without `Error`/`String` methods from its `slog` model (`touch`); here `log/slog` has no
 model, so the client's proofs take the logger's specs as hypotheses (`log.slog.Logger.Error.spec`,
-`log.slog.Logger.Debug.spec`, stated in `Proof/replica/LibHyps.lean` over `log.slog.argOk`, the
+`log.slog.Logger.Debug.spec`, stated in `Dsverify/Spec/log/slog/Logger.lean` over `log.slog.argOk`, the
 lab's arguments). This file proves the client's arguments `argOk`:
 * `argOk_string`: a string;
 * `argOk_noFmt`: a value of a type without formatting methods (`NoFmtArg`, `go_type_set`);
@@ -14,7 +14,7 @@ lab's arguments). This file proves the client's arguments `argOk`:
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.LibHyps
+public import Dsverify.Spec.log.slog.Logger
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.jsonlib
 
 @[expose] public section

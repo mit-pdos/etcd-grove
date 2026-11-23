@@ -13,7 +13,7 @@ notes/dsv-vr.md), ported from dsverify-lab `examples/vr/proof/VsrProof/Top/{Serv
   frame-decoder hook set (`events.frameDecoderSet`) and `network.ErrNoConn`'s value are the
   package facts of `vsrwire` (which the kit links) and `network` (`kit_frameDecoderSet`,
   `Conf.lean`).
-* The `log/slog` hypotheses (no model here) are `Proof/replica/LibHyps.lean`'s; `logger()`,
+* The `log/slog` hypotheses (no model here) are `Dsverify/Spec/log/slog/Logger.lean`'s; `logger()`,
   `Addrs()`, `RegisterJSON()` are `KitLib.lean`'s.
 * `runReplica.spec`/`wp_proof`: replica `id - 1 < N` at `Addrs()[NC + id]`, the configuration's
   replicas its members; the event loop forever (`RET; False`).

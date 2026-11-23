@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Spec/replica.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension; statements the lab's (the configured addresses
-`VsrWire.addrs`; the JSON vocabulary `Spec/jsonlib.lean`'s, the logger `Spec/sloglib.lean`'s).
+`VsrWire.addrs`; the JSON vocabulary `Spec/jsonlib.lean`'s, the logger `Dsverify/Spec/log/slog/Logger.lean`'s).
 -/
 /-
 Cross-package specs of `pkg/replica` (called by the server node's program, `vsrnet.serve`): the

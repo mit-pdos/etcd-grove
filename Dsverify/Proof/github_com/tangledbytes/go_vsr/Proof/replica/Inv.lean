@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/replica/Inv.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension; the codec class `models_lab.jsoncodec.JsonCodec`,
-`codecSet`/`kitCodecOk` of `Spec/jsonlib.lean`, the logger `Spec/sloglib.lean`'s. Definitions the lab's.
+`codecSet`/`kitCodecOk` of `Spec/jsonlib.lean`, the logger `Dsverify/Spec/log/slog/Logger.lean`'s. Definitions the lab's.
 -/
 /-
 The replica's representation (the body of the sealed `replica.isReplica`): the Go state of a
@@ -22,7 +22,7 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.vsrkv
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.sloglib
+public import Dsverify.Spec.log.slog.Logger
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.replica.Base
 
 @[expose] public section

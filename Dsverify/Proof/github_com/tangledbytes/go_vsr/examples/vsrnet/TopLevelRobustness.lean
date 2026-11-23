@@ -96,7 +96,7 @@ theorem range5 : List.range 5 = [0, 1, 2, 3, 4] := rfl
 
 /-- **The vr kit** (see the statement's file). -/
 theorem vr_remote_robust : vr_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi hji hsi dr er hl hj σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi hji dr er hl hj σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) vrKitAddrs (system σ) g threads (2 ^ 63) ?_
   intro G π hrb
   iintro #Hreg Hs
@@ -136,7 +136,6 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     letI : encoding.json.InitHyp remoteGF := hji G' hG.goose_localGS
-    letI : log.slog.InitHyp remoteGF := hsi G' hG.goose_localGS
     have hL := hl G' hG.goose_localGS π
     have hJ := hj G' hG.goose_localGS π
     match i, hm with

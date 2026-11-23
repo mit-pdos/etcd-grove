@@ -15,7 +15,7 @@ registry, the sender's pool).
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.LibHyps
+public import Dsverify.Spec.log.slog.Logger
 
 @[expose] public section
 

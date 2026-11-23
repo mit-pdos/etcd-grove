@@ -13,12 +13,13 @@ this says porcupine accepts every history, under every fault the net extension a
 
 **Premises** (visible, each at the bundle `remoteGF`, for every machine's heap `heapAt G L` and the
 start's `NetProtoGS`):
-* the package initializers the part has no proof of: `encoding/json`'s and `log/slog`'s
-  (`InitHyp`, `etc/dsv/README.md`);
+* the package initializer the part has no proof of: `encoding/json`'s (`InitHyp`,
+  `etc/dsv/README.md`; `log/slog`'s is proved, from the model's code);
 * the model's `*Decoder` and `*Encoder` representations, any (`encoding.json.DecoderRep`,
   `EncoderRep`: data classes, no instance anywhere);
-* `LibHyps` (`examples/vsrnet/LibHyps.lean`): `log/slog`'s specs (no Lean model here) and
-  `connReaderOk` (a connection is an `io.Reader` for any buffer: notes/dsv-vr.md finding 5);
+* `LibHyps` (`examples/vsrnet/LibHyps.lean`): `connReaderOk` (a connection is an `io.Reader` for
+  any buffer: notes/dsv-vr.md finding 5; it waits on Perennial's readatleast-prefix,
+  mit-pdos/perennial#688); `log/slog`'s specs are proved from the model;
 * **`JsonHyps`** (`examples/vsrnet/JsonHyps.lean`), the `encoding/json` interface: `Unmarshal`,
   `NewEncoder`, `Encoder.Encode` on a connection, `NewDecoder`/`Decode` of a frame, the kit's
   codec's correctness (`codecOk`) and its registration (`RegisterJSON.codecSet_spec`). **Pending
@@ -33,7 +34,6 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.TopL
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.JsonHyps
 public import Dsverify.Proof.encoding.json.Init
-public import Dsverify.Proof.log.slog.Init
 
 @[expose] public section
 
@@ -68,7 +68,6 @@ def vr_remote_robust.spec : Prop :=
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; encoding.json.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; log.slog.InitHyp remoteGF) →
     ∀ [encoding.json.DecoderRep remoteGF] [encoding.json.EncoderRep remoteGF],
     (∀ G L (π : NetProtoGS), letI := heapAt G L; LibHyps (GF := remoteGF)) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L; JsonHyps (GF := remoteGF)) →

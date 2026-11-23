@@ -2,7 +2,7 @@
 The vr kit's links (notes/dsv-vr.md; the kit's top-level `Link`, namespace `EtcdGrove.dsvvr`): the machines' functions' proofs
 (`OrchProof`, `ClientProof`, `ServerProof`) applied to their callees' results (the packages'
 `Results.lean`, remote's `Link.lean`, `Net/`'s net proofs), over the library hypotheses that remain
-(`LibHyps`: `log/slog`, which has no Lean model here, and `connReaderOk`, finding 5; `JsonHyps`
+(`LibHyps`: `connReaderOk`, finding 5; `JsonHyps`
 (`JsonHyps.lean`): every `encoding/json` premise); remote's `Check` and `ServeClient` are remote's proofs.
 -/
 module
@@ -11,6 +11,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Clie
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ServerProof
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.OrchProof
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
+public import Dsverify.Proof.log.slog.Logger
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 
 @[expose] public section
@@ -50,8 +51,9 @@ theorem wp_Orch (h : LibHyps (GF := GF) (hG := hG)) : Orch.spec (GF := GF) (hG :
 
 theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (hG := hG)) :
     Server.spec (GF := GF) (hG := hG) :=
-  Server.wp_proof h.slog_New h.slog_Discard h.slog_Debug h.slog_LDebug h.slog_LInfo h.slog_LWarn
-    h.slog_LError h.conn_readerOk j.newDecoder j.Decode_frame j.Unmarshal
+  Server.wp_proof log.slog.New.wp_proof log.slog.DiscardHandler.load_proof log.slog.Debug.wp_proof
+    log.slog.Logger.Debug.wp_proof log.slog.Logger.Info.wp_proof log.slog.Logger.Warn.wp_proof
+    log.slog.Logger.Error.wp_proof h.conn_readerOk j.newDecoder j.Decode_frame j.Unmarshal
     j.NewEncoder j.Encode_conn j.codecOk j.RegisterJSON
 
 theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (hG := hG)) :
@@ -59,14 +61,14 @@ theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
   Client.wp_proof h.conn_readerOk
     (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame j.Unmarshal
       j.codecOk))
-    h.slog_New h.slog_Discard j.codecOk
+    log.slog.New.wp_proof log.slog.DiscardHandler.load_proof j.codecOk
     (Op.wp_proof
-      (pkg.client.Client.Request.wp (pkg.network.TCP.Send.wp h.slog_Debug j.newDecoder)
+      (pkg.client.Client.Request.wp (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
         (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn j.codecOk))
-      (pkg.client.Client.Submit.wp h.slog_LError)
-      (pkg.client.Client.Run.wp (pkg.network.TCP.Send.wp h.slog_Debug j.newDecoder)
+      (pkg.client.Client.Submit.wp log.slog.Logger.Error.wp_proof)
+      (pkg.client.Client.Run.wp (pkg.network.TCP.Send.wp log.slog.Debug.wp_proof j.newDecoder)
         (fun jc => pkg.events.Event.ToWriter.wp (C := jc) j.NewEncoder j.Encode_conn j.codecOk)
-        h.slog_LError h.slog_LDebug))
+        log.slog.Logger.Error.wp_proof log.slog.Logger.Debug.wp_proof))
     j.RegisterJSON
     EtcdGrove.remote.wp_ServeClient
 

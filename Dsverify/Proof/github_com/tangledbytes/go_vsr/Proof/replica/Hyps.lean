@@ -10,7 +10,7 @@ separate argument `(wp_X : X.spec)` and builds the bundle.
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.replica
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.LibHyps
+public import Dsverify.Spec.log.slog.Logger
 
 @[expose] public section
 

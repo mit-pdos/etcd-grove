@@ -2,7 +2,7 @@
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/client/Results.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension. The callees' specs of other vr packages
 (`network.TCP.Send`, `events.Event.ToWriter`) and the `log/slog` hypotheses (`Logger.Error`,
-`Logger.Debug`, `Proof/replica/LibHyps.lean`) are arguments.
+`Logger.Debug`, `Dsverify/Spec/log/slog/Logger.lean`) are arguments.
 -/
 /-
 The results of `client`: one theorem per spec of `Spec/client.lean`.

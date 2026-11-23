@@ -6,8 +6,8 @@ from dsverify-lab `examples/vr/proof/VsrProof/Top/NewProof.lean` (`wp_mkClient`)
 client's invariant (`ClientDefs.lean`).
 
 The library pieces `logger` needs, which no model gives yet (notes/dsv-vr.md, "Hypotheses"), are
-the hypotheses `log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`
-(`Proof/replica/LibHyps.lean`; `wp_logger`, `KitLib.lean`).
+the callees' specs `log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`
+(`Dsverify/Spec/log/slog/Logger.lean`; `wp_logger`, `KitLib.lean`).
 -/
 module
 

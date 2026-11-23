@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Spec/client.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension; statements the lab's (the configured
-addresses `VsrWire.addrs`; the JSON vocabulary `Spec/jsonlib.lean`'s, the logger `Spec/sloglib.lean`'s).
+addresses `VsrWire.addrs`; the JSON vocabulary `Spec/jsonlib.lean`'s, the logger `Dsverify/Spec/log/slog/Logger.lean`'s).
 -/
 /-
 Cross-package specs of `pkg/client` (called by the adapter `examples/vsrnet`): the `*Client`
@@ -16,7 +16,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.sloglib
+public import Dsverify.Spec.log.slog.Logger
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.client.Base
 
 @[expose] public section
