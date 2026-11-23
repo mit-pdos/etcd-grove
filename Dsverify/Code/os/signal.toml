@@ -1,0 +1,5 @@
+# Project dsv-swiftpaxos (etc/goose.py): `os/signal`, names and types only (no model yet; the
+# specs the kit's proof uses are its hypotheses, notes/dsv-swiftpaxos.md).
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true
