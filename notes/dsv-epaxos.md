@@ -553,6 +553,18 @@ BStr`, `EIn = {i // inPre i}`, `BStr` bounded strings, `lin_opU : lin (epR γ) i
 client-address protocols and `pend_alloc`/`mapCtx_alloc` as paxos; per-machine boot `RpcBoot`
 giving `codecFresh ∗ invalidRequest ↦□ () ∗ muxOwner []` as craq's), the statement with every
 premise visible, `etc/theorem-loc.py`, TCB, tier-check.
+**Later (agent 3):** `ServerSpecs`/`ServerProof` (`Server.wp_proof`, every id; `serverRes γ W id
+= ⌜W.SS = rpcSS γ⌝ ∗ (masterRes | replicaRes)`; hypotheses `SetCodec.spec`, `nodeConfig.spec`,
+`master.New.specM`, `∀ γ W, Master.Run.specM γ W`, `serveReplica.spec`), the model
+(`ModelSet`, `Kit`, `ModelDefs`, `ModelProof`, `KitProof`; `Gen.wp_proof` takes
+`primitive.RandomUint64.spec`; `ModelSet` derives `DecidableEq` for `KvsInput`), all built.
+`RpcHttpAddr.rpcLisP_lis` now gives `Listen.spec`'s update and `rpcLisP_ok` exists
+(models-rpc-http e6b232b2f6's shapes, coordinator); its `rpcLisP_set` also asks the world's
+per-address handshake (`RpcWorld.hs`, not on lean yet: noted in the field's docstring).
+In flight: `KitSpecs`/`ClientProof` (Client, Orch). Then: `Link.lean` (namespace
+`Perennial.EtcdGrove.dsvepaxos`: instantiate every callee spec with its proof), `Mains`, the
+programs' boot (`RpcBoot` per command as craq), `TopLevelDefs`, `TopLevelRobustness` (bridge
+`robust_of_distProtoLisRB epAddrs epLas`, `ep_start`, remote's start for the client addresses).
 If a subagent's files are present but uncommitted, check them (`etc/lean-check.py -a -q`) and
 commit what checks.
 
