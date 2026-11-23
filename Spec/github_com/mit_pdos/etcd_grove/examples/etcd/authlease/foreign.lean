@@ -47,12 +47,12 @@ abbrev foreign.spec : Prop :=
           ⌜ctx = akOut who⌝ -∗ clientOpAuOn s E ρ conn ctx (.leaseRevoke id) Qr) ∗
       □ (∀ σ, Qr σ -∗ R ={⊤}=∗ False) ∗
       □ (∀ tok : Option GoString, akTokSeen γa who tok -∗
-          leaseCheckFrom s E tok n (fun info =>
+          leaseCheckFrom (srvTLSId s) E tok n (fun info =>
             leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) m id .read) -∗
           R ={⊤}=∗ False) ∗
       □ (∀ (tok : Option GoString) (i : Nat) (ids : List w64), ⌜m ≤ i⌝ -∗ akTokSeen γa who tok -∗
           lease.leaseIdsAt (mvcc.api.mvccLeases E.γ) i ids -∗
-          leaseCheckFrom s E tok n (fun info => iprop([∗list] id' ∈ ids,
+          leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id' ∈ ids,
             leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) i id' .read)) -∗
           R ={⊤}=∗ False) }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.authlease.foreign)) (Val #cli))

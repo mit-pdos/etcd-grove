@@ -107,7 +107,7 @@ and `any`. -/
 def adminWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (err : GoInterface) : IProp GF :=
   match M with
   | .on γa => iprop(reqSideWhy M n tok err ∨
-      ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, principalBound s M tok (some info) ∗
+      ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, principalBound (srvTLSId s) M tok (some info) ∗
         auth.adminRefusalFrom γa n (some info) err)
   | _ => iprop(True)
 
@@ -133,7 +133,7 @@ def permWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (err
   match M with
   | .on γa => iprop(reqSideWhy M n tok err ∨
       (((⌜info.Username' = (zeroValDef : GoString) ∧ info.Revision' = W64 0⌝ ∗
-          auth.noPrincipalFrom M n tok) ∨ principalBound s M tok (some info)) ∗
+          auth.noPrincipalFrom M n tok) ∨ principalBound (srvTLSId s) M tok (some info)) ∗
         auth.permRefusalFrom γa n info key rangeEnd op err))
   | _ => iprop(True)
 
@@ -157,7 +157,7 @@ success: it returns `nil` only when the flag reads `false`, read after the calle
 the token names a principal). By the token (perheap's re-keying, Thaw 2, 2026-11-19; until then by the context). -/
 def authedFrom (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) : IProp GF :=
   iprop(auth.enabledVerdictFrom M n false ∨
-    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, □ (⌜M.isOn = true⌝ → principalBound s M tok (some info)))
+    ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, □ (⌜M.isOn = true⌝ → principalBound (srvTLSId s) M tok (some info)))
 
 instance authedFrom_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) :
     Persistent (authedFrom (GF := GF) s M n tok) := by
@@ -240,7 +240,7 @@ theorem adminWhy_none (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoSt
 /-- `IsAdminPermitted(info)` refused a bound principal: the admin reason. -/
 theorem adminWhy_some (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (err : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (herr : err ≠ GoInterface.nil) :
-    principalBound (GF := GF) s M tok (some info) ⊢ auth.adminVerdictFromO M n (some info) err -∗
+    principalBound (GF := GF) (srvTLSId s) M tok (some info) ⊢ auth.adminVerdictFromO M n (some info) err -∗
       adminWhy s M n tok err := by
   cases M with
   | off => unfold auth.adminVerdictFromO; iintro - %H; exact absurd H herr
@@ -292,7 +292,7 @@ holds of any auth info (`srvTLSId`; D4), so the premise says every user is root.
 theorem admin_served_of_frozen (s : Loc) (γa : auth.AuthNames) (hs : List auth.AuthState) (n : Nat)
     (st : auth.AuthState) (tok : Option GoString) (err : GoInterface) (t : GoString) (hf : auth.histFrozenFrom hs n st)
     (hen : st.enabled = true) (htok : tok = some t) :
-    (□ ∀ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, principalBound (GF := GF) s (.on γa) tok (some info) -∗
+    (□ ∀ info : go_etcd_io.etcd.server.v3.auth.AuthInfo, principalBound (GF := GF) (srvTLSId s) (.on γa) tok (some info) -∗
         ⌜info.Username' ≠ [] ∧ ∃ u, st.users !! info.Username' = some u ∧ auth.isRoot u⌝) ∗
       auth.authOwn (.on γa) hs ∗ adminWhy s (.on γa) n tok err ⊢
       auth.authOwn (.on γa) hs ∗ auth.authErrOf .invalidAuthToken err := by
@@ -349,7 +349,7 @@ theorem permWhy_anon (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoStr
 theorem permWhy_bound (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString) (err : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : auth.PermType)
     (herr : err ≠ GoInterface.nil) :
-    principalBound (GF := GF) s M tok (some info) ⊢ auth.permRefusalM M n info key rangeEnd op err -∗
+    principalBound (GF := GF) (srvTLSId s) M tok (some info) ⊢ auth.permRefusalM M n info key rangeEnd op err -∗
       permWhy s M n tok err info key rangeEnd op := by
   cases M with
   | on γa =>
@@ -376,7 +376,7 @@ request side gave none, `auth.noPrincipalFrom`), or one bound to the request (`p
 def infoWhy (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
   iprop((⌜info.Username' = (zeroValDef : GoString) ∧ info.Revision' = W64 0⌝ ∗
-      auth.noPrincipalFrom M n tok) ∨ principalBound s M tok (some info))
+      auth.noPrincipalFrom M n tok) ∨ principalBound (srvTLSId s) M tok (some info))
 
 instance infoWhy_persistent (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
@@ -392,7 +392,7 @@ from the fallback no flag was read: `nonissues/etcd-auth-old-revision-auth-disab
 than `n` (`Revision()`'s read, after the read) whose revision is not the info's. -/
 def oldRevWhy (s : Loc) (γa : auth.AuthNames) (n : Nat) (tok : Option GoString) (err : GoInterface) : IProp GF :=
   iprop(auth.authErrOf .authOldRevision err ∗ ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
-    ⌜uint.nat info.Revision' ≠ 0⌝ ∗ principalBound s (.on γa) tok (some info) ∗
+    ⌜uint.nat info.Revision' ≠ 0⌝ ∗ principalBound (srvTLSId s) (.on γa) tok (some info) ∗
     (auth.enabledVerdictFrom (.on γa) n true ∨ srvTLSId s) ∗
     ∃ (j : Nat) (sr : auth.AuthState), auth.authStateAt γa j sr ∗
       ⌜n ≤ j ∧ sr.revision ≠ uint.nat info.Revision'⌝)

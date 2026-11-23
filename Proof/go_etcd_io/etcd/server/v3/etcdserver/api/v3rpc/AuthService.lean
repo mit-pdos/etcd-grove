@@ -49,84 +49,227 @@ variable [sem : go.Semantics]
 def authSlot (s : Loc) (E : apply.AEnv GF) : IProp GF :=
   iprop(srvLeadTimeReader s ∗ E.RD)
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **What a successful admin call of `rq` tells the client** (persistent; see the file
 header). -/
-def adminReplied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+def adminReplied (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (L : List EntryModel),
     ⌜irrWireOf (apply.withHeader rq hm) rq' ∧ adminDoneM true ρ.kv rq' L⌝ ∗
     srvRLogLb ρ.raft L ∗ pubAfterM true E ρ rq' L ∗ adminQh ρ.kv rq Q hm L ∗
-    hdrBoundT s E.authMode tok hm)
+    hdrBoundT T E.authMode tok hm)
 
-instance adminReplied_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+instance adminReplied_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (tok : Option GoString) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
-    Persistent (adminReplied s E ρ tok rq Q) := by
+    Persistent (adminReplied T E ρ tok rq Q) := by
   unfold adminReplied adminQh adminPropRes; infer_instance
 
 /-- **What a successful `UserAdd` of `name` tells the client** (persistent; see the file
 header). -/
-def userAddReplied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+def userAddReplied (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (name : GoString) (Q : List auth.AuthState → IProp GF) : IProp GF :=
   iprop(∃ um : apply.UserAddModel, ⌜um.name = name ∧ um.noPassword = false ∧ um.pwSure⌝ ∗
-    adminReplied s E ρ tok (irrUserAdd um) Q)
+    adminReplied T E ρ tok (irrUserAdd um) Q)
 
-instance userAddReplied_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+instance userAddReplied_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (tok : Option GoString) (name : GoString) (Q : List auth.AuthState → IProp GF) :
-    Persistent (userAddReplied s E ρ tok name Q) := by
+    Persistent (userAddReplied T E ρ tok name Q) := by
   unfold userAddReplied; infer_instance
 
 /-- **A client's update of the auth history by `rq`, at the token `tok`** (persistent; 5b):
 `histAu` with the header bound to `tok` (`hdrBoundT`). -/
-def authHistAuT (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+def authHistAuT (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) : IProp GF :=
-  histAu ρ.raft ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) rq Q
+  histAu ρ.raft ρ.kv srvAuthSt0 (hdrBoundT T E.authMode tok) rq Q
 
-instance authHistAuT_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+instance authHistAuT_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (tok : Option GoString) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
-    Persistent (authHistAuT s E ρ tok rq Q) := by
+    Persistent (authHistAuT T E ρ tok rq Q) := by
   unfold authHistAuT; infer_instance
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `Auth.UserAdd`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
-def etcdUserAddSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    GrpcSpecMd (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse :=
+def etcdUserAddSpecW (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcMd → UserAddW → (Unit → IProp GF) → (GoString → IProp GF) → IProp GF :=
   fun md (m : UserAddW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜m.name.length ≤ backend.maxKeySize⌝ ∗
       □ (∀ um : apply.UserAddModel, ⌜um.name = m.name ∧ um.noPassword = false ∧ um.pwSure⌝ →
-        authHistAuT s E ρ (auth.mdTokenOf md) (irrUserAdd um) Q) ∗
-      (userAddReplied s E ρ (auth.mdTokenOf md) m.name Q -∗ Φ ()))
+        authHistAuT T E ρ (auth.mdTokenOf md) (irrUserAdd um) Q) ∗
+      (userAddReplied T E ρ (auth.mdTokenOf md) m.name Q -∗ Φ ()))
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdUserAddSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec
+is `etcdUserAddSpecW`, over the models alone, what a service table holds; this is its form at the
+message types). -/
+def etcdUserAddSpec (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcSpecMd (GF := GF) pbAuthUserAddRequest pbAuthUserAddResponse :=
+  etcdUserAddSpecW T E ρ
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's spec of `Auth.UserGrantRole`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
-def etcdUserGrantRoleSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse :=
+def etcdUserGrantRoleSpecW (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcMd → GoString × GoString → (Unit → IProp GF) → (GoString → IProp GF) → IProp GF :=
   fun md (ur : GoString × GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜ur.1.length ≤ backend.maxKeySize⌝ ∗
-      authHistAuT s E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q ∗
-      (adminReplied s E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q -∗ Φ ()))
+      authHistAuT T E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q ∗
+      (adminReplied T E ρ (auth.mdTokenOf md) (irrUserGrantRole ur.1 ur.2) Q -∗ Φ ()))
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdUserGrantRoleSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdUserGrantRoleSpecW`, over the models alone, what a service table holds; this is its
+form at the message types). -/
+def etcdUserGrantRoleSpec (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcSpecMd (GF := GF) pbAuthUserGrantRoleRequest pbAuthUserGrantRoleResponse :=
+  etcdUserGrantRoleSpecW T E ρ
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's spec of `Auth.RoleAdd`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
-def etcdRoleAddSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    GrpcSpecMd (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse :=
+def etcdRoleAddSpecW (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcMd → GoString → (Unit → IProp GF) → (GoString → IProp GF) → IProp GF :=
   fun md (name : GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜name.length ≤ backend.maxKeySize⌝ ∗
-      authHistAuT s E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q ∗
-      (adminReplied s E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q -∗ Φ ()))
+      authHistAuT T E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q ∗
+      (adminReplied T E ρ (auth.mdTokenOf md) (irrRoleAdd name) Q -∗ Φ ()))
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdRoleAddSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec
+is `etcdRoleAddSpecW`, over the models alone, what a service table holds; this is its form at the
+message types). -/
+def etcdRoleAddSpec (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcSpecMd (GF := GF) pbAuthRoleAddRequest pbAuthRoleAddResponse :=
+  etcdRoleAddSpecW T E ρ
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's spec of `Auth.RoleGrantPermission`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
-def etcdRoleGrantPermissionSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse :=
+def etcdRoleGrantPermissionSpecW (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcMd → GoString × auth.PermW → (Unit → IProp GF) → (GoString → IProp GF) → IProp GF :=
   fun md (nw : GoString × auth.PermW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF, ⌜nw.1.length ≤ backend.maxKeySize⌝ ∗
-      authHistAuT s E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q ∗
-      (adminReplied s E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q -∗
+      authHistAuT T E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q ∗
+      (adminReplied T E ρ (auth.mdTokenOf md) (irrRoleGrantPermission nw.1 (some nw.2)) Q -∗
         Φ ()))
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdRoleGrantPermissionSpecW` at the messages' models** (S2, heap-free vocabulary,
+2026-11-23: the spec is `etcdRoleGrantPermissionSpecW`, over the models alone, what a service table
+holds; this is its form at the message types). -/
+def etcdRoleGrantPermissionSpec (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcSpecMd (GF := GF) pbAuthRoleGrantPermissionRequest pbAuthRoleGrantPermissionResponse :=
+  etcdRoleGrantPermissionSpecW T E ρ
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `Auth.AuthEnable`** (see the file header). (DRAFT, k8s etcd3 7c-1b, HS-4: the caller's error outcome at every description, `□ ∀ d, Ψe d`: no information on an error) -/
-def etcdAuthEnableSpec (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
-    GrpcSpecMd (GF := GF) pbAuthEnableRequest pbAuthEnableResponse :=
+def etcdAuthEnableSpecW (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcMd → Unit → (Unit → IProp GF) → (GoString → IProp GF) → IProp GF :=
   fun md (_ : Unit) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop((□ ∀ d, Ψe d) ∗ ∃ Q : List auth.AuthState → IProp GF,
-      authHistAuT s E ρ (auth.mdTokenOf md) irrAuthEnable Q ∗
-      (adminReplied s E ρ (auth.mdTokenOf md) irrAuthEnable Q -∗ Φ ()))
+      authHistAuT T E ρ (auth.mdTokenOf md) irrAuthEnable Q ∗
+      (adminReplied T E ρ (auth.mdTokenOf md) irrAuthEnable Q -∗ Φ ()))
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdAuthEnableSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdAuthEnableSpecW`, over the models alone, what a service table holds; this is its form
+at the message types). -/
+def etcdAuthEnableSpec (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) :
+    GrpcSpecMd (GF := GF) pbAuthEnableRequest pbAuthEnableResponse :=
+  etcdAuthEnableSpecW T E ρ
 
 end defs
 
@@ -141,7 +284,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 stamps a header under (`hdrBoundM true`) is `hdrBoundT`'s (`hdrBoundM_tok`). -/
 theorem adminHistAu_of_tok (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
-    authHistAuT (GF := GF) s E ρ tok rq Q ⊢
+    authHistAuT (GF := GF) (srvTLSId s) E ρ tok rq Q ⊢
       adminHistAu s E ρ tok rq Q := by
   unfold authHistAuT adminHistAu
   exact histAu_mono _ _ _ _ _ _ _ (fun hm => hdrBoundM_tok s E _ hm)
@@ -154,7 +297,7 @@ theorem adminOutOn_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Op
     (F : mvcc.Log) (T : go.GoType) (l : Loc) (err : GoInterface) :
     adminOutOn s E ρ tok rq F (adminQh ρ.kv rq Q) T l err ⊢
       authSlot s E ∗
-        (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ tok rq Q) := by
+        (⌜err = GoInterface.nil⌝ -∗ adminReplied (srvTLSId s) E ρ tok rq Q) := by
   iintro H
   iunfold adminOutOn at H
   icases H with ⟨Hlt, Hrd, H⟩
@@ -180,7 +323,7 @@ theorem authWrapOut_admin (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : O
     (F : mvcc.Log) (T : go.GoType) (resp : Loc) (err : GoInterface) :
     authWrapOut (adminOutOn s E ρ tok rq F (adminQh ρ.kv rq Q) T) resp err ⊢
       authSlot s E ∗
-        (⌜err = GoInterface.nil⌝ -∗ adminReplied s E ρ tok rq Q) := by
+        (⌜err = GoInterface.nil⌝ -∗ adminReplied (srvTLSId s) E ρ tok rq Q) := by
   iintro H
   iunfold authWrapOut at H
   icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
@@ -222,6 +365,145 @@ theorem authWrapOut_admin_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok 
     ihave %Hn := adminOutOn_nn s E ρ tok rq F Qh T resp hT $$ H
     ipureintro; intro _; exact Hn
   · ipureintro; intro He; exact absurd He Hr.2
+
+section monoT
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-! ### O2: monotonicity in the TLS fact (2026-11-23) -/
+
+open Iris.ProofMode in
+theorem adminReplied_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ adminReplied T1 E ρ tok rq Q ⊢ adminReplied T2 E ρ tok rq Q := by
+  unfold adminReplied
+  iintro ⟨#HT, %hm, %rq', %L, %h, Hl, Hp, Hq, Hb⟩
+  iexists hm, rq', L
+  isplitr
+  · ipureintro; exact h
+  iframe Hl Hp Hq
+  iapply hdrBoundT_mono T1 T2
+  iframe HT Hb
+
+open Iris.ProofMode in
+theorem userAddReplied_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (name : GoString) (Q : List auth.AuthState → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ userAddReplied T1 E ρ tok name Q ⊢ userAddReplied T2 E ρ tok name Q := by
+  unfold userAddReplied
+  iintro ⟨#HT, %um, %h, H⟩
+  iexists um
+  isplitr
+  · ipureintro; exact h
+  iapply adminReplied_mono T1 T2
+  iframe HT H
+
+open Iris.ProofMode in
+/-- A caller's update told the header bound at `T2` is one told it at `T1`. -/
+theorem authHistAuT_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ authHistAuT T2 E ρ tok rq Q ⊢ authHistAuT T1 E ρ tok rq Q := by
+  unfold authHistAuT
+  exact histAu_mono_with _ _ _ _ _ _ _ _ (fun hm => hdrBoundT_mono T1 T2 E.authMode tok hm)
+
+open Iris.ProofMode in
+/-- (O2) **`Auth.UserAdd`'s spec is antitone in the TLS fact**: a registration at `T1` serves a
+caller at `T2` when `T1` gives `T2` (`isGrpcRpcMd_mono`). -/
+theorem etcdUserAddSpecW_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (md : GrpcMd)
+    (m : UserAddW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ etcdUserAddSpecW T2 E ρ md m Φ Ψe ⊢ etcdUserAddSpecW T1 E ρ md m Φ Ψe := by
+  unfold etcdUserAddSpecW
+  iintro ⟨#HT, He, %Q, %hl, #Ha, Hk⟩
+  iframe He
+  iexists Q
+  isplitr
+  · ipureintro; exact hl
+  isplitl []
+  · imodintro
+    iintro %um %h
+    iapply authHistAuT_mono T1 T2
+    iframe HT
+    iapply Ha $$ %um %h
+  iintro Hr
+  iapply Hk
+  iapply userAddReplied_mono T1 T2
+  iframe HT Hr
+
+open Iris.ProofMode in
+theorem etcdUserGrantRoleSpecW_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (md : GrpcMd)
+    (ur : GoString × GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ etcdUserGrantRoleSpecW T2 E ρ md ur Φ Ψe ⊢
+      etcdUserGrantRoleSpecW T1 E ρ md ur Φ Ψe := by
+  unfold etcdUserGrantRoleSpecW
+  iintro ⟨#HT, He, %Q, %hl, Ha, Hk⟩
+  iframe He
+  iexists Q
+  isplitr
+  · ipureintro; exact hl
+  isplitl [Ha]
+  · iapply authHistAuT_mono T1 T2
+    iframe HT Ha
+  iintro Hr
+  iapply Hk
+  iapply adminReplied_mono T1 T2
+  iframe HT Hr
+
+open Iris.ProofMode in
+theorem etcdRoleAddSpecW_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (md : GrpcMd)
+    (name : GoString) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ etcdRoleAddSpecW T2 E ρ md name Φ Ψe ⊢ etcdRoleAddSpecW T1 E ρ md name Φ Ψe := by
+  unfold etcdRoleAddSpecW
+  iintro ⟨#HT, He, %Q, %hl, Ha, Hk⟩
+  iframe He
+  iexists Q
+  isplitr
+  · ipureintro; exact hl
+  isplitl [Ha]
+  · iapply authHistAuT_mono T1 T2
+    iframe HT Ha
+  iintro Hr
+  iapply Hk
+  iapply adminReplied_mono T1 T2
+  iframe HT Hr
+
+open Iris.ProofMode in
+theorem etcdRoleGrantPermissionSpecW_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
+    (md : GrpcMd) (nw : GoString × auth.PermW) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ etcdRoleGrantPermissionSpecW T2 E ρ md nw Φ Ψe ⊢
+      etcdRoleGrantPermissionSpecW T1 E ρ md nw Φ Ψe := by
+  unfold etcdRoleGrantPermissionSpecW
+  iintro ⟨#HT, He, %Q, %hl, Ha, Hk⟩
+  iframe He
+  iexists Q
+  isplitr
+  · ipureintro; exact hl
+  isplitl [Ha]
+  · iapply authHistAuT_mono T1 T2
+    iframe HT Ha
+  iintro Hr
+  iapply Hk
+  iapply adminReplied_mono T1 T2
+  iframe HT Hr
+
+open Iris.ProofMode in
+theorem etcdAuthEnableSpecW_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (md : GrpcMd)
+    (u : Unit) (Φ : Unit → IProp GF) (Ψe : GoString → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ etcdAuthEnableSpecW T2 E ρ md u Φ Ψe ⊢ etcdAuthEnableSpecW T1 E ρ md u Φ Ψe := by
+  unfold etcdAuthEnableSpecW
+  iintro ⟨#HT, He, %Q, Ha, Hk⟩
+  iframe He
+  iexists Q
+  isplitl [Ha]
+  · iapply authHistAuT_mono T1 T2
+    iframe HT Ha
+  iintro Hr
+  iapply Hk
+  iapply adminReplied_mono T1 T2
+  iframe HT Hr
+
+end monoT
 
 end lemmas
 

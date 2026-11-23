@@ -112,7 +112,7 @@ theorem akAuthFixed_barrier (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)
     isServerReadM true s E ρ.rd ∗ authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
         ⌜admStates ρ.kv srvAuthSt0 Lset = hs ∧ srvAuthAtLog ρ.kv srvAuthSt0 Lset = setupSt r⌝ ∗
         srvRLogLb ρ.raft Lc ∗ ⌜srvAuthAtLog ρ.kv srvAuthSt0 Lc = setupSt r⌝ ∗
-        v3rpc.rangeAuthed s E ρ.rd c n tok o ⊢
+        v3rpc.rangeAuthed (srvTLSId s) E ρ.rd c n tok o ⊢
       |={⊤}=> ∃ i : Nat, akAuthFixed γa ρ Lset i := by
   rw [v3rpc.rangeAuthed, hγa, hser]
   simp only [auth.authPubLbM, authFloorAt, Bool.false_eq_true, ↓reduceIte]

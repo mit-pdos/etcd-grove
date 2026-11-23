@@ -285,10 +285,10 @@ theorem cell_grantAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) 
     iintro !> %σ %ids %ps %gs %d %HS Hids Ha HG
     iunfold clientGrant at HG
     icases HG with ⟨%md, -, HG⟩
-    ihave HG : writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md))
+    ihave HG : writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT (srvTLSId s) E.authMode (auth.mdTokenOf md))
         (irrLeaseGrant id ttl) L₀ σ $$ [HG]
     · iunfold v3rpc.opGrantT at HG; iexact HG
-    ihave %Hf := writeGrantG_grant_fresh ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md))
+    ihave %Hf := writeGrantG_grant_fresh ρ.kv srvAuthSt0 (v3rpc.hdrBoundT (srvTLSId s) E.authMode (auth.mdTokenOf md))
       id ttl L₀ σ hrev $$ HG
     iunfold cellAuth at Ha
     icases Ha with ⟨Hp, Hg, Hd, Hdo⟩
@@ -614,7 +614,7 @@ theorem akGrantedL_of_writeGrantG (s : Loc) (E : apply.AEnv GF) (γa : auth.Auth
     (hE : ↑authHistN ⊆ Em) :
     etcd_auth.akAuthFixed (GF := GF) γa ρ Lset n ∗ etcd_auth.akTokSeen γa who tok ∗
         □ (srvTLSId s -∗ False) ⊢
-      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq Lset σ ={Em}=∗
+      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT (srvTLSId s) E.authMode tok) rq Lset σ ={Em}=∗
         ⌜akGrantedL who σ rq⌝ := by
   rw [hγa]
   iintro ⟨#Hf, #Hseen, #Htls⟩ Hw

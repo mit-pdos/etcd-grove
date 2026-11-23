@@ -157,7 +157,7 @@ theorem akOut_streamKey (who : GoString) (m : GrpcMd)
 empty one, or for `u` and `v`, `who`; the TLS fallback is off. -/
 theorem akUser_hdr (s : Loc) (γa : auth.AuthNames) (who : GoString) (tok : Option GoString)
     (hm : apply.HeaderModel) :
-    v3rpc.hdrBoundT (GF := GF) s (.on γa) tok hm ∗ akTokSeen γa who tok ∗ □ (srvTLSId s -∗ False) ⊢
+    v3rpc.hdrBoundT (GF := GF) (srvTLSId s) (.on γa) tok hm ∗ akTokSeen γa who tok ∗ □ (srvTLSId s -∗ False) ⊢
       ⌜akUser who hm.username⌝ := by
   iintro ⟨#Hb, #Ht, #Htls⟩
   unfold v3rpc.hdrBoundT
@@ -176,7 +176,7 @@ theorem akUser_hdr (s : Loc) (γa : auth.AuthNames) (who : GoString) (tok : Opti
 /-- **The user of a read of `who`** (an auth info bound to an attempt's token, `infoBoundT`). -/
 theorem akUser_info (s : Loc) (γa : auth.AuthNames) (who : GoString) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    v3rpc.infoBoundT (GF := GF) s (.on γa) tok info ∗ akTokSeen γa who tok ∗
+    v3rpc.infoBoundT (GF := GF) (srvTLSId s) (.on γa) tok info ∗ akTokSeen γa who tok ∗
       □ (srvTLSId s -∗ False) ⊢ ⌜akUser who info.Username'⌝ := by
   iintro ⟨#Hb, #Ht, #Htls⟩
   unfold v3rpc.infoBoundT
@@ -316,7 +316,7 @@ theorem akGranted_of_writeGrantG (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthN
     (rq : apply.IRRModel) (σ : KVState) (Em : CoPset) (hγa : E.authMode = .on γa)
     (hE : ↑authHistN ⊆ Em) :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ akTokSeen γa who tok ∗ □ (srvTLSId s -∗ False) ⊢
-      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq Lset σ ={Em}=∗
+      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT (srvTLSId s) E.authMode tok) rq Lset σ ={Em}=∗
         ⌜akGranted who rq⌝ := by
   rw [hγa]
   iintro ⟨#Hf, #Hseen, #Htls⟩ Hw
@@ -380,7 +380,7 @@ theorem akRead_granted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
     (γr : ReadNames) (Lset : List EntryModel) (n : Nat) (who : GoString) (c : w64)
     (tok : Option GoString) (o : OpFull) (hγa : E.authMode = .on γa) :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ akTokSeen γa who tok ∗ □ (srvTLSId s -∗ False) ⊢
-      v3rpc.rangeAuthed s E γr c n tok o ={⊤}=∗
+      v3rpc.rangeAuthed (srvTLSId s) E γr c n tok o ={⊤}=∗
         ⌜∃ (r : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (e : GoString),
           akUser who info.Username' ∧
           apply.authEndOf o.base.rangeEnd e ∧

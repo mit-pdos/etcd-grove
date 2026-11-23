@@ -44,7 +44,7 @@ abbrev noAuth.spec : Prop :=
       clientTokAt cli [addr] (akTokP γa who) ∗ etcdstart.etcdLeaseServedOn addr s E ρ ∗
       auth.authPubLbM E.authMode n ∗ lease.lessorLb (mvcc.api.mvccLeases E.γ) ml ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF),
-          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K ={⊤}=∗ False) ∗
+          akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K ={⊤}=∗ False) ∗
       □ (∀ (conn : Loc) (ctx : GrpcMd) (id' : w64),
           clientOpAuOn s E ρ conn ctx (.leaseGrant id' grantTTLv) (Qg id')) ∗
       □ (∀ (conn : Loc) (ctx : GrpcMd), attemptTokOk conn (akTokP γa who) -∗
