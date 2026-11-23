@@ -453,12 +453,54 @@ follow the rule (a proof file sees callees through their specs only).
 
 ## Next (for a successor)
 
-**State at handoff (2026-11-23, resumed agent 2, head after `epaxos/Link`):** done and `lake build`
-clean, `#print axioms` Lean's three: the Go, translation, inits, pure model, the marshal layer
-(`wire/**`, `wire/Link`), the ghost chain, the replica package (`replica/**`, **`replica/Link`**), the
-**epaxos package (`epaxos/**`, 3i; **`epaxos/Link`**: `wp_New : EpaxosNewSpecEp isReplica`)**.
-`TCPAddrStringHyp` proved. Tier-check: 34 new `defs->proof` violations (section "Import tiers"),
-none from the epaxos package.
+**State (2026-11-23, resumed agent 3):** **Merged `origin/lean` `c4e044df92`** (models-rpc-server
+landed; Perennial **`c95e92207`**: `.lake/package-overrides.json` points at
+`/shared/perennial-c95e92207`, `PERENNIAL_DIR` likewise; the build seeded by `rsync` from
+`/shared/etcd-grove-dsvrabia/.lake/build` without `Dsverify/`; `gen-init.py --check` (268 up to
+date) and `goose.py --check --project dsv-epaxos` pass; `lake build` of `replica.Link`,
+`epaxos.Link` green, 2716 jobs). `etc/goose.py`/`etc/gen-init.py` equal lean's. models-rpc-http
+NOT merged (its `DialHTTPPath` proof fails on lean's bufio, #24): `RpcHttpHyp` keeps the client
+fields. `epaxos.New`'s spec now asks `c.Port' = 7500 + k` (the kit's port; was the lab's 7000 + k,
+unused by the proof).
+
+**The RPC layer's interfaces (committed `767e410a99`, all check):** `NetRpc/Wire.lean` (rpcgen's
+bytes as pure encoders `encRegisterArgs`, `encRegisterReply`, `encBtlReply`, …, namespace
+`netrpcw`), `NetRpc/Codec.lean` (`epCodec : CodecSpec` from the generated functions' WPs,
+`rpcReady`, `getU64`/`getTag`/`tagOk`, the clients' `CodecLaws`), `NetRpc/CodecSrv.lean`
+(`SrvCodecLaws`, `ArgFacts`, `decLen.spec`), `NetRpc/Methods.lean` (the services over rpcgen's
+bytes: `registerSpec` (`regReplyOk γ k id nl ready`), `masterSvc`, `btlSpec`, `pingSpec`,
+`replicaSvc`, `rpcSS`; each method spec also takes any error answer (`∧ errAns Φ`), so
+`masterSvc_errOk`/`replicaSvc_errOk` prove Net's current `errOk`: no F3-like premise here;
+`portOf k = 7500 + k`, `regArgsOf`, `replicaRpcAddrs_lit`), `NetRpc/Specs.lean` (the parts'
+interfaces: `btlCall.spec`, `pingCall.spec`, `registerCall.spec` (args `↦□`, reused across
+calls); the bodies `masterRegister/GetLeader/GetReplicaList.spec`, `replicaBtl/Ping.spec` over an
+abstract handle; the receivers `masterRcv.spec`, `replicaRcv.spec`). **`RpcHttpHyp` revised**
+(`Interface/RpcHttpHyps.lean`, premise truthfulness): `rpcLisP` (+`_addr`, `_lis`, `_set`; the
+master's wildcard `":7501"`), `muxOwner R` in `HandleHTTP_spec` (a second `http.Handle` of a
+path panics), `Serve_spec` over a listener at `la` (`netLisOn`, `lisInv`); dropped the unused
+`handlerOk`, `Server_ServeHTTP_spec`, `Server_HandleHTTP_spec`, `ServeMux_ServeHTTP_spec`.
+
+**Design finding (Net/remote): the master's wildcard listener at the top level.** `Run` listens
+on `":7501"`; its `lisProto`/`rpcLisP` come from `lisUnset ":7501"`, which only
+`addrs_lis_start` (`GooseLang/Ext/Net/Proto.lean`) gives; `robust_of_distProtoRB`
+(`Net/Statement/DistBridge.lean`) uses `addrs_start` (addresses only). Plan: a local copy of the
+bridge over `addrs_lis_start` (`robust_of_distProtoLisRB addrs las`, `las = [":7501"]`, the kit's
+address list without `127.0.0.1:7501`, which the wildcard takes), proved from Net's lemmas, in the
+kit's `TopLevelRobustness`; Net could offer it.
+
+**Work in flight (2026-11-23, four subagents of agent 3, disjoint files; their reports go to the
+next notes update):** (A1) `NetRpc/CodecProof.lean` (`epCodecLaws`), `NetRpc/CodecSrvProof.lean`
+(`epSrvCodecLaws`, `epArgFacts`, `epDecLen`), after craq's; (A2) `NetRpc/Calls.lean`
+(`btlCall`/`pingCall`/`registerCall` from Net's `Client.Call.spec` + `CodecLaws`),
+`NetRpc/Bindings.lean` (`masterRcv`/`replicaRcv` from the bodies + `SrvCodecLaws`),
+`epaxos/Rpc.lean` (`replicaBtl`/`replicaPing` for `isReplica`, the lab's `wp_BeTheLeader`/`wp_Ping`);
+(B) `master/{Defs,New,Register,GetLeader,GetReplicaList,run,Run,Link}.lean` (the lab's
+`Interface/MasterSpec.lean` ported, over `NetRpc/Specs` and `RpcHttpHyp`); (C)
+`examples/epaxosnet/{Kit,ModelSet,ModelDefs,ModelProof,KitProof}.lean` (remote's `RBase` `epR γ`
+over `own_state`/`epEop`/`kvStep`, `lin_opU`, the set semantics of model.go, `Model`/`Codec`/`Gen`
+specs and proofs; outputs collide on the wire (`Out{V:""}`): craq's F4 fix).
+If a subagent's files are present but uncommitted, check them (`etc/lean-check.py -a -q`) and
+commit what checks.
 
 **Next, in order:**
 1. **Merge** `origin/lean` (now `c4e044df92`: models-rpc-server LANDED, Perennial `c95e92207`:
