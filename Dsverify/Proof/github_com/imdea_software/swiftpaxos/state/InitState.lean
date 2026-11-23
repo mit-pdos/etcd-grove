@@ -32,7 +32,7 @@ theorem state.keyComparator_cmpOk (wp_KeyComparator : state.KeyComparator.spec (
   iapply HΦ $$ %c %Hc
 
 theorem state.InitState.wp_proof (wp_KeyComparator : state.KeyComparator.spec (GF := GF))
-    (wp_NewWith : github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF)) : state.InitState.spec (GF := GF) := by
+    (wp_NewWith : github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF) isTreeMap) : state.InitState.spec (GF := GF) := by
   wp_start
   wp_auto
   ihave #Hcmp := state.keyComparator_cmpOk wp_KeyComparator

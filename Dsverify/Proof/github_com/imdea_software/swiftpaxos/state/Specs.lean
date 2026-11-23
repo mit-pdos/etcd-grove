@@ -18,7 +18,7 @@ Specs: `KeyComparator` (signed comparison of two keys), `NIL`, `InitState`,
 -/
 module
 
-public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Specs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.Treemap
 public import Perennial.Proof.sync
 public import Perennial.Golang.Theory
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.state
@@ -30,7 +30,7 @@ noncomputable section
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Net Dsv
-open github_com.emirpasic.gods.maps (treemap.isTreeMap treemap.cmpOk treemap.lookupE
+open github_com.emirpasic.gods.maps (treemap.cmpOk treemap.lookupE
   treemap.Entries)
 
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
@@ -76,7 +76,7 @@ theorem state.valsOk_put (es : treemap.Entries) (σ : w64 → Option (List w8)) 
 def state.ownState (st : Loc) (σ : w64 → Option (List w8)) : IProp GF :=
   iprop(∃ (mu tm : Loc) (es : treemap.Entries),
     st ↦ state.State.mk mu tm ∗ sync.isMutex mu iprop(True) ∗
-    treemap.isTreeMap tm state.keyEnc es ∗ state.valsOk es σ)
+    isTreeMap tm state.keyEnc es ∗ state.valsOk es σ)
 
 /-- A command's effect on the map and its result (not for `SCAN`). -/
 def state.execS (op : w8) (k : w64) (v : List w8) (σ : w64 → Option (List w8)) :

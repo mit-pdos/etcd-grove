@@ -17,7 +17,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.BufioNet
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibSpecs
-public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Specs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.Treemap
 public import Dsverify.Spec.encoding.gob.NewEncoder
 public import Dsverify.Spec.encoding.gob.NewDecoder
 public import Dsverify.Spec.encoding.gob.Encoder__EncodeW
@@ -40,15 +40,16 @@ namespace github_com.imdea_software.swiftpaxos
 /-- The library hypotheses: see the file header. -/
 class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
     [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  /-- lab `Proof/treemap/NewWith.lean` `treemap.NewWith.wp_proof` -/
+  /-- lab `Proof/treemap/NewWith.lean` `treemap.NewWith.wp_proof`: the shared spec
+  (Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean) over the kit's `isTreeMap` -/
   treemap_NewWith : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF)
+    github_com.emirpasic.gods.maps.treemap.NewWith.spec (GF := GF) isTreeMap
   /-- lab `treemap.Map.Put.wp_proof` -/
   treemap_Put : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.Map.Put.spec (GF := GF)
+    github_com.emirpasic.gods.maps.treemap.Map.Put.spec (GF := GF) isTreeMap
   /-- lab `treemap.Map.Get.wp_proof` -/
   treemap_Get : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
-    github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF)
+    github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF) isTreeMap
   /-- lab `Spec/gob/NewEncoder.lean` `encoding.gob.NewEncoder.wp_proof`, over the real gob
   (`sp.GobFmt`; Spec/encoding/gob/Defs.lean) -/
   gob_NewEncoder : ∀ [examples.swiftnet.Assumptions], encoding.gob.NewEncoder.spec (GF := GF)
@@ -101,9 +102,12 @@ end bufio
 
 namespace github_com.emirpasic.gods.maps.treemap
 variable [treemap.Assumptions]
-theorem wp_NewWith : NewWith.spec (GF := GF) := h.treemap_NewWith
-theorem Map.wp_Put : Map.Put.spec (GF := GF) := h.treemap_Put
-theorem Map.wp_Get : Map.Get.spec (GF := GF) := h.treemap_Get
+theorem wp_NewWith : NewWith.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
+  h.treemap_NewWith
+theorem Map.wp_Put : Map.Put.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
+  h.treemap_Put
+theorem Map.wp_Get : Map.Get.spec (GF := GF) github_com.imdea_software.swiftpaxos.isTreeMap :=
+  h.treemap_Get
 end github_com.emirpasic.gods.maps.treemap
 
 namespace encoding.gob

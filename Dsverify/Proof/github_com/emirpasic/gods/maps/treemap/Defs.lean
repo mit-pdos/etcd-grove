@@ -1,16 +1,18 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/treemap/Defs.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/treemap/Defs.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md);
+the vocabulary of the treemap specs every kit shares
+(`Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`).
 -/
 /-
-The model of `gods/maps/treemap` (the lab's sorted-slice model, `harness/rpcmodel/gods`), the
-subset SwiftPaxos's `state` uses: its abstract state and representation predicate.
+The model of `gods/maps/treemap` (the lab's sorted-slice model, `harness/rpcmodel/gods`): a map's
+abstract state is its list of entries.
 
-* Keys are `int64`s (`state.Key`) behind `interface{}` values given by an encoding `enc`
-  (`interface.mkOk state.Key.ty #k` for `state`); the comparator `cmp` meets `cmpOk cmp enc`:
-  on two encoded keys it returns an `int` whose sign is the signed comparison of the keys.
-* `isTreeMap tm enc es`: the `*Map` at `tm` holds the entries `es` (key, value interface),
-  strictly increasing by key (`sortedE`); its `entries` slice and its capacity are owned.
-* `lookupE es k`, `putE es k v`: the map operations on the entry list.
+* Keys are `int64`s behind `interface{}` values given by an encoding `enc` (`state.Key`s for
+  SwiftPaxos's and EPaxos's `state`); the comparator `cmp` meets `cmpOk cmp enc` (Specs.lean).
+* `Entries`: the entries (key, value interface) of a map, strictly increasing by key (`sortedE`).
+* `lookupE es k`, `putE es k v`: the map operations on the entry list. They are stated over
+  entries with values of any type (`List (w64 × α)`), so that a kit storing `g v` for its own
+  values `v` transports them (`lookupE_map`, `putE_map`: epaxos's slices).
 -/
 module
 
@@ -32,28 +34,31 @@ variable [GooseExts]
 /-- Entries: key, value. -/
 abbrev Entries := List (w64 × GoInterface)
 
+universe u
+variable {α : Type u}
+
 /-- Strictly increasing keys (signed). -/
-def sortedE (es : Entries) : Prop := es.Pairwise (fun a b => sint.Z a.1 < sint.Z b.1)
+def sortedE (es : List (w64 × α)) : Prop := es.Pairwise (fun a b => sint.Z a.1 < sint.Z b.1)
 
 /-- The value of `k`, if any. -/
-def lookupE (es : Entries) (k : w64) : Option GoInterface :=
+def lookupE (es : List (w64 × α)) (k : w64) : Option α :=
   (es.find? (fun e => decide (e.1 = k))).map Prod.snd
 
 /-- The position of the first entry whose key is not below `k`. -/
-def idxOf (es : Entries) (k : w64) : Nat :=
+def idxOf (es : List (w64 × α)) (k : w64) : Nat :=
   (es.takeWhile (fun e => decide (sint.Z e.1 < sint.Z k))).length
 
 /-- `Put(k, v)`: replace `k`'s entry, or insert one in order. -/
-def putE (es : Entries) (k : w64) (v : GoInterface) : Entries :=
+def putE (es : List (w64 × α)) (k : w64) (v : α) : List (w64 × α) :=
   if (es[idxOf es k]?).map Prod.fst = some k then es.set (idxOf es k) (k, v)
   else es.take (idxOf es k) ++ (k, v) :: es.drop (idxOf es k)
 
 /-! ## Pure lemmas -/
 
-theorem idxOf_le (es : Entries) (k : w64) : idxOf es k ≤ es.length := by
+theorem idxOf_le (es : List (w64 × α)) (k : w64) : idxOf es k ≤ es.length := by
   unfold idxOf; exact (List.takeWhile_sublist _).length_le
 
-theorem lt_of_lt_idxOf (es : Entries) (k : w64) (j : Nat) (e : w64 × GoInterface)
+theorem lt_of_lt_idxOf (es : List (w64 × α)) (k : w64) (j : Nat) (e : w64 × α)
     (hj : j < idxOf es k) (he : es[j]? = some e) : sint.Z e.1 < sint.Z k := by
   unfold idxOf at hj
   induction es generalizing j with
@@ -68,7 +73,7 @@ theorem lt_of_lt_idxOf (es : Entries) (k : w64) (j : Nat) (e : w64 × GoInterfac
 
 /-- `idxOf` is characterized by: every entry before it is below `k`, the one at it (if any)
 is not. -/
-theorem idxOf_eq (es : Entries) (k : w64) (i : Nat) (hi : i ≤ es.length)
+theorem idxOf_eq (es : List (w64 × α)) (k : w64) (i : Nat) (hi : i ≤ es.length)
     (hlt : ∀ j e, j < i → es[j]? = some e → sint.Z e.1 < sint.Z k)
     (hge : ∀ e, es[i]? = some e → ¬ sint.Z e.1 < sint.Z k) : idxOf es k = i := by
   unfold idxOf
@@ -87,12 +92,12 @@ theorem idxOf_eq (es : Entries) (k : w64) (i : Nat) (hi : i ≤ es.length)
       · intro j e hj he; exact hlt (j + 1) e (by omega) (by simpa using he)
       · intro e he; exact hge e (by simpa using he)
 
-theorem sortedE_cons (a : w64 × GoInterface) (es : Entries) :
+theorem sortedE_cons (a : w64 × α) (es : List (w64 × α)) :
     sortedE (a :: es) ↔ (∀ b ∈ es, sint.Z a.1 < sint.Z b.1) ∧ sortedE es := by
   unfold sortedE; exact List.pairwise_cons
 
 /-- In a sorted list, `lookupE` finds `k` only at `idxOf`. -/
-theorem lookupE_idx (es : Entries) (k : w64) (hs : sortedE es) :
+theorem lookupE_idx (es : List (w64 × α)) (k : w64) (hs : sortedE es) :
     lookupE es k = match es[idxOf es k]? with
       | some e => if e.1 = k then some e.2 else none
       | none => none := by
@@ -126,7 +131,7 @@ theorem lookupE_idx (es : Entries) (k : w64) (hs : sortedE es) :
         rw [List.find?_eq_none.mpr (by intro b hb; simpa using hnone b hb)]
         rfl
 
-theorem not_lt_at_idxOf (es : Entries) (k : w64) (h : idxOf es k < es.length) :
+theorem not_lt_at_idxOf (es : List (w64 × α)) (k : w64) (h : idxOf es k < es.length) :
     ¬ sint.Z (es[idxOf es k]'h).1 < sint.Z k := by
   induction es with
   | nil => simp at h
@@ -163,21 +168,21 @@ theorem insert_shift {A : Type} (L : List A) (z new : A) (idx : Nat) (h : idx �
   | none => simp at hg; omega
   | some y => simp
 
-theorem putE_found (es : Entries) (k : w64) (v : GoInterface)
+theorem putE_found (es : List (w64 × α)) (k : w64) (v : α)
     (h : (es[idxOf es k]?).map Prod.fst = some k) : putE es k v = es.set (idxOf es k) (k, v) := by
   unfold putE; rw [if_pos h]
 
-theorem putE_notfound (es : Entries) (k : w64) (v : GoInterface)
+theorem putE_notfound (es : List (w64 × α)) (k : w64) (v : α)
     (h : ¬ (es[idxOf es k]?).map Prod.fst = some k) :
     putE es k v = es.take (idxOf es k) ++ (k, v) :: es.drop (idxOf es k) := by
   unfold putE; rw [if_neg h]
 
-theorem sortedE_iff (es : Entries) :
+theorem sortedE_iff (es : List (w64 × α)) :
     sortedE es ↔ ∀ (a b : Nat) (ha : a < es.length) (hb : b < es.length), a < b →
       sint.Z es[a].1 < sint.Z es[b].1 := by
   unfold sortedE; rw [List.pairwise_iff_getElem]
 
-theorem sortedE_putE (es : Entries) (k : w64) (v : GoInterface) (hs : sortedE es) :
+theorem sortedE_putE (es : List (w64 × α)) (k : w64) (v : α) (hs : sortedE es) :
     sortedE (putE es k v) := by
   have hsi := (sortedE_iff es).mp hs
   by_cases h : (es[idxOf es k]?).map Prod.fst = some k
@@ -236,11 +241,11 @@ theorem sortedE_putE (es : Entries) (k : w64) (v : GoInterface) (hs : sortedE es
     · exact htd.2.2 a ha b hb
 
 
-theorem lookupE_cons (a : w64 × GoInterface) (es : Entries) (k : w64) :
+theorem lookupE_cons (a : w64 × α) (es : List (w64 × α)) (k : w64) :
     lookupE (a :: es) k = if a.1 = k then some a.2 else lookupE es k := by
   unfold lookupE; by_cases h : a.1 = k <;> simp [h]
 
-theorem lookupE_some_iff (es : Entries) (k : w64) (x : GoInterface) (hs : sortedE es) :
+theorem lookupE_some_iff (es : List (w64 × α)) (k : w64) (x : α) (hs : sortedE es) :
     lookupE es k = some x ↔ (k, x) ∈ es := by
   induction es with
   | nil => simp [lookupE]
@@ -261,8 +266,8 @@ theorem lookupE_some_iff (es : Entries) (k : w64) (x : GoInterface) (hs : sorted
         · exfalso; apply h; rw [← he]
         · exact hm
 
-theorem mem_putE (es : Entries) (k : w64) (x : GoInterface) (hs : sortedE es) (k' : w64)
-    (x' : GoInterface) :
+theorem mem_putE (es : List (w64 × α)) (k : w64) (x : α) (hs : sortedE es) (k' : w64)
+    (x' : α) :
     (k', x') ∈ putE es k x ↔ (k' = k ∧ x' = x) ∨ ((k', x') ∈ es ∧ k' ≠ k) := by
   have hsi := (sortedE_iff es).mp hs
   by_cases h : (es[idxOf es k]?).map Prod.fst = some k
@@ -316,7 +321,7 @@ theorem mem_putE (es : Entries) (k : w64) (x : GoInterface) (hs : sortedE es) (k
         · left; exact hm
         · right; right; exact hm
 
-theorem lookupE_putE (es : Entries) (k : w64) (x : GoInterface) (hs : sortedE es) (k' : w64) :
+theorem lookupE_putE (es : List (w64 × α)) (k : w64) (x : α) (hs : sortedE es) (k' : w64) :
     lookupE (putE es k x) k' = if k' = k then some x else lookupE es k' := by
   have hs' := sortedE_putE es k x hs
   apply Option.ext
@@ -327,5 +332,48 @@ theorem lookupE_putE (es : Entries) (k : w64) (x : GoInterface) (hs : sortedE es
       and_false, or_false]; exact eq_comm
   · simp only [hk, ite_false, false_and, false_or, ne_eq, not_false_eq_true, and_true]
     exact (lookupE_some_iff es k' x' hs).symm
+
+/-! ## Values mapped (a kit storing `g v` for its own values `v`) -/
+
+theorem idxOf_map {β : Type u} (g : α → β) (es : List (w64 × α)) (k : w64) :
+    idxOf (es.map (fun e => (e.1, g e.2))) k = idxOf es k := by
+  unfold idxOf
+  induction es with
+  | nil => rfl
+  | cons a es ih =>
+    by_cases h : sint.Z a.1 < sint.Z k
+    · simp only [List.map_cons, List.takeWhile_cons, h, decide_true, List.length_cons]
+      exact congrArg (· + 1) ih
+    · simp [List.takeWhile_cons, h]
+
+theorem putE_map {β : Type u} (g : α → β) (es : List (w64 × α)) (k : w64) (v : α) :
+    putE (es.map (fun e => (e.1, g e.2))) k (g v) = (putE es k v).map (fun e => (e.1, g e.2)) := by
+  unfold putE
+  rw [idxOf_map]
+  have hf : ((es.map (fun e => (e.1, g e.2)))[idxOf es k]?).map Prod.fst =
+      (es[idxOf es k]?).map Prod.fst := by
+    rw [List.getElem?_map]; cases es[idxOf es k]? <;> rfl
+  rw [hf]
+  split
+  · rw [List.map_set]
+  · rw [List.map_append, List.map_cons, List.map_take, List.map_drop]
+
+theorem lookupE_map {β : Type u} (g : α → β) (es : List (w64 × α)) (k : w64) :
+    lookupE (es.map (fun e => (e.1, g e.2))) k = (lookupE es k).map g := by
+  induction es with
+  | nil => rfl
+  | cons a es ih =>
+    rw [List.map_cons, lookupE_cons, lookupE_cons]
+    by_cases h : a.1 = k
+    · simp [h]
+    · simp only [h, if_false]; exact ih
+
+theorem sortedE_map {β : Type u} (g : α → β) (es : List (w64 × α)) :
+    sortedE (es.map (fun e => (e.1, g e.2))) ↔ sortedE es := by
+  unfold sortedE; rw [List.pairwise_map]
+
+theorem sortedE_filter (p : w64 × α → Bool) (es : List (w64 × α)) (hs : sortedE es) :
+    sortedE (es.filter p) :=
+  List.Pairwise.filter p hs
 
 end Perennial.github_com.emirpasic.gods.maps.treemap

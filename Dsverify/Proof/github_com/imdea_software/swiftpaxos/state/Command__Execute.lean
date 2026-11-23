@@ -24,8 +24,8 @@ variable [sync.Assumptions] [SwiftNetPkgState GF]
 set_option goose.wp.extras true
 
 theorem state.Command.Execute.wp_proof (wp_NIL : state.NIL.spec (GF := GF))
-    (wp_Put : github_com.emirpasic.gods.maps.treemap.Map.Put.spec (GF := GF))
-    (wp_Get : github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF))
+    (wp_Put : github_com.emirpasic.gods.maps.treemap.Map.Put.spec (GF := GF) isTreeMap)
+    (wp_Get : github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF) isTreeMap)
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF)) (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF)) :
     state.Command.Execute.spec (GF := GF) := fun c dq op k vsl v st σ => by
   wp_start as ⟨Hc, #Hv, Hst, %Hop⟩
@@ -38,7 +38,7 @@ theorem state.Command.Execute.wp_proof (wp_NIL : state.NIL.spec (GF := GF))
   ihave %Hstn := typedPointsto_not_null _ _ _ $$ Hst
   iStructNamed Hc
   iStructNamed Hst
-  ihave ⟨Htm, %Hs⟩ := github_com.emirpasic.gods.maps.treemap.isTreeMap_sorted _ _ _ $$ Htm
+  ihave ⟨Htm, %Hs⟩ := isTreeMap_sorted _ _ _ $$ Htm
   wp_auto
   wp_if_destruct
   · -- PUT
