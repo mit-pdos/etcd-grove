@@ -44,9 +44,13 @@ false; stage 5 adds the restart's spec.
 Why it is true of Go: see `BootParts.lean`'s header (which callee gives which row of `bootOk`, and the
 hand-off states), `bootOk_of_parts` (the posts join into `bootOk`), and each callee's docstring. On an
 error after `bootstrapBackend` (`bootstrapCluster`'s, `Finalize`'s) `bootstrap` closes the backend
-(`:95`, `:103`) and returns it. -/
+(`:95`, `:103`) and returns it.
+
+The thread and receipt bounds (`ThreadBoundLe GF (2 ^ 29)`, `ReceiptBoundLe GF (2 ^ 60)`) are
+`storage.OpenBackend.spec`'s (through `bootstrapBackend.spec`), which is stated under them; NewServer's
+context derives them. -/
 abbrev bootstrap.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat),
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat),
   bootGo.bootURLsPlain U →
   γ.vs = bootGo.ps U cfg.InitialClusterToken' →
   (∃ bl : List LogEntry, BootLog (bootGo.ps U cfg.InitialClusterToken')

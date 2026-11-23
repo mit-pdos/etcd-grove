@@ -44,9 +44,17 @@ the configuration's backend path (`Hpath`, `Hbfile`); the apply protocol's names
 write-back token of the budget); no defragmentation (`BootstrapDefragThresholdMegabytes = 0`,
 `bootCfgOk`); `haveWAL` false: no `recoverSnapshot`, `snapshot` nil (`:280-286`); `err` is never set,
 so the deferred `Close` does not run. Of the budget, the session spent one, `Finalize` takes one and
-`bootLeft N` keeps `N + 7` (`bootWB` is four). -/
+`bootLeft N` keeps `N + 7` (`bootWB` is four).
+
+Its callees' premises: the thread and receipt bounds (`ThreadBoundLe GF (2 ^ 29)`,
+`ReceiptBoundLe GF (2 ^ 60)`) are `storage.OpenBackend.spec`'s, which is stated under them; NewServer's
+context derives them (`NewServer.lean`'s `threadBound GF ≤ 2 ^ 28` and its receipt bound). The data
+directory's length bound is `cfg.BackendPath()`'s spec's (`bootstrap` derives it from `bootCfgFresh`'s
+`Fs.DirFits cfg.DataDir'`). -/
 abbrev bootstrapBackend.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (N : Nat),
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
+    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (N : Nat),
+  cfg.DataDir'.length < 2 ^ 60 →
   bootCfgOk cfg → N + 7 + bootWB ≤ backend.wbInit → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       zapLoggerOk cfg.Logger' ∗

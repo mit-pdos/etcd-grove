@@ -185,25 +185,6 @@ abbrev bootstrapBackend.metaSnap.law : Prop :=
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN)
             (readView (γA.withPh π)))
 
-/-- **`bootstrapBackend.spec` with the premises its callees need** (see the report in the proof's
-header): the thread and receipt bounds `OpenBackend`'s axiom is stated under, and the data
-directory's length `cfg.BackendPath()`'s spec takes. Otherwise `bootstrapBackend.spec` verbatim. -/
-abbrev bootstrapBackend.specFits : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (N : Nat),
-  cfg.DataDir'.length < 2 ^ 60 →
-  bootCfgOk cfg → N + 7 + bootWB ≤ backend.wbInit → storage.dbOpensOk →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      zapLoggerOk cfg.Logger' ∗
-      (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
-      envVerifyOff ∗ backend.fileFree (config.backendPathOf cfg.DataDir') }}
-    (App (App (Val (@! bootstrapBackend)) (Val #cfg)) (Val #false))
-  {{ (bkl : Loc) (err : GoInterface), RET (PairV #bkl #err);
-      ⌜err = GoInterface.nil⌝ ∗
-      ∃ (bk : bootstrappedBackend) (γA : ApplyNames) (cil : Loc) (d : mvcc.KBReal) (D : backend.Data),
-        bkl ↦ bk ∗ ⌜bk.snapshot' = null ∧ bootBackendData γA d D⌝ ∗
-        bootBackendRows cfg bk γA cil d ∗ bootBackendNew N γA d D ∗ backend.wbTok d.γB }}
-
 end laws
 
 section proof
@@ -215,7 +196,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 4000000 in
-theorem bootstrapBackend.wp_proofFits
+theorem bootstrapBackend.wp_proof
     (hBP : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (hExF : bootstrapBackend.existFree.law (GF := GF) (hG := hG))
     (hNCI : NewConsistentIndex.spec (GF := GF) (hG := hG))
@@ -236,7 +217,7 @@ theorem bootstrapBackend.wp_proofFits
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hWA : mvcc.api.mvccW_alloc.law (GF := GF))
     (hMS : bootstrapBackend.metaSnap.law (GF := GF)) :
-    bootstrapBackend.specFits (GF := GF) (hG := hG) := by
+    bootstrapBackend.spec (GF := GF) (hG := hG) := by
   intro _ _ cfg N hdd hcfg hN hdbo
   wp_start as ⟨#Hzlg, Hfg, #Hvoff, Hfree⟩
   wp_auto

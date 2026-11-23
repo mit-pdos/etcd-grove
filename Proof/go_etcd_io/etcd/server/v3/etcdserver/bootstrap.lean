@@ -92,7 +92,7 @@ theorem bootstrap.wp_proof
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
     (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     bootstrap.spec (GF := GF) (hG := hG) := by
-  intro cfg U γ N HU Hvs Hlog Hmem
+  intro _ _ cfg U γ N HU Hvs Hlog Hmem
   wp_start as ⟨%Hpure, #Hzlg, Hfg, Hvoff, #Hro, Hrauth, Hres⟩
   obtain ⟨Hcok, Hfresh, Hwb, Hdb⟩ := Hpure
   wp_auto
@@ -208,7 +208,7 @@ theorem bootstrap.wp_proof
   wp_apply (hExist cfg) $$ [Hwa] as Hwp
   · iframe #; iunfold bootFs.walPart; iframe Hwa; ipureintro; exact Hwd
   -- `bootstrapBackend(cfg, false)`
-  wp_apply (hBack cfg N Hcok Hwb Hdb) $$ [Hfg Hvoff Hff] as %bkl %berr
+  wp_apply (hBack cfg N Hlen Hcok Hwb Hdb) $$ [Hfg Hvoff Hff] as %bkl %berr
     ⟨%Hberr, %bk, %γA, %cil, %d, %D, Hbk, %Hbk0, Hrows, Hnew, Hwbt⟩
   · iframe Hfg Hvoff Hff; iframe #
   subst Hberr
