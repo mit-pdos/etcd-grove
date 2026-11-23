@@ -131,9 +131,25 @@ noncomputable def members [GooseExts] (U : BootURLs) (token : GoString) : List a
 /-- **The peers** (`MemberIDs()`). -/
 noncomputable def ps [GooseExts] (U : BootURLs) (token : GoString) : List w64 := (members U token).map (·.id)
 
+/-- **The cluster's members map, by id** (`NewClusterFromURLsMap`'s `c.members[m.ID] = m`, each
+member under its own id): what `membership.memAt`/`clusterMem` hold of a new cluster. -/
+noncomputable def memMap [GooseExts] (U : BootURLs) (token : GoString) : GMap w64 apply.MemberM :=
+  (members U token).foldl (fun mem m => mem.insert m.id m) ∅
+
 /-- **This member's id** (`cfg.Name`'s entry: `MemberByName(cfg.Name).ID`). -/
 def id [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) : w64 :=
   (memberOf U cfg.InitialClusterToken' cfg.Name').id
+
+/-- **The initial cluster `bootstrapCluster` accepts** (pure; what a successful
+`bootstrapNewClusterNoWAL` has checked, `bootstrap.go:379-414` at the pin): the configuration's own
+name is an entry (`VerifyBootstrap`'s `hasLocalMember`, `config.go`: an error otherwise), so this
+member's id is a peer; and the entries' ids are distinct and not `0` (`NewClusterFromURLsMap`,
+`cluster.go`: "member exists with identical ID" and "cannot use 0 as member id" otherwise). A fact
+of the configuration, which `bootstrapCluster.spec`'s success gives and the later callees take. -/
+def membersOk [GooseExts] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) : Prop :=
+  (U.initMap.lookup cfg.Name').isSome ∧ (ps U cfg.InitialClusterToken').Nodup ∧
+    W64 0 ∉ ps U cfg.InitialClusterToken' ∧
+    (memberOf U cfg.InitialClusterToken' cfg.Name').id ∈ ps U cfg.InitialClusterToken'
 
 /-- **The cluster's id** (`genID()`). -/
 noncomputable def cid [GooseExts] (U : BootURLs) (token : GoString) : w64 :=
