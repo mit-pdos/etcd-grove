@@ -40,6 +40,12 @@ def upd (h : Loc → Node) (l : Loc) (x : Node) : Loc → Node :=
 @[simp] theorem upd_same (h : Loc → Node) (l : Loc) (x : Node) : upd h l x l = x := by
   simp [upd]
 
+theorem upd_of_eq (h : Loc → Node) (l : Loc) (x : Node) (hx : h l = x) : upd h l x = h := by
+  funext y
+  by_cases hy : y = l
+  · subst hy; simp [upd, hx]
+  · simp [upd, hy]
+
 theorem upd_ne (h : Loc → Node) (l l' : Loc) (x : Node) (hne : l' ≠ l) : upd h l x l' = h l' := by
   simp [upd, hne]
 
@@ -637,6 +643,26 @@ theorem Rep_plug_replace {C : Ctx GoInterface} {t t' : RB GoInterface} (h' : Loc
   rw [Rep_plug] at hrep ⊢
   exact ⟨hloc ▸ RepC_congr h' C t.loc null hC hrep.1, ht'⟩
 
+/-- The node `Put` allocates: the key, the value, red, no links. -/
+abbrev newNode (enc : w64 → GoInterface) (k : w64) (v : GoInterface) : Node :=
+  Node.mk (enc k) v false null null null
+
+/-- The state of `Put`'s search loop (`loop`, `node`, `insertedNode`, the nodes): searching at a
+subtree of `T` (the heap unchanged), or the new node `l` linked below `s` (`loop` false; its
+parent pointer not set yet). -/
+def putLoop (T : RB GoInterface) (h : Loc → Node) (D : List Loc) (k : w64) (v : GoInterface)
+    (b : Bool) (nd il : Loc) (hc : Loc → Node) (Dc : List Loc) : Prop :=
+  if b then hc = h ∧ Dc = D ∧
+    ∃ (C : Ctx GoInterface) (S : RB GoInterface), T = Ctx.plug C S ∧ S ≠ .leaf ∧ Bounds k C ∧
+      nd = S.loc
+  else ∃ (C : Ctx GoInterface) (s : Loc) (k' : w64) (v' : GoInterface) (X : RB GoInterface)
+      (l : Loc), Dc = l :: D ∧ l ∉ D ∧ l ≠ null ∧ il = l ∧ nd = s ∧ Bounds k C ∧
+    hc l = newNode enc k v ∧ (∀ x, x ≠ s → x ≠ l → hc x = h x) ∧
+    ((T = Ctx.plug C (.node s k' v' .leaf X) ∧ sint.Z k < sint.Z k' ∧
+        hc s = nodeOf enc k' v' (h s).color' l X.loc (Ctx.parent C null)) ∨
+     (T = Ctx.plug C (.node s k' v' X .leaf) ∧ sint.Z k' < sint.Z k ∧
+        hc s = nodeOf enc k' v' (h s).color' X.loc l (Ctx.parent C null)))
+
 end heapfn
 
 /-! ## The points-tos -/
@@ -750,6 +776,15 @@ theorem ownNodes_acc' (h : Loc → Node) (D : List Loc) (l : Loc) (x : Node) (hl
     (hnd : D.Nodup) (hx : h l = x) :
     ownNodes (GF := GF) h D ⊢ l ↦ x ∗ ∀ y, l ↦ y -∗ ownNodes (upd h l y) D := by
   rw [← hx]; exact ownNodes_acc h D l hl hnd
+
+/-- A fresh node joins the nodes. -/
+theorem ownNodes_insert (h : Loc → Node) (D : List Loc) (l : Loc) (x : Node) (hl : l ∉ D) :
+    ownNodes (GF := GF) h D ∗ l ↦ x ⊢ ownNodes (upd h l x) (l :: D) := by
+  rw [ownNodes_cons, upd_same]
+  iintro ⟨H, Hl⟩
+  iframe Hl
+  iapply ownNodes_congr h (upd h l x) D (fun y hy => upd_ne h l y x (fun e => hl (e ▸ hy)))
+  iexact H
 
 /-- Two full points-tos of one interface-typed location exclude each other (as
 `bufio.iface_pointsto_excl`, the main tree's). -/

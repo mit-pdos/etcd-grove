@@ -273,6 +273,12 @@ theorem ne_loc_of_not_mem {α : Type u} {t : RB α} {x : Loc} (hx : x ≠ null) 
   | leaf => simpa using hx
   | node n => intro e; subst e; simp at hm
 
+theorem Ctx.plug_loc_congr {α : Type u} (C : Ctx α) {t t' : RB α} (h : t'.loc = t.loc) :
+    (Ctx.plug C t').loc = (Ctx.plug C t).loc := by
+  cases C with
+  | nil => exact h
+  | cons f C => exact Ctx.plug_loc_cons f C t' t
+
 /-! ## Search: the keys around a subtree -/
 
 section search

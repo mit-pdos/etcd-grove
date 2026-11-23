@@ -750,7 +750,160 @@ theorem Tree.Put.wp_proof (wp_ic1 : Tree.insertCase1.spec (GF := GF)) :
     isplitl
     · iapply (treeRaw_of tr enc cmp T' h' _ _ Hr); iframe
     iexact Hcmp
-  · done
+  · -- the search from the root
+    have hTn : T ≠ .leaf := fun e => Hif ((Rep_loc_eq_null hrep).mpr e)
+    ihave HI : (∃ (b : Bool) (nd il : Loc) (hc : Loc → Node) (Dc : List Loc),
+        "loop" ∷ loop_ptr ↦ b ∗ "node" ∷ node_ptr ↦ nd ∗ "insertedNode" ∷ insertedNode_ptr ↦ il ∗
+        "Hns" ∷ ownNodes hc Dc ∗ "%Hst" ∷ ⌜putLoop (enc := enc) T h D k v b nd il hc Dc⌝ : IProp GF)
+        $$ [loop node insertedNode Hns]
+    · iexists true, T.loc, _, h, D
+      iframe
+      ipureintro
+      exact ⟨rfl, rfl, [], T, rfl, hTn, Bounds_nil k, rfl⟩
+    wp_for HI
+    wp_if_destruct
+    · -- searching
+      have hb : b = true := go.intoVal_inj Hif
+      subst hb
+      obtain ⟨hhc, hDc, C, S, hTCS, hSn, hbd, hnd'⟩ := Hst
+      subst hc Dc nd
+      cases S with
+      | leaf => exact absurd rfl hSn
+      | node s k' v' L R =>
+      simp only [RB.loc_node]
+      have hrep' : Rep enc h (Ctx.plug C (.node s k' v' L R)) null := hTCS ▸ hrep
+      obtain ⟨hhs, hsn, hL, hR, hC⟩ := Rep_plug_node hrep'
+      have hsD : s ∈ D := hperm.symm.subset (hTCS ▸ mem_plug_node)
+      have hsN := sortedE_plug_node (hTCS ▸ hs)
+      ihave ⟨Hs, Hback⟩ := ownNodes_acc' h D s _ hsD hnd hhs $$ Hns
+      wp_auto
+      wp_apply Hcmp' as %cv %Hc
+      subst hTCS
+      wp_if_destruct
+      · -- found: the key's value replaced
+        have hcv : cv = W64 0 := of_decide_eq_true Hif.symm
+        have hk : k = k' := Hc.2.mp hcv
+        subst hk
+        wp_for_post
+        ihave Hns := Hback $$ Hs
+        have hloc : (Ctx.plug C (.node s k v L R)).loc = (Ctx.plug C (.node s k v' L R)).loc :=
+          Ctx.plug_loc_congr C rfl
+        have hpermT' : D.Perm (Ctx.plug C (.node s k v L R)).locs := by
+          refine hperm.trans (Ctx.plug_locs_congr C ?_); simp
+        have heT' : (Ctx.plug C (.node s k v L R)).entries =
+            putE (Ctx.plug C (.node s k v' L R)).entries k v := by
+          have hs' := hs
+          rw [Ctx.plug_entries] at hs' ⊢
+          rw [Ctx.plug_entries]
+          simp only [RB.entries_node, List.append_assoc, List.cons_append] at hs' ⊢
+          have := putE_found (Ctx.pre C ++ L.entries) (R.entries ++ Ctx.post C) k v' v
+            (by simpa [List.append_assoc] using hs')
+          simp only [List.append_assoc, List.cons_append] at this
+          rw [this]
+        have hsT' : sortedE (Ctx.plug C (.node s k v L R)).entries := by
+          rw [heT']; exact sortedE_putE _ k v hs
+        iapply HΦ
+        iapply (isTree_of tr enc cmp (Ctx.plug C (.node s k v L R)) _ D _ ⟨hsT', heT', ?_⟩)
+        rotate_left
+        · isplitl
+          · iapply (treeRaw_of tr enc cmp (Ctx.plug C (.node s k v L R)) _ D sz ⟨?_, hpermT', hnd⟩)
+            rotate_left
+            · rw [hloc]; iframe
+            obtain ⟨hndt, -, hdis⟩ := nodup_plug hndT
+            simp only [RB.locs_node, List.nodup_cons, List.mem_append, not_or] at hndt
+            refine Rep_plug_replace _ hrep rfl ?_ ⟨hsn, by simp, ?_, ?_⟩
+            · intro x hx; rw [upd_ne]; intro e; subst e; exact hdis x (by simp) hx
+            · exact Rep_congr _ L s (fun x hx => upd_ne _ _ _ _ (fun e => hndt.1.1 (e ▸ hx))) hL
+            · exact Rep_congr _ R s (fun x hx => upd_ne _ _ _ _ (fun e => hndt.1.2 (e ▸ hx))) hR
+          · iexact Hcmp
+        · refine rootBlack_congr (h := h) ?_ hloc hrb
+          intro x
+          by_cases hx : x = s
+          · subst hx; rw [upd_same]
+          · rw [upd_ne _ _ _ _ hx]
+      · have hne0 := Hif
+        wp_if_destruct
+        · -- below: left
+          have hlt : sint.Z k < sint.Z k' := Hc.1.mp (by
+            have := of_decide_eq_true Hif.symm; simpa using this)
+          wp_if_destruct
+          · -- no left child: a new node there
+            have hL0 : L = .leaf := (Rep_loc_eq_null hL).mp Hif
+            subst hL0
+            ihave Hns := Hback $$ Hs
+            ihave ⟨Hns, Hl, %HlD⟩ := ownNodes_fresh _ D «$r0_ptr» _ $$ [Hns «$r0»]
+            · iframe
+            ihave ⟨Hl, %Hln⟩ := typedPointsto_not_null_dup _ _ _ $$ Hl
+            ihave Hns := ownNodes_insert _ D «$r0_ptr» _ HlD $$ [Hns Hl]
+            · iframe
+            have hsl : s ≠ «$r0_ptr» := fun e => HlD (e ▸ hsD)
+            wp_for_post
+            iframe
+            iexists false, s, «$r0_ptr», _, _
+            iframe
+            ipureintro
+            refine ⟨C, s, k', v', R, «$r0_ptr», rfl, HlD, Hln, rfl, rfl, hbd, by simp [upd_apply],
+              fun x hxs hxl => by simp [upd_apply, hxs, hxl], Or.inl ⟨rfl, hlt, ?_⟩⟩
+            simp [upd_apply, hsl]
+          · -- down to the left child
+            ihave Hns := Hback $$ Hs
+            rw [upd_of_eq h s _ hhs]
+            wp_for_post
+            iframe
+            iexists true, L.loc, il, h, D
+            iframe
+            ipureintro
+            exact ⟨rfl, rfl, .L s k' v' R :: C, L, rfl, fun e => Hif ((Rep_loc_eq_null hL).mpr e),
+              Bounds_left hs hbd hlt, rfl⟩
+        · have hnlt0 := Hif
+          wp_if_destruct
+          · -- above: right
+            have hne : cv ≠ W64 0 := fun e => hne0 (by rw [e]; simp)
+            have hnlt : ¬ sint.Z k < sint.Z k' := fun hl => hnlt0 (by
+              have := Hc.1.mpr hl; simpa using this)
+            have hkk : k ≠ k' := fun e => hne (Hc.2.mpr e)
+            have hgt : sint.Z k' < sint.Z k := by
+              have : sint.Z k ≠ sint.Z k' := fun e => hkk (BitVec.eq_of_toInt_eq e)
+              omega
+            wp_if_destruct
+            · -- no right child: a new node there
+              have hR0 : R = .leaf := (Rep_loc_eq_null hR).mp Hif
+              subst hR0
+              ihave Hns := Hback $$ Hs
+              ihave ⟨Hns, Hl, %HlD⟩ := ownNodes_fresh _ D «$r0_ptr» _ $$ [Hns «$r0»]
+              · iframe
+              ihave ⟨Hl, %Hln⟩ := typedPointsto_not_null_dup _ _ _ $$ Hl
+              ihave Hns := ownNodes_insert _ D «$r0_ptr» _ HlD $$ [Hns Hl]
+              · iframe
+              have hsl : s ≠ «$r0_ptr» := fun e => HlD (e ▸ hsD)
+              wp_for_post
+              iframe
+              iexists false, s, «$r0_ptr», _, _
+              iframe
+              ipureintro
+              refine ⟨C, s, k', v', L, «$r0_ptr», rfl, HlD, Hln, rfl, rfl, hbd, by simp [upd_apply],
+                fun x hxs hxl => by simp [upd_apply, hxs, hxl], Or.inr ⟨rfl, hgt, ?_⟩⟩
+              simp [upd_apply, hsl]
+            · -- down to the right child
+              ihave Hns := Hback $$ Hs
+              rw [upd_of_eq h s _ hhs]
+              wp_for_post
+              iframe
+              iexists true, R.loc, il, h, D
+              iframe
+              ipureintro
+              exact ⟨rfl, rfl, .R s k' v' L :: C, R, rfl, fun e => Hif ((Rep_loc_eq_null hR).mpr e),
+                Bounds_right hs hbd hgt, rfl⟩
+          · exfalso
+            have h1 : ¬ cv = W64 0 := fun e => hne0 (by rw [e]; simp)
+            have h2 : ¬ sint.Z cv < 0 := fun e => hnlt0 (by simpa using e)
+            have h3 : ¬ 0 < sint.Z cv := fun e => Hif (by simpa using e)
+            apply h1
+            apply BitVec.eq_of_toInt_eq
+            simp only [show sint.Z (W64 0) = 0 from rfl] at *
+            have : sint.Z cv = 0 := by omega
+            exact this
+    · done
 
 end proof
 
