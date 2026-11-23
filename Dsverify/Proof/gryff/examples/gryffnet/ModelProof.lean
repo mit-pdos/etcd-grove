@@ -593,6 +593,58 @@ theorem wp_reach (c : Cfg) (g : GCfg) :
       obtain ⟨j, hj, hjx⟩ := List.getElem_of_mem hx
       exact HRc j x (by omega) (by rw [← hjx]; exact List.getElem?_eq_getElem hj) i hi
 
+theorem areach_len {x y : GCfg} (h : AReach x y) : y.pend.length ≤ x.pend.length := by
+  induction h with
+  | refl => exact Nat.le_refl _
+  | step k hk _ ih => simp [List.length_eraseIdx, hk] at ih; omega
+
+theorem pseq_unknown (cs : List GCfg) (hne : cs ≠ []) (i : In) :
+    (pSeq casB).step (cfgSet cs) (i, .err) =
+      some (cfgSet (if isWriteG i then cs.map (fun x => ⟨x.st, x.pend ++ [i]⟩) else cs)) := by
+  cases hw : isWriteG i
+  · simp only [Bool.false_eq_true, ↓reduceIte, pSeq]
+    rw [post_errR cs i hw, if_pos (cfgSet_nonempty.2 hne)]
+  · simp only [↓reduceIte, pSeq]
+    rw [post_errW cs i hw, if_pos (cfgSet_nonempty.2 (by simpa using hne))]
+
+/-- `step`'s result: the verdict and the next list (`stepG_pSeq`). -/
+def stepRes (L : List GCfg) (i : In) (o : Out) (ok : Bool) (L' : List GCfg) : Prop :=
+  (pSeq casB).step (cfgSet L) (i, if o.Unknown' then .err else .ok o) =
+    (if ok then some (cfgSet L') else none)
+
+theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []) (k : Nat)
+    (hk : k < 2 ^ 60) (hL : ∀ x ∈ L, x.pend.length ≤ k) (i : In) (o : Out) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ cs ∗ cfgsOk cs L }}
+      (App (App (App (Val (@! gryff.examples.gryffnet.step)) (Val #(State.mk sl))) (Val #i))
+        (Val #o))
+    {{ (ok : Bool) (s' : State), RET (PairV #ok #s'); ∃ (sl' : GoSlice) (cs' : List Cfg)
+        (L' : List GCfg), ⌜s' = State.mk sl' ∧ stepRes L i o ok L' ∧
+          (ok = true → L' ≠ [] ∧ ∀ x ∈ L', x.pend.length ≤ k + 1)⌝ ∗
+        sl' ↦*□ cs' ∗ cfgsOk cs' L' }} := by
+  wp_start as ⟨#Hsl, #Hcs⟩
+  ihave %Hl := ownSlice_len _ _ _ $$ Hsl
+  ihave %HcsL : ⌜cs.length = L.length⌝ $$ []
+  · unfold cfgsOk; icases Hcs with ⟨%h, -⟩; ipureintro; exact h
+  wp_auto
+  cases hu : o.Unknown'
+  · sorry
+  · have H := pseq_unknown L hne i
+    wp_auto
+    wp_apply wp_isWrite
+    cases hw : isWriteG i
+    · simp only [Bool.not_false]
+      wp_auto
+      iapply HΦ
+      iexists sl, cs, L
+      iframe #
+      ipureintro
+      refine ⟨rfl, ?_, fun _ => ⟨hne, fun x hx => by have := hL x hx; omega⟩⟩
+      unfold stepRes
+      simp only [hu, ↓reduceIte, H, hw, Bool.false_eq_true]
+    · simp only [Bool.not_true]
+      wp_auto
+      sorry
+
 end proof
 
 end gryff.examples.gryffnet
