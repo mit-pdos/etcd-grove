@@ -132,7 +132,7 @@ theorem fsSQ_crash_adequacy (SQ : StepPrem) (Q : OsState → OsState → Prop) (
     imod Hwp HN HT Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
     imodintro
     iframe Hwp
-    iintro %L' Hcr Hcs Hgs
+    iintro %L' Hcr Hcs Hgs _
     have Hc : @extsCrashStart fsExts (fsExtsSemanticsWithS SQ Q) fsExtsInterp
         (fsExtsCrashInterpWithS SQ Q) GF hG.goose_localGS L' ⊢
         osCrashStart Q (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) := by

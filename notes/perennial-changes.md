@@ -3900,7 +3900,7 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `IsPointerError err` (a pointer type, any `T`) and its `Error()`. A caller that passes the error on as
   `errAny` (`models_lab/Errors.lean`: its dynamic type in `error`'s type set,
   `go.typeSetContains err.ty go.error`) cannot show it: the spec leaves the type open.
-- **Workaround here.** `wp_errors_New'` (`Net/Proof/net/rpc/Client__input.lean`): the same triple with the
+- **Workaround here.** `wp_errors_New'` (`Net/Proof/net/rpc/Errs.lean`, since 2026-11-23 shared with the server; first in `Client__input.lean`): the same triple with the
   result `interface.mkOk (*errorString) #x`, proved from `errors.New`'s body as `errors.New.wp_proof` is (no
   axiom); `Client.input.wp_proof` uses it instead of taking `errors.New.spec`.
 - **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
@@ -3969,3 +3969,25 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   every spec built on it (bufio's constructors' `size` premise-free statements among them) inherits the
   gap: a Perennial-wide question about `make`'s model, not one for the bufio specs.
 - **Status.** Unchecked; recorded for Perennial's `make` model.
+## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
+
+- **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body
+  is Rabin-Karp over `internal/bytealg`), and `log.toml` trusts `Printf` and `Println` but not `Print`. A call
+  of either is stuck. The net/rpc model's server calls both: `readRequestHeader` splits every request's
+  `"Service.Method"` with `strings.LastIndex(sm, ".")`, and `register` and `Accept` log with `log.Print` before
+  returning an error (`register`: no name, not exported, no methods; `Accept`: the listener's error).
+- **Workaround here.** `register`'s logging paths are excluded by its premises (`regNameOk`, `rcvrIs`'s
+  methods; ledger 2026-11-23); `Register`, `RegisterName` are proved and linked. The request loop
+  (`readRequestHeader`, hence `ServeCodec`, `ServeConn`) and `Accept` are not proved: no axiom is stated for the
+  two functions (the branch adds none).
+- **Proposed.** In Perennial: `LastIndex` trusted with a GooseLang model (a loop from the end comparing the
+  substring, `Index`-style; or `LastIndexByte` translated and `LastIndex` of a one-byte `substr` modelled on it)
+  and a spec (`strings.LastIndex.spec`: the largest `i` with `substr` at `i`, or `-1`); `Print` trusted as
+  `Println` is (`λ: "vs", #()`), with a spec like `log.Printf.spec`'s (`fmt.ArgsWf` arguments).
+- **Status.** Not needed by this repository any more (2026-11-23): the net/rpc model replaced both by code
+  Perennial models (commit `e84c1d63c9`: `strings.LastIndex(sm, ".")` as a backwards byte loop, the same
+  index; `log.Print` of one string as `log.Println`, the same output), and the request loop and `Accept` are
+  proved over them. The general change (models of `LastIndex` and `Print`) stays proposed for other users.
+  Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
+  (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
+  beside `Printf`'s. Not filed yet.

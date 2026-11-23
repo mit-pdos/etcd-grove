@@ -135,7 +135,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 )
 
@@ -242,12 +241,12 @@ func (server *Server) register(rcvr any, name string, useName bool) error {
 	}
 	if sname == "" {
 		s := "rpc.Register: no service name for type " + r.Type
-		log.Print(s)
+		log.Println(s) // MODEL: log.Print, as log.Println (Perennial models Println; one string operand: the same output)
 		return errors.New(s)
 	}
 	if !useName && !token.IsExported(sname) {
 		s := "rpc.Register: type " + sname + " is not exported"
-		log.Print(s)
+		log.Println(s) // MODEL: log.Print, as log.Println (Perennial models Println; one string operand: the same output)
 		return errors.New(s)
 	}
 	s.name = sname
@@ -267,7 +266,7 @@ func (server *Server) register(rcvr any, name string, useName bool) error {
 		} else {
 			str = "rpc.Register: type " + sname + " has no exported methods of suitable type"
 		}
-		log.Print(str)
+		log.Println(str) // MODEL: log.Print, as log.Println (one string operand: the same output)
 		return errors.New(str)
 	}
 
@@ -478,7 +477,15 @@ func (server *Server) readRequestHeader(codec ServerCodec) (svc *service, mtype 
 	// we can still recover and move on to the next request.
 	keepReading = true
 
-	dot := strings.LastIndex(req.ServiceMethod, ".")
+	// MODEL: strings.LastIndex(req.ServiceMethod, "."), as a backwards byte loop (Perennial has no
+	// model of LastIndex; for a one-byte separator the same index, -1 if absent)
+	dot := -1
+	for i := len(req.ServiceMethod) - 1; i >= 0; i-- {
+		if req.ServiceMethod[i] == '.' {
+			dot = i
+			break
+		}
+	}
 	if dot < 0 {
 		err = errors.New("rpc: service/method request ill-formed: " + req.ServiceMethod)
 		return
@@ -510,7 +517,9 @@ func (server *Server) Accept(lis net.Listener) {
 	for {
 		conn, err := lis.Accept()
 		if err != nil {
-			log.Print("rpc.Serve: accept:", err.Error())
+			// MODEL: log.Print("rpc.Serve: accept:", err.Error()), as log.Println of the concatenation
+			// (fmt.Sprint puts no space between string operands: the same output)
+			log.Println("rpc.Serve: accept:" + err.Error())
 			return
 		}
 		go server.ServeConn(conn)
@@ -583,7 +592,8 @@ func (server *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	conn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		log.Print("rpc hijacking ", req.RemoteAddr, ": ", err.Error())
+		// MODEL: log.Print of four strings, as log.Println of their concatenation (the same output)
+		log.Println("rpc hijacking " + req.RemoteAddr + ": " + err.Error())
 		return
 	}
 	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
