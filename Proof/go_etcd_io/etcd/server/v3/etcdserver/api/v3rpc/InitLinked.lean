@@ -370,7 +370,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   icases Hri with ⟨-, ⟨%eRCP, #RCPa, #RCPs, -⟩, -, -, -, -, -, -, ⟨%eNSL, #HNSL, -, -, #SNSL⟩, -, -, #V0, #V1, #V2, #V3, #V4, #V5, #V6, #V7, #V8, #V9, #V10, #V11, #V12, #V13, #RW0, #RW1, #RW2, #RW3, #RW4, -⟩
   ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
-  icases Hpi with ⟨#HSO, #HST, #HDescs⟩
+  icases Hpi with ⟨#HSO, #HST, -, #HDescs⟩
   ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1
   -- (incomingof Part B) the context errors are keys of the map, so neither read error's description
   ihave #HCD : (ctxErrDescs : IProp GF) $$ []

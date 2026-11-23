@@ -49,7 +49,6 @@ axiom encoding.json.Unmarshal.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.SprintfWalName.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -128,7 +127,6 @@ axiom proto.UnmarshalRole.wp_proof
 axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
-axiom rate.Limiter.Wait.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
