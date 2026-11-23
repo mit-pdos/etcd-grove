@@ -940,8 +940,10 @@ PROJECTS = [
         # own, module path the fork's). Into the part `Dsverify/`, with remote, `net` and the
         # net/rpc and net/http models the part `Net/`'s (std_models), lintest, porcupine, bufio and
         # encoding/hex the main tree's. Names and types only, in the part (no model yet: their
-        # specs are the proof's hypotheses): encoding/gob, os/signal, github.com/emirpasic/gods,
-        # github.com/google/uuid, github.com/orcaman/concurrent-map (`Dsverify/Code/**.toml`).
+        # specs are the proof's hypotheses): encoding/gob, os/signal, github.com/google/uuid,
+        # github.com/orcaman/concurrent-map (`Dsverify/Code/**.toml`). gods v1.18.1 translated as
+        # project dsv-epaxos translates it (the same files: the red-black tree's iterator Next/Prev
+        # names only); its treemap's specs are hypotheses here too.
         repo=None,
         rev=None,
         local=os.path.join("examples", "dsverify", "swiftpaxos"),
@@ -955,8 +957,10 @@ PROJECTS = [
                     "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
                     "bufio=", "encoding/hex=", "encoding/json=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
                     "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
-        packages=["github.com/emirpasic/gods/utils", "github.com/emirpasic/gods/maps/treemap",
-                  "github.com/google/uuid", "github.com/orcaman/concurrent-map", "encoding/gob",
+        packages=["github.com/emirpasic/gods/utils", "github.com/emirpasic/gods/containers",
+                  "github.com/emirpasic/gods/maps", "github.com/emirpasic/gods/trees",
+                  "github.com/emirpasic/gods/trees/redblacktree",
+                  "github.com/emirpasic/gods/maps/treemap", "github.com/google/uuid", "github.com/orcaman/concurrent-map", "encoding/gob",
                   "os/signal",
                   "./rpc", "./dlog", "./config", "./state", "./hook", "./replica/defs", "./replica",
                   "./client", "./swift", "./master", "./examples/swiftnet",

@@ -48,10 +48,6 @@ def putE (es : Entries) (k : w64) (v : GoInterface) : Entries :=
   if (es[idxOf es k]?).map Prod.fst = some k then es.set (idxOf es k) (k, v)
   else es.take (idxOf es k) ++ (k, v) :: es.drop (idxOf es k)
 
-/-- The Go entry of an abstract one. -/
-def toEntry (enc : w64 → GoInterface) (e : w64 × GoInterface) : entry :=
-  entry.mk (enc e.1) e.2
-
 /-! ## Pure lemmas -/
 
 theorem idxOf_le (es : Entries) (k : w64) : idxOf es k ≤ es.length := by

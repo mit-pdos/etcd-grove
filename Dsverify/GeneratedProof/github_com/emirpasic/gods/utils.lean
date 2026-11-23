@@ -2,6 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
+public import Perennial.GeneratedProof.sort
+public import Perennial.GeneratedProof.strconv
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.emirpasic.gods.utils
 

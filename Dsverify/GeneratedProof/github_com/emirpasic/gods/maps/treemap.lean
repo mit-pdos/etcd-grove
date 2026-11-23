@@ -2,6 +2,12 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.fmt
+public import Dsverify.GeneratedProof.github_com.emirpasic.gods.containers
+public import Dsverify.GeneratedProof.github_com.emirpasic.gods.maps
+public import Dsverify.GeneratedProof.github_com.emirpasic.gods.trees.redblacktree
+public import Dsverify.GeneratedProof.github_com.emirpasic.gods.utils
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.emirpasic.gods.maps.treemap
 
@@ -25,12 +31,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.emirpasic.gods.maps.treemap.Assumptions]
 
 noncomputable instance Iterator_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.emirpasic.gods.maps.treemap.Iterator :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.emirpasic.gods.maps.treemap.Iterator where
+  typedPointstoDef l v dq := iprop(
+    "iterator" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) v.iterator' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Iterator_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.maps.treemap.Iterator github_com.emirpasic.gods.maps.treemap.Iterator.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.maps.treemap.Iterator github_com.emirpasic.gods.maps.treemap.Iterator.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Iterator_access_load_iterator (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Iterator) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) v.iterator' dq)
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) v.iterator' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Iterator_access_store_iterator (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Iterator) (iterator' : github_com.emirpasic.gods.trees.redblacktree.Iterator) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) v.iterator' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) iterator' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with iterator' := iterator' } : github_com.emirpasic.gods.maps.treemap.Iterator) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Iterator
@@ -44,12 +71,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.emirpasic.gods.maps.treemap.Assumptions]
 
 noncomputable instance Map_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.emirpasic.gods.maps.treemap.Map :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.emirpasic.gods.maps.treemap.Map where
+  typedPointstoDef l v dq := iprop(
+    "tree" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) v.tree' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Map_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.maps.treemap.Map github_com.emirpasic.gods.maps.treemap.Map.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.maps.treemap.Map github_com.emirpasic.gods.maps.treemap.Map.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Map_access_load_tree (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Map) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) v.tree' dq)
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) v.tree' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Map_access_store_tree (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Map) (tree' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) v.tree' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) tree' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tree' := tree' } : github_com.emirpasic.gods.maps.treemap.Map) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Map
