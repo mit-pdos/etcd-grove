@@ -111,6 +111,7 @@ theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG)
     ihave ⟨%b', ⟨%Heb, %Hok, %Hlb, %Heq⟩, #Hreg, Htix⟩ :=
       reader_frame γ k (21 + cl) cid A bs HA Hbs $$ Hpp2
     obtain rfl : b = b' := Huniq b' Hok Heb
+    ihave Hrep := Hrep $$ %(⟨b, Hok, Heb⟩ : ∃ b0, batchOk b0 ∧ encBatch b0 = bs)
     rw [Heq]
     icases Htix with ⟨%c', %j, Htix⟩
     imod (mint_top γ ((k : Int), c', j) cid A.length) $$ Hcons Htix Hctr

@@ -42,7 +42,7 @@ theorem store_add_proof [raxos.replica.src.Assumptions] [raxos.proto.client.Assu
   ihave %Hid : ⌜sint.Z v.Sender' = b.sender ∧ v.Id' = b.id⌝ $$ [Hrep]
   · iunfold repCBVal at Hrep
     icases Hrep with ⟨%ps, %H, -⟩
-    ipureintro; exact H
+    ipureintro; exact ⟨H.1, H.2.1⟩
   rw [Hid.2]
   wp_bind
   iapply (hMV.Load _ b.id _) $$ Hsm

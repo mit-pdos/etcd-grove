@@ -29,7 +29,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
-variable [ha : hyp.AtoiHyp GF]
+variable [ha : hyp.AtoiSpec GF]
 
 attribute [local instance] HeapGS.goose_globalGS
 

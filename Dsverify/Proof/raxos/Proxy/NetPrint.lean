@@ -33,16 +33,17 @@ theorem wp_Println_ok [hp : hyp.PrintlnHyp GF] (arg : GoSlice) (xs : List GoInte
 
 /-- The two operands of `fmt.Println("...", err)`. -/
 theorem printOk_str_err (s : GoString) (err : GoInterface) :
-    models_lab.errAny (GF := GF) err ⊢
+    ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
+      models_lab.errAny (GF := GF) err ⊢
       □ ([∗list] x ∈ [interface.mkOk go.string #s, err], printOk x) := by
-  iintro #He
+  iintro ⟨%Hnf, #He⟩
   imodintro
   isplitr
   · iunfold printOk; ileft; ipureintro
     intro ii hii
     exact fmt.ArgsWf.cons_string s [] fmt.ArgsWf.nil ii (by rw [hii]; simp)
   isplitl
-  · iunfold printOk; iright; iexact He
+  · iunfold printOk; iright; iframe He; ipureintro; exact Hnf
   iempintro
 
 end proofs

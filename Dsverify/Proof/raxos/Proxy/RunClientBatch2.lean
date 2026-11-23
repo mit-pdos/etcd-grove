@@ -97,7 +97,7 @@ theorem wp_handleClientBatch
     as %tb1 ⟨Htbs, Htbcap, -⟩
   ihave Hids := (BigSepL.bigSepL_snoc).2 $$ [$Hids]
   · iunfold idP; unfold storeHas; iframe Hhas; iexists b; iframe Hreg; ipureintro; exact ⟨Hbok, rfl⟩
-  rw [Hvb.2]
+  rw [Hvb.2.1]
   wp_apply time.wp_Now as %tn -
   wp_apply time.Time.wp_Sub as %d -
   wp_apply (time.Duration.wp_Microseconds d)

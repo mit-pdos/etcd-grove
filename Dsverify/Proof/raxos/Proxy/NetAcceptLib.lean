@@ -98,13 +98,28 @@ theorem errorString_ptr_isError' [errors.Assumptions] :
   go_type_set
 
 omit π qv in
-/-- A failure's error (`resErr (some k)`, an `*OpError`) is `errAny` (`net.rpc.errAny_resErr`). -/
-theorem errAny_resErr' [net.Assumptions] (k : NetErr) (op : GoString) (src addr : GoInterface)
-    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
-    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢ models_lab.errAny err := by
+theorem opError_ptr_notFormatter [net.Assumptions] [fmt.Assumptions] :
+    go.typeSetContains (go.GoType.PointerType net.OpError.ty) fmt.Formatter.ty = false := by
+  go_type_set
+
+omit π qv in
+theorem errorString_ptr_notFormatter [errors.Assumptions] [fmt.Assumptions] :
+    go.typeSetContains (go.GoType.PointerType errors.errorString.ty) fmt.Formatter.ty = false := by
+  go_type_set
+
+omit π qv in
+/-- A failure's error (`resErr (some k)`, an `*OpError`) is not a `fmt.Formatter`, and is
+`errAny` (`net.rpc.errAny_resErr`). -/
+theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : GoString)
+    (src addr : GoInterface) (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
+    net.resErr (GF := GF) (some k) op src addr ed nm err ⊢
+      ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
+        models_lab.errAny err := by
   unfold net.resErr net.opErr
   iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, -⟩, -⟩
   subst Herr
+  isplitr
+  · ipureintro; intro ii hii; cases hii; exact opError_ptr_notFormatter
   unfold models_lab.errAny
   iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
   isplitr
@@ -123,13 +138,18 @@ theorem errAny_resErr' [net.Assumptions] (k : NetErr) (op : GoString) (src addr 
   iapply HΦ
 
 omit π qv in
-/-- An `errors.New` variable's value is `errAny` (`net.rpc.errAny_newVar`). -/
-theorem errAny_newVar' [errors.Assumptions] (X msg : GoString) (e : GoInterface) :
-    errors.newVar (GF := GF) X msg ⊢ globalAddr X ↦□ e -∗ models_lab.errAny e := by
+/-- An `errors.New` variable's value is not a `fmt.Formatter`, and is `errAny`
+(`net.rpc.errAny_newVar`). -/
+theorem errAny_newVar' [errors.Assumptions] [fmt.Assumptions] (X msg : GoString) (e : GoInterface) :
+    errors.newVar (GF := GF) X msg ⊢ globalAddr X ↦□ e -∗
+      ⌜∀ ii, e = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
+        models_lab.errAny e := by
   unfold errors.newVar
   iintro ⟨%x, #Hx, -, #HE⟩ #He
   icombine He Hx gives %Heq
   subst Heq
+  isplitr
+  · ipureintro; intro ii hii; cases hii; exact errorString_ptr_notFormatter
   unfold models_lab.errAny
   iexists ⟨go.GoType.PointerType errors.errorString.ty, #x⟩
   isplitr
@@ -143,15 +163,17 @@ theorem errAny_newVar' [errors.Assumptions] (X msg : GoString) (e : GoInterface)
   iapply HΦ
 
 omit π qv in
-/-- A failed `io.ReadFull` of a connection: its error is `errAny` (`io.EOF`,
-`io.ErrUnexpectedEOF`, or a read `*OpError`). -/
+/-- A failed `io.ReadFull` of a connection: its error (`io.EOF`, `io.ErrUnexpectedEOF`, or a read
+`*OpError`) is not a `fmt.Formatter`, and is `errAny`. -/
 theorem readFull_errAny [net.Assumptions] [errors.Assumptions] [_root_.Perennial.io.Assumptions]
+    [fmt.Assumptions]
     (eof ueof la ra ed : GoInterface) (r ys : List w8) (m : Nat) (err : GoInterface)
     (hne : err ≠ interface.nil) :
     isPkgInit (PROP := IProp GF) pkg_id.io ∗ globalAddr io.EOF ↦□ eof ∗
       globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
       _root_.Perennial.io.readFullRes (net.connReadE eof la ra ed) eof ueof r ys m err ⊢
-      models_lab.errAny err := by
+      ⌜∀ ii, err = interface.ok ii → go.typeSetContains ii.ty fmt.Formatter.ty = false⌝ ∗
+        models_lab.errAny err := by
   iintro ⟨#Hio, #Heof, #Hueof, #Hres⟩
   ihave #Hi := _root_.Perennial.io.isInit_access $$ Hio
   icases Hi with ⟨-, -, -, -, #HEOF, #HUEOF, -⟩

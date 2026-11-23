@@ -62,7 +62,7 @@ theorem repRRProp_persist (l : Loc) (v : pure.Val) :
   iintro H
   unfold repRRProp
   simp only [rrPropOf]
-  icases H with ⟨%y, Hy, %Hyf, Hids⟩
+  icases H with ⟨%y, Hy, %Hyu, %Hyf, Hids⟩
   ipersist Hy
   ipersist Hids
   imodintro
@@ -75,7 +75,7 @@ theorem repRR_persist (r : Loc) (st : RecSt) :
     ⊢@{IProp GF} repRR r (DFrac.own 1) (rrOf st) -∗ |==> ∃ x, r ↦□ x ∗ rrVal x st := by
   iintro H
   unfold repRR
-  icases H with ⟨%x, Hx, %Hxf, HF, HM⟩
+  icases H with ⟨%x, Hx, %Hxu, %Hxf, HF, HM⟩
   simp only [rrOf, repOpt] at *
   imod repRRProp_persist _ _ $$ HF with #HF
   imod repRRProp_persist _ _ $$ HM with #HM
@@ -213,7 +213,7 @@ macro "final_check" : tactic => `(tactic| (
         · unfold repRR
           iexists xr
           iframe
-          ipureintro; exact Hxrs
+          ipureintro; exact ⟨Hxru, Hxrs⟩
         unfold gotEv
         simp only [Prop'.val]
         iframe #
@@ -559,6 +559,8 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
           simp only
           iframe #
           isplitr
+          · ipureintro; rfl
+          isplitr
           · ipureintro
             exact ⟨trivial, HPf.2.1, HPf.2.2⟩
           iapply repList_nil
@@ -569,7 +571,7 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
             dsl'), sps
           dsimp only
           iframe #
-          ipureintro; exact ⟨rfl, rfl, rfl⟩
+          ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
         rw [Hprc]
         wp_auto
         wp_apply wp_ESP γ (sint.nat n + 1) lc cc ctx _ «$a1_ptr» .discard _ slice.nil $$ [Hreq1]
@@ -591,7 +593,7 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
           iunfold espPost at Hpost
           icases Hpost with ⟨%Hrrok, Hpost⟩
           iunfold repRR at Hrr
-          icases Hrr with ⟨%xr, Hxr, %Hxrs, HF, HM⟩
+          icases Hrr with ⟨%xr, Hxr, %Hxru, %Hxrs, HF, HM⟩
           wp_auto
           rw [Hxrs.2]
           cases hnf : rr.notFound
@@ -618,7 +620,7 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
               simp only
               iframe #
               ipureintro
-              exact ⟨trivial, HPf.2.1, HPf.2.2⟩
+              exact ⟨rfl, trivial, HPf.2.1, HPf.2.2⟩
             ihave #Hnil := ownSlice_nil (V := Loc) (GF := GF) DFrac.discard
             ihave Hreq2 : repPM «$a1_ptr» .discard ⟨sint.Z pv.name', sint.Z msg.instance',
                 some ⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, bsP⟩, sint.Z Sw, []⟩ $$ []
@@ -627,6 +629,8 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
                 slice.nil), []
               dsimp only
               iframe #
+              isplitr
+              · ipureintro; rfl
               isplitr
               · ipureintro; exact ⟨rfl, rfl, rfl⟩
               iapply repList_nil
@@ -651,7 +655,7 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
               iunfold espPost at Hpost
               icases Hpost with ⟨%Hrrok2, Hpost⟩
               iunfold repRR at Hrr
-              icases Hrr with ⟨%xr, Hxr, %Hxrs, HF, HM⟩
+              icases Hrr with ⟨%xr, Hxr, %Hxru, %Hxrs, HF, HM⟩
               wp_auto
               final_check
             · subst Hnull
@@ -680,14 +684,14 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
         simp only
         iframe #
         ipureintro
-        exact ⟨trivial, HPf.2.1, HPf.2.2⟩
+        exact ⟨rfl, trivial, HPf.2.1, HPf.2.2⟩
       ihave Hreq : repPM «$a1_ptr» .discard ⟨sint.Z pv.name', sint.Z msg.instance',
           some ⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, bsP⟩, sint.Z Sw, ds'⟩ $$ []
       · unfold repPM
         iexists (ProposerMessage.mk zeroValDef 0 slice.nil pv.name' msg.instance' pi_ptr Sw dsl'), sps
         dsimp only
         iframe #
-        ipureintro; exact ⟨rfl, rfl, rfl⟩
+        ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
       rw [Hprc]
       wp_auto
       wp_apply wp_ESP γ (sint.nat n + 1) lc cc ctx _ «$a1_ptr» .discard _ slice.nil $$ [Hreq]
@@ -710,7 +714,7 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
         icases Hpost with ⟨%Hrrok, Hpost⟩
         wp_auto
         iunfold repRR at Hrr
-        icases Hrr with ⟨%xr, Hxr, %Hxrs, HF, HM⟩
+        icases Hrr with ⟨%xr, Hxr, %Hxru, %Hxrs, HF, HM⟩
         final_check
       · rcases err with e | _
         · wp_auto

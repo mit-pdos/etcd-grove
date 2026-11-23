@@ -35,6 +35,7 @@ variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 variable [go.BasicIntoValInj] [_root_.Perennial.io.Assumptions] [errors.Assumptions]
+  [fmt.Assumptions]
 
 attribute [local instance] HeapGS.goose_globalGS
 
@@ -246,7 +247,8 @@ theorem waitForConnections_of [hp : hyp.PrintlnHyp GF]
         iframe
         ipureintro; rfl
     · ihave #Hea := errAny_resErr' $$ Herr
-      ihave %Hne := models_lab.errAny_ne_nil $$ Hea
+      ihave %Hne := models_lab.errAny_ne_nil $$ [Hea]
+      · icases Hea with ⟨-, #Hea⟩; iexact Hea
       cases err with
       | nil => exact absurd rfl Hne
       | ok i =>

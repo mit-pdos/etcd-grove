@@ -167,7 +167,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
       icases Hpc with ⟨%c', %Hc', #Hpc⟩
       rw [Hc_lookup] at Hc'; cases Hc'
       iunfold repCSingle at Hpc
-      icases Hpc with ⟨%pv, #Hpv, %Hpvm⟩
+      icases Hpc with ⟨%pv, #Hpv, %Hpvu, %Hpvm⟩
       iStructNamedPrefix Hpv "p"
       repeat' (first | wp_auto | simp only [Hb, Hb2, Hb3, Hb4, _root_.and_self, ↓reduceIte])
       rw [Hpvm]
@@ -240,7 +240,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
             iunfold repCSingle
             iexists _
             iframe Hq
-            ipureintro
+            ipureintro; refine ⟨rfl, ?_⟩
             simp [execCmd, Hif, List.append_assoc]
         ipureintro
         intro k
@@ -293,7 +293,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
               iunfold repCSingle
               iexists _
               iframe Hq
-              ipureintro
+              ipureintro; refine ⟨rfl, ?_⟩
               simp only [execCmd, Htyp, ↓reduceIte, List.append_assoc]
               rw [← HMk]
               revert Hif; cases M'' !! List.take keyLen (List.drop 1 c) <;> simp
@@ -337,7 +337,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
               iunfold repCSingle
               iexists _
               iframe Hq
-              ipureintro
+              ipureintro; refine ⟨rfl, ?_⟩
               simp only [execCmd, Htyp, ↓reduceIte, List.append_assoc]
               rw [← HMk]
               revert Hif; cases M'' !! List.take keyLen (List.drop 1 c) <;> simp
@@ -391,7 +391,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
       iexists qs
       iframe Hmsl
       isplitr
-      · ipureintro; exact ⟨by simpa using Hsid.1, Hsid.2⟩
+      · ipureintro; exact ⟨by simpa using Hsid.1, Hsid.2.1, rfl⟩
       iunfold repList
       isplitr
       · ipureintro; rw [execBatch_length]; omega

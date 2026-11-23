@@ -90,7 +90,7 @@ theorem wp_convertToClientBtchMessages (p : Loc) (sl : GoSlice) (ps : List Loc)
       unfold repPMSingle
       iexists _
       iframe «$sl0»
-      ipureintro; simp [Hxm]
+      ipureintro; exact ⟨rfl, by simp [Hxm]⟩
     wp_for_post
     iframe
     iexists i + W64 1, r', qs ++ [«$sl0_ptr»]
@@ -169,7 +169,7 @@ theorem wp_convertToClientBatchMessages (p : Loc) (sl : GoSlice) (ps : List Loc)
       unfold repCSingle
       iexists _
       iframe «$sl0»
-      ipureintro; simp [Hxm]
+      ipureintro; exact ⟨rfl, by simp [Hxm]⟩
     wp_for_post
     iframe
     iexists i + W64 1, r', qs ++ [«$sl0_ptr»]
@@ -251,7 +251,7 @@ theorem wp_getProposeClientBatches (γ : QNames) (p : Loc) (sl : GoSlice)
       unfold repPMBatch
       iexists _, qs2
       iframe #
-      ipureintro; exact Hvf
+      ipureintro; exact ⟨rfl, Hvf.1, Hvf.2.1⟩
     wp_for_post
     iframe
     iexists i + W64 1, r', qs ++ [«$sl0_ptr»]
@@ -347,7 +347,7 @@ theorem wp_extractDecidedSlots (γ : QNames) (p : Loc) (isl dsl psl : GoSlice) :
       unfold repPMSlot
       iexists _
       iframe #
-      ipureintro; exact ⟨rfl, rfl⟩
+      ipureintro; exact ⟨rfl, rfl, rfl⟩
     wp_for_post
     iframe
     iexists i + W64 1, r', qs ++ [«$sl0_ptr»], _
@@ -443,7 +443,7 @@ theorem wp_extractDecisionSlots (γ : QNames) (p : Loc) (isl dsl psl : GoSlice) 
       unfold repDecSlot
       iexists _
       iframe #
-      ipureintro; exact ⟨rfl, rfl⟩
+      ipureintro; exact ⟨rfl, rfl, rfl⟩
     wp_for_post
     iframe
     iexists i + W64 1, r', qs ++ [«$sl0_ptr»], _
@@ -495,7 +495,7 @@ theorem wp_convertToClientBatches (p : Loc) (sl : GoSlice) (ps : List Loc) (bs :
     list_elem ps (sint.nat i) as q
     ihave ⟨%b, %Hb, #Hqb⟩ := repList_lookup _ _ _ _ _ _ Hq_lookup $$ Hbs
     unfold repDRBatch
-    icases Hqb with ⟨%x, %mps, #Hx, %Hxf, #Hmps, #Hmr⟩
+    icases Hqb with ⟨%x, %mps, #Hx, %Hxu, %Hxf, #Hmps, #Hmr⟩
     iStructNamed Hx
     have hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨Hi.1, Hlt⟩
     repeat (first | rw [ite_eq_left_of_eq_true _ _ (eq_true hb)] |
@@ -526,7 +526,7 @@ theorem wp_convertToClientBatches (p : Loc) (sl : GoSlice) (ps : List Loc) (bs :
       iexists qs2
       rw [hcv]
       iframe #
-      ipureintro; exact Hxf
+      ipureintro; exact ⟨Hxf.1, Hxf.2, rfl⟩
     wp_for_post
     iframe
     iexists i + W64 1, r', vs ++ [cv]

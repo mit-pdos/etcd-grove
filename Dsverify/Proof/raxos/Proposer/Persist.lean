@@ -70,7 +70,7 @@ theorem repDRSingle_persist (l : Loc) (m : GoString) :
 theorem repDRBatch_persist (l : Loc) (b : Batch) :
     ⊢@{IProp GF} repDRBatch l (DFrac.own 1) b -∗ |==> repDRBatch l .discard b := by
   unfold repDRBatch
-  iintro ⟨%x, %ps, Hx, %Hf, Hps, Hr⟩
+  iintro ⟨%x, %ps, Hx, %Hu, %Hf, Hps, Hr⟩
   ipersist Hx
   ipersist Hps
   imod repList_persist _ _ _ repDRSingle_persist $$ Hr with Hr
@@ -78,12 +78,12 @@ theorem repDRBatch_persist (l : Loc) (b : Batch) :
   iexists x, ps
   iframe
   iframe #
-  ipureintro; exact Hf
+  ipureintro; exact ⟨Hu, Hf⟩
 
 theorem repDResp_persist (l : Loc) (bs : List Batch) :
     ⊢@{IProp GF} repDResp l (DFrac.own 1) bs -∗ |==> repDResp l .discard bs := by
   unfold repDResp
-  iintro ⟨%x, %ps, Hx, Hps, Hr⟩
+  iintro ⟨%x, %ps, Hx, %Hu, Hps, Hr⟩
   ipersist Hx
   ipersist Hps
   imod repList_persist _ _ _ repDRBatch_persist $$ Hr with Hr
@@ -91,6 +91,7 @@ theorem repDResp_persist (l : Loc) (bs : List Batch) :
   iexists x, ps
   iframe
   iframe #
+  ipureintro; exact Hu
 
 end persist
 

@@ -50,11 +50,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- `raxos/replica/src`'s package-level state: `Consensus_ServiceDesc` (persistent): the
-descriptor of service `Consensus`, its three methods with their generated handlers, no streams. -/
+descriptor of service `Consensus`, its three methods with their generated handlers, no streams,
+its `HandlerType` the typed nil `(*ConsensusServer)(nil)`. -/
 def srcState : IProp GF :=
   iprop(∃ sd : google_golang_org.grpc.ServiceDesc,
     globalAddr raxos.replica.src.Consensus_ServiceDesc ↦□ sd ∗
-    ⌜sd.ServiceName' = go!"Consensus" ∧ sd.Streams'.len = W64 0⌝ ∗
+    ⌜sd.ServiceName' = go!"Consensus" ∧ sd.Streams'.len = W64 0 ∧
+      sd.HandlerType' = interface.mkOk (go.GoType.PointerType raxos.replica.src.ConsensusServer.ty)
+        #(null : Loc)⌝ ∗
     sd.Methods' ↦*□ ([⟨go!"ESP", functions raxos.replica.src._Consensus_ESP_Handler []⟩,
       ⟨go!"FetchBatches", functions raxos.replica.src._Consensus_FetchBatches_Handler []⟩,
       ⟨go!"InformDecision", functions raxos.replica.src._Consensus_InformDecision_Handler []⟩] :

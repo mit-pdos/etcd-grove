@@ -83,7 +83,14 @@ named after the lab's specs, until each comes as one shared change. **All are in
   `Unmarshal.spec` with its codec), over the codec of QuePaxa's messages `hyp.qpCodec :=
   ⟨msg.marshalPre, msg.unmarshalPre⟩` (an instance of `Net/Proof/models_lab/pbcodec`'s `PbCodec`);
   errors `models_lab.errAny`. Bundled as `class hyp.PbHyp GF`. Discharge: the kit's codec from
-  `models/protobuf/pbgen.py` and protobuf's model.
+  `models/protobuf/pbgen.py` and protobuf's model. **Unknown fields** (audit, 2026-11-23): every
+  `rep*` of `Msg.lean` says the message has none (`⌜x.unknownFields'.len = W64 0⌝`, in every
+  nested message; `repCBVal`'s pure conjunct for `client.ClientBatch` values): real protobuf appends
+  a message's unknown fields to its encoding (`internal/impl/encode.go`), so `Marshal`'s output is
+  `enc*` only without them. `decInto` (the decoding's success) gives the `rep` only behind
+  `⌜∃ v0, ok v0 ∧ enc v0 = bs⌝ -∗` (the bytes are a well-formed encoding, which carries no unknown
+  field); the callers apply it once the protocol tells them the bytes' origin (`Esp`, `Replica/
+  {Handlers,Fetch}`, `NetUnmarshal`'s `unmarshalB.spec` → `NetListen`).
 - **gRPC, unary**: the vocabulary `hyp.grpc.GrpcVocab GF` (abstract data: `reqProto`/`respProto`
   (`Net/` `Proto`s of a gRPC address), `worldOk`, `isServer`, `srvOwn`, `srvServed`,
   `isClientConn`, `handlerErr`, with their persistence as fields), `UnarySpec`, `GrpcWorld`
@@ -97,27 +104,48 @@ named after the lab's specs, until each comes as one shared change. **All are in
   vocabulary's `credsOpt o` (the lab's `DialOption.creds = true`) for `WithInsecure()`'s option;
   `Dial` fails only if no option sets credentials, so QuePaxa's error branch, `fmt.Fprintf` +
   `os.Exit`, is unreachable and needs no spec), `ClientConn.Invoke.spec`, and the law `world_alloc`;
-  bundled as `class hyp.grpc.GrpcHyp V` (over `[PbCodec GF]`, to be `qpCodec`). **The deployment's
+  bundled as `class hyp.grpc.GrpcHyp V` (over `[PbCodec GF]`, to be `qpCodec`). **Audit fixes
+  (2026-11-23)**: `Invoke` takes `⌜opts.len = W64 0⌝` (QuePaxa's generated client passes no call
+  options; `Esp.lean`'s `wp_ESP`/`wp_FetchBatches`/`wp_InformDecision` take it as an auto-param
+  `by rfl` for `slice.nil`) and its error branch gives `D ∨ ∃ rep b, Θ rep b` (a trailer error
+  after the reply decoded); `NewServer` takes `⌜opt.len = W64 0⌝`; `descOk` owns (read-only)
+  the descriptor's `HandlerType` (a typed nil `*T`, `T` an interface type, `isInterfaceType
+  (underlying T)`) and `Metadata` fields, and asks `ss = interface.ok ii` with
+  `typeSetContains ii.ty T` (`RegisterService` evaluates `reflect.TypeOf(sd.HandlerType).Elem()`
+  and checks `ss` implements it); `srcState` gained `sd.HandlerType' = (*ConsensusServer)(nil)`
+  (`etc/dsv/quepaxa.py`'s `finish`); `Dial` asks every option to be a `credsOpt`, the list
+  nonempty and the target `dialTarget` (`127.0.0.1:port`, `port` in `1..65535`: gRPC's
+  `passthrough` fallback), and is success-only. **The deployment's
   vocabulary is an instance `[qv : hyp.QpVocab GF]`** (data only, field `grpc`): the definitions
   (`netProtos`, `peersP`, `replicaRes`, the proxy's state) mention `qv.grpc`; theorems that call
   gRPC take `[GrpcHyp qv.grpc]`. The statement will quantify over the instance and the hypothesis.
-- **`strconv.Atoi`**: `hyp.strconv.Atoi.spec` (the lab's `wp_Atoi`: for 1 to 18 decimal digits,
-  the value `decVal s` and `nil`), class `hyp.AtoiHyp GF`. Perennial's `strconv.Atoi.spec` does not
-  give the value (`setupgRPC`'s peer names, `NewRecorder`'s address need it). Discharge: the lab's
-  proof (`Harness/Proof/strconv/Atoi.lean`) redone over Perennial's translation of
-  `internal/strconv.Atoi`'s fast path (it now ranges over the bytes; the lab's stepped a loop).
+- **`strconv.Atoi`: proved, no longer a hypothesis** (2026-11-23). `hyp.strconv.Atoi.spec` (for
+  1 to 18 decimal digits, the value `decVal s` and `nil`) and the class `hyp.AtoiSpec GF` carrying
+  it are in `Dsverify/Proof/raxos/AtoiSpec.lean` (defs); `AtoiProof.lean` (proof tier) proves
+  `wp_internal_Atoi_digits` over Perennial's translation of `internal/strconv.Atoi`'s fast path and
+  `hyp.strconv.Atoi.wp_proof`, with the instance `atoiSpec_inst [strconv.Assumptions]`, which the
+  `Results` modules import (so `AtoiSpec` is no premise of the results; they take
+  `[strconv.Assumptions]`).
 - **`fmt.Println`**: `hyp.fmt.Println.spec`, `class hyp.PrintlnHyp GF` (operands `printOk`:
-  `ArgWf` or `errAny`); Perennial leaves `fmt.Println` untranslated. The proxy's accept routine
-  prints its errors.
+  `ArgWf`, or `errAny` whose dynamic type does not implement `fmt.Formatter`, `typeSetContains
+  ii.ty fmt.Formatter.ty = false`: Go calls a `Formatter`'s `Format` first); Perennial leaves
+  `fmt.Println` untranslated. The proxy's accept routine prints its errors (`*net.OpError`,
+  `*errors.errorString`: `NetAcceptLib`'s `opError_ptr_notFormatter`,
+  `errorString_ptr_notFormatter`, under `[fmt.Assumptions]`, now a premise of the
+  `NetworkInit` results).
 - **`sort.Ints`**: `hyp.sort.Ints.spec`, `class hyp.SortHyp GF` (the lab's `wp_Ints`: a
-  permutation into ascending signed order); Perennial leaves `sort.Ints` untranslated. Discharge:
+  permutation into ascending signed order; precondition `isPkgInit pkg_id.sort`); Perennial leaves
+  `sort.Ints` untranslated. Discharge:
   Perennial translates it, then the lab's proof over `slices.wp_Sort` applies.
 - **`sync.Map`**: vocabulary `hyp.sync.MapVocab GF` (`own m M`, string keys; `tp`, the points-to
   of a `sync.Map` value), `class hyp.sync.MapHyp V` (`ivt`: `tp`'s `IntoValTypedUnderlying`,
   `own_timeless`, `own_zero` from `m ↦ zero_val sync.Map`, logically atomic `Map.Load.spec`,
   `Map.Store.spec`, `Map.Delete.spec`). The deployment's is `qv.map` (`QpVocab`'s field), whose
   `tp` is `sync.Map`'s instance (`StoreInst.lean`). The proxy's store packs a vocabulary and its
-  hypothesis in `isStoreDef` (`∃ MV, ⌜MapHyp MV⌝ ∗ ...`, `Proxy/StoreDefs.lean`); `raxos.New`'s
+  hypothesis in `isStoreDef` (`∃ MV, ⌜MapHyp MV⌝ ∗ ...`, `Proxy/StoreDefs.lean`). `ivt` is a
+  hypothesis about Perennial's model, not Go's library: it stands in for Perennial's `sorry`
+  `TypedPointsto`/`IntoValTypedUnderlying` instances of `internal/sync.HashTrieMap`
+  (notes/perennial-changes.md); `raxos.New`'s
   proof allocates with `qv.map` and takes `[MapHyp qv.map]`. (`ClientBatchStore.Range`,
   used by `Remove`-less paths only, has no spec: add one if a proof reaches it.)
 - **bufio**: not a hypothesis: origin/dsv-bufio (75ef5881aa, revised after Upamanyu's review, merged
@@ -136,7 +164,11 @@ named after the lab's specs, until each comes as one shared change. **All are in
   unreachable (it does: `Init`'s mode-1 branch is excluded by the configuration).
 - `fmt.Printf` (the main tree's `Proof/fmt/Printf.lean`), `time.Sleep` (Perennial's), `net.Listen`
   (`Net/`): proved specs, used by `Replica/{Serve,Server}`.
-- `log` (`Println`, `Fatal`), `math/rand` (`Intn`, `Seed`, `NewSource`/`New`/`(*Rand).Intn`), `os`
+- **math/rand**: `hyp.RandHyp` holds only `Seed` and the package-level `Intn` (`0 < n`). The
+  audit's `NewSource`/`New`/`(*Rand).Intn` specs (true of a zero `Rand`, where Go panics, and
+  claiming races safe) are deleted: QuePaxa calls them only when `isAsynchronous`, which the
+  deployment never sets (`Proposer/Slots.lean`).
+- `log` (`Println`, `Fatal`), `math/rand` (`Intn`, `Seed`), `os`
   (`Create`, `Exit`, `Stderr`), `fmt.Fprintf`, `sort.Ints`, `time` extras (the lab's
   `Harness/Proof/{log,math/rand,os,fmt/Extra,strconv/Atoi,sort/Ints,time/Extra}`): to check against
   Perennial's and the main tree's (`Proof/math/rand`, `Proof/strconv`, Perennial's `log`, `sort`)
@@ -411,6 +443,20 @@ named after the lab's specs, until each comes as one shared change. **All are in
     re-based: the lock invariant of `s.mu` holds `waiting` and `next` with the client's quarter of
     `γ.cnt` and the unused tickets; `ClientBatch.Marshal/Unmarshal` from `PbHyp` over dsv-bufio);
     (v) the start; (vi) `TopLevelRobustness.lean`.
+- **Hypothesis audit (2026-11-23, after the kit's codec session)**: the reviewer's rule (a
+  hypothesis no stronger than the real Go library: real preconditions, no spec where Go panics or
+  races; nothing Perennial gives a body for) applied to `Hyp.lean`; the changes are in
+  "Hypotheses" above: `GrpcHyp` (`Invoke`'s empty `opts` and trailer-error branch, `NewServer`'s
+  empty options, `descOk`'s `HandlerType`/`Metadata` and the implements check with `srcState`'s
+  `HandlerType`, `Dial`'s options and `dialTarget`), `RandHyp` (only `Seed`, `Intn`), `PbHyp`
+  (no unknown fields in the `rep*`; `decInto` gives the `rep` only for a well-formed encoding),
+  `strconv.Atoi` proved (`AtoiSpec.lean`/`AtoiProof.lean`; `AtoiHyp` gone; the earlier entries'
+  `[AtoiHyp]` binders are now `[hyp.AtoiSpec GF]` in the proof files and nothing in the
+  `Results`), `printOk` excludes `fmt.Formatter` (`[fmt.Assumptions]` now a premise of the
+  `NetworkInit` results), `SortHyp`'s `isPkgInit pkg_id.sort`, `UtcHyp`'s doc, `MapHyp.ivt`'s note.
+  `lake build` of `Replica.Results`, `Proxy.Results`, `Proposer.Results`,
+  `examples.quepaxanet.KitCodecFn`: OK; `#print axioms` of `Replica/Results`' four
+  theorems: Lean's three. Tiers: 19 raxos non-scratch violations, as before.
 - **Next, in order** (ported ~20k of 37k lab lines; Replica and Proxy done but `WireProof`):
   2. `Codec/*` (7.3k: only the pure
      parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
@@ -419,7 +465,7 @@ named after the lab's specs, until each comes as one shared change. **All are in
      `lin_opAU`, `Codec.spec`, `Gen.spec`, `Orch.spec`, `Client.spec`, `Server.spec` as paxos's
      `Kit.lean`; `Orch.wp_proof` takes `Model.wp_proof`).
   3. `quepaxa_remote_robust` (`TopLevelRobustness.lean`): premises every `InitHyp`, `PbHyp`,
-     `RandHyp`, `AtoiHyp`, `SortHyp`, `UtcHyp`, `PrintlnHyp`, `GrpcHyp qv.grpc` and `MapHyp qv.map` (over the `QpVocab` instance),
+     `RandHyp`, `SortHyp`, `UtcHyp`, `PrintlnHyp`, `GrpcHyp qv.grpc` and `MapHyp qv.map` (over the `QpVocab` instance; `strconv.Atoi` is proved, `AtoiProof.lean`),
      `net.Assumptions`/`net.FieldAssumptions`/`go.BasicIntoValInj` as paxos's, all visible in
      the `.spec`; check `etc/theorem-loc.py` counts them. `etc/tcb-collections/dsv-quepaxa.txt`
      (the two trusted descriptor-table inits of `TrustedCode/raxos/{replica/src,proto/client}.lean`,

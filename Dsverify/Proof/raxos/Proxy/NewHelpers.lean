@@ -185,12 +185,12 @@ theorem wp_make_bag_n {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (G
 
 /-- The genesis batch `{Sender: -1, Messages: nil, Id: "nil"}`'s value. -/
 theorem np_repCB_nil (v : raxos.proto.client.ClientBatch) (h1 : v.Sender' = W64 (-1))
-    (h2 : v.Messages' = slice.nil) (h3 : v.Id' = go!"nil") :
+    (h2 : v.Messages' = slice.nil) (h3 : v.Id' = go!"nil") (h4 : v.unknownFields'.len = W64 0) :
     ⊢ repCBVal (GF := GF) v .discard nilBatch := by
   unfold repCBVal
   iexists []
   isplitr
-  · ipureintro; rw [h1, h3]; exact ⟨rfl, rfl⟩
+  · ipureintro; rw [h1, h3]; exact ⟨rfl, rfl, h4⟩
   rw [h2]
   isplitl
   · iapply ownSlice_nil

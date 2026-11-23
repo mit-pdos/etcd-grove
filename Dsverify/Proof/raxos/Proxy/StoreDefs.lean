@@ -39,21 +39,29 @@ def storeEnt (γ : QNames) (x : GoString) (v : GoInterface) : IProp GF :=
     ⌜v = interface.mkOk raxos.proto.client.ClientBatch.ty #cbv ∧ b.id = x ∧ batchFit b⌝ ∗
     repCBVal cbv .discard b ∗ batchReg γ x b)
 
+instance repCSingle_timeless (l : Loc) (dq : DFrac) (m : GoString) :
+    Timeless (repCSingle (GF := GF) l dq m) := by
+  unfold repCSingle; infer_instance
+
+instance repCSingle_discard_persistent (l : Loc) (m : GoString) :
+    Persistent (repCSingle (GF := GF) l .discard m) := by
+  unfold repCSingle; infer_instance
+
 instance repCBVal_discard_persistent (x : raxos.proto.client.ClientBatch) (b : Batch) :
     Persistent (repCBVal (GF := GF) x .discard b) := by
   unfold repCBVal repList repCSingle; infer_instance
 
 instance repCB_discard_persistent (l : Loc) (b : Batch) :
     Persistent (repCB (GF := GF) l .discard b) := by
-  unfold repCB repCBVal repList repCSingle; infer_instance
+  unfold repCB; infer_instance
 
 instance storeEnt_timeless (γ : QNames) (x : GoString) (v : GoInterface) :
     Timeless (storeEnt (GF := GF) γ x v) := by
-  unfold storeEnt repCBVal repList repCSingle batchReg; infer_instance
+  unfold storeEnt repCBVal repList batchReg; infer_instance
 
 instance storeEnt_persistent (γ : QNames) (x : GoString) (v : GoInterface) :
     Persistent (storeEnt (GF := GF) γ x v) := by
-  unfold storeEnt repCBVal repList repCSingle; infer_instance
+  unfold storeEnt; infer_instance
 
 /-- The store's invariant: the map's contents `M`, each entry registered; the ids known to be
 there (`γs`'s persistent elements) are in `M`. -/

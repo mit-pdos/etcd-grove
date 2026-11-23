@@ -51,7 +51,7 @@ abbrev unmarshalB.spec : Prop :=
       (⌜e ≠ interface.nil⌝ ∨
        ∃ (bs : List w8) (b : Batch), ⌜e = interface.nil ∧ data = le8 bs.length ++ bs ∧
          (∀ b0, batchOk b0 → encBatch b0 = bs → b = b0) ∧ bs.length < 2 ^ 63⌝ ∗
-         repCB t (DFrac.own 1) b) }}
+         (⌜∃ b0, batchOk b0 ∧ encBatch b0 = bs⌝ -∗ repCB t (DFrac.own 1) b)) }}
 
 theorem um_len_eq (n2 l : w64) (d2 : List w8) (h1 : sint.Z n2 = d2.length)
     (h2 : d2.length = sint.nat l ∧ 0 ≤ sint.Z l) : n2 = l := by word
@@ -164,7 +164,8 @@ theorem unmarshal_bounded : unmarshalB.spec (GF := GF) (hG := hG) := by
   ihave Hdsl := (ownSlice_trivial_slice dsl (DFrac.own 1) d2).1 $$ Hdsl
   wp_auto
   wp_apply (pb.unmarshal _ (DFrac.own 1) d2 _
-    (fun ok => if ok then iprop(∃ b0, repCB t (DFrac.own 1) b0 ∗
+    (fun ok => if ok then iprop(∃ b0,
+      (⌜∃ b1, batchOk b1 ∧ encBatch b1 = d2⌝ -∗ repCB t (DFrac.own 1) b0) ∗
       ⌜∀ b1, batchOk b1 → encBatch b1 = d2 → b0 = b1⌝) else iprop(True))) $$ [Hdsl Ht]
     as %e3 ⟨%ok, -, %He3, Hpost, -⟩
   · iframe Hdsl

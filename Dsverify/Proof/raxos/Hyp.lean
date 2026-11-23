@@ -21,8 +21,12 @@ premises, to be discharged when each piece comes as one shared change:
   `GrpcWorld`, `handlerOk`, `decOk`, `replyOk`, `descOk`, `grpcAddr` defined as there, over the
   vocabulary). `grpcAddr W a` is `Net/`'s `addrProto a (reqProto W a) (respProto W a)` with the
   world's registry: the recorders' addresses get those protocols in the deployment.
-* **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.{Seed,NewSource,New,
-  Rand.Intn,Intn}.spec`, the class `RandHyp`.
+* **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.{Seed,Intn}.spec` (the
+  package-level generator, safe for concurrent use; `Intn` for `0 < n` only, Go panics otherwise),
+  the class `RandHyp`.
+* **`strconv.Atoi`** is no longer a hypothesis: its value spec and the class `AtoiSpec` are in
+  `AtoiSpec.lean` (imported here, so the proofs see them), proved in `AtoiProof.lean` over
+  Perennial's translation.
 * **`sync.Map`** (the lab's `Harness/Proof/sync/Map.lean`; Perennial has no spec): the vocabulary
   `own m M` and the memory's points-to `tp` (`MapVocab`, abstract) and the class `MapHyp` of its
   laws (`ivt`: `tp` is the memory's, `own_timeless`, `own_zero` from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
@@ -39,6 +43,7 @@ public import Perennial.Proof.context.Base
 public import Proof.math.rand.Base
 public import Perennial.Proof.fmt.Base
 public import Net.Proof.models_lab.Errors
+public import Dsverify.Proof.raxos.AtoiSpec
 
 @[expose] public section
 
@@ -105,27 +110,6 @@ abbrev math.rand.Seed.spec : Prop :=
       (App (Val (@! Perennial.math.rand.Seed)) (Val #seed))
     {{ RET #(); True }}
 
-/-- **Hypothesis** `NewSource(seed)`: some `Source`. -/
-abbrev math.rand.NewSource.spec : Prop :=
-  ∀ (seed : w64),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
-      (App (Val (@! Perennial.math.rand.NewSource)) (Val #seed))
-    {{ (src : GoInterface), RET #src; True }}
-
-/-- **Hypothesis** `New(src)`: a fresh `*Rand`, owned by the caller. -/
-abbrev math.rand.New.spec : Prop :=
-  ∀ (src : GoInterface),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
-      (App (Val (@! Perennial.math.rand.New)) (Val #src))
-    {{ (r : Loc), RET #r; ∃ v : Perennial.math.rand.Rand, r ↦ v }}
-
-/-- **Hypothesis** `r.Intn(n)` for `n > 0`, with `r` owned: some `x` with `0 ≤ x < n`. -/
-abbrev math.rand.Rand.Intn.spec : Prop :=
-  ∀ (r : Loc) (v : Perennial.math.rand.Rand) (n : w64), 0 < sint.Z n →
-    {{ (r ↦ v : IProp GF) }}
-      (App (Val (r @!! go.GoType.PointerType Perennial.math.rand.Rand.ty @!! go!"Intn")) (Val #n))
-    {{ (x : w64), RET #x; r ↦ v ∗ ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
-
 /-- **Hypothesis** the package-level `Intn(n)` for `n > 0`: some `x` with `0 ≤ x < n`, no
 resource (Go's top-level generator is safe for concurrent use). -/
 abbrev math.rand.Intn.spec : Prop :=
@@ -134,52 +118,16 @@ abbrev math.rand.Intn.spec : Prop :=
       (App (Val (@! Perennial.math.rand.Intn)) (Val #n))
     {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
 
-/-- The `math/rand` hypotheses (the lab's model's specs; Perennial proves none of these), together. -/
+/-- The `math/rand` hypotheses (the lab's model's specs; Perennial proves none of these), together.
+Only the package-level functions: QuePaxa's `rand.New(rand.NewSource(..))`/`(*Rand).Intn` run only
+in asynchronous mode (`isAsynchronous`), which the deployment never sets (`Proposer/Slots.lean`), so
+no spec of them is assumed. -/
 class RandHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   Seed : math.rand.Seed.spec (GF := GF) (hG := hG)
-  NewSource : math.rand.NewSource.spec (GF := GF) (hG := hG)
-  New : math.rand.New.spec (GF := GF) (hG := hG)
-  RandIntn : math.rand.Rand.Intn.spec (GF := GF) (hG := hG)
   Intn : math.rand.Intn.spec (GF := GF) (hG := hG)
 
 end rand
-
-/-! ## strconv.Atoi -/
-
-namespace strconv
-
-/-- The value of a string of decimal digits. -/
-def decVal (s : List w8) : Nat := s.foldl (fun acc b => acc * 10 + (b.toNat - 48)) 0
-
-/-- `s` is a non-empty string of at most 18 decimal digits. -/
-def smallDigits (s : List w8) : Prop :=
-  1 ≤ s.length ∧ s.length ≤ 18 ∧ ∀ b ∈ s, 48 ≤ b.toNat ∧ b.toNat ≤ 57
-
-section atoi
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-
-/-- **Hypothesis** `strconv.Atoi(s)` for a string of 1 to 18 decimal digits: its value and a
-`nil` error (the lab's `wp_Atoi`, proved there over its own translation of `strconv`; Perennial's
-`strconv.Atoi.spec` does not give the value). Discharge: the lab's proof
-(`Harness/Proof/strconv/Atoi.lean`) redone over Perennial's translation of `internal/strconv`'s
-fast path. -/
-abbrev Atoi.spec : Prop :=
-  ∀ (s : GoString), smallDigits s →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.strconv }}
-      (App (Val (@! Perennial.strconv.Atoi)) (Val #s))
-    {{ RET (PairV #(W64 (decVal s)) #GoInterface.nil); True }}
-
-end atoi
-
-end strconv
-
-/-- The `strconv.Atoi` hypothesis. -/
-class AtoiHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
-    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
-  Atoi : strconv.Atoi.spec (GF := GF) (hG := hG)
 
 /-! ## time.Time.UTC -/
 
@@ -192,7 +140,7 @@ variable [sem : go.Semantics]
 
 /-- **Hypothesis** `t.UTC()`: some `Time` (the lab's `Time.wp_UTC`; Perennial leaves `Time.UTC`
 untranslated, `Perennial/Code/time.toml`). Discharge: Perennial translating `UTC` (its body is
-`t.setLoc(&utcLoc)`, both translated) and the lab's proof. -/
+`t.setLoc(&utcLoc)`; `setLoc` is not translated either) and the lab's proof. -/
 abbrev Time.UTC.spec : Prop :=
   ∀ (t : Perennial.time.Time),
     {{ (True : IProp GF) }}
@@ -224,7 +172,7 @@ Discharge: Perennial translates `sort.Ints`; the lab's proof (`Harness/Proof/sor
 applies. -/
 abbrev Ints.spec : Prop :=
   ∀ (data : GoSlice) (xs : List w64),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.slices ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sort ∗
         "Hxs" ∷ data ↦* xs ∗
         "%Hlength_bound" ∷ ⌜xs.length ≤ 2 ^ 62⌝ }}
       (App (Val (@! Perennial.sort.Ints)) (Val #data))
@@ -254,9 +202,12 @@ variable [sem : go.Semantics]
 
 /-- An operand `Println` may format: `nil` or a well-formed basic value (`fmt.ArgWf`: Go calls no
 method of it), or an error whose `Error()` returns some string (`models_lab.errAny`: Go's `%v` of
-an `error` calls its `Error()`). -/
+an `error` calls its `Error()`) and that is not a `fmt.Formatter` (whose `Format` Go would call
+first). -/
 def printOk (x : GoInterface) : IProp GF :=
-  iprop(⌜∀ ii, x = interface.ok ii → Perennial.fmt.ArgWf ii⌝ ∨ models_lab.errAny x)
+  iprop(⌜∀ ii, x = interface.ok ii → Perennial.fmt.ArgWf ii⌝ ∨
+    (models_lab.errAny x ∗
+      ⌜∀ ii, x = interface.ok ii → go.typeSetContains ii.ty Perennial.fmt.Formatter.ty = false⌝))
 
 instance printOk_persistent (x : GoInterface) : Persistent (printOk (GF := GF) x) := by
   unfold printOk; infer_instance
@@ -371,12 +322,23 @@ def handlerOk (impl : GoInterface) (h : GoFunc) (S : UnarySpec GF) : IProp GF :=
     WP (App (App (App (App (Val #h) (Val #impl)) (Val #(interface.ok ctx))) (Val #dec))
       (Val #func.nil)) {{ Θ }})
 
-/-- A service descriptor `sd` (read with fraction `dq`) whose every method's handler meets its
-spec at `a` with implementation `ss`, and which has no streams. -/
+/-- A service descriptor `sd` (read with fraction `dq`, all its fields) whose every method's
+handler meets its spec at `a` with implementation `ss`, and which has no streams; its
+`HandlerType` is a typed nil pointer to an interface type `T` that `ss` (non-nil) implements:
+`RegisterService` evaluates `reflect.TypeOf(sd.HandlerType).Elem()` and checks
+`reflect.TypeOf(ss).Implements(ht)` (grpc `server.go`, `RegisterService`; a nil `HandlerType`
+or `ss`, or a non-interface `T`, panics, and a `ss` not implementing it is `logger.Fatalf`), and
+it reads `Metadata`. -/
 def descOk (W : GrpcWorld GF) (a : GoString) (sd : Loc) (dq : DFrac) (name : GoString)
     (ss : GoInterface) : IProp GF :=
-  iprop(∃ (msl ssl : GoSlice) (Ms : List google_golang_org.grpc.MethodDesc),
+  iprop(∃ (msl ssl : GoSlice) (Ms : List google_golang_org.grpc.MethodDesc) (T : go.GoType)
+      (md : GoInterface),
     structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" sd ↦{dq} name ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" sd ↦{dq}
+      interface.mkOk (go.GoType.PointerType T) #(null : Loc) ∗
+    structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" sd ↦{dq} md ∗
+    ⌜go.isInterfaceType (underlying T) = true ∧
+      ∃ ii, ss = interface.ok ii ∧ go.typeSetContains ii.ty T = true⌝ ∗
     structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" sd ↦{dq} msl ∗
     msl ↦*{dq} Ms ∗
     structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" sd ↦{dq} ssl ∗
@@ -397,10 +359,11 @@ def encPre (args : GoInterface) (S : UnarySpec GF) (Φ : List w8 → IProp GF) (
 
 /-! ### The specs (the lab's statements) -/
 
-/-- `NewServer()`: a server for the world and address the caller names, with its owner token. -/
+/-- `NewServer()` with no options (QuePaxa's recorder passes none): a server for the world and
+address the caller names, with its owner token. -/
 abbrev NewServer.spec : Prop :=
   ∀ (W : GrpcWorld GF) (a : GoString) (opt : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ ⌜opt.len = W64 0⌝ }}
     (App (Val (@! google_golang_org.grpc.NewServer)) (Val #opt))
   {{ (s : Loc) (γ : GName), RET #s; V.isServer s γ W a ∗ V.srvOwn γ [] }}
 
@@ -438,31 +401,43 @@ abbrev WithInsecure.spec : Prop :=
     (App (Val (@! google_golang_org.grpc.WithInsecure)) (Val #()))
   {{ (o : GoInterface), RET #o; ⌜V.credsOpt o⌝ }}
 
-/-- `Dial(a, opts...)` of a gRPC address of the world (the lab's `dialPost`): a client
-connection if some option sets credentials (as QuePaxa's `WithInsecure()`), else an error (gRPC's
-`errNoTransportSecurity`; `Dial` does not block, so nothing else fails). -/
+/-- The decimal digits of `n`, as a Go string. -/
+def decDigits (n : Nat) : GoString :=
+  (toString n).toUTF8.toList.map (fun b => BitVec.ofNat 8 b.toNat)
+
+/-- A dial target of the shape `127.0.0.1:port` (`port` in `1..65535`): no URL scheme, so gRPC's
+`parseTarget` falls back to the default `passthrough` resolver, whose `Build` accepts any
+non-empty endpoint, and `determineAuthority` takes it as is. -/
+def dialTarget (a : GoString) : Prop :=
+  ∃ p : Nat, 1 ≤ p ∧ p ≤ 65535 ∧ a = go!"127.0.0.1:" ++ decDigits p
+
+/-- `Dial(a, opts...)` of a gRPC address of the world of the shape `dialTarget` (the lab's
+`dialPost`), with options that are all credential options (QuePaxa's one `WithInsecure()`): a
+client connection. (`Dial` fails with `errNoTransportSecurity` when no option sets credentials, on
+a target it cannot parse or resolve, or with other options' errors; none of these is allowed
+here. It does not block, so nothing else fails.) -/
 abbrev Dial.spec : Prop :=
   ∀ (W : GrpcWorld GF) (a : GoString) (opts : GoSlice) (dq : DFrac) (os : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcAddr (Gg := hG.goose_globalGS) V W a ∗
-      opts ↦*{dq} os }}
+      ⌜dialTarget a⌝ ∗ ⌜os ≠ [] ∧ ∀ o ∈ os, V.credsOpt o⌝ ∗ opts ↦*{dq} os }}
     (App (App (Val (@! google_golang_org.grpc.Dial)) (Val #a)) (Val #opts))
   {{ (cc : Loc) (err : GoInterface), RET (PairV #cc #err);
-      opts ↦*{dq} os ∗
-      ((⌜err = interface.nil ∧ ∃ o ∈ os, V.credsOpt o⌝ ∗ V.isClientConn cc W a) ∨
-        (⌜err ≠ interface.nil ∧ ∀ o ∈ os, ¬ V.credsOpt o⌝ ∗ errAny err)) }}
+      opts ↦*{dq} os ∗ ⌜err = interface.nil⌝ ∗ V.isClientConn cc W a }}
 
 /-- `cc.Invoke(ctx, fm, args, reply, opts)`: `nil` after one run of the method's handler at the
 server on the encoded request, with its continuation `Φ rep` and the reply decoded into `reply`
 (`Θ rep true`); or an error, after at most one run (the deposit may be lost), with the decoding
-resource `D` back or a failed decoding, and `R` (or the encoding premise, if nothing was
-encoded). -/
+resource `D` back or a decoding run, failed or not (gRPC reports a trailer's error status after
+decoding the reply), and `R` (or the encoding premise, if nothing was encoded). No call options
+(`opts` empty: QuePaxa's generated client passes none; options run arbitrary code). -/
 abbrev ClientConn.Invoke.spec : Prop :=
   ∀ (cc : Loc) (W : GrpcWorld GF) (a : GoString) (ctx : GoInterfaceOk)
     (cdesc : context.ContextDesc (IProp GF)) (fm : GoString) (S : UnarySpec GF)
     (args reply : GoInterface) (opts : GoSlice) (Φ : List w8 → IProp GF) (R D : IProp GF)
     (Θ : List w8 → Bool → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ V.isClientConn cc W a ∗
-      context.isContext ctx cdesc ∗ ⌜W.MS a fm = some S⌝ ∗ encPre args S Φ R ∗ D ∗
+      context.isContext ctx cdesc ∗ ⌜W.MS a fm = some S⌝ ∗ ⌜opts.len = W64 0⌝ ∗
+      encPre args S Φ R ∗ D ∗
       □ (D -∗ ∀ rep, PbCodec.unmarshal rep reply (Θ rep)) }}
     (App (App (App (App (App (Val (cc @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty
       @!! go!"Invoke")) (Val #(interface.ok ctx))) (Val #fm)) (Val #args)) (Val #reply))
@@ -470,7 +445,7 @@ abbrev ClientConn.Invoke.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       (⌜err = interface.nil⌝ ∗ R ∗ ∃ rep, Φ rep ∗ Θ rep true) ∨
       (⌜err ≠ interface.nil⌝ ∗ errAny err ∗ (R ∨ encPre args S Φ R) ∗
-        (D ∨ ∃ rep, Θ rep false)) }}
+        (D ∨ ∃ (rep : List w8) (b : Bool), Θ rep b)) }}
 
 end defs
 
@@ -561,7 +536,12 @@ abbrev Map.Delete.spec : Prop :=
 end defs
 
 /-- **The `sync.Map` hypotheses**: the points-to `V.tp` is the memory's (`ivt`: allocating,
-loading and storing a `sync.Map` respect it), a zero map holds nothing, and the specs. -/
+loading and storing a `sync.Map` respect it), a zero map holds nothing, and the specs.
+
+`ivt` is a hypothesis about Perennial's model, not about Go's library: it stands in for Perennial's
+`sorry` `TypedPointsto`/`IntoValTypedUnderlying` instances of `internal/sync.HashTrieMap` (the
+axiomatized type of `sync.Map`'s field), which no proof here may use (`StoreInst.lean`;
+notes/perennial-changes.md). It goes when Perennial gives those instances. -/
 class MapHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] (V : MapVocab GF) : Prop where
   ivt : @IntoValTypedUnderlying _ _ _ _ HasLC.hasLC GF hG Perennial.sync.Map

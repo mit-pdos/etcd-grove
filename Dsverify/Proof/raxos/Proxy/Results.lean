@@ -9,6 +9,7 @@ Package `proxy`'s results: its entry points' specs (`Replica.lean`), over the hy
 module
 
 public import Dsverify.Proof.raxos.Proxy.Run
+public import Dsverify.Proof.raxos.AtoiProof
 public import Dsverify.Proof.raxos.Proxy.MabCalc
 public import Dsverify.Proof.raxos.Proxy.NewProxy
 public import Dsverify.Proof.raxos.Proxy.NetInit
@@ -38,15 +39,15 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : Net.NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
-variable [strconv.Assumptions] [time.Assumptions]
+variable [strconv.Assumptions] [time.Assumptions] [fmt.Assumptions]
 
 /-- `pr.Run()`, the proxy's main loop. -/
-theorem Proxy.Run.wp_proof [hyp.AtoiHyp GF] [hyp.SortHyp GF] :
+theorem Proxy.Run.wp_proof [hyp.SortHyp GF] :
     Proxy.Run.spec (GF := GF) (hG := hG) :=
   run_proof_of (wp_calculateSequence wp_getLeaderSequence) (wp_updateEpochTime wp_hasAllDecided)
 
 /-- `NewProxy(...)`, the proxy's constructor. -/
-theorem NewProxy.wp_proof [hyp.AtoiHyp GF] [hyp.UtcHyp GF] [hyp.RandHyp GF] :
+theorem NewProxy.wp_proof [hyp.UtcHyp GF] [hyp.RandHyp GF] :
     NewProxy.spec (GF := GF) (hG := hG) :=
   newProxy_proof
 

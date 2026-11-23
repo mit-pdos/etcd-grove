@@ -121,7 +121,7 @@ theorem wp_convertToClientBatchMessages (re : Loc) (msl : GoSlice) (ps : List Lo
         rw [List.take_set]; exact List.set_eq_of_length_le (by simp; word)]
       iapply repList_snoc $$ [$Hpre]
       unfold repCSingle
-      iexists _; iframe #; ipureintro; exact Hxm
+      iexists _; iframe #; ipureintro; exact ⟨rfl, Hxm.2⟩
   · iapply HΦ
     iexists zs; iframe
     have e1 : zs.take (sint.nat i) = zs := List.take_of_length_le (by word)

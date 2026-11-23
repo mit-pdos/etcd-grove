@@ -35,7 +35,7 @@ set_option goose.wp.extras true
 set_option maxHeartbeats 2000000 in
 /-- `NewProxy(...)` (`NewProxy.spec`). -/
 theorem newProxy_proof
-    [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions] [ha : hyp.AtoiHyp GF] [hu : hyp.UtcHyp GF] [hr : hyp.RandHyp GF] :
+    [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions] [ha : hyp.AtoiSpec GF] [hu : hyp.UtcHyp GF] [hr : hyp.RandHyp GF] :
     NewProxy.spec (GF := GF) (hG := hG) := by
   intro γ c k cv toProp fromProp fromRec toFetch fromFetch toDec γ1 γ2 γ3 γ4 γ5 γ6 srv cb γs logPath
   simp only [callV, List.foldl_cons, List.foldl_nil]
@@ -264,7 +264,7 @@ theorem newProxy_proof
         wp_auto
         wp_for_post
         ihave #Hrep := np_repCB_nil (GF := GF)
-          ⟨zeroValDef, 0, slice.nil, W64 (-1), slice.nil, go!"nil"⟩ rfl rfl rfl
+          ⟨zeroValDef, 0, slice.nil, W64 (-1), slice.nil, go!"nil"⟩ rfl rfl rfl rfl
         wp_apply store_add_proof γ γs cb _ nilBatch $$ [$Hst $Hrep] as #HsHas
         · isplitl
           · rw [show nilBatch.id = go!"nil" from rfl]; iexact Hnil

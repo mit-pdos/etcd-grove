@@ -5,7 +5,7 @@ Package `replica`: `server.go` (`Server.Run`, `Server.NetworkInit`, `Server.Star
 Changed against the lab: the proxy's entry points (`NewProxy`, `Proxy.NetworkInit`, `Proxy.Run`)
 are premises (`NewProxy.spec`, ...; package `proxy` proves them, `Proxy/`); the recorder's address
 is the wildcard `recLis k` and its protocols `netProtos`' `recLisP` (`Replica/Serve.lean`); the
-peers' names come from the `strconv.Atoi` hypothesis (`hyp.AtoiHyp`), their dials from the gRPC
+peers' names come from the `strconv.Atoi` hypothesis (`hyp.AtoiSpec`, proved), their dials from the gRPC
 hypotheses (`Dial`'s error case excluded by `WithInsecure`'s credentials, the lab's `dialPost`);
 the batch store's allocation gives its `sync.Map` field's points-to over the deployment's
 vocabulary (`StoreInst.lean`) and `isStore_alloc_proof` (`MapHyp qv.map`).
@@ -54,7 +54,7 @@ variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 
 attribute [local instance] hyp.qpCodec
 
-variable [gh : hyp.grpc.GrpcHyp qv.grpc] [hr : hyp.RandHyp GF] [ha : hyp.AtoiHyp GF]
+variable [gh : hyp.grpc.GrpcHyp qv.grpc] [hr : hyp.RandHyp GF] [ha : hyp.AtoiSpec GF]
 
 -- the generated `sync.Map`/`ClientBatchStore` instances are `sorry` (`StoreInst.lean`)
 attribute [-instance] Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_typed_pointsto
@@ -190,11 +190,13 @@ theorem wp_setupgRPC (γ : QNames) (c : QConf) (k : Nat) (s : Loc) :
       ⟨Nat.le_add_left 1 _, Nat.succ_le_of_lt (Nat.lt_of_lt_of_le Hj Hn5)⟩
     ihave #Hg := netProtos_grpc γ (sint.nat i + 1) Hk' $$ Hnet
     wp_apply gh.Dial (world γ) (recAddr (sint.nat i + 1)) _ _ _
-      $$ [$Hg $Hol] as %cc %err ⟨-, Hdial⟩
-    icases Hdial with (⟨%He, #Hcc⟩ | ⟨%He, -⟩)
-    rotate_left
-    · exfalso; exact He.2 o (List.mem_singleton_self _) Ho
-    rw [He.1]
+      $$ [$Hg $Hol] as %cc %err ⟨-, %He, #Hcc⟩
+    · isplitr
+      · ipureintro; exact ⟨7626 + (sint.nat i + 1), by omega, by omega, rfl⟩
+      ipureintro
+      exact ⟨List.cons_ne_nil _ _, fun o' ho' => by
+        rw [List.mem_singleton] at ho'; subst ho'; exact Ho⟩
+    rw [He]
     wp_auto
     have Hds := decStr_small (sint.nat i + 1) Hk'
     wp_apply ha.Atoi (decStr (sint.nat i + 1)) Hds.1

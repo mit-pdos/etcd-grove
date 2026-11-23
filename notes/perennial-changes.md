@@ -3949,7 +3949,9 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   them; `Proxy/Store.lean` erases the generated (`sorry`) instances of `sync.Map`,
   `HashTrieMap` and `ClientBatchStore` (`attribute [-instance]`). `store_add_proof`,
   `esp_handlerOk`, `fetch_handlerOk`: Lean's three axioms. (The lab's `StoreInst.lean` did the
-  same over its own `sync.Map` model.)
+  same over its own `sync.Map` model.) So `MapHyp.ivt` is a hypothesis about Perennial's model
+  (it stands in for the `sorry` instances), not about Go's `sync.Map`; it is a premise of the
+  results until Perennial gives the instances (audit, 2026-11-23; `Hyp.lean`'s `MapHyp` says so).
 - **Proposed (general).** Perennial gives `internal/sync.HashTrieMap` (or `sync.Map` directly) a
   model: a translated or hand-written `HashTrieMap`, or `sync.Map` as an opaque handle with a
   heap-cell points-to and specs of `Load`/`Store`/`Delete`/`Range` (the shapes of `MapHyp`).

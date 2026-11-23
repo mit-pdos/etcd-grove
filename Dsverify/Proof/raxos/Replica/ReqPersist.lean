@@ -63,70 +63,70 @@ theorem repPMSingle_persist (l : Loc) (dq : DFrac) (m : GoString) :
 theorem repPMBatch_persist (l : Loc) (dq : DFrac) (b : Batch) :
     repPMBatch (GF := GF) l dq b ⊢ |==> repPMBatch l .discard b := by
   unfold repPMBatch
-  iintro ⟨%x, %ps, Hx, %Hf, Hsl, Hl⟩
+  iintro ⟨%x, %ps, Hx, %Hu, %Hf, Hsl, Hl⟩
   ipersist Hx
   ipersist Hsl
   imod repList_persist _ _ _ _ (fun p x => repPMSingle_persist (GF := GF) p dq x) $$ Hl with Hl
-  imodintro; iexists x, ps; iframe # ∗; ipureintro; exact Hf
+  imodintro; iexists x, ps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
 theorem repPMSlot_persist (l : Loc) (dq : DFrac) (d : DSlot) :
     repPMSlot (GF := GF) l dq d ⊢ |==> repPMSlot l .discard d := by
   unfold repPMSlot
-  iintro ⟨%x, Hx, %Hf, Hsl⟩
+  iintro ⟨%x, Hx, %Hu, %Hf, Hsl⟩
   ipersist Hx
   ipersist Hsl
-  imodintro; iexists x; iframe # ∗; ipureintro; exact Hf
+  imodintro; iexists x; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
 theorem repProp_persist (l : Loc) (dq : DFrac) (p : Prop') :
     repProp (GF := GF) l dq p ⊢ |==> repProp l .discard p := by
   unfold repProp
-  iintro ⟨%x, %bps, Hx, %Hf, Hids, Hsl, Hl⟩
+  iintro ⟨%x, %bps, Hx, %Hu, %Hf, Hids, Hsl, Hl⟩
   ipersist Hx
   ipersist Hids
   ipersist Hsl
   imod repList_persist _ _ _ _ (fun p x => repPMBatch_persist (GF := GF) p dq x) $$ Hl with Hl
-  imodintro; iexists x, bps; iframe # ∗; ipureintro; exact Hf
+  imodintro; iexists x, bps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
 theorem repPM_persist (l : Loc) (dq : DFrac) (m : PM) :
     repPM (GF := GF) l dq m ⊢ |==> repPM l .discard m := by
   unfold repPM
-  iintro ⟨%x, %sps, Hx, %Hf, Hp, Hsl, Hl⟩
+  iintro ⟨%x, %sps, Hx, %Hu, %Hf, Hp, Hsl, Hl⟩
   ipersist Hx
   ipersist Hsl
   imod repList_persist _ _ _ _ (fun p x => repPMSlot_persist (GF := GF) p dq x) $$ Hl with Hl
   cases hp : m.p with
   | none =>
     rw [hp] at *
-    imodintro; iexists x, sps; iframe # ∗; ipureintro; exact Hf
+    imodintro; iexists x, sps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
   | some p =>
     simp only [hp]
     imod repProp_persist _ _ _ $$ Hp with Hp
-    imodintro; iexists x, sps; iframe # ∗; ipureintro; exact Hf
+    imodintro; iexists x, sps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
 theorem repDReq_persist (l : Loc) (dq : DFrac) (ids : List GoString) :
     repDReq (GF := GF) l dq ids ⊢ |==> repDReq l .discard ids := by
   unfold repDReq
-  iintro ⟨%x, Hx, Hsl⟩
+  iintro ⟨%x, Hx, %Hu, Hsl⟩
   ipersist Hx
   ipersist Hsl
-  imodintro; iexists x; iframe # ∗
+  imodintro; iexists x; iframe # ∗; ipureintro; exact Hu
 
 theorem repDecSlot_persist (l : Loc) (dq : DFrac) (d : DSlot) :
     repDecSlot (GF := GF) l dq d ⊢ |==> repDecSlot l .discard d := by
   unfold repDecSlot
-  iintro ⟨%x, Hx, %Hf, Hsl⟩
+  iintro ⟨%x, Hx, %Hu, %Hf, Hsl⟩
   ipersist Hx
   ipersist Hsl
-  imodintro; iexists x; iframe # ∗; ipureintro; exact Hf
+  imodintro; iexists x; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
 theorem repDecs_persist (l : Loc) (dq : DFrac) (ds : List DSlot) :
     repDecs (GF := GF) l dq ds ⊢ |==> repDecs l .discard ds := by
   unfold repDecs
-  iintro ⟨%x, %ps, Hx, Hsl, Hl⟩
+  iintro ⟨%x, %ps, Hx, %Hu, Hsl, Hl⟩
   ipersist Hx
   ipersist Hsl
   imod repList_persist _ _ _ _ (fun p x => repDecSlot_persist (GF := GF) p dq x) $$ Hl with Hl
-  imodintro; iexists x, ps; iframe # ∗
+  imodintro; iexists x, ps; iframe # ∗; ipureintro; exact Hu
 
 theorem repList_nil {A : Type} (rep : Loc → DFrac → A → IProp GF) (dq : DFrac) :
     ⊢ repList rep [] dq ([] : List A) := by

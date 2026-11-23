@@ -9,13 +9,17 @@ kit's codec (interface of stage 1, `notes/stage1-plan.md`).
   omitted, except repeated elements and present sub-messages; fields in number order; an
   `int64` as the varint of its two's complement).
 * **Representations** (`rep*`): the Go struct at a pointer, read with fraction `dq`, with its
-  nested pointers and slices (the protobuf runtime fields `state`, `sizeCache`, `unknownFields`
-  arbitrary).
+  nested pointers and slices; no unknown fields (`unknownFields` empty, in every nested message:
+  protobuf's `Marshal` appends a message's unknown fields to its encoding, `internal/impl/
+  encode.go`, so `enc*` is the encoding only of a message without them); the protobuf runtime
+  fields `state`, `sizeCache` arbitrary.
 * **The codec's preconditions** (`marshalPre`, `unmarshalPre`): `marshalPre m Ψ` is a message
   of one of the program's kinds, whose encoding, if well formed (valid UTF-8 strings), is
   `Ψ (some _)`'s argument, its representation given back; `unmarshalPre bs m Ψ` is a fresh zero
-  message of one of the kinds, and on success its decoded value `v` with: any well formed value
-  whose encoding is `bs` is `v`.
+  message of one of the kinds, and on success, when `bs` is the encoding of a well formed value
+  (so that it carries no unknown fields), its decoded value `v` with: any well formed value whose
+  encoding is `bs` is `v`. (A successful decoding of other bytes gives nothing: protobuf keeps
+  their unknown fields.)
 
 Changed against the lab (notes/dsv-quepaxa.md): the lab's `pbCodec` instance of its protobuf
 model's `PbCodec` (its generated codec `pbMarshal`/`pbUnmarshal`, proved by `kitCodecOk_holds`) is
@@ -221,31 +225,33 @@ def repList {A : Type} (rep : Loc → DFrac → A → IProp GF) (ps : List Loc) 
 /-- `*ProposerMessage_ClientBatch_SingleMessage`. -/
 def repPMSingle (l : Loc) (dq : DFrac) (m : GoString) : IProp GF :=
   iprop(∃ x : raxos.replica.src.ProposerMessage_ClientBatch_SingleMessage,
-    l ↦{dq} x ∗ ⌜x.Message' = m⌝)
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ ⌜x.Message' = m⌝)
 
 /-- `*ProposerMessage_ClientBatch`. -/
 def repPMBatch (l : Loc) (dq : DFrac) (b : Batch) : IProp GF :=
   iprop(∃ (x : raxos.replica.src.ProposerMessage_ClientBatch) (ps : List Loc),
-    l ↦{dq} x ∗ ⌜sint.Z x.Sender' = b.sender ∧ x.Id' = b.id⌝ ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ ⌜sint.Z x.Sender' = b.sender ∧ x.Id' = b.id⌝ ∗
     x.Messages' ↦*{dq} ps ∗ repList repPMSingle ps dq b.cmds)
 
 /-- `*ProposerMessage_DecidedSlot`. -/
 def repPMSlot (l : Loc) (dq : DFrac) (d : DSlot) : IProp GF :=
   iprop(∃ x : raxos.replica.src.ProposerMessage_DecidedSlot,
-    l ↦{dq} x ∗ ⌜sint.Z x.Index' = d.index ∧ sint.Z x.Proposer' = d.proposer⌝ ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗
+    ⌜sint.Z x.Index' = d.index ∧ sint.Z x.Proposer' = d.proposer⌝ ∗
     x.Ids' ↦*{dq} d.ids)
 
 /-- `*ProposerMessage_Proposal`. -/
 def repProp (l : Loc) (dq : DFrac) (p : Prop') : IProp GF :=
   iprop(∃ (x : raxos.replica.src.ProposerMessage_Proposal) (bps : List Loc),
-    l ↦{dq} x ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗
     ⌜sint.Z x.Priority' = p.prio ∧ sint.Z x.ProposerId' = p.pid ∧ sint.Z x.ThreadId' = p.tid⌝ ∗
     x.Ids' ↦*{dq} p.ids ∗ x.ClientBatches' ↦*{dq} bps ∗ repList repPMBatch bps dq p.batches)
 
 /-- `*ProposerMessage`. -/
 def repPM (l : Loc) (dq : DFrac) (m : PM) : IProp GF :=
   iprop(∃ (x : raxos.replica.src.ProposerMessage) (sps : List Loc),
-    l ↦{dq} x ∗ ⌜sint.Z x.Sender' = m.sender ∧ sint.Z x.Index' = m.index ∧ sint.Z x.S' = m.s⌝ ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗
+    ⌜sint.Z x.Sender' = m.sender ∧ sint.Z x.Index' = m.index ∧ sint.Z x.S' = m.s⌝ ∗
     (match m.p with
      | none => iprop(⌜x.P' = null⌝)
      | some p => repProp x.P' dq p) ∗
@@ -254,7 +260,7 @@ def repPM (l : Loc) (dq : DFrac) (m : PM) : IProp GF :=
 /-- `*RecorderResponse_Proposal`. -/
 def repRRProp (l : Loc) (dq : DFrac) (p : RRProp) : IProp GF :=
   iprop(∃ x : raxos.replica.src.RecorderResponse_Proposal,
-    l ↦{dq} x ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗
     ⌜sint.Z x.Priority' = p.prio ∧ sint.Z x.ProposerId' = p.pid ∧ sint.Z x.ThreadId' = p.tid⌝ ∗
     x.Ids' ↦*{dq} p.ids)
 
@@ -267,51 +273,59 @@ def repOpt {A : Type} (rep : Loc → DFrac → A → IProp GF) (l : Loc) (dq : D
 /-- `*RecorderResponse`. -/
 def repRR (l : Loc) (dq : DFrac) (r : RR) : IProp GF :=
   iprop(∃ x : raxos.replica.src.RecorderResponse,
-    l ↦{dq} x ∗ ⌜sint.Z x.S' = r.s ∧ x.ClientBatchesNotFound' = r.notFound⌝ ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗
+    ⌜sint.Z x.S' = r.s ∧ x.ClientBatchesNotFound' = r.notFound⌝ ∗
     repOpt repRRProp x.F' dq r.f ∗ repOpt repRRProp x.M' dq r.m)
 
 /-- `*DecideRequest`. -/
 def repDReq (l : Loc) (dq : DFrac) (ids : List GoString) : IProp GF :=
-  iprop(∃ x : raxos.replica.src.DecideRequest, l ↦{dq} x ∗ x.Ids' ↦*{dq} ids)
+  iprop(∃ x : raxos.replica.src.DecideRequest,
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ x.Ids' ↦*{dq} ids)
 
 /-- `*DecideResponse_ClientBatch_SingleMessage`. -/
 def repDRSingle (l : Loc) (dq : DFrac) (m : GoString) : IProp GF :=
   iprop(∃ x : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage,
-    l ↦{dq} x ∗ ⌜x.Message' = m⌝)
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ ⌜x.Message' = m⌝)
 
 /-- `*DecideResponse_ClientBatch`. -/
 def repDRBatch (l : Loc) (dq : DFrac) (b : Batch) : IProp GF :=
   iprop(∃ (x : raxos.replica.src.DecideResponse_ClientBatch) (ps : List Loc),
-    l ↦{dq} x ∗ ⌜sint.Z x.Sender' = b.sender ∧ x.Id' = b.id⌝ ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ ⌜sint.Z x.Sender' = b.sender ∧ x.Id' = b.id⌝ ∗
     x.Messages' ↦*{dq} ps ∗ repList repDRSingle ps dq b.cmds)
 
 /-- `*DecideResponse`. -/
 def repDResp (l : Loc) (dq : DFrac) (bs : List Batch) : IProp GF :=
   iprop(∃ (x : raxos.replica.src.DecideResponse) (ps : List Loc),
-    l ↦{dq} x ∗ x.ClientBatches' ↦*{dq} ps ∗ repList repDRBatch ps dq bs)
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ x.ClientBatches' ↦*{dq} ps ∗
+    repList repDRBatch ps dq bs)
 
 /-- `*Decisions_DecidedSlot`. -/
 def repDecSlot (l : Loc) (dq : DFrac) (d : DSlot) : IProp GF :=
   iprop(∃ x : raxos.replica.src.Decisions_DecidedSlot,
-    l ↦{dq} x ∗ ⌜sint.Z x.Index' = d.index ∧ sint.Z x.Proposer' = d.proposer⌝ ∗
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗
+    ⌜sint.Z x.Index' = d.index ∧ sint.Z x.Proposer' = d.proposer⌝ ∗
     x.Ids' ↦*{dq} d.ids)
 
 /-- `*Decisions`. -/
 def repDecs (l : Loc) (dq : DFrac) (ds : List DSlot) : IProp GF :=
   iprop(∃ (x : raxos.replica.src.Decisions) (ps : List Loc),
-    l ↦{dq} x ∗ x.DecidedSlots' ↦*{dq} ps ∗ repList repDecSlot ps dq ds)
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ x.DecidedSlots' ↦*{dq} ps ∗
+    repList repDecSlot ps dq ds)
 
 /-- `*Empty`. -/
 def repEmpty (l : Loc) (dq : DFrac) : IProp GF :=
-  iprop(∃ x : raxos.replica.src.Empty, l ↦{dq} x)
+  iprop(∃ x : raxos.replica.src.Empty, l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝)
 
 /-- `*client.ClientBatch_SingleMessage`. -/
 def repCSingle (l : Loc) (dq : DFrac) (m : GoString) : IProp GF :=
-  iprop(∃ x : raxos.proto.client.ClientBatch_SingleMessage, l ↦{dq} x ∗ ⌜x.Message' = m⌝)
+  iprop(∃ x : raxos.proto.client.ClientBatch_SingleMessage,
+    l ↦{dq} x ∗ ⌜x.unknownFields'.len = W64 0⌝ ∗ ⌜x.Message' = m⌝)
 
-/-- A `client.ClientBatch` value's fields (its slice of messages read with `dq`). -/
+/-- A `client.ClientBatch` value's fields (its slice of messages read with `dq`), no unknown
+fields. -/
 def repCBVal (x : raxos.proto.client.ClientBatch) (dq : DFrac) (b : Batch) : IProp GF :=
-  iprop(∃ ps : List Loc, ⌜sint.Z x.Sender' = b.sender ∧ x.Id' = b.id⌝ ∗
+  iprop(∃ ps : List Loc,
+    ⌜sint.Z x.Sender' = b.sender ∧ x.Id' = b.id ∧ x.unknownFields'.len = W64 0⌝ ∗
     x.Messages' ↦*{dq} ps ∗ repList repCSingle ps dq b.cmds)
 
 /-- `*client.ClientBatch`. -/
@@ -344,10 +358,13 @@ def marshalPre (m : GoInterface) (Ψ : Option (List w8) → IProp GF) : IProp GF
       (repCB l dq v -∗ ((⌜batchOk v⌝ -∗ Ψ (some (encBatch v))) ∧ (⌜¬ batchOk v⌝ -∗ Ψ none)))))
 
 /-- Decoding into a fresh message of type `t` at `l` with value type `A`: on success the decoded
-value `v` (owned), which is any well formed value whose encoding is `bs`; on failure, `Ψ false`. -/
+value `v` (owned, if `bs` is the encoding of a well formed value: only then does the message have
+no unknown fields), which is any well formed value whose encoding is `bs`; on failure,
+`Ψ false`. -/
 def decInto {A : Type} (rep : Loc → DFrac → A → IProp GF) (ok : A → Prop) (enc : A → List w8)
     (bs : List w8) (l : Loc) (Ψ : Bool → IProp GF) : IProp GF :=
-  iprop((∀ v, rep l (DFrac.own 1) v -∗ ⌜∀ v0, ok v0 → enc v0 = bs → v = v0⌝ -∗ Ψ true) ∧
+  iprop((∀ v, (⌜∃ v0, ok v0 ∧ enc v0 = bs⌝ -∗ rep l (DFrac.own 1) v) -∗
+      ⌜∀ v0, ok v0 → enc v0 = bs → v = v0⌝ -∗ Ψ true) ∧
     Ψ false)
 
 /-- What the program unmarshals into: a fresh zero message of one of the kinds. -/

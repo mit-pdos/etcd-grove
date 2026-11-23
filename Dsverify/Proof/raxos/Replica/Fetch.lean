@@ -100,7 +100,7 @@ theorem wp_convertToDecideResponseClientBatchMessages (re : Loc) (msl : GoSlice)
       simp only [Option.toList_some]
       iapply repList_snoc $$ [$Hpre]
       unfold repDRSingle
-      iexists _; iframe #; ipureintro; exact Hxm
+      iexists _; iframe #; ipureintro; exact ⟨rfl, Hxm.2⟩
   · iapply HΦ
     iexists zs; iframe
     have e2 : cmds.take (sint.nat i) = cmds := List.take_of_length_le (by word)
@@ -115,13 +115,14 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       (App (Val (re @!! go.GoType.PointerType Recorder.ty @!! go!"HandleFetch")) (Val #req))
     {{ (resp : Loc), RET #resp; ∃ (x : DecideResponse) (qs : List Loc) (bs : List Batch),
         resp ↦ x ∗ x.ClientBatches' ↦* qs ∗ repList repDRBatch qs .discard bs ∗
-        ⌜∀ b ∈ bs, batchFit b⌝ ∗ [∗list] b ∈ bs, batchReg γ b.id b }} := by
+        ⌜(∀ b ∈ bs, batchFit b) ∧ x.unknownFields'.len = W64 0⌝ ∗
+        [∗list] b ∈ bs, batchReg γ b.id b }} := by
   wp_start as ⟨#Hre, #Hreq⟩
   ihave #Hre' := Hre
   iunfold isRecorder at Hre'
   icases Hre' with ⟨%cb, %γs, %ch, %γc, %mu, #Hcb, #Hst, -⟩
   iunfold repDReq at Hreq
-  icases Hreq with ⟨%x, #Hx, #Hids⟩
+  icases Hreq with ⟨%x, #Hx, %Hxu, #Hids⟩
   iStructNamed Hx
   ihave %Hlen := ownSlice_len $$ Hids
   wp_auto
@@ -131,7 +132,8 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       "i" ∷ i_ptr ↦ i ∗ "response" ∷ response_ptr ↦ xr ∗
       "Hsl" ∷ xr.ClientBatches' ↦* qs ∗ "Hcap" ∷ ownSliceCap Loc xr.ClientBatches' (DFrac.own 1) ∗
       "#Hbs" ∷ repList repDRBatch qs .discard bs ∗ "%Hbok" ∷ ⌜∀ b ∈ bs, batchFit b⌝ ∗
-      "#Hreg" ∷ ([∗list] b ∈ bs, batchReg γ b.id b) ∗ "%Hi" ∷ ⌜0 ≤ sint.Z i⌝ : IProp GF)
+      "#Hreg" ∷ ([∗list] b ∈ bs, batchReg γ b.id b) ∗ "%Hi" ∷ ⌜0 ≤ sint.Z i⌝ ∗
+      "%Hxru" ∷ ⌜xr.unknownFields'.len = W64 0⌝ : IProp GF)
       $$ [i response Hsl Hcap]
   · rw [show List.replicate 0 (zero_val Loc) = ([] : List Loc) from rfl]
     iexists _, _, [], []
@@ -142,7 +144,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
     · ipureintro; simp
     isplitl []
     · iapply BigSepL.bigSepL_nil.2; iempintro
-    · ipureintro; word
+    · ipureintro; exact ⟨by word, rfl⟩
   wp_for HI
   wp_if_destruct
   · have Hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z x.Ids'.len := ⟨Hi, by simpa [goose_wp_simp_extra] using Hif⟩
@@ -185,7 +187,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
         unfold repDRBatch
         iexists _, rqs
         iframe #
-        ipureintro; exact Hvf
+        ipureintro; exact ⟨rfl, Hvf.1, Hvf.2.1⟩
       isplitr
       · ipureintro; intro b' hb'
         rcases List.mem_append.1 hb' with h | h
@@ -197,7 +199,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       · ipureintro; word
   · iapply HΦ
     iexists _, qs, bs
-    iframe; iframe #; ipureintro; exact Hbok
+    iframe; iframe #; ipureintro; exact ⟨Hbok, Hxru⟩
 
 theorem wp_GRPCConnection_FetchBatches (γ : QNames) (k : Nat) (gc re lin : Loc)
     (ids : List GoString) (ctx : GoInterface) :
@@ -221,8 +223,8 @@ theorem wp_GRPCConnection_FetchBatches (γ : QNames) (k : Nat) (gc re lin : Loc)
   iexists bs
   iframe #
   isplitl []
-  · unfold repDResp; iexists x, qs; iframe #
-  · ipureintro; exact Hbok
+  · unfold repDResp; iexists x, qs; iframe #; ipureintro; exact Hbok.2
+  · ipureintro; exact Hbok.1
 
 theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
@@ -239,7 +241,8 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   generalize «$r0_ptr» = lin at *
   iunfold decOk at Hdec
   wp_apply Hdec $$ %(interface.mkOk (go.GoType.PointerType DecideRequest.ty) #lin)
-      %(fun b => if b then iprop(∃ v, repDReq lin (DFrac.own 1) v ∗
+      %(fun b => if b then iprop(∃ v,
+        (⌜∃ v0, (∀ s ∈ v0, strOk s) ∧ encDReq v0 = bs⌝ -∗ repDReq lin (DFrac.own 1) v) ∗
         ⌜∀ v0, (∀ s ∈ v0, strOk s) → encDReq v0 = bs → v = v0⌝) else iprop(True)) [Hin]
       as %err Herr
   · rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
@@ -266,6 +269,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   icases Hv with ⟨%v, Hv, %Hv0⟩
   iunfold fetchSpec at HS
   icases HS with ⟨%ids, ⟨%Hbs, %Hids⟩, HΦ⟩
+  ihave Hv := Hv $$ %(⟨ids, Hids, Hbs.symm⟩ : ∃ v0, (∀ s ∈ v0, strOk s) ∧ encDReq v0 = bs)
   have Hvm := Hv0 ids Hids Hbs.symm
   subst Hvm
   imod repDReq_persist _ _ _ $$ Hv with #Hv
@@ -310,7 +314,7 @@ theorem wp_HandleDecisions (γ : QNames) (k : Nat) (re req : Loc) (ds : List DSl
   iunfold isRecorder at Hre'
   icases Hre' with ⟨%cb, %γs, %ch, %γc, %mu, #Hcb, #Hst, #Hch, #Hchb, #Hname, #Hmu, #Hmux, #Hinv, %Hk⟩
   iunfold repDecs at Hreq
-  icases Hreq with ⟨%x, %sps, #Hx, #Hsps, #Hslots⟩
+  icases Hreq with ⟨%x, %sps, #Hx, %Hxu, #Hsps, #Hslots⟩
   iStructNamed Hx
   wp_auto
   wp_if_destruct
@@ -356,7 +360,7 @@ theorem wp_HandleDecisions (γ : QNames) (k : Nat) (re req : Loc) (ds : List DSl
       · iapply BigSepL.bigSepL_lookup (Φ := fun _ d => decided γ d.index d.ids) Hdd_lookup $$ Hdec
       have Hddok : dslotOk dd := Hok dd (List.mem_of_getElem? Hdd_lookup)
       iunfold repDecSlot at Hq
-      icases Hq with ⟨%xq, #Hxq, %Hxqf, #Hids⟩
+      icases Hq with ⟨%xq, #Hxq, %Hxqu, %Hxqf, #Hids⟩
       iStructNamed Hxq
       simp only [Hb, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index _ (sint.Z i) sps _ q Hi.1 $$ [] as -
@@ -431,7 +435,7 @@ theorem wp_GRPCConnection_InformDecision (γ : QNames) (k : Nat) (gc re lin : Lo
   iapply HΦ
   isplitr
   · ipureintro; rfl
-  unfold repEmpty; iexists _; iframe #
+  unfold repEmpty; iexists _; iframe #; ipureintro; rfl
 
 theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
@@ -448,7 +452,8 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   generalize «$r0_ptr» = lin at *
   iunfold decOk at Hdec
   wp_apply Hdec $$ %(interface.mkOk (go.GoType.PointerType Decisions.ty) #lin)
-      %(fun b => if b then iprop(∃ v, repDecs lin (DFrac.own 1) v ∗
+      %(fun b => if b then iprop(∃ v,
+        (⌜∃ v0, (∀ d ∈ v0, dslotOk d) ∧ encDecs v0 = bs⌝ -∗ repDecs lin (DFrac.own 1) v) ∗
         ⌜∀ v0, (∀ d ∈ v0, dslotOk d) → encDecs v0 = bs → v = v0⌝) else iprop(True)) [Hin]
       as %err Herr
   · rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
@@ -475,6 +480,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   icases Hv with ⟨%v, Hv, %Hv0⟩
   iunfold informSpec at HS
   icases HS with ⟨%ds, ⟨%Hbs, %Hds⟩, #Hdecs, HΦ⟩
+  ihave Hv := Hv $$ %(⟨ds, Hds, Hbs.symm⟩ : ∃ v0, (∀ d ∈ v0, dslotOk d) ∧ encDecs v0 = bs)
   have Hvm := Hv0 ds Hds Hbs.symm
   subst Hvm
   imod repDecs_persist _ _ _ $$ Hv with #Hv

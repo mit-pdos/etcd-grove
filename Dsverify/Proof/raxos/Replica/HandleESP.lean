@@ -50,7 +50,7 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
   iunfold pmFacts at Hfacts
   icases Hfacts with ⟨%p, %me, %Hp, #Hsend, #Hbatches, #Hdec⟩
   iunfold repPM at Hreq
-  icases Hreq with ⟨%x, %sps, #Hx, %Hxf, #HP, #Hsps, #Hslots⟩
+  icases Hreq with ⟨%x, %sps, #Hx, %Hxu, %Hxf, #HP, #Hsps, #Hslots⟩
   rw [Hp]
   iStructNamed Hx
   wp_auto
@@ -100,7 +100,7 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
       · iapply BigSepL.bigSepL_lookup (Φ := fun _ d => decided γ d.index d.ids) Hdd_lookup $$ Hdec
       have Hddok : dslotOk dd := Hok.2.2.2.2 dd (List.mem_of_getElem? Hdd_lookup)
       iunfold repPMSlot at Hq
-      icases Hq with ⟨%xq, #Hxq, %Hxqf, #Hids⟩
+      icases Hq with ⟨%xq, #Hxq, %Hxqu, %Hxqf, #Hids⟩
       iStructNamed Hxq
       simp only [Hb, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index _ (sint.Z i) sps _ q Hi.1 $$ [] as -
@@ -156,7 +156,7 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
       iframe
       ipureintro; rfl
   iunfold repProp at HP
-  icases HP with ⟨%xp, %bps, #Hxp, %Hxpf, #Hpids, #Hbps, #Hbreps⟩
+  icases HP with ⟨%xp, %bps, #Hxp, %Hxpu, %Hxpf, #Hpids, #Hbps, #Hbreps⟩
   have Hpok : propOk p := Hok.2.2.2.1 p Hp
   ihave %Hbpl := ownSlice_len $$ Hbps
   ihave %Hipl := ownSlice_len $$ Hpids
@@ -189,6 +189,8 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
       iframe #
       simp only [rrNotFound, repOpt]
       isplitr
+      · ipureintro; rfl
+      isplitr
       · ipureintro; simp only [_root_.and_true]; rfl
       isplitr <;> ipureintro <;> rfl
     · unfold espReply
@@ -215,7 +217,7 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
       ihave ⟨#Hbr, %Hbfit⟩ := BigSepL.bigSepL_lookup
         (Φ := fun _ b => iprop(batchReg γ b.id b ∗ ⌜batchFit b⌝)) Hb_lookup $$ Hbatches
       iunfold repPMBatch at Hq
-      icases Hq with ⟨%xb, %mps, #Hxb, %Hxbf, #Hmps, #Hmreps⟩
+      icases Hq with ⟨%xb, %mps, #Hxb, %Hxbu, %Hxbf, #Hmps, #Hmreps⟩
       iStructNamedPrefix Hxb "B"
       simp only [Hb, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index _ (sint.Z i) bps _ q Hi $$ [] as -
@@ -233,7 +235,7 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
         · unfold repCBVal
           iexists qs
           iframe #
-          ipureintro; exact Hxbf
+          ipureintro; exact ⟨Hxbf.1, Hxbf.2, rfl⟩
         · ipureintro; exact Hbfit
       wp_for_post
       iframe
@@ -278,12 +280,14 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
     iframe response
     simp only [repOpt]
     isplitr
+    · ipureintro; rfl
+    isplitr
     · ipureintro; exact ⟨HS, trivial⟩
     isplitl []
     · unfold repRRProp rrPropOf; iexists _; iframe HFp; dsimp only
-      iframe HFi; ipureintro; exact ⟨HFf.1, HFf.2.1, HFf.2.2.1⟩
+      iframe HFi; ipureintro; exact ⟨rfl, HFf.1, HFf.2.1, HFf.2.2.1⟩
     · unfold repRRProp rrPropOf; iexists _; iframe HMp; dsimp only
-      iframe HMi; ipureintro; exact ⟨HMf.1, HMf.2.1, HMf.2.2.1⟩
+      iframe HMi; ipureintro; exact ⟨rfl, HMf.1, HMf.2.1, HMf.2.2.1⟩
   · unfold espReply
     isplitr
     · ipureintro

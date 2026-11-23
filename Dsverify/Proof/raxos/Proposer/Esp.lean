@@ -59,7 +59,8 @@ set_option maxHeartbeats 800000 in
 /-- `c.ESP(ctx, in)` on recorder `r`'s client: the reply (owned) of the recorder's `record`
 event for the request, or the not-found reply; or an error. -/
 theorem wp_ESP (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (ml : Loc) (dq : DFrac) (m : PM) (opts : GoSlice) :
+    (cd : context.ContextDesc (IProp GF)) (ml : Loc) (dq : DFrac) (m : PM) (opts : GoSlice)
+    (Hopts : opts.len = W64 0 := by rfl) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ ⌜1 ≤ r ∧ r ≤ 5⌝ ∗
         l ↦□ (consensusClient.mk
           (interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #cc)) ∗
@@ -79,12 +80,15 @@ theorem wp_ESP (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceOk)
     (interface.mkOk (go.GoType.PointerType RecorderResponse.ty) #«$r0_ptr») opts
     (fun rep => iprop(∃ rr, ⌜rep = encRR rr⌝ ∗ espPost γ r m rr)) iprop(True)
     («$r0_ptr» ↦ zero_val RecorderResponse)
-    (fun rep ok => if ok then iprop(∃ v, repRR «$r0_ptr» (DFrac.own 1) v ∗
+    (fun rep ok => if ok then iprop(∃ v,
+      (⌜∃ v0, rrOk v0 ∧ encRR v0 = rep⌝ -∗ repRR «$r0_ptr» (DFrac.own 1) v) ∗
       ⌜∀ v0, rrOk v0 → encRR v0 = rep → v = v0⌝) else iprop(True))
     $$ [Hm Hfacts «$r0»] as %err Hres
   · iframe #
     isplitr
     · ipureintro; exact hMS
+    isplitr
+    · ipureintro; exact Hopts
     isplitl [Hm Hfacts]
     · unfold hyp.grpc.encPre
       iright
@@ -139,6 +143,7 @@ theorem wp_ESP (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceOk)
     wp_auto
     unfold espPost
     icases Hpost with ⟨%Hok, Hpost⟩
+    ihave Hv := Hv $$ %(⟨rr, Hok, Hrep.symm⟩ : ∃ v0, rrOk v0 ∧ encRR v0 = rep)
     have := Hv rr Hok Hrep.symm
     subst this
     iapply HΦ
@@ -160,7 +165,8 @@ set_option maxHeartbeats 800000 in
 /-- `c.FetchBatches(ctx, in)` on recorder `r`'s client: registered batches (owned), or an error. -/
 theorem wp_FetchBatches (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (ml : Loc) (dq : DFrac) (ids : List GoString)
-    (opts : GoSlice) :
+    (opts : GoSlice)
+    (Hopts : opts.len = W64 0 := by rfl) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ ⌜1 ≤ r ∧ r ≤ 5⌝ ∗
         l ↦□ (consensusClient.mk
           (interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #cc)) ∗
@@ -183,12 +189,15 @@ theorem wp_FetchBatches (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceO
     (fun rep => iprop(∃ bs, ⌜rep = encDResp bs ∧ ∀ b ∈ bs, batchFit b⌝ ∗
       [∗list] b ∈ bs, batchReg γ b.id b)) iprop(True)
     («$r0_ptr» ↦ zero_val DecideResponse)
-    (fun rep ok => if ok then iprop(∃ v, repDResp «$r0_ptr» (DFrac.own 1) v ∗
+    (fun rep ok => if ok then iprop(∃ v,
+      (⌜∃ v0, (∀ b ∈ v0, batchOk b) ∧ encDResp v0 = rep⌝ -∗ repDResp «$r0_ptr» (DFrac.own 1) v) ∗
       ⌜∀ v0, (∀ b ∈ v0, batchOk b) → encDResp v0 = rep → v = v0⌝) else iprop(True))
     $$ [Hm «$r0»] as %err Hres
   · iframe #
     isplitr
     · ipureintro; exact hMS
+    isplitr
+    · ipureintro; exact Hopts
     isplitl [Hm]
     · unfold hyp.grpc.encPre
       iright
@@ -236,6 +245,8 @@ theorem wp_FetchBatches (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceO
   icases Hres with (⟨%He, -, %rep, ⟨%bs, ⟨%Hrep, %Hok⟩, Hregs⟩, %v, Hv, %Hv⟩ | ⟨%Hne, -⟩)
   · subst He
     wp_auto
+    ihave Hv := Hv $$ %(⟨bs, fun b hb => (Hok b hb).1, Hrep.symm⟩ :
+      ∃ v0, (∀ b ∈ v0, batchOk b) ∧ encDResp v0 = rep)
     have := Hv bs (fun b hb => (Hok b hb).1) Hrep.symm
     subst this
     iapply HΦ
@@ -256,7 +267,8 @@ set_option maxHeartbeats 800000 in
 /-- `c.InformDecision(ctx, in)` on recorder `r`'s client, for decided slots. -/
 theorem wp_InformDecision (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (ml : Loc) (dq : DFrac) (ds : List DSlot)
-    (opts : GoSlice) :
+    (opts : GoSlice)
+    (Hopts : opts.len = W64 0 := by rfl) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ ⌜1 ≤ r ∧ r ≤ 5⌝ ∗
         l ↦□ (consensusClient.mk
           (interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #cc)) ∗
@@ -281,6 +293,8 @@ theorem wp_InformDecision (γ : QNames) (r : Nat) (l cc : Loc) (ctx : GoInterfac
   · iframe #
     isplitr
     · ipureintro; exact hMS
+    isplitr
+    · ipureintro; exact Hopts
     isplitl [Hm Hds]
     · unfold hyp.grpc.encPre
       iright

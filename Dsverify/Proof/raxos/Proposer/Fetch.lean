@@ -212,6 +212,7 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
       unfold repDReq
       iexists _
       iframe #
+      ipureintro; rfl
     wp_bind (If _ _ _)
     iapply wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ∃ (f : Bool) (c : GoSlice)
         (cps : List Loc) (cbs : List Batch),
@@ -233,7 +234,7 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
           ipureintro; exact Hcfit
         · rw [_root_.decide_eq_false hnull]
           iunfold repDResp at Hrr
-          icases Hrr with ⟨%xr, %rps, #Hxr, #Hrps, #Hrpr⟩
+          icases Hrr with ⟨%xr, %rps, #Hxr, %Hxu, #Hrps, #Hrpr⟩
           iStructNamed Hxr
           ihave %Hrpsl := ownSlice_len _ _ _ $$ Hrps
           ihave %Hrpl := repList_length _ _ _ _ $$ Hrpr
@@ -475,6 +476,7 @@ theorem wp_handleDecisionRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) 
         unfold repDecs
         iexists _, sps
         iframe #
+        ipureintro; rfl
       wp_apply sync.join.WaitGroup.wp_Done iprop(True) wg_ptr $$ [Hdone]
       · iframe
       itrivial

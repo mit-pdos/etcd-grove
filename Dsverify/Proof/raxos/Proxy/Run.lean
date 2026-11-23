@@ -34,7 +34,7 @@ variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 /-- `pr.Run()` (`Proxy.Run.spec`), from leader mode 2's `calculateSequence` and
 `updateEpochTime` (`MabCalc.lean`). -/
 theorem run_proof_of
-    [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions] [hyp.AtoiHyp GF]
+    [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions] [hyp.AtoiSpec GF]
     (wp_calc : calculateSequence_spec (GF := GF) (hG := hG))
     (wp_uet : updateEpochTime_spec (GF := GF) (hG := hG)) : Proxy.Run.spec (GF := GF) (hG := hG) :=
   wp_Run

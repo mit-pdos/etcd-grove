@@ -176,11 +176,15 @@ theorem consensus_descOk (γ : QNames) (k : Nat) (gc re : Loc) (hk : 1 ≤ k ∧
   icases Hs with ⟨%sd, #Hsd, %Hsdf, #Hms⟩
   iStructNamed Hsd
   unfold descOk
-  iexists sd.Methods', sd.Streams', _
-  rw [← Hsdf.1]
+  iexists sd.Methods', sd.Streams', _, ConsensusServer.ty, sd.Metadata'
+  rw [← Hsdf.1, ← Hsdf.2.2]
   iframe #
   isplitr
-  · ipureintro; exact Hsdf.2
+  · ipureintro
+    refine ⟨by rw [go.IsUnderlying.is_underlying (t := ConsensusServer.ty)]; rfl, _, rfl, ?_⟩
+    go_type_set
+  isplitr
+  · ipureintro; exact Hsdf.2.1
   imodintro
   iintro %i %d %S %Hd
   obtain ⟨Hi, HS⟩ := Hd
@@ -255,6 +259,7 @@ theorem wp_serve (γ : QNames) (k : Nat) (r gc : Loc) :
   wp_auto
   wp_for
   wp_apply gh.NewServer (world γ) (recAddr k) slice.nil as %s %γs ⟨#Hsrv, Hown⟩
+  · ipureintro; rfl
   wp_apply wp_RegisterConsensusServer s γs (recAddr k) γ [] gc $$ [$Hsrv $Hown $Hdesc]
     as ⟨Hown, -⟩
   · ipureintro; simp

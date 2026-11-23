@@ -4,9 +4,10 @@ Package initialization of `raxos.replica.src`
 
 Its fact (`srcState`, `Base.lean`): `Consensus_ServiceDesc` holds, read-only for good,
 the descriptor of service `Consensus` (its three methods with their generated handlers, no
-streams). Its initializer allocates and sets the translated gRPC service descriptor (a
-`grpc.ServiceDesc` literal), initializes its imports and runs the trusted initializers of
-protoc-gen-go's descriptor tables and `init` (models in `TrustedCode/` that do nothing).
+streams, its `HandlerType` the typed nil `(*ConsensusServer)(nil)`). Its initializer allocates
+and sets the translated gRPC service descriptor (a `grpc.ServiceDesc` literal), initializes its
+imports and runs the trusted initializers of protoc-gen-go's descriptor tables and `init` (models
+in `TrustedCode/` that do nothing).
 -/
 module
 
@@ -160,7 +161,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iexists _
   iframe HConsensus_ServiceDesc
   isplitr
-  · ipureintro; exact ⟨rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl⟩
   iexact Hml
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
