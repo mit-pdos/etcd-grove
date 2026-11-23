@@ -666,6 +666,17 @@ class _AnyType(dict):
 
 _ALLOC_ANY = _AnyType()
 
+# (#24 J2, 2026-11-23) the encoding/json model's codec registry with its bodies: `codecMu` and
+# `codec`, zero (the registry's mutex and its nil `*Codec`), left to the program: a deployment that
+# registers a codec takes `codecMu`'s mutex and `codecUnset` (half of `codec` at nil) from its boot,
+# as net/rpc's (`Proof/encoding/json/Registry.lean`).
+SPECIAL['encoding.json'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates the codec registry's variables (`codecMu`, `codec`:
+zero) and initializes its imports (`sync`, `io`); a program that registers a codec takes the
+registry's mutex and the codec's nil cell from its boot (`Registry.lean`: `codecInv`, `codecUnset`).''',
+    alloc_types=_ALLOC_ANY,
+)
+
 SPECIAL['os'] = dict(
     doc='''Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
 initializer loads (`defaultLogger`). `os` is this repository's translation (project bboltfs's): its

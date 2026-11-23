@@ -647,7 +647,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h103 : GetIsPkgInitProp pkg_id.encoding.json (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h4, h8, True.intro⟩
   have h104 : GetIsPkgInitProp pkg_id.net.textproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

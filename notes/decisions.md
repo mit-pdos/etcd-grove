@@ -42129,3 +42129,27 @@ real decoding (a stated precondition: only jsontext/v2, outside the model, make 
   - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
   - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
 - **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.
+
+## encoding/json per-type dispatch (J3) and the model's bodies (J2) (2026-11-23 · proving session 2, #24 · branch `prove-ps2-jsonj2/2026-11-23`)
+
+**Context.** The model's `Marshal`/`Unmarshal` were `getCodec().X(v)`: with bodies, every call needs a
+registered codec covering its type, a resource (`codecSetWith`) to thread through every spec from
+membership up to `etcdstart`, and a codec package cannot name k8s's unexported `storage.continueToken`
+(the design note on #24, issuecomment-7103223894).
+
+**Decision** (Upamanyu: J3 = (b); the exact statements, issuecomment-7113354607, approved by his
+coordinator). Per-type dispatch, the JSON twin of #37's D1: jsongen's same-package mode emits
+`JSONModelMarshal` (on `T`), `JSONModelMarshalPtr`, `JSONModelUnmarshal` (on `*T`) into each root's own
+package, under `goose || netmodel`, through goose's `-overlay`; the model calls them by the value's
+method set (`marshalAny`), the registered codec otherwise (nil, unnamed types: vr's frames). Each body
+accepts exactly `T`/`*T` and is not modelled otherwise (a type embedding `T` has the methods by
+promotion). In Lean the contract a call meets is an explicit `J : JsonCodec GF`, chosen per route:
+`typeCodecOk J F T` is a theorem of `T`'s package, the codec route `codecSetWith fm fu ∗ codecOkWith F
+fm fu`; `marshalVia`/`unmarshalVia` say which by `typeSetContains` of the dynamic type, a pure fact of
+the caller's `Assumptions`. `codecSetWith` gains `codecMu`'s mutex (`getCodec` locks it) and the
+registry follows net/rpc's (`codecInv`, `codecUnset` from a deployment's boot). Recursion (vr's `Logs`)
+needs no new form: every codec fact is persistent and used under a `WP`, so Löb cuts it. One overlay
+per project (`etc/goose.py`'s `model_overlay`, generators merged), shared with #37's pbmodel files.
+
+**Why not** a stronger `MarshalMember`: Upamanyu's decision (#24): `bootstrap`'s `ctxs = json.Marshal`
+of each member comes from `Marshal`'s proof at membership's own contract.
