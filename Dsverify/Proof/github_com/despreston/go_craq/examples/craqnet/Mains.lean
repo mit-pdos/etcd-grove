@@ -47,16 +47,17 @@ theorem wp_main (wp_Orch : craqnet.Orch.spec (GF := GF) (hG := hG)) (γ : CraqNa
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
         pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp ∗
         pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
-        [∗list] a ∈ confAddrs, addrProto (Gg := hG.goose_globalGS) a confProto confProto }}
+        ([∗list] a ∈ confAddrs, addrProto (Gg := hG.goose_globalGS) a confProto confProto) ∗
+        [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 18 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib, #Hcp⟩
+  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib, #Hcp, Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch γ γp hrb $$ [Hlib]
+  wp_apply wp_Orch γ γp hrb $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
   iapply HΦ
   itrivial
 
@@ -231,10 +232,10 @@ variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server1 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg 1 }}
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 1 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -261,10 +262,10 @@ variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server2 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg 2 }}
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 2 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -291,10 +292,10 @@ variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server3 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg 3 }}
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 3 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -321,10 +322,10 @@ variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server4 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg 4 }}
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 4 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -351,10 +352,10 @@ variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server5 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg 5 }}
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 5 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -381,10 +382,10 @@ variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server6 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg 6 }}
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 6 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)

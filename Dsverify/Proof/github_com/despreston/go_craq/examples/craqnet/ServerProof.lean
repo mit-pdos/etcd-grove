@@ -197,10 +197,10 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     (cfg : Cfg GF) (HRN : removeNodeOk.spec cfg)
     (hc : cfg.cAddr = go!"127.0.0.1:7501") (hlen : cfg.chain.length < 2 ^ 31 - 1) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ coordRes cfg }}
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ coordRes cfg }}
       (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #(W64 1)))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, ⟨%γs, #Hdsv⟩, #Hctx, Hres⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
   · iPkgInit
   ihave #Hhttp : isPkgInit (PROP := IProp GF) pkg_id.net.http $$ []
@@ -238,9 +238,9 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     iexact «cb»
   ihave #Hrcv := coordRcv_ok cfg cb_ptr _ (HRN _ _) $$ HcB
   wp_apply rs.RegisterName craqCodec go!"RPC" _ (coordSpec cfg.γ cfg.chain) go!"CoordinatorBinding" false
-    (by decide) $$ [] as %err Herr
-  · iframe Hcs Hrcv
-  icases Herr with (⟨%Herr, %srv, %γs, #Hds, #Hsrv, #Hreg⟩ | %Herr)
+    γs (by decide) $$ [] as %err Herr
+  · iframe Hcs Hrcv Hdsv
+  icases Herr with (⟨%Herr, %srv, #Hds, #Hsrv, #Hreg⟩ | %Herr)
   · subst Herr
     wp_auto
     wp_apply rs.HandleHTTP [] $$ [Hmux] as ⟨Hmux, %srv', #Hds', #Hroute⟩
@@ -309,12 +309,12 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     (cfg : Cfg GF) (id : w64) (a : GoString) (conf : Conf)
     (hc : cfg.cAddr = go!"127.0.0.1:7501") (ha : a ∈ cfg.chain) (hok : addrOk a = true) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ rpcReady ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ craqCtx cfg ∗ nodeRes cfg a ∗ joinTicket cfg.γ a ∗
+        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ nodeRes cfg a ∗ joinTicket cfg.γ a ∗
         net.rpc.errOk (nodeSpec cfg.γ cfg.chain a) }}
       (App (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.runNode)) (Val #id))
         (Val #a)) (Val #conf))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hready, Hmux, #Henv, #Hctx, Hres, Htk, #HE⟩
+  wp_start as ⟨#Hready, Hmux, #Henv, ⟨%γs, #Hdsv⟩, #Hctx, Hres, Htk, #HE⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
   · iPkgInit
   ihave #Hno : isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node $$ []
@@ -355,9 +355,9 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     iexact «nb»
   ihave #Hrcv := nodeRcv_ok cfg nb_ptr _ a $$ HnB
   wp_apply rs.RegisterName craqCodec go!"RPC" _ (nodeSpec cfg.γ cfg.chain a) go!"NodeBinding" false
-    (by decide) $$ [] as %err Herr
-  · iframe Hcs Hrcv
-  icases Herr with (⟨%Herr, %srv, %γs, #Hds, #Hsrv, #Hreg⟩ | %Herr)
+    γs (by decide) $$ [] as %err Herr
+  · iframe Hcs Hrcv Hdsv
+  icases Herr with (⟨%Herr, %srv, #Hds, #Hsrv, #Hreg⟩ | %Herr)
   · subst Herr
     wp_auto
     wp_apply rs.HandleHTTP [] $$ [Hmux] as ⟨Hmux, %srv', #Hds', #Hroute⟩
@@ -445,7 +445,7 @@ theorem Server.wp_proof [rs : RpcHttpServe GF]
         confProto) := by
     unfold serverRes; rw [if_neg hn1, hga]
   rw [hres]
-  wp_start as ⟨Hcf, Hmux, #Henv, #Hctx, Hres, Htk, #Hca⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres, Htk, #Hca⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
   · iPkgInit
   wp_auto

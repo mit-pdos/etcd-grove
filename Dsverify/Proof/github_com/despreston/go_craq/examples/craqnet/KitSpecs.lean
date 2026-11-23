@@ -193,7 +193,7 @@ variables (`srvEnv`) are at their initial states (from its initialization: findi
 abbrev Server.spec [RpcHttpServe GF] : Prop :=
   ∀ (cfg : Cfg GF) (id : w64), cfgKit cfg → 1 ≤ uint.nat id → uint.nat id ≤ 6 →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-      net.rpc.srvEnv ∗ craqCtx cfg ∗ serverRes cfg (uint.nat id) }}
+      net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg (uint.nat id) }}
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #id))
   {{ RET #(); True }}
 
@@ -211,9 +211,11 @@ resources, made by its program's initialization: the codec registry at its initi
 (`codecFresh`), net/rpc's package variables as its server and clients read them (`srvEnv`:
 `cliEnv`'s and `invalidRequest`; the part's net/rpc package fact is `True`,
 `Dsverify/Proof/net/rpc/Init.lean`, so they come with the boot, as dsv-epaxos's), and
-`DefaultServeMux` with nothing registered (`muxOwner []`, net/http's; H4). -/
+`DefaultServeMux` with nothing registered (`muxOwner []`, net/http's; H4), and net/rpc's
+`DefaultServer` (`defaultServer`: what the initializer's `DefaultServer = NewServer()` makes;
+dsv-epaxos's shape, Upamanyu's review: not from net/rpc's `True` fact). -/
 def rpcBootRes [RpcHttpServe GF] : IProp GF :=
-  iprop(codecFresh ∗ net.rpc.srvEnv ∗ RpcHttpServe.muxOwner [])
+  iprop(codecFresh ∗ net.rpc.srvEnv ∗ RpcHttpServe.muxOwner [] ∗ (∃ γ, defaultServer γ))
 
 /-- **F2's premise**: command `pkg`'s initializer `init`, run once from the machine's empty
 package state (only the deployment's boot holds `ownGoState ∅`, once per machine), initializes

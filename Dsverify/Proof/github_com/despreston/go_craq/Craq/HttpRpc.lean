@@ -94,6 +94,15 @@ abbrev rpc.DialHTTP.spec : Prop :=
       (⌜err = interface.nil⌝ ∗ net.rpc.isClient c W a) ∨
       (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }}
 
+/-- net/rpc's `DefaultServer` (persistent): the `*Server` `s` that the package's initialization made
+(`DefaultServer = NewServer()`, Net's `NewServer.spec`: `isServer s γ`), with its registry `γ`. A
+machine's boot gives it (`rpcBootRes`), not net/rpc's package fact (`True` here). -/
+def defaultServer (γ : GName) : IProp GF :=
+  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ net.rpc.isServer s γ)
+
+instance defaultServer_persistent (γ : GName) : Persistent (defaultServer (GF := GF) γ) := by
+  unfold defaultServer; infer_instance
+
 end specs
 
 /-- **H4, the dial** (see the file header). -/
@@ -130,15 +139,16 @@ class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [G
   muxRoute_pers : ∀ p h, Persistent (muxRoute p h)
   handlerOk : GoInterface → GoString → net.rpc.RpcWorld GF → GoString → IProp GF
   handlerOk_pers : ∀ h p W a, Persistent (handlerOk h p W a)
-  /-- `rpc.RegisterName(name, rcvr)`: `Server.RegisterName.spec` on the `DefaultServer`. -/
+  /-- `rpc.RegisterName(name, rcvr)`: `Server.RegisterName.spec` on the `DefaultServer` (its
+  registry `γ`, from the machine's boot: `defaultServer`). -/
   RegisterName : ∀ (C : net.rpc.CodecSpec GF) (name : GoString) (rcvr : GoInterface)
-      (S : net.rpc.MethodSpec GF) (nm : GoString) (np : Bool),
+      (S : net.rpc.MethodSpec GF) (nm : GoString) (np : Bool) (γ : GName),
     name ≠ [] →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ net.rpc.codecSet C ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ defaultServer γ ∗ net.rpc.codecSet C ∗
         C.rcv rcvr (net.rpc.rcvrIs C rcvr S nm np) }}
       (App (App (Val (@! net.rpc.RegisterName)) (Val #name)) (Val #rcvr))
     {{ (err : GoInterface), RET #err;
-        (⌜err = interface.nil⌝ ∗ ∃ (s : Loc) (γ : GName),
+        (⌜err = interface.nil⌝ ∗ ∃ s : Loc,
           globalAddr net.rpc.DefaultServer ↦□ s ∗ net.rpc.isServer s γ ∗
           net.rpc.svcReg γ C name S) ∨ ⌜err ≠ interface.nil⌝ }}
   /-- `rpc.HandleHTTP()`: Net's `rpc.HandleHTTP.spec` (expected). -/
