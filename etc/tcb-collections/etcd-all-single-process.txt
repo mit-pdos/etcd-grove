@@ -96,7 +96,6 @@ axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
-axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
 axiom grpc.ClientConn.Invoke.wp_proof
