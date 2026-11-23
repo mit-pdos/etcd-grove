@@ -118,11 +118,19 @@ replaces by `Net/`'s specs anyway; the rpc/http and bufio parts are items 1-3. D
 
 ## Findings
 
-- After merging `lean` (through `dsv-bufio` `361ca5c7b7`), `etc/gen-init.py --check` reports the five
-  paxos `cmd/server*/PkgTable.lean` as differing from the generated (dsv-paxos's files, not
-  regenerated here); gryff's files are up to date (and `etc/dsv/_gryff_boot.py --check` clean).
-  `gen-init.py` without `--check` also rewrites ~20 main-tree `Proof/go_etcd_io/etcd/server/...`
-  `Init`/`InitLinked` files on this branch: revert those (`git checkout -- Proof/`) after a run.
+- **gen-init rewrote ~20 main-tree `Proof/go_etcd_io/etcd/server/**` `Init`/`InitLinked` files on this
+  branch: a merge mistake of this branch, fixed 2026-11-23.** Not lean (a clean `origin/lean`
+  `07268ddb57` worktree: `gen-init --check` clean), not `etc/dsv/gryff.py` (with it disabled the same
+  20 files differed), not dsv-infra. This branch's merge `40cff860fc` ("migrate onto dsv-infra")
+  resolved `etc/gen-init.py` and `etc/goose.py` to dsv-infra's `a1046d9c4f` versions, dropping
+  lean's `prove-ps2-metrics` hunks (`92a9fd7b78`: `gauge_rep`, `MetricLaws`/`gauge__*` in
+  `PROM_CTORS`, `ipersist HisLearner`/`HknownPeers`/`HtotalEventsCounter`, goose's
+  `prometheus/client_model/go` names-only package) that this branch already had; every later merge
+  kept the branch's side. Restored both scripts to `origin/lean`'s (this branch has no line of its
+  own in them; its configuration is `etc/dsv/gryff.py`). After: `gen-init --check` clean (main tree
+  and both kits), `goose --check --project dsv-gryff` clean. (`gen-init`'s "N files up to date"
+  counts the main tree's packages only; the kits' files are checked too.) Other shared files the
+  merge touched (`notes/*`) differ from lean only by additions.
 
 - **rpcgen emitted an unused import** (a receiver whose package holds none of the codec's types,
   gryff's `*masterlib.Master`, `*gryff.Replica`, was imported by `rpc_gen.go`, which did not
