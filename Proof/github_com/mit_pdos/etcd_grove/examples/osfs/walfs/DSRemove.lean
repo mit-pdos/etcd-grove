@@ -3,7 +3,7 @@
 `wal.tmp/seg` and `wal.tmp`, then makes `wal.tmp`, without knowing what is there).
 
 * `wp_rmAny`: `os.Remove(d/b)` with the whole claim on `b` and, if `b` names a directory, its whole
-  `.except []` claim (`subRes`): the name gone, or the claim as it was. Absent: `unlink` and `rmdir`
+  `.except []` claim (`subRes`): the name gone, or the claim as it was and an error. Absent: `unlink` and `rmdir`
   fail (`wp_osUnlinkS_none`, `wp_osRmdirS_none`). A file: the `unlink` (`wp_osUnlinkS`). An empty
   directory: `unlink` fails, the `rmdir` (`wp_osRmdirS`). A non-empty one: both fail
   (`wp_osRmdirS_nonempty`).
@@ -165,14 +165,15 @@ local macro "rm_err" " => " post:tacticSeq : tactic => `(tactic| (
     iapply HΦ
     ($post)))
 
-/-- **`os.Remove(d/b)`** with the whole claim on `b` (and `subRes`): `b` gone, or as it was. -/
+/-- **`os.Remove(d/b)`** with the whole claim on `b` (and `subRes`): `b` gone, or as it was and an
+error. -/
 theorem wp_rmAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (hb : NameOk b) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
         osNames j (.only [b]) (DFrac.own 1) h ∗ subRes (GF := GF) b h }}
       (App (Val (@! os.Remove)) (Val #(child d b)))
     {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
         ∃ h', osNames j (.only [b]) (DFrac.own 1) h' ∗ subRes (GF := GF) b h' ∗
-          ⌜h' = h ∨ h'.cur !! b = none⌝ }} := by
+          ⌜(h' = h ∧ err ≠ interface.nil) ∨ h'.cur !! b = none⌝ }} := by
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hsub⟩
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
@@ -200,7 +201,7 @@ theorem wp_rmAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH
       iframe Hn
       isplitl []
       · first | iapply subRes_none hcb | (simp only [hcb]; iempintro)
-      ipureintro; exact .inl rfl
+      ipureintro; exact .inl ⟨rfl, fun h => by cases h⟩
   | some n =>
   cases n with
   | file i =>
@@ -239,7 +240,7 @@ theorem wp_rmAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH
           iframe Hn
           isplitl []
           · (try unfold subRes); simp only [hcb]; iempintro
-          ipureintro; exact .inl rfl
+          ipureintro; exact .inl ⟨rfl, fun h => by cases h⟩
       · by_cases he4 : e = W64 4
         · rw [decide_eq_true he4]
           wp_auto
@@ -341,7 +342,7 @@ theorem wp_rmAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH
             iframe Hn
             isplitl [HJ]
             · (try unfold subRes); simp only [hcb]; iexists hJ; iexact HJ
-            ipureintro; exact .inl rfl
+            ipureintro; exact .inl ⟨rfl, fun h => by cases h⟩
         · iclear HJ
           by_cases he14 : e1 = W64 4
           · rw [decide_eq_true he14]
@@ -390,7 +391,7 @@ theorem wp_rmAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH
           iframe Hn
           isplitl [HJ]
           · (try unfold subRes); simp only [hcb]; iexists hJ; iexact HJ
-          ipureintro; exact .inl rfl
+          ipureintro; exact .inl ⟨rfl, fun h => by cases h⟩
     · wp_apply wp_osRmdirS_none R d b j dq (DFrac.own 1) h1 t1 s1 1 hb
         (fun J' hJ' => by simp [hn1] at hJ') CoPset.subseteq_top CoPset.subseteq_top
         $$ Hos Hsi Hp Hn Hk1 as %e1 %he1 Hperm Hp Hn
