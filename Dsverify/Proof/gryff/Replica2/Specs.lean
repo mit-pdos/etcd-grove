@@ -637,7 +637,7 @@ def epHandlerSpec (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc)
 -- `handlePreAcceptReply.wp`, `handlePreAcceptOK.wp`, `handleExecuted.wp`, `executeOverwrite.wp`:
 -- in `Replica2/Results.lean` (unit H2c2's proofs; C-H2c2, C-H2c2b).
 
-/-! ## The trace prophecy's resolutions (`proph.go`, internal to `gryff`)
+/-! ## The trace prophecy's resolutions (the prophecy patch `etc/proph-patches/dsv-gryff/`, internal to `gryff`)
 
 Each `resolveX` resolves its event's words, `evCodec.enc e`, one `ResolveU64` at a time
 (`replicaProph_resolve`); the word order is the model's projection's (`Model/Codec.lean`). -/
@@ -647,7 +647,7 @@ def resolveSpec (γ : GryffNames GF) (k : Fin 3) (r : Loc) (call : Expr) (Pre : 
     (e : Ev) : Prop :=
   ∀ (p : ProphId) (t : List Ev) (ws : List w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph γ.proto k p t ws ∗ Pre }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph γ.proto k p t ws ∗ Pre }}
       call
     {{ RET #(); replicaProph γ.proto k p t (ws ++ model.evCodec.enc e) ∗ Pre }}
 

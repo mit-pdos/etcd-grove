@@ -353,7 +353,7 @@ theorem strongconnect_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h
     (Gs : List replica.Node) (vn : replica.Node) (v idxp : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗ isExec γ ρ k r h ∗
         h.[src.gryff.EPaxosRMWHandler, go!"exec"] ↦□ ex ∗ r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ sync.ownMutex mtx ∗ lockedAt γ ρ k r p t xs ∗
+        globalAddr src.gryff.traceProph ↦□ p ∗ sync.ownMutex mtx ∗ lockedAt γ ρ k r p t xs ∗
         execPriv2 ρ h xs S ∗ idxp ↦ W64 (idx : Int) ∗ ghostMapElem ρ.ptrs vn DFrac.discard v ∗
         ⌜TInv (model.depR (pure.stOf k t)) (xs.toT S idx) Gs ∧ vn ∉ xs.1 ∧ xs.numF vn = 0 ∧
           (model.committedCopy (pure.stOf k t) vn).isSome ∧ scFacts2 (pure.stOf k t) xs S idx⌝ }}

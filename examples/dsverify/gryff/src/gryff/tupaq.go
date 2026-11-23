@@ -23,7 +23,6 @@ import (
   "math/rand"
   "gryff/src/stats"
   "sync"
-  "github.com/goose-lang/primitive" // verification workaround (ghost code, D9): the replica's trace prophecy
 )
 
 const CHAN_BUFFER_SIZE = 200000
@@ -91,14 +90,12 @@ type Replica struct {
   fastOverwriteTime int
   forceWritePeriod int
   mtx *sync.Mutex
-  proph primitive.ProphId // verification workaround (ghost code, D9): the replica's trace prophecy, resolved under mtx (proph.go)
 }
 
 func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool,
     dreply bool, beacon bool, durable bool, statsFile string, regular bool,
     proxy bool, noConflicts bool, epaxosMode bool, rmwHandler RMWHandlerType,
     shortcircuitTime int, fastOverwriteTime int, forceWritePeriod int, broadcastOptimizationEnabled bool) *Replica {
-  proph := traceProph // verification workaround (ghost code, D13): the package's trace prophecy (proph.go), stored before any of the replica's goroutines
   r := &Replica{genericsmr.NewReplicaDurable(id, peerAddrList, thrifty, exec, dreply,
       false, statsFile, durable), // fix (T4): no stable store unless durable
     nil,                                                // parti
@@ -145,7 +142,6 @@ func NewReplica(id int, peerAddrList []string, thrifty bool, exec bool,
     fastOverwriteTime,
     forceWritePeriod,
     new(sync.Mutex),
-    proph, // verification workaround (ghost code, D9): the replica's trace prophecy
   }
   switch rmwHandler {
     case SDP:

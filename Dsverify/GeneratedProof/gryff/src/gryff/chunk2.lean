@@ -526,7 +526,6 @@ noncomputable instance Replica_typed_pointsto :
     "fastOverwriteTime" ∷ typedPointsto (structFieldRef gryff.src.gryff.Replica go!"fastOverwriteTime" l) v.fastOverwriteTime' dq ∗
     "forceWritePeriod" ∷ typedPointsto (structFieldRef gryff.src.gryff.Replica go!"forceWritePeriod" l) v.forceWritePeriod' dq ∗
     "mtx" ∷ typedPointsto (structFieldRef gryff.src.gryff.Replica go!"mtx" l) v.mtx' dq ∗
-    "proph" ∷ typedPointsto (structFieldRef gryff.src.gryff.Replica go!"proph" l) v.proph' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1253,22 +1252,6 @@ noncomputable instance Replica_access_store_mtx (l : Loc) (v : gryff.src.gryff.R
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"mtx" l) v.mtx' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"mtx" l) mtx' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mtx' := mtx' } : gryff.src.gryff.Replica) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Replica_access_load_proph (l : Loc) (v : gryff.src.gryff.Replica) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"proph" l) v.proph' dq)
-      (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"proph" l) v.proph' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Replica_access_store_proph (l : Loc) (v : gryff.src.gryff.Replica) (proph' : _root_.Perennial.github_com.goose_lang.primitive.ProphId) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"proph" l) v.proph' (DFrac.own 1))
-      (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"proph" l) proph' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proph' := proph' } : gryff.src.gryff.Replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

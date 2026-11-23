@@ -324,7 +324,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case readS := <-e.R.readChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       read := readS.Obj.(*gryffproto.Read)
-      e.R.resolveRead(read) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       // got Read message
       e.R.handleRead(read)
       e.R.mtx.Unlock()
@@ -332,7 +331,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case writeS := <-e.R.writeChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       write := writeS.Obj.(*gryffproto.Write)
-      e.R.resolveWrite(write) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       // got Write message
       e.R.handleWrite(write)
       e.R.mtx.Unlock()
@@ -340,14 +338,12 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case rmwS := <-e.R.rmwChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       rmw := rmwS.Obj.(*gryffproto.RMW)
-      e.R.resolveRMW(rmw) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       e.HandleRMW(rmw)
       e.R.mtx.Unlock()
       break
     case write1ProxiedS := <-e.R.write1ChanProxied:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       write1Proxied := write1ProxiedS.(*gryffproto.Write1Proxied)
-      e.R.resolveWrite1(write1Proxied) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Write  message
       e.R.handleWrite1Proxied(write1Proxied)
       e.R.mtx.Unlock()
@@ -355,7 +351,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case write2ProxiedS := <-e.R.write2ChanProxied:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       write2Proxied := write2ProxiedS.(*gryffproto.Write2Proxied)
-      e.R.resolveWrite2(write2Proxied) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Write  message
       e.R.handleWrite2Proxied(write2Proxied)
       e.R.mtx.Unlock()
@@ -363,7 +358,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case read1ProxiedS := <-e.R.read1ChanProxied:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       read1Proxied := read1ProxiedS.(*gryffproto.Read1Proxied)
-      e.R.resolveRead1(read1Proxied) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Read  message
       e.R.handleRead1Proxied(read1Proxied)
       e.R.mtx.Unlock()
@@ -371,7 +365,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case read2ProxiedS := <-e.R.read2ChanProxied:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       read2Proxied := read2ProxiedS.(*gryffproto.Read2Proxied)
-      e.R.resolveRead2(read2Proxied) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Read  message
       e.R.handleRead2Proxied(read2Proxied)
       e.R.mtx.Unlock()
@@ -379,7 +372,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case write1ReplyS := <-e.R.write1ReplyChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       write1Reply := write1ReplyS.(*gryffproto.Write1Reply)
-      e.R.resolveWrite1Reply(write1Reply) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Write  message
       e.R.handleWrite1Reply(write1Reply)
       e.R.mtx.Unlock()
@@ -401,7 +393,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case write2ReplyS := <-e.R.write2ReplyChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       write2Reply := write2ReplyS.(*gryffproto.Write2Reply)
-      e.R.resolveWrite2Reply(write2Reply) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Write  message
       e.R.handleWrite2Reply(write2Reply)
       e.R.mtx.Unlock()
@@ -409,7 +400,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case read1ReplyS := <-e.R.read1ReplyChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       read1Reply := read1ReplyS.(*gryffproto.Read1Reply)
-      e.R.resolveRead1Reply(read1Reply) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Read  message
       e.R.handleRead1Reply(read1Reply)
       e.R.mtx.Unlock()
@@ -417,21 +407,18 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case read2ReplyS := <-e.R.read2ReplyChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       read2Reply := read2ReplyS.(*gryffproto.Read2Reply)
-      e.R.resolveRead2Reply(read2Reply) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Read  message
       e.R.handleRead2Reply(read2Reply)
       e.R.mtx.Unlock()
       break
     case <-e.R.forceWriteChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
-      e.R.resolveForceWrite() // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       e.R.handleForceWrite()
       e.R.mtx.Unlock()
       break
     case prepareS := <-e.prepareChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       prepare := prepareS.(*epaxosproto.Prepare)
-      e.R.resolvePrepare(prepare) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Prepare message
       dlog.Printf("Received Prepare for instance %d.%d\n", prepare.Replica, prepare.Instance)
       e.handlePrepare(prepare)
@@ -440,7 +427,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case preAcceptS := <-e.preAcceptChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       preAccept := preAcceptS.(*gryffproto.PreAccept)
-      e.R.resolvePreAccept(preAccept) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a PreAccept message
       dlog.Printf("Received PreAccept for instance %d.%d\n", preAccept.LeaderId, preAccept.Instance)
       e.handlePreAccept(preAccept)
@@ -449,7 +435,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case acceptS := <-e.acceptChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       accept := acceptS.(*gryffproto.EAccept)
-      e.R.resolveAccept(accept) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got an Accept message
       dlog.Printf("Received Accept for instance %d.%d\n", accept.LeaderId, accept.Instance)
       e.handleAccept(accept)
@@ -458,7 +443,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case commitS := <-e.commitChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       commit := commitS.(*gryffproto.ECommit)
-      e.R.resolveCommit(commit) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Commit message
       dlog.Printf("Received Commit for instance %d.%d\n", commit.LeaderId, commit.Instance)
       e.handleCommit(commit)
@@ -475,7 +459,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case prepareReplyS := <-e.prepareReplyChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       prepareReply := prepareReplyS.(*gryffproto.PrepareReply)
-      e.R.resolvePrepareReply(prepareReply) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a Prepare reply
       dlog.Printf("Received PrepareReply for instance %d.%d\n", prepareReply.Replica, prepareReply.Instance)
       e.handlePrepareReply(prepareReply)
@@ -484,7 +467,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case preAcceptReplyS := <-e.preAcceptReplyChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       preAcceptReply := preAcceptReplyS.(*gryffproto.PreAcceptReply)
-      e.R.resolvePreAcceptReply(preAcceptReply) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a PreAccept reply
       dlog.Printf("Received PreAcceptReply for instance %d.%d\n", preAcceptReply.Replica, preAcceptReply.Instance)
       e.handlePreAcceptReply(preAcceptReply)
@@ -493,7 +475,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case preAcceptOKS := <-e.preAcceptOKChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       preAcceptOK := preAcceptOKS.(*epaxosproto.PreAcceptOK)
-      e.R.resolvePreAcceptOK(preAcceptOK) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got a PreAccept reply
       dlog.Printf("Received PreAcceptOK for instance %d.%d\n", e.R.Id, preAcceptOK.Instance)
       e.handlePreAcceptOK(preAcceptOK)
@@ -502,7 +483,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case acceptReplyS := <-e.acceptReplyChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       acceptReply := acceptReplyS.(*epaxosproto.AcceptReply)
-      e.R.resolveAcceptReply(acceptReply) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       //got an Accept reply
       dlog.Printf("Received AcceptReply for instance %d.%d\n", acceptReply.Replica, acceptReply.Instance)
       e.handleAcceptReply(acceptReply)
@@ -525,7 +505,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
     case executedS := <-e.executedChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
       executed := executedS.(*gryffproto.Executed)
-      e.R.resolveExecuted(executed) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       dlog.Printf("Received Executed for instance %d.%d\n", executed.Replica,
           executed.Instance)
       e.handleExecuted(executed)
@@ -549,7 +528,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
       break
     case executeOverwrite := <-e.executeOverwriteChan:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
-      e.R.resolveExecuteOverwrite(executeOverwrite) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       e.executeOverwrite(executeOverwrite)
       e.R.mtx.Unlock()
       break
@@ -561,7 +539,6 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
       break
     case iid := <-e.instancesToRecover:
       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
-      e.R.resolveRecover(iid.replica, iid.instance) // verification workaround (ghost code, D9): the event, as the trace prophecy's words
       e.startRecoveryForInstance(iid.replica, iid.instance)
       e.R.mtx.Unlock()
       break

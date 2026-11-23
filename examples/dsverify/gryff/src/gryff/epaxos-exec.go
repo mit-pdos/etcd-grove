@@ -141,7 +141,6 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
         dlog.Printf("[%d.%d] Execute delay: %d (blocked %d).\n", e.r.R.Id, w.Slot, w.lb.executedTime.Sub(w.lb.committedTime), blocked)
       }
 
-      e.r.R.resolveExec(w.Leader, w.Slot) // verification workaround (ghost code, D9): the execution event exec (Leader, Slot), resolved before its effects (PrevValTag, the overwrite's send, the status)
       // fix (G44): a committed no-op (no command) executes nothing (EPaxos's executor executes
       // each of an instance's commands; Gryff's RMW executor reads the first)
       if len(w.Cmds) > 0 {

@@ -6,6 +6,7 @@ public import Perennial.Code.sort
 public import Perennial.Code.time
 public import Dsverify.Code.gryff.src.dlog
 public import Dsverify.Code.gryff.src.gryffproto
+public import Perennial.Code.github_com.goose_lang.primitive
 public import Dsverify.Code.gryff.src.bloomfilter
 public import Perennial.Code.encoding.binary
 public import Dsverify.Code.gryff.src.fastrpc
@@ -16,7 +17,6 @@ public import Perennial.Code.log
 public import Perennial.Code.math
 public import Dsverify.Code.gryff.src.state
 public import Perennial.Code.sync.atomic
-public import Perennial.Code.github_com.goose_lang.primitive
 public import Dsverify.Code.gryff.src.gryffcommon
 public import Code.bufio
 public import Dsverify.Code.gryff.src.clientproto
@@ -149,102 +149,6 @@ attribute [irreducible] Replica.ty
 
 @[reducible] noncomputable def CHECKPOINT_PERIOD [GooseExts] [GoGlobalContext] : val :=
   #(10000 : Int)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evRead1 [GooseExts] [GoGlobalContext] : val :=
-  #(W64 1)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evRead2 [GooseExts] [GoGlobalContext] : val :=
-  #(W64 2)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evRead1Reply [GooseExts] [GoGlobalContext] : val :=
-  #(W64 3)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evRead2Reply [GooseExts] [GoGlobalContext] : val :=
-  #(W64 4)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evWrite1 [GooseExts] [GoGlobalContext] : val :=
-  #(W64 5)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evWrite2 [GooseExts] [GoGlobalContext] : val :=
-  #(W64 6)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evWrite1Reply [GooseExts] [GoGlobalContext] : val :=
-  #(W64 7)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evWrite2Reply [GooseExts] [GoGlobalContext] : val :=
-  #(W64 8)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evPreAccept [GooseExts] [GoGlobalContext] : val :=
-  #(W64 9)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evPreAcceptReply [GooseExts] [GoGlobalContext] : val :=
-  #(W64 10)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evPreAcceptOK [GooseExts] [GoGlobalContext] : val :=
-  #(W64 11)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evAccept [GooseExts] [GoGlobalContext] : val :=
-  #(W64 12)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evAcceptReply [GooseExts] [GoGlobalContext] : val :=
-  #(W64 13)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evCommit [GooseExts] [GoGlobalContext] : val :=
-  #(W64 14)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evPrepare [GooseExts] [GoGlobalContext] : val :=
-  #(W64 15)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evPrepareReply [GooseExts] [GoGlobalContext] : val :=
-  #(W64 16)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evExecuted [GooseExts] [GoGlobalContext] : val :=
-  #(W64 17)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evExecuteOverwrite [GooseExts] [GoGlobalContext] : val :=
-  #(W64 18)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evRead [GooseExts] [GoGlobalContext] : val :=
-  #(W64 19)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evWrite [GooseExts] [GoGlobalContext] : val :=
-  #(W64 20)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evRMW [GooseExts] [GoGlobalContext] : val :=
-  #(W64 21)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evForceWrite [GooseExts] [GoGlobalContext] : val :=
-  #(W64 22)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evRecover [GooseExts] [GoGlobalContext] : val :=
-  #(W64 23)
-
-/-- verification workaround (ghost code, D9): trace prophecy -/
-@[reducible] noncomputable def evExec [GooseExts] [GoGlobalContext] : val :=
-  #(W64 24)
 
 @[reducible] noncomputable def PREPARE [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
@@ -951,7 +855,7 @@ noncomputable def nodeArray.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "$l0") (Var "$r0")))))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:157:6 -/
+/-- go: epaxosrmwhandler.go:158:6 -/
 noncomputable def NewEPaxosRMWHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "noConflicts"
@@ -1257,7 +1161,7 @@ noncomputable def NewEPaxosRMWHandler.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- append a log entry to stable storage
 
-    go: epaxosrmwhandler.go:255:28 -/
+    go: epaxosrmwhandler.go:256:28 -/
 noncomputable def EPaxosRMWHandler.recordInstanceMetadata.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "inst"
@@ -1320,7 +1224,7 @@ noncomputable def EPaxosRMWHandler.recordInstanceMetadata.impl [GooseExts] [GoGl
 
 /-- write a sequence of commands to stable storage
 
-    go: epaxosrmwhandler.go:273:28 -/
+    go: epaxosrmwhandler.go:274:28 -/
 noncomputable def EPaxosRMWHandler.recordCommands.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "cmds"
@@ -1357,7 +1261,7 @@ noncomputable def EPaxosRMWHandler.recordCommands.impl [GooseExts] [GoGlobalCont
 
 /-- sync with the stable store
 
-    go: epaxosrmwhandler.go:287:28 -/
+    go: epaxosrmwhandler.go:288:28 -/
 noncomputable def EPaxosRMWHandler.sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -1373,7 +1277,7 @@ noncomputable def EPaxosRMWHandler.sync.impl [GooseExts] [GoGlobalContext] : val
   (Val #()))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:296:28 -/
+/-- go: epaxosrmwhandler.go:297:28 -/
 noncomputable def EPaxosRMWHandler.Loop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "slowClockChan"
@@ -2355,7 +2259,7 @@ noncomputable def EPaxosRMWHandler.Loop.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType instanceId.ty)))) (Pair (Var "iid") (Var "$r0")))))))))]))))))))))))))))))))))))))))))))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:571:28 -/
+/-- go: epaxosrmwhandler.go:572:28 -/
 noncomputable def EPaxosRMWHandler.HandleRMW.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "rmw"
@@ -2389,7 +2293,7 @@ noncomputable def EPaxosRMWHandler.HandleRMW.impl [GooseExts] [GoGlobalContext] 
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.gryff.src.dlog.Printf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:593:28 -/
+/-- go: epaxosrmwhandler.go:594:28 -/
 noncomputable def EPaxosRMWHandler.executeCommands.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -2571,7 +2475,7 @@ noncomputable def EPaxosRMWHandler.executeCommands.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.int32)))) (Pair (Var "problemInstance") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:656:28 -/
+/-- go: epaxosrmwhandler.go:657:28 -/
 noncomputable def EPaxosRMWHandler.makeUniqueBallot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ballot"
@@ -2587,7 +2491,7 @@ noncomputable def EPaxosRMWHandler.makeUniqueBallot.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0"))))))
 
-/-- go: epaxosrmwhandler.go:660:28 -/
+/-- go: epaxosrmwhandler.go:661:28 -/
 noncomputable def EPaxosRMWHandler.makeBallotLargerThan.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ballot"
@@ -2604,7 +2508,7 @@ noncomputable def EPaxosRMWHandler.makeBallotLargerThan.impl [GooseExts] [GoGlob
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0"))))))
 
-/-- go: epaxosrmwhandler.go:664:6 -/
+/-- go: epaxosrmwhandler.go:665:6 -/
 noncomputable def isInitialBallot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ballot"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2618,7 +2522,7 @@ noncomputable def isInitialBallot.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: epaxosrmwhandler.go:668:6 -/
+/-- go: epaxosrmwhandler.go:669:6 -/
 noncomputable def replicaIdFromBallot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ballot"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int32))) (App (Val (GoInstruction (GoZeroVal go.int32))) (Val #())))
@@ -2632,7 +2536,7 @@ noncomputable def replicaIdFromBallot.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0")))))
 
-/-- go: epaxosrmwhandler.go:676:28 -/
+/-- go: epaxosrmwhandler.go:677:28 -/
 noncomputable def EPaxosRMWHandler.replyPrepare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replicaId"
@@ -2648,7 +2552,7 @@ noncomputable def EPaxosRMWHandler.replyPrepare.impl [GooseExts] [GoGlobalContex
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef EPaxosRMWHandler.ty go!"R"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EPaxosRMWHandler.ty)))) (Var "e"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:680:28 -/
+/-- go: epaxosrmwhandler.go:681:28 -/
 noncomputable def EPaxosRMWHandler.replyPreAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replicaId"
@@ -2664,7 +2568,7 @@ noncomputable def EPaxosRMWHandler.replyPreAccept.impl [GooseExts] [GoGlobalCont
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef EPaxosRMWHandler.ty go!"R"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EPaxosRMWHandler.ty)))) (Var "e"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:684:28 -/
+/-- go: epaxosrmwhandler.go:685:28 -/
 noncomputable def EPaxosRMWHandler.replyAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replicaId"
@@ -2680,7 +2584,7 @@ noncomputable def EPaxosRMWHandler.replyAccept.impl [GooseExts] [GoGlobalContext
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef EPaxosRMWHandler.ty go!"R"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EPaxosRMWHandler.ty)))) (Var "e"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:688:28 -/
+/-- go: epaxosrmwhandler.go:689:28 -/
 noncomputable def EPaxosRMWHandler.replyTryPreAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replicaId"
@@ -2696,7 +2600,7 @@ noncomputable def EPaxosRMWHandler.replyTryPreAccept.impl [GooseExts] [GoGlobalC
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef EPaxosRMWHandler.ty go!"R"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EPaxosRMWHandler.ty)))) (Var "e"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:692:28 -/
+/-- go: epaxosrmwhandler.go:693:28 -/
 noncomputable def EPaxosRMWHandler.replyExecuted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replicaId"
@@ -2712,7 +2616,7 @@ noncomputable def EPaxosRMWHandler.replyExecuted.impl [GooseExts] [GoGlobalConte
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef EPaxosRMWHandler.ty go!"R"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EPaxosRMWHandler.ty)))) (Var "e"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:697:28 -/
+/-- go: epaxosrmwhandler.go:698:28 -/
 noncomputable def EPaxosRMWHandler.bcastPrepare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -2812,7 +2716,7 @@ noncomputable def EPaxosRMWHandler.bcastPrepare.impl [GooseExts] [GoGlobalContex
   (App (Var "$oldf") (Val #())))))))))))))))))
   (Val #()))))))
 
-/-- go: epaxosrmwhandler.go:726:28 -/
+/-- go: epaxosrmwhandler.go:727:28 -/
 noncomputable def EPaxosRMWHandler.bcastPreAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -2949,7 +2853,7 @@ noncomputable def EPaxosRMWHandler.bcastPreAccept.impl [GooseExts] [GoGlobalCont
   (App (Var "$oldf") (Val #())))))))))))))))))))))
   (Val #()))))))))))
 
-/-- go: epaxosrmwhandler.go:763:28 -/
+/-- go: epaxosrmwhandler.go:764:28 -/
 noncomputable def EPaxosRMWHandler.bcastTryPreAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -3057,7 +2961,7 @@ noncomputable def EPaxosRMWHandler.bcastTryPreAccept.impl [GooseExts] [GoGlobalC
   (App (Var "$oldf") (Val #())))))))))))))))))))))
   (Val #()))))))))))
 
-/-- go: epaxosrmwhandler.go:792:28 -/
+/-- go: epaxosrmwhandler.go:793:28 -/
 noncomputable def EPaxosRMWHandler.bcastAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -3190,7 +3094,7 @@ noncomputable def EPaxosRMWHandler.bcastAccept.impl [GooseExts] [GoGlobalContext
   (App (Var "$oldf") (Val #())))))))))))))))))))))
   (Val #()))))))))))
 
-/-- go: epaxosrmwhandler.go:831:28 -/
+/-- go: epaxosrmwhandler.go:832:28 -/
 noncomputable def EPaxosRMWHandler.bcastCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -3349,7 +3253,7 @@ noncomputable def EPaxosRMWHandler.bcastCommit.impl [GooseExts] [GoGlobalContext
   (App (Var "$oldf") (Val #()))))))))))))))))))))
   (Val #())))))))))
 
-/-- go: epaxosrmwhandler.go:871:28 -/
+/-- go: epaxosrmwhandler.go:872:28 -/
 noncomputable def EPaxosRMWHandler.bcastPreAcceptOKReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -3413,7 +3317,7 @@ noncomputable def EPaxosRMWHandler.bcastPreAcceptOKReply.impl [GooseExts] [GoGlo
   (App (Var "$oldf") (Val #()))))))))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:891:28 -/
+/-- go: epaxosrmwhandler.go:892:28 -/
 noncomputable def EPaxosRMWHandler.bcastAcceptOKReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -3477,7 +3381,7 @@ noncomputable def EPaxosRMWHandler.bcastAcceptOKReply.impl [GooseExts] [GoGlobal
   (App (Var "$oldf") (Val #()))))))))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:915:28 -/
+/-- go: epaxosrmwhandler.go:916:28 -/
 noncomputable def EPaxosRMWHandler.clearHashtables.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -3502,7 +3406,7 @@ noncomputable def EPaxosRMWHandler.clearHashtables.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "q") (Var "$r0")))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:922:28 -/
+/-- go: epaxosrmwhandler.go:923:28 -/
 noncomputable def EPaxosRMWHandler.updateCommitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -3525,7 +3429,7 @@ noncomputable def EPaxosRMWHandler.updateCommitted.impl [GooseExts] [GoGlobalCon
   (Val #()))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:931:28 -/
+/-- go: epaxosrmwhandler.go:932:28 -/
 noncomputable def EPaxosRMWHandler.updateConflicts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "cmds"
@@ -3666,7 +3570,7 @@ noncomputable def EPaxosRMWHandler.updateConflicts.impl [GooseExts] [GoGlobalCon
   (Val #()))))))))))
   (Val #())))))))
 
-/-- go: epaxosrmwhandler.go:964:28 -/
+/-- go: epaxosrmwhandler.go:965:28 -/
 noncomputable def EPaxosRMWHandler.updateAttributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "cmds"
@@ -3838,7 +3742,7 @@ noncomputable def EPaxosRMWHandler.updateAttributes.impl [GooseExts] [GoGlobalCo
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "changed") (Var "$r0"))))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.ArrayType 5 go.int32)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2")))))))))))))
 
-/-- go: epaxosrmwhandler.go:1051:28 -/
+/-- go: epaxosrmwhandler.go:1052:28 -/
 noncomputable def EPaxosRMWHandler.mergeAttributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "seq1"
@@ -3936,7 +3840,7 @@ noncomputable def EPaxosRMWHandler.mergeAttributes.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "equal") (Var "$r0")))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.ArrayType 5 go.int32)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2"))))))))))))
 
-/-- go: epaxosrmwhandler.go:1075:6 -/
+/-- go: epaxosrmwhandler.go:1076:6 -/
 noncomputable def equal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "deps1"
   (Lam "deps2"
@@ -3972,7 +3876,7 @@ noncomputable def equal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: epaxosrmwhandler.go:1084:6 -/
+/-- go: epaxosrmwhandler.go:1085:6 -/
 noncomputable def bfFromCommands.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cmds"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.gryff.src.bloomfilter.Bloomfilter.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.gryff.src.bloomfilter.Bloomfilter.ty)))) (Val #())))
@@ -4018,7 +3922,7 @@ noncomputable def bfFromCommands.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.bloomfilter.Bloomfilter.ty)))) (Var "$res0")))))
 
-/-- go: epaxosrmwhandler.go:1104:28 -/
+/-- go: epaxosrmwhandler.go:1105:28 -/
 noncomputable def EPaxosRMWHandler.handlePropose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "propose"
@@ -4127,7 +4031,7 @@ noncomputable def EPaxosRMWHandler.handlePropose.impl [GooseExts] [GoGlobalConte
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "batchSize") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1135:28 -/
+/-- go: epaxosrmwhandler.go:1136:28 -/
 noncomputable def EPaxosRMWHandler.startPhase1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -4389,7 +4293,7 @@ noncomputable def EPaxosRMWHandler.startPhase1.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "seq") (Var "$r0")))))))))))))))
   (Val #())))))))))
 
-/-- go: epaxosrmwhandler.go:1223:28 -/
+/-- go: epaxosrmwhandler.go:1224:28 -/
 noncomputable def EPaxosRMWHandler.handlePreAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "preAccept"
@@ -4668,7 +4572,7 @@ noncomputable def EPaxosRMWHandler.handlePreAccept.impl [GooseExts] [GoGlobalCon
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1358:28 -/
+/-- go: epaxosrmwhandler.go:1359:28 -/
 noncomputable def EPaxosRMWHandler.fastPathQuorum.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -4695,7 +4599,7 @@ noncomputable def EPaxosRMWHandler.fastPathQuorum.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "F") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
-/-- go: epaxosrmwhandler.go:1367:28 -/
+/-- go: epaxosrmwhandler.go:1368:28 -/
 noncomputable def EPaxosRMWHandler.handlePreAcceptReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "pareply"
@@ -5086,7 +4990,7 @@ noncomputable def EPaxosRMWHandler.handlePreAcceptReply.impl [GooseExts] [GoGlob
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.gryff.src.dlog.Printf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1506:28 -/
+/-- go: epaxosrmwhandler.go:1507:28 -/
 noncomputable def EPaxosRMWHandler.handlePreAcceptOKReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "paok"
@@ -5119,7 +5023,7 @@ noncomputable def EPaxosRMWHandler.handlePreAcceptOKReply.impl [GooseExts] [GoGl
   (Val #())))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1521:28 -/
+/-- go: epaxosrmwhandler.go:1522:28 -/
 noncomputable def EPaxosRMWHandler.handleAcceptOKReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "aok"
@@ -5152,7 +5056,7 @@ noncomputable def EPaxosRMWHandler.handleAcceptOKReply.impl [GooseExts] [GoGloba
   (Val #())))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1536:28 -/
+/-- go: epaxosrmwhandler.go:1537:28 -/
 noncomputable def EPaxosRMWHandler.handlePreAcceptOK.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "pareply"
@@ -5444,7 +5348,7 @@ noncomputable def EPaxosRMWHandler.handlePreAcceptOK.impl [GooseExts] [GoGlobalC
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.gryff.src.dlog.Printf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1649:28 -/
+/-- go: epaxosrmwhandler.go:1650:28 -/
 noncomputable def EPaxosRMWHandler.handleAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "accept"
@@ -5599,7 +5503,7 @@ noncomputable def EPaxosRMWHandler.handleAccept.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1726:28 -/
+/-- go: epaxosrmwhandler.go:1727:28 -/
 noncomputable def EPaxosRMWHandler.handleAcceptReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "areply"
@@ -5784,7 +5688,7 @@ noncomputable def EPaxosRMWHandler.handleAcceptReply.impl [GooseExts] [GoGlobalC
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1808:28 -/
+/-- go: epaxosrmwhandler.go:1809:28 -/
 noncomputable def EPaxosRMWHandler.handleCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "commit"
@@ -5936,7 +5840,7 @@ noncomputable def EPaxosRMWHandler.handleCommit.impl [GooseExts] [GoGlobalContex
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.gryff.src.dlog.Printf []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1880:28 -/
+/-- go: epaxosrmwhandler.go:1881:28 -/
 noncomputable def EPaxosRMWHandler.handleCommitShort.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "commit"
@@ -6040,7 +5944,7 @@ noncomputable def EPaxosRMWHandler.handleCommitShort.impl [GooseExts] [GoGlobalC
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:1930:28 -/
+/-- go: epaxosrmwhandler.go:1931:28 -/
 noncomputable def EPaxosRMWHandler.startRecoveryForInstance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "replica"
@@ -6203,7 +6107,7 @@ noncomputable def EPaxosRMWHandler.startRecoveryForInstance.impl [GooseExts] [Go
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "c") (Var "$r0")))))))))))))
   (Val #())))))
 
-/-- go: epaxosrmwhandler.go:1978:28 -/
+/-- go: epaxosrmwhandler.go:1979:28 -/
 noncomputable def EPaxosRMWHandler.handlePrepare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "prepare"
@@ -6293,7 +6197,7 @@ noncomputable def EPaxosRMWHandler.handlePrepare.impl [GooseExts] [GoGlobalConte
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:2028:28 -/
+/-- go: epaxosrmwhandler.go:2029:28 -/
 noncomputable def EPaxosRMWHandler.handlePrepareReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "preply"
@@ -6692,7 +6596,7 @@ noncomputable def EPaxosRMWHandler.handlePrepareReply.impl [GooseExts] [GoGlobal
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:2190:28 -/
+/-- go: epaxosrmwhandler.go:2191:28 -/
 noncomputable def EPaxosRMWHandler.handleTryPreAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "tpa"
@@ -6866,7 +6770,7 @@ noncomputable def EPaxosRMWHandler.handleTryPreAccept.impl [GooseExts] [GoGlobal
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:2256:28 -/
+/-- go: epaxosrmwhandler.go:2257:28 -/
 noncomputable def EPaxosRMWHandler.findPreAcceptConflicts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "cmds"
@@ -7025,7 +6929,7 @@ noncomputable def EPaxosRMWHandler.findPreAcceptConflicts.impl [GooseExts] [GoGl
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res2")))))))))))))
 
-/-- go: epaxosrmwhandler.go:2301:28 -/
+/-- go: epaxosrmwhandler.go:2302:28 -/
 noncomputable def EPaxosRMWHandler.handleTryPreAcceptReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "tpar"
@@ -7238,7 +7142,7 @@ noncomputable def EPaxosRMWHandler.handleTryPreAcceptReply.impl [GooseExts] [GoG
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:2371:28 -/
+/-- go: epaxosrmwhandler.go:2372:28 -/
 noncomputable def EPaxosRMWHandler.executeOverwrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "eo"
@@ -7275,7 +7179,7 @@ noncomputable def EPaxosRMWHandler.executeOverwrite.impl [GooseExts] [GoGlobalCo
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"HandleOverwrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (StructFieldRef EPaxosRMWHandler.ty go!"R"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EPaxosRMWHandler.ty)))) (Var "e"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:2384:28 -/
+/-- go: epaxosrmwhandler.go:2385:28 -/
 noncomputable def EPaxosRMWHandler.handleExecuted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "ex"
@@ -7298,7 +7202,7 @@ noncomputable def EPaxosRMWHandler.handleExecuted.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Instance.ty)))) (Pair (Var "inst") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: epaxosrmwhandler.go:2397:6 -/
+/-- go: epaxosrmwhandler.go:2398:6 -/
 noncomputable def updateDeferred.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dr"
   (Lam "di"
@@ -7324,7 +7228,7 @@ noncomputable def updateDeferred.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "daux") (Var "$r0"))))))))))))
   (Val #()))))))
 
-/-- go: epaxosrmwhandler.go:2403:6 -/
+/-- go: epaxosrmwhandler.go:2404:6 -/
 noncomputable def deferredByInstance.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "q"
   (Lam "i"
@@ -7396,7 +7300,7 @@ noncomputable def deferredByInstance.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "aux") (Var "$r0"))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res2")))))))))
 
-/-- go: epaxosrmwhandler.go:2414:28 -/
+/-- go: epaxosrmwhandler.go:2415:28 -/
 noncomputable def EPaxosRMWHandler.incrementNumReplicasExecuted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "w"
@@ -7430,7 +7334,7 @@ noncomputable def EPaxosRMWHandler.incrementNumReplicasExecuted.impl [GooseExts]
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.AddInt32 []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: proph.go:25:6 -/
+/-- go: epaxosrmwhandler.go:2441:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -7444,7 +7348,7 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "p") (Var "$r0"))))))))
   (Val #())))
 
-/-- go: proph.go:57:19 -/
+/-- go: epaxosrmwhandler.go:2446:19 -/
 noncomputable def Replica.resolveTag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "t"
@@ -7455,16 +7359,16 @@ noncomputable def Replica.resolveTag.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Tag.ty go!"Rmwc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Tag.ty)))) (Var "t")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Tag.ty go!"Cid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Tag.ty)))) (Var "t")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Tag.ty go!"Ts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Tag.ty)))) (Var "t")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:63:19 -/
+/-- go: epaxosrmwhandler.go:2452:19 -/
 noncomputable def Replica.resolveValTag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "vt"
@@ -7477,10 +7381,10 @@ noncomputable def Replica.resolveValTag.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Value.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.ValTag.ty go!"V"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.ValTag.ty)))) (Var "vt")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:68:19 -/
+/-- go: epaxosrmwhandler.go:2457:19 -/
 noncomputable def Replica.resolveDep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "d"
@@ -7493,10 +7397,10 @@ noncomputable def Replica.resolveDep.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveValTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Dep.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Dep.ty)))) (Var "d")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:73:19 -/
+/-- go: epaxosrmwhandler.go:2462:19 -/
 noncomputable def Replica.resolveCmds.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "cmds"
@@ -7506,7 +7410,7 @@ noncomputable def Replica.resolveCmds.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 0))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7519,19 +7423,19 @@ noncomputable def Replica.resolveCmds.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Value.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.state.Command.ty go!"OldValue"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Var "cmds")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Value.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.state.Command.ty go!"V"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Var "cmds")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.state.Command.ty go!"K"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Var "cmds")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Operation.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Operation.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.state.Command.ty go!"Op"))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (Var "cmds")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
@@ -7539,7 +7443,7 @@ noncomputable def Replica.resolveCmds.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
   (Val #()))))
 
-/-- go: proph.go:84:19 -/
+/-- go: epaxosrmwhandler.go:2473:19 -/
 noncomputable def Replica.resolveDeps.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "deps"
@@ -7549,7 +7453,7 @@ noncomputable def Replica.resolveDeps.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 0))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (Let "$r0" (Val #(W64 0))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -7558,10 +7462,10 @@ noncomputable def Replica.resolveDeps.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 5 go.int32)))) (Pair (Var "deps") (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (Val #(W64 1))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
@@ -7569,7 +7473,7 @@ noncomputable def Replica.resolveDeps.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
   (Val #()))))
 
-/-- go: proph.go:92:19 -/
+/-- go: epaxosrmwhandler.go:2481:19 -/
 noncomputable def Replica.resolveRead1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7587,25 +7491,25 @@ noncomputable def Replica.resolveRead1.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveValTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty go!"ReplicaId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty go!"D"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)))) (Var "m")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDep"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty go!"K"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evRead1)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 1))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:102:19 -/
+/-- go: epaxosrmwhandler.go:2491:19 -/
 noncomputable def Replica.resolveRead2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7619,25 +7523,25 @@ noncomputable def Replica.resolveRead2.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty go!"ReplicaId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty go!"Vt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)))) (Var "m")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveValTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty go!"K"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evRead2)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 2))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:111:19 -/
+/-- go: epaxosrmwhandler.go:2500:19 -/
 noncomputable def Replica.resolveRead1Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7653,19 +7557,19 @@ noncomputable def Replica.resolveRead1Reply.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveValTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty go!"ReplicaId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evRead1Reply)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 3))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:119:19 -/
+/-- go: epaxosrmwhandler.go:2508:19 -/
 noncomputable def Replica.resolveRead2Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7676,16 +7580,16 @@ noncomputable def Replica.resolveRead2Reply.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evRead2Reply)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 4))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:125:19 -/
+/-- go: epaxosrmwhandler.go:2514:19 -/
 noncomputable def Replica.resolveWrite1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7700,28 +7604,28 @@ noncomputable def Replica.resolveWrite1.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty go!"ReplicaId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty go!"D"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)))) (Var "m")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDep"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty go!"K"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty go!"ForceWrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evWrite1)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 5))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:135:19 -/
+/-- go: epaxosrmwhandler.go:2524:19 -/
 noncomputable def Replica.resolveWrite2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7735,25 +7639,25 @@ noncomputable def Replica.resolveWrite2.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty go!"ReplicaId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty go!"Vt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)))) (Var "m")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveValTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty go!"K"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evWrite2)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 6))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:144:19 -/
+/-- go: epaxosrmwhandler.go:2533:19 -/
 noncomputable def Replica.resolveWrite1Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7768,16 +7672,16 @@ noncomputable def Replica.resolveWrite1Reply.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveValTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evWrite1Reply)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 7))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:151:19 -/
+/-- go: epaxosrmwhandler.go:2540:19 -/
 noncomputable def Replica.resolveWrite2Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7789,19 +7693,19 @@ noncomputable def Replica.resolveWrite2Reply.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty go!"Applied"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evWrite2Reply)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 8))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:158:19 -/
+/-- go: epaxosrmwhandler.go:2547:19 -/
 noncomputable def Replica.resolvePreAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7824,28 +7728,28 @@ noncomputable def Replica.resolvePreAccept.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDeps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAccept.ty go!"Seq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAccept.ty go!"Command"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAccept.ty)))) (Var "m"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveCmds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAccept.ty go!"Ballot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAccept.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAccept.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAccept.ty go!"LeaderId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evPreAccept)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 9))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:170:19 -/
+/-- go: epaxosrmwhandler.go:2559:19 -/
 noncomputable def Replica.resolvePreAcceptReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7867,25 +7771,25 @@ noncomputable def Replica.resolvePreAcceptReply.impl [GooseExts] [GoGlobalContex
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDeps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty go!"Seq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty go!"Ballot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.uint8 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty go!"OK"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evPreAcceptReply)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 10))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:181:19 -/
+/-- go: epaxosrmwhandler.go:2570:19 -/
 noncomputable def Replica.resolvePreAcceptOK.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7895,13 +7799,13 @@ noncomputable def Replica.resolvePreAcceptOK.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.PreAcceptOK.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.PreAcceptOK.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evPreAcceptOK)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 11))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:186:19 -/
+/-- go: epaxosrmwhandler.go:2575:19 -/
 noncomputable def Replica.resolveAccept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7927,25 +7831,25 @@ noncomputable def Replica.resolveAccept.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDeps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.EAccept.ty go!"Seq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.EAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.EAccept.ty go!"Ballot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.EAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.EAccept.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.EAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.EAccept.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.EAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.EAccept.ty go!"LeaderId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.EAccept.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evAccept)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 12))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:198:19 -/
+/-- go: epaxosrmwhandler.go:2587:19 -/
 noncomputable def Replica.resolveAcceptReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7958,22 +7862,22 @@ noncomputable def Replica.resolveAcceptReply.impl [GooseExts] [GoGlobalContext] 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty go!"Ballot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.uint8 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty go!"OK"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evAcceptReply)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 13))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:206:19 -/
+/-- go: epaxosrmwhandler.go:2595:19 -/
 noncomputable def Replica.resolveCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -7994,22 +7898,22 @@ noncomputable def Replica.resolveCommit.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDeps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.ECommit.ty go!"Seq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.ECommit.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.ECommit.ty go!"Command"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.ECommit.ty)))) (Var "m"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveCmds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.ECommit.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.ECommit.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.ECommit.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.ECommit.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evCommit)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 14))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:216:19 -/
+/-- go: epaxosrmwhandler.go:2605:19 -/
 noncomputable def Replica.resolvePrepare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8022,22 +7926,22 @@ noncomputable def Replica.resolvePrepare.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.Prepare.ty go!"Ballot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.Prepare.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.Prepare.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.Prepare.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.Prepare.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.Prepare.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.epaxosproto.Prepare.ty go!"LeaderId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.Prepare.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evPrepare)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 15))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:224:19 -/
+/-- go: epaxosrmwhandler.go:2613:19 -/
 noncomputable def Replica.resolvePrepareReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8063,37 +7967,37 @@ noncomputable def Replica.resolvePrepareReply.impl [GooseExts] [GoGlobalContext]
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDeps"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"Seq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"Command"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveCmds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int8 go.uint64))) (App (Val (GoInstruction (GoLoad go.int8))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"VBallot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"Ballot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.uint8 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"OK"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty go!"AcceptorId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evPrepareReply)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 16))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:239:19 -/
+/-- go: epaxosrmwhandler.go:2628:19 -/
 noncomputable def Replica.resolveExecuted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8104,16 +8008,16 @@ noncomputable def Replica.resolveExecuted.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Executed.ty go!"Instance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Executed.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Executed.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Executed.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evExecuted)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 17))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:245:19 -/
+/-- go: epaxosrmwhandler.go:2634:19 -/
 noncomputable def Replica.resolveExecuteOverwrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8126,22 +8030,22 @@ noncomputable def Replica.resolveExecuteOverwrite.impl [GooseExts] [GoGlobalCont
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef ExecuteOverwrite.ty go!"Slot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ExecuteOverwrite.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef ExecuteOverwrite.ty go!"Leader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ExecuteOverwrite.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Tag.ty)))) (App (Val (GoInstruction (StructFieldRef ExecuteOverwrite.ty go!"T"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ExecuteOverwrite.ty)))) (Var "m"))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveTag"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Value.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef ExecuteOverwrite.ty go!"V"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ExecuteOverwrite.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evExecuteOverwrite)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 18))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:253:19 -/
+/-- go: epaxosrmwhandler.go:2642:19 -/
 noncomputable def Replica.resolveRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8157,19 +8061,19 @@ noncomputable def Replica.resolveRead.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDep"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read.ty go!"K"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evRead)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 19))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:261:19 -/
+/-- go: epaxosrmwhandler.go:2650:19 -/
 noncomputable def Replica.resolveWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8186,22 +8090,22 @@ noncomputable def Replica.resolveWrite.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDep"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Value.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write.ty go!"V"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write.ty go!"K"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evWrite)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 20))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:270:19 -/
+/-- go: epaxosrmwhandler.go:2659:19 -/
 noncomputable def Replica.resolveRMW.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "m"
@@ -8216,39 +8120,39 @@ noncomputable def Replica.resolveRMW.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Value.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.RMW.ty go!"NewValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMW.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Value.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.RMW.ty go!"OldValue"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMW.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.RMW.ty go!"D"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMW.ty)))) (Var "m")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"resolveDep"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.gryff.src.state.Key.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Key.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.RMW.ty go!"K"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMW.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.RMW.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMW.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.RMW.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMW.ty)))) (Var "m")))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evRMW)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))))
+  (Let "$a0" (Val #(W64 21))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: proph.go:280:19 -/
+/-- go: epaxosrmwhandler.go:2669:19 -/
 noncomputable def Replica.resolveForceWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (Var "r"))
   (App (Val doExecute)
-  (Let "$a0" (Val evForceWrite)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (Let "$a0" (Val #(W64 22))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: proph.go:284:19 -/
+/-- go: epaxosrmwhandler.go:2673:19 -/
 noncomputable def Replica.resolveRecover.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "q"
@@ -8261,16 +8165,16 @@ noncomputable def Replica.resolveRecover.impl [GooseExts] [GoGlobalContext] : va
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "i")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "q")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evRecover)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))))
+  (Let "$a0" (Val #(W64 23))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))))
   (Val #())))))
 
-/-- go: proph.go:290:19 -/
+/-- go: epaxosrmwhandler.go:2679:19 -/
 noncomputable def Replica.resolveExec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "q"
@@ -8283,13 +8187,13 @@ noncomputable def Replica.resolveExec.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "i")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0"))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert go.int32 go.uint64))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "q")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))
   (App (Val doExecute)
-  (Let "$a0" (Val evExec)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"proph"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))))
+  (Let "$a0" (Val #(W64 24))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #()))) (Var "$a0")))))))))
   (Val #())))))
 
 /-- go: sdprmwhandler.go:47:6 -/
@@ -10352,7 +10256,7 @@ noncomputable def SDPRMWHandler.randSleep.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "d") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:40:6 -/
+/-- go: tupaq.go:39:6 -/
 noncomputable def Max.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -10375,7 +10279,7 @@ noncomputable def Max.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.int32))) (Var "$res0"))))))
 
-/-- go: tupaq.go:97:6 -/
+/-- go: tupaq.go:95:6 -/
 noncomputable def NewReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "peerAddrList"
@@ -10413,9 +10317,6 @@ noncomputable def NewReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "thrifty" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "thrifty"))
   (Let "peerAddrList" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "peerAddrList"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (App (Val (GoInstruction (GlobalVarAddr traceProph))) (Val #())))
-  (Let "proph" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoAlloc Replica.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "id"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "peerAddrList"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad go.bool))) (Var "thrifty"))
@@ -10472,8 +10373,7 @@ noncomputable def NewReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v42" (App (Val (GoInstruction (GoLoad go.int))) (Var "fastOverwriteTime"))
   (Let "$v43" (App (Val (GoInstruction (GoLoad go.int))) (Var "forceWritePeriod"))
   (Let "$v44" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.Mutex.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.Mutex.ty))) (Val #())))
-  (Let "$v45" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Var "proph"))
-  (App (Val (GoInstruction (CompositeLiteral Replica.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.Replica.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v2"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v3"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v4"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v5"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v6"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v7"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v8"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v9"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v10"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v11"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v12"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v13"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v14"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v15"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v16"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v17"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v18"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v19"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v20"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v21"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv go.bool) (Var "$v22"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v23"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v24"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v25"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v26"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v27"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v28"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v29"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v30"))), (KeyedElement none (ElementExpression go.bool (Var "$v31"))), (KeyedElement none (ElementExpression go.bool (Var "$v32"))), (KeyedElement none (ElementExpression _root_.Perennial.gryff.src.gryffproto.Tag.ty (Var "$v33"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty) (Var "$v34"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty) (Var "$v35"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty) (Var "$v36"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty) (Var "$v37"))), (KeyedElement none (ElementExpression go.bool (Var "$v38"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v39"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v40"))), (KeyedElement none (ElementExpression go.int (Var "$v41"))), (KeyedElement none (ElementExpression go.int (Var "$v42"))), (KeyedElement none (ElementExpression go.int (Var "$v43"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) (Var "$v44"))), (KeyedElement none (ElementExpression _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty (Var "$v45")))])))))))))))))))))))))))))))))))))))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Replica.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.Replica.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v1"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v2"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v3"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v4"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v5"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v6"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v7"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v8"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty)) (Var "$v9"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v10"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v11"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v12"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v13"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v14"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v15"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v16"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v17"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v18"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v19"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v20"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty) (Var "$v21"))), (KeyedElement none (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv go.bool) (Var "$v22"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v23"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v24"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v25"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v26"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v27"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v28"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v29"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v30"))), (KeyedElement none (ElementExpression go.bool (Var "$v31"))), (KeyedElement none (ElementExpression go.bool (Var "$v32"))), (KeyedElement none (ElementExpression _root_.Perennial.gryff.src.gryffproto.Tag.ty (Var "$v33"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty) (Var "$v34"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty) (Var "$v35"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty) (Var "$v36"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty) (Var "$v37"))), (KeyedElement none (ElementExpression go.bool (Var "$v38"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v39"))), (KeyedElement none (ElementExpression go.untypedNil (Var "$v40"))), (KeyedElement none (ElementExpression go.int (Var "$v41"))), (KeyedElement none (ElementExpression go.int (Var "$v42"))), (KeyedElement none (ElementExpression go.int (Var "$v43"))), (KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) (Var "$v44")))]))))))))))))))))))))))))))))))))))))))))))))))))
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Replica.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -10665,15 +10565,13 @@ noncomputable def NewReplica.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Replica.ty)))) (Pair (Var "r") (Var "$r0")))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "proph") (Var "$r0")))))))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Replica.ty)))) (Pair (Var "r") (Var "$r0")))))))))))))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "$res0")))))))))))))))))))))
 
 /-- *
      * gryffcommon.IGryffParticipant methods
 
-    go: tupaq.go:216:19 -/
+    go: tupaq.go:212:19 -/
 noncomputable def Replica.Printf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "format"
@@ -10695,7 +10593,7 @@ noncomputable def Replica.Printf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Val #())))))
 
-/-- go: tupaq.go:222:19 -/
+/-- go: tupaq.go:218:19 -/
 noncomputable def Replica.GetCurrentValue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -10718,7 +10616,7 @@ noncomputable def Replica.GetCurrentValue.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore _root_.Perennial.gryff.src.state.Value.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.gryff.src.state.Value.ty))) (Var "$res0"))))))
 
-/-- go: tupaq.go:230:19 -/
+/-- go: tupaq.go:226:19 -/
 noncomputable def Replica.SetCurrentValue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -10735,7 +10633,7 @@ noncomputable def Replica.SetCurrentValue.impl [GooseExts] [GoGlobalContext] : v
   (Val #())))))))
   (Val #())))))
 
-/-- go: tupaq.go:236:19 -/
+/-- go: tupaq.go:232:19 -/
 noncomputable def Replica.TagSeen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "tag"
@@ -10759,7 +10657,7 @@ noncomputable def Replica.TagSeen.impl [GooseExts] [GoGlobalContext] : val :=
 /-- *
      * gryffcommon.IGryffCoordinator methods
 
-    go: tupaq.go:249:19 -/
+    go: tupaq.go:245:19 -/
 noncomputable def Replica.SendRead1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rop"
@@ -10819,7 +10717,7 @@ noncomputable def Replica.SendRead1.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"read1"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$r0"))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:265:19 -/
+/-- go: tupaq.go:261:19 -/
 noncomputable def Replica.SendRead2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rop"
@@ -10873,7 +10771,7 @@ noncomputable def Replica.SendRead2.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"read2"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$r0"))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:279:19 -/
+/-- go: tupaq.go:275:19 -/
 noncomputable def Replica.SendWrite1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "wop"
@@ -10944,7 +10842,7 @@ noncomputable def Replica.SendWrite1.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"write1"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$r0"))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:297:19 -/
+/-- go: tupaq.go:293:19 -/
 noncomputable def Replica.SendWrite2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "wop"
@@ -10995,7 +10893,7 @@ noncomputable def Replica.SendWrite2.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty go!"RequestId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"write2"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$r0"))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:310:19 -/
+/-- go: tupaq.go:306:19 -/
 noncomputable def Replica.CompleteRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "requestId"
@@ -11052,7 +10950,7 @@ noncomputable def Replica.CompleteRead.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.uint8))) (Pair (Var "ok") (Var "$r0"))))))))))))))
   (Val #())))))))
 
-/-- go: tupaq.go:328:19 -/
+/-- go: tupaq.go:324:19 -/
 noncomputable def Replica.CompleteWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "requestId"
@@ -11106,7 +11004,7 @@ noncomputable def Replica.CompleteWrite.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.uint8))) (Pair (Var "ok") (Var "$r0")))))))))))))
   (Val #()))))))
 
-/-- go: tupaq.go:345:19 -/
+/-- go: tupaq.go:341:19 -/
 noncomputable def Replica.GetStats.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -11121,7 +11019,7 @@ noncomputable def Replica.GetStats.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.stats.StatsMap.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.stats.StatsMap.ty)))) (Var "$res0"))))))
 
-/-- go: tupaq.go:349:19 -/
+/-- go: tupaq.go:345:19 -/
 noncomputable def Replica.GetReplicasByRank.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -11142,7 +11040,7 @@ noncomputable def Replica.GetReplicasByRank.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.int32)))) (Var "$res0"))))))
 
-/-- go: tupaq.go:355:19 -/
+/-- go: tupaq.go:351:19 -/
 noncomputable def Replica.HandleOverwrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -11160,7 +11058,7 @@ noncomputable def Replica.HandleOverwrite.impl [GooseExts] [GoGlobalContext] : v
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffParticipant.ty) go!"HandleOverwrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffParticipant.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"parti"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
   (Val #()))))))
 
-/-- go: tupaq.go:360:19 -/
+/-- go: tupaq.go:356:19 -/
 noncomputable def Replica.GetStoreMetadata.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "key"
@@ -11179,7 +11077,7 @@ noncomputable def Replica.GetStoreMetadata.impl [GooseExts] [GoGlobalContext] : 
 
 /-- sync with the stable store
 
-    go: tupaq.go:368:19 -/
+    go: tupaq.go:364:19 -/
 noncomputable def Replica.sync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -11195,7 +11093,7 @@ noncomputable def Replica.sync.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Val #()))))
 
-/-- go: tupaq.go:376:19 -/
+/-- go: tupaq.go:372:19 -/
 noncomputable def Replica.replyRead1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "w"
@@ -11216,7 +11114,7 @@ noncomputable def Replica.replyRead1.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty) go!"WriteByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)))) (Var "w"))) (Var "$a0")))))))))
   (Val #())))))
 
-/-- go: tupaq.go:382:19 -/
+/-- go: tupaq.go:378:19 -/
 noncomputable def Replica.replyRead2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "w"
@@ -11237,7 +11135,7 @@ noncomputable def Replica.replyRead2.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty) go!"WriteByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)))) (Var "w"))) (Var "$a0")))))))))
   (Val #())))))
 
-/-- go: tupaq.go:388:19 -/
+/-- go: tupaq.go:384:19 -/
 noncomputable def Replica.replyWrite1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "w"
@@ -11258,7 +11156,7 @@ noncomputable def Replica.replyWrite1.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty) go!"WriteByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)))) (Var "w"))) (Var "$a0")))))))))
   (Val #())))))
 
-/-- go: tupaq.go:394:19 -/
+/-- go: tupaq.go:390:19 -/
 noncomputable def Replica.replyWrite2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "w"
@@ -11279,7 +11177,7 @@ noncomputable def Replica.replyWrite2.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty) go!"WriteByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)))) (Var "w"))) (Var "$a0")))))))))
   (Val #())))))
 
-/-- go: tupaq.go:400:19 -/
+/-- go: tupaq.go:396:19 -/
 noncomputable def Replica.replyWrite1Replica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "coordinatorId"
@@ -11300,7 +11198,7 @@ noncomputable def Replica.replyWrite1Replica.impl [GooseExts] [GoGlobalContext] 
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:409:19 -/
+/-- go: tupaq.go:405:19 -/
 noncomputable def Replica.replyWrite2Replica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "coordinatorId"
@@ -11321,7 +11219,7 @@ noncomputable def Replica.replyWrite2Replica.impl [GooseExts] [GoGlobalContext] 
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:418:19 -/
+/-- go: tupaq.go:414:19 -/
 noncomputable def Replica.replyRead1Replica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "coordinatorId"
@@ -11342,7 +11240,7 @@ noncomputable def Replica.replyRead1Replica.impl [GooseExts] [GoGlobalContext] :
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:427:19 -/
+/-- go: tupaq.go:423:19 -/
 noncomputable def Replica.replyRead2Replica.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "coordinatorId"
@@ -11363,7 +11261,7 @@ noncomputable def Replica.replyRead2Replica.impl [GooseExts] [GoGlobalContext] :
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:436:19 -/
+/-- go: tupaq.go:432:19 -/
 noncomputable def Replica.sendRead1To.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "replica"
@@ -11387,7 +11285,7 @@ noncomputable def Replica.sendRead1To.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:445:19 -/
+/-- go: tupaq.go:441:19 -/
 noncomputable def Replica.sendRead2To.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "replica"
@@ -11411,7 +11309,7 @@ noncomputable def Replica.sendRead2To.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:454:19 -/
+/-- go: tupaq.go:450:19 -/
 noncomputable def Replica.sendWrite1To.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "replica"
@@ -11435,7 +11333,7 @@ noncomputable def Replica.sendWrite1To.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:463:19 -/
+/-- go: tupaq.go:459:19 -/
 noncomputable def Replica.SendWrite1Timeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write1Reply"
@@ -11452,7 +11350,7 @@ noncomputable def Replica.SendWrite1Timeout.impl [GooseExts] [GoGlobalContext] :
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))))
   (Val #()))))
 
-/-- go: tupaq.go:468:19 -/
+/-- go: tupaq.go:464:19 -/
 noncomputable def Replica.SendWrite2ConcurrentTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "wop"
@@ -11488,7 +11386,7 @@ noncomputable def Replica.SendWrite2ConcurrentTimeout.impl [GooseExts] [GoGlobal
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"Printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: tupaq.go:478:19 -/
+/-- go: tupaq.go:474:19 -/
 noncomputable def Replica.sendWrite2To.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "replica"
@@ -11512,7 +11410,7 @@ noncomputable def Replica.sendWrite2To.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"SendMsg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:487:19 -/
+/-- go: tupaq.go:483:19 -/
 noncomputable def Replica.SetForceWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -11532,7 +11430,7 @@ noncomputable def Replica.SetForceWrite.impl [GooseExts] [GoGlobalContext] : val
   (Val #())))))
   (Val #()))))
 
-/-- go: tupaq.go:498:19 -/
+/-- go: tupaq.go:494:19 -/
 noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -11592,7 +11490,7 @@ noncomputable def Replica.run.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"ConnectToPeers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Val #()))))))
   (Val #()))))
 
-/-- go: tupaq.go:521:19 -/
+/-- go: tupaq.go:517:19 -/
 noncomputable def Replica.handleRead1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "read1"
@@ -11619,7 +11517,7 @@ noncomputable def Replica.handleRead1.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)))) (Pair (Var "r1reply") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:527:19 -/
+/-- go: tupaq.go:523:19 -/
 noncomputable def Replica.handleRead1Proxied.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "read1Proxied"
@@ -11644,7 +11542,7 @@ noncomputable def Replica.handleRead1Proxied.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)))) (Pair (Var "r1reply") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:534:19 -/
+/-- go: tupaq.go:530:19 -/
 noncomputable def Replica.handleRead2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "read2"
@@ -11669,7 +11567,7 @@ noncomputable def Replica.handleRead2.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)))) (Pair (Var "r2reply") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:540:19 -/
+/-- go: tupaq.go:536:19 -/
 noncomputable def Replica.handleRead2Proxied.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "read2Proxied"
@@ -11692,7 +11590,7 @@ noncomputable def Replica.handleRead2Proxied.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)))) (Pair (Var "r2reply") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:546:19 -/
+/-- go: tupaq.go:542:19 -/
 noncomputable def Replica.handleRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "read"
@@ -11714,7 +11612,7 @@ noncomputable def Replica.handleRead.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"Printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: tupaq.go:551:19 -/
+/-- go: tupaq.go:547:19 -/
 noncomputable def Replica.handleRead1Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "read1Reply"
@@ -11738,7 +11636,7 @@ noncomputable def Replica.handleRead1Reply.impl [GooseExts] [GoGlobalContext] : 
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"Printf"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: tupaq.go:558:19 -/
+/-- go: tupaq.go:554:19 -/
 noncomputable def Replica.handleRead2Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "read2Reply"
@@ -11754,7 +11652,7 @@ noncomputable def Replica.handleRead2Reply.impl [GooseExts] [GoGlobalContext] : 
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty) go!"HandleRead2Reply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"coord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (Val #()))))
 
-/-- go: tupaq.go:563:19 -/
+/-- go: tupaq.go:559:19 -/
 noncomputable def Replica.handleForceWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -11764,7 +11662,7 @@ noncomputable def Replica.handleForceWrite.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty) go!"HandleForceWrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"coord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Val #())))))
   (Val #()))))
 
-/-- go: tupaq.go:567:19 -/
+/-- go: tupaq.go:563:19 -/
 noncomputable def Replica.handleWrite1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write1"
@@ -11796,7 +11694,7 @@ noncomputable def Replica.handleWrite1.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)))) (Pair (Var "w1reply") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:577:19 -/
+/-- go: tupaq.go:573:19 -/
 noncomputable def Replica.HandleWrite1Overwrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "coordinatorId"
@@ -11811,7 +11709,7 @@ noncomputable def Replica.HandleWrite1Overwrite.impl [GooseExts] [GoGlobalContex
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"replyWrite1Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")))))))))
   (Val #())))))
 
-/-- go: tupaq.go:582:19 -/
+/-- go: tupaq.go:578:19 -/
 noncomputable def Replica.handleWrite1Proxied.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write1Proxied"
@@ -11841,7 +11739,7 @@ noncomputable def Replica.handleWrite1Proxied.impl [GooseExts] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)))) (Pair (Var "w1reply") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:592:19 -/
+/-- go: tupaq.go:588:19 -/
 noncomputable def Replica.handleWrite2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write2"
@@ -11865,7 +11763,7 @@ noncomputable def Replica.handleWrite2.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)))) (Pair (Var "w2reply") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: tupaq.go:599:19 -/
+/-- go: tupaq.go:595:19 -/
 noncomputable def Replica.handleWrite2Proxied.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write2Proxied"
@@ -11887,7 +11785,7 @@ noncomputable def Replica.handleWrite2Proxied.impl [GooseExts] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)))) (Pair (Var "w2reply") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:605:19 -/
+/-- go: tupaq.go:601:19 -/
 noncomputable def Replica.handleWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write"
@@ -11903,7 +11801,7 @@ noncomputable def Replica.handleWrite.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty) go!"StartWrite"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"coord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:609:19 -/
+/-- go: tupaq.go:605:19 -/
 noncomputable def Replica.handleWrite1Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write1Reply"
@@ -11920,7 +11818,7 @@ noncomputable def Replica.handleWrite1Reply.impl [GooseExts] [GoGlobalContext] :
   (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty) go!"HandleWrite1Reply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"coord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:615:19 -/
+/-- go: tupaq.go:611:19 -/
 noncomputable def Replica.handleWrite1Timeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write1Reply"
@@ -11958,7 +11856,7 @@ noncomputable def Replica.handleWrite1Timeout.impl [GooseExts] [GoGlobalContext]
   (Val #()))))))
   (Val #()))))
 
-/-- go: tupaq.go:630:19 -/
+/-- go: tupaq.go:626:19 -/
 noncomputable def Replica.handleWrite2ConcurrentTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write2Proxied"
@@ -11972,7 +11870,7 @@ noncomputable def Replica.handleWrite2ConcurrentTimeout.impl [GooseExts] [GoGlob
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty) go!"HandleWrite2ConcurrentTimeout"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"coord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (Val #()))))
 
-/-- go: tupaq.go:635:19 -/
+/-- go: tupaq.go:631:19 -/
 noncomputable def Replica.handleWrite2Reply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "write2Reply"
@@ -11990,7 +11888,7 @@ noncomputable def Replica.handleWrite2Reply.impl [GooseExts] [GoGlobalContext] :
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty) go!"HandleWrite2Reply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.GryffCoordinator.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"coord"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))
   (Val #()))))
 
-/-- go: tupaq.go:641:19 -/
+/-- go: tupaq.go:637:19 -/
 noncomputable def Replica.replyRMW.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "client"
@@ -12011,7 +11909,7 @@ noncomputable def Replica.replyRMW.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty) go!"WriteByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)))) (Var "client"))) (Var "$a0")))))))))
   (Val #())))))
 
-/-- go: tupaq.go:647:19 -/
+/-- go: tupaq.go:643:19 -/
 noncomputable def Replica.completeRMW.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "requestId"
@@ -12030,7 +11928,7 @@ noncomputable def Replica.completeRMW.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Replica.ty) go!"completeRMWWriter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))))
   (Val #()))))))
 
-/-- go: tupaq.go:651:19 -/
+/-- go: tupaq.go:647:19 -/
 noncomputable def Replica.completeRMWWriter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "requestId"
@@ -12063,7 +11961,7 @@ noncomputable def Replica.completeRMWWriter.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))))
 
 noncomputable instance info' : PkgInfo pkg_id.gryff.src.gryff where
-  pkgImportedPkgs := [pkg_id.gryff.src.epaxosproto, pkg_id.sort, pkg_id.time, pkg_id.gryff.src.dlog, pkg_id.gryff.src.gryffproto, pkg_id.gryff.src.bloomfilter, pkg_id.encoding.binary, pkg_id.gryff.src.fastrpc, pkg_id.gryff.src.genericsmr, pkg_id.gryff.src.genericsmrproto, pkg_id.io, pkg_id.log, pkg_id.math, pkg_id.gryff.src.state, pkg_id.sync.atomic, pkg_id.github_com.goose_lang.primitive, pkg_id.gryff.src.gryffcommon, pkg_id.bufio, pkg_id.gryff.src.clientproto, pkg_id.fmt, pkg_id.math.rand, pkg_id.gryff.src.stats, pkg_id.sync]
+  pkgImportedPkgs := [pkg_id.gryff.src.epaxosproto, pkg_id.sort, pkg_id.time, pkg_id.gryff.src.dlog, pkg_id.gryff.src.gryffproto, pkg_id.github_com.goose_lang.primitive, pkg_id.gryff.src.bloomfilter, pkg_id.encoding.binary, pkg_id.gryff.src.fastrpc, pkg_id.gryff.src.genericsmr, pkg_id.gryff.src.genericsmrproto, pkg_id.io, pkg_id.log, pkg_id.math, pkg_id.gryff.src.state, pkg_id.sync.atomic, pkg_id.gryff.src.gryffcommon, pkg_id.bufio, pkg_id.gryff.src.clientproto, pkg_id.fmt, pkg_id.math.rand, pkg_id.gryff.src.stats, pkg_id.sync]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -12134,6 +12032,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.gryff.src.gryffproto.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.gryff.src.bloomfilter.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.binary.initialize') (Val #()))))))
@@ -12153,8 +12053,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.gryff.src.state.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.atomic.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.gryff.src.gryffcommon.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -13616,10 +13514,9 @@ structure Replica [GooseExts] where
   fastOverwriteTime' : w64
   forceWritePeriod' : w64
   mtx' : Loc
-  proph' : _root_.Perennial.github_com.goose_lang.primitive.ProphId
 
 noncomputable instance Replica.zero_val [GooseExts] : ZeroVal Replica :=
-  ⟨Replica.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Replica.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Replica.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Replica" (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.Replica.ty)),
@@ -13666,8 +13563,7 @@ noncomputable instance Replica.zero_val [GooseExts] : ZeroVal Replica :=
 (go.field_decl.FieldDecl go!"shortcircuitTime" go.int),
 (go.field_decl.FieldDecl go!"fastOverwriteTime" go.int),
 (go.field_decl.FieldDecl go!"forceWritePeriod" go.int),
-(go.field_decl.FieldDecl go!"mtx" (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)),
-(go.field_decl.FieldDecl go!"proph" _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty)]
+(go.field_decl.FieldDecl go!"mtx" (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty))]
 
 @[irreducible] noncomputable def Replica.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Replica.fieldsUnsealed
@@ -13772,8 +13668,6 @@ class Replica.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_forceWritePeriod : ∀ (x : Replica) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"forceWritePeriod") (PairV #x #y) (Val #(({ x with forceWritePeriod' := y } : Replica)))
   get_mtx : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"mtx") #x (Val #(x.mtx'))
   set_mtx : ∀ (x : Replica) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"mtx") (PairV #x #y) (Val #(({ x with mtx' := y } : Replica)))
-  get_proph : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"proph") #x (Val #(x.proph'))
-  set_proph : ∀ (x : Replica) (y : _root_.Perennial.github_com.goose_lang.primitive.ProphId), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"proph") (PairV #x #y) (Val #(({ x with proph' := y } : Replica)))
   method_set : go.MethodSetIs Replica.ty [(go!"BeTheLeader", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.BeTheLeaderArgs.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.BeTheLeaderReply.ty)] false [go.error]))), (go!"ConnectToPeers", (some (go.signature.Signature [] false []))), (go!"ConnectToPeersNoListeners", (some (go.signature.Signature [] false []))), (go!"DelayRPC", (some (go.signature.Signature [go.int, go.uint8] false []))), (go!"Finish", (some (go.signature.Signature [] false []))), (go!"GetClientWriter", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)]))), (go!"NeedsWaitForExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.state.Command.ty)] false [go.bool]))), (go!"Ping", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.PingArgs.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.PingReply.ty)] false [go.error]))), (go!"RegisterClientRPC", (some (go.signature.Signature [_root_.Perennial.gryff.src.fastrpc.Serializable.ty, go.uint8, (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty))] false []))), (go!"RegisterRPC", (some (go.signature.Signature [_root_.Perennial.gryff.src.fastrpc.Serializable.ty, (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty)] false [go.uint8]))), (go!"ReplyBeacon", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.Beacon.ty)] false []))), (go!"ReplyPropose", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.ProposeReply.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"ReplyProposeTS", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.ProposeReplyTS.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"SendBeacon", (some (go.signature.Signature [go.int32] false []))), (go!"SendMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.gryff.src.fastrpc.Serializable.ty] false []))), (go!"SendMsgNoFlush", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.gryff.src.fastrpc.Serializable.ty] false []))), (go!"ShouldDelayNextRPC", (some (go.signature.Signature [go.int, go.uint8] false [go.bool]))), (go!"SlowClock", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendrecv go.bool)] false []))), (go!"StopAdapting", (some (go.signature.Signature [] false []))), (go!"UndelayRPCs", (some (go.signature.Signature [go.int, go.uint8] false []))), (go!"UpdatePreferredPeerOrder", (some (go.signature.Signature [(go.GoType.SliceType go.int32)] false []))), (go!"WaitForClientConnections", (some (go.signature.Signature [] false []))), (go!"gryff/src/genericsmr.clientListener", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" [])] false []))), (go!"gryff/src/genericsmr.handlePing", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.clientproto.Ping.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"gryff/src/genericsmr.monitorPings", (some (go.signature.Signature [] false []))), (go!"gryff/src/genericsmr.replicaListener", (some (go.signature.Signature [go.int, (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)] false []))), (go!"gryff/src/genericsmr.serveClient", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty), go.int32] false []))), (go!"gryff/src/genericsmr.waitForPeerConnections", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendrecv go.bool)] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Replica.ty) [(go!"BeTheLeader", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.BeTheLeaderArgs.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.BeTheLeaderReply.ty)] false [go.error]))), (go!"CompleteRead", (some (go.signature.Signature [go.int32, go.int32, go.bool, go.int64] false []))), (go!"CompleteWrite", (some (go.signature.Signature [go.int32, go.int32, go.bool] false []))), (go!"ConnectToPeers", (some (go.signature.Signature [] false []))), (go!"ConnectToPeersNoListeners", (some (go.signature.Signature [] false []))), (go!"DelayRPC", (some (go.signature.Signature [go.int, go.uint8] false []))), (go!"Finish", (some (go.signature.Signature [] false []))), (go!"GetClientWriter", (some (go.signature.Signature [go.int32] false [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)]))), (go!"GetCurrentValue", (some (go.signature.Signature [_root_.Perennial.gryff.src.state.Key.ty] false [_root_.Perennial.gryff.src.state.Value.ty]))), (go!"GetReplicasByRank", (some (go.signature.Signature [] false [(go.GoType.SliceType go.int32)]))), (go!"GetStats", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.gryff.src.stats.StatsMap.ty)]))), (go!"GetStoreMetadata", (some (go.signature.Signature [_root_.Perennial.gryff.src.state.Key.ty] false [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.StoreMetadata.ty)]))), (go!"HandleOverwrite", (some (go.signature.Signature [_root_.Perennial.gryff.src.state.Key.ty, _root_.Perennial.gryff.src.state.Value.ty, (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Tag.ty)] false []))), (go!"HandleWrite1Overwrite", (some (go.signature.Signature [go.int32, (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)] false []))), (go!"NeedsWaitForExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.state.Command.ty)] false [go.bool]))), (go!"Ping", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.PingArgs.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.PingReply.ty)] false [go.error]))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"RegisterClientRPC", (some (go.signature.Signature [_root_.Perennial.gryff.src.fastrpc.Serializable.ty, go.uint8, (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.ClientRPC.ty))] false []))), (go!"RegisterRPC", (some (go.signature.Signature [_root_.Perennial.gryff.src.fastrpc.Serializable.ty, (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.gryff.src.fastrpc.Serializable.ty)] false [go.uint8]))), (go!"ReplyBeacon", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmr.Beacon.ty)] false []))), (go!"ReplyPropose", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.ProposeReply.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"ReplyProposeTS", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.genericsmrproto.ProposeReplyTS.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"SendBeacon", (some (go.signature.Signature [go.int32] false []))), (go!"SendMsg", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.gryff.src.fastrpc.Serializable.ty] false []))), (go!"SendMsgNoFlush", (some (go.signature.Signature [go.int32, go.uint8, _root_.Perennial.gryff.src.fastrpc.Serializable.ty] false []))), (go!"SendRead1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.ReadOp.ty), (go.GoType.SliceType go.int32)] false []))), (go!"SendRead2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.ReadOp.ty), (go.GoType.SliceType go.int32)] false []))), (go!"SendWrite1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.WriteOp.ty), (go.GoType.SliceType go.int32)] false []))), (go!"SendWrite1Timeout", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)] false []))), (go!"SendWrite2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.WriteOp.ty), (go.GoType.SliceType go.int32)] false []))), (go!"SendWrite2ConcurrentTimeout", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffcommon.WriteOp.ty)] false []))), (go!"SetCurrentValue", (some (go.signature.Signature [_root_.Perennial.gryff.src.state.Key.ty, _root_.Perennial.gryff.src.state.Value.ty] false []))), (go!"SetForceWrite", (some (go.signature.Signature [] false []))), (go!"ShouldDelayNextRPC", (some (go.signature.Signature [go.int, go.uint8] false [go.bool]))), (go!"SlowClock", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendrecv go.bool)] false []))), (go!"StopAdapting", (some (go.signature.Signature [] false []))), (go!"TagSeen", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Tag.ty)] false []))), (go!"UndelayRPCs", (some (go.signature.Signature [go.int, go.uint8] false []))), (go!"UpdatePreferredPeerOrder", (some (go.signature.Signature [(go.GoType.SliceType go.int32)] false []))), (go!"WaitForClientConnections", (some (go.signature.Signature [] false []))), (go!"gryff/src/genericsmr.clientListener", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" [])] false []))), (go!"gryff/src/genericsmr.handlePing", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.clientproto.Ping.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"gryff/src/genericsmr.monitorPings", (some (go.signature.Signature [] false []))), (go!"gryff/src/genericsmr.replicaListener", (some (go.signature.Signature [go.int, (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)] false []))), (go!"gryff/src/genericsmr.serveClient", (some (go.signature.Signature [(go.GoType.Named go!"net.Conn" []), (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty), go.int32] false []))), (go!"gryff/src/genericsmr.waitForPeerConnections", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendrecv go.bool)] false []))), (go!"gryff/src/gryff.completeRMW", (some (go.signature.Signature [go.int32, go.int32, _root_.Perennial.gryff.src.state.Value.ty] false []))), (go!"gryff/src/gryff.completeRMWWriter", (some (go.signature.Signature [go.int32, (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), _root_.Perennial.gryff.src.state.Value.ty] false []))), (go!"gryff/src/gryff.handleForceWrite", (some (go.signature.Signature [] false []))), (go!"gryff/src/gryff.handleRead", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read.ty)] false []))), (go!"gryff/src/gryff.handleRead1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"gryff/src/gryff.handleRead1Proxied", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)] false []))), (go!"gryff/src/gryff.handleRead1Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)] false []))), (go!"gryff/src/gryff.handleRead2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"gryff/src/gryff.handleRead2Proxied", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)] false []))), (go!"gryff/src/gryff.handleRead2Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)] false []))), (go!"gryff/src/gryff.handleWrite", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write.ty)] false []))), (go!"gryff/src/gryff.handleWrite1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"gryff/src/gryff.handleWrite1Proxied", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)] false []))), (go!"gryff/src/gryff.handleWrite1Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)] false []))), (go!"gryff/src/gryff.handleWrite1Timeout", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)] false []))), (go!"gryff/src/gryff.handleWrite2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2.ty), (go.GoType.PointerType _root_.Perennial.bufio.Writer.ty)] false []))), (go!"gryff/src/gryff.handleWrite2ConcurrentTimeout", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)] false []))), (go!"gryff/src/gryff.handleWrite2Proxied", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)] false []))), (go!"gryff/src/gryff.handleWrite2Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)] false []))), (go!"gryff/src/gryff.replyRMW", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMWReply.ty)] false []))), (go!"gryff/src/gryff.replyRead1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)] false []))), (go!"gryff/src/gryff.replyRead1Replica", (some (go.signature.Signature [go.int32, (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)] false []))), (go!"gryff/src/gryff.replyRead2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)] false []))), (go!"gryff/src/gryff.replyRead2Replica", (some (go.signature.Signature [go.int32, (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)] false []))), (go!"gryff/src/gryff.replyWrite1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)] false []))), (go!"gryff/src/gryff.replyWrite1Replica", (some (go.signature.Signature [go.int32, (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)] false []))), (go!"gryff/src/gryff.replyWrite2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.bufio.Writer.ty), (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)] false []))), (go!"gryff/src/gryff.replyWrite2Replica", (some (go.signature.Signature [go.int32, (go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)] false []))), (go!"gryff/src/gryff.resolveAccept", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.EAccept.ty)] false []))), (go!"gryff/src/gryff.resolveAcceptReply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.AcceptReply.ty)] false []))), (go!"gryff/src/gryff.resolveCmds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.gryff.src.state.Command.ty)] false []))), (go!"gryff/src/gryff.resolveCommit", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.ECommit.ty)] false []))), (go!"gryff/src/gryff.resolveDep", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Dep.ty)] false []))), (go!"gryff/src/gryff.resolveDeps", (some (go.signature.Signature [(go.GoType.ArrayType 5 go.int32)] false []))), (go!"gryff/src/gryff.resolveExec", (some (go.signature.Signature [go.int32, go.int32] false []))), (go!"gryff/src/gryff.resolveExecuteOverwrite", (some (go.signature.Signature [(go.GoType.PointerType ExecuteOverwrite.ty)] false []))), (go!"gryff/src/gryff.resolveExecuted", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Executed.ty)] false []))), (go!"gryff/src/gryff.resolveForceWrite", (some (go.signature.Signature [] false []))), (go!"gryff/src/gryff.resolvePreAccept", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAccept.ty)] false []))), (go!"gryff/src/gryff.resolvePreAcceptOK", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.PreAcceptOK.ty)] false []))), (go!"gryff/src/gryff.resolvePreAcceptReply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PreAcceptReply.ty)] false []))), (go!"gryff/src/gryff.resolvePrepare", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.epaxosproto.Prepare.ty)] false []))), (go!"gryff/src/gryff.resolvePrepareReply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.PrepareReply.ty)] false []))), (go!"gryff/src/gryff.resolveRMW", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.RMW.ty)] false []))), (go!"gryff/src/gryff.resolveRead", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read.ty)] false []))), (go!"gryff/src/gryff.resolveRead1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Proxied.ty)] false []))), (go!"gryff/src/gryff.resolveRead1Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read1Reply.ty)] false []))), (go!"gryff/src/gryff.resolveRead2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Proxied.ty)] false []))), (go!"gryff/src/gryff.resolveRead2Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Read2Reply.ty)] false []))), (go!"gryff/src/gryff.resolveRecover", (some (go.signature.Signature [go.int32, go.int32] false []))), (go!"gryff/src/gryff.resolveTag", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Tag.ty)] false []))), (go!"gryff/src/gryff.resolveValTag", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.ValTag.ty)] false []))), (go!"gryff/src/gryff.resolveWrite", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write.ty)] false []))), (go!"gryff/src/gryff.resolveWrite1", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Proxied.ty)] false []))), (go!"gryff/src/gryff.resolveWrite1Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write1Reply.ty)] false []))), (go!"gryff/src/gryff.resolveWrite2", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Proxied.ty)] false []))), (go!"gryff/src/gryff.resolveWrite2Reply", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.gryff.src.gryffproto.Write2Reply.ty)] false []))), (go!"gryff/src/gryff.run", (some (go.signature.Signature [] false []))), (go!"gryff/src/gryff.sendRead1To", (some (go.signature.Signature [go.int32] false []))), (go!"gryff/src/gryff.sendRead2To", (some (go.signature.Signature [go.int32] false []))), (go!"gryff/src/gryff.sendWrite1To", (some (go.signature.Signature [go.int32] false []))), (go!"gryff/src/gryff.sendWrite2To", (some (go.signature.Signature [go.int32] false []))), (go!"gryff/src/gryff.sync", (some (go.signature.Signature [] false [])))]
   BeTheLeader_unfold : MethodUnfold Replica.ty go!"BeTheLeader" (LamV "$r"
@@ -14062,8 +13956,6 @@ attribute [instance] Replica.TypeAssumptions.type_repr
   Replica.TypeAssumptions.set_forceWritePeriod
   Replica.TypeAssumptions.get_mtx
   Replica.TypeAssumptions.set_mtx
-  Replica.TypeAssumptions.get_proph
-  Replica.TypeAssumptions.set_proph
   Replica.TypeAssumptions.method_set
   Replica.TypeAssumptions.ptr_method_set
   Replica.TypeAssumptions.BeTheLeader_unfold
@@ -14236,6 +14128,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_dlog_Assumption : _root_.Perennial.gryff.src.dlog.Assumptions
   import_gryffproto_Assumption : _root_.Perennial.gryff.src.gryffproto.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_bloomfilter_Assumption : _root_.Perennial.gryff.src.bloomfilter.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
   import_fastrpc_Assumption : _root_.Perennial.gryff.src.fastrpc.Assumptions
@@ -14246,7 +14139,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_math_Assumption : _root_.Perennial.math.Assumptions
   import_state_Assumption : _root_.Perennial.gryff.src.state.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_gryffcommon_Assumption : _root_.Perennial.gryff.src.gryffcommon.Assumptions
   import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
   import_clientproto_Assumption : _root_.Perennial.gryff.src.clientproto.Assumptions
@@ -14286,6 +14178,7 @@ attribute [instance] Assumptions.Exec_instance
   Assumptions.import_time_Assumption
   Assumptions.import_dlog_Assumption
   Assumptions.import_gryffproto_Assumption
+  Assumptions.import_primitive_Assumption
   Assumptions.import_bloomfilter_Assumption
   Assumptions.import_binary_Assumption
   Assumptions.import_fastrpc_Assumption
@@ -14296,7 +14189,6 @@ attribute [instance] Assumptions.Exec_instance
   Assumptions.import_math_Assumption
   Assumptions.import_state_Assumption
   Assumptions.import_atomic_Assumption
-  Assumptions.import_primitive_Assumption
   Assumptions.import_gryffcommon_Assumption
   Assumptions.import_bufio_Assumption
   Assumptions.import_clientproto_Assumption

@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/gryff/proof/GryffProof/B/Resolve.lean (run gryff-bump-1, lab master 915f964; notes/dsv-gryff.md).
 
-Unit B: the trace prophecy's resolutions (`src/gryff/proph.go`): one `ResolveU64` at a time
+Unit B: the trace prophecy's resolutions (`etc/proph-patches/dsv-gryff/01-trace-prophecy.patch`): one `ResolveU64` at a time
 (`replicaProph_resolve`), the helpers (`resolveTag`, `resolveValTag`, `resolveDep`, `resolveCmds`,
 `resolveDeps`) and the 24 event resolutions (`resolveSpec`'s instances, `Replica2/Specs.lean`).
 -/
@@ -39,11 +39,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem 
 variable [gA : examples.gryffnet.Assumptions] [wire.BufioSpecs GF]
 
 
-/-- One `r.proph.ResolveU64(x)`. -/
+/-- One `traceProph.ResolveU64(x)`. -/
 theorem wp_resolveU64 (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (t : List Ev)
     (ws : List w64) (x : w64) :
-    {{ r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p t ws }}
-      (App (Val (r.[src.gryff.Replica, go!"proph"] @!!
+    {{ globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p t ws }}
+      (App (Val (globalAddr src.gryff.traceProph @!!
         go.PointerType github_com.goose_lang.primitive.ProphId.ty @!! go!"ResolveU64")) (Val #x))
     {{ RET #(); replicaProph (GF := GF) γ k p t (ws ++ [x]) }} := by
   iintro %Φ ⟨#Hl, Hp⟩ HΦ
@@ -70,7 +70,7 @@ theorem replicaProph_congr {γ : ProtoNames} {k : Fin 3} {p : ProphId} {tr : Lis
 theorem wp_resolveTag (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Tag) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveTag") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encTag (tagOf g)) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -93,7 +93,7 @@ theorem wp_resolveTag (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr 
 theorem wp_resolveValTag (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.ValTag) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveValTag") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encVT (vtOf g)) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -115,7 +115,7 @@ theorem wp_resolveValTag (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (
 theorem wp_resolveDep (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Dep) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveDep") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encDep (depOf g)) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -137,7 +137,7 @@ theorem wp_resolveDep (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr 
 theorem wp_resolveRead1_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Read1Proxied) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveRead1") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.read1 (read1Of g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -168,7 +168,7 @@ def resolveSpecB (γ : GryffNames GF) (k : Fin 3) (r : Loc) (call : Expr)
     (Pre : IProp GF) (e : Ev) : Prop :=
   ∀ (p : ProphId) (t : List Ev) (ws : List w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ.proto k p t ws ∗ Pre }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ.proto k p t ws ∗ Pre }}
       call
     {{ RET #(); replicaProph (GF := GF) γ.proto k p t (ws ++ model.evCodec.enc e) ∗ Pre }}
 
@@ -193,7 +193,7 @@ theorem resolveRead1_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveRead2_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Read2Proxied) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveRead2") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.read2 (read2Of g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -236,7 +236,7 @@ theorem resolveRead2_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveRead1Reply_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Read1Reply) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveRead1Reply") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.read1Reply (read1ReplyOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -278,7 +278,7 @@ theorem resolveRead1Reply_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveRead2Reply_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Read2Reply) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveRead2Reply") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.read2Reply (read2ReplyOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -317,7 +317,7 @@ theorem resolveRead2Reply_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveWrite1_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Write1Proxied) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveWrite1") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.write1 (write1Of g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -361,7 +361,7 @@ theorem resolveWrite1_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveWrite2_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Write2Proxied) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveWrite2") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.write2 (write2Of g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -404,7 +404,7 @@ theorem resolveWrite2_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveWrite1Reply_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Write1Reply) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveWrite1Reply") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.write1Reply (write1ReplyOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -445,7 +445,7 @@ theorem resolveWrite1Reply_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveWrite2Reply_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Write2Reply) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveWrite2Reply") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.write2Reply (write2ReplyOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -485,7 +485,7 @@ theorem resolveWrite2Reply_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolvePreAcceptOK_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.epaxosproto.PreAcceptOK) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolvePreAcceptOK") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.preAcceptOK (preAcceptOKOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -523,7 +523,7 @@ theorem resolvePreAcceptOK_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveAcceptReply_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.epaxosproto.AcceptReply) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveAcceptReply") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.acceptReply (acceptReplyOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -564,7 +564,7 @@ theorem resolveAcceptReply_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolvePrepare_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.epaxosproto.Prepare) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolvePrepare") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.prepare (prepareOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -605,7 +605,7 @@ theorem resolvePrepare_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc)
 theorem wp_resolveExecuted_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.Executed) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolveExecuted") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.executed (executedOf g)))) ∗ l ↦{dq} g }} := by
   unfold repMB
@@ -823,7 +823,7 @@ theorem take_succ_of_get {α : Type} (l : List α) (i : Nat) (x : α) (h : l[i]?
 theorem wp_resolveDeps (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (a : GoArray w32 5) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws }}
       (App (repMB r go!"resolveDeps") (Val #a))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encDeps a.arr) }} := by
   rcases a with ⟨arr⟩
@@ -877,7 +877,7 @@ theorem wp_resolveDeps (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr
 theorem wp_resolveCmds (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (sl : GoSlice) (dq : DFrac) (cs : List src.state.Command) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ sl ↦*{dq} cs }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ sl ↦*{dq} cs }}
       (App (repMB r go!"resolveCmds") (Val #sl))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encCmds (cs.map cmdOf)) ∗ sl ↦*{dq} cs }} := by
   unfold repMB
@@ -942,7 +942,7 @@ theorem wp_resolveCmds (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr
 theorem wp_resolvePreAccept_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq dqs : DFrac) (g : wire.gryffproto.PreAccept.Msg) (s : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
         l ↦{dq} wire.gryffproto.PreAccept.goVal g s ∗ s ↦*{dqs} g.Command }}
       (App (repMB r go!"resolvePreAccept") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.preAccept (preAcceptOf g)))) ∗
@@ -997,7 +997,7 @@ theorem resolvePreAccept_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc) (m :
 theorem wp_resolveAccept_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq dqs : DFrac) (g : wire.gryffproto.EAccept.Msg) (s : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
         l ↦{dq} wire.gryffproto.EAccept.goVal g s ∗ s ↦*{dqs} g.Command }}
       (App (repMB r go!"resolveAccept") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.accept (acceptOf g)))) ∗
@@ -1052,7 +1052,7 @@ theorem resolveAccept_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc) (m : mo
 theorem wp_resolveCommit_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq dqs : DFrac) (g : wire.gryffproto.ECommit.Msg) (s : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
         l ↦{dq} wire.gryffproto.ECommit.goVal g s ∗ s ↦*{dqs} g.Command }}
       (App (repMB r go!"resolveCommit") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.commit (commitOf g)))) ∗
@@ -1105,7 +1105,7 @@ theorem resolveCommit_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc) (m : mo
 theorem wp_resolvePrepareReply_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq dqs : DFrac) (g : wire.gryffproto.PrepareReply.Msg) (s : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗
         l ↦{dq} wire.gryffproto.PrepareReply.goVal g s ∗ s ↦*{dqs} g.Command }}
       (App (repMB r go!"resolvePrepareReply") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.prepareReply (prepareReplyOf g)))) ∗
@@ -1163,7 +1163,7 @@ theorem resolvePrepareReply_proof (γ : GryffNames GF) (k : Fin 3) (r p : Loc) (
 theorem wp_resolvePreAcceptReply_g (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (tr : List Ev)
     (ws : List w64) (l : Loc) (dq : DFrac) (g : src.gryffproto.PreAcceptReply) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p tr ws ∗ l ↦{dq} g }}
       (App (repMB r go!"resolvePreAcceptReply") (Val #l))
     {{ RET #(); replicaProph (GF := GF) γ k p tr (ws ++ encEv (.msg (.preAcceptReply (preAcceptReplyOf g)))) ∗
         l ↦{dq} g }} := by
@@ -1220,8 +1220,8 @@ variable [gA : examples.gryffnet.Assumptions] [wire.BufioSpecs GF]
 
 theorem wp_resolveU64_test (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (t : List Ev)
     (ws : List w64) (x : w64) :
-    {{ r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaProph (GF := GF) γ k p t ws }}
-      (App (Val (r.[src.gryff.Replica, go!"proph"] @!!
+    {{ globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p t ws }}
+      (App (Val (globalAddr src.gryff.traceProph @!!
         go.PointerType github_com.goose_lang.primitive.ProphId.ty @!! go!"ResolveU64")) (Val #x))
     {{ RET #(); replicaProph (GF := GF) γ k p t (ws ++ [x]) }} :=
   wp_resolveU64 γ k r p t ws x

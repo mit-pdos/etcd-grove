@@ -36,7 +36,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem 
 `loopTok` holds the boot resources of). -/
 theorem lock_boot_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r : Loc)
     (p : ProphId) :
-    r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ replicaLockInv γ ρ k r p ∗ loopTok γ ρ k r ⊢
+    globalAddr src.gryff.traceProph ↦□ p ∗ replicaLockInv γ ρ k r p ∗ loopTok γ ρ k r ⊢
       |==> ((∃ (t : List Ev) (xs : replica.XS), lockedAt γ ρ k r p t xs) ∗ loopTok γ ρ k r) := by
   iintro ⟨#Hp, Hli, Htok⟩
   unfold loopTok

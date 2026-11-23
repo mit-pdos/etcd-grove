@@ -4,7 +4,7 @@ Ported from dsverify-lab examples/gryff/proof/GryffProof/Model/Codec.lean (run g
 The events' encoding as prophecy words (D9, stage 2 plan §1, §5): `evCodec : kahn.Codec Ev`.
 
 Each replica resolves its trace prophecy with `enc e` at each event `e` it takes (Go:
-`src/gryff/proph.go`, one resolution function per event kind, one `ResolveU64` per word, in this
+`etc/proph-patches/dsv-gryff/01-trace-prophecy.patch`, one resolution function per event kind, one `ResolveU64` per word, in this
 order). `enc e` is a kind word, then the fields of the event's projection (`Msg.lean`: the fields
 the model keeps; a dropped Go field is not resolved), in the structure's field order, each as a
 `w64` the way Go's `uint64(x)` converts it (Perennial's `convert_*_to_uint64`):

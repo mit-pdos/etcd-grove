@@ -82,7 +82,7 @@ def depsOf (a : GoArray w32 5) : Deps := a.arr
 
 open wire.gryffproto in
 /-- The model's view of each message kind (the fields `Model/Msg.lean` keeps, in its order; the
-same projection the trace prophecy's words resolve: `proph.go`, `Model/Codec.lean`). -/
+same projection the trace prophecy's words resolve: the prophecy patch `etc/proph-patches/dsv-gryff/`, `Model/Codec.lean`). -/
 def read1Of (g : Read1Proxied.Msg) : model.Read1ProxiedM :=
   ⟨g.RequestId', g.ClientId', g.K', depOf g.D', g.ReplicaId', vtOf g.Vt'⟩
 open wire.gryffproto in
@@ -776,7 +776,7 @@ def replicaLockInv (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r : Loc) 
 prophecy at the empty trace, the trace's half, and the replica's heap at the initial state but
 the EPaxos part (which the lock's boot state holds, `lockBoot`). -/
 def bootRest (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r : Loc) : IProp GF :=
-  iprop(∃ (p : ProphId) (gR pa co h : Loc), r.[src.gryff.Replica, go!"proph"] ↦□ p ∗
+  iprop(∃ (p : ProphId) (gR pa co h : Loc), globalAddr src.gryff.traceProph ↦□ p ∗
     traceHalf γ.proto k [] ∗ replicaProph γ.proto k p [] [] ∗
     r.[src.gryff.Replica, go!"Replica"] ↦□ gR ∗ r.[src.gryff.Replica, go!"parti"] ↦□ pa ∗
     r.[src.gryff.Replica, go!"coord"] ↦□ co ∗
@@ -1003,7 +1003,7 @@ the lock invariant, the two channels it sends to, the invariants. -/
     r.[src.gryff.Replica, go!"Replica"] ↦□ gR ∗
     r.[src.gryff.Replica, go!"rmwHandler"] ↦□ handlerIface h ∗
     r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗
-    r.[src.gryff.Replica, go!"proph"] ↦□ p ∗
+    globalAddr src.gryff.traceProph ↦□ p ∗
     r.[src.gryff.Replica, go!"Shutdown"] ↦□ false ∗ -- H-X-4 (`executeCommands`' loop test)
     h.[src.gryff.EPaxosRMWHandler, go!"R"] ↦□ r ∗
     h.[src.gryff.EPaxosRMWHandler, go!"exec"] ↦□ ex ∗ ex.[src.gryff.Exec, go!"r"] ↦□ h ∗
@@ -1336,7 +1336,7 @@ theorem isExec_open (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Lo
     isExec γ ρ k r h ⊣⊢ ∃ (gR mtx ex : Loc) (p : ProphId),
       r.[src.gryff.Replica, go!"Replica"] ↦□ gR ∗
       r.[src.gryff.Replica, go!"rmwHandler"] ↦□ handlerIface h ∗
-      r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗ r.[src.gryff.Replica, go!"proph"] ↦□ p ∗
+      r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗ globalAddr src.gryff.traceProph ↦□ p ∗
       r.[src.gryff.Replica, go!"Shutdown"] ↦□ false ∗ -- H-X-4
       h.[src.gryff.EPaxosRMWHandler, go!"R"] ↦□ r ∗
       h.[src.gryff.EPaxosRMWHandler, go!"exec"] ↦□ ex ∗ ex.[src.gryff.Exec, go!"r"] ↦□ h ∗

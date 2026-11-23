@@ -375,7 +375,7 @@ theorem wf_math_rand : GetIsPkgInitProp pkg_id.math.rand (getIsPkgInit (GF := GF
 theorem wf_gryff_src_gryff : GetIsPkgInitProp pkg_id.gryff.src.gryff (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_gryff_src_epaxosproto, wf_sort, wf_time, wf_gryff_src_dlog, wf_gryff_src_gryffproto, wf_gryff_src_bloomfilter, wf_encoding_binary, wf_gryff_src_fastrpc, wf_gryff_src_genericsmr, wf_gryff_src_genericsmrproto, wf_io, wf_log, wf_math, wf_gryff_src_state, wf_sync_atomic, wf_github_com_goose_lang_primitive, wf_gryff_src_gryffcommon, wf_bufio, wf_gryff_src_clientproto, wf_fmt, wf_math_rand, wf_gryff_src_stats, wf_sync, True.intro⟩
+  exact ⟨wf_gryff_src_epaxosproto, wf_sort, wf_time, wf_gryff_src_dlog, wf_gryff_src_gryffproto, wf_github_com_goose_lang_primitive, wf_gryff_src_bloomfilter, wf_encoding_binary, wf_gryff_src_fastrpc, wf_gryff_src_genericsmr, wf_gryff_src_genericsmrproto, wf_io, wf_log, wf_math, wf_gryff_src_state, wf_sync_atomic, wf_gryff_src_gryffcommon, wf_bufio, wf_gryff_src_clientproto, wf_fmt, wf_math_rand, wf_gryff_src_stats, wf_sync, True.intro⟩
 
 theorem wf_gryff_src_masterproto : GetIsPkgInitProp pkg_id.gryff.src.masterproto (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -1807,27 +1807,27 @@ theorem wp_gryff_own :
       as ⟨Hown, #Hd18⟩
     wp_apply (_root_.Perennial.gryff.src.gryffcommon.wp_initialize' _ wfNo_gryff_src_gryffcommon) $$ Hown
       as ⟨Hown, #Hd17⟩
-    wp_apply (_root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ wfNo_github_com_goose_lang_primitive) $$ Hown
-      as ⟨Hown, #Hd16⟩
     wp_apply (_root_.Perennial.sync.atomic.wp_initialize' _ wfNo_sync_atomic) $$ Hown
-      as ⟨Hown, #Hd15⟩
+      as ⟨Hown, #Hd16⟩
     wp_apply (_root_.Perennial.gryff.src.state.wp_initialize' _ wfNo_gryff_src_state) $$ Hown
-      as ⟨Hown, #Hd14⟩
+      as ⟨Hown, #Hd15⟩
     wp_apply (_root_.Perennial.math.wp_initialize' _ wfNo_math) $$ Hown
-      as ⟨Hown, #Hd13⟩
+      as ⟨Hown, #Hd14⟩
     wp_apply (_root_.Perennial.log.wp_initialize' _ wfNo_log) $$ Hown
-      as ⟨Hown, #Hd12⟩
+      as ⟨Hown, #Hd13⟩
     wp_apply (_root_.Perennial.io.wp_initialize' _ wfNo_io) $$ Hown
-      as ⟨Hown, #Hd11⟩
+      as ⟨Hown, #Hd12⟩
     wp_apply (_root_.Perennial.gryff.src.genericsmrproto.wp_initialize' _ wfNo_gryff_src_genericsmrproto) $$ Hown
-      as ⟨Hown, #Hd10⟩
+      as ⟨Hown, #Hd11⟩
     wp_apply (_root_.Perennial.gryff.src.genericsmr.wp_initialize' _ wfNo_gryff_src_genericsmr) $$ Hown
-      as ⟨Hown, #Hd9⟩
+      as ⟨Hown, #Hd10⟩
     wp_apply (_root_.Perennial.gryff.src.fastrpc.wp_initialize' _ wfNo_gryff_src_fastrpc) $$ Hown
-      as ⟨Hown, #Hd8⟩
+      as ⟨Hown, #Hd9⟩
     wp_apply (_root_.Perennial.encoding.binary.wp_initialize' _ wfNo_encoding_binary) $$ Hown
-      as ⟨Hown, #Hd7⟩
+      as ⟨Hown, #Hd8⟩
     wp_apply (_root_.Perennial.gryff.src.bloomfilter.wp_initialize' _ wfNo_gryff_src_bloomfilter) $$ Hown
+      as ⟨Hown, #Hd7⟩
+    wp_apply (_root_.Perennial.github_com.goose_lang.primitive.wp_initialize' _ wfNo_github_com_goose_lang_primitive) $$ Hown
       as ⟨Hown, #Hd6⟩
     wp_apply (_root_.Perennial.gryff.src.gryffproto.wp_initialize' _ wfNo_gryff_src_gryffproto) $$ Hown
       as ⟨Hown, #Hd5⟩

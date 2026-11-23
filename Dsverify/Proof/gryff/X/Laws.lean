@@ -96,7 +96,7 @@ structure ExecLaws (k : Fin 3) (ρ : Repl2Names) (r h : Loc) (p : ProphId) where
   /-- `resolveExec(q, i)` (`resolveExec.wp`) -/
   res_wp : ∀ t ws (q i : w32),
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.gryff ∗
-        r.[src.gryff.Replica, go!"proph"] ↦□ p ∗ Pr t ws ∗ iprop(True) }}
+        globalAddr src.gryff.traceProph ↦□ p ∗ Pr t ws ∗ iprop(True) }}
       (App (App (Val (r @!! go.GoType.PointerType src.gryff.Replica.ty @!! go!"resolveExec"))
         (Val #q)) (Val #i))
     {{ RET #(); Pr t (ws ++ model.evCodec.enc (.exec q i)) ∗ iprop(True) }}
@@ -131,7 +131,7 @@ the generic replica `gR`), the persistent facts of the laws, and `dlog` off. -/
 def ExecLaws.isExecG (L : ExecLaws (GF := GF) k ρ r h p) (gR mtx ex : Loc) : IProp GF :=
   iprop(r.[src.gryff.Replica, go!"Replica"] ↦□ gR ∗
     r.[src.gryff.Replica, go!"rmwHandler"] ↦□ handlerIface h ∗
-    r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗ r.[src.gryff.Replica, go!"proph"] ↦□ p ∗
+    r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗ globalAddr src.gryff.traceProph ↦□ p ∗
     h.[src.gryff.EPaxosRMWHandler, go!"R"] ↦□ r ∗
     h.[src.gryff.EPaxosRMWHandler, go!"exec"] ↦□ ex ∗ ex.[src.gryff.Exec, go!"r"] ↦□ h ∗
     gR.[src.genericsmr.Replica, go!"Id"] ↦□ rid32 k ∗
@@ -151,7 +151,7 @@ instance ExecLaws.isExecG_pers (L : ExecLaws (GF := GF) k ρ r h p) (gR mtx ex :
 theorem ExecLaws.isExecG_open (L : ExecLaws (GF := GF) k ρ r h p) (gR mtx ex : Loc) :
     L.isExecG gR mtx ex ⊣⊢ r.[src.gryff.Replica, go!"Replica"] ↦□ gR ∗
     r.[src.gryff.Replica, go!"rmwHandler"] ↦□ handlerIface h ∗
-    r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗ r.[src.gryff.Replica, go!"proph"] ↦□ p ∗
+    r.[src.gryff.Replica, go!"mtx"] ↦□ mtx ∗ globalAddr src.gryff.traceProph ↦□ p ∗
     h.[src.gryff.EPaxosRMWHandler, go!"R"] ↦□ r ∗
     h.[src.gryff.EPaxosRMWHandler, go!"exec"] ↦□ ex ∗ ex.[src.gryff.Exec, go!"r"] ↦□ h ∗
     gR.[src.genericsmr.Replica, go!"Id"] ↦□ rid32 k ∗

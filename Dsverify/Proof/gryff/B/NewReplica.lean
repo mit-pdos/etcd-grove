@@ -216,7 +216,6 @@ theorem NewReplica_core (wp_rfl : lib.io.ReadFull.specLt (GF := GF) (hG := hG))
   ipersist fproxy
   ipersist fshortcircuitTime
   ipersist fmtx
-  ipersist fproph
   ipersist fmaxSeenTag
   ipersist fflush
   ipersist fread1Chan
