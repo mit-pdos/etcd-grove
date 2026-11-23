@@ -135,11 +135,10 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
-/-- **A mutex's cell is never owned whole** (the lock invariant holds a quarter of it). -/
-theorem swift.isMutex_own_false (m : Loc) (R : IProp netDistGF) (b : Bool) :
-    sync.isMutex m R ∗ typedPointsto m b (DFrac.own 1) ⊢ |={⊤}=> False := by
+/-- A lock's cell is never owned whole (the lock invariant holds a quarter of it). -/
+theorem swift.isLock_own_false (m : Loc) (R : IProp netDistGF) (b : Bool) :
+    isLock m R ∗ typedPointsto m b (DFrac.own 1) ⊢ |={⊤}=> False := by
   iintro ⟨#Hm, Hp⟩
-  rw [sync.isMutex_unseal]; unfold sync.isMutexDef
   rw [isLock_unseal]; unfold isLockDef
   icases Hm with ⟨#Hinv, -⟩
   iinv Hinv with Hi Hclose
@@ -153,6 +152,16 @@ theorem swift.isMutex_own_false (m : Loc) (R : IProp netDistGF) (b : Bool) :
   have h : (Qp.quarter : Rat) + (1 : Qp) ≤ 1 := Hbad
   simp at h
   grind
+
+/-- **A mutex's cell is never owned whole** (its `mu` is a lock's: `isLock_own_false`). PORT:
+Perennial's `sync.Mutex` is now a struct whose field `mu` is the lock. -/
+theorem swift.isMutex_own_false (m : Loc) (R : IProp netDistGF) (v : sync.Mutex) :
+    sync.isMutex m R ∗ typedPointsto m v (DFrac.own 1) ⊢ |={⊤}=> False := by
+  iintro ⟨#Hm, Hp⟩
+  iStructNamed Hp
+  rw [sync.isMutex_unseal]; unfold sync.isMutexDef
+  iapply swift.isLock_own_false $$ [Hm mu]
+  iframe Hm mu
 
 /-- **A fresh descriptor enters the share map** (its first use: `allocDesc`'s fresh
 `&commandDesc{}`): it owns `successorsL` whole (so it is not a key: `isMutex_own_false`); its
