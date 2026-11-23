@@ -40,16 +40,24 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions]
 
-/-- **A hypothesis** (no spec of `net`'s `(*TCPAddr).String` exists; the lab's
-`net.TCPConn.RemoteAddr.wp_String`): `String()` of a `*TCPAddr` returns some string.
+/-- The lab's `net.TCPConn.RemoteAddr.wp_String` (proved below, `tcpAddrString`): `String()` of a `*TCPAddr` returns some string.
 `clientListener` uses only that it returns (`strings.Split(conn.RemoteAddr().String(), ":")[0]`,
-for `IsProxy` on an empty `ProxyInfo` and `WaitDuration` on a nil latency table). A premise of
-the theorems that use it, never an instance. -/
+for `IsProxy` on an empty `ProxyInfo` and `WaitDuration` on a nil latency table). -/
 def TCPAddrStringHyp : Prop :=
   ∀ (pa : Loc) (v : net.TCPAddr),
   {{ (pa ↦□ v : IProp GF) }}
     (App (Val #(methods (go.GoType.PointerType net.TCPAddr.ty) go!"String" #pa)) (Val #()))
   {{ (s : GoString), RET #s; True }}
+
+/-- `TCPAddrStringHyp` holds of `Net/`'s model (`TrustedCode/net.lean`'s `TCPAddr.String.impl`, an
+arbitrary string): dsv-swiftpaxos's `net.wp_TCPAddr_String` (`lib/NetConn.lean`). -/
+theorem tcpAddrString : TCPAddrStringHyp (GF := GF) := by
+  intro pa v
+  wp_start
+  iapply wp_net_AnyString
+  iintro %s
+  iapply HΦ
+  itrivial
 
 /-- `Close()` of a connection whose outcome nobody keeps (`net.Conn.Close.spec` by `close_au`). -/
 theorem wp_connClose (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
@@ -71,8 +79,8 @@ theorem wp_connClose (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoI
     iintro %err -
     iapply HΦ; itrivial
 
-/-- `a.String()` of a connection's address (`netAddr`), by `TCPAddrStringHyp`. -/
-theorem wp_addrString (hStr : TCPAddrStringHyp (GF := GF)) (ra : GoInterface) :
+/-- `a.String()` of a connection's address (`netAddr`), by `tcpAddrString`. -/
+theorem wp_addrString (ra : GoInterface) :
     {{ net.netAddr (GF := GF) ra }}
       (App (App (Val (GoInstruction (MethodResolve net.Addr.ty go!"String"))) (Val #ra)) (Val #()))
     {{ (s : GoString), RET #s; True }} := by
@@ -81,7 +89,7 @@ theorem wp_addrString (hStr : TCPAddrStringHyp (GF := GF)) (ra : GoInterface) :
   icases Hna with ⟨%pa, %va, %Hra, #Hpa⟩
   subst Hra
   wp_auto
-  wp_apply hStr pa va $$ [$Hpa] as %s -
+  wp_apply tcpAddrString pa va $$ [$Hpa] as %s -
   iapply HΦ; itrivial
 
 /-- What a client connection's stream (`repDialP`) holds is a prefix of the client's proposal. -/
@@ -171,8 +179,7 @@ theorem client_nextIs (γ : EpNames) (a : GoString) (pr t : Loc) (cid : Nat) (eo
   exact ⟨t, ht.2⟩
 
 theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Println.spec (GF := GF))
-    (hIsProxy : config.ProxyInfo.IsProxy.spec (GF := GF)) (hPU : replica.defs.Propose.Unmarshal.spec (GF := GF))
-    (hStr : TCPAddrStringHyp (GF := GF)) :
+    (hIsProxy : config.ProxyInfo.IsProxy.spec (GF := GF)) (hPU : replica.defs.Propose.Unmarshal.spec (GF := GF)) :
     replica.Replica.clientListener.spec (GF := GF) := by
   intro γ r id L p Rext conn cid c i fsl first t la ra ed eof
   wp_start as ⟨#Hrun, #Hci, Hsend, Hrecv, Hop, #Hcc, %Hfirst, Hfsl⟩
@@ -249,7 +256,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
   icases Hna' with ⟨%pa, %va, %Hra, #Hpa⟩
   rw [Hra]
   wp_auto
-  wp_apply hStr pa va $$ [$Hpa] as %s0 -
+  wp_apply tcpAddrString pa va $$ [$Hpa] as %s0 -
   rw [← Hra]
   wp_apply (strings.wp_Split s0 go!":" (by decide)) as %ssl ⟨Hssl, -⟩
   ihave %Hsl := ownSlice_len _ _ _ $$ Hssl
