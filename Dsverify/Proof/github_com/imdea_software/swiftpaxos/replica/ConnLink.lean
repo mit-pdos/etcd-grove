@@ -11,14 +11,14 @@ with `ReadByte`, so no `Peek` is called.
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnectToPeers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Serve
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClientListener
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClientCallees
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.ProposeUnmarshal
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClosestPeers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetConn
 

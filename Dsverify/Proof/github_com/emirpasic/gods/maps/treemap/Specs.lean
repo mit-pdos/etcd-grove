@@ -39,13 +39,13 @@ instance cmpOk_persistent (cmp : GoFunc) (enc : w64 → GoInterface) :
 (`SwiftLibs.isTreeMap`; the lab's was over its model's slice of entries). -/
 def isTreeMap [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] (tm : Loc)
     (enc : w64 → GoInterface) (es : Entries) : IProp GF :=
-  l.isTreeMap tm enc es
+  l.isTreeMap hG tm enc es
 
 /-- A map's entries are sorted (`SwiftLibs.isTreeMap_sorted`). -/
 theorem isTreeMap_sorted [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] (tm : Loc)
     (enc : w64 → GoInterface) (es : Entries) :
     isTreeMap (GF := GF) tm enc es ⊢ isTreeMap tm enc es ∗ ⌜sortedE es⌝ :=
-  l.isTreeMap_sorted tm enc es
+  l.isTreeMap_sorted hG tm enc es
 
 end defs
 

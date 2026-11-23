@@ -128,6 +128,9 @@ class RpcHttpAddr (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [S
   httpW_hs : ∀ W a, worldHs (httpW W) a = connectReq defaultRPCPath
   httpW_hsAns : ∀ W a, worldHsAns (httpW W) a = connectAns
   httpW_SS : ∀ W, (httpW W).SS = W.SS
+  /-- Its connection registry is `W`'s (models-rpc-http's `{W with hs, hsAns}` keeps `reg`;
+  dsv-epaxos's `httpW_reg`): the start allocates `regInv` of the kit's world from `W`'s name. -/
+  httpW_reg : ∀ W, (httpW W).reg = W.reg
   /-- A listener address's rpc protocols (the file header). -/
   rpcLisP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)

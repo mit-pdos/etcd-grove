@@ -11,7 +11,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Sender
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Writers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumLink
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 
 @[expose] public section
 

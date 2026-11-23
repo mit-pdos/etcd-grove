@@ -125,9 +125,39 @@ theorem netShaExts_hasSha256 :
 theorem netSha_noCollision : Sha256NoCollision sha256NoCollisionFilter :=
   sha256NoCollisionFilter_noCollision
 
-/-- The ghost state of a machine of the deployment (the lab's `netDistGF`): `Net`'s `netGF`, whose
-universal slot holds the ghost state of both extensions. -/
-abbrev netDistGF : BundledGFunctors := netGF
+section gf
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+
+/-- The ghost state of a machine of the deployment (the lab's `netDistGF`): remote's `remoteGF`
+(`Net`'s `netGF` with iris-lean's non-atomic invariants at slot 8, which remote's `Check` needs,
+`NaInvG`) over the values of `netShaExts` (the heap's and the prophecies' slots name `val`, which
+depends on the extension list, so `remoteGF`, over `netExts`'s, does not do), whose universal slot
+holds the ghost state of both extensions. -/
+def netDistGF : BundledGFunctors := fun
+  | 0 => ⟨AllURF, inferInstance⟩
+  | 1 => ⟨InvMapF, inferInstance⟩
+  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
+  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
+  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
+  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
+  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)), inferInstance⟩
+  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
+  | 8 => ⟨NaInvF, inferInstance⟩
+  | _ => ⟨constOF Unit, inferInstance⟩
+
+/-- `netDistGF`'s slots for `netShaExts`: both extensions' ghost state in the universal slot 0. -/
+instance netShaGpreS : GooseGpreS netDistGF where
+  goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
+  goose_preG_heap := ⟨⟨5, rfl⟩⟩
+  goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
+  goosePreGExts := (⟨allGOfSlot 0 rfl⟩, allGOfSlot 0 rfl, PUnit.unit)
+  goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
+  goosePreGAllG := allGOfSlot 0 rfl
+
+/-- Its non-atomic invariants (remote's `Check`). -/
+instance netDistGF_naInvG : NaInvG netDistGF := ⟨⟨8, rfl⟩⟩
+
+end gf
 
 end Dsv
 
@@ -168,15 +198,16 @@ class SwiftLibs (GF : BundledGFunctors) extends Net.NetProtoGS where
   gobFmt : sp.GobFmt
   /-- lab `Proof/treemap/Specs.lean` `treemap.isTreeMap`: the `*treemap.Map` at `tm` holds the
   sorted entries `es`, keys encoded by `enc`. -/
-  isTreeMap : Loc → (w64 → GoInterface) → github_com.emirpasic.gods.maps.treemap.Entries → IProp GF
+  isTreeMap : HeapGS HasLC.hasLC GF → Loc → (w64 → GoInterface) →
+    github_com.emirpasic.gods.maps.treemap.Entries → IProp GF
   /-- lab `treemap.isTreeMap_sorted`. -/
-  isTreeMap_sorted : ∀ tm enc es, isTreeMap tm enc es ⊢
-    isTreeMap tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝
+  isTreeMap_sorted : ∀ hG tm enc es, isTreeMap hG tm enc es ⊢
+    isTreeMap hG tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝
   /-- A fresh `*gob.Encoder` at `enc` writing to `w` (Spec/encoding/gob/Defs.lean; the lab's
   model's `enc ↦ Encoder{w}`). The format it writes is the parent `sp.GobFmt`'s. -/
-  gobEncoder : Loc → GoInterface → IProp GF
+  gobEncoder : HeapGS HasLC.hasLC GF → Loc → GoInterface → IProp GF
   /-- A fresh `*gob.Decoder` at `dec` reading `r` directly (the lab's model's `dec ↦ Decoder{r}`). -/
-  gobDecoder : Loc → GoInterface → IProp GF
+  gobDecoder : HeapGS HasLC.hasLC GF → Loc → GoInterface → IProp GF
 
 /-- gob's format from the libraries at the deployment's ghost state: an instance with `GF` fixed
 (an instance through a parent projection would leave `GF` undetermined, which instance search

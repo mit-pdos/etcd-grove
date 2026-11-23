@@ -69,12 +69,12 @@ instance codecSet_persistent : Persistent (codecSet (GF := GF)) := by
 /-- A fresh `*gob.Encoder` at `enc` writing to `w` (`SwiftLibs.gobEncoder`). -/
 def ownEncoder [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] (enc : Loc)
     (w : GoInterface) : IProp GF :=
-  l.gobEncoder enc w
+  l.gobEncoder hG enc w
 
 /-- A fresh `*gob.Decoder` at `dec` reading `r` directly (`SwiftLibs.gobDecoder`). -/
 def ownDecoder [l : github_com.imdea_software.swiftpaxos.SwiftLibs GF] (dec : Loc)
     (r : GoInterface) : IProp GF :=
-  l.gobDecoder dec r
+  l.gobDecoder hG dec r
 
 /-- The `*MSync` at `l` holds `m` (see the file header). -/
 def syncOwn (l : Loc) (dq : DFrac) (m : github_com.imdea_software.swiftpaxos.sp.SyncWire) :

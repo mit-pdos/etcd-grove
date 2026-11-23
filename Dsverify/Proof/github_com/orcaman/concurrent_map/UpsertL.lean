@@ -18,7 +18,7 @@ ghost variable (the library's), so nobody else changes `key`'s binding while it 
 -/
 module
 
-public import Dsverify.Proof.github_com.orcaman.concurrent_map.Link
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
 
 @[expose] public section
 

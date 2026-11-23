@@ -14,7 +14,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Rcvr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSystem
-public import Dsverify.Proof.github_com.orcaman.concurrent_map.Link
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServersSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewProof
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChan
@@ -27,9 +27,9 @@ public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.InitCsR
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CmapBridge
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.New
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLink
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalOpt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalFac
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarint

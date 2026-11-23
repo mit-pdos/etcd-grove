@@ -25,7 +25,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Client_
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Client__findClosest
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleReply
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.NewClient
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Perennial.Proof.bytes.Link
 
 -- PORT: lab imports dropped: Harness.Proof.net.rpc.Client, Harness.Proof.net.TCPConn__Close

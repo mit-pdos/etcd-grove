@@ -17,7 +17,7 @@ knows it: the earlier shards' keys are in other shards (`iterTraceUpTo_shard_lt`
 -/
 module
 
-public import Dsverify.Proof.github_com.orcaman.concurrent_map.Link
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
 
 @[expose] public section
 

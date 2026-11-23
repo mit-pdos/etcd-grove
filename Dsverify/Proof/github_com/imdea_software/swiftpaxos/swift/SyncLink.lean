@@ -21,12 +21,12 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeade
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SortedProposes
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncOrder
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSyncLink
-public import Dsverify.Proof.github_com.orcaman.concurrent_map.Link
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.IterCbN
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumLink
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLink
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalSync
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalBase
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FreeDesc

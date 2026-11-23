@@ -10,7 +10,7 @@ general `wp_IterCbV`, the view in the client's own invariant.
 -/
 module
 
-public import Dsverify.Proof.github_com.orcaman.concurrent_map.Link
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
 
 @[expose] public section
 

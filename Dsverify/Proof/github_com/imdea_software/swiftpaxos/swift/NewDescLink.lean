@@ -20,8 +20,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DeliverP
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChan
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CmdStr
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Link
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Results
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumLink
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.hook.OptCondF

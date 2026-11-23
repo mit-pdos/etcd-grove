@@ -13,7 +13,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.New
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ReplicaListener
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.WaitDuration
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLink
 
 @[expose] public section
