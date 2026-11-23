@@ -254,22 +254,28 @@ func DialHTTPPath(network, address, path string) (*Client, error) {
 // timeout. The net extension's semantics allows bytes after a read error (a broken connection's
 // surviving bytes), with which the answer's status line cut by an error and a later "\n" would
 // parse, leaving the answer's last byte unread on the connection the client then uses. So the
-// model drops them: after an error, a read returns no byte, and the connection's error, or
-// io.ErrUnexpectedEOF in place of bytes (a case Linux does not have). Over Linux the same
-// behavior as Go's.
+// model drops them: after an error, a read reads the connection into a buffer of its own and
+// returns no byte, with the connection's error, or io.ErrUnexpectedEOF in place of bytes (a case
+// Linux does not have); an empty read returns (0, nil) at once (bufio.Reader asks none). Over Linux
+// the same behavior as Go's.
 type connectReader struct {
 	r      io.Reader
 	failed bool
 }
 
 func (c *connectReader) Read(p []byte) (int, error) {
-	n, err := c.r.Read(p)
+	if len(p) == 0 {
+		// (an empty read: none here, bufio.Reader asks none)
+		return 0, nil
+	}
 	if c.failed {
+		_, err := c.r.Read(make([]byte, len(p)))
 		if err == nil {
 			err = io.ErrUnexpectedEOF
 		}
 		return 0, err
 	}
+	n, err := c.r.Read(p)
 	if err != nil {
 		c.failed = true
 	}

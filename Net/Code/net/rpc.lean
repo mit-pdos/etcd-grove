@@ -706,7 +706,7 @@ noncomputable def DialHTTPPath.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.Conn.ty))) (Pair (Var "conn") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: client.go:265:25 -/
+/-- go: client.go:266:25 -/
 noncomputable def connectReader.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "p"
@@ -715,6 +715,8 @@ noncomputable def connectReader.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType connectReader.ty)))) (Var "c"))
   (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef connectReader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType connectReader.ty)))) (Var "c"))))) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
@@ -723,7 +725,6 @@ noncomputable def connectReader.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Var "$ret1")
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -743,7 +744,21 @@ noncomputable def connectReader.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef connectReader.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType connectReader.ty)))) (Var "c"))) (Var "$r0")))))
   (App (Val doExecute)
   (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef connectReader.ty go!"failed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType connectReader.ty)))) (Var "c"))))
+  (Let "__p" (Let "$a0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Reader.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef connectReader.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType connectReader.ty)))) (Var "c"))))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -760,18 +775,32 @@ noncomputable def connectReader.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
   (App (Val doExecute)
-  (Val #()))))
-  (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))))))
+  (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- Dial connects to an RPC server at the specified network address.
 
-    go: client.go:280:6 -/
+    go: client.go:286:6 -/
 noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -825,7 +854,7 @@ noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Close calls the underlying codec's Close method. If the connection is already
     shutting down, [ErrShutdown] is returned.
 
-    go: client.go:290:23 -/
+    go: client.go:296:23 -/
 noncomputable def Client.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam BAnon
@@ -868,7 +897,7 @@ noncomputable def Client.Close.impl [GooseExts] [GoGlobalContext] : val :=
     the same Call object. If done is nil, Go will allocate a new channel.
     If non-nil, done must be buffered or Go will deliberately crash.
 
-    go: client.go:305:23 -/
+    go: client.go:311:23 -/
 noncomputable def Client.Go.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam "serviceMethod"
@@ -930,7 +959,7 @@ noncomputable def Client.Go.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Call invokes the named function, waits for it to complete, and returns its error status.
 
-    go: client.go:327:23 -/
+    go: client.go:333:23 -/
 noncomputable def Client.Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam "serviceMethod"
