@@ -1,14 +1,11 @@
-# The encoding/json model's codec for the vr kit (models/json/jsongen.py; notes/dsv-vr.md).
-# Generate from the repository root:
+# The encoding/json model's codec for the vr kit (models/json/jsongen.py; notes/dsv-vr.md): the
+# registered codec, for the unnamed roots only (#24 J3: the named types' own JSONModel* methods are
+# jsongen's same-package mode, etc/dsv/vr.py's `jsonmodel_roots`, written by etc/goose.py into its
+# overlay). Generate from the repository root:
 #     models/json/jsongen.py examples/dsverify/vr/examples/vsrnet/json.toml examples/dsverify/vr/examples/vsrnet --pkg vsrnet
-# The roots: what events.(*Event).ToWriter encodes (*events.Event, whose Data holds one of the
-# messages below by value), what the frame decoder decodes (vsrwire.Frame, installed by vsrwire's
-# init; the unnamed frame of events.fromDecoderUnnamed, the path without vsrwire), then each message
-# by type; log.Logs and []log.Log (Logs' JSON methods).
+# The roots: what log.Logs' JSON methods pass to encoding/json ([]log.Log) and the unnamed frame of
+# events.fromDecoderUnnamed (the path without vsrwire's hook).
 [json]
-imports = { events = "github.com/tangledbytes/go-vsr/pkg/events", log = "github.com/tangledbytes/go-vsr/pkg/log", vsrwire = "github.com/tangledbytes/go-vsr/examples/vsrwire" }
-roots = ["events.Event", "events.Request", "events.Reply", "events.Prepare", "events.PrepareOK",
-         "events.Commit", "events.StartViewChange", "events.DoViewChange", "events.StartView",
-         "events.GetState", "events.NewState", "events.Heartbeat", "vsrwire.Frame",
-         "log.Logs", "[]log.Log",
+imports = { events = "github.com/tangledbytes/go-vsr/pkg/events", log = "github.com/tangledbytes/go-vsr/pkg/log" }
+roots = ["[]log.Log",
          'struct { Type events.EventType "json:\"@type\""; Data json.RawMessage "json:\"data\"" }']

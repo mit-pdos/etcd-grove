@@ -4,6 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.encoding.json
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.events
+public import Net.GeneratedProof.models_lab.jsoncodec
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.examples.vsrwire
 

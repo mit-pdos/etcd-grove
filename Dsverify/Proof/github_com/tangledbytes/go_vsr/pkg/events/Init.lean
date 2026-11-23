@@ -16,6 +16,7 @@ public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.encoding.json.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.log.Init
+public import Net.Proof.models_lab.jsoncodec.Init
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.errors.NewVar
 public import Net.Proof.runtime.PkgInitExt
@@ -60,6 +61,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := Loc) frameDecoderMu _ as HframeDecoderMu
   wp_apply wp_GlobalAlloc (V := GoFunc) frameDecoder _ as HframeDecoder
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrInvalidEventType _ as HErrInvalidEventType
+  wp_apply (_root_.Perennial.models_lab.jsoncodec.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.log.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.ipv4port.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'

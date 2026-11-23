@@ -9,6 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.log.Base
 public import Dsverify.Proof.encoding.json.Init
+public import Net.Proof.models_lab.jsoncodec.Init
 public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -47,7 +48,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.models_lab.jsoncodec.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
 

@@ -2,17 +2,21 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.encoding.json
 public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.remote
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.examples.vsrkv
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.examples.vsrwire
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.client
+public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.events
+public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.log
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.network
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.replica
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.time
 public import Perennial.GeneratedProof.io
 public import Dsverify.GeneratedProof.log.slog
+public import Net.GeneratedProof.models_lab.jsoncodec
 public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory

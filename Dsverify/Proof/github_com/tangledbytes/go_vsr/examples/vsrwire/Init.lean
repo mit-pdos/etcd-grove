@@ -11,6 +11,7 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrwire.Base
 public import Dsverify.Proof.encoding.json.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.events.Init
+public import Net.Proof.models_lab.jsoncodec.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.events.SetFrameDecoder
 public import Net.Proof.runtime.PkgInitExt
 
@@ -51,7 +52,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
-  wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (_root_.Perennial.models_lab.jsoncodec.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- the translated init.«0»
   wp_func_call

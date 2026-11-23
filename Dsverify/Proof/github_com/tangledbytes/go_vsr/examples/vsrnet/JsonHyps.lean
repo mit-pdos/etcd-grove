@@ -59,8 +59,10 @@ variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF] [encoding.json.EncoderRep GF]
 
-/-- **JSON premise** (see the file header): the kit's `RegisterJSON()` registers its codec. False of
-today's placeholder (an empty body); jsongen's registration's spec. -/
+/-- **JSON premise** (see the file header): the kit's `RegisterJSON()` registers its codec. False
+of the code (jsongen's `SetCodec(&json.Codec{jsonMarshal, jsonUnmarshal, jsoncodec.Scan})`): the
+precondition does not exclude a codec already registered, and then `SetCodec` panics; the main
+tree's `SetCodec.spec` takes `codecUnset` and the registry's mutex, a boot resource. -/
 abbrev RegisterJSON.codecSet_spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet }}
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.RegisterJSON)) (Val #()))

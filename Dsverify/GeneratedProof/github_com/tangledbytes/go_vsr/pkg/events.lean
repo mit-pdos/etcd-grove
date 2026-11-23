@@ -7,6 +7,7 @@ public import Perennial.GeneratedProof.errors
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.ipv4port
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.log
 public import Perennial.GeneratedProof.io
+public import Net.GeneratedProof.models_lab.jsoncodec
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.pkg.events

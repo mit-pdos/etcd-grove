@@ -19,7 +19,7 @@ GOOSE = dict(
     lean_roots=["github.com/tangledbytes/go-vsr=Dsverify", "log/slog=Dsverify",
                 "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
                 "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                "encoding/json=",
+                "encoding/json=", "models.lab=Net",
                 "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
     packages=["./pkg/assert", "./pkg/log", "./pkg/ipv4port", "./pkg/events", "./pkg/queue",
               "./pkg/time", "./pkg/network", "./pkg/client", "./pkg/replica",
@@ -29,6 +29,17 @@ GOOSE = dict(
              + ["./examples/vsrnet/cmd/server%d" % s for s in range(1, 6)],
     owned=[os.path.join("github_com", "tangledbytes"), os.path.join("log", "slog")],
     std_models=["encoding/json", "log/slog"],
+    # (#24 J3) the kit's named JSON types get jsongen's same-package methods (`JSONModel*`,
+    # `json_model_gen.go` in their packages, by goose's overlay: etc/goose.py `jsonmodel_roots`):
+    # every message type `events.Event` carries, the event itself, vsrwire's frame and go-vsr's
+    # `log.Logs` (whose own MarshalJSON/UnmarshalJSON the methods call). The unnamed roots
+    # (`[]log.Log`, the unnamed frame) are the registered codec's (`examples/vsrnet/json.toml`).
+    jsonmodel_roots=["github.com/tangledbytes/go-vsr/pkg/events." + t
+                     for t in ("Event", "Request", "Reply", "Prepare", "PrepareOK", "Commit",
+                               "StartViewChange", "DoViewChange", "StartView", "GetState",
+                               "NewState", "Heartbeat")]
+                    + ["github.com/tangledbytes/go-vsr/examples/vsrwire.Frame",
+                       "github.com/tangledbytes/go-vsr/pkg/log.Logs"],
 )
 
 # etc/gen-init.py: go-vsr's packages, the kit and its twelve machines' commands, and `log/slog`
