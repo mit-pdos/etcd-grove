@@ -21,6 +21,10 @@ neutral module path"). Translated by goose project `models` (`etc/goose.py`, lea
 | `json/`: the JSON codec generator `jsongen.py`, a per-type replacement of encoding/json's reflection | as for pbgen: plain Go over `jsoncodec` (Goose-translatable but for unnamed root struct types, built outside Goose) | **the generator** (as pbgen): for every set of types it accepts, the emitted code behaves as Go 1.27.3's encoding/json (the default build: the v1 API over encoding/json/v2). The trusted core is `json/jsongen_core.py` (its doc: the claim, the subset, the refusals, the encoding and decoding per kind with citations to Go's source, the deviations: error values, what comes with an error, slice capacities); its inputs are derived by reflection (`jsondesc/`) from the roots the `[json]` table names | `internal/jsongenrand` (random Go types of the subset against the real encoding/json: encodings of random values, decodings of encodings and their mutations into every type; one refused input per construct); the regression tests generated beside each codec (`internal/jsondifftest`, `internal/jsonvsr`: go-vsr's messages); `--check` of every input in the gates |
 | `encoding/json/`: Go 1.27.3's `encoding/json` as a model (a standard-library model: `goroot.py`) | Go's code (the default build's `v2_*.go`: the API, the error types, `Number`, `HTMLEscape`) but for reflection and encoding/json/v2, replaced by the program's generated codec (`model.go`), and the Decoder over jsontext (`v2_stream.go`: jsontext's buffer and top-level framing, the scanner `jsoncodec.Scan`); Goose translates it (checked by hand: a GOROOT of links, `goroot.py farm`); specs: the Lean half | that every behavior of Go's encoding/json the program observes is one of the model's (`model.go`'s doc: values, error-or-not and io.EOF/ErrUnexpectedEOF, bytes and Write calls, Read calls with their lengths); not modelled, a panic: MarshalIndent, Indent, Compact, SetIndent, Token, More, DisallowUnknownFields, v2's options | `internal/jsonstreamtest` (`run.sh`: the same stream tests against the real encoding/json and the model, both reproducing the real build's golden transcripts: vsr's wire format over net.Pipe and over scripted readers, chunk sizes, streams cut at every byte, read errors, malformed streams, 3000 random streams) |
 | `grpc/`: grpc-go v1.84.0 as a model (a module model: Go module `google.golang.org/grpc`, put in place by a `replace`, `grpc/gomodel.py`) | grpc-go's code (status, codes, metadata, peer, credentials, resolver, encoding, the options, `invoke`, the interceptor chains, the client stream's attempts and replay, the server stream, `processRPC`, `Serve`, `GracefulStop`, `Stop`) but for its transport and connection management, replaced by the model's (`model_*.go`: one stream per connection; see below); Lean: specs to come (phase 5.4's Lean half) | that every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it, is one of the model's (`model_transport.go`'s and `model_clientconn.go`'s docs; below) | `internal/grpcdifftest` (`run.sh`: the same tests against grpc-go and the model, faults included; the invariants with the model's choices random; `examples/` built against the model; `--etcd`: etcd's examples over the model) |
+| `gods/`: gods v1.18.1's `maps/treemap` and `utils` as a model (a module model: Go module `github.com/emirpasic/gods`, put in place by a `replace`) | the API the kits call (`NewWith`, `Put`, `Get`, `Select`, `Iterator`, `Next`, `Value`), the red-black tree replaced by a sorted slice (`MODEL:`); Goose takes it (tried 2026-11-23, no project yet); no spec yet | for a comparator that is a total preorder on the program's keys, every behavior of gods' treemap through that API is one of the model's (`maps/treemap/treemap.go`'s doc) | `internal/tpdifftest` (`run.sh`: the same random operation sequences against gods v1.18.1 and the model, equal transcripts, both checked against a reference) |
+| `uuid/`: google/uuid v1.3.1 as a model (module `github.com/google/uuid`) | v1.3.1's code for `Must`, `New`, `UUID.ID`, `UUID.Time` (with `encoding/binary`, Perennial's); `NewRandom`'s 16 bytes from goose's `primitive.RandomUint64` (`MODEL:`); Goose takes it (tried); no spec yet | every behavior of v1.3.1's `New`/`NewRandom` (crypto/rand, no pool) is one of the model's, `ID` and `Time` its results (`doc.go`) | `internal/tpdifftest` (`ID`/`Time` against v1.3.1 on random and edge UUIDs; `New`'s fixed and free bits in both builds) |
+| `concurrent-map/`: orcaman/concurrent-map v1.0.0 as a model (module `github.com/orcaman/concurrent-map`) | v1.0.0's code unchanged for what the kits call (`New`, `GetShard`, `Set`, `Upsert`, `Get`, `Has`, `Remove`, `IterCb`; `Count`, `IsEmpty` for the fork's tests), the rest removed; Goose takes it (tried); no spec yet | every behavior of v1.0.0 through that API is one of the model's (the same code; `concurrent_map.go`'s doc) | `diff.py concurrent-map` (removals only); `internal/tpdifftest` (random sequences under several `SHARD_COUNT`s and concurrent runs, against v1.0.0 and the model) |
+| `log/slog/`: Go 1.27.3's `log/slog` as a model (a standard-library model: `goroot.py`) | the API the vr kit calls (`New`, `DiscardHandler`, `Logger.{Debug,Info,Warn,Error,Handler}`, `Debug`, `Level`, `Handler`; `Record`, `Attr` opaque): Go's `New`, `DiscardHandler` and level check, the default handler's output dropped (`MODEL:`); Goose takes it (tried, with its bodies); no spec yet | **no effect the program observes**: every behavior of Go's log/slog through that API is one of the model's, for the handlers whose output the program cannot read (DiscardHandler; the default handler, level Info, to stderr); outside it (a `NotModelled` panic): a program-supplied Handler, the use of `Logger.Handler`'s result (`doc.go`) | `internal/slogdifftest` (`run.sh`: the same tests against Go's log/slog and the model, an overlay: returns and panics, a nil Logger, `New(nil)`, no argument method called, nothing written to stdout/stderr) |
 
 Layout: a model's Go package at the top (`pbcodec/`, `jsoncodec/`, `pbdesc/`, `rpcdesc/`, `jsondesc/`),
 its generator in a directory named for the library (`protobuf/`, `json/`, `net/rpc/`), its differential
@@ -28,7 +32,7 @@ tests in `internal/`. A model of a library is a first-class Go package (`notes/d
 are first-class Go packages"): it starts from the real library's source and keeps its API, the places
 it changes marked `MODEL:`; its difference from the library is computed, not stored: `diff.py MODEL
 [--stat]` (e.g. `net/rpc`). A model of a standard-library package lives at its import path
-(`net/rpc/`, `net/http/`, `encoding/json/`, in the modules `net/go.mod` and `encoding/go.mod`
+(`net/rpc/`, `net/http/`, `encoding/json/`, `log/slog/`, in the modules `net/go.mod`, `encoding/go.mod` and `log/go.mod`
 that nothing builds) and builds in place of the
 real package through `goroot.py` (`overlay`: a `go build -overlay` file, with `-tags netmodel` for a
 program's generated registration; `farm`: a GOROOT of links, for goose, a project's `std_models` in
@@ -93,6 +97,64 @@ program whose behavior depends on how many connections carry its calls is outsid
 `stats_handler.go:95-101`, so etcd's is not); no HTTP/2 framing, no server workers. `RegisterService` does not make
 grpc-go's reflection check of the handler's type (grpc-go exits when it fails; generated code cannot
 fail it).
+
+## The third-party library models (`gods/`, `uuid/`, `concurrent-map/`)
+
+Models of the third-party Go modules the dsverify kits use (mit-pdos/etcd-grove#24): SwiftPaxos's
+`state` package (the swiftpaxos and epaxos kits) keeps its store in a gods treemap; its `client`
+names itself with a uuid (the swiftpaxos kit); its `swift` package keeps its command descriptors in
+concurrent maps (the swiftpaxos kit). The dsverify lab replaced each module by a cut-down copy
+(`harness/rpcmodel/{gods,uuid,cmap}`); these are their models under the rules above. Each keeps its
+module's path and directory layout (a model build replaces the module, as for grpc: a kit's
+-modfile, or `etc/goose.py`'s `module_models`), starts from the module's source at the version
+SwiftPaxos's go.mod pins, and keeps of it **only the API the kits call** (every other exported name
+is left out, so a program that calls one does not build); the places it changes are marked
+`MODEL:`, and `diff.py gods|uuid|concurrent-map [--stat]` computes the difference (2026-11-23: gods
++98 -600 lines, uuid +45 -974, concurrent-map +17 -186). Each model's package doc states its
+trusted claim and what is not claimed:
+
+- **gods** (`maps/treemap/treemap.go`): the red-black tree is replaced by a slice sorted by the
+  comparator. Claimed for a comparator that is a total preorder on the program's keys (a function
+  that does not panic on two keys of the key type): the entries, `Get`'s results, `Put`'s
+  replacement of an equal key's key and value, `Select`'s calls of its predicate (once per entry, in
+  key order) and result, the iterator's order, `Next` false past the end, `Value` panicking with
+  no current entry, and `Put` on an empty map calling `comparator(k, k)` as gods does. Not
+  claimed: which pairs the comparator is called on, a map changed while an iterator over it is in
+  use.
+- **uuid** (`doc.go`): `NewRandom`'s bytes come from two `primitive.RandomUint64()` (any value in
+  Goose's semantics) where v1.3.1 reads crypto/rand.Reader; the version and variant bits are set by
+  v1.3.1's code; the error is nil (crypto/rand's Read cannot fail since Go 1.24). Not claimed: the
+  process's fatal error when the kernel's random source fails, uniqueness, the distribution.
+- **concurrent-map** (`concurrent_map.go`): v1.0.0's code, only shortened.
+
+The evidence is `internal/tpdifftest` (`run.sh`, in the gates): one test module built twice, against
+the real modules (its go.mod) and against the models (a temporary -modfile replacing the three, tag
+`tpmodel`); each build checks the library against the tests' own references and writes transcripts
+of everything it observed, and the two builds' transcripts must be equal byte for byte
+(2026-11-23: treemap 4000 random sequences, 157622 operations, 307570 transcript lines; uuid
+`ID`/`Time` on 20258 UUIDs, 20000 `New`/`NewRandom`/`Must` samples; concurrent-map 1510 random
+sequences, 92518 operations, SHARD_COUNT 1 to 32768, 60 concurrent runs of 8 goroutines).
+Beside it, SwiftPaxos's own tests (`state`, `swift`, `client` of the fork's packages under
+`examples/dsverify/swiftpaxos`, branch `dsv-swiftpaxos`) pass built against the three models
+(2026-11-23, by hand: a -modfile with the replaces).
+So do epaxos's (`epaxos`, `examples/epaxosnet`, `master`, `replica`, `state` under
+`examples/dsverify/epaxos`, branch `dsv-epaxos`) against the gods model. The gods model has no
+`goto` (gods' red-black tree iterator has, which goose refuses).
+
+## The log/slog model (`log/slog/`)
+
+A standard-library model (`goroot.py`), approved on #24: go-vsr (the vr kit) logs through
+`slog.New(slog.DiscardHandler)` and the package-level `slog.Debug`. Its claim is that logging has
+**no effect the program observes**, for the handlers whose output the program cannot read:
+`DiscardHandler` (Go's code: `Enabled` false, so a call returns at once, its arguments untouched)
+and the default handler behind `slog.Debug` (enabled from `LevelInfo`, the log package's level; the
+model drops what it would write to the log package's output, os.Stderr). A program that calls
+`log.SetOutput`, `log.SetFlags` or `slog.SetLogLoggerLevel` is outside the claim (the last is not in
+the model). Outside the model, a `NotModelled` panic: a Handler the program supplies to `New`, the
+use of `Logger.Handler`'s result. A nil `*Logger` panics as Go's (a nil dereference), `New(nil)` with
+"nil Handler". Evidence: `internal/slogdifftest/run.sh` (in the gates; 2026-11-23: 6 transcripts
+equal across the builds; the model's outside-the-model panics; a child process making every call
+writes nothing). go-vsr's own tests (`examples/dsverify/vr`, branch `dsv-vr`) pass against it.
 
 ## The other kinds of trusted model
 
