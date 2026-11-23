@@ -187,4 +187,111 @@ theorem plug_append (C D : Ctx α) (t : RB α) : plug (C ++ D) t = plug D (plug 
 
 end Ctx
 
+/-! ## Search: the keys around a subtree -/
+
+section search
+variable {α : Type u}
+
+/-- `k` is above every key before the context's hole and below every key after it. -/
+def Bounds (k : w64) (C : Ctx α) : Prop :=
+  (∀ e ∈ Ctx.pre C, sint.Z e.1 < sint.Z k) ∧ (∀ e ∈ Ctx.post C, sint.Z k < sint.Z e.1)
+
+theorem Bounds_nil (k : w64) : Bounds k ([] : Ctx α) := by simp [Bounds, Ctx.pre, Ctx.post]
+
+theorem lookupE_append_left (A B : List (w64 × α)) (k : w64) (h : ∀ e ∈ A, e.1 ≠ k) :
+    lookupE (A ++ B) k = lookupE B k := by
+  induction A with
+  | nil => rfl
+  | cons a A ih =>
+    have ha : a.1 ≠ k := h a (by simp)
+    simp only [lookupE, List.cons_append, List.find?_cons, ha, decide_false] at ih ⊢
+    exact ih (fun e he => h e (by simp [he]))
+
+theorem lookupE_append_right (A B : List (w64 × α)) (k : w64) (h : ∀ e ∈ B, e.1 ≠ k) :
+    lookupE (A ++ B) k = lookupE A k := by
+  induction A with
+  | nil =>
+    simp only [List.nil_append, lookupE]
+    rw [List.find?_eq_none.mpr (by intro e he; simpa using h e he)]
+    rfl
+  | cons a A ih =>
+    simp only [lookupE, List.cons_append, List.find?_cons] at ih ⊢
+    split <;> simp_all
+
+theorem sortedE_split {A B : List (w64 × α)} (hs : sortedE (A ++ B)) :
+    ∀ a ∈ A, ∀ b ∈ B, sint.Z a.1 < sint.Z b.1 := by
+  unfold sortedE at hs
+  rw [List.pairwise_append] at hs
+  exact hs.2.2
+
+theorem sortedE_left {A B : List (w64 × α)} (hs : sortedE (A ++ B)) : sortedE A := by
+  unfold sortedE at hs ⊢; exact (List.pairwise_append.mp hs).1
+
+theorem sortedE_right {A B : List (w64 × α)} (hs : sortedE (A ++ B)) : sortedE B := by
+  unfold sortedE at hs ⊢; exact (List.pairwise_append.mp hs).2.1
+
+/-- In a context with bounds, `k`'s value is the subtree's. -/
+theorem lookupE_plug (C : Ctx α) (t : RB α) (k : w64) (hb : Bounds k C) :
+    lookupE (Ctx.plug C t).entries k = lookupE t.entries k := by
+  rw [Ctx.plug_entries]
+  rw [List.append_assoc, lookupE_append_left _ _ k
+    (fun e he heq => by have := hb.1 e he; rw [heq] at this; omega)]
+  rw [lookupE_append_right _ _ k
+    (fun e he heq => by have := hb.2 e he; rw [heq] at this; omega)]
+
+/-- The keys of a node's subtrees, in a sorted tree. -/
+theorem sortedE_plug_node {C : Ctx α} {n : Loc} {k : w64} {v : α} {c : Bool} {L R : RB α}
+    (hs : sortedE (Ctx.plug C (.node n k v c L R)).entries) :
+    (∀ e ∈ L.entries, sint.Z e.1 < sint.Z k) ∧ (∀ e ∈ R.entries, sint.Z k < sint.Z e.1) ∧
+    (∀ e ∈ Ctx.pre C, sint.Z e.1 < sint.Z k) ∧ (∀ e ∈ Ctx.post C, sint.Z k < sint.Z e.1) ∧
+    (∀ e ∈ R.entries, ∀ e' ∈ Ctx.post C, sint.Z e.1 < sint.Z e'.1) ∧
+    (∀ e ∈ Ctx.pre C, ∀ e' ∈ L.entries, sint.Z e.1 < sint.Z e'.1) := by
+  rw [Ctx.plug_entries, RB.entries_node] at hs
+  have h1 := sortedE_split (A := Ctx.pre C ++ (L.entries ++ (k, v) :: R.entries)) (B := Ctx.post C)
+    (by simpa [List.append_assoc] using hs)
+  have hmid := sortedE_left (A := Ctx.pre C ++ (L.entries ++ (k, v) :: R.entries))
+    (B := Ctx.post C) (by simpa [List.append_assoc] using hs)
+  have h2 := sortedE_split hmid
+  have hnode := sortedE_right hmid
+  have h3 := sortedE_split hnode
+  have hkR := sortedE_right hnode
+  unfold sortedE at hkR
+  rw [List.pairwise_cons] at hkR
+  refine ⟨fun e he => h3 e he (k, v) (by simp), fun e he => hkR.1 e he,
+    fun e he => h2 e he (k, v) (by simp), fun e he => h1 (k, v) (by simp) e he,
+    fun e he e' he' => h1 e (by simp [he]) e' he', fun e he e' he' => h2 e he e' (by simp [he'])⟩
+
+theorem Bounds_left {C : Ctx α} {n : Loc} {k' : w64} {v : α} {c : Bool} {L R : RB α} {k : w64}
+    (hs : sortedE (Ctx.plug C (.node n k' v c L R)).entries) (hb : Bounds k C)
+    (hlt : sint.Z k < sint.Z k') : Bounds k (.L n k' v c R :: C) := by
+  obtain ⟨-, hR, -, -, -, -⟩ := sortedE_plug_node hs
+  refine ⟨by simpa [Ctx.pre, Frame.pre] using hb.1, ?_⟩
+  simp only [Ctx.post, Frame.post, List.cons_append, List.mem_cons, List.mem_append]
+  rintro e (rfl | he | he)
+  · exact hlt
+  · have := hR e he; omega
+  · exact hb.2 e he
+
+theorem Bounds_right {C : Ctx α} {n : Loc} {k' : w64} {v : α} {c : Bool} {L R : RB α} {k : w64}
+    (hs : sortedE (Ctx.plug C (.node n k' v c L R)).entries) (hb : Bounds k C)
+    (hlt : sint.Z k' < sint.Z k) : Bounds k (.R n k' v c L :: C) := by
+  obtain ⟨hL, -, -, -, -, -⟩ := sortedE_plug_node hs
+  refine ⟨?_, by simpa [Ctx.post, Frame.post] using hb.2⟩
+  intro e he
+  simp only [Ctx.pre, Frame.pre, List.mem_append, List.mem_cons, List.not_mem_nil,
+    or_false] at he
+  rcases he with he | he | he
+  · exact hb.1 e he
+  · have := hL e he; omega
+  · subst he; exact hlt
+
+theorem lookupE_node_self {n : Loc} {k : w64} {v : α} {c : Bool} {L R : RB α}
+    (hL : ∀ e ∈ L.entries, sint.Z e.1 < sint.Z k) :
+    lookupE (RB.node n k v c L R).entries k = some v := by
+  rw [RB.entries_node, lookupE_append_left _ _ k
+    (fun e he heq => by have := hL e he; rw [heq] at this; omega)]
+  simp [lookupE]
+
+end search
+
 end Perennial.github_com.emirpasic.gods.trees.redblacktree

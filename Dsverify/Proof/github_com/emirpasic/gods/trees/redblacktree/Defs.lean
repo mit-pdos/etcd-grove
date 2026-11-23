@@ -423,6 +423,26 @@ theorem treeRaw_pure (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : 
   · iexists sz; iframe; ipureintro; exact Hp
   · ipureintro; exact Hp
 
+theorem treeRaw_of (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface)
+    (h : Loc → Node) (D : List Loc) (sz : w64) (hp : Rep enc h T null ∧ D.Perm T.locs ∧ D.Nodup) :
+    tr ↦ Tree.mk T.loc sz cmp ∗ ownNodes (GF := GF) h D ⊢ treeRaw tr enc cmp T h D := by
+  unfold treeRaw
+  iintro ⟨Htr, Hns⟩
+  iexists sz; iframe; ipureintro; exact hp
+
+theorem isTree_of (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface)
+    (h : Loc → Node) (D : List Loc) (es : Entries)
+    (hq : sortedE T.entries ∧ T.entries = es ∧ T.color = true) :
+    treeRaw (GF := GF) tr enc cmp T h D ∗ cmpOk cmp enc ⊢ isTree tr enc es := by
+  unfold isTree
+  iintro ⟨Hraw, #Hcmp⟩
+  iexists cmp, T, h, D
+  isplitl [Hraw]
+  · iexact Hraw
+  isplitr
+  · iexact Hcmp
+  ipureintro; exact hq
+
 end iris
 
 end Perennial.github_com.emirpasic.gods.trees.redblacktree
