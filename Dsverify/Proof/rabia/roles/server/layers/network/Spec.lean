@@ -135,7 +135,7 @@ abbrev NetworkInit.spec : Prop :=
   ∀ (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (ch : SrvChans) (id : w32) (wg : Loc),
   id.toNat = k → k < cf.n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.roles.server.layers.network ∗ confRO cf ∗
-      srvChans γ cf k γl ch ∗ addrTok (netAddr k) ∗ networkBootRes γ cf k γl }}
+      srvChans γ cf k γl ch ∗ shared γ ∗ networkBootRes γ cf k γl }}
     (App (App (App (App (App (App (App (App (App (App (Val (@! NetworkInit)) (Val #id))
       (Val #ch.done)) (Val #wg)) (Val #(netAddr k))) (Val #ch.n2p)) (Val #ch.p2n)) (Val #ch.h2n))
       (Val #ch.e2n)) (Val #ch.n2h)) (Val #ch.n2e))

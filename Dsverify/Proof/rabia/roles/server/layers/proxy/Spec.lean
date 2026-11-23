@@ -114,7 +114,7 @@ abbrev ProxyInit.spec : Prop :=
   ∀ (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (γc : ConsNames) (ch : SrvChans) (id : w32) (wg : Loc)
     (ledger : GoSlice), id.toNat = k → k < cf.n →
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.roles.server.layers.proxy ∗ confRO cf ∗
-      srvChans γ cf k γl ch ∗ ledgerRO γl ledger ∗ slotsInv γ cf k γl γc ∗ addrTok (proxyAddr k) ∗
+      srvChans γ cf k γl ch ∗ ledgerRO γl ledger ∗ slotsInv γ cf k γl γc ∗ shared γ ∗
       proxyBootRes γ k γl }}
     (App (App (App (App (App (App (App (App (Val (@! ProxyInit)) (Val #id)) (Val #ch.done))
       (Val #wg)) (Val #(proxyAddr k))) (Val #ch.c2p)) (Val #ch.p2n)) (Val #ch.n2p))
