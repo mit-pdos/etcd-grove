@@ -27,64 +27,86 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : log.slog.Assumptions]
 
 theorem DiscardHandler.load_proof : DiscardHandler.load_spec (GF := GF) (hG := hG) := by
-  wp_start as #Hinit
-  ihave #Hst : pkgState (GF := GF) $$ []
-  · iapply isPkgInit_access $$ Hinit
+  wp_start as -
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.log.slog $$ []
+  · iPkgInit
+  ihave #Hst := pkgState_of_init (GF := GF) $$ Hinit
   iunfold pkgState at Hst
   icases Hst with ⟨#Hdh, -⟩
-  wp_auto
+  iapply (IntoValTyped.wp_load (V := GoInterface) (t := log.slog.Handler.ty)
+    (globalAddr log.slog.DiscardHandler) DFrac.discard dhV) $$ Hdh
+  inext
+  iintro -
   iapply HΦ
   itrivial
 
 theorem New.wp_proof : New.spec (GF := GF) (hG := hG) := by
   wp_start as -
+  iapply wp_fupd
   wp_auto
-  iunfold isLogger
   iStructNamed «$r0»
   ipersist handler
+  imodintro
   iapply HΦ
+  iunfold isLogger
   iexact handler
 
 theorem Logger.Debug.wp_proof : Logger.Debug.spec (GF := GF) (hG := hG) := by
   intro l msg arg xs dq
-  wp_start as ⟨-, #Hl, Harg, -⟩
+  wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
   iapply HΦ
   iexact Harg
 
 theorem Logger.Info.wp_proof : Logger.Info.spec (GF := GF) (hG := hG) := by
   intro l msg arg xs dq
-  wp_start as ⟨-, #Hl, Harg, -⟩
+  wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
   iapply HΦ
   iexact Harg
 
 theorem Logger.Warn.wp_proof : Logger.Warn.spec (GF := GF) (hG := hG) := by
   intro l msg arg xs dq
-  wp_start as ⟨-, #Hl, Harg, -⟩
+  wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
   iapply HΦ
   iexact Harg
 
 theorem Logger.Error.wp_proof : Logger.Error.spec (GF := GF) (hG := hG) := by
   intro l msg arg xs dq
-  wp_start as ⟨-, #Hl, Harg, -⟩
+  wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
   iapply HΦ
   iexact Harg
 
 theorem Debug.wp_proof : Debug.spec (GF := GF) (hG := hG) := by
   intro msg arg xs dq
-  wp_start as ⟨#Hinit, Harg, -⟩
-  ihave #Hst : pkgState (GF := GF) $$ []
-  · iapply isPkgInit_access $$ Hinit
+  wp_start as ⟨Harg, -⟩
+  ihave #Hinit : isPkgInit (PROP := IProp GF) pkg_id.log.slog $$ []
+  · iPkgInit
+  ihave #Hst := pkgState_of_init (GF := GF) $$ Hinit
   iunfold pkgState at Hst
   icases Hst with ⟨-, %dl, #Hdl, #Hh⟩
   wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
   iapply HΦ
   iexact Harg
 
