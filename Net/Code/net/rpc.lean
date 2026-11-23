@@ -9,7 +9,6 @@ public import Net.Code.net
 public import Net.Code.net.http
 public import Perennial.Code.sync
 public import Net.Code.go.token
-public import Perennial.Code.strings
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -1911,7 +1910,7 @@ noncomputable def debugHTTP.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :
 
 /-- NewServer returns a new [Server].
 
-    go: server.go:196:6 -/
+    go: server.go:195:6 -/
 noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Server.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Server.ty)))) (Val #())))
@@ -1937,7 +1936,7 @@ noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
     The client accesses each method using a string of the form "Type.Method",
     where Type is the receiver's concrete type.
 
-    go: server.go:214:23 -/
+    go: server.go:213:23 -/
 noncomputable def Server.Register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "rcvr"
@@ -1959,7 +1958,7 @@ noncomputable def Server.Register.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RegisterName is like [Register] but uses the provided name for the type
     instead of the receiver's concrete type.
 
-    go: server.go:220:23 -/
+    go: server.go:219:23 -/
 noncomputable def Server.RegisterName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "name"
@@ -1984,7 +1983,7 @@ noncomputable def Server.RegisterName.impl [GooseExts] [GoGlobalContext] : val :
     suitableMethods finds for its type and for a pointer to it) are the program's generated
     Codec's (codec.go, Receiver), which panics for a receiver of a type it does not list.
 
-    go: server.go:231:23 -/
+    go: server.go:230:23 -/
 noncomputable def Server.register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "rcvr"
@@ -2076,7 +2075,7 @@ noncomputable def Server.register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "str")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Print []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Println []))) (Val #())) (Var "$a0")))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Receiver.ty go!"PtrHasMethods"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Receiver.ty)))) (Var "r"))))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"rpc.Register: type ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "sname")))) (Val #(go!" has no exported methods of suitable type (hint: pass a pointer to value of that type)"))))
   (App (Val doExecute)
@@ -2124,7 +2123,7 @@ noncomputable def Server.register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Print []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Println []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
   (App (Val doExecute)
@@ -2144,7 +2143,7 @@ noncomputable def Server.register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Print []))) (Val #())) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Println []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
   (App (Val doExecute)
@@ -2172,7 +2171,7 @@ noncomputable def Server.register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType service.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
 
-/-- go: server.go:291:23 -/
+/-- go: server.go:290:23 -/
 noncomputable def Server.sendResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "sending"
@@ -2238,7 +2237,7 @@ noncomputable def Server.sendResponse.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Response.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))))
   (Val #()))))))))
 
-/-- go: server.go:309:22 -/
+/-- go: server.go:308:22 -/
 noncomputable def methodType.NumCalls.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -2267,7 +2266,7 @@ noncomputable def methodType.NumCalls.impl [GooseExts] [GoGlobalContext] : val :
 /-- MODEL: the method is called through the program's generated Method (codec.go) in place of
     reflect's Value.Call.
 
-    go: server.go:318:19 -/
+    go: server.go:317:19 -/
 noncomputable def service.call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "server"
@@ -2351,7 +2350,7 @@ noncomputable def service.call.impl [GooseExts] [GoGlobalContext] : val :=
     MODEL: the codec is the model's frame codec over the program's generated Codec
     (codec.go), in place of gob's.
 
-    go: server.go:345:23 -/
+    go: server.go:344:23 -/
 noncomputable def Server.ServeConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "conn"
@@ -2367,7 +2366,7 @@ noncomputable def Server.ServeConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ServeCodec is like [ServeConn] but uses the specified codec to
     decode requests and encode responses.
 
-    go: server.go:351:23 -/
+    go: server.go:350:23 -/
 noncomputable def Server.ServeCodec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "codec"
@@ -2493,7 +2492,7 @@ noncomputable def Server.ServeCodec.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ServeRequest is like [ServeCodec] but synchronously serves a single request.
     It does not close the codec upon completion.
 
-    go: server.go:381:23 -/
+    go: server.go:380:23 -/
 noncomputable def Server.ServeRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "codec"
@@ -2604,7 +2603,7 @@ noncomputable def Server.ServeRequest.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty)))) (Pair (Var "sending") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
-/-- go: server.go:399:23 -/
+/-- go: server.go:398:23 -/
 noncomputable def Server.getRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam BAnon
@@ -2642,7 +2641,7 @@ noncomputable def Server.getRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"reqLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "server")))) (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "$res0"))))))
 
-/-- go: server.go:412:23 -/
+/-- go: server.go:411:23 -/
 noncomputable def Server.freeRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "req"
@@ -2664,7 +2663,7 @@ noncomputable def Server.freeRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"reqLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "server")))) (Val #())))))))
   (Val #()))))
 
-/-- go: server.go:419:23 -/
+/-- go: server.go:418:23 -/
 noncomputable def Server.getResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam BAnon
@@ -2702,7 +2701,7 @@ noncomputable def Server.getResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Server.ty go!"respLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "server")))) (Val #()))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "$res0"))))))
 
-/-- go: server.go:432:23 -/
+/-- go: server.go:431:23 -/
 noncomputable def Server.freeResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "resp"
@@ -2728,7 +2727,7 @@ noncomputable def Server.freeResponse.impl [GooseExts] [GoGlobalContext] : val :
     in place of reflect.New (and reflect.MakeMap, MakeSlice for a map or slice reply): argv is
     always a pointer to the argument (the Method dereferences it for a method that takes a value).
 
-    go: server.go:442:23 -/
+    go: server.go:441:23 -/
 noncomputable def Server.readRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "codec"
@@ -2815,7 +2814,7 @@ noncomputable def Server.readRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType service.ty)))) (Pair (Var "service") (Var "$r0")))))))))))))))))))
   (Pair (Pair (Pair (Pair (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType service.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType methodType.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "$res2"))) (App (Val (GoInstruction (GoLoad go.any))) (Var "$res3"))) (App (Val (GoInstruction (GoLoad go.any))) (Var "$res4"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res5"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res6"))))))))))))))))))))
 
-/-- go: server.go:464:23 -/
+/-- go: server.go:463:23 -/
 noncomputable def Server.readRequestHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "codec"
@@ -2840,10 +2839,9 @@ noncomputable def Server.readRequestHeader.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"ServiceMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "req"))))
-  (Let "$a1" (Val #(go!"."))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.LastIndex []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
   (Let "dot" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"ServiceMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "req"))))
@@ -2916,6 +2914,25 @@ noncomputable def Server.readRequestHeader.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"ServiceMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "req"))))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"ServiceMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "req")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 46)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "dot") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "dot") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -2951,7 +2968,7 @@ noncomputable def Server.readRequestHeader.impl [GooseExts] [GoGlobalContext] : 
     returns a non-nil error. The caller typically invokes Accept in a
     go statement.
 
-    go: server.go:509:23 -/
+    go: server.go:516:23 -/
 noncomputable def Server.Accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "lis"
@@ -2980,10 +2997,9 @@ noncomputable def Server.Accept.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Val #(go!"rpc.Serve: accept:")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Print []))) (Val #())) (Var "$a0")))))
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"rpc.Serve: accept:")) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Println []))) (Val #())) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2996,7 +3012,7 @@ noncomputable def Server.Accept.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Register publishes the receiver's methods in the [DefaultServer].
 
-    go: server.go:521:6 -/
+    go: server.go:530:6 -/
 noncomputable def Register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rcvr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -3014,7 +3030,7 @@ noncomputable def Register.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RegisterName is like [Register] but uses the provided name for the type
     instead of the receiver's concrete type.
 
-    go: server.go:525:6 -/
+    go: server.go:534:6 -/
 noncomputable def RegisterName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "rcvr"
@@ -3039,7 +3055,7 @@ noncomputable def RegisterName.impl [GooseExts] [GoGlobalContext] : val :=
     connection. To use an alternate codec, use [ServeCodec].
     See [NewClient]'s comment for information about concurrent access.
 
-    go: server.go:552:6 -/
+    go: server.go:561:6 -/
 noncomputable def ServeConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "conn"
   (Seq (App (Val exceptionDo)
@@ -3052,7 +3068,7 @@ noncomputable def ServeConn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ServeCodec is like [ServeConn] but uses the specified codec to
     decode requests and encode responses.
 
-    go: server.go:558:6 -/
+    go: server.go:567:6 -/
 noncomputable def ServeCodec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "codec"
   (Seq (App (Val exceptionDo)
@@ -3065,7 +3081,7 @@ noncomputable def ServeCodec.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ServeRequest is like [ServeCodec] but synchronously serves a single request.
     It does not close the codec upon completion.
 
-    go: server.go:564:6 -/
+    go: server.go:573:6 -/
 noncomputable def ServeRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "codec"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -3084,7 +3100,7 @@ noncomputable def ServeRequest.impl [GooseExts] [GoGlobalContext] : val :=
     to [DefaultServer] for each incoming connection.
     Accept blocks; the caller typically invokes it in a go statement.
 
-    go: server.go:571:6 -/
+    go: server.go:580:6 -/
 noncomputable def Accept.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lis"
   (Seq (App (Val exceptionDo)
@@ -3096,7 +3112,7 @@ noncomputable def Accept.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ServeHTTP implements an [http.Handler] that answers RPC requests.
 
-    go: server.go:577:23 -/
+    go: server.go:586:23 -/
 noncomputable def Server.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "w"
@@ -3132,12 +3148,9 @@ noncomputable def Server.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (Val #(go!"rpc hijacking ")))
-  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Request.ty go!"RemoteAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "req")))))
-  (Let "$sl2" (App (Val (GoInstruction (Convert go.string go.any))) (Val #(go!": ")))
-  (Let "$sl3" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2"))), (KeyedElement none (ElementExpression go.any (Var "$sl3")))]))))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Print []))) (Val #())) (Var "$a0")))))
+  (Let "$a0" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"rpc hijacking ")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.net.http.Request.ty go!"RemoteAddr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)))) (Var "req")))))) (Val #(go!": ")))) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.log.Println []))) (Val #())) (Var "$a0")))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -3171,7 +3184,7 @@ noncomputable def Server.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
     and a debugging handler on debugPath.
     It is still necessary to invoke [http.Serve](), typically in a go statement.
 
-    go: server.go:596:23 -/
+    go: server.go:606:23 -/
 noncomputable def Server.HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "rpcPath"
@@ -3196,7 +3209,7 @@ noncomputable def Server.HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
     on [DefaultRPCPath] and a debugging handler on [DefaultDebugPath].
     It is still necessary to invoke [http.Serve](), typically in a go statement.
 
-    go: server.go:604:6 -/
+    go: server.go:614:6 -/
 noncomputable def HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -3207,13 +3220,12 @@ noncomputable def HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.net.rpc where
-  pkgImportedPkgs := [pkg_id.bufio, pkg_id.errors, pkg_id.io, pkg_id.log, pkg_id.net, pkg_id.net.http, pkg_id.sync, pkg_id.go.token, pkg_id.strings]
+  pkgImportedPkgs := [pkg_id.bufio, pkg_id.errors, pkg_id.io, pkg_id.log, pkg_id.net, pkg_id.net.http, pkg_id.sync, pkg_id.go.token]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.net.rpc)) (Lam BAnon
   (App (Val exceptionDo)
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3271,8 +3283,6 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go.token.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrShutdown go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -4245,7 +4255,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_token_Assumption : _root_.Perennial.go.token.Assumptions
-  import_strings_Assumption : _root_.Perennial.strings.Assumptions
 
 attribute [instance] Assumptions.ServerError_instance
   Assumptions.Call_instance
@@ -4296,7 +4305,6 @@ attribute [instance] Assumptions.ServerError_instance
   Assumptions.import_http_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_token_Assumption
-  Assumptions.import_strings_Assumption
 
 end net.rpc
 

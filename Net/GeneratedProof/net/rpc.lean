@@ -9,7 +9,6 @@ public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.http
-public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Net.Code.net.rpc
