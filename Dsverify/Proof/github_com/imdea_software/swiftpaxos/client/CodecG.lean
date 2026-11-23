@@ -69,7 +69,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
-variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF]
 
 /-- The frozen `client.BufferClient.Connect.spec` over the codec `C`. -/
@@ -94,7 +94,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
-variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 
 /-- The frozen `Connect` statement from its form at `kitCodec`. -/
 theorem client.BufferClient.Connect.spec_of_G

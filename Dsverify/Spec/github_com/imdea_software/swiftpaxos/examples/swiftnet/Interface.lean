@@ -204,14 +204,15 @@ end services
 /-! ## The shares -/
 
 section shares
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
-variable [SwiftNetPkgState netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [SwiftNetPkgState netDistGF] [RpcHttpAddr netDistGF]
 
-/-- What every node gets: every address's protocols (persistent) and the shared invariants. -/
+/-- What every node gets: every address's protocols (persistent; the rpc listeners' over HTTP,
+`RpcHttpAddr.rpcLisP`) and the shared invariants. -/
 def common (γ : SwiftNames netDistGF) : IProp netDistGF :=
   iprop(([∗list] a ∈ plainAddrs, addrProto a (protoP γ a) (protoQ γ a)) ∗
     ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
-    ([∗list] a ∈ rpcAddrs, net.rpc.rpcAddr (GF := netDistGF) γ.W a) ∗
+    ([∗list] la ∈ rpcLis, RpcHttpAddr.rpcLisP γ.W la (connectReq defaultRPCPath) connectAns) ∗
     sp.inv γ.sp γ.conf γ.mem γ.lin)
 
 /-- The orchestrator's share (node 0): its address's token, the configuration's writer token

@@ -33,7 +33,7 @@ variable [examples.swiftnet.Assumptions] [dlog.Assumptions] [fmt.Assumptions] [e
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link
 variable [C : net.rpc.RpcCodec netDistGF]
-variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 
 set_option goose.wp.extras true
 

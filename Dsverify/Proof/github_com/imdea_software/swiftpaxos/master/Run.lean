@@ -35,7 +35,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
-variable [H : RpcHttpHyp netDistGF]
+variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- `rpc.Register`'s obligation on the codec's `Receiver` for the master `m` (not nil), once the
 codec is registered and the master's persistent facts hold: it returns a `*Receiver` serving
@@ -72,7 +72,7 @@ abbrev master.Master.Run.specFull : Prop :=
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
       ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ H.muxOwner [] ∗
-      H.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
+      RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
@@ -86,7 +86,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
-variable [H : RpcHttpHyp netDistGF]
+variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 set_option maxHeartbeats 4000000 in
 theorem master.Master.Run.wp_proof_full
@@ -204,7 +204,7 @@ theorem master.Master.Run.wp_proof_full
   have hdec : decimal 7001 = go!"7001" := by simp [decimal, decimalNat_eq, digitByte]
   have hport : go!":" ++ decimal (sint.Z (W64 7001)) = go!":7001" := by
     rw [show sint.Z (W64 7001) = (7001 : Int) from rfl, hdec]; rfl
-  ihave %Hlok := H.rpcLisP_ok W go!":7001" _ _ $$ Hlp
+  ihave %Hlok := RpcHttpAddr.rpcLisP_ok W go!":7001" _ _ $$ Hlp
   wp_apply wp_slice_literal (V := GoInterface) [interface.mkOk go.int #(W64 7001)]
   isplitr
   · ipureintro; rfl
@@ -214,7 +214,7 @@ theorem master.Master.Run.wp_proof_full
     $$ [$Hs3] as %str ⟨-, %Hstr⟩
   rw [master.sprintf_colon_d _ _ Hstr, hport]
   wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv %lerr Hl
-  · iapply H.rpcLisP_lis W go!":7001" _ _ $$ Hlp
+  · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp
   -- the retry loop: listen until it succeeds
   ihave HI : (∃ (lv lerr : GoInterface), l_ptr ↦ lv ∗ err_ptr ↦ lerr ∗
       ((∃ (l : Loc) (lid : w64),
@@ -274,7 +274,7 @@ theorem master.Master.Run.wp_proof_full
         ArgsWf.nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
       rw [master.sprintf_colon_d _ _ Hstr', hport]
       wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv2 %lerr2 Hl
-      · iapply H.rpcLisP_lis W go!":7001" _ _ $$ Hlp
+      · iapply RpcHttpAddr.rpcLisP_lis W go!":7001" _ _ $$ Hlp
       wp_for_post
       iframe
       iexists lv2, lerr2
@@ -289,7 +289,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions]
-variable [H : RpcHttpHyp netDistGF]
+variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- The spec (`Spec/master/Master__Run.lean`), through `master.created_full`. -/
 theorem master.Master.Run.wp_proof

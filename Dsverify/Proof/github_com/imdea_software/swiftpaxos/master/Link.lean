@@ -31,7 +31,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
 variable [net.Assumptions] [replica.defs.Assumptions]
-variable [H : RpcHttpHyp netDistGF]
+variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 theorem master.wp_New : master.New.spec := master.New.wp_proof
 

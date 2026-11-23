@@ -58,6 +58,7 @@ namespace Perennial.github_com.imdea_software.swiftpaxos
 open Iris Iris.BI Net Perennial.net.rpc Dsv
 
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp netShaExts_has
+  GooseGlobalGS.gooseInvGS
 
 /-- The bytes of a Go string constant. -/
 def strBytes (s : String) : List w8 := s.toUTF8.toList.map (fun b => BitVec.ofNat 8 b.toNat)
@@ -107,10 +108,9 @@ end env
 
 section hyp
 
-/-- **Hypothesis** (the file header): net/rpc over HTTP, as models-rpc-http will state it. -/
-class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
-    [go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
-    [log.Assumptions] [net.http.Assumptions] where
+/-- **Hypothesis** (the file header), its addresses' part: the protocols of the rpc addresses,
+over the global state only (every machine's heap sees the same ones; dsv-epaxos's split). -/
+class RpcHttpAddr (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [SwiftNetPkgState GF] where
   rpcAddrP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcAddrP_persistent : ∀ W a hs hsAns, Persistent (rpcAddrP W a hs hsAns)
   /-- The world's handshake at an address, the dialer's and the acceptor's answer: models-rpc-http's
@@ -130,8 +130,8 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   `e6b232b2f6`'s `rpcLisP_lis`). -/
   rpcLisP_lis : ∀ W la hs hsAns,
     rpcLisP W la hs hsAns ⊢
-      |={⊤,∅}=> lisToks (NG (Gg := hG.goose_globalGS)) la ∗
-        (lisToks (NG (Gg := hG.goose_globalGS)) la ={∅,⊤}=∗ True)
+      |={⊤,∅}=> lisToks (extGlobalGS netExt (G := Gg)) la ∗
+        (lisToks (extGlobalGS netExt (G := Gg)) la ={∅,⊤}=∗ True)
   /-- `la` is a listener address (models-rpc-http's `rpcLisP_ok`). -/
   rpcLisP_ok : ∀ W la hs hsAns, rpcLisP W la hs hsAns ⊢ ⌜listenOk la = true⌝
   /-- The boot sets them once, from the addresses `la` takes, unset, in a world that gives every
@@ -139,8 +139,16 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   rpcLisP_set : ∀ (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8),
     listenOk la = true →
     (∀ a, addrOk a = true ∧ lisAccepts la a → worldHs W a = hs ∧ worldHsAns W a = hsAns) →
-    regCtx (Gg := hG.goose_globalGS) -∗ inv regN' (regInv (Gg := hG.goose_globalGS) W) -∗
-      lisUnset (Gg := hG.goose_globalGS) la ={E}=∗ rpcLisP W la hs hsAns
+    regCtx (Gg := Gg) -∗ inv regN' (regInv (Gg := Gg) W) -∗
+      lisUnset (Gg := Gg) la ={E}=∗ rpcLisP W la hs hsAns
+
+attribute [instance] RpcHttpAddr.rpcAddrP_persistent RpcHttpAddr.rpcLisP_persistent
+
+/-- **Hypothesis** (the file header): net/rpc over HTTP, as models-rpc-http will state it (the
+specs, per machine heap, over the addresses' part `RpcHttpAddr`). -/
+class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
+    [go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
+    [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr GF] where
   /-- The right to register paths at `DefaultServeMux`, `R` those registered (exclusive: a
   second registration of a path panics). A machine's comes from net/http's initialization (a
   boot resource). -/
@@ -158,7 +166,7 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   DialHTTPPath_spec : ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),
     {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ httpEnv ∗
         globalAddr net.rpc.connected ↦□ connectedStatus ∗
-        rpcAddrP W a (connectReq path) connectAns }}
+        RpcHttpAddr.rpcAddrP W a (connectReq path) connectAns }}
       (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #nw)) (Val #a)) (Val #path))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
@@ -167,7 +175,7 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   DialHTTP_spec : ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a : GoString),
     {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ httpEnv ∗
         globalAddr net.rpc.connected ↦□ connectedStatus ∗
-        rpcAddrP W a (connectReq defaultRPCPath) connectAns }}
+        RpcHttpAddr.rpcAddrP W a (connectReq defaultRPCPath) connectAns }}
       (App (App (Val (@! net.rpc.DialHTTP)) (Val #nw)) (Val #a))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
@@ -199,14 +207,13 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   a client of `rpcAddrP` never sends). It returns only on a listener error. -/
   Serve_spec : ∀ (W : RpcWorld GF) (la path : GoString) (lis : GoInterface) (l : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-        rpcLisP W la (connectReq path) connectAns ∗ muxHas W (lisAccepts la) path ∗
+        RpcHttpAddr.rpcLisP W la (connectReq path) connectAns ∗ muxHas W (lisAccepts la) path ∗
         net.isListener (GF := GF) lis l ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
         lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la }}
       (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #interface.nil))
     {{ (err : GoInterface), RET #err; True }}
 
-attribute [instance] RpcHttpHyp.rpcAddrP_persistent RpcHttpHyp.rpcLisP_persistent
-  RpcHttpHyp.muxHas_persistent
+attribute [instance] RpcHttpHyp.muxHas_persistent
   RpcHttpHyp.defaultServer_persistent
 
 end hyp
@@ -214,14 +221,14 @@ end hyp
 section use
 variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
-variable [log.Assumptions] [net.http.Assumptions] [H : RpcHttpHyp GF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr GF] [H : RpcHttpHyp GF]
 
 /-- What `rpc.DialHTTP("tcp", a)` needs (persistent): the client's bounds and package state
 (`dialEnv`: models-rpc-http's `httpEnv` and net/rpc's `connected`), and `a` serving `W` over HTTP
 at `DefaultRPCPath`. -/
 def rpcHttp (W : RpcWorld GF) (a : GoString) : IProp GF :=
   iprop(⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ dialEnv ∗
-    H.rpcAddrP W a (connectReq defaultRPCPath) connectAns)
+    RpcHttpAddr.rpcAddrP W a (connectReq defaultRPCPath) connectAns)
 
 instance rpcHttp_persistent (W : RpcWorld GF) (a : GoString) :
     Persistent (rpcHttp (GF := GF) W a) := by

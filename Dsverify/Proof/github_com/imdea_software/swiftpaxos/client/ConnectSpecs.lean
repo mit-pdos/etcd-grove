@@ -88,7 +88,7 @@ variable [examples.swiftnet.Assumptions]
 -- `kitCodecC` in the link
 variable [C : net.rpc.RpcCodec netDistGF]
 
-variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF] in
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF] in
 /-- `c.dialMaster()` from no master client, at the master's address. -/
 abbrev client.Client.dialMaster.specI : Prop :=
   ∀ (cl : Loc) (v : client.Client) (W : net.rpc.RpcWorld netDistGF),

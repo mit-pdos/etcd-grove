@@ -28,7 +28,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] -- change log C4 (`failed`)
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
-variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 
 /-- From a fresh buffer client of the master's address, the master's rpc address and service,
 the replicas' ports' protocols and the protocol's invariant: connected (the membership of the

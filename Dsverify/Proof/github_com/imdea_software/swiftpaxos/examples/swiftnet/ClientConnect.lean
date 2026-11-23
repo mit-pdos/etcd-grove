@@ -84,7 +84,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] [client.Assumptions]
 variable [examples.swiftnet.Assumptions] [swift.Assumptions] [log.Assumptions] [net.http.Assumptions]
-variable [H : RpcHttpHyp netDistGF]
+variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 set_option goose.wp.extras true
 

@@ -171,7 +171,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]
-variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 
 theorem client.Client.wp_call : client.Client.call.specI (hG := hG) :=
   client.Client.call.wp_proof dlog.Logger.wp_Println
@@ -198,7 +198,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]
-variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 
 theorem client.Client.wp_callG : client.Client.call.specI (hG := hG) :=

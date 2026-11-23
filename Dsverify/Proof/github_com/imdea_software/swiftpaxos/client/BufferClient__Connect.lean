@@ -136,7 +136,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
-variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statement,
 -- `kitCodecC` in the link
@@ -511,7 +511,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
-variable [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
+variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]
 
 /-- The frozen statement: `Connect.wp_proofG` at `kitCodec`. -/

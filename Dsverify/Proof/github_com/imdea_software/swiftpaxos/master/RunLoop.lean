@@ -47,7 +47,7 @@ variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.FieldAssumptions] [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean)
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
-variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [H : RpcHttpHyp netDistGF]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 
 /-- `defs.UpdateBeTheLeaderReply(p)` (the defs package's; the master group proves its call,
 stage plan: "the master group calls defs' two small functions itself"). -/

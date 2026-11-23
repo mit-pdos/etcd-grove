@@ -126,6 +126,9 @@ def addrs : List GoString :=
    go!"127.0.0.1:6104", go!"127.0.0.1:6105", go!"127.0.0.1:6106", go!"127.0.0.1:7001",
    go!"127.0.0.1:7002", go!"127.0.0.1:7003", go!"127.0.0.1:7004", go!"127.0.0.1:7005",
    go!"127.0.0.1:7006"]
+/-- The rpc listeners: the master's wildcard `":7001"` (the fork's `master.Run`) and the
+replicas' rpc ports (exact). -/
+def rpcLis : List GoString := go!":7001" :: replicaRpcAddrs
 /-- The rpc addresses (the rpc world's: `rpcAddr_set`). -/
 def rpcAddrs : List GoString := masterAddr :: replicaRpcAddrs
 /-- The other addresses the run sets (`addrs_set_proto`): all but the rpc addresses and the
