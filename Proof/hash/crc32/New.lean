@@ -29,7 +29,7 @@ theorem hash.crc32.New.wp_proof : hash.crc32.New.spec (GF := GF) (hG := hG) := b
   ihave #Hf : (hash.crc32.crc32Init : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   iunfold hash.crc32.crc32Init at Hf
-  icases Hf with ⟨%t, #Hg, #Hi⟩
+  icases Hf with ⟨⟨%t, #Hg, #Hi⟩, -, -⟩
   ihave %hne : ⌜tab ≠ t⌝ $$ []
   · iintro %h
     subst h

@@ -3,6 +3,7 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.featuregate
 
 @[expose] public section

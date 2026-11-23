@@ -76,6 +76,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
   intro c RM mem m dqb mm v3 lg cid bi Ps Qs HRM Hsz'
   wp_start as ⟨#Hrc, Hcm, Hm, #Hlg, #Hlgnn, #Hcid, Hbe, Hd⟩
   iunfold membership.isRaftClusterG at Hrc
+  icases Hrc with ⟨%γcv, #Hrc⟩
   ihave %Hmnn := (show membership.memberAt (GF := GF) m 1 mm ⊢ ⌜m ≠ null⌝ by
     unfold membership.memberAt; iintro ⟨%H, -⟩; ipureintro; exact H) $$ Hm
   wp_apply wp_with_defer as %defer defer
@@ -89,7 +90,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
   iunfold membership.rcLockInvG at Hinv
-  icases Hinv with ⟨%ms, %mem', Hmem, %Hsz, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRMi⟩
+  icases Hinv with ⟨%ms, %mem', Hmem, %Hsz, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRMi, Hver⟩
   open_member
   (try wp_auto)
   -- the learner metric of the local member
@@ -107,7 +108,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
       log_line
       wp_method_call
       wp_call
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRMi]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRMi Hver]
       · inext
         iunfold membership.rcLockInvG
         iexists ms, mem'
@@ -166,7 +167,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
       icases membership.memAt_halve c _ _ $$ Hmem with ⟨Hmem, Hcm⟩
       wp_method_call
       wp_call
-      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRMi]
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRMi Hver]
       · inext
         iunfold membership.rcLockInvG
         iexists GMap.insert mm.id m ms, GMap.insert mm.id mm mem
@@ -174,7 +175,7 @@ theorem membership.RaftCluster.AddMember.wp_proof
         isplitr
         · ipureintro; rw [Hdom'.2]; exact Hsz'
         iexists _, rp, rm
-        iframe Hrf Hrm
+        iframe Hrf Hrm Hver
         iframe #
         iapply HRM $$ HRMi
       (try wp_auto)

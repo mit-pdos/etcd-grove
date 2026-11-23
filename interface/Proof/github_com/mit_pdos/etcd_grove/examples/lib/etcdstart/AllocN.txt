@@ -5,8 +5,41 @@
 def etcdstart.xsOf (ps : List w64) (idx : w64 → srvApi.KVSNames) : w64 → GName :=
   (idx ((List.find? (fun id => decide (idPfxOf (W16 (uint.Z id)) = p)) ps).getD 0)).slog
 
+theorem etcdstart.clusterAllocN [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (ids ps : List w64) (hperm : ps.Perm
+    ids) (id0 : w64) (hid0 : id0 ∈ ids) (ctxs : List (List w8)) (boot : List LogEntry) (Hbc :
+    BootCore ps ctxs boot) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF +
+    boot.length ≤ 2 ^ 61) (lm : lease.Mode) (hap : lm = lease.Mode.revocable → leaseIdsApart ids)
+    (cmp : Bool := false) (cret : Nat := 0) : ⊢ bootMarshal ps ctxs (LogEntry.toEntries boot 0)
+    ={⊤}=∗ ∃ γ γk issued cnt wn fs idx cok rev reg, ⌜γ.vs = ps ∧ γ.rule = srvRule (W64 0)
+    (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γk.c0 = W64 0 ∧ γk.ch0 =
+    apply.alarmChain false false false ∧ γk.log0 = [[], []] ∧ γk.ids.issued = issued ∧ γk.ids.wn =
+    wn ∧ γk.ids.fs = fs ∧ γk.cmp = cmp ∧ γk.cret = cret ∧ γk.lm = lm ∧ kvPfxOk γk ∧ ¬clusterNoSnap
+    γ.cl ∧ ∀ (id : w64), id ∈ ids → lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps⌝
+    ∗ etcdstart.clusterFacts γ γk issued cnt wn fs ∗ ([∗list] id ∈ ids, etcdstart.memberSlice γ ps
+    ctxs cnt wn fs (etcdstart.xsOf ids idx (idPfxOf (W16 (uint.Z id)))) (idx id) (cok id) (rev id)
+    (reg id) id) ∗ if decide (lm ≠ lease.Mode.none) = true then True else etcdKV γk (kvModelSt γk
+    (bootEntries (LogEntry.toEntries boot 0)))
+
 theorem etcdstart.xsOf_at (ps : List w64) (idx : w64 → srvApi.KVSNames) (hnd : (idPfxsOf ps).Nodup)
     (id : w64) (hid : id ∈ ps) : etcdstart.xsOf ps idx (idPfxOf (W16 (uint.Z id))) = (idx id).slog
+
+theorem etcdstart.memberBoot_of_slice [v3rpc_sem :
+    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ps : List w64) (ctxs
+    : List (List w8)) (reg issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
+    GName → IProp GF) (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev x : GName)
+    (Hx : x = γs.slog) (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
+    (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain false false false) (Hlog : γk.log0 = [[],
+    []]) (Hvs : γ.vs = ps) (cmp : Bool) (Hkc : γk.cmp = cmp) (lm : lease.Mode) (hrun : lease.runCfg
+    lm lm) (Hklg : γk.lm = lm) (hpfx : lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈
+    γk.gps) (hpo : kvPfxOk γk) (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts γs.slog) (Hns :
+    ¬clusterNoSnap γ.cl) : ⊢ etcdstart.clusterFacts γ γk issued cnt wn fs -∗ etcdstart.memberSlice γ
+    ps ctxs cnt wn fs x γs cok rev reg id ==∗ ∃ ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧
+    ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧ kvSame ρ.rd.kv γk⌝ ∗ etcdstart.memberBoot { cl
+    := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg, snapLoc := γ.snapLoc, log :=
+    γ.log, fresh := γ.fresh, props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh, pend :=
+    γ.pend, authOn := γ.authOn } ctxs ρ (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd false) cmp) Φs
+    id cmp lm
 
 theorem etcdstart.ΦsOf_at [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (ps : List w64) (idx : w64 → srvApi.KVSNames) (hnd : (idPfxsOf ps).Nodup) (id : w64) (hid : id ∈
@@ -51,18 +84,18 @@ theorem etcdstart.memberBoots_of [v3rpc_sem :
     γk.lm = lm) (hpo : kvPfxOk γk) (Hnsn : ¬clusterNoSnap γ.cl) (L : List w64) (hpfx : ∀ (id : w64),
     id ∈ L → lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (HΦ : ∀ (id : w64), id
     ∈ L → Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts (idx id).slog) (Hx : ∀ (id : w64), id ∈ L →
-    xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 :=
-    W64 0 } -∗ idClusterInv issued cnt wn fs srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint {
-    raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0
-    } issued -∗ kvInv { raft := γ, pre := [], ai0 := W64 0 } γk -∗ ([∗list] id ∈ L, iprop((idPfxOf
-    (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) (xs
-    (idPfxOf (W16 (uint.Z id)))) ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id
-    RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)) -∗
-    ([∗list] id ∈ L, idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)) -∗ ([∗list] id ∈ L,
-    iprop(srvApi.newServerStoreFreshA (idx id) ∗ ghostMapAuth (cok id) 1 ∅ ∗ ghostMapAuth (rev id) 1
-    ∅ ∗ ghostMapAuth (reg id) 1 ∅)) ==∗ ∃ gs, ⌜List.map (fun x => x.id) gs = L ∧ ∀ (g :
+    xs (idPfxOf (W16 (uint.Z id))) = (idx id).slog) : ⊢ etcdstart.clusterFacts γ γk issued cnt wn fs
+    -∗ ([∗list] id ∈ L, etcdstart.memberSlice γ ps ctxs cnt wn fs (xs (idPfxOf (W16 (uint.Z id))))
+    (idx id) (cok id) (rev id) (reg id) id) ==∗ ∃ gs, ⌜List.map (fun x => x.id) gs = L ∧ ∀ (g :
     etcdstart.MemberG GF), g ∈ gs → etcdstart.memberGOk γ γk g⌝ ∗ [∗list] g ∈ gs,
     etcdstart.memberBoot g.γ ctxs g.ρ g.E Φs g.id cmp lm
+
+def etcdstart.clusterFacts (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs : GName) : IProp GF :=
+  iprop(srvRaftLogInv { raft := γ, pre := [], ai0 := W64 0 } ∗
+      idClusterInv issued cnt wn fs srvFloorFacts ∗
+        W64 0 ↪[issued]□ none ∗
+          srvPropMint { raft := γ, pre := [], ai0 := W64 0 } γk.ids ∗
+            srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0 } issued ∗ kvInv { raft := γ, pre := [], ai0 := W64 0 } γk)
 
 def etcdstart.memberGOk (γ : SrvRaft) (γk : KVNames) (g : etcdstart.MemberG GF) : Prop :=
   (∃ r,
@@ -76,6 +109,18 @@ theorem etcdstart.newServerNames_allocL [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (ps : List w64) (hnd : ps.Nodup) : ⊢
     |==> ∃ idx cok rev reg, [∗list] id ∈ ps, iprop(srvApi.newServerStoreFreshA (idx id) ∗
     ghostMapAuth (cok id) 1 ∅ ∗ ghostMapAuth (rev id) 1 ∅ ∗ ghostMapAuth (reg id) 1 ∅)
+
+def etcdstart.memberSlice (γ : SrvRaft) (ps : List w64) (ctxs : List (List w8)) (cnt wn fs x :
+    GName) (γs : srvApi.KVSNames) (cok rev reg : GName) (id : w64) : IProp GF :=
+  iprop(((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗
+        idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗
+          (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗
+            ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) ∗
+      idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0) ∗
+        srvApi.newServerStoreFreshA γs ∗ ghostMapAuth cok 1 ∅ ∗ ghostMapAuth rev 1 ∅ ∗ ghostMapAuth reg 1 ∅)
+
+theorem etcdstart.clusterFacts_persistent (γ : SrvRaft) (γk : KVNames) (issued cnt wn fs : GName) :
+    Persistent (etcdstart.clusterFacts γ γk issued cnt wn fs)
 
 theorem etcdstart.netHttp_reserveL [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γn : NetNames GF) (As : List

@@ -1,4 +1,5 @@
 # Names only but (prove-authcrypto, 2026-11-21) the big-endian stores `encoding/base64`'s decoder
-# calls, with their bodies (project k8s-apiserver; `Proof/internal/byteorder/`).
-translate = ["!*", "BEPutUint32", "BEPutUint64"]
+# calls, with their bodies (project k8s-apiserver; `Proof/internal/byteorder/`); (crc32-hooks2,
+# 2026-11-22) the little-endian load `hash/crc32`'s `slicingUpdate` calls (project etcd's crc32).
+translate = ["!*", "BEPutUint32", "BEPutUint64", "LEUint32"]
 imports = ["!*"]

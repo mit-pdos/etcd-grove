@@ -1,8 +1,16 @@
-# Types and names only: function and method bodies are axiomatized.
-# (prove-smallinits, 2026-11-20) the `prerelease` constants `features.DefaultEtcdServerFeatureGates`
-# names.
-translate = ["!*", "Alpha", "Beta"]
-imports = ["!*"]
+# (featuregate-3, 2026-11-23; until then types and names only, with the `prerelease` constants
+# `features.DefaultEtcdServerFeatureGates` names, prove-smallinits 2026-11-20) What
+# `features.NewDefaultServerFeatureGate` runs, with bodies: `New` (over `maps.Clone`, `zap.NewNop`,
+# `atomic.Value.Store`), `featureGate.Add` (over `maps.Copy`, `atomic.Value.Load`/`Store`, `sync.Mutex`,
+# `fmt.Errorf`) and `featureGate.Enabled` (the server's `Enabled` calls), with the package variables
+# `New` reads (`defaultFeatures`, `specialFeatures`: map literals of constants and function values)
+# and the constants they name; (featuregate-4, 2026-11-23) `featureGate.GetAll` (over `maps.Copy`,
+# `atomic.Value.Load`), which the server's `addFeatureGateMetrics` calls. The other functions and
+# methods stay names only.
+translate = ["!*", "Alpha", "Beta", "GA", "Deprecated", "allAlphaGate", "allBetaGate",
+  "defaultFeatures", "specialFeatures", "New", "featureGate.Add", "featureGate.Enabled",
+  "featureGate.GetAll"]
+imports = ["!*", "flag", "fmt", "maps", "sync", "sync/atomic", "go.uber.org/zap"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -12,14 +20,6 @@ translate_types = true
 # their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
 # translated code, so no verified code reads them; each reason says why not running the
 # initializer is unobservable.
-[[skip]]
-names = ["defaultFeatures", "specialFeatures"]
-reason = """
-Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
-function values (built, not called) and other package variables' values or addresses, with no call.
-Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
-has no effect beyond its variable."""
-
 [[skip]]
 names = ["_@feature_gate.go:167"]
 reason = """
