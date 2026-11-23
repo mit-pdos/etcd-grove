@@ -140,6 +140,8 @@ theorem MSync.Unmarshal.wp_proof (wp_ND : encoding.gob.NewDecoder.spec (GF := ne
   wp_auto
   wp_apply wp_ND _ $$ [$Hgob] as %dec Hdec
   try wp_auto
+  -- the postcondition under an update: the stream law's fact comes a step later
+  iapply wp_fupd
   wp_apply wp_Dec dec (DFrac.own 1) _ (bufio.ownReader br rd I) R
     (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l)
     (kitValOwn (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (DFrac.own 1) syncX0)
@@ -170,10 +172,10 @@ theorem MSync.Unmarshal.wp_proof (wp_ND : encoding.gob.NewDecoder.spec (GF := ne
       ipureintro
       refine ⟨by rw [Htag]; rfl, fun s hs _ hk => ?_⟩
       exact absurd hs (Hn (.msync s) rfl hk)
-  try wp_auto
   icases Hres with (⟨%He, %bs, ⟨%Hd, %Hbl⟩, Hpsi⟩ | ⟨%He, -, -⟩)
   · subst He Hd
     icases streamLaw_use br rd I R (sp.gobFrame bs) _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hn⟩
+    try wp_auto
     obtain ⟨s, w, hsw, u, hu⟩ := sync_of_next Hn
     have hbs := gobFrame_body hsw Hbl hu
     subst hbs
@@ -196,7 +198,8 @@ theorem MSync.Unmarshal.wp_proof (wp_ND : encoding.gob.NewDecoder.spec (GF := ne
     iframe Hs
     ipureintro
     exact ⟨rfl, hsw, fun hk => Hx s rfl hsw hk⟩
-  · iapply HΦ
+  · try wp_auto
+    iapply HΦ
     iexists _
     iframe Hown
     iright

@@ -123,16 +123,6 @@ variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.As
 
 set_option goose.wp.extras true
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
-  [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
-/-- A buffered reader is not nil (unfolds the harness's `ownReader`: a missing law). -/
-theorem ownReader_not_null (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
-    (R : List w8) : bufio.ownReader br rd I R ⊢ ⌜br ≠ null⌝ := by
-  unfold bufio.ownReader bufio.readerRep
-  iintro ⟨%pend, %perr, -, %buf, %r, %w, %lb, %lrs, %pre, %post, Hb, -⟩
-  iapply typedPointsto_not_null $$ Hb
-
 omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [client.Assumptions]
   [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
@@ -222,7 +212,7 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
       isplitl [i]
       · iExactEq i; congr 1; word
       ipureintro; omega
-    ihave %hnn := ownReader_not_null $$ Hown
+    ihave %hnn := bufio.ownReader_not_null $$ Hown
     rw [decide_eq_false hnn]
     wp_auto
     wp_apply wp_fork $$ [Hown]
@@ -260,7 +250,7 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
         wp_auto
         ipersist p
         wp_apply wp_New_MFastAckClient o1 as %ob Hob
-        wp_apply (MFastAckClient.Unmarshal.wp_proof ob _ rd srv cc H.γ H.γc H.γm H.cid done ov) $$
+        wp_apply (lc := 1) (MFastAckClient.Unmarshal.wp_proof ob _ rd srv cc H.γ H.γc H.γm H.cid done ov) $$
           [$Hpkg4 $Hpkg3 $Hrd $Hk $Hown $Hov $Hob] as %err ⟨%data, Hown, Hres⟩
         · ipureintro; exact ⟨Hovn, Hdone⟩
         icases Hres with (⟨%Hen, %r, %b, %x, %cs, %csl, ⟨%Hd, %Hh⟩, Hob, Hcsl⟩ | ⟨%Hen, %v', -⟩)
@@ -273,8 +263,11 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
         subst Hen Hd
         have hk : sp.cw.cKind (.fastAckClient r b x cs) := Hh
         icases sp.cw.rd_witness rd srv cc H.cid done (.fastAckClient r b x cs) Hdone hk $$
-          [$Hk Hown] with ⟨Hown, #Hw, %Hcm⟩
+          [$Hk Hown] with ⟨Hown, HwL⟩
         · iExactEq Hown; simp [sp.Msg.frame, sp.Msg.code, sp.rpcTable]; rfl
+        iapply fupd_wp
+        imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HwL with ⟨#Hw, %Hcm⟩
+        imodintro
         ipersist Hob
         ipersist Hcsl
         ihave #HP : facP H (interface.mkOk (go.GoType.PointerType swift.MFastAckClient.ty) #ob) $$ []
@@ -321,7 +314,7 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
         ipersist p
         wp_apply wp_New_MLightSlowAck o2 as %ob Hob
         ihave #Hbr := bufio.bufioReadsOk rd srv (recvTokL cc false (sp.outQ H.γ H.γc H.γm)) $$ [$Hpkg3 $Hrd]
-        wp_apply (MLightSlowAck.Unmarshal.wp_proof ob _ _ _ _) $$
+        wp_apply (lc := 1) (MLightSlowAck.Unmarshal.wp_proof ob _ _ _ _) $$
           [$Hpkg4 $Hbr $Hown $Hob] as %err ⟨%data, Hown, Hres⟩
         icases Hres with (⟨%Hen, %sa, %Hd, Hob⟩ | ⟨%Hen, %v', -⟩)
         rotate_left
@@ -332,8 +325,11 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
           · exact absurd rfl Hen
         subst Hen Hd
         icases sp.cw.rd_witness rd srv cc H.cid done (.lightSlowAck sa) Hdone trivial $$
-          [$Hk Hown] with ⟨Hown, #Hw, %Hcm⟩
+          [$Hk Hown] with ⟨Hown, HwL⟩
         · iExactEq Hown; simp [sp.Msg.frame, sp.Msg.code, sp.rpcTable, sp.Msg.body]; rfl
+        iapply fupd_wp
+        imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HwL with ⟨#Hw, %Hcm⟩
+        imodintro
         ipersist Hob
         ihave %Hwire : ⌜sp.wireOk sa.rep sa.bal⌝ $$ [Hw]
         · ihave Hw2 := Hw
@@ -386,7 +382,7 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
         wp_auto
         ipersist p
         wp_apply wp_New_MReply o3 as %ob Hob
-        wp_apply (MReply.Unmarshal.wp_proof ob _ rd srv cc H.γ H.γc H.γm H.cid done ov) $$
+        wp_apply (lc := 1) (MReply.Unmarshal.wp_proof ob _ rd srv cc H.γ H.γc H.γm H.cid done ov) $$
           [$Hpkg4 $Hpkg3 $Hrd $Hk $Hown $Hov $Hob] as %err ⟨%data, Hown, Hres⟩
         · ipureintro; exact ⟨Hovn, Hdone⟩
         icases Hres with (⟨%Hen, %r, %b, %x, %cs, %val, %csl, %vsl, ⟨%Hd, %Hh, %Hne⟩, Hob, Hcsl, Hvsl⟩ |
@@ -400,8 +396,11 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
         subst Hen Hd
         have hk : sp.cw.cKind (.reply r b x cs val) := ⟨Hh, Hne⟩
         icases sp.cw.rd_witness rd srv cc H.cid done (.reply r b x cs val) Hdone hk $$
-          [$Hk Hown] with ⟨Hown, #Hw, %Hcm⟩
+          [$Hk Hown] with ⟨Hown, HwL⟩
         · iExactEq Hown; simp [sp.Msg.frame, sp.Msg.code, sp.rpcTable]; rfl
+        iapply fupd_wp
+        imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HwL with ⟨#Hw, %Hcm⟩
+        imodintro
         ipersist Hob
         ipersist Hcsl
         ipersist Hvsl

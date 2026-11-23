@@ -3,7 +3,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/WriterExcl.lean
 -/
 /-
 Two owners of one `*bufio.Writer` are contradictory (what makes a client writer's first
-registration fresh), from `bufio.ownWriter_excl_heap` (lib/Bufio.lean).
+registration fresh), from `bufio.ownWriter_excl` (lib/Bufio.lean, dsv-bufio's `ownBufWriter_excl`).
 -/
 module
 
@@ -72,14 +72,7 @@ theorem writer_excl (w : Loc) (cv cv' : GoInterface) (J Q J' Q' : List w8 → IP
     (s p s' p' : List w8) (e e' : GoInterface) :
     bufio.ownWriter w cv J Q s p e ∗ bufio.ownWriter w cv' J' Q' s' p' e' ⊢ False := by
   iintro H
-  icases bufio.ownWriter_excl_heap w cv cv' J Q J' Q' s p s' p' e e' $$ H with
-    ⟨%b, %b', %n, %n', %w1, %w2, H1, H2⟩
-  iStructNamed H1
-  iStructNamedSuffix H2 "'"
-  iapply iface_excl _ e e'
-  isplitl [err]
-  · iexact err
-  · iexact err'
+  iapply bufio.ownWriter_excl w cv cv' J Q J' Q' s p s' p' e e' $$ H
 
 /-- A writer its listener owns is not registered. -/
 theorem clientWrs_fresh (γ : sp.Names) (γc γm γw : GName) (ws : GMap Loc w32) (w : Loc)

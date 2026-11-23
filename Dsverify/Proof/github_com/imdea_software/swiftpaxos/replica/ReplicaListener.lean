@@ -106,12 +106,16 @@ theorem replica.Replica.replicaListener.wp_proof
     rw [if_pos (by simp)]
     wp_auto
     ihave #Hrdok := bufio.readerOk_conn cv cid k.side (k.proto γ γc γm) $$ [$Hpkg3 $Hc]
-    wp_apply bufio.wp_ReadByte br cv _ R $$ [$Hpkg2 $Hrdok $Hrd] as %c %er Hr
+    wp_apply (lc := 1) bufio.wp_ReadByte br cv _ R $$ [$Hpkg2 $Hrdok $Hrd] as %c %er Hr
     icases Hr with (⟨%Hen, Hrd⟩ | ⟨%Hen, #Hea, Hrd⟩)
     · subst Hen
       wp_auto
       -- the byte read is the type of the stream's next message, a peer message
-      icases sp.ownReader_proto br cv cid k.side _ (R ++ [c]) $$ Hrd with ⟨Hrd, (%Hnil | ⟨%ext, %Hext, #HP⟩)⟩
+      icases sp.ownReader_proto br cv cid k.side _ (R ++ [c]) $$ Hrd with ⟨Hrd, HpL⟩
+      iapply fupd_wp
+      imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with Hp
+      imodintro
+      icases Hp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
       · simp at Hnil
       have hok : ∀ m, k.ok m = m.isPeer := by
         intro m; rcases Hk with ⟨id, rfl⟩ | rfl <;> rfl
@@ -123,12 +127,15 @@ theorem replica.Replica.replicaListener.wp_proof
       wp_if_destruct
       · -- a beacon
         ihave #Hrs := bufio.bufioReadsOk br cv _ $$ [$Hpkg2 $Hrdok]
-        wp_apply wp_BUnm gbeacon_ptr gb _ _ (R ++ [W8 6]) $$ [$Hpkg4 $Hrs $Hrd $gbeacon]
+        wp_apply (lc := 1) wp_BUnm gbeacon_ptr gb _ _ (R ++ [W8 6]) $$ [$Hpkg4 $Hrs $Hrd $gbeacon]
           as %er ⟨%data, Hrd, Hres⟩
         icases Hres with (⟨%Hen, %ts, %Hd, Hgb⟩ | ⟨%Hen, %gb', Hgb⟩)
         · subst Hen Hd
-          icases sp.ownReader_proto br cv cid k.side _ (R ++ [W8 6] ++ sp.le64 ts) $$ Hrd with
-            ⟨Hrd, (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)⟩
+          icases sp.ownReader_proto br cv cid k.side _ (R ++ [W8 6] ++ sp.le64 ts) $$ Hrd with ⟨Hrd, HpL⟩
+          iapply fupd_wp
+          imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with Hp
+          imodintro
+          icases Hp with (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)
           · simp at Hnil
           have hpre : k.head ++ sp.framesOf done ++ W8 6 :: sp.le64 ts <+: ext2 := by
             rw [← hR]; simpa [List.append_assoc] using Hext2
@@ -163,12 +170,15 @@ theorem replica.Replica.replicaListener.wp_proof
         wp_if_destruct
         · -- a beacon's reply
           ihave #Hrs := bufio.bufioReadsOk br cv _ $$ [$Hpkg2 $Hrdok]
-          wp_apply wp_BRUnm gbeaconReply_ptr gbr _ _ (R ++ [W8 7]) $$
+          wp_apply (lc := 1) wp_BRUnm gbeaconReply_ptr gbr _ _ (R ++ [W8 7]) $$
             [$Hpkg4 $Hrs $Hrd $gbeaconReply] as %er ⟨%data, Hrd, Hres⟩
           icases Hres with (⟨%Hen, %ts, %Hd, Hgb⟩ | ⟨%Hen, %gb', Hgb⟩)
           · subst Hen Hd
-            icases sp.ownReader_proto br cv cid k.side _ (R ++ [W8 7] ++ sp.le64 ts) $$ Hrd with
-              ⟨Hrd, (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)⟩
+            icases sp.ownReader_proto br cv cid k.side _ (R ++ [W8 7] ++ sp.le64 ts) $$ Hrd with ⟨Hrd, HpL⟩
+            iapply fupd_wp
+            imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with Hp
+            imodintro
+            icases Hp with (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)
             · simp at Hnil
             have hpre : k.head ++ sp.framesOf done ++ W8 7 :: sp.le64 ts <+: ext2 := by
               rw [← hR]; simpa [List.append_assoc] using Hext2
@@ -263,11 +273,14 @@ theorem replica.Replica.replicaListener.wp_proof
           ihave #Hlaw := sp.reader_streamLaw (γc := γc) (γm := γm) br cv k
             (fun m hm => (hok m) ▸ hm) cid done R c hR
             (fun d hd => (hdone d hd).1) $$ Hkind
-          wp_apply Hun $$ Hrdok Hlaw Hrd as %er %data Hrd Hres
+          wp_apply (lc := 1) Hun $$ Hrdok Hlaw Hrd as %er %data Hrd Hres
           icases Hres with (⟨%Hen, %m, %Hdec, HRep⟩ | %Hen)
           · subst Hen
-            icases sp.ownReader_proto br cv cid k.side _ (R ++ [c] ++ data) $$ Hrd with
-              ⟨Hrd, (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)⟩
+            icases sp.ownReader_proto br cv cid k.side _ (R ++ [c] ++ data) $$ Hrd with ⟨Hrd, HpL⟩
+            iapply fupd_wp
+            imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with Hp
+            imodintro
+            icases Hp with (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)
             · simp at Hnil
             have hpre : k.head ++ sp.framesOf done ++ c :: data <+: ext2 := by
               rw [← hR]; simpa [List.append_assoc] using Hext2

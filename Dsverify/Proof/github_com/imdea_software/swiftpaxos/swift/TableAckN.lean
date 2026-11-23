@@ -1046,6 +1046,8 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
     isplitl
     · iapply BigSepL.bigSepL_nil.2; iempintro
     ipureintro; simp
+  -- the postcondition under an update: the stream law's fact comes a step later, eliminated there
+  iapply wp_fupd
   wp_for HL4
   wp_if_destruct
   · obtain ⟨hjn', rfl, hokd⟩ := Hj
@@ -1117,6 +1119,7 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
     · rcases err with eo | _
       · wp_auto
         wp_for_post
+        imodintro
         iapply HΦ
         iexists _
         isplitl [Hown]
@@ -1143,6 +1146,7 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
   obtain ⟨es, hes, hesw, hn1, hn2, hn3, hn4, hI, hP, hC1, hC2, hD⟩ :=
     ackN_final (aH_length _ _ _) rfl rfl (by simp) hokc (by simp) hwd Hfin
   try wp_auto
+  imodintro
   iapply HΦ
   iexists (sp.Msg.newLeaderAckN r0 b0 c0 es).body
   isplitl [Hown]
