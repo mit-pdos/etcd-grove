@@ -153,7 +153,13 @@ the shared piece lands; none is an axiom.
   `Write`, `Update`, coordinator `AddNode`/`Write`/`RemoveNode`) gained `⌜msg = [] → …⌝`. (The
   interim hypothesis class `RpcCallReply` is gone.) Still open on Net's side (Upamanyu: same
   shape coming): the server's `methodOk` `NewArg` owes decoding of every request body — matters
-  for the bindings (P4 (c)).
+  for the bindings (P4 (c)). **Server side fixed too** (`models-rpc-server` 36728bd8ed, merged):
+  `methodOk`'s `NewArg` gives `argDec C argv D Sm Θ := codecSet C ∗ □ (D -∗ ∀ args Φ, Sm args
+  Φ -∗ Sm args Φ ∗ C.dec args argv (Θ args))`: decoding owed only of argument bytes a client
+  deposited for the method (so the bindings' argument decoders can take `tagOk` the same way,
+  from `nodeSpec`/`coordSpec`'s `⌜args = enc…⌝`). `origin/lean` 07268ddb57 (dsv-paxos, dsv-bufio,
+  dsv-infra, wildcard listen, Perennial 7b2259a12) merged 2026-11-23: `gen-init --check` (268 up
+  to date) and `goose --check --project dsv-craq` pass; the craq leaves build.
 - **H6. Perennial's `log`**: `*log.Logger`'s `Printf`/`Println`, `log.Default`, `log.Fatalf`, and
   `log.Printf` with error arguments (`notes/perennial-changes.md`, 2026-11-23). The node and the
   coordinator call them.
@@ -231,8 +237,7 @@ the shared piece lands; none is an axiom.
   `TopLevelRobustness` (`robust_of_distProtoRB`, as `paxos_remote_robust`), the statement
   `Dsverify/Spec/.../craqnet/TopLevelRobustness.lean`'s `craq_remote_robust.spec`. Its premises
   (coordinator's rule: every hypothesis class and both open points of H4 visible): the
-  `InitHyp`s of net/rpc and net/http (H1; dsv-infra, `etc/dsv/README.md`; merge
-  `origin/dsv-infra`, now 338ef14dd2), `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`,
+  `InitHyp`s of net/rpc and net/http (H1; dsv-infra, `etc/dsv/README.md`; on `lean`, merged), `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`,
   `LogHyp` (H6); **H4 open point 1** as `∀ SS as, regCtx -∗ ([∗list] a ∈ as,
   addrUnset a) ={⊤}=∗ ∃ W, ⌜W.SS = SS⌝ ∗ [∗list] a ∈ as, httpRpcAddr W a` (the shape of
   `robust_of_distProtoRB`'s start, `Net/Statement/DistBridge.lean`; Net has no rpc allocation
