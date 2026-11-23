@@ -81,19 +81,20 @@ def etcdstart.memberBoot (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames) 
       ⌜¬clusterNoSnap γ.cl⌝ ∗
         (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗
           srvRaftLogInv ρ.rd.raft ∗
-            idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-              idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
-                idNoZero ρ.ids ∗
-                  srvPropMint ρ.rd.raft ρ.ids ∗
-                    srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-                      idShare ρ.ids ∗
-                        idWaitTok ρ.ids ∗
-                          srvApi.newServerStoreFreshA E₀.γs ∗
-                            ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
-                              ghostMapAuth E₀.γrev 1 ∅ ∗
-                                srvReadNamesFreshNK ρ.rd ∗
-                                  kvInv ρ.rd.raft ρ.rd.kv ∗
-                                    ghostMapAuth γ.reg 1 ∅ ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)
+            idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+              idPfxInv ρ.ids.gen ρ.ids.pfx ∗
+                idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
+                  idNoZero ρ.ids ∗
+                    srvPropMint ρ.rd.raft ρ.ids ∗
+                      srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+                        idShare ρ.ids ∗
+                          idWaitTok ρ.ids ∗
+                            srvApi.newServerStoreFreshA E₀.γs ∗
+                              ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
+                                ghostMapAuth E₀.γrev 1 ∅ ∗
+                                  srvReadNamesFreshNK ρ.rd ∗
+                                    kvInv ρ.rd.raft ρ.rd.kv ∗
+                                      ghostMapAuth γ.reg 1 ∅ ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)
 
 def etcdstart.grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF) : IProp GF :=
@@ -304,19 +305,20 @@ def etcdstart.memberBootOn (γ : SrvRaft) (ctxs : List (List w8)) (ρ : ReqNames
                           lease.runCfg ρ.rd.kv.lm m ∧ (m = lease.Mode.revocable → lease.leasesNoExpiry)⌝ ∗
       (nodeBoot γ.cl srvClusterN γ.vs ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗
         srvRaftLogInv ρ.rd.raft ∗
-          idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-            idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
-              idNoZero ρ.ids ∗
-                srvPropMint ρ.rd.raft ρ.ids ∗
-                  srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-                    idShare ρ.ids ∗
-                      idWaitTok ρ.ids ∗
-                        srvApi.newServerStoreFreshA E₀.γs ∗
-                          ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
-                            ghostMapAuth E₀.γrev 1 ∅ ∗
-                              srvReadNamesFreshNK ρ.rd ∗
-                                kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
-                                  ghostMapAuth γ.reg 1 ∅ ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)
+          idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+            idPfxInv ρ.ids.gen ρ.ids.pfx ∗
+              idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
+                idNoZero ρ.ids ∗
+                  srvPropMint ρ.rd.raft ρ.ids ∗
+                    srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+                      idShare ρ.ids ∗
+                        idWaitTok ρ.ids ∗
+                          srvApi.newServerStoreFreshA E₀.γs ∗
+                            ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
+                              ghostMapAuth E₀.γrev 1 ∅ ∗
+                                srvReadNamesFreshNK ρ.rd ∗
+                                  kvInvM true ρ.rd.raft ρ.rd.kv srvAuthSt0 ∗
+                                    ghostMapAuth γ.reg 1 ∅ ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅)
 
 def etcdstart.urls1 (name peerAddr client : GoString) (U : BootURLs) : Prop :=
   U.peer = [etcdstart.httpURL peerAddr] ∧

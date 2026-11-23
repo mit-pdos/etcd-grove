@@ -530,7 +530,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- (R2c) at the member's key: the claims' facts the server's family at its store's index
   wp_apply (h14 ρ.ids _ now srvFloorFacts E₀.γs.slog (by rw [Hpfx]; congr 1; rw [← Hid]))
     $$ [Hids] as %gen #Hgen0
-  · iframe Hidc Hidk; iframe Hids
+  · iframe Hidc Hidk Hpfxi; iframe Hids
   ihave #Hgen : idGen ρ.ids gen (srvFloorFact E₀) $$ []
   · rw [show srvFloorFact (GF := GF) E₀ = srvFloorFacts E₀.γs.slog from rfl]
     iexact Hgen0

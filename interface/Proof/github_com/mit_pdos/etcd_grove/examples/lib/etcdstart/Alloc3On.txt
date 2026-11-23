@@ -4,33 +4,34 @@
 
 theorem etcdstart.memberBootOn_ofM [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ps : List w64) (ctxs
-    : List (List w8)) (reg issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
+    : List (List w8)) (reg issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
     GName → IProp GF) (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev x : GName)
     (Hx : x = γs.slog) (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
-    (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[],
-    []]) (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (lm : lease.Mode) (hrun : lease.runCfg lm lm) (hne
-    : lm = lease.Mode.revocable → lease.leasesNoExpiry) (Hklm : γk.lm = lm) (hpfx : lm =
-    lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo : kvPfxOk γk) (HΦ : Φs (idPfxOf
-    (W16 (uint.Z id))) = srvFloorFacts γs.slog) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 := W64
-    0 } -∗ idClusterInv issued cnt wn fs srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint {
-    raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0
-    } issued -∗ kvInvOn { raft := γ, pre := [], ai0 := W64 0 } γk srvAuthSt0 -∗ ((idPfxOf (W16
-    (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗ (nodeBoot
-    γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd,
-    ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)
-    -∗ ghostMapAuth reg 1 ∅ -∗ srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 ∅ -∗
-    ghostMapAuth rev 1 ∅ ==∗ ∃ ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-    ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.raft = { raft :=
-                                                  { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
-                                                    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh,
-                                                    props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh,
-                                                    pend := γ.pend, authOn := γ.authOn },
-                                                pre := [], ai0 := W64 0 }⌝ ∗
-                                etcdstart.memberBootOn
-                                  { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
-                                    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props,
-                                    fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn }
-                                  ctxs ρ (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id false lm
+    (Hgen : γk.ids.gen = gen) (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain true false
+    false) (Hlog : γk.log0 = [[], []]) (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (lm : lease.Mode)
+    (hrun : lease.runCfg lm lm) (hne : lm = lease.Mode.revocable → lease.leasesNoExpiry) (Hklm :
+    γk.lm = lm) (hpfx : lm = lease.Mode.revocable → idPfxOf (W16 (uint.Z id)) ∈ γk.gps) (hpo :
+    kvPfxOk γk) (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts γs.slog) : ⊢ srvRaftLogInv {
+    raft := γ, pre := [], ai0 := W64 0 } -∗ idClusterInv issued cnt wn fs gen srvFloorFacts -∗ W64 0
+    ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv {
+    raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInvOn { raft := γ, pre := [], ai0 := W64 0 } γk
+    srvAuthSt0 -∗ ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16
+    (uint.Z id)), 0) x ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
+    nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn
+    (idPfxOf (W16 (uint.Z id)), 0) -∗ ghostMapAuth reg 1 ∅ -∗ srvApi.newServerStoreFreshA γs -∗
+    ghostMapAuth cok 1 ∅ -∗ ghostMapAuth rev 1 ∅ -∗ idPfxInv gen (idPfxOf (W16 (uint.Z id))) ==∗ ∃
+    ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
+    ρ.rd.kv.hist = γk.hist ∧ ρ.rd.raft = { raft :=
+                                                    { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot,
+                                                      reg := reg, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh,
+                                                      props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh,
+                                                      pend := γ.pend, authOn := γ.authOn },
+                                                  pre := [], ai0 := W64 0 }⌝ ∗
+                                  etcdstart.memberBootOn
+                                    { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
+                                      snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props,
+                                      fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn }
+                                    ctxs ρ (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id false lm
 
 theorem etcdstart.kvInvOn_reg [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (r : GName) (γk :
@@ -78,28 +79,29 @@ theorem etcdstart.alloc3On [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api
 
 theorem etcdstart.memberBootOn_of [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ps : List w64) (ctxs
-    : List (List w8)) (reg issued cnt wn fs : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
+    : List (List w8)) (reg issued cnt wn fs gen : GName) (γk : KVNames) (Φs : w64 → w64 → List w8 →
     GName → IProp GF) (id : w64) (γm : mvcc.api.MvccName) (γs : srvApi.KVSNames) (cok rev x : GName)
     (Hx : x = γs.slog) (Hiss : γk.ids.issued = issued) (Hwn : γk.ids.wn = wn) (Hfs : γk.ids.fs = fs)
-    (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain true false false) (Hlog : γk.log0 = [[],
-    []]) (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lg = false) (HΦ : Φs (idPfxOf (W16
-    (uint.Z id))) = srvFloorFacts γs.slog) : ⊢ srvRaftLogInv { raft := γ, pre := [], ai0 := W64 0 }
-    -∗ idClusterInv issued cnt wn fs srvFloorFacts -∗ W64 0 ↪[issued]□ none -∗ srvPropMint { raft :=
-    γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv { raft := γ, pre := [], ai0 := W64 0 } issued
-    -∗ kvInvOn { raft := γ, pre := [], ai0 := W64 0 } γk srvAuthSt0 -∗ ((idPfxOf (W16 (uint.Z id)),
-    0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16 (uint.Z id)), 0) x ∗ (nodeBoot γ.cl
-    srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗ nodeVacant γ.cl id) ∗ ∃ γd,
-    ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn (idPfxOf (W16 (uint.Z id)), 0)
-    -∗ ghostMapAuth reg 1 ∅ -∗ srvApi.newServerStoreFreshA γs -∗ ghostMapAuth cok 1 ∅ -∗
-    ghostMapAuth rev 1 ∅ ==∗ ∃ ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
-    ρ.rd.kv.log0 = γk.log0 ∧ ρ.rd.kv.hist = γk.hist ∧ ρ.rd.raft = { raft :=
-                                                  { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
-                                                    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh,
-                                                    props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh,
-                                                    pend := γ.pend, authOn := γ.authOn },
-                                                pre := [], ai0 := W64 0 }⌝ ∗
-                                etcdstart.memberBootOn
-                                  { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
-                                    snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props,
-                                    fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn }
-                                  ctxs ρ (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id
+    (Hgen : γk.ids.gen = gen) (Hc0 : γk.c0 = W64 0) (Hch : γk.ch0 = apply.alarmChain true false
+    false) (Hlog : γk.log0 = [[], []]) (Hvs : γ.vs = ps) (Hkc : γk.cmp = false) (Hklg : γk.lg =
+    false) (HΦ : Φs (idPfxOf (W16 (uint.Z id))) = srvFloorFacts γs.slog) : ⊢ srvRaftLogInv { raft :=
+    γ, pre := [], ai0 := W64 0 } -∗ idClusterInv issued cnt wn fs gen srvFloorFacts -∗ W64 0
+    ↪[issued]□ none -∗ srvPropMint { raft := γ, pre := [], ai0 := W64 0 } γk.ids -∗ srvRdCtxInv {
+    raft := γ, pre := [], ai0 := W64 0 } issued -∗ kvInvOn { raft := γ, pre := [], ai0 := W64 0 } γk
+    srvAuthSt0 -∗ ((idPfxOf (W16 (uint.Z id)), 0) ↪[cnt] ([], none) ∗ idKeyFactAt fs (idPfxOf (W16
+    (uint.Z id)), 0) x ∗ (nodeBoot γ.cl srvClusterN ps ctxs id ∗ raftState γ.cl id RaftState.init ∗
+    nodeVacant γ.cl id) ∗ ∃ γd, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 ∅) -∗ idWaitTokAt wn
+    (idPfxOf (W16 (uint.Z id)), 0) -∗ ghostMapAuth reg 1 ∅ -∗ srvApi.newServerStoreFreshA γs -∗
+    ghostMapAuth cok 1 ∅ -∗ ghostMapAuth rev 1 ∅ -∗ idPfxInv gen (idPfxOf (W16 (uint.Z id))) ==∗ ∃
+    ρ, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧ ρ.rd.kv.log0 = γk.log0 ∧
+    ρ.rd.kv.hist = γk.hist ∧ ρ.rd.raft = { raft :=
+                                                    { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot,
+                                                      reg := reg, snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh,
+                                                      props := γ.props, fired := γ.fired, rdFresh := γ.rdFresh,
+                                                      pend := γ.pend, authOn := γ.authOn },
+                                                  pre := [], ai0 := W64 0 }⌝ ∗
+                                  etcdstart.memberBootOn
+                                    { cl := γ.cl, vs := γ.vs, rule := γ.rule, boot := γ.boot, reg := reg,
+                                      snapLoc := γ.snapLoc, log := γ.log, fresh := γ.fresh, props := γ.props,
+                                      fired := γ.fired, rdFresh := γ.rdFresh, pend := γ.pend, authOn := γ.authOn }
+                                    ctxs ρ (etcdstart.env₀ γm γs rev (srvApi.kvNx ρ.rd true)) Φs id

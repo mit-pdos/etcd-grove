@@ -813,7 +813,7 @@ bootMarshal vs ctxs bl ⊢ nodeBoot …` at a heap. Additive: no statement chang
 regenerated; heap-free roots, `nodeBoot` a negative test. `srvClusterBoot_alloc` can now take the raft part from
 `cluster_alloc_bootG`; it stays at a heap until the idutil split.
 
-#### The idutil split (design, 2026-11-23, for review on #28; not implemented)
+#### The idutil split (design, 2026-11-23; accepted on #28, implemented on `d7-idsplit`)
 
 **The defect.** `idClusterInv issued cnt wn fs Φs` (`idutil/Defs.lean`), the cluster's claims, holds for every key
 `k` with a generator `g` (`C !! k = some (L, some g)`) `idKeyGenFacts k e`: `g`'s `prefix` field
@@ -873,6 +873,18 @@ confused with the old one, so (U2)'s `g' = g` then compares `(epoch, g)` pairs. 
 process, `HardStop`, no crash) keeps the heap, so nothing changes for it. The global part has no crash concern.
 
 Ledger: `notes/specs-only/ledger.md`, 2026-11-23, "idutil's cluster claims hold every machine's generator facts".
+
+**Implemented (`d7-idsplit`, 2026-11-23).** As designed, refined: each prefix's two names (its ids' map `γip`, its
+generators' map `γgp`) are allocated by `idCluster_alloc` and recorded persistently in the new map `IdNames.gen`
+(`p ↪[gen]□ (γip, γgp)`; `idPfxTok gen p` the fresh pair, `idPfxInv_alloc` the member's step); the global
+invariant's `idKeyGenFacts gen k e` keeps heap-free records (`g ↪[γgp]□ k`, `id ↪[γip]□ g`), `idPfxInv gen p` their
+heap halves; `idClusterInv` gains the parameter `gen`. `NewGenerator`/`Next` re-proved over both invariants;
+`srvClusterBoot_allocG` (no `bootMarshal`, `nodeBootG`, `idPfxTok`s) with `srvClusterBoot_alloc` its corollary;
+etcdstart's `clusterFacts`, `memberSlice` (`nodeBootG`, `idPfxTok`) and `clusterAllocN` heap-free;
+`memberBoot_of_slice` (the member's boot: `bootMarshal`, `idPfxInv_alloc`, `memberBoot_of`). So the distributed
+start's cluster allocation is `clusterAllocN` (plus the S2 start, `cluster_svc_start`); what is left for D7's no-crash
+part is the `k`-member boot skeleton, which waits for S5 (the peers' transport) and D2 (the server program).
+
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
