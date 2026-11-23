@@ -174,7 +174,8 @@ meanwhile: no closed theorem would show the gain before then.
 **C. A only below the theorems now** (idutil and the three callers, the premises as they are): the
 generator's proof and callers ready, the `2^48` premises raised later with the dist theorems.
 
-**Recommendation: B.** A's gain (about `2^54` steps, 200+ days at 10^9 steps/s) appears in no proved
+**Decision: B, the user's (2026-11-22): "let's defer and do other things first".** The agent's
+recommendation was B: A's gain (about `2^54` steps, 200+ days at 10^9 steps/s) appears in no proved
 statement until the dist theorems are proved, and its proof work sits in files others are changing
 now; C pays most of A's cost early and collides with them. In the meantime: the `mvcc*` follow-up
 (`2^38`, step 2's note) and `bboltfs` (1b, Perennial) are independent of the swap.

@@ -35,3 +35,9 @@ is false at a receipt bound above `2 ^ 62` (since 2026-11-17) and, after step 2,
 3"), branch `openbackend-receipt`: the server's `srvSnapRO` and `applySnapshot` carry
 `receiptBound ≤ 2 ^ 60` (in place of `wbInit - 6`, which it implies), and the walk passes it to
 `OpenSnapshotBackend`.
+## Q3 (step 3's Scope) — 2026-11-22, decided by the user: B (defer)
+
+Step 3 (`K` receipts per request id) is deferred until the `net` swap has landed and
+`etcd_dist_safe` is proved: the statements it would raise (`etcd_safe`, `k8s_safe`, leaseexpiryN's)
+retire at the swap, and its proof work is in request-path files proving session 2 is changing
+(`notes/step-bounds-plan.md`, step 3's Scope). Meanwhile: the `mvcc*` follow-up and `bboltfs` (1b).
