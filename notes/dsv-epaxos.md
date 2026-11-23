@@ -233,12 +233,22 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `connEnd cn true Q P [] [] ∗ connFresh cn true`; `Stream`'s `ownReader_proto` is dropped
    (bufio's `ownBufReader_fact`), `listener_nextIs` is over `connRd t cid side eof la ra ed (peerPin …)`
    (its stream fact `▷ protoPrefix`, stripped with `inext`).
-   **Next: `replica/PrefixReader`** (the lab's `prI` and `prefixReader_readerOk` restated over
-   Perennial's `io.readerOk ri Pre S E` (`Perennial/Proof/io/Reader.lean`: `Pre r n`, results
-   `errAt E`, `ptrTyped err`) and `net.conn_readerOk` (`recvTokL`, `connReadE`), then a `BufRd`
-   over it for `clientListener`'s `bufio.NewReader`), then `SendMsg`, `ReplyPropose`,
-   `ClientWire`, `ReplicaListener`, `ClientListener`, `Dial`, `Connect*`, `ServeConn`,
-   `WaitPeers`, `WaitClients`, `Beacon`, `ClosestPeers`, `New`, `Link` (lab sizes: 6k lines).
+   **`replica/{PrefixReader,SendMsg,ReplyPropose}` (hand-maintained after the port; 0 errors,
+   no `sorry`):** `PrefixReader`: `prI` over `recvTokL`, `prefixReader_readerOk` (Perennial's
+   `io.readerOk (prIface pr) (0 < ·) (prI …) (connReadE …)` from `net.conn_readerOk`; the copy
+   branch by `wp_slice_copy_int`), `prRd` (the `BufRd`, stream fact `▷ protoPrefix`).
+   `SendMsg`/`ReplyPropose`: dsv-bufio's `Writer.WriteByte.wp_proof`, `Writer.Flush.wp_proof` and
+   the kit's `marshalTriple` on `connWr` writers (no `writerOk` premise: the contract is inside
+   `ownBufWriter`), the stream's prefix closure by `peerPX_ppc`/`repAccP_ppc`; frame a `wrOwn …
+   (connWr …)` goal only after `simp only [wrOwn, connWr]` (the bundle's projections).
+   **New hypothesis `BufWriterNotNull`** (`Interface/ConnBuf.lean`): `ownBufWriter bw … ⊢ ⌜bw ≠
+   null⌝`, the lab's `ownWriter_not_null` (SendMsg's `PeerWriters[t] != nil`); dsv-bufio has no
+   such law and its predicates may not be unfolded here: a premise of `SendMsg.spec_holds`, to be
+   discharged by a one-line bufio law (from `writerRep`'s `bw ↦ Writer.mk …`). **Ask for it.**
+   **Next:** `ReplicaListener`, `ClientListener` (with `prRd`), `Dial`, `ConnectGhost`, `Connect`,
+   `ServeConn`, `WaitPeers`, `WaitClients`, `Beacon`, `ClosestPeers`, `New`, `Link` (lab ~4.1k
+   lines): `port.py Epaxos/Proof/replica/X.lean`, then the same rewrites (connIn/connWr/connRd,
+   accept/dial laws `accept_au`/`dial_au` of `Proto.lean` in place of the lab's harness).
    - **port.py** has three layers: `conv` (renames), `generic_conv` (every port: section headers,
      `(GF := GF)` on spec statements, spec hypotheses `(hP : X.spec)` and `have h := thm γ …`,
      `Dsv.` names, unseal equations, `clientN` → `epEop` masks, `[net.model.Assumptions]` →
@@ -259,6 +269,14 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `ModelSet`/`ModelProof`), `epaxos_remote_robust`.
 
 ## Hypotheses
+
+**Linking check (VR's finding 7, 2026-11-23):** the kit's Go has no `init()` function (`grep`), and
+every program (`go list -deps ./cmd/server2`, and the 17 `PkgTable`s) links all eight fork packages
+(`config dlog state replica/defs rpc replica epaxos master`): the package facts the proofs use
+(`epaxos`' `errVarintOverflow`, `deferMap`, `LatencyConf`: package variables, no hooks) are of
+linked packages. No vacuous premise of this kind.
+
+- `BufWriterNotNull` (`Interface/ConnBuf.lean`): see 3h (a missing bufio law).
 
 Stated in Lean (no axiom, no `sorry`; each a `Prop` class taken as an instance by every theorem
 that needs it):

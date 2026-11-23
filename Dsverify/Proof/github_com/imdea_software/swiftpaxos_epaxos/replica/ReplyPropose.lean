@@ -4,6 +4,7 @@
 -/
 module
 
+public import Proof.bufio.Writer__Flush
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.SendMsg
 
 @[expose] public section
@@ -22,7 +23,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
 
 theorem replica.Replica.ReplyProposeTS.spec_holds
-    (hM : replica.defs.ProposeReplyTS.Marshal.spec (GF := GF)) : replica.Replica.ReplyProposeTS.spec := by
+    (hM : replica.defs.ProposeReplyTS.Marshal.spec (GF := GF)) : replica.Replica.ReplyProposeTS.spec (GF := GF) := by
   intro γ r id L p Rext reply w mu cid o v vsl ts dq dq'
   wp_start as ⟨%Hv, #Hfw, Hrep, Hvsl, #Hcw, Hrt, #Hfired⟩
   ihave #Hfw' := isReplicaFw_def $$ Hfw
@@ -50,19 +51,19 @@ theorem replica.Replica.ReplyProposeTS.spec_holds
   ihave %Hlk := ghost_map_lookup $$ HCW Hcw
   icases (BigSepM.bigSepM_lookup_acc (show get? CW w = some cid from Hlk)).1 $$ Hcs with ⟨Hs, Hcs⟩
   unfold clientSlotX
-  icases Hs with ⟨%c, %sent, %pend, %err, #Hci, Hw, Hst, %cl, %i, #Hrole⟩
+  icases Hs with ⟨%c, %sent, %pend, %err, %tc, %la, %ra, %ed, %eof, #Hci, Hw, Hst, %cl, %i, #Hrole⟩
   icases Hst with (%Hst | Hrt')
   rotate_left
   · iexfalso
     icases ghostMapElem_ne _ w w _ () () $$ Hrt Hrt' with %Hne
     exact absurd rfl Hne
-  ihave #Hpcl := repAccP_prefixClosed γ (L.getD id []) cid
-  ihave #Hwok := bufio.writerOk_conn c cid true (repAccP γ (L.getD id [])) $$ [Hci Hpcl]
-  · iframe #; iPkgInit
   rw [show interface.mkOk (go.GoType.PointerType bufio.Writer.ty) #w = bwIface w from rfl]
-  wp_apply (hM reply dq dq' ⟨okTRUE, W32 0, v, ts⟩ vsl w c _ _ sent pend err)
-    $$ [$Hwok $Hw $Hrep $Hvsl] as ⟨⟨Hrep, Hvsl⟩, %sent2, %pend2, %e2, %Hw2, Hw⟩
-  · iintro %He
+  wp_apply (hM reply dq dq' ⟨okTRUE, W32 0, v, ts⟩ vsl w
+      (connWr tc cid true la ra ed (repAccP γ (L.getD id [])) (repAccP_ppc γ _) 4096) sent pend err)
+    $$ [Hw Hrep Hvsl] as ⟨⟨Hrep, Hvsl⟩, %sent2, %pend2, %e2, %Hw2, Hw⟩
+  · simp only [connWr]
+    iframe Hw Hrep Hvsl
+    iintro %He
     rw [Hst]
     imodintro
     unfold repAccP
@@ -76,9 +77,11 @@ theorem replica.Replica.ReplyProposeTS.spec_holds
     ipureintro
     refine ⟨Hv.1, Hv.2, ?_⟩
     simp [ProposeReplyV.enc]
-  wp_apply bufio.wp_Flush' w c _ _ sent2 pend2 e2 $$ [$Hwok $Hw] as %e3 ⟨%k, %Hk3, Hw⟩
+  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof w _ _ _ _ _ sent2 pend2 e2
+    $$ [$Hw] as %e3 ⟨%k, %Hk3, Hw⟩
   ihave Hcs := Hcs $$ [Hw Hrt]
-  · iexists c, sent2 ++ pend2.take k, pend2.drop k, e3
+  · iexists c, sent2 ++ pend2.take k, pend2.drop k, e3, tc, la, ra, ed, eof
+    simp only [wrOwn, connWr]
     iframe Hci Hw
     isplitl [Hrt]
     · iright; iexact Hrt
