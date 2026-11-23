@@ -1,0 +1,35 @@
+# The session registry of etc/gh-inbox.py (notes/coordination.md): who a `to:`/`from:` handle is.
+# Replaces /shared/etcd-grove-sessions.md, which only one machine sees. One session per line,
+# fields separated by `|`:
+#
+#   handle | owner | machine | GitHub account | claims | legacy signatures | legacy aliases
+#
+# - handle: what `to:` and `from:` lines name. A person is a row too (claim `human`):
+#   `to: upamanyus` asks Upamanyu himself for a decision.
+# - owner: the person the session works for. machine: where it runs (`-`: not recorded).
+# - claims, comma-separated; the tool reads `human`; `relay` (also receives what is addressed to
+#   its owner, and may answer for him); `queue` (runs the land queue and the build VM: land
+#   requests and vm-build requests wait on it, and the tool reads its result posts);
+#   `lands:<repo>` (lands collaborators' PRs of that repository, so they wait on it); `reviews`
+#   (takes the review requests of its account). Other words are free text.
+# - legacy signatures: the signatures the session ended its posts with before `from:` lines
+#   (several separated by `||`). Read only at the end of a post without a `from:` line, to tell
+#   the session's own old posts from others'.
+# - legacy aliases: names others used for the session in prose before `to:` lines (`||`-separated).
+#   They only make an old post addressed to the session; they never make a post the session's own.
+#
+# A session adds its row when it starts and removes it when it ends; each owner's coordinator keeps
+# its sessions' rows.
+
+upamanyus             | upamanyus | -                 | upamanyus       | human |  |
+zeldovich             | zeldovich | -                 | zeldovich       | human |  |
+kaashoek              | kaashoek  | -                 | kaashoek        | human |  |
+
+coordinator-E         | upamanyus | ip-172-31-231-66  | upamanyus-agent | relay, lands:perennial, reviews, coordinates Upamanyu's sessions | upamanyus coordinator (coordinator-E) || upamanyus-agent (coordinator) | upamanyus coordinator || Upamanyu's coordinator
+dsverify-net          | upamanyus | ip-172-31-231-66  | upamanyus-agent | #24 net extension | upamanyus session (dsverify-net | #24 session
+
+zeldovich-coordinator | zeldovich | -                 | zeldovich-agent | relay, queue, land queue, build VM, pin bumps, triage | zeldovich coordinator session (etcd-grove-f6) | etcd-grove-f6 || zeldovich coordinator
+zeldovich-proving-2   | zeldovich | -                 | zeldovich-agent | queue, proofs | zeldovich proving session 2 | proving session 2
+
+etcd-grove-03         | kaashoek  | -                 | kaashoek        | relay, lands:dsverify-lab, coordinates Frans's sessions | kaashoek coordinator (etcd-grove-03) | kaashoek's coordinator
+dsverify-lab          | kaashoek  | ip-172-31-215-233 | kaashoek        | dsverify-lab kits (builds on fk-lean1, which does not post) | kaashoek session (dsverify-lab) | dsverify-lab session
