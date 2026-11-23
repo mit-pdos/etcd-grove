@@ -43,29 +43,29 @@ variable [gA : examples.gryffnet.Assumptions] [fa : src.fastrpc.Assumptions] [wi
 /-! ### The message kinds -/
 
 theorem msgAt_read1 (p : Loc) (mm : model.Read1ProxiedM) :
-    msgAt p (.read1 mm) ⊣⊢ ∃ g : src.gryffproto.Read1Proxied, p ↦ g ∗ ⌜read1Of g = mm⌝ := by
+    msgAt (GF := GF) p (.read1 mm) ⊣⊢ ∃ g : src.gryffproto.Read1Proxied, p ↦ g ∗ ⌜read1Of g = mm⌝ := by
   unfold msgAt; exact .rfl
 theorem msgAt_read2 (p : Loc) (mm : model.Read2ProxiedM) :
-    msgAt p (.read2 mm) ⊣⊢ ∃ g : src.gryffproto.Read2Proxied, p ↦ g ∗ ⌜read2Of g = mm⌝ := by
+    msgAt (GF := GF) p (.read2 mm) ⊣⊢ ∃ g : src.gryffproto.Read2Proxied, p ↦ g ∗ ⌜read2Of g = mm⌝ := by
   unfold msgAt; exact .rfl
 theorem msgAt_write1 (p : Loc) (mm : model.Write1ProxiedM) :
-    msgAt p (.write1 mm) ⊣⊢ ∃ g : src.gryffproto.Write1Proxied, p ↦ g ∗ ⌜write1Of g = mm⌝ := by
+    msgAt (GF := GF) p (.write1 mm) ⊣⊢ ∃ g : src.gryffproto.Write1Proxied, p ↦ g ∗ ⌜write1Of g = mm⌝ := by
   unfold msgAt; exact .rfl
 theorem msgAt_write2 (p : Loc) (mm : model.Write2ProxiedM) :
-    msgAt p (.write2 mm) ⊣⊢ ∃ g : src.gryffproto.Write2Proxied, p ↦ g ∗ ⌜write2Of g = mm⌝ := by
+    msgAt (GF := GF) p (.write2 mm) ⊣⊢ ∃ g : src.gryffproto.Write2Proxied, p ↦ g ∗ ⌜write2Of g = mm⌝ := by
   unfold msgAt; exact .rfl
 theorem msgAt_read1Reply (p : Loc) (mm : model.Read1ReplyM) :
-    msgAt p (.read1Reply mm) ⊣⊢ ∃ g : src.gryffproto.Read1Reply, p ↦ g ∗ ⌜read1ReplyOf g = mm⌝ := by
+    msgAt (GF := GF) p (.read1Reply mm) ⊣⊢ ∃ g : src.gryffproto.Read1Reply, p ↦ g ∗ ⌜read1ReplyOf g = mm⌝ := by
   unfold msgAt; exact .rfl
 theorem msgAt_read2Reply (p : Loc) (mm : model.Read2ReplyM) :
-    msgAt p (.read2Reply mm) ⊣⊢ ∃ g : src.gryffproto.Read2Reply, p ↦ g ∗ ⌜read2ReplyOf g = mm⌝ := by
+    msgAt (GF := GF) p (.read2Reply mm) ⊣⊢ ∃ g : src.gryffproto.Read2Reply, p ↦ g ∗ ⌜read2ReplyOf g = mm⌝ := by
   unfold msgAt; exact .rfl
 theorem msgAt_write1Reply (p : Loc) (mm : model.Write1ReplyM) :
-    msgAt p (.write1Reply mm) ⊣⊢
+    msgAt (GF := GF) p (.write1Reply mm) ⊣⊢
       ∃ g : src.gryffproto.Write1Reply, p ↦ g ∗ ⌜write1ReplyOf g = mm⌝ := by
   unfold msgAt; exact .rfl
 theorem msgAt_write2Reply (p : Loc) (mm : model.Write2ReplyM) :
-    msgAt p (.write2Reply mm) ⊣⊢
+    msgAt (GF := GF) p (.write2Reply mm) ⊣⊢
       ∃ g : src.gryffproto.Write2Reply, p ↦ g ∗ ⌜write2ReplyOf g = mm⌝ := by
   unfold msgAt; exact .rfl
 

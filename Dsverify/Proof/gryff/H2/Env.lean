@@ -47,7 +47,7 @@ instance epEnv_persistent (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r 
   unfold epEnv; infer_instance
 
 theorem handlerOf_open (r h : Loc) :
-    handlerOf r h ⊣⊢ r.[src.gryff.Replica, go!"rmwHandler"] ↦□ handlerIface h := by
+    handlerOf (GF := GF) r h ⊣⊢ r.[src.gryff.Replica, go!"rmwHandler"] ↦□ handlerIface h := by
   unfold handlerOf; exact .rfl
 
 /-- The replica's parts at state `s` (the heap with its packages' parts named). -/
