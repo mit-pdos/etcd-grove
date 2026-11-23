@@ -59,6 +59,13 @@ theorem portAddr_inj {k1 k2 : Nat} (h1 : k1 < 3) (h2 : k2 < 3) (h : portAddr k1 
   rcases k1 with _|_|_|k1 <;> rcases k2 with _|_|_|k2 <;>
     first | rfl | omega | (exfalso; revert h; decide)
 
+/-- The replicas' peer-and-client ports (the lab's `Shares.replicaAddrs`, the kit's addresses). -/
+def replicaAddrs : List GoString := [portAddr 0, portAddr 1, portAddr 2]
+
+/-- The address `waitForPeerConnections` listens at for its node's address `a`:
+`a[strings.Index(a, ":"):]`, the wildcard of `a`'s port (`":7502"` for `portAddr 0`). -/
+def lisAddrOf (a : GoString) : GoString := a.drop (a.idxOf (W8 58))
+
 instance nodeIdIs_persistent' (γp : ProtoNames) (k : Nat) (id : w64) :
     Persistent (nodeIdIs (GF := GF) γp k id) := by
   unfold nodeIdIs; infer_instance
