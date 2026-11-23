@@ -85,6 +85,14 @@ abbrev OnDiskKeeps : Prop :=
     s.onDisk n q more ro ld ll ch tl vi = .ok (some ns) →
     ns.cfg = s.cfg ∧ ns.queue = s.queue ∧ ns.pending = s.pending ∧ ns.i = s.i
 
+/-- **`InMemory`'s per-server results have the state's per-server lengths** (`State.inMemory_lengths`;
+taken as a hypothesis named `inMemory_lengths` by `Mem`, `Ready` until it is proved): `Mem` and
+`Ready` store `r.role`, `r.config`, `r.confAt` in the successor, whose setters ask one entry per
+server. -/
+abbrev InMemoryLengths : Prop :=
+  ∀ (s : State) (n : Nat) (ev : Event) (r : MemResult), s.inMemory n ev = .ok r →
+    r.role.length = s.role.length ∧ r.config.length = s.config.length ∧ r.confAt.length = s.confAt.length
+
 /-- A non-empty `l[n]!` is an element of `l`. -/
 theorem getElem!_cons_mem {α : Type} {l : List (List α)} {n : Nat} {q : α} {rest : List α}
     (h : l[n]! = q :: rest) : n < l.length ∧ (q :: rest) ∈ l := by
