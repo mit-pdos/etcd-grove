@@ -1,10 +1,11 @@
 /-
-The trust boundary of `maps.Keys` (see its spec, `Spec.maps.Keys`; reviewed:
-`notes/axiom-review/k8s-7g-trust.md`).
+`maps.Keys` on a `map[string]runtime.Object` (see its spec, `Spec.maps.Keys`): Perennial's
+`maps.wp_Sorted_Keys_string` at `V := GoInterface`, without its slice's capacity.
 -/
 module
 
 public import Spec.maps.Keys
+public import Perennial.Proof.maps.Results
 
 @[expose] public section
 
@@ -20,10 +21,21 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.maps.Assumptions]
+variable [package_sem' : _root_.Perennial.slices.Assumptions]
+variable [package_sem'' : _root_.Perennial.cmp.Assumptions]
 
-/-- **Trust-boundary assumption** (an axiom, not a proof): `slices.Sorted(maps.Keys(m))` on a `map[string]runtime.Object` returns the map's keys at the time of `Sorted`, each once, strictly increasing; why that is true of Go is in the
-spec's file header, with its Go tests. -/
-axiom maps.Keys.wp_proof_objMap : maps.Keys.spec_objMap (GF := GF) (hG := hG)
+theorem maps.Keys.wp_proof_objMap : maps.Keys.spec_objMap (GF := GF) (hG := hG) := by
+  intro m
+  wp_start_folded as -
+  wp_apply (_root_.Perennial.maps.wp_Sorted_Keys_string (V := GoInterface) m) as %f #Hf
+  iapply HΦ
+  imodintro
+  iintro %M %dq %Ψ #Hinit HM %Hsize HΨ
+  iapply Hf $$ %dq %M %Ψ Hinit HM %Hsize
+  inext
+  iintro %s %ks HM' Hs - %Hks
+  iapply HΨ $$ HM' Hs %Hks
 
 end proof
 

@@ -57,15 +57,16 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
   wp_auto_lc 2
   wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqP S a) (repP S) [] [] ∗
-        connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
-    as %c %err (⟨%Herr, %cn, #Hc, ⟨Hend, Hfresh⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
+        connFresh (Gg := hG.goose_globalGS) cn false ∗
+        rdlTok (Gg := hG.goose_globalGS) cn false false)) $$ []
+    as %c %err (⟨%Herr, %cn, #Hc, ⟨Hend, Hfresh, Hrdl⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
   · iframe Het Hed
     isplitr
     · ipureintro; exact Hok
     isplit
     · itrivial
     · unfold svcAddr
-      iapply dial_au a (reqP S a) (repP S) $$ Ha
+      iapply dial_rdl_au a (reqP S a) (repP S) $$ Ha
   · subst Herr
     unfold net.isConn
     icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
@@ -79,9 +80,9 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     icases Hend with ⟨Hsend, Hrecv⟩
     ihave #Hconn := sendTok_connIs cn false (reqP S a) [] $$ Hsend
     wp_apply wp_deadline as %tm -
-    wp_apply wp_SetDeadline t cn false a la ra tm (fun _ => iprop(True)) $$ [] as %err' -
+    wp_apply wp_SetDeadline t cn false a la ra tm (fun _ => iprop(True)) $$ [Hrdl] as %err' -
     · iframe Hca
-      imod deadline_au cn false (W64 0) _ $$ Hconn with ⟨%st, Hst, Hcl⟩
+      imod deadline_au cn false (W64 0) _ false $$ Hrdl with ⟨%st, Hst, Hcl⟩
       imodintro
       iexists st
       iframe Hst

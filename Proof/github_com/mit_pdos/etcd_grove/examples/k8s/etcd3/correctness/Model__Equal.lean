@@ -70,6 +70,8 @@ theorem Model.Equal.wp_proof
   wp_auto
   iunfold itemsRO at Hit1
   iunfold itemsRO at Hit2
+  icases Hit1 with ⟨-, #Hit1⟩
+  icases Hit2 with ⟨-, #Hit2⟩
   wp_apply (wp_DeepEqual.2.2.1 il1 il2 M1 M2 _ _ DFrac.discard DFrac.discard)
     $$ [HI1 Hit1 HI2 Hit2] as %b ⟨%Hb, -⟩
   · iframe HI1 Hit1 HI2 Hit2

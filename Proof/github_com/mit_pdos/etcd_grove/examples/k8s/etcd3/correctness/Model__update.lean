@@ -69,7 +69,7 @@ theorem Model.update.wp_proof
     (wp_FormatUint : strconv.FormatUint.spec (GF := GF) (hG := hG))
     (wp_DE : reflect.DeepEqual.spec_k8s (GF := GF) (hG := hG)) :
     Model.update.spec (GF := GF) (hG := hG) := by
-  intro mp m x ctx pp uf cx hfit hfx huf
+  intro mp m x ctx pp uf cx hfit hfx huf hsz
   wp_start as ⟨Hm, #Hpre, #Huf⟩
   unfold modelOwn modelRep modelVal
   icases Hm with ⟨#Hinit, %il, %rl, %M, Hp, HI, #Hit, HR⟩
@@ -242,7 +242,8 @@ theorem Model.update.wp_proof
             unfold rupdateL; simp [hk, hin, hig, (checkMsgL_none x k8s_etcd3.zObj).2 hpok, hrj]
           rw [hd]
           ihave #HD := itemsRO_insert M m.items (k8s_etcd3.storeKeyL x.Key') c2
-            { k8s_etcd3.updGo x k8s_etcd3.zObj with ResourceVersion' := m.rv + W64 1 } $$ [Hit Hc2]
+            { k8s_etcd3.updGo x k8s_etcd3.zObj with ResourceVersion' := m.rv + W64 1 }
+            (size_insert_le_of_lt _ _ _ hsz) $$ [Hit Hc2]
           · isplitl
             · iexact Hit
             · rw [← hu]; iexact Hc2
@@ -452,7 +453,8 @@ theorem Model.update.wp_proof
               intro h; exfalso; apply hne'; simpa using h
             rw [hd]
             ihave #HD := itemsRO_insert M m.items (k8s_etcd3.storeKeyL x.Key') c2
-              { k8s_etcd3.updGo x o with ResourceVersion' := m.rv + W64 1 } $$ [Hit Hc2]
+              { k8s_etcd3.updGo x o with ResourceVersion' := m.rv + W64 1 }
+              (size_insert_le_of_lt _ _ _ hsz) $$ [Hit Hc2]
             · isplitl
               · iexact Hit
               · iexact Hc2
@@ -540,7 +542,8 @@ theorem Model.update.wp_proof
             unfold rupdateL; simp [hk, ho, (checkMsgL_none x o).2 hpok, hrj, hnr]
           rw [hd]
           ihave #HD := itemsRO_insert M m.items (k8s_etcd3.storeKeyL x.Key') c2
-            { k8s_etcd3.updGo x o with ResourceVersion' := m.rv + W64 1 } $$ [Hit Hc2]
+            { k8s_etcd3.updGo x o with ResourceVersion' := m.rv + W64 1 }
+            (size_insert_le_of_lt _ _ _ hsz) $$ [Hit Hc2]
           · isplitl
             · iexact Hit
             · iexact Hc2

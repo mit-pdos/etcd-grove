@@ -3,9 +3,10 @@
 item 1): the general spec, which the kits take as a hypothesis while the model's bodies are opaque
 (vr's `encoding.json.Unmarshal.spec`, the lab's `Harness/Proof/encoding/json/Valid.lean`, moved here
 with the registry generic in the codec's functions `fm`, `fu`: a kit's `codecSet ∗ kitCodecOk F` is
-`codecSetWith fm fu ∗ codecOkWith F fm fu` at its generated functions). A statement only: neither
-assumed nor proved yet (it is proved over the model's `Unmarshal` once the bodies are translated:
-`getCodec`, `valid`, then the codec's `Unmarshal`). The main tree's per-shape trust boundary
+`codecSetWith fm fu ∗ codecOkWith F fm fu` at its generated functions). Since #24 J2/J3
+(2026-11-23), with the per-type dispatch and the contract `J` explicit (`unmarshalVia J F ptr`,
+whose codec case is the former `codecSetWith fm fu ∗ codecOkWith F fm fu`), proved over the model's
+`Unmarshal` (`Proof/encoding/json/Codec/Unmarshal.lean`). The main tree's per-shape trust boundary
 (`EtcdGrove.encoding.json.Unmarshal.spec`, a `*ConfigChangeContext`) is to become a lemma of it.
 Lean-first (no Rocq counterpart).
 -/
@@ -27,23 +28,21 @@ namespace encoding.json
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [encoding.json.Assumptions] [jc : models_lab.jsoncodec.JsonCodec GF]
+variable [encoding.json.Assumptions]
 
-/-- `Unmarshal(data, ptr)`, with a codec of `fm`, `fu` registered that meets `JsonCodec` (scanner
-`F`): on valid JSON (`jsonValid F bs`), the codec's decoding (`JsonCodec.dec`; `err` is nil exactly
-when it decoded); else a syntax error (non-nil), with nothing decoded. -/
+/-- `Unmarshal(data, ptr)`: by `ptr`'s dynamic type's method set, its `JSONModelUnmarshal` (jsongen's
+same-package method), else the registered codec (`unmarshalVia J F ptr`: the route's contract `J`,
+the scanner `F`): on valid JSON (`jsonValid F bs`), `J`'s decoding (`J.dec`; `err` is nil exactly
+when it decoded); else a syntax error (non-nil), with nothing decoded (`unmarshalRet`). -/
 abbrev Unmarshal.spec : Prop :=
-  ∀ (F : List w8 → Bool → w64 × w64) (fm fu : GoFunc) (data : GoSlice) (dq : DFrac) (bs : List w8)
-    (ptr : GoInterface) (Ψ : Bool → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗ codecSetWith (GF := GF) fm fu ∗
-      codecOkWith (GF := GF) F fm fu ∗ data ↦*{dq} bs ∗ models_lab.jsoncodec.JsonCodec.dec bs ptr Ψ }}
+  ∀ (J : models_lab.jsoncodec.JsonCodec GF) (F : List w8 → Bool → w64 × w64) (data : GoSlice)
+    (dq : DFrac) (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗ unmarshalVia J F ptr ∗
+      data ↦*{dq} bs ∗ J.dec bs ptr Ψ }}
     (App (App (Val (@! encoding.json.Unmarshal)) (Val #data)) (Val #ptr))
-  {{ (err : GoInterface), RET #err; data ↦*{dq} bs ∗
-      ((⌜models_lab.jsoncodec.jsonValid F bs⌝ ∗ ∃ ok, ⌜err = interface.nil ↔ ok = true⌝ ∗ Ψ ok) ∨
-       (⌜¬ models_lab.jsoncodec.jsonValid F bs ∧ err ≠ interface.nil⌝ ∗
-         models_lab.jsoncodec.JsonCodec.dec bs ptr Ψ)) }}
+  {{ (err : GoInterface), RET #err; data ↦*{dq} bs ∗ unmarshalRet J F bs ptr Ψ err }}
 
 end spec
 
