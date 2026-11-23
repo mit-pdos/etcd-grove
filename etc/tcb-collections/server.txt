@@ -53,7 +53,6 @@ axiom encoding.json.Unmarshal.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.SprintfWalName.wp_proof
@@ -92,11 +91,9 @@ axiom leasehttp.RenewHTTP.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
-axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok

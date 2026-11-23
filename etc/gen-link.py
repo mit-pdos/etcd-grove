@@ -247,9 +247,6 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringNotWriter",
     # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
     "EtcdGrove.MutexLitSemantics",
-    # (client-go's work queue) `float64(n)` of an untyped integer constant
-    # (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`)
-    "EtcdGrove.UntypedIntToFloat64Semantics",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they

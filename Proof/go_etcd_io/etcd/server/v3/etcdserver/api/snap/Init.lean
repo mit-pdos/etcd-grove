@@ -17,6 +17,7 @@ public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
 public import Proof.go_etcd_io.raft.v3.Init
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Perennial.Proof.errors.NewVar
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes

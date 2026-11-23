@@ -78,7 +78,11 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   exclusive use needs a token.
 - **No unneeded premise**: each is one the code needs, one a stronger result needs, or a scope
   restriction marked as such and filed (`issues/` or a decision). A configuration premise is no
-  stricter than what the Go code accepts. (`pilot-review-1.md`)
+  stricter than what the Go code accepts. (`pilot-review-1.md`) Ask it only where and when the code needs it:
+  a condition on an underlying call at the states that call can happen in (`□ ∀ r, S r -∗ …`, or
+  at the one state `R`), not `∀ r` over every state, which a client's bounded reader cannot meet;
+  a permission for bytes only on the path that sends them (`⌜err = nil⌝ -∗ □ Q …`, not on a sticky
+  error's early return). (dsv-bufio review on #24, R1 and W1.)
 - **One spec per function; special cases are instances**: one proved spec per function, general
   enough for every case. No predicate or spec family for a special case beside the general one (a
   static cluster beside a reconfigurable one), which splits every proof above it in two; no
