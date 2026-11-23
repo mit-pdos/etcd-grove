@@ -104,9 +104,6 @@ its bodies.
 
 ## Review round 1 (Upamanyu, #24 comment 7090130923) and what changed
 
-The reviewer's reproducers (`/tmp/dsvtp-probe`, `/tmp/dsvtp/models/internal/slogprobe`) are not
-visible from this session's machine; each finding is reproduced instead in the difftests below.
-
 1. **Interface-reached methods kept** (the "does not build" argument dropped from README and here):
    uuid `String`, `MarshalText`/`UnmarshalText`, `MarshalBinary`/`UnmarshalBinary`, `Value`/`Scan`
    with `Parse`/`ParseBytes` (v1.3.1's code); treemap `*Map.String` (gods' code),

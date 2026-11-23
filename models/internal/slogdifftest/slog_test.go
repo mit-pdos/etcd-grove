@@ -297,3 +297,16 @@ func TestNoOutput(t *testing.T) {
 	}
 	tr.save(t)
 }
+
+// TestAttrString: Attr's String, which fmt reaches: outside the model (an Attr the program makes),
+// a NotModelled panic in the model; Go's text otherwise.
+func TestAttrString(t *testing.T) {
+	var a slog.Attr
+	r := notModelledPanic(func() { _ = a.String() })
+	if model != r {
+		t.Errorf("Attr.String: NotModelled %v (model %v)", r, model)
+	}
+	if !model && a.String() != "=<nil>" {
+		t.Errorf("Go: Attr{}.String() = %q", a.String())
+	}
+}
