@@ -4,12 +4,14 @@
 
 `dirswap_crash_robust`, `crash_robust`, `seglog_crash_robust`, stated in
 `Spec/github_com/mit_pdos/etcd_grove/examples/osfs/walfs/TopLevelRobustness.lean`,
-from the example's closed theorems (`DirSwapResults.lean`, `Results.lean`, `SegLogResults.lean`).
+from the example's closed theorems (`DirSwapLinked.lean`, `Results.lean`, `SegLogLinked.lean`).
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.TopLevelRobustness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogLinked
 
 @[expose] public section
 
