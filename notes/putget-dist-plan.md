@@ -381,3 +381,34 @@ member id, not the cluster id).
   context, which `Robust`'s `Fresh` makes the same `lctx` on every machine: they can be stated at `⟨G, L⟩` for
   any `L` with `goose_go_local_context = lctx` (as `putgetHeapAt`), or re-sectioned over `[GooseGlobalGS]` and
   `[GoLocalContext]`.
+
+## 9. Merged with `lean` (net-swap landed, `82847d941b`, Perennial `70706ce5e`); what can land
+
+The branch merged `lean` cleanly; `etc/goose.py --check --project putget-dist` is up to date at Perennial
+`70706ce5e`; `etc/gen-init.py` regenerated putget's `PkgTable` (the new pin's package list); the putget targets,
+`DistBridgeExts` and its users (`DistBridge`, `NetFsBridge`, remote's counter, echo) build
+(`manifest-7070`).
+
+**The bundle is shared now**: `etcdNetExts` (with its semantics, interpretation, `HasExt` instances and
+`etcdNetExts_initP`) moved from putget's `TopLevelDefs` to `Proof/.../examples/lib/etcdstart/NetExts.lean`,
+beside `etcdFsExts` (`FsExts.lean`), listed importable in `etc/api/etcdstart.txt`: the place for any etcd program
+over `[idIssueExt, fsExt at etcdFsSem, netExt]`, distributed or single-process (`single-process-restore` can
+import it instead of defining its own). Its ghost bundle stays per theorem (`putgetGF`; a single-process theorem
+needs its own `GooseGpreS`).
+
+**Recommendation: land this branch as it is** (its pieces stand on their own; a separate branch would only
+split commits that are already separate):
+- `Net/Statement/DistBridgeExts.lean` (`robust_of_distBootI`, `robust_of_distBootE`, `DistBootWpS`) with
+  `DistBridge.lean`'s theorems as its corollaries (statements unchanged): no axiom, no trust-base change
+  (`counter_remote_robust`: Lean's three);
+- `etcdstart/NetExts.lean` (above);
+- `examples/etcd/dist/putget` (Go, `TestPutGet`), project `putget-dist`, its `Init`/`InitLinked`/`PkgTable`;
+- `putget_safe.spec` (Spec) and `TopLevelDefs`, and the skeleton (`putget_safe_of_boot`, `putget_start`,
+  `putget_safe_of_s2`), all proved from named hypotheses.
+
+**`S2Draft` does not block**: it is a definition in our defs module (a `structure` and three pure types), no
+`axiom`, no `opaque`, nothing outside `examples/etcd/dist/putget` imports it, and it appears only as a
+hypothesis (`S2Holds`) of `putget_safe_of_s2`. The trust-base reports see no new axiom: no root is closed (no
+`putget_safe` theorem yet), and the skeleton is a linking module under `Proof/` (tier check ok). What to watch at
+the gates: `etc/tcb-report.py --check` (no `Link`/`Results` of ours, so no new root), the interface of
+`etcdstart/NetExts` (generated, committed), `etc/api-check.py etc/api/etcdstart.txt --check`.

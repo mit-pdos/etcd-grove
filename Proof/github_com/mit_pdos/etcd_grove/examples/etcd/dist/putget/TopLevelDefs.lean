@@ -5,8 +5,8 @@
 `putget_safe` (`Spec/.../examples/etcd/dist/putget/TopLevelRobustness.lean`, `notes/putget-dist-plan.md`) is
 about two machines that never crash: the member machine, running `putget.Member(peer, client)`, and the
 client machine, running `putget.Client(client)` (`examples/etcd/dist/putget`), each after the package's
-initializer. This file defines the extensions they run over (`etcdNetExts`: the request ids' issue
-record, the Linux file extension at `etcdFsSem`, the net extension), the ghost-state bundle the
+initializer. This file defines, over the extensions `etcdNetExts` (`examples/lib/etcdstart/NetExts.lean`: the
+request ids' issue record, the Linux file extension at `etcdFsSem`, the net extension), the ghost-state bundle the
 statement's Iris premises are stated at (`putgetGF`), the two boot programs, the system and its
 addresses, and the member machine's file premise (`MemberFiles`).
 -/
@@ -17,7 +17,7 @@ public import Perennial.GooseLang.InitAdequacy
 public import Net.Statement.DistDeploy
 public import GooseLang.Ext.Net.Ghost
 public import GooseLang.Ext.IdIssue.Specs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Init
 
@@ -33,47 +33,7 @@ namespace etcd_putget_dist
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
-/-! ## The extensions -/
-
-/-- **putget_safe's extensions**: the request ids' issue record (`idutil`'s generator: the member's),
-the Linux file extension (the member's WAL, backend and snapshots; every machine's `fileutil`
-initializer) and the net extension (the member's listener, the client's connection): the etcd
-examples' `etcdFsExts` with the net extension (`notes/etcd-dist-plan.md`, D2's `net` half, option (i)). -/
-@[reducible] def etcdNetExts : GooseExts := ⟨[idIssueExt, Fs.fsExt, Net.netExt]⟩
-
-attribute [local instance] etcdNetExts
-
-/-- Their semantics: the issue record's, the file extension's restricted by `etcdSQ` (`etcdFsSem`: no
-file system call fails; `examples/lib/etcdstart/FsExts.lean`), the net extension's (every fault it
-allows: bytes delayed, a direction cut at any read or write, a dial refused). -/
-@[reducible] def etcdNetExtsSemantics : GooseSemantics :=
-  ⟨(idIssue_semantics, etcdFsSem, Net.net_semantics, ⟨⟩)⟩
-
-/-- Their ghost state: each extension's own. -/
-@[reducible] def etcdNetExtsInterp : GooseInterp := ⟨(idIssue_interp, Fs.fs_interp, Net.net_interp, ⟨⟩)⟩
-
-attribute [local instance] etcdNetExtsSemantics etcdNetExtsInterp etcdFsSem
-
-set_option linter.defProp false in
-/-- The programs have the issue record (by computation). -/
-@[reducible] def etcdNetExts_hasIdIssue : HasExt idIssueExt where
-  registered := rfl
-  sem_eq := rfl
-  interp_eq := rfl
-
-set_option linter.defProp false in
-/-- The programs have the Linux file extension, at `etcdFsSem` (by computation). -/
-@[reducible] def etcdNetExts_hasFs : letI := etcdFsSem; HasExt Fs.fsExt where
-  registered := rfl
-  sem_eq := rfl
-  interp_eq := rfl
-
-set_option linter.defProp false in
-/-- The programs have the net extension (by computation). -/
-@[reducible] def etcdNetExts_hasNet : HasExt Net.netExt where
-  registered := rfl
-  sem_eq := rfl
-  interp_eq := rfl
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdFsSem
 
 /-! ## The ghost-state bundle -/
 
@@ -158,17 +118,6 @@ def MemberFiles [ElemExt Fs.fsExt] (σ : state) : Prop :=
 the file system, review F11 of `notes/etcd-dist-plan.md`). -/
 def ClientFiles [ElemExt Fs.fsExt] (σ : state) : Prop :=
   Fs.FsInit (extLocal Fs.fsExt σ.world)
-
-attribute [local instance] etcdNetExts_hasIdIssue etcdNetExts_hasFs etcdNetExts_hasNet
-
-/-- **The interpretations' conditions on the machines' initial states**, for `etcdNetExts`: the network's
-from `Robust`'s `extsInitGlobal` (no connection), each machine's files from `FsInit` (the issue record's
-are `True`). -/
-theorem etcdNetExts_initP (g : GlobalState) (nodes : List (Expr × state))
-    (Hfs : ∀ m, m ∈ nodes → Fs.FsInit (extLocal Fs.fsExt m.2.world)) :
-    extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
-      extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld :=
-  fun hg _ => ⟨⟨trivial, trivial, hg.2.2.1, trivial⟩, fun m hm => ⟨trivial, Hfs m hm, trivial, trivial⟩⟩
 
 end etcd_putget_dist
 end EtcdGrove
