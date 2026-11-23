@@ -9,17 +9,33 @@ a slot's wake channel), Perennial `3afd77e35`; the lab's statement `dsv_goal_che
 `CheckOperations.wp_proof`. The lab's proof is 40.6k lines under `proof/Proof/` (plus its harness
 pieces under `proof/Harness/`).
 
-**State (2026-11-23, third agent, ~06:30):** done and checked: everything the second agent ported
-(`lake build` of the leaves, ok), message's bufio half, tcp's whole transport (base: `Basics`,
-`ProtoLemmas`, `Hub`; the client, proxy and network endpoints: `ClientTcpInit`, `ClientTCP.Connect`,
-`ProxyTcpInit`, `ProxyTCP.Connect`, `NetTCPInit`, `NetTCP.Connect` proved as `tcp/Spec.lean` states
-them), the server layers and `roles/server` (`ServerInit`, `Server.Prologue`, `Server.ServerMain`,
-`Server.TerminalLogger`; linked to tcp's proofs in `roles/server/Link.lean`), `os.signal.NoSignals`
-(below), the kit's `TopLevelDefs`. `lake build` of the tcp endpoints, `roles/server/Link`,
-`TopLevelDefs` and the regenerated kit inits: ok. In progress (forks): the kit's model/codec/
-generator (`KitModel`, `ModelSet`, `ModelProof`, `CodecProof`), its configuration protocol, client
-and server machine (`Kit`, `ConfProof`, `ClientProof`, `ServerProof`), the ghost start
-(`Core/StartAlloc`, `Core/Start`). Then: `Orch`, mains, `TopLevelRobustness`.
+**State (2026-11-23, third agent, ~08:30):** merged `origin/lean` (`361ca5c7b7`: dsv-bufio
+landed, its renames followed: `io.streamWriterOk`, `net.conn_streamWriterOk`; Net's `Listen`/
+`Accept` now through `Net/Proof/net/AtAddr.lean`'s `spec_addrOk` instances; PkgTables regenerated).
+Done and built (`lake build`, after the merge): message, tcp (all endpoints), the server layers,
+`roles/server` and its `Link.lean`, `Core/Start{,Alloc}.lean` (the ghost start: `start`, from
+`regCtx` and `rabiaKitAddrs`' `addrUnset`s, gives `orchCore`, the clients' `cliCore`s, the servers'
+`serverShare`s, `kvState γ.rab init` for remote's pending library, and the client addresses still
+unset), `TopLevelDefs`. The kit: pure model `ModelSet.lean` (`KIn`, `KOut` (outputs below
+`2^62`), `kvB`, `stepG_pSeq`), `KitModel.lean` (`kvR γ`, `kvS0`/`kvS`, `lin_opAU`, `slotUpd_opAU`,
+`kvS_pendDec`, `kvR_encOut_inj`, the specs `Model.spec`, `Codec.spec`, `gens.spec`), part of
+`ModelProof.lean` (lean-check). In progress (agents): the Go proofs of `Model()`'s helpers,
+`Model.wp_proof`, `Codec.wp_proof`, `gens.wp_proof` (`ModelProof.lean`, `CodecProof.lean`); the
+configuration protocol, client and server machine (`Kit.lean`, `ConfProof.lean`,
+`ClientProof.lean`, `ServerProof.lean`, `ConnReadFull.lean`, `GhostAux.lean`). Then: `Orch`
+(`remote.Check` over `kvS`, `Model.wp_proof`, `Codec.wp_proof`, `gens.wp_proof`), the twelve mains
+(a `wp_boot` that hands the machine's `ownInitializing` to `main`: clients and servers claim
+`config.Conf` with `confClaim`), `TopLevelRobustness` (as paxos's: `robust_of_distProtoRB` at
+`remoteGF`, `start`, `mapCtx_alloc`, `addrs_set_proto` of the client addresses with remote's
+`reqP`/`repP`, `pend_alloc`), the statement's premises (each `InitHyp`, `zerolog.Hyps`,
+`math.rand.Hyps`, `os.signal.NoSignals`, quantified over the machine's `HeapGS`).
+
+**Kit Go changes (third agent and its agents):** `Sys` has a mutex, `Op` locks it (`op1` the body);
+`op1` answers unknown once the sequence numbers reach `SeqBudget = 2^29` (`proxyP`'s budget;
+remote serves unboundedly many operations); the model's `Entry` has `Old` (puts overwritten while
+pending, `cat`): the earlier `State` could not represent the pending set exactly (two histories with
+equal states allowed different configurations, so `Equal`'s spec was false); `gens()` answers
+`Gen(c, 0)` for `c` outside `[0, NC)` (`genSpec` quantifies every id). `go test` passes.
 
 ## What is where
 
