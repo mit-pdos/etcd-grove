@@ -1984,7 +1984,11 @@ theorem accept_addrs_shared_au (la : GoString) (P Q : GoString → Proto GF) (hL
     imod accept_shared_au_at la a (P a) (Q a) hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
     imodintro
     iexists o, S
-    iframe Hl Hpend Hk
+    iframe Hl Hpend
+    iintro %ho %cn %HcS Hl Hp #Hat
+    imod Hk $$ %ho %cn %HcS Hl Hp Hat with ⟨Hc, Hf, -⟩
+    imodintro
+    iframe Hc Hf
 
 /-- The update `net.Listener.Close.spec` takes for a shared listener (`Q _ := True`). -/
 theorem lisClose_au (hL : NetLocalGS GF) (l : w64) (a : GoString) :

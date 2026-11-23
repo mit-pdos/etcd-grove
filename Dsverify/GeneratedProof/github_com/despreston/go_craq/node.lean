@@ -51,7 +51,7 @@ noncomputable instance neighbor_access_load_rpc (l : Loc) (v : github_com.despre
  by
   solve_pointsto_access_struct
 
-noncomputable instance neighbor_access_store_rpc (l : Loc) (v : github_com.despreston.go_craq.node.neighbor) (rpc' : github_com.despreston.go_craq.transport.NodeClient) :
+noncomputable instance neighbor_access_store_rpc (l : Loc) (v : github_com.despreston.go_craq.node.neighbor) (rpc' : _root_.Perennial.github_com.despreston.go_craq.transport.NodeClient) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.neighbor go!"rpc" l) v.rpc' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.neighbor go!"rpc" l) rpc' (DFrac.own 1))
@@ -113,7 +113,7 @@ noncomputable instance Opts_access_load_Store (l : Loc) (v : github_com.desprest
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_Store (l : Loc) (v : github_com.despreston.go_craq.node.Opts) (Store' : github_com.despreston.go_craq.store.Storer) :
+noncomputable instance Opts_access_store_Store (l : Loc) (v : github_com.despreston.go_craq.node.Opts) (Store' : _root_.Perennial.github_com.despreston.go_craq.store.Storer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Opts go!"Store" l) v.Store' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Opts go!"Store" l) Store' (DFrac.own 1))
@@ -177,7 +177,7 @@ noncomputable instance Opts_access_load_Transport (l : Loc) (v : github_com.desp
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_Transport (l : Loc) (v : github_com.despreston.go_craq.node.Opts) (Transport' : github_com.despreston.go_craq.transport.NodeClientFactory) :
+noncomputable instance Opts_access_store_Transport (l : Loc) (v : github_com.despreston.go_craq.node.Opts) (Transport' : _root_.Perennial.github_com.despreston.go_craq.transport.NodeClientFactory) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Opts go!"Transport" l) v.Transport' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Opts go!"Transport" l) Transport' (DFrac.own 1))
@@ -193,7 +193,7 @@ noncomputable instance Opts_access_load_CoordinatorClient (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance Opts_access_store_CoordinatorClient (l : Loc) (v : github_com.despreston.go_craq.node.Opts) (CoordinatorClient' : github_com.despreston.go_craq.transport.CoordinatorClient) :
+noncomputable instance Opts_access_store_CoordinatorClient (l : Loc) (v : github_com.despreston.go_craq.node.Opts) (CoordinatorClient' : _root_.Perennial.github_com.despreston.go_craq.transport.CoordinatorClient) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Opts go!"CoordinatorClient" l) v.CoordinatorClient' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Opts go!"CoordinatorClient" l) CoordinatorClient' (DFrac.own 1))
@@ -334,7 +334,7 @@ noncomputable instance Node_access_load_store (l : Loc) (v : github_com.desprest
  by
   solve_pointsto_access_struct
 
-noncomputable instance Node_access_store_store (l : Loc) (v : github_com.despreston.go_craq.node.Node) (store' : github_com.despreston.go_craq.store.Storer) :
+noncomputable instance Node_access_store_store (l : Loc) (v : github_com.despreston.go_craq.node.Node) (store' : _root_.Perennial.github_com.despreston.go_craq.store.Storer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Node go!"store" l) v.store' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Node go!"store" l) store' (DFrac.own 1))
@@ -430,7 +430,7 @@ noncomputable instance Node_access_load_cdr (l : Loc) (v : github_com.despreston
  by
   solve_pointsto_access_struct
 
-noncomputable instance Node_access_store_cdr (l : Loc) (v : github_com.despreston.go_craq.node.Node) (cdr' : github_com.despreston.go_craq.transport.CoordinatorClient) :
+noncomputable instance Node_access_store_cdr (l : Loc) (v : github_com.despreston.go_craq.node.Node) (cdr' : _root_.Perennial.github_com.despreston.go_craq.transport.CoordinatorClient) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Node go!"cdr" l) v.cdr' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Node go!"cdr" l) cdr' (DFrac.own 1))
@@ -478,7 +478,7 @@ noncomputable instance Node_access_load_mu (l : Loc) (v : github_com.despreston.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Node_access_store_mu (l : Loc) (v : github_com.despreston.go_craq.node.Node) (mu' : sync.Mutex) :
+noncomputable instance Node_access_store_mu (l : Loc) (v : github_com.despreston.go_craq.node.Node) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Node go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.node.Node go!"mu" l) mu' (DFrac.own 1))

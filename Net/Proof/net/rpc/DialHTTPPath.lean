@@ -7,7 +7,7 @@ reader, `connectReader.Read.spec`, whose bytes are a prefix of the answer and st
 error: `crSt`, `crErr_final`); on the status `connected`, the reader has delivered the whole answer,
 which the acceptor wrote only after the whole request (`respProto`'s `sentLb`), so the dialer has
 written all of it (`sendTok_sentLb_prefix`): `rpcDialed`, then `NewClient`. Otherwise the error, an
-`*OpError` (`errAny_opErrPtr`), after `Close`.
+`*OpError` (`errAny_opErrPtr`, over its read-only fields), after `Close`.
 -/
 module
 
@@ -200,12 +200,13 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
         imodintro
         itrivial
       wp_alloc pe as Hpe
+      ipersist Hpe
       wp_auto
       iapply HΦ
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errAny_opErrPtr
+      iapply errAny_opErrPtr $$ Hpe
     subst Hnil
     iStructNamed Hrv
     icases Hst with (%Hst | ⟨%Hst, Hb⟩)
@@ -224,12 +225,13 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
         imodintro
         itrivial
       wp_alloc pe as Hpe
+      ipersist Hpe
       wp_auto
       iapply HΦ
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errAny_opErrPtr
+      iapply errAny_opErrPtr $$ Hpe
     -- the answer: the reader delivered it whole
     wp_auto
     rw [decide_eq_true Hst]

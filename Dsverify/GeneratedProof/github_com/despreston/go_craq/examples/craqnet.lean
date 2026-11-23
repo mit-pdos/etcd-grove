@@ -546,7 +546,7 @@ noncomputable instance Sys_access_load_mu (l : Loc) (v : github_com.despreston.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_mu (l : Loc) (v : github_com.despreston.go_craq.examples.craqnet.Sys) (mu' : sync.Mutex) :
+noncomputable instance Sys_access_store_mu (l : Loc) (v : github_com.despreston.go_craq.examples.craqnet.Sys) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.examples.craqnet.Sys go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.examples.craqnet.Sys go!"mu" l) mu' (DFrac.own 1))

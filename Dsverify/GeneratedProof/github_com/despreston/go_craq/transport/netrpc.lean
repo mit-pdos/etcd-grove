@@ -47,7 +47,7 @@ noncomputable instance CoordinatorBinding_access_load_Svc (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance CoordinatorBinding_access_store_Svc (l : Loc) (v : github_com.despreston.go_craq.transport.netrpc.CoordinatorBinding) (Svc' : github_com.despreston.go_craq.transport.CoordinatorService) :
+noncomputable instance CoordinatorBinding_access_store_Svc (l : Loc) (v : github_com.despreston.go_craq.transport.netrpc.CoordinatorBinding) (Svc' : _root_.Perennial.github_com.despreston.go_craq.transport.CoordinatorService) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.transport.netrpc.CoordinatorBinding go!"Svc" l) v.Svc' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.transport.netrpc.CoordinatorBinding go!"Svc" l) Svc' (DFrac.own 1))
@@ -498,7 +498,7 @@ noncomputable instance NodeBinding_access_load_Svc (l : Loc) (v : github_com.des
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeBinding_access_store_Svc (l : Loc) (v : github_com.despreston.go_craq.transport.netrpc.NodeBinding) (Svc' : github_com.despreston.go_craq.transport.NodeService) :
+noncomputable instance NodeBinding_access_store_Svc (l : Loc) (v : github_com.despreston.go_craq.transport.netrpc.NodeBinding) (Svc' : _root_.Perennial.github_com.despreston.go_craq.transport.NodeService) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.despreston.go_craq.transport.netrpc.NodeBinding go!"Svc" l) v.Svc' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.despreston.go_craq.transport.netrpc.NodeBinding go!"Svc" l) Svc' (DFrac.own 1))
