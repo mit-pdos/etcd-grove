@@ -308,6 +308,35 @@ theorem deadlineOutcome_w_rdl {st st' : NetEnd} {set : Bool} {res : Option NetEr
   · rw [h.2]
   · rw [h.2]; simp
 
+/-- Setting deadlines keeps the end closed or not. -/
+theorem deadlineOutcome_closed {st st' : NetEnd} {k : w64} {set : Bool} {res : Option NetErr}
+    (h : DeadlineOutcome st k set res st') : st'.closed = st.closed := by
+  unfold DeadlineOutcome at h
+  split at h
+  · rw [h.2]
+  · rw [h.2]
+
+/-- A read returns `closed` only on a closed end. -/
+theorem readOutcome_closed_of {st : NetEnd} {d d' : NetDir} {n : Nat}
+    (h : ReadOutcome st d n (.err .closed) d') : st.closed = true := by
+  have hav : ∀ d0, ReadAvail st d0 n (.err .closed) d' → False := by
+    intro d0 h
+    rcases h with ⟨_, _, _, _, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, -, h, -⟩ | ⟨-, h, -⟩ <;> cases h
+  unfold ReadOutcome at h
+  split at h
+  · assumption
+  split at h
+  · cases h.1
+  rcases h with h | ⟨k, -, h⟩
+  · exact (hav _ h).elim
+  · exact (hav _ h).elim
+
+/-- A read on a closed end returns `closed` and changes nothing. -/
+theorem readOutcome_closed {st : NetEnd} {d d' : NetDir} {n : Nat} {r : ReadRes}
+    (hc : st.closed = true) (h : ReadOutcome st d n r d') : r = .err .closed ∧ d' = d := by
+  simp only [ReadOutcome, hc, ↓reduceIte] at h
+  exact h
+
 /-- Without a read deadline, a read does not time out. -/
 theorem readOutcome_no_timeout {st : NetEnd} {d d' : NetDir} {n : Nat}
     (hst : st.rdl = false) (h : ReadOutcome st d n (.err .timeout) d') : False := by
