@@ -52,6 +52,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.google_golang_org.protobuf.proto, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto),
    (pkg_id.google_golang_org.protobuf.reflect.protoreflect, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.reflect.protoreflect),
    (pkg_id.google_golang_org.protobuf.runtime.protoimpl, isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.runtime.protoimpl),
+   (pkg_id.internal.abi, isPkgInit (PROP := IProp GF) pkg_id.internal.abi),
    (pkg_id.internal.oserror, isPkgInit (PROP := IProp GF) pkg_id.internal.oserror),
    (pkg_id.internal.poll, isPkgInit (PROP := IProp GF) pkg_id.internal.poll),
    (pkg_id.internal.race, isPkgInit (PROP := IProp GF) pkg_id.internal.race),
@@ -251,23 +252,27 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h14, h16, h39, h27, h40, True.intro⟩
-  have h42 : GetIsPkgInitProp pkg_id.reflect (getIsPkgInit (GF := GF)) := by
+  have h42 : GetIsPkgInitProp pkg_id.internal.abi (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h43 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
+  have h43 : GetIsPkgInitProp pkg_id.reflect (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h13, h38, h42, h11, h5, True.intro⟩
-  have h44 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 (getIsPkgInit (GF := GF)) := by
+    exact ⟨h42, True.intro⟩
+  have h44 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h22, h27, h14, h13, h28, h34, h5, h7, h35, h37, h38, h36, h11, h16, h41, h39, h40, h43, True.intro⟩
-  have h45 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv (getIsPkgInit (GF := GF)) := by
+    exact ⟨h0, h13, h38, h43, h11, h5, True.intro⟩
+  have h45 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h18, h19, h7, h5, h6, h44, h27, h22, h43, True.intro⟩
-  exact h45
+    exact ⟨h0, h22, h27, h14, h13, h28, h34, h5, h7, h35, h37, h38, h36, h11, h16, h41, h39, h40, h44, True.intro⟩
+  have h46 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kv (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h17, h18, h19, h7, h5, h6, h45, h27, h22, h44, True.intro⟩
+  exact h46
 
 end table
 
