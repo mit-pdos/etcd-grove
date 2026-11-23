@@ -10,9 +10,13 @@ its own server and dispatch; here the server is Go's, the dispatch through the g
 
 **Methods** (`methodOk C rcvr Sm mm`, persistent): the `*Method` `mm` of receiver `rcvr` meets the
 spec `Sm` of its method (`S m` for the service spec `S`): `NewArg()` returns a non-`nil` argument
-`argv` with a decoding resource `D` and its decoding `bodyDec C argv D Θ` (what `ReadRequestBody`
-needs), and, from the deposit `Sm args Φ` and a decoding of `args` into `argv` (`Θ args true`), the
-call obligation `callObl`: `NewReply()` returns a `replyv`, and `Call(rcvr, argv, replyv)` returns
+`argv` with a decoding resource `D` and its decoding `argDec C argv D Sm Θ`: from `D`, the codec's
+`dec` into `argv` of the argument bytes `args` of a deposit `Sm args Φ` (which it keeps), not of
+every request body (a generated codec decodes only bytes of the argument's type: its `Decode`
+panics `rpcNotModelled` on another listed type's value, and it is the method's spec that says its
+deposits' arguments are of that type; the reader holds the request's deposit when it reads the
+body, `req_guard`); and, from the deposit `Sm args Φ` and a decoding of `args` into `argv`
+(`Θ args true`), the call obligation `callObl`: `NewReply()` returns a `replyv`, and `Call(rcvr, argv, replyv)` returns
 `nil` with the encoding of `replyv` into the answer `Φ eb ""`, or an error with its message `msg`
 (`errMsg`) and `Φ [] msg` (the encoding again if `msg` is `""`: Go then sends the reply, `callRet`).
 
@@ -107,12 +111,25 @@ def callObl (C : CodecSpec GF) (rcvr : GoInterface) (v : net.rpc.Method) (argv :
     ⌜r = #replyv⌝ ∗ WP (App (App (App (Val #v.Call') (Val #rcvr)) (Val #argv)) (Val #replyv))
       {{ fun r' => iprop(∃ e : GoInterface, ⌜r' = #e⌝ ∗ callRet C replyv Φ e) }}) }})
 
+/-- What `NewArg` gives for decoding into `argv` from the resource `D`, for the method spec `Sm`
+(persistent): a registered codec meeting `C` and, from `D`, the codec's `dec` into `argv` of the
+argument bytes `args` of a deposit `Sm args Φ`, kept (the guard: only the arguments a client
+deposited for the method), `Θ args` its outcome. -/
+def argDec (C : CodecSpec GF) (argv : GoInterface) (D : IProp GF) (Sm : MSpec GF)
+    (Θ : List w8 → Bool → IProp GF) : IProp GF :=
+  iprop(codecSet C ∗ □ (D -∗ ∀ (args : List w8) (Φ : List w8 → GoString → IProp GF),
+    Sm args Φ -∗ Sm args Φ ∗ C.dec args argv (Θ args)))
+
+instance argDec_persistent (C : CodecSpec GF) (argv : GoInterface) (D : IProp GF) (Sm : MSpec GF)
+    (Θ : List w8 → Bool → IProp GF) : Persistent (argDec (GF := GF) C argv D Sm Θ) := by
+  unfold argDec; infer_instance
+
 /-- The `*Method` `mm` of `rcvr` meets `Sm` (persistent; see the file header). -/
 def methodOk (C : CodecSpec GF) (rcvr : GoInterface) (Sm : MSpec GF) (mm : Loc) : IProp GF :=
   iprop(∃ v : net.rpc.Method, mm ↦□ v ∗
     □ ∀ Ψ : val → IProp GF,
       ▷ (∀ (argv : GoInterface) (D : IProp GF) (Θ : List w8 → Bool → IProp GF),
-          ⌜argv ≠ interface.nil⌝ -∗ bodyDec C argv D Θ -∗ D -∗
+          ⌜argv ≠ interface.nil⌝ -∗ argDec C argv D Sm Θ -∗ D -∗
           (∀ (args : List w8) (Φ : List w8 → GoString → IProp GF), Sm args Φ -∗ Θ args true -∗
             callObl C rcvr v argv Φ) -∗ Ψ #argv) -∗
       WP (App (Val #v.NewArg') (Val #())) {{ Ψ }})
