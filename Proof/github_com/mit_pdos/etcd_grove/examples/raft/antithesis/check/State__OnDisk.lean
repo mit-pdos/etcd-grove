@@ -2265,6 +2265,50 @@ theorem State.OnDisk.wp_proof
     · iframe Hq Htl2
     try wp_auto
     wp_join_done
+  -- v1: `viol := vi; if x.adv() && !Comparable(ch, x.newC()) { viol = violAdd(viol, "CommitSafety") }`
+  generalize hS7 : ({ { S6 with chain := c1 } with termLen := tl' } : State) = S7 at Ho ⊢
+  unfold u9 at Ho
+  obtain ⟨cs, hcs, Ho⟩ := OnDiskProofLaws.v1_ok' Ho
+  have hvil := HW.2.2.2.2.2.2.2.2.2.2
+  rw [hXvi] at hvil Ho
+  try wp_auto
+  wp_join (v := executeVal) iprop(∃ vl, viol_ptr ↦ vl ∗ strsRO vl (if cs then setAdd vi go!"CommitSafety" else vi))
+    at next with [viol] as ⟨%vl1, viol, #Hvl1⟩
+  · obtain ⟨ad, had, hadt, hadf⟩ := andM_ok hcs
+    odm adv
+    wp_apply wp_adv _ X ad $$ [Hx]
+    · iframe Hx; ipureintro; exact had
+    cases ad
+    · rw [hadf rfl]
+      try wp_auto
+      wp_join_done
+      simp only [Bool.false_eq_true, ite_false]
+      iexists _; iframe; iexact Hvi
+    have h2 := hadt rfl
+    unfold notM at h2
+    obtain ⟨cp, hcp, h2⟩ := bind_ok h2
+    simp only [pure_ok, Except.ok.injEq] at h2
+    obtain ⟨nc, hnc, hcp⟩ := bind_ok hcp
+    try wp_auto
+    odm newC
+    wp_apply wp_newC _ X nc $$ [Hx] as %gnc #Hnc
+    · iframe Hx; ipureintro; exact hnc
+    try wp_auto
+    wp_apply wp_Comparable chl ch gnc nc cp $$ [Hch Hnc]
+    · iframe Hch Hnc; ipureintro; rw [← hXch]; exact hcp
+    subst h2
+    cases cp
+    · try wp_auto
+      wp_apply wp_violAdd vil vi _ $$ [Hvi] as %vl #Hvl
+      · iframe Hvi; ipureintro; omega
+      try wp_auto
+      wp_join_done
+      simp only [Bool.not_false, ite_true]
+      iexists _; iframe; iexact Hvl
+    · try wp_auto
+      wp_join_done
+      simp only [Bool.not_true, Bool.false_eq_true, ite_false]
+      iexists _; iframe; iexact Hvi
   done
 
 end proof
