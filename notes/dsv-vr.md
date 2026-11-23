@@ -30,7 +30,11 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
   `kit.go`'s `Model` (a key-value map with pending puts: state `Cur` (the map) and `Pend` (puts of
   unknown outcome); an answered put takes effect, an answered get reads `Cur` or a pending put of its
   value at its key, which then leaves `Pend`; the state is the most permissive configuration, so the
-  step is deterministic). Inputs `In{Put, K, V}`, outputs `Out{Unknown, Found, V}`, `Codec()` bytes.
+  step is deterministic). Inputs `In{Put, K, V}`, outputs `Out{Unknown, Done, Found, V}` (`Done`: an answered put; remote's
+  `pend_choice` needs outputs that encode apart, and a put's answer and a get's not-found were both
+  `Out{}`), `Codec()` bytes (three header bytes). **`Equal` is true only with nothing pending** on
+  either side (then the state stands for one configuration; with pending puts two histories may reach
+  one state with different sets, so no `Equal` on them is sound; porcupine's cache only loses hits).
   Each client is a machine of its own (`remote.ServeClient`), so twelve machines.
 - **Client `c` makes its go-vsr client before `ServeClient`** (paxos's finding: `ServeClient.spec`'s
   `newClient` is a persistent triple with precondition `True`; a second go-vsr client with id `c+1`
@@ -53,6 +57,11 @@ translation (builds), the pure model, **the package initialization** (step 1) an
 `wp_initialize'` (orch, server1 checked) prints Lean's three axioms only, over the two init
 hypotheses (below).
 
+**Configuration (since the dsv-infra merge, `4771f33ec4`):** the kit's goose project and gen-init
+entries are `etc/dsv/vr.py` (format `etc/dsv/README.md`; `HYP_INITS` is what was `DSV_HYP_INITS`
+below); `etc/goose.py` and `etc/gen-init.py` are dsv-infra's, unchanged. `gen-init.py --check` and
+`goose.py --check --project dsv-vr` clean.
+
 Step 1, as done: `Base.lean` for every vr package (fact `True` but `events`'), the hand-written
 `Dsverify/Proof/{encoding/json,log/slog}/{Base,Init}.lean` (fact `True`; `Init.lean`'s class
 `InitHyp GF`, a `Prop`, is the hypothesis, its `wp_initialize'` is read off it), and the additive
@@ -74,17 +83,25 @@ netExt]`); the client's atomic update `AU <{∃∃ σ, absOwn γ σ}> @ ↑clien
 `clientN`) became `⊤ \ vsrE ⊆ E`. Step 3 instantiates remote's `RBase.Eop` with `vsrE` and
 `sysState` with `absOwn`.
 
-Step 3, begun: `examples/vsrnet/Kit.lean` (`lean-check` clean): the kit's inputs `KIn` (`InputOk`,
+Step 3, done (but the kit specs `Codec`, `Gen`, `Orch`, `Client`, `Server`, next):
+`examples/vsrnet/ModelSet.lean` (the pure side: `Rep s Cur Pend` (`s` holds `(lk Cur, Pend)` and every
+configuration of `s` is dominated by it, `DOk`), `stepG` (the Go `step` as a function), **`stepG_pSeq`**
+(`step`'s verdict is `pSeq kvB`'s and its next state represents the next set), `rep_init`, `rep_eq`,
+the codec values' injectivity, `kvDec_box`), `examples/vsrnet/ModelProof.lean` (`wp_lookup`, `wp_has`,
+`wp_push`, `wp_erase`, `wp_set`, `wp_equalPairs`, `wp_stepGo`, `kvRep`/`kvS`, **`Model.wp_proof`**:
+`Model()` meets `isModel kvS`). `lean-check` clean, no `sorry`.
+
+Step 3's first file: `examples/vsrnet/Kit.lean` (`lean-check` clean): the kit's inputs `KIn` (`InputOk`,
 `InputBounded`, a key below 256 bytes: `EncIn` writes its length in a byte), the map's step as a
 function (`kvFn`, `kvStep_fn`), linkv's pending-writes store `kvB` (gets reads, puts writes), the
 Go values and `Codec()`'s bytes (`inV`, `outV`, `unkV`, `encInB`, `encOutV`), **the far side's store
 `kvR g : RBase GF Store KIn KvOutI`** (`sysState := absOwnI g`, `Eop := vsrE`), and
 **`lin_AUof`**: remote's `lin (kvR g) i Φ ⊢ AUof g i (fun _ _ o => Φ o)` (the store's linearization
-point is the ghost layer's client update, which `ghost_register` takes). Remaining in step 3: the
+point is the ghost layer's client update, which `ghost_register` takes). (Was remaining in step 3, now done above: the
 porcupine model's set (`ModelSet.lean`: the configurations `(Cur, Pend)` stands for, as paxos's
 `woSet`, and the decoding of porcupine's operations, `woDec`'s counterpart) and the Go model's proof
 (`ModelProof.lean`: `lookup`, `set`, `has`, `erase`, `push`, `equalPairs`, `step` against linkv's set
-step), then the kit's specs (`Client`, `Orch`, `Server`, `Codec`, `Gen`).
+step), then the kit's specs.)
 
 **Building** (no full `lake build`): the worktree's `.lake` was seeded from `/shared/etcd-grove-netswap`
 (same Perennial pin `9c3b81f30`): `.lake/packages` and `.lake/build/lib/lean` but the parts this
@@ -121,7 +138,7 @@ Perennial and `Net/` where they differ; then `lake build <targets>` and `etc/lea
    `AU <{∃∃ σ, absOwn γ σ}> @ ↑clientN, ∅ <{…}>` in the registry (helping: the replica that executes
    a request first commits it) replaced by remote's one-shot update, as paxos's `opAU`
    (`remote.lin (kvR Γ)`, `lin_opAU`): the registry's entries hold it, `Lin.lean` fires it.
-3. (begun: `Kit.lean`) **The far side's store and the model** (`examples/vsrnet/Kit.lean`, `ModelSet.lean`,
+3. (done but the kit specs) **The far side's store and the model** (`examples/vsrnet/Kit.lean`, `ModelSet.lean`,
    `ModelProof.lean`, as paxos's): linkv's pending-writes store of the key-value map (`PendSpec`:
    gets are reads, puts writes), `RBase` with the VR state's abstract half as `sysState`; the Go
    `step` on `(Cur, Pend)` against linkv's set step (the representation: the configurations whose map
