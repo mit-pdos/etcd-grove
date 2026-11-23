@@ -44,15 +44,15 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Orch : rabianet.Orch.spec (GF := GF) (hG := hG)) (γ : Names)
     (γp : PendNames) (hrb : receiptBound GF ≤ 2 ^ 63) (σ : GMap GoString Bool) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.orch ∗ orchCore γ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.orch ∗ (orchCore γ ∗
         ([∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := hG.goose_globalGS) (kvR γ) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
         pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
+        pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init) ∗
         ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcore, #Has, #Hmap, #Hpend, Hlib, -⟩
+  wp_start as ⟨⟨Hcore, #Has, #Hmap, #Hpend, Hlib⟩, -⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -78,13 +78,13 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : rabianet.Client.spec (GF := GF) (hG := hG)) (γ : Names)
     (σ : GMap GoString Bool) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client0 ∗ cliCore γ 0 ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client0 ∗ (cliCore γ 0 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr 0) ∗
-        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
+        mapCtx (Gg := hG.goose_globalGS) (I := KIn)) ∗
+        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcore, Hσ, #Hra, #Hmap⟩
+  wp_start as ⟨⟨Hcore, #Hra, #Hmap⟩, Hσ⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -111,13 +111,13 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : rabianet.Client.spec (GF := GF) (hG := hG)) (γ : Names)
     (σ : GMap GoString Bool) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client1 ∗ cliCore γ 1 ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client1 ∗ (cliCore γ 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr 1) ∗
-        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
+        mapCtx (Gg := hG.goose_globalGS) (I := KIn)) ∗
+        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcore, Hσ, #Hra, #Hmap⟩
+  wp_start as ⟨⟨Hcore, #Hra, #Hmap⟩, Hσ⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -144,13 +144,13 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : rabianet.Client.spec (GF := GF) (hG := hG)) (γ : Names)
     (σ : GMap GoString Bool) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client2 ∗ cliCore γ 2 ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client2 ∗ (cliCore γ 2 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr 2) ∗
-        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
+        mapCtx (Gg := hG.goose_globalGS) (I := KIn)) ∗
+        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcore, Hσ, #Hra, #Hmap⟩
+  wp_start as ⟨⟨Hcore, #Hra, #Hmap⟩, Hσ⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -177,13 +177,13 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : rabianet.Client.spec (GF := GF) (hG := hG)) (γ : Names)
     (σ : GMap GoString Bool) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client3 ∗ cliCore γ 3 ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client3 ∗ (cliCore γ 3 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr 3) ∗
-        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
+        mapCtx (Gg := hG.goose_globalGS) (I := KIn)) ∗
+        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcore, Hσ, #Hra, #Hmap⟩
+  wp_start as ⟨⟨Hcore, #Hra, #Hmap⟩, Hσ⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -210,13 +210,13 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : rabianet.Client.spec (GF := GF) (hG := hG)) (γ : Names)
     (σ : GMap GoString Bool) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client4 ∗ cliCore γ 4 ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client4 ∗ (cliCore γ 4 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr 4) ∗
-        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
+        mapCtx (Gg := hG.goose_globalGS) (I := KIn)) ∗
+        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcore, Hσ, #Hra, #Hmap⟩
+  wp_start as ⟨⟨Hcore, #Hra, #Hmap⟩, Hσ⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -243,13 +243,13 @@ variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : rabianet.Client.spec (GF := GF) (hG := hG)) (γ : Names)
     (σ : GMap GoString Bool) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client5 ∗ cliCore γ 5 ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet.cmd.client5 ∗ (cliCore γ 5 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr 5) ∗
-        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
+        mapCtx (Gg := hG.goose_globalGS) (I := KIn)) ∗
+        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcore, Hσ, #Hra, #Hmap⟩
+  wp_start as ⟨⟨Hcore, #Hra, #Hmap⟩, Hσ⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)

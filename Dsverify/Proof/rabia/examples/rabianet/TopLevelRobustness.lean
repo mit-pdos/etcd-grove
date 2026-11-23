@@ -1,0 +1,376 @@
+/-
+The rabia kit's top-level result (`Spec/rabia/examples/rabianet/TopLevelRobustness.lean`), proved
+(as paxos's): from the deployment's start (the protocol library's registry and the addresses unset),
+the ghost start (`Core/Start.lean`'s `start`: the shares, the key-value state, the client machines'
+addresses still unset), remote's map of operations, the client machines' addresses' protocols
+(remote's request and reply protocols for `kvR γ`), remote's pending library over the key-value
+state, and each machine's boot program from its share, through `robust_of_distProtoRB`. The boot
+(`wp_boot`) hands `main` the machine's package state after the initialization (`ownGoState`, out
+of `ownInitializing`): the clients and servers claim `config.Conf` with it.
+-/
+module
+
+public import Dsverify.Spec.rabia.examples.rabianet.TopLevelRobustness
+public import Dsverify.Proof.rabia.examples.rabianet.Linked
+public import Dsverify.Proof.rabia.Core.Start
+public import Net.Statement.DistBridge
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.orch.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client0.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client1.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client2.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client3.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client4.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client5.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server1.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server2.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server3.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server4.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server5.PkgTable
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.orch.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client0.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client1.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client2.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client3.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client4.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.client5.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server1.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server2.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server3.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server4.Init
+public import Dsverify.Proof.rabia.examples.rabianet.cmd.server5.Init
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option maxRecDepth 100000
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Robustness
+
+namespace rabia.examples.rabianet
+
+open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote rabia
+open github_com.mit_pdos.etcd_grove.examples.lib.remote.counter (remoteGF)
+
+attribute [local instance] netExts netExtsSemantics netExtsInterp netExts_hasNet
+  GooseGlobalGS.gooseInvGS
+
+section boot
+variable [GoGlobalContext] {GF : BundledGFunctors}
+
+/-- After the initialization, the machine's package state. -/
+theorem ownInitializing_goState [hG : HeapGS .hasLC GF] (getIs : GoString → IProp GF) :
+    ownInitializing getIs ⊢
+      ∃ σ : GMap GoString Bool, ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ := by
+  rw [ownInitializing_unseal]
+  unfold ownInitializingDef
+  iintro ⟨%s, Hg, -⟩
+  iexists s
+  iexact Hg
+
+/-- A command's boot program, from its initializer's spec (with the program's package table
+`getIs`) and a spec of its `main` with precondition `P` and the machine's package state after the
+initialization (paxos's `wp_boot` drops it). -/
+theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics]
+    (init : val) (main pkg : GoString) [IsPkgInit (IProp GF) pkg] (getIs : GoString → IProp GF)
+    (Hinit : {{ ownInitializing getIs }}
+        (App (Val init) (Val #()))
+      {{ RET #(); ownInitializing getIs ∗ isPkgInit (PROP := IProp GF) pkg }})
+    (P : IProp GF)
+    (Hf : ∀ σ : GMap GoString Bool,
+      {{ isPkgInit (PROP := IProp GF) pkg ∗ P ∗
+          ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
+        (App (Val (@! main)) (Val #()))
+      {{ RET #(); True }}) :
+    ⊢ P -∗ ownGoState ∅ -∗ WP (boot init main) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
+  iintro HP Hgs
+  unfold boot
+  wp_apply Hinit $$ [Hgs] as ⟨Hi, #Hpkg⟩
+  · rw [ownInitializing_unseal]
+    unfold ownInitializingDef
+    iexists ∅
+    iframe Hgs
+    iintro !>
+    iapply BigSepM.bigSepM_empty.2
+    iempintro
+  ihave Hi := ownInitializing_goState getIs $$ Hi
+  icases Hi with ⟨%σ, Hσ⟩
+  wp_pures
+  wp_apply (Hf σ) $$ [HP Hσ]
+  · iframe
+  ipureintro; rfl
+
+end boot
+
+/-- **The rabia kit, closed** (see the statement's file). -/
+theorem rabia_remote_robust (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS HasLC.hasLC remoteGF]
+      [go.Semantics] [rabia.examples.rabianet.Assumptions], Codec.spec (GF := remoteGF) (hG := hG))
+    (wp_gens : ∀ [GoGlobalContext] [hG : HeapGS HasLC.hasLC remoteGF]
+      [go.Semantics] [rabia.examples.rabianet.Assumptions], gens.spec (GF := remoteGF) (hG := hG)) :
+    rabia_remote_robust.spec := by
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
+    hzi hpi hgpi hri hsi hmi hz hmr hlog hns σ g threads
+  refine robust_of_distProtoRB (GF := remoteGF) rabiaKitAddrs (system σ) g threads (2 ^ 63) ?_
+  intro G π hrb
+  iintro #Hreg Hs
+  unfold rabiaKitAddrs
+  imod start (G := G) $$ Hreg Hs with ⟨%γ, Hoc, Hcs, Hss, Hkv, Hun⟩
+  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ with ⟨%ρ, #Hmap⟩
+  imod addrs_set_proto (Gg := G) ⊤ (fun _ => github_com.mit_pdos.etcd_grove.examples.lib.remote.reqP (Gg := G) (RBase.svc (kvR γ)))
+    (fun _ => github_com.mit_pdos.etcd_grove.examples.lib.remote.repP (Gg := G) (RBase.svc (kvR γ))) ((List.range nC).map cliAddr) $$ Hreg Hun with #Hpc
+  have hv : kvState (G := G) γ.rab (model.kv GoString GoString).init ⊢
+      (kvR (Gg := G) γ).sysState (kvR (Gg := G) γ).B.init := .rfl
+  ihave Hkv := hv $$ Hkv
+  imod pend_alloc (Gg := G) (kvR γ) ⊤ (kvS0 (GF := remoteGF)) rfl $$ Hkv with ⟨%γp, #Hpend, Hlib⟩
+  ihave #Hra : [∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := G) (kvR γ) a $$ [Hpc]
+  · unfold remoteAddr svcAddr; iexact Hpc
+  ihave Hcs : [∗list] c ∈ [0, 1, 2, 3, 4, 5], cliCore (G := G) γ c $$ [Hcs]
+  · rw [← range_nC]; iexact Hcs
+  ihave Hss : [∗list] k ∈ [0, 1, 2, 3, 4], serverShare (G := G) γ k $$ [Hss]
+  · rw [← range_maxS']; iexact Hss
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc0, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc1, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc2, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc3, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc4, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc5, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs0, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs1, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs2, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs3, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs4, Hss⟩
+  ihave #Hra0 : remoteAddr (Gg := G) (kvR γ) (cliAddr 0) $$ []
+  · iapply BigSepL.bigSepL_lookup (i := 0) rfl $$ Hra
+  ihave #Hra1 : remoteAddr (Gg := G) (kvR γ) (cliAddr 1) $$ []
+  · iapply BigSepL.bigSepL_lookup (i := 1) rfl $$ Hra
+  ihave #Hra2 : remoteAddr (Gg := G) (kvR γ) (cliAddr 2) $$ []
+  · iapply BigSepL.bigSepL_lookup (i := 2) rfl $$ Hra
+  ihave #Hra3 : remoteAddr (Gg := G) (kvR γ) (cliAddr 3) $$ []
+  · iapply BigSepL.bigSepL_lookup (i := 3) rfl $$ Hra
+  ihave #Hra4 : remoteAddr (Gg := G) (kvR γ) (cliAddr 4) $$ []
+  · iapply BigSepL.bigSepL_lookup (i := 4) rfl $$ Hra
+  ihave #Hra5 : remoteAddr (Gg := G) (kvR γ) (cliAddr 5) $$ []
+  · iapply BigSepL.bigSepL_lookup (i := 5) rfl $$ Hra
+  imodintro
+  iexists fun i => if i = 0 then iprop(orchCore (G := G) γ ∗ ([∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := G) (kvR γ) a) ∗ mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (kvR γ) (kvS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (kvS0 (GF := remoteGF)) γp (kvS0 (GF := remoteGF)).M.init)
+      else if i = 1 then iprop(cliCore (G := G) γ 0 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 0) ∗ mapCtx (Gg := G) (I := KIn))
+      else if i = 2 then iprop(cliCore (G := G) γ 1 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 1) ∗ mapCtx (Gg := G) (I := KIn))
+      else if i = 3 then iprop(cliCore (G := G) γ 2 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 2) ∗ mapCtx (Gg := G) (I := KIn))
+      else if i = 4 then iprop(cliCore (G := G) γ 3 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 3) ∗ mapCtx (Gg := G) (I := KIn))
+      else if i = 5 then iprop(cliCore (G := G) γ 4 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 4) ∗ mapCtx (Gg := G) (I := KIn))
+      else if i = 6 then iprop(cliCore (G := G) γ 5 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 5) ∗ mapCtx (Gg := G) (I := KIn))
+      else if i = 7 then iprop(serverShare (G := G) γ 0)
+      else if i = 8 then iprop(serverShare (G := G) γ 1)
+      else if i = 9 then iprop(serverShare (G := G) γ 2)
+      else if i = 10 then iprop(serverShare (G := G) γ 3)
+      else if i = 11 then iprop(serverShare (G := G) γ 4)
+      else iprop(True)
+  isplitr
+  · ipureintro
+    intro i m hm hG hGG hctx
+    obtain ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
+    dsimp only at hGG hctx
+    subst hGG hctx
+    letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
+    haveI : github_com.rs.zerolog.InitHyp remoteGF := hzi G' hG.goose_localGS
+    haveI : github_com.gogo.protobuf.proto.InitHyp remoteGF := hpi G' hG.goose_localGS
+    haveI : github_com.gogo.protobuf.gogoproto.InitHyp remoteGF := hgpi G' hG.goose_localGS
+    haveI : github_com.go_redis.redis.v8.InitHyp remoteGF := hri G' hG.goose_localGS
+    haveI : os.signal.InitHyp remoteGF := hsi G' hG.goose_localGS
+    haveI : math.rand.InitHyp remoteGF := hmi G' hG.goose_localGS
+    haveI : github_com.rs.zerolog.Hyps remoteGF := hz G' hG.goose_localGS
+    haveI : math.rand.Hyps remoteGF := hmr G' hG.goose_localGS
+    haveI : log.Hyps remoteGF := hlog G' hG.goose_localGS
+    haveI : os.signal.NoSignals remoteGF := hns G' hG.goose_localGS
+    match i, hm with
+    | 0, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro ⟨Hoc0, #Has, #Hmap0, #Hpend0, Hlib0⟩ Hgs
+      iapply wp_boot cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit
+          (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf) _
+          (fun σ0 => cmd.orch.wp_main (wp_Orch (wp_Codec) (wp_gens)) γ γp hrb σ0) $$ [Hoc0 Hlib0] Hgs
+      iframe #
+      iframe Hoc0 Hlib0
+    | 1, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro ⟨Hc, #Hra0, #Hmap0⟩ Hgs
+      iapply wp_boot cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit
+          (cmd.client0.wp_initialize' _ cmd.client0.getIsPkgInit_wf) _
+          (fun σ0 => cmd.client0.wp_main (wp_Client (wp_Codec)) γ σ0) $$ [Hc] Hgs
+      iframe #
+      iframe Hc
+    | 2, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro ⟨Hc, #Hra0, #Hmap0⟩ Hgs
+      iapply wp_boot cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit
+          (cmd.client1.wp_initialize' _ cmd.client1.getIsPkgInit_wf) _
+          (fun σ0 => cmd.client1.wp_main (wp_Client (wp_Codec)) γ σ0) $$ [Hc] Hgs
+      iframe #
+      iframe Hc
+    | 3, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro ⟨Hc, #Hra0, #Hmap0⟩ Hgs
+      iapply wp_boot cmd.client2.initialize' cmd.client2.main _ cmd.client2.getIsPkgInit
+          (cmd.client2.wp_initialize' _ cmd.client2.getIsPkgInit_wf) _
+          (fun σ0 => cmd.client2.wp_main (wp_Client (wp_Codec)) γ σ0) $$ [Hc] Hgs
+      iframe #
+      iframe Hc
+    | 4, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro ⟨Hc, #Hra0, #Hmap0⟩ Hgs
+      iapply wp_boot cmd.client3.initialize' cmd.client3.main _ cmd.client3.getIsPkgInit
+          (cmd.client3.wp_initialize' _ cmd.client3.getIsPkgInit_wf) _
+          (fun σ0 => cmd.client3.wp_main (wp_Client (wp_Codec)) γ σ0) $$ [Hc] Hgs
+      iframe #
+      iframe Hc
+    | 5, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro ⟨Hc, #Hra0, #Hmap0⟩ Hgs
+      iapply wp_boot cmd.client4.initialize' cmd.client4.main _ cmd.client4.getIsPkgInit
+          (cmd.client4.wp_initialize' _ cmd.client4.getIsPkgInit_wf) _
+          (fun σ0 => cmd.client4.wp_main (wp_Client (wp_Codec)) γ σ0) $$ [Hc] Hgs
+      iframe #
+      iframe Hc
+    | 6, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro ⟨Hc, #Hra0, #Hmap0⟩ Hgs
+      iapply wp_boot cmd.client5.initialize' cmd.client5.main _ cmd.client5.getIsPkgInit
+          (cmd.client5.wp_initialize' _ cmd.client5.getIsPkgInit_wf) _
+          (fun σ0 => cmd.client5.wp_main (wp_Client (wp_Codec)) γ σ0) $$ [Hc] Hgs
+      iframe #
+      iframe Hc
+    | 7, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro Hsh Hgs
+      iapply wp_boot cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit
+          (cmd.server1.wp_initialize' _ cmd.server1.getIsPkgInit_wf) _
+          (fun σ0 => cmd.server1.wp_main wp_Server γ σ0) $$ [Hsh] Hgs
+      iframe #
+      iframe Hsh
+    | 8, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro Hsh Hgs
+      iapply wp_boot cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit
+          (cmd.server2.wp_initialize' _ cmd.server2.getIsPkgInit_wf) _
+          (fun σ0 => cmd.server2.wp_main wp_Server γ σ0) $$ [Hsh] Hgs
+      iframe #
+      iframe Hsh
+    | 9, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro Hsh Hgs
+      iapply wp_boot cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit
+          (cmd.server3.wp_initialize' _ cmd.server3.getIsPkgInit_wf) _
+          (fun σ0 => cmd.server3.wp_main wp_Server γ σ0) $$ [Hsh] Hgs
+      iframe #
+      iframe Hsh
+    | 10, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro Hsh Hgs
+      iapply wp_boot cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit
+          (cmd.server4.wp_initialize' _ cmd.server4.getIsPkgInit_wf) _
+          (fun σ0 => cmd.server4.wp_main wp_Server γ σ0) $$ [Hsh] Hgs
+      iframe #
+      iframe Hsh
+    | 11, hm =>
+      cases hm
+      dsimp only
+      simp only [Nat.reduceEqDiff, ↓reduceIte]
+      iintro Hsh Hgs
+      iapply wp_boot cmd.server5.initialize' cmd.server5.main _ cmd.server5.getIsPkgInit
+          (cmd.server5.wp_initialize' _ cmd.server5.getIsPkgInit_wf) _
+          (fun σ0 => cmd.server5.wp_main wp_Server γ σ0) $$ [Hsh] Hgs
+      iframe #
+      iframe Hsh
+  · simp only [system]
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hoc Hlib]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hoc Hlib
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc0]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hc0
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc1]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hc1
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc2]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hc2
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc3]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hc3
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc4]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hc4
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hc5]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hc5
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hs0]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hs0
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hs1]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hs1
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hs2]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hs2
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hs3]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hs3
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [Hs4]
+    · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
+      iframe #
+      iframe Hs4
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+
+#print axioms rabia_remote_robust
+
+end rabia.examples.rabianet
+end Perennial
