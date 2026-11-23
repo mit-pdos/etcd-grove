@@ -52,21 +52,41 @@ instance srvAuthBound_persistent (s : Loc) (E : apply.AEnv GF) :
     Persistent (srvAuthBound s E) := by
   unfold srvAuthBound; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A checked principal of a request carrying the token `tok` is bound** in the mode `M`
 (persistent): `nil`, or the user to whom `tok` was issued (`auth.tokOk`: in `on γa`, `tokIssued`), or
-the server's TLS fallback is on. By the token (perheap C1a, 2026-11-18; until then by the context,
+the TLS fact `T` (the server's `srvTLSId s`; a parameter since O2, 2026-11-23). By the token (perheap C1a, 2026-11-18; until then by the context,
 through the pure `auth.ctxTokenOf`; the lease checks' `principalBoundT` merged into it). -/
-def principalBound (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+def principalBound (T : IProp GF) (M : auth.AuthMode) (tok : Option GoString)
     (ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
   match ai with
   | none => iprop(True)
   | some info => iprop((∃ token : GoString, ⌜tok = some token⌝ ∗
-      auth.tokOk M token info.Username') ∨ srvTLSId s)
+      auth.tokOk M token info.Username') ∨ T)
 
-instance principalBound_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+instance principalBound_persistent (T : IProp GF) [Persistent T] (M : auth.AuthMode) (tok : Option GoString)
     (ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    Persistent (principalBound (GF := GF) s M tok ai) := by
+    Persistent (principalBound (GF := GF) T M tok ai) := by
   unfold principalBound; cases ai <;> infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **An admin check's outcome with the binding**: `adminOut`, whose auth info is moreover
 bound (`principalBound`) with auth on (the gate: the auth-mode merge, 2026-10-29; with auth off the
@@ -74,7 +94,7 @@ server's store has only the unbound request side, `NewAuthStore`'s axiom). -/
 def adminOutB (s : Loc) (M : auth.AuthMode) (tok : Option GoString) (err : GoInterface) : IProp GF :=
   iprop(applyErrIs err ∗
     (∀ _ : err = GoInterface.nil, ∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      adminRes M ai ∗ □ (⌜M.isOn = true⌝ → principalBound s M tok ai)))
+      adminRes M ai ∗ □ (⌜M.isOn = true⌝ → principalBound (srvTLSId s) M tok ai)))
 
 instance adminOutB_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString) (err : GoInterface) :
     Persistent (adminOutB (GF := GF) s M tok err) := by
@@ -101,7 +121,7 @@ moreover bound (`principalBound`) with auth on (gated as `adminOutB`). -/
 def authedOutB (s : Loc) (M : auth.AuthMode) (tok : Option GoString) (err : GoInterface) : IProp GF :=
   iprop(applyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
     (∀ _ : err = GoInterface.nil, ∃ ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      authedRes M ai ∗ □ (⌜M.isOn = true⌝ → principalBound s M tok ai)) ∗
+      authedRes M ai ∗ □ (⌜M.isOn = true⌝ → principalBound (srvTLSId s) M tok ai)) ∗
     (∀ _ : err ≠ GoInterface.nil, auth.enabledVerdict M true))
 
 instance authedOutB_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString) (err : GoInterface) :
@@ -125,7 +145,7 @@ theorem authedOut_of_authedOutB (s : Loc) (M : auth.AuthMode) (tok : Option GoSt
 theorem principalBound_of_ctxBoundOrTLS (s : Loc) (M : auth.AuthMode) (tok : Option GoString) (a : Loc)
     (user : GoString) (rev : w64) :
     ctxBoundOrTLS (GF := GF) s M tok a ∗ authInfoIs a user rev ⊢
-      principalBound s M tok (some ({ Username' := user, Revision' := rev } :
+      principalBound (srvTLSId s) M tok (some ({ Username' := user, Revision' := rev } :
         go_etcd_io.etcd.server.v3.auth.AuthInfo)) := by
   iunfold ctxBoundOrTLS
   iunfold principalBound
@@ -169,7 +189,7 @@ theorem srvAuthBound_gate (s : Loc) (E : apply.AEnv GF) (st : GoInterface) :
 theorem principalBound_of_ctxBoundOrTLS_gate (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
     (a : Loc) (user : GoString) (rev : w64) :
     □ (⌜M.isOn = true⌝ → ctxBoundOrTLS (GF := GF) s M tok a) ∗ authInfoIs a user rev ⊢
-      □ (⌜M.isOn = true⌝ → principalBound s M tok (some ({ Username' := user, Revision' := rev } :
+      □ (⌜M.isOn = true⌝ → principalBound (srvTLSId s) M tok (some ({ Username' := user, Revision' := rev } :
         go_etcd_io.etcd.server.v3.auth.AuthInfo))) := by
   iintro ⟨#Hb, #Hai⟩
   iintro !> %h
@@ -210,6 +230,29 @@ theorem srvAuthBound_of_authInv
   rw [hRD]
   ihave #HB := (isReqAuthBound_of_authInv hEnLb hCtx hAdminLbO stp R E.authMode) $$ [$Hpkg $Hinv]
   iapply HB $$ Hrdy
+
+section monoT
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+open Iris.ProofMode in
+/-- `principalBound` is monotone in the TLS fact (O2, 2026-11-23). -/
+theorem principalBound_mono (T1 T2 : IProp GF) (M : auth.AuthMode) (tok : Option GoString)
+    (ai : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    iprop(□ (T1 -∗ T2)) ∗ principalBound T1 M tok ai ⊢ principalBound T2 M tok ai := by
+  cases ai with
+  | none => unfold principalBound; iintro -; itrivial
+  | some info =>
+    unfold principalBound
+    iintro ⟨#HT, H⟩
+    icases H with (H | H)
+    · ileft; iexact H
+    · iright; iapply HT $$ H
+
+end monoT
 
 end proof
 

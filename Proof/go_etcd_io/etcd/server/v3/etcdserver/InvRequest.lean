@@ -953,12 +953,60 @@ theorem aupd_post_mono {PROP : Type _} [BI PROP] [BIFUpdate PROP] {TA TB : Std.T
     iapply Hc
     iapply h $$ Hβ
 
+open Iris.ProofMode in
+/-- `aupd_post_mono` under a persistent hypothesis `P` (O2's monotonicity laws, 2026-11-23): an
+atomic update whose committer supplies `β'`, which with `P` gives `β`. -/
+theorem aupd_post_mono_with {PROP : Type _} [BI PROP] [BIAffine PROP] [BIFUpdate PROP] {TA TB : Std.Tele}
+    {Eo Ei : CoPset} {α : TA.Arg → PROP} {β β' Φ : TA.Arg → TB.Arg → PROP} (P : PROP) [Persistent P]
+    (h : ∀ x y, P ∗ β' x y ⊢ β x y) :
+    P ∗ atomic_update Eo Ei α β Φ ⊢ atomic_update Eo Ei α β' Φ := by
+  change P ∗ atomic_update Eo Ei α β Φ ⊢ bi_greatest_fixpoint (atomic_update_pre Eo Ei α β' Φ) ()
+  iintro ⟨#HP, HAU⟩
+  iapply greatest_fixpoint_coiter (atomic_update_pre Eo Ei α β' Φ)
+    (fun _ => iprop(P ∗ atomic_update Eo Ei α β Φ)) $$ [] [HAU]
+  · iintro !> %_ ⟨#HP', H⟩
+    unfold atomic_update_pre
+    ihave Hacc := aupd_aacc $$ H
+    unfold atomic_acc
+    imod Hacc with ⟨%x, Hα, Hclose⟩
+    imodintro
+    iexists x
+    iframe Hα
+    isplit
+    · icases Hclose with ⟨Hc, -⟩
+      iintro Hα
+      imod Hc $$ Hα with Hc
+      imodintro
+      ihave Hpair : iprop(P ∗ atomic_update Eo Ei α β Φ) $$ [Hc]
+      · iframe HP' Hc
+      iexact Hpair
+    · iintro %y Hβ
+      icases Hclose with ⟨-, Hc⟩
+      iapply Hc
+      iapply h $$ [Hβ]
+      iframe HP' Hβ
+  · iframe HP HAU
+
 /-- An update told more is one told less (`G' ⊢ G`). -/
 theorem kvAu1G_mono (γk : KVNames) (f : KVState → KVState) (G G' Q : KVState → IProp GF)
     (h : ∀ σ, G' σ ⊢ G σ) :
     kvAu1G (GF := GF) γk f G Q ⊢ kvAu1G γk f G' Q := by
   unfold kvAu1G
   exact aupd_post_mono (fun x _ => sep_mono_right (sep_mono_right (h _)))
+
+open Iris.ProofMode in
+/-- `kvAu1G_mono` under a persistent hypothesis `P` (O2's monotonicity laws, 2026-11-23). -/
+theorem kvAu1G_mono_with (γk : KVNames) (f : KVState → KVState) (G G' Q : KVState → IProp GF)
+    (P : IProp GF) [Persistent P] (h : ∀ σ, P ∗ G' σ ⊢ G σ) :
+    P ∗ kvAu1G (GF := GF) γk f G Q ⊢ kvAu1G γk f G' Q := by
+  unfold kvAu1G
+  refine aupd_post_mono_with P (fun x y => ?_)
+  rcases x with ⟨σ, ⟨⟩⟩
+  simp only [Std.Tele.app]
+  iintro ⟨#HP, Hk, Hr, HG⟩
+  iframe Hk Hr
+  iapply h
+  iframe HP HG
 
 /-- A client's update not told anything is one told `G` (the grant ignored). -/
 theorem kvAu1_G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) :
@@ -1938,12 +1986,32 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 
+end wait
+
+section waitHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **Two tokens of one revision: impossible.** -/
 theorem revTok_excl (E : apply.AEnv GF) (r : w64) : revTok E r ∗ revTok E r ⊢ False := by
   unfold revTok
   iintro ⟨H1, H2⟩
   ihave %H := ghostMapElem_ne E.γrev r r (DFrac.own 1) () () $$ H1 H2
   exact absurd rfl H
+
+end waitHF
+
+section wait
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The authority of the revisions' tokens** at the KV's log `log` (the apply thread's, in
 `srvApplyKV`): every revision minted so far is below the log's length. A revision is minted when

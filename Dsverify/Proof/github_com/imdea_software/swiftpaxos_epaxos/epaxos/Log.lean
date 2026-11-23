@@ -23,7 +23,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : StateTreemap GF]
 
 /-- `dlog.Logger.Println` on a non-verbose logger (proved here from dlog's code: the package's
 proof is not on this branch; a duplicate is harmless). -/

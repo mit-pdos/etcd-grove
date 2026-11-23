@@ -182,6 +182,15 @@ theorem isAuthStoreRangeLbW_of_LbR (st : GoInterface) (RD : IProp GF) (M : auth.
   iintro !> %err ⟨Ha, Hk, He, HRD, #Herr, #Hv, #Hr⟩
   iapply HΦ; iframe Ha Hk He HRD Herr Hv Hr
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **Every permission's verdict passed no older than `n`** (each check at its own state). -/
 def verdictsFrom (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo) (L : List Perm3) :
     IProp GF :=
@@ -190,6 +199,15 @@ def verdictsFrom (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo) (L : List 
 instance verdictsFrom_persistent (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
     (L : List Perm3) : Persistent (verdictsFrom (GF := GF) M n info L) := by
   unfold verdictsFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 theorem verdictsFrom_nil (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo) :
     ⊢ verdictsFrom (GF := GF) M n info [] := by
@@ -215,6 +233,15 @@ theorem verdictsFrom_append (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
   iapply BigSepL.bigSepL_append.2
   iframe H1 H2
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The read of a range or get `o` no older than `n`** (`rangeClass` at a reader's lower bound;
 the auth plan's E3s, 2026-10-27): the range end `e` the check saw (`authEndOf`) and the check's
 passing verdict at states no older than `n` (`auth.permVerdictFrom`: in the mode `on γa`, a state
@@ -226,6 +253,15 @@ def rangeClassFrom (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo) (o : OpF
 instance rangeClassFrom_persistent (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
     (o : OpFull) : Persistent (rangeClassFrom (GF := GF) M n info o) := by
   unfold rangeClassFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 /-- **A read's class with auth off is one no older than any `n`** (the auth-mode merge's step 5:
 the mode-off `Range` in the merged spec's terms). -/

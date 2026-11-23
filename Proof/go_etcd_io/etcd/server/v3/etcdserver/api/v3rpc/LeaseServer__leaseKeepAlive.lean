@@ -102,7 +102,7 @@ private theorem ka_dn (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamN
     (tok : Option GoString) (Dn : Nat → (w64 × w64) → IProp GF) (j : Nat) (q : KaReqM)
     (id ttl : w64) (hid : q.id = id) :
     v3rpc.kaStreamSpec s E γl γs tok Dn ∗ upAt (Req := pbLeaseKeepAliveRequest) γs j q ∗
-      (⌜ttl = W64 0⌝ ∨ leaseCheckFrom s E tok q.nb
+      (⌜ttl = W64 0⌝ ∨ leaseCheckFrom (srvTLSId s) E tok q.nb
         (fun info => leaseKeysVerdictFrom E.authMode q.nb info γl q.mb id .write)) ⊢
       Dn j (id, ttl) := by
   subst hid
