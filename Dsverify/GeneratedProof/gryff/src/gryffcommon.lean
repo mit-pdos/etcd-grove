@@ -84,7 +84,7 @@ noncomputable instance Op_access_load_Key (l : Loc) (v : gryff.src.gryffcommon.O
  by
   solve_pointsto_access_struct
 
-noncomputable instance Op_access_store_Key (l : Loc) (v : gryff.src.gryffcommon.Op) (Key' : gryff.src.state.Key) :
+noncomputable instance Op_access_store_Key (l : Loc) (v : gryff.src.gryffcommon.Op) (Key' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffcommon.Op go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffcommon.Op go!"Key" l) Key' (DFrac.own 1))
@@ -196,7 +196,7 @@ noncomputable instance OngoingOp_access_load_Key (l : Loc) (v : gryff.src.gryffc
  by
   solve_pointsto_access_struct
 
-noncomputable instance OngoingOp_access_store_Key (l : Loc) (v : gryff.src.gryffcommon.OngoingOp) (Key' : gryff.src.state.Key) :
+noncomputable instance OngoingOp_access_store_Key (l : Loc) (v : gryff.src.gryffcommon.OngoingOp) (Key' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffcommon.OngoingOp go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffcommon.OngoingOp go!"Key" l) Key' (DFrac.own 1))
@@ -664,7 +664,7 @@ noncomputable instance WriteOp_access_load_WriteValue (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance WriteOp_access_store_WriteValue (l : Loc) (v : gryff.src.gryffcommon.WriteOp) (WriteValue' : gryff.src.state.Value) :
+noncomputable instance WriteOp_access_store_WriteValue (l : Loc) (v : gryff.src.gryffcommon.WriteOp) (WriteValue' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffcommon.WriteOp go!"WriteValue" l) v.WriteValue' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffcommon.WriteOp go!"WriteValue" l) WriteValue' (DFrac.own 1))
@@ -992,7 +992,7 @@ noncomputable instance GryffCoordinator_access_load_maxSeenTag (l : Loc) (v : gr
  by
   solve_pointsto_access_struct
 
-noncomputable instance GryffCoordinator_access_store_maxSeenTag (l : Loc) (v : gryff.src.gryffcommon.GryffCoordinator) (maxSeenTag' : gryff.src.gryffproto.Tag) :
+noncomputable instance GryffCoordinator_access_store_maxSeenTag (l : Loc) (v : gryff.src.gryffcommon.GryffCoordinator) (maxSeenTag' : _root_.Perennial.gryff.src.gryffproto.Tag) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffcommon.GryffCoordinator go!"maxSeenTag" l) v.maxSeenTag' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffcommon.GryffCoordinator go!"maxSeenTag" l) maxSeenTag' (DFrac.own 1))
@@ -1008,7 +1008,7 @@ noncomputable instance GryffCoordinator_access_load_maxAppliedTag (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance GryffCoordinator_access_store_maxAppliedTag (l : Loc) (v : gryff.src.gryffcommon.GryffCoordinator) (maxAppliedTag' : gryff.src.gryffproto.Tag) :
+noncomputable instance GryffCoordinator_access_store_maxAppliedTag (l : Loc) (v : gryff.src.gryffcommon.GryffCoordinator) (maxAppliedTag' : _root_.Perennial.gryff.src.gryffproto.Tag) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffcommon.GryffCoordinator go!"maxAppliedTag" l) v.maxAppliedTag' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffcommon.GryffCoordinator go!"maxAppliedTag" l) maxAppliedTag' (DFrac.own 1))

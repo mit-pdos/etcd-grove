@@ -101,7 +101,7 @@ noncomputable instance readWriteCloserBody_access_load_ReadWriteCloser (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance readWriteCloserBody_access_store_ReadWriteCloser (l : Loc) (v : net.http.readWriteCloserBody) (ReadWriteCloser' : io.ReadWriteCloser) :
+noncomputable instance readWriteCloserBody_access_store_ReadWriteCloser (l : Loc) (v : net.http.readWriteCloserBody) (ReadWriteCloser' : _root_.Perennial.io.ReadWriteCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readWriteCloserBody go!"ReadWriteCloser" l) v.ReadWriteCloser' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readWriteCloserBody go!"ReadWriteCloser" l) ReadWriteCloser' (DFrac.own 1))

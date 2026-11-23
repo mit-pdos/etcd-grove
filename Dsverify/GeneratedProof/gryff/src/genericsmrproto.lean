@@ -67,7 +67,7 @@ noncomputable instance Propose_access_load_Command (l : Loc) (v : gryff.src.gene
  by
   solve_pointsto_access_struct
 
-noncomputable instance Propose_access_store_Command (l : Loc) (v : gryff.src.genericsmrproto.Propose) (Command' : gryff.src.state.Command) :
+noncomputable instance Propose_access_store_Command (l : Loc) (v : gryff.src.genericsmrproto.Propose) (Command' : _root_.Perennial.gryff.src.state.Command) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.Propose go!"Command" l) v.Command' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.Propose go!"Command" l) Command' (DFrac.own 1))
@@ -215,7 +215,7 @@ noncomputable instance ProposeReplyTS_access_load_Value (l : Loc) (v : gryff.src
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeReplyTS_access_store_Value (l : Loc) (v : gryff.src.genericsmrproto.ProposeReplyTS) (Value' : gryff.src.state.Value) :
+noncomputable instance ProposeReplyTS_access_store_Value (l : Loc) (v : gryff.src.genericsmrproto.ProposeReplyTS) (Value' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeReplyTS go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeReplyTS go!"Value" l) Value' (DFrac.own 1))
@@ -288,7 +288,7 @@ noncomputable instance Read_access_load_Key (l : Loc) (v : gryff.src.genericsmrp
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_Key (l : Loc) (v : gryff.src.genericsmrproto.Read) (Key' : gryff.src.state.Key) :
+noncomputable instance Read_access_store_Key (l : Loc) (v : gryff.src.genericsmrproto.Read) (Key' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.Read go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.Read go!"Key" l) Key' (DFrac.own 1))
@@ -345,7 +345,7 @@ noncomputable instance ReadReply_access_load_Value (l : Loc) (v : gryff.src.gene
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadReply_access_store_Value (l : Loc) (v : gryff.src.genericsmrproto.ReadReply) (Value' : gryff.src.state.Value) :
+noncomputable instance ReadReply_access_store_Value (l : Loc) (v : gryff.src.genericsmrproto.ReadReply) (Value' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ReadReply go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ReadReply go!"Value" l) Value' (DFrac.own 1))
@@ -403,7 +403,7 @@ noncomputable instance ProposeAndRead_access_load_Command (l : Loc) (v : gryff.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndRead_access_store_Command (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndRead) (Command' : gryff.src.state.Command) :
+noncomputable instance ProposeAndRead_access_store_Command (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndRead) (Command' : _root_.Perennial.gryff.src.state.Command) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndRead go!"Command" l) v.Command' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndRead go!"Command" l) Command' (DFrac.own 1))
@@ -419,7 +419,7 @@ noncomputable instance ProposeAndRead_access_load_Key (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndRead_access_store_Key (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndRead) (Key' : gryff.src.state.Key) :
+noncomputable instance ProposeAndRead_access_store_Key (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndRead) (Key' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndRead go!"Key" l) v.Key' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndRead go!"Key" l) Key' (DFrac.own 1))
@@ -493,7 +493,7 @@ noncomputable instance ProposeAndReadReply_access_load_Value (l : Loc) (v : gryf
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndReadReply_access_store_Value (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndReadReply) (Value' : gryff.src.state.Value) :
+noncomputable instance ProposeAndReadReply_access_store_Value (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndReadReply) (Value' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndReadReply go!"Value" l) v.Value' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndReadReply go!"Value" l) Value' (DFrac.own 1))
@@ -723,7 +723,7 @@ noncomputable instance ProposeAndReadCache_access_load_mu (l : Loc) (v : gryff.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndReadCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndReadCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeAndReadCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndReadCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndReadCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndReadCache go!"mu" l) mu' (DFrac.own 1))
@@ -780,7 +780,7 @@ noncomputable instance BeaconCache_access_load_mu (l : Loc) (v : gryff.src.gener
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeaconCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeaconCache) (mu' : sync.Mutex) :
+noncomputable instance BeaconCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeaconCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeaconCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeaconCache go!"mu" l) mu' (DFrac.own 1))
@@ -837,7 +837,7 @@ noncomputable instance PingArgsCache_access_load_mu (l : Loc) (v : gryff.src.gen
  by
   solve_pointsto_access_struct
 
-noncomputable instance PingArgsCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.PingArgsCache) (mu' : sync.Mutex) :
+noncomputable instance PingArgsCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.PingArgsCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.PingArgsCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.PingArgsCache go!"mu" l) mu' (DFrac.own 1))
@@ -894,7 +894,7 @@ noncomputable instance BeTheLeaderArgsCache_access_load_mu (l : Loc) (v : gryff.
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeTheLeaderArgsCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeTheLeaderArgsCache) (mu' : sync.Mutex) :
+noncomputable instance BeTheLeaderArgsCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeTheLeaderArgsCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeTheLeaderArgsCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeTheLeaderArgsCache go!"mu" l) mu' (DFrac.own 1))
@@ -951,7 +951,7 @@ noncomputable instance ProposeCache_access_load_mu (l : Loc) (v : gryff.src.gene
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeCache go!"mu" l) mu' (DFrac.own 1))
@@ -1008,7 +1008,7 @@ noncomputable instance ProposeReplyCache_access_load_mu (l : Loc) (v : gryff.src
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeReplyCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1065,7 +1065,7 @@ noncomputable instance ProposeReplyTSCache_access_load_mu (l : Loc) (v : gryff.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeReplyTSCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeReplyTSCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeReplyTSCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeReplyTSCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeReplyTSCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeReplyTSCache go!"mu" l) mu' (DFrac.own 1))
@@ -1122,7 +1122,7 @@ noncomputable instance ReadCache_access_load_mu (l : Loc) (v : gryff.src.generic
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ReadCache) (mu' : sync.Mutex) :
+noncomputable instance ReadCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ReadCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ReadCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ReadCache go!"mu" l) mu' (DFrac.own 1))
@@ -1179,7 +1179,7 @@ noncomputable instance ReadReplyCache_access_load_mu (l : Loc) (v : gryff.src.ge
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ReadReplyCache) (mu' : sync.Mutex) :
+noncomputable instance ReadReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ReadReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ReadReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ReadReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1236,7 +1236,7 @@ noncomputable instance ProposeAndReadReplyCache_access_load_mu (l : Loc) (v : gr
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeAndReadReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndReadReplyCache) (mu' : sync.Mutex) :
+noncomputable instance ProposeAndReadReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.ProposeAndReadReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndReadReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.ProposeAndReadReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1293,7 +1293,7 @@ noncomputable instance BeaconReplyCache_access_load_mu (l : Loc) (v : gryff.src.
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeaconReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeaconReplyCache) (mu' : sync.Mutex) :
+noncomputable instance BeaconReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeaconReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeaconReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeaconReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1350,7 +1350,7 @@ noncomputable instance PingReplyCache_access_load_mu (l : Loc) (v : gryff.src.ge
  by
   solve_pointsto_access_struct
 
-noncomputable instance PingReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.PingReplyCache) (mu' : sync.Mutex) :
+noncomputable instance PingReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.PingReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.PingReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.PingReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1407,7 +1407,7 @@ noncomputable instance BeTheLeaderReplyCache_access_load_mu (l : Loc) (v : gryff
  by
   solve_pointsto_access_struct
 
-noncomputable instance BeTheLeaderReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeTheLeaderReplyCache) (mu' : sync.Mutex) :
+noncomputable instance BeTheLeaderReplyCache_access_store_mu (l : Loc) (v : gryff.src.genericsmrproto.BeTheLeaderReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeTheLeaderReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmrproto.BeTheLeaderReplyCache go!"mu" l) mu' (DFrac.own 1))

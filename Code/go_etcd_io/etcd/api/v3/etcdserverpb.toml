@@ -150,7 +150,9 @@ translate = ["!*", "RangeRequest_SortOrder_name", "RangeRequest_SortTarget_name"
   # (`v3rpc/member.go`) read and build
   "Member", "MemberAddRequest", "MemberAddResponse", "MemberRemoveRequest", "MemberRemoveResponse",
   "MemberUpdateRequest", "MemberUpdateResponse", "MemberListResponse", "MemberPromoteRequest",
-  "MemberPromoteResponse"]
+  "MemberPromoteResponse",
+  # (etcd-small-3, 2026-11-23) `AlarmType.String`'s trusted model reads the enum's name table
+  "AlarmType_name"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]
@@ -158,7 +160,11 @@ imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/member
 # translate the definitions of all type declarations goose supports
 # (etcd-grove#32, 2026-11-22) the `init` functions (the file descriptors' registration) trusted:
 # a model that does nothing (TrustedCode/go_etcd_io/etcd/api/v3/etcdserverpb.lean; until then names-only, the axiom `initFuncsOk`)
-trusted = ["init.0", "init.1", "init.2"]
+# (etcd-small-3, 2026-11-23) `AlarmType.String` trusted: its model looks the value up in
+# `AlarmType_name` (translated), else `strconv.Itoa`, as protobuf-go's `EnumStringOf` (the model's
+# docstring says why that is Go's); until then names-only, the trust-boundary axiom
+# `etcdserverpb.AlarmType.String.wp_proof`
+trusted = ["init.0", "init.1", "init.2", "AlarmType.String"]
 translate_types = true
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
@@ -169,7 +175,7 @@ translate_types = true
 [[skip]]
 names = ["file_etcdserver_proto_msgTypes", "file_etcdserver_proto_goTypes",
   "file_etcdserver_proto_depIdxs", "file_raft_internal_proto_msgTypes",
-  "file_raft_internal_proto_goTypes", "file_raft_internal_proto_depIdxs", "AlarmType_name",
+  "file_raft_internal_proto_goTypes", "file_raft_internal_proto_depIdxs",
   "AlarmType_value", "RangeRequest_SortOrder_value", "RangeRequest_SortTarget_value",
   "Compare_CompareResult_name", "Compare_CompareResult_value", "Compare_CompareTarget_name",
   "Compare_CompareTarget_value", "WatchCreateRequest_FilterType_name",

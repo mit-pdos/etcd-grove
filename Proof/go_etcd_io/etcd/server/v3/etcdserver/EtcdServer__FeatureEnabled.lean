@@ -28,14 +28,14 @@ theorem EtcdServer.FeatureEnabled.wp_proof :
   intro s fg f ob
   wp_start as ⟨#Hfg, #Hgate, %Hf, Hob⟩
   iunfold isFeatureGate at Hgate
-  icases Hgate with ⟨%fi, %Hfi, #HEn⟩
+  icases Hgate with ⟨%fi, %K, %Hfi, ⟨%HKs, -⟩, #HEn, -⟩
   wp_auto
   subst Hfi
   wp_auto
   cases ob with
   | none =>
     wp_apply HEn $$ [] as %b -
-    · ipureintro; exact Hf
+    · ipureintro; exact HKs _ Hf
     iapply HΦ
     ipureintro; intro b' h; cases h
   | some b' =>

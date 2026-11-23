@@ -16,7 +16,6 @@ public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.encoding.hex.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Init
 public import Net.Proof.runtime.PkgInitExt
-public import Dsverify.Proof.encoding.json.Init
 
 @[expose] public section
 
@@ -39,7 +38,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.encoding.json.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions]
 
 namespace github_com.imdea_software.swiftpaxos.state

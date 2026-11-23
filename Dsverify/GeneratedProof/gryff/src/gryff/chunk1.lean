@@ -257,7 +257,7 @@ noncomputable instance Instance_access_load_Base (l : Loc) (v : gryff.src.gryff.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Instance_access_store_Base (l : Loc) (v : gryff.src.gryff.Instance) (Base' : gryff.src.gryffproto.ValTag) :
+noncomputable instance Instance_access_store_Base (l : Loc) (v : gryff.src.gryff.Instance) (Base' : _root_.Perennial.gryff.src.gryffproto.ValTag) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.Instance go!"Base" l) v.Base' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.Instance go!"Base" l) Base' (DFrac.own 1))
@@ -537,7 +537,7 @@ noncomputable instance RecoveryInstance_access_load_base (l : Loc) (v : gryff.sr
  by
   solve_pointsto_access_struct
 
-noncomputable instance RecoveryInstance_access_store_base (l : Loc) (v : gryff.src.gryff.RecoveryInstance) (base' : gryff.src.gryffproto.ValTag) :
+noncomputable instance RecoveryInstance_access_store_base (l : Loc) (v : gryff.src.gryff.RecoveryInstance) (base' : _root_.Perennial.gryff.src.gryffproto.ValTag) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.RecoveryInstance go!"base" l) v.base' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.RecoveryInstance go!"base" l) base' (DFrac.own 1))
@@ -868,7 +868,7 @@ noncomputable instance LeaderBookkeeping_access_load_committedTime (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_committedTime (l : Loc) (v : gryff.src.gryff.LeaderBookkeeping) (committedTime' : time.Time) :
+noncomputable instance LeaderBookkeeping_access_store_committedTime (l : Loc) (v : gryff.src.gryff.LeaderBookkeeping) (committedTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.LeaderBookkeeping go!"committedTime" l) v.committedTime' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.LeaderBookkeeping go!"committedTime" l) committedTime' (DFrac.own 1))
@@ -884,7 +884,7 @@ noncomputable instance LeaderBookkeeping_access_load_executedTime (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_executedTime (l : Loc) (v : gryff.src.gryff.LeaderBookkeeping) (executedTime' : time.Time) :
+noncomputable instance LeaderBookkeeping_access_store_executedTime (l : Loc) (v : gryff.src.gryff.LeaderBookkeeping) (executedTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.LeaderBookkeeping go!"executedTime" l) v.executedTime' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.LeaderBookkeeping go!"executedTime" l) executedTime' (DFrac.own 1))
@@ -900,7 +900,7 @@ noncomputable instance LeaderBookkeeping_access_load_blockStartTime (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance LeaderBookkeeping_access_store_blockStartTime (l : Loc) (v : gryff.src.gryff.LeaderBookkeeping) (blockStartTime' : time.Time) :
+noncomputable instance LeaderBookkeeping_access_store_blockStartTime (l : Loc) (v : gryff.src.gryff.LeaderBookkeeping) (blockStartTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.LeaderBookkeeping go!"blockStartTime" l) v.blockStartTime' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.LeaderBookkeeping go!"blockStartTime" l) blockStartTime' (DFrac.own 1))
@@ -992,7 +992,7 @@ noncomputable instance ExecuteOverwrite_access_load_K (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ExecuteOverwrite_access_store_K (l : Loc) (v : gryff.src.gryff.ExecuteOverwrite) (K' : gryff.src.state.Key) :
+noncomputable instance ExecuteOverwrite_access_store_K (l : Loc) (v : gryff.src.gryff.ExecuteOverwrite) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.ExecuteOverwrite go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.ExecuteOverwrite go!"K" l) K' (DFrac.own 1))
@@ -1008,7 +1008,7 @@ noncomputable instance ExecuteOverwrite_access_load_V (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance ExecuteOverwrite_access_store_V (l : Loc) (v : gryff.src.gryff.ExecuteOverwrite) (V' : gryff.src.state.Value) :
+noncomputable instance ExecuteOverwrite_access_store_V (l : Loc) (v : gryff.src.gryff.ExecuteOverwrite) (V' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.ExecuteOverwrite go!"V" l) v.V' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.ExecuteOverwrite go!"V" l) V' (DFrac.own 1))

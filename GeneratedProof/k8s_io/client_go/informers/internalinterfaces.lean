@@ -53,7 +53,7 @@ noncomputable instance InformerOptions_access_load_ResyncPeriod (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_store_ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (ResyncPeriod' : time.Duration) :
+noncomputable instance InformerOptions_access_store_ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (ResyncPeriod' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) ResyncPeriod' (DFrac.own 1))
@@ -69,7 +69,7 @@ noncomputable instance InformerOptions_access_load_Indexers (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance InformerOptions_access_store_Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (Indexers' : k8s_io.client_go.tools.cache.Indexers) :
+noncomputable instance InformerOptions_access_store_Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (Indexers' : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) Indexers' (DFrac.own 1))

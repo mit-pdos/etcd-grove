@@ -133,7 +133,7 @@ def Perennial.go_etcd_io.raft.v3.stmapV : GoArray GoString 4 :=
 
 def Perennial.go_etcd_io.raft.v3.protobuf_impl_is_pkg_init_inst : IsPkgInit (IProp GF)
     pkg_id.google_golang_org.protobuf.internal.impl :=
-  { isPkgInitDeps := iprop(isPkgInit pkg_id.google_golang_org.protobuf.internal.pragma ∗ True),
+  { isPkgInitDeps := iprop(isPkgInit pkg_id.strconv ∗ isPkgInit pkg_id.google_golang_org.protobuf.internal.pragma ∗ True),
     isPkgInitDef := iprop(True) }
 
 def Perennial.go_etcd_io.raft.v3.confchange_is_pkg_init_inst : IsPkgInit (IProp GF)
@@ -165,7 +165,8 @@ def Perennial.go_etcd_io.raft.v3.protobuf_impl_get_is_pkg_init_wf_inst : GetIsPk
     get_is_pkg_init_prop_def := fun get_is_pkg_init =>
       get_is_pkg_init pkg_id.google_golang_org.protobuf.internal.impl =
           isPkgInit pkg_id.google_golang_org.protobuf.internal.impl ∧
-        GetIsPkgInitProp pkg_id.google_golang_org.protobuf.internal.pragma get_is_pkg_init ∧ True }
+        GetIsPkgInitProp pkg_id.strconv get_is_pkg_init ∧
+          GetIsPkgInitProp pkg_id.google_golang_org.protobuf.internal.pragma get_is_pkg_init ∧ True }
 
 def Perennial.go_etcd_io.raft.v3.raftpb_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.go_etcd_io.raft.v3.raftpb :=

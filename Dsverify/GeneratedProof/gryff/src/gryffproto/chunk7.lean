@@ -89,7 +89,7 @@ noncomputable instance Read1_access_load_K (l : Loc) (v : gryff.src.gryffproto.R
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read1_access_store_K (l : Loc) (v : gryff.src.gryffproto.Read1) (K' : gryff.src.state.Key) :
+noncomputable instance Read1_access_store_K (l : Loc) (v : gryff.src.gryffproto.Read1) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read1 go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read1 go!"K" l) K' (DFrac.own 1))
@@ -182,7 +182,7 @@ noncomputable instance Read1Proxied_access_load_K (l : Loc) (v : gryff.src.gryff
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read1Proxied_access_store_K (l : Loc) (v : gryff.src.gryffproto.Read1Proxied) (K' : gryff.src.state.Key) :
+noncomputable instance Read1Proxied_access_store_K (l : Loc) (v : gryff.src.gryffproto.Read1Proxied) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read1Proxied go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read1Proxied go!"K" l) K' (DFrac.own 1))
@@ -305,7 +305,7 @@ noncomputable instance Read_access_load_K (l : Loc) (v : gryff.src.gryffproto.Re
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_K (l : Loc) (v : gryff.src.gryffproto.Read) (K' : gryff.src.state.Key) :
+noncomputable instance Read_access_store_K (l : Loc) (v : gryff.src.gryffproto.Read) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read go!"K" l) K' (DFrac.own 1))
@@ -397,7 +397,7 @@ noncomputable instance Write_access_load_K (l : Loc) (v : gryff.src.gryffproto.W
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write_access_store_K (l : Loc) (v : gryff.src.gryffproto.Write) (K' : gryff.src.state.Key) :
+noncomputable instance Write_access_store_K (l : Loc) (v : gryff.src.gryffproto.Write) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write go!"K" l) K' (DFrac.own 1))
@@ -413,7 +413,7 @@ noncomputable instance Write_access_load_V (l : Loc) (v : gryff.src.gryffproto.W
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write_access_store_V (l : Loc) (v : gryff.src.gryffproto.Write) (V' : gryff.src.state.Value) :
+noncomputable instance Write_access_store_V (l : Loc) (v : gryff.src.gryffproto.Write) (V' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write go!"V" l) v.V' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write go!"V" l) V' (DFrac.own 1))
@@ -541,7 +541,7 @@ noncomputable instance Write1_access_load_K (l : Loc) (v : gryff.src.gryffproto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write1_access_store_K (l : Loc) (v : gryff.src.gryffproto.Write1) (K' : gryff.src.state.Key) :
+noncomputable instance Write1_access_store_K (l : Loc) (v : gryff.src.gryffproto.Write1) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1 go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1 go!"K" l) K' (DFrac.own 1))
@@ -557,7 +557,7 @@ noncomputable instance Write1_access_load_V (l : Loc) (v : gryff.src.gryffproto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write1_access_store_V (l : Loc) (v : gryff.src.gryffproto.Write1) (V' : gryff.src.state.Value) :
+noncomputable instance Write1_access_store_V (l : Loc) (v : gryff.src.gryffproto.Write1) (V' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1 go!"V" l) v.V' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1 go!"V" l) V' (DFrac.own 1))
@@ -717,7 +717,7 @@ noncomputable instance Write1Proxied_access_load_K (l : Loc) (v : gryff.src.gryf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write1Proxied_access_store_K (l : Loc) (v : gryff.src.gryffproto.Write1Proxied) (K' : gryff.src.state.Key) :
+noncomputable instance Write1Proxied_access_store_K (l : Loc) (v : gryff.src.gryffproto.Write1Proxied) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1Proxied go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1Proxied go!"K" l) K' (DFrac.own 1))
@@ -733,7 +733,7 @@ noncomputable instance Write1Proxied_access_load_V (l : Loc) (v : gryff.src.gryf
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write1Proxied_access_store_V (l : Loc) (v : gryff.src.gryffproto.Write1Proxied) (V' : gryff.src.state.Value) :
+noncomputable instance Write1Proxied_access_store_V (l : Loc) (v : gryff.src.gryffproto.Write1Proxied) (V' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1Proxied go!"V" l) v.V' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1Proxied go!"V" l) V' (DFrac.own 1))
@@ -858,7 +858,7 @@ noncomputable instance RMW_access_load_K (l : Loc) (v : gryff.src.gryffproto.RMW
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMW_access_store_K (l : Loc) (v : gryff.src.gryffproto.RMW) (K' : gryff.src.state.Key) :
+noncomputable instance RMW_access_store_K (l : Loc) (v : gryff.src.gryffproto.RMW) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.RMW go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.RMW go!"K" l) K' (DFrac.own 1))
@@ -890,7 +890,7 @@ noncomputable instance RMW_access_load_OldValue (l : Loc) (v : gryff.src.gryffpr
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMW_access_store_OldValue (l : Loc) (v : gryff.src.gryffproto.RMW) (OldValue' : gryff.src.state.Value) :
+noncomputable instance RMW_access_store_OldValue (l : Loc) (v : gryff.src.gryffproto.RMW) (OldValue' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.RMW go!"OldValue" l) v.OldValue' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.RMW go!"OldValue" l) OldValue' (DFrac.own 1))
@@ -906,7 +906,7 @@ noncomputable instance RMW_access_load_NewValue (l : Loc) (v : gryff.src.gryffpr
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMW_access_store_NewValue (l : Loc) (v : gryff.src.gryffproto.RMW) (NewValue' : gryff.src.state.Value) :
+noncomputable instance RMW_access_store_NewValue (l : Loc) (v : gryff.src.gryffproto.RMW) (NewValue' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.RMW go!"NewValue" l) v.NewValue' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.RMW go!"NewValue" l) NewValue' (DFrac.own 1))
@@ -999,7 +999,7 @@ noncomputable instance Prepare_access_load_K (l : Loc) (v : gryff.src.gryffproto
  by
   solve_pointsto_access_struct
 
-noncomputable instance Prepare_access_store_K (l : Loc) (v : gryff.src.gryffproto.Prepare) (K' : gryff.src.state.Key) :
+noncomputable instance Prepare_access_store_K (l : Loc) (v : gryff.src.gryffproto.Prepare) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Prepare go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Prepare go!"K" l) K' (DFrac.own 1))

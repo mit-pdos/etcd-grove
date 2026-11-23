@@ -337,7 +337,7 @@ noncomputable instance Step_access_load_Delay (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (Delay' : time.Duration) :
+noncomputable instance Step_access_store_Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (Delay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) Delay' (DFrac.own 1))

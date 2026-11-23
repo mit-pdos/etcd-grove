@@ -200,6 +200,9 @@ theorem joinAuth_join [ReceiptGS GF] [InvGS GF] (γ : Cluster) (N : Namespace) (
 theorem snapshotValid_timeless [ReceiptGS GF] (γ : Cluster) (sv : SnapshotM) : Timeless
     (snapshotValid γ sv)
 
+def (sealed) nodeBootG [ReceiptGS GF] [InvGS GF] (γ : Cluster) (N : Namespace) (vs : List w64) (ctxs
+    : List (List w8)) (id : w64) (bl : List EntryM) : IProp GF
+
 theorem storBnd_cap [ReceiptGS GF] [InvGS GF] (γ : Cluster) (K : GName) (c : Nat) : storBnd γ K c ⊢
     ⌜clusterNoSnap γ → c ≤ 1⌝
 
@@ -261,6 +264,17 @@ theorem confAt_skipped [ReceiptGS GF] [InvGS GF] (γ : Cluster) (l : List LogEnt
     Membership) : a ≤ b → b ≤ l.length → isCommittedLogLb γ l ∗ confAt γ a m ∗ skippedIn γ l a b ⊢
     confAt γ b m
 
+theorem cluster_alloc_bootG [ReceiptGS GF] [InvGS GF] (N : Namespace) (vs : List w64) (ctxs : List
+    (List w8)) (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (md : Option Nat) (E :
+    CoPset) (ns : Bool) (Hns : ns = true → boot ≠ []) : receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] →
+    vs.Nodup → ¬W64 0 ∈ vs → ↑vs.length < 2 ^ 62 → BootLog vs ctxs boot → (∀ (b : Nat), md = some b
+    → b ≤ 2 ^ 31) → (∀ (b : Nat), md = some b → ∀ (e : LogEntry), e ∈ boot → e.data.length ≤ b) → ⊢
+    |={E}=> ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md ∧
+    (clusterNoSnap γ ↔ ns = true)⌝ ∗ ⌜γ.trace = none⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗
+    isCluster γ N ∗ ownConfDecisions γ ∅ ∗ confAt γ 0 (Membership.simple (listToSet vs)) ∗
+    ownSnapsMade γ [] ∗ ([∗list] id ∈ vs, iprop(raftState γ id RaftState.init ∗ nodeVacant γ id)) ∗
+    isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBootG γ N vs ctxs id (LogEntry.toEntries boot 0)
+
 theorem confAt_persistent [ReceiptGS GF] (γ : Cluster) (k : Nat) (m : Membership) : Persistent
     (confAt γ k m)
 
@@ -304,6 +318,13 @@ theorem readySnapSources_msgSnap [package_sem : Assumptions] (γ : Cluster) (n :
     γ n sv ∗ nodeRestoreSource γ id (snapId sv))
 
 def (sealed) ownSnapsMade [ReceiptGS GF] (γ : Cluster) (S : List SnapRec) : IProp GF
+
+theorem nodeBootG_persistent [ReceiptGS GF] [InvGS GF] (γ : Cluster) (N : Namespace) (vs : List w64)
+    (ctxs : List (List w8)) (id : w64) (bl : List EntryM) : Persistent (nodeBootG γ N vs ctxs id bl)
+
+theorem nodeBoot_of_G [package_sem : Assumptions] (γ : Cluster) (N : Namespace) (vs : List w64)
+    (ctxs : List (List w8)) (id : w64) (bl : List EntryM) : nodeBootG γ N vs ctxs id bl ∗
+    bootMarshal vs ctxs bl ⊢ nodeBoot γ N vs ctxs id
 
 theorem isCluster_persistent [ReceiptGS GF] [InvGS GF] (γ : Cluster) (N : Namespace) : Persistent
     (isCluster γ N)

@@ -191,7 +191,7 @@ noncomputable instance Master_access_load_l (l : Loc) (v : gryff.src.masterlib.M
  by
   solve_pointsto_access_struct
 
-noncomputable instance Master_access_store_l (l : Loc) (v : gryff.src.masterlib.Master) (l' : net.Listener) :
+noncomputable instance Master_access_store_l (l : Loc) (v : gryff.src.masterlib.Master) (l' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.masterlib.Master go!"l" l) v.l' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.masterlib.Master go!"l" l) l' (DFrac.own 1))

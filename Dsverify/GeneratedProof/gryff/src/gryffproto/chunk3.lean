@@ -52,7 +52,7 @@ noncomputable instance CommitCache_access_load_mu (l : Loc) (v : gryff.src.gryff
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommitCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.CommitCache) (mu' : sync.Mutex) :
+noncomputable instance CommitCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.CommitCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.CommitCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.CommitCache go!"mu" l) mu' (DFrac.own 1))
@@ -109,7 +109,7 @@ noncomputable instance CommitReplyCache_access_load_mu (l : Loc) (v : gryff.src.
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommitReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.CommitReplyCache) (mu' : sync.Mutex) :
+noncomputable instance CommitReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.CommitReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.CommitReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.CommitReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -166,7 +166,7 @@ noncomputable instance EPrepareCache_access_load_mu (l : Loc) (v : gryff.src.gry
  by
   solve_pointsto_access_struct
 
-noncomputable instance EPrepareCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.EPrepareCache) (mu' : sync.Mutex) :
+noncomputable instance EPrepareCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.EPrepareCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.EPrepareCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.EPrepareCache go!"mu" l) mu' (DFrac.own 1))
@@ -223,7 +223,7 @@ noncomputable instance DepCache_access_load_mu (l : Loc) (v : gryff.src.gryffpro
  by
   solve_pointsto_access_struct
 
-noncomputable instance DepCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.DepCache) (mu' : sync.Mutex) :
+noncomputable instance DepCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.DepCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.DepCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.DepCache go!"mu" l) mu' (DFrac.own 1))
@@ -280,7 +280,7 @@ noncomputable instance ReadCache_access_load_mu (l : Loc) (v : gryff.src.gryffpr
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.ReadCache) (mu' : sync.Mutex) :
+noncomputable instance ReadCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.ReadCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.ReadCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.ReadCache go!"mu" l) mu' (DFrac.own 1))
@@ -337,7 +337,7 @@ noncomputable instance Write1ProxiedCache_access_load_mu (l : Loc) (v : gryff.sr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write1ProxiedCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Write1ProxiedCache) (mu' : sync.Mutex) :
+noncomputable instance Write1ProxiedCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Write1ProxiedCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1ProxiedCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write1ProxiedCache go!"mu" l) mu' (DFrac.own 1))
@@ -394,7 +394,7 @@ noncomputable instance Read2ReplyCache_access_load_mu (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read2ReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Read2ReplyCache) (mu' : sync.Mutex) :
+noncomputable instance Read2ReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Read2ReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read2ReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Read2ReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -451,7 +451,7 @@ noncomputable instance Write2ProxiedCache_access_load_mu (l : Loc) (v : gryff.sr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write2ProxiedCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Write2ProxiedCache) (mu' : sync.Mutex) :
+noncomputable instance Write2ProxiedCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Write2ProxiedCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write2ProxiedCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write2ProxiedCache go!"mu" l) mu' (DFrac.own 1))
@@ -508,7 +508,7 @@ noncomputable instance ECommitCache_access_load_mu (l : Loc) (v : gryff.src.gryf
  by
   solve_pointsto_access_struct
 
-noncomputable instance ECommitCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.ECommitCache) (mu' : sync.Mutex) :
+noncomputable instance ECommitCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.ECommitCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.ECommitCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.ECommitCache go!"mu" l) mu' (DFrac.own 1))
@@ -565,7 +565,7 @@ noncomputable instance WriteReplyCache_access_load_mu (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance WriteReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.WriteReplyCache) (mu' : sync.Mutex) :
+noncomputable instance WriteReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.WriteReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.WriteReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.WriteReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -622,7 +622,7 @@ noncomputable instance Write2ReplyCache_access_load_mu (l : Loc) (v : gryff.src.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Write2ReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Write2ReplyCache) (mu' : sync.Mutex) :
+noncomputable instance Write2ReplyCache_access_store_mu (l : Loc) (v : gryff.src.gryffproto.Write2ReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write2ReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Write2ReplyCache go!"mu" l) mu' (DFrac.own 1))

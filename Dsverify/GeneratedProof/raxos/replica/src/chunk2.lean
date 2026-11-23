@@ -76,7 +76,7 @@ noncomputable instance DecideResponse_ClientBatch_access_load_state (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance DecideResponse_ClientBatch_access_store_state (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance DecideResponse_ClientBatch_access_store_state (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch go!"state" l) state' (DFrac.own 1))
@@ -199,7 +199,7 @@ noncomputable instance DecideResponse_ClientBatch_SingleMessage_access_load_stat
  by
   solve_pointsto_access_struct
 
-noncomputable instance DecideResponse_ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance DecideResponse_ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.replica.src.DecideResponse_ClientBatch_SingleMessage) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.DecideResponse_ClientBatch_SingleMessage go!"state" l) state' (DFrac.own 1))
@@ -292,7 +292,7 @@ noncomputable instance Decisions_DecidedSlot_access_load_state (l : Loc) (v : ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Decisions_DecidedSlot_access_store_state (l : Loc) (v : raxos.replica.src.Decisions_DecidedSlot) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Decisions_DecidedSlot_access_store_state (l : Loc) (v : raxos.replica.src.Decisions_DecidedSlot) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Decisions_DecidedSlot go!"state" l) state' (DFrac.own 1))
@@ -412,7 +412,7 @@ noncomputable instance consensusClient_access_load_cc (l : Loc) (v : raxos.repli
  by
   solve_pointsto_access_struct
 
-noncomputable instance consensusClient_access_store_cc (l : Loc) (v : raxos.replica.src.consensusClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance consensusClient_access_store_cc (l : Loc) (v : raxos.replica.src.consensusClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.consensusClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.consensusClient go!"cc" l) cc' (DFrac.own 1))
@@ -513,7 +513,7 @@ noncomputable instance Benchmark_access_load_RedisCtx (l : Loc) (v : raxos.repli
  by
   solve_pointsto_access_struct
 
-noncomputable instance Benchmark_access_store_RedisCtx (l : Loc) (v : raxos.replica.src.Benchmark) (RedisCtx' : context.Context) :
+noncomputable instance Benchmark_access_store_RedisCtx (l : Loc) (v : raxos.replica.src.Benchmark) (RedisCtx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Benchmark go!"RedisCtx" l) v.RedisCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Benchmark go!"RedisCtx" l) RedisCtx' (DFrac.own 1))
@@ -906,7 +906,7 @@ noncomputable instance Proposer_access_load_startTime (l : Loc) (v : raxos.repli
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proposer_access_store_startTime (l : Loc) (v : raxos.replica.src.Proposer) (startTime' : time.Time) :
+noncomputable instance Proposer_access_store_startTime (l : Loc) (v : raxos.replica.src.Proposer) (startTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Proposer go!"startTime" l) v.startTime' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Proposer go!"startTime" l) startTime' (DFrac.own 1))
@@ -1221,7 +1221,7 @@ noncomputable instance Proxy_access_load_clientWritersMutex (l : Loc) (v : raxos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_clientWritersMutex (l : Loc) (v : raxos.replica.src.Proxy) (clientWritersMutex' : sync.Mutex) :
+noncomputable instance Proxy_access_store_clientWritersMutex (l : Loc) (v : raxos.replica.src.Proxy) (clientWritersMutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"clientWritersMutex" l) v.clientWritersMutex' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"clientWritersMutex" l) clientWritersMutex' (DFrac.own 1))
@@ -1269,7 +1269,7 @@ noncomputable instance Proxy_access_load_Listener (l : Loc) (v : raxos.replica.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_Listener (l : Loc) (v : raxos.replica.src.Proxy) (Listener' : net.Listener) :
+noncomputable instance Proxy_access_store_Listener (l : Loc) (v : raxos.replica.src.Proxy) (Listener' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"Listener" l) Listener' (DFrac.own 1))
@@ -1493,7 +1493,7 @@ noncomputable instance Proxy_access_load_lastTimeCommitted (l : Loc) (v : raxos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_lastTimeCommitted (l : Loc) (v : raxos.replica.src.Proxy) (lastTimeCommitted' : time.Time) :
+noncomputable instance Proxy_access_store_lastTimeCommitted (l : Loc) (v : raxos.replica.src.Proxy) (lastTimeCommitted' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"lastTimeCommitted" l) v.lastTimeCommitted' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"lastTimeCommitted" l) lastTimeCommitted' (DFrac.own 1))
@@ -1797,7 +1797,7 @@ noncomputable instance Proxy_access_load_lastTimeProposed (l : Loc) (v : raxos.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_lastTimeProposed (l : Loc) (v : raxos.replica.src.Proxy) (lastTimeProposed' : time.Time) :
+noncomputable instance Proxy_access_store_lastTimeProposed (l : Loc) (v : raxos.replica.src.Proxy) (lastTimeProposed' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"lastTimeProposed" l) v.lastTimeProposed' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"lastTimeProposed" l) lastTimeProposed' (DFrac.own 1))
@@ -1893,7 +1893,7 @@ noncomputable instance Proxy_access_load_startTime (l : Loc) (v : raxos.replica.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_startTime (l : Loc) (v : raxos.replica.src.Proxy) (startTime' : time.Time) :
+noncomputable instance Proxy_access_store_startTime (l : Loc) (v : raxos.replica.src.Proxy) (startTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"startTime" l) v.startTime' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Proxy go!"startTime" l) startTime' (DFrac.own 1))

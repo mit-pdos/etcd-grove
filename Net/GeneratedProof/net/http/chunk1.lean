@@ -84,7 +84,7 @@ noncomputable instance cancelTimerBody_access_load_rc (l : Loc) (v : net.http.ca
  by
   solve_pointsto_access_struct
 
-noncomputable instance cancelTimerBody_access_store_rc (l : Loc) (v : net.http.cancelTimerBody) (rc' : io.ReadCloser) :
+noncomputable instance cancelTimerBody_access_store_rc (l : Loc) (v : net.http.cancelTimerBody) (rc' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.cancelTimerBody go!"rc" l) v.rc' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.cancelTimerBody go!"rc" l) rc' (DFrac.own 1))
@@ -297,7 +297,7 @@ noncomputable instance serveMux121_access_load_mu (l : Loc) (v : net.http.serveM
  by
   solve_pointsto_access_struct
 
-noncomputable instance serveMux121_access_store_mu (l : Loc) (v : net.http.serveMux121) (mu' : sync.RWMutex) :
+noncomputable instance serveMux121_access_store_mu (l : Loc) (v : net.http.serveMux121) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.serveMux121 go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.serveMux121 go!"mu" l) mu' (DFrac.own 1))
@@ -685,7 +685,7 @@ noncomputable instance stringWriter_access_load_w (l : Loc) (v : net.http.string
  by
   solve_pointsto_access_struct
 
-noncomputable instance stringWriter_access_store_w (l : Loc) (v : net.http.stringWriter) (w' : io.Writer) :
+noncomputable instance stringWriter_access_store_w (l : Loc) (v : net.http.stringWriter) (w' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.stringWriter go!"w" l) v.w' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.stringWriter go!"w" l) w' (DFrac.own 1))
@@ -1048,7 +1048,7 @@ noncomputable instance HTTP2Config_access_load_SendPingTimeout (l : Loc) (v : ne
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTP2Config_access_store_SendPingTimeout (l : Loc) (v : net.http.HTTP2Config) (SendPingTimeout' : time.Duration) :
+noncomputable instance HTTP2Config_access_store_SendPingTimeout (l : Loc) (v : net.http.HTTP2Config) (SendPingTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.HTTP2Config go!"SendPingTimeout" l) v.SendPingTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.HTTP2Config go!"SendPingTimeout" l) SendPingTimeout' (DFrac.own 1))
@@ -1064,7 +1064,7 @@ noncomputable instance HTTP2Config_access_load_PingTimeout (l : Loc) (v : net.ht
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTP2Config_access_store_PingTimeout (l : Loc) (v : net.http.HTTP2Config) (PingTimeout' : time.Duration) :
+noncomputable instance HTTP2Config_access_store_PingTimeout (l : Loc) (v : net.http.HTTP2Config) (PingTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.HTTP2Config go!"PingTimeout" l) v.PingTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.HTTP2Config go!"PingTimeout" l) PingTimeout' (DFrac.own 1))
@@ -1080,7 +1080,7 @@ noncomputable instance HTTP2Config_access_load_WriteByteTimeout (l : Loc) (v : n
  by
   solve_pointsto_access_struct
 
-noncomputable instance HTTP2Config_access_store_WriteByteTimeout (l : Loc) (v : net.http.HTTP2Config) (WriteByteTimeout' : time.Duration) :
+noncomputable instance HTTP2Config_access_store_WriteByteTimeout (l : Loc) (v : net.http.HTTP2Config) (WriteByteTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.HTTP2Config go!"WriteByteTimeout" l) v.WriteByteTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.HTTP2Config go!"WriteByteTimeout" l) WriteByteTimeout' (DFrac.own 1))

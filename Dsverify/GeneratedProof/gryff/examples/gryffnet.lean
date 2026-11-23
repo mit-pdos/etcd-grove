@@ -353,7 +353,7 @@ noncomputable instance client_access_load_conn (l : Loc) (v : gryff.examples.gry
  by
   solve_pointsto_access_struct
 
-noncomputable instance client_access_store_conn (l : Loc) (v : gryff.examples.gryffnet.client) (conn' : net.Conn) :
+noncomputable instance client_access_store_conn (l : Loc) (v : gryff.examples.gryffnet.client) (conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.examples.gryffnet.client go!"conn" l) v.conn' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.examples.gryffnet.client go!"conn" l) conn' (DFrac.own 1))

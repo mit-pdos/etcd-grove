@@ -53,7 +53,7 @@ noncomputable instance ValTag_access_load_V (l : Loc) (v : gryff.src.gryffproto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ValTag_access_store_V (l : Loc) (v : gryff.src.gryffproto.ValTag) (V' : gryff.src.state.Value) :
+noncomputable instance ValTag_access_store_V (l : Loc) (v : gryff.src.gryffproto.ValTag) (V' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.ValTag go!"V" l) v.V' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.ValTag go!"V" l) V' (DFrac.own 1))
@@ -236,7 +236,7 @@ noncomputable instance ReadReply_access_load_V (l : Loc) (v : gryff.src.gryffpro
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReadReply_access_store_V (l : Loc) (v : gryff.src.gryffproto.ReadReply) (V' : gryff.src.state.Value) :
+noncomputable instance ReadReply_access_store_V (l : Loc) (v : gryff.src.gryffproto.ReadReply) (V' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.ReadReply go!"V" l) v.V' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.ReadReply go!"V" l) V' (DFrac.own 1))
@@ -561,7 +561,7 @@ noncomputable instance Proposal_access_load_K (l : Loc) (v : gryff.src.gryffprot
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proposal_access_store_K (l : Loc) (v : gryff.src.gryffproto.Proposal) (K' : gryff.src.state.Key) :
+noncomputable instance Proposal_access_store_K (l : Loc) (v : gryff.src.gryffproto.Proposal) (K' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Proposal go!"K" l) v.K' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Proposal go!"K" l) K' (DFrac.own 1))
@@ -577,7 +577,7 @@ noncomputable instance Proposal_access_load_NewValue (l : Loc) (v : gryff.src.gr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proposal_access_store_NewValue (l : Loc) (v : gryff.src.gryffproto.Proposal) (NewValue' : gryff.src.state.Value) :
+noncomputable instance Proposal_access_store_NewValue (l : Loc) (v : gryff.src.gryffproto.Proposal) (NewValue' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Proposal go!"NewValue" l) v.NewValue' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Proposal go!"NewValue" l) NewValue' (DFrac.own 1))
@@ -609,7 +609,7 @@ noncomputable instance Proposal_access_load_OldValue (l : Loc) (v : gryff.src.gr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proposal_access_store_OldValue (l : Loc) (v : gryff.src.gryffproto.Proposal) (OldValue' : gryff.src.state.Value) :
+noncomputable instance Proposal_access_store_OldValue (l : Loc) (v : gryff.src.gryffproto.Proposal) (OldValue' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryffproto.Proposal go!"OldValue" l) v.OldValue' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryffproto.Proposal go!"OldValue" l) OldValue' (DFrac.own 1))

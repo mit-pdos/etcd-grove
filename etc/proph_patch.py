@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prophecy patches: changes to a project's Go code, applied before translation, that only add
-prophecy variables (`primitive.NewProph`), their resolutions (`ResolveBool`, `ResolveU64`) and
-read-only expressions.
+ghost code: prophecies (`primitive.NewProph`) in locals, package variables and struct fields,
+their resolutions (`ResolveBool`, `ResolveU64`) on read-only expressions, and ghost helpers.
 
 usage: etc/proph_patch.py [--project NAME]... [--src NAME=DIR]...
 
@@ -18,10 +18,10 @@ project's source root (`git diff` output), applied in name order to a copy of th
 proof is of the patched code.
 
 What a patch may do, and why a proof of the patched program covers the original: the patched Go
-file, with its prophecy statements erased, must be the original file as a syntax tree, and the
-prophecy statements only create prophecies, resolve them with read-only expressions, and branch
-on read-only conditions (etc/prophcheck/main.go, which checks it; its doc comment gives the
-argument).  In short, Go's prophecy operations do nothing and a read-only expression has no
+file, with its ghost code erased, must be the original file as a syntax tree, and the ghost code
+only creates prophecies, resolves them with read-only expressions, branches on read-only
+conditions and calls ghost helpers that do only that (etc/prophcheck/main.go, which checks it;
+its doc comment gives the argument; notes/proph-patch-rule.md lists the checks).  In short, Go's prophecy operations do nothing and a read-only expression has no
 effect but may fail, so the patched program has every behavior of the original plus possibly
 failing ones (a nil dereference in a resolution's argument, say), which its proof rules out.
 Besides the Go files, a patch may only add the `github.com/goose-lang/primitive` lines a
@@ -132,7 +132,9 @@ def go_errors(project, src, out):
     pairs = [a for f in go_files(project) for a in (os.path.join(src, f), os.path.join(out, f))]
     if not pairs:
         return []
-    r = subprocess.run([prophcheck()] + pairs, capture_output=True, text=True)
+    # GOTOOLCHAIN: a ghost field's check type-checks the module (`go list -export`)
+    r = subprocess.run([prophcheck()] + pairs, capture_output=True, text=True,
+                       env=dict(os.environ, GOTOOLCHAIN=GO_TOOLCHAIN))
     if r.returncode not in (0, 1):
         return [f"prophcheck failed: {r.stderr.strip()}"]
     return [l for l in r.stdout.splitlines() if l]

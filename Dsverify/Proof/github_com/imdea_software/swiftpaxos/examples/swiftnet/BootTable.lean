@@ -89,6 +89,7 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_net_http_internal_ascii : G pkg_id.net.http.internal.ascii = isPkgInit (PROP := IProp GF) pkg_id.net.http.internal.ascii
   e_net_url : G pkg_id.net.url = isPkgInit (PROP := IProp GF) pkg_id.net.url
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
+  e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
   e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
@@ -237,6 +238,10 @@ theorem wf_cmp {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.cmp G :=
   And.intro h.e_cmp True.intro
 
+theorem wf_iter {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.iter G :=
+  And.intro h.e_iter True.intro
+
 theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.«unsafe» G :=
   And.intro h.e_unsafe True.intro
@@ -247,7 +252,7 @@ theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_slices {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.slices G :=
-  And.intro h.e_slices ⟨wf_cmp h, wf_math_bits h, True.intro⟩
+  And.intro h.e_slices ⟨wf_cmp h, wf_iter h, wf_math_bits h, True.intro⟩
 
 theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.bytealg G :=
@@ -572,6 +577,11 @@ theorem wfO_cmp {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.cmp ∉ ownedPkgs) (hS _ hm))).trans
     h.e_cmp) True.intro
 
+theorem wfO_iter {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.iter (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.iter ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_iter) True.intro
+
 theorem wfO_unsafe {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.«unsafe» (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.«unsafe» ∉ ownedPkgs) (hS _ hm))).trans
@@ -585,7 +595,7 @@ theorem wfO_math_bits {G : GoString → IProp GF} (h : KitG G) (S : List GoStrin
 theorem wfO_slices {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.slices (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.slices ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_slices) ⟨wfO_cmp h S hS, wfO_math_bits h S hS, True.intro⟩
+    h.e_slices) ⟨wfO_cmp h S hS, wfO_iter h S hS, wfO_math_bits h S hS, True.intro⟩
 
 theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=

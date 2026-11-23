@@ -62,7 +62,7 @@ noncomputable instance RPCPair_access_load_Obj (l : Loc) (v : gryff.src.generics
  by
   solve_pointsto_access_struct
 
-noncomputable instance RPCPair_access_store_Obj (l : Loc) (v : gryff.src.genericsmr.RPCPair) (Obj' : gryff.src.fastrpc.Serializable) :
+noncomputable instance RPCPair_access_store_Obj (l : Loc) (v : gryff.src.genericsmr.RPCPair) (Obj' : _root_.Perennial.gryff.src.fastrpc.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmr.RPCPair go!"Obj" l) v.Obj' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmr.RPCPair go!"Obj" l) Obj' (DFrac.own 1))
@@ -176,7 +176,7 @@ noncomputable instance ClientRPC_access_load_Obj (l : Loc) (v : gryff.src.generi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientRPC_access_store_Obj (l : Loc) (v : gryff.src.genericsmr.ClientRPC) (Obj' : gryff.src.fastrpc.Serializable) :
+noncomputable instance ClientRPC_access_store_Obj (l : Loc) (v : gryff.src.genericsmr.ClientRPC) (Obj' : _root_.Perennial.gryff.src.fastrpc.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmr.ClientRPC go!"Obj" l) v.Obj' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmr.ClientRPC go!"Obj" l) Obj' (DFrac.own 1))
@@ -233,7 +233,7 @@ noncomputable instance ClientRPCPair_access_load_Obj (l : Loc) (v : gryff.src.ge
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientRPCPair_access_store_Obj (l : Loc) (v : gryff.src.genericsmr.ClientRPCPair) (Obj' : gryff.src.fastrpc.Serializable) :
+noncomputable instance ClientRPCPair_access_store_Obj (l : Loc) (v : gryff.src.genericsmr.ClientRPCPair) (Obj' : _root_.Perennial.gryff.src.fastrpc.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmr.ClientRPCPair go!"Obj" l) v.Obj' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmr.ClientRPCPair go!"Obj" l) Obj' (DFrac.own 1))
@@ -491,7 +491,7 @@ noncomputable instance Replica_access_load_Listener (l : Loc) (v : gryff.src.gen
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_Listener (l : Loc) (v : gryff.src.genericsmr.Replica) (Listener' : net.Listener) :
+noncomputable instance Replica_access_store_Listener (l : Loc) (v : gryff.src.genericsmr.Replica) (Listener' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.genericsmr.Replica go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.genericsmr.Replica go!"Listener" l) Listener' (DFrac.own 1))

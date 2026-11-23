@@ -1072,7 +1072,7 @@ noncomputable instance Replica_access_load_maxSeenTag (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_maxSeenTag (l : Loc) (v : gryff.src.gryff.Replica) (maxSeenTag' : gryff.src.gryffproto.Tag) :
+noncomputable instance Replica_access_store_maxSeenTag (l : Loc) (v : gryff.src.gryff.Replica) (maxSeenTag' : _root_.Perennial.gryff.src.gryffproto.Tag) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"maxSeenTag" l) v.maxSeenTag' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"maxSeenTag" l) maxSeenTag' (DFrac.own 1))
@@ -1184,7 +1184,7 @@ noncomputable instance Replica_access_load_rmwHandler (l : Loc) (v : gryff.src.g
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_rmwHandler (l : Loc) (v : gryff.src.gryff.Replica) (rmwHandler' : gryff.src.gryffcommon.IRMWHandler) :
+noncomputable instance Replica_access_store_rmwHandler (l : Loc) (v : gryff.src.gryff.Replica) (rmwHandler' : _root_.Perennial.gryff.src.gryffcommon.IRMWHandler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"rmwHandler" l) v.rmwHandler' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"rmwHandler" l) rmwHandler' (DFrac.own 1))
@@ -1264,7 +1264,7 @@ noncomputable instance Replica_access_load_proph (l : Loc) (v : gryff.src.gryff.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_proph (l : Loc) (v : gryff.src.gryff.Replica) (proph' : github_com.goose_lang.primitive.ProphId) :
+noncomputable instance Replica_access_store_proph (l : Loc) (v : gryff.src.gryff.Replica) (proph' : _root_.Perennial.github_com.goose_lang.primitive.ProphId) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"proph" l) v.proph' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.Replica go!"proph" l) proph' (DFrac.own 1))

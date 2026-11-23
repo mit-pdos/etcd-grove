@@ -122,6 +122,11 @@ theorem wf_cmp : GetIsPkgInitProp pkg_id.cmp (getIsPkgInit (GF := GF)) := by
   · rfl
   exact True.intro
 
+theorem wf_iter : GetIsPkgInitProp pkg_id.iter (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact True.intro
+
 theorem wf_unsafe : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
@@ -135,7 +140,7 @@ theorem wf_math_bits : GetIsPkgInitProp pkg_id.math.bits (getIsPkgInit (GF := GF
 theorem wf_slices : GetIsPkgInitProp pkg_id.slices (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
-  exact ⟨wf_cmp, wf_math_bits, True.intro⟩
+  exact ⟨wf_cmp, wf_iter, wf_math_bits, True.intro⟩
 
 theorem wf_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -482,6 +487,11 @@ theorem wfNo_cmp : GetIsPkgInitProp pkg_id.cmp (gNo (getIsPkgInit (GF := GF))) :
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfNo_iter : GetIsPkgInitProp pkg_id.iter (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact True.intro
+
 theorem wfNo_unsafe : GetIsPkgInitProp pkg_id.«unsafe» (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
@@ -495,7 +505,7 @@ theorem wfNo_math_bits : GetIsPkgInitProp pkg_id.math.bits (gNo (getIsPkgInit (G
 theorem wfNo_slices : GetIsPkgInitProp pkg_id.slices (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_cmp, wfNo_math_bits, True.intro⟩
+  exact ⟨wfNo_cmp, wfNo_iter, wfNo_math_bits, True.intro⟩
 
 theorem wfNo_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -827,6 +837,11 @@ theorem wfS2_cmp : GetIsPkgInitProp pkg_id.cmp (gEx noPkgsS2 (getIsPkgInit (GF :
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfS2_iter : GetIsPkgInitProp pkg_id.iter (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact True.intro
+
 theorem wfS2_unsafe : GetIsPkgInitProp pkg_id.«unsafe» (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -840,7 +855,7 @@ theorem wfS2_math_bits : GetIsPkgInitProp pkg_id.math.bits (gEx noPkgsS2 (getIsP
 theorem wfS2_slices : GetIsPkgInitProp pkg_id.slices (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS2_cmp, wfS2_math_bits, True.intro⟩
+  exact ⟨wfS2_cmp, wfS2_iter, wfS2_math_bits, True.intro⟩
 
 theorem wfS2_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gEx noPkgsS2 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1167,6 +1182,11 @@ theorem wfS1_cmp : GetIsPkgInitProp pkg_id.cmp (gEx noPkgsS1 (getIsPkgInit (GF :
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfS1_iter : GetIsPkgInitProp pkg_id.iter (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact True.intro
+
 theorem wfS1_unsafe : GetIsPkgInitProp pkg_id.«unsafe» (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -1180,7 +1200,7 @@ theorem wfS1_math_bits : GetIsPkgInitProp pkg_id.math.bits (gEx noPkgsS1 (getIsP
 theorem wfS1_slices : GetIsPkgInitProp pkg_id.slices (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS1_cmp, wfS1_math_bits, True.intro⟩
+  exact ⟨wfS1_cmp, wfS1_iter, wfS1_math_bits, True.intro⟩
 
 theorem wfS1_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gEx noPkgsS1 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
@@ -1497,6 +1517,11 @@ theorem wfS0_cmp : GetIsPkgInitProp pkg_id.cmp (gEx noPkgsS0 (getIsPkgInit (GF :
   · rw [gEx_ne _ _ _ (by decide)]; rfl
   exact True.intro
 
+theorem wfS0_iter : GetIsPkgInitProp pkg_id.iter (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gEx_ne _ _ _ (by decide)]; rfl
+  exact True.intro
+
 theorem wfS0_unsafe : GetIsPkgInitProp pkg_id.«unsafe» (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
@@ -1510,7 +1535,7 @@ theorem wfS0_math_bits : GetIsPkgInitProp pkg_id.math.bits (gEx noPkgsS0 (getIsP
 theorem wfS0_slices : GetIsPkgInitProp pkg_id.slices (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gEx_ne _ _ _ (by decide)]; rfl
-  exact ⟨wfS0_cmp, wfS0_math_bits, True.intro⟩
+  exact ⟨wfS0_cmp, wfS0_iter, wfS0_math_bits, True.intro⟩
 
 theorem wfS0_encoding_binary : GetIsPkgInitProp pkg_id.encoding.binary (gEx noPkgsS0 (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_

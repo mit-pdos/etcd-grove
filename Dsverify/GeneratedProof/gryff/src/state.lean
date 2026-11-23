@@ -181,7 +181,7 @@ noncomputable instance CommandCache_access_load_mu (l : Loc) (v : gryff.src.stat
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandCache_access_store_mu (l : Loc) (v : gryff.src.state.CommandCache) (mu' : sync.Mutex) :
+noncomputable instance CommandCache_access_store_mu (l : Loc) (v : gryff.src.state.CommandCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.state.CommandCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.state.CommandCache go!"mu" l) mu' (DFrac.own 1))

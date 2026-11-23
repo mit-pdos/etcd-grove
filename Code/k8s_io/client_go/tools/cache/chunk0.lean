@@ -16212,7 +16212,7 @@ noncomputable def typedIndexer.TypedIndex.impl [GooseExts] [GoGlobalContext] (T 
   (Let "obj" (App (Val (GoInstruction (GoAlloc T))) (Var "obj"))
   (Let "indexName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "indexName"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "indexName"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad T))) (Var "obj"))
+  (Let "$a1" (App (Val (GoInstruction (Convert T (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad T))) (Var "obj")))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType (typedIndexer.ty T)) go!"Index"))) (Var "i")) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))

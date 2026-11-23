@@ -51,7 +51,7 @@ noncomputable instance Bloomfilter_access_load_bv (l : Loc) (v : gryff.src.bloom
  by
   solve_pointsto_access_struct
 
-noncomputable instance Bloomfilter_access_store_bv (l : Loc) (v : gryff.src.bloomfilter.Bloomfilter) (bv' : gryff.src.bitvec.Bitvec) :
+noncomputable instance Bloomfilter_access_store_bv (l : Loc) (v : gryff.src.bloomfilter.Bloomfilter) (bv' : _root_.Perennial.gryff.src.bitvec.Bitvec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.bloomfilter.Bloomfilter go!"bv" l) v.bv' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.bloomfilter.Bloomfilter go!"bv" l) bv' (DFrac.own 1))

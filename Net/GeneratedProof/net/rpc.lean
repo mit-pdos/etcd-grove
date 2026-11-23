@@ -258,7 +258,7 @@ noncomputable instance Client_access_load_reqMutex (l : Loc) (v : net.rpc.Client
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_reqMutex (l : Loc) (v : net.rpc.Client) (reqMutex' : sync.Mutex) :
+noncomputable instance Client_access_store_reqMutex (l : Loc) (v : net.rpc.Client) (reqMutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.Client go!"reqMutex" l) v.reqMutex' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.Client go!"reqMutex" l) reqMutex' (DFrac.own 1))
@@ -290,7 +290,7 @@ noncomputable instance Client_access_load_mutex (l : Loc) (v : net.rpc.Client) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_mutex (l : Loc) (v : net.rpc.Client) (mutex' : sync.Mutex) :
+noncomputable instance Client_access_store_mutex (l : Loc) (v : net.rpc.Client) (mutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.Client go!"mutex" l) v.mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.Client go!"mutex" l) mutex' (DFrac.own 1))
@@ -395,7 +395,7 @@ noncomputable instance connectReader_access_load_r (l : Loc) (v : net.rpc.connec
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectReader_access_store_r (l : Loc) (v : net.rpc.connectReader) (r' : io.Reader) :
+noncomputable instance connectReader_access_store_r (l : Loc) (v : net.rpc.connectReader) (r' : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.connectReader go!"r" l) v.r' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.connectReader go!"r" l) r' (DFrac.own 1))
@@ -708,7 +708,7 @@ noncomputable instance clientCodec_access_load_rwc (l : Loc) (v : net.rpc.client
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientCodec_access_store_rwc (l : Loc) (v : net.rpc.clientCodec) (rwc' : io.ReadWriteCloser) :
+noncomputable instance clientCodec_access_store_rwc (l : Loc) (v : net.rpc.clientCodec) (rwc' : _root_.Perennial.io.ReadWriteCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.clientCodec go!"rwc" l) v.rwc' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.clientCodec go!"rwc" l) rwc' (DFrac.own 1))
@@ -767,7 +767,7 @@ noncomputable instance serverCodec_access_load_rwc (l : Loc) (v : net.rpc.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverCodec_access_store_rwc (l : Loc) (v : net.rpc.serverCodec) (rwc' : io.ReadWriteCloser) :
+noncomputable instance serverCodec_access_store_rwc (l : Loc) (v : net.rpc.serverCodec) (rwc' : _root_.Perennial.io.ReadWriteCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.serverCodec go!"rwc" l) v.rwc' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.serverCodec go!"rwc" l) rwc' (DFrac.own 1))
@@ -897,7 +897,7 @@ noncomputable instance methodType_access_load_Mutex (l : Loc) (v : net.rpc.metho
  by
   solve_pointsto_access_struct
 
-noncomputable instance methodType_access_store_Mutex (l : Loc) (v : net.rpc.methodType) (Mutex' : sync.Mutex) :
+noncomputable instance methodType_access_store_Mutex (l : Loc) (v : net.rpc.methodType) (Mutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.methodType go!"Mutex" l) v.Mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.methodType go!"Mutex" l) Mutex' (DFrac.own 1))
@@ -1139,7 +1139,7 @@ noncomputable instance Server_access_load_mapLock (l : Loc) (v : net.rpc.Server)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_mapLock (l : Loc) (v : net.rpc.Server) (mapLock' : sync.Mutex) :
+noncomputable instance Server_access_store_mapLock (l : Loc) (v : net.rpc.Server) (mapLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.Server go!"mapLock" l) v.mapLock' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.Server go!"mapLock" l) mapLock' (DFrac.own 1))
@@ -1171,7 +1171,7 @@ noncomputable instance Server_access_load_reqLock (l : Loc) (v : net.rpc.Server)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_reqLock (l : Loc) (v : net.rpc.Server) (reqLock' : sync.Mutex) :
+noncomputable instance Server_access_store_reqLock (l : Loc) (v : net.rpc.Server) (reqLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.Server go!"reqLock" l) v.reqLock' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.Server go!"reqLock" l) reqLock' (DFrac.own 1))
@@ -1203,7 +1203,7 @@ noncomputable instance Server_access_load_respLock (l : Loc) (v : net.rpc.Server
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_respLock (l : Loc) (v : net.rpc.Server) (respLock' : sync.Mutex) :
+noncomputable instance Server_access_store_respLock (l : Loc) (v : net.rpc.Server) (respLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.rpc.Server go!"respLock" l) v.respLock' (DFrac.own 1))
       (typedPointsto (structFieldRef net.rpc.Server go!"respLock" l) respLock' (DFrac.own 1))

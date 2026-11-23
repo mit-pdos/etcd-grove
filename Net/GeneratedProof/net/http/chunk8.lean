@@ -74,7 +74,7 @@ noncomputable instance ServeMux_access_load_mu (l : Loc) (v : net.http.ServeMux)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServeMux_access_store_mu (l : Loc) (v : net.http.ServeMux) (mu' : sync.RWMutex) :
+noncomputable instance ServeMux_access_store_mu (l : Loc) (v : net.http.ServeMux) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.ServeMux go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.ServeMux go!"mu" l) mu' (DFrac.own 1))
@@ -277,7 +277,7 @@ noncomputable instance response_access_load_cancelCtx (l : Loc) (v : net.http.re
  by
   solve_pointsto_access_struct
 
-noncomputable instance response_access_store_cancelCtx (l : Loc) (v : net.http.response) (cancelCtx' : context.CancelFunc) :
+noncomputable instance response_access_store_cancelCtx (l : Loc) (v : net.http.response) (cancelCtx' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.response go!"cancelCtx" l) v.cancelCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.response go!"cancelCtx" l) cancelCtx' (DFrac.own 1))
@@ -357,7 +357,7 @@ noncomputable instance response_access_load_writeContinueMu (l : Loc) (v : net.h
  by
   solve_pointsto_access_struct
 
-noncomputable instance response_access_store_writeContinueMu (l : Loc) (v : net.http.response) (writeContinueMu' : sync.Mutex) :
+noncomputable instance response_access_store_writeContinueMu (l : Loc) (v : net.http.response) (writeContinueMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.response go!"writeContinueMu" l) v.writeContinueMu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.response go!"writeContinueMu" l) writeContinueMu' (DFrac.own 1))
@@ -373,7 +373,7 @@ noncomputable instance response_access_load_canWriteContinue (l : Loc) (v : net.
  by
   solve_pointsto_access_struct
 
-noncomputable instance response_access_store_canWriteContinue (l : Loc) (v : net.http.response) (canWriteContinue' : sync.atomic.Bool') :
+noncomputable instance response_access_store_canWriteContinue (l : Loc) (v : net.http.response) (canWriteContinue' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.response go!"canWriteContinue" l) v.canWriteContinue' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.response go!"canWriteContinue" l) canWriteContinue' (DFrac.own 1))
@@ -565,7 +565,7 @@ noncomputable instance response_access_load_handlerDone (l : Loc) (v : net.http.
  by
   solve_pointsto_access_struct
 
-noncomputable instance response_access_store_handlerDone (l : Loc) (v : net.http.response) (handlerDone' : sync.atomic.Bool') :
+noncomputable instance response_access_store_handlerDone (l : Loc) (v : net.http.response) (handlerDone' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.response go!"handlerDone" l) v.handlerDone' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.response go!"handlerDone" l) handlerDone' (DFrac.own 1))
@@ -629,7 +629,7 @@ noncomputable instance response_access_load_lazyCloseNotifyMu (l : Loc) (v : net
  by
   solve_pointsto_access_struct
 
-noncomputable instance response_access_store_lazyCloseNotifyMu (l : Loc) (v : net.http.response) (lazyCloseNotifyMu' : sync.Mutex) :
+noncomputable instance response_access_store_lazyCloseNotifyMu (l : Loc) (v : net.http.response) (lazyCloseNotifyMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.response go!"lazyCloseNotifyMu" l) v.lazyCloseNotifyMu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.response go!"lazyCloseNotifyMu" l) lazyCloseNotifyMu' (DFrac.own 1))
@@ -773,7 +773,7 @@ noncomputable instance wantConn_access_load_mu (l : Loc) (v : net.http.wantConn)
  by
   solve_pointsto_access_struct
 
-noncomputable instance wantConn_access_store_mu (l : Loc) (v : net.http.wantConn) (mu' : sync.Mutex) :
+noncomputable instance wantConn_access_store_mu (l : Loc) (v : net.http.wantConn) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.wantConn go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.wantConn go!"mu" l) mu' (DFrac.own 1))
@@ -789,7 +789,7 @@ noncomputable instance wantConn_access_load_ctx (l : Loc) (v : net.http.wantConn
  by
   solve_pointsto_access_struct
 
-noncomputable instance wantConn_access_store_ctx (l : Loc) (v : net.http.wantConn) (ctx' : context.Context) :
+noncomputable instance wantConn_access_store_ctx (l : Loc) (v : net.http.wantConn) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.wantConn go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.wantConn go!"ctx" l) ctx' (DFrac.own 1))
@@ -805,7 +805,7 @@ noncomputable instance wantConn_access_load_cancelCtx (l : Loc) (v : net.http.wa
  by
   solve_pointsto_access_struct
 
-noncomputable instance wantConn_access_store_cancelCtx (l : Loc) (v : net.http.wantConn) (cancelCtx' : context.CancelFunc) :
+noncomputable instance wantConn_access_store_cancelCtx (l : Loc) (v : net.http.wantConn) (cancelCtx' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.wantConn go!"cancelCtx" l) v.cancelCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.wantConn go!"cancelCtx" l) cancelCtx' (DFrac.own 1))

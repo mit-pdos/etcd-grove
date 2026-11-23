@@ -156,7 +156,7 @@ noncomputable instance RMWInfo_access_load_key (l : Loc) (v : gryff.src.gryff.RM
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMWInfo_access_store_key (l : Loc) (v : gryff.src.gryff.RMWInfo) (key' : gryff.src.state.Key) :
+noncomputable instance RMWInfo_access_store_key (l : Loc) (v : gryff.src.gryff.RMWInfo) (key' : _root_.Perennial.gryff.src.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"key" l) v.key' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"key" l) key' (DFrac.own 1))
@@ -172,7 +172,7 @@ noncomputable instance RMWInfo_access_load_oldValue (l : Loc) (v : gryff.src.gry
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMWInfo_access_store_oldValue (l : Loc) (v : gryff.src.gryff.RMWInfo) (oldValue' : gryff.src.state.Value) :
+noncomputable instance RMWInfo_access_store_oldValue (l : Loc) (v : gryff.src.gryff.RMWInfo) (oldValue' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"oldValue" l) v.oldValue' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"oldValue" l) oldValue' (DFrac.own 1))
@@ -188,7 +188,7 @@ noncomputable instance RMWInfo_access_load_newValue (l : Loc) (v : gryff.src.gry
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMWInfo_access_store_newValue (l : Loc) (v : gryff.src.gryff.RMWInfo) (newValue' : gryff.src.state.Value) :
+noncomputable instance RMWInfo_access_store_newValue (l : Loc) (v : gryff.src.gryff.RMWInfo) (newValue' : _root_.Perennial.gryff.src.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"newValue" l) v.newValue' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"newValue" l) newValue' (DFrac.own 1))
@@ -348,7 +348,7 @@ noncomputable instance RMWInfo_access_load_proposedProp (l : Loc) (v : gryff.src
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMWInfo_access_store_proposedProp (l : Loc) (v : gryff.src.gryff.RMWInfo) (proposedProp' : gryff.src.gryffproto.Proposal) :
+noncomputable instance RMWInfo_access_store_proposedProp (l : Loc) (v : gryff.src.gryff.RMWInfo) (proposedProp' : _root_.Perennial.gryff.src.gryffproto.Proposal) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"proposedProp" l) v.proposedProp' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"proposedProp" l) proposedProp' (DFrac.own 1))
@@ -364,7 +364,7 @@ noncomputable instance RMWInfo_access_load_acceptedProposal (l : Loc) (v : gryff
  by
   solve_pointsto_access_struct
 
-noncomputable instance RMWInfo_access_store_acceptedProposal (l : Loc) (v : gryff.src.gryff.RMWInfo) (acceptedProposal' : gryff.src.gryffproto.Proposal) :
+noncomputable instance RMWInfo_access_store_acceptedProposal (l : Loc) (v : gryff.src.gryff.RMWInfo) (acceptedProposal' : _root_.Perennial.gryff.src.gryffproto.Proposal) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"acceptedProposal" l) v.acceptedProposal' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.src.gryff.RMWInfo go!"acceptedProposal" l) acceptedProposal' (DFrac.own 1))
