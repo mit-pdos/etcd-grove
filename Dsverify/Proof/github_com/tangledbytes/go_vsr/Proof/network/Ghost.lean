@@ -16,6 +16,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
 public import Dsverify.Spec.log.slog.Logger
+public import Net.Proof.net.Errors
 
 @[expose] public section
 
@@ -312,7 +313,7 @@ arbitrary string, `AnyString`; its value is a pointer). -/
 theorem network.opErr_errOrNil (op : GoString) (src addr e err : GoInterface) :
     net.opErr op src addr e err ⊢ bufio.errOrNil (GF := GF) err := by
   unfold net.opErr bufio.errOrNil
-  iintro ⟨%pe, %nw, %he, -⟩
+  iintro ⟨%pe, %nw, %he, #Hpe⟩
   obtain ⟨he, -⟩ := he
   subst he
   iright
@@ -325,17 +326,10 @@ theorem network.opErr_errOrNil (op : GoString) (src addr e err : GoInterface) :
     · ipureintro; go_type_set
     imodintro
     iintro %Φ HΦ
-    wp_method_call
-    wp_call
-    unfold net.OpError.Error.impl
-    wp_auto
-    wp_bind (ExternalOp _ _ _)
-    iapply wp_net_AnyString
-    iintro %str
-    wp_auto
-    wp_if_destruct
-    · iapply HΦ
-    · iapply HΦ
+    iapply net.wp_OpError_Error $$ Hpe
+    inext
+    iintro %msg -
+    iapply HΦ
   · ipureintro
     intro e' h T hT
     simp [interface.mkOk] at h
