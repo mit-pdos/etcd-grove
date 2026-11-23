@@ -32,7 +32,7 @@ on `J`'s name `.touch`, which holds nothing. Go: `Exist(d)` (`Stat`, which may f
 `true`, `CheckDirPermission` (a warning only) and `syncDir` of `d`'s parent (above the roots when `d` is a
 root: `osAboveInv`); if `false`, the climb collecting the directories `Exist` misses (past the root,
 `Stat` above it), `MkdirAll(d)` (nothing changes: `d` exists) and `syncDir` of each one's parent; then
-the probe `d/.touch` (`IsDirWriteable`). The post is `IsDirWriteable`'s: `.touch` holds nothing on
+the probe `d/.touch` (`IsDirWriteable`). The post is `IsDirWriteable`'s (an error one `fmt` formats, `fmtErrorOkOrNil`): `.touch` holds nothing on
 success, and nothing or the probe file (given back whole) on an error. No durability is claimed (`d`'s
 entry is not new). -/
 abbrev fileutil.TouchDirAll.specExisting : Prop :=
@@ -42,7 +42,7 @@ abbrev fileutil.TouchDirAll.specExisting : Prop :=
       zapLoggerOk (GF := GF) lg ∗ osInv ∗ osSharedInv R ∗ osAboveInv ∗ osPathS R d dq J ∗
       osCallPerm (callKey R d) qc ∗ osNames J (.only [go!".touch"]) (DFrac.own 1) hJ }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll)) (Val #lg)) (Val #d))
-  {{ (err : GoInterface), RET #err; osPathS R d dq J ∗ osCallPerm (callKey R d) qc ∗
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ osPathS R d dq J ∗ osCallPerm (callKey R d) qc ∗
       ∃ hJ', osNames J (.only [go!".touch"]) (DFrac.own 1) hJ' ∗
         (⌜hJ'.cur !! go!".touch" = none⌝ ∨
           ∃ i, ⌜hJ'.cur !! go!".touch" = some (.file i)⌝ ∗ trFile i False) ∗

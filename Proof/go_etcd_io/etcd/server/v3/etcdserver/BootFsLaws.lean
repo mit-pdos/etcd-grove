@@ -56,12 +56,15 @@ theorem bootFs.touchData_law_holds
   iapply wp_fupd
   wp_apply hT lg R j cfg.DataDir' (DFrac.own 1) 1 _ (by omega) hTn $$ [Hp Hperm Ht]
   · iframe; iframe #
-  iintro %err ⟨Hp, Hperm, %hT', HT, Hd, %hTn'⟩
+  iintro %err ⟨#Hfe, Hp, Hperm, %hT', HT, Hd, %hTn'⟩
   cases err with
   | ok e =>
     imodintro
     iapply HΦ
-    ileft; ipureintro; intro hc; cases hc
+    ileft
+    isplitr
+    · ipureintro; intro hc; cases hc
+    iapply fmtErrorOkOrNil_ne _ (by intro hc; cases hc) $$ Hfe
   | nil =>
     have hTn' := hTn' rfl
     iclear Hd

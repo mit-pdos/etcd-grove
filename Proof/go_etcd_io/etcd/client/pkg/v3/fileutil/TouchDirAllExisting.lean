@@ -165,12 +165,14 @@ theorem fileutil.TouchDirAll.wp_proofExisting
     try wp_auto
     rw [show (os.MkdirAll : GoString) = go!"os.MkdirAll" from rfl]
     wp_apply os.MkdirAll.wp_spineS (joinPath [] rcs) j0 _ R dq qc hR hm cs J hcs $$ [Hs Hperm]
-      as %err ⟨Hs, Hperm⟩
+      as %err ⟨Hs, Hperm, #Hfe⟩
     · iframe; isplitl [] <;> iassumption
     cases err with
     | ok e =>
       wp_auto
       iapply HΦ
+      isplitr
+      · iexact Hfe
       ihave Hperm := osCallPerm_congr _ hkey.symm $$ Hperm
       ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs dq J hR hm hcs).2 $$ Hs
       iframe
@@ -209,7 +211,7 @@ theorem fileutil.TouchDirAll.wp_proofExisting
       have hk' : j + sint.nat i - 1 ≤ (rcs ++ cs).length := by subst hfull; omega
       rw [hfull]
       wp_apply wp_syncDirAnc hSync hSyncAbove R rcs cs j0 J dq qc hJ.next (j + sint.nat i - 1)
-        hR hm hrcs hcs hk' $$ [Hs Hperm] as %e ⟨Hs, Hperm, -⟩
+        hR hm hrcs hcs hk' $$ [Hs Hperm] as %e ⟨#Hfe, Hs, Hperm, -⟩
       · iframe; iframe #
       rw [← hfull]
       cases e with
@@ -217,6 +219,8 @@ theorem fileutil.TouchDirAll.wp_proofExisting
         wp_auto
         wp_for_post
         iapply HΦ
+        isplitr
+        · iexact Hfe
         ihave Hperm := osCallPerm_congr _ hkey.symm $$ Hperm
         ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs dq J hR hm hcs).2 $$ Hs
         iframe
@@ -275,7 +279,7 @@ theorem fileutil.TouchDirAll.wp_proofExisting
     ihave Hperm := osCallPerm_congr _ hkey $$ Hperm
     subst hfull
     wp_apply wp_syncDirAnc hSync hSyncAbove R rcs cs j0 J dq qc hJ.next ((rcs ++ cs).length - 1)
-      hR hm hrcs hcs (by omega) $$ [Hs Hperm] as %e ⟨Hs, Hperm, -⟩
+      hR hm hrcs hcs (by omega) $$ [Hs Hperm] as %e ⟨#Hfe, Hs, Hperm, -⟩
     · iframe; iframe #
     ihave Hperm := osCallPerm_congr _ hkey.symm $$ Hperm
     ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs dq J hR hm hcs).2 $$ Hs
@@ -283,6 +287,8 @@ theorem fileutil.TouchDirAll.wp_proofExisting
     | ok e =>
       wp_auto
       iapply HΦ
+      isplitr
+      · iexact Hfe
       iframe
       isplitl []
       · ileft; ipureintro; exact htouch

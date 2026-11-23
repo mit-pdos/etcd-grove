@@ -158,7 +158,8 @@ abbrev bootFs.touchData.law : Prop :=
       wal.bootRes cfg }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll)) (Val #lg))
       (Val #cfg.DataDir'))
-  {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ wal.bootRes cfg }}
+  {{ (err : GoInterface), RET #err;
+      ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∨ ⌜err = interface.nil⌝ ∗ wal.bootRes cfg }}
 
 /-- **`TouchDirAll(lg, cfg.MemberDir())` on the start** (`bootstrap.go:68`; a law, see the file
 header): an error, or the member state. True of Go: `member` is absent in the fresh data directory, so
@@ -170,7 +171,7 @@ abbrev bootFs.touchMember.law : Prop :=
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll)) (Val #lg))
       (Val #(path.joinModel [cfg.DataDir', go!"member"])))
   {{ (err : GoInterface), RET #err;
-      ⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ bootFs.memberDir cfg }}
+      ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∨ ⌜err = interface.nil⌝ ∗ bootFs.memberDir cfg }}
 
 /-- **`wal.Exist(cfg.WALDir())` of the fresh WAL area answers `false`** (`bootstrap.go:77`; a law, see
 the file header). True of Go: the area holds no WAL directory (`walAbsent`), so `fileutil.ReadDir`

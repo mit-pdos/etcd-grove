@@ -3,11 +3,6 @@ Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean`: `bootstrap(
 start (`bootstrap.go:53-130` at the etcd pin `edc800c6f`), straight-line over its callees' specs and
 the laws of `BootParts.lean`. Lean-first; claim #34, stage 3 (2026-11-23),
 `notes/bootstrap-proof-plan.md` §7.3.
-
-**TEMPORARY gaps** (section `gaps`, hypotheses of `bootstrap.wp_proof` until fixed where they
-belong): `bootFs.touchData.lawE`/`bootFs.touchMember.lawE` (the
-committed laws with `fmtErrorOk err` on their error disjunct, which `fmt.Errorf("...: %w", terr)`
-needs), in place of `bootFs.touchData.law`/`bootFs.touchMember.law`.
 -/
 module
 
@@ -51,33 +46,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **TEMPORARY (a gap): `bootFs.touchData.law` with the error's `fmt` facts** (`fmtErrorOk err`
-in its error disjunct), which `bootstrap`'s `fmt.Errorf("cannot access data directory: %w", terr)`
-(`bootstrap.go:65`) needs (`fmt.ErrorfWrap.spec`'s `fmtErrorOk inner`; every `Errorf` spec asks
-something of a `%w` argument). True of Go: `TouchDirAll`'s errors are `os`'s (`*fs.PathError`) or
-`fmt.Errorf`'s. The fix: the committed law's error disjunct gains `fmtErrorOk err` (and
-`fileutil.TouchDirAll.spec`'s, from which the law is to be proved). -/
-abbrev bootFs.touchData.lawE : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (lg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ zapLoggerOk lg ∗
-      wal.bootRes cfg }}
-    (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll)) (Val #lg))
-      (Val #cfg.DataDir'))
-  {{ (err : GoInterface), RET #err;
-      ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∨ ⌜err = interface.nil⌝ ∗ wal.bootRes cfg }}
-
-/-- **TEMPORARY (a gap): `bootFs.touchMember.law` with the error's `fmt` facts**, for
-`fmt.Errorf("cannot access member directory: %w", terr)` (`bootstrap.go:69`); as
-`bootFs.touchData.lawE`. -/
-abbrev bootFs.touchMember.lawE : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (lg : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ zapLoggerOk lg ∗
-      wal.bootRes cfg }}
-    (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll)) (Val #lg))
-      (Val #(path.joinModel [cfg.DataDir', go!"member"])))
-  {{ (err : GoInterface), RET #err;
-      ⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∨ ⌜err = interface.nil⌝ ∗ bootFs.memberDir cfg }}
-
 /-- A network for `bootstrapCluster`'s round tripper (any does: `rafthttp.NewRoundTripper.spec` and
 `bootstrapCluster.spec` hold of every network, and `bootstrap` sends nothing). -/
 def bootstrap.anyNet : http.HttpNet GF where
@@ -109,8 +77,8 @@ theorem bootstrap.wp_proof
     (hFin : bootstrappedCluster.Finalize.spec (GF := GF) (hG := hG))
     (hRaft : bootstrapRaft.spec (GF := GF) (hG := hG))
     (hClose : bootstrappedBackend.Close.spec (GF := GF) (hG := hG))
-    (hTouchD : bootFs.touchData.lawE (GF := GF) (hG := hG))
-    (hTouchM : bootFs.touchMember.lawE (GF := GF) (hG := hG))
+    (hTouchD : bootFs.touchData.law (GF := GF) (hG := hG))
+    (hTouchM : bootFs.touchMember.law (GF := GF) (hG := hG))
     (hExist : bootFs.walExist.law (GF := GF) (hG := hG))
     (hMemberDir : config.ServerConfig.MemberDir.spec (GF := GF) (hG := hG))
     (hWALDir : config.ServerConfig.WALDir.spec (GF := GF) (hG := hG))

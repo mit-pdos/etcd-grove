@@ -11,6 +11,7 @@ module
 
 public import Spec.os.Remove
 public import Proof.os.ErrorOk
+public import Proof.os.ErrnoPathErr
 public import Proof.os.SharedExt
 
 @[expose] public section
@@ -51,17 +52,22 @@ local macro "rmdir_loop" hnd:term " => " post:tacticSeq : tactic => `(tactic| (
   wp_auto
   rw [decide_eq_false (show e1 ≠ W64 0 from he1)]
   wp_auto
-  unfold os.model.pathError
   by_cases h20 : e1 = W64 20
   · rw [decide_eq_true h20]
     wp_auto
-    wp_apply wp_errno
+    wp_apply os.wp_pathError_errno as %err #Herr
+    ihave %hne := os.errnoPathErr_ne err _ $$ Herr
     iapply HΦ
+    isplitr
+    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
     ($post)
   · rw [decide_eq_false h20]
     wp_auto
-    wp_apply wp_errno
+    wp_apply os.wp_pathError_errno as %err #Herr
+    ihave %hne := os.errnoPathErr_ne err _ $$ Herr
     iapply HΦ
+    isplitr
+    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
     ($post)))
 
 theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) := by
@@ -118,7 +124,7 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
           iframe
           dsimp only [rmFileOut, logOut, claimOut]
           iframe
-          ipureintro; intro hc; cases hc
+          ipureintro; intro hc; exact absurd hc hne
     · -- the unlink logged
       icases (osNames_join j _ q r _ hq).2 $$ Hw with ⟨Hn, Hr'⟩
       unfold osLogged
@@ -143,6 +149,8 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
       · rw [decide_eq_true he0]
         wp_auto
         iapply HΦ
+        isplitr
+        · iapply fmtErrorOkOrNil_nil
         iframe
         dsimp only [rmFileOut, logOut, claimOut, osLogged, rmFileEnt]; iframe; iframe #
         ipureintro; exact ⟨fun _ => rfl, hs, hst⟩
