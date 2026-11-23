@@ -7,6 +7,8 @@ public import GeneratedProof.bufio
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.io
 public import Perennial.Proof.errors
+public import Perennial.Proof.bytes
+public import Perennial.Proof.strings
 
 @[expose] public section
 
