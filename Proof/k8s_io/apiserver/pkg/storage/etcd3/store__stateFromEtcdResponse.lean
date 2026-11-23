@@ -61,7 +61,7 @@ theorem store.stateFromEtcdResponse.wp_proof
   ihave #Psg : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Addr v_ptr (DFrac.own 1) v c.S.objTy p $$ [$v] as %w ⟨Hvp, %Hw⟩
+  wp_apply +noauto wp_Addr v_ptr (DFrac.own 1) v c.S.objTy p $$ [$v] as %w ⟨Hvp, %Hw⟩
   · iframe #
     ipureintro; exact Hv
   wp_apply wp_Interface w c.S.objTy p $$ []
@@ -74,7 +74,7 @@ theorem store.stateFromEtcdResponse.wp_proof
   · iframe #
     ipureintro; exact Hv
   (try wp_auto)
-  wp_apply wp_New rt c.S.objTy $$ [] as %w' %p' ⟨%Hw', Hnew⟩
+  wp_apply +noauto wp_New rt c.S.objTy $$ [] as %w' %p' ⟨%Hw', Hnew⟩
   · iframe #
     ipureintro; exact Hrt
   wp_apply wp_Interface w' c.S.objTy p' $$ []

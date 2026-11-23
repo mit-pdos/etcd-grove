@@ -243,7 +243,7 @@ theorem halfclose_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semanti
           γm) $$ [] Hgs
         iframe Hinvs Hplan
     · -- after a crash: the host is kept, the rest is persistent
-      iintro %L' _ - Hgs'
+      iintro %L' _ - Hgs' _
       imodintro
       iframe Hgs' Hplan
       iexists γm

@@ -1,7 +1,12 @@
 /-
 `c.Call(sm, args, reply)` (`client.go`; dsverify-lab's `Client.Call.spec`,
 `Harness/Proof/net/rpc/ClientDefs.lean`): `nil` after one run of the method at the server on the
-encoded arguments, with its answer `Φ rep ""` and the reply decoded into `reply` (`Θ rep true`);
+encoded arguments, with the reply `rep` decoded into `reply` (`Θ rep true`). The decoding
+obligation `□ (D -∗ ∀ rep, Φ rep "" -∗ C.dec rep reply (Θ rep))` is asked only of the replies the
+method answers with, its answer `Φ rep ""` in hand (it goes to the decoding: `Θ` keeps of it what
+the caller needs): a generated codec decodes only bytes of the reply's type (on a value of another
+listed type its `Decode` panics, `rpcNotModelled`), and it is the method's spec that says its
+replies are of that type;
 `ServerError(msg)` for a non-empty `msg` after one run, with its answer `Φ rep msg` and the
 decoding resource `D` back; or another error, which is not a `ServerError`, after at most one run
 (the deposit is lost), with `D` back or a failed decoding, or, when nothing was encoded (the
@@ -39,11 +44,11 @@ abbrev Client.Call.spec : Prop :=
     (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF),
   {{ isClient c W a ∗ ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
       codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
-      □ (D -∗ ∀ rep, C.dec rep reply (Θ rep)) }}
+      □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) }}
     (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
       (Val #sm)) (Val #args)) (Val #reply))
   {{ (err : GoInterface), RET #err;
-      (⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true) ∨
+      (⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Θ rep true) ∨
       (∃ msg : GoString, ⌜msg ≠ [] ∧ err = serverErr msg⌝ ∗ errMsg err msg ∗ Rargs ∗
         (∃ rep, Φ rep msg) ∗ D) ∨
       (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errAny err ∗
