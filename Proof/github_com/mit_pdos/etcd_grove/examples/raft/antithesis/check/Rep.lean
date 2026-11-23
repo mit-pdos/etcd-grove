@@ -235,6 +235,70 @@ def kindW : Kind → w64
 def verdictRO (r : G.Verdict) (v : Verdict) : IProp GF :=
   iprop(⌜r.Kind' = kindW v.kind ∧ sint.Z r.K' = v.k ∧ r.Err' = []⌝ ∗ strsRO r.Names' v.names)
 
+/-! ## Persistence -/
+
+instance fieldRO_persistent {α β : Type} (has bit : w32) (rep : α → β → IProp GF)
+    [∀ a b, Persistent (rep a b)] (g : α) (o : Option β) : Persistent (fieldRO has bit rep g o) := by
+  cases o <;> unfold fieldRO <;> infer_instance
+
+instance strsRO_persistent (sl : GoSlice) (xs : List Str) : Persistent (strsRO (GF := GF) sl xs) := by
+  unfold strsRO; infer_instance
+
+instance valueRO_persistent (v : G.Value) (w : Value) : Persistent (valueRO (GF := GF) v w) := by
+  unfold valueRO; infer_instance
+
+instance entryRO_persistent (e : G.Entry) (x : Entry) : Persistent (entryRO (GF := GF) e x) := by
+  unfold entryRO; infer_instance
+
+instance logRO_persistent (sl : GoSlice) (l : List Entry) : Persistent (logRO (GF := GF) sl l) := by
+  unfold logRO; infer_instance
+
+instance msgRO_persistent (g : G.Msg) (m : Msg) : Persistent (msgRO (GF := GF) g m) := by
+  unfold msgRO; infer_instance
+
+instance msgsRO_persistent (sl : GoSlice) (ms : List Msg) : Persistent (msgsRO (GF := GF) sl ms) := by
+  unfold msgsRO; infer_instance
+
+instance eventRO_persistent (p : Loc) (ev : Event) : Persistent (eventRO (GF := GF) p ev) := by
+  unfold eventRO; infer_instance
+
+instance eventsRO_persistent (sl : GoSlice) (evs : List Event) : Persistent (eventsRO (GF := GF) sl evs) := by
+  unfold eventsRO; infer_instance
+
+instance configRO_persistent (p : Loc) (cfg : Config) : Persistent (configRO (GF := GF) p cfg) := by
+  unfold configRO; infer_instance
+
+instance verdictRO_persistent (r : G.Verdict) (v : Verdict) : Persistent (verdictRO (GF := GF) r v) := by
+  unfold verdictRO; infer_instance
+
+/-! ## Sub-slices -/
+
+/-- A big separating conjunction over two lists of the same length holds over their sublists
+`[lo, hi)` (a copy of tracecheck's `Etcdraft.bigSepL2_subslice`, a candidate for Perennial). -/
+theorem bigSepL2_subslice {A B : Type} (Φ : A → B → IProp GF) (l1 : List A) (l2 : List B)
+    (lo hi : Nat) (hlen : l1.length = l2.length) :
+    ([∗list] x;y ∈ l1;l2, Φ x y) ⊢ [∗list] x;y ∈ subslice lo hi l1;subslice lo hi l2, Φ x y := by
+  conv => lhs; rw [← List.take_append_drop hi l1, ← List.take_append_drop hi l2]
+  refine (BigSepL2.bigSepL2_append (Or.inl (by simp [hlen]))).1.trans (sep_elim_left.trans ?_)
+  unfold subslice
+  conv => lhs; rw [← List.take_append_drop lo (l1.take hi), ← List.take_append_drop lo (l2.take hi)]
+  exact (BigSepL2.bigSepL2_append (Or.inl (by simp [hlen]))).1.trans sep_elim_right
+
+/-- A log's sub-slice `sl[lo:hi]` holds the log's elements `[lo, hi)`. -/
+theorem logRO_subslice (sl : GoSlice) (l : List Entry) (lo hi : w64)
+    (hb : 0 ≤ sint.Z lo ∧ sint.Z lo ≤ sint.Z hi ∧ sint.Z hi ≤ sint.Z sl.len) :
+    logRO (GF := GF) sl l ⊢
+      logRO (slice.slice sl G.Entry lo hi) (subslice (sint.nat lo) (sint.nat hi) l) := by
+  unfold logRO
+  iintro ⟨%es, #Hes, #Hb⟩
+  ihave %Hl := BigSepL2.bigSepL2_length $$ Hb
+  icases (ownSlice_slice lo hi sl _ es hb).1 $$ Hes with ⟨-, #H2, -⟩
+  iexists (subslice (sint.nat lo) (sint.nat hi) es)
+  isplitr
+  · iexact H2
+  iapply bigSepL2_subslice (fun e x => entryRO (GF := GF) e x) es l _ _ Hl
+  iexact Hb
+
 end defs
 
 end AntCheck
