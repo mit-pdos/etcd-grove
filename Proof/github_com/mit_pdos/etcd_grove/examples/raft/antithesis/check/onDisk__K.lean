@@ -10,7 +10,6 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.StateLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.EvalLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskLaws
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Matching
 
 @[expose] public section
 

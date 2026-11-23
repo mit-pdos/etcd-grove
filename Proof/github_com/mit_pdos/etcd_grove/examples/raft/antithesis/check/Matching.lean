@@ -35,9 +35,6 @@ theorem matchStep_fold_false (a b : List Entry) (l : List Nat) : l.foldlM (match
   | nil => rfl
   | cons x xs ih => simp [List.foldlM_cons, matchStep, ih]
 
-theorem range_drop_cons (m j : Nat) (h : j < m) : (List.range m).drop j = j :: (List.range m).drop (j + 1) := by
-  rw [List.drop_eq_getElem_cons (by simpa using h)]; simp
-
 section proof
 set_option linter.unusedSimpArgs false
 variable [GooseExts] [GooseSemantics] [GooseInterp]

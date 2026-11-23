@@ -177,6 +177,9 @@ theorem sint_sub {a b : w64} (h1 : -2 ^ 63 ≤ sint.Z a - sint.Z b) (h2 : sint.Z
 theorem sint_one : sint.Z (W64 1) = 1 := rfl
 theorem sint_zero : sint.Z (W64 0) = 0 := rfl
 
+theorem range_drop_cons (m j : Nat) (h : j < m) : (List.range m).drop j = j :: (List.range m).drop (j + 1) := by
+  rw [List.drop_eq_getElem_cons (by simpa using h)]; simp
+
 end AntCheck
 end EtcdGrove
 end Perennial

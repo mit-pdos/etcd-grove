@@ -132,7 +132,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__c
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__es
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__known
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__lc1
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__ld1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__leads
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__ll1
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__ll2
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__role1
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__snapsM
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__wins
@@ -758,6 +762,30 @@ theorem AntCheck.inMem.wp_known :
     AntCheck.inMem.known.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.known.wp_proof AntCheck.inMem.wp_T AntCheck.TermInts.wp_Has AntCheck.TermInts.wp_Get
 
+theorem AntCheck.inMem.wp_wins :
+    AntCheck.inMem.wins.spec (GF := GF) (hG := hG) :=
+  AntCheck.inMem.wins.wp_proof AntCheck.inMem.wp_leads
+
+theorem AntCheck.inMem.wp_lc1 :
+    AntCheck.inMem.lc1.spec (GF := GF) (hG := hG) :=
+  AntCheck.inMem.lc1.wp_proof AntCheck.inMem.wp_wins AntCheck.inMem.wp_T AntCheck.TermConfs.wp_With
+
+theorem AntCheck.wp_leadersAdd :
+    AntCheck.leadersAdd.spec (GF := GF) (hG := hG) :=
+  AntCheck.leadersAdd.wp_proof AntCheck.wp_leadersHas
+
+theorem AntCheck.inMem.wp_ld1 :
+    AntCheck.inMem.ld1.spec (GF := GF) (hG := hG) :=
+  AntCheck.inMem.ld1.wp_proof AntCheck.inMem.wp_wins AntCheck.inMem.wp_T AntCheck.wp_leadersAdd
+
+theorem AntCheck.inMem.wp_ll1 :
+    AntCheck.inMem.ll1.spec (GF := GF) (hG := hG) :=
+  AntCheck.inMem.ll1.wp_proof AntCheck.inMem.wp_wins AntCheck.inMem.wp_T AntCheck.TermLogs.wp_With
+
+theorem AntCheck.inMem.wp_ll2 :
+    AntCheck.inMem.ll2.spec (GF := GF) (hG := hG) :=
+  AntCheck.inMem.ll2.wp_proof AntCheck.inMem.wp_app AntCheck.inMem.wp_ll1 AntCheck.inMem.wp_T AntCheck.inMem.wp_es AntCheck.TermLogs.wp_Has AntCheck.TermLogs.wp_Get AntCheck.TermLogs.wp_With AntCheck.wp_Concat
+
 theorem AntCheck.inMem.wp_role1 :
     AntCheck.inMem.role1.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.role1.wp_proof AntCheck.Event.wp_role
@@ -766,10 +794,6 @@ theorem AntCheck.inMem.wp_snapsM :
     AntCheck.inMem.snapsM.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.snapsM.wp_proof AntCheck.Event.wp_has
 
-theorem AntCheck.inMem.wp_wins :
-    AntCheck.inMem.wins.spec (GF := GF) (hG := hG) :=
-  AntCheck.inMem.wins.wp_proof AntCheck.inMem.wp_leads
-
 theorem AntCheck.wp_isForwarded :
     AntCheck.isForwarded.spec (GF := GF) (hG := hG) :=
   AntCheck.isForwarded.wp_proof
@@ -777,10 +801,6 @@ theorem AntCheck.wp_isForwarded :
 theorem AntCheck.wp_isUnmodelled :
     AntCheck.isUnmodelled.spec (GF := GF) (hG := hG) :=
   AntCheck.isUnmodelled.wp_proof
-
-theorem AntCheck.wp_leadersAdd :
-    AntCheck.leadersAdd.spec (GF := GF) (hG := hG) :=
-  AntCheck.leadersAdd.wp_proof AntCheck.wp_leadersHas
 
 theorem AntCheck.wp_msgSeqHead :
     AntCheck.msgSeqHead.spec (GF := GF) (hG := hG) :=

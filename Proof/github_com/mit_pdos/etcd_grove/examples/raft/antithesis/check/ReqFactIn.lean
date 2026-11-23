@@ -14,7 +14,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.SubSeq
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.ToAppendFact
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.StateLaws
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Init0
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Init0Laws
 
 @[expose] public section
 

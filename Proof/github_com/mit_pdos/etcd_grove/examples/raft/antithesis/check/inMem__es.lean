@@ -6,7 +6,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem__es
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event__has
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event__entries
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Init0
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Init0Laws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.StateLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.EvalLaws
 

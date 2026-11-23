@@ -164,6 +164,10 @@ inMem__es: Event__has Event__entries
 inMem__known: inMem__T TermInts__Has TermInts__Get
 inMem__wins: inMem__leads
 inMem__app: inMem__leads inMem__es
+inMem__ld1: inMem__wins inMem__T leadersAdd
+inMem__ll1: inMem__wins inMem__T TermLogs__With
+inMem__lc1: inMem__wins inMem__T TermConfs__With
+inMem__ll2: inMem__app inMem__ll1 inMem__T inMem__es TermLogs__Has TermLogs__Get TermLogs__With Concat
 
 # W4a (onDisk's methods)
 onDisk__w:
