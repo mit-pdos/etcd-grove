@@ -282,12 +282,32 @@ instance KVState.countable : Pos.Countable KVState :=
   .ofInjective (fun σ => Pos.Countable.encode (σ.compacted, σ.base, σ.changes, σ.leases))
     (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
+end kvGhost
+
+section kvGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's KV is at the state `σ`** (2026-10-15, unit T2), exclusively: half of the state's
 ghost variable (the KV invariant holds the other). -/
 def etcdKV (γk : KVNames) (σ : KVState) : IProp GF := ghostVar γk.st (1 : Qp).half σ
 
 instance etcdKV_timeless (γk : KVNames) (σ : KVState) : Timeless (etcdKV (GF := GF) γk σ) := by
   unfold etcdKV; infer_instance
+
+end kvGhostHF
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The KV model of the committed log `L`** (the fold of `kvEntry` from the start state). -/
 def kvModel (γk : KVNames) (L : List EntryModel) : mvcc.Log := kvRaftOf γk.c0 γk.ch0 γk.log0 L
@@ -845,6 +865,16 @@ theorem kvInv_congr (γs : ServerRaftNames) (γk γk' : KVNames)
     cmpEntryOk kvModel kvStQ KVNames.lg kvLogSmall
   rw [propext h13, h1, h2, h3, h4, h6, h7, h8, h9, h10, h11, h12]
 
+end kvGhost
+
+section kvGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A client's persistent atomic update of the KV by `f`** (2026-10-15, unit T2): `□ Q` of the
 state it linearized at. Persistent: a write's may be applied more than once (the client's retry
 interceptor, raft's duplicates), a read's is fired at every committed log from its deposit.
@@ -886,6 +916,16 @@ and the state's revision room, as `kvAu1`. -/
 def kvAu1G (γk : KVNames) (f : KVState → KVState) (G Q : KVState → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
           <{ etcdKV γk (f σ) ∗ ⌜kvRoom σ⌝ ∗ G σ, COMM Q σ }>)
+
+end kvGhostHF
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 open Iris.ProofMode in
 /-- An atomic update whose committer supplies more (`β' ⊢ β`) (a fact of Iris's atomic updates;
@@ -977,6 +1017,16 @@ theorem kvRes_take (γc : GName) (Q : KVState → IProp GF) (σ : KVState) (E : 
     have h := DFrac.valid_own_op Hv.1
     exact absurd h (by decide)
 
+end kvGhost
+
+section kvGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A client's read update**: the state unchanged. -/
 def kvReadAu (γk : KVNames) (Q : KVState → IProp GF) : IProp GF :=
   kvAu γk (fun σ => σ) Q
@@ -984,6 +1034,16 @@ def kvReadAu (γk : KVNames) (Q : KVState → IProp GF) : IProp GF :=
 instance kvReadAu_persistent (γk : KVNames) (Q : KVState → IProp GF) :
     Persistent (kvReadAu (GF := GF) γk Q) := by
   unfold kvReadAu; infer_instance
+
+end kvGhostHF
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-! ### The KV logs' certificates (mvcc's `certOk`)
 
@@ -1179,6 +1239,16 @@ def reqPropOkW (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → I
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
 
+end kvGhost
+
+section kvGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's KV `γk` has reached revision `r`** (persistent; the client's `kv.Compact`, 2026-10-31,
 in place of M2's `cmpReach`): the cluster's requested raft log has a prefix whose KV model is
 longer than `r`, so every entry requested later is applied after revision `r` exists. One for the
@@ -1197,6 +1267,16 @@ instance kvRevLbZ_persistent (γk : KVNames) (n : Int) : Persistent (kvRevLbZ (G
 omit raftAsm in
 instance kvRevLbZ_timeless (γk : KVNames) (n : Int) : Timeless (kvRevLbZ (GF := GF) γk n) := by
   unfold kvRevLbZ; infer_instance
+
+end kvGhostHF
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 omit raftAsm in
 /-- A revision below a reached one is reached. -/
@@ -1248,6 +1328,16 @@ theorem kvRevLbZ_same (γk γk' : KVNames) (h : kvSame γk γk') (n : Int) :
   unfold kvRevLbZ kvModel
   rw [h2, h3, h4, h5]
 
+end kvGhost
+
+section kvGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- `kvRevLbZ` at a `w64` revision. -/
 def kvRevLb (γk : KVNames) (r : w64) : IProp GF := kvRevLbZ γk (sint.Z r)
 
@@ -1267,6 +1357,16 @@ server's chain permit `E.Cp` is, `srvKVInvs`/`srvKVInvsOn`; `KVStoreApi`'s `crev
 def kvCpOk (γk : KVNames) (c : Int) : IProp GF :=
   iprop((⌜c = -1⌝ ∨ kvCmpPermit γk c) ∗ ⌜γk.cmp = false → c = -1⌝)
 
+end kvGhostHF
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- A permit at a positive revision below a permitted one (#7-cmp's Freeze: the restored finished
 record's, below the scheduled one's). -/
 theorem kvCmpPermit_le (γk : KVNames) (c c' : Int) (h0 : 0 < c) (h : c ≤ c') :
@@ -1280,6 +1380,16 @@ theorem kvCmpPermit_le (γk : KVNames) (c c' : Int) (h0 : 0 < c) (h : c ≤ c') 
   iapply kvRevLbZ_mono γk (c + γk.cret) (c' + γk.cret) (by omega)
   iexact H
 
+end kvGhost
+
+section kvGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 omit raftAsm in
 instance kvCmpPermit_persistent (γk : KVNames) (c : Int) :
     Persistent (kvCmpPermit (GF := GF) γk c) := by
@@ -1289,6 +1399,16 @@ omit raftAsm in
 instance kvCmpPermit_timeless (γk : KVNames) (c : Int) :
     Timeless (kvCmpPermit (GF := GF) γk c) := by
   unfold kvCmpPermit; infer_instance
+
+end kvGhostHF
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 omit raftAsm in
 /-- The same cluster's KV names have one compaction permit (C3's watch side). -/
@@ -1562,6 +1682,16 @@ instance kvBatch_persistent (γr : ReadNames) (c ai : w64) (A ms : List EntryMod
     Persistent (kvBatch (GF := GF) γr c ai A ms) := by
   unfold kvBatch; infer_instance
 
+end readGhost
+
+section readGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- The applied index is at least `i` (persistent). -/
 def appliedAtLeast (γr : ReadNames) (i : w64) : IProp GF := monoNatLbOwn γr.applied (uint.nat i)
 
@@ -1595,6 +1725,16 @@ instance appliedLogAt_persistent (γr : ReadNames) (i : w64) (L : mvcc.Log) :
 instance appliedLogAt_timeless (γr : ReadNames) (i : w64) (L : mvcc.Log) :
     Timeless (appliedLogAt (GF := GF) γr i L) := by
   unfold appliedLogAt; infer_instance
+
+end readGhostHF
+
+section readGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- mvcc's certificate is timeless (ghost lower bounds and a pure fact). -/
 instance idxCert_timeless_req (γ : mvcc.IdxNames) (log : mvcc.Log) :
@@ -1657,6 +1797,16 @@ instance batchCommittedIdx_persistent (γr : ReadNames) (ms : List EntryModel) :
     Persistent (batchCommittedIdx (GF := GF) γr ms) := by
   unfold batchCommittedIdx; infer_instance
 
+end readGhost
+
+section readGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The applied logs grow with the index** (persistent; 2026-10-14, unit C2a): two logs applied
 through two indices are in the indices' order as prefixes. A capability: the applied index's
 invariant (`srvAppliedInv`, `appliedMono_of_inv`) keeps the applied logs in prefix order. -/
@@ -1684,6 +1834,16 @@ committed index `c` the caller knew of. -/
 def readIndexOk (γr : ReadNames) (c : w64) : IProp GF :=
   iprop(∃ ci₀ : w64, ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedAtLeast γr ci₀)
 
+end readGhostHF
+
+section readGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- **A served read** (persistent; 2026-10-14, unit T1): the client registered at `g` is in the
 frozen list `gs` of a read round whose read index `ci` (at least the client's bound `c`) the
 applied index has reached, and raft's witness of the round's update at `ci` (`srvReadWit`: the
@@ -1697,9 +1857,29 @@ instance readServed_persistent (γr : ReadNames) (c : w64) (g : GName) :
     Persistent (readServed (GF := GF) γr c g) := by
   unfold readServed; infer_instance
 
+end readGhost
+
+section readGhostHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 instance readIndexOk_persistent (γr : ReadNames) (c : w64) :
     Persistent (readIndexOk (GF := GF) γr c) := by
   unfold readIndexOk; infer_instance
+
+end readGhostHF
+
+section readGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 end readGhost
 
@@ -1734,9 +1914,29 @@ abbrev ReqNames.ids (ρ : ReqNames) : IdNames := ρ.rd.kv.ids
 
 /-! ### The revisions' tokens (the vertical slice's unit V1) -/
 
+end wait
+
+section waitHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The token of revision `r`** (the server's `etcdRevToken`, `v3rpc.etcdModelOfServer`):
 the exclusive element `r ↪[E.γrev] ()` of the ghost map of revisions the apply thread minted. -/
 def revTok (E : apply.AEnv GF) (r : w64) : IProp GF := r ↪[E.γrev] ()
+
+end waitHF
+
+section wait
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **Two tokens of one revision: impossible.** -/
 theorem revTok_excl (E : apply.AEnv GF) (r : w64) : revTok E r ∗ revTok E r ⊢ False := by
@@ -1752,11 +1952,31 @@ def revAuth (E : apply.AEnv GF) (log : mvcc.Log) : IProp GF :=
   iprop(∃ m : GMap w64 Unit, ghostMapAuth E.γrev 1 m ∗
     ⌜∀ k : w64, (m.lookup k).isSome → uint.nat k < log.length⌝)
 
+end wait
+
+section waitHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **What a step of the KV's log minted**: nothing (the log unchanged), or the token of the
 revision it appended (`log.length`, the new log's last). -/
 def revMinted (E : apply.AEnv GF) (log log' : mvcc.Log) : IProp GF :=
   iprop(⌜log' = log⌝ ∨
     ∃ cs : List mvcc.Change, ⌜log' = log ++ [cs]⌝ ∗ revTok E (W64 (log.length : Int)))
+
+end waitHF
+
+section wait
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- A certified log has fewer than `2 ^ 63` revisions. -/
 theorem idxCert_len (γ : mvcc.IdxNames) (log : mvcc.Log) :

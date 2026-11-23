@@ -207,7 +207,7 @@ theorem Main.wp_proof
       (fun m => iprop(∃ i : Nat, lease.leaseGrantedAt (mvcc.api.mvccLeases E.γ) i m.id)) gctx gcd) as %gr %gerr Hgr
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseGrantSpec
+    iunfold etcdLeaseGrantSpec, etcdLeaseGrantSpecW
     iintro %m - - Hgi
     iexact Hgi
   -- `gcancel()`
@@ -234,7 +234,7 @@ theorem Main.wp_proof
       (fun m => iprop(⌜mg.id ∈ m.ids⌝)) lctx lcd) as %lsr %lerr Hls
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseLeasesSpec
+    iunfold etcdLeaseLeasesSpec, etcdLeaseLeasesSpecW
     iexists [mg.id]
     isplitl
     · iapply BigSepL.bigSepL_cons.2
