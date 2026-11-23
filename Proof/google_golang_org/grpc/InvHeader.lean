@@ -25,8 +25,9 @@ grpc lower-cases the keys, so a lower-case key is the one sent) and that meets `
 **The context's outgoing metadata** (`outRawIs ctx o`): what grpc's transport reads of the context
 (`metadataFromOutgoingContextRaw`: the `rawMD` at `mdOutgoingKey{}`), its map's values and its
 `added` rows, read-only, with the rows' keys lower case (`AppendToOutgoingContext` lower-cases them).
-Relating it to `metadata.outMD ctx md` needs a law of the trusted opaque `metadata.builtRawMDRaw`, which
-has none: left for the user (§0a, "Built in the session's sixth part").
+`outRawIs_of_outMD` relates it to `metadata.outMD ctx md` (2026-11-23: `metadata.builtRawMDRaw`, until then a
+trusted opaque with no law, is defined by the `rawMD`'s contents): the transport reads raw contents whose
+merged view (`outViewOf`) is `md`.
 
 `grpc.outRawFn.law`: grpc's package variable `metadataFromOutgoingContextRaw` holds `metadata`'s
 `fromOutgoingContextRaw` (true after grpc's initializer: `Init.lean`; to be added to `grpcInit`).
@@ -36,6 +37,7 @@ module
 public import Proof.google_golang_org.grpc.HeaderFields
 public import Proof.google_golang_org.grpc.InvGrpc
 public import Proof.context.LibKeys
+public import Proof.context.LibKeysChain
 public import Proof.strings.Lower
 
 @[expose] public section
@@ -242,6 +244,51 @@ instance outRawIs_persistent (ctx : GoInterfaceOk)
   unfold outRawIs; cases o with
   | none => infer_instance
   | some p => obtain ⟨M, rows⟩ := p; dsimp only; infer_instance
+
+/-- The outgoing metadata of the raw contents `o` (`FromOutgoingContext`'s view). -/
+def outViewOf (o : Option (GMap GoString (List GoString) × List (List GoString))) :
+    Option (GoString → Option (List GoString)) :=
+  o.map fun p => metadata.rawView p.1 p.2
+
+/-- **A context's outgoing metadata, as the transport reads it** (since `builtRawMDRaw` is a definition,
+2026-11-23): of a context whose outgoing metadata is `md` (`metadata.outMD`), the transport reads raw
+contents `o` (`outRawIs`) whose view is `md`. -/
+theorem outRawIs_of_outMD [_root_.Perennial.context.Assumptions] (ctx : GoInterfaceOk)
+    (md : Option (GoString → Option (List GoString))) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗ metadata.outMD ctx md ⊢
+      ∃ o, outRawIs ctx o ∗ ⌜md = outViewOf o⌝ := by
+  iintro ⟨#Hpkg, #H⟩
+  unfold metadata.outMD
+  icases H with ⟨%v, #Hv, #Hh⟩
+  ihave #Hva := context.valueAt_of_ctxValue ctx metadata.mdOutgoingKeyAny (· = v) $$ [Hpkg Hv]
+  · iframe #
+  unfold metadata.outgoingHeld
+  icases Hh with (%hn | ⟨%f, %hf, #Hb⟩)
+  · obtain ⟨hmd, hty⟩ := hn
+    iexists none
+    isplitl []
+    · unfold outRawIs
+      iexists v
+      iframe Hva
+      ipureintro; exact hty
+    · ipureintro; simp [hmd, outViewOf]
+  · unfold metadata.builtRawMDRaw
+    icases Hb with ⟨%M, %rows, #Hr, %hv⟩
+    iexists (some (M, rows))
+    isplitl []
+    · unfold outRawIs
+      iexists v
+      iframe Hva
+      unfold metadata.rawMDAt
+      icases Hr with ⟨%r, %ms, %rsl, %hvr, #Hm, %hk, #Hms, #Ha, %hl, #Hrs, %hok⟩
+      imodintro
+      iexists r, ms, rsl
+      iframe #
+      ipureintro
+      refine ⟨hvr, hk, hl, ?_⟩
+      intro row hrow i hi he
+      exact (hok.2 row hrow).2 i hi he
+    · ipureintro; simp [hf, hv, outViewOf]
 
 /-- **grpc's `metadataFromOutgoingContextRaw` holds `metadata.fromOutgoingContextRaw`** (a law, taken
 by `createHeaderFields`' proof; true after grpc's initializer, `Init.lean`). -/
