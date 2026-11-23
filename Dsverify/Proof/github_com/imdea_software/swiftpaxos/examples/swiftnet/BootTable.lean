@@ -366,7 +366,7 @@ theorem wf_github_com_emirpasic_gods_trees {G : GoString → IProp GF} (h : KitG
 
 theorem wf_encoding_json {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.encoding.json G :=
-  And.intro h.e_encoding_json True.intro
+  And.intro h.e_encoding_json ⟨wf_sync h, wf_io h, True.intro⟩
 
 theorem wf_github_com_emirpasic_gods_trees_redblacktree {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.trees.redblacktree G :=
@@ -720,7 +720,7 @@ theorem wfO_github_com_emirpasic_gods_trees {G : GoString → IProp GF} (h : Kit
 theorem wfO_encoding_json {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.encoding.json (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.encoding.json ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_encoding_json) True.intro
+    h.e_encoding_json) ⟨wfO_sync h S hS, wfO_io h S hS, True.intro⟩
 
 theorem wfO_github_com_emirpasic_gods_trees_redblacktree {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.trees.redblacktree (gOff S G) :=
