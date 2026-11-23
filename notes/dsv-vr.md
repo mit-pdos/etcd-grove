@@ -142,6 +142,17 @@ instance] GooseGlobalGS.gooseInvGS` a lemma's fupd is not eliminable by `imod` i
 semireducible instance does not unify with `goose_irisGS.invGS`): drop the attribute in files with
 such lemmas; (b) `json.NewDecoder` swallows `recvTok` (into `decOk`), so `handleConn` takes the
 connection's `connIs` before making the decoder (and `Send` before calling `f`).
+`Proof/replica/*` (`fb9c971261`, 32 files clean; `New`, `Submit` on no hypotheses; `Run` over the four
+`log.slog.Logger.*` specs, `∀ jc, network.TCP.Send.spec`, `∀ jc, events.Event.ToWriter.spec`, bundled as
+`replica.Hyps` (`Proof/replica/Hyps.lean`) for the handlers; discharge the last two from network's and
+events' Results). Note: `log.slog.NoFmtArg` (no `String()`/`Error()` method) is as faithful as the lab's
+slog model; the kit's logger is `slog.New(slog.DiscardHandler)`, which reads no argument, so a narrower
+hypothesis about that logger could replace it.
+**All package proofs are done.** Next (in progress by helper agents): the kit layer
+(`examples/vsrnet/`: `Orch`, `Client`/`Op`/`mkClient` over remote's `Check`/`ServeClient`;
+`Server`/`runReplica`), then `Mains`/`Linked`/`TopLevelRobustness` as paxos's (the statement
+`vr_remote_robust`, the start's ghost allocation and protocols, linking every Results theorem and
+leaving only library hypotheses), `etc/tcb-collections/dsv-vr.txt`.
 **Open (events' package facts):** `pkg/events/Base.lean`/`examples/vsrwire/Base.lean` still
 have the weak facts; the hub specs take `hookKnownFull`/`frameDecoderSet` as preconditions. To make
 them package facts: move `frameDecOk`, `rstream`, `hookLockInvFull`, `hookKnownFull`,
