@@ -82,9 +82,11 @@ instance doneChan_persistent (done : GoChan) : Persistent (doneChan (GF := GF) d
 /-! ## The proxy's client table -/
 
 /-- Client `c`'s entry: none, or its accepted connection (the `*net.Conn` cell `cl` holds the
-acceptor's end of a connection) and its reply channel `ch` (`repP`). -/
+acceptor's end of a connection, registered: `connIs`, what closing it needs) and its reply
+channel `ch` (`repP`). -/
 def tableEntry (γ : Names) (c : Nat) (cl : Loc) (ch : GoChan) : IProp GF :=
-  iprop(⌜cl = null⌝ ∨ ((∃ (cv : GoInterface) (cid : Nat) (a : GoString), cl ↦□ cv ∗ net.isConn cv cid true a) ∗
+  iprop(⌜cl = null⌝ ∨ ((∃ (cv : GoInterface) (cid : Nat) (a : GoString), cl ↦□ cv ∗
+      net.isConn cv cid true a ∗ connIs (Gg := hG.goose_globalGS) cid) ∗
     ∃ γch : ChanNames, isChanBag γch ch (repP γ c)))
 
 instance tableEntry_persistent (γ : Names) (c : Nat) (cl : Loc) (ch : GoChan) :
