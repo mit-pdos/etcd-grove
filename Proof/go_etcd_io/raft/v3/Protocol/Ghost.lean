@@ -1184,7 +1184,7 @@ joint configuration (raft.go:742-763, `confChangeToMsg(nil)`), an empty `ConfCha
 client proposed and so carries no ticket; a client's empty proposal, normal or `ConfChangeV2`, is
 one too. Every other entry is a tracked proposal (`propDataIs`). (From 2026-10-27 to stage U5 an
 empty `ConfChangeV2` was a tracked proposal, while `raft.appliedTo`'s premise kept the automatic
-leave from being appended; its decoding is now the trust-base fact `ccDecodeV2_nil`.) -/
+leave from being appended; its decoding is now `ccDecodeV2_nil`.) -/
 def Filler (ty : w32) (d : List w8) : Prop := d = [] ∧ (ty = W32 0 ∨ ty = W32 2)
 
 instance (ty : w32) (d : List w8) : Decidable (Filler ty d) := by unfold Filler; infer_instance

@@ -67,7 +67,6 @@ axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
-axiom ccDecodeV2_nil
 axiom cmp.Diff.wp_proof_eventRefs
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
@@ -80,7 +79,6 @@ axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof

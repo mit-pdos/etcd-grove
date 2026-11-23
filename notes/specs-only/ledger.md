@@ -25,6 +25,30 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `addFeatureGateMetrics.spec` -- `isFeatureGate` does not give what the body needs (featuregate-2, claim #36)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean`, `addFeatureGateMetrics.spec`
+  (the premise `isFeatureGate fg`, `Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`); the plan's
+  `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean` (over `Features.serverGate`).
+- **Defect.** Unprovable over the real body (`server.go:2496-2506`) as stated. `isFeatureGate fg` is only a
+  contract on `Enabled(f)` for `f ∈ serverFeatures`. The body calls `fg.(MutableFeatureGate).GetAll()`, which
+  loads `f.known`: the premise owns nothing of the gate's fields, so the load cannot be stepped (and in the
+  logic a `*featureGate` whose `enabled` holds the server's features but whose `known` is empty meets the
+  premise, and `GetAll`'s type assertion of `nil` panics). And `GetAll` returns `known`, which holds
+  `featuregate`'s own `AllAlpha` and `AllBeta` (`defaultFeatures`, cloned by `New`), not in `serverFeatures`:
+  the loop's `fg.Enabled("AllAlpha")` is outside the contract.
+- **Evidence.** The body read against the predicate; no proof attempted (the gate's provider,
+  `features.NewDefaultServerFeatureGate.wp_proof`, is still an axiom: its post states `isFeatureGate`).
+- **Proposed change.** `isFeatureGate fg` also gives `GetAll`'s contract: it returns a fresh map whose keys
+  are features `Enabled` answers (the contract's feature set widened from `serverFeatures` to a set `S ⊇
+  serverFeatures` the gate's `known` has, `AllAlpha`/`AllBeta` included) and whose `PreRelease` strings are
+  valid UTF-8 (`labelMapOk` for `serverFeatureEnabled`'s `With`). The five proofs that destructure the
+  predicate (`EtcdServer__{FeatureEnabled,NewUberApplier,Txn}`, `NewServer`, `NewServerR`) take one more
+  component. Made after `NewDefaultServerFeatureGate` is proved (until then the change strengthens that
+  axiom's post, a trust-boundary spec).
+- **Decision.** Pending: waits for `NewDefaultServerFeatureGate`'s proof (blocked on `maps.Clone`,
+  `notes/perennial-changes.md`).
+
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
 - **Spec.** `models/net/rpc/codec.go` (the model, trusted): `serverCodec` gains `rerr`, the first frame read
