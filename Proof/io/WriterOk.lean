@@ -67,6 +67,27 @@ instance io.writerOk_persistent (wi : GoInterfaceOk) (J Q : List w8 → IProp GF
     (Ew : GoInterface → IProp GF) : Persistent (io.writerOk wi J Q Ew) := by
   unfold io.writerOk; infer_instance
 
+/-- A call of `Write`, with `io.writerOk` kept folded in the caller's context. -/
+theorem io.wp_writer_Write (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
+    (Ew : GoInterface → IProp GF) (out : List w8) (p : GoSlice) (dq : DFrac) (xs : List w8) :
+    {{ io.writerOk wi J Q Ew ∗ J out ∗ □ Q (out ++ xs) ∗ p ↦*{dq} xs }}
+      (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+        ∃ k : Nat, ⌜n = W64 k ∧ k ≤ xs.length ∧ (err = interface.nil → k = xs.length)⌝ ∗
+          p ↦*{dq} xs ∗ J (out ++ xs.take k) ∗ io.werrAt Ew err }} := by
+  iintro %Φ ⟨#Hw, HJ, #HQ, Hp⟩ HΦ
+  unfold io.writerOk
+  icases Hw with ⟨-, #Hw⟩
+  iapply Hw $$ %out %p %dq %xs [HJ Hp] HΦ
+  iframe HJ HQ Hp
+
+/-- The writer's permission is closed under prefixes. -/
+theorem io.writerOk_prefixClosed (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
+    (Ew : GoInterface → IProp GF) : io.writerOk wi J Q Ew ⊢ io.prefixClosed Q := by
+  unfold io.writerOk
+  iintro ⟨#H, -⟩
+  iexact H
+
 end defs
 
 end EtcdGrove
