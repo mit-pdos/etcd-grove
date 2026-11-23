@@ -40,6 +40,7 @@ module
 public import Net.Spec.net.rpc.DialHTTP
 public import Net.Spec.net.rpc.Server__Accept
 public import Net.Spec.net.rpc.Server__Register
+public import Net.Spec.net.rpc.NewServer
 public import Net.Spec.net.rpc.SetCodec
 public import Net.Proof.net.rpc.ServerDefs
 public import Net.Code.net.http
@@ -131,6 +132,23 @@ class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
       (App (Val (@! net.rpc.Register)) (Val #rcvr))
     {{ (err : GoInterface), RET #err;
         (⌜err = interface.nil⌝ ∗ svcReg γ C nm S) ∨ ⌜err ≠ interface.nil⌝ }}
+  /-- A server `NewServer` made has no service yet (`γ`'s service map is empty: Net's
+  `NewServer.spec` gives `isServer` only, so a first `Register` on it could not be shown to
+  succeed: a finding for models-rpc-server). -/
+  srvFresh : GName → IProp GF
+  NewServer_fresh_spec :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync }}
+      (App (Val (@! net.rpc.NewServer)) (Val #()))
+    {{ (s : Loc), RET #s; ∃ γ : GName, isServer s γ ∗ srvFresh γ }}
+  /-- `s.Register(rcvr)` on a fresh server (`Server.Register.spec`'s, without its error case:
+  net/rpc's `register` fails only for a name that is not exported, a receiver with no suitable
+  method, or a name already registered, none of which a fresh server and `rcvrIs` allow). -/
+  Server_Register_fresh_spec : ∀ (s : Loc) (γ : GName) (C : CodecSpec GF) (rcvr : GoInterface)
+      (S : MethodSpec GF) (nm : GoString) (c : w8) (rest : GoString),
+    nm = c :: rest → uint.Z (W8 0x41) ≤ uint.Z c ∧ uint.Z c ≤ uint.Z (W8 0x5A) →
+    {{ isServer s γ ∗ srvFresh γ ∗ codecSet C ∗ C.rcv rcvr (rcvrIs C rcvr S nm false) }}
+      (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"Register")) (Val #rcvr))
+    {{ (err : GoInterface), RET #err; ⌜err = interface.nil⌝ ∗ svcReg γ C nm S }}
   /-- `(*ServeMux).ServeHTTP` on `DefaultServeMux`: a handler of every path it routes. -/
   ServeMux_ServeHTTP_spec : ∀ (W : RpcWorld GF) (A : GoString → Prop) (path : GoString),
     muxHas W A path ⊢

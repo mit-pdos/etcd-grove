@@ -1,0 +1,177 @@
+/-
+Ported from dsverify-lab examples/gryff/proof/GryffProof/Server/ServeProof.lean (run gryff-bump-1,
+lab master 915f964; notes/dsv-gryff.md).
+
+`serverlib.Serve(port)` on replica node `k` (`port = 8502 + k`): `rpc.HandleHTTP()` (the machine's
+`DefaultServer`, which serves `"Replica"`: `RpcHttpHyp.HandleHTTP_spec`, consuming the machine's
+`muxFree`), the listener at `replicaRpcLis k = ":850(2+k)"` (retried; `Listen.spec` with
+`rpcLisP_lis`'s update), then `http.Serve(l, nil)` (`RpcHttpHyp.Serve_spec`, which returns only
+on a listener error: the lab's postcondition `False` is `True` here).
+-/
+module
+
+public import Dsverify.Proof.gryff.Server.MasterNew
+public import Dsverify.GeneratedProof.gryff.src.serverlib
+
+@[expose] public section
+
+noncomputable section
+
+set_option linter.unusedSectionVars false
+
+namespace Perennial.gryff
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net fmt
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
+variable [sA : gryff.src.serverlib.Assumptions]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [H : RpcHttpHyp GF]
+variable [nS : netN.NetSpecs GF]
+
+omit sA nS in
+/-- The services of an address replica node `k`'s rpc listener takes: the replicas'. -/
+theorem rpcServices_replica (γ : GryffNames GF) (hw : worldOk γ) (k : Nat) (hk : k < 3)
+    (a : GoString) (ha : lisAccepts (replicaRpcLis k) a) (svc : GoString)
+    (S : net.rpc.MethodSpec GF) (h : γ.rpc.SS a svc = some S) :
+    svc = go!"Replica" ∧ S = replicaSvc := by
+  rw [hw.1] at h
+  unfold rpcServicesDef at h
+  have h1 : ¬ (lisAccepts masterRpcLis a ∧ svc = go!"Master") := by
+    rintro ⟨hm, -⟩; exact master_not_replica_lis k hk a hm ha
+  rw [if_neg h1] at h
+  by_cases h2 : (∃ k, k < 3 ∧ lisAccepts (replicaRpcLis k) a) ∧ svc = go!"Replica"
+  · rw [if_pos h2] at h; exact ⟨h2.2, (Option.some.inj h).symm⟩
+  · rw [if_neg h2] at h; cases h
+
+theorem colon_rpcPort (k : Nat) (hk : k < 3) (port : w64) (hport : sint.Z port = 8502 + k) :
+    W8 58 :: decimalPad 0 (sint.Z port) = replicaRpcLis k := by
+  rw [hport]
+  rcases k with _|_|_|k
+  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, replicaRpcLis]
+  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, replicaRpcLis]
+  · simp [decimalPad, padZeros, decimalNat_eq, digitByte, replicaRpcLis]
+  · omega
+
+set_option goose.wp.extras true
+
+theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
+    (hport : sint.Z port = 8502 + k) (γs : GName) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗
+        net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
+        H.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
+        H.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)
+          net.rpc.connectAns ∗
+        ⌜worldOk γ ∧ threadBound GF ≤ 2 ^ 31⌝ }}
+      (App (Val (@! gryff.src.serverlib.Serve)) (Val #port))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hcs, #Hse, Hmux, #Hds, #Hsreg, #Hrl, %Hw⟩
+  ihave #Hss : iprop(□ ∀ a, ⌜lisAccepts (replicaRpcLis k) a⌝ →
+      net.rpc.srvServes γs gryffCodec γ.rpc a) $$ []
+  · iintro !> %a %ha
+    unfold net.rpc.srvServes
+    iintro !> %svc %S %HS
+    obtain ⟨rfl, rfl⟩ := rpcServices_replica γ Hw.1 k hk a ha _ _ HS
+    iframe Hsreg
+    unfold replicaSvc
+    iapply withErr_errOk
+  wp_auto
+  wp_apply (H.HandleHTTP_spec γs gryffCodec γ.rpc (lisAccepts (replicaRpcLis k))) $$ [Hmux]
+    as #Hroute
+  · iframe Hmux Hds Hss Hse Hcs
+    ipureintro; exact Hw.2
+  wp_apply wp_slice_literal (V := GoInterface) _
+  isplitr
+  · ipureintro; rfl
+  iintro %psl ⟨Hpsl, -⟩
+  wp_apply log.wp_Printf _ _ _ _ (.cons_int _ _ _ (.int port) .nil) $$ [Hpsl] as -
+  · iframe
+  wp_apply wp_slice_literal (V := GoInterface) _
+  isplitr
+  · ipureintro; rfl
+  iintro %ssl ⟨Hssl, -⟩
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl] as %sp ⟨-, %Hsp⟩
+  · iframe
+  rw [sprintf_colon_port _ _ Hsp, colon_rpcPort k hk port hport]
+  ihave %hlok := H.rpcLisP_ok _ _ _ _ $$ Hrl
+  wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp (replicaRpcLis k)) $$ [] as %lv %err Hl
+  · isplitr
+    · ipureintro; exact hlok
+    iapply H.rpcLisP_lis $$ Hrl
+  ihave IHL : iprop(∃ (lv' e' : GoInterface),
+      "l" ∷ l_ptr ↦ lv' ∗ "err" ∷ err_ptr ↦ e' ∗
+      "Hl" ∷ ((⌜e' = interface.nil⌝ ∗ ∃ l, Perennial.net.isListener lv' l ∗
+          netLis (extLocalGS netExt (L := hG.goose_localGS)) l (replicaRpcLis k) true ∗
+          netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l (replicaRpcLis k)) ∨
+        (⌜e' ≠ interface.nil⌝ ∗ models_lab.errAny e'))) $$ [l err Hl]
+  · iexists lv, err; iframe
+    icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
+    · ileft; iframe Hl; ipureintro; exact He
+    · iright; ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ Hre
+      ihave %Hne := models_lab.errAny_ne_nil _ $$ Ha
+      iframe Ha; ipureintro; exact Hne
+  wp_for IHL
+  icases Hl with (⟨%He, %l, #Hli, Hnl, #Hon⟩ | ⟨%He, #HeA⟩)
+  rotate_left
+  · obtain ⟨i, rfl⟩ : ∃ i, e' = interface.ok i := by
+      cases e' with
+      | nil => exact absurd rfl He
+      | ok i => exact ⟨i, rfl⟩
+    wp_auto
+    rw [ite_eq_left_of_eq_true _ _ (by simp)]
+    wp_auto
+    wp_apply wp_slice_literal (V := GoInterface) _
+    isplitr
+    · ipureintro; rfl
+    iintro %lsl1 ⟨Hlsl1, -⟩
+    wp_apply log.wp_Println_logArg _ _ _ $$ [Hlsl1] as -
+    · iframe
+      iintro !>
+      simp only [show sint.nat (W64 (0 + 1)) = 1 from rfl, List.set_cons_succ, List.set_cons_zero]
+      iapply BigSepL.bigSepL_cons.2
+      isplitr
+      · iapply logArg_string
+      iapply BigSepL.bigSepL_singleton.2
+      iapply logArg_err $$ HeA
+    wp_apply time.wp_Sleep
+    wp_apply wp_slice_literal (V := GoInterface) _
+    isplitr
+    · ipureintro; rfl
+    iintro %ssl2 ⟨Hssl2, -⟩
+    wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl2]
+      as %sp2 ⟨-, %Hsp2⟩
+    · iframe
+    rw [sprintf_colon_port _ _ Hsp2, colon_rpcPort k hk port hport]
+    wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp (replicaRpcLis k)) $$ [] as %lv2 %err2 Hl
+    · isplitr
+      · ipureintro; exact hlok
+      iapply H.rpcLisP_lis $$ Hrl
+    wp_for_post
+    iframe
+    iexists lv2, err2
+    iframe
+    icases Hl with (⟨%He, Hl⟩ | ⟨%x, -, #Hre⟩)
+    · ileft; iframe Hl; ipureintro; exact He
+    · iright; ihave #Ha := resErr_errAny_m _ _ _ _ _ _ _ $$ Hre
+      ihave %Hne := models_lab.errAny_ne_nil _ $$ Ha
+      iframe Ha; ipureintro; exact Hne
+  subst He
+  wp_auto
+  rw [if_neg (by simpa using (show (#false : val) ≠ #true from
+    fun h => absurd (go.intoVal_inj h) (by decide))), if_pos (by simp)]
+  wp_auto
+  iapply fupd_wp
+  imod lisInv_alloc ⊤ (extLocalGS netExt (L := hG.goose_localGS)) l (replicaRpcLis k) true $$ Hnl
+    with #Hlinv
+  imodintro
+  wp_apply (H.Serve_spec γ.rpc (replicaRpcLis k) net.rpc.defaultRPCPath lv' l) as %e -
+  · iframe #
+    ipureintro; exact Hw.2
+  wp_end
+
+end proof
+
+end Perennial.gryff

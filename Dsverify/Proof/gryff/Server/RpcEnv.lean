@@ -14,6 +14,7 @@ initialization (Upamanyu's C2 item on #24), next to `RpcBootHyp`.
 module
 
 public import Dsverify.Proof.gryff.Rpc.RpcHttpHyps
+public import Dsverify.Proof.gryff.Rpc.Defs
 public import Net.Spec.net.rpc.DialHTTP
 
 @[expose] public section
@@ -48,6 +49,14 @@ def dialEnv : IProp GF :=
 
 instance dialEnv_persistent : Persistent (dialEnv (GF := GF)) := by
   unfold dialEnv; infer_instance
+
+/-- A service accepting error answers (`withErr`) meets `errOk` (swiftpaxos's `withErr_errOk`). -/
+theorem withErr_errOk (S : net.rpc.MethodSpec GF) : ⊢ net.rpc.errOk (withErr S) := by
+  unfold net.rpc.errOk withErr
+  iintro !> %m %args %Φ %msg %Hmsg HS
+  icases HS with ⟨-, Herr⟩
+  imodintro
+  iapply Herr $$ %msg %Hmsg
 
 theorem dialEnv_of_init [E : RpcEnvHyp GF] (hb : receiptBound GF ≤ 2 ^ 64) :
     isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ⊢
