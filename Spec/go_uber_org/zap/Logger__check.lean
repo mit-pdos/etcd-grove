@@ -1,10 +1,10 @@
 /-
-`zap.Logger.check` (unexported): the trust boundary of zap's leveled logging (zap's encoders, cores,
-clocks and `sync.Pool`s are not translated). Lean-first. Until 2026-11-20 the boundary was the five
-exported methods that call it, `Check` (`return log.check(lvl, msg)`) and `Debug`/`Info`/`Warn`/`Error`
-(`if ce := log.check(lvl, msg); ce != nil { ce.Write(fields...) }`, zap v1.28.0 `logger.go:221-265`),
-each an axiom; this spec is `Check`'s former one, moved down unchanged, and the five are proved from
-it (and from `zapcore.CheckedEntry.Write`).
+`zap.Logger.check` (unexported), proved over zap's code since zap-z1 (2026-11-23,
+`Proof/go_uber_org/zap/Logger__check.lean`); until then the trust boundary of zap's leveled logging.
+Lean-first. Until 2026-11-20 the boundary was the five exported methods that call it, `Check`
+(`return log.check(lvl, msg)`) and `Debug`/`Info`/`Warn`/`Error` (`if ce := log.check(lvl, msg); ce != nil {
+ce.Write(fields...) }`, zap v1.28.0 `logger.go:221-265`), each an axiom; this spec is `Check`'s former one,
+moved down unchanged, and the five are proved from it (and from `zapcore.CheckedEntry.Write`).
 -/
 module
 

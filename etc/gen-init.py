@@ -3516,6 +3516,18 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
     heavy=True,
 ), ['errUnmarshalNilLevel'])
+# (zap-z1, 2026-11-23) zap's internal buffer pool: `zap.Logger.check` reads `Get`
+SPECIAL['go_uber_org.zap.internal.bufferpool'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes `buffer` and runs their
+translated initializers (zap-z1, 2026-11-23: zap's `Logger.check` reads `Get`): `_pool = buffer.NewPool()`
+(`pool.New` of a function literal, proved) and `Get = _pool.Get` (a method value, not called).''',
+    alloc_types={'_pool': '_root_.Perennial.go_uber_org.zap.buffer.Pool', 'Get': 'GoFunc'},
+    before={'_pool': ['try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+                      'rw [recv_eq_func_mk BAnon BAnon]',
+                      'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pbuf -',
+                      'try wp_auto']},
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+)
 # (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
 SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
 SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
@@ -3600,7 +3612,7 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  iexists _',
         '  iframe',
         '  ipureintro',
-        '  exact ⟨⟨_, rfl⟩, rfl, rfl, rfl, rfl⟩',
+        '  exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
         '',
         '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
         'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
