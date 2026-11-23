@@ -4,7 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.google_golang_org.grpc.metadata
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.stats
