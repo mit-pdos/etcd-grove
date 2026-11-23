@@ -234,6 +234,7 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     ihave HCB : repCB «$r0_ptr» (DFrac.own 1) ⟨opId c n, clientName c, [cmdOf i.1]⟩ $$ [Hbp Hsl Hpm]
     · unfold repCB repCBVal repList
       iexists _
+      rw [ptCB_own]
       iframe Hbp
       iexists [pm]
       iframe Hsl
@@ -248,6 +249,7 @@ theorem wp_Op (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
         · ipureintro; rfl
         unfold repCSingle
         iexists _
+        rw [ptCSingle_own]
         iframe Hpm
         ipureintro; exact ⟨rfl, rfl⟩
       · iapply BigSepL.bigSepL_nil.2; iempintro

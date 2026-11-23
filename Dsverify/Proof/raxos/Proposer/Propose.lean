@@ -59,8 +59,9 @@ instance mpmcProducer_timeless (γm : MpmcNames) (s : MSet) :
 
 theorem repRRProp_persist (l : Loc) (v : pure.Val) :
     ⊢@{IProp GF} repRRProp l (DFrac.own 1) (rrPropOf v) -∗ |==> rpRep l v := by
-  iintro H
   unfold repRRProp
+  simp only [ptRRProp_own]
+  iintro H
   simp only [rrPropOf]
   icases H with ⟨%y, Hy, %Hyu, %Hyf, Hids⟩
   ipersist Hy
@@ -73,8 +74,9 @@ theorem repRRProp_persist (l : Loc) (v : pure.Val) :
 
 theorem repRR_persist (r : Loc) (st : RecSt) :
     ⊢@{IProp GF} repRR r (DFrac.own 1) (rrOf st) -∗ |==> ∃ x, r ↦□ x ∗ rrVal x st := by
-  iintro H
   unfold repRR
+  simp only [ptRR_own]
+  iintro H
   icases H with ⟨%x, Hx, %Hxu, %Hxf, HF, HM⟩
   simp only [rrOf, repOpt] at *
   imod repRRProp_persist _ _ $$ HF with #HF
@@ -176,7 +178,7 @@ set_option hygiene false in
 `responses` channel if it is not nil and has a positive step, then `wg.Done()`. -/
 macro "final_check" : tactic => `(tactic| (
   wp_bind (If (Val _) _ _)
-  iapply wp_wand (Φ := fun v => iprop(⌜v = #(decide (out ≠ null ∧ 0 < rr.s))⌝ ∗ out ↦ xr ∗
+  iapply wp_wand (Φ := fun v => iprop(⌜v = #(decide (out ≠ null ∧ 0 < rr.s))⌝ ∗ ptRR out (DFrac.own 1) xr ∗
     resp_ptr ↦ out)) $$ [Hxr resp]
   · by_cases hnull : out = null
     · subst hnull
@@ -545,8 +547,8 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
         simp only [show sint.nat (W64 0) = 0 from rfl, List.replicate_zero]
         ipersist Hcb0
         try wp_auto
-        ipersist «$r0»
-        ipersist «$a1»
+        imod ptProp_share ⊤ _ _ $$ «$r0» with #«$r0»
+        imod ptPM_share ⊤ _ _ $$ «$a1» with #«$a1»
         ihave #Hpr1 : repProp «$r0_ptr» .discard
             (⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, []⟩ : Prop') $$ []
         · unfold repProp
@@ -606,8 +608,8 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
             · exfalso; subst Hst; simp [rrOf] at hnf
             iclear Hxr HF HM «$r0» «$a1» Hpr1
             wp_auto
-            ipersist «$r0»
-            ipersist «$a1»
+            imod ptProp_share ⊤ _ _ $$ «$r0» with #«$r0»
+            imod ptPM_share ⊤ _ _ $$ «$a1» with #«$a1»
             ihave #Hpr2 : repProp «$r0_ptr» .discard
                 (⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, bsP⟩ : Prop') $$ []
             · unfold repProp
@@ -671,8 +673,8 @@ theorem wp_handleProposeRequest (γ : QNames) (c : QConf) (k : Nat) (p : Loc) (m
           · exact absurd rfl Herr
       rw [_root_.decide_eq_false hm1]
       wp_auto
-      ipersist pi
-      ipersist «$a1»
+      imod ptProp_share ⊤ _ _ $$ pi with #pi
+      imod ptPM_share ⊤ _ _ $$ «$a1» with #«$a1»
       ihave #Hpr : repProp pi_ptr .discard
           (⟨sint.Z x.Priority', Pval.pid, Pval.tid, Pval.ids, bsP⟩ : Prop') $$ []
       · unfold repProp

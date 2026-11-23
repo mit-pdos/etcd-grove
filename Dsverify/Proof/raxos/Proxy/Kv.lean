@@ -168,7 +168,6 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
       rw [Hc_lookup] at Hc'; cases Hc'
       iunfold repCSingle at Hpc
       icases Hpc with ⟨%pv, #Hpv, %Hpvu, %Hpvm⟩
-      iStructNamedPrefix Hpv "p"
       repeat' (first | wp_auto | simp only [Hb, Hb2, Hb3, Hb4, _root_.and_self, ↓reduceIte])
       rw [Hpvm]
       have hc9 : 1 + keyLen ≤ c.length := hok bb (List.mem_of_getElem? Hbb_lookup) c
@@ -239,6 +238,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
               rfl
             iunfold repCSingle
             iexists _
+            rw [ptCSingle_own]
             iframe Hq
             ipureintro; refine ⟨rfl, ?_⟩
             simp [execCmd, Hif, List.append_assoc]
@@ -292,6 +292,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
                 rfl
               iunfold repCSingle
               iexists _
+              rw [ptCSingle_own]
               iframe Hq
               ipureintro; refine ⟨rfl, ?_⟩
               simp only [execCmd, Htyp, ↓reduceIte, List.append_assoc]
@@ -336,6 +337,7 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
                 rfl
               iunfold repCSingle
               iexists _
+              rw [ptCSingle_own]
               iframe Hq
               ipureintro; refine ⟨rfl, ?_⟩
               simp only [execCmd, Htyp, ↓reduceIte, List.append_assoc]

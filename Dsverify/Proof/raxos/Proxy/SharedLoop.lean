@@ -50,13 +50,14 @@ instance RPCPair.countable [GooseExts] : Pos.Countable raxos.common.RPCPair :=
     (by rintro ⟨⟩ ⟨⟩ h; have h := Pos.encode_inj h; simp_all)
 
 /-- An element of `incomingChan` (`connectionListener` → main loop): a client batch frame read,
-code 1, a registered well-formed batch, with the credit minted for its frame (persistent but for
-the credit). Contract between `NetworkInit` and `Run`. -/
+code 1, a registered well-formed batch, owned (the main loop copies `*clientBatch`, which reads
+protobuf's runtime fields too), with the credit minted for its frame. Contract between
+`NetworkInit` and `Run`. -/
 def incomingP (γ : QNames) (v : raxos.common.RPCPair) : IProp GF :=
   iprop(∃ (l : Loc) (b : Batch) (t : Ticket),
     ⌜v.Code' = W8 1 ∧ v.Obj' = interface.mkOk (go.GoType.PointerType raxos.proto.client.ClientBatch.ty) #l ∧
       batchFit b⌝ ∗
-    repCB l .discard b ∗ batchReg γ b.id b ∗ credit γ t)
+    repCB l (DFrac.own 1) b ∗ batchReg γ b.id b ∗ credit γ t)
 
 /-- A client batch ready to be replicated (an element of `clientRequestsChan`, the batch of an
 element of `clientBatchTimer`): a registered well-formed batch, read for good, with the credit

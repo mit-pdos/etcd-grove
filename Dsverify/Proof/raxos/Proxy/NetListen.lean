@@ -117,20 +117,12 @@ theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG)
     icases Htix with ⟨%c', %j, Htix⟩
     imod (mint_top γ ((k : Int), c', j) cid A.length) $$ Hcons Htix Hctr
       with ⟨Hctr, Hcred⟩
-    iunfold repCB at Hrep
-    icases Hrep with ⟨%x, Hx, Hv⟩
-    ipersist Hx
-    imod repCBVal_persist x b $$ Hv with #Hv
-    wp_apply wp_bag_send $$ [Hcred]
+    wp_apply wp_bag_send $$ [Hcred Hrep]
     · iframe Hbag
       iunfold incomingP
       iexists t, b, ((k : Int), c', j)
-      iframe Hreg Hcred
-      isplitr
-      · ipureintro; exact ⟨rfl, rfl, Hok, Hlb⟩
-      iunfold repCB
-      iexists x
-      iframe Hx Hv
+      iframe Hreg Hcred Hrep
+      ipureintro; exact ⟨rfl, rfl, Hok, Hlb⟩
     wp_for_post
     iframe
     iexists A ++ [b], _, _

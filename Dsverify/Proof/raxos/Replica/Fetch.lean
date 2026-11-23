@@ -73,13 +73,12 @@ theorem wp_convertToDecideResponseClientBatchMessages (re : Loc) (msl : GoSlice)
       rw [Hc_lookup] at Hy; cases Hy; iexact Hx
     iunfold repCSingle at Hq
     icases Hq with ⟨%xq, #Hxq, %Hxm⟩
-    iStructNamed Hxq
     simp only [Hb, _root_.and_self, ↓reduceIte]
     wp_apply wp_load_slice_index msl (sint.Z i) ps _ q Hi.1 $$ [] as -
     · iframe #; ipureintro; exact Hq_lookup
     irename «$sl0» => Hnq
     generalize «$sl0_ptr» = nq at *
-    ipersist Hnq
+    imod ptDRSingle_share ⊤ _ _ $$ Hnq with #Hnq
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType
       (go.GoType.PointerType DecideResponse_ClientBatch_SingleMessage.ty))))) (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := Loc)
@@ -123,7 +122,6 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
   icases Hre' with ⟨%cb, %γs, %ch, %γc, %mu, #Hcb, #Hst, -⟩
   iunfold repDReq at Hreq
   icases Hreq with ⟨%x, #Hx, %Hxu, #Hids⟩
-  iStructNamed Hx
   ihave %Hlen := ownSlice_len $$ Hids
   wp_auto
   wp_apply (wp_slice_make2 (V := Loc) _) as %sl ⟨Hsl, Hcap⟩
@@ -169,7 +167,7 @@ theorem wp_HandleFetch (γ : QNames) (k : Nat) (re req : Loc) (ids : List GoStri
       ipersist Hrt
       irename «$sl0» => Hnq
       generalize «$sl0_ptr» = nq at *
-      ipersist Hnq
+      imod ptDRBatch_share ⊤ _ _ $$ Hnq with #Hnq
       wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType
         (go.GoType.PointerType DecideResponse_ClientBatch.ty))))) (Val (LiteralValueV _)))
       iapply wp_slice_literal (V := Loc) (t := go.GoType.PointerType DecideResponse_ClientBatch.ty) [nq]
@@ -214,7 +212,7 @@ theorem wp_GRPCConnection_FetchBatches (γ : QNames) (k : Nat) (gc re lin : Loc)
   wp_auto
   wp_apply +noauto wp_HandleFetch γ k re lin ids $$ [$Hre $Hreq]
     as %resp ⟨%x, %qs, %bs, Hx, Hqs, #Hbs, %Hbok, #Hreg⟩
-  ipersist Hx
+  imod ptDResp_share ⊤ _ _ $$ Hx with #Hx
   ipersist Hqs
   wp_auto
   iapply HΦ
@@ -273,7 +271,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   ihave Hv := Hv $$ %(⟨ids, Hids, Hbs.symm⟩ : ∃ v0, (∀ s ∈ v0, strOk s) ∧ encDReq v0 = bs)
   have Hvm := Hv0 ids Hids Hbs.symm
   subst Hvm
-  imod repDReq_persist _ _ _ $$ Hv with #Hv
+  imod repDReq_persist ⊤ _ _ _ $$ Hv with #Hv
   have Hts : go.typeSetContains (go.GoType.PointerType GRPCConnection.ty) ConsensusServer.ty =
     true := by go_type_set
   simp only [Hts, ↓reduceIte]
@@ -318,7 +316,6 @@ theorem wp_HandleDecisions (γ : QNames) (k : Nat) (re req : Loc) (ds : List DSl
   icases Hre' with ⟨%cb, %γs, %ch, %γc, %mu, #Hcb, #Hst, #Hch, #Hchb, #Hname, #Hmu, #Hmux, #Hinv, %Hk⟩
   iunfold repDecs at Hreq
   icases Hreq with ⟨%x, %sps, #Hx, %Hxu, #Hsps, #Hslots⟩
-  iStructNamed Hx
   wp_auto
   wp_if_destruct
   · wp_apply (wp_slice_make2 (V := w64) _) as %isl ⟨Hisl, Hicap⟩
@@ -364,7 +361,6 @@ theorem wp_HandleDecisions (γ : QNames) (k : Nat) (re req : Loc) (ds : List DSl
       have Hddok : dslotOk dd := Hok dd (List.mem_of_getElem? Hdd_lookup)
       iunfold repDecSlot at Hq
       icases Hq with ⟨%xq, #Hxq, %Hxqu, %Hxqf, #Hids⟩
-      iStructNamed Hxq
       simp only [Hb, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index _ (sint.Z i) sps _ q Hi.1 $$ [] as -
       · iframe #; ipureintro; exact Hq_lookup
@@ -432,7 +428,7 @@ theorem wp_GRPCConnection_InformDecision (γ : QNames) (k : Nat) (gc re lin : Lo
   wp_auto
   irename «$r0» => He
   generalize «$r0_ptr» = le at *
-  ipersist He
+  imod ptEmpty_share ⊤ _ _ $$ He with #He
   wp_apply wp_HandleDecisions γ k re lin ds $$ [$Hre $Hreq $Hdec]
   · ipureintro; exact Hok
   iapply HΦ
@@ -487,7 +483,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   ihave Hv := Hv $$ %(⟨ds, Hds, Hbs.symm⟩ : ∃ v0, (∀ d ∈ v0, dslotOk d) ∧ encDecs v0 = bs)
   have Hvm := Hv0 ds Hds Hbs.symm
   subst Hvm
-  imod repDecs_persist _ _ _ $$ Hv with #Hv
+  imod repDecs_persist ⊤ _ _ _ $$ Hv with #Hv
   have Hts : go.typeSetContains (go.GoType.PointerType GRPCConnection.ty) ConsensusServer.ty =
     true := by go_type_set
   simp only [Hts, ↓reduceIte]

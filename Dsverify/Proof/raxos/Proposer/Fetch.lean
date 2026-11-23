@@ -203,7 +203,7 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
     wp_apply context.wp_WithTimeout_Background as %ctx %γctx %cancel %dl ⟨#Hcancel, #Hctx, -⟩
     rw [Hprc]
     wp_auto
-    ipersist «$a1»
+    imod ptDReq_share ⊤ _ _ $$ «$a1» with #«$a1»
     have Hr : 1 ≤ jr + 1 ∧ jr + 1 ≤ 5 := by omega
     wp_apply wp_FetchBatches γ (jr + 1) l cc ctx _ _ .discard ids slice.nil $$ [] as %out %err Hres
     · iframe #
@@ -221,7 +221,7 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
         ⌜∀ b ∈ cbs, batchFit b⌝ ∗ numBtches_ptr ↦ msg.ids'.len)) $$ [found cltBatches Hcc resp numBtches Hres]
     · icases Hres with (⟨%Herr, %bs, Hrr, %Hbfit, #Hbreg⟩ | %Herr)
       · subst Herr
-        imod repDResp_persist _ _ $$ Hrr with #Hrr
+        imod repDResp_persist ⊤ _ _ $$ Hrr with #Hrr
         wp_auto
         by_cases hnull : out = null
         · subst hnull
@@ -235,7 +235,6 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
         · rw [_root_.decide_eq_false hnull]
           iunfold repDResp at Hrr
           icases Hrr with ⟨%xr, %rps, #Hxr, %Hxu, #Hrps, #Hrpr⟩
-          iStructNamed Hxr
           ihave %Hrpsl := ownSlice_len _ _ _ $$ Hrps
           ihave %Hrpl := repList_length _ _ _ _ $$ Hrpr
           wp_auto
@@ -271,7 +270,6 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
                 ipureintro; constructor <;> word
               unfold repDRBatch
               icases Hqb with ⟨%qx, %qms, #Hqx, %Hqxf, -⟩
-              iStructNamed Hqx
               wp_for HI3
               by_cases hj : sint.Z j < sint.Z c.len
               · rw [_root_.decide_eq_true hj]
@@ -279,7 +277,6 @@ theorem wp_handleFetchRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) (ms
                 simp only [_root_.decide_true, ↓reduceIte]
                 ihave ⟨%cb, %Hcb, #Hcqb⟩ := repList_lookup _ _ _ _ _ _ Hcq_lookup $$ Hcr
                 icases Hcqb with ⟨%cx, %cms, #Hcx, %Hcxf, -⟩
-                iStructNamed Hcx
                 have hbj : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z c.len := ⟨Hj.1, hj⟩
                 repeat (first | rw [ite_eq_left_of_eq_true _ _ (eq_true hb)] |
                   rw [ite_eq_left_of_eq_true _ _ (eq_true hbj)] |
@@ -465,7 +462,7 @@ theorem wp_handleDecisionRequest (γ : QNames) (cf : QConf) (k : Nat) (p : Loc) 
     wp_apply wp_fork $$ [Hdone]
     · wp_pures
       wp_apply wp_with_defer as %defer Hdefer
-      ipersist «$a1»
+      imod ptDecs_share ⊤ _ _ $$ «$a1» with #«$a1»
       rw [Hprc]
       wp_auto
       have Hr : 1 ≤ sint.nat n + 1 ∧ sint.nat n + 1 ≤ 5 := by word

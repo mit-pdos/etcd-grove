@@ -189,7 +189,9 @@ theorem wp_Run
       icases Hv with ⟨%l, %b, %t, %Hpure, Hcb, #Hreg, Hcr⟩
       obtain ⟨Hcode, Hobj, Hbok⟩ := Hpure
       iunfold repCB at Hcb
-      icases Hcb with ⟨%x, #Hl, #Hrep⟩
+      icases Hcb with ⟨%x, Hl, Hrep⟩
+      rw [ptCB_own]
+      imod repCBVal_persist ⊤ x b $$ Hrep with #Hrep
       ihave #Hconsts' := Hconsts
       iunfold sharedConsts at Hconsts'
       icases Hconsts' with ⟨-, #Hrpc, -⟩

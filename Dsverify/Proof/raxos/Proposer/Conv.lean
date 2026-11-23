@@ -69,9 +69,8 @@ theorem wp_convertToClientBtchMessages (p : Loc) (sl : GoSlice) (ps : List Loc)
     · iframe #; ipureintro; exact Hq_lookup
     unfold repCSingle
     icases Hqm with ⟨%x, #Hx, %Hxm⟩
-    iStructNamed Hx
     wp_auto
-    ipersist «$sl0»
+    imod ptPMSingle_share ⊤ _ _ $$ «$sl0» with #«$sl0»
     wp_bind (App (Val (GoInstruction (CompositeLiteral _))) (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := Loc) [«$sl0_ptr»]
     wp_auto
@@ -148,9 +147,8 @@ theorem wp_convertToClientBatchMessages (p : Loc) (sl : GoSlice) (ps : List Loc)
     · iframe #; ipureintro; exact Hq_lookup
     unfold repDRSingle
     icases Hqm with ⟨%x, #Hx, %Hxm⟩
-    iStructNamed Hx
     wp_auto
-    ipersist «$sl0»
+    imod ptCSingle_share ⊤ _ _ $$ «$sl0» with #«$sl0»
     wp_bind (App (Val (GoInstruction (CompositeLiteral _))) (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := Loc) [«$sl0_ptr»]
     wp_auto
@@ -232,7 +230,7 @@ theorem wp_getProposeClientBatches (γ : QNames) (p : Loc) (sl : GoSlice)
     wp_apply wp_convertToClientBtchMessages p _ mps b.cmds $$ [] as %ms ⟨%qs2, #Hms, #Hms2⟩
     · iframe #
     repeat (first | rw [ite_eq_left_of_eq_true _ _ (eq_true hb)] | wp_auto)
-    ipersist «$sl0»
+    imod ptPMBatch_share ⊤ _ _ $$ «$sl0» with #«$sl0»
     wp_bind (App (Val (GoInstruction (CompositeLiteral _))) (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := Loc) [«$sl0_ptr»]
     wp_auto
@@ -328,7 +326,7 @@ theorem wp_extractDecidedSlots (γ : QNames) (p : Loc) (isl dsl psl : GoSlice) :
       (wp_apply wp_load_slice_index psl (sint.Z i) ps _ pp Hi.1 $$ [Hps] as -;
         · iframe #; ipureintro; exact Hpp_lookup) |
       wp_auto)
-    ipersist «$sl0»
+    imod ptPMSlot_share ⊤ _ _ $$ «$sl0» with #«$sl0»
     wp_bind (App (Val (GoInstruction (CompositeLiteral _))) (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := Loc) [«$sl0_ptr»]
     wp_auto
@@ -424,7 +422,7 @@ theorem wp_extractDecisionSlots (γ : QNames) (p : Loc) (isl dsl psl : GoSlice) 
       (wp_apply wp_load_slice_index psl (sint.Z i) ps _ pp Hi.1 $$ [Hps] as -;
         · iframe #; ipureintro; exact Hpp_lookup) |
       wp_auto)
-    ipersist «$sl0»
+    imod ptDecSlot_share ⊤ _ _ $$ «$sl0» with #«$sl0»
     wp_bind (App (Val (GoInstruction (CompositeLiteral _))) (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := Loc) [«$sl0_ptr»]
     wp_auto
@@ -496,7 +494,6 @@ theorem wp_convertToClientBatches (p : Loc) (sl : GoSlice) (ps : List Loc) (bs :
     ihave ⟨%b, %Hb, #Hqb⟩ := repList_lookup _ _ _ _ _ _ Hq_lookup $$ Hbs
     unfold repDRBatch
     icases Hqb with ⟨%x, %mps, #Hx, %Hxu, %Hxf, #Hmps, #Hmr⟩
-    iStructNamed Hx
     have hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨Hi.1, Hlt⟩
     repeat (first | rw [ite_eq_left_of_eq_true _ _ (eq_true hb)] |
       (wp_apply wp_load_slice_index sl (sint.Z i) ps _ q Hi.1 $$ [Hsl] as -;

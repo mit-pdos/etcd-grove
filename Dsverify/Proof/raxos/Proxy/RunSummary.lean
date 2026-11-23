@@ -105,7 +105,7 @@ theorem wp_proposePreviousEpochSummary
   isplitl []
   · ipureintro; rfl
   iintro %msl ⟨Hmsl, -⟩
-  ipersist Hlm
+  imod ptCSingle_share ⊤ _ _ $$ Hlm with #Hlm
   ipersist Hmsl
   wp_auto
   wp_bind (App (Val (GoInstruction (CompositeLiteral

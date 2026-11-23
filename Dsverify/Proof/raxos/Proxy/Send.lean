@@ -61,12 +61,13 @@ theorem wp_sendClientResponse (γ : QNames) (pr och : Loc) (γo : ChanNames) (rs
     {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗
         pr.[Proxy, go!"outgoingMessageChan"] ↦□ och ∗ isChanBag γo och (outP γ) ∗
         pr.[Proxy, go!"clientBatchRpc"] ↦□ W8 1 ∗
-        rs ↦*□ outs ∗ [∗list] o ∈ outs, ansP γ o }}
+        ⌜outs.length = sint.nat rs.len ∧ 0 ≤ sint.Z rs.len⌝ ∗
+        ([∗list] k ↦ o ∈ outs, ptCB (sliceIndexRef raxos.proto.client.ClientBatch (k : Int) rs) .discard o) ∗
+        [∗list] o ∈ outs, ansP γ o }}
       (App (Val (pr @!! go.GoType.PointerType Proxy.ty @!! go!"sendClientResponse")) (Val #rs))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hoch, #Hbag, #Hcode, #Hrs, #Hans⟩
+  wp_start as ⟨#Hoch, #Hbag, #Hcode, %Hrslen, #Hrs, #Hans⟩
   wp_auto
-  ihave %Hrslen := ownSlice_len $$ Hrs
   ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗ "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z rs.len⌝ : IProp GF)
       $$ [i]
   · iexists W64 0; iframe; ipureintro; exact ⟨by word, by word⟩
@@ -75,11 +76,13 @@ theorem wp_sendClientResponse (γ : QNames) (pr och : Loc) (γo : ChanNames) (rs
   · have Hilt : sint.nat i < outs.length := by word
     list_elem outs (sint.nat i) as o
     have Hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z rs.len := ⟨Hi.1, Hif⟩
-    icases ownSlice_elem_acc (sint.Z i) o rs DFrac.discard outs (by word) (by simpa using Ho_lookup) $$ Hrs
-      with ⟨#Hel, -⟩
+    ihave #Hel : ptCB (GF := GF) (sliceIndexRef raxos.proto.client.ClientBatch (sint.Z i) rs) .discard o
+        $$ [Hrs]
+    · rw [show sint.Z i = ((sint.nat i : Nat) : Int) by word]
+      iapply (BigSepL.bigSepL_lookup (Φ := fun k y =>
+        ptCB (GF := GF) (sliceIndexRef raxos.proto.client.ClientBatch (k : Int) rs) .discard y)
+        Ho_lookup) $$ Hrs
     ihave #Ho := BigSepL.bigSepL_lookup (Φ := fun _ y => ansP (GF := GF) γ y) Ho_lookup $$ Hans
-    ihave #Hel2 := Hel
-    iStructNamedPrefix Hel2 "e"
     repeat' (first | wp_auto | simp only [Hb, _root_.and_self, ↓reduceIte])
     wp_if_destruct
     · wp_for_post

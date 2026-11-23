@@ -234,14 +234,20 @@ theorem wp_updateStateMachine (γ : QNames) (γs : GName) (cf : QConf) (pr cb bm
         · iframe Hcb Hst Hbm Hebm Hm Hkv Hids Hhas HknownN
         wp_apply (lc := 2) wp_time_Now as %tn _
         -- the ghost commit of the slot
-        ipersist Hrs
-        imod (bigSepL_bupd_mono outs _ (fun k o => iprop(∃ x b r,
+        -- the answers, shared with the writer goroutines that marshal them (`&batches[i]`)
+        ihave %Hrslen := ownSlice_len $$ Hrs
+        ihave Hrs := ownSlice_elems _ _ _ $$ Hrs
+        imod (bigSepL_fupd_mono ⊤ outs
+          (fun k o => typedPointsto (sliceIndexRef raxos.proto.client.ClientBatch (k : Int) rs) o (DFrac.own 1))
+          (fun k o => ptCB (GF := GF) (sliceIndexRef raxos.proto.client.ClientBatch (k : Int) rs) .discard o)
+          (fun k o => ptCB_share ⊤ _ _)) $$ Hrs with #Hrs
+        imod (bigSepL_fupd_mono ⊤ outs _ (fun k o => iprop(∃ x b r,
             ⌜(freshIds (execLog (fun y => Bn !! y) D').done ids)[k]? = some x ∧ Bn !! x = some b ∧
               (execIds (fun y => Bn !! y) (execLog (fun y => Bn !! y) D') ids).results x = some r⌝ ∗
             repCBVal (GF := GF) o .discard ⟨x, b.sender, r⟩))
           (fun k o => by
             iintro ⟨%x, %b, %r, %H, Hr⟩
-            imod repCBVal_persist $$ Hr with Hr
+            imod repCBVal_persist ⊤ $$ Hr with Hr
             imodintro
             iexists x, b, r
             iframe Hr
@@ -310,6 +316,7 @@ theorem wp_updateStateMachine (γ : QNames) (γs : GName) (cf : QConf) (pr cb bm
             · simp at hl; subst hl; exact HBn.2.2.2 x hxl
         · wp_apply wp_sendClientResponse γ pr och γo rs outs $$ [Hans]
           · iframe Hoch Hobag Hcode Hrs Hans
+            ipureintro; exact Hrslen
           wp_for_post
           have Hidx : (sint.Z (c' + W64 1)).toNat = D'.length + 1 := by rw [Hn]; omega
           ihave Hsl := Hsl $$ Hel

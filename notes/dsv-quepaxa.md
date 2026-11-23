@@ -226,8 +226,9 @@ points-to over that representation (what goose generates for any translated stru
 `solve_into_val_typed_struct`) meets it; Perennial's own instances, once given, would be one.
 (2) `PbHyp` speaks of Perennial's translation of protobuf's `proto.Marshal`/`Unmarshal` (the main
 tree's), which must actually behave as the real protobuf on QuePaxa's messages (the audit of
-2026-11-23 checked the spec against Go's behaviour, not the translation's reachability); and its
-reps are still false of protobuf-go v1.36.12 (review #24, finding 2, open: "Review #24" below).
+2026-11-23 checked the spec against Go's behaviour, not the translation's reachability). Its reps
+were false of protobuf-go v1.36.12 until review #24's finding 2 was fixed ("Review #24" below:
+`Msg.lean`'s `pt*`).
 (3) `GrpcHyp`'s `Invoke` and `Serve` describe the lab's model's behaviour (audited against
 grpc-go, "Hypotheses" above); `handlerOk`/`decOk` restated after review #24 to grpc-go v1.84's
 server (below). (4) **`QpVocab` is fixed before the heaps**: the statement quantifies `∀ qv :
@@ -241,8 +242,8 @@ already the argument `W.reg`, allocated by `GrpcWorldHyp`), and the specs that n
 (`sync.Map`'s `Load`/`Store`/`Delete`) are logically atomic, so the library's own invariant can be
 opened inside the spec rather than named by the vocabulary. Nothing here constructs such a model.
 
-`etc/theorem-loc.py quepaxa_remote_robust --no-go`: `tcb 582` lines, all statement premises
-(`tcb_premises 582`, `tcb_axioms 0`, `axioms 0`); `--list-tcb` lists the seven `InitHyp` classes
+`etc/theorem-loc.py quepaxa_remote_robust --no-go`: `tcb 787` lines (582 before review #24's
+finding 2: `Msg.lean`'s `fields*`/`rt*`/`pt*`), all statement premises (`tcb_premises 787`, `tcb_axioms 0`, `axioms 0`); `--list-tcb` lists the seven `InitHyp` classes
 (6 lines each, `Dsverify/Proof/<pkg>/Init.lean:27-33`), `Hyp.lean`'s classes and specs
 (`PbHyp` ... `GrpcWorldHyp`, `MapHyp`, `QpVocab`), `Msg.lean`'s encodings, `Proto.lean`,
 `TopLevelDefs`. So the `InitHyp` premises are counted (dsv README's requirement, confirmed here).
@@ -292,7 +293,7 @@ trusted code: the two descriptor-table init files (collection).
   etc/gen-init.py --check` (266 files up to date), `etc/goose.py --check` (all projects up to date
   once go-redis left this project), `etc/copy-part.py --check`, `etc/tier-check.py --check`,
   `errorf-wrap-check`'s `init_errors()` `[]`, `etc/theorem-loc.py quepaxa_remote_robust --no-go
-  --list-tcb` (tcb 582, all premises, 0 axioms). `etc/tcb-report.py --collection
+  --list-tcb` (tcb 582 then, 787 since review #24's finding 2; all premises, 0 axioms). `etc/tcb-report.py --collection
   etc/tcb-collections/dsv-quepaxa.txt --check` not run (it needs every root of the repository built;
   `etc/gates.sh` runs it).
 
@@ -331,7 +332,6 @@ Build: `PERENNIAL_DIR=/shared/perennial-71de6f043 etc/goose.py --project dsv-que
   `fmt.Println`, math/rand, `sync.Map` (Perennial's `HashTrieMap` instances), the `InitHyp`s.
 - `DistBridgeLis.lean` into `Net/Statement/` if other kits need wildcards; it duplicates
   dsv-epaxos's `Bridge.lean` (review #24, finding 4).
-- Review #24 finding 2 (`PbHyp`'s reps and `sizeCache`/`state`): open, "Review #24".
 - One go-redis version for QuePaxa and rabia (the State's "go-redis").
 - The per-function spec/proof layout and generated Links, as paxos's follow-ups.
 
@@ -357,28 +357,67 @@ Verdict "not ready": `GrpcHyp.handlerOk` was false of grpc-go v1.84.
   QuePaxa's three handler proofs (`Replica/Handlers.lean` `esp_handlerOk`, `Replica/Fetch.lean`
   `fetch_handlerOk`, `inform_handlerOk`) adapted directly: the generated handlers call `dec(in)`
   first.
-- **Finding 2 (medium), OPEN.** `PbHyp`'s reps (`Msg.lean`) hold `l ↦{dq} x` for any `dq`, but
-  `proto.Marshal` stores every message's `sizeCache` (protobuf-go v1.36.12
-  `internal/impl/encode.go:123,128`, atomically; also through gRPC's codec,
-  `encoding/proto/proto.go:51` `proto.Size` first) and its `state` on first reflection
-  (`internal/impl/pointer_unsafe.go:208`, `StoreMessageInfo`, from the generated `ProtoReflect`). The suggested
-  fix, reps of the user fields only (field by field, without `state`/`sizeCache`), was carried out
-  on the local branch `dsv-quepaxa-pbfields-wip` (a535c13b2d, not pushed: `Msg.lean`'s `fields*`
-  predicates, `iFieldsNamed`/`iFieldsOf`, `Frame` and field `AccessStrict` instances; about 25
-  proof files adapted) and stopped on two problems: (a) QuePaxa copies whole messages (16 struct
-  loads `GoLoad T` of a message type in `replica/src`: `ClientBatchStore.{Add,Get}`,
-  `Proposer.{getMaxFromResponses,handleProposeRequest}`, `Proxy.{Run,handleClientBatch,
-  proposeToIndex,executeClientBatches,handleFetchResponse}`; `*cb`, `*resp.F`, `*msg.P`), which read
-  `state` and `sizeCache` too (Perennial's `load_struct` reads every field), so a rep without those
-  fields cannot justify them; (b) a triple whose precondition leaves the runtime fields out is still
-  not true in Perennial's model if a caller can keep their points-to as a frame (Marshal writes them;
-  the frame says unchanged). A true statement needs the runtime fields owned by protobuf: an
-  invariant `inv (∃ st sc, l.state ↦ st ∗ l.sizeCache ↦ sc)` in every rep (Marshal's stores are
-  atomic, Perennial's struct loads read field by field, so a copy can open it per field), allocated
-  when a message is made (an update at every construction site) and given by `Unmarshal`; and a
-  load lemma for a message copy from `fields* ∗ inv`. Not done: it needs a decision (cost, and
-  whether a copy of a message concurrently marshalled, e.g. the proposer's `*msg.P` while slower
-  `ESP` calls still marshal `msg`, is a race to report).
+- **Finding 2 (medium), fixed (2026-11-23).** `PbHyp`'s reps (`Msg.lean`) held `l ↦{dq} x` for
+  any `dq`, but `proto.Marshal` stores every message's `sizeCache` (protobuf-go v1.36.12
+  `internal/impl/encode.go:67,123,128`, `atomic.StoreInt32`, reached through `proto/encode.go:183-190`
+  (`Size` first) and `codec_field.go:160,164` for sub-messages; also through gRPC's codec,
+  `encoding/proto/proto.go:51-64`, `proto.Size` then `Marshal` with `UseCachedSize`) and its
+  `state` on first reflection (the generated `ProtoReflect`, `proto/encode.go:111`;
+  `internal/impl/pointer_unsafe.go:207-208`, `StoreMessageInfo`, `atomic.StorePointer`); it only
+  reads the other fields.
+  - **The fix** (`Msg.lean`, "Ownership of a message"): every message in a rep is `pt* l dq x`:
+    with `dq = 1` the whole struct `l ↦ x` (so the runtime fields are owned, existentially, and a
+    whole-message copy is a plain struct load); with any other `dq`, `fields* l dq x` (every field
+    but `state`/`sizeCache`, field by field, with `dq`) and `inv pbRtN (rt* l)` (the two runtime
+    fields, owned by the invariant; protobuf's stores are atomic, so a marshal opens it per
+    store). `marshalPre`/`unmarshalPre`/`PbHyp`'s statements are unchanged in shape: `Marshal` gives
+    the rep back, which is true now (at `dq = 1` the existential `x` covers the new runtime fields;
+    shared, the other fields are unchanged and the invariant is kept), and `Unmarshal` produces
+    owned (`dq = 1`) reps. `pt*_persist`/`pt*_share` (sharing allocates the invariant: a fancy
+    update, so the persist lemmas `rep*_persist`, `repList_persist`, `repCBVal_persist`,
+    `repDResp_persist` are now `|={E}=>`), `pt*_own`/`pt*_shared` (the two cases), `pt*_not_null`,
+    `pt*_fields`, and `Access` instances (priority high; `Access`'s `P` is an input, so they apply
+    only to a `pt*` hypothesis) for field loads from a `pt*` at any `dq`.
+  - **The copy sites** keep owned messages: the proxy's incoming batch (`incomingP`) is now
+    `repCB l 1 b` (was `.discard`), and `Run` copies `*clientBatch` from `l ↦ x` and only then
+    persists the copied value's slices (`repCBVal_persist`); the proposer's replies
+    (`repRR_persist`, `rpRep`) and the other copies were already of owned messages.
+  - **Shared messages** (fresh allocations given to several goroutines or persisted: the proposer's
+    requests and their `Proposal`, `ClientBatch`, `DecidedSlot` sub-messages, `FetchBatches`'
+    `DecideRequest`, `InformDecision`'s `Decisions`, the replica's replies, the proxy's answers)
+    are made `.discard` by `pt*_share` where the proof used `ipersist`. The proxy's answers
+    (`sendClientResponse`, `&batches[i]` marshalled by the writers while the loop reads
+    `batches[i].Sender`) are shared element by element (`ownSlice_elems`, `Proxy/Defs.lean`;
+    `wp_sendClientResponse` takes the elements' `ptCB … .discard`). `wp_espImpl` reads the
+    proposal from `ptProp pl .discard pv` (was `pl ↦{dq} pv`).
+  - **Consequences**: a shared rep holds an invariant, so it is not timeless: the store's entries
+    (`storeEnt`) lost their `Timeless` instance, and `Get` strips the later from the entry after the
+    load (`later_exists_except0`, then `wp_auto`'s pure steps). `etc/theorem-loc.py`: tcb 787 (was
+    582).
+  - **History**: the review's suggestion, reps of the user fields only, was tried on the local
+    branch `dsv-quepaxa-pbfields-wip` (a535c13b2d, not pushed; its `fields*` predicates are reused
+    here) and stopped: (a) QuePaxa copies whole messages (16 struct loads of message types), which
+    read `state`/`sizeCache` too; (b) a precondition that leaves the runtime fields out is still
+    not true if a caller can frame their points-to. Owned reps (the whole struct) answer (a), the
+    invariant answers (b).
+  - **The race question is answered: QuePaxa has no data race here** (the investigation of
+    2026-11-23, at 21a8aca145). (i) Go's race detector (go1.27.3, `-race`, nodes too) reported
+    nothing: `go test -race ./examples/quepaxanet -run TestDeployment -count=3` with three
+    configurations, four more `QPNET_CONF`s (server modes 0 and 1, leader mode 2), and the fork's
+    own tests; a planted copy of a proposal while `ESP` marshals it (a goroutine copying `pi` into
+    a channel) was reported on every server node, so the detector reaches the nodes. (ii) By
+    reading, none of the 16 whole-message copies is of a message marshalled or reflected at that
+    point or later: each is freshly unmarshalled and handed over through a channel, or a local value
+    never marshalled; every marshalled request is allocated for its send (`&ProposerMessage{…}`
+    with `P: &pi`, `pi` the goroutine's own copy); grpc-go v1.84 marshals synchronously in
+    `Invoke` (`call.go:75` → `stream.go:1072`), so nothing is marshalled after `ESP` returns. The
+    memory several marshals share — the `Proposal`'s `ClientBatches` and the `DecidedSlots`
+    sub-messages in every goroutine's request, the proxy's answers — is never copied whole:
+    concurrent marshals of it are atomic/atomic stores plus plain reads of other fields, no race.
+    (iii) `go vet`'s 31 copylocks warnings are protobuf's do-not-copy lint, not races. (iv) The
+    lab's proof did not have to show any of this because its protobuf model
+    (`harness/rpcmodel/protobuf`) has an empty `MessageState` and a read-only codec; the gap was in
+    the model, not a missed bug. No Bug to report.
 - **Finding 3 (low), recorded** in the doubts above ((1) `MapHyp.ivt`, (4) `QpVocab`).
 - **Finding 4 (low).** `origin/lean` (b6ad6a8f54) has no `robust_of_distProtoLisRB` (dsv-epaxos has
   not landed), so `DistBridgeLis.lean` stays: a copy, apart from namespace and doc, of the first two

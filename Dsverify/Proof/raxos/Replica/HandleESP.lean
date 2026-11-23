@@ -52,7 +52,6 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
   iunfold repPM at Hreq
   icases Hreq with ⟨%x, %sps, #Hx, %Hxu, %Hxf, #HP, #Hsps, #Hslots⟩
   rw [Hp]
-  iStructNamed Hx
   wp_auto
   wp_join with [re req response]
   · wp_if_destruct
@@ -101,7 +100,6 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
       have Hddok : dslotOk dd := Hok.2.2.2.2 dd (List.mem_of_getElem? Hdd_lookup)
       iunfold repPMSlot at Hq
       icases Hq with ⟨%xq, #Hxq, %Hxqu, %Hxqf, #Hids⟩
-      iStructNamed Hxq
       simp only [Hb, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index _ (sint.Z i) sps _ q Hi.1 $$ [] as -
       · iframe #; ipureintro; exact Hq_lookup
@@ -162,8 +160,7 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
   ihave %Hipl := ownSlice_len $$ Hpids
   ihave %Hbl : ⌜bps.length = p.batches.length⌝ $$ []
   · iunfold repList at Hbreps; icases Hbreps with ⟨%H, -⟩; ipureintro; exact H
-  ihave %Hnnp := typedPointsto_not_null $$ Hxp
-  iStructNamedPrefix Hxp "P"
+  ihave %Hnnp := ptProp_not_null _ _ _ $$ Hxp
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ re_ptr ↦ re ∗ req_ptr ↦ req ∗
       response_ptr ↦ zero_val RecorderResponse ∗ «$res0_ptr» ↦ zero_val Loc) ∨
     (⌜v = returnVal #()⌝ ∗ re_ptr ↦ re ∗ req_ptr ↦ req ∗
@@ -179,7 +176,7 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
   iintro (⟨%Hv, re, req, response, «$res0»⟩ | ⟨%Hv, re, req, response, «$res0»⟩)
   rotate_left
   · subst Hv
-    ipersist response
+    imod ptRR_share ⊤ _ _ $$ response with #response
     wp_auto
     iapply HΦ
     iexists rrNotFound
@@ -218,7 +215,6 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
         (Φ := fun _ b => iprop(batchReg γ b.id b ∗ ⌜batchFit b⌝)) Hb_lookup $$ Hbatches
       iunfold repPMBatch at Hq
       icases Hq with ⟨%xb, %mps, #Hxb, %Hxbu, %Hxbf, #Hmps, #Hmreps⟩
-      iStructNamedPrefix Hxb "B"
       simp only [Hb, _root_.and_self, ↓reduceIte]
       wp_apply wp_load_slice_index _ (sint.Z i) bps _ q Hi $$ [] as -
       · iframe #; ipureintro; exact Hq_lookup
@@ -248,8 +244,8 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
   rw [← Hxf.2.1] at Hbd
   ihave #Hsend' : evIn γ (.send (sint.Z x.Index') me (sint.Z x.S') p.val) $$ []
   · rw [Hxf.2.1, Hxf.2.2]; iexact Hsend
-  wp_apply +noauto wp_espImpl γ k re x.Index' x.S' x.P' .discard xp p.val me $$ [$Hre $Hsend']
-    as %S %F %M ⟨-, %st, %HS, #HF, #HM, #Hrec⟩
+  wp_apply +noauto wp_espImpl γ k re x.Index' x.S' x.P' xp p.val me $$ [$Hre $Hsend']
+    as %S %F %M ⟨%st, %HS, #HF, #HM, #Hrec⟩
   · isplitl []
     · iexact Hxp
     isplitl []
@@ -264,9 +260,9 @@ theorem wp_HandleESP (γ : QNames) (k : Nat) (re req : Loc) (m : PM) :
     F.priority' F.proposer_id' F.thread_id' F.ids')) => HFp
   irename : (_ ↦ (RecorderResponse_Proposal.mk zeroValDef 0 slice.nil
     M.priority' M.proposer_id' M.thread_id' M.ids')) => HMp
-  ipersist HFp
-  ipersist HMp
-  ipersist response
+  imod ptRRProp_share ⊤ _ _ $$ HFp with #HFp
+  imod ptRRProp_share ⊤ _ _ $$ HMp with #HMp
+  imod ptRR_share ⊤ _ _ $$ response with #response
   imodintro
   iapply HΦ
   iunfold valRep at HF

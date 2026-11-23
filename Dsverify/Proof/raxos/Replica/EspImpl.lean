@@ -160,18 +160,17 @@ set_option goose.wp.extras true
 local macro "idx_auto " h:ident : tactic =>
   `(tactic| repeat (first | wp_auto | simp only [$h:ident, _root_.and_self, ↓reduceIte]))
 
-theorem wp_espImpl (γ : QNames) (k : Nat) (re : Loc) (idx s : w64) (pl : Loc) (dq : DFrac)
+theorem wp_espImpl (γ : QNames) (k : Nat) (re : Loc) (idx s : w64) (pl : Loc)
     (pv : ProposerMessage_Proposal) (v : pure.Val) (me : Int) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ isRecorder γ k re ∗
-        pl ↦{dq} pv ∗ valRep (propValue pv) v ∗ evIn γ (.send (sint.Z idx) me (sint.Z s) v) ∗
+        ptProp pl .discard pv ∗ valRep (propValue pv) v ∗ evIn γ (.send (sint.Z idx) me (sint.Z s) v) ∗
         ⌜1 ≤ sint.Z idx ∧ sint.Z idx ≤ 600⌝ }}
       (App (App (App (Val (re @!! go.GoType.PointerType Recorder.ty @!! go!"espImpl")) (Val #idx))
         (Val #s)) (Val #pl))
-    {{ (S : w64) (F M : Value), RET (PairV (PairV #S #F) #M); pl ↦{dq} pv ∗
+    {{ (S : w64) (F M : Value), RET (PairV (PairV #S #F) #M);
         ∃ st, ⌜sint.Z S = st.S⌝ ∗ valRep F st.F ∗ valRep M st.M ∗
           evIn γ (.record k (sint.Z idx) (sint.Z s) v st) }} := by
-  wp_start as ⟨#Hre, Hp, #Hv, #Hsend, %Hidx⟩
-  ihave %Hnn := typedPointsto_not_null $$ Hp
+  wp_start as ⟨#Hre, #Hp, #Hv, #Hsend, %Hidx⟩
   iunfold isRecorder at Hre
   icases Hre with ⟨%cb, %γs, %ch, %γc, %mu, #Hcb, #Hst, #Hch, #Hchb, #Hname, #Hmu, #Hmux, #Hinv, %Hk⟩
   wp_auto
@@ -241,20 +240,17 @@ theorem wp_espImpl (γ : QNames) (k : Nat) (re : Loc) (idx s : w64) (pl : Loc) (
       with ⟨Helem, Hsl⟩
     simp only [Hb, _root_.and_self, ↓reduceIte]
     wp_auto
-    iStructNamed Hp
+    ihave Hpf := ptProp_fields _ _ $$ Hp
+    iunfold fieldsProp at Hpf
+    iNamed Hpf
     wp_join iprop(∃ sv' : RecorderSlot, "Helem" ∷ sliceIndexRef RecorderSlot (sint.Z idx) sl' ↦ sv' ∗
-        "Priority" ∷ pl.[ProposerMessage_Proposal, go!"Priority"] ↦{dq} pv.Priority' ∗
-        "ProposerId" ∷ pl.[ProposerMessage_Proposal, go!"ProposerId"] ↦{dq} pv.ProposerId' ∗
-        "ThreadId" ∷ pl.[ProposerMessage_Proposal, go!"ThreadId"] ↦{dq} pv.ThreadId' ∗
-        "Ids" ∷ pl.[ProposerMessage_Proposal, go!"Ids"] ↦{dq} pv.Ids' ∗ "re" ∷ re_ptr ↦ re ∗ "p" ∷ p_ptr ↦ pl ∗ "s" ∷ s_ptr ↦ s ∗
+        "re" ∷ re_ptr ↦ re ∗ "p" ∷ p_ptr ↦ pl ∗ "s" ∷ s_ptr ↦ s ∗
         "index" ∷ index_ptr ↦ idx ∗ "Hslots" ∷ re.[Recorder, go!"slots"] ↦ sl' ∗
         "#Hsv'" ∷ slotRep sv' (espStep ((m !! sint.Z idx).getD RecSt.init) (sint.Z s) v))
-      with [Helem Priority ProposerId ThreadId Ids re p s index Hslots] as ⟨%sv', Helem, Priority, ProposerId, ThreadId, Ids, re, p, s, index, Hslots, #Hsv'⟩
+      with [Helem re p s index Hslots] as ⟨%sv', Helem, re, p, s, index, Hslots, #Hsv'⟩
     · idx_auto Hb
-      wp_apply wp_max $$ [Priority ProposerId ThreadId Ids] as %vm ⟨Hp, %Hvm⟩
-      · unfold propFields; iframe
-      unfold propFields
-      icases Hp with ⟨Priority, ProposerId, ThreadId, Ids⟩
+      wp_apply wp_max $$ [] as %vm ⟨-, %Hvm⟩
+      · unfold propFields; iframe #
       idx_auto Hb
       subst Hvm
       isplitr
@@ -320,10 +316,6 @@ theorem wp_espImpl (γ : QNames) (k : Nat) (re : Loc) (idx s : w64) (pl : Loc) (
         rw [GMap.lookup_insert_ne _ _ (by intro h; subst h; word)]
         exact Hout i hi
     iapply HΦ
-    isplitl
-    · iapply typedPointsto_combine _ _ _ Hnn
-      simp only [typedPointstoDef]
-      iFrameNamed
     unfold slotRep
     icases Hsv' with ⟨%HS, HF, -, HM⟩
     iexists _

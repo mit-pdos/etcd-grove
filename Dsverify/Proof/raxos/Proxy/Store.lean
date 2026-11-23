@@ -50,7 +50,7 @@ theorem store_add_proof [raxos.replica.src.Assumptions] [raxos.proto.client.Assu
   unfold atomic_acc
   iinv Hinv with Hi Hclose
   iunfold storeInv at Hi
-  icases Hi with ⟨%M, %S, >Hm, >Hauth, >#Hels, >%Hsub, >#Hents⟩
+  icases Hi with ⟨%M, %S, >Hm, >Hauth, >#Hels, >%Hsub, #Hents⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists ⟨M, ()⟩
@@ -89,7 +89,7 @@ theorem store_add_proof [raxos.replica.src.Assumptions] [raxos.proto.client.Assu
     unfold atomic_acc
     iinv Hinv with Hi Hclose
     iunfold storeInv at Hi
-    icases Hi with ⟨%M, %S, >Hm, >Hauth, >#Hels, >%Hsub, >#Hents⟩
+    icases Hi with ⟨%M, %S, >Hm, >Hauth, >#Hels, >%Hsub, #Hents⟩
     iapply fupd_mask_intro Std.LawfulSet.empty_subset
     iintro Hmask
     iexists ⟨M, ()⟩
@@ -143,7 +143,7 @@ theorem store_get_proof [raxos.replica.src.Assumptions] [raxos.proto.client.Assu
   unfold atomic_acc
   iinv Hinv with Hi Hclose
   iunfold storeInv at Hi
-  icases Hi with ⟨%M, %S, >Hm, >Hauth, >#Hels, >%Hsub, >#Hents⟩
+  icases Hi with ⟨%M, %S, >Hm, >Hauth, >#Hels, >%Hsub, #Hents⟩
   iapply fupd_mask_intro Std.LawfulSet.empty_subset
   iintro Hmask
   iexists ⟨M, ()⟩
@@ -168,10 +168,18 @@ theorem store_get_proof [raxos.replica.src.Assumptions] [raxos.proto.client.Assu
       ipureintro; intro _; exact Hsub x (by simp [HS])
   cases hx : M !! x with
   | some w =>
-    ihave #Hent := BigSepM.bigSepM_lookup (Φ := fun y u => storeEnt (GF := GF) γ y u)
-      (show PartialMap.get? M x = some w from hx) $$ Hents
+    ihave #Hent : ▷ storeEnt (GF := GF) γ x w $$ [Hents]
+    · inext
+      iapply (BigSepM.bigSepM_lookup (Φ := fun y u => storeEnt (GF := GF) γ y u)
+        (show PartialMap.get? M x = some w from hx)) $$ Hents
     iunfold storeEnt at Hent
-    icases Hent with ⟨%cbv, %b, %Hw, #Hrep, #Hreg⟩
+    ihave Hent := later_exists_except0 $$ Hent
+    icases Hent with >Hent
+    icases Hent with ⟨%cbv, #Hent⟩
+    ihave Hent := later_exists_except0 $$ Hent
+    icases Hent with >Hent
+    icases Hent with ⟨%b, #Hent⟩
+    icases Hent with ⟨>%Hw, #Hrep, #Hreg⟩
     imod storeHas_get γs M S x (by simp [hx]) Hsub $$ Hauth Hels with ⟨%S', Hauth, #Hels', %Hsub', #Hhas⟩
     imod Hclose $$ [Hm Hauth] with -
     · inext; iunfold storeInv; iexists M, S'; iframe; iframe Hents Hels'; ipureintro; exact Hsub'

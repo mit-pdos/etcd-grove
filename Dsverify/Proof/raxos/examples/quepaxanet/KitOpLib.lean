@@ -130,7 +130,6 @@ theorem wp_result (i : KIn) (rep : Loc) (dq : DFrac) (b : Batch)
   subst hm
   unfold repCSingle
   icases Hm with ⟨%sm, Hsm, %hsm⟩
-  iStructNamed Hx
   ihave %hpl := ownSlice_len _ _ _ $$ Hps
   have hl1 : xv.Messages'.len = W64 1 := by
     simp only [List.length_singleton] at hpl; word
@@ -143,8 +142,6 @@ theorem wp_result (i : KIn) (rep : Loc) (dq : DFrac) (b : Batch)
   simp only [hb, ite_true]
   wp_apply wp_load_slice_index xv.Messages' (sint.Z (W64 0)) [p] _ p (by simp) $$ [Hps] with Hps
   · iframe; ipureintro; rfl
-  iStructNamed Hsm
-  wp_auto
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len with %Hlen
   rw [hsm.2] at *
   wp_if_destruct

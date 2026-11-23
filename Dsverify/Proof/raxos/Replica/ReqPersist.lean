@@ -25,107 +25,107 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 
-theorem bigSepL_bupd' {A : Type} (Φ : Nat → A → IProp GF) (l : List A) :
-    ([∗list] k ↦ x ∈ l, |==> Φ k x) ⊢ |==> [∗list] k ↦ x ∈ l, Φ k x := by
+theorem bigSepL_fupd' {A : Type} (E : CoPset) (Φ : Nat → A → IProp GF) (l : List A) :
+    ([∗list] k ↦ x ∈ l, |={E}=> Φ k x) ⊢ |={E}=> [∗list] k ↦ x ∈ l, Φ k x := by
   induction l generalizing Φ with
   | nil => iintro _; imodintro; iapply BigSepL.bigSepL_nil.2; iempintro
   | cons x xs ih =>
     iintro H
-    icases (BigSepL.bigSepL_cons (Φ := fun k x => iprop(|==> Φ k x))).1 $$ H with ⟨H0, Hs⟩
+    icases (BigSepL.bigSepL_cons (Φ := fun k x => iprop(|={E}=> Φ k x))).1 $$ H with ⟨H0, Hs⟩
     imod H0 with H0
     imod ih (fun k y => Φ (k + 1) y) $$ Hs with Hs
     imodintro
     iapply (BigSepL.bigSepL_cons (Φ := Φ)).2
     iframe
 
-theorem repList_persist {A : Type} (rep : Loc → DFrac → A → IProp GF) (ps : List Loc) (dq : DFrac)
-    (xs : List A) (h : ∀ p x, rep p dq x ⊢ |==> rep p .discard x) :
-    repList rep ps dq xs ⊢ |==> repList rep ps .discard xs := by
+theorem repList_persist {A : Type} (E : CoPset) (rep : Loc → DFrac → A → IProp GF) (ps : List Loc)
+    (dq : DFrac) (xs : List A) (h : ∀ p x, rep p dq x ⊢ |={E}=> rep p .discard x) :
+    repList rep ps dq xs ⊢ |={E}=> repList rep ps .discard xs := by
   unfold repList
   iintro ⟨%Hl, H⟩
-  ihave H := BigSepL.bigSepL_mono (Ψ := fun i p => iprop(|==> ∃ x, ⌜xs[i]? = some x⌝ ∗
+  ihave H := BigSepL.bigSepL_mono (Ψ := fun i p => iprop(|={E}=> ∃ x, ⌜xs[i]? = some x⌝ ∗
     rep p .discard x)) (fun {i p} _ => by
       iintro ⟨%x, %Hx, Hr⟩
       imod h p x $$ Hr with Hr
       imodintro; iexists x; iframe # ∗; ipureintro; exact Hx) $$ H
-  imod bigSepL_bupd' _ _ $$ H with H
+  imod bigSepL_fupd' E _ _ $$ H with H
   imodintro
   iframe
   ipureintro; exact Hl
 
-theorem repPMSingle_persist (l : Loc) (dq : DFrac) (m : GoString) :
-    repPMSingle (GF := GF) l dq m ⊢ |==> repPMSingle l .discard m := by
+theorem repPMSingle_persist (E : CoPset) (l : Loc) (dq : DFrac) (m : GoString) :
+    repPMSingle (GF := GF) l dq m ⊢ |={E}=> repPMSingle l .discard m := by
   unfold repPMSingle
   iintro ⟨%x, Hx, %Hm⟩
-  ipersist Hx
+  imod ptPMSingle_persist E _ _ _ $$ Hx with #Hx
   imodintro; iexists x; iframe # ∗; ipureintro; exact Hm
 
-theorem repPMBatch_persist (l : Loc) (dq : DFrac) (b : Batch) :
-    repPMBatch (GF := GF) l dq b ⊢ |==> repPMBatch l .discard b := by
+theorem repPMBatch_persist (E : CoPset) (l : Loc) (dq : DFrac) (b : Batch) :
+    repPMBatch (GF := GF) l dq b ⊢ |={E}=> repPMBatch l .discard b := by
   unfold repPMBatch
   iintro ⟨%x, %ps, Hx, %Hu, %Hf, Hsl, Hl⟩
-  ipersist Hx
+  imod ptPMBatch_persist E _ _ _ $$ Hx with #Hx
   ipersist Hsl
-  imod repList_persist _ _ _ _ (fun p x => repPMSingle_persist (GF := GF) p dq x) $$ Hl with Hl
+  imod repList_persist E _ _ _ _ (fun p x => repPMSingle_persist (GF := GF) E p dq x) $$ Hl with Hl
   imodintro; iexists x, ps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
-theorem repPMSlot_persist (l : Loc) (dq : DFrac) (d : DSlot) :
-    repPMSlot (GF := GF) l dq d ⊢ |==> repPMSlot l .discard d := by
+theorem repPMSlot_persist (E : CoPset) (l : Loc) (dq : DFrac) (d : DSlot) :
+    repPMSlot (GF := GF) l dq d ⊢ |={E}=> repPMSlot l .discard d := by
   unfold repPMSlot
   iintro ⟨%x, Hx, %Hu, %Hf, Hsl⟩
-  ipersist Hx
+  imod ptPMSlot_persist E _ _ _ $$ Hx with #Hx
   ipersist Hsl
   imodintro; iexists x; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
-theorem repProp_persist (l : Loc) (dq : DFrac) (p : Prop') :
-    repProp (GF := GF) l dq p ⊢ |==> repProp l .discard p := by
+theorem repProp_persist (E : CoPset) (l : Loc) (dq : DFrac) (p : Prop') :
+    repProp (GF := GF) l dq p ⊢ |={E}=> repProp l .discard p := by
   unfold repProp
   iintro ⟨%x, %bps, Hx, %Hu, %Hf, Hids, Hsl, Hl⟩
-  ipersist Hx
+  imod ptProp_persist E _ _ _ $$ Hx with #Hx
   ipersist Hids
   ipersist Hsl
-  imod repList_persist _ _ _ _ (fun p x => repPMBatch_persist (GF := GF) p dq x) $$ Hl with Hl
+  imod repList_persist E _ _ _ _ (fun p x => repPMBatch_persist (GF := GF) E p dq x) $$ Hl with Hl
   imodintro; iexists x, bps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
-theorem repPM_persist (l : Loc) (dq : DFrac) (m : PM) :
-    repPM (GF := GF) l dq m ⊢ |==> repPM l .discard m := by
+theorem repPM_persist (E : CoPset) (l : Loc) (dq : DFrac) (m : PM) :
+    repPM (GF := GF) l dq m ⊢ |={E}=> repPM l .discard m := by
   unfold repPM
   iintro ⟨%x, %sps, Hx, %Hu, %Hf, Hp, Hsl, Hl⟩
-  ipersist Hx
+  imod ptPM_persist E _ _ _ $$ Hx with #Hx
   ipersist Hsl
-  imod repList_persist _ _ _ _ (fun p x => repPMSlot_persist (GF := GF) p dq x) $$ Hl with Hl
+  imod repList_persist E _ _ _ _ (fun p x => repPMSlot_persist (GF := GF) E p dq x) $$ Hl with Hl
   cases hp : m.p with
   | none =>
     rw [hp] at *
     imodintro; iexists x, sps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
   | some p =>
     simp only [hp]
-    imod repProp_persist _ _ _ $$ Hp with Hp
+    imod repProp_persist E _ _ _ $$ Hp with Hp
     imodintro; iexists x, sps; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
-theorem repDReq_persist (l : Loc) (dq : DFrac) (ids : List GoString) :
-    repDReq (GF := GF) l dq ids ⊢ |==> repDReq l .discard ids := by
+theorem repDReq_persist (E : CoPset) (l : Loc) (dq : DFrac) (ids : List GoString) :
+    repDReq (GF := GF) l dq ids ⊢ |={E}=> repDReq l .discard ids := by
   unfold repDReq
   iintro ⟨%x, Hx, %Hu, Hsl⟩
-  ipersist Hx
+  imod ptDReq_persist E _ _ _ $$ Hx with #Hx
   ipersist Hsl
   imodintro; iexists x; iframe # ∗; ipureintro; exact Hu
 
-theorem repDecSlot_persist (l : Loc) (dq : DFrac) (d : DSlot) :
-    repDecSlot (GF := GF) l dq d ⊢ |==> repDecSlot l .discard d := by
+theorem repDecSlot_persist (E : CoPset) (l : Loc) (dq : DFrac) (d : DSlot) :
+    repDecSlot (GF := GF) l dq d ⊢ |={E}=> repDecSlot l .discard d := by
   unfold repDecSlot
   iintro ⟨%x, Hx, %Hu, %Hf, Hsl⟩
-  ipersist Hx
+  imod ptDecSlot_persist E _ _ _ $$ Hx with #Hx
   ipersist Hsl
   imodintro; iexists x; iframe # ∗; ipureintro; exact ⟨Hu, Hf⟩
 
-theorem repDecs_persist (l : Loc) (dq : DFrac) (ds : List DSlot) :
-    repDecs (GF := GF) l dq ds ⊢ |==> repDecs l .discard ds := by
+theorem repDecs_persist (E : CoPset) (l : Loc) (dq : DFrac) (ds : List DSlot) :
+    repDecs (GF := GF) l dq ds ⊢ |={E}=> repDecs l .discard ds := by
   unfold repDecs
   iintro ⟨%x, %ps, Hx, %Hu, Hsl, Hl⟩
-  ipersist Hx
+  imod ptDecs_persist E _ _ _ $$ Hx with #Hx
   ipersist Hsl
-  imod repList_persist _ _ _ _ (fun p x => repDecSlot_persist (GF := GF) p dq x) $$ Hl with Hl
+  imod repList_persist E _ _ _ _ (fun p x => repDecSlot_persist (GF := GF) E p dq x) $$ Hl with Hl
   imodintro; iexists x, ps; iframe # ∗; ipureintro; exact Hu
 
 theorem repList_nil {A : Type} (rep : Loc → DFrac → A → IProp GF) (dq : DFrac) :

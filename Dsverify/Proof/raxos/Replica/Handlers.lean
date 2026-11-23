@@ -51,7 +51,7 @@ theorem wp_GRPCConnection_ESP (γ : QNames) (k : Nat) (gc re lin : Loc) (m : PM)
   wp_apply wp_HandleESP γ k re lin m $$ [$Hre $Hreq $Hfacts] as %resp ⟨%rr, #Hrr, Hrep⟩
   · ipureintro; exact Hok
   ihave %Hnn : ⌜resp ≠ null⌝ $$ []
-  · iunfold repRR at Hrr; icases Hrr with ⟨%x, Hx, -⟩; iapply typedPointsto_not_null $$ Hx
+  · iunfold repRR at Hrr; icases Hrr with ⟨%x, Hx, -⟩; iapply ptRR_not_null _ _ _ $$ Hx
   wp_if_destruct
   · exact absurd rfl Hnn
   iapply HΦ
@@ -105,7 +105,7 @@ theorem esp_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   ihave Hv := Hv $$ %(⟨m, Hmok, Hbs.symm⟩ : ∃ v0, pmOk v0 ∧ encPM v0 = bs)
   have Hvm := Hv0 m Hmok Hbs.symm
   subst Hvm
-  imod repPM_persist _ _ _ $$ Hv with #Hv
+  imod repPM_persist ⊤ _ _ _ $$ Hv with #Hv
   have Hts : go.typeSetContains (go.GoType.PointerType GRPCConnection.ty) ConsensusServer.ty =
     true := by go_type_set
   simp only [Hts, ↓reduceIte]

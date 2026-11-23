@@ -71,9 +71,16 @@ variable [sem : go.Semantics]
 def qpCodec : PbCodec GF := ⟨msg.marshalPre, msg.unmarshalPre⟩
 
 /-- **Hypothesis** `proto.Marshal(m)` of a message of the program's kinds: its encoding, or an
-error with `Ψ none` (the lab's `Marshal.spec` with its codec). Known false as stated (review #24,
-finding 2, open; notes/dsv-quepaxa.md, "Review #24"): `marshalPre`'s reps read the messages at any
-fraction, but protobuf-go stores each message's `sizeCache` and `state` while marshalling. -/
+error with `Ψ none` (the lab's `Marshal.spec` with its codec). The message's representation is
+given back: protobuf-go v1.36.12 writes only the runtime fields `state` (the generated
+`ProtoReflect`, `proto/encode.go:111`; `internal/impl/pointer_unsafe.go:207-208`) and `sizeCache`
+of each message (`internal/impl/encode.go:67,123,128`, via `proto/encode.go:183-190`'s `Size`
+and `codec_field.go:160,164` for sub-messages), atomically, and reads the others. A `msg.pt*`
+read with `dq = 1` owns both (the whole struct, existentially); one read with another `dq` keeps
+them in an invariant (`msg.pbRtN`), so the stores of concurrent marshals of a shared message are
+justified (review #24, finding 2). gRPC's codec (`encoding/proto/proto.go:51-64`: `proto.Size`,
+then `Marshal` with `UseCachedSize`) writes the same fields: `PbCodec.marshal` is this
+precondition. -/
 abbrev proto.Marshal.spec : Prop :=
   ∀ (m : GoInterface) (Ψ : Option (List w8) → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msg.marshalPre m Ψ }}
@@ -83,7 +90,9 @@ abbrev proto.Marshal.spec : Prop :=
       (⌜err ≠ interface.nil⌝ ∗ errAny err ∗ Ψ none) }}
 
 /-- **Hypothesis** `proto.Unmarshal(b, m)` into a fresh message of the program's kinds (the lab's
-`Unmarshal.spec` with its codec). -/
+`Unmarshal.spec` with its codec). The decoded message and its sub-messages are owned (`msg.decInto`:
+reps with `dq = 1`, whole structs): protobuf-go writes every field of the fresh message it fills,
+runtime fields included, and allocates the sub-messages. -/
 abbrev proto.Unmarshal.spec : Prop :=
   ∀ (b : GoSlice) (dq : DFrac) (bs : List w8) (m : GoInterface) (Ψ : Bool → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ b ↦*{dq} bs ∗
