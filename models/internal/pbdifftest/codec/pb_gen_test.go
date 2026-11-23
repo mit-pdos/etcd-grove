@@ -27,94 +27,108 @@ const pbUnknownNum protowire.Number = 31
 // pbNums: the listed field numbers (and pbUnknownNum), for mutations.
 var pbNums = []protowire.Number{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 2047, 2048, 536870911}
 
-// pbHasStrings: some codec message has a string field.
+// pbHasStrings: some codec message has a UTF-8-checked string field.
 const pbHasStrings = true
+
+// pbHasRequired: some codec message has a required field.
+const pbHasRequired = false
 
 // pbTypes: the codec's message types.
 func pbTypes() []pbType {
 	return []pbType{
-		{name: "pb.Args", new: func() proto.Message { return &pb.Args{} },
+		{name: "pb.Args", new: func() proto.Message { return &pb.Args{} }, req: false, init: false,
 			fields: []pbField{
-				{"A", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"B", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Id", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"Op", 4, protoreflect.EnumKind, false, false, string(pb.Op(0).Descriptor().FullName()), pbTypeOf[pb.Op]()},
-				{"Tag", 5, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
-				{"Blob", 6, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Flag", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"Xs", 8, protoreflect.Int64Kind, true, true, "", pbTypeOf[[]int64]()},
-				{"Names", 9, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
-				{"Inner", 10, protoreflect.MessageKind, false, false, pbFullName(&pb.Inner{}), pbTypeOf[*pb.Inner]()},
-				{"Inners", 11, protoreflect.MessageKind, true, false, pbFullName(&pb.Inner{}), pbTypeOf[[]*pb.Inner]()},
-				{"Small", 12, protoreflect.Int32Kind, false, false, "", pbTypeOf[int32]()},
-				{"Usmall", 13, protoreflect.Uint32Kind, false, false, "", pbTypeOf[uint32]()},
-				{"Big", 536870911, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"A", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"B", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Id", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"Op", 4, protoreflect.EnumKind, false, false, string(pb.Op(0).Descriptor().FullName()), pbTypeOf[pb.Op](), false, false, true, "", "", nil},
+				{"Tag", 5, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Blob", 6, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Flag", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"Xs", 8, protoreflect.Int64Kind, true, true, "", pbTypeOf[[]int64](), false, false, true, "", "", nil},
+				{"Names", 9, protoreflect.StringKind, true, false, "", pbTypeOf[[]string](), false, false, true, "", "", nil},
+				{"Inner", 10, protoreflect.MessageKind, false, false, pbFullName(&pb.Inner{}), pbTypeOf[*pb.Inner](), false, false, true, "", "", nil},
+				{"Inners", 11, protoreflect.MessageKind, true, false, pbFullName(&pb.Inner{}), pbTypeOf[[]*pb.Inner](), false, false, true, "", "", nil},
+				{"Small", 12, protoreflect.Int32Kind, false, false, "", pbTypeOf[int32](), false, false, true, "", "", nil},
+				{"Usmall", 13, protoreflect.Uint32Kind, false, false, "", pbTypeOf[uint32](), false, false, true, "", "", nil},
+				{"Big", 536870911, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "pb.Empty", new: func() proto.Message { return &pb.Empty{} },
+		{name: "pb.Empty", new: func() proto.Message { return &pb.Empty{} }, req: false, init: false,
 			fields: []pbField{},
 		},
-		{name: "pb.Inner", new: func() proto.Message { return &pb.Inner{} },
+		{name: "pb.Inner", new: func() proto.Message { return &pb.Inner{} }, req: false, init: false,
 			nest:     []string{"Sub"},
 			nestNums: []protowire.Number{3},
+			nestWrap: []reflect.Type{nil},
 			fields: []pbField{
-				{"K", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
-				{"V", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Sub", 3, protoreflect.MessageKind, false, false, pbFullName(&pb.Inner{}), pbTypeOf[*pb.Inner]()},
+				{"K", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"V", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Sub", 3, protoreflect.MessageKind, false, false, pbFullName(&pb.Inner{}), pbTypeOf[*pb.Inner](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "pb.Reply", new: func() proto.Message { return &pb.Reply{} },
+		{name: "pb.Reply", new: func() proto.Message { return &pb.Reply{} }, req: false, init: false,
 			fields: []pbField{
-				{"C", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Echo", 2, protoreflect.MessageKind, false, false, pbFullName(&pb.Args{}), pbTypeOf[*pb.Args]()},
+				{"C", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Echo", 2, protoreflect.MessageKind, false, false, pbFullName(&pb.Args{}), pbTypeOf[*pb.Args](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "xpb.Kinds", new: func() proto.Message { return &xpb.Kinds{} },
+		{name: "xpb.Kinds", new: func() proto.Message { return &xpb.Kinds{} }, req: false, init: false,
 			nest:     []string{"M", "Back"},
 			nestNums: []protowire.Number{15, 1},
+			nestWrap: []reflect.Type{nil, nil},
 			fields: []pbField{
-				{"I32", 1, protoreflect.Int32Kind, false, false, "", pbTypeOf[int32]()},
-				{"I64", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"U32", 3, protoreflect.Uint32Kind, false, false, "", pbTypeOf[uint32]()},
-				{"U64", 4, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"S32", 5, protoreflect.Sint32Kind, false, false, "", pbTypeOf[int32]()},
-				{"S64", 6, protoreflect.Sint64Kind, false, false, "", pbTypeOf[int64]()},
-				{"F32", 7, protoreflect.Fixed32Kind, false, false, "", pbTypeOf[uint32]()},
-				{"F64", 8, protoreflect.Fixed64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"Sf32", 9, protoreflect.Sfixed32Kind, false, false, "", pbTypeOf[int32]()},
-				{"Sf64", 10, protoreflect.Sfixed64Kind, false, false, "", pbTypeOf[int64]()},
-				{"B", 11, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"S", 12, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
-				{"By", 13, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"E", 14, protoreflect.EnumKind, false, false, string(xpb.Color(0).Descriptor().FullName()), pbTypeOf[xpb.Color]()},
-				{"M", 15, protoreflect.MessageKind, false, false, pbFullName(&xpb.Other{}), pbTypeOf[*xpb.Other]()},
-				{"Ri32", 16, protoreflect.Int32Kind, true, true, "", pbTypeOf[[]int32]()},
-				{"Ri64", 17, protoreflect.Int64Kind, true, true, "", pbTypeOf[[]int64]()},
-				{"Ru32", 18, protoreflect.Uint32Kind, true, true, "", pbTypeOf[[]uint32]()},
-				{"Ru64", 19, protoreflect.Uint64Kind, true, true, "", pbTypeOf[[]uint64]()},
-				{"Rs32", 20, protoreflect.Sint32Kind, true, true, "", pbTypeOf[[]int32]()},
-				{"Rs64", 21, protoreflect.Sint64Kind, true, true, "", pbTypeOf[[]int64]()},
-				{"Rf32", 22, protoreflect.Fixed32Kind, true, true, "", pbTypeOf[[]uint32]()},
-				{"Rf64", 23, protoreflect.Fixed64Kind, true, true, "", pbTypeOf[[]uint64]()},
-				{"Rsf32", 24, protoreflect.Sfixed32Kind, true, true, "", pbTypeOf[[]int32]()},
-				{"Rsf64", 25, protoreflect.Sfixed64Kind, true, true, "", pbTypeOf[[]int64]()},
-				{"Rb", 26, protoreflect.BoolKind, true, true, "", pbTypeOf[[]bool]()},
-				{"Rs", 27, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
-				{"Rby", 28, protoreflect.BytesKind, true, false, "", pbTypeOf[[][]byte]()},
-				{"Re", 29, protoreflect.EnumKind, true, true, string(xpb.Color(0).Descriptor().FullName()), pbTypeOf[[]xpb.Color]()},
-				{"Rm", 30, protoreflect.MessageKind, true, false, pbFullName(&xpb.Other{}), pbTypeOf[[]*xpb.Other]()},
+				{"I32", 1, protoreflect.Int32Kind, false, false, "", pbTypeOf[int32](), false, false, true, "", "", nil},
+				{"I64", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"U32", 3, protoreflect.Uint32Kind, false, false, "", pbTypeOf[uint32](), false, false, true, "", "", nil},
+				{"U64", 4, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"S32", 5, protoreflect.Sint32Kind, false, false, "", pbTypeOf[int32](), false, false, true, "", "", nil},
+				{"S64", 6, protoreflect.Sint64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"F32", 7, protoreflect.Fixed32Kind, false, false, "", pbTypeOf[uint32](), false, false, true, "", "", nil},
+				{"F64", 8, protoreflect.Fixed64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"Sf32", 9, protoreflect.Sfixed32Kind, false, false, "", pbTypeOf[int32](), false, false, true, "", "", nil},
+				{"Sf64", 10, protoreflect.Sfixed64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"B", 11, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"S", 12, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"By", 13, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"E", 14, protoreflect.EnumKind, false, false, string(xpb.Color(0).Descriptor().FullName()), pbTypeOf[xpb.Color](), false, false, true, "", "", nil},
+				{"M", 15, protoreflect.MessageKind, false, false, pbFullName(&xpb.Other{}), pbTypeOf[*xpb.Other](), false, false, true, "", "", nil},
+				{"Ri32", 16, protoreflect.Int32Kind, true, true, "", pbTypeOf[[]int32](), false, false, true, "", "", nil},
+				{"Ri64", 17, protoreflect.Int64Kind, true, true, "", pbTypeOf[[]int64](), false, false, true, "", "", nil},
+				{"Ru32", 18, protoreflect.Uint32Kind, true, true, "", pbTypeOf[[]uint32](), false, false, true, "", "", nil},
+				{"Ru64", 19, protoreflect.Uint64Kind, true, true, "", pbTypeOf[[]uint64](), false, false, true, "", "", nil},
+				{"Rs32", 20, protoreflect.Sint32Kind, true, true, "", pbTypeOf[[]int32](), false, false, true, "", "", nil},
+				{"Rs64", 21, protoreflect.Sint64Kind, true, true, "", pbTypeOf[[]int64](), false, false, true, "", "", nil},
+				{"Rf32", 22, protoreflect.Fixed32Kind, true, true, "", pbTypeOf[[]uint32](), false, false, true, "", "", nil},
+				{"Rf64", 23, protoreflect.Fixed64Kind, true, true, "", pbTypeOf[[]uint64](), false, false, true, "", "", nil},
+				{"Rsf32", 24, protoreflect.Sfixed32Kind, true, true, "", pbTypeOf[[]int32](), false, false, true, "", "", nil},
+				{"Rsf64", 25, protoreflect.Sfixed64Kind, true, true, "", pbTypeOf[[]int64](), false, false, true, "", "", nil},
+				{"Rb", 26, protoreflect.BoolKind, true, true, "", pbTypeOf[[]bool](), false, false, true, "", "", nil},
+				{"Rs", 27, protoreflect.StringKind, true, false, "", pbTypeOf[[]string](), false, false, true, "", "", nil},
+				{"Rby", 28, protoreflect.BytesKind, true, false, "", pbTypeOf[[][]byte](), false, false, true, "", "", nil},
+				{"Re", 29, protoreflect.EnumKind, true, true, string(xpb.Color(0).Descriptor().FullName()), pbTypeOf[[]xpb.Color](), false, false, true, "", "", nil},
+				{"Rm", 30, protoreflect.MessageKind, true, false, pbFullName(&xpb.Other{}), pbTypeOf[[]*xpb.Other](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "xpb.Other", new: func() proto.Message { return &xpb.Other{} },
+		{name: "xpb.Other", new: func() proto.Message { return &xpb.Other{} }, req: false, init: false,
 			nest:     []string{"Back", "M"},
 			nestNums: []protowire.Number{1, 15},
+			nestWrap: []reflect.Type{nil, nil},
 			fields: []pbField{
-				{"Back", 1, protoreflect.MessageKind, false, false, pbFullName(&xpb.Kinds{}), pbTypeOf[*xpb.Kinds]()},
-				{"N", 2047, protoreflect.Sint32Kind, false, false, "", pbTypeOf[int32]()},
-				{"W", 2048, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
+				{"Back", 1, protoreflect.MessageKind, false, false, pbFullName(&xpb.Kinds{}), pbTypeOf[*xpb.Kinds](), false, false, true, "", "", nil},
+				{"N", 2047, protoreflect.Sint32Kind, false, false, "", pbTypeOf[int32](), false, false, true, "", "", nil},
+				{"W", 2048, protoreflect.StringKind, true, false, "", pbTypeOf[[]string](), false, false, true, "", "", nil},
 			},
 		},
 	}
+}
+
+// pbOneofWrappers: each oneof holder's interface type, with its wrapper types.
+var pbOneofWrappers = pbOneofWrappersOf()
+
+func pbOneofWrappersOf() map[reflect.Type][]reflect.Type {
+	w := map[reflect.Type][]reflect.Type{}
+	return w
 }
 
 // pbType: a message type of the codec, with its fields as the generator derived them.
@@ -123,9 +137,13 @@ type pbType struct {
 	new    func() proto.Message
 	fields []pbField
 	// nest: the Go field names and numbers of a path of message fields from the type back to
-	// itself (nil: not recursive)
+	// itself (nil: not recursive); nestWrap: per step, the oneof wrapper type (*W) or nil
 	nest     []string
 	nestNums []protowire.Number
+	nestWrap []reflect.Type
+	// req: the type has a required field; init: it reaches one (Marshal and Unmarshal check
+	// them)
+	req, init bool
 }
 
 type pbField struct {
@@ -136,6 +154,12 @@ type pbField struct {
 	packed bool
 	ref    string // a message or enum field's type's full name
 	goType reflect.Type
+	pres   bool         // explicit presence (not a message, not in a oneof)
+	req    bool         // required
+	utf8   bool         // a string field whose UTF-8 is checked
+	oneof  string       // the (non-synthetic) oneof's name
+	holder string       // a oneof member's holder field
+	wrap   reflect.Type // a oneof member's wrapper type (*W); goName is W's field
 }
 
 func pbFullName(m proto.Message) string {
@@ -144,6 +168,15 @@ func pbFullName(m proto.Message) string {
 
 func pbTypeOf[T any]() reflect.Type {
 	return reflect.TypeOf((*T)(nil)).Elem()
+}
+
+// pbHolderType: the type of T's struct field name (a oneof's holder).
+func pbHolderType[T any](name string) reflect.Type {
+	f, ok := reflect.TypeOf((*T)(nil)).Elem().FieldByName(name)
+	if !ok {
+		panic("no field " + name)
+	}
+	return f.Type
 }
 
 func pbNil(m proto.Message) proto.Message {
@@ -173,11 +206,11 @@ func TestProtoShapes(t *testing.T) {
 			t.Errorf("%s: no descriptor", tp.name)
 			continue
 		}
-		if md.ParentFile().Syntax() != protoreflect.Proto3 {
-			t.Errorf("%s: syntax %v, not proto3 (outside the codec)", tp.name, md.ParentFile().Syntax())
+		if sx := md.ParentFile().Syntax(); sx != protoreflect.Proto3 && sx != protoreflect.Proto2 {
+			t.Errorf("%s: syntax %v, not proto2 or proto3 (outside the codec)", tp.name, sx)
 		}
-		if md.Oneofs().Len() != 0 || md.ExtensionRanges().Len() != 0 {
-			t.Errorf("%s: has oneofs or extension ranges (outside the codec)", tp.name)
+		if md.ExtensionRanges().Len() != 0 {
+			t.Errorf("%s: has extension ranges (outside the codec)", tp.name)
 		}
 		if md.Fields().Len() != len(tp.fields) {
 			t.Errorf("%s: the message has %d fields, the generator derived %d", tp.name, md.Fields().Len(), len(tp.fields))
@@ -189,8 +222,25 @@ func TestProtoShapes(t *testing.T) {
 				exported++
 			}
 		}
-		if exported != len(tp.fields) {
-			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d", tp.name, exported, len(tp.fields))
+		holders := map[string]bool{}
+		plain := 0
+		for _, f := range tp.fields {
+			if f.oneof != "" {
+				holders[f.holder] = true
+			} else {
+				plain++
+			}
+		}
+		if exported != plain+len(holders) {
+			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d fields and %d oneofs",
+				tp.name, exported, plain, len(holders))
+		}
+		req := false
+		for i := 0; i < md.Fields().Len(); i++ {
+			req = req || md.Fields().Get(i).Cardinality() == protoreflect.Required
+		}
+		if req != tp.req {
+			t.Errorf("%s: required fields %v, the generator says %v", tp.name, req, tp.req)
 		}
 		for _, f := range tp.fields {
 			fd := md.Fields().ByNumber(f.num)
@@ -202,8 +252,21 @@ func TestProtoShapes(t *testing.T) {
 				t.Errorf("%s.%s (%d): kind %v, list %v, map %v, packed %v; the generator says %v, %v, false, %v",
 					tp.name, f.goName, f.num, fd.Kind(), fd.IsList(), fd.IsMap(), fd.IsPacked(), f.kind, f.rep, f.packed)
 			}
-			if fd.ContainingOneof() != nil || fd.HasPresence() != (!f.rep && f.kind == protoreflect.MessageKind) {
-				t.Errorf("%s.%s: explicit presence or a oneof (outside the codec)", tp.name, f.goName)
+			od := fd.ContainingOneof()
+			if od != nil && od.IsSynthetic() {
+				od = nil
+			}
+			oneof := ""
+			if od != nil {
+				oneof = string(od.Name())
+			}
+			pres := fd.HasPresence() && f.kind != protoreflect.MessageKind && od == nil
+			if oneof != f.oneof || pres != f.pres || (fd.Cardinality() == protoreflect.Required) != f.req {
+				t.Errorf("%s.%s: oneof %q, presence %v, required %v; the generator says %q, %v, %v", tp.name,
+					f.goName, oneof, pres, fd.Cardinality() == protoreflect.Required, f.oneof, f.pres, f.req)
+			}
+			if fd.Kind() == protoreflect.StringKind && f.utf8 != (fd.Syntax() == protoreflect.Proto3) {
+				t.Errorf("%s.%s: a %v string, the generator says UTF-8 checked %v", tp.name, f.goName, fd.Syntax(), f.utf8)
 			}
 			ref := ""
 			if fd.Message() != nil {
@@ -214,7 +277,18 @@ func TestProtoShapes(t *testing.T) {
 			if ref != f.ref {
 				t.Errorf("%s.%s: type %q, the generator says %q", tp.name, f.goName, ref, f.ref)
 			}
-			sf, ok := st.FieldByName(f.goName)
+			ft := st
+			if f.oneof != "" {
+				hf, ok := st.FieldByName(f.holder)
+				if !ok || hf.Tag.Get("protobuf_oneof") != f.oneof || hf.Type.Kind() != reflect.Interface ||
+					!f.wrap.Implements(hf.Type) {
+					t.Errorf("%s.%s: holder %s (%v, tag %q) of oneof %s, wrapper %v", tp.name, f.goName, f.holder,
+						hf.Type, hf.Tag.Get("protobuf_oneof"), f.oneof, f.wrap)
+					continue
+				}
+				ft = f.wrap.Elem()
+			}
+			sf, ok := ft.FieldByName(f.goName)
 			if !ok || sf.Type != f.goType || pbTagNumber(sf.Tag.Get("protobuf")) != f.num {
 				t.Errorf("%s.%s: Go field %v (tag %q), the generator says %v number %d", tp.name, f.goName,
 					sf.Type, sf.Tag.Get("protobuf"), f.goType, f.num)
@@ -294,12 +368,35 @@ func pbRandValue(r *rand.Rand, f reflect.Value, depth int) {
 	case reflect.String:
 		f.SetString(pbRndString(r))
 	case reflect.Pointer:
+		if f.Type().Elem().Kind() != reflect.Struct { // explicit presence: often a zero value
+			p := reflect.New(f.Type().Elem())
+			if r.Intn(3) != 0 {
+				pbRandValue(r, p.Elem(), depth)
+			}
+			f.Set(p)
+			return
+		}
 		if depth >= 5 {
 			return
 		}
 		p := reflect.New(f.Type().Elem())
 		if r.Intn(4) != 0 {
 			pbRandFill(r, p.Elem(), depth+1)
+		}
+		f.Set(p)
+	case reflect.Interface: // a oneof: one of its wrappers (rarely a typed nil one)
+		ws := pbOneofWrappers[f.Type()]
+		if len(ws) == 0 {
+			panic("pbRandValue: no wrappers for " + f.Type().String())
+		}
+		w := ws[r.Intn(len(ws))]
+		if r.Intn(10) == 0 {
+			f.Set(reflect.Zero(w))
+			return
+		}
+		p := reflect.New(w.Elem())
+		if r.Intn(5) != 0 {
+			pbRandValue(r, p.Elem().Field(0), depth)
 		}
 		f.Set(p)
 	case reflect.Slice:
@@ -344,7 +441,12 @@ func pbChain(tp pbType, d int) proto.Message {
 	for i := 0; i < d; i++ {
 		f := cur.FieldByName(tp.nest[i%len(tp.nest)])
 		var child reflect.Value
-		if f.Kind() == reflect.Pointer {
+		if w := tp.nestWrap[i%len(tp.nest)]; w != nil {
+			wv := reflect.New(w.Elem())
+			child = reflect.New(wv.Elem().Field(0).Type().Elem())
+			wv.Elem().Field(0).Set(child)
+			f.Set(wv)
+		} else if f.Kind() == reflect.Pointer {
 			child = reflect.New(f.Type().Elem())
 			f.Set(child)
 		} else {
@@ -364,6 +466,11 @@ func pbEq(a, b reflect.Value) bool {
 			return a.IsNil() == b.IsNil()
 		}
 		return pbEq(a.Elem(), b.Elem())
+	case reflect.Interface:
+		if a.IsNil() || b.IsNil() {
+			return a.IsNil() == b.IsNil()
+		}
+		return a.Elem().Type() == b.Elem().Type() && pbEq(a.Elem(), b.Elem())
 	case reflect.Struct:
 		for i := 0; i < a.NumField(); i++ {
 			if a.Type().Field(i).IsExported() && !pbEq(a.Field(i), b.Field(i)) {
@@ -423,13 +530,14 @@ func TestProtoMarshal(t *testing.T) {
 			}
 		}
 	}
-	if pbHasStrings && pbStats.marshalErrs == 0 {
-		t.Fatalf("no Marshal error (invalid UTF-8) seen")
+	if (pbHasStrings || pbHasRequired) && pbStats.marshalErrs == 0 {
+		t.Fatalf("no Marshal error (invalid UTF-8, a required field not set) seen")
 	}
 	t.Logf("%d encodings, %d errors", pbStats.marshalOK, pbStats.marshalErrs)
 }
 
-// pbSamples: real encodings of random values of every type of the codec.
+// pbSamples: real encodings of random values of every type of the codec (a third of those of
+// types with required fields marshaled with AllowPartial: missing some).
 func pbSamples(r *rand.Rand, n int) [][]byte {
 	types := pbTypes()
 	var out [][]byte
@@ -438,6 +546,9 @@ func pbSamples(r *rand.Rand, n int) [][]byte {
 		m := tp.new()
 		pbRandFill(r, reflect.ValueOf(m).Elem(), 0)
 		b, err := proto.Marshal(m)
+		if err != nil && tp.init && r.Intn(3) == 0 {
+			b, err = proto.MarshalOptions{AllowPartial: true}.Marshal(m)
+		}
 		if err == nil {
 			out = append(out, b)
 		}
@@ -896,9 +1007,11 @@ func pbNest(nums []protowire.Number, k int, inner []byte) []byte {
 func TestProtoDepth(t *testing.T) {
 	r := rand.New(rand.NewSource(4))
 	for _, tp := range pbTypes() {
+		// (the expected outcomes below hold for messages that need no required field; the
+		// codec is compared with the real one in every case)
 		for _, d := range []int{1, 2, 10001, 10002} {
 			ok := pbCheckUnmarshal(t, r, tp, pbGroup(pbUnknownNum, d))
-			if ok != (d <= 10001) {
+			if ok != (d <= 10001) && !tp.req {
 				t.Fatalf("%s: a group nested %d deep: real %v", tp.name, d, ok)
 			}
 		}
@@ -907,13 +1020,14 @@ func TestProtoDepth(t *testing.T) {
 		}
 		for _, k := range []int{1, 2, 9999, 10000, 10001} {
 			ok := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, k, nil))
-			if ok != (k < 10000) {
+			if ok != (k < 10000) && !tp.init {
 				t.Fatalf("%s: nested %d deep: real %v", tp.name, k, ok)
 			}
 		}
 		// groups at protowire's limit inside messages at the recursion limit
-		if !pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10001))) ||
-			pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10002))) {
+		ok1 := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10001)))
+		ok2 := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10002)))
+		if (!ok1 || ok2) && !tp.init {
 			t.Fatalf("%s: groups inside deep nesting: the real one's limits are not as expected", tp.name)
 		}
 	}

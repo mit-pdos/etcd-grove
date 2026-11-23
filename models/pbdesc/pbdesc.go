@@ -25,6 +25,7 @@ import (
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/runtime/protoimpl"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -54,9 +55,30 @@ type Message struct {
 	// Go: the registered Go type (nil if the message has no Go type registered).
 	Go     *GoType `json:"go"`
 	Fields []Field `json:"fields"`
-	// GoExtra: exported fields of the Go struct that are no descriptor field's (a oneof's
-	// holder, or a struct protoc-gen-go did not generate).
+	// GoExtra: exported fields of the Go struct that are no descriptor field's and no
+	// (non-synthetic) oneof's holder (a struct protoc-gen-go did not generate, or of another API).
 	GoExtra []string `json:"go_extra"`
+	// OneofDecls: the message's oneofs in declaration order (the descriptor's Oneofs().Get(i)),
+	// synthetic ones (proto3 `optional`) included.
+	OneofDecls []Oneof `json:"oneof_decls"`
+	// GoHidden: struct fields (exported or not) that protobuf-go's struct reader
+	// (internal/impl/message.go, structInfo) takes as presence or lazy state: "XXX_presence",
+	// "lazyFields", "XXX_lazyUnmarshalInfo" (the opaque and hybrid APIs).
+	GoHidden []string `json:"go_hidden"`
+	// LegacyOneofFuncs: the Go type has an XXX_OneofFuncs or XXX_OneofWrappers method (APIv1),
+	// whose wrappers protobuf-go takes instead of the registered ones (message.go, structInfo).
+	LegacyOneofFuncs bool `json:"legacy_oneof_funcs"`
+}
+
+// Oneof is a oneof's descriptor facts and its Go holder field.
+type Oneof struct {
+	Name      string `json:"name"`
+	Synthetic bool   `json:"synthetic"`
+	// GoField: the Go struct field tagged `protobuf_oneof:"<name>"` ("" if none); GoType: its type
+	// (reflect's String); GoKind: its reflect.Kind ("interface" for protoc-gen-go's holders).
+	GoField string `json:"go_field"`
+	GoType  string `json:"go_type"`
+	GoKind  string `json:"go_kind"`
 }
 
 // Field is a field's descriptor facts and its Go struct field.
@@ -85,6 +107,12 @@ type Field struct {
 	GoField string  `json:"go_field"`
 	GoType  string  `json:"go_type"`
 	GoElem  *GoType `json:"go_elem,omitempty"`
+	// GoWrapper: for a field of a non-synthetic oneof, the oneof wrapper type (the registered
+	// MessageInfo's OneofWrappers element *W whose one field's protobuf tag has this number, as
+	// protobuf-go's structInfo maps them); GoField, GoType and GoElem are then W's field's. Set
+	// only if W is a struct of exactly one exported field and *W implements the holder's
+	// interface type.
+	GoWrapper *GoType `json:"go_wrapper,omitempty"`
 }
 
 // Enum is an enum type's descriptor facts and its Go type.
@@ -144,11 +172,15 @@ func message(md protoreflect.MessageDescriptor) Message {
 		Oneofs:          md.Oneofs().Len(),
 		Fields:          []Field{},
 		GoExtra:         []string{},
+		OneofDecls:      []Oneof{},
+		GoHidden:        []string{},
 	}
 	if o, ok := md.Options().(*descriptorpb.MessageOptions); ok && o != nil {
 		m.MessageSet = o.GetMessageSetWireFormat()
 	}
 	byNum := map[int]reflect.StructField{}
+	holders := map[string]reflect.StructField{} // oneof name -> holder field
+	wrappers := map[int]reflect.Type{}          // field number -> wrapper struct type W
 	if mt, err := protoregistry.GlobalTypes.FindMessageByName(md.FullName()); err == nil {
 		t := reflect.TypeOf(mt.Zero().Interface())
 		m.Go = goTypeOf(t)
@@ -156,8 +188,18 @@ func message(md protoreflect.MessageDescriptor) Message {
 			st := t.Elem()
 			for i := 0; i < st.NumField(); i++ {
 				sf := st.Field(i)
+				switch sf.Name {
+				case "XXX_presence", "lazyFields", "XXX_lazyUnmarshalInfo":
+					m.GoHidden = append(m.GoHidden, sf.Name)
+				}
 				if !sf.IsExported() {
 					continue
+				}
+				if on := sf.Tag.Get("protobuf_oneof"); on != "" && sf.Tag.Get("protobuf") == "" {
+					if od := md.Oneofs().ByName(protoreflect.Name(on)); od != nil && !od.IsSynthetic() {
+						holders[on] = sf
+						continue
+					}
 				}
 				n := tagNumber(sf.Tag.Get("protobuf"))
 				if n < 0 || md.Fields().ByNumber(protoreflect.FieldNumber(n)) == nil {
@@ -166,7 +208,32 @@ func message(md protoreflect.MessageDescriptor) Message {
 				}
 				byNum[n] = sf
 			}
+			for _, name := range []string{"XXX_OneofFuncs", "XXX_OneofWrappers"} {
+				if _, ok := t.MethodByName(name); ok {
+					m.LegacyOneofFuncs = true
+				}
+			}
 		}
+		if mi, ok := mt.(*protoimpl.MessageInfo); ok {
+			for _, w := range mi.OneofWrappers {
+				wt := reflect.TypeOf(w)
+				if wt == nil || wt.Kind() != reflect.Pointer || wt.Elem().Kind() != reflect.Struct ||
+					wt.Elem().NumField() != 1 || !wt.Elem().Field(0).IsExported() {
+					continue
+				}
+				if n := tagNumber(wt.Elem().Field(0).Tag.Get("protobuf")); n >= 0 {
+					wrappers[n] = wt.Elem()
+				}
+			}
+		}
+	}
+	for i := 0; i < md.Oneofs().Len(); i++ {
+		od := md.Oneofs().Get(i)
+		o := Oneof{Name: string(od.Name()), Synthetic: od.IsSynthetic()}
+		if sf, ok := holders[o.Name]; ok {
+			o.GoField, o.GoType, o.GoKind = sf.Name, sf.Type.String(), sf.Type.Kind().String()
+		}
+		m.OneofDecls = append(m.OneofDecls, o)
 	}
 	for i := 0; i < md.Fields().Len(); i++ {
 		fd := md.Fields().Get(i)
@@ -195,7 +262,20 @@ func message(md protoreflect.MessageDescriptor) Message {
 		if fd.Enum() != nil {
 			f.Enum = string(fd.Enum().FullName())
 		}
-		if sf, ok := byNum[f.Number]; ok {
+		if o := fd.ContainingOneof(); o != nil && !o.IsSynthetic() {
+			// a oneof member: its Go field is its wrapper's
+			hf, hok := holders[f.Oneof]
+			if w, ok := wrappers[f.Number]; ok && hok && hf.Type.Kind() == reflect.Interface &&
+				reflect.PointerTo(w).Implements(hf.Type) {
+				sf := w.Field(0)
+				f.GoWrapper = goTypeOf(w)
+				f.GoField = sf.Name
+				f.GoType = sf.Type.String()
+				if f.Message != "" || f.Enum != "" {
+					f.GoElem = goTypeOf(sf.Type)
+				}
+			}
+		} else if sf, ok := byNum[f.Number]; ok {
 			f.GoField = sf.Name
 			f.GoType = sf.Type.String()
 			if f.Message != "" || f.Enum != "" {

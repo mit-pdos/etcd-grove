@@ -41936,3 +41936,40 @@ contract chooses the ghost table, so naming three more buckets in it constrains 
 **Why not** derive `P.has` from the data (`D.lookup n = some _`): the table is a free parameter of `KBReal`, and
 the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
 by #30 at the time).
+
+## pbgen's subset extended to proto2 and oneofs (2026-11-23 · proving session 2, #18, offered by #24 · branch `ps2-pbgen-proto2/2026-11-23`, not landed: for the user's review)
+
+**Context.** pbgen (`models/protobuf/`, "Trusted generated code: the generator is the trusted
+artifact", above) accepted proto3 messages only. Every raftpb and walpb type (proto2: explicit
+presence, closed enums, unpacked repeated fields) and etcd's transaction and raft-entry requests
+(oneofs: `Compare.target_union`, `RequestOp.request`, `ResponseOp.response`) were refused, which
+blocks replacing the per-type protobuf axioms of raft, the WAL and the apply path by generated
+codecs (`/shared/tmp/ps2/pbgen/triage.md`, item E2 (b) of `notes/dsverify-net-port-plan.md` phase 5).
+
+**Decision.** The trusted core now accepts proto2 and proto3 files with explicit presence
+(proto2 `optional`/`required`, proto3 `optional`), required fields (Marshal and Unmarshal check
+initialization as protobuf-go's `checkInitialized`), explicit defaults (wire-irrelevant: only the
+getters read them), closed enums (decoded as open, as protobuf-go does), packed and unpacked
+repeated scalars per the descriptor, and oneofs (marshaled after the other fields, in declaration
+order, as protobuf-go's `LegacyFieldOrder`; the last member decoded wins; a member decoded again
+goes into the wrapper already there, a message merging into its message). Each rule is cited to protobuf-go v1.36.12 in `pbgen_core.py`'s doc. `pbdesc`
+(trusted with the core) dumps three new facts: each oneof's holder field, each member's wrapper
+type (from the registered `MessageInfo.OneofWrappers`, as protobuf-go's `structInfo`), and the
+presence or lazy state fields of the opaque and hybrid APIs (refused). Still refused: editions,
+maps, groups, float/double, extensions, MessageSet, weak and lazy fields.
+
+**Two new refusals where protobuf-go is not what its descriptors say** (both found while testing,
+shown on protobuf-go by `models/internal/pbgenrand`'s `TestProtobufQuirks`): a message type that
+reaches required fields only through a cycle of two or more message types (`needsInitCheck`'s cache
+keeps a false for it, depending on which type the program uses first, so its checks are skipped
+nondeterministically); a oneof member other than the oneof's first declared one, of a type with
+required fields (Unmarshal's fast path never consults it: a missing required field there passes
+Unmarshal and fails Marshal). The emitted code could reproduce the second, not the first (it
+depends on the program's history); refusing both keeps the core's required-field check one rule.
+Neither arises in etcd (no etcd message has a required field).
+
+**Evidence.** `pbgenrand`'s random schemas now mix proto2 and proto3 files with all of the above
+(their constructs counted in the test's log), `TestRefusals` has one schema per remaining refusal
+and checks the newly accepted constructs are not refused, `examples/models/pbetcd` covers raftpb,
+walpb and the oneof requests (its generated regression test), and the new section of
+`notes/axiom-review/pbgen.md` is the review.
