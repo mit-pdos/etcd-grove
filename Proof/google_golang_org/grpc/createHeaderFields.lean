@@ -43,6 +43,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : google_golang_org.grpc.Assumptions]
 
+set_option hygiene false in
+/-- One `headerFields = append(headerFields, headerField{...})`: the one-element literal, then the
+append, on the slice `Hhf` with capacity `Hcap`. -/
+local macro "append_hf" : tactic => `(tactic| (
+  (try wp_auto)
+  wp_bind (App (Val (GoInstruction (CompositeLiteral
+    (go.SliceType google_golang_org.grpc.headerField.ty)))) (Val (LiteralValueV _)))
+  iapply wp_slice_literal (V := google_golang_org.grpc.headerField)
+    (t := google_golang_org.grpc.headerField.ty) [_]
+  wp_auto
+  isplitl []
+  · ipureintro; rfl
+  iintro %lsl ⟨Hlsl, -⟩
+  wp_apply wp_slice_append (V := google_golang_org.grpc.headerField) $$ [Hhf Hcap Hlsl]
+    as %hsl ⟨Hhf, Hcap, -⟩
+  · isplitl [Hhf]
+    · iexact Hhf
+    isplitl [Hcap]
+    · iexact Hcap
+    iexact Hlsl))
+
 open github_com.mit_pdos.perennial.goose.model.strings in
 theorem grpc.createHeaderFields.wp_proof
     (wp_NewContextWithRequestInfo : credentials.NewContextWithRequestInfo.spec (GF := GF) (hG := hG))
@@ -386,6 +407,50 @@ theorem grpc.createHeaderFields.wp_proof
       iframe
       ipureintro
       exact ⟨by omega, Hn.2.2.2.1, Hn.2.2.2.2⟩
+  iintro (⟨%Hv, %am, %M, %cms, authData, Ham, %HM, HQ, Hpcs, HR, «$res0», «$res1»⟩ |
+    ⟨%Hv, %e, %sl, %He, Hpcs, HR, «$res0», «$res1»⟩)
+  rotate_left
+  · subst Hv
+    wp_auto
+    ihave Hch : chp ↦{dq} ch $$ [Host Method SendCompress AcceptedCompressors Creds ContentSubtype
+      PreviousAttempts Authority]
+    · iapply typedPointsto_combine _ _ _ Hchnn
+      simp only [TypedPointsto.typedPointstoDef, named]
+      iframe
+    iapply HΦ
+    iframe
+    iright
+    ipureintro; exact He
+  subst Hv
+  wp_auto
+  rw [hcreds]
+  dsimp only
+  wp_auto
+  wp_apply wp_RegisteredCompressors
+  wp_join iprop(registeredCompressors_ptr ↦ acc ∗ callHdr_ptr ↦ chp ∗
+      chp.[google_golang_org.grpc.callHdr, go!"AcceptedCompressors"] ↦{dq} ch.AcceptedCompressors')
+    with [registeredCompressors callHdr AcceptedCompressors]
+    as ⟨registeredCompressors, callHdr, AcceptedCompressors⟩
+  · icases Hacc with (%Hacc | #Hacc)
+    · obtain ⟨-, rfl⟩ := Hacc
+      iframe
+    · ihave %h := typedPointsto_not_null _ _ _ $$ Hacc
+      exact absurd Hif h
+  · icases Hacc with (%Hacc | #Hacc)
+    · exact absurd Hacc.1 Hif
+    · wp_auto
+      wp_join_done
+  ihave Hhf := ownSlice_nil (V := google_golang_org.grpc.headerField) (DFrac.own 1)
+  ihave Hcap := ownSliceCap_nil (V := google_golang_org.grpc.headerField)
+  rw [show (zero_val GoSlice) = slice.nil from rfl]
+  append_hf
+  append_hf
+  append_hf
+  append_hf
+  wp_apply wp_ContentType
+  append_hf
+  append_hf
+  append_hf
   sorry
 
 end proof
