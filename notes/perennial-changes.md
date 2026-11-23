@@ -3836,3 +3836,14 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 - **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
   `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
 - **Status.** Not filed yet.
+
+## 2026-11-23: `os.Unsetenv` has no model (the environment as machine-local state; `putget_safe`, branch `putget-dist`)
+
+`examples/etcd/dist/env.ClearProxy` (called first by `etcd_safe`'s and `putget_safe`'s machine programs) unsets the
+proxy variables and `ETCD_VERIFY` with `os.Unsetenv`, which Perennial's `os` translation has names only
+(`Perennial/Code/os.lean`): no WP for a call to it. With a model of the process environment as machine-local state
+(`Getenv`/`Setenv`/`Unsetenv` over it; upamanyus's note on #24 that the environment is an `os` model question),
+`ClearProxy`'s spec gives `envVerifyOff` (and "no proxy variable", which net/http's and grpc's proxy readers need) as
+a fact of the program, where today only the single-process start axiom `goose_adequacy_start` hands out
+`envVerifyOff`. Local workaround: `env.ClearProxy.spec` is a hypothesis of the member's boot WP
+(`notes/putget-dist-plan.md`, section 3). General fix: an `os` environment model in Perennial, designed on its own.

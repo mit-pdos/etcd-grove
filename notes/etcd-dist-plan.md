@@ -637,6 +637,9 @@ For upamanyus:
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:
 the same deployment with no member crashing. Then D3, D4, D6 add the crashes.
+Its first step (2026-11-23): `putget_safe`, one member machine and one client machine
+(`notes/putget-dist-plan.md`, branch `putget-dist`): stated and building; the client machine's proof waits for S2
+(the plan's section 4: what the client's `Invoke` needs across machines).
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
