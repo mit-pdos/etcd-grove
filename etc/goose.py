@@ -529,6 +529,11 @@ PROJECTS = [
             "go.uber.org/zap/internal/color",
             # (prove-initleft, 2026-11-21) types only: `LeveledEnabler`, which zap's `var _` asserts
             "go.uber.org/zap/internal",
+            # (zap-z1, 2026-11-23) what `Logger.check` names on paths no proof takes (stack traces,
+            # buffers): names only but the package variables of `bufferpool` (`check` reads `Get`)
+            # and the `buffer.NewPool` they call
+            "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
+            "go.uber.org/zap/buffer",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",

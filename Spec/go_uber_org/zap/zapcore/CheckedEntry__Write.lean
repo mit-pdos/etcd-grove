@@ -1,5 +1,6 @@
 /-
-`zapcore.CheckedEntry.Write`: the trust boundary (`go.uber.org/zap/zapcore` is names-only).
+`zapcore.CheckedEntry.Write`: the trust boundary (names only; zap-z1, 2026-11-23: its entry `zapEntry`
+is defined, the proof blocked by a translator gap, `Proof/go_uber_org/zap/zapcore/CheckedEntry__Write.lean`).
 Lean-first (no Rocq counterpart); the auth plan's S5 (2026-10-24: `auth.authStore.Authenticate`
 writes the entry `zap.Logger.Check` returned).
 -/

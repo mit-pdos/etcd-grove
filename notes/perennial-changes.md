@@ -17,6 +17,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose drops the implicit conversion of a type-parameter value to an interface (2026-11-23, zap-z1, claim #40)
+
+- **Limitation.** Where Go converts a value of a type parameter `T` to an interface implicitly (an
+  argument, a result, an assignment), Goose emits no `Convert T <iface>`: zap's
+  `internal/pool` (`pool.go`), `func (p *Pool[T]) Put(x T) { p.pool.Put(x) }`, is translated as
+  `MethodResolve (*sync.Pool) "Put" ... (![T] "x")`, passing the raw `T` value where `sync.Pool.Put`
+  takes an `any`; `New`'s closure `func() any { return fn() }` stores the raw result at type `any`.
+  Instantiated at `T = *zapcore.CheckedEntry`, Perennial's `Pool.Put.impl` compares `x =⟨go.any⟩ nil`
+  on a `Loc`, which has no step: the model is stuck where Go runs (incomplete, not unsound).
+- **Who needs it.** `zapcore.CheckedEntry.Write.wp_proof` (its last step, `putCheckedEntry`, is
+  `_cePool.Put(ce)`); any proof through a generic wrapper over an interface (zap's buffer and stack pools).
+- **Workaround.** `CheckedEntry.Write` stays a trust-boundary axiom (its entry `zapcore.zapEntry` is now
+  defined: not dirty, no hooks, no cores). zap-z1 had the rest of the proof (the entry's fields, the two
+  empty range loops, `putCheckedEntry`, zapcore's package fact giving `_cePool` an `isPool` with `R :=
+  False` through `pool.New`'s post, Perennial's `sync.Pool.wp_Put`) working up to that call.
+- **Proposed change.** Goose: at an assignability conversion whose source type is a type parameter and
+  whose target is an interface, emit `Convert T <iface>` (as for a non-generic `T`); `Convert` of a type
+  parameter instantiated with a non-interface type is then `interface.mkOk T v`.
+
 ### klog's printf path: `bytes.Buffer.WriteByte`, `fmt` over `[]string`, `fmt.Fprint` (2026-11-23, klog-leaves, #25)
 
 - **Limitation.** klog's `printfDepth` (`klog.go:764`: `Errorf`, `Warningf`, `Verbose.Infof`) ends

@@ -25,6 +25,37 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
+
+- **Spec.** `Spec/go_uber_org/zap/Defs.lean`: `zapLoggerOk` (until now `⌜l ≠ null⌝ ∗ □ zap.loggerRaw l`,
+  `loggerRaw := nopLogger ∨ loggerOther`, `loggerOther` opaque), `zap.nopLoggerVal`/`zap.nopLogger` (core some
+  value of type `nopCore`) and `zapcore.zapEntry` (opaque). The two trust-boundary axioms over them,
+  `zap.Logger.check.wp_proof` and `zapcore.CheckedEntry.Write.wp_proof`
+  (`Spec/go_uber_org/zap/{Logger__check,zapcore/CheckedEntry__Write}.lean`): their statements do not change.
+  The spec plan's zap specs (`SpecPlan/Spec/go_uber_org/zap/`) keep their opaque predicates.
+- **Defect.** None in what callers rely on; the vocabulary was opaque only because zap's cores were not
+  translated. No spec produces `loggerOther` (only `Defs.lean` names it): every proved example builds its
+  logger with `zap.NewNop()`, so its case is dead weight that keeps `check` an axiom. `nopLogger`'s core was
+  `interface.mkOk nopCore.ty w` for some `w : val`, which a proof cannot call a method on (`wp_call` needs the
+  receiver not to be a panic value).
+- **Evidence.** `grep loggerOther`: `Defs.lean` and `NewNop.lean` only; no top-level statement names zap.
+  zap v1.28.0 `logger.go:330-343`: below `DPanicLevel`, `check` returns `nil` when `log.core.Enabled(lvl)` is
+  false, which `nopCore.Enabled` always is (`zapcore/core.go:51`); the rest of `check` (clock, caller, stack)
+  is never reached on a `NewNop` logger at those levels. `CheckedEntry.Write` (`zapcore/entry.go:243-290`) on
+  an entry that is not dirty, has no `before` hooks, no cores and no `after` hook marks it dirty and returns
+  it to `_cePool`. `NewNop`'s core is `nopCore{}` (`zap_wp_NewNop_init` proves the field `rfl`).
+- **Proposed change.** `zapLoggerOk l := ⌜l ≠ null⌝ ∗ □ zap.nopLogger l` (`loggerOther`, `loggerRaw` deleted);
+  `nopLoggerVal`'s and `nopLogger`'s core is `interface.mkOk nopCore.ty #nopCore.mk` (the other fields
+  unchanged: `check` below `DPanicLevel` reads only `core`). `zapcore.zapEntry ce` := `ce` points to a
+  `CheckedEntry` (owned) that is not dirty, with no `before` hooks, no cores and no `after` hook (its `Entry`
+  and `ErrorOutput` any): what `Write` writes without effect, and the only entries a `NewNop` logger could
+  hand out (none: `check` returns `nil` below `DPanicLevel`). Still exclusive. `Logger.check` is proved;
+  `CheckedEntry.Write` stays an axiom, now over this entry: its proof reaches zap's generic
+  `pool.Pool[T].Put`, whose Goose translation omits the conversion of `x : T` to `any`
+  (`notes/perennial-changes.md`). A non-`NewNop` logger (Z3, #40) brings `loggerOther` back with its cores'
+  specs.
+- **Decision.** Z0 decided by the coordinator on #40 (2026-11-23); applied on branch `zap-z1`.
+
 ## 2026-11-23: six server-side trust-boundary axioms -- their errors' `deadlineExceededError`s hold `deadlineExceededError{}` (errors-is-deadline, #31)
 
 - **Spec.** Five axioms whose posts promise `applyErrIs`
