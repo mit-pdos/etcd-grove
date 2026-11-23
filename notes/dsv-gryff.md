@@ -790,6 +790,48 @@ Goal: the branch lands right after `models-rpc-http`, with only a final merge an
   `_swiftpaxos_boot.py`, an fk-lean1 build of the six with `#print axioms`, `etc/tcb-report.py
   --collection etc/tcb-collections/dsv-gryff.txt --check` (needs a full build) and the land gates.
 
+## Session 10 (2026-11-23): the trace prophecy as a prophecy patch (the widened rule)
+
+Upamanyu approved the widened prophecy-patch rule (#24, option A; branch `proph-patch-rule`,
+`notes/proph-patch-rule.md` for the exact checks). This branch merges `proph-patch-rule` (and so
+`origin/lean` 29f93a3c2c, Perennial `ccfeb3895`) and moves the fork's ghost code into
+`etc/proph-patches/dsv-gryff/01-trace-prophecy.patch` (the patch directory is named after the
+goose project, `dsv-gryff`). This replaces the section "The trace prophecy as a prophecy patch:
+blocked by prophcheck's grammar" above and the recorded deviation (option 3 there).
+- **The fork** (`examples/dsverify/gryff`) is the lab's minus the ghost code: `src/gryff/proph.go`
+  deleted; `tupaq.go` loses the `primitive` import, the `Replica.proph` field, `proph :=
+  traceProph` and the literal's element; `epaxosrmwhandler.go` (23) and `epaxos-exec.go` (1) lose
+  the 24 `resolve*` calls. `go build ./src/...` of the stripped fork is green.
+- **The patch** (459 lines, 284 added; `src/gryff/epaxosrmwhandler.go` and `epaxos-exec.go`):
+  the `primitive` import, `var traceProph primitive.ProphId` with its ghost initializer
+  `func init() { p := primitive.NewProph(); traceProph = p }` (Goose refuses `var traceProph =
+  primitive.NewProph()`: its copy rule), the 29 helpers of `proph.go` as `*Replica` methods at
+  the end of `epaxosrmwhandler.go` (5 for fields, 24 for events), resolving `traceProph` (no
+  `Replica.proph` field: it was a copy of `traceProph`, which the rule's "initialized only by
+  `NewProph`" does not admit), the 24 `ev*` constants inlined (`ResolveU64(1) // evRead1`; the
+  rule admits no constants), and the 24 calls unchanged. `etc/proph_patch.py --project
+  dsv-gryff`: checks and applies.
+- **Translation**: `Code/gryff/src/gryff.lean` (the helpers read `GlobalVarAddr traceProph`; no
+  `ev*` definitions; `Replica` without `proph`; `primitive` imported earlier), its
+  GeneratedProof chunk2, the gryff `PkgTable`s, `src/gryff/Init.lean` (gen-init) and the four
+  server `Boot.lean`s (`_gryff_boot.py`) regenerated.
+- **Proofs**: every `r.[src.gryff.Replica, go!"proph"] ↦□ p` became `globalAddr
+  src.gryff.traceProph ↦□ p` (B/Resolve, B/LockBoot, Replica2/{Specs,State,Results}, X/{Laws,
+  Final}); `wp_resolveU64` loses its replica argument; `B/NewReplica` no longer persists the
+  field (the global's `↦□` comes from `replicaReady`, as before). `gryff_remote_robust`'s
+  statement is unchanged (`Dsverify/Spec/gryff/...` identical to `de12d55ab0`).
+- **Lean merge fallout** (models-rpc-http's Net proof, not gryff's): `Net/Proof/net/http/
+  modelReadMIMEHeader.lean`'s lent `[]byte` is now `fmt.Lent.bytes` (Perennial ccfeb3895's fmt).
+- **Built on fk-lean1** (a scratch module importing the seven, dropped after): `#print axioms`
+  of `gryff_remote_robust`, `swiftpaxos_remote_robust`, `rabia_remote_robust`,
+  `epaxos_remote_robust`, `quepaxa_remote_robust`, `paxos_remote_robust` and the remote
+  `counter_remote_robust`: `[propext, Classical.choice, Quot.sound]` each (5471 jobs, exit 0).
+- Checks: tier-check `--check` ok (no new violation); gen-init, `_gryff_boot.py`, goose and
+  copy-part `--check` clean (PERENNIAL_DIR=/shared/perennial-ccfeb3895); `proof_roots.namespace()`
+  = `Perennial.EtcdGrove.`; dups.py: the same 4 false positives as lean; `git diff origin/lean --
+  etc/goose.py etc/gen-init.py`: only models-rpc-http's net/http lines in goose.py (mime/multipart,
+  net/http/internal/ascii), as before.
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
