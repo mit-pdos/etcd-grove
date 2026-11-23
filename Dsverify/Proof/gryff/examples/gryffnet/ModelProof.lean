@@ -288,6 +288,133 @@ theorem wp_with (p : GoSlice) (P : List In) (x : In) (hP : P.length < 2 ^ 62) :
   iapply HΦ
   iexact Hq
 
+/-! ## The model's configurations in Go -/
+
+theorem gcfg_eq (x y : GCfg) : x = y ↔ x.st = y.st ∧ x.pend = y.pend := by
+  cases x; cases y; simp
+
+instance GCfg.decEq : DecidableEq GCfg := fun a b =>
+  decidable_of_iff (a.st = b.st ∧ a.pend = b.pend) (gcfg_eq a b).symm
+
+
+/-- A Go `Cfg` stands for the configuration `g`: its value, and its pending slice, read-only,
+holding `g.pend`. -/
+def cfgOk (c : Cfg) (g : GCfg) : IProp GF := iprop(⌜c.V' = g.st⌝ ∗ c.Pend' ↦*□ g.pend)
+
+instance cfgOk_pers (c : Cfg) (g : GCfg) : Persistent (cfgOk (GF := GF) c g) := by
+  unfold cfgOk; infer_instance
+
+/-- A list of Go `Cfg`s stands for the list of configurations `L`, element by element. -/
+def cfgsOk (cs : List Cfg) (L : List GCfg) : IProp GF :=
+  iprop(⌜cs.length = L.length⌝ ∗
+    □ ∀ (j : Nat) (c : Cfg) (g : GCfg), ⌜cs[j]? = some c⌝ -∗ ⌜L[j]? = some g⌝ -∗ cfgOk c g)
+
+instance cfgsOk_pers (cs : List Cfg) (L : List GCfg) : Persistent (cfgsOk (GF := GF) cs L) := by
+  unfold cfgsOk; infer_instance
+
+theorem cfgsOk_nil : ⊢ cfgsOk (GF := GF) [] [] := by
+  unfold cfgsOk
+  isplitr
+  · ipureintro; rfl
+  iintro !> %j %c %g %h
+  simp at h
+
+theorem cfgsOk_snoc (cs : List Cfg) (L : List GCfg) (c : Cfg) (g : GCfg) :
+    cfgsOk (GF := GF) cs L ∗ cfgOk c g ⊢ cfgsOk (cs ++ [c]) (L ++ [g]) := by
+  unfold cfgsOk
+  iintro ⟨⟨%hl, #H⟩, #Hc⟩
+  isplitr
+  · ipureintro; simp [hl]
+  iintro !> %j %c' %g' %h1 %h2
+  by_cases hj : j < cs.length
+  · rw [List.getElem?_append_left hj] at h1
+    rw [List.getElem?_append_left (hl ▸ hj)] at h2
+    iapply H $$ %j %c' %g' %h1 %h2
+  · rw [List.getElem?_append_right (by omega)] at h1
+    rw [List.getElem?_append_right (by omega)] at h2
+    have hj1 : j - cs.length < 1 := by
+      have := (List.getElem?_eq_some_iff.1 h1).1; simpa using this
+    rw [show j - cs.length = 0 by omega] at h1
+    rw [show j - L.length = 0 by omega] at h2
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h1 h2
+    subst h1 h2
+    iexact Hc
+
+theorem cfgsOk_get (cs : List Cfg) (L : List GCfg) (j : Nat) (c : Cfg) (hc : cs[j]? = some c) :
+    cfgsOk (GF := GF) cs L ⊢ ∃ g, ⌜L[j]? = some g⌝ ∗ cfgOk c g := by
+  unfold cfgsOk
+  iintro ⟨%hl, #H⟩
+  have hj : j < L.length := hl ▸ (List.getElem?_eq_some_iff.1 hc).1
+  iexists L[j]
+  isplitr
+  · ipureintro; simp
+  iapply H $$ %j %c %L[j] %hc %(by simp)
+
+
+theorem wp_hasCfg (sl : GoSlice) (dq : DFrac) (cs : List Cfg) (L : List GCfg) (c : Cfg) (g : GCfg) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*{dq} cs ∗ cfgsOk cs L ∗ cfgOk c g }}
+      (App (App (Val (@! gryff.examples.gryffnet.hasCfg)) (Val #sl)) (Val #c))
+    {{ RET #(decide (g ∈ L)); sl ↦*{dq} cs }} := by
+  wp_start as ⟨Hsl, #Hcs, #Hc⟩
+  ihave %Hl := ownSlice_len _ _ _ $$ Hsl
+  ihave %HcsL : ⌜cs.length = L.length⌝ $$ []
+  · unfold cfgsOk; icases Hcs with ⟨%h, -⟩; ipureintro; exact h
+  wp_auto
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗ "Hsl" ∷ sl ↦*{dq} cs ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z sl.len ∧ g ∉ L.take (sint.nat i)⌝ : IProp GF)
+      $$ [i Hsl]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Hni⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z sl.len := Hif
+    obtain ⟨x, Hx_lookup⟩ : ∃ x, cs[sint.nat i]? = some x :=
+      ⟨cs[sint.nat i]'(by rw [Hl.1]; word), List.getElem?_eq_getElem _⟩
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len from ⟨Hi0, hlt⟩)]
+    wp_apply wp_load_slice_index sl (sint.Z i) cs _ x Hi0 $$ [Hsl] as Hsl
+    · iframe Hsl; ipureintro; exact Hx_lookup
+    ihave ⟨%g', %Hg', #Hx⟩ := cfgsOk_get cs L (sint.nat i) x Hx_lookup $$ Hcs
+    iclear %Hx_lookup
+    unfold cfgOk
+    icases Hx with ⟨%HxV, #HxP⟩
+    icases Hc with ⟨%HcV, #HcP⟩
+    wp_apply wp_sameCfg x c g'.pend g.pend $$ [$HxP $HcP]
+    have hdec : decide (x.V' = c.V' ∧ g'.pend = g.pend) = decide (g' = g) := by
+      rw [HxV, HcV]; exact decide_eq_decide.2 (gcfg_eq g' g).symm
+    rw [hdec]
+    by_cases hgg : g' = g
+    · subst hgg
+      simp only [_root_.decide_true]
+      wp_auto
+      wp_for_post
+      have : g' ∈ L := List.mem_of_getElem? Hg'
+      rw [decide_eq_true this]
+      iapply HΦ
+      iexact Hsl
+    · simp only [hgg, _root_.decide_false]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1
+      iframe
+      ipureintro
+      have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+      refine ⟨by word, by word, ?_⟩
+      rw [hs, List.take_add_one, Hg']
+      simp only [Option.toList_some, List.mem_append, List.mem_singleton, not_or]
+      exact ⟨Hni, Ne.symm hgg⟩
+  · have heq : sint.Z i = sint.Z sl.len := by omega
+    have hn : sint.nat i = L.length := by
+      rw [← HcsL, Hl.1]; show (sint.Z i).toNat = _; rw [heq]
+    rw [hn, List.take_length] at Hni
+    rw [decide_eq_false Hni]
+    iapply HΦ
+    iexact Hsl
+
 end proof
 
 end gryff.examples.gryffnet
