@@ -74,7 +74,7 @@ noncomputable instance EpochTime_access_load_startTime (l : Loc) (v : raxos.repl
  by
   solve_pointsto_access_struct
 
-noncomputable instance EpochTime_access_store_startTime (l : Loc) (v : raxos.replica.src.EpochTime) (startTime' : time.Time) :
+noncomputable instance EpochTime_access_store_startTime (l : Loc) (v : raxos.replica.src.EpochTime) (startTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"startTime" l) v.startTime' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"startTime" l) startTime' (DFrac.own 1))
@@ -90,7 +90,7 @@ noncomputable instance EpochTime_access_load_endTime (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance EpochTime_access_store_endTime (l : Loc) (v : raxos.replica.src.EpochTime) (endTime' : time.Time) :
+noncomputable instance EpochTime_access_store_endTime (l : Loc) (v : raxos.replica.src.EpochTime) (endTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"endTime" l) v.endTime' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"endTime" l) endTime' (DFrac.own 1))
@@ -203,7 +203,7 @@ noncomputable instance ClientBatchTime_access_load_batch (l : Loc) (v : raxos.re
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatchTime_access_store_batch (l : Loc) (v : raxos.replica.src.ClientBatchTime) (batch' : raxos.proto.client.ClientBatch) :
+noncomputable instance ClientBatchTime_access_store_batch (l : Loc) (v : raxos.replica.src.ClientBatchTime) (batch' : _root_.Perennial.raxos.proto.client.ClientBatch) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"batch" l) v.batch' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"batch" l) batch' (DFrac.own 1))
@@ -219,7 +219,7 @@ noncomputable instance ClientBatchTime_access_load_incomingTime (l : Loc) (v : r
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatchTime_access_store_incomingTime (l : Loc) (v : raxos.replica.src.ClientBatchTime) (incomingTime' : time.Time) :
+noncomputable instance ClientBatchTime_access_store_incomingTime (l : Loc) (v : raxos.replica.src.ClientBatchTime) (incomingTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"incomingTime" l) v.incomingTime' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"incomingTime" l) incomingTime' (DFrac.own 1))
@@ -417,7 +417,7 @@ noncomputable instance Recorder_access_load_listener (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_listener (l : Loc) (v : raxos.replica.src.Recorder) (listener' : net.Listener) :
+noncomputable instance Recorder_access_store_listener (l : Loc) (v : raxos.replica.src.Recorder) (listener' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"listener" l) v.listener' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"listener" l) listener' (DFrac.own 1))
@@ -529,7 +529,7 @@ noncomputable instance Recorder_access_load_cfg (l : Loc) (v : raxos.replica.src
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_cfg (l : Loc) (v : raxos.replica.src.Recorder) (cfg' : raxos.configuration.InstanceConfig) :
+noncomputable instance Recorder_access_store_cfg (l : Loc) (v : raxos.replica.src.Recorder) (cfg' : _root_.Perennial.raxos.configuration.InstanceConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"cfg" l) v.cfg' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"cfg" l) cfg' (DFrac.own 1))
@@ -783,7 +783,7 @@ noncomputable instance Server_access_load_cfg (l : Loc) (v : raxos.replica.src.S
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_cfg (l : Loc) (v : raxos.replica.src.Server) (cfg' : raxos.configuration.InstanceConfig) :
+noncomputable instance Server_access_store_cfg (l : Loc) (v : raxos.replica.src.Server) (cfg' : _root_.Perennial.raxos.configuration.InstanceConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"cfg" l) v.cfg' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"cfg" l) cfg' (DFrac.own 1))

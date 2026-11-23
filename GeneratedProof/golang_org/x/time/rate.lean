@@ -53,7 +53,7 @@ noncomputable instance Limiter_access_load_mu (l : Loc) (v : golang_org.x.time.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Limiter) (mu' : sync.Mutex) :
+noncomputable instance Limiter_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Limiter) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"mu" l) mu' (DFrac.own 1))
@@ -117,7 +117,7 @@ noncomputable instance Limiter_access_load_last (l : Loc) (v : golang_org.x.time
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_last (l : Loc) (v : golang_org.x.time.rate.Limiter) (last' : time.Time) :
+noncomputable instance Limiter_access_store_last (l : Loc) (v : golang_org.x.time.rate.Limiter) (last' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"last" l) v.last' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"last" l) last' (DFrac.own 1))
@@ -133,7 +133,7 @@ noncomputable instance Limiter_access_load_lastEvent (l : Loc) (v : golang_org.x
  by
   solve_pointsto_access_struct
 
-noncomputable instance Limiter_access_store_lastEvent (l : Loc) (v : golang_org.x.time.rate.Limiter) (lastEvent' : time.Time) :
+noncomputable instance Limiter_access_store_lastEvent (l : Loc) (v : golang_org.x.time.rate.Limiter) (lastEvent' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"lastEvent" l) v.lastEvent' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.time.rate.Limiter go!"lastEvent" l) lastEvent' (DFrac.own 1))
@@ -225,7 +225,7 @@ noncomputable instance Reservation_access_load_timeToAct (l : Loc) (v : golang_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Reservation_access_store_timeToAct (l : Loc) (v : golang_org.x.time.rate.Reservation) (timeToAct' : time.Time) :
+noncomputable instance Reservation_access_store_timeToAct (l : Loc) (v : golang_org.x.time.rate.Reservation) (timeToAct' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"timeToAct" l) v.timeToAct' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.time.rate.Reservation go!"timeToAct" l) timeToAct' (DFrac.own 1))
@@ -318,7 +318,7 @@ noncomputable instance Sometimes_access_load_Interval (l : Loc) (v : golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_Interval (l : Loc) (v : golang_org.x.time.rate.Sometimes) (Interval' : time.Duration) :
+noncomputable instance Sometimes_access_store_Interval (l : Loc) (v : golang_org.x.time.rate.Sometimes) (Interval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Interval" l) v.Interval' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"Interval" l) Interval' (DFrac.own 1))
@@ -334,7 +334,7 @@ noncomputable instance Sometimes_access_load_mu (l : Loc) (v : golang_org.x.time
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Sometimes) (mu' : sync.Mutex) :
+noncomputable instance Sometimes_access_store_mu (l : Loc) (v : golang_org.x.time.rate.Sometimes) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"mu" l) mu' (DFrac.own 1))
@@ -366,7 +366,7 @@ noncomputable instance Sometimes_access_load_last (l : Loc) (v : golang_org.x.ti
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sometimes_access_store_last (l : Loc) (v : golang_org.x.time.rate.Sometimes) (last' : time.Time) :
+noncomputable instance Sometimes_access_store_last (l : Loc) (v : golang_org.x.time.rate.Sometimes) (last' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"last" l) v.last' (DFrac.own 1))
       (typedPointsto (structFieldRef golang_org.x.time.rate.Sometimes go!"last" l) last' (DFrac.own 1))

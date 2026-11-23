@@ -302,12 +302,30 @@ theorem streamPath_dir (t : StreamTy) (rid : w64) :
   exact path.dirModel_segs _ _ (by cases t <;> simp [StreamTy.segs]) t.segs_plain
     (types.idStr_plain rid)
 
+end defs
+
+section defsG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The registry** (an invariant): its authority. -/
 def streamRegInv (Rh : RaftHttp GF) : IProp GF :=
   inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth Rh.γreg 1 m)
 
 instance streamRegInv_persistent (Rh : RaftHttp GF) : Persistent (streamRegInv Rh) := by
   unfold streamRegInv; infer_instance
+
+end defsG1
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 /-- The network's registry (`netNames_alloc`'s) is `netRh`'s. -/
 theorem streamRegInv_netRh (γn : NetNames GF) :

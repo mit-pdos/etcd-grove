@@ -332,7 +332,7 @@ noncomputable instance writerOnly_access_load_Writer (l : Loc) (v : net.http.wri
  by
   solve_pointsto_access_struct
 
-noncomputable instance writerOnly_access_store_Writer (l : Loc) (v : net.http.writerOnly) (Writer' : io.Writer) :
+noncomputable instance writerOnly_access_store_Writer (l : Loc) (v : net.http.writerOnly) (Writer' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.writerOnly go!"Writer" l) v.Writer' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.writerOnly go!"Writer" l) Writer' (DFrac.own 1))
@@ -380,7 +380,7 @@ noncomputable instance connReader_access_load_rwc (l : Loc) (v : net.http.connRe
  by
   solve_pointsto_access_struct
 
-noncomputable instance connReader_access_store_rwc (l : Loc) (v : net.http.connReader) (rwc' : net.Conn) :
+noncomputable instance connReader_access_store_rwc (l : Loc) (v : net.http.connReader) (rwc' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.connReader go!"rwc" l) v.rwc' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.connReader go!"rwc" l) rwc' (DFrac.own 1))
@@ -396,7 +396,7 @@ noncomputable instance connReader_access_load_mu (l : Loc) (v : net.http.connRea
  by
   solve_pointsto_access_struct
 
-noncomputable instance connReader_access_store_mu (l : Loc) (v : net.http.connReader) (mu' : sync.Mutex) :
+noncomputable instance connReader_access_store_mu (l : Loc) (v : net.http.connReader) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.connReader go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.connReader go!"mu" l) mu' (DFrac.own 1))
@@ -566,7 +566,7 @@ noncomputable instance expectContinueReader_access_load_readCloser (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance expectContinueReader_access_store_readCloser (l : Loc) (v : net.http.expectContinueReader) (readCloser' : io.ReadCloser) :
+noncomputable instance expectContinueReader_access_store_readCloser (l : Loc) (v : net.http.expectContinueReader) (readCloser' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.expectContinueReader go!"readCloser" l) v.readCloser' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.expectContinueReader go!"readCloser" l) readCloser' (DFrac.own 1))
@@ -582,7 +582,7 @@ noncomputable instance expectContinueReader_access_load_closed (l : Loc) (v : ne
  by
   solve_pointsto_access_struct
 
-noncomputable instance expectContinueReader_access_store_closed (l : Loc) (v : net.http.expectContinueReader) (closed' : sync.atomic.Bool') :
+noncomputable instance expectContinueReader_access_store_closed (l : Loc) (v : net.http.expectContinueReader) (closed' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.expectContinueReader go!"closed" l) v.closed' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.expectContinueReader go!"closed" l) closed' (DFrac.own 1))
@@ -828,7 +828,7 @@ noncomputable instance unencryptedNetConnInTLSConn_access_load_Conn (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance unencryptedNetConnInTLSConn_access_store_Conn (l : Loc) (v : net.http.unencryptedNetConnInTLSConn) (Conn' : net.Conn) :
+noncomputable instance unencryptedNetConnInTLSConn_access_store_Conn (l : Loc) (v : net.http.unencryptedNetConnInTLSConn) (Conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.unencryptedNetConnInTLSConn go!"Conn" l) v.Conn' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.unencryptedNetConnInTLSConn go!"Conn" l) Conn' (DFrac.own 1))
@@ -844,7 +844,7 @@ noncomputable instance unencryptedNetConnInTLSConn_access_load_conn (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance unencryptedNetConnInTLSConn_access_store_conn (l : Loc) (v : net.http.unencryptedNetConnInTLSConn) (conn' : net.Conn) :
+noncomputable instance unencryptedNetConnInTLSConn_access_store_conn (l : Loc) (v : net.http.unencryptedNetConnInTLSConn) (conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.unencryptedNetConnInTLSConn go!"conn" l) v.conn' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.unencryptedNetConnInTLSConn go!"conn" l) conn' (DFrac.own 1))
@@ -981,7 +981,7 @@ noncomputable instance onceCloseListener_access_load_Listener (l : Loc) (v : net
  by
   solve_pointsto_access_struct
 
-noncomputable instance onceCloseListener_access_store_Listener (l : Loc) (v : net.http.onceCloseListener) (Listener' : net.Listener) :
+noncomputable instance onceCloseListener_access_store_Listener (l : Loc) (v : net.http.onceCloseListener) (Listener' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.onceCloseListener go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.onceCloseListener go!"Listener" l) Listener' (DFrac.own 1))
@@ -997,7 +997,7 @@ noncomputable instance onceCloseListener_access_load_once (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance onceCloseListener_access_store_once (l : Loc) (v : net.http.onceCloseListener) (once' : sync.Once) :
+noncomputable instance onceCloseListener_access_store_once (l : Loc) (v : net.http.onceCloseListener) (once' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.onceCloseListener go!"once" l) v.once' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.onceCloseListener go!"once" l) once' (DFrac.own 1))
@@ -1093,7 +1093,7 @@ noncomputable instance loggingConn_access_load_Conn (l : Loc) (v : net.http.logg
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggingConn_access_store_Conn (l : Loc) (v : net.http.loggingConn) (Conn' : net.Conn) :
+noncomputable instance loggingConn_access_store_Conn (l : Loc) (v : net.http.loggingConn) (Conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.loggingConn go!"Conn" l) v.Conn' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.loggingConn go!"Conn" l) Conn' (DFrac.own 1))
@@ -1191,7 +1191,7 @@ noncomputable instance socksAddr_access_load_IP (l : Loc) (v : net.http.socksAdd
  by
   solve_pointsto_access_struct
 
-noncomputable instance socksAddr_access_store_IP (l : Loc) (v : net.http.socksAddr) (IP' : net.IP) :
+noncomputable instance socksAddr_access_store_IP (l : Loc) (v : net.http.socksAddr) (IP' : _root_.Perennial.net.IP) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.socksAddr go!"IP" l) v.IP' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.socksAddr go!"IP" l) IP' (DFrac.own 1))
@@ -1248,7 +1248,7 @@ noncomputable instance socksConn_access_load_Conn (l : Loc) (v : net.http.socksC
  by
   solve_pointsto_access_struct
 
-noncomputable instance socksConn_access_store_Conn (l : Loc) (v : net.http.socksConn) (Conn' : net.Conn) :
+noncomputable instance socksConn_access_store_Conn (l : Loc) (v : net.http.socksConn) (Conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.socksConn go!"Conn" l) v.Conn' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.socksConn go!"Conn" l) Conn' (DFrac.own 1))
@@ -1264,7 +1264,7 @@ noncomputable instance socksConn_access_load_boundAddr (l : Loc) (v : net.http.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance socksConn_access_store_boundAddr (l : Loc) (v : net.http.socksConn) (boundAddr' : net.Addr) :
+noncomputable instance socksConn_access_store_boundAddr (l : Loc) (v : net.http.socksConn) (boundAddr' : _root_.Perennial.net.Addr) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.socksConn go!"boundAddr" l) v.boundAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.socksConn go!"boundAddr" l) boundAddr' (DFrac.own 1))

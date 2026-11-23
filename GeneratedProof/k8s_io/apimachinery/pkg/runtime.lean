@@ -463,7 +463,7 @@ noncomputable instance multiGroupVersioner_access_load_target (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance multiGroupVersioner_access_store_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (target' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) :
+noncomputable instance multiGroupVersioner_access_store_target (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.multiGroupVersioner) (target' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"target" l) v.target' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.multiGroupVersioner go!"target" l) target' (DFrac.own 1))
@@ -536,7 +536,7 @@ noncomputable instance structField_access_load_structType (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance structField_access_store_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (structType' : reflect.Type') :
+noncomputable instance structField_access_store_structType (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.structField) (structType' : _root_.Perennial.reflect.Type') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) v.structType' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.structField go!"structType" l) structType' (DFrac.own 1))
@@ -611,7 +611,7 @@ noncomputable instance fieldInfo_access_load_nameValue (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance fieldInfo_access_store_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (nameValue' : reflect.Value) :
+noncomputable instance fieldInfo_access_store_nameValue (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.fieldInfo) (nameValue' : _root_.Perennial.reflect.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) v.nameValue' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.fieldInfo go!"nameValue" l) nameValue' (DFrac.own 1))
@@ -719,7 +719,7 @@ noncomputable instance unstructuredConverter_access_load_comparison (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance unstructuredConverter_access_store_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (comparison' : k8s_io.apimachinery.pkg.conversion.Equalities) :
+noncomputable instance unstructuredConverter_access_store_comparison (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.unstructuredConverter) (comparison' : _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Equalities) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) v.comparison' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.unstructuredConverter go!"comparison" l) comparison' (DFrac.own 1))
@@ -960,7 +960,7 @@ noncomputable instance notRegisteredErr_access_load_gvk (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance notRegisteredErr_access_store_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (gvk' : k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
+noncomputable instance notRegisteredErr_access_store_gvk (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (gvk' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) v.gvk' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"gvk" l) gvk' (DFrac.own 1))
@@ -992,7 +992,7 @@ noncomputable instance notRegisteredErr_access_load_t (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance notRegisteredErr_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (t' : reflect.Type') :
+noncomputable instance notRegisteredErr_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.runtime.notRegisteredErr) (t' : _root_.Perennial.reflect.Type') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.runtime.notRegisteredErr go!"t" l) t' (DFrac.own 1))

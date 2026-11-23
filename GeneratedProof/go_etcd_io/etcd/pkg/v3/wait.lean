@@ -88,7 +88,7 @@ noncomputable instance listElement_access_load_l (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance listElement_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (l' : sync.RWMutex) :
+noncomputable instance listElement_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.listElement) (l' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"l" l) v.l' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.listElement go!"l" l) l' (DFrac.own 1))
@@ -186,7 +186,7 @@ noncomputable instance timeList_access_load_l (l : Loc) (v : go_etcd_io.etcd.pkg
  by
   solve_pointsto_access_struct
 
-noncomputable instance timeList_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (l' : sync.Mutex) :
+noncomputable instance timeList_access_store_l (l : Loc) (v : go_etcd_io.etcd.pkg.v3.wait.timeList) (l' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) v.l' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.wait.timeList go!"l" l) l' (DFrac.own 1))

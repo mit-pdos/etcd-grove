@@ -374,7 +374,7 @@ noncomputable instance Consensus_access_load_Queue (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Queue (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Queue' : rabia.internal.queue.PQueue) :
+noncomputable instance Consensus_access_store_Queue (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Queue' : _root_.Perennial.rabia.internal.queue.PQueue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Queue" l) v.Queue' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Queue" l) Queue' (DFrac.own 1))
@@ -422,7 +422,7 @@ noncomputable instance Consensus_access_load_Ledger (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Ledger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Ledger' : rabia.internal.ledger.Ledger) :
+noncomputable instance Consensus_access_store_Ledger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Ledger' : _root_.Perennial.rabia.internal.ledger.Ledger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Ledger" l) v.Ledger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Ledger" l) Ledger' (DFrac.own 1))
@@ -470,7 +470,7 @@ noncomputable instance Consensus_access_load_Logger (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Logger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Logger' : github_com.rs.zerolog.Logger) :
+noncomputable instance Consensus_access_store_Logger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Logger' : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Logger" l) Logger' (DFrac.own 1))
@@ -678,7 +678,7 @@ noncomputable instance Consensus_access_load_StatLock (l : Loc) (v : rabia.roles
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_StatLock (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (StatLock' : sync.Mutex) :
+noncomputable instance Consensus_access_store_StatLock (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (StatLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"StatLock" l) v.StatLock' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"StatLock" l) StatLock' (DFrac.own 1))
@@ -710,7 +710,7 @@ noncomputable instance Consensus_access_load_RoundDistLogger (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_RoundDistLogger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (RoundDistLogger' : github_com.rs.zerolog.Logger) :
+noncomputable instance Consensus_access_store_RoundDistLogger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (RoundDistLogger' : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogger" l) v.RoundDistLogger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogger" l) RoundDistLogger' (DFrac.own 1))

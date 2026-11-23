@@ -61,7 +61,8 @@ tracer off (the incoming transfer and the causes' hold with it on too): with it 
 (`runtime/trace.Start`, e.g. pprof's `/debug/pprof/trace`), the SDK tracer's `Start` also reads
 `ctx.Value(runtime/trace.traceContextKey{})` (`runtime/trace.NewTask`, sdk/trace v1.47.0
 `span.go:844-856`), a key the premise does not constrain. Not reachable in the model: the `Tracer`
-points-to comes only from `Tracer_init`, the no-op tracer, and `traceutil.Init` has no spec; if it
+points-to comes only from `traceutil`'s initializer, the no-op tracer (translated since 2026-11-23;
+until then the axiom `Tracer_init`), and `traceutil.Init` has no spec; if it
 gets one, add a premise that the runtime/trace key holds `nil` (true of grpc's run context) or
 restrict the tracer to the no-op one (k8s 7f-4, Addendum T-h review, m3).
 (k8s 7f-4, Revisions 1-2, decided by etcd-grove-81, 2026-11-12) `ctx`'s span is otel's

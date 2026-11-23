@@ -1009,7 +1009,7 @@ noncomputable instance Raw_access_load_Object (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Raw_access_store_Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw) (Object' : k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance Raw_access_store_Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw go!"Object" l) Object' (DFrac.own 1))
@@ -1878,7 +1878,7 @@ noncomputable instance cache_access_load_mu (l : Loc) (v : github_com.mit_pdos.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance cache_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache) (mu' : sync.Mutex) :
+noncomputable instance cache_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache go!"mu" l) mu' (DFrac.own 1))
@@ -1974,7 +1974,7 @@ noncomputable instance cache_access_load_done (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance cache_access_store_done (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache) (done' : sync.atomic.Int64) :
+noncomputable instance cache_access_store_done (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache) (done' : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache go!"done" l) v.done' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache go!"done" l) done' (DFrac.own 1))

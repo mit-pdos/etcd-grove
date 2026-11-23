@@ -37,6 +37,7 @@ theorem membership.RaftCluster.Member.wp_proof
   intro c RM id
   wp_start as #Hrc
   iunfold membership.isRaftClusterG at Hrc
+  icases Hrc with ⟨%γcv, #Hrc⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []

@@ -56,7 +56,7 @@ noncomputable instance PodExecOptions_access_load_TypeMeta (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodExecOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PodExecOptions) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance PodExecOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PodExecOptions) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodExecOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodExecOptions go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -193,7 +193,7 @@ noncomputable instance PodPortForwardOptions_access_load_TypeMeta (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodPortForwardOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PodPortForwardOptions) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance PodPortForwardOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PodPortForwardOptions) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodPortForwardOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodPortForwardOptions go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -250,7 +250,7 @@ noncomputable instance PodProxyOptions_access_load_TypeMeta (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodProxyOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PodProxyOptions) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance PodProxyOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PodProxyOptions) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodProxyOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodProxyOptions go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -307,7 +307,7 @@ noncomputable instance NodeProxyOptions_access_load_TypeMeta (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeProxyOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.NodeProxyOptions) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance NodeProxyOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.NodeProxyOptions) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeProxyOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeProxyOptions go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -364,7 +364,7 @@ noncomputable instance ServiceProxyOptions_access_load_TypeMeta (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServiceProxyOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ServiceProxyOptions) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ServiceProxyOptions_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ServiceProxyOptions) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ServiceProxyOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ServiceProxyOptions go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -568,7 +568,7 @@ noncomputable instance EventSeries_access_load_LastObservedTime (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventSeries_access_store_LastObservedTime (l : Loc) (v : k8s_io.api.core.v1.EventSeries) (LastObservedTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime) :
+noncomputable instance EventSeries_access_store_LastObservedTime (l : Loc) (v : k8s_io.api.core.v1.EventSeries) (LastObservedTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.EventSeries go!"LastObservedTime" l) v.LastObservedTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.EventSeries go!"LastObservedTime" l) LastObservedTime' (DFrac.own 1))
@@ -610,7 +610,7 @@ noncomputable instance EventList_access_load_TypeMeta (l : Loc) (v : k8s_io.api.
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.EventList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance EventList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.EventList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.EventList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.EventList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -626,7 +626,7 @@ noncomputable instance EventList_access_load_ListMeta (l : Loc) (v : k8s_io.api.
  by
   solve_pointsto_access_struct
 
-noncomputable instance EventList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.EventList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance EventList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.EventList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.EventList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.EventList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -724,7 +724,7 @@ noncomputable instance LimitRangeList_access_load_TypeMeta (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance LimitRangeList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRangeList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance LimitRangeList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRangeList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRangeList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRangeList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -740,7 +740,7 @@ noncomputable instance LimitRangeList_access_load_ListMeta (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance LimitRangeList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRangeList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance LimitRangeList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRangeList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRangeList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRangeList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -838,7 +838,7 @@ noncomputable instance ResourceQuotaList_access_load_TypeMeta (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceQuotaList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ResourceQuotaList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -854,7 +854,7 @@ noncomputable instance ResourceQuotaList_access_load_ListMeta (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceQuotaList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance ResourceQuotaList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuotaList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuotaList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -912,7 +912,7 @@ noncomputable instance SecretList_access_load_TypeMeta (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance SecretList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.SecretList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance SecretList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.SecretList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.SecretList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.SecretList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -928,7 +928,7 @@ noncomputable instance SecretList_access_load_ListMeta (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance SecretList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.SecretList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance SecretList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.SecretList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.SecretList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.SecretList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -988,7 +988,7 @@ noncomputable instance ConfigMap_access_load_TypeMeta (l : Loc) (v : k8s_io.api.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigMap_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMap) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ConfigMap_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMap) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMap go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMap go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1004,7 +1004,7 @@ noncomputable instance ConfigMap_access_load_ObjectMeta (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigMap_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMap) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance ConfigMap_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMap) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMap go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMap go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
@@ -1094,7 +1094,7 @@ noncomputable instance ConfigMapList_access_load_TypeMeta (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigMapList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMapList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ConfigMapList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMapList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMapList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMapList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1110,7 +1110,7 @@ noncomputable instance ConfigMapList_access_load_ListMeta (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfigMapList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMapList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance ConfigMapList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.ConfigMapList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMapList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ConfigMapList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -1168,7 +1168,7 @@ noncomputable instance ComponentStatus_access_load_TypeMeta (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentStatus_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatus) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ComponentStatus_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatus) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatus go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatus go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1184,7 +1184,7 @@ noncomputable instance ComponentStatus_access_load_ObjectMeta (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentStatus_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatus) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance ComponentStatus_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatus) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatus go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatus go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
@@ -1242,7 +1242,7 @@ noncomputable instance ComponentStatusList_access_load_TypeMeta (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentStatusList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatusList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ComponentStatusList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatusList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatusList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatusList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1258,7 +1258,7 @@ noncomputable instance ComponentStatusList_access_load_ListMeta (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance ComponentStatusList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatusList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance ComponentStatusList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.ComponentStatusList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatusList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ComponentStatusList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -1948,7 +1948,7 @@ noncomputable instance RangeAllocation_access_load_TypeMeta (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeAllocation_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.RangeAllocation) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance RangeAllocation_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.RangeAllocation) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.RangeAllocation go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.RangeAllocation go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1964,7 +1964,7 @@ noncomputable instance RangeAllocation_access_load_ObjectMeta (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeAllocation_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.RangeAllocation) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance RangeAllocation_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.RangeAllocation) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.RangeAllocation go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.RangeAllocation go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))

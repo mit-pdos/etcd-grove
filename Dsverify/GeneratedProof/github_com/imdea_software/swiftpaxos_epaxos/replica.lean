@@ -290,7 +290,7 @@ noncomputable instance Replica_access_load_M (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_M (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.Replica) (M' : sync.Mutex) :
+noncomputable instance Replica_access_store_M (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.Replica) (M' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.Replica go!"M" l) v.M' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.Replica go!"M" l) M' (DFrac.own 1))
@@ -578,7 +578,7 @@ noncomputable instance Replica_access_load_Listener (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_Listener (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.Replica) (Listener' : net.Listener) :
+noncomputable instance Replica_access_store_Listener (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.Replica) (Listener' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.Replica go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.Replica go!"Listener" l) Listener' (DFrac.own 1))
@@ -811,7 +811,7 @@ noncomputable instance prefixReader_access_load_conn (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance prefixReader_access_store_conn (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.prefixReader) (conn' : net.Conn) :
+noncomputable instance prefixReader_access_store_conn (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.prefixReader) (conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.prefixReader go!"conn" l) v.conn' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.prefixReader go!"conn" l) conn' (DFrac.own 1))
@@ -856,7 +856,7 @@ noncomputable instance SendArg_access_load_msg (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance SendArg_access_store_msg (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.SendArg) (msg' : github_com.imdea_software.swiftpaxos_epaxos.rpc.Serializable) :
+noncomputable instance SendArg_access_store_msg (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.replica.SendArg) (msg' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.rpc.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.SendArg go!"msg" l) v.msg' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.replica.SendArg go!"msg" l) msg' (DFrac.own 1))

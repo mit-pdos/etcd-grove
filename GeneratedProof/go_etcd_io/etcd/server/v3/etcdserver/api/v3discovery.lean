@@ -49,7 +49,7 @@ noncomputable instance DiscoveryConfig_access_load_ConfigSpec (l : Loc) (v : go_
  by
   solve_pointsto_access_struct
 
-noncomputable instance DiscoveryConfig_access_store_ConfigSpec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (ConfigSpec' : go_etcd_io.etcd.client.v3.ConfigSpec) :
+noncomputable instance DiscoveryConfig_access_store_ConfigSpec (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) (ConfigSpec' : _root_.Perennial.go_etcd_io.etcd.client.v3.ConfigSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) v.ConfigSpec' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig go!"ConfigSpec" l) ConfigSpec' (DFrac.own 1))
