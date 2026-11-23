@@ -333,3 +333,73 @@ advances under term 1; none can in a bootstrapped run: its term-1 leader `First`
 and cannot lead term 1 again (`wins` needs a candidate whose term has no leader log, B 236-237), so
 nothing records a prefix under term 1 (B 264, 424), so no request of term 1 carries a commit
 (B 126), so no node's commit moves under term 1 (B 390-398).
+
+## 10. S3b: the checker's translation, Lean transcription and spec (2026-11-23)
+
+**Translation.** `etc/goose.py`'s project `antithesis` (local `examples/raft/antithesis`, packages
+`.` and `./check`, both into the main tree on project raft's raft; `GO_MOD_PINS` checks the module's
+raft replace). `Code/` and `GeneratedProof/` for `github_com/mit_pdos/etcd_grove/examples/raft/
+antithesis{,/check}` are checked in, no error or stub; `lake build
+GeneratedProof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis` passes. Not translated, by
+design: `check/verdict.go` (`!goose`), `check/ndjson`, `check/cmd`, the tests.
+
+**The Lean transcription** (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Tla/`,
+namespace `Perennial.EtcdGrove.AntCheck`; pure, imports only Perennial's `GoString` and its order):
+`Types` (values, `state.go`'s records, `Init0`), `Raft` (R's operators, `raft.go`), `Binding` (every
+operator and action of B, `binding.go`), `Check` (`run`, `Accepts`, `accepts` with `accepts_iff`).
+As tracecheck's S2 it mirrors the Go transcription definition by definition, each citing its TLA+
+lines, so the proof follows the Go function by function. Decided here:
+- **strings are `GoString`s** (Perennial's byte lists), not Lean `String`s with tracecheck's `strRel`:
+  the Go's strings are the very values, so every string relation in the specs is `=`, and the
+  order of `Set`s is `go.GoStringLt`, the Go `<`;
+- **numbers `Int`** (TLA+'s), bounded in the specs (`Stream.Bounded`);
+- **a report's optional field is an `Option`** (TLA+'s `DOMAIN`); the Go's `Has` bits are the
+  specs' business (`fieldRel`);
+- **`EvalM := Except String`** where TLC stops with an evaluation error (the Go panics); a
+  conjunction's later conjuncts are evaluated only where the TLA+ evaluates them (`andM`, `orM`,
+  nested `do`), so the Lean errs exactly where the Go panics, which the spec's premise needs
+  (the Go must not panic wherever the Lean evaluates);
+- **`GC`'s loop takes fuel** (`gcLoop`, `gcFuel s = |msgs| + |votes| + |ledLog| + 1`), which Lean's
+  termination needs and the Go's loop does not: a due `GC` removes at least one fact, vote or term
+  (indeed, after one `GC` none is due: `Garbage`, `OldVotes`, `StaleLed` only shrink with `msgs`,
+  `votes`, `ledLog`, and `EffTerm` does not change), so the fuel is never exhausted (to be proved
+  with `Run`'s spec: where it would be, the Lean errs, which the premise excludes).
+
+**Validated against TLC and the Go** (`check/cmd/leanexport` writes the fixtures with the streams as
+the Go reader parsed them, TLC's and the Go's verdicts; `check/testdata/LeanDiff.lean`, run by
+`lake env lean --run`, compares as `diff_test.go`'s `agrees`): RESULTS-PENDING.
+
+**`check.Run`'s spec** (`Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Run.lean`,
+over `Rep.lean`'s persistent representation predicates):
+
+```
+Run.spec : ∀ cp cfg sl evs v,
+  {{ isPkgInit check ∗ configRO cp cfg ∗ eventsRO sl evs ∗
+     ⌜Config.Bounded cfg ∧ Stream.Bounded evs ∧ run cfg evs = .ok v⌝ }}
+    check.Run #cp #sl
+  {{ (r : Verdict), RET #r; verdictRO r v }}
+```
+
+So `Run` returns `ACCEPTED` exactly when `Accepts cfg evs`, and `REJECTED k` / `VIOLATED k names`
+(the Lean's) otherwise; it does not panic. **The precondition the harness discharges** (`Main`'s
+proof, S4): (i) `Accepts cfg evs` (which gives `run cfg evs = .ok v` with `v.kind = .accepted`):
+the simulation argument, that every report of a run is a step of the binding; (ii)
+`Stream.Bounded evs`: every number of every report within `±2^61` and the number of reports plus
+their sizes below `2^61` (the closed statement's step bound `n < 2^61`, as tracecheck's
+`numBound`); (iii) `Config.Bounded` (three servers). Where the Lean errs (TLC's evaluation
+errors), the Go panics; a triple's post cannot say so, and `Main` panics there anyway, so the
+spec is silent: no "well-formed" syntactic class was found that excludes evaluation errors, which
+depend on the state (a string compared with a record, `SubSeq` past a log).
+
+**Plan of the proof** (tracecheck's layer C, in this order; one `Spec`/`Proof` file per function,
+callees through their specs, a `Link.lean` from a `link-lean-first` list once the leaves are done):
+`types.go` (sets, values, entries, `SubSeq`/`At`/`IsPrefix`/`TermAt`, records, functions on terms),
+`event.go` (the accessors: `need` against `fieldRel`), `raft.go` (R's operators), `binding.go`
+(the facts, `RecordedIn`/`SendableIn`, `Boot`, `Recv`, `InMemory` with `inMem`'s methods, `OnDisk`
+with `onDisk`'s, `Ready`..`ReadGiven`, `Bind`, `Garbage`..`GC`, `Step`), `state.go` (`Init0`, the
+`set*` copies, `idx`), `check.go` (`violated`, `Next`, `End`, `Run`). A `State` is never written once
+built, so its representation is persistent (`stateRO`, to write with `binding.go`'s layer), and
+the loop invariant of `Run` is `stateRO` of the Lean checker's state after the events taken.
+Proved so far (no `sorry`, no axiom): `TermAt`, `At`, `SubSeq`.
+
+**Questions** (for the coordinator): see the S3b report.
