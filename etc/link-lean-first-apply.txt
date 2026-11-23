@@ -23,7 +23,9 @@ Version__LessThan: Version__Compare
 Version__String: =_root_.Perennial.bytes.Buffer.wp_Write =_root_.Perennial.bytes.Buffer.wp_String =_root_.Perennial.fmt.wp_Fprintf
 strconv_FormatUint:
 types_ID__String: strconv_FormatUint
-etcdserverpb_AlarmType__String:
+# (etcd-grove#39, 2026-11-23) over its trusted model, whose fallback is strconv.Itoa (until then an axiom)
+strconv_Itoa:
+etcdserverpb_AlarmType__String: strconv_Itoa
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
 zapcore_CheckedEntry__Write:

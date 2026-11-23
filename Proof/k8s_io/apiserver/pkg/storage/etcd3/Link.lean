@@ -182,6 +182,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateState
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__validateMinimumResourceVersion
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__watchContext
 public import Proof.strconv.FormatInt
+public import Proof.strconv.Itoa
 public import Proof.strconv.ParseInt
 public import Proof.strings.Contains
 public import Proof.time.Duration__Seconds
@@ -307,6 +308,10 @@ theorem ResponseOp.wp_GetResponseRange :
 theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.conversion.EnforcePtr.wp_proof
+
+theorem strconv.wp_Itoa :
+    EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.Itoa.wp_proof
 
 theorem v3.wp_getPrefix :
     EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
@@ -467,7 +472,7 @@ theorem storage.wp_EncodeContinue :
 
 theorem mvccpb.Event_EventType.wp_StringPtr :
     EtcdGrove.mvccpb.Event_EventType.StringPtr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.mvccpb.Event_EventType.StringPtr.wp_proof
+  EtcdGrove.mvccpb.Event_EventType.StringPtr.wp_proof strconv.wp_Itoa
 
 theorem mvccpb.Event.wp_GetKv :
     EtcdGrove.mvccpb.Event.GetKv.spec (GF := GF) (hG := hG) :=

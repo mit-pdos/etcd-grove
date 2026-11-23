@@ -86,7 +86,6 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
-axiom etcdserverpb.AlarmType.String.wp_proof
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfSlice.wp_proof
@@ -196,7 +195,6 @@ axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -287,7 +285,6 @@ axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
 axiom rand.Int63n.wp_proof
-axiom rate.Limiter.Wait.wp_proof
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
 axiom reflect.DeepEqual.wp_proof_k8s

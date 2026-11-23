@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.context
+public import Perennial.Code.fmt
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Perennial.Golang.Defn
@@ -168,6 +169,116 @@ noncomputable def Reservation.DelayFrom.impl [GooseExts] [GoGlobalContext] : val
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
+/-- Cancel is shorthand for CancelAt(time.Now()).
+
+    go: rate.go:162:23 -/
+noncomputable def Reservation.Cancel.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reservation.ty)))) (Var "r"))
+  (App (Val doExecute)
+  (Let "$a0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reservation.ty) go!"CancelAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))) (Var "$a0"))))))
+  (Val #()))))
+
+/-- CancelAt indicates that the reservation holder will not perform the reserved action
+    and reverses the effects of this Reservation on the rate limit as much as possible,
+    considering that other reservations may have already been made.
+
+    go: rate.go:169:23 -/
+noncomputable def Reservation.CancelAt.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam "t"
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Reservation.ty)))) (Var "r"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.float64))) (Pair (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))) (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"timeToAct"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Sub"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"lastEvent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limit.ty) go!"tokensFromDuration"))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))) (Var "$a0")))))
+  (Let "restoreTokens" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limiter.ty) go!"advance"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))) (Var "$a0")))
+  (Let "tokens" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"lastEvent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"timeToAct"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))) (Var "$a0")))
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoUnOp GoNeg go.int))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limit.ty) go!"durationFromTokens"))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))) (Var "$a0")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Add"))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"timeToAct"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))) (Var "$a0")))
+  (Let "prevEvent" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (Var "prevEvent")) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "prevEvent"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"lastEvent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "prevEvent") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"last"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))) (Var "$r0"))))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"burst"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))))))
+  (Let "burst" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (GoLoad go.float64))) (Var "burst")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "burst"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "burst") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (App (Val (GoInstruction (GoOp GoPlus go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "tokens")) (App (Val (GoInstruction (GoLoad go.float64))) (Var "restoreTokens"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "tokens") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "restoreTokens")) (Val #(W64 0)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "restoreTokens") (Var "$r0")))))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoEquals Limit.ty))) (Pair (App (Val (GoInstruction (GoLoad Limit.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))))) (Val #(W64 9218868437227405311)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"tokens"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))) (Val #(W64 0))))) (Val #true) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Before"))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"timeToAct"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))) (Var "$a0"))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r"))))))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"lim"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))))) (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"ok"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "r")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Val #()))))
+
 /-- Reserve is shorthand for ReserveN(time.Now(), 1).
 
     go: rate.go:207:21 -/
@@ -229,6 +340,261 @@ noncomputable def Limiter.ReserveN.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Reservation.ty))) (Pair (Var "r") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Reservation.ty)))) (Var "$res0")))))))
+
+/-- Wait is shorthand for WaitN(ctx, 1).
+
+    go: rate.go:233:21 -/
+noncomputable def Limiter.Wait.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lim"
+  (Lam "ctx"
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res0" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "lim" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (Val #(W64 1))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limiter.ty) go!"WaitN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- WaitN blocks until lim permits n events to happen.
+    It returns an error if n exceeds the Limiter's burst size, the Context is
+    canceled, or the expected wait time exceeds the Context's Deadline.
+    The burst limit is ignored if the rate limit is Inf.
+
+    go: rate.go:241:21 -/
+noncomputable def Limiter.WaitN.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lim"
+  (Lam "ctx"
+  (Lam "n"
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res0" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "lim" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$r0" (Lam "d"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "d" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.NewTimer []))) (Val #())) (Var "$a0")))
+  (Let "timer" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.time.Timer.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.time.Timer.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.time.Timer.ty go!"C"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Timer.ty)))) (Var "timer"))))
+  (Let "$r1" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Timer.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Timer.ty)))) (Var "timer")))
+  (Let "$r2" (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Val #())))
+  (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.time.Timer.ty)))) (Pair (Var "timer") (Var "$r0")))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "$res2"))))))))
+  (Let "newTimer" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$a2" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))))) (Var "newTimer"))
+  (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limiter.ty) go!"wait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))))) (Pair (Var "newTimer") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
+
+/-- wait is the internal implementation of WaitN.
+
+    go: rate.go:253:21 -/
+noncomputable def Limiter.wait.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lim"
+  (Lam "ctx"
+  (Lam "n"
+  (Lam "t"
+  (Lam "newTimer"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "lim" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Limiter.ty)))) (Var "lim"))
+  (Let "newTimer" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))))) (Var "newTimer"))
+  (Let "t" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (Var "t"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "ctx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (Var "ctx"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"burst"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))))
+  (Let "burst" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Limit.ty))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"limit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))))
+  (Let "limit" (App (Val (GoInstruction (GoAlloc Limit.ty))) (App (Val (GoInstruction (GoZeroVal Limit.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val InfDuration)
+  (Let "waitLimit" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "n"))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "waitLimit"))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Limiter.ty) go!"reserveN"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc Reservation.ty))) (App (Val (GoInstruction (GoZeroVal Reservation.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reservation.ty) go!"DelayFrom"))) (Var "r")) (Var "$a0")))
+  (Let "delay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay"))
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))))) (Var "newTimer")) (Var "$a0")))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "advance" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Val #())))
+  (Let "stop" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (Val #())))
+  (Let "ch" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$ch0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Var "ch"))
+  (Let "$ch1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none [(CommClause (RecvCase _root_.Perennial.time.Time.ty (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))),
+  (CommClause (RecvCase (go.GoType.StructType []) (Var "$ch1")) (Lam "$recvVal"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Reservation.ty) go!"Cancel"))) (Var "r")) (Val #()))))))]))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "advance")) (Val #()))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (Var "stop"))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "advance") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.bool]))))) (Pair (Var "stop") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Pair (Var "ch") (Var "$r0")))))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "delay")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "delay") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Reservation.ty go!"ok"))) (Var "r"))))
+  (Let "$r0" (Let "$a0" (Val #(go!"rate: Wait(n=%d) would exceed context deadline"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Reservation.ty))) (Pair (Var "r") (Var "$r0")))))))))
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Deadline"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "deadline" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Sub"))) (Var "deadline")) (Var "$a0")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "waitLimit") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "deadline") (Var "$r0")))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "waitLimit") (Var "$r0")))))))))
+  (Let "$ch0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Done"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses (some (App (Val doExecute)
+  (Val #()))) [(CommClause (RecvCase (go.GoType.StructType []) (Var "$ch0")) (Lam "$recvVal"
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.context.Context.ty go!"Err"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.context.Context.ty))) (Var "ctx"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))]))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoLoad go.int))) (Var "burst")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Limit.ty))) (Pair (App (Val (GoInstruction (GoLoad Limit.ty))) (Var "limit")) (Val #(W64 9218868437227405311))))) (Val #false)))
+  (Let "$r0" (Let "$a0" (Val #(go!"rate: Wait(n=%d) exceeds limiter's burst %d"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "burst")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Limit.ty))) (Pair (Var "limit") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "burst") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Limiter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Limiter.ty)))) (Var "lim")))) (Val #())))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))))
 
 /-- reserveN is a helper method for AllowN, ReserveN, and WaitN.
     maxFutureReserve specifies the maximum reservation wait duration allowed.
@@ -472,7 +838,7 @@ noncomputable def Limit.tokensFromDuration.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoLoad go.float64))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.time.rate where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.sync, pkg_id.time]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -482,8 +848,11 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #())))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -562,8 +931,11 @@ class Limiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limiter.ty) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Limit", (some (go.signature.Signature [] false [Limit.ty]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false [(go.GoType.PointerType Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int] false [go.error]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.int, _root_.Perennial.time.Duration.ty] false [Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.int, _root_.Perennial.time.Time.ty, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
   ptr_Reserve_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"Reserve" Limiter.Reserve.impl
   ptr_ReserveN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"ReserveN" Limiter.ReserveN.impl
+  ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"Wait" Limiter.Wait.impl
+  ptr_WaitN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"WaitN" Limiter.WaitN.impl
   ptr_advance_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"advance" Limiter.advance.impl
   ptr_reserveN_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"reserveN" Limiter.reserveN.impl
+  ptr_wait_unfold : MethodUnfold (go.GoType.PointerType Limiter.ty) go!"wait" Limiter.wait.impl
 
 attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.underlying
@@ -583,8 +955,11 @@ attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.ptr_method_set
   Limiter.TypeAssumptions.ptr_Reserve_unfold
   Limiter.TypeAssumptions.ptr_ReserveN_unfold
+  Limiter.TypeAssumptions.ptr_Wait_unfold
+  Limiter.TypeAssumptions.ptr_WaitN_unfold
   Limiter.TypeAssumptions.ptr_advance_unfold
   Limiter.TypeAssumptions.ptr_reserveN_unfold
+  Limiter.TypeAssumptions.ptr_wait_unfold
 
 structure Reservation [GooseExts] where
   mk ::
@@ -629,6 +1004,8 @@ class Reservation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_limit : ∀ (x : Reservation) (y : Limit), go.IsGoStepPureDetTagged under (StructFieldSet Reservation.underlying go!"limit") (PairV #x #y) (Val #(({ x with limit' := y } : Reservation)))
   method_set : go.MethodSetIs Reservation.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reservation.ty) [(go!"Cancel", (some (go.signature.Signature [] false []))), (go!"CancelAt", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"Delay", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"DelayFrom", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"OK", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_Cancel_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"Cancel" Reservation.Cancel.impl
+  ptr_CancelAt_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"CancelAt" Reservation.CancelAt.impl
   ptr_Delay_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"Delay" Reservation.Delay.impl
   ptr_DelayFrom_unfold : MethodUnfold (go.GoType.PointerType Reservation.ty) go!"DelayFrom" Reservation.DelayFrom.impl
 
@@ -646,6 +1023,8 @@ attribute [instance] Reservation.TypeAssumptions.type_repr
   Reservation.TypeAssumptions.set_limit
   Reservation.TypeAssumptions.method_set
   Reservation.TypeAssumptions.ptr_method_set
+  Reservation.TypeAssumptions.ptr_Cancel_unfold
+  Reservation.TypeAssumptions.ptr_CancelAt_unfold
   Reservation.TypeAssumptions.ptr_Delay_unfold
   Reservation.TypeAssumptions.ptr_DelayFrom_unfold
 
@@ -722,6 +1101,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Every_unfold : FuncUnfold Every [] Every.impl
   NewLimiter_unfold : FuncUnfold NewLimiter [] NewLimiter.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
 
@@ -732,6 +1112,7 @@ attribute [instance] Assumptions.Limit_instance
   Assumptions.Every_unfold
   Assumptions.NewLimiter_unfold
   Assumptions.import_context_Assumption
+  Assumptions.import_fmt_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
 
