@@ -375,6 +375,27 @@ theorem dirs_ok {R : Roots} {m : Tree} (hwf : TreeWf R m) {r : GoString} {j : In
       fun h => ?_⟩
     exact wt_ne_wal (hwf.2.2.2.2 j wtB j walB _ he (dirOf_some h)).2
 
+/-- The directory `wal.tmp/seg` names, if `wal.tmp` and it are directories. -/
+def segDir (m : Tree) (j : Ino) : Option Ino :=
+  (dirOf m j wtB).bind (fun T => dirOf m T segB)
+
+/-- `wal.tmp/seg`'s directory is in the tree, and none of the root, `wal`'s and `wal.tmp`'s. -/
+theorem segDir_ok {R : Roots} {m : Tree} (hwf : TreeWf R m) {r : GoString} {j : Ino}
+    (hr : (r, j) ∈ R) (K : Ino) (hK : segDir m j = some K) :
+    K ∈ m ∧ K ≠ j ∧ dirOf m j walB ≠ some K ∧ dirOf m j wtB ≠ some K := by
+  unfold segDir at hK
+  cases hT : dirOf m j wtB with
+  | none => rw [hT] at hK; cases hK
+  | some T =>
+    rw [hT] at hK
+    have heT := dirOf_some hT
+    have heK := dirOf_some (show dirOf m T segB = some K from hK)
+    have hTj : T ≠ j := fun h => hwf.2.2.2.1 j wtB T heT r (h ▸ hr)
+    refine ⟨(hwf.2.2.1 T segB _ heK).2 K (by simp [Node.dirIno]),
+      fun h => hwf.2.2.2.1 T segB K heK r (h ▸ hr), fun h => ?_, fun h => ?_⟩
+    · exact hTj (hwf.2.2.2.2 T segB j walB _ heK (dirOf_some h)).1
+    · exact hTj (hwf.2.2.2.2 T segB j wtB _ heK (by rw [← Option.some.inj h]; exact heT)).1
+
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   [GoGlobalContext]
@@ -526,12 +547,12 @@ theorem ds_alloc (j : Ino) (ko : Option Ino) (mg : Bool) (hw : NamesH) (hsO : Op
 /-- **A fresh generation's start**: from the tree's resources (`osShared`, nothing logged) on a
 `SafeT` tree, the invariant with the program's half, and the whole claims the program changes:
 `wal.tmp`'s, and the `.except []` claim of `wal.tmp`'s directory. -/
-theorem ds_start (R : Roots) (r : GoString) (j : Ino) (hr : (r, j) ∈ R) (m : Tree)
+`wal.tmp`'s, the `.except []` claim of `wal.tmp`'s directory, and that of `wal.tmp/seg`'s (`segDir`). -/
     (hwf : TreeWf R m) (ko : Option Ino) (hs : SafeT j ko m) (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ osShared (L := L) R (m, []) -∗ keyRes (L := L) ko ={E}=∗
       ∃ γ, dsInv (L := L) j γ ∗ dsHalf (L := L) j γ ko false (NamesH.init m j wO) (initSeg m j) ∗
         osNames (L := L) j (.only [wtB]) (DFrac.own 1) (NamesH.init m j (.only [wtB])) ∗
-        optClaim (L := L) (m, []) (dirOf m j wtB) ∗
+        optClaim (L := L) (m, []) (dirOf m j wtB) ∗ optClaim (L := L) (m, []) (segDir m j) ∗
         osSharedInv (L := L) R ∗ osAboveInv (L := L) ∗ osCallPerms (L := L) R ∗ osLogLb (L := L) 0 := by
   obtain ⟨hj, hW, hT⟩ := dirs_ok hwf hr
   have hnow : Hist.now ((m, []) : Hist) = m := by simp [Hist.now, Hist.ops, replay]
@@ -554,7 +575,13 @@ theorem ds_start (R : Roots) (r : GoString) (j : Ino) (hr : (r, j) ∈ R) (m : T
   ihave Hall := bigSepL_take_opt (L := L) (m, []) _ (dirOf m j wtB) (fun J hJ =>
     mem_erase_opt ((List.mem_erase_of_ne (hT J hJ).2.1).2 (mem J (hT J hJ).1))
       (fun h => (hT J hJ).2.2 h)) $$ Hall
-  icases Hall with ⟨HT, -⟩
+  icases Hall with ⟨HT, Hall⟩
+  -- `wal.tmp/seg`'s directory's
+  ihave Hall := bigSepL_take_opt (L := L) (m, []) _ (segDir m j) (fun K hK => by
+    obtain ⟨hm, hKj, hKW, hKT⟩ := segDir_ok hwf hr K hK
+    exact mem_erase_opt (mem_erase_opt ((List.mem_erase_of_ne hKj).2 (mem K hm))
+      (fun h => hKW h)) (fun h => hKT h)) $$ Hall
+  icases Hall with ⟨HK, -⟩
   -- the root's claim split
   imod osNames_take1 (L := L) R (m, []) j [] walB (by simp) hE $$ Hsh Hj with ⟨Hw, Hj⟩
   rw [List.nil_append]
@@ -583,7 +610,7 @@ theorem ds_start (R : Roots) (r : GoString) (j : Ino) (hr : (r, j) ∈ R) (m : T
     with ⟨%γ, Hinv, Hh⟩
   imodintro
   iexists γ
-  iframe Hinv Hh Ht HT Hsh Hab Hperm
+  iframe Hinv Hh Ht HT HK Hsh Hab Hperm
   simp only [List.length_nil]
   iexact Hlb
 
