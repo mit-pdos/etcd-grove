@@ -592,6 +592,12 @@ theorem rootBlack_after {C : Ctx GoInterface} {t t' : RB GoInterface} {h h' : Lo
     · exact absurd h0 (Rep_locs_ne_null _ _ hrep _ (mem_plug_ctx hm))
     · exact h0
 
+theorem rootBlack_congr {h h' : Loc → Node} {T T' : RB GoInterface}
+    (hcol : ∀ x, (h' x).color' = (h x).color') (hloc : T'.loc = T.loc) (hrb : rootBlack h T) :
+    rootBlack h' T' := by
+  unfold rootBlack at *
+  rw [hloc, hcol]; exact hrb
+
 end heapfn
 
 /-! ## The points-tos -/

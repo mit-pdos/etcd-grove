@@ -248,6 +248,12 @@ theorem rotL_entries {α : Type u} (g : Loc) (kg : w64) (vg : α) (U : RB α) (p
     (RB.node g kg vg U (.node p kp vp A B)).entries = (RB.node p kp vp (.node g kg vg U A) B).entries := by
   simp
 
+theorem ne_loc_of_not_mem {α : Type u} {t : RB α} {x : Loc} (hx : x ≠ null) (hm : x ∉ t.locs) :
+    x ≠ t.loc := by
+  cases t with
+  | leaf => simpa using hx
+  | node n => intro e; subst e; simp at hm
+
 /-! ## Search: the keys around a subtree -/
 
 section search
