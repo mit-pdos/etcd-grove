@@ -159,3 +159,142 @@ stage 1.
   `TopBridge`, `TopCrash`) should go after any kvnet relink in flight.
 - **The real bbolt proof** (`Proof/go_etcd_io/bbolt`) is already shared. It imports only
   `CrashFile`'s pure parts, which stay.
+
+## 7. Execution: the spike, and the interface fixed (2026-11-23)
+
+Branch `fs-single-view/2026-11-23` (from this note's branch, `lean` `5dbc722ce9` merged).
+
+### 7.1 The `DSTree` spike: the design holds
+
+`walfs/DSClaims.lean` (checked, no `sorry`) restates `dirswap`'s `SafeH`/`MonoH` over two claims:
+`(j, {wal, wal.tmp}, hw)` and, once `wal` can name a directory `J`, `(J, {seg}, hs)`. The facts
+(`DInv`) quantify over every kept set `K` closed in the region (`RegionCut`, `RegionCrashed`'s first
+clause) and read each name through `NamesH.valAfter … K`.
+- `dinv_crash`: `RegionCrashed (regionOf …) n m' → SafeT j ko m'`.
+- `dinv_init`: a fresh generation's claims (`NamesH.init`) on a `SafeT` tree start the facts.
+- `dinv_log_other`: a step writing `wal.tmp` only (`mkdir`, `rmdir`) keeps them. The removes of the
+  old `wal.tmp/seg` and the new `seg`'s create touch claims outside the invariant, so they no longer
+  open it at all.
+- `dinv_rename`: the rename onto the absent `wal` gives the facts with `J`'s claim tracked. This needs
+  `hs.next ≤ e.start` (`osNames_next` before `CallBegin`) and `HistCoh hs` (`osNames_histCoh`).
+- `dinv_rekey`: `ds_deposit`'s rekeying.
+
+No reshaping was needed. The invariants got simpler, because the whole-history quantifier became a
+two-claim one. walfs needs no prefix argument, since `Follows`-closure gives what the rename needs.
+`regionCrashed_seq` stays in the interface for clients that reason about prefixes.
+
+### 7.2 The interface (exact statements; proofs to follow)
+
+**Interpretation** (`Ghost.lean`). It has no disjunction, no `V0` and no `s0`:
+
+```lean
+def treeCtx (hL : OsGS GF) (st : OsState) : IProp GF :=
+  iprop(∃ (Γdf : GMap w64 (Ino × DirPhS)) (Γc Γg : GMap Nat CallV),
+    ⌜FsTreeWf st ∧ TreeCohS st Γdf Γc Γg⌝ ∗
+    gAuth hL hL.γs (histMap (st.fs.roots, ((st.fs.treeDur, st.fs.metaLog) : Hist))) ∗
+    gAuth hL hL.γdfS Γdf ∗ gAuth hL hL.γcS Γc ∗ callResS hL st.fs.roots Γc ∗
+    gAuth hL hL.γg Γg ∗ callResS hL st.fs.roots Γg ∗ commitRes hL st)
+```
+
+`TreeCohS st Γdf Γc Γg` loses its `s0` argument and the `s0le` field. `RootCoh`, `CallsK` and
+`LogValid` lose their `s0` too, read at `s0 = 0`.
+
+Deleted from `OsGS`: `γd`, `γdf`, `γc`. Deleted outright: `treeLegacy`, `treeShared`, `legacyHolds`,
+`TreeCoh`, `rdRes`, `callRes`.
+
+**Start resources.** `treeStart hL st := osSwitchKitG hL st.fs.roots (st.fs.treeDur, [])`. These are
+the shared names, filled in: the whole `γs` element, the `γn` authority at `claimsInit`, length 0,
+the empty log, every permission whole, and the whole claims. `os_local_init` keeps its statement
+(`|==> ∃ hL, osCtx hL st ∗ osStart hL st`).
+
+**`osShared`** moves to `TreeSharedRes.lean`, with the same body:
+`osSharedInv R ∗ osAboveInv ∗ osCallPerms R ∗ osLogLb V.2.length ∗ [∗list] j ∈ dirsOf V, osNames j
+(.except []) 1 (namesOf V j (.except []))`.
+
+**`fs_start`** (`Adequacy.lean`):
+
+```lean
+theorem fs_start [hG : HeapGS .hasLC GF] (σ : state) (h : FsInit (extLocal fsExt σ.world)) :
+    ⊢ extsLocalStart (GF := GF) σ.world ={⊤}=∗
+      osInv (L := hG.goose_localGS) ∗
+      ([∗map] i ↦ f ∈ (extLocal fsExt σ.world).fs.files, osFileStart (L := hG.goose_localGS) i f) ∗
+      osShared (L := hG.goose_localGS) (extLocal fsExt σ.world).fs.roots
+        ((extLocal fsExt σ.world).fs.treeDur, [])
+```
+
+`fs_startS` (`AdequacyS.lean`) is the same, for the `S` semantics.
+
+**`crashRest`** (`CrashTok.lean`) loses `V`, `γd`'s authority, `crashMode`/`crashCommit` and
+`TreeCrashed V V'`:
+- it keeps `gAuth hL γs (histMap (crashed state))` and `crashShared`'s pure facts (`TreeWf`, `Starts`,
+  the closed cut `S` with the committed entries, `V'.now`'s slots as `slotAfter … S`) and `commitRes
+  hL st`;
+- `treeLeft hL' R V' false := treeStart hL' st'`, with `V' = (st'.fs.treeDur, [])`;
+- `crashRest Q hL hL' D tt V'` keeps its parameters.
+
+`crashRest_region'` and `crashRest_treeWf'` keep their statements.
+
+```lean
+theorem crashRest_treeS' (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (D : List Ino)
+    (V' : Hist) (R : Roots) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
+      ⌜V'.2 = []⌝ ∗ osShared (L := L') R V' ∗
+      crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D true V'
+```
+
+**`regionCrashed_seq`** (`CrashRegion.lean`, pure):
+
+```lean
+def RegionSeq (cl : List Claim) : Prop :=
+  ∀ c ∈ cl, ∀ c' ∈ cl, ∀ x e E y e' E', (x, e, E) ∈ c.2.2.ents → (y, e', E') ∈ c'.2.2.ents →
+    y < x → y < e.start
+
+theorem regionCrashed_seq {cl : List Claim} {n : Nat} {m' : Tree} (hs : RegionSeq cl)
+    (h : RegionCrashed cl n m') :
+    ∃ t, (∀ c ∈ cl, ∀ y e E, (y, e, E) ∈ c.2.2.ents → y < n → y < t) ∧
+      ∀ c ∈ cl, ∀ b, c.2.1.Mem b → m'.entry c.1 b = c.2.2.valAfter c.1 (· < t) b
+```
+
+**Adequacy.** There are three theorems, `fs_crash_adequacy`, `fsQ_crash_adequacy` and
+`fsSQ_crash_adequacy` (semantics `True`, `Q`, `SQ`/`Q`). Each has one shape, proved directly over
+Perennial's `goose_crash_adequacy`. `P : GooseLocalGS GF → IProp GF` has no history index.
+- `Hstart` gets `osInv`, the files, `osShared R (treeDur, [])` and `ownGoState`, and gives `P L`.
+- `Hwp` is `P L -∗ threadTok ={⊤}=∗ WP … ∗ frame`.
+- The frame gets `crashed`, `osInv L'`, `crashRest Q … [] false V'`, `ownGoState ∅` and `£ 1`, and
+  gives `P L'`.
+
+The frame makes the next generation's `osShared` itself, with `crashRest_treeS'` and the old
+generation's `osSharedInv` (persistent, kept in its context). This differs from §2's wording ("`Hwp`
+gets `osShared`"). Only this shape needs no access to the interpretation, so it is the one that
+runs over plain `goose_crash_adequacy`. `fsSQ_crash_adequacyShared`, `AdequacyShared.lean` and
+`CrashAdequacyAcc.lean` are deleted.
+
+**Shared specs.** `TreeShared.lean`'s statements stay verbatim: `wp_osCallBeginS`,
+`wp_osCallBeginAboveS`, `wp_osCallBeginGuardS`, `wp_osLstatDirGuardS`, `wp_osUnlinkS(_none)`,
+`wp_osRenameFileS(1)`, `wp_osRenameDirS`, `wp_osRenameAbsentS`, `wp_osMkdirS(G)`,
+`wp_osRmdirS(G)(_none)`, `wp_osLstatDirS`, `wp_osOpenCreateS`, `wp_osOpenFileS`, `wp_osOpenDirS`,
+`wp_osOpenDirChildS` and the rest of the file. The same goes for the claim and spine laws
+(`osNames_split/merge/rekey/next/frac/agree`, `osNames_histCoh`, `osClaims_log`, `osPathS_*`,
+`osCallPerm_*`) and the `TreeShared{Read,DirFd,Create,Out,Guard,Trunc,…}` specs.
+`wp_osShare`/`wp_osShareE*` are deleted.
+
+**Deleted client API.** `osTree`, `osDir`, `osDirFd`, `osCall`, `tree_*` (`tree_combine`,
+`tree_halves`, `tree_agree`), every `wp_os*G`, `wp_metaStep`, `TreeSpecs{,DirFd,Meta,Open}.lean`,
+`crashRest_tree`, `osTreeCrash_take`, `TreeCrashed` as a client fact, `treeCrashed_*`,
+`CrashAdequacyAcc.lean` and `AdequacyShared.lean`.
+
+### 7.3 Work split (helpers on disjoint files, merged here)
+
+1. **Scaffold.** The statements of §7.2 land in the core, proofs `sorry`, on `fs-sv-scaffold`. That
+   branch is never landed, but it can be checked against, so the clients start before the core is
+   proved.
+2. **Core proofs:** `Ghost`, `World`, `CrashTok`, `CrashFiles`, `TreeShared*`, `Adequacy*` and
+   `CrashRegion`, plus the deletions.
+3. **Clients**, each in its own files against the scaffold: `Proof/os` (crash-aware layer); walfs
+   (`DSClaims` grows into `DirSwap`; `Boot`/`SegLog` the same way); crashlog; bboltfs/minibolt; the
+   WAL, WalTester, `etcdstart` and `StartFiles`; osfs/netfs `Results` and `NetFsBridge`; kvnet, last.
+
+Stages land once the core has no `sorry`. With the legacy API deleted, there is no "alongside"
+stage. Stages 1-3 of §4 land as one core stage, together with every client that imports a deleted
+name. kvnet's relink follows.
