@@ -820,7 +820,7 @@ tests kept as differential tests against the real library, a "not modelled" pani
    services map and the registry's ghost map under `mapLock`), `Register`, `RegisterName`; `go/token.IsExported`
    on an upper-case ASCII first byte (the trusted model's exact branch).
    *The vocabulary* (`ServerDefs.lean`): a method's obligation `methodOk C rcvr (S m) mm` (`NewArg` gives a
-   non-`nil` argument with its decoding `bodyDec`; from the deposit and a decoding, `NewReply` then `Call`,
+   non-`nil` argument with its decoding `bodyDec`, `argDec` since 2026-11-23 (below); from the deposit and a decoding, `NewReply` then `Call`,
    `callRet`: `nil` with the reply's encoding into `Φ eb ""`, or an error with its message and `Φ [] msg`), a
    receiver's `rcvrIs` (what `C.rcv` promises of `Receiver(rcvr)`: name, nil pointer, methods meeting `S`), a
    service spec's `errOk` (an error answer from the deposit: Go answers with errors requests it does not run),
@@ -881,10 +881,13 @@ tests kept as differential tests against the real library, a "not modelled" pani
    error response), before the body, and `ReadResponseBody` takes a guard (`bodyDecG C body D G Θ`, and a
    premise turning the reader predicate after the frame into `G pl` a step later: `body_guard`, the frame is
    that answer's reply). At-most-once and the other cases unchanged. `decErr`'s docstring names the panics.
-   *Open, same defect on the server*: `methodOk`'s `NewArg` gives `bodyDec`, a decoding of every request body,
-   which a generated codec with two types does not meet either; the fix is the same shape (a guard from the
-   deposit `S m args Φ`, which the reader holds when it reads the body, `req_body`), not done.
-   *Left*: the server's request decoding (above); the HTTP path (`ServeHTTP`, `HandleHTTP`, `DialHTTP`); `ServeRequest`; `register`'s logging
+   **The server's request decoding restricted the same way (2026-11-23, same branch; ledger 2026-11-23).**
+   `methodOk`'s `NewArg` gave `bodyDec`, a decoding of every request body; it now gives `argDec C argv D Sm Θ`,
+   `codecSet C ∗ □ (D -∗ ∀ args Φ, Sm args Φ -∗ Sm args Φ ∗ C.dec args argv (Θ args))`: only of the argument
+   bytes of a deposit, which it keeps (the call and the error answers still need it). `readRequest` applies it
+   to the request's deposit before the body read; `ReadRequestBody` takes the client's guard shape
+   (`bodyDecG`, guard `pl = r.body` by `req_guard`). `bodyDec` gone.
+   *Left*: the HTTP path (`ServeHTTP`, `HandleHTTP`, `DialHTTP`); `ServeRequest`; `register`'s logging
    premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
    not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
    `invalidRequest` at `()`) and `isPkgInit log` (item 5).

@@ -2,8 +2,10 @@
 The proof of `Server.readRequest` (`Net/Spec/net/rpc/Server__readRequest.lean`): the header
 (`readRequestHeader`); after an error with the request taken, its body discarded
 (`ReadRequestBody(nil)`: the reader advances by the frame, or its read fails, `rerr` then holding
-the error); otherwise the method's `NewArg` (`methodOk`: an argument and its decoding), the body
-decoded into it (`ReadRequestBody`, the request's argument bytes by `req_body`), and on a decoding
+the error); otherwise the method's `NewArg` (`methodOk`: an argument and its decoding, `argDec`,
+of the argument bytes of a deposit), the deposit's decoding (the deposit kept), the body decoded
+into it (`ReadRequestBody` guarded by `req_guard`: the frame read is the request's argument bytes;
+`req_body` again after the read), and on a decoding
 the deposit and the decoding turned into the call obligation, whose `NewReply` runs here
 (`callObl`); a body that does not read or decode is an error (`rdErr`, `decErr`: messages not
 empty) with the deposit spent on `errOk` (`errCont`). Two later credits: the body's protocol fact.
@@ -118,13 +120,15 @@ theorem Server.readRequest.wp_proof
     | nil => exact absurd rfl He
     | ok e =>
     wp_auto_lc 1
+    ihave #Hg0 := guard_true (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
+      (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
     wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra interface.nil interface.nil C iprop(True)
-        (fun _ _ => iprop(True))
+        (fun _ => iprop(True)) (fun _ _ => iprop(True))
         (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
           (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
-        eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HrL $Hrerr $Hacc]
+        eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HrL $Hg0 $Hrerr $Hacc]
       as %err1 (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
-    · iunfold bodyDec; itrivial
+    · iunfold bodyDecG; itrivial
     · exact absurd rfl Hc
     ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
     iapply fupd_wp
@@ -176,13 +180,31 @@ theorem Server.readRequest.wp_proof
   iapply Hnew
   inext
   iintro %argv %D %Θ %Hargv #Hdec HD Hobl
+  cases argv with
+  | nil => exact absurd rfl Hargv
+  | ok av =>
   wp_auto_lc 1
   ihave #HerrOk' := HerrOk
   iunfold errOk at HerrOk'
-  wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra argv interface.nil C D Θ
+  -- the decoding of the request's argument bytes, from its deposit (kept), guarded by the body read
+  iunfold argDec at Hdec
+  icases Hdec with ⟨#Hset, #Hd⟩
+  icases Hd $$ HD %r.body %Φc HS with ⟨HS, Hdc0⟩
+  ihave #Hguard := req_guard W a cn γ L r ps k _ HLr Hps Hb hh $$ [$Hrpc $Hlb]
+  ihave #Hdec3 : bodyDecG C (interface.ok av) (C.dec r.body (interface.ok av) (Θ r.body))
+      (fun pl => iprop(⌜pl = r.body⌝)) Θ $$ []
+  · simp only [bodyDecG]
+    iframe Hset
+    imodintro
+    iintro Hdc %pl %Hplr
+    subst Hplr
+    iexact Hdc
+  wp_apply +noauto wp_ReadRequestBody sc t cn true a la ra (interface.ok av) interface.nil C
+      (C.dec r.body (interface.ok av) (Θ r.body)) (fun pl => iprop(⌜pl = r.body⌝)) Θ
       (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
         (reqProto (Gg := hG.goose_globalGS) W a) (framesOf (ps ++ [reqHdr (W64 k) r.sm]) ++ got))
-      eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec $HD $HrL $Hrerr $Hacc]
+      eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec3 $Hdc0 $HrL $Hguard
+        $Hrerr $Hacc]
     as %err1 (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
   · exact absurd rfl Hc
   ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
@@ -243,9 +265,6 @@ theorem Server.readRequest.wp_proof
     · ipureintro; rfl
     iapply rdr_adv W a cn γ k ps _ pl Hps Hb hh hpl $$ [$HrT $Hrpc $Hctr]
   subst Hbody
-  cases argv with
-  | nil => exact absurd rfl Hargv
-  | ok av =>
   iunfold bodyRes at Hbr
   icases Hbr with ⟨%ok, %Hok, HΘ, Hdc⟩
   cases ok
