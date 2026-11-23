@@ -467,9 +467,64 @@ theorem State.InMemory.wp_proof
       try wp_auto
       wp_apply wp_T _ _ t $$ [Hx] as %ut %Hut
       · iframe Hx; ipureintro; exact ht
-      trace_state
-      sorry
-    · sorry
+      have hw1 : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by word
+      have hda : decide (sint.Z ut < sint.Z gq.T') = a := by rw [Hut, HgqT, ← ha]
+      rw [hda]
+      cases a
+      · rw [haf rfl] at Hjany
+        simp only [Bool.false_eq_true, ite_false] at Hjany
+        wp_auto
+        wp_for_post
+        iframe
+        iexists j + 1
+        rw [hw1]
+        iframe
+        isplitl [p]
+        · iexists _; iexact p
+        ipureintro; exact ⟨hjl, Hjany⟩
+      replace hat := hat rfl
+      unfold notM at hat
+      replace hat := bind_ok hat; obtain ⟨ip, hip, hat⟩ := hat
+      replace hip := bind_ok hip; obtain ⟨nc, hnc, hip⟩ := hip
+      simp only [pure_ok, Except.ok.injEq] at hat
+      subst hat
+      wp_auto
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_newC_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_newC _ _ nc $$ [Hx] as %gnc #Hgnc
+      · iframe Hx; ipureintro; exact hnc
+      wp_apply wp_IsPrefix _ _ _ _ ip $$ [Hgnc HgqL]
+      · iframe Hgnc HgqL; ipureintro; exact hip
+      cases ip
+      · simp only [Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Hjany
+        subst Hjany
+        wp_auto
+        wp_for_post
+        wp_join_done
+        iexists true
+        iframe
+        ipureintro; exact Hjp5
+      · simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Hjany
+        wp_auto
+        wp_for_post
+        iframe
+        iexists j + 1
+        rw [hw1]
+        iframe
+        isplitl [p]
+        · iexists _; iexact p
+        ipureintro; exact ⟨hjl, Hjany⟩
+    · have hc : ¬ sint.Z (W64 (j : Int)) < sint.Z gl.len := by word
+      rw [decide_eq_false hc]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      have hjeq : j = l.length := by omega
+      subst hjeq
+      simp only [List.drop_length] at Hjany
+      cases Hjany
+      wp_join_done
+      iexists false
+      iframe
+      ipureintro; exact Hjp5
   trace_state
   sorry
 
