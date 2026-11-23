@@ -16,7 +16,8 @@ the targets the code accepts (`decTarget`). Its `kitCodecOk` is proved with no g
   variable there, so that the frozen statements stay proved at `kitCodec` and the linked ones are
   proved at `kitCodecC`): `C`'s `enc`, `call`, `methods` are `kitCodec`'s, and `C.dec` follows from
   `kitCodec`'s decoding premise on an accepted target (`decT`). Instances for both codecs.
-* `kitCodecOkC`, `kitCodecOkC_holds`.
+* (PORT: the lab's `kitCodecC` instance, `kitCodecOkC`, `kitCodecOkC_holds` are about kitgen's
+  codec functions and are not ported; this kit's codec is rpcgen's, step 5.)
 * `rcvrOk_of`, `methods_of`: `kitCodec`'s `rcvrOk`/`methods` facts (the frozen specs' form) give
   `C`'s.
 -/
@@ -36,6 +37,15 @@ section kitlike
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+
+/-- The lab's `syncZero` (`Proof/swiftnet/codec/Sync.lean`): the zero `MSync`. -/
+def examples.swiftnet.syncZero : sp.KitVal := .msync ⟨0, 0, none, none, none⟩
+
+/-- The lab's `decTarget` (`Proof/swiftnet/codec/Sync.lean`, HUB-REQUEST 2): an `MSync` target is
+zero. -/
+def examples.swiftnet.decTarget : sp.KitVal → Prop
+  | .msync m => sp.KitVal.msync m = examples.swiftnet.syncZero
+  | _ => True
 
 /-- `kitCodec`'s decoding premise, on a target the code accepts (`decTarget`: not a non-zero
 `MSync`). -/
@@ -66,23 +76,6 @@ instance kitLike_kitCodec : KitLike (kitCodec (GF := GF)) where
     iexists x0
     iframe
 
-theorem kitValOwnC_eq : @kitValOwnC _ _ _ _ GF _ _ = @kitValOwn _ _ _ _ GF _ _ := rfl
-theorem mergeC_eq : @sp.KitVal.mergeC = @sp.KitVal.merge := rfl
-theorem wfC_eq : @sp.KitVal.wfC = @sp.KitVal.wf := rfl
-
-instance kitLike_kitCodecC : KitLike (examples.swiftnet.kitCodecC (GF := GF)) where
-  enc_eq := rfl
-  call_eq := rfl
-  methods_eq := rfl
-  dec_intro bs ptr Ψ := by
-    unfold decT
-    iintro ⟨%x0, %Ht, Hown, Hk⟩
-    unfold examples.swiftnet.kitCodecC; dsimp only
-    simp only [kitValOwnC_eq, mergeC_eq, wfC_eq]
-    iexists x0
-    iframe
-    ipureintro; exact Ht
-
 theorem rcvrOk_of (C : net.rpc.RpcCodec GF) [KitLike C] (r : GoInterface)
     (S : net.rpc.MethodSpec GF) :
     @net.rpc.rcvrOk _ GF kitCodec r S ⊢ @net.rpc.rcvrOk _ GF C r S := by
@@ -96,24 +89,6 @@ theorem methods_of (C : net.rpc.RpcCodec GF) [KitLike C] (r : GoInterface) :
 theorem enc_of (C : net.rpc.RpcCodec GF) [KitLike C] (v : GoInterface) (Ψ : List w8 → IProp GF) :
     @net.rpc.RpcCodec.enc _ GF kitCodec v Ψ ⊢ @net.rpc.RpcCodec.enc _ GF C v Ψ := by
   rw [KitLike.enc_eq (C := C)]
-
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions]
-  [net.rpc.Assumptions] [examples.swiftnet.Assumptions]
-
-/-- The harness's codec obligations at `kitCodecC`. -/
-abbrev kitCodecOkC : IProp GF := @net.rpc.kitCodecOk _ _ _ _ GF _ _ _ examples.swiftnet.kitCodecC
-
-/-- `kitCodecOkC` holds: no gap (the codec group's `encOkC`, `decOkC`, `methodsOkC`,
-`callOkC`). -/
-theorem kitCodecOkC_holds : ⊢ kitCodecOkC (GF := GF) := by
-  unfold kitCodecOkC net.rpc.kitCodecOk
-  isplitr
-  · iapply examples.swiftnet.encOkC
-  isplitr
-  · iapply examples.swiftnet.decOkC
-  isplitr
-  · iapply examples.swiftnet.methodsOkC
-  · iapply examples.swiftnet.callOkC
 
 end kitlike
 
