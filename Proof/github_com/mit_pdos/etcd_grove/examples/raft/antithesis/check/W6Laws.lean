@@ -147,6 +147,48 @@ theorem within_mem {s : State} {r : MemResult} {b E : Nat} (hW : s.Within b E) (
   exact ⟨hc, hi1, hi2, h1, h2, h3, h4, r8, h6, hlog, r12, r3, r4, r7, r5, r6, r9, r10, r11, hm1, hm2, hv1,
     hv2, r1, r2, hu, hp, hQ, hrd, hv⟩
 
+/-- The item `queued` builds (the report and `n`'s pending messages, or none) within the budget. -/
+theorem queued_within {s : State} {b E n : Nat} {ev : Event} {qi : QItem} (hW : s.Within b E)
+    (hev : ev.Within b E) (hqi : s.queued n ev = .ok qi) :
+    qi.ev.Within b E ∧ qi.m.length ≤ b ∧ ∀ m ∈ qi.m, m.Within b E := by
+  unfold State.queued at hqi
+  obtain ⟨_, -, hqi⟩ := bind_ok hqi
+  have hpm := getElem!_mem' (l := s.pending) (n := n)
+    (P := fun ms : List Msg => ms.length ≤ b ∧ ∀ m ∈ ms, m.Within b E)
+    hW.pending ⟨Nat.zero_le _, fun m hm => (List.not_mem_nil hm).elim⟩
+  split at hqi <;> simp only [pure_ok, Except.ok.injEq] at hqi <;> subst hqi
+  · exact ⟨hev, hpm.1, hpm.2⟩
+  · exact ⟨hev, Nat.zero_le _, fun m hm => (List.not_mem_nil hm).elim⟩
+
+/-- `Ready`'s `OnDisk` arguments (`InMemory`'s result and the queued item) within the budget. -/
+theorem onDisk_within_ready {s : State} {r : MemResult} {b E n : Nat} {qi : QItem} (hW : s.Within b E)
+    (hr : r.Within b E s) (hvb : s.viol.length ≤ b)
+    (hq : qi.ev.Within b E ∧ qi.m.length ≤ b ∧ ∀ m ∈ qi.m, m.Within b E) :
+    OnDisk.Within b E (OnDisk.mk s n qi false r.role r.leaders r.ledLog r.chain r.termLen r.viol) :=
+  ⟨hW, hq.1, hq.2.1, hq.2.2, hr.1, hr.2.1, hr.2.2.1, hr.2.2.2.1, hr.2.2.2.2.2.2.2.2.2.2.2.1,
+    hr.2.2.2.2.2.2.2.2.2.2.1, by have := hr.2.2.2.2.2.2.2.2.2.2.2.2; simp only; omega⟩
+
+/-- `MemResult.Within` is monotone in the budget. -/
+theorem MemResult.Within.mono {s : State} {r : MemResult} {b b' E : Nat} (hb : b ≤ b') (hr : r.Within b E s) :
+    r.Within b' E s := by
+  obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13⟩ := hr
+  exact ⟨by omega, r2, by omega, fun p hp => ⟨(r4 p hp).1, (r4 p hp).2.mono' hb (Nat.le_refl _)⟩,
+    by omega, fun p hp => ⟨(r6 p hp).1, (r6 p hp).2.mono' hb (Nat.le_refl _)⟩,
+    fun c hc => (r7 c hc).mono' hb (Nat.le_refl _), r8, r9.mono' hb, r10.mono' hb,
+    r11.mono' hb, r12.mono' hb (Nat.le_refl _), r13⟩
+
+/-- `Ready`'s successor: `OnDisk`'s, with `InMemory`'s configurations and term functions. -/
+theorem within_ready {s ns : State} {r : MemResult} {b E : Nat} (hW : ns.Within b E) (hc : ns.cfg = s.cfg)
+    (hr : r.Within b E s) :
+    State.Within b E { ns with ledConf := r.ledConf, ledAt := r.ledAt, elAt := r.elAt, config := r.config, confAt := r.confAt } := by
+  obtain ⟨h0, hi1, hi2, h1, h2, h3, h4, -, h6, hlog, hch, hll1, hll2, -, -, -, -, -,
+    htl, hm1, hm2, hv1, hv2, hl1, hl2, hu, hp, hq, hrd, hvi⟩ := hW
+  obtain ⟨-, -, -, -, r5, r6, r7, r8, r9, r10, -, -, -⟩ := hr
+  refine ⟨h0, hi1, hi2, h1, h2, h3, h4, r8, h6, hlog, hch, hll1, hll2, ?_, r5, ?_, r9, r10, htl, hm1, hm2, hv1,
+    hv2, hl1, hl2, hu, hp, hq, hrd, hvi⟩
+  · simp only; rw [hc]; exact r7
+  · simp only; rw [hc]; exact r6
+
 end W6Laws
 
 end AntCheck
