@@ -11,9 +11,8 @@ master 915f964; notes/dsv-gryff.md), restated over dsv-bufio (never unfolding it
 * `ownReader_proto`: what a connection's buffered reader has returned is a prefix of an allowed
   stream, under a later (`net.connReader_proto`; the lab's had none).
 * `ownWriter_sentLb`: a connection writer's sent bytes are a lower bound (`bufio.ownBufWriter_fact`
-  with `sendTok_sentLb`). The lab's `sentLb_comparable` is not restated here: two lower bounds of
-  one direction are comparable (the mono list), a law `GooseLang/Ext/Net/Proto.lean` does not
-  state yet (rabia's review: `sentLb_prefix`/`sentLb_agree` to move there).
+  with `sendTok_sentLb`). The lab's `sentLb_comparable` is Net's
+  `Net.sentLb_agree` (`GooseLang/Ext/Net/Proto.lean`, dsv-protolaws).
 -/
 module
 

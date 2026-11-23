@@ -198,7 +198,7 @@ theorem reply_opDone (γ : GryffNames GF) (a : GoString) (cn : Nat) (hs req : w3
     simp at ht
   unfold acceptStream
   icases Hacc with ⟨%hs', #Hlb', Hcase⟩
-  ihave %Hcmp := sentLb_comparable cn false (u32Le hs ++ X) (u32Le hs') $$ [$Hlb $Hlb']
+  ihave %Hcmp := Net.sentLb_agree cn false (u32Le hs ++ X) (u32Le hs') $$ [$Hlb $Hlb']
   have hhs' : hs = hs' := by
     apply u32Le_inj
     exact prefix_same_len_n (by simp [u32Le_length]) Hcmp

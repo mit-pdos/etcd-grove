@@ -28,7 +28,7 @@ the next merge).
 The step bound: Net's net/rpc server (`Server.ServeCodec.spec`, so `RpcHttpHyp`'s `HandleHTTP`/
 `Serve`) needs the machine's thread bound `threadBound GF ≤ 2 ^ 31` (its wait group's counter is an
 `int32`), and the deployment bridge's thread bound is the step count plus 2
-(`Bridge.lean`'s `robust_of_distProtoLisRBT`, dsv-epaxos's). Each holds of every
+(`robust_of_distProtoLisRBT` of dsv-epaxos's `examples/epaxosnet/Bridge.lean`, on lean). Each holds of every
 machine heap (`heapAt`) and protocol registry.
 -/
 module

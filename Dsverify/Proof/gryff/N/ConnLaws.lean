@@ -207,34 +207,6 @@ instance protoPrefix_timeless (P : Proto GF) [hP : ∀ cn W, Timeless (P cn W)] 
 
 /-! ## The connection's tokens -/
 
-/-- What a reader has read was written (`recvTokL`'s core). -/
-theorem recvTokL_sentLb (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
-    recvTokL (Gg := hG.goose_globalGS) cn s P R ⊢
-      recvTokL (Gg := hG.goose_globalGS) cn s P R ∗ sentLb (Gg := hG.goose_globalGS) cn (!s) R := by
-  refine persistent_entails_left ?_
-  unfold recvTokL recvCore sentLb connH
-  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, -⟩, -, -, #Hlb⟩, -⟩
-  iexists γ
-  iframe He Hlb
-
-theorem sentLb_le (cn : Nat) (s : Bool) {W W' : List w8} (h : W' <+: W) :
-    sentLb (Gg := hG.goose_globalGS) cn s W ⊢ sentLb (Gg := hG.goose_globalGS) cn s W' := by
-  unfold sentLb
-  iintro ⟨%γ, #He, #Hlb⟩
-  iexists γ
-  iframe He
-  iapply wLb_le _ W' h $$ Hlb
-
-/-- Two lower bounds of one direction are comparable (the lab's `bufio.sentLb_comparable`). -/
-theorem sentLb_comparable (cn : Nat) (s : Bool) (W1 W2 : List w8) :
-    sentLb (Gg := hG.goose_globalGS) cn s W1 ∗ sentLb (Gg := hG.goose_globalGS) cn s W2 ⊢
-      ⌜W1 <+: W2 ∨ W2 <+: W1⌝ := by
-  unfold sentLb wLb
-  iintro ⟨⟨%γ1, #He1, #H1⟩, ⟨%γ2, #He2, #H2⟩⟩
-  icases connElem_agree cn γ1 γ2 $$ He1 He2 with %h
-  subst h
-  iapply mono_list_lb_valid $$ H1 H2
-
 /-- What a connection's buffered reader has returned was written by the other end. -/
 theorem ownReader_sentLb (br : Loc) (rd : wire.RSt GF) (cn : Nat) (s : Bool) (P : Proto GF)
     (R : List w8) :
@@ -244,8 +216,8 @@ theorem ownReader_sentLb (br : Loc) (rd : wire.RSt GF) (cn : Nat) (s : Bool) (P 
   unfold wire.ownReader
   exact EtcdGrove.bufio.ownBufReader_fact br rd.ri _ _ rd.E R
     (fun r => sentLb (Gg := hG.goose_globalGS) cn (!s) r)
-    (fun r => recvTokL_sentLb cn s P r)
-    (fun x y => sentLb_le cn (!s) (List.prefix_append x y))
+    (fun r => Net.recvTokL_sentLb cn s P r)
+    (fun x y => Net.sentLb_le cn (!s) x (List.prefix_append x y))
 
 /-- A reader's protocol fact, now (the wire protocols are timeless). -/
 theorem ownReader_protoNow (br : Loc) (rd : wire.RSt GF) (cn : Nat) (s : Bool) (P : Proto GF)
@@ -494,7 +466,7 @@ theorem dial_reader (γ : GryffNames GF) (a : GoString) (ha : a ∈ replicaAddrs
   · subst Hn; exact absurd (List.prefix_nil.mp Hext) HY
   unfold acceptStream
   icases Hacc with ⟨%hs', #Hlb', Hcase⟩
-  ihave %Hcmp := sentLb_comparable c false (u32Le (peerHs k)) (u32Le hs') $$ [Hlb Hlb']
+  ihave %Hcmp := Net.sentLb_agree c false (u32Le (peerHs k)) (u32Le hs') $$ [Hlb Hlb']
   · iframe Hlb Hlb'
   have hhs' : peerHs k = hs' := by
     apply u32Le_inj

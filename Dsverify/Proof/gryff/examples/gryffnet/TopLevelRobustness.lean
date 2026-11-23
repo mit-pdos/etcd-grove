@@ -1,7 +1,7 @@
 /-
 The gryff kit's top-level result (`Dsverify/Spec/gryff/examples/gryffnet/TopLevelRobustness.lean`),
 proved (dsv-epaxos's pattern): from the deployment's start (the registry, the client machines'
-addresses unset, the servers' seven wildcard listeners unset: `robust_of_distProtoLisRBT`, with
+addresses unset, the servers' seven wildcard listeners unset: dsv-epaxos's `robust_of_distProtoLisRBT`, with
 each machine's thread bound), the kit's start (`gryff_start`: the names, the rpc world, Gryff's
 ghost state and invariants, the listeners' protocols, the machines' shares, the register's half),
 remote's map of operations, the client addresses' remote protocols, remote's pending library over
@@ -14,7 +14,7 @@ module
 public import Dsverify.Spec.gryff.examples.gryffnet.TopLevelRobustness
 public import Dsverify.Proof.gryff.examples.gryffnet.Link
 public import Dsverify.Proof.gryff.examples.gryffnet.Mains
-public import Dsverify.Proof.gryff.examples.gryffnet.Bridge
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
 public import Dsverify.Proof.gryff.Start
 public import Dsverify.Proof.gryff.examples.gryffnet.cmd.orch.PkgTable
 public import Dsverify.Proof.gryff.examples.gryffnet.cmd.orch.Init
@@ -119,7 +119,7 @@ end boot
 /-- **The gryff kit, closed** (see the statement's file). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hbv hsi hss hmp hrs RA H hboot hdial σ g threads
-  refine robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g threads
+  refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g threads
     (2 ^ 31 - 1) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb
   letI := RA G π

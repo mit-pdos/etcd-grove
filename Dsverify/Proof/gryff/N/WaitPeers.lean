@@ -658,7 +658,7 @@ theorem waitForPeerConnections_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fi
   wp_auto
   subst hidor
   rw [show W32 (q.val : Int) ||| peerMark = peerHs q from rfl]
-  have key := recvTokL_sentLb (GF := GF) cid true (gryffWireP γ (ip ++ go!":" ++ port)) (u32Le (peerHs q))
+  have key := Net.recvTokL_sentLb (GF := GF) cid true (gryffWireP γ (ip ++ go!":" ++ port)) (u32Le (peerHs q))
   simp only [Bool.not_true] at key
   ihave ⟨Hrecv, #Hlb⟩ := key $$ Hrecv
   wp_apply wp_NewReader_conn tc eof la ra ed _ (u32Le (peerHs q)) $$ [$Hbufio $Hrok $Hrecv] as %prd Hprd
