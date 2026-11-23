@@ -618,3 +618,11 @@ new file of its own (named below), and it reports its link lines, which the inte
   `s.step ev = .ok (some s') → s'.cfg = s.cfg` (`CheckLaws.StepCfg`: `Stream.ConfBounded` is over
   `Run`'s `cfg`, `BoundedFor` over the state's), not in the plan; it holds (no action writes `cfg`),
   owner W6.
+- **Integrated (cont.):** H1's W3a (`L`, `newC`, `cmt`, `ok`; `InMemOkLaws.lean`), H2's W3b
+  (`State.InMemory`, `inMemory_within`, `inMemory_lengths`): **W3 done**. H4's `onDisk_within` and
+  `onDisk_keeps` (`OnDiskLaws2.lean`: `onDisk_eq` cuts `onDisk` at its join points). H5's **W6**: the 11
+  proofs, `gc_within`, the `_of` laws; their plain forms (`mem`/`write`/`flush`/`ready`/`bind_within`,
+  `step_within`) in `Within/Combined.lean`. Linked (Link's `links_pending` section over `State.Boot`,
+  `State.Send`, `State.OnDisk`, whose proofs are in progress): W6 and `Checker.Next`. Left: the Hoare
+  proofs of `Boot`, `Send`, `OnDisk`; `State.step_cfg` (needs each action's `cfg`-keeping,
+  `W6Laws.KeepsCfg`, for the 12 actions outside W6), then `Run`'s link.

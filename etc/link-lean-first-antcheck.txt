@@ -215,8 +215,25 @@ onDisk__voted: onDisk__w onDisk__V1 Event__vote
 # W5 (Send, Boot)
 
 # W6 (Ready .. Flush, Bind, GC, Step)
+State__OldVotes: State__idx State__EffTerm
+State__StaleLed: State__Over
+State__Garbage: State__idx State__EffTerm State__Over factsHas
+State__GCDue: State__Garbage State__OldVotes State__StaleLed
+State__GC: State__Garbage State__OldVotes State__StaleLed State__Over State__clone factsMinus votesMinus TermLogs__Without TermConfs__Without TermInts__Without
+State__Flush: =AntCheck.State.onDisk_keeps State__OnDisk Event__more setQueue
+State__Write: =AntCheck.State.onDisk_keeps State__OnDisk Event__term Event__vote Event__commit Event__first Event__entries EntriesEqual setQueue
+State__Mem: =AntCheck.State.inMemory_lengths State__InMemory State__clone State__queued Event__w setQueue
+State__Ready: =AntCheck.State.onDisk_keeps =AntCheck.State.inMemory_lengths =AntCheck.State.inMemory_within State__InMemory State__OnDisk State__queued
+State__Bind: State__Boot State__Recv State__Ready State__Mem State__Write State__Wrote State__Flush State__Net State__Made State__Send State__ApplyEv State__RestoreEv State__ConfEv State__SnapEv State__ReadAsked State__ReadGiven
+State__Step: State__idx State__Bind
 
 # W7 (check.go, Run)
 violated: State__ElectionSafety State__OneVotePerTerm
 NewChecker: Init0
 Checker__End:
+Checker__Next: State__ElectionSafety State__OneVotePerTerm State__GCDue State__GC State__Step =AntCheck.State.gc_within
+
+# pending (proofs in progress)
+State__Boot: ?
+State__Send: ?
+State__OnDisk: ?
