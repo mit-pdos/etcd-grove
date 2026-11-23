@@ -133,15 +133,15 @@ theorem wf_context : GetIsPkgInitProp pkg_id.context (getIsPkgInit (GF := GF)) :
   · rfl
   exact ⟨wf_errors, wf_sync, wf_sync_atomic, wf_time, True.intro⟩
 
-theorem wf_syscall : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
-  refine And.intro ?_ ?_
-  · rfl
-  exact ⟨wf_sync, True.intro⟩
-
 theorem wf_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
   · rfl
   exact ⟨wf_errors, True.intro⟩
+
+theorem wf_syscall : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
+  refine And.intro ?_ ?_
+  · rfl
+  exact ⟨wf_sync, wf_errors, wf_internal_oserror, True.intro⟩
 
 theorem wf_io_fs : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
   refine And.intro ?_ ?_
@@ -423,15 +423,15 @@ theorem wfNo_context : GetIsPkgInitProp pkg_id.context (gNo (getIsPkgInit (GF :=
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_errors, wfNo_sync, wfNo_sync_atomic, wfNo_time, True.intro⟩
 
-theorem wfNo_syscall : GetIsPkgInitProp pkg_id.syscall (gNo (getIsPkgInit (GF := GF))) := by
-  refine And.intro ?_ ?_
-  · rw [gNo_ne _ _ (by decide)]; rfl
-  exact ⟨wfNo_sync, True.intro⟩
-
 theorem wfNo_internal_oserror : GetIsPkgInitProp pkg_id.internal.oserror (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
   · rw [gNo_ne _ _ (by decide)]; rfl
   exact ⟨wfNo_errors, True.intro⟩
+
+theorem wfNo_syscall : GetIsPkgInitProp pkg_id.syscall (gNo (getIsPkgInit (GF := GF))) := by
+  refine And.intro ?_ ?_
+  · rw [gNo_ne _ _ (by decide)]; rfl
+  exact ⟨wfNo_sync, wfNo_errors, wfNo_internal_oserror, True.intro⟩
 
 theorem wfNo_io_fs : GetIsPkgInitProp pkg_id.io.fs (gNo (getIsPkgInit (GF := GF))) := by
   refine And.intro ?_ ?_
