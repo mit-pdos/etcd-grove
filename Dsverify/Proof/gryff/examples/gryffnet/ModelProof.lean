@@ -25,6 +25,112 @@ namespace gryff.examples.gryffnet
 
 open EtcdGrove EtcdGrove.linkv
 
+/-! ## porcupine's model -/
+
+section model
+variable [GooseExts] [GoGlobalContext]
+
+/-- An input, boxed (`any` holding an `In`). -/
+abbrev inV (x : In) : GoInterface := interface.mkOk In.ty #x
+
+/-- An output, boxed (`any` holding an `Out`). -/
+abbrev outV (y : Out) : GoInterface := interface.mkOk Out.ty #y
+
+open Classical in
+/-- porcupine's operations as the register's: a boxed `In` and a boxed `Out`, unknown (`err`) or
+not (`ok o`); anything else decodes to nothing. -/
+def casDec (io : OpV) : Option (In × Ans Out) :=
+  if h : ∃ (x : In) (y : Out), io = (inV x, outV y) then
+    let x := choose h
+    let y := choose (choose_spec h)
+    some (x, if y.Unknown' then .err else .ok y)
+  else none
+
+/-- **The register's porcupine model**, as the pending library's invariant sees it (its
+sequential model only): `pSeq casB` through `casDec`. -/
+def casS0 {GF : BundledGFunctors} : ModelSpec GF (PSet w64 In) where
+  M := pM casB casDec
+  rep _ _ _ := iprop(True)
+  ioOk i o := iprop(⌜(∃ x : In, i = inV x) ∧ ∃ y : Out, o = outV y⌝)
+  ioOk_pers _ _ := by infer_instance
+
+end model
+
+section dec
+variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext] [GoSemanticsFunctions]
+variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
+variable [package_sem : gryff.examples.gryffnet.Assumptions]
+
+/-- `Out`'s values are injective (its fields are read off by deterministic steps). -/
+theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
+  have hV := (Out.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (Out.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  rw [h, hV'] at hV
+  rw [h, hU'] at hU
+  have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl
+  have eU : Val #x.Unknown' = Val #y.Unknown' := (congrFun hU (Val #y.Unknown')) ▸ rfl
+  injection eV with eV
+  injection eU with eU
+  have eV' := go.intoVal_inj eV
+  have eU' := GoGlobalContext.intoVal_inj_bool eU
+  cases x; cases y
+  simp only at eV' eU'
+  subst eV' eU'
+  rfl
+
+/-- `In`'s values are injective. -/
+theorem in_intoVal_inj {x y : In} (h : (#x : val) = #y) : x = y := by
+  have hO := (In.TypeAssumptions.get_Op x).isGoStep_det_internal.isGoStep_pure_det
+  have hO' := (In.TypeAssumptions.get_Op y).isGoStep_det_internal.isGoStep_pure_det
+  have hA := (In.TypeAssumptions.get_A x).isGoStep_det_internal.isGoStep_pure_det
+  have hA' := (In.TypeAssumptions.get_A y).isGoStep_det_internal.isGoStep_pure_det
+  have hB := (In.TypeAssumptions.get_B x).isGoStep_det_internal.isGoStep_pure_det
+  have hB' := (In.TypeAssumptions.get_B y).isGoStep_det_internal.isGoStep_pure_det
+  rw [h, hO'] at hO
+  rw [h, hA'] at hA
+  rw [h, hB'] at hB
+  have eO : Val #x.Op' = Val #y.Op' := (congrFun hO (Val #y.Op')) ▸ rfl
+  have eA : Val #x.A' = Val #y.A' := (congrFun hA (Val #y.A')) ▸ rfl
+  have eB : Val #x.B' = Val #y.B' := (congrFun hB (Val #y.B')) ▸ rfl
+  injection eO with eO
+  injection eA with eA
+  injection eB with eB
+  have eO' := go.intoVal_inj eO
+  have eA' := go.intoVal_inj eA
+  have eB' := go.intoVal_inj eB
+  cases x; cases y
+  simp only at eO' eA' eB'
+  subst eO' eA' eB'
+  rfl
+
+theorem inV_inj {a b : In} (h : inV a = inV b) : a = b := by
+  simp only [inV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+    _root_.true_and] at h
+  exact in_intoVal_inj h
+
+theorem outV_inj {a b : Out} (h : outV a = outV b) : a = b := by
+  simp only [outV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+    _root_.true_and] at h
+  exact out_intoVal_inj h
+
+/-- `casDec` on a boxed `In` and a boxed `Out`. -/
+theorem casDec_box (x : In) (y : Out) :
+    casDec (inV x, outV y) = some (x, if y.Unknown' then .err else .ok y) := by
+  unfold casDec
+  split
+  · next h =>
+    have hs := Classical.choose_spec (Classical.choose_spec h)
+    obtain ⟨h1, h2⟩ := Prod.mk.inj hs
+    have e1 := inV_inj h1
+    have e2 := outV_inj h2
+    dsimp only
+    rw [← e2, ← e1]
+  · next hn => exact absurd ⟨x, y, rfl⟩ hn
+
+end dec
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -1011,6 +1117,143 @@ theorem wp_equal (a b : State) (A B : List Cfg) (LA LB : List GCfg) :
       exact Ht
     iapply HΦ
     ipureintro; intro _; exact e
+
+/-! ## The model value and `Model()` -/
+
+/-- A model value: the boxed `State{Cfgs: sl}` with `sl` read-only, holding Go configurations
+standing for the nonempty list `L`; its set is `cfgSet L`; each pending list has at most `k`
+operations (a step adds at most one). -/
+def casRep (k : Nat) (v : GoInterface) (s : PSet w64 In) : IProp GF :=
+  iprop(∃ (sl : GoSlice) (cs : List Cfg) (L : List GCfg),
+    ⌜v = interface.mkOk State.ty #(State.mk sl) ∧ s = cfgSet L ∧ L ≠ [] ∧
+      ∀ x ∈ L, x.pend.length ≤ k⌝ ∗ sl ↦*□ cs ∗ cfgsOk cs L)
+
+/-- **The register's porcupine model** (pending writes and CASes): `pSeq casB` through
+`casDec`. -/
+def casS : ModelSpec GF (PSet w64 In) where
+  M := (casS0 (GF := GF)).M
+  rep k v s := casRep k v s
+  ioOk := (casS0 (GF := GF)).ioOk
+  ioOk_pers := (casS0 (GF := GF)).ioOk_pers
+
+/-- `Model()`: the register's porcupine model. -/
+abbrev Model.spec : Prop :=
+  {{ isPkgInit (PROP := IProp GF) kpkg }}
+    (App (Val (@! gryff.examples.gryffnet.Model)) (Val #()))
+  {{ (m : github_com.anishathalye.porcupine.Model), RET #m; isModel (casS (GF := GF)) m }}
+
+theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold isModel isEqHash
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · -- Init
+    unfold initSpec
+    iintro !> %Φ' _ HΦ'
+    wp_auto
+    wp_apply wp_slice_literal (V := Cfg) [_]
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    iapply fupd_wp
+    imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
+    imodintro
+    wp_auto
+    iapply HΦ'
+    simp only [casS, casRep, casS0, pM]
+    iexists _, _, [⟨W64 0, []⟩]
+    iframe Hsl
+    isplitr
+    · ipureintro
+      exact ⟨rfl, cfgSet_init.symm, by simp, by simp⟩
+    ihave #Hn := cfgsOk_nil (GF := GF)
+    ihave #H0 : cfgOk (GF := GF) (Cfg.mk (W64 0) slice.nil) ⟨W64 0, []⟩ $$ []
+    · unfold cfgOk
+      isplitr
+      · ipureintro; rfl
+      iapply ownSlice_nil
+    ihave #H1 := cfgsOk_snoc [] [] _ _ $$ [$Hn $H0]
+    rw [show (BitVec.ofInt 64 0 : w64) = W64 0 from rfl]
+    simp only [List.nil_append]
+    iexact H1
+  isplitr
+  · -- Step
+    iright
+    isplitr
+    · ipureintro; exact ⟨trivial, nofun⟩
+    unfold stepSpec
+    iintro %k %v %s %i %o
+    iintro !> %Φ' Hpre HΦ'
+    simp only [casS, casS0]
+    icases Hpre with ⟨%Hk, Hrep, %Hio⟩
+    obtain ⟨⟨x, rfl⟩, y, rfl⟩ := Hio
+    unfold casRep
+    icases Hrep with ⟨%sl, %cs, %L, %Hr, #Hsl, #Hcs⟩
+    obtain ⟨rfl, rfl, hne, hL⟩ := Hr
+    wp_auto
+    wp_apply +noauto wp_stepGo sl cs L hne k Hk hL x y $$ [$Hsl $Hcs]
+      as %ok %s' ⟨%sl', %cs', %L', %dq, %Hst, Hsl', #Hcs'⟩
+    iapply fupd_wp
+    imod ownSlice_persist _ _ _ $$ Hsl' with #Hsl'
+    imodintro
+    obtain ⟨rfl, Hres, Hok⟩ := Hst
+    unfold stepRes at Hres
+    wp_auto
+    have hpm := pM_step casB casDec (cfgSet L) _ x _ (casDec_box x y)
+    iapply HΦ'
+    isplitr
+    · iexists sl, cs, L
+      iframe #
+      ipureintro; exact ⟨rfl, rfl, hne, hL⟩
+    isplitr
+    · ipureintro
+      rw [hpm, Hres]
+      cases ok <;> rfl
+    · unfold stepPost
+      rw [hpm, Hres]
+      cases ok
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        itrivial
+      · simp only [↓reduceIte]
+        obtain ⟨hne', hL'⟩ := Hok rfl
+        iexists sl', cs', L'
+        iframe #
+        ipureintro
+        exact ⟨rfl, rfl, hne', hL'⟩
+  isplitr
+  · ipureintro; nofun
+  isplitr
+  · -- Equal
+    unfold equalSpec
+    iintro %k %j %v %w %s %t
+    iintro !> %Φ' Hpre HΦ'
+    simp only [casS]
+    unfold casRep
+    icases Hpre with ⟨⟨%sl, %cs, %L, %Hr, #Hsl, #Hcs⟩, ⟨%sl2, %cs2, %L2, %Hr2, #Hsl2, #Hcs2⟩⟩
+    obtain ⟨rfl, rfl, hne, hL⟩ := Hr
+    obtain ⟨rfl, rfl, hne2, hL2⟩ := Hr2
+    wp_auto
+    wp_apply wp_equal ⟨sl⟩ ⟨sl2⟩ cs cs2 L L2 $$ [$Hsl $Hcs $Hsl2 $Hcs2] as %r %Hr
+    iapply HΦ'
+    isplitr
+    · iexists sl, cs, L
+      iframe #
+      ipureintro; exact ⟨rfl, rfl, hne, hL⟩
+    isplitr
+    · iexists sl2, cs2, L2
+      iframe #
+      ipureintro; exact ⟨rfl, rfl, hne2, hL2⟩
+    ipureintro
+    intro h
+    rw [Hr h]
+  ileft
+  ipureintro; trivial
 
 end proof
 
