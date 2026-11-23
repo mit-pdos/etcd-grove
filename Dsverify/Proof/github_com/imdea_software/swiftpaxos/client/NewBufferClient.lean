@@ -43,9 +43,9 @@ theorem client.NewBufferClient.wp_proof : client.NewBufferClient.spec (hG := hG)
   ihave #Htm1 := client.time_init $$ Hpkg
   wp_apply time.wp_Now $$ [$Htm1] as %tm -
   wp_apply time.Time.wp_UnixNano as %x -
-  wp_apply math.rand.NewSource.wp_proof as %src -
+  wp_apply math.rand.NewSource.wp_hyp as %src -
   iapply wp_fupd
-  wp_apply math.rand.New.wp_proof as %r ⟨%rv, Hr⟩
+  wp_apply math.rand.New.wp_hyp as %r ⟨%rv, Hr⟩
   ipersist «$r0»
   imodintro
   iapply HΦ

@@ -233,8 +233,8 @@ theorem servers_hyps (hclaim : ClaimHyp) : ServersHyps := by
                           (swift.Replica.handleMsg.seqSpecD.wp_linked γ γc γm x hstr hDL)
                           (swift.Replica.newDesc.wp_linked x γ γc γm hstr)
                           (swift.Replica.handleDesc.wp_linked γ γc γm x hstr hDL)))
-                      (swift.MSync.marshal_proofG encoding.gob.NewEncoder.wp_proof
-                        (encoding.gob.Encoder.EncodeW.wp_proof (encoding.gob.getCodec.wp_proof rfl))
+                      (swift.MSync.marshal_proofG encoding.gob.NewEncoder.wp_hyp
+                        (encoding.gob.Encoder.EncodeW.wp_hyp (encoding.gob.getCodec.wp_proof rfl))
                         kitCodecOkC_holds)))
                   (swift.Replica.wp_handleSyncD γ γc γm rp x
                     (swift.wp_NewReplyChan swift.wp_clientChecksum swift.wp_MReply_marshal)
@@ -321,8 +321,8 @@ theorem servers_hyps (hclaim : ClaimHyp) : ServersHyps := by
             }))
         (swift.tableAllocH_proof (srv_errvarint_fact hG s) kitCodecOkC_holds
           (swift.newFastAck.wp_proofP (srv_pool_fact hG s))
-          encoding.gob.NewDecoder.wp_proof
-          (encoding.gob.Decoder.Decode.wp_proof rfl (encoding.gob.getCodec.wp_proof rfl)))
+          encoding.gob.NewDecoder.wp_hyp
+          (encoding.gob.Decoder.Decode.wp_hyp rfl (encoding.gob.getCodec.wp_proof rfl)))
         replica.Replica.wp_ConnectToPeers replica.Replica.wp_ComputeClosestPeers
         replica.Replica.wp_WaitForClientConnections replica.Sender.wp_SendToAll
         swift.wp_MNewLeader_marshal

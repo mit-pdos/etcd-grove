@@ -1,7 +1,7 @@
 /-
 **The library hypotheses** (notes/dsv-swiftpaxos.md, "Hypotheses"): the specs of the libraries the
 swiftpaxos proof uses that have no proof here, one field each of `SwiftHyps`, named after the lab's
-theorem it stands for; and, below, the lab's theorem names restated from the fields, so that the
+theorem it stands for; and, below, the lab's theorem names restated from the fields (as `X.wp_hyp` where the lab had `X.wp_proof`, so that this stays a defs module for the import tiers), so that the
 ported proof reads as the lab's (`bufio.wp_ReadFull`, `treemap.Map.wp_Put`, …). A proof that uses one
 has `[SwiftHyps netDistGF]` among its variables; `swiftpaxos_remote_robust` takes `SwiftHyps` at
 every heap.
@@ -116,20 +116,20 @@ end github_com.emirpasic.gods.maps.treemap
 namespace encoding.gob
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions] [net.Assumptions]
   [net.FieldAssumptions] [net.rpc.Assumptions] [net.rpc.RpcCodec GF]
-theorem NewEncoder.wp_proof : NewEncoder.spec (GF := GF) := h.gob_NewEncoder
-theorem NewDecoder.wp_proof : NewDecoder.spec (GF := GF) := h.gob_NewDecoder
-theorem Encoder.Encode.wp_proof : Encoder.Encode.spec (GF := GF) := h.gob_Encode
-theorem Encoder.EncodeW.wp_proof : Encoder.EncodeW.spec (GF := GF) := h.gob_EncodeW
-theorem Decoder.Decode.wp_proof : Decoder.Decode.spec (GF := GF) := h.gob_Decode
+theorem NewEncoder.wp_hyp : NewEncoder.spec (GF := GF) := h.gob_NewEncoder
+theorem NewDecoder.wp_hyp : NewDecoder.spec (GF := GF) := h.gob_NewDecoder
+theorem Encoder.Encode.wp_hyp : Encoder.Encode.spec (GF := GF) := h.gob_Encode
+theorem Encoder.EncodeW.wp_hyp : Encoder.EncodeW.spec (GF := GF) := h.gob_EncodeW
+theorem Decoder.Decode.wp_hyp : Decoder.Decode.spec (GF := GF) := h.gob_Decode
 end encoding.gob
 
 namespace math.rand
-theorem NewSource.wp_proof : NewSource.spec (GF := GF) := h.math_rand_NewSource
-theorem New.wp_proof [math.rand.Assumptions] : New.spec (GF := GF) := h.math_rand_New
-theorem Intn.wp_proof : Intn.spec (GF := GF) := h.math_rand_Intn
+theorem NewSource.wp_hyp : NewSource.spec (GF := GF) := h.math_rand_NewSource
+theorem New.wp_hyp [math.rand.Assumptions] : New.spec (GF := GF) := h.math_rand_New
+theorem Intn.wp_hyp : Intn.spec (GF := GF) := h.math_rand_Intn
 end math.rand
 
-theorem os.signal.Notify.wp_proof : os.signal.Notify.spec (GF := GF) := h.os_signal_Notify
+theorem os.signal.Notify.wp_hyp : os.signal.Notify.spec (GF := GF) := h.os_signal_Notify
 
 namespace github_com.google.uuid
 theorem wp_New : New.spec (GF := GF) := h.uuid_New
