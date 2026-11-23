@@ -718,7 +718,6 @@ theorem State.InMemory.wp_proof
     wp_auto
     wp_apply wp_load_at _ _ _ Hn $$ [Hroln] as -
     · iexact Hroln
-    have hcand : candidate = [99#8, 97#8, 110#8, 100#8, 105#8, 100#8, 97#8, 116#8, 101#8] := rfl
     by_cases h2 : s.role[sint.nat n]! = candidate
     case pos =>
       rw [decide_eq_true (show s.role[sint.nat n]! = [99#8, 97#8, 110#8, 100#8, 105#8, 100#8, 97#8, 116#8, 101#8] from h2)]
@@ -745,12 +744,54 @@ theorem State.InMemory.wp_proof
     ihave %Hcxl := ownSlice_len _ _ _ $$ Hcxs
     have hnb : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z g.Config'.len := by
       have := (List.getElem?_eq_some_iff.1 Hcx).1; constructor <;> word
-    rw [if_pos hnb]
+    rw [ite_eq_left_of_eq_true _ _ (eq_true hnb)]
     try wp_auto
     rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Has_unfold.method_unfold]
     try wp_auto
-    trace_state
-    sorry
+    iunfold confRO at Hcn
+    icases Hcn with ⟨#HcIn, #HcOut⟩
+    simp only [me] at HjpU
+    wp_apply wp_Has gcn.In' _ s.cfg.server[sint.nat n]! $$ [HcIn] as -
+    · iexact HcIn
+    cases hin : SSet.has s.config[sint.nat n]!.cin s.cfg.server[sint.nat n]!
+    case true =>
+      simp only [hin, Bool.true_or, Bool.not_true, Bool.and_false, Bool.false_eq_true, ite_false] at HjpU
+      wp_auto
+      wp_join_done
+      iexists gv2, v2
+      iframe
+      isplitr; · iexact Hv2
+      ipureintro; exact ⟨by omega, HjpU⟩
+    simp only [hin, Bool.false_or] at HjpU
+    wp_auto
+    wp_apply wp_load_at _ _ _ Hn $$ [Hme] as -
+    · iexact Hme
+    rw [ite_eq_left_of_eq_true _ _ (eq_true hnb)]
+    try wp_auto
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_Has gcn.Out' _ s.cfg.server[sint.nat n]! $$ [HcOut] as -
+    · iexact HcOut
+    cases hout : SSet.has s.config[sint.nat n]!.cout s.cfg.server[sint.nat n]!
+    case true =>
+      simp only [hout, Bool.not_true, Bool.false_eq_true, ite_false] at HjpU
+      wp_auto
+      wp_join_done
+      iexists gv2, v2
+      iframe
+      isplitr; · iexact Hv2
+      ipureintro; exact ⟨by omega, HjpU⟩
+    simp only [hout, Bool.not_false, ite_true] at HjpU
+    wp_auto
+    wp_apply wp_violAdd _ _ _ $$ [Hv2] as %gv' #Hgv'
+    · iframe Hv2; ipureintro; omega
+    wp_join_done
+    iexists gv', _
+    iframe
+    isplitr; · iexact Hgv'
+    ipureintro
+    exact ⟨by have := setAdd_length_le v2 [85#8, 110#8, 112#8, 114#8, 111#8, 109#8, 111#8, 116#8, 97#8, 98#8,
+      108#8, 101#8]; omega, HjpU⟩
   clear HjpU
   simp -zeta only [jpF, pure_ok, Except.ok.injEq] at HjpF
   obtain ⟨hv3, HjpF⟩ := HjpF
