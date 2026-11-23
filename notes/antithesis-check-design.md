@@ -582,7 +582,7 @@ Go loop follows (induction on the fuel); its intermediate states stay within bud
   `known`, `wins`, `app`). Left: `ld1`, `ll1`, `lc1`, `ll2`, `L`, `cmt`, `newC`, `ok`, `State.InMemory`
   and `inMemory_within`. Then W4b, W5, W6, W7.
 - **W3, second session:** `ld1`, `ll1`, `lc1`, `ll2` proved; their pure laws in `InMemLaws.lean` (new:
-  `TermFn.get_mem`, `InMem.es_within`, `ll1_within`, `ll2_within`, `L_within`: the logs `ll1`/`ll2`/`L`
+  `TermFn.mem_of_get`, `InMem.es_within`, `ll1_within`, `ll2_within`, `L_within`: the logs `ll1`/`ll2`/`L`
   within `b + ev.size`). Tier fix: four proofs imported the proof module `Init0` (its empty-slice
   lemmas) and `onDisk__K` the proof module `Matching` (`range_drop_cons`); the lemmas moved, names and
   statements unchanged, to the defs modules `Init0Laws.lean` and `EvalLaws.lean`.
