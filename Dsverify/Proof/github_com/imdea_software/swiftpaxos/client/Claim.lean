@@ -5,8 +5,9 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/Claim.lean (lab 
 L2: the claim of the node's ghost (`client.claimGhost.spec`, Spec/client/NodeGhost.lean): the
 node's fresh ghost (`client.ghostFresh`) registers its prediction (`sp.pred_register`, the
 prophecy's values as its future words) and the mutex becomes the node's ghost lock
-(`client.nodeLockR`). Off a replica node the fresh ghost is taken from the client package's
-state with the node's own address token (`client.ghostFresh_take`; decision D90, R-E1).
+(`client.nodeLockR`). (The lab's `client.ghostFresh_take`, the claim off a replica node with
+the node's address token, is gone: every node's boot thread gets the fresh ghost,
+Proof/client/Pkg.lean.)
 -/
 module
 
@@ -60,44 +61,6 @@ theorem client.claimGhost.wp_proof : client.claimGhost.spec (hG := hG) := by
   iexists p
   iframe Hp Hmu
   ipureintro; exact Hne
-
-omit [sync.Assumptions] in
-/-- **Off a replica node, the node's own address token takes its fresh ghost** from the client
-package's state (Proof/client/Pkg.lean): the invariant gives up the unclaimed ghost and keeps
-the token (a second taking would need a second token). -/
-theorem client.ghostFresh_take
-    (hpkg : isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ⊢
-      client.pkgSt)
-    (hrn : ¬ swift.replicaNode (netIp (L := hG.goose_localGS) (GF := netDistGF))) :
-    ⊢ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client -∗
-      addrTok (client.keyAddr (netIp (L := hG.goose_localGS) (GF := netDistGF)))
-        ={⊤}=∗ client.ghostFresh := by
-  iintro #Hpkg Htok
-  ihave #Hst := hpkg $$ Hpkg
-  iunfold client.pkgSt at Hst
-  rw [if_neg hrn]
-  icases Hst with ⟨%g, %p, #Hg, %Hne, #Hp, #Hi⟩
-  iinv Hi with Hc Hclose
-  icases Hc with (Hu | Htok')
-  · imod Hclose $$ [Htok] with -
-    · inext; iright; iexact Htok
-    iunfold client.ghostUnclaimed at Hu
-    icases Hu with ⟨%pvs, >Hpr, >Hmu⟩
-    imodintro
-    iunfold client.ghostFresh
-    iexists g, p, pvs
-    iframe Hg Hp Hpr Hmu
-    ipureintro; exact Hne
-  · -- the token is unique: the invariant cannot hold it already
-    ihave Hf : iprop(▷ False) $$ [Htok Htok']
-    · inext
-      iapply (client.addrTokG_excl netDistGS _)
-      isplitl [Htok]
-      · iexact Htok
-      · iexact Htok'
-    icases Hf with >Hf
-    iexfalso
-    iexact Hf
 
 end proof
 

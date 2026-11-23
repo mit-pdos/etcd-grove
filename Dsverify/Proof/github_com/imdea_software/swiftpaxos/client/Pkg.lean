@@ -8,13 +8,14 @@ initialization on every node, fork e968d22) is `g`, its prophecy `p`. The node's
 it once, `client.ghostFresh` (its prophecy's ownership and its mutex at its zero value), is
 handed out in one of two ways:
 
-* on a replica node (`swift.replicaNode netIp`), by the client package's first initialization to
-  the node's boot thread (InitFirst's `Q`, decision D9 (a'); `client.freshAt`,
-  Proof/swiftnet/SrvInit.lean), the package state keeping nothing;
-* on any other node, by an invariant holding it until the node's own address `netIp:7000`'s
-  token (`client.keyAddr`, exclusive, held only by a client node's share, which does not use it
-  otherwise) takes it (`client.ghostFresh_take`, Proof/client/Claim.lean); a second taking
-  needs a second token.
+* in the lab: on a replica node, by the package's first initialization to the node's boot thread;
+  on any other node, by an invariant holding it until the node's own address token (exclusive in
+  the lab's model) took it.
+
+**Port change** (notes/dsv-swiftpaxos.md): `Net/` has no node IP and its address tokens are
+persistent, so neither the node test nor the exclusive token exists. On every node the package's
+first initialization hands `client.ghostFresh` to the boot thread (`client.freshAt`), and the
+package state keeps nothing (`client.pkgSt := True`).
 -/
 module
 
@@ -45,23 +46,11 @@ def client.ghostUnclaimed (g : Loc) (p : proph_id) : IProp GF :=
   iprop(∃ pvs : List val, proph p pvs ∗
     structFieldRef client.Ghost go!"mu" g ↦ (zero_val sync.Mutex))
 
-/-- The node's own first address, `ip:7000` (a client node's `clientNodeAddrs` entry). -/
-def client.keyAddr (ip : GoString) : GoString := ip ++ go!":7000"
-
-open Classical in
-/-- **The client package's state** (see the file header): off a replica node, the package's
-`nodeGhost` is `g` (not nil), its prophecy `p`, and `g` is unclaimed or its claim was taken with
-the node's address token. -/
-def client.pkgSt : IProp GF :=
-  if swift.replicaNode (netIp (L := hG.goose_localGS) (GF := GF)) then iprop(True)
-  else iprop(∃ (g : Loc) (p : proph_id), globalAddr client.nodeGhost ↦□ g ∗ ⌜g ≠ null⌝ ∗
-    structFieldRef client.Ghost go!"p" g ↦□ p ∗
-    inv client.ghostInitN iprop(client.ghostUnclaimed g p ∨
-      addrTokG (extGlobalGS netExt (hlc := .hasLC))
-        (client.keyAddr (netIp (L := hG.goose_localGS) (GF := GF)))))
+/-- **The client package's state** (see the file header): nothing. -/
+def client.pkgSt : IProp GF := iprop(True)
 
 instance client.pkgSt_persistent : Persistent (client.pkgSt (GF := GF)) := by
-  unfold client.pkgSt; split <;> infer_instance
+  unfold client.pkgSt; infer_instance
 
 end defs
 
@@ -69,20 +58,10 @@ section fresh
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
-open Classical in
-/-- What the client package's first initialization hands to a node's boot thread: on a replica
-node, the node's right to claim its ghost (see the file header). -/
-def client.freshAt (ip : GoString) : IProp netDistGF :=
-  if swift.replicaNode ip then client.ghostFresh else iprop(True)
+/-- What the client package's first initialization hands to a node's boot thread: the node's
+right to claim its ghost (see the file header). -/
+def client.freshAt (_ip : GoString) : IProp netDistGF := client.ghostFresh
 
 end fresh
-
-/-- An address token is unique. -/
-theorem client.addrTokG_excl {GF : BundledGFunctors} (hN : NetConnGS GF) (a : GoString) :
-    addrTokG hN a ∗ addrTokG hN a ⊢ (iprop(False) : IProp GF) := by
-  unfold addrTokG
-  letI := hN.allG
-  iintro ⟨⟨-, H1⟩, ⟨-, H2⟩⟩
-  iapply token_exclusive $$ H1 H2
 
 end Perennial.github_com.imdea_software.swiftpaxos
