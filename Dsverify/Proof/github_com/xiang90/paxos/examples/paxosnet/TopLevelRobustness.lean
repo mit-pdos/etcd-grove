@@ -92,11 +92,11 @@ theorem paxos_remote_robust : paxos_remote_robust.spec := by
   iintro #Hreg Hs
   unfold paxosKitAddrs
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hsp, Hsc⟩
-  imod mapCtx_alloc (Gg := G) (I := BStr) ⊤ with ⟨%ρ, #Hmap⟩
+  imod mapCtx_alloc (Gg := G) (I := BStr) ⊤ clientAddrs 3 (by decide) with ⟨%ρ, -, #Hmap, Hbud⟩
   imod paxos_alloc (GF := remoteGF) ⊤ with ⟨%Γ, #Hpx, Hown, Hsts, Htoks⟩
   imod addrs_set_proto (Gg := G) ⊤ (fun _ => wireProto (msgOK Γ)) (fun _ => noProto) addrs
     $$ Hreg Hsp with #Hpp
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) (RBase.svc (woR Γ)))
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (woR Γ)) a)
     (fun _ => repP (Gg := G) (RBase.svc (woR Γ))) clientAddrs $$ Hreg Hsc with #Hpc
   have hv : own_state (G := G) Γ none ⊢ (woR (Gg := G) Γ).sysState (woR (Gg := G) Γ).B.init := .rfl
   ihave Hown := hv $$ Hown
@@ -122,7 +122,7 @@ theorem paxos_remote_robust : paxos_remote_robust.spec := by
   ihave #Hra3 : remoteAddr (Gg := G) (woR Γ) (clientAddrs.getD 3 []) $$ []
   · iapply BigSepL.bigSepL_lookup (i := 3) rfl $$ Hra
   imodintro
-  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (woR Γ) a) ∗ mapCtx (Gg := G) (I := BStr) ∗ pendCtx (Gg := G) (woR Γ) (woS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (woS0 (GF := remoteGF)) γp (woS0 (GF := remoteGF)).M.init)
+  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (woR Γ) a) ∗ mapCtx (Gg := G) (I := BStr) ∗ pendCtx (Gg := G) (woR Γ) (woS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (woS0 (GF := remoteGF)) γp (woS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G) a 3)
       else if i = 1 then iprop(isPaxos Γ ∗ allProtos Γ ∗ clientTok Γ (W64 0) ∗ remoteAddr (Gg := G) (woR Γ) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G) (I := BStr))
       else if i = 2 then iprop(isPaxos Γ ∗ allProtos Γ ∗ clientTok Γ (W64 1) ∗ remoteAddr (Gg := G) (woR Γ) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G) (I := BStr))
       else if i = 3 then iprop(isPaxos Γ ∗ allProtos Γ ∗ clientTok Γ (W64 2) ∗ remoteAddr (Gg := G) (woR Γ) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G) (I := BStr))
@@ -145,12 +145,12 @@ theorem paxos_remote_robust : paxos_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro ⟨#Has, #Hmap0, #Hpend0, Hlib0⟩ Hgs
+      iintro ⟨#Has, #Hmap0, #Hpend0, Hlib0, Hbud0⟩ Hgs
       iapply wp_boot cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit
           (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf) _
-          (cmd.orch.wp_main wp_Orch Γ γp hrb) $$ [Hlib0] Hgs
+          (cmd.orch.wp_main wp_Orch Γ γp hrb) $$ [Hlib0 Hbud0] Hgs
       iframe #
-      iframe Hlib0
+      iframe Hlib0 Hbud0
     | 1, hm =>
       cases hm
       dsimp only
@@ -243,10 +243,10 @@ theorem paxos_remote_robust : paxos_remote_robust.spec := by
       iframe Hst0
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hlib]
+    isplitl [Hlib Hbud]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
       iframe #
-      iframe Hlib
+      iframe Hlib Hbud
     iapply BigSepL.bigSepL_cons.2
     isplitl [Htok0]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]

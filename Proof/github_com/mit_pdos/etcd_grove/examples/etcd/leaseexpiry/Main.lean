@@ -241,9 +241,9 @@ theorem Main.wp_proof
         lease.leaseReqIs (mvcc.api.mvccLeases E.γ) m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseGrantSpecLive
-    iunfold etcdLeaseGrantSpecGR
-    iunfold etcdLeaseGrantSpecG
+    iunfold etcdLeaseGrantSpecLive, etcdLeaseGrantSpecLiveW
+    iunfold etcdLeaseGrantSpecGRW
+    iunfold etcdLeaseGrantSpecGW
     isplitr
     · ipureintro; rfl
     iintro %m - - Hgi
@@ -289,7 +289,7 @@ theorem Main.wp_proof
       as %tctx %tcd %tcancel ⟨#Htcancel, #Htctx, #Htce, -⟩
     (try wp_auto)
     -- `cli.Lease.TimeToLive(tctx, g.ID)` at the grant's index
-    wp_apply (wp_TimeToLive lp [go!"127.0.0.1:23976"] (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) srv)
+    wp_apply (wp_TimeToLive lp [go!"127.0.0.1:23976"] (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) (leaseTTLRow srv (mvcc.api.mvccLeases E.γ)))
         (fun m => iprop(⌜m.id = mg.id⌝ ∗
           □ (leaseTTLRow srv (mvcc.api.mvccLeases E.γ) -∗
             (∃ i : Nat, ⌜i0 ≤ i⌝ ∗ lease.leaseTTLAt (mvcc.api.mvccLeases E.γ) i m.id m.grantedTtl) ∨
@@ -298,7 +298,7 @@ theorem Main.wp_proof
     · iframe #
       isplitl
       · imodintro; inext
-        iunfold etcdLeaseTTLSpecLive
+        iunfold etcdLeaseTTLSpecLive, etcdLeaseTTLSpecLiveW
         iexists i0
         iframe Hlb0
         iintro %m %Hm #Hm2
@@ -401,7 +401,7 @@ theorem Main.wp_proof
         as %lsr %lerr Hls
     · iframe #
       imodintro; inext
-      iunfold etcdLeaseLeasesSpecLive
+      iunfold etcdLeaseLeasesSpecLive, etcdLeaseLeasesSpecLiveW
       iexists k
       iframe Hlbk
       iintro %m Hm

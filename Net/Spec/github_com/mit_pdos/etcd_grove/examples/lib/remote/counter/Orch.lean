@@ -3,7 +3,8 @@
 addresses (`Ops` operations each, inputs from `Gen`), against the counter's model with pending
 increments (`Model()`, `isModel cS`), with `Codec()` and `attempt()`. Given the addresses'
 protocols for the store `cR γs`, the slot map, node 0's invariant (`pendCtx`) with lintest's state at
-the model's start (`pendLib`), and the time receipts' bound, it returns: it never panics, so porcupine
+the model's start (`pendLib`), the time receipts' bound, and each client node's call budget (`Ops`
+operations of `readTries` attempts: 60 units), it returns: it never panics, so porcupine
 accepts the history. Proved in `Net/Proof/.../lib/remote/counter/Orch.lean`.
 -/
 module
@@ -40,7 +41,8 @@ abbrev Orch.spec : Prop :=
       ([∗list] a ∈ addrL, remoteAddr (Gg := hG.goose_globalGS) (cR (GF := GF) γs) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := Bool) ∗
       pendCtx (Gg := hG.goose_globalGS) (cR (GF := GF) γs) (cS (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (cS (GF := GF)) γp (cS (GF := GF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (cS (GF := GF)) γp (cS (GF := GF)).M.init ∗
+      [∗list] a ∈ addrL, budUnits (Gg := hG.goose_globalGS) a 60 }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Orch)) (Val #addrs))
   {{ RET #(); True }}
 

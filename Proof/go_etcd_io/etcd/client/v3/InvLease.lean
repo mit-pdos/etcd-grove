@@ -231,19 +231,73 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [EM : EtcdModel GF]
 
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's old spec of `LeaseGrant`** (see the file header): any request gets a reply whose lease
 ID is not `NoLease` and whose header revision etcd has reached. Since the lease-grant review's S6
 (2026-11-02) a corollary of the contract `etcdLeaseGrantSpec` (`client/v3/InvLeaseGrant.lean`, which
 adds the grant's fact: `isGrpcRpc_leaseGrant_any`); kept for its callers. -/
-def etcdLeaseGrantSpecAny : GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+def etcdLeaseGrantSpecAnyW : w64 × w64 → (LeaseGrantRespM → IProp GF) → IProp GF :=
   fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
     iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗ Φ m)
 
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+
+
+/-- **`etcdLeaseGrantSpecAnyW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseGrantSpecAnyW`, over the models alone, what a service table holds; this is its
+form at the message types). -/
+def etcdLeaseGrantSpecAny :
+    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  etcdLeaseGrantSpecAnyW
+
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseRevoke`**: any request gets a reply whose header revision etcd has
 reached. -/
-def etcdLeaseRevokeSpec : GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse :=
+def etcdLeaseRevokeSpecW : w64 → (LeaseRevokeRespM → IProp GF) → IProp GF :=
   fun (_ : w64) (Φ : LeaseRevokeRespM → IProp GF) =>
     iprop(∀ m : LeaseRevokeRespM, etcdReached m.hdr.revision -∗ Φ m)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+
+
+/-- **`etcdLeaseRevokeSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseRevokeSpecW`, over the models alone, what a service table holds; this is its form
+at the message types). -/
+def etcdLeaseRevokeSpec :
+    GrpcSpec (GF := GF) pbLeaseRevokeRequest pbLeaseRevokeResponse :=
+  etcdLeaseRevokeSpecW
 
 end specs
 

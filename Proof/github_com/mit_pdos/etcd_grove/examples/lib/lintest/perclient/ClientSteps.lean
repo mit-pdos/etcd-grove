@@ -38,19 +38,19 @@ variable {σ : Type}
 
 /-- Client `id`'s library operation under the invariant (see the file header). -/
 theorem wp_apply_commit_id (S : ModelSpec GF σ) (inOk : GoInterface → IProp GF)
-    (libState : σ → IProp GF)
+    (libState : σ → IProp GF) (P : Nat → IProp GF)
     (clockVal : w64 → IProp GF) (Eapp : CoPset) (n : Nat) (γ : GName) (apply : GoFunc)
     (clients id : w64) (c : Nat) (v : ClientV) (i : GoInterface)
     (HE : (↑lintestN : CoPset) ⊆ ⊤ \ Eapp) (Hid : 0 ≤ sint.Z id ∧ sint.Z id < sint.Z clients) :
-    {{ applySpecId S inOk libState Eapp clients apply ∗ inOk i ∗ threadTok ∗
+    {{ applySpecId S inOk libState Eapp clients P apply ∗ inOk i ∗ threadTok ∗ P (sint.nat id) ∗
         inv lintestN (linInv S.M libState clockVal n γ) ∗ £ 1 ∗ £ 1 ∗ clientTok γ c v }}
       (App (App (Val #apply) (Val #id)) (Val #i))
     {{ (o : GoInterface) (t : w64), RET #o; clientTok γ c (v.1 ++ [((i, o), t)], v.2) ∗
         ⌜sint.Z v.2 ≤ sint.Z t⌝ ∗ S.ioOk i o ∗ threadTok }} := by
-  iintro %Φ ⟨#Happ, Hin, Htt, #Hinv, Hlc, Hlc', Htok⟩ HΦ
+  iintro %Φ ⟨#Happ, Hin, Htt, HP, #Hinv, Hlc, Hlc', Htok⟩ HΦ
   iunfold applySpecId at Happ
   iapply wp_fupd
-  iapply Happ $$ %id %i [Hin Htt]
+  iapply Happ $$ %id %i [Hin Htt HP]
   · iframe
     ipureintro; exact Hid
   inext

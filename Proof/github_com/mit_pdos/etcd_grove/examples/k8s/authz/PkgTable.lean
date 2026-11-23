@@ -39,6 +39,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.fmt, isPkgInit (PROP := IProp GF) pkg_id.fmt),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz),
    (pkg_id.internal.abi, isPkgInit (PROP := IProp GF) pkg_id.internal.abi),
+   (pkg_id.internal.bytealg, isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg),
    (pkg_id.internal.race, isPkgInit (PROP := IProp GF) pkg_id.internal.race),
    (pkg_id.internal.stringslite, isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite),
    (pkg_id.internal.sync, isPkgInit (PROP := IProp GF) pkg_id.internal.sync),
@@ -69,6 +70,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.sync, isPkgInit (PROP := IProp GF) pkg_id.sync),
    (pkg_id.sync.atomic, isPkgInit (PROP := IProp GF) pkg_id.sync.atomic),
    (pkg_id.time, isPkgInit (PROP := IProp GF) pkg_id.time),
+   (pkg_id.unicode.utf8, isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8),
    (pkg_id.«unsafe», isPkgInit (PROP := IProp GF) pkg_id.«unsafe»)]
 
 /-- `get_is_pkg_init` for the program: a package's entry in `pkgInitTable`. -/
@@ -152,87 +154,95 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h19 : GetIsPkgInitProp pkg_id.internal.stringslite (getIsPkgInit (GF := GF)) := by
+  have h19 : GetIsPkgInitProp pkg_id.internal.bytealg (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h20 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h19, h9, h5, True.intro⟩
-  have h21 : GetIsPkgInitProp pkg_id.cmp (getIsPkgInit (GF := GF)) := by
+  have h20 : GetIsPkgInitProp pkg_id.unicode.utf8 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h22 : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
+  have h21 : GetIsPkgInitProp pkg_id.internal.stringslite (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h23 : GetIsPkgInitProp pkg_id.math.bits (getIsPkgInit (GF := GF)) := by
+  have h22 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h22, True.intro⟩
-  have h24 : GetIsPkgInitProp pkg_id.slices (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h21, h23, True.intro⟩
-  have h25 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.sets (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h21, h24, True.intro⟩
-  have h26 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.errors (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h0, h25, True.intro⟩
-  have h27 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.api.validate.content (getIsPkgInit (GF := GF)) := by
+    exact ⟨h19, h20, h21, h9, h5, True.intro⟩
+  have h23 : GetIsPkgInitProp pkg_id.cmp (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h28 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.validation (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h27, True.intro⟩
-  have h29 : GetIsPkgInitProp pkg_id.encoding.json (getIsPkgInit (GF := GF)) := by
+  have h24 : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h30 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.validation.field (getIsPkgInit (GF := GF)) := by
+  have h25 : GetIsPkgInitProp pkg_id.math.bits (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h29, h26, h25, True.intro⟩
-  have h31 : GetIsPkgInitProp pkg_id.net.textproto (getIsPkgInit (GF := GF)) := by
+    exact ⟨h24, True.intro⟩
+  have h26 : GetIsPkgInitProp pkg_id.slices (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h23, h25, True.intro⟩
+  have h27 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.sets (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h23, h26, True.intro⟩
+  have h28 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.errors (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h0, h27, True.intro⟩
+  have h29 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.api.validate.content (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h30 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.validation (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h29, True.intro⟩
+  have h31 : GetIsPkgInitProp pkg_id.encoding.json (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact True.intro
+  have h32 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.util.validation.field (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h17, h31, h28, h27, True.intro⟩
+  have h33 : GetIsPkgInitProp pkg_id.net.textproto (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h5, h0, True.intro⟩
-  have h32 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
+  have h34 : GetIsPkgInitProp pkg_id.net.http (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h31, True.intro⟩
-  have h33 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.fields (getIsPkgInit (GF := GF)) := by
+    exact ⟨h33, True.intro⟩
+  have h35 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.fields (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h20, True.intro⟩
-  have h34 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.selection (getIsPkgInit (GF := GF)) := by
+    exact ⟨h22, True.intro⟩
+  have h36 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.selection (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro
-  have h35 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.labels (getIsPkgInit (GF := GF)) := by
+  have h37 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.labels (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h34, True.intro⟩
-  have h36 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.authorizer (getIsPkgInit (GF := GF)) := by
+    exact ⟨h36, True.intro⟩
+  have h38 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.authorizer (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h17, h18, h20, h26, h25, h7, h24, h28, h30, h0, h32, h33, h35, h15, h13, h16, True.intro⟩
-  have h37 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.union (getIsPkgInit (GF := GF)) := by
+    exact ⟨h17, h18, h22, h28, h27, h7, h26, h30, h32, h0, h34, h35, h37, h15, h13, h16, True.intro⟩
+  have h39 : GetIsPkgInitProp pkg_id.k8s_io.apiserver.pkg.authorization.union (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h0, h17, h20, h26, h25, h16, h36, True.intro⟩
-  have h38 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz (getIsPkgInit (GF := GF)) := by
+    exact ⟨h7, h0, h17, h22, h28, h27, h16, h38, True.intro⟩
+  have h40 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.authz (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h0, h8, h15, h13, h16, h36, h37, True.intro⟩
-  exact h38
+    exact ⟨h7, h0, h8, h15, h13, h16, h38, h39, True.intro⟩
+  exact h40
 
 end table
 

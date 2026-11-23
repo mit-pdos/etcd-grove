@@ -241,7 +241,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRa
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedServer__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedStorage__Close
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedWAL__MemoryStorage
-public import Proof.internal.bytealg.LastIndexByteString
 public import Proof.github_com.jonboulle.clockwork.NewRealClock
 public import Proof.github_com.jonboulle.clockwork.realClock__After
 public import Proof.github_com.jonboulle.clockwork.realClock__Now
@@ -689,6 +688,7 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.crypto.rand.Link
 public import Perennial.Proof.math.big.Link
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.internal.bytealg.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
 public import Proof.bytes.Buffer__Write
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
@@ -2298,13 +2298,9 @@ theorem rafthttp.streamType.wp_endpoint :
     rafthttp.streamType.endpoint.spec (GF := GF) (hG := hG) :=
   rafthttp.streamType.endpoint.wp_proof path.wp_Join
 
-theorem bytealg.wp_LastIndexByteString :
-    bytealg.LastIndexByteString.spec (GF := GF) (hG := hG) :=
-  bytealg.LastIndexByteString.wp_proof
-
 theorem path.wp_Split :
     path.Split.spec (GF := GF) (hG := hG) :=
-  path.Split.wp_proof bytealg.wp_LastIndexByteString
+  path.Split.wp_proof _root_.Perennial.internal.bytealg.wp_LastIndexByteString
 
 theorem path.wp_Dir :
     path.Dir.spec (GF := GF) (hG := hG) :=
@@ -2312,7 +2308,7 @@ theorem path.wp_Dir :
 
 theorem path.wp_Base :
     path.Base.spec (GF := GF) (hG := hG) :=
-  path.Base.wp_proof bytealg.wp_LastIndexByteString
+  path.Base.wp_proof _root_.Perennial.internal.bytealg.wp_LastIndexByteString
 
 theorem types.wp_IDFromString :
     types.IDFromString.spec (GF := GF) (hG := hG) :=

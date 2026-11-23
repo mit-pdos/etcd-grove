@@ -1,4 +1,4 @@
-// Package client is the program of a client machine of etcd_dist_safe (notes/etcd-dist-plan.md,
+// Package client is the program of a client machine of etcd_safe (notes/etcd-dist-plan.md,
 // §2): one process runs one workload against the cluster's client endpoints, checks its property
 // and panics if the check fails; the machine never crashes (Lean: Robust's stable list), so the
 // workload keeps its history.

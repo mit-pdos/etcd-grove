@@ -140,101 +140,142 @@ abbrev txnReadAnsOn (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Lo
 /-- An auth info bound to the token (`infoBoundM` with auth on) is `infoBoundT`'s. -/
 theorem infoBoundM_tok (s : Loc) (E : apply.AEnv GF) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    infoBoundM (GF := GF) true s E tok info ⊢ infoBoundT s E.authMode tok info := by
+    infoBoundM (GF := GF) true s E tok info ⊢ infoBoundT (srvTLSId s) E.authMode tok info := by
   unfold infoBoundM infoBoundT principalBound
   iintro H; iexact H
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **A read's check, as the answer reports it** (persistent): the permissions the check of `o`
 saw granted at states recorded at an index `m` at least the caller's bound `n`, the store
 published through `m` (`auth.authPubLbM`; the auth3 A2 read barrier, 2026-11-14), and for a
 linearizable read no older than the auth state the committed log through the read index `c` left;
 the auth info checked the caller's (`infoBoundT`, E3zb, 2026-10-28). -/
-def rangeAuthed (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+def rangeAuthed (T : IProp GF) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
     (tok : Option GoString) (o : OpFull) : IProp GF :=
   iprop(∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
-    apply.rangeClassFrom E.authMode m info o ∗ infoBoundT s E.authMode tok info ∗
+    apply.rangeClassFrom E.authMode m info o ∗ infoBoundT T E.authMode tok info ∗
     auth.authPubLbM E.authMode m ∗
     (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m))
 
-instance rangeAuthed_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
-    (tok : Option GoString) (o : OpFull) : Persistent (rangeAuthed (GF := GF) s E γr c n tok o) := by
+instance rangeAuthed_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (o : OpFull) : Persistent (rangeAuthed (GF := GF) T E γr c n tok o) := by
   unfold rangeAuthed; split <;> infer_instance
 
 /-- **A read-only transaction's checks, as the answer reports them** (`rangeAuthed`'s). -/
-def txnAuthed (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+def txnAuthed (T : IProp GF) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
     (tok : Option GoString) (t : TxnModel) : IProp GF :=
   iprop(∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
-    txnClassFrom E.authMode m info t ∗ infoBoundT s E.authMode tok info ∗
+    txnClassFrom E.authMode m info t ∗ infoBoundT T E.authMode tok info ∗
     (if txn.txnSerializable t then iprop(True) else authFloorAt E.authMode γr c m))
 
-instance txnAuthed_persistent (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
-    (tok : Option GoString) (t : TxnModel) : Persistent (txnAuthed (GF := GF) s E γr c n tok t) := by
+instance txnAuthed_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (t : TxnModel) : Persistent (txnAuthed (GF := GF) T E γr c n tok t) := by
   unfold txnAuthed; split <;> infer_instance
 
 /-- **A header's user is the caller's** (persistent): the empty user, or the one the caller's
-token `tok` was issued to (`auth.tokOk`), or the server's TLS fallback is on (`principalBound`'s,
+token `tok` was issued to (`auth.tokOk`), or the TLS fact `T` (the server's `srvTLSId s`, its TLS
+fallback on; a parameter since O2, 2026-11-23) (`principalBound`'s,
 over the token instead of the context: `hdrBoundM_tok`). -/
-def hdrBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString) (hm : apply.HeaderModel) :
+def hdrBoundT (T : IProp GF) (M : auth.AuthMode) (tok : Option GoString) (hm : apply.HeaderModel) :
     IProp GF :=
   iprop(⌜hm.username = (zeroValDef : GoString)⌝ ∨
-    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token hm.username) ∨ srvTLSId s))
+    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token hm.username) ∨ T))
 
-instance hdrBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
-    (hm : apply.HeaderModel) : Persistent (hdrBoundT (GF := GF) s M tok hm) := by
+instance hdrBoundT_persistent (T : IProp GF) [Persistent T] (M : auth.AuthMode) (tok : Option GoString)
+    (hm : apply.HeaderModel) : Persistent (hdrBoundT (GF := GF) T M tok hm) := by
   unfold hdrBoundT; infer_instance
 
 /-- **A successful write's grant** (persistent; see the file header): for the request `rq0` with
 the header the server stamped, granted at the committed log `L` before its entry, the header's user
 the caller's, and `L` with the entry committed. -/
-def writeGrantOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+def writeGrantOn (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (rq0 : apply.IRRModel) : IProp GF :=
   iprop(∃ (hm : apply.HeaderModel) (L : List EntryModel),
-    ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader rq0 hm) L⌝ ∗ hdrBoundT s E.authMode tok hm ∗
+    ⌜grantedAt ρ.kv srvAuthSt0 (apply.withHeader rq0 hm) L⌝ ∗ hdrBoundT T E.authMode tok hm ∗
     pubAfterM true E ρ (apply.withHeader rq0 hm) L)
 
-instance writeGrantOn_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+instance writeGrantOn_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (tok : Option GoString) (rq0 : apply.IRRModel) :
-    Persistent (writeGrantOn (GF := GF) s E ρ tok rq0) := by
+    Persistent (writeGrantOn (GF := GF) T E ρ tok rq0) := by
   unfold writeGrantOn; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- A header bound to the token (`hdrBoundM` with auth on) is `hdrBoundT`'s. -/
 theorem hdrBoundM_tok (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (hm : apply.HeaderModel) :
-    hdrBoundM (GF := GF) true s E tok hm ⊢ hdrBoundT s E.authMode tok hm := by
+    hdrBoundM (GF := GF) true s E tok hm ⊢ hdrBoundT (srvTLSId s) E.authMode tok hm := by
   unfold hdrBoundM hdrBoundT principalBound
   iintro H; iexact H
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **A write's grant, as the server tells the client's update** (the auth-mode merge's step 5,
 2026-10-29): `writeGrantG` of the write's request (for a transaction, of some wire transaction of
 it), the header bound to the caller's token (`hdrBoundT`), past the client's lower bound `L₀` of
 the requested log. (Auth-lease S4, Freeze C1) A lease grant's and revocation's likewise (`irrLeaseGrant`,
 `irrLeaseRevoke`: the grant `leaseGrantPermitM`/`leaseRevokePermitM` hand the server). -/
-def opGrantT (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) :
+def opGrantT (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) :
     KVOp → List EntryModel → KVState → IProp GF
-  | .put o, L₀ => writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrPut o) L₀
+  | .put o, L₀ => writeGrantG ρ.kv srvAuthSt0 (hdrBoundT T E.authMode tok) (irrPut o) L₀
   | .deleteRange o, L₀ =>
-    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrDeleteRange o) L₀
+    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT T E.authMode tok) (irrDeleteRange o) L₀
   | .txn t, L₀ => fun σ => iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
-      writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrTxn tw) L₀ σ)
+      writeGrantG ρ.kv srvAuthSt0 (hdrBoundT T E.authMode tok) (irrTxn tw) L₀ σ)
   | .leaseGrant id ttl, L₀ =>
-    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrLeaseGrant id ttl) L₀
+    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT T E.authMode tok) (irrLeaseGrant id ttl) L₀
   | .leaseRevoke id, L₀ =>
-    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) (irrLeaseRevoke id) L₀
+    writeGrantG ρ.kv srvAuthSt0 (hdrBoundT T E.authMode tok) (irrLeaseRevoke id) L₀
   | _, _ => fun _ => iprop(True)
 
 /-- **A write's update with auth on, at the token `tok`** (the auth-mode merge's 5a, 2026-10-29):
 fired at most once, at a lower bound `L₀` of the requested log the caller holds (`srvReqLogLb`),
 told the write's grant (`opGrantT`) when it fires. -/
-def kvOpAuOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) (op : KVOp)
+def kvOpAuOn (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString) (op : KVOp)
     (Q : KVState → IProp GF) : IProp GF :=
   iprop(∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
-    kvAu1G ρ.kv (kvOpStep op) (opGrantT s E ρ tok op L₀) Q)
+    kvAu1G ρ.kv (kvOpStep op) (opGrantT T E ρ tok op L₀) Q)
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The deposit with auth on** (step 5): `kvDepOwn`'s, a write's update told its grant when it
 fires (`opGrantT`), at a lower bound `L₀` of the requested log the caller holds
 (`srvReqLogLb`). One that ignores the grant is one (`kvDepOwnOn_of_dep`). -/
 def kvDepOwnOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (tok : Option GoString) : KVDep GF → IProp GF
-  | .op1 o Q => kvOpAuOn s E ρ tok o Q
+  | .op1 o Q => kvOpAuOn (srvTLSId s) E ρ tok o Q
   | d => kvDepOwn ρ γr d
 
 /-- A deposit not told its grant is one (at the empty lower bound). -/
@@ -267,16 +308,16 @@ def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (
     | _ => True) ∧ kvDepPreOn ρ.kv.lm d q
   ok q resp _h r := iprop(srvRdCall s E γr c ∗ match q with
     | .put o => iprop(putAppliedOk s E ρ.rd F o (opDepQ d) resp r ∗
-        writeGrantOn s E ρ tok (irrPut o))
+        writeGrantOn (srvTLSId s) E ρ tok (irrPut o))
     | .deleteRange o => iprop(deleteAppliedOk s E ρ.rd F o (opDepQ d) resp r ∗
-        writeGrantOn s E ρ tok (irrDeleteRange o))
+        writeGrantOn (srvTLSId s) E ρ tok (irrDeleteRange o))
     | .range o => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
-        rangeAnsOkOn E γr c F o resp r (rangeDepQOn γr.kv d) ∗ rangeAuthed s E γr c n tok o)
+        rangeAnsOkOn E γr c F o resp r (rangeDepQOn γr.kv d) ∗ rangeAuthed (srvTLSId s) E γr c n tok o)
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
-          txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp r ∗ txnAuthed s E γr c n tok t)
+          txnReadAnsOn E γr c F t (rangeDepQOn γr.kv d) resp r ∗ txnAuthed (srvTLSId s) E γr c n tok t)
         else iprop(txnAppliedAns E ρ.rd F t (opDepQ d) resp r ∗
-          ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantOn s E ρ tok (irrTxn tw))))
+          ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantOn (srvTLSId s) E ρ tok (irrTxn tw))))
   err q e := iprop(srvRdCall s E γr c ∗ match q with
     | .put o => putErrOk s E ρ F o e
     | .deleteRange o => deleteErrOk s E ρ F o e
@@ -285,20 +326,40 @@ def srvKVAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (
         if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e))
   revR := mvcc.api.mvccReaders E.γ 1
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A write's update in the auth mode `on`** (`kvOpAuOn`'s, the auth component's stage 4): fired at
 most once, at a lower bound `L₀` of the requested log the caller holds, told the write's grant
 (`opGrantT`) when it fires with auth on (`⌜on = true⌝ → …`). -/
-def kvOpAuM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+def kvOpAuM (on : Bool) (T : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
   iprop(∃ L₀ : List EntryModel, srvReqLogLb ρ.raft L₀ ∗
-    kvAu1G ρ.kv (kvOpStep op) (fun σ => iprop(⌜on = true⌝ → opGrantT s E ρ tok op L₀ σ)) Q)
+    kvAu1G ρ.kv (kvOpStep op) (fun σ => iprop(⌜on = true⌝ → opGrantT T E ρ tok op L₀ σ)) Q)
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **A request's deposit in the auth mode `on`**: a write's update by `kvOpAuM`; the rest as
 `kvDepOwn`. Off, it is `kvDepOwn` (`kvDepOwnM_of_dep`, `kvDepOwnM_false`); on, `kvDepOwnOn`
 (`kvDepOwnM_true`). -/
 def kvDepOwnM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (tok : Option GoString) : KVDep GF → IProp GF
-  | .op1 o Q => kvOpAuM on s E ρ tok o Q
+  | .op1 o Q => kvOpAuM on (srvTLSId s) E ρ tok o Q
   | d => kvDepOwn ρ γr d
 
 /-- A deposit not told its grant is one in any mode (at the empty lower bound). -/
@@ -328,7 +389,7 @@ theorem kvDepOwnM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     simp only [kvDepOwn, kvDepOwnM, kvOpAuM]
     iintro ⟨%L₀, -, Hau⟩
     have hG : kvAu1G (GF := GF) ρ.kv (kvOpStep o)
-        (fun σ => iprop(⌜false = true⌝ → opGrantT s E ρ tok o L₀ σ)) Q ⊢
+        (fun σ => iprop(⌜false = true⌝ → opGrantT (srvTLSId s) E ρ tok o L₀ σ)) Q ⊢
         kvAu1 ρ.kv (kvOpStep o) Q := by
       unfold kvAu1G kvAu1
       exact aupd_post_mono (fun _ _ => sep_mono_right (sep_emp.2.trans (sep_mono_right (by
@@ -374,18 +435,18 @@ def srvKVAnsM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
     | _ => True) ∧ kvDepPreML on ρ.kv.lm d q
   ok q resp _h r := iprop(srvRdCall s E γr c ∗ match q with
     | .put o => iprop(putAppliedOk s E ρ.rd F o (opDepQ d) resp r ∗
-        (⌜on = true⌝ → writeGrantOn s E ρ tok (irrPut o)))
+        (⌜on = true⌝ → writeGrantOn (srvTLSId s) E ρ tok (irrPut o)))
     | .deleteRange o => iprop(deleteAppliedOk s E ρ.rd F o (opDepQ d) resp r ∗
-        (⌜on = true⌝ → writeGrantOn s E ρ tok (irrDeleteRange o)))
+        (⌜on = true⌝ → writeGrantOn (srvTLSId s) E ρ tok (irrDeleteRange o)))
     | .range o => iprop(idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
         rangeAnsOkM on E γr c F o resp r (rangeDepQM on γr.kv d) ∗
-        (⌜on = true⌝ → rangeAuthed s E γr c n tok o))
+        (⌜on = true⌝ → rangeAuthed (srvTLSId s) E γr c n tok o))
     | .txn cs ts es => iprop(srvLeadTimeReader s ∗ ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
         if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
           txnReadAnsM on E γr c F t (rangeDepQM on γr.kv d) resp r ∗
-          (⌜on = true⌝ → txnAuthed s E γr c n tok t))
+          (⌜on = true⌝ → txnAuthed (srvTLSId s) E γr c n tok t))
         else iprop(txnAppliedAns E ρ.rd F t (opDepQ d) resp r ∗
-          (⌜on = true⌝ → ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantOn s E ρ tok (irrTxn tw)))))
+          (⌜on = true⌝ → ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗ writeGrantOn (srvTLSId s) E ρ tok (irrTxn tw)))))
   err q e := iprop(srvRdCall s E γr c ∗ match q with
     | .put o => putErrOk s E ρ F o e
     | .deleteRange o => deleteErrOk s E ρ F o e
@@ -419,7 +480,7 @@ theorem kvDep_of_depM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
 `Gb` of the header that, with auth on, binds it to the caller's token. -/
 theorem putPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (tok : Option GoString) (d : KVDep GF) (o : OpFull) (Gb : apply.HeaderModel → IProp GF)
-    (hGb : on = true → ∀ hm, Gb hm ⊢ hdrBoundT s E.authMode tok hm)
+    (hGb : on = true → ∀ hm, Gb hm ⊢ hdrBoundT (srvTLSId s) E.authMode tok hm)
     (hc : putReqOk o) (hd : kvDepPreML on ρ.kv.lm d (.put o)) :
     kvDepOwnM on s E ρ γr tok d ⊢ putPermitM on ρ.raft ρ.kv Gb o (opDepQ d) := by
   have hd1 := hd.1
@@ -436,7 +497,7 @@ theorem putPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     iintro H
     ihave H := (kvDepOwnM_true s E ρ γr tok _).1 $$ H
     simp only [putPermitM]
-    iapply putPermitOn_mono ρ.raft ρ.kv (hdrBoundT s E.authMode tok) Gb o _ (hGb rfl)
+    iapply putPermitOn_mono ρ.raft ρ.kv (hdrBoundT (srvTLSId s) E.authMode tok) Gb o _ (hGb rfl)
     simp only [kvDepOwnOn, kvOpAuOn, opDepQ, opGrantT]
     iunfold putPermitOn
     isplitr
@@ -450,7 +511,7 @@ shape), at a binding `Gb` as `putPermitM_of_dep`'s. -/
 theorem deletePermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (tok : Option GoString) (d : KVDep GF) (o : OpFull)
     (Gb : apply.HeaderModel → IProp GF)
-    (hGb : on = true → ∀ hm, Gb hm ⊢ hdrBoundT s E.authMode tok hm)
+    (hGb : on = true → ∀ hm, Gb hm ⊢ hdrBoundT (srvTLSId s) E.authMode tok hm)
     (hd : kvDepPreML on ρ.kv.lm d (.deleteRange o)) :
     kvDepOwnM on s E ρ γr tok d ⊢ deletePermitM on ρ.raft ρ.kv Gb o (opDepQ d) := by
   have hd1 := hd.1
@@ -466,7 +527,7 @@ theorem deletePermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
     iintro H
     ihave H := (kvDepOwnM_true s E ρ γr tok _).1 $$ H
     simp only [deletePermitM]
-    iapply deletePermitOn_mono ρ.raft ρ.kv (hdrBoundT s E.authMode tok) Gb o _ (hGb rfl)
+    iapply deletePermitOn_mono ρ.raft ρ.kv (hdrBoundT (srvTLSId s) E.authMode tok) Gb o _ (hGb rfl)
     simp only [kvDepOwnOn, kvOpAuOn, opDepQ, opGrantT]
     iunfold deletePermitOn
     isplitr
@@ -477,7 +538,7 @@ theorem deletePermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
 (with auth on) the permission cache's shape, at a binding `Gb` as `putPermitM_of_dep`'s. -/
 theorem txnPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
     (tok : Option GoString) (d : KVDep GF) (t : TxnModel) (Gb : apply.HeaderModel → IProp GF)
-    (hGb : on = true → ∀ hm, Gb hm ⊢ hdrBoundT s E.authMode tok hm)
+    (hGb : on = true → ∀ hm, Gb hm ⊢ hdrBoundT (srvTLSId s) E.authMode tok hm)
     (hd : (∃ Q, d = .op1 (.txn t) Q) ∧ (txn.txnPlain t ∨ (on = true ∧ ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
       txnNoZeroEnd t) (hs : txn.txnShape t ∧ txn.txnKeysNodup t)
     (hsh : on = true → ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)) :
@@ -498,7 +559,7 @@ theorem txnPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     iexists tw
     isplitr
     · ipureintro; exact htw
-    iapply writeGrantG_mono ρ.kv srvAuthSt0 (hdrBoundT s E.authMode tok) Gb _ L₀ σ (hGb h) $$ Hg))
+    iapply writeGrantG_mono ρ.kv srvAuthSt0 (hdrBoundT (srvTLSId s) E.authMode tok) Gb _ L₀ σ (hGb h) $$ Hg))
     $$ Hau
 
 end defs
@@ -1747,6 +1808,121 @@ theorem raftKV_srvKVAnsM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
       cases q <;> simp only [srvKVAnsOn, srvKVAnsM] <;>
         first | exact .rfl | (iintro ⟨Hrc, Hc, Hl, -⟩; iframe))
     (fun _ _ _ => trivial)
+
+section monoT
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-! ### O2: monotonicity in the TLS fact (2026-11-23)
+
+The replies' facts are monotone in `T` (`□ (T1 -∗ T2)` turns one at `T1` into one at `T2`), the
+callers' updates antitone (an update told the grant at `T2` is one told it at `T1`). -/
+
+open Iris.ProofMode in
+theorem hdrBoundT_mono (T1 T2 : IProp GF) (M : auth.AuthMode) (tok : Option GoString)
+    (hm : apply.HeaderModel) :
+    iprop(□ (T1 -∗ T2)) ∗ hdrBoundT T1 M tok hm ⊢ hdrBoundT T2 M tok hm := by
+  unfold hdrBoundT
+  iintro ⟨#HT, H⟩
+  icases H with (H | (H | H))
+  · ileft; iexact H
+  · iright; ileft; iexact H
+  · iright; iright; iapply HT $$ H
+
+open Iris.ProofMode in
+theorem rangeAuthed_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (o : OpFull) :
+    iprop(□ (T1 -∗ T2)) ∗ rangeAuthed T1 E γr c n tok o ⊢ rangeAuthed T2 E γr c n tok o := by
+  unfold rangeAuthed
+  iintro ⟨#HT, %info, %m, %hn, Hc, Hi, Hp, Hf⟩
+  iexists info, m
+  isplitr
+  · ipureintro; exact hn
+  iframe Hc Hp Hf
+  iapply infoBoundT_mono T1 T2
+  iframe HT Hi
+
+open Iris.ProofMode in
+theorem txnAuthed_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (n : Nat)
+    (tok : Option GoString) (t : TxnModel) :
+    iprop(□ (T1 -∗ T2)) ∗ txnAuthed T1 E γr c n tok t ⊢ txnAuthed T2 E γr c n tok t := by
+  unfold txnAuthed
+  iintro ⟨#HT, %info, %m, %hn, Hc, Hi, Hf⟩
+  iexists info, m
+  isplitr
+  · ipureintro; exact hn
+  iframe Hc Hf
+  iapply infoBoundT_mono T1 T2
+  iframe HT Hi
+
+open Iris.ProofMode in
+theorem writeGrantOn_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (rq0 : apply.IRRModel) :
+    iprop(□ (T1 -∗ T2)) ∗ writeGrantOn T1 E ρ tok rq0 ⊢ writeGrantOn T2 E ρ tok rq0 := by
+  unfold writeGrantOn
+  iintro ⟨#HT, %hm, %L, %hg, Hb, Hp⟩
+  iexists hm, L
+  isplitr
+  · ipureintro; exact hg
+  iframe Hp
+  iapply hdrBoundT_mono T1 T2
+  iframe HT Hb
+
+open Iris.ProofMode in
+theorem opGrantT_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (op : KVOp) (L₀ : List EntryModel) (σ : KVState) :
+    iprop(□ (T1 -∗ T2)) ∗ opGrantT T1 E ρ tok op L₀ σ ⊢ opGrantT T2 E ρ tok op L₀ σ := by
+  have hb : ∀ hm, iprop(□ (T1 -∗ T2)) ∗ hdrBoundT T1 E.authMode tok hm ⊢ hdrBoundT T2 E.authMode tok hm :=
+    fun hm => hdrBoundT_mono T1 T2 E.authMode tok hm
+  cases op with
+  | put o => exact writeGrantG_mono_with _ _ _ _ _ _ σ _ hb
+  | deleteRange o => exact writeGrantG_mono_with _ _ _ _ _ _ σ _ hb
+  | leaseGrant id ttl => exact writeGrantG_mono_with _ _ _ _ _ _ σ _ hb
+  | leaseRevoke id => exact writeGrantG_mono_with _ _ _ _ _ _ σ _ hb
+  | txn t =>
+    simp only [opGrantT]
+    iintro ⟨#HT, %tw, %h, H⟩
+    iexists tw
+    isplitr
+    · ipureintro; exact h
+    iapply writeGrantG_mono_with _ _ _ _ _ _ σ _ hb
+    iframe HT H
+  | _ => simp only [opGrantT]; iintro -; itrivial
+
+open Iris.ProofMode in
+/-- A caller's update told the grant at `T2` is one told it at `T1`. -/
+theorem kvOpAuOn_mono (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
+    (op : KVOp) (Q : KVState → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ kvOpAuOn T2 E ρ tok op Q ⊢ kvOpAuOn T1 E ρ tok op Q := by
+  unfold kvOpAuOn
+  iintro ⟨#HT, %L₀, #HL, H⟩
+  iexists L₀
+  iframe HL
+  iapply kvAu1G_mono_with _ _ _ _ _ iprop(□ (T1 -∗ T2)) (fun σ => opGrantT_mono T1 T2 E ρ tok op L₀ σ)
+  iframe HT H
+
+open Iris.ProofMode in
+/-- `kvOpAuOn_mono` in the auth mode `on`. -/
+theorem kvOpAuM_mono (on : Bool) (T1 T2 : IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
+    (tok : Option GoString) (op : KVOp) (Q : KVState → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ kvOpAuM on T2 E ρ tok op Q ⊢ kvOpAuM on T1 E ρ tok op Q := by
+  unfold kvOpAuM
+  iintro ⟨#HT, %L₀, #HL, H⟩
+  iexists L₀
+  iframe HL
+  iapply kvAu1G_mono_with _ _ _ _ _ iprop(□ (T1 -∗ T2))
+  rotate_left
+  · iframe HT H
+  intro σ
+  iintro ⟨#HT', H'⟩ %h
+  iapply opGrantT_mono T1 T2 E ρ tok op L₀ σ
+  iframe HT'
+  iapply H' $$ %h
+
+end monoT
 
 end proofs
 

@@ -64,10 +64,10 @@ def akTokP (γa : auth.AuthNames) (who : GoString) : GoString → IProp GF :=
 `etcd_kv_auth_served_on` gives). -/
 def akKVOn (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (cid mid : w64) :
     IProp GF :=
-  iprop(isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
-    isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E ρ.rd cid mid) ∗
-    isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
-    isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ ρ.rd cid mid))
+  iprop(isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
+    isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn (srvTLSId s) E ρ.rd cid mid) ∗
+    isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn (srvTLSId s) E ρ cid mid) ∗
+    isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn (srvTLSId s) E ρ ρ.rd cid mid))
 
 instance akKVOn_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) : Persistent (akKVOn (GF := GF) addr s E ρ cid mid) := by

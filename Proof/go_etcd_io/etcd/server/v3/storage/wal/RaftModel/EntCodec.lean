@@ -2,8 +2,9 @@
 **The raftpb instance's entry codec** (pure; W4c U4 of `notes/wal-fsext-w4c-plan.md`, "W4c U4 log"):
 the canonical wire content of an entry (`walEntCanon`: `Term`, `Index`, `Type` set, `Data` nil when
 empty, no unknown fields), its bytes (`walEncEnt`: protobuf-go's, `entryEncC`, the registered
-`raftpb.Entry`'s opaque encoder, part copy `Proof/go_etcd_io/raft/v3/PbEntryType.lean`, whose
-trusted fact `entryEncC_ok` is the main tree's axiom), and the decoder of those bytes (`walDecEnt`).
+`raftpb.Entry`'s encoder, `Proof/go_etcd_io/raft/v3/PbEntryTypeCore.lean`, whose fact
+`entryEncC_ok` was the main tree's axiom until 2026-11-23 and is now a theorem, protobuf stage S1),
+and the decoder of those bytes (`walDecEnt`).
 
 **Entries of size `2 ^ 48` or more** (which Go cannot allocate, `proto.Marshal`'s `maxAlloc`; the WAL's
 `Save` takes entries below `2 ^ 40` bytes) get stand-in bytes, `walEntJunk`: `entryEncC_ok` says
