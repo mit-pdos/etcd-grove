@@ -394,7 +394,7 @@ theorem client.BufferClient.Connect.wp_proofG (facts : swift.handler.ClientPkgFa
     wp_apply wp_store_slice_index ssl (sint.Z x) (ts.map Prod.fst) cv $$ [$Hssl] as Hssl
     · ipureintro; constructor; word; simp only [List.length_map]; rw [Hts]; have := Hs1l.1; word
     rw [hxl]
-    icases Hdr with (⟨%c0, %cid0, ⟨%Hcv, %He2⟩, #Hown, ⟨Hsend, Hrecv⟩, Hfr⟩ | ⟨%Hcv, %He2⟩)
+    icases Hdr with (⟨%c0, %cid0, ⟨%Hcv, %He2⟩, #Hown, Hend, Hfr⟩ | ⟨%Hcv, %He2⟩)
     rotate_left
     · subst Hcv
       cases e2 with
@@ -422,6 +422,8 @@ theorem client.BufferClient.Connect.wp_proofG (facts : swift.handler.ClientPkgFa
       iapply Hback
       ileft; ipureintro; rfl
     obtain ⟨rfl, rfl⟩ := And.intro Hcv He2
+    iunfold connEnd at Hend
+    icases Hend with ⟨Hsend, Hrecv⟩
     wp_auto
     have hcv : ((ts.map Prod.fst).set (sint.nat x)
         (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c0))[(sint.Z x).toNat]? =
@@ -437,7 +439,10 @@ theorem client.BufferClient.Connect.wp_proofG (facts : swift.handler.ClientPkgFa
     imodintro
     ihave #Hci : net.rpc.connIface (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c0)
       cid0 false $$ []
-    · unfold net.rpc.connIface; iexists c0; iframe Hown; ipureintro; rfl
+    · ihave #Hown' := Hown
+      iunfold net.ownTCPConn at Hown'
+      icases Hown' with ⟨%a0, %la0, %ra0, #Hat0, #Hcs0⟩
+      unfold net.rpc.connIface; iexists c0, a0, la0, ra0; iframe Hat0 Hcs0; ipureintro; rfl
     ihave #Hnet : (isPkgInit (PROP := IProp netDistGF) pkg_id.net) $$ []
     · solve_pkg_init
     ihave #Hbufio : (isPkgInit (PROP := IProp netDistGF) pkg_id.bufio) $$ []
