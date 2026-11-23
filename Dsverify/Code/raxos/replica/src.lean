@@ -8705,6 +8705,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(go!"Consensus"))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType ConsensusServer.ty)))) (Val UntypedNil))
   (Let "$v2" (Let "$v0" (Val #(go!"ESP"))
@@ -8782,6 +8784,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.raxos.proto.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val file_replica_src_consensus_proto_rawDescOnce.init) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val File_replica_src_consensus_proto.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Consensus_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
 

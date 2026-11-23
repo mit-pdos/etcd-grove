@@ -73,7 +73,7 @@ theorem Server.wp_proof
     iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Φ
-    iintro !> %Φr ⟨Htok, HL⟩ HΦr
+    iintro !> %Φr ⟨Htok, HL, -⟩ HΦr
     ihave HL : lin (Gg := hG.goose_globalGS) (cR γs) i Φ $$ [HL]
     · cases hw : (cR (GF := GF) γs).B.isWrite i
       · rw [slotUpd_read _ hw]

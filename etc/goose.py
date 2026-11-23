@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
                linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
@@ -541,6 +541,11 @@ PROJECTS = [
             "go.uber.org/zap/internal/color",
             # (prove-initleft, 2026-11-21) types only: `LeveledEnabler`, which zap's `var _` asserts
             "go.uber.org/zap/internal",
+            # (zap-z1, 2026-11-23) what `Logger.check` names on paths no proof takes (stack traces,
+            # buffers): names only but the package variables of `bufferpool` (`check` reads `Get`)
+            # and the `buffer.NewPool` they call
+            "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
+            "go.uber.org/zap/buffer",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -1039,6 +1044,23 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putget")],
+    ),
+    Project(
+        name="putget-dist",
+        # putget_safe's two programs (notes/putget-dist-plan.md): the member machine's
+        # (`putget.Member`: etcdstart's StartServer and Serve) and the client machine's
+        # (`putget.Client`: Put, Get, check), and `env` (`ClearProxy`, which both call first), of
+        # examples/etcd/dist (etcd_safe's directory, notes/etcd-dist-plan.md; its server and client
+        # packages are stage D2's). A package of the examples' Go module (examples/go.mod), as putget.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "dist"),
+        # `env` calls `os` (the main tree's translation, with `io/fs`, as project etcd's)
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net",
+                    "os=", "io/fs="],
+        packages=["./putget", "./env"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "dist")],
     ),
     Project(
         name="axiomcx-bboltnan",
@@ -1577,16 +1599,15 @@ PROJECTS = [
                     # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
                     # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
                     "runtime/trace=",
-                    # (k8s 7g) go-cmp and the standard library's `maps`, names only, which the
-                    # driver's copy of Kubernetes' checker calls (their .toml)
-                    "github.com/google=", "maps="],
+                    # (k8s 7g) go-cmp, names only, which the driver's copy of Kubernetes'
+                    # checker calls (its .toml); `maps` is Perennial's (2026-11-23)
+                    "github.com/google="],
         packages=[
             ".",
             # (k8s 7g, notes/k8s-7g-scope.md §1.1) the driver's copy of Kubernetes' checker
             # (upstream plus etc/k8s-correctness/d30g.patch), with bodies (correctness.toml)
             "./correctness",
             "github.com/google/go-cmp/cmp",
-            "maps",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
             # the watch cache's store, with bodies (notes/kep-6404-plan.md)
@@ -1785,7 +1806,7 @@ PROJECTS = [
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
                os.path.join("runtime", "trace"),
-               os.path.join("github_com", "google"), "maps",
+               os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

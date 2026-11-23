@@ -12,7 +12,8 @@ it; a read commits at the first firing whose output's bytes are `bs`: `pend_choi
 if none will be, `Ψ` and the update with no result (it goes to the one attempt's slot, a write's,
 where the far side may fire it, once, or never), `Do` returning the unknown output with `Ψ`. A
 read's other attempts get the read's update with no result, which the caller gives persistently
-(it changes nothing: `reads_stay`). A request longer than `maxLen` is never sent (`Do` never
+(it changes nothing: `reads_stay`). Each attempt spends one of `addr`'s call units: the caller
+hands `readTries` (`budUnits`). A request longer than `maxLen` is never sent (`Do` never
 returns). Proved in `Net/Proof/.../lib/remote/Do.lean`.
 -/
 module
@@ -43,7 +44,7 @@ abbrev Do.spec : Prop :=
   ∀ (R : RBase GF St I O) (a : GoString) (i : I) (Φ : O → IProp GF) (Ψ : IProp GF)
     (cd : remote.Codec) (d : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ mapCtx (Gg := hG.goose_globalGS) (I := I) ∗ remoteAddr (Gg := hG.goose_globalGS) R a ∗
-      codecOk R cd ∗ (if R.B.isWrite i then iprop(True) else □ lin (Gg := hG.goose_globalGS) R i (fun _ => iprop(True))) ∗
+      codecOk R cd ∗ budUnits (Gg := hG.goose_globalGS) a readTries ∗ (if R.B.isWrite i then iprop(True) else □ lin (Gg := hG.goose_globalGS) R i (fun _ => iprop(True))) ∗
       (∀ (known : Bool) (bs : List w8), |={⊤}=> if known then
         (∃ Φb : O → IProp GF, slotUpd (Gg := hG.goose_globalGS) R i Φb ∗
           (∀ o, ⌜R.encOut (R.ov o) = bs⌝ -∗ Φb o -∗ £ 1 ={⊤}=∗ Φ o))

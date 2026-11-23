@@ -2,8 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_uber_org.zap.buffer
 public import Perennial.Golang.Theory
-public import Code.maps
+public import Code.go_uber_org.zap.internal.bufferpool
 
 @[expose] public section
 
@@ -14,8 +15,8 @@ set_option linter.deprecated true
 namespace Perennial
 open Iris Iris.BI
 noncomputable section
-namespace maps
+namespace go_uber_org.zap.internal.bufferpool
 
-end maps
+end go_uber_org.zap.internal.bufferpool
 end
 end Perennial

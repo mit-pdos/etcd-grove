@@ -55,14 +55,15 @@ theorem wp_main [ρ : RemoteGS] (wp_Orch : cnode.Orch.spec (hG := hG))
           remoteAddr (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
         pendCtx (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk) (swS0 (GF := netDistGF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init }}
+        pendLib (Gg := hG.goose_globalGS) (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init ∗
+        [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 24 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hw, #Hc, #Has, #Hm, #Hp, Hlib⟩
+  wp_start as ⟨Hw, #Hc, #Has, #Hm, #Hp, Hlib, Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch γ γk γp hrb $$ [Hw Hlib]
+  wp_apply wp_Orch γ γk γp hrb $$ [Hw Hlib Hbud]
   · iframe
     iframe #
   iapply HΦ

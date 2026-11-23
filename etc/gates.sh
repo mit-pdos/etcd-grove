@@ -196,6 +196,13 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
+# stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
+if python3 etc/gen-specs-pkginit.py --check > "$tmp/specpkginit.log" 2>&1; then
+  echo "gen-specs-pkginit: ok"
+else
+  echo "gen-specs-pkginit: FAILED (run etc/gen-specs-pkginit.py)"; head -10 "$tmp/specpkginit.log"; fail=1
+fi
 # the k8s API objects' deep values and deep copies, and the Goose configuration they translate
 # (Proof/k8s_io/api/Deep.lean, Proof/k8s_io/api/DeepCopy/, the generated blocks of the tomls)
 if python3 etc/gen-k8s-deep.py --check > "$tmp/k8sdeep.log" 2>&1; then
