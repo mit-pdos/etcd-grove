@@ -27,7 +27,7 @@ client's continuation must accept them.
 covers only the receivers `register` accepts: the error paths of `register` that log, `log.Print`
 not being modelled by Perennial, are excluded by its premises: `notes/perennial-changes.md`).
 
-**The server** (`isServer s γ`, persistent): `serviceMap` (fixed) under `mapLock`, whose invariant
+**The server** (`isServer s γ`, persistent): `serviceMap` under `mapLock`, whose invariant
 keeps the ghost map `γ` equal to it (`svcMapInv`); the free lists of requests and responses under
 `reqLock` and `respLock` (`reqChain`, `respChain`: each `*Request`/`*Response` owned, linked by
 `next`). A registration (`svcReg γ C name S`, persistent) is the ghost map's element of `name`, the
@@ -169,8 +169,9 @@ def respChain : List Loc → Loc → IProp GF
   | r :: rs, p => iprop(⌜p = r⌝ ∗ ∃ v : net.rpc.Response, r ↦ v ∗ respChain rs v.next')
 
 /-- `mapLock`'s invariant: the services map, and the ghost map `γ` equal to it. -/
-def svcMapInv (γ : GName) (smp : Loc) : IProp GF :=
-  iprop(∃ M : GMap GoString Loc, smp ↦$ M ∗ ghostMapAuth γ 1 M)
+def svcMapInv (γ : GName) (s : Loc) : IProp GF :=
+  iprop(∃ (smp : Loc) (M : GMap GoString Loc), structFieldRef net.rpc.Server go!"serviceMap" s ↦ smp ∗
+    smp ↦$ M ∗ ghostMapAuth γ 1 M)
 
 /-- `reqLock`'s invariant. -/
 def reqFreeInv (s : Loc) : IProp GF :=
@@ -185,10 +186,9 @@ def respFreeInv (s : Loc) : IProp GF :=
 /-- `s` is a server with the registry `γ` (persistent; see the file header). -/
 def isServer (s : Loc) (γ : GName) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗
-    ∃ smp : Loc, structFieldRef net.rpc.Server go!"serviceMap" s ↦□ smp ∗
-      sync.isMutex (structFieldRef net.rpc.Server go!"mapLock" s) (svcMapInv γ smp) ∗
-      sync.isMutex (structFieldRef net.rpc.Server go!"reqLock" s) (reqFreeInv s) ∗
-      sync.isMutex (structFieldRef net.rpc.Server go!"respLock" s) (respFreeInv s))
+    sync.isMutex (structFieldRef net.rpc.Server go!"mapLock" s) (svcMapInv γ s) ∗
+    sync.isMutex (structFieldRef net.rpc.Server go!"reqLock" s) (reqFreeInv s) ∗
+    sync.isMutex (structFieldRef net.rpc.Server go!"respLock" s) (respFreeInv s))
 
 instance isServer_persistent (s : Loc) (γ : GName) : Persistent (isServer (GF := GF) s γ) := by
   unfold isServer; infer_instance
