@@ -23,8 +23,9 @@ variable [sem : go.Semantics]
 /-- `conn.Target()` on a dialed connection returns some string (its `target`, fixed since the
 dial). -/
 abbrev grpc.ClientConn.Target.spec : Prop :=
-  ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (dopts : List GoInterface),
-  {{ grpcConn (GF := GF) conn addrs ics dopts }}
+  ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
+    (Ok : IProp GF → Prop),
+  {{ grpcConn (GF := GF) conn addrs ics dopts Ok }}
     (App (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!!
       go!"Target")) (Val #()))
   {{ (s : GoString), RET #s; True }}
