@@ -9,6 +9,7 @@ public import Code.go_etcd_io.etcd.client.pkg.v3.transport
 public import Code.go_etcd_io.etcd.client.pkg.v3.types
 public import Code.go_etcd_io.etcd.pkg.v3.featuregate
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery
+public import Code.go_etcd_io.etcd.server.v3.storage.datadir
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -86,6 +87,22 @@ noncomputable def ServerConfig.PeerDialTimeout.impl [GooseExts] [GoGlobalContext
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "$res0"))))))
 
+/-- go: config.go:352:24 -/
+noncomputable def ServerConfig.BackendPath.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ServerConfig.ty go!"DataDir"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServerConfig.ty)))) (Var "c"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.datadir.ToBackendFileName []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- go: config.go:354:24 -/
 noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
@@ -102,7 +119,7 @@ noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [GooseExts] [GoG
   (App (Val (GoInstruction (GoLoad go.uint))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.config where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery, pkg_id.go_etcd_io.etcd.server.v3.storage.datadir]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -110,6 +127,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.config)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -132,7 +150,9 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.storage.datadir.initialize') (Val #()))))))))
 
 structure ServerConfig [GooseExts] where
   mk ::
@@ -385,6 +405,7 @@ class ServerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Metrics : ∀ (x : ServerConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ServerConfig.underlying go!"Metrics") (PairV #x #y) (Val #(({ x with Metrics' := y } : ServerConfig)))
   method_set : go.MethodSetIs ServerConfig.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerConfig.ty) [(go!"BackendPath", (some (go.signature.Signature [] false [go.string]))), (go!"BootstrapTimeoutEffective", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ElectionTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"MaxRequestBytesWithOverhead", (some (go.signature.Signature [] false [go.uint]))), (go!"MemberDir", (some (go.signature.Signature [] false [go.string]))), (go!"PeerDialTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ReqTimeout", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"ShouldDiscover", (some (go.signature.Signature [] false [go.bool]))), (go!"SnapDir", (some (go.signature.Signature [] false [go.string]))), (go!"VerifyBootstrap", (some (go.signature.Signature [] false [go.error]))), (go!"VerifyJoinExisting", (some (go.signature.Signature [] false [go.error]))), (go!"WALDir", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/config.advertiseMatchesCluster", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/config.hasLocalMember", (some (go.signature.Signature [] false [go.error])))]
+  ptr_BackendPath_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"BackendPath" ServerConfig.BackendPath.impl
   ptr_ElectionTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"ElectionTimeout" ServerConfig.ElectionTimeout.impl
   ptr_MaxRequestBytesWithOverhead_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"MaxRequestBytesWithOverhead" ServerConfig.MaxRequestBytesWithOverhead.impl
   ptr_PeerDialTimeout_unfold : MethodUnfold (go.GoType.PointerType ServerConfig.ty) go!"PeerDialTimeout" ServerConfig.PeerDialTimeout.impl
@@ -508,6 +529,7 @@ attribute [instance] ServerConfig.TypeAssumptions.type_repr
   ServerConfig.TypeAssumptions.set_Metrics
   ServerConfig.TypeAssumptions.method_set
   ServerConfig.TypeAssumptions.ptr_method_set
+  ServerConfig.TypeAssumptions.ptr_BackendPath_unfold
   ServerConfig.TypeAssumptions.ptr_ElectionTimeout_unfold
   ServerConfig.TypeAssumptions.ptr_MaxRequestBytesWithOverhead_unfold
   ServerConfig.TypeAssumptions.ptr_PeerDialTimeout_unfold
@@ -523,6 +545,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_types_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions
   import_featuregate_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
   import_v3discovery_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.Assumptions
+  import_datadir_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.datadir.Assumptions
 
 attribute [instance] Assumptions.ServerConfig_instance
   Assumptions.import_time_Assumption
@@ -533,6 +556,7 @@ attribute [instance] Assumptions.ServerConfig_instance
   Assumptions.import_types_Assumption
   Assumptions.import_featuregate_Assumption
   Assumptions.import_v3discovery_Assumption
+  Assumptions.import_datadir_Assumption
 
 end go_etcd_io.etcd.server.v3.config
 

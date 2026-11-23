@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.transport.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.InitLinked
+public import Proof.go_etcd_io.etcd.server.v3.storage.datadir.Init
 public import Proof.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.Init
 public import Proof.go_uber_org.zap.InitLinked
 public import Proof.runtime.PkgInitExt
@@ -54,6 +55,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.datadir.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩

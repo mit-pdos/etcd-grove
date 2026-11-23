@@ -4,6 +4,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.ReceiptTactics
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeSeqPut
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__putSeq
@@ -42,7 +43,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   icombine Ht Ht' gives %Heq
   subst Heq
   wp_auto
-  wp_apply (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1)
+  wp_apply +noauto (hBT γ P W Pk b t st bk bi key value kb vb DFrac.discard Hk0 Hk1)
     $$ [Htxf Hpend Hwtx] as ⟨%Hkv, Hw, -⟩
   · iframe #
     unfold btW
@@ -51,6 +52,13 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
   ihave %Hbb := batchGhostAt_bound γ P st false HP Hwf c $$ Hg
   have Hlen : (bkOf st.W.bks bi.id).length < bufBound := by have := Hbb bi.id; omega
+  -- (step 2 of `notes/step-bounds-plan.md`, 2026-11-22) the new entry paid by this put's own step
+  icases batchGhostAt_bufRc γ P st false c $$ Hg with ⟨Hg, #Hbr⟩
+  iunfold bufRc at Hbr
+  icases Hbr with ⟨%m, #Hm, %Hfit, %Hrb60⟩
+  wp_raise_receipt Hm
+  ihave #Hbr' := bufRc_grow (st := st) (st' := st.put bi kb vb true) m rfl
+    (fun i => put_W_le st bi kb vb true i) Hfit Hrb60 $$ Hm
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen Hlt) $$ [$HW] as HW
   · iframe #
   iapply HΦ
@@ -62,7 +70,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) (fkVals_put true Hfk) rfl
     (trkOk_putS HP Hwf Hhas kb vb true) (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
       (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd)
-    (fun m hm => tkSet_ne _ _ (by rintro rfl; rw [Hrb] at hm; cases hm)) rfl c $$ Hg
+    (fun m hm => tkSet_ne _ _ (by rintro rfl; rw [Hrb] at hm; cases hm)) rfl c $$ Hbr' Hg
   iframe Hg
   isplitl
   · iexists hk

@@ -123,7 +123,7 @@ variable [go_gctx : GoGlobalContext]
 
 /-- **`k8s_adequate` along executions with fewer than `2 ^ 28` live threads** (2026-11-22, as
 `etcd/all`'s `etcd_adequate_of` since 2026-11-20): the same conclusion for every execution of `n`
-steps, `n + 12 ≤ 2 ^ 40` (the backend's write-back budget, `backend.wbInit`), along which fewer than
+steps, `n + 1 ≤ 2 ^ 48` (the receipt bound of the server's request ids; until 2026-11-22 `n + 12 ≤ 2 ^ 40`, the backend's write-back budget), along which fewer than
 `2 ^ 28` threads are ever live at once (`RealNstepsBelow`, through
 `etcd_adequate_alloc_members_below`): the thread bound is a premise on the execution, not a
 consequence of its length. -/
@@ -167,7 +167,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNstepsBelow (2 ^ 28) n ([k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂],
       ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 12 ≤ 2 ^ 40) :
+    (Hn : n + 1 ≤ 2 ^ 48) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by

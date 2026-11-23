@@ -120,7 +120,7 @@ theorem EtcdServer.createMergedSnapshotMessage.wp_proof
   ihave Hsi : (go_etcd_io.etcd.server.v3.storage.schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Psch
   icases Hsi with ⟨⟨%bk, #Hmeta, -⟩, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    ⟨%membersBucket, #HmembersBucket⟩, ⟨%confKey, #HconfKey, #HconfBytes⟩⟩
+    ⟨%membersBucket, #HmembersBucket, -⟩, ⟨%confKey, #HconfKey, #HconfBytes⟩, -⟩
   ihave #Hbucket := mvcc.meta_isBucket hID hName hSafe bk $$ [$Psch $Hmeta]
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ backend.snapOpenQ sp D γd 1 ∗

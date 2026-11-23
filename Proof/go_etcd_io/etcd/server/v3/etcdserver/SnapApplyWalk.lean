@@ -71,7 +71,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
-    (hmmap : storage.openMmapOk cfg)
+    (hmmap : storage.openMmapOk cfg) (hdd : cfg.DataDir'.length < 2 ^ 60)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (st : ApplyState) (b : GoInterface)
@@ -111,7 +111,10 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hAR : v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG))
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
     (halbi : d.P.has mvcc.alarmBI ∧
-      d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) (hlpw : mvcc.leaseParams d.P)
+      d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI)
+    -- (prove-ps2-members, 2026-11-22) the membership's buckets in the table, for `SetBackend`
+    (hmbP : d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI)
+    (hlpw : mvcc.leaseParams d.P)
     (hNAuB : schema.NewAuthBackend.spec (GF := GF) (hG := hG))
     -- (P6.2, F9) the image's auth facts by the mode (off, `hauthb`), its log `A'`
     (A' : List EntryModel) (hauthI : snapAuthImgM E.authMode γr d.P D A A') (hAA' : A <+: A')
@@ -337,7 +340,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb0; omega⟩
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
       (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
-      (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) $$ [Hfile Hpath Hcreate]
+      (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) hdd $$ [Hfile Hpath Hcreate]
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
     iunfold storage.openPre
@@ -881,7 +884,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   wp_apply hCSB cl d.be mbl sfv.lg d' (mvcc.api.mvccW d'.gx) (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       (srvOpenQ E.authMode) (snapKeepS E.authMode)
       ((((backend.rbData d.P D).insert go!"lease" lb).insert go!"alarm" ∅))
-      (fun n h => snapKeepS_cluster _ n h)
+      (fun n h => snapKeepS_cluster _ n h) (by rw [hP']; exact hmbP.1) (by rw [hP']; exact hmbP.2.1)
+      (by rw [hP']; exact hmbP.2.2)
     $$ [HoCl HnOh Hwbm HnRB] as ⟨HnCl, HnOh, HnRB⟩
   · -- (2026-11-02, the backend-auth-split stage; P6.2) at the kept buckets, given back idle
     ihave HnRB := backend.rbOwnIn_part (GF := GF) _ (snapKeepS E.authMode) _ $$ HnRB

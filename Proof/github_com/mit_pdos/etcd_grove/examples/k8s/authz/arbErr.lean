@@ -39,7 +39,7 @@ theorem arbErr.wp_proof
   wp_apply wp_arbBool as %b _
   cases b
   · wp_auto
-    wp_apply _root_.Perennial.errors.wp_New_errorString as %x #Hx
+    wp_apply _root_.Perennial.errors.wp_New_errorString as %x ⟨#_, #Hx⟩
     (try wp_auto)
     iapply HΦ
     iapply utilerrors.errorString_errTreeOrNil x _

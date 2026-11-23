@@ -49,9 +49,7 @@ entry Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof 3:Ψ:produc
 entry Perennial.EtcdGrove.EtcdServer.publishV3.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as monitorClusterVersions (post `True`)
 # `∃ Φ : GoString × GoString → IProp` is `dlIs`'s (`InvBackend.lean:877`), bound with `dlReg`'s saved predicate at the backend's own name (fixed by the backend's creator; `saved_pred_agree`), as backend.Snapshot's; reached through the consumed `isBackend`/`openPre`
 entry Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
-entry Perennial.EtcdGrove.membership.RaftCluster.SetBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
-entry Perennial.EtcdGrove.schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.storage.OpenBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
@@ -123,9 +121,7 @@ trunc Perennial.EtcdGrove.proto.MarshalAppendCachedRecord.wp_proof
 # definitions are bbolt's proved ones (`Proof/go_etcd_io/bbolt/Inv/`), not trusted text.
 trunc Perennial.EtcdGrove.auth.NewAuthStore.wp_proof
 trunc Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof
-trunc Perennial.EtcdGrove.membership.RaftCluster.SetBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
-trunc Perennial.EtcdGrove.schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 trunc Perennial.EtcdGrove.v3alarm.AlarmStore.restore.wp_proof

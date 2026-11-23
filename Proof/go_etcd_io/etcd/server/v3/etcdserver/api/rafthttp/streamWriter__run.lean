@@ -462,7 +462,7 @@ local macro "run_conn" : tactic => `(tactic| (
   | msgAppV2 =>
     simp only [StreamTy.str, _root_.decide_true]
     (try wp_auto)
-    (wp_apply hNewEnc wi fs as %e Henc; (ipureintro; exact Hfsnn))
+    (wp_apply hNewEnc wi fs as %e Henc; (iframe #; ipureintro; exact Hfsnn))
     (try wp_auto)
     ihave HencO : encOwn True lid pid fs .msgAppV2
         (interface.mkOk (go.GoType.PointerType rafthttp.msgAppV2Encoder.ty) #e) wi
@@ -517,7 +517,7 @@ theorem rafthttp.streamWriter.run.wp_proof
   ihave #Hf' := Hf
   iunfold swFixed at Hf'
   icases Hf' with ⟨%lg, %ps, %fs, %r, %γd, %cc, %sc, %dc, %γc, %γs, %γdn, #Hlg, #Hlgz, #Hlid,
-    #Hpid, #Hps, #Hpsok, #Hfs, %Hfsnn, #Hr, #Hraft, #Hmu, #Hcc, #Hcbag, #Hsc, #Hstop, #Hdc,
+    #Hpid, #Hps, #Hpsok, #Hfs, %Hfsnn, #Hfsi, #Hr, #Hraft, #Hmu, #Hcc, #Hcbag, #Hsc, #Hstop, #Hdc,
     #Hdunk⟩
   ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []

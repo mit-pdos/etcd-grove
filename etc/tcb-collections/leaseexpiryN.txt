@@ -12,7 +12,6 @@
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Results\.lean$
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
-axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
@@ -21,23 +20,13 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom Perennial.encoding.json.initFuncsOk
-axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
-axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.membershippb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.mvccpb.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.version.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.client.v3.defaultOptions_init
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -47,7 +36,6 @@ axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
-axiom Perennial.internal.bytealg.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
@@ -68,7 +56,6 @@ axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom config.ServerConfig.BackendPath.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
@@ -159,13 +146,10 @@ axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.Lease.expired.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
-axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.String.wp_proof
-axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
@@ -237,6 +221,7 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
+axiom rand.Float64.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
@@ -244,7 +229,6 @@ axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
-axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
@@ -269,7 +253,6 @@ axiom txn.WarnOfExpensiveRequest.wp_proof
 axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
-axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.codec_proto

@@ -13,6 +13,7 @@ public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.go_etcd_io.etcd.api.v3.authpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
 public import Proof.go_etcd_io.etcd.api.v3.version.InitLinked
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Init
 public import Proof.go_etcd_io.etcd.server.v3.auth.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasepb.Init
@@ -97,13 +98,15 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoSlice) keyBucketName _ as HkeyBucketName
   wp_apply wp_GlobalAlloc (V := GoSlice) authDisabled _ as HauthDisabled
   wp_apply wp_GlobalAlloc (V := GoSlice) authEnabled _ as HauthEnabled
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1))
+    $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1))
+  wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd9⟩
   wp_apply (EtcdGrove.initResL_carry _ _ _ _ (_root_.Perennial.go_etcd_io.etcd.api.v3.authpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1))
     $$ Hown as ⟨Hown, #Hd8⟩
@@ -149,11 +152,11 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply wp_string_to_bytes go!"alarm" as %_ ⟨-, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"cluster" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"cluster" as %scluster ⟨Hscluster, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"members" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"members" as %smembers ⟨Hsmembers, -⟩
   try wp_auto
-  wp_apply wp_string_to_bytes go!"members_removed" as %_ ⟨-, -⟩
+  wp_apply wp_string_to_bytes go!"members_removed" as %smrem ⟨Hsmrem, -⟩
   try wp_auto
   wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩
   try wp_auto
@@ -227,7 +230,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
       globalAddr go_etcd_io.etcd.api.v3.version.MinClusterVersion ↦□ go!"3.0.0" ∗
       (∃ v7 v8 : github_com.Masterminds.semver.v3.Version,
         globalAddr go_etcd_io.etcd.api.v3.version.V3_7 ↦□ v7 ∗ globalAddr go_etcd_io.etcd.api.v3.version.V3_8 ↦□ v8)) $$ []
-  · iapply isPkgInit_access $$ Hd12
+  · iapply isPkgInit_access $$ Hd13
   icases Hvv with ⟨-, ⟨%v36, #Hv36⟩, -, ⟨%v37, %v38, #Hv37, #Hv38⟩⟩
   try wp_auto
   wp_func_call
@@ -307,6 +310,11 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   ipersist HauthDisabled
   ipersist Hslease
   ipersist HLease
+  ipersist Hscluster
+  ipersist Hsmembers
+  ipersist Hsmrem
+  ipersist HMembersRemoved
+  ipersist HCluster
   iframe Hown
   imodintro
   isplitr

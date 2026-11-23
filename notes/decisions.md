@@ -41915,3 +41915,24 @@ Perennial's `goose_dist_mixed_crash_adequacy`. Kits had only the no-crash bridge
 `robust_of_distBoot`/`robust_of_distProto` (`…RB`), and echo's instance `echo_kit_robust` →
 `echo_dist_robust`. Statements, definitions and axioms unchanged. Older entries keep the old names;
 prose about the lab's own kits (its examples, "phase 6's kits") keeps the word.
+
+## The bootstrap contracts give the membership buckets in the table (2026-11-22 · proving session 2, #18 · branch `prove-ps2-members/2026-11-22`)
+
+**The user's decision (2026-11-22):** extend the trusted bootstrap contracts' backend clause (`bootOk`'s and
+`bootOkR`'s `%Hbe`, the posts of `bootstrapContract`/`bootstrapRestartContract`) with
+`d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI`, as item E of the 2026-11-02
+approved restatements did for the alarm and auth buckets.
+
+**What changed:** `membership.RaftCluster.SetBackend` and `schema.membershipBackend.MustDeleteMemberFromBackend`
+(trust-boundary axioms until now, names-only) are translated with their bodies (with `MustCreateBackendBuckets`
+and `BackendMemberKey`) and proved over the backend's specs. Their bucket operations need the buckets in the
+backend's ghost table; the fact travels `bootOk` → `srvSnapRO` → `applySnapshot` → `SetBackend` at the received
+backend (ledger 2026-11-22, "members").
+
+**Why it is true of the code:** the table names the backend's buckets; `bootstrap`'s `cl.SetBackend(be)` creates the
+three (`MustCreateBackendBuckets`), and the contract already says they are present in the boot data (`%HDr`). The
+contract chooses the ghost table, so naming three more buckets in it constrains nothing Go does.
+
+**Why not** derive `P.has` from the data (`D.lookup n = some _`): the table is a free parameter of `KBReal`, and
+the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
+by #30 at the time).

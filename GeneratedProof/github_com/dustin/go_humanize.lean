@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.github_com.dustin.go_humanize
 public import Perennial.Golang.Theory
 public import Code.github_com.dustin.go_humanize
 

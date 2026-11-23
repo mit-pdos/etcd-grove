@@ -8,6 +8,7 @@ public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Perennial.Code.context
 public import Code.google_golang_org.grpc
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.api.v3.etcdserverpb
 
 @[expose] public section
 

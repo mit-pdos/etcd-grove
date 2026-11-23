@@ -2,11 +2,14 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
+public import GeneratedProof.github_com.prometheus.client_model.go
+public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus.chunk1
-public import GeneratedProof.github_com.prometheus.client_golang.prometheus.chunk3
 
 @[expose] public section
 
@@ -19,7 +22,7 @@ open Iris Iris.BI
 noncomputable section
 namespace github_com.prometheus.client_golang.prometheus
 
-namespace HistogramVecOpts
+namespace wrappingMetric
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -27,111 +30,71 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
 
-noncomputable instance HistogramVecOpts_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramVecOpts where
+noncomputable instance wrappingMetric_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.wrappingMetric where
   typedPointstoDef l v dq := iprop(
-    "HistogramOpts" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"HistogramOpts" l) v.HistogramOpts' dq ∗
-    "VariableLabels" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"VariableLabels" l) v.VariableLabels' dq ∗
+    "wrappedMetric" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) v.wrappedMetric' dq ∗
+    "prefix'" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) v.prefix' dq ∗
+    "labels" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) v.labels' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance HistogramVecOpts_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.HistogramVecOpts github_com.prometheus.client_golang.prometheus.HistogramVecOpts.underlying := by
+noncomputable instance wrappingMetric_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.wrappingMetric github_com.prometheus.client_golang.prometheus.wrappingMetric.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance HistogramVecOpts_access_load_HistogramOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVecOpts) (dq : DFrac) :
+noncomputable instance wrappingMetric_access_load_wrappedMetric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"HistogramOpts" l) v.HistogramOpts' dq)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"HistogramOpts" l) v.HistogramOpts' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) v.wrappedMetric' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) v.wrappedMetric' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramVecOpts_access_store_HistogramOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVecOpts) (HistogramOpts' : github_com.prometheus.client_golang.prometheus.HistogramOpts) :
+noncomputable instance wrappingMetric_access_store_wrappedMetric (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (wrappedMetric' : github_com.prometheus.client_golang.prometheus.Metric) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"HistogramOpts" l) v.HistogramOpts' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"HistogramOpts" l) HistogramOpts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HistogramOpts' := HistogramOpts' } : github_com.prometheus.client_golang.prometheus.HistogramVecOpts) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) v.wrappedMetric' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"wrappedMetric" l) wrappedMetric' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wrappedMetric' := wrappedMetric' } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramVecOpts_access_load_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVecOpts) (dq : DFrac) :
+noncomputable instance wrappingMetric_access_load_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) v.prefix' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) v.prefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramVecOpts_access_store_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramVecOpts) (VariableLabels' : github_com.prometheus.client_golang.prometheus.ConstrainableLabels) :
+noncomputable instance wrappingMetric_access_store_prefix (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (prefix' : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"VariableLabels" l) v.VariableLabels' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramVecOpts go!"VariableLabels" l) VariableLabels' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VariableLabels' := VariableLabels' } : github_com.prometheus.client_golang.prometheus.HistogramVecOpts) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) v.prefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"prefix" l) prefix' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := prefix' } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance wrappingMetric_access_load_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) v.labels' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) v.labels' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance wrappingMetric_access_store_labels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.wrappingMetric) (labels' : github_com.prometheus.client_golang.prometheus.Labels) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) v.labels' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.wrappingMetric go!"labels" l) labels' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with labels' := labels' } : github_com.prometheus.client_golang.prometheus.wrappingMetric) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
 end def_
-end HistogramVecOpts
-
-namespace SummaryVecOpts
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
-
-noncomputable instance SummaryVecOpts_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.SummaryVecOpts where
-  typedPointstoDef l v dq := iprop(
-    "SummaryOpts" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"SummaryOpts" l) v.SummaryOpts' dq ∗
-    "VariableLabels" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"VariableLabels" l) v.VariableLabels' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance SummaryVecOpts_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.SummaryVecOpts github_com.prometheus.client_golang.prometheus.SummaryVecOpts.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance SummaryVecOpts_access_load_SummaryOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryVecOpts) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"SummaryOpts" l) v.SummaryOpts' dq)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"SummaryOpts" l) v.SummaryOpts' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance SummaryVecOpts_access_store_SummaryOpts (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryVecOpts) (SummaryOpts' : github_com.prometheus.client_golang.prometheus.SummaryOpts) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"SummaryOpts" l) v.SummaryOpts' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"SummaryOpts" l) SummaryOpts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SummaryOpts' := SummaryOpts' } : github_com.prometheus.client_golang.prometheus.SummaryVecOpts) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance SummaryVecOpts_access_load_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryVecOpts) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"VariableLabels" l) v.VariableLabels' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance SummaryVecOpts_access_store_VariableLabels (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryVecOpts) (VariableLabels' : github_com.prometheus.client_golang.prometheus.ConstrainableLabels) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"VariableLabels" l) v.VariableLabels' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryVecOpts go!"VariableLabels" l) VariableLabels' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VariableLabels' := VariableLabels' } : github_com.prometheus.client_golang.prometheus.SummaryVecOpts) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end SummaryVecOpts
+end wrappingMetric
 
 end github_com.prometheus.client_golang.prometheus
 end

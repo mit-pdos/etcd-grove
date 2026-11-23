@@ -6,6 +6,7 @@ public import Code.go_etcd_io.etcd.api.v3.mvccpb
 public import Code.google_golang_org.protobuf.reflect.protoreflect
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
 
 @[expose] public section
 
@@ -1303,6 +1304,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ElectionServer_instance : ElectionServer.TypeAssumptions
   UnimplementedElectionServer_instance : UnimplementedElectionServer.TypeAssumptions
   UnsafeElectionServer_instance : UnsafeElectionServer.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_etcdserverpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Assumptions
   import_mvccpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Assumptions
   import_protoreflect_Assumption : _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Assumptions
@@ -1322,6 +1324,7 @@ attribute [instance] Assumptions.CampaignRequest_instance
   Assumptions.ElectionServer_instance
   Assumptions.UnimplementedElectionServer_instance
   Assumptions.UnsafeElectionServer_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_etcdserverpb_Assumption
   Assumptions.import_mvccpb_Assumption
   Assumptions.import_protoreflect_Assumption

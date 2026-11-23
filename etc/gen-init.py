@@ -202,7 +202,7 @@ def register(cfg, p, regs):
         if x not in b:
             continue
         for i, l in enumerate(b[x]):
-            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, %{n}⟩'), (f'⟨#C{x}, #D{x}, -⟩', f'⟨#C{x}, #D{x}, %{n}⟩'),
+            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, %{n}⟩'), (f'⟨#R{x}, -⟩', f'⟨#R{x}, %{n}⟩'),
                          (f'⟨#L{x}, -⟩', f'⟨#L{x}, %{n}⟩')]:
                 l = l.replace(a, z)
             b[x][i] = l
@@ -283,7 +283,7 @@ def newvar_steps(x, cell=False, errorf=None):
     pre = ['try wp_auto']
     if cell:
         return pre + [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{x} ⟨#M{x}, #C{x}⟩']
-    return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+    return pre + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#_, #M{x}⟩']
 
 def newvars_cfg(cfg, names, cell=False, errorf={}):
     """Add the translated `errors.New` variables `names` to the package config `cfg` (those in
@@ -522,7 +522,7 @@ Perennial's `errors.wp_New_errorString`); the other variables' errors are `*erro
     imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.NewVar', 'Proof.errors.ErrorStringOk'],
     alloc_types={x: 'GoInterface' for x in _BBOLT_ERRS},
     vars=['[_root_.Perennial.errors.Assumptions]'],
-    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+    before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#_, #M{x}⟩']
                  for x in _BBOLT_ERRS}, **{'$end': ['try wp_auto']}),
     finish=[f'ipersist H{x}' for x in _BBOLT_ERRS] + FIN_PRE + ['iexists _', 'iframe HErrBucketNotFound',
             'isplitr', '· ipureintro',
@@ -613,7 +613,7 @@ translated since 2026-11-17, `Code/go_etcd_io/bbolt.toml`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
                      discardLogger='GoInterface', DefaultOptions='Loc'),
-    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
+    before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS ⟨#_, #MS⟩'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
                 'ihave #Hev : (go_etcd_io.bbolt.errors.bboltErrorsInit : IProp GF) $$ []',
@@ -721,18 +721,18 @@ copies, hold some error for good. Its initializer copies internal/oserror's erro
         'ihave #Hos := _root_.Perennial.internal.oserror.isInit_access $$ {Hd:internal.oserror}',
         'icases Hos with ⟨#VIn, #VPe, #VEx, #VNE, #VCl⟩',
         'iunfold _root_.Perennial.errors.newVar at VIn VPe VEx VNE VCl',
-        'icases VIn with ⟨%xIn, #OIn, #EIn⟩',
-        'icases VPe with ⟨%xPe, #OPe, #EPe⟩',
-        'icases VEx with ⟨%xEx, #OEx, #EEx⟩',
-        'icases VNE with ⟨%xNE, #ONE, #ENE⟩',
-        'icases VCl with ⟨%xCl, #OCl, #ECl⟩',
+        'icases VIn with ⟨%xIn, #OIn, #_, #EIn⟩',
+        'icases VPe with ⟨%xPe, #OPe, #_, #EPe⟩',
+        'icases VEx with ⟨%xEx, #OEx, #_, #EEx⟩',
+        'icases VNE with ⟨%xNE, #ONE, #_, #ENE⟩',
+        'icases VCl with ⟨%xCl, #OCl, #_, #ECl⟩',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrInvalid',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrPermission',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrExist',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrNotExist',
         'wp_func_call', 'wp_call', 'wp_auto', 'ipersist HErrClosed',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD #ESD',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA #ESA']},
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSD ⟨#_, #ESD⟩',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xSA ⟨#_, #ESA⟩']},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
 
@@ -785,7 +785,7 @@ SPECIAL['bufio'] = dict(
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=_ALLOC_ANY,
     # (#23, 2026-11-22: keyed `errorRune` until it was skipped, goose `[[skip]]`; it ran last)
-    before={'$end': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} #E{i}'
+    before={'$end': ['try wp_auto'] + [f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{i} ⟨#_, #E{i}⟩'
                      for i in range(len(_BUFIO_ERRS))]},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
@@ -814,7 +814,7 @@ for _p, _k in [('internal.filepathlite', '$end'), ('path.filepath', '$end'), ('k
     SPECIAL[_p] = dict(
         imports=['Perennial.Proof.errors.NewVar'],
         alloc_types=_ALLOC_ANY,
-        before={_k: ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 #E0']},
+        before={_k: ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %x0 ⟨#_, #E0⟩']},
         finish=['iframe Hown', 'is_pkg_init_finish'],
     )
 
@@ -841,7 +841,7 @@ initializers of its protobuf descriptors and its `init` function, which the trus
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.''',
     imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm', 'Proof.errors.ErrorStringOk'],
     alloc_types={'ErrCRCMismatch': 'GoInterface'},
-    before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC',
+    before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC ⟨#_, #EC⟩',
                                'try wp_auto']},
     finish=['ipersist HErrCRCMismatch', 'ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ {Hd:errors}'] +
            FIN_PRE[:6] + [
@@ -862,7 +862,7 @@ outcome.''',
     vars=['[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]'],
     alloc_types={'linuxLockFile': 'GoFunc', 'linuxTryLockFile': 'GoFunc', 'wrlck': 'syscall.Flock_t',
                  'ErrLocked': 'GoInterface'},
-    before={'ErrLocked': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xL #EL',
+    before={'ErrLocked': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xL ⟨#_, #EL⟩',
                           'try wp_auto']},
     after={'init.«0»': [
         "wp_apply (_root_.Perennial.EtcdGrove.syscall.FcntlFlock.wp_getlk _ _ _) $$ getlk as %e ⟨%v', Hv, %hv⟩",
@@ -911,7 +911,22 @@ def _walErrVar(x, tag):
 # options literal (a histogram's buckets `ExponentialBuckets(start, 2, n)`), over prometheus's
 # constructor specs; the steps before its store (`before`, keyed by the variable)
 PROM_CTORS = [f'Proof.github_com.prometheus.client_golang.prometheus.{f}'
-              for f in ['NewCounter', 'NewGauge', 'NewHistogram', 'ExponentialBuckets']]
+              for f in ['NewCounter', 'NewGauge', 'NewHistogram', 'ExponentialBuckets',
+                        # (prove-ps2-metrics, 2026-11-22) `NewGauge` returns `isGauge`; the methods'
+                        # triples come from their proofs, through these laws
+                        'MetricLaws', 'gauge__Set', 'gauge__Add', 'gauge__Inc', 'gauge__Dec']]
+
+_PM = 'EtcdGrove.prometheus'
+def gauge_rep(c, h):
+    """After `NewGauge` (`#R<h> : isGauge <c>`): `#C<h> : metric.gaugeSpec <c>` and
+    `#D<h> : metric.gaugeSetSpec <c>`, from the methods' proofs (prove-ps2-metrics, 2026-11-22)."""
+    a = f'{_PM}.gauge.Add.wp_proof'
+    return [f'ihave #C{h} : ({_PM}.metric.gaugeSpec {c} : IProp GF) $$ []',
+            f'· iapply {_PM}.metric.gaugeSpec_of_isGauge ({_PM}.gauge.Inc.wp_proof {a}) ({_PM}.gauge.Dec.wp_proof {a}) {a}',
+            '  all_goals iassumption',
+            f'ihave #D{h} : ({_PM}.metric.gaugeSetSpec {c} : IProp GF) $$ []',
+            f'· iapply {_PM}.metric.gaugeSetSpec_of_isGauge {_PM}.gauge.Set.wp_proof',
+            '  all_goals iassumption']
 
 def metric_steps(x, kind):
     P = 'EtcdGrove.prometheus'
@@ -919,8 +934,8 @@ def metric_steps(x, kind):
         return [f'wp_apply {P}.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, -⟩',
                 'try wp_auto']
     if kind == 'gauge':
-        return [f'wp_apply {P}.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, #D{x}, -⟩',
-                'try wp_auto']
+        return ([f'wp_apply {P}.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#R{x}, -⟩'] +
+                gauge_rep(f'c{x}', x) + ['try wp_auto'])
     assert kind == 'hist'
     return [f'wp_apply {P}.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %b{x} B{x}',
             'try wp_auto',
@@ -982,7 +997,7 @@ says returns.''',
     before=dict({x: metric_steps_to(x, k, f'EtcdGrove.wal.{t}') for x, k, t in
                  [('walFsyncSec', 'hist', 'histSpec'), ('walWriteSec', 'hist', 'histSpec'),
                   ('walWriteBytes', 'gauge', 'gaugeAddSpec')]},
-                **{x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} #E{t}',
+                **{x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{t} ⟨#_, #E{t}⟩',
                      'try wp_auto'] for x, t in _WAL_NEW_ERRS},
                 ErrCRCMismatch=['try wp_auto',
                     'ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []',
@@ -1192,13 +1207,13 @@ literal).''',
     before={'$end': [
         'set_option maxRecDepth 20000 in',
         'wp_apply _root_.Perennial.sync.wp_OnceValue as %cfr -',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC #EFC',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xND #END',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xFC ⟨#_, #EFC⟩',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xND ⟨#_, #END⟩',
         'ipersist HErrNoDeadline',
         'wp_alloc_anon',
         'wp_auto',
         'ipersist HErrDeadlineExceeded',
-        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP #ENP']},
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xNP ⟨#_, #ENP⟩']},
     finish=['iframe Hown', 'is_pkg_init_finish'],
 )
 
@@ -1331,8 +1346,10 @@ variables (`version.go`: `MinClusterVersion`, `Version`, `APIVersion`, `GitSHA`;
 2026-11-19, until then the trust-boundary axioms `Version_init` and `MinClusterVersion_init`), its `semver`
 versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, proved over the real code) and
 `AllVersions` (a slice literal of them; prove-initleft, 2026-11-21: until then the trust-boundary axioms
-`V3_6_init` and `opaqueInitsOk`), and runs its untranslated `init` function, which the trust-boundary
-axiom `initFuncsOk` says returns.''',
+`V3_6_init` and `opaqueInitsOk`), and runs its translated `init` function (prove-ps2-initfuncs,
+2026-11-22; until then the trust-boundary axiom `initFuncsOk`): `APIVersion` set to
+`fmt.Sprintf("%d.%d", ver.Major(), ver.Minor())` of `semver.NewVersion(Version)` when that parses
+(`NewVersion`'s spec, the trust boundary; `Major`/`Minor` proved), left as it was otherwise.''',
     alloc_types=dict({x: 'GoString' for x in ['MinClusterVersion', 'Version', 'APIVersion', 'GitSHA']},
                      **{x: 'github_com.Masterminds.semver.v3.Version' for x in _VERS}, AllVersions='GoSlice'),
     before=dict({x: semver_new_steps(x) for x in _VERS},
@@ -1340,7 +1357,47 @@ axiom `initFuncsOk` says returns.''',
                              'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sav ⟨Sav, -⟩',
                              'try wp_auto']),
     imports=['Proof.github_com.Masterminds.semver.v3.New',
-             'Proof.github_com.Masterminds.semver.v3.Version__String'],
+             'Proof.github_com.Masterminds.semver.v3.Version__String',
+             'Proof.github_com.Masterminds.semver.v3.NewVersion',
+             'Proof.github_com.Masterminds.semver.v3.Version__Major',
+             'Proof.github_com.Masterminds.semver.v3.Version__Minor'],
+    # (prove-ps2-initfuncs, 2026-11-22) `init()` (`version.go`): `APIVersion` from `NewVersion(Version)`
+    after={'init.«0»': [
+        'wp_apply EtcdGrove.semver.NewVersion.wp_proof as %pv %err Hr',
+        'try wp_auto',
+        'wp_bind (If _ _ _)',
+        'iapply (wp_wand_r (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ ∃ s : GoString, globalAddr APIVersion ↦ s)))',
+        'isplitl [Hr HAPIVersion ver]',
+        '· icases Hr with (⟨%Hok, %x, #Hx, -⟩ | %Hbad)',
+        '  · obtain ⟨-, -, Herr⟩ := Hok',
+        '    subst Herr',
+        '    wp_auto',
+        '    wp_apply EtcdGrove.semver.Version.Major.wp_proof $$ [$Hx] as -',
+        '    wp_apply EtcdGrove.semver.Version.Minor.wp_proof $$ [$Hx] as -',
+        '    wp_apply (wp_slice_literal (l := [_, _]))',
+        '    try (isplitr; (ipureintro; rfl))',
+        '    iintro %sla ⟨Hargs, -⟩',
+        '    try wp_auto',
+        '    wp_apply (_root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _',
+        '      (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)',
+        '        (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.uint64 _)',
+        '          _root_.Perennial.fmt.ArgsWf.nil))) $$ [$Hargs] as %str -',
+        '    try wp_auto',
+        '    isplitr',
+        '    · ipureintro; rfl',
+        '    iexists _; iexact HAPIVersion',
+        '  · obtain ⟨-, Herr⟩ := Hbad',
+        '    cases err with',
+        '    | nil => exact absurd rfl Herr',
+        '    | ok i =>',
+        '      simp only',
+        '      try wp_auto',
+        '      isplitr',
+        '      · ipureintro; rfl',
+        '      iexists _; iexact HAPIVersion',
+        'iintro %v ⟨%Hv, %s, HAPIVersion⟩',
+        'subst Hv',
+        'try wp_auto']},
     finish=['ipersist HVersion', 'ipersist HV3_6', 'ipersist HMinClusterVersion',
             'ipersist HV3_7', 'ipersist HV3_8'] + FIN_PRE[:6],
 )
@@ -1850,10 +1907,12 @@ untranslated initializers (`opaqueInitsOk`), but the one the fact reads, `Cluste
 trust-boundary axiom `ClusterVersionMetrics_init`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types={x: 'GoInterface' for x in _MEMBERSHIP_ERRS},
-    before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} #M{x}']
+    before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#_, #M{x}⟩']
             for x in _MEMBERSHIP_ERRS},
     finish=['ipersist HClusterVersionMetrics'] +
-        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] + FIN_PRE[:6] +
+        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] +
+        # (prove-ps2-metrics, 2026-11-22) the membership writers' metrics, in the fact
+        ['ipersist HisLearner', 'ipersist HknownPeers'] + FIN_PRE[:6] +
         ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
          'unfold membershipInit membershipErrMsgs',
          'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
@@ -1946,8 +2005,9 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
     doc='''Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
-2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+(`auth.go`; the auth plan's S1, 2026-10-23), the lessor's `Lease` bucket (leases T3,
+2026-10-25) and the membership's `Members`, `MembersRemoved` and `Cluster` buckets (prove-ps2-members,
+2026-11-22). Its initializer allocates and sets those translated variables (with the buckets'
 names), initializes its imports and runs its other variables' initializers, all translated
 (prove-initleft, 2026-11-21: `schemaChanges`, a map literal keyed by `version`'s versions, and the
 interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated
@@ -1980,8 +2040,11 @@ interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and 
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto']
-                           + [l for n in ['alarm', 'cluster', 'members', 'members_removed']
-                              for l in (f'wp_apply wp_string_to_bytes go!"{n}" as %_ ⟨-, -⟩', 'try wp_auto')] + [
+                           + ['wp_apply wp_string_to_bytes go!"alarm" as %_ ⟨-, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"cluster" as %scluster ⟨Hscluster, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"members" as %smembers ⟨Hsmembers, -⟩', 'try wp_auto',
+                              'wp_apply wp_string_to_bytes go!"members_removed" as %smrem ⟨Hsmrem, -⟩',
+                              'try wp_auto'] + [
                             'wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
                             'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto',
@@ -2029,7 +2092,10 @@ interface assertions; until then the trust-boundary axiom `opaqueInitsOk`), and 
             'ipersist HKey', 'ipersist HMeta', 'ipersist HMetaConsistentIndexKeyName',
             'ipersist HMembers', 'ipersist HMetaTermKeyName', 'ipersist HMetaConfStateName', 'ipersist Hsconf', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
             'ipersist HAuthEnabledKeyName', 'ipersist HAuthRevisionKeyName', 'ipersist HauthEnabled',
-            'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease'] + FIN_PRE[:6] + ['imodintro',
+            'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease',
+            # (prove-ps2-members, 2026-11-22) the membership's three buckets
+            'ipersist Hscluster', 'ipersist Hsmembers', 'ipersist Hsmrem', 'ipersist HMembersRemoved',
+            'ipersist HCluster'] + FIN_PRE[:6] + ['imodintro',
             'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
@@ -2208,8 +2274,9 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
 
 SPECIAL['go_etcd_io.etcd.client.v3'] = dict(
     doc='''Its fact (`clientv3Init`, `cache/v3/Base.lean`): `noPrefixEnd` (`op.go`, translated:
-`[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, untranslated: `&options{...}` whose
-backoff function returns; the trust-boundary axiom `defaultOptions_init`), and its translated
+`[]byte{0}`) and `defaultOptions` (`retry_interceptor.go`, translated since 2026-11-22: `&options{...}`
+whose backoff function, `backoffLinearWithJitter`'s, returns; until then the trust-boundary axiom
+`defaultOptions_init`), and its translated
 `valCtxCh`, `zeroTime` (`time.Unix(0, 0)`, `time.Unix.wp_proof`: proved over Perennial's translation since
 2026-11-20, until then a trust-boundary axiom) and
 `maxBackoff`, and `LeaseResponseChSize` (`lease.go`, translated: `16`; until 2026-11-19 the
@@ -2220,14 +2287,11 @@ too: the three `errors.New` errors, the call options (grpc's `WaitForReady`, `Ma
 `MaxCallRecvMsgSize`), `defaultCallOpts` (their slice) and `defaultBackoffJitterFraction` (until then
 `opaqueInitsOk` and the trust-boundary axioms `defaultCallOpts_init`,
 `defaultBackoffJitterFraction_init`).''',
-    imports=['Proof.time.Unix'],
-    alloc_types={'maxBackoff': 'w64', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
+    imports=['Proof.time.Unix', 'Proof.math.rand.Float64', 'Proof.go_etcd_io.etcd.client.v3.jitterUp',
+             'Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter'],
+    alloc_types={'maxBackoff': 'w64', 'defaultOptions': 'Loc', 'zeroTime': '_root_.Perennial.time.Time', 'valCtxCh': 'GoChan',
                  'noPrefixEnd': 'GoSlice', 'LeaseResponseChSize': 'w64', 'defaultUnaryMaxRetries': 'w64', 'defaultStreamMaxRetries': 'w64',
                  'defaultBackoffWaitBetween': 'w64'},
-    custom={'defaultOptions': dict(
-        doc='/-- `defaultOptions = &options{retryPolicy: nonRepeatable, ..., backoffFunc: backoffLinearWithJitter(50*time.Millisecond, 0.10), ...}` (`retry_interceptor.go`): a pointer to fixed options whose backoff function returns (`jitterUp`\'s float arithmetic and `rand.Float64`, which do not panic), with the policy `nonRepeatable` (`W8 1`, `retry.go`\'s `iota`; D29). -/',
-        post=f'∃ (dp : Loc) (ov : options), globalAddr defaultOptions ↦ dp ∗ dp ↦□ ov ∗ {CV3}.backoffOk ov.backoffFunc\' ∗ ⌜ov.retryPolicy\' = W8 1⌝',
-        pat='⟨%dp@, %ov@, H@, #P@, #S@, %R@⟩')},
     before={'defaultWaitForReady': [
         'wp_apply wp_slice_literal (l := [W8 0])', 'isplitr', '· ipureintro; rfl',
         'iintro %snp ⟨Hsnp, -⟩', 'try wp_auto'],
@@ -2739,16 +2803,24 @@ _C['before']['defaultWaitForReady'] = (
     ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sco ⟨Sco, -⟩',
      'try wp_auto'])
 del _C['before']['ErrNoAvailableEndpoints'], _C['before']['ErrOldCluster'], _C['before']['ErrMutuallyExclusiveCfg']
+# (prove-ps2-rqb, 2026-11-22) `defaultOptions` translated (until then the trust-boundary axiom
+# `defaultOptions_init`): `&options{..., backoffFunc: backoffLinearWithJitter(50ms, 0.10), ...}`, the
+# backoff function by its proof (over `jitterUp`'s and the trust boundary's `rand.Float64`)
+_C['before']['defaultOptions'] = [
+    'try wp_auto',
+    'wp_apply (EtcdGrove.backoffLinearWithJitter.wp_proof (EtcdGrove.jitterUp.wp_proof EtcdGrove.rand.Float64.wp_proof)) as %bfdo #BdefaultOptions',
+    'try wp_auto']
 _C['alloc_types'].update({'defaultWaitForReady': 'GoInterface', 'defaultMaxCallSendMsgSize': 'GoInterface',
                           'defaultMaxCallRecvMsgSize': 'GoInterface', 'defaultCallOpts': 'GoSlice',
                           'defaultBackoffJitterFraction': 'w64'})
-_C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist HdefaultCallOpts',
+_C['finish'] = (['ipersist Hsnp', 'ipersist HnoPrefixEnd', 'ipersist HdefaultOptions', 'ipersist «$r0»', 'ipersist HdefaultCallOpts',
                  'ipersist HdefaultUnaryMaxRetries', 'ipersist HdefaultBackoffWaitBetween',
                  'ipersist HdefaultBackoffJitterFraction', 'ipersist HvalCtxCh', 'ipersist HzeroTime',
                  'ipersist HmaxBackoff', 'ipersist HLeaseResponseChSize', 'ipersist Sco'] + FIN_PRE[:6] +
                 ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.clientv3Init', 'iframe #',
                  'ipureintro',
-                 'refine ⟨RdefaultOptions, rfl, fun v hv => ?_⟩',
+                 # `defaultOptions`' policy (its struct literal's), `defaultCallOpts`' slice
+                 'refine ⟨rfl, rfl, fun v hv => ?_⟩',
                  'have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl',
                  'have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl',
                  'rw [h1, h2] at hv',
@@ -2838,6 +2910,8 @@ WatchableKV = (*watchableStore)(nil)`) are translated too (until then the trust-
             **{x: gaugefunc_steps(x) for x in _MV_GFUNC}},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] + [f'ipersist H{x}' for x, _ in _MV_METRICS] +
+            # (prove-ps2-metrics, 2026-11-22) `ReportEventReceived`'s counter, in the fact's last conjunct
+            ['ipersist HtotalEventsCounter'] +
             ['ipersist HdefaultCompactionBatchLimit', 'ipersist HdefaultCompactionSleepInterval'] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
              'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',
@@ -3839,7 +3913,7 @@ their translated initializers (prove-k8s, 2026-11-20; until then the trust-bound
 `ForeverTestTimeout` (a constant product), `NeverStop` (a fresh channel), `jitterRand` (a function
 value) and `var _ context.Context = channelContext{}`.''',
     alloc_types=_ALLOC_ANY,
-    before={'ErrWaitTimeout': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xW #MW',
+    before={'ErrWaitTimeout': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xW ⟨#_, #MW⟩',
                                'try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto'],
             'NeverStop': ['try wp_auto', 'wp_apply chan.wp_make1 (V := Unit) as %ch %γ ⟨#His_ch, %Hcap, Hch⟩', 'try wp_auto']})
 _LB = 'k8s_io.apimachinery.pkg.labels'

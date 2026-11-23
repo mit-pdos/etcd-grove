@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.k8s_io.klog.v2
 public import GeneratedProof.github_com.go_logr.logr
 public import Perennial.Golang.Theory
 public import Code.k8s_io.klog.v2

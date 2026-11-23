@@ -90,7 +90,7 @@ added upstream. Measured (`etc/spec-test/bootstrap/`): `bufVersion = 2` at retur
 /-- **What `NewServer` keeps of the backend's payment rights after `bootstrap`'s sessions**
 (2026-11-03, the whole-`bootOk` review, A): `N + 7` write-back tokens (`N` for the applied entries,
 seven for `NewServer`'s construction) and the clients' whole open token. Not `backend.bFresh`
-(every token): the batch lock's bound `bgOk` (`ver + n + k < 2 ^ 40`, `ver` the read buffer's
+(every token): the batch lock's bound `bgOk` (`ver + n + k < 2 ^ 62`, `ver` the read buffer's
 `bufVersion`) makes holding every token false once a session has written back. -/
 def bootLeft (N : Nat) (γ : backend.BNames) : IProp GF :=
   iprop(ownToks γ.wb (N + 7) ∗ backend.bOpen γ 1)

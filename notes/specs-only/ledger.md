@@ -25,6 +25,26 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: `FollowerStats.Succ` takes the stats' mutex (prove-ps2-succ)
+
+- **Spec.** `v2stats.FollowerStats.Succ.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
+  trust-boundary axiom until this change, `leader.go` names-only for it); SpecPlan's `FollowerStats.Succ.spec` already
+  takes `isFollowerStats p`. Moved with it: `v2stats.isFollowerStats` (now guarding all of `Counts` and `Latency`),
+  `newMsgAppV2Encoder.spec` and `startStreamWriter.spec` (premise `v2stats.isFollowerStats fs` added beside
+  `fs ≠ null`), `v2EncOwn` and `swFixed` (which keep it).
+- **Defect.** Not provable over the real code: `Succ` locks the stats' embedded `sync.Mutex` and updates
+  `Counts.Success` and the six `Latency` fields (`leader.go:104-128`), and the premise (`fs ≠ null`) gave no mutex and no
+  points-to. True of Go by its type safety, not provable in the logic (as `Fail`'s, the entry of 2026-11-21).
+- **Evidence.** The translation (`Code/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats.lean`, `FollowerStats.Succ.impl`).
+- **Proposed change.** As above: `isFollowerStats fs` owns `Counts` and `Latency` whole (`Follower` allocates them
+  with the mutex); `Succ` and `Fail` take it. Its callers discharge it: the pipeline from `pipeHandleOk` (as for
+  `Fail`), the msgappv2 encoder from `v2EncOwn`, which `newMsgAppV2Encoder` builds from its new premise, which
+  `streamWriter.run` takes from `swFixed`, which `startStreamWriter` builds from its new premise, which `startPeer`
+  has (its premise since 2026-11-21). The user's decision (2026-11-21): an ownership premise every caller discharges
+  may be added.
+- **Decision.** Applied (prove-ps2-succ, 2026-11-22): `Succ` translated and proved over Perennial's `math.Sqrt`
+  (mit-pdos/perennial#675, in review: `sqrt`, compiled to the square-root instruction, trusted as an arbitrary
+  float), the axiom retired once the pin includes #675.
 ## 2026-11-22: kvnet's `StartNode`/`Run`/`RunNode` -- the start resource `S` cannot name the node's configuration, and the file invariant cannot be allocated where the crash obligation needs it
 
 - **Spec.** `KvNet/Spec/.../kvnet/StartNode.lean` (`StartNode.spec F rep cf S`, `S : IProp GF`), `Run.lean`,
@@ -4638,6 +4658,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above (a stronger post).
 - **Decision.** Applied.
 
+## 2026-11-22: prometheus's `NewGauge` returns a representation, not method triples (prove-ps2-metrics)
+
+- **Spec.** `prometheus.NewGauge.spec`'s post: `metric.gaugeSpec g ∗ metric.gaugeSetSpec g` becomes
+  `metric.isGauge g` (a `*gauge` whose `valBits` is in an invariant, `MetricRep.lean`). `GaugeVec.WithLabelValues.spec`'s
+  post gains `metric.isGauge gi` (additive, before the slice's points-to: every caller's pattern ends in `-`).
+  `mvccInit` gains `totalEventsCounter`'s `counterSpec` and `pendingEventsGauge`'s `isGauge` (in its last
+  conjunct); `membershipInit` gains `isLearner`'s `gaugeSetSpec` and `knownPeers`' label names (two conjuncts
+  at the end: `PromoteMember`'s and `ValidateConfigurationChange`'s patterns gain a `-`).
+- **Defect.** None false: the posts claimed the methods' behaviour (trusted), and lacked what `Sub` (on
+  `pendingEventsGauge`) and the vector gauge's `Set` (`knownPeers`) need, so `ReportEventReceived`,
+  `setIsLearnerMetric` and `updateMembershipMetric` stayed axioms.
+- **Evidence.** client_golang v1.24.1: `NewGauge` and `GaugeVec`'s `newMetric` return `&gauge{...}`,
+  and `valBits` is only accessed through `sync/atomic`. The methods (`gauge.{Set,Add,Sub,Inc,Dec}`) are
+  translated and proved over their bodies; `metric.gaugeSpec_of_isGauge`, `gaugeSetSpec_of_isGauge`
+  (`MetricLaws.lean`) recover the old claims, applied by `etc/gen-init.py`'s `metric_steps`. (`NewCounter`
+  unchanged: `counter`'s struct needs `timestamppb` translated, whose names-only initializer would add two
+  trust-boundary axioms, more than `counter.Add`/`Inc`'s proofs would remove.)
+- **Proposed change.** As above; agreed with kaashoek's prom-registry on #15 (2026-11-22).
+- **Decision.** Applied. Trust: the constructors' axioms claim less (a representation instead of method
+  triples); three etcd axioms retired, two added (`client_model/go`'s `opaqueInitsOk`/`initFuncsOk`: the
+  package now imported for `gauge`'s `labelPairs`): net -1.
 ## 2026-11-22: bbolt's `(*Options).String` takes the package's `isPkgInit` (ps2 misc2)
 
 - **Spec.** `Options.String.spec` (`Spec/go_etcd_io/bbolt/Options__String.lean`): the pre gains
@@ -4678,6 +4719,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   lock: `do`'s law is `kd_mint` (the counter is the op counter half); `read`'s mints, at every replica id
   at once, the context of the fresh number after the log of the read's start (`kd_mint_next`).
 - **Decision.** Applied (the prophecy: the coordinator's decision, 2026-11-22).
+
+## 2026-11-22: `storage.OpenBackend`'s axiom takes `New`'s receipt bound (step bounds, #30, step 2)
+
+- **Spec.** `storage.OpenBackend.spec` (`Spec/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`), a
+  trust-boundary axiom (`storage.OpenBackend.wp_proof`), and `OpenSnapshotBackend`'s, which takes it.
+- **Defect.** The axiom gives `backend.New`'s post (`newPostK`) under `[ThreadBoundLe GF (2 ^ 29)]`
+  alone, but `New` requires a receipt bound: `[ReceiptBoundLe GF (2 ^ 62)]` since S3e (2026-11-17;
+  bbolt's core invariant keeps `receiptBound GF ≤ 2 ^ 62`, `Proof/go_etcd_io/bbolt/Inv/Bolt.lean:111`),
+  `2 ^ 60` since step 2 (the buffers' receipt `bufRc` keeps `receiptBound GF ≤ 2 ^ 60` in the batch
+  lock's ghost share). So the axiom is false at a larger receipt bound: from its post, lock the batch
+  transaction and read `receiptBound ≤ 2 ^ 60` off the share (`batchGhostAt_bufRc`), refuting
+  `receiptBound = 2 ^ 61`, and `WP (OpenBackend; Lock; panic) {True}` follows. Its docstring's "its
+  post exactly what `New` gives" stopped being true at S3e. No closed theorem is affected: they fix
+  `receiptBound ≤ 2 ^ 48`.
+- **Evidence.** The step-2 review (fresh `spec-reviewer`, 2026-11-22), item 1.
+- **Proposed change.** Add `[ReceiptBoundLe GF (2 ^ 60)]` to `storage.OpenBackend.spec` and to
+  `OpenSnapshotBackend`'s use of it (only weakens the axiom: it now claims `New`'s post under `New`'s
+  premises). Its one caller, `OpenSnapshotBackend` from the server's `applySnapshot` walk
+  (`SnapApplyWalk.lean:338`), has no receipt bound in scope (`isServerM` holds only the thread
+  bound), so the change threads a receipt-bound fact into the walk (from `isServerM`, as its thread
+  bound, or a premise of `applySnapshot`'s spec).
+- **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
+  scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
+  stays false above `2 ^ 60` until then; no closed theorem reaches that.
 ## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
 
 - **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
@@ -4708,3 +4773,67 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Evidence.** Reported on mit-pdos/etcd-grove#22 (gaps 4 and 5, with the exact texts).
 - **Proposed change.** As above.
 - **Decision.** Applied: approved by the coordinator (relayed to the kvnet-proof session, 2026-11-22).
+## 2026-11-22: `BackendPath`, `OpenSnapshotBackend`, `applySnapshot` take a data directory shorter than `2 ^ 60` bytes (bkarea)
+
+- **Spec.** `config.ServerConfig.BackendPath.spec`: a premise `d.length < 2 ^ 60` and `isPkgInit config` in
+  the pre (until now an axiom, now proved). `storage.OpenSnapshotBackend.spec`: a premise
+  `cfg.DataDir'.length < 2 ^ 60`. `EtcdServer.applySnapshot.specSnapM`: a premise `hdd` of the same text after
+  `hmmap`. `srvSnapRO`'s pure part: the same conjunct, last.
+- **Defect.** `BackendPath()` is `datadir.ToBackendFileName(c.DataDir)`, three `filepath.Join`s; `Join`'s spec
+  (proved) needs its elements' lengths to sum below `2 ^ 62` (Go strings are shorter than `2 ^ 63`, GooseLang's
+  are lists). `Clean` can shorten a path (`a/../a/../...`), so no bound on the backend path's length bounds the
+  data directory's: the premise is on `DataDir` itself.
+- **Evidence.** `Proof/go_etcd_io/etcd/server/v3/storage/datadir/*.lean`, `Proof/path/CleanIdem.lean`
+  (`joinModel_triple_length`).
+- **Proposed change.** As above. Every caller discharges it: `applySnapshot` from `srvSnapRO`; `srvSnapRO` at a
+  first start from `bootCfgFresh`'s `Fs.DirFits cfg.DataDir'` (under 3800 bytes, `NewServer`), at a restart from
+  the image's WAL area (`srvFiles_dataDir_len`: `WalA.fits` of `srvWalDirOf dd`, `NewServerR`), kept by
+  `srvSnapRO_succ`. No top-level statement changes.
+- **Decision.** Applied under the approved ownership-premise rule (an intermediate premise every caller
+  discharges; the user's 2026-11-21 rule), bkarea, 2026-11-22.
+## 2026-11-22: the bootstrap contracts give the membership buckets in the backend's table; `SetBackend`, `MustDeleteMemberFromBackend` take them (members)
+
+- **Spec.** Top level (the user's approval, 2026-11-22): `bootOk`'s `%Hbe` (`InvBoot.lean`, the post of the trusted
+  `bootstrapContract`) and `bootOkR`'s (`InvRestart.lean`, `bootstrapRestartContract`'s) gain three conjuncts,
+  last, `d.P.has mvcc.membersBI ∧ d.P.has mvcc.membersRemovedBI ∧ d.P.has mvcc.clusterBI` (the new names: schema's
+  `Members` id 10, `MembersRemoved` id 11, `Cluster` id 5, `InvStore.lean`). Intermediate: `srvSnapRO`'s pure part
+  gains the same triple after the alarm/auth one; `EtcdServer.applySnapshot.specSnapM` and `applySnapshot_walk` a
+  premise `hmbP` of that text after `halbi`; `membership.RaftCluster.SetBackend.spec` the three `d.P.has` premises and
+  `isPkgInit schema` in its pre; `schema.membershipBackend.MustDeleteMemberFromBackend.spec` the two `d.P.has`
+  premises of its buckets. `schemaInit` (schema's package fact) gives the three buckets' values (`bucketIs`).
+- **Defect.** Both functions were trust-boundary axioms (names-only). Proved over the real code, their
+  `UnsafeCreateBucket`/`UnsafeDelete`/`UnsafePut` calls need the bucket in the backend's table (`P.has`, a ghost
+  parameter: the bucket among the backend's ghost names), which nothing carried for these three buckets (alarm/auth
+  got theirs from item E of the 2026-11-02 approved restatements). `KBReal.BT` is free; nothing derives it from data.
+- **Evidence.** `/shared/tmp/ps2/bkarea/triage.md` (the previous agent's); the proofs
+  `Proof/.../schema/membershipBackend__{MustCreateBackendBuckets,MustDeleteMemberFromBackend}.lean`,
+  `Proof/.../membership/RaftCluster__SetBackend.lean`.
+- **Why true of the code.** As item E's for alarm/auth: `bootstrap`'s `cl.SetBackend(be)` creates the three
+  buckets (`MustCreateBackendBuckets`, `schema/membership.go:168`), and the contract already states them present
+  (`%HDr`: `D.lookup "members"/"members_removed"/"cluster" = some ∅`); the table is the ghost naming of the
+  backend's buckets, which the contract picks.
+- **Proposed change.** As above. Every intermediate premise is discharged: `srvSnapRO` from `bootOk`/`bootOkR`
+  (`NewServer`, `NewServerR`), kept by `srvSnapRO_succ` (a new backend's parameters are the old one's);
+  `applySnapshot`'s from `srvSnapRO` (`ApplyAllSnap`); `SetBackend`'s at the new backend `d'` (`d'.P = d.P`);
+  `MustDeleteMemberFromBackend`'s spec has no caller that instantiates it (`applyConfChange` takes it unused).
+- **Decision.** Applied: the two contract clauses approved by the user (2026-11-22, relayed by proving session 2);
+  the intermediate premises under the approved ownership-premise rule (2026-11-21).
+
+## 2026-11-23: `clientCodec.ReadResponseHeader.spec` bounds the header it read; `Client.send.spec` and `callRes` take the call's `Error` at `nil` (net/rpc model)
+
+- **Spec.** `Net/Spec/net/rpc/clientCodec__ReadResponseHeader.lean`: the success case's pure part gains
+  `(respHdr seq sm e).length ≤ maxFrameN` (as `ReadResponseBody`'s `pl.length ≤ maxFrameN`).
+  `Net/Spec/net/rpc/Client__send.lean`: the pre's `structFieldRef Call "Error" pc ↦ e0` (any `e0`, a parameter)
+  becomes `↦ interface.nil`; `callRes` (`Net/Proof/net/rpc/ClientDefs.lean`, a pending call in `mutex`'s
+  invariant) likewise holds `Error ↦ interface.nil` (its `∃ e0` dropped).
+- **Defect.** Found proving `Client.input`. (1) To identify the answer a header heads (`ans_next`, `respHdr_inj`)
+  the reader needs the header's strings shorter than `2 ^ 62`; the spec gave no bound on what was read. (2) For a
+  successful reply `input` calls `call.done()` without writing `call.Error`, so the outcome `done` carries is the
+  field's old value; `callPost`'s `nil` case needs it `nil`, which an arbitrary `e0` does not give.
+- **Evidence.** `Net/Proof/net/rpc/Client__input.lean` (`hdr_match`; the default case of the switch).
+- **Why true of the code.** (1) `readFrame` refuses a frame over `maxFrameN` (its spec already says so), and the
+  header is that frame's payload (`ReadResponseHeader`'s proof: `pl = respHdr ...`). (2) `Go` makes the call with
+  `new(Call)`, `Error` `nil` (`Client.Go`'s proof passes the zero value); only `send`'s failure path and `input`
+  write it, each after removing the entry from `pending`.
+- **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
+- **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).

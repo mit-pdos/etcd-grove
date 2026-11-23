@@ -3,6 +3,7 @@ module
 
 public import Code.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.server.v3.lease.leasepb
 
 @[expose] public section
 
@@ -205,11 +206,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Lease_instance : Lease.TypeAssumptions
   LeaseInternalRequest_instance : LeaseInternalRequest.TypeAssumptions
   LeaseInternalResponse_instance : LeaseInternalResponse.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_protoimpl_Assumption : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions
 
 attribute [instance] Assumptions.Lease_instance
   Assumptions.LeaseInternalRequest_instance
   Assumptions.LeaseInternalResponse_instance
+  Assumptions.«init.0_unfold»
   Assumptions.import_protoimpl_Assumption
 
 end go_etcd_io.etcd.server.v3.lease.leasepb

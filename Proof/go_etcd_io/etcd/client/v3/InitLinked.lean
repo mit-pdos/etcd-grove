@@ -34,7 +34,11 @@ public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
 public import Proof.google_golang_org.grpc.status.Init
+public import Proof.math.rand.Init
 public import Proof.time.Unix
+public import Proof.math.rand.Float64
+public import Proof.go_etcd_io.etcd.client.v3.jitterUp
+public import Proof.go_etcd_io.etcd.client.v3.backoffLinearWithJitter
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -78,6 +82,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := w64) maxBackoff _ as HmaxBackoff
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Time) zeroTime _ as HzeroTime
   wp_apply wp_GlobalAlloc (V := GoChan) valCtxCh _ as HvalCtxCh
+  wp_apply wp_GlobalAlloc (V := Loc) defaultOptions _ as HdefaultOptions
   wp_apply wp_GlobalAlloc (V := GoSlice) defaultCallOpts _ as HdefaultCallOpts
   wp_apply wp_GlobalAlloc (V := w64) defaultBackoffJitterFraction _ as HdefaultBackoffJitterFraction
   wp_apply wp_GlobalAlloc (V := w64) defaultBackoffWaitBetween _ as HdefaultBackoffWaitBetween
@@ -91,7 +96,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrMutuallyExclusiveCfg _ as HErrMutuallyExclusiveCfg
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrOldCluster _ as HErrOldCluster
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoAvailableEndpoints _ as HErrNoAvailableEndpoints
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd27⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd28⟩
+  wp_apply (_root_.Perennial.math.rand.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd27⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd26⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd25⟩
@@ -134,11 +140,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of noPrefixEnd))
   -- translated initializer of defaultWaitForReady))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoAvailableEndpoints #MErrNoAvailableEndpoints
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoAvailableEndpoints ⟨#_, #MErrNoAvailableEndpoints⟩
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrOldCluster #MErrOldCluster
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrOldCluster ⟨#_, #MErrOldCluster⟩
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMutuallyExclusiveCfg #MErrMutuallyExclusiveCfg
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrMutuallyExclusiveCfg ⟨#_, #MErrMutuallyExclusiveCfg⟩
   try wp_auto
   wp_apply wp_slice_literal (l := [W8 0])
   isplitr
@@ -164,7 +170,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of defaultBackoffWaitBetween))
   -- translated initializer of defaultBackoffJitterFraction))
   -- translated initializer of defaultCallOpts))
-  wp_apply defaultOptions_init as ⟨%dpdefaultOptions, %ovdefaultOptions, HdefaultOptions, #PdefaultOptions, #SdefaultOptions, %RdefaultOptions⟩
+  -- translated initializer of defaultOptions))
+  try wp_auto
+  wp_apply (EtcdGrove.backoffLinearWithJitter.wp_proof (EtcdGrove.jitterUp.wp_proof EtcdGrove.rand.Float64.wp_proof)) as %bfdo #BdefaultOptions
+  try wp_auto
   -- translated initializer of valCtxCh))
   -- translated initializer of zeroTime))
   -- translated initializer of maxBackoff))
@@ -177,6 +186,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist Hsnp
   ipersist HnoPrefixEnd
   ipersist HdefaultOptions
+  ipersist «$r0»
   ipersist HdefaultCallOpts
   ipersist HdefaultUnaryMaxRetries
   ipersist HdefaultBackoffWaitBetween
@@ -196,7 +206,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold go_etcd_io.etcd.cache.v3.clientv3Init
   iframe #
   ipureintro
-  refine ⟨RdefaultOptions, rfl, fun v hv => ?_⟩
+  refine ⟨rfl, rfl, fun v hv => ?_⟩
   have h1 : sint.nat (W64 (0 + 1)) = 1 := rfl
   have h2 : sint.nat (W64 (0 + 1 + 1)) = 2 := rfl
   rw [h1, h2] at hv
