@@ -304,6 +304,44 @@ macro "odjafter" : tactic => do
     · odret
     try wp_auto))
 
+set_option hygiene false in
+/-- v4's second conjunct, where the first held (`hoc1 : oc = true`):
+`!IsPrefix(SubSeq(x.ch1(), 1, w.commit()), l1)`, then the violation or not, and the join. -/
+macro "odv4tail" : tactic => `(tactic| (
+  have h2 := hoct hoc1
+  unfold notM at h2
+  obtain ⟨ip, hip, h2⟩ := bind_ok h2
+  simp only [pure_ok, Except.ok.injEq] at h2
+  obtain ⟨c1', hc1', hip⟩ := bind_ok hip
+  obtain ⟨cm', hcm', hip⟩ := bind_ok hip
+  obtain ⟨ss, hss, hip⟩ := bind_ok hip
+  try wp_auto
+  odm ch1
+  wp_apply wp_ch1 _ X c1' $$ [Hx] as %gc1' #Hc1'
+  · iframe Hx; ipureintro; exact hc1'
+  try wp_auto
+  wp_apply wp_Event_commit pw X.w cm' $$ [Hw] as %uc' %Huc'
+  · iframe Hw; ipureintro; exact hcm'
+  try wp_auto
+  wp_apply wp_SubSeq gc1' c1' (W64 1) uc' ss $$ [Hc1'] as %gss #Hss
+  · iframe Hc1'; ipureintro; rw [Huc', sint_one]; exact hss
+  try wp_auto
+  wp_apply wp_IsPrefix gss ss gl1 l1v ip $$ [Hss Hgl1]
+  · iframe Hss Hgl1; ipureintro; exact hip
+  subst h2
+  cases ip
+  · try wp_auto
+    wp_apply wp_violAdd vl3 _ _ $$ [Hvl3] as %vl #Hvl
+    · iframe Hvl3; ipureintro; omega
+    try wp_auto
+    wp_join_done
+    simp only [Bool.not_false, ite_true]
+    iexists _; iframe; iexact Hvl
+  · try wp_auto
+    wp_join_done
+    simp only [Bool.not_true, Bool.false_eq_true, ite_false]
+    iexists _; iframe; iexact Hvl3))
+
 set_option maxHeartbeats 0 in
 theorem State.OnDisk.wp_proof
     (wp_w : onDisk.w.spec (GF := GF) (hG := hG))
@@ -2537,7 +2575,114 @@ theorem State.OnDisk.wp_proof
       subst this
       wp_join_done
       iexists _; iframe; simp only [Bool.false_eq_true, ite_false]; iexact Hvl2
-  done
+  -- v4: `if (changed || x.adv()) && !IsPrefix(SubSeq(x.ch1(), 1, w.commit()), l1) {
+  --   viol = violAdd(viol, "CommittedEntriesPreserved") }`
+  have hv3l : (v3v.length : Int) ≤ vi.length + 3 := by
+    cases ee
+    · obtain ⟨lm, -, rfl⟩ := hee_f rfl
+      have := OnDiskProofLaws.setAddIf_len lm viol2 go!"LogMatching"
+      omega
+    · rw [hee_t rfl]; omega
+  obtain ⟨cp, hcp, Ho⟩ := OnDiskProofLaws.v4_ok' Ho
+  wp_join (v := executeVal)
+    iprop(∃ vl, viol_ptr ↦ vl ∗ strsRO vl (if cp then setAdd v3v go!"CommittedEntriesPreserved" else v3v))
+    at next with [viol] as ⟨%vl4, viol, #Hvl4⟩
+  · obtain ⟨oc, hoc, hoct, hocf⟩ := andM_ok hcp
+    obtain ⟨c0, hc0, hc0t, hc0f⟩ := orM_ok hoc
+    simp only [pure_ok, Except.ok.injEq] at hc0
+    cases ee
+    · have hoc1 : oc = true := hc0t (by rw [← hc0]; try rfl)
+      try wp_auto
+      odv4tail
+    · have hadv := hc0f (by rw [← hc0]; try rfl)
+      try wp_auto
+      odm adv
+      wp_apply wp_adv _ X oc $$ [Hx]
+      · iframe Hx; ipureintro; exact hadv
+      cases oc
+      · rw [hocf rfl]
+        try wp_auto
+        wp_join_done
+        simp only [Bool.false_eq_true, ite_false]
+        iexists _; iframe; iexact Hvl3
+      have hoc1 : true = true := rfl
+      odv4tail
+  -- v5: `c1 := x.conf1(); if x.adv() && (c1.Term != x.T1() || w.commit() > c1.Index) {
+  --   viol = violAdd(viol, "CommitBeyondConfirmed") }; ns.Viol = viol; return ns, true`
+  have hv4l := OnDiskProofLaws.setAddIf_len cp v3v go!"CommittedEntriesPreserved"
+  generalize hv4 : (if cp then setAdd v3v go!"CommittedEntriesPreserved" else v3v) = viol4 at Ho hv4l ⊢
+  obtain ⟨cf, cb, hcf, hcb, hoeq⟩ := OnDiskProofLaws.v5_ok' Ho
+  odm conf1
+  wp_apply wp_conf1 _ X cf $$ [Hx] as %gcf %Hgcf
+  · iframe Hx; ipureintro; exact hcf
+  try wp_auto
+  wp_join (v := executeVal)
+    iprop(∃ vl, viol_ptr ↦ vl ∗ strsRO vl (if cb then setAdd viol4 go!"CommitBeyondConfirmed" else viol4) ∗
+      c1_ptr ↦ gcf)
+    at next with [viol c1] as ⟨%vl5, viol, #Hvl5, -⟩
+  · obtain ⟨ad5, had5, had5t, had5f⟩ := andM_ok hcb
+    odm adv
+    wp_apply wp_adv _ X ad5 $$ [Hx]
+    · iframe Hx; ipureintro; exact had5
+    cases ad5
+    · rw [had5f rfl]
+      try wp_auto
+      wp_join_done
+      simp only [Bool.false_eq_true, ite_false]
+      iexists _; iframe; iexact Hvl4
+    have h5 := had5t rfl
+    obtain ⟨cm5, hcm5, h5⟩ := bind_ok h5
+    simp only [pure_ok, Except.ok.injEq] at h5
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    rw [decide_w64_eq, Hgcf.1, Hu1]
+    by_cases hte : cf.term = t1
+    · rw [decide_eq_true hte]
+      try wp_auto
+      wp_apply wp_Event_commit pw X.w cm5 $$ [Hw] as %uc5 %Huc5
+      · iframe Hw; ipureintro; exact hcm5
+      try wp_auto
+      wp_if_destruct
+      · have hcb' : cb = true := by
+          rw [← h5, hte]; simp only [bne_self_eq_false, Bool.false_or, decide_eq_true_eq]
+          rw [← Hgcf.2, ← Huc5]; omega
+        subst hcb'
+        wp_apply wp_violAdd vl4 _ _ $$ [Hvl4] as %vl #Hvl
+        · iframe Hvl4; ipureintro; omega
+        try wp_auto
+        wp_join_done
+        simp only [ite_true]
+        iexists _; iframe; iexact Hvl
+      · have hcb' : cb = false := by
+          rw [← h5, hte]; simp only [bne_self_eq_false, Bool.false_or, decide_eq_false_iff_not]
+          rw [← Hgcf.2, ← Huc5]; omega
+        subst hcb'
+        try wp_auto
+        wp_join_done
+        simp only [Bool.false_eq_true, ite_false]
+        iexists _; iframe; iexact Hvl4
+    · rw [decide_eq_false hte]
+      have hcb' : cb = true := by rw [← h5]; simp [hte]
+      subst hcb'
+      try wp_auto
+      wp_apply wp_violAdd vl4 _ _ $$ [Hvl4] as %vl #Hvl
+      · iframe Hvl4; ipureintro; omega
+      try wp_auto
+      wp_join_done
+      simp only [ite_true]
+      iexists _; iframe; iexact Hvl
+  wp_apply wp_set_viol q S7 vl5 _ $$ [Hq Hvl5] as Hq
+  · iframe Hq Hvl5
+  try wp_auto
+  subst hoeq
+  iapply HΦ
+  iunfold succOwn
+  isplitr
+  · ipureintro; rfl
+  iexact Hq
 
 end proof
 
