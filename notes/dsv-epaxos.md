@@ -499,6 +499,28 @@ next notes update):** (A1) `NetRpc/CodecProof.lean` (`epCodecLaws`), `NetRpc/Cod
 `examples/epaxosnet/{Kit,ModelSet,ModelDefs,ModelProof,KitProof}.lean` (remote's `RBase` `epR γ`
 over `own_state`/`epEop`/`kvStep`, `lin_opU`, the set semantics of model.go, `Model`/`Codec`/`Gen`
 specs and proofs; outputs collide on the wire (`Out{V:""}`): craq's F4 fix).
+**Kit Go change (2026-11-23, `6fe689ecc4`): `model.go`'s `Equal` is always false** (the `equal`
+function removed; retranslated; `go test ./examples/epaxosnet/` passes). Subagent C's finding: two
+histories (put a unknown, put b ok) vs (put b ok, put a unknown) on one key reach the same Go
+`State` whose exact sets of configurations differ (only the first allows "a fired before b"), so
+no `rep` meets porcupine's `equalSpec` with the old `equal`; porcupine's verdicts were right. The
+proof relates a Go state to its set up to pending puts that never fire (dsv-craq's `Sim`, P2).
+**Done by agent 3 itself:** `examples/epaxosnet/KitVals.lean` (`inOf`, `outBytes`, `outOk`,
+`outUnk`: the kit's `In`/`Out` values, shared by the model and `Op`), `ServerDefs.lean`
+(`codecFresh`, `wp_Register` over Net's `SetCodec.spec`, `register.spec`), `Register.lean`
+(`register.wp_proof`, from `DialHTTP_spec`, `registerCall.spec`, `Client.Close.spec`,
+`regX_claim`; checks). (E) a fifth subagent: `examples/epaxosnet/{OpDefs,OpProof}.lean` (`Op.spec`:
+`{{ isPkgInit kit ∗ sl ↦*□ serverAddrs ∗ clientInvs γ ∗ opU γ i Φ }} Op sl c (inOf i) {{ o; o =
+outUnk ∨ ∃ r, o = outOk r ∗ Φ r }}`, the lab's `OpCore` ported).
+**Still to do after the subagents:** `serve`'s replica branch (`nodeConfig`, `host`, `itoa` (a
+generic loop spec, `itoa (8500+k)` = `fmt.decimal`), `epaxos.New` (`EpaxosNewSpecEp`),
+`rpc.Register`+`replicaRcv`, `HandleHTTP`, `net.Listen` at `rpcAddrOf k` (`rpcLisP_lis`,
+`listen_lis_au`, `lisInv_alloc`), `http.Serve`), the master branch (`master.New`, `Run` from B),
+`Server`, `Client` (`remote.ServeClient` with `newClient` returning the address slice: `tok sys`
+persistent; `first` in an invariant), `Orch` (`remote.Check`), the `Mains`, the start (the lab's
+`Top/Start.lean`: `registry_alloc`, `regXInv_alloc`, the protocol invariant, `clientInvs`, the rpc
+world `W` with `W.SS = rpcSS γ` and `rpcLisP_set` at `":7501"` and each `rpcAddrOf k`), the local
+bridge `robust_of_distProtoLisRB`, `TopLevelDefs`, `TopLevelRobustness`, the statement, TCB.
 If a subagent's files are present but uncommitted, check them (`etc/lean-check.py -a -q`) and
 commit what checks.
 
