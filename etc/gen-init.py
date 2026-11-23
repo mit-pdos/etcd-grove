@@ -53,6 +53,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
+         # putget_safe (2026-11-23, notes/putget-dist-plan.md): the member and client machines' package
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
@@ -565,21 +567,30 @@ _BBOLT_ROOT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'Er
 # and `runtime.GOARCH` (constants, axiom `val`s of Perennial's names-only `runtime`) are `"linux"`
 # and `"amd64"`. Stated here, in
 # `runtime`'s initialization, since it is a fact of the platform the program starts on; `runtime`'s
-# `IsPkgInit` instance is Perennial's (fact `True`), so the fact is surfaced through bbolt's, the one
+# `IsPkgInit` instance is Perennial's (its fact: `buildVersion` holds some string), so the fact is surfaced through bbolt's, the one
 # package that branches on `GOOS` (`Proof/go_etcd_io/bbolt/PkgInit.lean`, `bboltRootInit`).
 SPECIAL['runtime'] = dict(
-    doc='''Its fact is `True`. Its initializer initializes its imports, runs the untranslated
+    doc='''Its fact (Perennial's `runtime.isInit`, `Perennial/Proof/runtime/Base.lean`): `buildVersion`,
+which `Version` returns, holds some string, read-only for good. Its initializer runs the trusted
+model of `buildVersion`'s initialization (Perennial's `TrustedCode/runtime.lean`: it allocates the
+variable and stores an arbitrary string, the linker's; Perennial's `runtime.wp_buildVersion_init`,
+whose cell is made persistent here), initializes its imports, runs the untranslated
 initializers of its variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return. (Until Perennial
+`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated.)
 
 And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
 `"linux"` and `"amd64"`), as the repository's other platform facts
 assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
-extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
+extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, whose fact says nothing of
+`GOOS`/`GOARCH`, so the
 packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).''',
+    # (pin bump 160fcf12a, 2026-11-23) Perennial's trusted model of `buildVersion`'s initialization
+    trusted={'buildVersion': ['wp_apply _root_.Perennial.runtime.wp_buildVersion_init as ⟨%bv, Hbv⟩']},
+    finish=['ipersist Hbv'] + FIN_PRE[:6] + ['iexists _', 'iexact Hbv'],
     pre=['namespace runtime', '',
          '/-- **The trust boundary: the program runs on Linux.** `runtime.GOOS` is the constant',
          '`"linux"` (Go\'s `GOOS` of the build; goose translates `runtime` names-only, so it is an',
@@ -4707,6 +4718,10 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
+# (2026-11-23) putget_safe's package (both machines' boot programs run its initializer), for its
+# distributed theorem (notes/putget-dist-plan.md)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/PkgTable.lean'
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'

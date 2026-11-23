@@ -56,12 +56,12 @@ theorem Serve.wp_proof
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
         connEnd (Gg := hG.goose_globalGS) cn true (repP (Gg := hG.goose_globalGS) S)
-          (reqP (Gg := hG.goose_globalGS) S) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true))
+          (reqP (Gg := hG.goose_globalGS) S a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true))
       $$ [Hlis]
     as %c %err (⟨%Herr, %cn, #Hc, Hlis, Hend, Hfresh⟩ | ⟨%k, Hlis, #Herr⟩)
   · iframe Hlt Hla
     iunfold svcAddr at Haddr
-    iapply accept_au a (reqP S) (repP S) _ l true $$ Haddr Hlis
+    iapply accept_au a (reqP S a) (repP S) _ l true $$ Haddr Hlis
   · -- a connection: serve it
     subst Herr
     wp_auto

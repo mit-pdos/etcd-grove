@@ -2,8 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.os
 public import Perennial.Golang.Theory
-public import Code.maps
+public import Code.github_com.mit_pdos.etcd_grove.examples.etcd.dist.env
 
 @[expose] public section
 
@@ -14,8 +15,8 @@ set_option linter.deprecated true
 namespace Perennial
 open Iris Iris.BI
 noncomputable section
-namespace maps
+namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.env
 
-end maps
+end github_com.mit_pdos.etcd_grove.examples.etcd.dist.env
 end
 end Perennial

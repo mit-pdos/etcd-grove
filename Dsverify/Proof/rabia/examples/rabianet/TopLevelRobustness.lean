@@ -121,8 +121,9 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
   iintro #Hreg Hs
   unfold rabiaKitAddrs
   imod start (G := G) $$ Hreg Hs with ⟨%γ, Hoc, Hcs, Hss, Hkv, Hun⟩
-  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ with ⟨%ρ, #Hmap⟩
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => github_com.mit_pdos.etcd_grove.examples.lib.remote.reqP (Gg := G) (RBase.svc (kvR γ)))
+  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ ((List.range nC).map cliAddr) 24 (by decide)
+    with ⟨%ρ, -, #Hmap, Hbud⟩
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => github_com.mit_pdos.etcd_grove.examples.lib.remote.reqP (Gg := G) (RBase.svc (kvR γ)) a)
     (fun _ => github_com.mit_pdos.etcd_grove.examples.lib.remote.repP (Gg := G) (RBase.svc (kvR γ))) ((List.range nC).map cliAddr) $$ Hreg Hun with #Hpc
   have hv : kvState (G := G) γ.rab (model.kv GoString GoString).init ⊢
       (kvR (Gg := G) γ).sysState (kvR (Gg := G) γ).B.init := .rfl
@@ -158,7 +159,7 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
   ihave #Hra5 : remoteAddr (Gg := G) (kvR γ) (cliAddr 5) $$ []
   · iapply BigSepL.bigSepL_lookup (i := 5) rfl $$ Hra
   imodintro
-  iexists fun i => if i = 0 then iprop(orchCore (G := G) γ ∗ ([∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := G) (kvR γ) a) ∗ mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (kvR γ) (kvS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (kvS0 (GF := remoteGF)) γp (kvS0 (GF := remoteGF)).M.init)
+  iexists fun i => if i = 0 then iprop(orchCore (G := G) γ ∗ ([∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := G) (kvR γ) a) ∗ mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (kvR γ) (kvS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (kvS0 (GF := remoteGF)) γp (kvS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ (List.range nC).map cliAddr, budUnits (Gg := G) a 24)
       else if i = 1 then iprop(cliCore (G := G) γ 0 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 0) ∗ mapCtx (Gg := G) (I := KIn))
       else if i = 2 then iprop(cliCore (G := G) γ 1 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 1) ∗ mapCtx (Gg := G) (I := KIn))
       else if i = 3 then iprop(cliCore (G := G) γ 2 ∗ remoteAddr (Gg := G) (kvR γ) (cliAddr 2) ∗ mapCtx (Gg := G) (I := KIn))
@@ -193,12 +194,12 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro ⟨Hoc0, #Has, #Hmap0, #Hpend0, Hlib0⟩ Hgs
+      iintro ⟨Hoc0, #Has, #Hmap0, #Hpend0, Hlib0, Hbud0⟩ Hgs
       iapply wp_boot cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit
           (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf) _
-          (fun σ0 => cmd.orch.wp_main (wp_Orch (wp_Codec) (wp_gens)) γ γp hrb σ0) $$ [Hoc0 Hlib0] Hgs
+          (fun σ0 => cmd.orch.wp_main (wp_Orch (wp_Codec) (wp_gens)) γ γp hrb σ0) $$ [Hoc0 Hlib0 Hbud0] Hgs
       iframe #
-      iframe Hoc0 Hlib0
+      iframe Hoc0 Hlib0 Hbud0
     | 1, hm =>
       cases hm
       dsimp only
@@ -311,10 +312,10 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
       iframe Hsh
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hoc Hlib]
+    isplitl [Hoc Hlib Hbud]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
       iframe #
-      iframe Hoc Hlib
+      iframe Hoc Hlib Hbud
     iapply BigSepL.bigSepL_cons.2
     isplitl [Hc0]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
