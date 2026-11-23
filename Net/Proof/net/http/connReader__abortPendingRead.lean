@@ -38,7 +38,7 @@ theorem connReader.abortPendingRead.wp_proof
     (wp_SetReadDeadline : net.Conn.SetReadDeadline.spec (GF := GF) (hG := hG)) :
     connReader.abortPendingRead.spec (GF := GF) (hG := hG) := by
   intro cr γ t cn a la ra P hs Z tm
-  wp_start as ⟨#Hcr, #Htm, #Hrwc, #Hca, #Hcis, Hph, Hr⟩
+  wp_start as ⟨#Hcr, #Htm, #Hrwc, #Hca, #Hcis, Hph, Hr, Hrdl⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply wp_cr_lock cr γ cn P hs Z $$ [$Hcr] as ⟨Hown, ⟨%cv, #Hcond⟩, Hinv⟩
   iunfold crPh at Hinv
@@ -61,7 +61,7 @@ theorem connReader.abortPendingRead.wp_proof
       simp only [Bool.false_eq_true, ite_false]
       iframe Hph2 Htok
     iapply HΦ
-    iframe Hph
+    iframe Hrdl Hph
     isplitl [Hr Hr2]
     · iapply (ghostVar_split_half γ.r 1 hs).2; iframe Hr Hr2
     iunfold crOwn
@@ -71,15 +71,17 @@ theorem connReader.abortPendingRead.wp_proof
   simp only [ite_true]
   icases Hrest with %Hhb0
   wp_auto
-  wp_apply wp_SetReadDeadline t cn true a la ra tm (fun _ => iprop(True)) $$ [$Hca]
-    as %err0 -
-  · imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hcis with ⟨%st, Hend, Hcl⟩
+  wp_apply wp_SetReadDeadline t cn true a la ra tm
+      (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [$Hca Hrdl]
+    as %err0 Hrdl
+  · icases Hrdl with ⟨%rb, Hrdl⟩
+    imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hrdl with ⟨%st, Hend, Hcl⟩
     imodintro
     iexists st
     iframe Hend
     iintro %res %st' %Hd Hend
-    imod Hcl $$ %res %st' %Hd Hend with -
-    imodintro; itrivial
+    imod Hcl $$ %res %st' %Hd Hend with ⟨-, Hrdl⟩
+    imodintro; iexists _; iexact Hrdl
   ihave #Hcr' := Hcr
   iunfold crIs at Hcr'
   icases Hcr' with ⟨#Hsync, #Hmu⟩
@@ -105,15 +107,17 @@ theorem connReader.abortPendingRead.wp_proof
     icases Hrest with ⟨Htok, Hrd⟩
     simp only [_root_.decide_true, ite_true]
     wp_auto
-    wp_apply wp_SetReadDeadline t cn true a la ra _ (fun _ => iprop(True)) $$ [$Hca]
-      as %err1 -
-    · imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hcis with ⟨%st, Hend, Hcl⟩
+    wp_apply wp_SetReadDeadline t cn true a la ra _
+        (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [$Hca Hrdl]
+      as %err1 Hrdl
+    · icases Hrdl with ⟨%rb, Hrdl⟩
+      imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hrdl with ⟨%st, Hend, Hcl⟩
       imodintro
       iexists st
       iframe Hend
       iintro %res %st' %Hd Hend
-      imod Hcl $$ %res %st' %Hd Hend with -
-      imodintro; itrivial
+      imod Hcl $$ %res %st' %Hd Hend with ⟨-, Hrdl⟩
+      imodintro; iexists _; iexact Hrdl
     imod ghostVar_update_halves false γ.ph _ _ $$ Hph Hph2 with ⟨Hph, Hph2⟩
     wp_apply wp_cr_unlock cr γ cn P hs Z cv $$ [$Hcr $Hown $Hcond Hph2 Htok]
     · iunfold crPh
@@ -121,7 +125,7 @@ theorem connReader.abortPendingRead.wp_proof
       simp only [Bool.false_eq_true, ite_false]
       iframe Hph2 Htok
     iapply HΦ
-    iframe Hph
+    iframe Hrdl Hph
     isplitl [Hr Hr2]
     · iapply (ghostVar_split_half γ.r 1 hs).2; iframe Hr Hr2
     iunfold crOwn

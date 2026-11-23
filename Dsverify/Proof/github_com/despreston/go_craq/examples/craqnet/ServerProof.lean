@@ -248,8 +248,6 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     wp_apply rs.HandleHTTP γs craqCodec cfg.W (fun x => x = go!"127.0.0.1:7501") [] $$ [Hmux]
       as ⟨Hmux, #Hmh⟩
     · isplitr
-      · iexact Hrpc
-      isplitr
       · ipureintro; exact htb
       isplitl [Hmux]
       · iexact Hmux
@@ -275,8 +273,6 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     wp_apply rs.ListenAndServe cfg.W (fun x => x = go!"127.0.0.1:7501") go!"127.0.0.1:7501" $$ []
       as %e -
     · isplitr
-      · iexact Hhttp
-      isplitr
       · ipureintro; exact htb
       isplitr
       · ipureintro; exact ⟨by decide, rfl⟩
@@ -396,8 +392,6 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     icases Hre with ⟨%Hrb, #Hse, #Hhe, #Hcon⟩
     wp_apply rs.HandleHTTP γs craqCodec cfg.W (fun x => x = a) [] $$ [Hmux] as ⟨Hmux, #Hmh⟩
     · isplitr
-      · iexact Hrpc
-      isplitr
       · ipureintro; exact htb
       isplitl [Hmux]
       · iexact Hmux
@@ -431,8 +425,6 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     (try wp_auto)
     wp_apply rs.ListenAndServe cfg.W (fun x => x = a) a $$ [] as %e -
     · isplitr
-      · iexact Hhttp
-      isplitr
       · ipureintro; exact htb
       isplitr
       · ipureintro; exact ⟨hok, rfl⟩

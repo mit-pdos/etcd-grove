@@ -140,7 +140,8 @@ def hjPre (N : HjNames) (P Q : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :
       interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #N.t ∗
     ghostVar N.γ.ph (1 : Qp).half true ∗ ghostVar N.γ.r (1 : Qp).half hs ∗
     connAt N.t N.cn true N.a N.la N.ra ∗ sendTok (Gg := hG.goose_globalGS) N.cn true Q [] ∗
-    connFresh (Gg := hG.goose_globalGS) N.cn true ∗ zLaw Z Q ∗ wPools)
+    connFresh (Gg := hG.goose_globalGS) N.cn true ∗ zLaw Z Q ∗ wPools ∗
+    (∃ b, rdlTok (Gg := hG.goose_globalGS) N.cn true b))
 
 /-- What a hijack gives back to the serving thread (`hijackOk`'s `D`): the hijacked flag, the
 reader's fields, the connection's state word, the response's `handlerDone`. -/

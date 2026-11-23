@@ -3,7 +3,8 @@
 the main thread holds its halves of `γ.ph`, at "background", and of `γ.r`, at the head `hs`): under
 the mutex, if the background read still runs (`inRead`), `aborted` set, the read deadline set in
 the past (`aLongTimeAgo`) and the condition variable waited on until it is done, then the deadline
-cleared; in the end the main phase again, with the fields, the byte buffer and the reader's token
+cleared (each through the end's read-deadline token `rdlTok`, net-sticky-read's `deadline_au`, which
+the main thread holds and gets back); in the end the main phase again, with the fields, the byte buffer and the reader's token
 back with the main thread (`crOwn`). Proved in `Net/Proof/net/http/connReader__abortPendingRead.lean`.
 -/
 module
@@ -35,11 +36,12 @@ abbrev connReader.abortPendingRead.spec : Prop :=
       structFieldRef net.http.connReader go!"rwc" cr ↦□
         interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
       connAt t cn true a la ra ∗ connIs (Gg := hG.goose_globalGS) cn ∗
-      ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs }}
+      ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs ∗
+      (∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b) }}
     (App (Val (cr @!! go.GoType.PointerType net.http.connReader.ty @!! go!"abortPendingRead"))
       (Val #()))
-  {{ RET #(); ghostVar γ.ph (1 : Qp).half false ∗ ghostVar γ.r (1 : Qp) hs ∗
-      crOwn cr cn P hs Z }}
+  {{ RET #(); (∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b) ∗ ghostVar γ.ph (1 : Qp).half false ∗
+      ghostVar γ.r (1 : Qp) hs ∗ crOwn cr cn P hs Z }}
 
 end spec
 

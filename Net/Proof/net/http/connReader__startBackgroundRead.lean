@@ -37,7 +37,7 @@ theorem connReader.startBackgroundRead.wp_proof
     connReader.startBackgroundRead.spec (GF := GF) (hG := hG) := by
   intro cr γ t cn a la ra P hs Z c ab fl arr
   wp_start as ⟨#Hcr, #Hlaw, #Henv, #Hrwc, #Hca, #Hcis, Hph, Hr, Hc, Hhb, Hir, Hab, Hfl, #Hcok,
-    Hbuf, Hrecv⟩
+    Hbuf, Hrecv, Hrdl⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply wp_cr_lock cr γ cn P hs Z $$ [$Hcr] as ⟨Hown, ⟨%cv, #Hcond⟩, Hinv⟩
   iunfold crPh at Hinv
@@ -45,15 +45,17 @@ theorem connReader.startBackgroundRead.wp_proof
   ihave %Hag := ghostVar_agree γ.ph _ _ _ _ $$ Hph Hph2
   subst Hag
   simp only [Bool.false_eq_true, ite_false]
-  wp_apply wp_SetReadDeadline t cn true a la ra _ (fun _ => iprop(True)) $$ [$Hca]
-    as %err0 -
-  · imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hcis with ⟨%st, Hend, Hcl⟩
+  wp_apply wp_SetReadDeadline t cn true a la ra _
+      (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [$Hca Hrdl]
+    as %err0 Hrdl
+  · icases Hrdl with ⟨%rb, Hrdl⟩
+    imod deadline_au (Gg := hG.goose_globalGS) cn true (W64 1) _ $$ Hrdl with ⟨%st, Hend, Hcl⟩
     imodintro
     iexists st
     iframe Hend
     iintro %res %st' %Hd Hend
-    imod Hcl $$ %res %st' %Hd Hend with -
-    imodintro; itrivial
+    imod Hcl $$ %res %st' %Hd Hend with ⟨-, Hrdl⟩
+    imodintro; iexists _; iexact Hrdl
   wp_apply wp_fork $$ [Hinv Hbuf Hrecv]
   · wp_apply wp_backgroundRead cr γ t cn a la ra P hs Z arr $$ [Hinv Hbuf Hrecv]
     · iframe Hcr Hlaw Henv Hrwc Hca Hinv Hbuf Hrecv
@@ -71,7 +73,7 @@ theorem connReader.startBackgroundRead.wp_proof
     simp only [ite_true]
     ipureintro; trivial
   iapply HΦ
-  iframe Hph Hr
+  iframe Hrdl Hph Hr
 
 end proof
 

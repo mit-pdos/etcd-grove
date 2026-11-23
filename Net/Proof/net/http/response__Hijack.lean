@@ -53,7 +53,7 @@ theorem wp_hijack
   wp_start as Hpre
   iunfold hjPre at Hpre
   icases Hpre with ⟨Hhd, Hec, Hwh, #Hconn, Hww, Hwraw, #Hmu, Hγh, #Hr, #Hrwc, #Hbr, #Hbw, Hbraw,
-    #Hsrv, #Hs, Hst, #Hcr, #Htm, #Hcrwc, Hph, Hrr, #Hca, Hsend, Hfresh, #Hz, #Hpools⟩
+    #Hsrv, #Hs, Hst, #Hcr, #Htm, #Hcrwc, Hph, Hrr, #Hca, Hsend, Hfresh, #Hz, #Hpools, Hrdl⟩
   wp_auto
   ihave #Hs' := Hs
   iunfold srvConst at Hs'
@@ -79,7 +79,8 @@ theorem wp_hijack
   ihave %Hag := ghostVar_agree N.γh _ _ _ _ $$ Hγh Hγh2
   subst Hag
   wp_apply wp_hijackLocked N.c N.cr N.s N.γ N.t N.cn N.a N.la N.ra P Q hs Z N.tm N.br N.bw 4096
-    $$ [$Hhj $Hr $Hrwc $Hbr $Hbw $Hbraw $Hsrv $Hs $Hst $Hcr $Htm $Hcrwc $Hph $Hrr $Hca $Hsend $Hz]
+    $$ [$Hhj $Hr $Hrwc $Hbr $Hbw $Hbraw $Hsrv $Hs $Hst $Hcr $Htm $Hcrwc $Hph $Hrr $Hca $Hsend $Hz
+      $Hrdl]
     as %buf ⟨Hhj, Hbraw, Hst, Hrecv, Hsend, Hleft⟩
   imod ghostVar_update_halves true N.γh _ _ $$ Hγh Hγh2 with ⟨Hγh, Hγh2⟩
   wp_apply wp_putBufioWriter wp_Reset N.ww 2048 (Or.inl rfl) $$ [$Hpools $Hwraw]

@@ -47,7 +47,8 @@ abbrev conn.hijackLocked.spec : Prop :=
       structFieldRef net.http.connReader go!"rwc" cr ↦□
         interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
       ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs ∗
-      connAt t cn true a la ra ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗ zLaw Z Q }}
+      connAt t cn true a la ra ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗ zLaw Z Q ∗
+      (∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b) }}
     (App (Val (c @!! go.GoType.PointerType net.http.conn.ty @!! go!"hijackLocked")) (Val #()))
   {{ (buf : Loc), RET (PairV (PairV #(interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t)
         #buf) #(interface.nil : GoInterface));

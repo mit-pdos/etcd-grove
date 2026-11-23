@@ -45,10 +45,11 @@ abbrev connReader.startBackgroundRead.spec : Prop :=
       structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
       structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗ crConnOk c ∗
       structFieldRef net.http.connReader go!"byteBuf" cr ↦ arr ∗
-      recvTok (Gg := hG.goose_globalGS) cn true P hs }}
+      recvTok (Gg := hG.goose_globalGS) cn true P hs ∗ (∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b) }}
     (App (Val (cr @!! go.GoType.PointerType net.http.connReader.ty @!! go!"startBackgroundRead"))
       (Val #()))
-  {{ RET #(); ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs }}
+  {{ RET #(); (∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b) ∗ ghostVar γ.ph (1 : Qp).half true ∗
+      ghostVar γ.r (1 : Qp).half hs }}
 
 end spec
 
