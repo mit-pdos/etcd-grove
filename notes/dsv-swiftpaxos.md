@@ -63,8 +63,8 @@ The list asked for. They are named after the lab's specs, with the reason each i
 | net/rpc server | `RpcHttpHyp.{Register_spec, HandleHTTP_spec, Server_HandleHTTP_spec, Server_ServeHTTP_spec, defaultServer_init}` (lab: `net.rpc.{Register, HandleHTTP}`); the codec is `Net/`'s `codecSet` (SetCodec proved) | 6 | models-rpc-http |
 | net/http | `RpcHttpHyp.{Serve_spec, ServeMux_ServeHTTP_spec}` and the wildcard rpc protocols `rpcLisP` (`_addr`, `_lis`, `_set`) | 2 | models-rpc-http (+ the wildcard finding) |
 | net | none: wildcard `Listen` is `Net/`'s (`net-wildcard-listen`, landed); `TCPConn.{Close,RemoteAddr}` and `TCPAddr.String` are proved lab-shaped wrappers (`lib/NetConn.lean`), `DialTimeout`, `Dial`, `Listen` and `TCPListener.Accept` too (`lib/NetLab.lean`, over `lisProto`), `TCPConn.Write` (`lib/BufioNet.lean`) | | |
-| os/signal | not a `SwiftHyps` field: the **environment class `SwiftNoSignals`** (`Hyps.lean`), field `notifyQuiet : os.signal.NotifyQuiet.spec` (`lib/LibSpecs.lean`): `Notify(c, sig)` with `sig ↦*{dq} [SIGUSR1]` (the literal `syscall.Signal(0xa)` `HookUser1` passes) does nothing, in a deployment where no signal is sent (`HookUser1`'s proof needs its channel to stay empty). As dsv-rabia's `os.signal.NoSignals`, restricted to the signal passed (Upamanyu's rabia review). A visible premise of the statement, apart from the library hypotheses. | 1 | os/signal (names only) |
-| math/rand | `math.rand.{NewSource, New, Intn}.wp_proof` (`Harness/Proof/math/rand`), in `SwiftHyps` | 10 | Perennial's `math/rand` translation is names only |
+| os/signal | not a `SwiftHyps` field: dsv-rabia's **environment class `os.signal.NoSignals usr1Sigs`** (`Dsverify/Proof/os/signal/Spec.lean`, one `NotifyQuiet.spec sigs` for every kit, `sigs ≠ []`; `usr1Sigs = [SIGUSR1]`, `lib/LibSpecs.lean`): `Notify(c, sig)` with `sig ↦*{dq} usr1Sigs` does nothing, in a deployment where no SIGUSR1 is sent. A visible premise of the statement, apart from the library hypotheses (fifteenth session; was `SwiftNoSignals`). | 1 | os/signal (names only) |
+| math/rand | dsv-rabia's `math.rand.Hyps` (`Dsverify/Proof/math/rand/Spec.lean`: `∃ isSource ownRand, RandSpecs`, and the package-level `Intn`), a visible premise of the statement (fifteenth session; the lab-shaped `NewSource.labSpec`/`New.labSpec` and `SwiftHyps.math_rand_*` are gone): `NewBufferClient` chains `NewSource` into `New` and drops the `*Rand`'s token | 10 | Perennial's `math/rand` translation is names only |
 | uuid | `uuid.wp_ID` (result: some `w32`), in `SwiftHyps`. `uuid.wp_New` (some `UUID`, after `isPkgInit uuid`) is **not** a library fact (Go's `New` panics when the OS's randomness fails): it is the environment class `SwiftOsRandom` (Hyps.lean), a separate visible premise like `SwiftNoSignals` (eighth session). | 2 | uuid (names only) |
 
 **To prove, not hypotheses:**
@@ -116,7 +116,30 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, fourteenth session: landing preparation; resume here)
+## State (2026-11-23, fifteenth session: review fixes; resume here)
+
+Read with the fourteenth session's state below (accurate where this does not say otherwise).
+Fixes of Upamanyu's review of `20623c84e2` (#24, findings 1-5):
+1. **net/rpc, net/http `InitHyp`s** (merged `origin/dsv-inithyp-fix` `28c0c929aa`: their
+   conditions are `build_get_is_pkg_init_wf` over the closure). `etc/dsv/swiftpaxos.py` drops
+   `HYP_IMPORTS = 'none'` (default `'all'`), the 13 `PkgTable`s regenerated (they hold the closure).
+   `RpcFirstInit`'s `g'` conditions (`GetIsPkgInitProp pkg_id.net.rpc g'`, `... net.http g'`) now
+   name every package the initializers reach through those instances (its docstring says so).
+2. **math/rand**: rabia's `math.rand.Hyps` is the premise (above, "Hypotheses").
+3. **signal.Notify**: one `os.signal.NotifyQuiet.spec (sigs : List os.Signal)` (`sigs ≠ []`) and one
+   `os.signal.NoSignals sigs`; rabia at `quietSigs`, swiftpaxos at `usr1Sigs`.
+4. **gods' treemap**: one spec set, `Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`
+   (`NewWith`/`Put`/`Get` generic in the comparator, `cmpOk`; epaxos's `Select`/`Iterator`/`Next`/
+   `Value`, generic in the values; the class `treemap.Hyps` holding predicates and specs). The model
+   (`Proof/.../treemap/Defs.lean`) is generic in the values (`List (w64 × α)`; `putE_map`,
+   `lookupE_map`). This kit's `SwiftHyps` states `NewWith`/`Put`/`Get` over its
+   `swiftpaxos.isTreeMap` (`lib/Treemap.lean`, from `SwiftLibs`); epaxos takes `treemap.Hyps` and
+   derives `StateTreemap` (was `TreemapHyp`) by `StateTreemap.ofGods` with `keyIface`,
+   `state.keyComparator_cmpOk` and the values `valIface sl`.
+5. **Docs**: the statement's header says why the step bound is `2 ^ 31 - 1` and how the start
+   message narrows the deployment.
+
+## State (2026-11-23, fourteenth session: landing preparation; superseded where the fifteenth says so)
 
 Read with the thirteenth session's state below (accurate where this does not say otherwise).
 

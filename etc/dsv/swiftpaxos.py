@@ -72,15 +72,13 @@ MAIN_GEN = ['bufio', 'encoding.hex']
 # initializers that are hypotheses of the part's proofs (the `InitHyp` class of their hand-written
 # `Init.lean`; notes/dsv-swiftpaxos.md, "Hypotheses"): net/rpc's and net/http's (`Net/`'s models,
 # as dsv-epaxos), the part's names-only encoding/json (dsv-vr's), os/signal (dsv-rabia's), and the
-# names-only encoding/gob, github.com/google/uuid. Not math/rand: with `HYP_IMPORTS = 'none'` the
-# programs' tables would give it no imports, where its `GetIsPkgInitWf` (the main tree's
-# `Proof/math/rand/Base.lean`) names `sync` (no generated file of the kit initializes it; the boot
-# uses `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`, a premise of the statement, by hand).
-# ('known'/'all' do not do either: they list net/rpc's and net/http's imports, which their
-# `GetIsPkgInitWf` (`True` beyond the fact) does not name.)
+# names-only encoding/gob, github.com/google/uuid. Their imports: all (the default;
+# dsv-inithyp-fix): net/rpc's and net/http's well-formedness conditions are
+# `build_get_is_pkg_init_wf`, over every package their initializers reach, so the programs' tables
+# hold that closure. Not math/rand: the boot uses `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`,
+# a premise of the statement, by hand.
 HYP_INITS = ['encoding.json', 'net.rpc', 'net.http', 'os.signal', 'encoding.gob',
              'github_com.google.uuid']
-HYP_IMPORTS = 'none'
 
 
 def special(g):

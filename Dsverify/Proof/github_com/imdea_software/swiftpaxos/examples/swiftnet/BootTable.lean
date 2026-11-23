@@ -85,29 +85,38 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_internal_poll : G pkg_id.internal.poll = isPkgInit (PROP := IProp GF) pkg_id.internal.poll
   e_os : G pkg_id.os = isPkgInit (PROP := IProp GF) pkg_id.os
   e_net : G pkg_id.net = isPkgInit (PROP := IProp GF) pkg_id.net
-  e_net_http : G pkg_id.net.http = isPkgInit (PROP := IProp GF) pkg_id.net.http
-  e_net_rpc : G pkg_id.net.rpc = isPkgInit (PROP := IProp GF) pkg_id.net.rpc
+  e_crypto_tls : G pkg_id.crypto.tls = isPkgInit (PROP := IProp GF) pkg_id.crypto.tls
+  e_net_url : G pkg_id.net.url = isPkgInit (PROP := IProp GF) pkg_id.net.url
   e_internal_bytealg : G pkg_id.internal.bytealg = isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg
   e_unicode_utf8 : G pkg_id.unicode.utf8 = isPkgInit (PROP := IProp GF) pkg_id.unicode.utf8
   e_internal_stringslite : G pkg_id.internal.stringslite = isPkgInit (PROP := IProp GF) pkg_id.internal.stringslite
   e_strings : G pkg_id.strings = isPkgInit (PROP := IProp GF) pkg_id.strings
+  e_vendor_golang_org_x_net_http_httpguts : G pkg_id.vendor.golang_org.x.net.http.httpguts = isPkgInit (PROP := IProp GF) pkg_id.vendor.golang_org.x.net.http.httpguts
+  e_net_textproto : G pkg_id.net.textproto = isPkgInit (PROP := IProp GF) pkg_id.net.textproto
   e_unsafe : G pkg_id.«unsafe» = isPkgInit (PROP := IProp GF) pkg_id.«unsafe»
   e_math_bits : G pkg_id.math.bits = isPkgInit (PROP := IProp GF) pkg_id.math.bits
+  e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
+  e_strconv : G pkg_id.strconv = isPkgInit (PROP := IProp GF) pkg_id.strconv
+  e_path : G pkg_id.path = isPkgInit (PROP := IProp GF) pkg_id.path
+  e_bytes : G pkg_id.bytes = isPkgInit (PROP := IProp GF) pkg_id.bytes
+  e_bufio : G pkg_id.bufio = isPkgInit (PROP := IProp GF) pkg_id.bufio
+  e_internal_runtime_sys : G pkg_id.internal.runtime.sys = isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.sys
+  e_internal_runtime_atomic : G pkg_id.internal.runtime.atomic = isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.atomic
+  e_runtime : G pkg_id.runtime = isPkgInit (PROP := IProp GF) pkg_id.runtime
+  e_net_http : G pkg_id.net.http = isPkgInit (PROP := IProp GF) pkg_id.net.http
+  e_go_token : G pkg_id.go.token = isPkgInit (PROP := IProp GF) pkg_id.go.token
+  e_net_rpc : G pkg_id.net.rpc = isPkgInit (PROP := IProp GF) pkg_id.net.rpc
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
   e_sort : G pkg_id.sort = isPkgInit (PROP := IProp GF) pkg_id.sort
   e_github_com_anishathalye_porcupine : G pkg_id.github_com.anishathalye.porcupine = isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine
   e_github_com_goose_lang_primitive : G pkg_id.github_com.goose_lang.primitive = isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive
   e_github_com_google_uuid : G pkg_id.github_com.google.uuid = isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid
-  e_bytes : G pkg_id.bytes = isPkgInit (PROP := IProp GF) pkg_id.bytes
-  e_bufio : G pkg_id.bufio = isPkgInit (PROP := IProp GF) pkg_id.bufio
   e_math : G pkg_id.math = isPkgInit (PROP := IProp GF) pkg_id.math
   e_internal_abi : G pkg_id.internal.abi = isPkgInit (PROP := IProp GF) pkg_id.internal.abi
   e_reflect : G pkg_id.reflect = isPkgInit (PROP := IProp GF) pkg_id.reflect
   e_encoding_binary : G pkg_id.encoding.binary = isPkgInit (PROP := IProp GF) pkg_id.encoding.binary
   e_encoding_hex : G pkg_id.encoding.hex = isPkgInit (PROP := IProp GF) pkg_id.encoding.hex
-  e_internal_strconv : G pkg_id.internal.strconv = isPkgInit (PROP := IProp GF) pkg_id.internal.strconv
-  e_strconv : G pkg_id.strconv = isPkgInit (PROP := IProp GF) pkg_id.strconv
   e_github_com_emirpasic_gods_utils : G pkg_id.github_com.emirpasic.gods.utils = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.utils
   e_github_com_emirpasic_gods_containers : G pkg_id.github_com.emirpasic.gods.containers = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.containers
   e_github_com_emirpasic_gods_trees : G pkg_id.github_com.emirpasic.gods.trees = isPkgInit (PROP := IProp GF) pkg_id.github_com.emirpasic.gods.trees
@@ -210,13 +219,13 @@ theorem wf_net {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net G :=
   And.intro h.e_net ⟨wf_context h, wf_errors h, wf_syscall h, wf_os h, wf_time h, wf_io h, wf_internal_poll h, True.intro⟩
 
-theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.net.http G :=
-  And.intro h.e_net_http True.intro
+theorem wf_crypto_tls {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.crypto.tls G :=
+  And.intro h.e_crypto_tls True.intro
 
-theorem wf_net_rpc {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.net.rpc G :=
-  And.intro h.e_net_rpc True.intro
+theorem wf_net_url {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.net.url G :=
+  And.intro h.e_net_url True.intro
 
 theorem wf_internal_bytealg {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.internal.bytealg G :=
@@ -234,6 +243,14 @@ theorem wf_strings {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.strings G :=
   And.intro h.e_strings ⟨wf_internal_bytealg h, wf_unicode_utf8 h, wf_internal_stringslite h, wf_io h, wf_sync h, True.intro⟩
 
+theorem wf_vendor_golang_org_x_net_http_httpguts {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts G :=
+  And.intro h.e_vendor_golang_org_x_net_http_httpguts True.intro
+
+theorem wf_net_textproto {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.net.textproto G :=
+  And.intro h.e_net_textproto True.intro
+
 theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.«unsafe» G :=
   And.intro h.e_unsafe True.intro
@@ -241,6 +258,50 @@ theorem wf_unsafe {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_math_bits {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math.bits G :=
   And.intro h.e_math_bits ⟨wf_unsafe h, True.intro⟩
+
+theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.strconv G :=
+  And.intro h.e_internal_strconv ⟨wf_math_bits h, True.intro⟩
+
+theorem wf_strconv {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.strconv G :=
+  And.intro h.e_strconv ⟨wf_errors h, wf_internal_strconv h, wf_internal_stringslite h, True.intro⟩
+
+theorem wf_path {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.path G :=
+  And.intro h.e_path ⟨wf_errors h, wf_internal_bytealg h, True.intro⟩
+
+theorem wf_bytes {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.bytes G :=
+  And.intro h.e_bytes ⟨wf_errors h, wf_io h, True.intro⟩
+
+theorem wf_bufio {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.bufio G :=
+  And.intro h.e_bufio ⟨wf_bytes h, wf_errors h, wf_io h, wf_strings h, True.intro⟩
+
+theorem wf_internal_runtime_sys {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.runtime.sys G :=
+  And.intro h.e_internal_runtime_sys True.intro
+
+theorem wf_internal_runtime_atomic {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.internal.runtime.atomic G :=
+  And.intro h.e_internal_runtime_atomic True.intro
+
+theorem wf_runtime {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.runtime G :=
+  And.intro h.e_runtime ⟨wf_internal_runtime_sys h, wf_internal_runtime_atomic h, True.intro⟩
+
+theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.net.http G :=
+  And.intro h.e_net_http ⟨wf_context h, wf_crypto_tls h, wf_errors h, wf_fmt h, wf_io h, wf_net_url h, wf_strings h, wf_sync h, wf_sync_atomic h, wf_time h, wf_vendor_golang_org_x_net_http_httpguts h, wf_net h, wf_net_textproto h, wf_strconv h, wf_path h, wf_bufio h, wf_runtime h, True.intro⟩
+
+theorem wf_go_token {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.go.token G :=
+  And.intro h.e_go_token True.intro
+
+theorem wf_net_rpc {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.net.rpc G :=
+  And.intro h.e_net_rpc ⟨wf_bufio h, wf_errors h, wf_io h, wf_log h, wf_net h, wf_net_http h, wf_sync h, wf_go_token h, True.intro⟩
 
 theorem wf_cmp {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.cmp G :=
@@ -266,14 +327,6 @@ theorem wf_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.google.uuid G :=
   And.intro h.e_github_com_google_uuid True.intro
 
-theorem wf_bytes {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.bytes G :=
-  And.intro h.e_bytes ⟨wf_errors h, wf_io h, True.intro⟩
-
-theorem wf_bufio {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.bufio G :=
-  And.intro h.e_bufio ⟨wf_bytes h, wf_errors h, wf_io h, wf_strings h, True.intro⟩
-
 theorem wf_math {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math G :=
   And.intro h.e_math True.intro
@@ -293,14 +346,6 @@ theorem wf_encoding_binary {G : GoString → IProp GF} (h : KitG G) :
 theorem wf_encoding_hex {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.encoding.hex G :=
   And.intro h.e_encoding_hex ⟨wf_errors h, True.intro⟩
-
-theorem wf_internal_strconv {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.internal.strconv G :=
-  And.intro h.e_internal_strconv ⟨wf_math_bits h, True.intro⟩
-
-theorem wf_strconv {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.strconv G :=
-  And.intro h.e_strconv ⟨wf_errors h, wf_internal_strconv h, wf_internal_stringslite h, True.intro⟩
 
 theorem wf_github_com_emirpasic_gods_utils {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.utils G :=
@@ -497,6 +542,16 @@ theorem wfO_net {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.net ∉ ownedPkgs) (hS _ hm))).trans
     h.e_net) ⟨wfO_context h S hS, wfO_errors h S hS, wfO_syscall h S hS, wfO_os h S hS, wfO_time h S hS, wfO_io h S hS, wfO_internal_poll h S hS, True.intro⟩
 
+theorem wfO_crypto_tls {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.crypto.tls (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.crypto.tls ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_crypto_tls) True.intro
+
+theorem wfO_net_url {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.net.url (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.net.url ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_net_url) True.intro
+
 theorem wfO_internal_bytealg {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.bytealg (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.bytealg ∉ ownedPkgs) (hS _ hm))).trans
@@ -517,6 +572,16 @@ theorem wfO_strings {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strings ∉ ownedPkgs) (hS _ hm))).trans
     h.e_strings) ⟨wfO_internal_bytealg h S hS, wfO_unicode_utf8 h S hS, wfO_internal_stringslite h S hS, wfO_io h S hS, wfO_sync h S hS, True.intro⟩
 
+theorem wfO_vendor_golang_org_x_net_http_httpguts {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.vendor.golang_org.x.net.http.httpguts (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.vendor.golang_org.x.net.http.httpguts ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_vendor_golang_org_x_net_http_httpguts) True.intro
+
+theorem wfO_net_textproto {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.net.textproto (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.net.textproto ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_net_textproto) True.intro
+
 theorem wfO_unsafe {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.«unsafe» (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.«unsafe» ∉ ownedPkgs) (hS _ hm))).trans
@@ -526,6 +591,51 @@ theorem wfO_math_bits {G : GoString → IProp GF} (h : KitG G) (S : List GoStrin
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.bits (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math.bits ∉ ownedPkgs) (hS _ hm))).trans
     h.e_math_bits) ⟨wfO_unsafe h S hS, True.intro⟩
+
+theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.strconv (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.strconv ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_strconv) ⟨wfO_math_bits h S hS, True.intro⟩
+
+theorem wfO_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strconv (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strconv ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_strconv) ⟨wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_stringslite h S hS, True.intro⟩
+
+theorem wfO_path {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.path (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.path ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_path) ⟨wfO_errors h S hS, wfO_internal_bytealg h S hS, True.intro⟩
+
+theorem wfO_bytes {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.bytes (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.bytes ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_bytes) ⟨wfO_errors h S hS, wfO_io h S hS, True.intro⟩
+
+theorem wfO_bufio {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.bufio (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.bufio ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_bufio) ⟨wfO_bytes h S hS, wfO_errors h S hS, wfO_io h S hS, wfO_strings h S hS, True.intro⟩
+
+theorem wfO_internal_runtime_sys {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.runtime.sys (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.runtime.sys ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_runtime_sys) True.intro
+
+theorem wfO_internal_runtime_atomic {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.runtime.atomic (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.runtime.atomic ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_internal_runtime_atomic) True.intro
+
+theorem wfO_runtime {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.runtime (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.runtime ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_runtime) ⟨wfO_internal_runtime_sys h S hS, wfO_internal_runtime_atomic h S hS, True.intro⟩
+
+theorem wfO_go_token {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.go.token (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.go.token ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_go_token) True.intro
 
 theorem wfO_cmp {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.cmp (gOff S G) :=
@@ -557,16 +667,6 @@ theorem wfO_github_com_google_uuid {G : GoString → IProp GF} (h : KitG G) (S :
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.github_com.google.uuid ∉ ownedPkgs) (hS _ hm))).trans
     h.e_github_com_google_uuid) True.intro
 
-theorem wfO_bytes {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.bytes (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.bytes ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_bytes) ⟨wfO_errors h S hS, wfO_io h S hS, True.intro⟩
-
-theorem wfO_bufio {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.bufio (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.bufio ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_bufio) ⟨wfO_bytes h S hS, wfO_errors h S hS, wfO_io h S hS, wfO_strings h S hS, True.intro⟩
-
 theorem wfO_math {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math ∉ ownedPkgs) (hS _ hm))).trans
@@ -591,16 +691,6 @@ theorem wfO_encoding_hex {G : GoString → IProp GF} (h : KitG G) (S : List GoSt
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.encoding.hex (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.encoding.hex ∉ ownedPkgs) (hS _ hm))).trans
     h.e_encoding_hex) ⟨wfO_errors h S hS, True.intro⟩
-
-theorem wfO_internal_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.internal.strconv (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.internal.strconv ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_internal_strconv) ⟨wfO_math_bits h S hS, True.intro⟩
-
-theorem wfO_strconv {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.strconv (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.strconv ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_strconv) ⟨wfO_errors h S hS, wfO_internal_strconv h S hS, wfO_internal_stringslite h S hS, True.intro⟩
 
 theorem wfO_github_com_emirpasic_gods_utils {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.utils (gOff S G) :=

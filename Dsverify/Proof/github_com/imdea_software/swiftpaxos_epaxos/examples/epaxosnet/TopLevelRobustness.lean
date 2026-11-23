@@ -204,7 +204,8 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
     letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
     letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
     letI : encoding.json.InitHyp remoteGF := hji G' hG.goose_localGS
-    letI : TreemapHyp remoteGF := htm G' hG.goose_localGS
+    letI : StateTreemap remoteGF :=
+      StateTreemap.ofGods (htm G' hG.goose_localGS) state.keyComparator_cmpOk
     letI : RpcHttpHyp remoteGF := rh G' hG.goose_localGS π
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
     have hb' : threadBound remoteGF ≤ 2 ^ 31 ∧ receiptBound remoteGF ≤ 2 ^ 64 := by

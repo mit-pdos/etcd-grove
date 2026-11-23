@@ -46,7 +46,7 @@ theorem state.InitState.wp_proof (wp_KeyComparator : state.KeyComparator.spec (G
   iframe «$r0» Hmu Htm
   iunfold state.valsOk
   iintro !> %k
-  have : github_com.emirpasic.gods.maps.treemap.lookupE [] k = none := rfl
+  have : github_com.emirpasic.gods.maps.treemap.lookupE ([] : github_com.emirpasic.gods.maps.treemap.Entries) k = none := rfl
   rw [this]
   ipureintro; rfl
 

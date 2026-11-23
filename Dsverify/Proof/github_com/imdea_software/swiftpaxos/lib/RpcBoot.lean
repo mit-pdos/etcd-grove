@@ -12,7 +12,13 @@ RpcHttpHyp.defaultServer γs`).
 `RpcFirstInit` states that: net/rpc's initializer, run on a machine where neither net/rpc nor
 net/http is initialized yet (the initialization table `g` is `False` at both), ends in a table
 `g'` that agrees with `g` elsewhere and meets net/rpc's and net/http's `GetIsPkgInitProp` (as
-their `InitHyp`s'), and returns those resources. This is what Go does: a package's initializer
+their `InitHyp`s'), and returns those resources. Those conditions name every package the
+initializers reach (dsv-inithyp-fix: `Dsverify/Proof/net/{rpc,http}/Init.lean`'s
+`build_get_is_pkg_init_wf`, over their `PkgInfo` imports, net/rpc's closure 39 packages, net/http's
+36): `g'` holds each package's fact there, and since `g'` agrees with `g` beyond net/rpc and
+net/http, so does `g`. (With a condition at net/rpc and net/http alone, a table `g` with `False` at
+one of the imports, say `bufio`, would meet the hypotheses while the initializer, which initializes
+`bufio`, ends with `ownInitializing g'` needing `□ False`: the premise would be false of Go.) This is what Go does: a package's initializer
 runs once per process, its first run allocates the package's variables (net/http's
 `DefaultServeMux`, net/rpc's `DefaultServer`, the error variables), and it does not panic
 (`InitHyp`'s trust).

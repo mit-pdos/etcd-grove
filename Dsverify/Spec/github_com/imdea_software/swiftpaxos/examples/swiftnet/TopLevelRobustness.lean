@@ -12,6 +12,21 @@ thread of any machine is stuck and none has a top-level panic (`Robust`). Since 
 panics unless porcupine accepts the history, this says porcupine accepts every history, under
 every fault the net extension allows.
 
+**The step bound** is `2 ^ 31 - 1`, not `2 ^ 63` (remote's clock, `receiptBound ≤ 2 ^ 63`, would
+allow more): Net's net/rpc server (`Server.ServeCodec.spec`, run by the master and the replicas)
+needs the machine's thread bound `threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an
+`int32`), and the deployment bridge bounds the threads by the step count (`Bridge.lean`,
+`robust_of_distProtoLisRBT_sha`). A full real run (the orchestrator's 15 s and 30 s waits, the
+clients' and replicas' polling loops, thirteen processes) may take more GooseLang steps than that,
+so the theorem covers every prefix of fewer than `2 ^ 31 - 1` steps of such a run, not the whole of
+a long one.
+
+**The start message narrows the deployment**: the kit's orchestrator sends each client node its
+start (the configuration again, on the node's start port, `conf.startP`) only after every node has
+acknowledged its configuration (every predicted replica registered with the master), and a client
+node connects (`swift.NewClient`) only after its start. So clients connect only once every node is
+configured; a deployment whose clients connect earlier is not covered.
+
 **Premises** (visible; each at the kit's bundle `netDistGF`, for every machine's heap `heapAt G L`
 and the start's net protocol names `π`):
 * `l`, the libraries' representation choice (`SwiftNetPkgState`/`SwiftLibs`, `Base.lean`): gods'
