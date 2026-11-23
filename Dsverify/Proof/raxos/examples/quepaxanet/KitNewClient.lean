@@ -41,6 +41,14 @@ theorem nc_idx (j : w64) (asl : GoSlice) (hj1 : 1 ≤ uint.nat j) (hj5 : uint.na
   · constructor <;> word
   · word
 
+theorem one_c_idx (c : Nat) (hc : c < 6) (asl : GoSlice) (hl : 12 = sint.nat asl.len)
+    (hl0 : 0 ≤ sint.Z asl.len) :
+    (0 ≤ sint.Z (W64 1 + W64 (c : Int)) ∧ sint.Z (W64 1 + W64 (c : Int)) < sint.Z asl.len) ∧
+      (sint.Z (W64 1 + W64 (c : Int))).toNat = 1 + c := by
+  constructor
+  · constructor <;> word
+  · word
+
 theorem name_w64 [GooseExts] (c : Nat) : W64 21 + W64 (c : Int) = W64 ((21 + c : Nat) : Int) := by
   word
 
@@ -214,7 +222,126 @@ theorem wp_newClient (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨hc, by omega⟩
       iexact Hreps
     imodintro
-    sorry
+    obtain ⟨hidx2, hidx2'⟩ := one_c_idx c hc asl (by rw [← hal]; exact Hal.1) Hal.2
+    rw [ite_eq_left_of_eq_true _ _ (eq_true hidx2)]
+    wp_apply wp_load_slice_index asl (sint.Z (W64 1 + W64 (c : Int))) addrsL _ (clientAddr c)
+      hidx2.1 $$ [Hasl] as -
+    · iframe Hasl; ipureintro
+      rw [hidx2', addrsL_get _ (by omega), clientAddr_port]
+    ihave #Hcp := clientProto_of_shared γ c hc $$ Hsh
+    ihave %Hok := addrTok_ok (clientAddr c) $$ [Hcp]
+    · iapply addrProto_tok $$ Hcp
+    have wp_L := net.Listen.spec_addrOk wp_Listen
+    wp_apply wp_L go!"tcp" net.tcpNet_tcp (clientAddr c) as %li %err Hres
+    · isplitr
+      · ipureintro; exact Hok
+      iapply listen_au $$ Hcp
+    ihave HLs : (∃ (lv' err' : GoInterface), "l" ∷ l_ptr ↦ lv' ∗ "err" ∷ err_ptr ↦ err' ∗
+        "Hl" ∷ ((⌜err' = interface.nil⌝ ∗ ∃ l, net.isListener lv' l ∗
+            netLis (extLocalGS netExt (L := hG.goose_localGS)) l (clientAddr c) true ∗
+            netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l (clientAddr c)) ∨
+          ⌜err' ≠ interface.nil⌝) : IProp GF) $$ [l err Hres]
+    · iexists li, err
+      iframe l err
+      icases Hres with (H | ⟨%x, -, #Herr⟩)
+      · ileft; iexact H
+      · iright
+        ihave %Hne := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
+        obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+        ipureintro; simp
+    wp_for HLs
+    icases Hl with (⟨%He, %lv, #Hli, Hl, #Hla⟩ | %Hne)
+    · subst He
+      wp_auto
+      rw [if_neg (by
+          intro h
+          have h' := of_decide_eq_true h
+          exact absurd (go.IntoValInj.intoVal_inj (V := Bool) h') (by decide)),
+        if_pos (by simp)]
+      wp_auto
+      wp_apply wp_fork $$ [Hl]
+      · wp_apply wp_accept wp_Accept wp_Read wp_Close wp_NewReader γ c «$r0_ptr» lv' lv $$ [Hl]
+        · iframe Hsys Hcp Hli Hl Hla
+        itrivial
+      ihave %Hrl := ownSlice_len _ _ _ $$ Hrsl
+      ihave HI2 : (∃ j : w64, "i" ∷ i_ptr ↦ j ∗ "r" ∷ (∃ rl : Loc, r_ptr ↦ rl) ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z rsl.len⌝ : IProp GF) $$ [i r]
+      · iexists W64 0
+        iframe i
+        isplitl [r]
+        · iexists _; iexact r
+        ipureintro; constructor <;> word
+      wp_for HI2
+      wp_if_destruct
+      · have Hif' : sint.Z j < sint.Z rsl.len := by
+          first | exact Hif | (have h := go.IntoValInj.intoVal_inj (V := Bool) Hif; simpa using h)
+        have hidx : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z rsl.len := ⟨Hj.1, Hif'⟩
+        simp only [hidx, _root_.and_self, ↓reduceIte]
+        list_elem rls (sint.Z j).toNat as rl
+        wp_apply wp_load_slice_index rsl (sint.Z j) rls DFrac.discard rl hidx.1 $$ [Hrsl] as -
+        · iframe Hrsl; ipureintro; exact Hrl_lookup
+        iunfold repsOk at Hreps
+        icases (BigSepL.bigSepL_lookup_acc (Φ := fun i rl => iprop(isReplica γ c (i + 1) rl))
+          Hrl_lookup).1 $$ Hreps with ⟨#Hrep, Hback⟩
+        ihave Hreps := Hback $$ Hrep
+        have hset : rls.set (sint.Z j).toNat rl = rls := by
+          obtain ⟨h, he⟩ := List.getElem?_eq_some_iff.1 Hrl_lookup
+          rw [← he, List.set_getElem_self]
+        rw [hset]
+        icases r with ⟨%rl0, r⟩
+        wp_auto
+        ihave HI3 : ("Hrep" ∷ isReplica γ c ((sint.Z j).toNat + 1) rl : IProp GF) $$ []
+        · iexact Hrep
+        wp_for HI3
+        wp_apply wp_tryConnect wp_Dial wp_Write wp_Close γ c _ rl $$ [Hrep] as %ok -
+        · iframe Hrep
+        cases ok
+        · rw [if_pos (by simp)]
+          wp_auto
+          wp_apply time.wp_Sleep
+          wp_for_post
+          iframe
+          iexact Hrep
+        · rw [if_neg (by
+            intro h
+            have h' := of_decide_eq_true h
+            exact absurd (go.IntoValInj.intoVal_inj (V := Bool) h') (by decide)), if_pos (by simp)]
+          wp_for_post
+          iframe
+          isplitl [Hreps]
+          · unfold repsOk; iexact Hreps
+          iexists j + W64 1
+          iframe
+          isplitl [r]
+          · iexists _; iexact r
+          ipureintro; word
+      · iapply HΦ; iexact Hsys
+    · rcases err' with ie | _
+      · simp only
+        wp_auto
+        rw [ite_eq_left_of_eq_true _ _ (by simp)]
+        wp_auto
+        wp_apply time.wp_Sleep
+        rw [ite_eq_left_of_eq_true _ _ (eq_true hidx2)]
+        wp_apply wp_load_slice_index asl (sint.Z (W64 1 + W64 (c : Int))) addrsL _ (clientAddr c)
+          hidx2.1 $$ [Hasl] as -
+        · iframe Hasl; ipureintro
+          rw [hidx2', addrsL_get _ (by omega), clientAddr_port]
+        wp_apply wp_L go!"tcp" net.tcpNet_tcp (clientAddr c) as %li2 %err2 Hres2
+        · isplitr
+          · ipureintro; exact Hok
+          iapply listen_au $$ Hcp
+        wp_for_post
+        iframe
+        iexists li2, err2
+        iframe
+        icases Hres2 with (H | ⟨%x, -, #Herr⟩)
+        · ileft; iexact H
+        · iright
+          ihave %Hne := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
+          obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+          ipureintro; simp
+      · exact absurd rfl Hne
 
 end proof
 
