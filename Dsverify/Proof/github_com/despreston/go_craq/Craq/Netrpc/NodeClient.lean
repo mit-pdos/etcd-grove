@@ -32,6 +32,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [ra : RpcHttpAddr GF]
+variable [rcs : RpcClientSpecs GF]
 
 
 theorem wp_Ping (Henc : enc_EmptyArgs.spec (GF := GF)) (Hdec : dec_EmptyReply.spec (GF := GF))
@@ -735,7 +736,7 @@ theorem wp_Close (cfg : Cfg GF) (c cl : Loc) (a : GoString) :
   wp_method_call
   wp_call
   wp_auto
-  wp_apply net.rpc.Client.Close.wp r cfg.W a $$ [Hrpkg Hr] as %err -
+  wp_apply rcs.close r cfg.W a $$ [Hrpkg Hr] as %err -
   · iexact Hr
   iapply HΦ
 

@@ -56,12 +56,15 @@ variable [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumpti
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [π : NetProtoGS]
 variable [ra : RpcHttpAddr GF] [rd : RpcHttpDial GF] [bvi : go.BasicIntoValInj] [NaInvG GF]
 
+/-- Net's net/rpc client specs, for the kit's rpc clients (`Craq/Hyps.lean`'s `RpcClientSpecs`). -/
+instance rpcClientSpecs : RpcClientSpecs GF := ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp⟩
+
 /-- The protocol's laws the node's proofs use. -/
 theorem nodeLaws : NodeP.Laws (GF := GF) :=
-  ⟨commit.wp_proof, read.wp_proof, tailTok_cvLb.wp_proof, tailTok_lb.wp_proof, cvLb_zero.wp_proof,
-    cvLb_mono.wp_proof, valsElem_agree.wp_proof, covers_nil.wp_proof, roleHalf_agree.wp_proof,
-    roleHalf_update.wp_proof, nlog_covers.wp_proof, nlog_covers_le.wp_proof, nlog_append.wp_proof,
-    covers_mono.wp_proof, cvOf_append.wp_proof, cvOf_commit.wp_proof⟩
+  ⟨commit.holds, read.holds, tailTok_cvLb.holds, tailTok_lb.holds, cvLb_zero.holds,
+    cvLb_mono.holds, valsElem_agree.holds, covers_nil.holds, roleHalf_agree.holds,
+    roleHalf_update.holds, nlog_covers.holds, nlog_covers_le.holds, nlog_append.holds,
+    covers_mono.holds, cvOf_append.holds, cvOf_commit.holds⟩
 
 theorem wp_NewNodeClient : netrpc.wp_NewNodeClient.spec (GF := GF) (hG := hG) :=
   let L := craqCodecLaws (GF := GF) (hG := hG)
@@ -93,7 +96,7 @@ theorem wp_Server [LogHyp GF] [RpcHttpServe GF]
     (HRN : ∀ cfg : Cfg GF, removeNodeOk.spec cfg) :
     Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof net.rpc.SetCodec.wp coordinator.wp_New coordinator.wp_Start
-    (coordinator.coord_svc assign.wp_proof collect.wp_proof) factory kvp.wp_New node.wp_New
+    (coordinator.coord_svc assign.holds collect.holds) factory kvp.wp_New node.wp_New
     (node.wp_Start nodeLaws) (node.node_svc nodeLaws) wp_NewCoordinatorClient wp_awaitConf HRN
     (fun cfg a => nodeSpec_errOk cfg.γ cfg.chain a)
 

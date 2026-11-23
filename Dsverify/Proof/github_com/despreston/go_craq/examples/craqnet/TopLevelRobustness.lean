@@ -121,7 +121,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
   unfold craqKitAddrs
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hs, Hsf⟩
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hss, Hsc⟩
-  imod craq_alloc.wp_proof (G := G) serverAddrs.tail (by decide) with
+  imod craq_alloc.holds (G := G) serverAddrs.tail (by decide) with
     ⟨%γ, #Hcraq, Hown, Htail, Hnext, Hnodes⟩
   imod halloc G π (craqSS γ (serverAddrs.headD []) serverAddrs.tail) serverAddrs $$ Hreg Hss
     with ⟨%W, %HW, #Hra⟩

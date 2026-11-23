@@ -204,7 +204,7 @@ theorem stage_end (γ : CraqNames) (L : CLog) (k : GoString) (v : w64) (R : GMap
   · rw [cvOf_commit_ne _ _ _ _ hk]
     simp [hk]
 
-theorem commit.wp_proof : commit.spec (GF := GF) (G := G) := by
+theorem commit.holds : commit.spec (GF := GF) (G := G) := by
   intro γ E hE L v k x
   iintro ⟨#Hinv, Htok, #Hval, Hlc⟩
   by_cases hlt' : ¬ uint.Z (cvOf L k) < uint.Z v

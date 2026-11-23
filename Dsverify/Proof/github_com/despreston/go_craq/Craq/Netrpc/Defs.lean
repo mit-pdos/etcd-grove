@@ -103,7 +103,7 @@ theorem craqCodec_dec_frame (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IP
     ispecialize HΦ $$ HΨ' Herr
     iexact HΦ
 
-theorem wp_Call_tag (T : List w8 → Prop) (c : Loc) (W : net.rpc.RpcWorld GF)
+theorem wp_Call_tag [rcs : RpcClientSpecs GF] (T : List w8 → Prop) (c : Loc) (W : net.rpc.RpcWorld GF)
     (a sm svc M : GoString) (S : net.rpc.MethodSpec GF) (args reply : GoInterface)
     (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF) (Θ : List w8 → Bool → IProp GF)
     (HT : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝) :
@@ -124,7 +124,7 @@ theorem wp_Call_tag (T : List w8 → Prop) (c : Loc) (W : net.rpc.RpcWorld GF)
   have HT2 : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝ ∗ Φ rep [] := fun rep =>
     (BI.and_intro (HT rep) .rfl).trans BI.persistent_and_sep_mp
   iintro %Ψ ⟨#Hc, %Hs, #Hcs, Henc, HD, #Hdec⟩ HΨ
-  wp_apply (net.rpc.Client.Call.wp (C := craqCodec) c W a sm svc M S args reply Φ
+  wp_apply (rcs.call (C := craqCodec) c W a sm svc M S args reply Φ
     Rargs D (fun rep ok => if ok then iprop(Φ rep [] ∗ Θ rep true) else Θ rep false))
     $$ [Henc HD]
   · isplitr

@@ -56,13 +56,13 @@ theorem cvLb_auth (γ : CraqNames) (q : Qp) (L : CLog) (k : GoString) (v : w64) 
     ipureintro
     exact Int.le_trans Hle (cvOf_prefix Hp.2 k)
 
-theorem tailTok_cvLb.wp_proof : tailTok_cvLb.spec (GF := GF) (G := G) := by
+theorem tailTok_cvLb.holds : tailTok_cvLb.spec (GF := GF) (G := G) := by
   intro γ L k v
   iintro ⟨HL, Hlb⟩
   unfold tailTok
   iapply cvLb_auth $$ HL Hlb
 
-theorem tailTok_lb.wp_proof : tailTok_lb.spec (GF := GF) (G := G) := by
+theorem tailTok_lb.holds : tailTok_lb.spec (GF := GF) (G := G) := by
   intro γ L k
   iintro HL
   unfold tailTok
@@ -74,13 +74,13 @@ theorem tailTok_lb.wp_proof : tailTok_lb.spec (GF := GF) (G := G) := by
   iframe Hlb
   ipureintro; exact Int.le_refl _
 
-theorem cvLb_zero.wp_proof : cvLb_zero.spec (GF := GF) (G := G) := by
+theorem cvLb_zero.holds : cvLb_zero.spec (GF := GF) (G := G) := by
   intro γ k
   unfold cvLb
   ileft
   ipureintro; rfl
 
-theorem cvLb_mono.wp_proof : cvLb_mono.spec (GF := GF) (G := G) := by
+theorem cvLb_mono.holds : cvLb_mono.spec (GF := GF) (G := G) := by
   intro γ k v v' h
   unfold cvLb
   iintro (%Hv | ⟨%L0, Hlb, %Hle⟩)
@@ -93,7 +93,7 @@ theorem cvLb_mono.wp_proof : cvLb_mono.spec (GF := GF) (G := G) := by
     iframe Hlb
     ipureintro; exact Int.le_trans h Hle
 
-theorem valsElem_agree.wp_proof : valsElem_agree.spec (GF := GF) (G := G) := by
+theorem valsElem_agree.holds : valsElem_agree.spec (GF := GF) (G := G) := by
   intro γ v k x k' x'
   unfold valsElem
   iintro ⟨⟨%p, %c, H1⟩, ⟨%p', %c', H2⟩⟩
@@ -102,7 +102,7 @@ theorem valsElem_agree.wp_proof : valsElem_agree.spec (GF := GF) (G := G) := by
   simp only [Prod.mk.injEq] at Hag
   exact ⟨Hag.1, Hag.2.1⟩
 
-theorem covers_nil.wp_proof : covers_nil.spec (GF := GF) (G := G) := by
+theorem covers_nil.holds : covers_nil.spec (GF := GF) (G := G) := by
   intro γ a
   imod monoListLbOwn_nil (GF := GF) (A := GoString × w64) (γ.nlog a) with Hlb
   imodintro
@@ -111,19 +111,19 @@ theorem covers_nil.wp_proof : covers_nil.spec (GF := GF) (G := G) := by
   iframe Hlb
   ipureintro; intro k; exact Int.le_refl _
 
-theorem roleHalf_agree.wp_proof : roleHalf_agree.spec (GF := GF) (G := G) := by
+theorem roleHalf_agree.holds : roleHalf_agree.spec (GF := GF) (G := G) := by
   intro γ a r r'
   unfold roleHalf
   iintro ⟨H1, H2⟩
   iapply ghostVar_agree $$ H1 H2
 
-theorem roleHalf_update.wp_proof : roleHalf_update.spec (GF := GF) (G := G) := by
+theorem roleHalf_update.holds : roleHalf_update.spec (GF := GF) (G := G) := by
   intro γ a r r' r''
   unfold roleHalf
   iintro ⟨H1, H2⟩
   iapply ghostVar_update_halves $$ H1 H2
 
-theorem nlog_covers.wp_proof : nlog_covers.spec (GF := GF) (G := G) := by
+theorem nlog_covers.holds : nlog_covers.spec (GF := GF) (G := G) := by
   intro γ a Ln
   unfold nlogAuth covers
   iintro HL
@@ -133,7 +133,7 @@ theorem nlog_covers.wp_proof : nlog_covers.spec (GF := GF) (G := G) := by
   iframe Hlb
   ipureintro; intro k; exact Int.le_refl _
 
-theorem nlog_covers_le.wp_proof : nlog_covers_le.spec (GF := GF) (G := G) := by
+theorem nlog_covers_le.holds : nlog_covers_le.spec (GF := GF) (G := G) := by
   intro γ a Ln L
   unfold nlogAuth covers
   iintro ⟨HL, ⟨%L', Hlb, %Hle⟩⟩
@@ -142,7 +142,7 @@ theorem nlog_covers_le.wp_proof : nlog_covers_le.spec (GF := GF) (G := G) := by
   intro k
   exact Int.le_trans (Hle k) (cvOf_prefix Hp.2 k)
 
-theorem nlog_append.wp_proof : nlog_append.spec (GF := GF) (G := G) := by
+theorem nlog_append.holds : nlog_append.spec (GF := GF) (G := G) := by
   intro γ a Ln k v
   unfold nlogAuth
   iintro HL
@@ -150,7 +150,7 @@ theorem nlog_append.wp_proof : nlog_append.spec (GF := GF) (G := G) := by
   imodintro
   iexact HL
 
-theorem covers_mono.wp_proof : covers_mono.spec (GF := GF) (G := G) := by
+theorem covers_mono.holds : covers_mono.spec (GF := GF) (G := G) := by
   intro γ a L L' h
   unfold covers
   iintro ⟨%L0, Hlb, %Hle⟩

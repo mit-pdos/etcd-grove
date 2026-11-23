@@ -10,7 +10,18 @@ have): an error with a known message is an error with some message.
 -/
 module
 
-public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.rpc.Base
+public import Net.Proof.net.rpc.ClientDefs
+public import Net.Proof.net.rpc.ClientGhost
+public import Net.Proof.net.rpc.ClientRead
+public import Net.Proof.net.rpc.Codec
+public import Net.Proof.net.rpc.Errs
+public import Net.Proof.net.rpc.Proto
+public import Net.Proof.net.rpc.ProtoGhost
+public import Net.Proof.net.rpc.ServerDefs
+public import Net.Proof.net.rpc.ServerGhost
+public import Net.Spec.net.rpc.Client__Call
+public import Net.Spec.net.rpc.Client__Close
 public import Net.Proof.models_lab.Errors
 public import Dsverify.Proof.net.rpc.Init
 
@@ -23,6 +34,16 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 
 namespace github_com.despreston.go_craq
+
+/-- Net's net/rpc client specs the kit's rpc clients call (`Client.Call`, `Client.Close`), proved
+in `Net/Proof/net/rpc/Results.lean`: an instance argument of the proofs that call them, which see
+their callees through specs only (CLAUDE.md, "Import tiers"); `examples/craqnet/Link.lean` makes
+the instance from Net's proofs (not a hypothesis). -/
+class RpcClientSpecs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.rpc.Assumptions]
+    [net.FieldAssumptions] [NetProtoGS] : Prop where
+  call : net.rpc.Client.Call.spec (GF := GF) (hG := hG)
+  close : net.rpc.Client.Close.spec (GF := GF) (hG := hG)
 
 section hyps
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]

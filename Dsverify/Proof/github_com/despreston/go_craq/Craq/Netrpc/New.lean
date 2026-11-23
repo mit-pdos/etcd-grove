@@ -32,6 +32,7 @@ variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [ra : RpcHttpAddr GF]
 variable [rd : RpcHttpDial GF]
+variable [rcs : RpcClientSpecs GF]
 
 
 /-- The promoted `Connect` of a `*NodeClient`. -/

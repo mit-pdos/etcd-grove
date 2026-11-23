@@ -59,9 +59,9 @@ theorem cvOf_append_one (L : CLog) (k k' : GoString) (v : w64) :
   · have : ¬ k = k' := fun h => hk h.symm
     simp [hk, this]
 
-theorem cvOf_append.wp_proof : cvOf_append.spec := cvOf_append_one
+theorem cvOf_append.holds : cvOf_append.spec := cvOf_append_one
 
-theorem cvOf_commit.wp_proof : cvOf_commit.spec := by
+theorem cvOf_commit.holds : cvOf_commit.spec := by
   intro L k k' v
   by_cases h : uint.Z (cvOf L k) < uint.Z v
   · simp only [h, ↓reduceIte, and_true]; rw [cvOf_append_one]; simp [h]

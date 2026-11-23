@@ -74,7 +74,7 @@ theorem recRes_true (γ : CraqNames) (ri : RecInfo) :
     recRes (GF := GF) γ ri true =
       iprop(∃ P : IProp GF, savedPropOwn ri.post .discard P ∗ (P ∨ token ri.col)) := rfl
 
-theorem assign.wp_proof : assign.spec (GF := GF) (G := G) := by
+theorem assign.holds : assign.spec (GF := GF) (G := G) := by
   intro γ E hE n hn k x Q
   iintro ⟨#Hinv, Hnext, HAU⟩
   unfold isCraq
@@ -145,7 +145,7 @@ theorem read_facts {l : List (GoString × GoString)} {L : CLog} {n : w64} {R : G
     subst hk hx
     exact ⟨p, c, rfl⟩
 
-theorem read.wp_proof : read.spec (GF := GF) (G := G) := by
+theorem read.holds : read.spec (GF := GF) (G := G) := by
   intro γ E hE L k Q
   have hE' := clientN_sub_diff hE
   iintro ⟨#Hinv, Htok, HAU, Hlc⟩
@@ -227,7 +227,7 @@ theorem collect_lc2 (γ : CraqNames) (E : CoPset) (hE : ↑craqN ⊆ E) (v : w64
   iapply H2
   iexact HPr
 
-theorem collect.wp_proof : collect.spec (GF := GF) (G := G) := collect_lc2
+theorem collect.holds : collect.spec (GF := GF) (G := G) := collect_lc2
 
 /-- `valsElem_pos`, at the invariant. -/
 theorem valsElem_pos_inv (γ : CraqNames) (E : CoPset) (hE : ↑craqN ⊆ E) (v : w64)
@@ -252,7 +252,7 @@ theorem valsElem_pos_inv (γ : CraqNames) (E : CoPset) (hE : ↑craqN ⊆ E) (v 
   ipureintro
   exact ((Hwf.1 v).1 (by simp [HRv])).1
 
-theorem valsElem_pos.wp_proof : valsElem_pos.spec (GF := GF) (G := G) := valsElem_pos_inv
+theorem valsElem_pos.holds : valsElem_pos.spec (GF := GF) (G := G) := valsElem_pos_inv
 
 end laws
 

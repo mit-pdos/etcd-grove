@@ -70,7 +70,7 @@ theorem alloc_nodes (γa γc γn γr : GName) (ads : List GoString) (hads : ads.
         (fun b => if b = a then γnl else fn b) (fun b => if b = a then γj else fj b)) b
       (by simp [mkNames, hba]) (by simp [mkNames, hba]) (by simp [mkNames, hba])]
 
-theorem craq_alloc.wp_proof : craq_alloc.spec (GF := GF) (G := G) := by
+theorem craq_alloc.holds : craq_alloc.spec (GF := GF) (G := G) := by
   intro ads hads
   imod ghostVar_alloc (GF := GF) ([] : List (GoString × GoString)) with ⟨%γa, Ha⟩
   imod mono_list_own_alloc (GF := GF) ([] : CLog) with ⟨%γc, Hc, -⟩

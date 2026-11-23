@@ -28,6 +28,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [ra : RpcHttpAddr GF]
+variable [rcs : RpcClientSpecs GF]
 
 
 theorem wp_AddNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_NodeMeta.spec (GF := GF))
@@ -242,7 +243,7 @@ theorem wp_CClose (cfg : Cfg GF) (c cl : Loc) :
   wp_method_call
   wp_call
   wp_auto
-  wp_apply net.rpc.Client.Close.wp r cfg.W cfg.cAddr $$ [Hrpkg Hr] as %err -
+  wp_apply rcs.close r cfg.W cfg.cAddr $$ [Hrpkg Hr] as %err -
   · iexact Hr
   iapply HΦ
 
