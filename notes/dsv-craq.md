@@ -136,22 +136,24 @@ the shared piece lands; none is an axiom.
   it on `models-rpc-server`** (2026-11-23): Call's decode obligation will cover only replies the
   method's reply type can produce (what the server's codec encodes from a value of that type, as
   the protocol fixes); `decErr`'s docstring will mention the panic; a failed decode will promise
-  only "some field values". He will post the new statement on #24. Here, until then:
-  (1) `Codec.lean`'s `dec_*` are **restated** with the premise `tagOk t rep` (pure `getU64`,
-  `getTag`, `tagOk`, `getTag_encStr`, `tagOk_tagged` in `Codec.lean`) and failure branches giving
-  some field values (`∃ k v, p ↦ …`; Item `∃ k sl`; PropagateResponse `∃ mp', p ↦ mp'`; NodeMeta
-  `∃ m` as before); their proofs go in `CodecProof.lean` (`craqCodecLaws : CodecLaws`; status in
-  P4 (a)). (2) **`RpcCallReply GF`** (`Craq/HttpRpc.lean`, a `Prop` class, no instance): field
-  `Call : rpc.Client.CallR.spec`, Net's Call spec with the obligation `□ (D -∗ ∀ rep, Φ rep [] -∗
-  C.dec rep reply (Θ rep))` (decode only an answer the method gave; success post `∃ rep, Θ rep
-  true`). (3) `Netrpc/Defs.lean`'s **`wp_Call_tag`** derives from it, for `craqCodec`, the shape
-  the clients use: given `HT : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝`, the obligation is `□ (D -∗ ∀ rep, ⌜T
-  rep⌝ -∗ dec …)` and the post is Net's (with `Φ rep []`); `craqCodec_dec_frame`; `tagOk_*` per
-  reply (`tagOk_nil`: an empty reply has no tag). Every client in `Netrpc/` (NodeClient,
-  CoordClient, New) now uses `wp_Call_tag` with `T := tagOk <reply type>`; the `Φ`s that did not
-  pin the reply (`Ping`, `Commit`, `Write`, `Update`, coordinator `AddNode`/`Write`/`RemoveNode`)
-  gained `⌜msg = [] → …⌝`. When Net's fix lands: replace `RpcCallReply.Call` by Net's spec (its
-  premise is likely the `T`/protocol shape), drop the class.
+  only "some field values". **Landed on `origin/models-rpc-server` 2a6b4e5d12, merged here**
+  (2026-11-23; it moved the Perennial pin to `7b2259a12`: `.lake/package-overrides.json` points
+  at `/shared/perennial-7b2259a12`): Call's premise is `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep
+  reply (Θ rep))`, success post `∃ rep, Θ rep true`. Here:
+  (1) `Codec.lean`'s `dec_*` take the premise `tagOk t rep` (pure `getU64`, `getTag`, `tagOk`,
+  `getTag_encStr`, `tagOk_tagged`) and failure branches giving some field values (`∃ k v, p ↦ …`;
+  Item `∃ k sl`; PropagateResponse `∃ mp', p ↦ mp'`; NodeMeta `∃ m`); proofs in
+  `CodecProof.lean` (`craqCodecLaws`; status P4 (a)). `tagOk` is not a workaround of Net's old
+  spec but what the guard gives: the method's answer `Φ rep []` says the reply is an encoding of
+  the reply type, hence its tag. (2) `Netrpc/Defs.lean`'s **`wp_Call_tag`** is Net's
+  `Client.Call.wp` for `craqCodec` in the shape the clients use: given `HT : ∀ rep, Φ rep [] ⊢
+  ⌜T rep⌝`, the obligation is `□ (D -∗ ∀ rep, ⌜T rep⌝ -∗ dec …)` and the post keeps `Φ rep []`
+  (`craqCodec_dec_frame`); `tagOk_*` per reply type, `tagOk_nil`. Every client in `Netrpc/` uses
+  it with `T := tagOk <reply type>`; the `Φ`s that did not pin the reply (`Ping`, `Commit`,
+  `Write`, `Update`, coordinator `AddNode`/`Write`/`RemoveNode`) gained `⌜msg = [] → …⌝`. (The
+  interim hypothesis class `RpcCallReply` is gone.) Still open on Net's side (Upamanyu: same
+  shape coming): the server's `methodOk` `NewArg` owes decoding of every request body — matters
+  for the bindings (P4 (c)).
 - **H6. Perennial's `log`**: `*log.Logger`'s `Printf`/`Println`, `log.Default`, `log.Fatalf`, and
   `log.Printf` with error arguments (`notes/perennial-changes.md`, 2026-11-23). The node and the
   coordinator call them.
@@ -187,8 +189,11 @@ the shared piece lands; none is an axiom.
   false; Hash nil).
   (c) **KitProof** (in progress). `Kit.lean` now states `Codec.spec` (over `kvR γ`, remote's
   `codecOk`) and `Gen.spec` (`genSpec`, inputs `∃ x : KIn, i = ivK x`); `KitProof.lean` (new)
-  proves them and the address helpers (`wp_ServerAddrs`, `wp_ClientAddrs`, `wp_ConfAddrs`,
-  `wp_attempt`, `wp_digit`) — delegated to a sub-agent (third agent's session); check the file.
+  proves them (**done**, `lake build` green; `Codec.wp_proof` takes `[go.BasicIntoValInj]`) and
+  the helpers `wp_ServerAddrs`, `wp_ClientAddrs`, `wp_ConfAddrs`, `wp_attempt`, `wp_digit` (pre
+  `True`), `wp_flag`, `wp_encStr`, `wp_decStr`, `encOutV_outV`, `outOk_outV`. Kernel pitfall
+  seen: an inline `have … := by simp only [slice.slice, sliceIndexRef, …]` made the kernel hit
+  "deep recursion" on the whole theorem; a separate lemma (`sliceIndexRef_slice0`) fixed it.
   Still to state and prove, porting the lab's `Kit/` (3060 lines; `Craq/Proof/Kit/*.lean` in the
   lab) by editing onto remote and Net, in paxos's shape (`Kit.lean`'s `Orch.spec`/`Client.spec`/
   `Server.spec`, `KitProof.lean`):

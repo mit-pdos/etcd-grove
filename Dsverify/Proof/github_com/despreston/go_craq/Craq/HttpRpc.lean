@@ -163,49 +163,6 @@ class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [G
       (App (App (Val (@! net.http.ListenAndServe)) (Val #a)) (Val #interface.nil))
     {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ }}
 
-/-! ## The call (H5)
-
-Net's `net.rpc.Client.Call.spec` asks for the reply's decoding for every byte string (`□ (D -∗ ∀
-rep, C.dec rep reply (Θ rep))`); rpcgen's `rpcDecode` panics on a reply whose type tag names
-another type (by design), so no codec of two or more types meets it (notes/dsv-craq.md, H5;
-raised on #24). **`RpcCallReply`** is the spec as it is expected to be corrected: the decoding is
-asked for only of an answer the method gave (`Φ rep []`, which the decoding may consume; the
-caller keeps what it needs of it in `Θ`). Pending Net; no instance exists. -/
-
-section callR
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS]
-
-/-- Net's `Client.Call.spec` with the decoding asked for only of the method's answers. -/
-abbrev rpc.Client.CallR.spec : Prop :=
-  ∀ (c : Loc) (W : net.rpc.RpcWorld GF) (a sm svc M : GoString) (S : net.rpc.MethodSpec GF)
-    (args reply : GoInterface) (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF)
-    (Θ : List w8 → Bool → IProp GF) (C : net.rpc.CodecSpec GF),
-  {{ net.rpc.isClient c W a ∗ ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧
-        reply ≠ interface.nil⌝ ∗
-      net.rpc.codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
-      □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) }}
-    (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
-      (Val #sm)) (Val #args)) (Val #reply))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Θ rep true) ∨
-      (∃ msg : GoString, ⌜msg ≠ [] ∧ err = net.rpc.serverErr msg⌝ ∗ net.rpc.errMsg err msg ∗ Rargs ∗
-        (∃ rep, Φ rep msg) ∗ D) ∨
-      (⌜err ≠ interface.nil ∧ net.rpc.notServerErr err⌝ ∗ models_lab.errAny err ∗
-        ((Rargs ∗ (D ∨ ∃ rep, Θ rep false)) ∨
-          (C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D))) }}
-
-end callR
-
-/-- **H5, the call** (the section above). -/
-class RpcCallReply [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
-    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.rpc.Assumptions]
-    [net.FieldAssumptions] [NetProtoGS] : Prop where
-  Call : rpc.Client.CallR.spec (GF := GF)
-
 end github_com.despreston.go_craq
 
 end Perennial

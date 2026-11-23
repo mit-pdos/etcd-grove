@@ -67,9 +67,10 @@ theorem serverErr_inj [go.IntoValInj GoString] {m1 m2 : GoString} (h : net.rpc.s
 
 end defs
 
-/-! ## The call, over `RpcCallReply` (H5)
+/-! ## The call (H5)
 
-`wp_Call_tag`: `RpcCallReply.Call` for the kit's codec, where the method's answers (`msg = []`)
+`wp_Call_tag`: Net's `Client.Call` (`models-rpc-server` 2a6b4e5d12: decoding owed only of the
+method's answers, `Φ rep []` in hand) for the kit's codec, where the method's answers (`msg = []`)
 are the replies with property `T` (the client shows it of each answer it asks for, along with
 `Φ`), so the decoding is asked for only of replies with `T` (`T rep := tagOk t rep`: the reply's
 type tag is the target's). -/
@@ -102,7 +103,7 @@ theorem craqCodec_dec_frame (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IP
     ispecialize HΦ $$ HΨ' Herr
     iexact HΦ
 
-theorem wp_Call_tag [rc : RpcCallReply GF] (T : List w8 → Prop) (c : Loc) (W : net.rpc.RpcWorld GF)
+theorem wp_Call_tag (T : List w8 → Prop) (c : Loc) (W : net.rpc.RpcWorld GF)
     (a sm svc M : GoString) (S : net.rpc.MethodSpec GF) (args reply : GoInterface)
     (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF) (Θ : List w8 → Bool → IProp GF)
     (HT : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝) :
@@ -123,8 +124,8 @@ theorem wp_Call_tag [rc : RpcCallReply GF] (T : List w8 → Prop) (c : Loc) (W :
   have HT2 : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝ ∗ Φ rep [] := fun rep =>
     (BI.and_intro (HT rep) .rfl).trans BI.persistent_and_sep_mp
   iintro %Ψ ⟨#Hc, %Hs, #Hcs, Henc, HD, #Hdec⟩ HΨ
-  wp_apply (rc.Call c W a sm svc M S args reply Φ
-    Rargs D (fun rep ok => if ok then iprop(Φ rep [] ∗ Θ rep true) else Θ rep false) craqCodec)
+  wp_apply (net.rpc.Client.Call.wp (C := craqCodec) c W a sm svc M S args reply Φ
+    Rargs D (fun rep ok => if ok then iprop(Φ rep [] ∗ Θ rep true) else Θ rep false))
     $$ [Henc HD]
   · isplitr
     · iexact Hc

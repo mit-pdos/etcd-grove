@@ -138,9 +138,9 @@ abbrev enc_PropagateRequest.spec : Prop :=
 
 `rpcDecode(data, ptr)` reads `data`'s type tag and **panics** (`rpcNotModelled`) when the tag parses
 but names another type than `ptr`'s: so each decoding lemma assumes `tagOk t rep` (the tag, if it
-parses, is the target's). Net's `Client.Call.spec` asks for decoding of every reply (`∀ rep`), which
-no rpcgen codec of two or more types meets (H5 of notes/dsv-craq.md: pending Net; the clients use
-`RpcCallReply`, `Craq/CallHyp.lean`). A failed decoding leaves the fields decoded before the
+parses, is the target's). Net's `Client.Call.spec` asks for decoding only of the method's answers
+(`Φ rep []` in hand); the clients derive `tagOk` from the method's answer (`Netrpc/Defs.lean`'s
+`wp_Call_tag`). A failed decoding leaves the fields decoded before the
 failure written: the failure branches give some field values. -/
 
 /-- The pure `rpcGetU64`. -/
