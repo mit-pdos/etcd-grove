@@ -176,6 +176,18 @@ importing rabia's, epaxos's and this kit's `TopLevelRobustness` together elabora
 deps classes are closed, not premises). The statement (`Spec/.../TopLevelRobustness.lean`) is
 unchanged. Not run: `tcb-report --check` (needs every repository root built).
 
+**Later merges of `origin/lean`** (pin `70706ce5e` unchanged): `d9d1f32018` (dsv-quepaxa landed) and
+`b94e674a1b` (dsv-hyp-imports). `encoding/gob` is now shared with dsv-quepaxa: one toml, names
+**and types** (`translate_types = true`: this kit's gob specs name `Encoder`/`Decoder`; a superset of
+quepaxa's names-only translation, `goose --check` passes for both projects), lean's
+`Proof/encoding/gob/{Base,Init}.lean` (the same `InitHyp` as this branch's; the package fact moved to
+`Base.lean`). After the merges: all 619 kit modules and `Dsverify.Proof.raxos.examples.quepaxanet.
+TopLevelRobustness` build; the four kits' `TopLevelRobustness` (rabia, epaxos, swiftpaxos, quepaxa)
+import together; `dups.py` finds no real duplicate. **Not adopted:** dsv-hyp-imports' per-package
+`HYP_IMPORTS` dict (it would let `math.rand` go back into `HYP_INITS`, `etc/dsv/swiftpaxos.py`
+line 75's workaround); the boot uses `math.rand.InitHyp` by hand, which works; a possible
+simplification for later.
+
 ## State (2026-11-23, thirteenth session; superseded where the fourteenth says so)
 
 Read with the twelfth session's state below (accurate where this does not say otherwise).
