@@ -1,195 +1,161 @@
-# A state-determined interpretation for the file extension's tree (design, 2026-11-23)
+# One state-determined view of the file extension's tree (design, 2026-11-23, revised)
 
-Upamanyu: "The ghost state inside of the state interp should just be determined from the state. I
-don't see why there'd be a need to do any ghost updates there." Design only, against `lean`
-`f85bfe0827` (kvnet-proof merged). Agreed on etcd-grove #15; perennial#683 lands part 1 only.
+Upamanyu: "The ghost state inside of the state interp should just be determined from the state."
+Revision: "Our goal is not to keep diffs in our git history minimal. Our goal is to end up with a
+clean and complete proof. So, we should retire the legacy view if it's unnecessary." This is a
+design only, against `lean` `f85bfe0827`, with perennial#683 part 1 landed as Perennial `48401b6ba`.
+The first version, which kept two views, is superseded and in this file's history.
 
 ## 1. Today
 
-`osCtx` (`GooseLang/Ext/Fs/Ghost.lean:1409`) is `osCtxF ∗ treeCtx ∗ ofdCtx ∗ lockCtx`. Its tree part
-`treeCtx hL st := (treeLegacy hL st ∨ treeShared hL st) ∗ commitRes hL st` (`Ghost.lean:1263`) is a
-**mode**: which disjunct holds is not a function of `st`. In detail:
+The tree part of `osCtx` (`GooseLang/Ext/Fs/Ghost.lean:1409`) is a **mode**:
+`treeCtx := (treeLegacy ∨ treeShared) ∗ commitRes` (`:1263`).
+- Which disjunct holds is not a function of `st`.
+- `legacyHolds` (`:1138`) holds every shared authority empty, whatever `st` is.
+- `treeShared` (`:1252`) freezes the legacy history at `V0`. It also keeps the whole `γd` fragment
+  itself, and the switch point `s0` as ghost state (`TreeCohS`, `:1225`).
 
-- **The disjunction itself** (`:1263`): nothing in `st` says which mode holds.
-- **`legacyHolds`** (`:1138`), inside `treeLegacy` (`:1242`): the authorities of the shared names
-  (`γs γdfS γcS γperm γn γlen γlog γg`, `OsGS` at `:643-660`), all **empty**, whatever `st` is.
-  This is why no shared resource can exist in legacy mode.
-- **`treeShared`** (`:1252`) holds three things that `st` does not determine. The legacy history is
-  frozen at `V0`: `gAuth γd (histMap (roots, V0))`, and the interpretation keeps the whole fragment
-  `gElem γd () 1 (roots, V0)` itself. The switch point `s0`, the legacy prefix that `TreeCohS`
-  exempts (`:1225`), is also ghost. And `γdf`/`γc` are kept empty.
-- **Off-step updates between them:** `treeCtx_switchG` (`TreeSharedKit.lean:88`) fills
-  `legacyHolds`' auths and freezes `γd`; `osShare_ctx`/`wp_osShareE`/`wp_osShareE_upd`
-  (`TreeSharedSwitchE.lean:36,110,170`) and `wp_osShareE_acc` (`TreeSharedKit.lean:186`) are the same
-  switch via `wp_ext_acc`; `wp_osShare'` (`TreeSharedSwitch.lean:311`) does it at a `CallBegin`;
-  `os_local_crash`'s shared branch rewrites the old `γd` (`CrashTok.lean:410`), and
-  `crashMode`/`crashShared` (`:178,189`) carry the mode into the crash rest.
-- **Not modes, and not addressed here:** the per-call and per-fd annotations (call fractions in `Γc`,
-  logging vs guard calls `Γg`, `DirPh` views) and the files' refinements in `osCtxF` (`OsMeta`'s
-  ghost fields, `CandRel` cuts). They change only in step proofs, at the step that creates them. Every
-  other `wp_ext_acc` user (`TreeSharedRoots.lean:69`, `wal/MetaZf.lean:36`, `WpPostShared.lean:71`)
-  only reads and restores the interpretation. `commitRes`'s `∃ c` is ghost too, but it can be made
-  `c := committed prefix of st` at no cost (optional, stage 5).
+These are updated off-step:
+- `treeCtx_switchG` (`TreeSharedKit.lean:88`);
+- `osShare_ctx`, `wp_osShareE` and `wp_osShareE_upd` (`TreeSharedSwitchE.lean:36,110,170`), and
+  `wp_osShareE_acc` (`TreeSharedKit.lean:186`);
+- `wp_osShare'` (`TreeSharedSwitch.lean:311`);
+- `os_local_crash`'s shared branch (`CrashTok.lean:410`), with `crashMode`/`crashShared` (`:178,189`).
 
-**Why there are two modes** (`notes/wal-fsext-i2-design.md` §0.2, §2.1):
-*Legacy* (walfs, crashlog, bboltfs, `Proof/os/{Ns,OpenFile,Crash*}`): `osTree dq R V`
-(`World.lean:168`) is a fraction of `γd`, calls and dir fds hold fractions, the log is `Sequential`,
-a crash gives a prefix (`crashRest_tree`, `CrashTok.lean:346`). *Shared* (the WAL, kvnet): claims
-`osNames` under `osSharedInv R` (`TreeSharedRes.lean:228`), call permissions, a crash keeping a
-closed cut (`crashRest_region'`, `TreeSharedCrash.lean:94`). Exclusion is by validity: the shared
-invariant holds `γs` whole, legacy mode has `γs`'s auth `∅` (`sharedInv_legacy_excl`, `:82`).
+A crash can come before a generation's first step, so a crash frame that owns the shared invariants
+needs the switch before the WP. That needs the interpretation, which is why `CrashAdequacyAcc.lean`,
+`AdequacyShared.lean` and kvnet's `TopBridge.lean` (perennial#683 part 2) exist. Per-call and
+per-file annotations (call fractions, `Γg`, `OsMeta`'s ghost fields) are not modes. They change only
+in step proofs, and they stay (§5).
 
-**What the crash frame needs.** A generation's crash frame is fixed when its obligation returns
-`WP ∗ frame`. The WAL's frame (`tester_crash`, kvnet's `kvGen_crash`) must already own `osSharedInv`
-and the client invariants that hold claims, because a crash can come before the first step. So the
-switch has to happen before the WP, and today it needs the interpretation. Hence `CrashAdequacyAcc.lean`
-(`goose_crash_adequacy_acc`, `:225`), `AdequacyShared.lean:41`, and kvnet's `TopBridge.lean`
-(`CrashBootWpG`, the shape of perennial#683 part 2). `TopCrash.lean` handles the other choice: a
-crash in the window before a first-step switch.
+## 2. The single view
 
-## 2. Proposed design
-
-**The interpretation keeps one shape, with no mode.** `γd` and `γs` merge into one name `γH`:
+**Interpretation.** It keeps one shape, and the authority is a function of `st`:
 
 ```
-treeCtx hL st := ∃ Γdf Γc ΓdfS ΓcS Γg s0,
-  ⌜FsTreeWf st ∧ TreeCohL st Γdf Γc ∧ TreeCohS st s0 ΓdfS ΓcS Γg ∧ Part st Γdf ΓdfS Γc ΓcS Γg⌝ ∗
-  gAuth γH (histMap (st.fs.roots, (st.fs.treeDur, st.fs.metaLog))) ∗       -- a function of st
-  gAuth γdf Γdf ∗ gAuth γc Γc ∗ rdRes Γdf ∗ callRes Γc ∗                     -- legacy records
-  gAuth γdfS ΓdfS ∗ gAuth γcS ΓcS ∗ callResS ΓcS ∗ gAuth γg Γg ∗ callResS Γg ∗ commitRes st
+treeCtx hL st := ∃ Γdf Γc Γg, ⌜FsTreeWf st ∧ TreeCohS st Γdf Γc Γg⌝ ∗
+  gAuth γs (histMap (st.fs.roots, (st.fs.treeDur, st.fs.metaLog))) ∗
+  gAuth γdfS Γdf ∗ gAuth γcS Γc ∗ callResS Γc ∗ gAuth γg Γg ∗ callResS Γg ∗ commitRes st
 ```
 
-- `Part`: each of `st`'s dir fds and calls is in exactly one family. `TreeCohL` is today's `TreeCoh`
-  minus `hist` and `seq`. `s0` is a pure witness, not ghost state.
-- `γn`, `γlen`, `γlog` leave the interpretation entirely (their auths there were only ever `∅`).
+- `γd`, `γdf`, `γc`, `treeLegacy`, `legacyHolds`, `TreeCoh`, `rdRes` and `callRes` are deleted.
+- `s0` goes, because every generation's log starts empty. So `TreeCohS` loses its legacy-prefix
+  exemptions (`CallsK.after`'s `y < s0`, and `RootCoh`/`LogValid` from `s0`).
+- `commitRes` sets `c` to `st`'s committed prefix.
 
-**The whole tree carries both views.** `osTree` keeps its name, its signature and its laws
-(fractional, agreement, timeless). Its body becomes:
+**Start and crash hand out the shared view directly.** The shared view is the only view.
+- `os_local_init` allocates `γn`, `γlen`, `γlog` and `γperm` already filled in (the claims of
+  `claimsInit`, length 0, the empty log, every permission whole).
+- `fs_start` allocates `osInv` and `osSharedInv`/`osAboveInv` together and returns
+  `osShared R (treeDur, [])`. `fs_start` is a fancy update already, since it allocates `osInv`.
+- At a crash, `os_local_crash` updates nothing. `crashRest` keeps the old `γs` authority and the
+  closed-cut facts (`osCrash_relS`), plus the new generation's filled-in names.
+- `crashRest_treeS'` (`TreeSharedCrash.lean:184`) allocates the new invariants and returns
+  `osShared L' R V'`.
+- `crashRest_region'` and `crashRest_treeWf'` keep their statements.
+- `osTree`, `osDir`, `osDirFd`, `osCall`, every `wp_os*G`, `crashRest_tree`, `osTreeCrash_take`,
+  `TreeCrashed` (as a client fact) and the switch lemmas are deleted.
 
-```
-osTree dq R V := gElem γH () dq (R, V) ∗ ⌜Sequential V.2⌝ ∗ osCallPerms_dq R ∗ osKit_dq R V
-osKit_dq R V := ghostMapAuth γn dq (claimsInit V (dirsOf V)) ∗ [∗ j ∈ dirsOf V] osNames j (.except []) dq _
-              ∗ monoNatAuth γlen dq |V.2| ∗ ghostMapAuth γlog dq (logMap V.2)
-```
+**Adequacy.** There is one theorem per semantics. `fs_crash_adequacy`, `fsQ_` and `fsSQ_` take the
+shape `fsSQ_crash_adequacyShared` has now (`AdequacyShared.lean:41`):
+- `Hstart` and `Hwp` get `osShared`;
+- the crash frame gets `osInv L'` and `crashRest`.
 
-- `os_local_init` allocates these names already filled in, and `osStart`/`treeStart` hands out
-  `osTree 1 R (treeDur, [])` as today. So `fs_start`, `fs_crash_adequacy` and `fsStartRes` keep their
-  text. `legacyHolds` disappears.
-- `callRes`/`rdRes` hold `osTree`-shaped fractions. A legacy logging step re-initialises the kit to
-  the new `V`, using ghost state it holds whole (`osTree_relog`, a proof-side `==∗`).
+They are proved over Perennial's plain `goose_crash_adequacy`. `CrashAdequacyAcc.lean` is deleted.
 
-**The legacy view** is `osTree` held directly. The legacy specs keep their statements.
+**What legacy gave and the shared view must give.**
+- *Exclusive ownership:* whole claims `osNames j (.except []) 1 h` on a region's directories, plus
+  the key's whole `osCallPerm`. A directory rename needs the latter (`wp_osRenameDirS`,
+  `TreeShared.lean:353`).
+- *Exact directory reads:* the claim presented at each read (`wp_osDirReadNextS`).
+- *A crash that leaves a prefix:* a new pure lemma, `regionCrashed_seq`. It applies to a region
+  whose calls each began after the region's previous entry, as a single thread's do when it carries
+  `osLogLb` from one call to the next. For such a region, `RegionCrashed`'s closed set is a prefix of
+  the region's entries.
 
-**The shared view** comes from a proof-side allocation, a plain fancy update that never touches the
-interpretation:
+Every legacy spec has a shared twin: Unlink, Rmdir, Mkdir, OpenCreate, OpenFile, OpenDir, LstatDir,
+CallBegin, DirReadNext, DirClose and Rename (file, dir, absent). DirSync is shared only. No client
+needs exclusive direct ownership outside the invariant. The claims' authority sits in
+`osSharedInv`, and whole claims and permissions are already the "exclusive tokens inside the shared
+invariant".
 
-```
-osShare R V : osTree 1 R V ={E}=∗ osShared R V     -- osSwitchKit_open, with γH ◯1 put in osSharedInv
-```
+## 3. Per-client migration (the clean end state)
 
-`osSharedInv` holds `gElem γH () 1 (R, Vs)` where it now holds `γs`. Exclusion still comes from
-validity, now with no help from the interpretation:
-- A shared logging step opens the invariant and gets `γH ◯1`. So no legacy record exists
-  (`whole_aloneG`, `TreeSharedKit.lean:53`).
-- A legacy logging step holds `osTree 1`, so it holds every call permission whole. So no shared or
-  guard call is in flight (their `callResS` hold fractions). The step re-establishes `TreeCohS` at
-  `s0 := |log|`, from `osTree`'s `Sequential`, as `cohS_switch` does (`TreeSharedSwitch.lean:115`).
-- A non-logging step of one family leaves the other's coherence alone (`TreeCohS.congr` and its
-  legacy twin). Shared dir fds hold nothing, and `PhOkS` survives any entry.
+No trusted change: `Impl.lean`, `Tree.lean`, `Paths.lean`, `Premises.lean` and Perennial's adequacy
+stay as they are. No top-level statement changes, and these stay as they are:
+- `TopLevelRobustness` specs;
+- the osfs/netfs/bbolt `Results` statements (all execution-level);
+- `etcd_wal_*`.
 
-**The crash.** `TreeCohS` now always holds, so `os_local_crash` takes one branch. It uses
-`osCrash_relS` (`CrashFiles.lean:148`) and allocates the new generation fresh by `os_local_init st'`,
-as now. It updates nothing:
-- `crashRest` keeps the old `γH` authority, which is the crashed state's history, and the closed-cut
-  facts. `crashMode` and `crashShared` go.
-- `treeLeft` holds the new `osTree' 1 R V'`, kit included.
-- `crashRest_region'`, `crashRest_treeS'` and `crashRest_treeWf'` keep their statements. Their proofs
-  lose the legacy case.
-- `crashRest_tree` keeps its statement. It gets `TreeCrashed W V'` from the cut and the `Sequential
-  W.2` of the old `osTree` it is given (a new pure lemma, §5).
+kvnet's top level gets stronger: it loses `Hb`.
 
-So a crash frame needs no update: the old `osSharedInv` is persistent and already in the frame; the
-new tree and kit arrive through `crashStart`; the next generation's obligation runs `osShare` before
-its WP. Plain Perennial adequacy suffices.
-
-## 3. Per-client impact
-
-No trusted part changes: `Impl.lean`, `Tree.lean`, `Paths.lean`, `Premises.lean` and Perennial's
-adequacy theorems stay as they are. Only the untrusted `fs_interp`/`fs_crash_interp` and the proof-side
-vocabulary change. No top-level statement changes, except kvnet's, which gets stronger (it loses a
-hypothesis).
-
-| Client | What changes | Size |
+| Client | Rewrite | Size (touched lines) |
 |---|---|---|
-| `Ext/Fs` core | `Ghost.lean` (`treeCtx`, `os_local_init`, `osStart`), `World.lean` (`osTree`, laws, legacy steps' `osTree_relog`), `CrashTok.lean` (single-branch `os_local_crash`, `crashRest`), new Seq+cut→`TreeCrashed` lemma, ~20 `TreeShared*.lean` step proofs (`γs`→`γH`, `Part`, legacy branch dropped), `TreeSpecs*`; delete `TreeSharedKit`'s G-half, `CrashAdequacyAcc.lean` (268); `AdequacyShared` re-proved over `fsSQ_crash_adequacy`, statement kept | +1.2k / −1.0k, ~1.5 agent-weeks |
-| bboltfs, crashlog, walfs (incl. `Boot`, `DSBase`), `Proof/os/{CrashOps,CrashFile}` | none in statements; three `unfold osTree` become `osTree_agree`/`osTree_timeless` | ~15 lines |
-| `Proof/os/PathKindS.lean` | the legacy-exclusion branch goes (`:93-101`, `:168-176`) | −20 |
-| WAL proofs (`Proof/go_etcd_io/etcd/server/v3/storage/wal/*`) | none: `osShared`, `osNames`, `crashRest_region'/treeS'/treeWf'` keep their statements | 0-30 |
-| WalTester | none: `fsSQ_crash_adequacyShared` keeps its statement, only its proof changes | 0 |
-| `etcdstart/WalAreas`, `runtime/StartFiles` | `wp_osShareE` kept as a 3-line wrapper over `osShare`, or call `osShare` directly | 0-20 |
-| kvnet (`TopBoot`, `ReplicaLinked`, `TopBridge`, `TopLevelRobustness`, `TopCrash`) | `kvGen_boot` drops its `localCtx σ` argument and uses `osShare`; `kvRep_gen` proves `CrashBootWp` (with `£ 1`) instead of `CrashBootWpG`; delete `TopBridge.lean` and `raft_kvnet_robust_of_errors`'s `Hb`; `TopCrash`'s pre-switch window becomes dead code (delete it) | −150 / +40 |
-| `Net/Statement/NetFsBridge.lean` | `CrashBootWp`'s frame gains `£ 1 -∗`, from #683 part 1 | ~15 |
-| osfs/netfs `Results`, bbolt `Results` | none | 0 |
+| **`Ext/Fs` core** | delete `TreeSpecs{,DirFd,Meta,Open}.lean` (2.5k), `World.lean`'s legacy half (~500), the legacy parts of `TreeCommit`/`TreeCrashLb`/`TreeCrashCommit`/`CrashFiles`/`CrashTok` (~700), `TreeSharedKit`/`Switch`/`SwitchE` but their allocation helpers (~700), `CrashAdequacyAcc` (268), `AdequacyShared` (folded in); rewrite `treeCtx`, `os_local_init`/`crash`, `fs_start`, the three adequacy theorems, `crashRest_treeS'`; drop `s0` and the legacy-case splits from ~20 `TreeShared*.lean` step proofs; add `regionCrashed_seq` | −5.5k / +1.5k; 2-3 agent-weeks |
+| **`Proof/os` legacy** | retire `Ns.lean`, `OpenFile.lean`, `Spec/os/OpenFile.lean` (shared `NsS`/`OpenFileS` exist); rebase the crash-aware file layer `Crash`, `CrashFile` (`cfInv`), `CrashFileQ`, `CrashOps`, `CrashSt` (`csInv`), `CrashStOps`, `CrashStSpec` (~4.2k) from "half of `osTree`" to "half of the name's claim plus a spine fraction", with `TreeOkI` restated over `RegionCrashed`. The by-fd operations and the pure parts (`cfRange`, `CrashOk`, which the real bbolt and the WAL's `Inv.lean` use) stay | ~1.5-2k of 4.2k; 1.5 agent-weeks |
+| **walfs** (`SegLog*`, `DirSwap*`, `DS*`, `Boot`, Results 5.5k) | the heaviest client. Its 139 `osTree`, 20 `osCall` and 18 `TreeCrashed` uses move to whole claims on its directory (and, for `DirSwap`, on the swapped directories), `osCallPerm` whole for `rename` of a directory, `*S` specs, and `regionCrashed_seq` in place of `TreeCrashed`. The `DSTree`/`DSCheck` invariants restated over `NamesH` histories | ~3k of 5.5k; 2 agent-weeks |
+| **crashlog** (`Boot` 702, Results) | `cfInv` users follow `Proof/os`; its start/crash (`startAt_start`, `treeCrashed_nil`) over the file's claim | ~300; 2-3 days |
+| **bboltfs/minibolt** (Specs `Open`, `testMinibolt{,Concurrent}`; proofs `Open`, `CrashImg`, `CrashOk`, `DBCrash`, Results) | the three Spec files state `osSharedInv R ∗` the db file's claim, a spine and a call permission instead of `osTree 1 R V`; the crash proofs follow `csInv`'s new tree part; page/byte reasoning untouched | ~600-900; 1 agent-week |
+| **WAL proofs** | already shared; `wal/BootCrash*` and `Crash` call `crashRest_treeS'`, which now returns `osShared` directly; a few `icases` | ~50-100 |
+| **WalTester** | `fsSQ_crash_adequacyShared` renamed to the one `fsSQ_crash_adequacy` (same shape); `durable`'s copies unchanged | ~20 |
+| **`etcdstart/WalAreas`, `runtime/StartFiles`** | drop `wp_osShareE`; take `osShared` from `fs_start` | ~60 |
+| **osfs/netfs `Results`, `Net/Statement/NetFsBridge`** | `fsStartRes` holds `osShared`; `CrashBootWp`'s frame gains `£ 1`; the Results' proofs adapt to the new adequacy shape | ~150 |
+| **kvnet** | `kvGen` holds `osShared`; `kvGen_boot` loses its `localCtx σ` argument and its switch; `kvRep_gen` proves `CrashBootWp` (plain adequacy plus `£ 1`); delete `TopBridge.lean`, `TopCrash.lean` (the pre-switch window no longer exists) and `Hb` in `TopLevelRobustness` | −400 / +80; 3 days |
+| `GooseLang/Ext/OsFs/*` (`osFsExt`) | has no tree ghost; unaffected | 0 |
 
-## 4. Migration order (each stage lands alone, with the full build green)
+Total: about 7k lines touched, net about −6k. Roughly 8 agent-weeks, which can run in parallel after
+stage 1.
 
-0. **Perennial #683, part 1 only** (`£ 1` per crash), then the pin bump. Callers gain a `_`.
-   `NetFsBridge`'s `robust_of_netFsBoot_addrs` passes the credit to `CrashBootWp`.
-1. **The interpretation.** The new `treeCtx`, `osTree`, kit and `os_local_crash`, plus `osShare`.
-   Every old switch lemma stays as a wrapper with its statement unchanged:
-   - `wp_osShareE`, `wp_osShareE_acc` and `wp_osShare'`: `osShare` and the continuation.
-   - `osShare_ctx`: frames `localCtx` untouched.
-   - `treeCtx_switchG`: becomes an `==∗` that ignores `treeCtx`.
+## 4. Migration order
 
-   No client file changes, apart from the `unfold osTree`s and `PathKindS`.
-2. **Adequacy.** `AdequacyShared` re-proved over `fsSQ_crash_adequacy`, with the switch in the
-   generation's obligation. Delete `CrashAdequacyAcc.lean`. WalTester needs no change.
-3. **kvnet's first generation without part 2.** `Hstart` gets `fsStartRes`, that is `osTree 1`, which
-   now contains the kit. The generation obligation `P L ⊢ threadTok ={⊤}=∗ WP ∗ frame` runs `osShare`
-   and `durBoot` before the WP, so the frame owns `osSharedInv` and `kdFileInv` before any crash.
-   Later generations do the same from `crashRest_treeS'`. Delete `TopBridge`/`Hb`. Needs stages 0 and 1.
-4. **Cleanup.** Retire the wrappers (`osShare_ctx`, `wp_osShareE_upd`, `treeCtx_switchG`) and move
-   their users to `osShare`.
-5. **Optional.** `commitRes` with `c` determined by `st`. Legacy calls as shared calls holding every
-   key, which would make one record family.
+0. **Pin bump to a Perennial `lean` with `48401b6ba`** (#683 part 1, `£ 1` per crash). Adapt the
+   callers (one extra `_`). `NetFsBridge` threads the credit to `CrashBootWp`.
+1. **Shared-view adequacy and start, alongside legacy.** Land `fs_start'` (returns `osShared`),
+   `crashRest_treeS'` returning `osShared`, the new `fs*_crash_adequacy` shapes, and
+   `regionCrashed_seq`, beside the old ones. Allocating the shared names filled in at `os_local_init`
+   needs `legacyHolds` gone, so this stage also makes the interpretation's shared half
+   state-determined. The legacy half is not removed yet.
+2. **Clients, in parallel, each landing alone** on the new API:
+   - kvnet (needs stage 0);
+   - WalTester, `etcdstart`, `StartFiles`, the WAL proofs;
+   - `Proof/os`'s crash-aware layer, then crashlog and bboltfs;
+   - walfs.
+
+   Each deletes its uses of `osTree`/`wp_os*G`/`TreeCrashed`.
+3. **Retire legacy.** Delete `treeLegacy`, `γd`/`γdf`/`γc`, the `wp_os*G` and `TreeSpecs*` specs,
+   the switch lemmas and `CrashAdequacyAcc`. Drop `s0` from `TreeCohS` and re-prove the shared step
+   proofs. Then the interpretation has exactly the shape of §2. This lands once `etc/importers.py
+   --uses osTree` finds no user outside the files being deleted.
 
 ## 5. Risks and open questions
 
-- **Allocating before a first crash without the interpretation: yes.** Everything `osShare` consumes
-  is a fragment handed out at `local_init`/`local_crash` (`osTree 1` with its kit). The generation's
-  obligation is a fancy update before `WP ∗ frame`, in Perennial's single-node and distributed
-  theorems alike. The one requirement is that `os_local_init` fill the kit's auths, which today are
-  `∅` in `legacyHolds`.
-- **Credits at a crash.** `osSharedInv`'s body is timeless, so `crashRest_region'`/`treeS'` need no
-  credit. Only client invariants whose bodies are not timeless need one (kvnet's `kdFileInvK`). That
-  uses the single `£ 1`: strip all such laters in one `lc_fupd_elim_later` after opening them together.
-  A future frame that must open invariants in sequence, under nested laters, would need more. Part 1's
-  soundness argument allows any fixed number of credits per crash.
-- **The new pure lemma** (`Closed S ∧ Sequential log ∧ slotAfter … → TreeCrashed`). It replaces
-  `osCrash_rel`'s direct proof. Expected to be easy, since a closed set of a sequential log is a prefix.
-  Fallback: `TreeCohS` keeps `Sequential (log.take s0)` and `crashRest` carries `osCrash_rel`'s fact
-  for the prefix.
-- **`Part` and the `TreeCohS` fields `cover`/`fds`.** These change from "mirrors all of `st`" to
-  "mirrors its family". The change runs through every shared step proof. It is mechanical but the
-  bulk of stage 1.
-- **The perms inside `osTree`** are what exclude a legacy logging step while shared calls are in
-  flight. Without them, legacy logging could break `CallsK`. Check that no legacy client lets
-  `osTree`'s fractional split depend on the old body (only the three `unfold`s above do).
-- **Strictness.** The step-time annotations of §1 still exist under `∃`. If Upamanyu wants them to be
-  literal functions of `st` too, the call fractions and the files' `OsMeta` would have to move into
-  client-held fragments. That is a much larger change, which this note does not size.
-- **kaashoek's `putget-dist` finding** (`fsSemWithS`, `Premises.lean:36`, keeps the default
-  `initLocal`). Fixing it is a *trusted* change and is kept separate from this untrusted one. Proposal:
-  `initLocal st _ := FsInit st`, under `/fix-semantics` with sign-off. It is orthogonal to this design,
-  which already assumes `FsInit` at `local_init`.
+- **`regionCrashed_seq`.** It needs each call's start above the region's previous entry, carried
+  through `osLogLb`. That is cheap for single-threaded walfs and crashlog. For minibolt's concurrent
+  test, check that only one goroutine does path operations.
+- **walfs's restatement** is the largest unknown. `DirSwap`'s invariants are stated over whole
+  histories `V` (`DSTree`). Moving them to per-directory `NamesH` histories could reshape them, not
+  just rename them. Do a spike on `DSTree` first.
+- **The crash-aware file layer** (`csInv`): masks. Its invariant now nests `osShN` opens inside
+  steps that already open `osN`. `osShN_sub` (`TreeSharedSwitch.lean:241`) handles this for the
+  existing shared specs. Each `CrashStOps` spec needs `↑osShN ⊆ E`.
+- **Credits:** `osSharedInv`'s body is timeless, so it needs no credit. The one `£ 1` per crash
+  covers kvnet's `kdFileInvK`. A frame that must open non-timeless invariants under nested laters
+  would need more; #683's argument allows any fixed number.
+- **Strictness:** per-call fractions, `Γg` and the `OsMeta` ghost fields remain under `∃`, and are
+  only ever updated at steps. Making them literal functions of `st` is not sized here.
+- **Trusted, separate:** kaashoek's `putget-dist` finding (`fsSemWithS`, `Premises.lean:36`, needs
+  `initLocal := FsInit`). It goes through `/fix-semantics` with sign-off, independently of this
+  design.
 
 ## 6. Collisions
 
-- **kaashoek's WAL branches (#15).** `wal-nostorageok` (blocked on perennial#661) and `net-swap` do
-  not touch `GooseLang/Ext/Fs` (kaashoek, 2026-11-23). The landed `wal-safe` work is the main user,
-  through `AdequacyShared`/`TreeSharedKit`; stage 2 keeps its statements. A new WAL branch that
-  unfolds `treeShared`/`treeCtx` should wait for stage 1 or use the wrappers.
-- **dsverify ports on `Net/`** (#24, #28: `lib/remote`, etcd-dist, `net-swap`, `putget-dist`): only
-  the `CrashBootWp` `£ 1` edit to `NetFsBridge.lean` can conflict; land it as one small commit, say so on #28.
-- **kvnet.** Stage 3 edits `TopBoot`, `ReplicaLinked`, `TopLevelRobustness`, and deletes `TopBridge`
-  and `TopCrash`. Any kvnet relink in flight should land first, or rebase onto stage 3.
+- **#15 (kaashoek).** `wal-nostorageok` and `net-swap` do not touch `GooseLang/Ext/Fs`. The landed
+  `wal-safe` work is a client (stage 2). Any new WAL or bbolt branch should state its specs over
+  `osShared` from now on.
+- **#24/#28 (`Net/`, `lib/remote`, `putget-dist`, `net-swap`).** Stage 0's and stage 2's edits to
+  `NetFsBridge.lean` (`£ 1`, `fsStartRes`) can conflict. Land them as small commits and announce them
+  on #28.
+- **kvnet.** Its stage-2 edits (`TopBoot`, `ReplicaLinked`, `TopLevelRobustness`; deleting
+  `TopBridge`, `TopCrash`) should go after any kvnet relink in flight.
+- **The real bbolt proof** (`Proof/go_etcd_io/bbolt`) is already shared. It imports only
+  `CrashFile`'s pure parts, which stay.
