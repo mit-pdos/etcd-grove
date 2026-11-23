@@ -165,7 +165,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
     iframe Hf Herr Htk Hdone Hpost Hcol Hnmn HD
     isplitr
     · rcases reply with e | _
-      · simp only [bodyDec]
+      · simp only [bodyDecG]
         iframe Hset
         iexact Hdec
       · exact absurd rfl Hsv.2.2.1
