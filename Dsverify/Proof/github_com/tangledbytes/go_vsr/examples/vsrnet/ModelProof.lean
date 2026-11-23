@@ -356,6 +356,186 @@ theorem wp_erase (p : GoSlice) (P : List Pair') (v : Pair') :
     · simp only [↓reduceIte]
       iexact Hq
 
+/-- `set`'s element map. -/
+def setG (k v : GoString) (e : Pair') : Pair' := if e.K' = k then Pair'.mk k v else e
+
+/-- `set` on a `Pair` list. -/
+def setL (P : List Pair') (k v : GoString) : List Pair' :=
+  if P.any (fun e => decide (e.K' = k)) then P.map (setG k v) else P ++ [Pair'.mk k v]
+
+theorem pairsOf_setP (p : List (GoString × GoString)) (k v : GoString) :
+    pairsOf (setP p k v) = setL (pairsOf p) k v := by
+  unfold setP setL pairsOf setG
+  have ha : ((p.map (fun x => Pair'.mk x.1 x.2)).any (fun e => decide (e.K' = k))) =
+      p.any (fun x => decide (x.1 = k)) := by simp [List.any_map, Function.comp_def]
+  rw [ha]
+  split
+  · simp only [List.map_map]
+    congr 1
+    funext x
+    simp only [Function.comp_apply]
+    split <;> simp_all
+  · simp
+
+theorem map_setG_id (P : List Pair') (k v : GoString)
+    (h : P.any (fun e => decide (e.K' = k)) = false) : P.map (setG k v) = P := by
+  induction P with
+  | nil => rfl
+  | cons e t ih =>
+    simp only [List.any_cons, Bool.or_eq_false_iff, decide_eq_false_iff_not] at h
+    simp [setG, h.1, ih h.2]
+
+theorem wp_set (p : GoSlice) (P : List Pair') (k v : GoString) (hP : P.length < 2 ^ 60) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ p ↦*□ P }}
+      (App (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.set)) (Val #p)) (Val #k))
+        (Val #v))
+    {{ (q : GoSlice), RET #q; q ↦* setL P k v }} := by
+  wp_start as #Hp
+  ihave %Hl := ownSlice_len _ _ _ $$ Hp
+  wp_auto
+  wp_apply (wp_slice_make3 (V := Pair') (W64 0) (p.len + W64 1) (by word)) as %q0 ⟨Hq, Hcap, -⟩
+  rw [List.replicate_zero]
+  ihave HI : (∃ (i : w64) (q : GoSlice), "i" ∷ i_ptr ↦ i ∗
+      "found" ∷ found_ptr ↦ (P.take (sint.nat i)).any (fun e => decide (e.K' = k)) ∗
+      "q" ∷ q_ptr ↦ q ∗
+      "Hq" ∷ q ↦* (P.take (sint.nat i)).map (setG k v) ∗
+      "Hcap" ∷ ownSliceCap Pair' q (DFrac.own 1) ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z p.len⌝ : IProp GF) $$ [i found q Hq Hcap]
+  · iexists W64 0, q0
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    rw [h0]
+    simp only [List.take_zero, List.any_nil, List.map_nil]
+    iframe
+    ipureintro
+    exact ⟨by word, by word⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z p.len := by assumption
+    list_elem P (sint.nat i) as x
+    have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z p.len from ⟨Hi0, hlt⟩)]
+    wp_apply wp_load_slice_index p (sint.Z i) P _ x Hi0 $$ [Hp] as -
+    · iframe Hp; ipureintro; exact Hx_lookup
+    wp_if_destruct
+    · wp_apply wp_slice_literal (V := Pair') [Pair'.mk x.K' v]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := Pair') $$ [$Hq $Hcap $Hsl] as %q' ⟨Hq', Hcap', -⟩
+      wp_for_post
+      iframe
+      iexists i + W64 1, q'
+      rw [hs, take_succ_of P _ x Hx_lookup]
+      simp only [List.any_append, List.any_cons, List.any_nil, decide_true, Bool.or_true, Bool.true_or,
+        List.map_append, List.map_cons, List.map_nil, setG, ↓reduceIte]
+      iframe
+      ipureintro
+      exact ⟨by word, by word⟩
+    · wp_apply wp_slice_literal (V := Pair') [x]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := Pair') $$ [$Hq $Hcap $Hsl] as %q' ⟨Hq', Hcap', -⟩
+      wp_for_post
+      iframe
+      iexists i + W64 1, q'
+      rw [hs, take_succ_of P _ x Hx_lookup]
+      have hxk : x.K' ≠ k := by assumption
+      simp only [List.any_append, List.any_cons, List.any_nil, hxk, decide_false, Bool.or_false,
+        List.map_append, List.map_cons, List.map_nil, setG, ↓reduceIte]
+      iframe
+      ipureintro
+      exact ⟨by word, by word⟩
+  · have heq : sint.Z i = sint.Z p.len := by omega
+    have hn : sint.nat i = P.length := by
+      rw [Hl.1]; show (sint.Z i).toNat = _; rw [heq]
+    rw [hn, List.take_length]
+    unfold setL
+    cases ha : P.any (fun e => decide (e.K' = k))
+    · wp_auto
+      wp_apply wp_slice_literal (V := Pair') [Pair'.mk k v]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := Pair') $$ [$Hq $Hcap $Hsl] as %q' ⟨Hq', Hcap', -⟩
+      iapply HΦ
+      rw [map_setG_id P k v ha]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iexact Hq'
+    · wp_auto
+      iapply HΦ
+      simp only [↓reduceIte]
+      iexact Hq
+
+theorem wp_equalPairs (a b : GoSlice) (A B : List Pair') :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ a ↦*□ A ∗ b ↦*□ B }}
+      (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.equalPairs)) (Val #a))
+        (Val #b))
+    {{ (r : Bool), RET #r; ⌜r = true → A = B⌝ }} := by
+  wp_start as ⟨#Ha, #Hb⟩
+  ihave %HA := ownSlice_len _ _ _ $$ Ha
+  ihave %HB := ownSlice_len _ _ _ $$ Hb
+  wp_auto
+  wp_if_destruct
+  · have h3 : a.len = b.len := by assumption
+    have hAB : A.length = B.length := by rw [HA.1, HB.1, h3]
+    ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z a.len ∧
+          A.take (sint.nat i) = B.take (sint.nat i)⌝ : IProp GF) $$ [i]
+    · iexists W64 0
+      iframe
+      ipureintro
+      have h0 : sint.nat (W64 0) = 0 := rfl
+      refine ⟨by word, by word, by rw [h0]; simp⟩
+    wp_for HI
+    obtain ⟨Hi0, Hil, Ht⟩ := Hi
+    wp_if_destruct
+    · have hlt : sint.Z i < sint.Z a.len := by assumption
+      list_elem A (sint.nat i) as x
+      list_elem B (sint.nat i) as y
+      rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z a.len from ⟨Hi0, hlt⟩)]
+      wp_apply wp_load_slice_index a (sint.Z i) A _ x Hi0 $$ [Ha] as -
+      · iframe Ha; ipureintro; exact Hx_lookup
+      rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z b.len from ⟨Hi0, h3 ▸ hlt⟩)]
+      wp_apply wp_load_slice_index b (sint.Z i) B _ y Hi0 $$ [Hb] as -
+      · iframe Hb; ipureintro; exact Hy_lookup
+      by_cases hxy : x = y
+      · subst hxy
+        wp_auto
+        wp_for_post
+        iframe
+        iexists i + W64 1
+        iframe
+        ipureintro
+        have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+        refine ⟨by word, by word, ?_⟩
+        rw [hs, take_succ_of A _ x Hx_lookup, take_succ_of B _ x Hy_lookup, Ht]
+      · by_cases hK : x.K' = y.K'
+        · have hV : x.V' ≠ y.V' := fun h => hxy ((pair_eq_iff x y).1 ⟨hK, h⟩)
+          rw [decide_eq_true hK]
+          wp_auto
+          rw [decide_eq_false hV]
+          wp_auto
+          wp_for_post
+          iapply HΦ; ipureintro; intro h; cases h
+        · rw [decide_eq_false hK]
+          wp_auto
+          wp_for_post
+          iapply HΦ; ipureintro; intro h; cases h
+    · have heq : sint.Z i = sint.Z a.len := by omega
+      have hn : sint.nat i = A.length := by
+        rw [HA.1]; show (sint.Z i).toNat = _; rw [heq]
+      have e : A = B := by
+        rw [hn, List.take_length, hAB, List.take_length] at Ht
+        exact Ht
+      iapply HΦ
+      ipureintro; intro _; exact e
+  · iapply HΦ; ipureintro; intro h; cases h
+
 end proof
 
 end github_com.tangledbytes.go_vsr.examples.vsrnet
