@@ -12,6 +12,7 @@ module
 
 public import Dsverify.Spec.rabia.examples.rabianet.TopLevelRobustness
 public import Dsverify.Proof.rabia.examples.rabianet.Linked
+public import Dsverify.Proof.rabia.examples.rabianet.CodecProof
 public import Dsverify.Proof.rabia.Core.Start
 public import Net.Statement.DistBridge
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.orch.PkgTable
@@ -105,11 +106,13 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics]
 
 end boot
 
-/-- **The rabia kit, closed** (see the statement's file). -/
-theorem rabia_remote_robust (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS HasLC.hasLC remoteGF]
-      [go.Semantics] [rabia.examples.rabianet.Assumptions], Codec.spec (GF := remoteGF) (hG := hG))
+/-- The rabia kit, from the codec's and the generator's specs (closed below). -/
+theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS HasLC.hasLC remoteGF]
+      [go.Semantics] [rabia.examples.rabianet.Assumptions] [go.BasicIntoValInj] [NetProtoGS]
+      [RemoteGS], Codec.spec (GF := remoteGF) (hG := hG))
     (wp_gens : ∀ [GoGlobalContext] [hG : HeapGS HasLC.hasLC remoteGF]
-      [go.Semantics] [rabia.examples.rabianet.Assumptions], gens.spec (GF := remoteGF) (hG := hG)) :
+      [go.Semantics] [rabia.examples.rabianet.Assumptions] [go.BasicIntoValInj] [NetProtoGS]
+      [RemoteGS], gens.spec (GF := remoteGF) (hG := hG)) :
     rabia_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
     hzi hpi hgpi hri hsi hmi hz hmr hlog hns σ g threads
@@ -369,6 +372,10 @@ theorem rabia_remote_robust (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS HasLC
       iframe Hs4
     iapply BigSepL.bigSepL_nil.2
     iempintro
+
+/-- **The rabia kit, closed** (see the statement's file). -/
+theorem rabia_remote_robust : rabia_remote_robust.spec :=
+  rabia_remote_robust_of Codec.wp_proof gens.wp_proof
 
 #print axioms rabia_remote_robust
 

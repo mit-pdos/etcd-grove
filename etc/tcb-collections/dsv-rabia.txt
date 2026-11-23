@@ -1,7 +1,10 @@
 # dsv-rabia (notes/dsv-rabia.md): dsverify-lab's rabia kit (rabia-r1wake-1) ported onto the net
-# extension and examples/lib/remote, in the part Dsverify/. In progress: no linked result yet (the
-# statement `rabia_remote_robust` is not stated; notes/dsv-rabia.md, "State"). The baseline below is
-# empty: written by hand (2026-11-23) for a part with no axiom and no hand-written `sorry`.
+# extension and examples/lib/remote, in the part Dsverify/: the server's links
+# (roles/server/Link.lean), the kit's (examples/rabianet/Linked.lean) and its closed theorem
+# `rabia_remote_robust` (examples/rabianet/TopLevelRobustness.lean: twelve machines, Robust [] under
+# DistDeploy, the library hypotheses and the environment assumption `os.signal.NoSignals` premises of
+# the statement). Its `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only. The baseline
+# below is empty: written by hand (2026-11-23) from that `#print axioms`.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt --check    against the lines below
