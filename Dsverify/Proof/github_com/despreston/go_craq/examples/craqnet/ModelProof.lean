@@ -4,7 +4,7 @@ P4): the state's helpers over read-only maps and slices of `pend`, `step` (`goSt
 answer), and the pure `sim_step` (`ModelSet.lean`).
 
 Proved: `pushPend`, `copyMap`, `set`, `findPend`, `erasePend`, `step` (`wp_step`: `stepPost`, `goStep` of
-the decoded answer). Still to do: `Model.wp_proof` (`Model.spec`).
+the decoded answer), `kvDec_box`, and `Model.wp_proof` (`Model.spec`).
 -/
 module
 
@@ -633,11 +633,216 @@ theorem wp_step (mp : Loc) (sl : GoSlice) (m : GMap GoString GoString) (a : St) 
     isplit
     · iexact Hm
     · iexact Hq
-/-- `Model()`: porcupine's model of the store (`kvS`). Proof: still to do (notes/dsv-craq.md, P4). -/
+end proof
+
+/-! ## `kvDec` on boxed values -/
+
+section dec
+variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext] [GoSemanticsFunctions]
+variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
+variable [package_sem : github_com.despreston.go_craq.examples.craqnet.Assumptions]
+
+/-- `Out`'s values are injective (the fields are read off by deterministic steps). -/
+theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
+  have hV := (Out.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (Out.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  have hF := (Out.TypeAssumptions.get_Found x).isGoStep_det_internal.isGoStep_pure_det
+  have hF' := (Out.TypeAssumptions.get_Found y).isGoStep_det_internal.isGoStep_pure_det
+  rw [h, hV'] at hV
+  rw [h, hU'] at hU
+  rw [h, hF'] at hF
+  have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl
+  have eU : Val #x.Unknown' = Val #y.Unknown' := (congrFun hU (Val #y.Unknown')) ▸ rfl
+  have eF : Val #x.Found' = Val #y.Found' := (congrFun hF (Val #y.Found')) ▸ rfl
+  injection eV with eV
+  injection eU with eU
+  injection eF with eF
+  have eV' := go.intoVal_inj eV
+  have eU' := GoGlobalContext.intoVal_inj_bool eU
+  have eF' := GoGlobalContext.intoVal_inj_bool eF
+  cases x; cases y
+  simp only at eV' eU' eF'
+  subst eV' eU' eF'
+  rfl
+
+/-- `In`'s values are injective. -/
+theorem in_intoVal_inj {x y : In} (h : (#x : val) = #y) : x = y := by
+  have hV := (In.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (In.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hK := (In.TypeAssumptions.get_K x).isGoStep_det_internal.isGoStep_pure_det
+  have hK' := (In.TypeAssumptions.get_K y).isGoStep_det_internal.isGoStep_pure_det
+  have hP := (In.TypeAssumptions.get_Put x).isGoStep_det_internal.isGoStep_pure_det
+  have hP' := (In.TypeAssumptions.get_Put y).isGoStep_det_internal.isGoStep_pure_det
+  rw [h, hV'] at hV
+  rw [h, hK'] at hK
+  rw [h, hP'] at hP
+  have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl
+  have eK : Val #x.K' = Val #y.K' := (congrFun hK (Val #y.K')) ▸ rfl
+  have eP : Val #x.Put' = Val #y.Put' := (congrFun hP (Val #y.Put')) ▸ rfl
+  injection eV with eV
+  injection eK with eK
+  injection eP with eP
+  have eV' := go.intoVal_inj eV
+  have eK' := go.intoVal_inj eK
+  have eP' := GoGlobalContext.intoVal_inj_bool eP
+  cases x; cases y
+  simp only at eV' eK' eP'
+  subst eV' eK' eP'
+  rfl
+
+theorem outV_inj {u f v u' f' v'} (h : outV u f v = outV u' f' v') : u = u' ∧ f = f' ∧ v = v' := by
+  simp only [outV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+    _root_.true_and] at h
+  have := out_intoVal_inj h
+  simp only [Out.mk.injEq] at this
+  exact this
+
+theorem ivK_inj {x y : KIn} (h : ivK x = ivK y) : x = y := by
+  obtain ⟨k | ⟨k, v⟩, hx⟩ := x <;> obtain ⟨k' | ⟨k', v'⟩, hy⟩ := y <;>
+    simp only [ivK, inV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+      _root_.true_and] at h <;>
+    have := in_intoVal_inj h <;> simp only [In.mk.injEq] at this
+  · obtain ⟨-, rfl, -⟩ := this; rfl
+  · exact absurd this.1 (by decide)
+  · exact absurd this.1 (by decide)
+  · obtain ⟨-, rfl, rfl⟩ := this; rfl
+
+/-- `kvDec` on a boxed input and a boxed bounded `Out`. -/
+theorem kvDec_box (x : KIn) (u f : Bool) (w : Str8) :
+    kvDec (ivK x, outV u f w.1) = some (x, decAns x u f w) := by
+  unfold kvDec
+  split
+  · next h =>
+    have hs := Classical.choose_spec (Classical.choose_spec (Classical.choose_spec
+      (Classical.choose_spec h)))
+    obtain ⟨h1, h2⟩ := Prod.mk.inj hs
+    have e1 := ivK_inj h1
+    obtain ⟨e2, e3, e4⟩ := outV_inj h2
+    have e4' := Subtype.ext e4
+    dsimp only
+    rw [← e4', ← e3, ← e2, ← e1]
+  · next hn => exact absurd ⟨x, u, f, w, rfl⟩ hn
+
+end dec
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.despreston.go_craq.examples.craqnet.Assumptions]
+variable [bvi : go.BasicIntoValInj]
+
+local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet
+
+set_option goose.wp.extras true
+
+/-- `Model()`: porcupine's model of the store (`kvS`). -/
 abbrev Model.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) kpkg }}
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Model)) (Val #()))
   {{ (m : github_com.anishathalye.porcupine.Model), RET #m; isModel (kvS (GF := GF)) m }}
+
+theorem ivK_inOf (x : KIn) : ivK x = interface.mkOk In.ty #(inOf x) := by
+  obtain ⟨k | ⟨k, v⟩, hx⟩ := x <;> rfl
+
+theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold isModel isEqHash
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · -- Init
+    unfold initSpec
+    iintro !> %Φ' _ HΦ'
+    wp_auto
+    wp_apply +noauto (wp_map_make1 (K := GoString) (V := GoString) _ _) as %mp Hmp
+    iapply fupd_wp
+    imod ownMap_persist mp _ _ $$ Hmp with #Hmp
+    imodintro
+    wp_auto
+    iapply HΦ'
+    unfold kvS kvRep
+    iexists mp, slice.nil, ∅, kvB.init, []
+    isplitr
+    · ipureintro
+      exact ⟨rfl, sim_init, fun _ => rfl, nofun, Nat.le_refl _⟩
+    isplitr
+    · iexact Hmp
+    · rw [List.map_nil]; iapply ownSlice_nil
+  isplitr
+  · -- Step
+    iright
+    isplitr
+    · ipureintro; exact ⟨trivial, nofun⟩
+    unfold stepSpec
+    iintro %k %v %s %i %o
+    iintro !> %Φ' Hpre HΦ'
+    simp only [kvS, kvS0]
+    icases Hpre with ⟨%Hk, Hrep, %Hio⟩
+    obtain ⟨⟨x, rfl⟩, u, f, w, rfl⟩ := Hio
+    unfold kvRep
+    icases Hrep with ⟨%mp, %sl, %m, %a, %P, %Hr, #Hm, #Hsl⟩
+    obtain ⟨rfl, hsim, hm, hP, hlen⟩ := Hr
+    rw [ivK_inOf]
+    wp_auto
+    wp_apply (wp_step mp sl m a P hm hP (by omega) x u f w) as %ok %s' Hpost
+    · isplitl
+      · iexact Hm
+      · iexact Hsl
+    rw [← ivK_inOf]
+    have hpm := linkv.pM_step kvB kvDec s _ x _ (kvDec_box x u f w)
+    obtain ⟨hs1, hs2⟩ := sim_step hsim x (decAns x u f w)
+    unfold stepPost
+    icases Hpost with ⟨%Hok, Hpost⟩
+    iapply HΦ'
+    isplitr
+    · iexists mp, sl, m, a, P
+      isplitr
+      · ipureintro; exact ⟨rfl, hsim, hm, hP, hlen⟩
+      isplitr
+      · iexact Hm
+      · iexact Hsl
+    isplitr
+    · ipureintro; rw [hpm, hs1, Hok]
+    · unfold github_com.anishathalye.porcupine.stepPost
+      dsimp only
+      rw [hpm]
+      cases hst : (pSeq kvB).step s (x, decAns x u f w) with
+      | none => itrivial
+      | some S' =>
+        dsimp only
+        have hsome : ok = true := by rw [Hok, ← hs1, hst]; rfl
+        subst hsome
+        simp only [ite_true]
+        icases Hpost with ⟨%mp', %sl', %m', %a', %P', %Hr, #Hm', #Hsl'⟩
+        obtain ⟨rfl, hg, hm', hP', hl'⟩ := Hr
+        iexists mp', sl', m', a', P'
+        isplitr
+        · ipureintro; exact ⟨rfl, hs2 a' P' S' hg hst, hm', hP', by omega⟩
+        isplitr
+        · iexact Hm'
+        · iexact Hsl'
+  isplitr
+  · ipureintro; nofun
+  isplitr
+  · -- Equal: always false
+    unfold equalSpec
+    iintro %k %j %v %w %s %t
+    iintro !> %Φ' Hpre HΦ'
+    wp_auto
+    iapply HΦ'
+    icases Hpre with ⟨H1, H2⟩
+    iframe
+    ipureintro; nofun
+  ileft
+  ipureintro; trivial
 
 end proof
 
