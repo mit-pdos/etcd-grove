@@ -269,8 +269,6 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.LessThan.wp_proof
-axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
