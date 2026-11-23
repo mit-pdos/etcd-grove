@@ -85,7 +85,7 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
     WP (App (Val #fe) (Val #v)) {{ Φ }})
 
 /-- A decoding error: a fresh `errors.New` error (an `*errors.errorString`) whose `Error()` returns
-its message `msg`, not empty, persistently. The generated codec's `Decode` returns no other error:
+its message `msg`, `rpcErrDecode()`'s, persistently. The generated codec's `Decode` returns no other error:
 only `rpcErrDecode()`, `errors.New("net/rpc model: malformed value")`
 (`models/net/rpc/rpcgen_core.py`), on bytes that do not parse. It also panics (`rpcNotModelled`)
 on a type tag that parses but names another type than the target's, and on a `nil` or unlisted
@@ -93,12 +93,14 @@ target: outside any `C.dec` a generated codec meets, so a caller that has `C.dec
 excludes them (`bodyDecG`: the client asks it only of the replies the protocol delivers, the
 server only of the arguments a client deposited, `argDec`).
 What the client needs of it: not a `ServerError`, an `Error()`, and a pointer, which `==` compares
-(`input`'s `err == io.EOF`). What the server needs: a message that is not empty, so that the error
-response it sends for a request whose body does not decode is one (`sendResponse` with a
-message `""` would encode the placeholder `invalidRequest`, a type no generated codec lists). -/
+(`input`'s `err == io.EOF`). What the server needs: that message, one of its own error answers
+(`srvErrMsg`, `Errs.lean`; not empty, so that the error response it sends for a request whose body
+does not decode is one: `sendResponse` with a message `""` would encode the placeholder
+`invalidRequest`, a type no generated codec lists). -/
 def decErr (err : GoInterface) : IProp GF :=
   iprop(∃ (x : Loc) (msg : GoString),
-    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x ∧ msg ≠ []⌝ ∗
+    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x ∧
+      msg = go!"net/rpc model: malformed value"⌝ ∗
     □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
         (Val #())) {{ Φ }})
