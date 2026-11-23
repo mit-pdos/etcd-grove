@@ -20,9 +20,10 @@ change each.
 | | here |
 |---|---|
 | Go | `examples/dsverify/quepaxa/` (module `raxos`, the fork's path): the fork's `common`, `configuration`, `proto`, `proto/client`, `replica/src` (with the lab's `finding_*_test.go`), and the kit `examples/quepaxanet` (`kit.go`, `model.go`, `kit_test.go`) with its twelve commands `cmd/{orch,client0..5,server1..5}`. Not copied: the fork's benchmark client `client/`, `replica/main.go`, `integration-test/`, `model-checker/`, `docs/`, the lab's dsrig commands and generated `pb_*gen.go` |
-| translation | `etc/goose.py` project `dsv-quepaxa` into the part `Dsverify/`: `Dsverify/{Code,GeneratedProof}/raxos/**` (configs `Dsverify/Code/raxos/{replica/src,proto/client}.toml`, the lab's), names only `gopkg_in/yaml_v2`, `github_com/go_redis/redis/v8`, `io/ioutil` (configs beside them); remote and `net` the part `Net/`'s; grpc (from its model `models/grpc`, `module_models`), protobuf, bufio, os, lintest, porcupine the main tree's |
-| trusted code | `Dsverify/TrustedCode/{raxos/replica/src,raxos/proto/client,gopkg_in/yaml_v2}.lean` (the lab's no-op `init`s of protoc-gen-go's descriptor plumbing and of yaml's tables), empty `Dsverify/ManualProof/` beside them |
-| the protocol's proof | `Dsverify/Proof/raxos/` (the lab's `Quepaxa/Proof/` layout): so far `Pure/Conf.lean`, `Pure/Consensus.lean` |
+| translation | `etc/goose.py` project `dsv-quepaxa` into the part `Dsverify/`: `Dsverify/{Code,GeneratedProof}/raxos/**` (configs `Dsverify/Code/raxos/{replica/src,proto/client}.toml`, the lab's); names only into the part: `gopkg_in/yaml_v2`, `github_com/go_redis/redis/v8`, `io/ioutil`, `encoding/gob` (common's `GetRealSizeOf`), and grpc's `google_golang_org/grpc{,/codes,/status}` (types and names; the main tree's grpc imports the main tree's `net`, which clashes with `Net/`'s), configs beside them; remote and `net` the part `Net/`'s; protobuf, bufio, os, math/rand, lintest, porcupine the main tree's translation |
+| trusted code | `Dsverify/TrustedCode/{raxos/replica/src,raxos/proto/client}.lean` (the lab's no-op `init`s of protoc-gen-go's descriptor plumbing); `Dsverify/TrustedCode/{gopkg_in/yaml_v2,github_com/go_redis/redis/v8,io/ioutil,encoding/gob,google_golang_org/grpc,google_golang_org/grpc/codes}.lean`: no-op models of the names-only packages' variable initializers and `init` functions (the lab's kind, `lean.trusted_init`; made by a script from the translation's `initialize'`, listed as `trusted` in each config); empty `Dsverify/ManualProof/` modules beside them |
+| package facts and initialization | `Dsverify/Proof/<pkg>/Base.lean` (`True` for every QuePaxa package and names-only library; each imports its imports' fact modules), `Dsverify/Proof/google_golang_org/protobuf/Base.lean` (protobuf's five packages' facts: the main tree's live in `cache/v3/Base`, `raft/v3/Base`, which import the main tree's `net`); `etc/gen-init.py` `dsv_inits` (additive: `DSV_QP*`, `DSV_MAIN` = bufio, math/rand, protobuf's `Init` made in the part as `NET_MAIN`'s in `Net/`, `DSV_OWN` = the part's grpc without the main tree's `SPECIAL`, `SPECIAL['raxos.replica.src']` for `Consensus_ServiceDesc`); generated `Init.lean` and the twelve commands' `PkgTable.lean` all build |
+| the protocol's proof | `Dsverify/Proof/raxos/` (the lab's `Quepaxa/Proof/` layout): so far `Pure/Conf.lean`, `Pure/Consensus.lean` (verbatim, build) |
 | trust base | `etc/tcb-collections/dsv-quepaxa.txt` (to come with the statement) |
 
 ## What changed against the lab (Go)
@@ -86,7 +87,12 @@ named after the lab's specs, until each comes as one shared change:
 - **bufio's `Writer`** (`NewWriter`, `WriteByte`, `Write`, `Flush`) and `Reader.ReadByte`, `io.ReadFull`
   over a `bufio.Reader` over a `net.Conn` (the lab's `Harness/Proof/bufio/{Writer,ReadFull,Net}`): the
   main tree has `NewReader` and `Reader.Read` only.
-- **go-redis, yaml.v2, io/ioutil**: names only, never reached (benchmark mode 0; the configuration
+- **math/rand's untranslated initializers** (`Dsverify/Proof/math/rand/Init.lean`'s generated
+  `axiom opaqueInitsOk`, the same trust-boundary axiom as the main tree's `Proof/math/rand/Init.lean`;
+  Perennial translates `math/rand` with its variables' initializers untranslated): an axiom under
+  `Dsverify/` until it is a hypothesis threaded through the init chain or Perennial translates them.
+  The only axiom under `Dsverify/` now.
+- **go-redis, yaml.v2, io/ioutil, encoding/gob, grpc's initialization**: names only, never reached (benchmark mode 0; the configuration
   made in code). Their calls need no spec unless the proof must show them unreachable (it does:
   `Init`'s mode-1 branch is excluded by the configuration).
 - `log` (`Println`, `Fatal`), `math/rand` (`Intn`, `Seed`, `NewSource`/`New`/`(*Rand).Intn`), `os`
@@ -97,15 +103,23 @@ named after the lab's specs, until each comes as one shared change:
 
 ## State
 
-- Done: the Go (commit `0fbd49207a`); the translation (`etc/goose.py --project dsv-quepaxa`).
-- In progress: building the translation (`lake build Dsverify.GeneratedProof.raxos.examples.quepaxanet`);
-  the protocol proof's pure modules (`Pure/Conf`, `Pure/Consensus`).
-- Next: `etc/gen-init.py`'s `dsv_inits` for the quepaxa packages (additive, beside paxos's); the
-  proof port in the lab's dependency order (`Pure` → `PkgState`/`Msg`/`Ghost` re-based on the
+- Done: the Go (commit `0fbd49207a`); the translation, building (`28eddbe98d`; Go comments with tabs
+  expanded in `common/common.go` and `replica/src/server.go`, as the lab's goose.sh did: Lean rejects
+  tabs in the doc comments goose copies); `Pure/Conf`, `Pure/Consensus`; the package facts and
+  initialization, all twelve `PkgTable`s building (`0e2763910c`).
+- Build: `PERENNIAL_DIR=/shared/perennial-9c3b81f30 etc/goose.py --project dsv-quepaxa`, then
+  `PERENNIAL_DIR=... python3 etc/gen-init.py`, then `lake build
+  Dsverify.Proof.raxos.examples.quepaxanet.cmd.orch.PkgTable` (and the other eleven).
+- Next: the proof port in the lab's dependency order (`Pure` → `PkgState`/`Msg`/`Ghost` re-based on the
   statement here (remote's `pendCtx`, `DistDeploy`), not the lab's `QuepaxaNetSpec` → `Cons`, `Smr`,
   `Codec`, `Proposer`, `Replica`, `Proxy`, `Kit`), the net calls ported onto `Net/Spec/net/*` and
   `Proto.lean`'s laws as `paxos/NetProof.lean` did, the hypotheses above as section variables; then
   `quepaxa_remote_robust` (`DistDeploy … → Robust [] …`) over them, its collection.
+  First steps: `Pure/Smr.lean` (imports the lab's `Harness.Model` `kv`: re-base its law
+  `execCmd`-is-a-`kv`-step onto the kit's model here, `model.go`'s Lean form, a `ModelSet` analog as
+  paxos's, against linkv's `pSeq`); then `PkgState`/`Msg`/`Ghost` (the lab's `QuepaxaNetSpec`,
+  `Harness.ClientSpec`, `Harness.Models` replaced by remote's statement). The lab's modules that
+  import `Harness.Proof.{grpc,sync.Map,bufio.*}` take the hypotheses above.
 - Size: the lab's protocol proof is 37k lines (`Quepaxa/Proof/`, without the translation), against
   paxos's 8k: this port spans several sessions.
 
