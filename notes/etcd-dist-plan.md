@@ -709,6 +709,13 @@ closed proofs (§5 of `notes/prom-registry-start-change.md`) are moot after the 
   listener id (`isListener` would need `net.Assumptions` at every use); S2 may strengthen it.
 - `EtcdGrove.net.Listen.wp_proof` a theorem from Net's `net.Listen.wp_proof` (an `=` callee in
   `etc/link-lean-first-{common,cluster3}.txt`, `gen-link`'s `EXTRA_IMPORTS`).
+  Net's `Listen` spec takes Net's hand-stated field facts (`net.FieldAssumptions`, trusted, as
+  `os.file.FieldAssumptions`): a semantic premise (`gen-link`'s `SEM_PREMISES`) of every linked result that
+  reaches `net.Listen` (etcdstart's and cluster3's `Link`s, the Links of auth, cache, k8s/etcd3, partition,
+  txnlin, watch) and of the drivers' hand-written `MainLinked`/`Results` triples (31 theorems).
+- Built against Perennial `9c3b81f30` (`lean`'s pin at the last merge, `/shared/tmp/manifest-9c3b.json`); earlier
+  commits of the branch against a plain `74471ecd8` worktree (`/shared/perennial-74471ecd8`,
+  `/shared/tmp/manifest-744.json`).
 - Retirement and the start axiom's address part: as decided above. Not done: step 5 (Net's own copies of
   the main tree's initializers), which kvremote needs next.
 
