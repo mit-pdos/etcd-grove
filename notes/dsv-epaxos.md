@@ -190,6 +190,36 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
      (`gf_preds`/`gf_annotate`, scanning every ported file's `def … : IProp GF`); the lab's section
      headers to the generic world with `[π : NetProtoGS]`; `kit.pre` → `inPre`; per-file hand
      edits in `FIXUPS` (re-running the port reproduces them; `GhostSend`, `GhostExec` have some).
+3h. **The interface layer above the ghost chain (in progress, 2026-11-23).** Done (each checks,
+   `lake build` of the leaves passes, `#print axioms`: Lean's three): `Interface/EpaxosGhost`
+   (`protoN` inside `epEop`: `protoN_epEop` replaces the lab's `protoN_clientN_disj`),
+   `Interface/RpcTable`, `Interface/Registry` (**the kit's addresses**: server `k` at
+   `127.0.0.1:(7500+k)`, its rpc at `127.0.0.1:(8500+k)` (`serve`'s `port + 1000`), the master
+   `127.0.0.1:7501`; the lab's `nodeAddrs_*` facts of its 10.77.0.x harness are gone; a span
+   FIXUP), **`Interface/ConnBuf.lean` (new)**: a connection's ends as the marshal layer's bundles,
+   `connWr t cn s la ra ed P hP sz` (`net.conn_writerOk`'s contract) and
+   `connRd t cn s eof la ra ed P` (`net.conn_readerOk`'s, stream fact `▷ protoPrefix P cn`), and
+   `repDialP_ppc`/`repAccP_ppc` (`ProtoPrefixClosed`, the lab's `*_prefixClosed`);
+   `replica/{Ghost,RpcTable,SliceElems,ClientWire}`: the slots restated over `Net/`
+   (`connIn c cid side t la ra ed eof`: `c = connIface t`, `connAt`, `ErrDeadlineExceeded`'s and
+   `io.EOF`'s values; peer and client writers `wrOwn w (connWr … 4096)` (all the replica's writers
+   are `bufio.NewWriter`), the peer reader `rdOwn rd (connRd …)`; FIXUPS).
+   `BufWr.Q_pre` is now `□ Q (x ++ y) ⊢ □ Q x` (`ProtoPrefixClosed.pre`'s form).
+   **Next: `Interface/Replica.lean`** (`port.py Epaxos/Interface/Replica.lean`, then by hand; it
+   had 30 errors, removed from the tree): `cid` facts at `w64` (now `Nat`), the lab's
+   `connFreshG_excl` (Net's `connFresh` exclusivity: find its name in `GooseLang/Ext/Net/Proto.lean`),
+   `bufio.prefixClosed` (use `repDialP_ppc`/`repAccP_ppc`), `net.model.Assumptions` (→
+   `[HasExt netExt] [π : NetProtoGS]`, the `Ghost` FIXUP's pattern), `net.rpc.connIface`/
+   `bufio.ownWriter` (→ `connIn`/`wrOwn … connWr`, as `replica/Ghost`), section instances; then
+   `ReplicaSpec`, `Proof/replica/*` (6k lines: `PrefixReader` needs a `BufRd` over the
+   `prefixReader` (`replica.go:523`), its `readerOk` from the connection's), `Interface/{RpcPure,
+   Rpc,MasterSpec,Servers}` over `Net/`'s net/rpc (models-rpc-server) and `RpcHttpHyp`.
+   - **port.py** has three layers: `conv` (renames), `generic_conv` (every port: section headers,
+     `(GF := GF)` on spec statements, `Dsv.` names, unseal equations, `clientN` → `epEop` masks),
+     `bufio_conv` (`--bufio`: the marshal layer's call sites only; it drops `iframe He…` lines,
+     so never use it outside `wire/`), then `gf_annotate` and `FIXUPS`. Re-running it on every
+     file ported this session reproduces the tree (checked 2026-11-23), except the hand-maintained
+     files named in its docstring.
 3d. **`Interface/Misc.lean`** (dlog's non-verbose `Println`/`Printf`/`Fatal`, config's
    `IsProxy` on an empty `ProxyInfo`) and its proofs `wire/Misc/{Dlog,IsProxy}.lean`: ported, check
    with 0 errors (2026-11-23). The lab's import of `Top/PkgState` is dropped (not needed).
@@ -264,7 +294,8 @@ through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (n
 State at handoff (2026-11-23): done are the Go, the translation, the inits, the pure model,
 `Interface/{Names,Net,Client,PeerWire,Wire,Treemap,State,Misc,Varint,Marshal,RpcHttpHyps}`, the
 proofs of the `state` package (`wire/State`), of `wire/Misc` and the whole marshal layer
-(`wire/**`, `wire/Link`), the ghost chain (3f). Next: (3) the replica/master/epaxos code proofs,
+(`wire/**`, `wire/Link`), the ghost chain (3f), part of the layer above it (3h). Next:
+`Interface/Replica` (3h), then (3) the replica/master/epaxos code proofs,
 (4) the model proof, the mains, `epaxos_remote_robust`, the TCB baseline. Library pieces:
 
 0. **Wildcard listen (coordinator, 2026-11-23): `net-wildcard-listen` LANDED on `lean`

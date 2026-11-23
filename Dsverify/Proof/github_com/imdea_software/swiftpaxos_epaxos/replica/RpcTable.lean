@@ -20,7 +20,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions]
 
-theorem rpc.NewTableId.wp_proof : rpc.NewTableId.spec := by
+theorem rpc.NewTableId.wp_proof : rpc.NewTableId.spec (GF := GF) := by
   intro id
   wp_start
   wp_auto
@@ -30,7 +30,7 @@ theorem rpc.NewTableId.wp_proof : rpc.NewTableId.spec := by
   iexists m
   iframe
 
-theorem rpc.Table.Register.wp_proof : rpc.Table.Register.spec := by
+theorem rpc.Table.Register.wp_proof : rpc.Table.Register.spec (GF := GF) := by
   intro t n E obj ch
   wp_start as Ht
   rw [ownTable_unseal]; unfold ownTableDef
@@ -41,7 +41,7 @@ theorem rpc.Table.Register.wp_proof : rpc.Table.Register.spec := by
   iexists pm
   iframe
 
-theorem rpc.Table.Get.wp_proof : rpc.Table.Get.spec := by
+theorem rpc.Table.Get.wp_proof : rpc.Table.Get.spec (GF := GF) := by
   intro t E id
   wp_start as #Ht
   rw [isTable_unseal]; unfold isTableDef

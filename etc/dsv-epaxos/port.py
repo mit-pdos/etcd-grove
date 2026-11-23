@@ -122,6 +122,26 @@ def gf_annotate(t, names):
             out.append(ls[i]); i += 1
     return '\n'.join(out)
 
+def generic_conv(t):
+    # rules every port needs (after `conv`)
+    t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
+               r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',
+               'attribute [local instance] GooseGlobalGS.gooseInvGS', t)
+    t = t.replace('variable [GoGlobalContext] [hG : HeapGS .hasLC Dsv.GF] [go.Semantics]',
+                  'variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]\n'
+                  'variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]')
+    t = t.replace('IProp Dsv.GF', 'IProp GF')
+    t = re.sub(r'(?m)^variable \[GoGlobalContext\]$',
+               lambda m: m.group(0) if 'variable [GooseExts]' in t[:m.start()]
+               else 'variable [GooseExts] [GoGlobalContext]', t)
+    t = re.sub(r'(?m)^(theorem \S+\.(?:wp_proof|spec_holds) : \S+\.spec) :=', r'\1 (GF := GF) :=', t)
+    # statements whose only `GF` is inside a spec's definition
+    t = re.sub(r'\b((?:un)?marshalTriple) pkgInit_(\w+)', r'\1 (pkgInit_\2 (GF := GF))', t)
+    t = re.sub(r'(?<![\w.])((?:epaxos|state|replica\.defs|Serializable)\.[\w.]*\.spec)(?=( MsgKind\.\w+| k\b)?\s*:= by)',
+               r'\1 (GF := GF)', t)
+    t = re.sub(r'(∀ k, (?:epaxos|Serializable)\.[\w.]*\.spec) k', r'\1 (GF := GF) k', t)
+    return t
+
 def bufio_conv(t):
     # the lab harness's bufio streams -> dsv-bufio's, bundled (Interface/Marshal.lean: BufRd, BufWr)
     t = re.sub(r'\(rd : GoInterface\)\s*\(I : List w8 → IProp GF\)', '(rd : BufRd GF)', t)
@@ -145,19 +165,6 @@ def bufio_conv(t):
     t = re.sub(r'\bnextIs_(total|shift) I ', r'nextIs_\1 rd ', t)
     t = re.sub(r'wprog_finish _ _ _ _ _ _ _ _ _ ', 'wprog_finish _ _ _ _ _ _ _ ', t)
     t = re.sub(r'wprog_start _ _ _ _ _ _ _ _ ', 'wprog_start _ _ _ _ _ _ ', t)
-    t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
-               r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',
-               'attribute [local instance] GooseGlobalGS.gooseInvGS', t)
-    t = t.replace('variable [GoGlobalContext] [hG : HeapGS .hasLC Dsv.GF] [go.Semantics]',
-                  'variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]\n'
-                  'variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]')
-    t = t.replace('IProp Dsv.GF', 'IProp GF')
-    t = re.sub(r'(?m)^variable \[GoGlobalContext\]$', 'variable [GooseExts] [GoGlobalContext]', t)
-    # statements whose only `GF` is inside a spec's definition
-    t = re.sub(r'\b((?:un)?marshalTriple) pkgInit_(\w+)', r'\1 (pkgInit_\2 (GF := GF))', t)
-    t = re.sub(r'(?<![\w.])((?:epaxos|state|replica\.defs|Serializable)\.[\w.]*\.spec)(?=( MsgKind\.\w+| k\b)?\s*:= by)',
-               r'\1 (GF := GF)', t)
-    t = re.sub(r'(∀ k, (?:epaxos|Serializable)\.[\w.]*\.spec) k', r'\1 (GF := GF) k', t)
     # the stream fact comes a step later (`nextIs_read`): strip it with `imod` after the `ihave`
     ls = t.split('\n'); out = []; i = 0
     while i < len(ls):
@@ -241,6 +248,53 @@ theorem peerAddrOf_inj (k k' : Nat) (hk : k ∈ replicaNodes) (hk' : k' ∈ repl
 
 '''),
     ],
+    'Epaxos/Proof/replica/Ghost.lean': [
+        # connections are `Net/`'s (`connAt`, Interface/ConnBuf: `connWr`/`connRd`), not the lab
+        # harness's `net.rpc.connIface` and `bufio.ownWriter`/`ownReader`
+        ('public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.RpcTable',
+         'public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.RpcTable\n'
+         'public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.ConnBuf'),
+        ('[epaxos.Assumptions] [net.model.Assumptions]', '[epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]'),
+        ('''/-- The dialer of a connection''', '''theorem peerPX_ppc (γ : EpNames) (id : Nat) (L : List GoString) (j : Nat) (side : Bool) :
+    ProtoPrefixClosed (peerPX (GF := GF) γ id L j side) := by
+  unfold peerPX; split
+  · exact repAccP_ppc γ _
+  · exact repDialP_ppc γ _
+
+/-- The end `side` of connection `cid` is the `*TCPConn` in `c` (`net.connAt`, some addresses),
+with `ErrDeadlineExceeded`'s and `io.EOF`'s values (its errors' evidence). -/
+def connIn (c : GoInterface) (cid : Nat) (side : Bool) (t : Loc) (la ra ed eof : GoInterface) :
+    IProp GF :=
+  iprop(⌜c = interface.ok (net.connIface t)⌝ ∗ (∃ a : GoString, net.connAt t cid side a la ra) ∗
+    globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ globalAddr io.EOF ↦□ eof)
+
+instance connIn_persistent (c : GoInterface) (cid : Nat) (side : Bool) (t : Loc)
+    (la ra ed eof : GoInterface) : Persistent (connIn (GF := GF) c cid side t la ra ed eof) := by
+  unfold connIn; infer_instance
+
+/-- The dialer of a connection'''),
+        ('''  iprop(∃ (sent pend : List w8) (err : GoInterface) (ws : List Msg),
+    net.rpc.connIface c cid side ∗''', '''  iprop(∃ (sent pend : List w8) (err : GoInterface) (ws : List Msg) (t : Loc)
+      (la ra ed eof : GoInterface),
+    connIn c cid side t la ra ed eof ∗'''),
+        ('''    bufio.ownWriter w c (sendTok cid side (peerPX γ id L j side))
+      (peerPX γ id L j side cid) sent pend err ∗''', '''    wrOwn w (connWr t cid side la ra ed (peerPX γ id L j side) (peerPX_ppc γ id L j side) 4096)
+      sent pend err ∗'''),
+        ('''  iprop(net.rpc.connIface c cid side ∗ ⌜if side then id < j else j < id⌝ ∗''',
+         '''  iprop(∃ (t : Loc) (la ra ed eof : GoInterface), connIn c cid side t la ra ed eof ∗
+    ⌜if side then id < j else j < id⌝ ∗'''),
+        ('''    bufio.ownReader rd c (recvTok cid side (peerPin γ id L j side))
+      (streamHdr (dialerOf id j side) (!side)) ∗''', '''    rdOwn rd (connRd t cid side eof la ra ed (peerPin γ id L j side))
+      (streamHdr (dialerOf id j side) (!side)) ∗'''),
+        ('''  iprop(∃ (c : GoInterface) (sent pend : List w8) (err : GoInterface),
+    net.rpc.connIface c cid true ∗
+    bufio.ownWriter w c (sendTok cid true (repAccP γ (L.getD id []))) (repAccP γ (L.getD id []) cid)
+      sent pend err ∗''', '''  iprop(∃ (c : GoInterface) (sent pend : List w8) (err : GoInterface) (t : Loc)
+      (la ra ed eof : GoInterface),
+    connIn c cid true t la ra ed eof ∗
+    wrOwn w (connWr t cid true la ra ed (repAccP γ (L.getD id [])) (repAccP_ppc γ _) 4096)
+      sent pend err ∗'''),
+    ],
     'Epaxos/Interface/EpaxosGhost.lean': [
         ('have : ∀ o, outOk γ i o = outOkB γ i o', 'have : ∀ o, outOk (GF := GF) γ i o = outOkB γ i o'),
     ],
@@ -290,7 +344,7 @@ for p in [a for a in sys.argv[1:] if a != '--bufio']:
     src = os.path.join(LAB, p)
     out = dstpath(p)
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    s = conv(open(src).read())
+    s = generic_conv(conv(open(src).read()))
     if BUFIO: s = bufio_conv(s)
     s = gf_annotate(s, gf_preds(_texts + [s]))
     # sealed definitions' unseal equations (`@X = @XDef`; more instance arguments here)

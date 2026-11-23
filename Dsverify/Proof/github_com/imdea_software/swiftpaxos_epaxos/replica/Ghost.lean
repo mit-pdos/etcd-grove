@@ -17,6 +17,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.Registry
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.RpcTable
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.ConnBuf
 
 @[expose] public section
 
@@ -157,7 +158,7 @@ end ghost
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
-variable [epaxos.Assumptions] [net.model.Assumptions]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
 
 /-- The protocol replica `id` writes with on its connection with peer `j` (`peerP`). -/
 def peerPX (γ : EpNames) (id : Nat) (L : List GoString) (j : Nat) (side : Bool) :
@@ -169,6 +170,23 @@ def peerPin (γ : EpNames) (id : Nat) (L : List GoString) (j : Nat) (side : Bool
     Proto GF :=
   if side then repDialP γ (L.getD id []) else repAccP γ (L.getD j [])
 
+theorem peerPX_ppc (γ : EpNames) (id : Nat) (L : List GoString) (j : Nat) (side : Bool) :
+    ProtoPrefixClosed (peerPX (GF := GF) γ id L j side) := by
+  unfold peerPX; split
+  · exact repAccP_ppc γ _
+  · exact repDialP_ppc γ _
+
+/-- The end `side` of connection `cid` is the `*TCPConn` in `c` (`net.connAt`, some addresses),
+with `ErrDeadlineExceeded`'s and `io.EOF`'s values (its errors' evidence). -/
+def connIn (c : GoInterface) (cid : Nat) (side : Bool) (t : Loc) (la ra ed eof : GoInterface) :
+    IProp GF :=
+  iprop(⌜c = interface.ok (net.connIface t)⌝ ∗ (∃ a : GoString, net.connAt t cid side a la ra) ∗
+    globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ globalAddr io.EOF ↦□ eof)
+
+instance connIn_persistent (c : GoInterface) (cid : Nat) (side : Bool) (t : Loc)
+    (la ra ed eof : GoInterface) : Persistent (connIn (GF := GF) c cid side t la ra ed eof) := by
+  unfold connIn; infer_instance
+
 /-- The dialer of a connection between `id` and `j` at end `side` of `id`. -/
 abbrev dialerOf (id j : Nat) (side : Bool) : Nat := if side then j else id
 
@@ -178,12 +196,13 @@ acceptor's fresh token (a second acceptance of the same connection is refuted), 
 connection's role (what the writer's protocol needs for the stream's next messages). -/
 def slotConn (γ : EpNames) (id : Nat) (L : List GoString) (j : Nat) (c : GoInterface) (w : Loc)
     (ms : List Msg) (cid : Nat) (side : Bool) : IProp GF :=
-  iprop(∃ (sent pend : List w8) (err : GoInterface) (ws : List Msg),
-    net.rpc.connIface c cid side ∗
+  iprop(∃ (sent pend : List w8) (err : GoInterface) (ws : List Msg) (t : Loc)
+      (la ra ed eof : GoInterface),
+    connIn c cid side t la ra ed eof ∗
     peerConn γ (if side then j else id) (if side then id else j) cid ∗
     roleElem γ cid (.peer (W64 (dialerOf id j side))) ∗
-    bufio.ownWriter w c (sendTok cid side (peerPX γ id L j side))
-      (peerPX γ id L j side cid) sent pend err ∗
+    wrOwn w (connWr t cid side la ra ed (peerPX γ id L j side) (peerPX_ppc γ id L j side) 4096)
+      sent pend err ∗
     ⌜protoMsgs ws = ms ∧ (∀ m ∈ ws, m.wf) ∧ (err = interface.nil →
       sent ++ pend = streamHdr (if side then j else id) side ++ ws.flatMap encMsg)⌝ ∗
     (if side then connFresh cid true else iprop(True)))
@@ -210,9 +229,10 @@ starts from: the connection's role, its reader `rd` past the header of the strea
 (written by the other end), the right to mint the delivery tokens, `Ewma[j]`. -/
 def lisRes (γ : EpNames) (id : Nat) (L : List GoString) (ew : GoSlice) (j : Nat) (c : GoInterface)
     (cid : Nat) (side : Bool) (rd : Loc) : IProp GF :=
-  iprop(net.rpc.connIface c cid side ∗ ⌜if side then id < j else j < id⌝ ∗
+  iprop(∃ (t : Loc) (la ra ed eof : GoInterface), connIn c cid side t la ra ed eof ∗
+    ⌜if side then id < j else j < id⌝ ∗
     roleElem γ cid (.peer (W64 (dialerOf id j side))) ∗
-    bufio.ownReader rd c (recvTok cid side (peerPin γ id L j side))
+    rdOwn rd (connRd t cid side eof la ra ed (peerPin γ id L j side))
       (streamHdr (dialerOf id j side) (!side)) ∗
     lisStart γ id ew j)
 
@@ -240,9 +260,10 @@ def fwPeers (γ : EpNames) (id : Nat) (L : List GoString) (peers writers alive l
 `clientSlot`, with the connection's role (a client op's: what the reply's protocol needs). -/
 def clientSlotX (γ : EpNames) (id : Nat) (L : List GoString) (w : Loc) (cid : Nat) :
     IProp GF :=
-  iprop(∃ (c : GoInterface) (sent pend : List w8) (err : GoInterface),
-    net.rpc.connIface c cid true ∗
-    bufio.ownWriter w c (sendTok cid true (repAccP γ (L.getD id []))) (repAccP γ (L.getD id []) cid)
+  iprop(∃ (c : GoInterface) (sent pend : List w8) (err : GoInterface) (t : Loc)
+      (la ra ed eof : GoInterface),
+    connIn c cid true t la ra ed eof ∗
+    wrOwn w (connWr t cid true la ra ed (repAccP γ (L.getD id [])) (repAccP_ppc γ _) 4096)
       sent pend err ∗
     (⌜sent ++ pend = []⌝ ∨ ghostMapElem (γ.rep.replies id) w (DFrac.own 1) ()) ∗
     ∃ (cl : w64) (i : KvI), roleElem γ cid (.client cl i))

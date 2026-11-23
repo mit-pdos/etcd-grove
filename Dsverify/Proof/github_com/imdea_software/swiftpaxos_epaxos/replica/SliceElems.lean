@@ -17,7 +17,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section
 variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [GooseExts] [GoGlobalContext]
+variable [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [go.Semantics]
 variable {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
