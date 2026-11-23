@@ -129,12 +129,12 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     iunfold readerSt at Hrs
     icases Hrs with ⟨Hrecv, %Hb, Hrole⟩
     ihave HrL : recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
-        (framesOf ps ++ []) $$ [Hrecv]
+        (W.hs a ++ framesOf ps ++ []) $$ [Hrecv]
     · rw [List.append_nil]; iapply recvTok_L $$ Hrecv
-    ihave #Hacc := rd_acc_srv W a cn (framesOf ps)
+    ihave #Hacc := rd_acc_srv W a cn (W.hs a ++ framesOf ps)
     wp_apply wp_ReadRequestHeader sc t cn true a la ra req _ interface.nil
         (fun got => recvTokL (Gg := hG.goose_globalGS) cn true
-          (reqProto (Gg := hG.goose_globalGS) W a) (framesOf ps ++ got))
+          (reqProto (Gg := hG.goose_globalGS) W a) (W.hs a ++ framesOf ps ++ got))
         _ _ ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hreq $HrL $Hrerr $Hacc]
       as %err (⟨⟨%Hc, -⟩, -⟩ | ⟨-, %got, HP, Hres⟩)
     · exact absurd rfl Hc
@@ -156,8 +156,9 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     ihave HrT := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
     iapply fupd_wp
     imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
-    have hfr : framesOf ps ++ frameOf (reqHdr seq sm) = framesOf (ps ++ [reqHdr seq sm]) := by
-      rw [framesOf_append, framesOf_cons, framesOf_nil, List.append_nil]
+    have hfr : W.hs a ++ framesOf ps ++ frameOf (reqHdr seq sm) =
+        W.hs a ++ framesOf (ps ++ [reqHdr seq sm]) := by
+      rw [framesOf_append, framesOf_cons, framesOf_nil, List.append_nil, List.append_assoc]
     rw [hfr]
     icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrT with ⟨HrT, #Hpp⟩
     imod req_hdr W a cn ps k (reqHdr seq sm) Hps Hb (by omega) $$ [$Hlc2 $Hlc3 $Hpp $Hrole]

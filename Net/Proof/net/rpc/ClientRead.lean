@@ -39,7 +39,7 @@ theorem resp_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNa
     (R : List w8) (hR : R ≠ []) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
       protoPrefix (respProto (Gg := hG.goose_globalGS) W a) cn R ⊢
-    ∃ Rs : List Ans, ⌜(∀ x ∈ Rs, ansOk x) ∧ R <+: respsWire Rs⌝ ∗
+    ∃ Rs : List Ans, ⌜(∀ x ∈ Rs, ansOk x) ∧ R <+: W.hsAns a ++ respsWire Rs⌝ ∗
       [∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)) := by
   iintro ⟨#Hrpc, #Hpp⟩
   iunfold protoPrefix at Hpp
@@ -62,13 +62,13 @@ theorem resp_hdr (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
     (hdr : List w8) (hC : ∀ x ∈ C, ansOk x) (hh : hdr.length < 2 ^ 63) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
       protoPrefix (respProto (Gg := hG.goose_globalGS) W a) cn
-        (framesOf (C.flatMap ansPls) ++ frameOf hdr) ⊢
+        (W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf hdr) ⊢
     ∃ x : Ans, ⌜(ansPls x)[0]? = some hdr ∧ ansOk x⌝ ∗
       ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)) := by
   iintro H
   icases resp_of_read W a cn γ _ (by simp [frameOf_ne_nil]) $$ H with ⟨%Rs, ⟨%HRs, %Hpre⟩, #Hels⟩
   obtain ⟨x, hx, hx0⟩ := ans_next C Rs [] hdr [] 0 (by omega) rfl hC HRs (by simp) hh
-    (by simpa using Hpre)
+    (by simpa [List.append_assoc, List.prefix_append_right_inj] using Hpre)
   iexists x
   ihave Hx := BigSepL.bigSepL_lookup
     (Φ := fun _ (x : Ans) => ghostMapElem (GF := GF) γ.ans x.idx .discard (some (x.msg, x.reply)))
@@ -83,15 +83,16 @@ theorem resp_body (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
     (hb : b.length < 2 ^ 63) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
       protoPrefix (respProto (Gg := hG.goose_globalGS) W a) cn
-        (framesOf (C.flatMap ansPls) ++ frameOf hdr ++ frameOf b) ⊢
+        (W.hsAns a ++ framesOf (C.flatMap ansPls) ++ frameOf hdr ++ frameOf b) ⊢
     ∃ y : Ans, ⌜ansPls y = [hdr, b] ∧ ansOk y⌝ ∗
       ghostMapElem γ.ans y.idx .discard (some (y.msg, y.reply)) := by
   iintro H
   icases resp_of_read W a cn γ _ (by simp [frameOf_ne_nil]) $$ H with ⟨%Rs, ⟨%HRs, %Hpre⟩, #Hels⟩
   obtain ⟨x, hx, hx0⟩ := ans_next C Rs [] hdr (frameOf b) 0 (by omega) rfl hC HRs (by simp) hh
-    (by simpa using Hpre)
+    (by simpa [List.append_assoc, List.prefix_append_right_inj] using Hpre)
   obtain ⟨x', hx', hx1⟩ := ans_next C Rs [hdr] b [] 1 (by omega) rfl hC HRs (by simpa using hh)
-    hb (by simpa [framesOf_append, framesOf_cons, framesOf_nil, List.append_assoc] using Hpre)
+    hb (by simpa [framesOf_append, framesOf_cons, framesOf_nil, List.append_assoc,
+      List.prefix_append_right_inj] using Hpre)
   rw [hx] at hx'
   cases hx'
   iexists x

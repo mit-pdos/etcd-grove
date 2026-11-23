@@ -108,8 +108,8 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
     | nil =>
       have hWd := Hw0 rfl
       have hwf : ∀ eb, Wd ++ respWire rqv.Seq' rqv.ServiceMethod' errmsg eb =
-          respsWire (Rs ++ [(k, rqv.ServiceMethod', errmsg, eb)]) := fun eb => by
-        rw [respsWire_snoc, hWd, Hseq]
+          W.hsAns a ++ respsWire (Rs ++ [(k, rqv.ServiceMethod', errmsg, eb)]) := fun eb => by
+        rw [respsWire_snoc, hWd, Hseq, List.append_assoc]
       ihave Hupd : (⌜(interface.nil : GoInterface) = interface.nil⌝ -∗ respUpd (hG := hG) cn
           (respProto (Gg := hG.goose_globalGS) W a) Wd rqv.Seq' rqv.ServiceMethod' errmsg
           (fun eb => Φc eb errmsg)

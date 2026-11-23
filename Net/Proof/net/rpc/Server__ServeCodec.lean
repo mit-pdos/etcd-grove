@@ -75,12 +75,12 @@ theorem Server.ServeCodec.wp_proof
   imod sync.init_Mutex (srvSendInv W a cn sc) ⊤ _ $$ Hmu0 [Hwerr Hsend] with #Hmu
   · inext
     iunfold srvSendInv
-    iexists interface.nil, [], []
+    iexists interface.nil, W.hsAns a, []
     iframe Hwerr Hsend
     isplitr
     · iunfold ansRec; ileft; ipureintro; rfl
     ipureintro
-    exact ⟨by simp, List.nil_prefix, fun _ => by simp [respsWire, framesOf]⟩
+    exact ⟨by simp, by simp [respsWire, framesOf], fun _ => by simp [respsWire, framesOf]⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hwg0 with ⟨Hwg0, %Hwgnn⟩
   imod sync.init_WaitGroup (srvWgN.@"wg") wgl $$ Hwg0 with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
   ihave #Hlaw := sync.tokJoin.lendLaw_false (GF := GF) srvWgN
@@ -99,7 +99,7 @@ theorem Server.ServeCodec.wp_proof
     iexists [], 0
     isplitl
     · iunfold readerSt
-      rw [framesOf_nil]
+      rw [framesOf_nil, List.append_nil]
       iframe Hrecv
       isplitr
       · ipureintro; simp

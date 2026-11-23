@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: net/rpc's protocols get a per-address handshake (`rpcAddrP`); `rpcDialed`, `rpcAccepted` and `clientAt` are after it (net/rpc model, HTTP path)
+
+- **Spec.** `Net/Proof/net/rpc/Proto.lean`: `RpcWorld` (new fields `hs`, `hsAns`, default `[]`), `reqProto`,
+  `respProto`, `rpcAddr`; `ClientDefs.lean`: `sendInv`, `readerOwn`, `clientAt`, `rpcDialed`; `ServerDefs.lean`:
+  `srvSendInv`, `readerSt`, `rdrMid`, `rpcAccepted`. No spec of the plan corresponds (net/rpc is the kits').
+- **Defect.** The protocols were raw net/rpc's only: a connection's bytes were the frames from the first byte.
+  Over HTTP (`DialHTTPPath`, `Server.ServeHTTP`, what craq, epaxos and gryff use) the dialer first writes its
+  `CONNECT` request and the server its `200` answer, so no statement covered those connections.
+- **Evidence.** `models/net/rpc/client.go` (`DialHTTPPath`), `server.go` (`ServeHTTP`); the kits' servers
+  (`rpc.HandleHTTP` + `http.ListenAndServe`) and clients (`rpc.DialHTTP`).
+- **Proposed change.** The world fixes per address a handshake `W.hs a` (the dialer's) and `W.hsAns a` (the
+  acceptor's): `reqProto` is a prefix of `W.hs a ++ reqsWire L`, and beyond `W.hs a` only with `sentLb cn true
+  (W.hsAns a)` (a dialer writes no request before it has read the answer: Go's `DialHTTPPath` waits, and
+  net/http's server reads ahead with a buffered reader whose bytes `ServeHTTP` drops); `respProto` a prefix of
+  `W.hsAns a ++ respsWire Rs`; `rpcAddrP W a hs hsAns` is the old `rpcAddr` with `⌜W.hs a = hs ∧ W.hsAns a =
+  hsAns⌝`, and `rpcAddr W a := rpcAddrP W a [] []` (raw net/rpc: `Dial`, `Server.Accept`). The client and the
+  server start after the handshake: `rpcDialed` holds `sendTok … (W.hs a)` and `recvTok … (W.hsAns a)`,
+  `rpcAccepted` the converse, and `clientAt` the persistent `sentLb cn true (W.hsAns a)` (what `send` needs to
+  write a request). Every existing spec statement (`Dial`, `NewClient`, `NewClientWithCodec`, `ServeConn`,
+  `ServeCodec`, `Accept`, ...) unchanged in text; `Dial` and `Accept` use `rpcAddr`'s `[] []`.
+- **Decision.** Accepted (the shapes posted to the kits, 2026-11-23); applied on branch `models-rpc-http`.
+
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
 - **Spec.** `models/net/rpc/codec.go` (the model, trusted): `serverCodec` gains `rerr`, the first frame read

@@ -251,13 +251,14 @@ def ansRec (W : RpcWorld GF) (a : GoString) (cn : Nat) (Rs : List Ans) : IProp G
     [∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)))
 
 /-- The invariant of `sending` over the server codec `sc` on the acceptor's end of `cn`, to the
-address `a` of world `W`: what was written is a prefix of the wire of the answers `Rs` recorded,
-all of it while no write failed. -/
+address `a` of world `W`: what was written is a prefix of the handshake's answer and the wire of
+the answers `Rs` recorded, all of it while no write failed. -/
 def srvSendInv (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
   iprop(∃ (w0 : GoInterface) (Wd : List w8) (Rs : List Ans),
     structFieldRef net.rpc.serverCodec go!"werr" sc ↦ w0 ∗
     sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) Wd ∗ ansRec W a cn Rs ∗
-    ⌜(∀ x ∈ Rs, ansOk x) ∧ Wd <+: respsWire Rs ∧ (w0 = interface.nil → Wd = respsWire Rs)⌝)
+    ⌜(∀ x ∈ Rs, ansOk x) ∧ Wd <+: W.hsAns a ++ respsWire Rs ∧
+      (w0 = interface.nil → Wd = W.hsAns a ++ respsWire Rs)⌝)
 
 /-- The right to answer request `k` of connection `cn` (`"Service.Method"` `sm`), once, with its
 saved continuation `Φ`: its `ans` element, still `none`. -/
@@ -269,22 +270,23 @@ def ansPend (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString
     ghostMapElem γ.ans k (DFrac.own 1) (none : Option (GoString × List w8)) ∗
     savedPredOwn r.post .discard (fun p : List w8 × GoString => Φ p.1 p.2))
 
-/-- The reader of `cn` has read the frames of the payloads `ps` (each fitting a frame) and taken
-`k` requests of the connection: none at first, with the acceptor's fresh token; then the reader's
-half of `ctr`, at `k`. -/
+/-- The reader of `cn` has read the handshake and the frames of the payloads `ps` (each fitting
+a frame) and taken `k` requests of the connection: none at first, with the acceptor's fresh token;
+then the reader's half of `ctr`, at `k`. -/
 def readerSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)) (k : Nat) :
     IProp GF :=
-  iprop(recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (framesOf ps) ∗
+  iprop(recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (W.hs a ++ framesOf ps) ∗
     ⌜∀ q ∈ ps, q.length < 2 ^ 63⌝ ∗
     ((⌜k = 0⌝ ∗ connFresh (Gg := hG.goose_globalGS) cn true) ∨
       ∃ γ : RpcConnNames, isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
         ghostVar γ.ctr (1 : Qp).half k))
 
-/-- A connection just accepted at `a` (`Accept`'s): the acceptor's end of `cn`, its tokens
-(nothing written or read yet) and its fresh token, and the world's registry. -/
+/-- A connection accepted at `a`, its handshake done (`Accept`'s, with none; `ServeHTTP`'s): the
+acceptor's end of `cn`, its tokens (the handshake read and its answer written, nothing else) and
+its fresh token. -/
 def rpcAccepted (W : RpcWorld GF) (a : GoString) (cn : Nat) : IProp GF :=
-  iprop(sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) [] ∗
-    recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) [] ∗
+  iprop(sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) (W.hsAns a) ∗
+    recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (W.hs a) ∗
     connFresh (Gg := hG.goose_globalGS) cn true)
 
 /-! ## The request loop's pieces -/
@@ -333,7 +335,7 @@ request `k` (`r`, the `k`-th of the connection's lower bound `L`), and taken it.
 def rdrMid (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (r : RpcReq) : IProp GF :=
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq) (ps : List (List w8)),
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a)
-      (framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
+      (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
     ghostVar γ.ctr (1 : Qp).half (k + 1) ∗
     ⌜L[k]? = some r ∧ ps.length = 2 * k ∧ (∀ q ∈ ps, q.length < 2 ^ 63) ∧ reqOk r⌝)
