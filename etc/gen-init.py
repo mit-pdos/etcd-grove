@@ -2556,14 +2556,26 @@ without panicking.""",
     finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
            ['imodintro', 'unfold traceInit', 'iexists _; iexact HnoopSpanInstance'],
 )
+# (otel-tracing, 2026-11-23) otel's no-op tracer package, what `traceutil.Tracer`'s initializer calls
+SPECIAL['go_opentelemetry_io.otel.trace.noop'] = dict(
+    doc="""Its fact (`noopInit`, `storage/mvcc/Base.lean`): `noopSpanInstance` holds a no-op `Span` as a
+`trace.Span`, read-only for good. Its initializer allocates it, initializes its imports and runs its
+translated initializers (`noopSpanInstance = Span{}` and the interface assertions `var _ I = T{}`,
+`noop.go`).""",
+    alloc_types={'noopSpanInstance': 'GoInterface'},
+    finish=['ipersist HnoopSpanInstance'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold noopInit', 'iexists _; iexact HnoopSpanInstance'],
+)
 SPECIAL['go_etcd_io.etcd.pkg.v3.traceutil'] = dict(
     doc="""Its fact (`traceutilInit`, `storage/mvcc/Base.lean`): `Tracer` holds a fixed tracer. Its
-variables' initializers are untranslated: the trust-boundary axiom `Tracer_init` states the one
-the fact reads (`trace.go`), `opaqueInitsOk` the others.""",
-    custom={'Tracer': dict(
-        doc='/-- `Tracer = noop.NewTracerProvider().Tracer(instrumentationScope)` (`trace.go`): a `trace.Tracer`. -/',
-        post='∃ tr : GoInterfaceOk, globalAddr Tracer ↦ GoInterface.ok tr', pat='⟨%tr@, H@⟩')},
-    finish=['ipersist HTracer'] + FIN_PRE[:6] + ['imodintro', 'unfold traceutilInit', 'iframe #'],
+initializer allocates `Tracer`, initializes its imports and runs its translated initializer,
+`Tracer = noop.NewTracerProvider().Tracer(instrumentationScope)` (`trace.go`; otel-tracing,
+2026-11-23: until then the trust-boundary axiom `Tracer_init`), stepping into otel's no-op
+`NewTracerProvider` and `TracerProvider.Tracer` (translated with their bodies).""",
+    alloc_types={'Tracer': 'GoInterface'},
+    before={'Tracer': ['try wp_auto', 'wp_func_call', 'wp_auto', 'wp_method_call', 'wp_auto']},
+    finish=['ipersist HTracer'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold traceutilInit', 'iexists _; iexact HTracer'],
 )
 
 _R = SPECIAL['go_etcd_io.etcd.api.v3.v3rpc.rpctypes']
