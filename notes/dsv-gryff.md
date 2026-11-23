@@ -37,7 +37,7 @@ under `Dsverify/`.
 
 | | here |
 |---|---|
-| Go | `examples/dsverify/gryff/` (module `gryff`, the fork's path): the fork's packages the kit reaches (`src/{fastrpc,dlog,state,stats,clientproto,genericsmrproto,masterproto,epaxosproto,gryffproto,bitvec,bloomfilter,genericsmr,gryffcommon,gryff,masterlib,serverlib}`, non-test files only, unchanged, the fork's ghost prophecy code included) and the kit `examples/gryffnet` with its eleven commands `cmd/{orch,client0..5,server1..4}` |
+| Go | `examples/dsverify/gryff/` (module `gryff`, the fork's path): the fork's packages the kit reaches (`src/{fastrpc,dlog,state,stats,clientproto,genericsmrproto,masterproto,epaxosproto,gryffproto,bitvec,bloomfilter,genericsmr,gryffcommon,gryff,masterlib,serverlib}`, non-test files only, unchanged, the fork's prophecy code included) and the kit `examples/gryffnet` with its eleven commands `cmd/{orch,client0..5,server1..4}` |
 | net/rpc codec | `examples/gryffnet/rpc.toml` -> `rpc_gen.go`, `rpc_model_gen.go`, `rpc_real_gen.go`, `rpc_gen_test.go` by `models/net/rpc/rpcgen.py` (`--check` clean since lean `660918251a`, the receivers' import fix) |
 | translation | `etc/goose.py` project `dsv-gryff` (its entry in `etc/dsv/gryff.py`, dsv-infra's per-kit file) into the part `Dsverify/` (`Dsverify/{Code,GeneratedProof}/gryff/`), std_models `net/rpc`, `net/http` (as project `models-net`); remote, `net` and the models `Net/`'s, lintest, porcupine, `bufio`, `os` the main tree's, the rest Perennial's. `Dsverify/Code/gryff/src/stats.toml`: `StatsMap.Export` names only (JSON to a file; never called: no statistics file) |
 | the protocol's proof | `Dsverify/Proof/gryff/` (modules `Dsverify.Proof.gryff.*`, namespaces the lab's): ported by `port.py`'s mechanical renames then edited; the lab's `Harness` vocabulary the proof keeps, its pure parts only, under `Lab/` (`Model`, `ModelsCas`'s `casRegister`, `ClientSpec`'s `clientN`/`opAwp`/`opAwpMaybe`); `Slots.lean` holds the packages' states (the lab's generated `GryffNetPkgState`) |
@@ -181,7 +181,7 @@ replaces by `Net/`'s specs anyway; the rpc/http and bufio parts are items 1-3. D
   `rpcgen.py --check`.
 - The fork's `goose.sh` (lab kitgen) lists names-only declarations (`EPaxosRMWHandler.handlePropose`
   ...); the proof's translation (`proof/etc/goose.sh`) translates everything, and so does this one.
-- The fork carries its ghost code in the Go (the trace prophecy, `src/gryff/proph.go`, marked
+- The fork carries its prophecy code in the Go (the trace prophecy, `src/gryff/proph.go`, marked
   "verification workaround"), as the lab's forks do; this repository's rule is prophecy patches
   (`etc/proph-patches/`). Kept as the lab's for now (as dsv-paxos kept its fork's), to decide.
 
@@ -344,9 +344,9 @@ Proof-mode workarounds found (record for Perennial, `notes/perennial-changes.md`
   an earlier declaration's `_proof_N` (and, after a real error, cascades into unrelated branches):
   `--stop` and recheck, and confirm with `lake env lean`/`lake build` (both clean).
 
-## DECIDED (user, 2026-11-23): the prophecy ghost code stays in the fork (option 3)
+## DECIDED (user, 2026-11-23): the prophecy code stays in the fork (option 3)
 
-The fork's Go is kept exactly as the lab's, **ghost prophecy code included** (`src/gryff/proph.go`,
+The fork's Go is kept exactly as the lab's, **prophecy code included** (`src/gryff/proph.go`,
 the `Replica.proph` field, the `resolve<Event>` calls), a **recorded deviation** from this
 repository's rule that prophecies are patches (`etc/proph-patches/`, `notes/decisions.md`
 "Prophecies as patches of the Go code"). The user chose option (3) on 2026-11-23; nothing else
@@ -357,11 +357,11 @@ package's `init()`), resolved by 28 helpers through a struct field.
 
 ## The trace prophecy as a prophecy patch: blocked by prophcheck's grammar
 
-Coordinator's decision (2026-11-23): move the fork's ghost prophecy code into
+Coordinator's decision (2026-11-23): move the fork's prophecy code into
 `etc/proph-patches/dsv-gryff/*.patch` (CLAUDE.md, `etc/proph-patches/README.md`,
 `notes/decisions.md` "Prophecies as patches of the Go code"), checked by `etc/prophcheck`, so that
-`examples/dsverify/gryff` is the lab's fork minus its ghost code. **It cannot be done as
-prophcheck stands.** The ghost code (lines marked `(ghost code`; checked 2026-11-23):
+`examples/dsverify/gryff` is the lab's fork minus its prophecy code. **It cannot be done as
+prophcheck stands.** The prophecy code (lines marked `(ghost code`, the lab fork's marker; checked 2026-11-23):
 - `src/gryff/proph.go` (294 lines, a whole new file): a package variable `traceProph
   primitive.ProphId` set by `init()` (`primitive.NewProph()`), the event codes, and 28 helper
   methods `(r *Replica) resolve<Event>(m)` that resolve the event's fields through the struct
@@ -384,7 +384,7 @@ invocation. A choice of where it is created (init, main or the node's start) doe
 resolutions are in other functions.
 
 Options (decision for the coordinator / the prophcheck owner; nothing changed in the Go yet, the
-fork still carries the ghost code):
+fork still carries the prophecy code):
 1. **Extend prophcheck** with what the trace prophecy needs, each effect-free (the soundness
    argument stays "the patched program may fail more, never behave more"): a struct field of type
    `primitive.ProphId` added by the patch (keyed composite literals only, or the positional
@@ -398,7 +398,7 @@ fork still carries the ghost code):
 2. **Restructure the proof** onto per-event local prophecies (one `NewProph` per handled event,
    resolved in the same function): a redesign of the lab's stage 2 (`Proto2*`, `Replica2`, D9,
    D13), not a port.
-3. Keep the ghost code in the fork (as dsv-paxos kept its fork's), recorded as a deviation.
+3. Keep the prophecy code in the fork (as dsv-paxos kept its fork's), recorded as a deviation.
 
 Until then gen-init's configuration for the `gryff` package (its `init()` and `traceProph`) waits
 on this choice; `dlog.DLOG`, `gryff.stack` and the kit's `var _ = fmt.Sprint` are ordinary.
@@ -794,16 +794,16 @@ Goal: the branch lands right after `models-rpc-http`, with only a final merge an
 
 Upamanyu approved the widened prophecy-patch rule (#24, option A; branch `proph-patch-rule`,
 `notes/proph-patch-rule.md` for the exact checks). This branch merges `proph-patch-rule` (and so
-`origin/lean` 29f93a3c2c, Perennial `ccfeb3895`) and moves the fork's ghost code into
+`origin/lean` 29f93a3c2c, Perennial `ccfeb3895`) and moves the fork's prophecy code into
 `etc/proph-patches/dsv-gryff/01-trace-prophecy.patch` (the patch directory is named after the
 goose project, `dsv-gryff`). This replaces the section "The trace prophecy as a prophecy patch:
 blocked by prophcheck's grammar" above and the recorded deviation (option 3 there).
-- **The fork** (`examples/dsverify/gryff`) is the lab's minus the ghost code: `src/gryff/proph.go`
+- **The fork** (`examples/dsverify/gryff`) is the lab's minus the prophecy code: `src/gryff/proph.go`
   deleted; `tupaq.go` loses the `primitive` import, the `Replica.proph` field, `proph :=
   traceProph` and the literal's element; `epaxosrmwhandler.go` (23) and `epaxos-exec.go` (1) lose
   the 24 `resolve*` calls. `go build ./src/...` of the stripped fork is green.
 - **The patch** (459 lines, 284 added; `src/gryff/epaxosrmwhandler.go` and `epaxos-exec.go`):
-  the `primitive` import, `var traceProph primitive.ProphId` with its ghost initializer
+  the `primitive` import, `var traceProph primitive.ProphId` with its prophecy-only initializer
   `func init() { p := primitive.NewProph(); traceProph = p }` (Goose refuses `var traceProph =
   primitive.NewProph()`: its copy rule), the 29 helpers of `proph.go` as `*Replica` methods at
   the end of `epaxosrmwhandler.go` (5 for fields, 24 for events), resolving `traceProph` (no
