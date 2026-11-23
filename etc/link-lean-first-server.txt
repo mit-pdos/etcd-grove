@@ -1096,7 +1096,17 @@ httputil_GracefulClose:
 transport_IsClosedConnError: strings_Contains
 strings_Contains:
 transport_NewTimeoutTransport:
-rate_Limiter__Wait:
+# x/time/rate's `Wait` (rate-wait, 2026-11-23: proved over the real code, until then the trust
+# boundary): `WaitN`, `wait`, the token bucket (`reserveN`) and the reservation's `Cancel`
+rate_Limit__tokensFromDuration: time_Duration__Seconds_ptr
+rate_Limiter__advance: =_root_.Perennial.time.Time.wp_Before =_root_.Perennial.time.Time.wp_Sub rate_Limit__tokensFromDuration
+rate_Limit__durationFromTokens:
+rate_Limiter__reserveN: =_root_.Perennial.time.Time.wp_Add rate_Limiter__advance rate_Limit__durationFromTokens
+rate_Reservation__CancelAt: =_root_.Perennial.time.Time.wp_Before =_root_.Perennial.time.Time.wp_Sub =_root_.Perennial.time.Time.wp_Add =_root_.Perennial.time.Time.wp_Equal rate_Limiter__advance rate_Limit__tokensFromDuration rate_Limit__durationFromTokens
+rate_Reservation__Cancel: =_root_.Perennial.time.wp_Now rate_Reservation__CancelAt
+rate_Limiter__wait: =_root_.Perennial.time.Time.wp_Sub rate_Limiter__reserveN rate_Reservation__Cancel
+rate_Limiter__WaitN: =_root_.Perennial.time.wp_Now rate_Limiter__wait
+rate_Limiter__Wait: rate_Limiter__WaitN
 proto_MarshalPb:
 path_Split: =_root_.Perennial.internal.bytealg.wp_LastIndexByteString
 path_Clean: path_lazybuf__index path_lazybuf__append path_lazybuf__string
