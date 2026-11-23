@@ -1,16 +1,13 @@
 /- Lean-first (no Rocq counterpart).
-# `raft/kvnet`: the top-level robustness theorem, proved over a pending Perennial change (2026-11-22)
+# `raft/kvnet`: the top-level robustness theorem (2026-11-22)
 
-`raft_kvnet_robust.spec` (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`) from one named hypothesis,
-the statement of a Perennial pull request not yet landed (never an axiom):
-
-* `RobustOfNetFsBootG` (`TopBridge.lean`): the bridge `Net.robust_of_netFsBoot_addrs` on top of
-  mit-pdos/perennial#683 (a generation's obligation gets the file extension's local interpretation
-  before its WP; the crash obligation one later credit).
-
-(Until 2026-11-23 it took a second one, `errors.IsPathErrnoNotExist.spec`: proved since 2026-11-22,
-`Proof/errors/IsPathErrnoNotExist.lean`, `wal-safe-errors`, and `durable`'s Link passes the proof.
-The name `_of_errors` stays until the closure over #683.)
+`raft_kvnet_robust.spec` (`KvNet/Spec/.../kvnet/TopLevelRobustness.lean`), over the bridge
+`Net.robust_of_netFsBoot_addrs` (`Net/Statement/NetFsBridge.lean`). (Until 2026-11-23 it took, as a
+named hypothesis, the bridge on top of mit-pdos/perennial#683, which gave a generation the file
+extension's local interpretation before its WP, for the switch to the shared view; since the file
+extension's single shared view (`notes/fs-interp-state-determined.md`) a generation starts with that
+view and needs no switch. It also took `errors.IsPathErrnoNotExist.spec`, proved since 2026-11-22,
+`Proof/errors/IsPathErrnoNotExist.lean`.)
 
 `raft_kvnet_robust_of_errors` assembles it (`notes/kvnet-part.md`, the handoffs) at `GF := kvnetGF`:
 
@@ -33,7 +30,7 @@ public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Rep
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopClient
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopStart
 public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopPure
-public import KvNet.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.TopBridge
+public import Net.Statement.NetFsBridge
 
 @[expose] public section
 
@@ -100,7 +97,7 @@ variable [field_sem : net.FieldAssumptions]
 variable [os_file_sem : os.file.FieldAssumptions] [os_stat_sem : os.fileStat.FieldAssumptions]
 variable [log_sem : log.NewModel] [NaInvG GF]
 
-/-- **Every generation of replica `i + 1`** (`CrashBootWpG`): the Go context substituted, a fresh
+/-- **Every generation of replica `i + 1`** (`CrashBootWp`): the Go context substituted, a fresh
 storage registry, then `kvRep_gen`; after a crash, the next generation's `kvPc`. -/
 theorem kvPc_crashBoot
     (γ : KdNames) (cl : ClusterConfig) (rs : List GoString) (dir : GoString) (i : Nat)
@@ -109,7 +106,7 @@ theorem kvPc_crashBoot
     (hγ : γ.max = rs.length ∧ γ.r.cluster.dup = true ∧ γ.r.cluster.bootLen = 0 ∧
       Cluster.trace γ.r.cluster = none ∧ γ.r.cluster.snapLoc = (fun _ => none) ∧
       γ.r.cluster.maxData = none) :
-    CrashBootWpG (GF := GF) (kvnetReplicaProgram cl (List.intercalate go!"," rs) dir (W64 ((i : Int) + 1)))
+    CrashBootWp (GF := GF) (kvnetReplicaProgram cl (List.intercalate go!"," rs) dir (W64 ((i : Int) + 1)))
       (kvPc γ (bootVoters (uint.nat cl.voters)) rs dir (W64 ((i : Int) + 1))) := by
   intro L hL
   subst hL
@@ -119,11 +116,11 @@ theorem kvPc_crashBoot
   obtain ⟨hid1, hid2, hid32, hget⟩ := replica_id rs i hi hlen
   unfold kvPc
   try dsimp only
-  iintro ⟨#Hgl, ⟨%J, %R, ⟨%hJ, %hR⟩, Hg⟩, Hgs⟩ - %σ Hl
+  iintro ⟨#Hgl, ⟨%J, %R, ⟨%hJ, %hR⟩, Hg⟩, Hgs⟩ -
   imod kdStor_alloc (GF := GF) ⊤ with ⟨%k, #Hsi⟩
   letI : KdStor GF := k
   have Hrep := kvRep_gen (GF := GF) γ (bootVoters (uint.nat cl.voters)) cl
-    (List.intercalate go!"," rs) dir (W64 ((i : Int) + 1)) (kvDFile dir J (W64 ((i : Int) + 1))) R σ
+    (List.intercalate go!"," rs) dir (W64 ((i : Int) + 1)) (kvDFile dir J (W64 ((i : Int) + 1))) R
     (by rw [hsplit]; exact validCluster_of rs cl hnd hok hlen hcl) hid1 (by rw [hsplit]; exact hid2)
     hR hJ rfl (kvDFile_ok dir J _ (hR.2.2 _ hJ).1 hdir hid32) (kvDFile_name dir J _)
     (by rw [hγ.1]; exact hid2)
@@ -134,7 +131,7 @@ theorem kvPc_crashBoot
   icases Hgl with ⟨#Hc, #Hp, #Ha, #Hsn, #Hinv, #Hrf, #Haddrs⟩
   ihave #Hkc := kvnet_kdCluster γ (bootVoters (uint.nat cl.voters)) $$ Hc Hp Ha Hsn Hinv
     %(hγ.2.2.2.1)
-  imod Hrep $$ Hsi Hkc Hrf [] [] Hg Hgs Hl with ⟨Hl, Hwp, Hcr⟩
+  imod Hrep $$ Hsi Hkc Hrf [] [] Hg Hgs with ⟨Hwp, Hcr⟩
   · imodintro
     iintro %a %ha
     rw [hget] at ha
@@ -150,7 +147,7 @@ theorem kvPc_crashBoot
     iapply kvnet_peerAddrs γ rs _ M hM hok
     iexact Haddrs
   imodintro
-  iframe Hl Hwp
+  iframe Hwp
   iintro %L' %V' Hcd Hos' Hrest Hgs' Hlc
   imod Hcr $$ %L' %V' Hlc Hcd Hos' Hrest with Hg'
   imodintro
@@ -256,9 +253,8 @@ theorem replica_mem {α β γ : Type} (f : Nat → α × β → γ × β) (repli
 section top
 variable [go_gctx : GoGlobalContext]
 
-/-- **kvnet is robust** (`raft_kvnet_robust.spec`), given the pending Perennial change (see the file
-header): the bridge on top of #683. -/
-theorem raft_kvnet_robust_of_errors (Hb : RobustOfNetFsBootG) :
+/-- **kvnet is robust** (`raft_kvnet_robust.spec`; see the file header). -/
+theorem raft_kvnet_robust_of_errors :
     raft_kvnet_robust.spec := by
   intro lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem cl dir replicas σc g
     hcl hn hdir hnd hrep addrs hfresh hig hil
@@ -268,7 +264,8 @@ theorem raft_kvnet_robust_of_errors (Hb : RobustOfNetFsBootG) :
     obtain ⟨p, hp, rfl⟩ := List.mem_map.1 ha
     exact (hrep p.1 p.2 hp).1
   rw [← hlenrs] at hcl hn
-  refine Hb kvnetGF (replicas.map (·.1)) _ _ g _ _ hnd hok ?_ hfresh hig hil
+  refine Net.robust_of_netFsBoot_addrs (GF := kvnetGF) (replicas.map (·.1)) _ _ g _ _ hnd hok ?_
+    hfresh hig hil
   intro G hrb
   iintro Hs
   imod Net.netProto_alloc (GF := kvnetGF) ⊤ with ⟨%π, #Hreg⟩
@@ -349,10 +346,10 @@ theorem raft_kvnet_robust_example_of (H : raft_kvnet_robust.spec) :
     · exact ⟨by decide, hfs _ (by simp)⟩
     · exact ⟨by decide, hfs _ (by simp)⟩
 
-/-- **kvnet is robust, the example**, given the pending Perennial change. -/
-theorem raft_kvnet_robust_example_of_errors (Hb : RobustOfNetFsBootG) :
+/-- **kvnet is robust, the example**. -/
+theorem raft_kvnet_robust_example_of_errors :
     raft_kvnet_robust_example.spec :=
-  raft_kvnet_robust_example_of (raft_kvnet_robust_of_errors Hb)
+  raft_kvnet_robust_example_of raft_kvnet_robust_of_errors
 
 #print axioms raft_kvnet_robust_example_of_errors
 
