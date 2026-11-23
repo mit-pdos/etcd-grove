@@ -16,6 +16,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 /-! ## `bcastPrepare`'s cyclic peers -/
 
 /-- `q = (q + 1) % N` on `q = (r.Id + j) % N`. -/

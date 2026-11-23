@@ -17,6 +17,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]

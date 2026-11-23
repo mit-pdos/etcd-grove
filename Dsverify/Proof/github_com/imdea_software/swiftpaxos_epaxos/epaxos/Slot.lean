@@ -16,6 +16,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 /-- The scalar fields of a bookkeeping record and its image (`ownLb`'s pure part). -/
 def lbFields [GooseExts] (y : epaxos.LeaderBookkeeping) (lb : LbRec) : Prop :=
   y.ballot' = lb.ballot ∧ y.allEqual' = lb.allEqual ∧ y.preAcceptOKs' = lb.preAcceptOKs ∧
@@ -37,7 +39,7 @@ variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions
 
 theorem instAt_some (γ : EpNames) (i : Nat) (x : InstId) (pt : Loc) (w : InstRec)
     {o : Option InstRec} (h : o = some w) :
-    instAt γ i x pt o ⊣⊢ ownInst (GF := GF) γ i x pt w := by
+    instAt (GF := GF) γ i x pt o ⊣⊢ ownInst γ i x pt w := by
   subst h; exact .rfl
 
 theorem updP_instAtP (γ : EpNames) (i : Nat) (inst : InstId → Option InstRec) (x : InstId)

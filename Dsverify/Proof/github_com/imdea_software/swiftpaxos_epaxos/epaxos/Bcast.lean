@@ -21,6 +21,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 /-! ## Pure facts -/
 
 theorem bcastRep_noTrack (σ : RState) (b : Bcast) (a : Bool) (h : b.trackPA = false) :

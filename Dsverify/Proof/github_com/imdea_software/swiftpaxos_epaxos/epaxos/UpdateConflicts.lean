@@ -16,6 +16,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 /-- The pair `updateConflicts` records for command `c`. -/
 def ucPair (σ : RState) (q : Nat) (n : w32) (c : WCmd) : InstPair :=
   match σ.conflicts q c.key with

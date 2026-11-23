@@ -399,6 +399,25 @@ through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (n
 `ProtoPrefixClosed P`). The lab's `Interface/BufioLocal.lean`, `Proof/wire/BufioSticky` and
 `Harness/Proof/bufio/*` are replaced by these, not ported.
 
+## RPC layer: shapes to use (coordinator, 2026-11-23, for step (2))
+
+- **models-rpc-http** (`1a4d9546c9`, stacked on models-rpc-server, not landed): `rpcAddrP W a hs hsAns`,
+  `rpcAddr W a := rpcAddrP W a [] []`, handshake per address (`W.hs a`, `W.hsAns a`);
+  `rpc.DialHTTPPath.spec`/`rpc.DialHTTP.spec` proved over `http.ReadResponse.spec` (stated, proof in
+  progress). Merge it and use its DialHTTP(Path) specs in place of `RpcHttpHyp`'s client fields; keep
+  the server fields (`ServeHTTP`, `HandleHTTP`, `http.Serve`, `ServeMux`) until that part lands.
+  Not merged yet (it regenerates `Net/GeneratedProof/net/http`: merge right before the RPC work).
+- Upamanyu's five answers (#24; text `scratchpad/five-answers-24.txt`): wildcard listeners (the
+  master's `":%d"`) get `rpcLisP W la hs hsAns` (`rpcAddrP` its instance at an exact address; names
+  `rpcLisP_addr`/`_lis`/`_set`; dsv-swiftpaxos's `lib/RpcHttpHyps.lean` has the hypothesis shape);
+  `errOk` will cover only the server's own errors (`srvErrMsg m`); `Client.Call`'s other errors give
+  `∃ msg, errMsg err msg ∗ ⌜msg ≠ []⌝`; net/rpc's `codecFresh`/`srvEnv` come from a per-machine boot
+  resource returned by `wp_initialize'` (never `|==> codecFresh`). Keep the open points (callRet
+  errMsg, codecFresh, errOk, wildcard listeners) as visible premises.
+- Templates: dsv-craq (`Craq/{Codec,CodecSrv,HttpRpc,Netrpc/*}`: rpcgen codec, net/rpc over HTTP),
+  dsv-rabia (top level: `TopLevelDefs`/`TopLevelRobustness`, remote's `ServeClient` with a Mutex in
+  the kit's `Sys`).
+
 ## Import tiers (etc/tier-check.py, a land gate)
 
 2026-11-23: `etc/tier-check.py --check` reports **34 new violations, all `defs->proof`**: the kit's

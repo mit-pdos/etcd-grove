@@ -16,6 +16,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 theorem cut_step (c : w32) (fuel : Nat) (Hc1 : -1 ≤ zz c) (Hc2 : zz c + 2 ≤ MAX_INSTANCE)
     (Hfuel1 : (MAX_INSTANCE : Int) ≤ fuel + zz c + 1) (hlt : toN (c + 1) + 2 ≤ MAX_INSTANCE) :
     -1 ≤ zz (c + 1) ∧ zz (c + 1) + 2 ≤ MAX_INSTANCE ∧ ∃ f, fuel = f + 1 ∧

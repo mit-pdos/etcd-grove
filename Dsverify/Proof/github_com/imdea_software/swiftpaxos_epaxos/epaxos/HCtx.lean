@@ -20,6 +20,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 /-! ## Pure facts -/
 
 /-- What the handler specs take of the replica's state (the run loop has them: `Inv.wf`'s ids,

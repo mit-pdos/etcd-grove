@@ -17,6 +17,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 theorem getD_of_lt {α : Type} (l : List α) (k : Nat) (a : α) (h : k < l.length) :
     l.getD k a = l[k] := by
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h]; rfl

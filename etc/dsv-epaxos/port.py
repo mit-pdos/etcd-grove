@@ -97,6 +97,8 @@ def gf_preds(texts):
     for s in texts:
         for m in re.finditer(r'(?m)^(?:@\[[^\]]*\]\s*)?(?:noncomputable )?(?:abbrev|def) ([\w.]+)', s):
             k = s.find(':=', m.end())
+            k2 = s.find('\n  | ', m.end())  # a definition by pattern matching
+            if k2 >= 0 and (k < 0 or k2 < k): k = k2
             if k < 0 or k - m.end() > 600: continue
             if re.search(r':\s*(?:[^:=]*→\s*)?IProp GF\s*$', s[m.end():k]): names.add(m.group(1))
     return names
@@ -107,7 +109,7 @@ def gf_annotate(t, names):
     pat = re.compile(r'(?<![\w.])(' + '|'.join(sorted((re.escape(n) for n in names), key=len, reverse=True)) + r')(?![\w.])')
     out = []; ls = t.split('\n'); i = 0
     while i < len(ls):
-        if re.match(r'^(theorem|instance|lemma) ', ls[i]) or re.match(r'^\s+have \w+ : ', ls[i]):
+        if re.match(r'^(theorem|instance|lemma) ', ls[i]) or re.match(r'^\s+(?:· )?have \w+ : ', ls[i]):
             # the statement ends at the first `:=` outside brackets (or a `|` alternative)
             j = i; depth = 0; done = False
             while j < len(ls) and j - i < 30 and not done:
@@ -150,6 +152,7 @@ def generic_conv(t):
     # a spec taken as a hypothesis: its `GF` is not determined by anything else
     t = re.sub(r'\) : ([\w.]+\.spec\w*) := by', r') : \1 (GF := GF) := by', t)
     t = re.sub(r'\((h\w* : [\w.]+\.spec)\)', r'(\1 (GF := GF))', t)
+    t = re.sub(r'\((h\w* : [A-Z]\w*Spec)\)', r'(\1 (GF := GF))', t)
     t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
                r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',
                'attribute [local instance] GooseGlobalGS.gooseInvGS', t)
@@ -449,6 +452,12 @@ for p in [a for a in sys.argv[1:] if a != '--bufio']:
     s = re.sub(r'(_unseal : )@(\w+)(?: \(GF := GF\))? = @(\w+)', r'\1\2 (GF := GF) = \3', s)
     if 'bufio.writerOk_conn' in s: s = writer_conv(s)
     s = fixup(p, s)
+    # pure declarations over the code's types before the first section: the lab's `netConnExts`
+    # local instance gave them `GooseExts`; here a file-level variable
+    k = s.find('\nsection')
+    if k > 0 and re.search(r'\b(?:epaxos|state|replica)\.[A-Z]', s[:k]) and 'variable [GooseExts]\n' not in s[:k]:
+        s = s.replace('attribute [local instance] GooseGlobalGS.gooseInvGS\n',
+                      'attribute [local instance] GooseGlobalGS.gooseInvGS\n\nvariable [GooseExts]\n', 1)
     # the lab harness's `net.rpc.connIface c cn s` is `connIf` (Interface/ConnBuf.lean)
     s = s.replace('net.rpc.connIface', 'connIf')
     open(out, 'w').write(s)

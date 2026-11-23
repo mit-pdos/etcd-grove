@@ -16,6 +16,8 @@ open model epaxosProof
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
+variable [GooseExts]
+
 /-- The state after `makeBallot` on `x` (record `w`, bookkeeping `lb`). -/
 def makeBallotSt (σ : RState) (x : InstId) (w : InstRec) (lb : LbRec) : RState :=
   σ.setInst x { w with lb := some { lb with lastTriedBallot :=
