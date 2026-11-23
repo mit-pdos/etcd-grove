@@ -628,4 +628,334 @@ theorem wp_stepE (e : Entry) (k : GoString) (x : Ent) (inp : In) (o : Out)
       iframe Hold Hq
       ipureintro; exact ⟨rfl, rfl, rfl⟩
 
+theorem wp_step (sl : State) (es : List Entry) (E : List KEnt) (inp : In) (o : Out) (n : Nat)
+    (hl : E.length < 2 ^ 62) (ha : allLe n E) (hn : n < 2 ^ 60) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ es ∗ □ ([∗list] e;p ∈ es;E, entRep e p) }}
+      (App (App (App (Val (@! raxos.examples.quepaxanet.step)) (Val #sl)) (Val #inp)) (Val #o))
+    {{ (ok : Bool) (t : State), RET (PairV #ok #t);
+        ⌜ok = (stepL E (kin inp) (kans o)).1⌝ ∗ ∃ es' : List Entry, t ↦*□ es' ∗
+        □ ([∗list] e;p ∈ es';(stepL E (kin inp) (kans o)).2, entRep e p) }} := by
+  wp_start as ⟨#Hs, #HE⟩
+  wp_auto
+  wp_apply wp_lookup sl es E inp.K' $$ [$Hs $HE] as %i %e ⟨%Hi, #He⟩
+  have hk : (kin inp).k = inp.K' := rfl
+  wp_apply wp_stepE e inp.K' (lk E inp.K') inp o
+    (by have := lk_all_le ha inp.K'; omega) $$ [$He] as %ok %e2 ⟨%Hok, #He2⟩
+  cases ok
+  · wp_auto
+    iapply HΦ
+    unfold stepL
+    rw [hk, ← Hok]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    isplitr
+    · ipureintro; trivial
+    iexists es
+    iframe Hs
+    imodintro
+    iexact HE
+  · wp_auto
+    wp_apply wp_set sl es E inp.K' i e2 _ Hi.1 Hi.2 (by omega) $$ [$Hs $HE $He2] as %t ⟨%es', #Ht, #HE'⟩
+    iapply HΦ
+    unfold stepL
+    rw [hk, ← Hok]
+    simp only [↓reduceIte]
+    isplitr
+    · ipureintro; trivial
+    iexists es'
+    iframe Ht
+    imodintro
+    iexact HE'
+
+theorem wp_equalS (a b : GoSlice) (A B : List GoString) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ a ↦*□ A ∗ b ↦*□ B }}
+      (App (App (Val (@! raxos.examples.quepaxanet.equalS)) (Val #a)) (Val #b))
+    {{ (r : Bool), RET #r; ⌜r = true → A = B⌝ }} := by
+  wp_start as ⟨#Ha, #Hb⟩
+  ihave %HA := ownSlice_len _ _ _ $$ Ha
+  ihave %HB := ownSlice_len _ _ _ $$ Hb
+  wp_auto
+  by_cases h3 : ¬ a.len = b.len
+  · simp only [h3, _root_.decide_false, Bool.not_false]
+    wp_auto
+    iapply HΦ
+    ipureintro; intro h; cases h
+  have h3 := Classical.not_not.mp h3
+  simp only [h3, _root_.decide_true, Bool.not_true]
+  wp_auto
+  have hAB : A.length = B.length := by rw [HA.1, HB.1, h3]
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z a.len ∧
+        A.take (sint.nat i) = B.take (sint.nat i)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Ht⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z a.len := Hif
+    list_elem A (sint.nat i) as x
+    list_elem B (sint.nat i) as y
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z a.len from ⟨Hi0, hlt⟩)]
+    wp_apply wp_load_slice_index a (sint.Z i) A _ x Hi0 $$ [Ha] as -
+    · iframe Ha; ipureintro; exact Hx_lookup
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z b.len from ⟨Hi0, h3 ▸ hlt⟩)]
+    wp_apply wp_load_slice_index b (sint.Z i) B _ y Hi0 $$ [Hb] as -
+    · iframe Hb; ipureintro; exact Hy_lookup
+    by_cases hxy : ¬ x = y
+    · simp only [hxy, _root_.decide_false, Bool.not_false]
+      wp_auto
+      wp_for_post
+      iapply HΦ
+      ipureintro; intro h; cases h
+    have hxy := Classical.not_not.mp hxy
+    subst hxy
+    simp only [_root_.decide_true, Bool.not_true]
+    wp_auto
+    wp_for_post
+    iframe
+    iexists i + W64 1
+    iframe
+    ipureintro
+    have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+    refine ⟨by word, by word, ?_⟩
+    rw [hs, List.take_add_one, List.take_add_one, Ht, Hx_lookup, Hy_lookup]
+  · have heq : sint.Z i = sint.Z a.len := by omega
+    have hn : sint.nat i = A.length := by
+      rw [HA.1]; show (sint.Z i).toNat = _; rw [heq]
+    have e : A = B := by
+      rw [hn, List.take_length, hAB, List.take_length] at Ht
+      exact Ht
+    iapply HΦ
+    ipureintro; intro _; exact e
+
+theorem wp_equalE (a b : Entry) (p q : KEnt) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ entRep a p ∗ entRep b q }}
+      (App (App (Val (@! raxos.examples.quepaxanet.equalE)) (Val #a)) (Val #b))
+    {{ (r : Bool), RET #r; ⌜r = true → p = q⌝ }} := by
+  wp_start as ⟨#Ha, #Hb⟩
+  iunfold entRep at Ha Hb
+  icases Ha with ⟨%Hka, #Hao, #Han⟩
+  icases Hb with ⟨%Hkb, #Hbo, #Hbn⟩
+  obtain ⟨aK, af, av, ao, an⟩ := a
+  obtain ⟨bK, bf, bv, bo, bn⟩ := b
+  obtain ⟨pk, pf, pv, po, pn⟩ := p
+  obtain ⟨qk, qf, qv, qo, qn⟩ := q
+  simp only at Hka Hkb
+  obtain ⟨rfl, rfl, rfl⟩ := Hka
+  obtain ⟨rfl, rfl, rfl⟩ := Hkb
+  simp only
+  wp_auto
+  by_cases h1 : ¬ aK = bK
+  · simp only [h1, _root_.decide_false]
+    wp_auto
+    iapply HΦ
+    ipureintro; intro h; cases h
+  have h1 := Classical.not_not.mp h1
+  subst h1
+  simp only [_root_.decide_true]
+  wp_auto
+  by_cases h2 : ¬ af = bf
+  · simp only [h2, _root_.decide_false]
+    wp_auto
+    iapply HΦ
+    ipureintro; intro h; cases h
+  have h2 := Classical.not_not.mp h2
+  subst h2
+  simp only [_root_.decide_true]
+  wp_auto
+  by_cases h3 : ¬ av = bv
+  · simp only [h3, _root_.decide_false]
+    wp_auto
+    iapply HΦ
+    ipureintro; intro h; cases h
+  have h3 := Classical.not_not.mp h3
+  subst h3
+  simp only [_root_.decide_true]
+  wp_auto
+  wp_apply wp_equalS ao bo po qo $$ [$Hao $Hbo] as %r1 %Hr1
+  cases r1
+  · wp_auto
+    iapply HΦ
+    ipureintro; intro h; cases h
+  · wp_auto
+    wp_apply wp_equalS an bn pn qn $$ [$Han $Hbn] as %r2 %Hr2
+    iapply HΦ
+    ipureintro; intro h
+    rw [Hr1 rfl, Hr2 h]
+
+theorem wp_equal (a b : State) (es fs : List Entry) (E F : List KEnt) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ a ↦*□ es ∗ b ↦*□ fs ∗
+        □ ([∗list] e;p ∈ es;E, entRep e p) ∗ □ ([∗list] e;p ∈ fs;F, entRep e p) }}
+      (App (App (Val (@! raxos.examples.quepaxanet.equal)) (Val #a)) (Val #b))
+    {{ (r : Bool), RET #r; ⌜r = true → E = F⌝ }} := by
+  wp_start as ⟨#Ha, #Hb, #HE, #HF⟩
+  ihave %HA := ownSlice_len _ _ _ $$ Ha
+  ihave %HB := ownSlice_len _ _ _ $$ Hb
+  ihave %HlE := BigSepL2.bigSepL2_length $$ HE
+  ihave %HlF := BigSepL2.bigSepL2_length $$ HF
+  wp_auto
+  by_cases h3 : ¬ a.len = b.len
+  · simp only [h3, _root_.decide_false, Bool.not_false]
+    wp_auto
+    iapply HΦ
+    ipureintro; intro h; cases h
+  have h3 := Classical.not_not.mp h3
+  simp only [h3, _root_.decide_true, Bool.not_true]
+  wp_auto
+  have hEF : E.length = F.length := by rw [← HlE, ← HlF, HA.1, HB.1, h3]
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z a.len ∧
+        E.take (sint.nat i) = F.take (sint.nat i)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Ht⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z a.len := Hif
+    list_elem es (sint.nat i) as x
+    list_elem fs (sint.nat i) as y
+    list_elem E (sint.nat i) as p
+    list_elem F (sint.nat i) as q
+    ihave #Hx := BigSepL2.bigSepL2_lookup Hx_lookup Hp_lookup $$ HE
+    ihave #Hy := BigSepL2.bigSepL2_lookup Hy_lookup Hq_lookup $$ HF
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z a.len from ⟨Hi0, hlt⟩)]
+    wp_apply wp_load_slice_index a (sint.Z i) es _ x Hi0 $$ [Ha] as -
+    · iframe Ha; ipureintro; exact Hx_lookup
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z b.len from ⟨Hi0, h3 ▸ hlt⟩)]
+    wp_apply wp_load_slice_index b (sint.Z i) fs _ y Hi0 $$ [Hb] as -
+    · iframe Hb; ipureintro; exact Hy_lookup
+    wp_apply wp_equalE x y p q $$ [$Hx $Hy] as %r %Hr
+    cases r
+    · wp_auto
+      wp_for_post
+      iapply HΦ
+      ipureintro; intro h; cases h
+    · have hpq := Hr rfl
+      subst hpq
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1
+      iframe
+      ipureintro
+      have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+      refine ⟨by word, by word, ?_⟩
+      rw [hs, List.take_add_one, List.take_add_one, Ht, Hp_lookup, Hq_lookup]
+  · have heq : sint.Z i = sint.Z a.len := by omega
+    have hn : sint.nat i = E.length := by
+      rw [← HlE, HA.1]; show (sint.Z i).toNat = _; rw [heq]
+    have e : E = F := by
+      rw [hn, List.take_length, hEF, List.take_length] at Ht
+      exact Ht
+    iapply HΦ
+    ipureintro; intro _; exact e
+
+theorem lk_nil_fun : lk [] = fun _ => Ent.empty := rfl
+
+theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold isModel isEqHash
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · -- Init
+    unfold initSpec
+    iintro !> %Φ' _ HΦ'
+    wp_auto
+    wp_apply wp_slice_literal (V := Entry) []
+    isplitr
+    · ipureintro; rfl
+    iintro %slp ⟨Hsl, -⟩
+    iapply fupd_wp
+    imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
+    imodintro
+    wp_auto
+    iapply HΦ'
+    simp only [qS, qS0, qRep, pM]
+    iexists _, [], []
+    iframe Hsl
+    isplitr
+    · ipureintro
+      refine ⟨rfl, by rw [lk_nil_fun, mSet_empty], ⟨List.nodup_nil, nofun⟩,
+        ⟨⟨kvB.init, []⟩, by rw [lk_nil_fun, mSet_empty]; rfl⟩, Nat.le_refl _, nofun⟩
+    · iapply BigSepL2.bigSepL2_nil.2; itrivial
+  isplitr
+  · -- Step
+    iright
+    isplitr
+    · ipureintro; exact ⟨trivial, nofun⟩
+    unfold stepSpec
+    iintro %k %v %s %i %o
+    iintro !> %Φ' Hpre HΦ'
+    simp only [qS, qS0]
+    icases Hpre with ⟨%Hk, Hrep, %Hio⟩
+    obtain ⟨⟨x, rfl⟩, y, rfl⟩ := Hio
+    unfold qRep
+    icases Hrep with ⟨%sl, %es, %E, %Hr, #Hsl, #HE⟩
+    obtain ⟨rfl, rfl, hE, hne, hl, ha⟩ := Hr
+    wp_auto
+    wp_apply wp_step sl es E x y k (by omega) ha Hk $$ [$Hsl $HE] as %ok %t ⟨%Hok, %es', #Ht, #HE'⟩
+    have hpm := pM_step kvB qDec (mSet (lk E)) _ (kin x) _ (qDec_box x y)
+    have H := stepL_pSeq hE hne (kin x) (kans y)
+    obtain ⟨hb1, hb2⟩ := stepL_bounds hl ha (kin x) (kans y)
+    iapply HΦ'
+    isplitr
+    · iexists sl, es, E
+      iframe Hsl HE
+      ipureintro; exact ⟨rfl, rfl, hE, hne, hl, ha⟩
+    isplitr
+    · ipureintro
+      rw [hpm, H, Hok]
+      cases (stepL E (kin x) (kans y)).1 <;> rfl
+    · unfold stepPost
+      simp only [hpm, H]
+      cases hok : (stepL E (kin x) (kans y)).1
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        itrivial
+      · simp only [↓reduceIte]
+        iexists t, es', (stepL E (kin x) (kans y)).2
+        iframe Ht HE'
+        ipureintro
+        refine ⟨rfl, rfl, stepL_ok hE _ _, ?_, hb1, hb2⟩
+        have := pSeq_some_ne (H.trans (by rw [hok]; rfl))
+        exact this
+  isplitr
+  · ipureintro; nofun
+  isplitr
+  · -- Equal
+    unfold equalSpec
+    iintro %k %j %v %w %s %t
+    iintro !> %Φ' Hpre HΦ'
+    simp only [qS]
+    unfold qRep
+    icases Hpre with ⟨⟨%sl, %es, %E, %Hr, #Hsl, #HE⟩, ⟨%sl', %fs, %F, %Hr', #Hsl', #HF⟩⟩
+    obtain ⟨rfl, rfl, hE, hne, hl, ha⟩ := Hr
+    obtain ⟨rfl, rfl, hF, hne', hl', ha'⟩ := Hr'
+    wp_auto
+    wp_apply wp_equal sl sl' es fs E F $$ [$Hsl $Hsl' $HE $HF] as %r %Hr
+    iapply HΦ'
+    isplitr
+    · iexists sl, es, E
+      iframe Hsl HE
+      ipureintro; exact ⟨rfl, rfl, hE, hne, hl, ha⟩
+    isplitr
+    · iexists sl', fs, F
+      iframe Hsl' HF
+      ipureintro; exact ⟨rfl, rfl, hF, hne', hl', ha'⟩
+    ipureintro
+    intro h
+    rw [Hr h]
+  ileft
+  ipureintro; trivial
+
 end proof
