@@ -73,7 +73,7 @@ def ttlAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoString) (
             (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i v.ID' w.GrantedTTL') ∨
             lease.leaseAbsentFrom γl m v.ID')) ∗
       authedOutB s E.authMode tok GoInterface.nil ∗
-      leaseCheckFrom s E tok n
+      leaseCheckFrom (srvTLSId s) E tok n
         (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
           else iprop(True))) ∨
     (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
@@ -82,7 +82,7 @@ def ttlAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoString) (
           errIsTrue err (GoInterface.ok e) -∗
           (leaseTTLRow s γl -∗ lease.leaseAbsentFrom γl m v.ID') ∗
           authedOutB s E.authMode tok GoInterface.nil ∗
-          leaseCheckFrom s E tok n
+          leaseCheckFrom (srvTLSId s) E tok n
             (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
               else iprop(True)))))
 
@@ -94,7 +94,7 @@ def leasesAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoString
     (resp : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (ids : List w64) (cs ms : w64), ⌜m ≤ i⌝ ∗
       lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cs ms ids ∗
-      leaseCheckFrom s E tok n (fun info => iprop([∗list] id ∈ ids,
+      leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id ∈ ids,
         leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
     (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err ∗
       □ (∀ e : GoInterfaceOk,
@@ -177,7 +177,7 @@ def leaseTTLOut (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoStri
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseTimeToLiveResponse,
       resp ↦ w ∗ ⌜w.ID' = v.ID'⌝ ∗ leaseHdrDone w.Header' cid mid ∗
       authedOutB s E.authMode tok GoInterface.nil ∗
-      leaseCheckFrom s E tok n
+      leaseCheckFrom (srvTLSId s) E tok n
         (fun info => if v.Keys' then leaseKeysVerdictFrom E.authMode n info γl m v.ID' .read
           else iprop(True)) ∗
       (□ (leaseTTLRow s γl -∗
@@ -198,7 +198,7 @@ def leaseLeasesOut (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoS
   iprop((⌜err = GoInterface.nil⌝ ∗ ∃ w : etcdserverpb.LeaseLeasesResponse, resp ↦ w ∗
       ∃ (i : Nat) (ids : List w64), ⌜m ≤ i⌝ ∗ lease.leaseIdsAt γl i ids ∗
         leasesHdrDone E w.Header' cid mid ∗ leasesListIs w ids ∗
-        leaseCheckFrom s E tok n (fun info => iprop([∗list] id ∈ ids,
+        leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id ∈ ids,
           leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
     ⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝)
 

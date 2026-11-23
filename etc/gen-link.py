@@ -247,6 +247,9 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringNotWriter",
     # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
     "EtcdGrove.MutexLitSemantics",
+    # (net-swap, 2026-11-22) the net extension's `net`'s hand-stated field facts (`Net/TrustedCode/net.lean`),
+    # which Net's `Listen` spec takes (`Proof/net/Listen.lean`)
+    "_root_.Perennial.net.FieldAssumptions",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
@@ -717,6 +720,10 @@ EXTRA_IMPORTS["--k8s-etcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet",
                                  "Proof.go_etcd_io.etcd.client.v3.LinkMembers"]
 # (the import tiers, 2026-11-18) the linking modules whose laws (`=*_law_holds`) the modes' proofs take
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.go_etcd_io.etcd.client.v3.ClientPutGet"]
+# (net-swap, etcd-dist D2, 2026-11-22) `net.Listen`'s proof takes the part `Net/`'s `Listen` spec, its
+# proof over the net extension
+for _m in ["--common", "--cluster3"]:
+    EXTRA_IMPORTS.setdefault(_m, []).append("Net.Proof.net.Listen")
 # (k8s 7g) the maintainers' checker's trust-boundary axioms (`=`, `notes/k8s-7g-trust.md` §1) and
 # `strconv.ParseUint`'s result (`Obj.SetResourceVersion`)
 EXTRA_IMPORTS["--k8setcd3"] += ["Proof.reflect.DeepEqualK8s", "Proof.maps.Keys", "Proof.maps.Clone",

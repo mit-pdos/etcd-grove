@@ -33,7 +33,7 @@ variable [sem : go.Semantics]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [examples.epaxosnet.Assumptions] [master.Assumptions] [epaxos.Assumptions]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-  [TH : TreemapHyp GF]
+  [TH : StateTreemap GF]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

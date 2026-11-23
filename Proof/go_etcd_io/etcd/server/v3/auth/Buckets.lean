@@ -446,6 +446,15 @@ instance authSnap_persistent (M : AuthMode) (st : AuthState) :
     Persistent (authSnap (GF := GF) M st) := by
   unfold authSnap; cases M <;> infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A reader's lower bound of the published index** `i` in the mode `M` (persistent; the auth
 plan's E3g): in `on γa`, `authPubLb γa i`; otherwise nothing. -/
 def authPubLbM (M : AuthMode) (i : Nat) : IProp GF :=
@@ -456,6 +465,15 @@ def authPubLbM (M : AuthMode) (i : Nat) : IProp GF :=
 instance authPubLbM_persistent (M : AuthMode) (i : Nat) :
     Persistent (authPubLbM (GF := GF) M i) := by
   unfold authPubLbM; cases M <;> infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- **A state of the mode no older than the index `i`** (persistent; the auth plan's E3g): as
 `authSnap`, in `on γa` recorded at an index at least `i`. -/

@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/client/v3/contextErrToGRPCErr.lean` (prove-ps2-wrb, 2026-11-22), over
-`errors.Is` (Perennial's, for the pointer target `context.Canceled`; the trust boundary's
-`errors.IsDeadlineExceeded` for `context.DeadlineExceeded`, an empty struct) and grpc's `status.Error`.
+`errors.Is` (Perennial's, for the pointer target `context.Canceled`; `errors.IsDeadlineExceeded` for
+`context.DeadlineExceeded`, an empty struct) and grpc's `status.Error`.
 Lean-first (no Rocq counterpart).
 -/
 module
@@ -91,7 +91,7 @@ theorem contextErrToGRPCErr.wp_proof
   ihave #Hl' := Hl
   iunfold ctxErrLeaf at Hl'
   icases Hl' with ⟨%e, %m, %Hem, #Hm⟩
-  obtain ⟨rfl, hm, hsh, hleaf, hptr⟩ := Hem
+  obtain ⟨rfl, hm, hsh, hleaf, hptr, hde⟩ := Hem
   ihave #Hmt : iprop({{ True }} (App (Val #(methods e.ty go!"Error" e.v)) (Val #()))
       {{ RET #m; True }}) $$ []
   · iintro !> %Φ - HΦ
@@ -110,7 +110,9 @@ theorem contextErrToGRPCErr.wp_proof
   · iframe #
     isplitl []
     · iapply hT
-    · ipureintro; rfl
+    · isplitl []
+      · ipureintro; rfl
+      · ipureintro; exact deTyped_single e hde
   cases b1
   · -- not `DeadlineExceeded`
     wp_auto

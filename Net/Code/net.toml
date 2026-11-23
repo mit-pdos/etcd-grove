@@ -1,7 +1,7 @@
 # Project net's `net` (etc/goose.py), in the part `Net/`, modeled by the net extension
-# `netExt` (GooseLang/Ext/Net/Impl.lean; notes/net-tcp.md, notes/net-tcp-v3-plan.md). Not the main
-# tree's `net` (Code/net.toml, names only), whose axioms etcd's server proofs use: the two are never
-# in one import closure.
+# `netExt` (GooseLang/Ext/Net/Impl.lean; notes/net-tcp.md, notes/net-tcp-v3-plan.md). Since the net
+# swap (etcd-dist D2, 2026-11-22) also the main tree's `net` (every project's `net=Net`; until then a
+# names-only translation, Code/net.toml).
 #
 # `net`'s package variables are trusted too, each with an initializer that does nothing (as
 # LinuxFs's `os.Stdin`, `Stdout`): the variables are not allocated, so code that reads one is stuck;

@@ -40,6 +40,7 @@ public import Proof.google_golang_org.grpc.model.finishStream
 public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.strconv.FormatUint
+public import Net.Proof.net.Listen
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.context.Link
@@ -151,11 +152,11 @@ theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcdstart.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewClient.wp_proof wp_NewClients
 
-theorem net.wp_Listen :
+theorem net.wp_Listen [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
+  EtcdGrove.net.Listen.wp_proof _root_.Perennial.net.Listen.wp_proof
 
-theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.NewMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewMember.wp_proof wp_newServer net.wp_Listen EtcdServer.wp_RaftHandler
 
@@ -187,7 +188,7 @@ theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Server.Serve.wp_proof grpc.model.wp_Serve
 
-theorem wp_Serve [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_Serve [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.Serve.wp_proof grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.grpcCfgOk_of_startedM_law_holds client.raftKV_serverM_law_holds
 
@@ -195,11 +196,11 @@ theorem wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartCompactingServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartCompactingServer.wp_proof wp_newServerMode EtcdServer.wp_Start
 
-theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start
 
-theorem wp_StartMembers [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartMembers [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.StartMembers.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartMembers.wp_proof wp_NewMember EtcdServer.wp_Start
 

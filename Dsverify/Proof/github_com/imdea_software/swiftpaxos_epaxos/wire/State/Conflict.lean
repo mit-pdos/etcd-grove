@@ -16,7 +16,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-  [TH : TreemapHyp GF]
+  [TH : StateTreemap GF]
 
 theorem state.Conflict.spec_holds : state.Conflict.spec (GF := GF) := by
   intro g d dqg dqd gv dv wg wd hg hd
