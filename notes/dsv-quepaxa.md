@@ -261,15 +261,12 @@ trusted code: the two descriptor-table init files (collection).
   taken from `lean`, dsv-rabia's). `Proxy/NetAcceptLib.lean`'s `opError_resErr`: `net.OpError.Error`
   now maps an empty string to `"error"` (a branch). No local copy of dsv-protolaws' laws here (QuePaxa
   uses no `sentLb`).
-- **go-redis** (finding): dsv-rabia (landed) translates go-redis **v8.8.2** into the same modules
-  (`Dsverify/{Code,GeneratedProof}/github_com/go_redis`, with `translate_types`); QuePaxa's go.mod has
-  **v8.11.5**, and two projects cannot own one module path. QuePaxa's goose project no longer
-  translates or owns go-redis (`etc/dsv/quepaxa.py`): its code's references resolve to rabia's
-  translation. Pinning QuePaxa to v8.8.2 instead fails: v8.8.2 needs otel v0.19 (`metric/global`),
-  grpc v1.84 a 1.x otel, and the downgrade takes grpc to `v1.69.0-dev`. Harmless for the theorem:
-  QuePaxa reaches go-redis only in benchmark mode 1, which the proof shows unreachable, and its
-  `InitHyp` says only that the initializer does not panic, true of both versions. The cleaner fix (one
-  version for both kits, e.g. rabia on v8.11.5) is a follow-up.
+- **go-redis**: one translation for both kits. dsv-rabia (landed) owns go-redis's names-only
+  translation (`Dsverify/{Code,GeneratedProof}/github_com/go_redis`); `dsv-goredis` moved rabia's go.mod
+  from v8.8.2 to **v8.11.5**, QuePaxa's version (pinning QuePaxa to v8.8.2 fails: v8.8.2 needs otel
+  v0.19, grpc v1.84 a 1.x otel), and regenerated the translation. QuePaxa's goose project does not
+  translate or own go-redis: its references resolve to that v8.11.5 translation, the version its
+  go.mod builds with.
 - Link namespace: the kit has no `Link.lean` (its links are `examples/quepaxanet/Linked.lean` and the
   `Results` modules, which `etc/proof_roots.py`'s `namespace()` does not read); `namespace()` stays
   `Perennial.EtcdGrove.`.

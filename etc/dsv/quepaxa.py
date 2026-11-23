@@ -14,10 +14,9 @@ GOOSE = dict(
     # models/grpc), grpc/codes, grpc/status types and names only into the part (the main tree's
     # grpc imports the main tree's `net`); yaml.v2, go-redis, io/ioutil and encoding/gob names
     # only into the part (the lab's cut-down model of go-redis is not brought over). go-redis's
-    # translation is project dsv-rabia's (v8.8.2, names and types only; it owns
-    # `github_com/go_redis`): QuePaxa's go.mod has v8.11.5, which cannot be translated into the
-    # same modules, and QuePaxa reaches go-redis only in benchmark mode 1, which the kit never
-    # runs (notes/dsv-quepaxa.md, "go-redis").
+    # translation is project dsv-rabia's (v8.11.5, names and types only; it owns
+    # `github_com/go_redis`): both kits' go.mod pin v8.11.5 (dsv-goredis), so the translation is
+    # of the version that runs (notes/dsv-quepaxa.md, "go-redis").
     repo=None,
     rev=None,
     local=os.path.join("examples", "dsverify", "quepaxa"),
