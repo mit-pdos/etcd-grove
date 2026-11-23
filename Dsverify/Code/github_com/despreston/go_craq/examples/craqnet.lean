@@ -174,12 +174,6 @@ noncomputable def erasePend [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def step [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/despreston/go-craq/examples/craqnet.step"
 
-noncomputable def within [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/despreston/go-craq/examples/craqnet.within"
-
-noncomputable def equal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/despreston/go-craq/examples/craqnet.equal"
-
 noncomputable def Model [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/despreston/go-craq/examples/craqnet.Model"
 
@@ -1558,119 +1552,13 @@ noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad State.ty))) (Var "$res1")))))))))
 
-/-- within says whether every key of a has the same value in b.
+/-- Model is the key-value map with pending puts, as a porcupine model. Its Equal is always false
+    (porcupine then never merges two states it reached; only slower): a state does not determine the
+    configurations it stands for (a pending put may have taken effect before a later put of its key
+    overwrote it, or not, depending on the order of the history), so equal states need not be the
+    same model state (notes/dsv-craq.md, P2).
 
-    go: kit.go:388:6 -/
-noncomputable def within.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "a"
-  (Lam "b"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "a"))
-  (Let "$r0" (Val #true)
-  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "a"))
-  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (map.forRange go.string go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "__p" (App (App (Val (map.lookup2 go.string go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "b"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "k")))
-  (Let "$ret0" (Fst (Var "__p"))
-  (Let "$ret1" (Snd (Var "__p"))
-  (Let "$r0" (Var "$ret0")
-  (Let "$r1" (Var "$ret1")
-  (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "w" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "found"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "w")) (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))))))
-  (Let "$r0" (Val #false)
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0")))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "found") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "w") (Var "$r0"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$key")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value"))))))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r0"))))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-
-/-- equal says whether a and b are the same state (the pending puts in the same order).
-
-    go: kit.go:400:6 -/
-noncomputable def equal.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "a"
-  (Lam "b"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc State.ty))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc State.ty))) (Var "a"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType pend.ty)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType pend.ty)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals pend.ty))) (Pair (App (Val (GoInstruction (GoLoad pend.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType pend.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType pend.ty)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad pend.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType pend.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType pend.ty)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "b"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
-  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"M"))) (Var "a")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"M"))) (Var "b")))
-  (App (App (App (Val (GoInstruction (FuncResolve within []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"M"))) (Var "b")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"M"))) (Var "a")))
-  (App (App (App (Val (GoInstruction (FuncResolve within []))) (Val #())) (Var "$a0")) (Var "$a1")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType pend.ty)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType pend.ty)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType pend.ty)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "b")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType pend.ty)]))) (Val #())) (Var "$a0")))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-
-/-- Model is the key-value map with pending puts, as a porcupine model.
-
-    go: kit.go:413:6 -/
+    go: kit.go:392:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -1728,9 +1616,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.any))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc go.any))) (Var "a"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert State.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "a")))
-  (Let "$a1" (App (Val (GoInstruction (TypeAssert State.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "b")))
-  (App (App (App (Val (GoInstruction (FuncResolve equal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -1747,7 +1633,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- encStr appends s to b, its length (one byte) first; s is shorter than 256 bytes.
 
-    go: kit.go:425:6 -/
+    go: kit.go:404:6 -/
 noncomputable def encStr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "s"
@@ -1775,7 +1661,7 @@ noncomputable def encStr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- decStr is the string encStr put at b's start and the rest of b, if b starts with one.
 
-    go: kit.go:431:6 -/
+    go: kit.go:410:6 -/
 noncomputable def decStr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1828,7 +1714,7 @@ noncomputable def decStr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- flag is 1 for true, 0 for false.
 
-    go: kit.go:440:6 -/
+    go: kit.go:419:6 -/
 noncomputable def flag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
@@ -1855,7 +1741,7 @@ noncomputable def flag.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Codec is the model's inputs and outputs on the wire between the orchestrator and the client
     machines: an input is the put flag, then K and V; an output the unknown and found flags, then V.
 
-    go: kit.go:449:6 -/
+    go: kit.go:428:6 -/
 noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (Val #())))
@@ -2122,7 +2008,7 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- digit is n's last decimal digit.
 
-    go: kit.go:490:6 -/
+    go: kit.go:469:6 -/
 noncomputable def digit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -2140,7 +2026,7 @@ noncomputable def digit.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Gen is a client's next input, at random: a put (one in two) of a value "v<c><d>" or a get, of
     one of the keys "k0".."k<NKeys-1>".
 
-    go: kit.go:496:6 -/
+    go: kit.go:475:6 -/
 noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
@@ -2185,7 +2071,7 @@ noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- attempt is AttemptMs as a duration.
 
-    go: kit.go:506:6 -/
+    go: kit.go:485:6 -/
 noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -2203,7 +2089,7 @@ noncomputable def attempt.impl [GooseExts] [GoGlobalContext] : val :=
     (remote.Check panics if porcupine rejects the history). The wait matters only to tests (time is
     not modeled: the theorem allows any delay).
 
-    go: kit.go:514:6 -/
+    go: kit.go:493:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -2236,7 +2122,7 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
     the net/rpc codec (the model's; nothing in the real build) and starts the removals this machine
     asks for.
 
-    go: kit.go:532:6 -/
+    go: kit.go:511:6 -/
 noncomputable def newSys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Sys.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Sys.ty)))) (Val #())))
@@ -2284,7 +2170,7 @@ noncomputable def newSys.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- end counts an operation that ended (returned or not).
 
-    go: kit.go:543:15 -/
+    go: kit.go:522:15 -/
 noncomputable def Sys.«end».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -2305,7 +2191,7 @@ noncomputable def Sys.«end».impl [GooseExts] [GoGlobalContext] : val :=
     ping fails (CoordinatorClient.RemoveNode over net/rpc, on a connection of its own); a failed
     call is not retried.
 
-    go: kit.go:553:15 -/
+    go: kit.go:532:15 -/
 noncomputable def Sys.remove.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "rs"
@@ -2377,7 +2263,7 @@ noncomputable def Sys.remove.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- readAt is the chain machine client c's gets read at.
 
-    go: kit.go:577:15 -/
+    go: kit.go:556:15 -/
 noncomputable def Sys.readAt.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -2406,7 +2292,7 @@ noncomputable def Sys.readAt.impl [GooseExts] [GoGlobalContext] : val :=
 /-- op is client c's operation, on a connection of its own: a put is the coordinator's Write, a
     get is a chain node's Read (readAt). Out{Unknown: true} on any error but a get's errNotFound.
 
-    go: kit.go:586:6 -/
+    go: kit.go:565:6 -/
 noncomputable def op.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -2562,7 +2448,7 @@ noncomputable def op.impl [GooseExts] [GoGlobalContext] : val :=
     (newSys, made before: it waits for the configuration once, which remote's newClient may not
     need) and op. It never returns.
 
-    go: kit.go:617:6 -/
+    go: kit.go:596:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -2635,7 +2521,7 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
     to the coordinator (Node.Start's AddNode): JoinMs apart in id order, and the last conf.Late
     nodes only after the clients have started (StartMs, then LateMs apart).
 
-    go: kit.go:634:6 -/
+    go: kit.go:613:6 -/
 noncomputable def joinMs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "conf"
@@ -2675,7 +2561,7 @@ noncomputable def joinMs.impl [GooseExts] [GoGlobalContext] : val :=
     a chain machine waits for the configuration, then runs cmd/node's main over the in-memory store
     if id <= N+1, else only waits.
 
-    go: kit.go:646:6 -/
+    go: kit.go:625:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)
@@ -2771,7 +2657,7 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
     in-memory store): its net/rpc server, and its announcement to the coordinator joinMs after the
     configuration arrived. It returns only if the server cannot listen.
 
-    go: kit.go:674:6 -/
+    go: kit.go:653:6 -/
 noncomputable def runNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addr"
@@ -8491,8 +8377,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   findPend_unfold : FuncUnfold findPend [] findPend.impl
   erasePend_unfold : FuncUnfold erasePend [] erasePend.impl
   step_unfold : FuncUnfold step [] step.impl
-  within_unfold : FuncUnfold within [] within.impl
-  equal_unfold : FuncUnfold equal [] equal.impl
   Model_unfold : FuncUnfold Model [] Model.impl
   encStr_unfold : FuncUnfold encStr [] encStr.impl
   decStr_unfold : FuncUnfold decStr [] decStr.impl
@@ -8639,8 +8523,6 @@ attribute [instance] Assumptions.Conf_instance
   Assumptions.findPend_unfold
   Assumptions.erasePend_unfold
   Assumptions.step_unfold
-  Assumptions.within_unfold
-  Assumptions.equal_unfold
   Assumptions.Model_unfold
   Assumptions.encStr_unfold
   Assumptions.decStr_unfold

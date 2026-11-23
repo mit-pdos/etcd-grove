@@ -384,32 +384,11 @@ func step(s State, in In, o Out) (bool, State) {
 	return false, s
 }
 
-// within says whether every key of a has the same value in b.
-func within(a, b map[string]string) bool {
-	ok := true
-	for k, v := range a {
-		w, found := b[k]
-		if !found || w != v {
-			ok = false
-		}
-	}
-	return ok
-}
-
-// equal says whether a and b are the same state (the pending puts in the same order).
-func equal(a State, b State) bool {
-	if !within(a.M, b.M) || !within(b.M, a.M) || len(a.Pend) != len(b.Pend) {
-		return false
-	}
-	for i := 0; i < len(a.Pend); i++ {
-		if a.Pend[i] != b.Pend[i] {
-			return false
-		}
-	}
-	return true
-}
-
-// Model is the key-value map with pending puts, as a porcupine model.
+// Model is the key-value map with pending puts, as a porcupine model. Its Equal is always false
+// (porcupine then never merges two states it reached; only slower): a state does not determine the
+// configurations it stands for (a pending put may have taken effect before a later put of its key
+// overwrote it, or not, depending on the order of the history), so equal states need not be the
+// same model state (notes/dsv-craq.md, P2).
 func Model() porcupine.Model {
 	return porcupine.Model{
 		Init: func() any { return State{M: make(map[string]string)} },
@@ -417,7 +396,7 @@ func Model() porcupine.Model {
 			ok, s := step(state.(State), input.(In), output.(Out))
 			return ok, s
 		},
-		Equal: func(a, b any) bool { return equal(a.(State), b.(State)) },
+		Equal: func(a, b any) bool { return false },
 	}
 }
 

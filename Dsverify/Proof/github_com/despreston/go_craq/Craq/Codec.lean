@@ -3,8 +3,8 @@ The kit's generated codec (`examples/craqnet/rpc_gen.go`, by `models/net/rpc/rpc
 specs see it.
 
 **The `CodecSpec`** (`craqCodec`): each predicate transformer is the weakest precondition of the
-generated function it describes (`rpcEncode`, `rpcDecode`), so the codec meets it by definition
-(`craqCodec_encOk`, `craqCodec_decOk`), and `rpcReady` (net/rpc initialized, the codec registered)
+generated function it describes (`rpcEncode`, `rpcDecode`, `rpcReceiver`), so the codec meets it by definition
+(`craqCodec_encOk`, `craqCodec_decOk`, `craqCodec_rcvOk`), and `rpcReady` (net/rpc initialized, the codec registered)
 is what the clients need. The facts a proof needs are the codec lemmas below (the lab's): per wire
 type, what encoding a Go value gives (`Wire.lean`'s, rpcgen's bytes), and that decoding a reply
 into a fresh zero value is safe and, on success, gives back the value of an encoding.
@@ -57,12 +57,21 @@ def craqCodec : net.rpc.CodecSpec GF where
     ▷ (∀ (err : GoInterface) (ok : Bool), data ↦*{dq} bs -∗ ⌜err = interface.nil ↔ ok = true⌝ -∗
         Ψ ok -∗ (if ok then iprop(True) else net.rpc.decErr err) -∗ Φ #err) -∗
     WP (App (App (Val #(functions examples.craqnet.rpcDecode [])) (Val #data)) (Val #ptr)) {{ Φ }})
+  rcv rcvr Ψ := iprop(∀ Φ : val → IProp GF, ▷ (∀ rp : Loc, Ψ rp -∗ Φ #rp) -∗
+    WP (App (Val #(functions examples.craqnet.rpcReceiver [])) (Val #rcvr)) {{ Φ }})
 
 theorem craqCodec_encOk : ⊢ net.rpc.encOk (hG := hG) craqCodec (functions examples.craqnet.rpcEncode []) := by
   unfold net.rpc.encOk
   iintro !> %v %Ψ %Φ Henc HΦ
   unfold craqCodec
   iapply Henc
+  iexact HΦ
+
+theorem craqCodec_rcvOk : ⊢ net.rpc.rcvOk (hG := hG) craqCodec (functions examples.craqnet.rpcReceiver []) := by
+  unfold net.rpc.rcvOk
+  iintro !> %rcvr %Ψ %Φ Hr HΦ
+  unfold craqCodec
+  iapply Hr
   iexact HΦ
 
 theorem craqCodec_decOk : ⊢ net.rpc.decOk (hG := hG) craqCodec (functions examples.craqnet.rpcDecode []) := by
