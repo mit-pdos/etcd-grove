@@ -4317,6 +4317,12 @@ the model (`models/net/http/textproto_model.go`, MODEL): `modelCutByte(s, c)` an
 (through `Index` of a one-byte separator, its first index) and `trimLeftByte` (what `TrimLeft` runs for a one-byte ASCII
 cutset), translated with their bodies and proved (`Net/Proof/net/http/`). The general fix: `Cut` trusted (as
 `HasPrefix`: `Index` runs `bytealg`) and `TrimLeft` translated in Perennial, with specs. Not filed yet.
+**Superseded (2026-11-23, the user's decision):** the stand-ins are removed; the model calls `strings.Cut`/`TrimLeft`
+as Go does, and their callers' proofs take `Spec/strings/Cut.lean`/`TrimLeft.lean` (Go's pure result) as callee
+hypotheses (`links_pending` in `Net/Proof/net/{http,rpc}/Results.lean`). Perennial's branch `strings-cut-lastindex`
+(`8ff6a1c79a`) translates their bodies (`bytealg`'s assembly as Go models); once it lands with proofs of these specs,
+the pending hypotheses are discharged.
+
 ## 2026-11-23: `runtime.Version` has no name (etcdserver's `init.0`, claim #39, branch `etcd-small-3`)
 
 - **Limitation.** Perennial's `runtime.toml` translates nothing but `Gosched` (trusted), so `runtime.Version`

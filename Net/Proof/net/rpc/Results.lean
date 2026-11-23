@@ -31,8 +31,10 @@ reached by these).
 * the server's handler over HTTP, `ServeHTTP` (on a `CONNECT`, over the response's `hijackOk`,
   `Net/Proof/net/http/ServerDefs.lean`).
 
-The HTTP client (`section http`): `DialHTTPPath`, `DialHTTP` and `connectReader.Read` (the model's
-reader of the CONNECT answer), over net/http's `ReadResponse` (`Net/Proof/net/http/Results.lean`).
+The HTTP client (`section http`): `DialHTTPPath`, `DialHTTP`, over net/http's `ReadResponse`
+(`Net/Proof/net/http/Results.lean`) and the net extension's `Conn.Read` (`specLc`); pending, as
+`ReadResponse`, on Perennial's `strings.Cut` and `strings.TrimLeft` (hypotheses `h_Cut`,
+`h_TrimLeft`).
 Not yet proved (the plan note, phase 5.2, lists what remains): `HandleHTTP` and net/http's server
 up to the hijack (which gives `ServeHTTP` its `hijackOk`).
 -/
@@ -64,7 +66,6 @@ public import Net.Proof.net.rpc.NewClient
 public import Net.Proof.net.rpc.Dial
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Conn__Close
-public import Net.Proof.net.rpc.connectReader__Read
 public import Net.Proof.net.rpc.DialHTTPPath
 public import Net.Proof.net.rpc.DialHTTP
 public import Proof.bufio.NewReader
@@ -300,19 +301,23 @@ variable [sync.Assumptions] [NetProtoGS]
 /-! The HTTP path (`DialHTTPPath`, `DialHTTP`), over net/http's `ReadResponse`
 (`Net/Proof/net/http/Results.lean`). -/
 
-theorem connectReader.Read.wp : connectReader.Read.spec (GF := GF) (hG := hG) :=
-  connectReader.Read.wp_proof net.Conn.Read.wp_proof
+/-- Pending: Perennial's `strings.Cut` (`Net/Proof/net/http/Results.lean`, `links_pending`). -/
+variable (h_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
+/-- Pending: Perennial's `strings.TrimLeft`. -/
+variable (h_TrimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
 
+include h_Cut h_TrimLeft in
 theorem DialHTTPPath.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
     DialHTTPPath.spec (GF := GF) (hG := hG) :=
   DialHTTPPath.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
     (EtcdGrove.bufio.NewReader.wp_proof
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
-    connectReader.Read.wp net.http.ReadResponse.wp NewClient.wp
+    net.Conn.Read.wp_proofLc (net.http.ReadResponse.wp h_Cut h_TrimLeft) NewClient.wp
 
+include h_Cut h_TrimLeft in
 theorem DialHTTP.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
     DialHTTP.spec (GF := GF) (hG := hG) :=
-  DialHTTP.wp_proof DialHTTPPath.wp
+  DialHTTP.wp_proof (DialHTTPPath.wp h_Cut h_TrimLeft)
 
 end http
 
@@ -370,6 +375,5 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.Accept.wp
 #print axioms Perennial.net.rpc.Server.Accept.wp_addr
 #print axioms Perennial.net.rpc.Server.ServeHTTP.wp
-#print axioms Perennial.net.rpc.connectReader.Read.wp
 #print axioms Perennial.net.rpc.DialHTTPPath.wp
 #print axioms Perennial.net.rpc.DialHTTP.wp

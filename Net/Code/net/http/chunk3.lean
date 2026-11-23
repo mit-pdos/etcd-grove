@@ -16,26 +16,6 @@ noncomputable section
 
 namespace net.http
 
-class checkConnErrorWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying checkConnErrorWriter.underlying checkConnErrorWriter
-  underlying : go.UnderlyingDirectedEq checkConnErrorWriter.ty checkConnErrorWriter.underlying
-  get_c : ∀ (x : checkConnErrorWriter), go.IsGoStepPureDetTagged under (StructFieldGet checkConnErrorWriter.underlying go!"c") #x (Val #(x.c'))
-  set_c : ∀ (x : checkConnErrorWriter) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet checkConnErrorWriter.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : checkConnErrorWriter)))
-  method_set : go.MethodSetIs checkConnErrorWriter.ty [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType checkConnErrorWriter.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
-  Write_unfold : MethodUnfold checkConnErrorWriter.ty go!"Write" checkConnErrorWriter.Write.impl
-  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType checkConnErrorWriter.ty) go!"Write" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve checkConnErrorWriter.ty go!"Write"))) (App (Val (GoInstruction (GoLoad checkConnErrorWriter.ty))) (Var "$r"))))
-
-attribute [instance] checkConnErrorWriter.TypeAssumptions.type_repr
-  checkConnErrorWriter.TypeAssumptions.underlying
-  checkConnErrorWriter.TypeAssumptions.get_c
-  checkConnErrorWriter.TypeAssumptions.set_c
-  checkConnErrorWriter.TypeAssumptions.method_set
-  checkConnErrorWriter.TypeAssumptions.ptr_method_set
-  checkConnErrorWriter.TypeAssumptions.Write_unfold
-  checkConnErrorWriter.TypeAssumptions.ptr_Write_unfold
-
 class socksCommand.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq socksCommand.ty socksCommand.underlying
   method_set : go.MethodSetIs socksCommand.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
@@ -1137,6 +1117,21 @@ attribute [instance] writeRequest.TypeAssumptions.type_repr
   writeRequest.TypeAssumptions.set_continueCh
   writeRequest.TypeAssumptions.method_set
   writeRequest.TypeAssumptions.ptr_method_set
+
+class timeoutError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying timeoutError.underlying timeoutError
+  underlying : go.UnderlyingDirectedEq timeoutError.ty timeoutError.underlying
+  get_err : ∀ (x : timeoutError), go.IsGoStepPureDetTagged under (StructFieldGet timeoutError.underlying go!"err") #x (Val #(x.err'))
+  set_err : ∀ (x : timeoutError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet timeoutError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : timeoutError)))
+  method_set : go.MethodSetIs timeoutError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+
+attribute [instance] timeoutError.TypeAssumptions.type_repr
+  timeoutError.TypeAssumptions.underlying
+  timeoutError.TypeAssumptions.get_err
+  timeoutError.TypeAssumptions.set_err
+  timeoutError.TypeAssumptions.method_set
+  timeoutError.TypeAssumptions.ptr_method_set
 
 end net.http
 

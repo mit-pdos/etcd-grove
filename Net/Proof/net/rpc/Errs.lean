@@ -181,13 +181,14 @@ theorem errAny_opErr (op : GoString) (src addr e err : GoInterface) :
   iapply errNE_errAny
   iapply errNE_opErr $$ H
 
-/-- Any `*OpError` is `errAny`: its `Error()` (the net model's) reads none of its fields and
-returns an arbitrary string (`DialHTTPPath`'s `"dial-http"` error, whose `Net` is not a TCP
-network's name). -/
-theorem errAny_opErrPtr (pe : Loc) :
-    ⊢ models_lab.errAny (GF := GF) (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
-  iapply errNE_errAny
-  unfold errNE
+/-- Any `*OpError` (its fields persistent) is `errAny`: its `Error()` (the net model's) returns a
+message of Go's form (`DialHTTPPath`'s `"dial-http"` error, whose `Net` is not a TCP network's
+name). -/
+theorem errAny_opErrPtr (pe : Loc) (v : net.OpError) :
+    (pe ↦□ v : IProp GF) ⊢
+      models_lab.errAny (GF := GF) (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
+  iintro #Hpe
+  unfold models_lab.errAny
   iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
   isplitr
   · ipureintro; rfl
@@ -195,17 +196,10 @@ theorem errAny_opErrPtr (pe : Loc) :
   · ipureintro; exact opError_ptr_isError
   imodintro
   iintro %Φ HΦ
-  wp_method_call
-  wp_call
-  unfold net.OpError.Error.impl
-  wp_auto
-  wp_bind (ExternalOp _ _ _)
-  iapply wp_net_AnyString
-  iintro %str
-  wp_auto
-  wp_if_destruct
-  · iapply HΦ; ipureintro; simp
-  · iapply HΦ; ipureintro; exact Hif
+  iapply net.wp_OpError_Error $$ Hpe
+  inext
+  iintro %msg -
+  iapply HΦ
 
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errNE`. -/
 theorem errNE_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)

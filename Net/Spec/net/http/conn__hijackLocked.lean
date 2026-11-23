@@ -33,7 +33,7 @@ variable [π : NetProtoGS]
 abbrev conn.hijackLocked.spec : Prop :=
   ∀ (c cr s : Loc) (γ : CrNames) (t : Loc) (cn : Nat) (a : GoString) (la ra : GoInterface)
     (P Q : Proto GF) (hs : List w8) (Z : Nat → IProp GF) (tm : time.Time) (br bw : Loc)
-    (sz : Nat),
+    (sz : Nat) (b : Bool),
   {{ structFieldRef net.http.conn go!"hijackedv" c ↦ false ∗
       structFieldRef net.http.conn go!"r" c ↦□ cr ∗
       structFieldRef net.http.conn go!"rwc" c ↦□
@@ -47,7 +47,8 @@ abbrev conn.hijackLocked.spec : Prop :=
       structFieldRef net.http.connReader go!"rwc" cr ↦□
         interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
       ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs ∗
-      connAt t cn true a la ra ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗ zLaw Z Q }}
+      connAt t cn true a la ra ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗ zLaw Z Q ∗
+      rdlTok (Gg := hG.goose_globalGS) cn true b }}
     (App (Val (c @!! go.GoType.PointerType net.http.conn.ty @!! go!"hijackLocked")) (Val #()))
   {{ (buf : Loc), RET (PairV (PairV #(interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t)
         #buf) #(interface.nil : GoInterface));
@@ -55,7 +56,7 @@ abbrev conn.hijackLocked.spec : Prop :=
       (∃ v : w64, sync.atomic.ownUint64 (structFieldRef net.http.conn go!"curState" c)
         (DFrac.own 1) v) ∗
       recvTok (Gg := hG.goose_globalGS) cn true P hs ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗
-      crLeft cr γ hs }}
+      crLeft cr γ hs ∗ ∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b' }}
 
 end spec
 

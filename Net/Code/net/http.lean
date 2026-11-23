@@ -187,8 +187,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   modelReadLine_unfold : FuncUnfold modelReadLine [] modelReadLine.impl
   trimLine_unfold : FuncUnfold trimLine [] trimLine.impl
   modelReadMIMEHeader_unfold : FuncUnfold modelReadMIMEHeader [] modelReadMIMEHeader.impl
-  modelCutByte_unfold : FuncUnfold modelCutByte [] modelCutByte.impl
-  modelTrimLeftByte_unfold : FuncUnfold modelTrimLeftByte [] modelTrimLeftByte.impl
   modelChunked_unfold : FuncUnfold modelChunked [] modelChunked.impl
   modelParseRequestURI_unfold : FuncUnfold modelParseRequestURI [] modelParseRequestURI.impl
   modelPathBytes_unfold : FuncUnfold modelPathBytes [] modelPathBytes.impl
@@ -394,8 +392,6 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.modelReadLine_unfold
   Assumptions.trimLine_unfold
   Assumptions.modelReadMIMEHeader_unfold
-  Assumptions.modelCutByte_unfold
-  Assumptions.modelTrimLeftByte_unfold
   Assumptions.modelChunked_unfold
   Assumptions.modelParseRequestURI_unfold
   Assumptions.modelPathBytes_unfold

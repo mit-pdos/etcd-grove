@@ -1,15 +1,15 @@
 /-
 `DialHTTPPath(nw, a, path)` (`nw` `"tcp"` or `"tcp4"`) to an address `a` of world `W` serving net/rpc
 over HTTP at `path` (`rpcAddrP W a (connectReq path) connectAns`: the dialer's handshake is the
-`CONNECT` request, the acceptor's its `200` answer): `net.Dial` (the library's `dial_au`), the
+`CONNECT` request, the acceptor's its `200` answer): `net.Dial` (the library's `dial_rdl_au`), the
 connection registered in `W`, the `CONNECT` request written (its error ignored, as Go does), the
-answer read with `http.ReadResponse` over a `bufio.Reader` of the model's `connectReader` (no byte
-after a read error, `models/net/rpc/client.go`), and on the status `"200 Connected to Go RPC"`
+answer read with `http.ReadResponse` over a `bufio.Reader` of the connection (no byte after a read
+error: the net extension's D1 v3.5, the dialer setting no read deadline), and on the status `"200 Connected to Go RPC"`
 `NewClient`: a client of `a`, its reader just after the answer (the acceptor writes nothing more
 before a request, and nothing before the whole request is written: `respProto`); or an error (the
 dial's, or the `*OpError` `"dial-http"` wrapping the answer's, with its `Error()`, `errAny`).
 `httpEnv` is what the answer's read needs of the package's state (`http.ReadResponse.spec`).
-Proved in `Net/Proof/net/rpc/DialHTTPPath.lean`, over `http.ReadResponse.spec` (not proved yet).
+Proved in `Net/Proof/net/rpc/DialHTTPPath.lean`, over `http.ReadResponse.spec`.
 -/
 module
 

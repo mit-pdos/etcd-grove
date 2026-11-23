@@ -1954,7 +1954,41 @@ theorem accept_lis_shared_au (la : GoString) (P Q : Proto GF) (hL : NetLocalGS G
     iframe Hc Hf
 
 /-- D21. `accept_lis_shared_au` with protocols per address (`P a`, `Q a` for a connection dialed to
-`a`), from each address's `addrProto` (`lisProtoD_addr` gives them; at a valid `la`, `la`'s alone). -/
+`a`), from each address's `addrProto` (`lisProtoD_addr` gives them; at a valid `la`, `la`'s alone), and
+the acceptor's `rdlTok` (its read deadline not set). `accept_addrs_shared_au` is the same without it. -/
+theorem accept_addrs_shared_rdl_au (la : GoString) (P Q : GoString → Proto GF) (hL : NetLocalGS GF)
+    (l : w64) :
+    ⊢ □ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a (P a) (Q a)) -∗
+      lisInv hL l la -∗
+      ((|={⊤,∅}=> ∃ o, netLis hL l la o ∗ (netLis hL l la o ={∅,⊤}=∗ True)) ∧
+        ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+          |={⊤,∅}=> ∃ o S, netLis hL l la o ∗ netPend NG a S ∗
+            (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o -∗ netPend NG a (S \ {[cn]}) -∗
+              netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true (Q a) (P a) [] [] ∗ connFresh cn true ∗
+                rdlTok cn true false)) := by
+  iintro #Hp #Hli
+  isplit
+  · unfold lisInv
+    iinv Hli with Hk Hclose
+    icases Hk with ⟨%o, >Hl⟩
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iexists o
+    iframe Hl
+    iintro Hl
+    imod Hmask
+    imod Hclose $$ [Hl] with -
+    · inext; iexists o; iexact Hl
+    imodintro
+    itrivial
+  · iintro %a %ha
+    ihave #Ha := Hp $$ %a %ha
+    imod accept_shared_au_at la a (P a) (Q a) hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
+    imodintro
+    iexists o, S
+    iframe Hl Hpend Hk
+
+/-- `accept_addrs_shared_rdl_au` without the `rdlTok`. -/
 theorem accept_addrs_shared_au (la : GoString) (P Q : GoString → Proto GF) (hL : NetLocalGS GF)
     (l : w64) :
     ⊢ □ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a (P a) (Q a)) -∗
@@ -1984,7 +2018,11 @@ theorem accept_addrs_shared_au (la : GoString) (P Q : GoString → Proto GF) (hL
     imod accept_shared_au_at la a (P a) (Q a) hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
     imodintro
     iexists o, S
-    iframe Hl Hpend Hk
+    iframe Hl Hpend
+    iintro %ho %cn %HcS Hl Hp #Hat
+    imod Hk $$ %ho %cn %HcS Hl Hp Hat with ⟨Hc, Hf, -⟩
+    imodintro
+    iframe Hc Hf
 
 /-- The update `net.Listener.Close.spec` takes for a shared listener (`Q _ := True`). -/
 theorem lisClose_au (hL : NetLocalGS GF) (l : w64) (a : GoString) :

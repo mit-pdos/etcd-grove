@@ -1,8 +1,8 @@
 /-
 The net/http model's linked results (2026-11-23): `http.ReadResponse` on net/rpc's `CONNECT`
 answer (`Net/Spec/net/http/ReadResponse.lean`), each proof applied to its callees' linked proofs:
-the model's head parser (`modelReadLine`, `modelReadMIMEHeader`), `modelCutByte`,
-`modelTrimLeftByte`, `ParseHTTPVersion`, `badStringError` (over Perennial's `fmt.Errorf`),
+the model's head parser (`modelReadLine`, `modelReadMIMEHeader`), `strings.Cut` and
+`strings.TrimLeft` (pending: `section links_pending`, below), `ParseHTTPVersion`, `badStringError` (over Perennial's `fmt.Errorf`),
 `readTransfer` and its helpers (`shouldClose`, `parseTransferEncoding`, `fixLength`, `fixTrailer`,
 `Header.Del`, textproto's `MIMEHeader.Del` and `CanonicalMIMEHeaderKey`, the model's
 `modelHeaderValuesContainsToken` and its helpers), `fixPragmaCacheControl`, Perennial's `strconv.Atoi`
@@ -19,19 +19,24 @@ head's read, `connReader.Read` in the head phase (`crHead`, over `Conn.Read`).
 
 The request's URI (2026-11-23): the model's `modelParseRequestURI` (`url.ParseRequestURI`) on a
 `reqPath`, over `modelPathBytes` and `modelPathByte`; the request line's `parseRequestLine` (over
-`modelCutByte`) and `validMethod` (over `isToken` and httpguts' `ValidHeaderFieldName`, which reads
+`strings.Cut`, pending) and `validMethod` (over `isToken` and httpguts' `ValidHeaderFieldName`, which reads
 `isTokenTable`: `tokenTable`, a premise).
 
 The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
 `Server.maxHeaderValueCount`.
+
+**Pending** (`section links_pending`, 2026-11-23): the model calls `strings.Cut` and
+`strings.TrimLeft` as Go's net/http does; Perennial translates them as names only at the pin (its
+branch `strings-cut-lastindex`, `8ff6a1c79a`, translates their bodies, not proved yet:
+`notes/perennial-changes.md`), so `ReadResponse`, `parseRequestLine` and `readRequestLimit` are
+linked over their specs (`Spec/strings/Cut.lean`, `Spec/strings/TrimLeft.lean`) as hypotheses
+`h_Cut`, `h_TrimLeft`. No axiom, no `sorry`.
 -/
 module
 
 public import Net.Proof.net.http.ReadResponse
 public import Net.Proof.net.http.modelReadLine
 public import Net.Proof.net.http.modelReadMIMEHeader
-public import Net.Proof.net.http.modelCutByte
-public import Net.Proof.net.http.modelTrimLeftByte
 public import Net.Proof.net.http.ParseHTTPVersion
 public import Net.Proof.net.http.badStringError
 public import Net.Proof.net.http.fixPragmaCacheControl
@@ -129,30 +134,46 @@ theorem readTransfer.wp : readTransfer.spec (GF := GF) (hG := hG) :=
 theorem ParseHTTPVersion.wp : ParseHTTPVersion.spec (GF := GF) (hG := hG) :=
   ParseHTTPVersion.wp_proof strings.wp_HasPrefix
 
-theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
-  ReadResponse.wp_proof modelReadLine.wp modelReadMIMEHeader.wp modelCutByte.wp_proof
-    modelTrimLeftByte.wp_proof ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
-    fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
-
 theorem modelParseRequestURI.wp : modelParseRequestURI.spec (GF := GF) (hG := hG) :=
   modelParseRequestURI.wp_proof (modelPathBytes.wp_proof modelPathByte.wp_proof)
-
-theorem parseRequestLine.wp : parseRequestLine.spec (GF := GF) (hG := hG) :=
-  parseRequestLine.wp_proof modelCutByte.wp_proof
 
 theorem validMethod.wp : validMethod.spec (GF := GF) (hG := hG) :=
   validMethod.wp_proof
     (isToken.wp_proof vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName.wp_proof)
 
-theorem readRequestLimit.wp : readRequestLimit.spec (GF := GF) (hG := hG) :=
-  readRequestLimit.wp_proof modelReadLine.wp modelReadMIMEHeader.wp parseRequestLine.wp validMethod.wp
-    ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf) modelParseRequestURI.wp
-    fixPragmaCacheControl.wp_proof shouldClose.wp readTransfer.wp strings.wp_HasPrefix
-
 theorem Server.maxHeaderValueCount.wp : Server.maxHeaderValueCount.spec (GF := GF) (hG := hG) :=
   Server.maxHeaderValueCount.wp_proof
 
 end link
+
+section links_pending
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+/-- Pending: Perennial's `strings.Cut` (see the file header). -/
+variable (h_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
+/-- Pending: Perennial's `strings.TrimLeft` (see the file header). -/
+variable (h_TrimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
+
+include h_Cut h_TrimLeft in
+theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
+  ReadResponse.wp_proof modelReadLine.wp modelReadMIMEHeader.wp h_Cut
+    h_TrimLeft ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
+    fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
+
+include h_Cut in
+theorem parseRequestLine.wp : parseRequestLine.spec (GF := GF) (hG := hG) :=
+  parseRequestLine.wp_proof h_Cut
+
+include h_Cut in
+theorem readRequestLimit.wp : readRequestLimit.spec (GF := GF) (hG := hG) :=
+  readRequestLimit.wp_proof modelReadLine.wp modelReadMIMEHeader.wp (parseRequestLine.wp h_Cut)
+    validMethod.wp ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
+    modelParseRequestURI.wp fixPragmaCacheControl.wp_proof shouldClose.wp readTransfer.wp
+    strings.wp_HasPrefix
+
+end links_pending
 
 section server
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]

@@ -1098,6 +1098,25 @@ tests kept as differential tests against the real library, a "not modelled" pani
    the `Host` checks, `context.WithCancel` (Perennial's spec), the body switch on `NoBody`,
    `SetReadDeadline` of the zero time, the response's allocation; then `conn.serve` (the 400 answer is now
    `respProto`'s), `Serve`/`ListenAndServe`, the mux, `HandleHTTP`.
+   **The user's decisions of 2026-11-23 applied (same branch; ledger 2026-11-23, "the model's `strings`
+   stand-ins and read-error wrappers removed").** Kept as approved: `GODEBUG=http2server` not read, no HTTP/2
+   configuration (`nethttpomithttp2`), `modelParseRequestURI`, `modelHeaderValuesContainsToken`. *Removed*: the
+   stand-ins `modelCutByte`/`modelTrimLeftByte` (the model calls `strings.Cut`/`TrimLeft` as Go does; the
+   callers' proofs take `Spec/strings/{Cut,TrimLeft}.lean`, Go's pure result over `Proof/strings/CutDefs.lean`, as
+   hypotheses, pending on Perennial's `strings-cut-lastindex`, `8ff6a1c79a`: `section links_pending` of both
+   `Results.lean`; `cut_single`/`trimLeft_single` relate them to `cutByte`/`trimLeftByte`), and the read-error
+   wrappers `connectReader` and `connReader.failed` (the model's `client.go` and `server.go` are Go's code there):
+   the net extension's sticky read errors (branch `net-sticky-read`, D1 v3.5, merged here) give no byte after a
+   read error. *Re-proved*: `DialHTTPPath` reads through `bufio.NewReader(conn)` over `crStream` (`crSt`: the
+   dialer's `recvTok` at the delivered bytes, its `rdlTok cn false false` from `dial_rdl_au`, the failure once-cell
+   with `readDead`; `read_dead_au`, `read_after_dead_au`; the credits from `net.Conn.Read.specLc`, new, proved);
+   the server's head read (`crHead` with `γe`, `rdlTok cn true false`, errors `crHeadErr γe`, final); the
+   background reader's deadline calls (`startBackgroundRead`, `abortPendingRead`, `hijackLocked`) over the end's
+   `rdlTok` (`deadline_au`'s new premise), carried by `hjPre`/`hjDone`; `accept_addrs_shared_rdl_au` (Proto.lean,
+   new: the wildcard accept with the acceptor's `rdlTok`, for `conn.serve` later). The models' claims lose the
+   "no read deadlines on served connections" exclusion. Difftests pass. `origin/lean` merged (Perennial
+   `ccfeb3895`), swiftpaxos's `RpcWorld` built by field names (`Start.lean`) and `NewWriterSize` over its
+   `specRep` (`LibDepsLinked.lean`), from dsv-gryff `bb8e39f9c3`/`b30a1f41ce`.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

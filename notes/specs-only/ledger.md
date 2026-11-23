@@ -25,6 +25,32 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: the model's `strings` stand-ins and read-error wrappers removed (`modelCutByte`/`modelTrimLeftByte`, `connectReader`, `connReader.failed`); `parseRequestLine.spec`, `connReader.Read.spec`, the server reader's deadline specs, `Conn.Read.specLc` (net/http and net/rpc models)
+
+- **Spec.** Removed: `Net/Spec/net/http/modelCutByte.lean`, `modelTrimLeftByte.lean`,
+  `Net/Spec/net/rpc/connectReader__Read.lean`. New: `Spec/strings/Cut.lean`, `Spec/strings/TrimLeft.lean` (Go's pure
+  result, `Proof/strings/CutDefs.lean`; `isPkgInit strings`; `TrimLeft` for an ASCII cutset only), no proof file
+  (pending: Perennial's `strings-cut-lastindex`, `8ff6a1c79a`); `net.Conn.Read.specLc` (`Conn.Read.spec` with two
+  later credits and the exact count `ReadOutZ`, proved). Changed: `parseRequestLine.spec` (pre `isPkgInit strings`,
+  was `True`); `ReadResponse.wp_proof`/`parseRequestLine.wp_proof` take `strings.Cut.spec`/`TrimLeft.spec`;
+  `DialHTTPPath.wp_proof` takes `Conn.Read.specLc` for `connectReader.Read.spec`; `connReader.Read.spec` (`crHead`
+  gains the once-cell `γe`, the reader's token at the delivered bytes and `rdlTok cn true false`; errors
+  `crHeadErr γe`, final: `crHeadErr_final`); `connReader.startBackgroundRead.spec`, `abortPendingRead.spec`,
+  `conn.hijackLocked.spec` take the end's `rdlTok cn true b` for `connIs` and give back `∃ b', rdlTok`; `hjPre` and
+  `hjDone` carry it; `crBg`/`crOwn`/`crLeft` lose `failed`; `errAny_opErrPtr` takes the `*OpError`'s fields (`pe ↦□
+  v`). Top-level statements unchanged.
+- **Defect.** (1) The stand-ins were MODEL code Go does not have, where Go calls `strings.Cut`/`TrimLeft`. (2) The
+  wrappers re-imposed Linux's no-byte-after-error above `Read`, narrowing the models' claims (no read deadlines on
+  served connections). (3) On `lean` the net semantics gained sticky read errors and `deadline_au` takes `rdlTok`
+  (branch `net-sticky-read`), so the server reader's deadline calls need the token.
+- **Evidence.** The user's decisions of 2026-11-23 (#24); `notes/net-sticky-read.md`; Go 1.27.3's `response.go:172-179`,
+  `request.go:1038-1039`, `server.go:703-870`, `net/rpc/client.go:247-269` (the model is now that code verbatim
+  there); difftests (`models/internal/rpcdifftest/run.sh`, both packages) pass.
+- **Proposed change.** As in "Spec".
+- **Decision.** Applied on branch `models-rpc-http` (2026-11-23). `strings.Cut.spec`/`TrimLeft.spec` stay pending
+  (`links_pending` in `Net/Proof/net/http/Results.lean` and `Net/Proof/net/rpc/Results.lean`) until Perennial proves
+  them.
+
 ## 2026-11-23: net/http's head readers widened for Go's 400 answer and net/rpc's `CONNECT` request: header blocks, header maps, version prefixes; `readRequestLimit.spec`; the model's `modelHeaderValuesContainsToken` (net/http model)
 
 - **Spec.** `Net/Proof/net/rpc/Proto.lean` (`respProto`, new `badReqAns`, `hsErr`), `HttpDefs.lean`

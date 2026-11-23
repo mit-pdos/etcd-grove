@@ -927,7 +927,7 @@ noncomputable instance Request_access_load_Body (l : Loc) (v : net.http.Request)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Request_access_store_Body (l : Loc) (v : net.http.Request) (Body' : io.ReadCloser) :
+noncomputable instance Request_access_store_Body (l : Loc) (v : net.http.Request) (Body' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Request go!"Body" l) v.Body' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Request go!"Body" l) Body' (DFrac.own 1))
@@ -1023,7 +1023,7 @@ noncomputable instance Request_access_load_Form (l : Loc) (v : net.http.Request)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Request_access_store_Form (l : Loc) (v : net.http.Request) (Form' : net.url.Values) :
+noncomputable instance Request_access_store_Form (l : Loc) (v : net.http.Request) (Form' : _root_.Perennial.net.url.Values) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Request go!"Form" l) v.Form' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Request go!"Form" l) Form' (DFrac.own 1))
@@ -1039,7 +1039,7 @@ noncomputable instance Request_access_load_PostForm (l : Loc) (v : net.http.Requ
  by
   solve_pointsto_access_struct
 
-noncomputable instance Request_access_store_PostForm (l : Loc) (v : net.http.Request) (PostForm' : net.url.Values) :
+noncomputable instance Request_access_store_PostForm (l : Loc) (v : net.http.Request) (PostForm' : _root_.Perennial.net.url.Values) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Request go!"PostForm" l) v.PostForm' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Request go!"PostForm" l) PostForm' (DFrac.own 1))
@@ -1183,7 +1183,7 @@ noncomputable instance Request_access_load_ctx (l : Loc) (v : net.http.Request) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Request_access_store_ctx (l : Loc) (v : net.http.Request) (ctx' : context.Context) :
+noncomputable instance Request_access_store_ctx (l : Loc) (v : net.http.Request) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Request go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Request go!"ctx" l) ctx' (DFrac.own 1))

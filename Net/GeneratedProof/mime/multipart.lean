@@ -125,7 +125,7 @@ noncomputable instance FileHeader_access_load_Header (l : Loc) (v : mime.multipa
  by
   solve_pointsto_access_struct
 
-noncomputable instance FileHeader_access_store_Header (l : Loc) (v : mime.multipart.FileHeader) (Header' : net.textproto.MIMEHeader) :
+noncomputable instance FileHeader_access_store_Header (l : Loc) (v : mime.multipart.FileHeader) (Header' : _root_.Perennial.net.textproto.MIMEHeader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Header" l) v.Header' (DFrac.own 1))
       (typedPointsto (structFieldRef mime.multipart.FileHeader go!"Header" l) Header' (DFrac.own 1))

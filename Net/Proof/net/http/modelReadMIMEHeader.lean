@@ -406,8 +406,8 @@ theorem mh_cut_eol {eol rest l : List w8} (heol : eol = [] ∨ eol = [W8 13]) (h
 open Classical in
 /-- The bytes `bs` of the `[]byte` argument `sl`, lent to `fmt.Sprintf`. -/
 noncomputable def mhB [GooseExts] [GoGlobalContext] (sl : GoSlice) (bs : List w8) :
-    GoInterface → Option GoString :=
-  fun x => if x = interface.mkOk (go.SliceType go.byte) #sl then some bs else none
+    GoInterface → Option fmt.Lent :=
+  fun x => if x = interface.mkOk (go.SliceType go.byte) #sl then some (.bytes bs) else none
 
 end pure
 
@@ -422,7 +422,7 @@ set_option goose.wp.extras true
 /-- `fmt.Sprintf` with the bytes of its `[]byte` arguments lent (Perennial's
 `fmt.wp_Sprintf_bytes`). -/
 abbrev SprintfBytes.law : Prop :=
-  ∀ (B : GoInterface → Option GoString) (dqb : DFrac) (format : GoString) (args_sl : GoSlice)
+  ∀ (B : GoInterface → Option fmt.Lent) (dqb : DFrac) (format : GoString) (args_sl : GoSlice)
     (xs : List GoInterface) (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} xs ∗ fmt.bytesOwn dqb B xs ∗
       fmt.argsOkB B fmt.methodVerbs format xs }}
@@ -687,7 +687,7 @@ theorem mh_sprintfB_pre (sl : GoSlice) (bs : List w8) (fs : GoString)
       fmt.bytesOwn DFrac.discard (mhB sl bs) [interface.mkOk (go.SliceType go.byte) #sl] ∗
       fmt.argsOkB (mhB sl bs) fmt.methodVerbs fs [interface.mkOk (go.SliceType go.byte) #sl] := by
   iintro #Hs
-  have hB : mhB sl bs (interface.mkOk (go.SliceType go.byte) #sl) = some bs := by simp [mhB]
+  have hB : mhB sl bs (interface.mkOk (go.SliceType go.byte) #sl) = some (.bytes bs) := by simp [mhB]
   isplitl []
   · unfold fmt.bytesOwn
     iapply BigSepL.bigSepL_singleton.2

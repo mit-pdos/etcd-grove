@@ -30,16 +30,16 @@ variable [π : NetProtoGS]
 /-- See the file header. -/
 abbrev connReader.abortPendingRead.spec : Prop :=
   ∀ (cr : Loc) (γ : CrNames) (t : Loc) (cn : Nat) (a : GoString) (la ra : GoInterface)
-    (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) (tm : time.Time),
+    (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) (tm : time.Time) (b : Bool),
   {{ crIs cr γ cn P hs Z ∗ globalAddr net.http.aLongTimeAgo ↦□ tm ∗
       structFieldRef net.http.connReader go!"rwc" cr ↦□
         interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
-      connAt t cn true a la ra ∗ connIs (Gg := hG.goose_globalGS) cn ∗
+      connAt t cn true a la ra ∗ rdlTok (Gg := hG.goose_globalGS) cn true b ∗
       ghostVar γ.ph (1 : Qp).half true ∗ ghostVar γ.r (1 : Qp).half hs }}
     (App (Val (cr @!! go.GoType.PointerType net.http.connReader.ty @!! go!"abortPendingRead"))
       (Val #()))
   {{ RET #(); ghostVar γ.ph (1 : Qp).half false ∗ ghostVar γ.r (1 : Qp) hs ∗
-      crOwn cr cn P hs Z }}
+      crOwn cr cn P hs Z ∗ ∃ b' : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b' }}
 
 end spec
 

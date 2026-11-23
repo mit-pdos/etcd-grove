@@ -3,8 +3,8 @@
 connection reader `cr` (`crIs`) of the acceptor's end of `cn` (`connAt`, `cr.rwc` its `*TCPConn`),
 with the background reader's token, the byte buffer and the reader's token at the head `hs`, one
 `Read` of a byte; then, under the mutex, the byte kept (`hasByte`, with `Z cn`: the dialer wrote past
-its head, `headLaw`), or an error but the abort's timeout recorded (`failed`, the connection's
-context canceled and its current response notified, `crConnOk`), and the tokens, the buffer and the
+its head, `headLaw`), or on an error but the abort's timeout the connection's context canceled and
+its current response notified (`crConnOk`), and the tokens, the buffer and the
 reader's token given back to the invariant (`inRead` false), and the condition variable broadcast.
 Proved in `Net/Proof/net/http/connReader__backgroundRead.lean`.
 -/

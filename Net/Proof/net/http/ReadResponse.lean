@@ -17,8 +17,8 @@ module
 public import Net.Spec.net.http.ReadResponse
 public import Net.Spec.net.http.modelReadLine
 public import Net.Spec.net.http.modelReadMIMEHeader
-public import Net.Spec.net.http.modelCutByte
-public import Net.Spec.net.http.modelTrimLeftByte
+public import Spec.strings.Cut
+public import Spec.strings.TrimLeft
 public import Net.Spec.net.http.ParseHTTPVersion
 public import Net.Spec.net.http.badStringError
 public import Net.Spec.net.http.fixPragmaCacheControl
@@ -97,8 +97,8 @@ variable [package_sem' : net.http.Assumptions]
 theorem ReadResponse.wp_proof
     (wp_ReadLine : modelReadLine.spec (GF := GF) (hG := hG))
     (wp_MIME : modelReadMIMEHeader.spec (GF := GF) (hG := hG))
-    (wp_Cut : modelCutByte.spec (GF := GF) (hG := hG))
-    (wp_Trim : modelTrimLeftByte.spec (GF := GF) (hG := hG))
+    (wp_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
+    (wp_Trim : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
     (wp_Version : ParseHTTPVersion.spec (GF := GF) (hG := hG))
     (wp_bad : badStringError.spec (GF := GF) (hG := hG))
     (wp_pragma : fixPragmaCacheControl.spec (GF := GF) (hG := hG))
@@ -107,6 +107,7 @@ theorem ReadResponse.wp_proof
     ReadResponse.spec (GF := GF) (hG := hG) := by
   intro b ri S E req rq
   wp_start as ⟨#Henv, #Hstream, Hb, #Hlaw1, #Hlaw2, Hreq, %Hmeth⟩
+  ihave #Hstr := httpEnv_strings $$ Henv
   ihave #Hbound : (□ ∀ r', S r' -∗ ⌜r'.length + 2 ^ 12 < 2 ^ 62⌝ : IProp GF) $$ []
   · imodintro
     iintro %r' HS
@@ -301,7 +302,8 @@ theorem ReadResponse.wp_proof
         omega
   subst Herr
   wp_auto
-  wp_apply wp_Cut line (W8 32)
+  wp_apply wp_Cut line _ $$ [$Hstr]
+  rw [cut_single]; try rw [show (32#8 : w8) = W8 32 from rfl]
   try wp_auto
   generalize hc : cutByte line (W8 32) = c
   obtain ⟨proto, st, ok⟩ := c
@@ -316,9 +318,12 @@ theorem ReadResponse.wp_proof
     have := proto_of_prefix2 Hline (by rw [hc])
     rw [hc] at this; exact this
   try wp_auto
-  wp_apply wp_Trim
+  wp_apply wp_Trim st _ $$ [$Hstr]
+  · ipureintro; decide
+  rw [trimLeft_single]; try rw [show (32#8 : w8) = W8 32 from rfl]
   try wp_auto
-  wp_apply wp_Cut
+  wp_apply wp_Cut _ _ $$ [$Hstr]
+  rw [cut_single]; try rw [show (32#8 : w8) = W8 32 from rfl]
   try wp_auto
   generalize cutByte (trimLeftByte st (W8 32)) (W8 32) = c2
   obtain ⟨code, c2b, c2c⟩ := c2
