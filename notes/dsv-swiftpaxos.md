@@ -147,7 +147,7 @@ Read with the eleventh session's state below (accurate where this does not say o
   unset -∗ swLas unset ={⊤}=∗ ∃ γ γk, common γ ∗ conf.writer γ ∗ linkInv γ γk ∗ sysK γk swB.init ∗
   [∗list] c ∈ range 6, clientNodeShare γ c ∗ [∗list] i ∈ range 6, serverShare γ i`, the world
   `γ.W = httpW ⟨services γc γm, γw⟩`, `rpcLisP_set`'s handshake premise from `httpW_hs/_hsAns`.
-- `TopLevelDefs.lean` (written, not yet checked): `boot`, `system` (13 machines: orch, client0..5,
+- `TopLevelDefs.lean` (checked, 0 errors): `boot`, `system` (13 machines: orch, client0..5,
   server1..6), `heapAt`, `libsAt l π` (the premise `l : SwiftNetPkgState netDistGF` with the
   start's `π` in place of its `NetProtoGS` parent: how the statement gets a libraries instance at
   the bridge's `π`).
@@ -196,6 +196,11 @@ Read with the eleventh session's state below (accurate where this does not say o
    `addrs_set_proto` at `clientAddrs` (remote's `reqP`/`repP`), `pend_alloc` from `sysK γk
    swB.init`. Then `#print axioms`, `etc/theorem-loc.py`, `etc/tcb-collections/dsv-swiftpaxos.txt`.
 4. Delete the boot-material lab files once the boot is done.
+
+Tier violations under the kit (twelfth session): 232 (`etc/tier-check.py | grep -c
+'imdea_software.swiftpaxos\.\|orcaman'`, epaxos excluded), down from 240; the new files import
+only defs/specs (Bridge, Start, TopLevelDefs, RpcBoot). The whole kit (~500 modules) rebuilt clean
+with `lake build` after this session's `Base.lean` change.
 
 **Boot groundwork (done later this session).**
 - `etc/dsv/swiftpaxos.py` `PROGRAMS`: the 13 commands' generated `cmd/<n>/PkgTable.lean` (all
