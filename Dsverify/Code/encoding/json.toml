@@ -1,0 +1,8 @@
+# Types and names only (project dsv-vr, notes/dsv-vr.md): the encoding/json model
+# (models/encoding/json, std_models), whose Lean half (a translation with its bodies in the part
+# Net/ and the specs of Marshal, Unmarshal, NewEncoder/Encode, NewDecoder/Decode, SetCodec) does not
+# exist yet; the proof takes the specs of the functions go-vsr calls as hypotheses
+# (notes/dsv-vr.md, "Hypotheses"). Replace by Net/'s translation when it lands.
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true

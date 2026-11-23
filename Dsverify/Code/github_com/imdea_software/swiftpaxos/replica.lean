@@ -7,7 +7,7 @@ public import Code.os
 public import Perennial.Code.sort
 public import Perennial.Code.strings
 public import Perennial.Code.encoding.binary
-public import Code.encoding.json
+public import Dsverify.Code.encoding.json
 public import Perennial.Code.io
 public import Perennial.Code.math
 public import Net.Code.net

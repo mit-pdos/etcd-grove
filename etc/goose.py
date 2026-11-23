@@ -137,6 +137,11 @@ class Project:
     # temporary file (GOWORK, or -modfile in GOFLAGS), as models/grpc/gomodel.py does for go
     # builds. None: every module from the module cache.
     module_models: dict = None
+    # Expand tabs in the translation's comments to four spaces (Go doc comments indented with tabs:
+    # goose copies them into `/-- … -/`, where Lean rejects a tab at the start of a line; a goose gap,
+    # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
+    # writes it.
+    expand_comment_tabs: bool = False
 
     @property
     def env(self):
@@ -369,8 +374,7 @@ PROJECTS = [
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
-                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
-                    "github.com/prometheus/client_model=", "net/http=",
+                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
                     "github.com/jonboulle/clockwork=",
                     "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
@@ -525,11 +529,6 @@ PROJECTS = [
             "github.com/dustin/go-humanize",
             # names only: the metrics mvcc's transactions and key index update
             "github.com/prometheus/client_golang/prometheus",
-            # (prove-ps2-metrics, 2026-11-22) names only: the package of the type of prometheus's
-            # `gauge`'s field `labelPairs` (`[]*dto.LabelPair`), so that the struct is translated (its
-            # methods are, with their bodies). (`counter` also needs `timestamppb`, whose names-only
-            # initializer would add two trust-boundary axioms: not taken.)
-            "github.com/prometheus/client_model/go",
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",
@@ -915,68 +914,6 @@ PROJECTS = [
         packages=[".", "./counter", "./counter/cmd/orch", "./counter/cmd/client0",
                   "./counter/cmd/client1", "./counter/cmd/server"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "remote")],
-    ),
-    Project(
-        name="dsv-paxos",
-        # dsverify-lab's paxos kit (notes/dsv-paxos.md; notes/dsverify-net-port-plan.md, phase 6):
-        # the lab's fork of xiang90/paxos (examples/paxos/fork/paxos at lab master 7a84fb35) with
-        # its kit ported onto examples/lib/remote, `examples/dsverify/paxos` (a Go module of its
-        # own, module path the fork's). Into the part `Dsverify/` (modules `Dsverify.*`), with
-        # remote and `net` the part `Net/`'s, lintest and porcupine the main tree's, marshal
-        # Perennial's.
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "dsverify", "paxos"),
-        root="Dsverify",
-        lean_roots=["github.com/xiang90/paxos=Dsverify",
-                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
-                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
-        packages=[".", "./examples/paxosnet", "./examples/paxosnet/cmd/orch"]
-                 + ["./examples/paxosnet/cmd/client%d" % c for c in range(4)]
-                 + ["./examples/paxosnet/cmd/server%d" % s for s in range(1, 6)],
-        owned=[os.path.join("github_com", "xiang90")],
-    ),
-    Project(
-        name="dsv-swiftpaxos",
-        # dsverify-lab's swiftpaxos kit (notes/dsv-swiftpaxos.md; notes/dsverify-net-port-plan.md,
-        # phase 6): the lab's fork of imdea-software/swiftpaxos (examples/swiftpaxos/fork/swiftpaxos
-        # at lab master 915f964, fork 66dfc21, run swift-n2nofast-1), the system's packages with its
-        # kit ported onto examples/lib/remote, `examples/dsverify/swiftpaxos` (a Go module of its
-        # own, module path the fork's). Into the part `Dsverify/`, with remote, `net` and the
-        # net/rpc and net/http models the part `Net/`'s (std_models), lintest, porcupine, bufio and
-        # encoding/hex the main tree's. Names and types only, in the part (no model yet: their
-        # specs are the proof's hypotheses): encoding/gob, os/signal, github.com/google/uuid,
-        # github.com/orcaman/concurrent-map (`Dsverify/Code/**.toml`). gods v1.18.1 translated as
-        # project dsv-epaxos translates it (the same files: the red-black tree's iterator Next/Prev
-        # names only); its treemap's specs are hypotheses here too.
-        repo=None,
-        rev=None,
-        local=os.path.join("examples", "dsverify", "swiftpaxos"),
-        root="Dsverify",
-        lean_roots=["github.com/imdea-software/swiftpaxos=Dsverify",
-                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
-                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                    "github.com/emirpasic/gods=Dsverify", "github.com/google/uuid=Dsverify",
-                    "github.com/orcaman/concurrent-map=Dsverify", "encoding/gob=Dsverify",
-                    "os/signal=Dsverify",
-                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
-                    "bufio=", "encoding/hex=", "encoding/json=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
-                    "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
-        packages=["github.com/emirpasic/gods/utils", "github.com/emirpasic/gods/containers",
-                  "github.com/emirpasic/gods/maps", "github.com/emirpasic/gods/trees",
-                  "github.com/emirpasic/gods/trees/redblacktree",
-                  "github.com/emirpasic/gods/maps/treemap", "github.com/google/uuid", "github.com/orcaman/concurrent-map", "encoding/gob",
-                  "os/signal",
-                  "./rpc", "./dlog", "./config", "./state", "./hook", "./replica/defs", "./replica",
-                  "./client", "./swift", "./master", "./examples/swiftnet",
-                  "./examples/swiftnet/cmd/orch"]
-                 + ["./examples/swiftnet/cmd/client%d" % c for c in range(6)]
-                 + ["./examples/swiftnet/cmd/server%d" % s for s in range(1, 7)],
-        owned=[os.path.join("github_com", "imdea_software"), os.path.join("github_com", "emirpasic"),
-               os.path.join("github_com", "google", "uuid"), os.path.join("github_com", "orcaman"),
-               os.path.join("encoding", "gob"), os.path.join("os", "signal")],
-        std_models=["net/rpc", "net/http"],
     ),
     Project(
         name="models-net",
@@ -2142,6 +2079,30 @@ PROJECTS = [
 ]
 
 
+# The dsverify kits (notes/dsv-paxos.md; etc/dsv/README.md): each kit's project is the `GOOSE` dict
+# of its own file `etc/dsv/<kit>.py` (the fields of `Project`), so that a kit adds a file instead of
+# editing this one. Placed before project models-net, in the files' order.
+def dsv_kits():
+    """The kit files `etc/dsv/*.py`, loaded, in name order (also read by etc/gen-init.py)."""
+    import importlib.util
+    d = os.path.join(ROOT, "etc", "dsv")
+    out = []
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if not f.endswith(".py") or f.startswith("_"):
+            continue
+        spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        m.KIT = f[:-3]
+        out.append(m)
+    return out
+
+
+DSV_KITS = dsv_kits()
+_i = next(i for i, p in enumerate(PROJECTS) if p.name == "models-net")
+PROJECTS[_i:_i] = [Project(**k.GOOSE) for k in DSV_KITS if hasattr(k, "GOOSE")]
+
+
 
 # The Go modules of this repository that build the examples against the forks, and which project's
 # pinned `rev` each replaced Go path must be at (a replace's pseudo-version names the commit): the
@@ -2423,6 +2384,58 @@ def with_proph_patches(proj, src, desc):
     return proj, proph_patch.patched_copy(proj.name, src, dest), f"{desc} + {n} prophecy patch(es)"
 
 
+def expand_comment_tabs(top):
+    """Project.expand_comment_tabs: every `.lean` file under `top` with the tabs in its comments
+    (`/- … -/`, nested, and `--` to the end of the line) replaced by four spaces; exits on a tab
+    elsewhere (in a string literal, or in code)."""
+    for d, _, fs in os.walk(top):
+        for name in fs:
+            if not name.endswith(".lean"):
+                continue
+            p = os.path.join(d, name)
+            with open(p) as f:
+                src = f.read()
+            if "\t" not in src:
+                continue
+            out, depth, i, n = [], 0, 0, len(src)
+            while i < n:
+                if not depth and src[i] == '"':
+                    j = i + 1
+                    while j < n and src[j] != '"':
+                        j += 2 if src[j] == "\\" else 1
+                    seg = src[i:j + 1]
+                    if "\t" in seg:
+                        sys.exit(f"goose.py: a tab in a string literal in {p}")
+                    out.append(seg)
+                    i = j + 1
+                    continue
+                if src.startswith("/-", i):
+                    depth += 1
+                    out.append("/-")
+                    i += 2
+                    continue
+                if depth and src.startswith("-/", i):
+                    depth -= 1
+                    out.append("-/")
+                    i += 2
+                    continue
+                if not depth and src.startswith("--", i):
+                    j = src.find("\n", i)
+                    j = n if j < 0 else j
+                    out.append(src[i:j].replace("\t", "    "))
+                    i = j
+                    continue
+                c = src[i]
+                if c == "\t":
+                    if not depth:
+                        sys.exit(f"goose.py: a tab outside a comment in {p}")
+                    c = "    "
+                out.append(c)
+                i += 1
+            with open(p, "w") as f:
+                f.write("".join(out))
+
+
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
@@ -2442,6 +2455,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
                     + packages, env=env)
             others = others_owned(root, owned)
+            if proj.expand_comment_tabs:
+                expand_comment_tabs(piece_out)
             for f, c in lean_files(piece_out, owned, others).items():
                 new[os.path.join(root, f)] = (c, os.path.join(piece_out, f))
             for f, c in lean_files(lib_dir, owned, others).items():

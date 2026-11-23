@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.encoding.json
+public import Dsverify.GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.fmt
 public import Dsverify.GeneratedProof.github_com.emirpasic.gods.containers
 public import Dsverify.GeneratedProof.github_com.emirpasic.gods.trees
