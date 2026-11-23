@@ -312,7 +312,7 @@ theorem handleRead1Proxied.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : 
   wp_method_call
   wp_call
   wp_auto
-  have hspec := GryffParticipant.HandleRead1.wp_proof pa (replicaIface r) k (valOwn gR) s s' o1
+  have hspec := GryffParticipant.HandleRead1.wp_proof pa (replicaIface r) k (valOwn (GF := GF) gR) s s' o1
     (read1Of g) (p.[src.gryffproto.Read1Proxied, go!"D"]) (p.[src.gryffproto.Read1Proxied, go!"Vt"])
     g.D' g.Vt' rfl rfl Hid hst
   simp only [read1Of] at hspec
@@ -344,7 +344,7 @@ theorem handleRead2Proxied.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : 
   wp_method_call
   wp_call
   wp_auto
-  have hspec := GryffParticipant.HandleRead2.wp_proof pa (replicaIface r) k (valOwn gR) s s' o1
+  have hspec := GryffParticipant.HandleRead2.wp_proof pa (replicaIface r) k (valOwn (GF := GF) gR) s s' o1
     (read2Of g) g.Vt' g.UpdateId' rfl hst
   simp only [read2Of] at hspec
   wp_apply hspec $$ [$Hpc $Hpa $Hip $Hval] as %rp ⟨Hpa, Hval, %g', Hrp, %Ho⟩
@@ -375,7 +375,7 @@ theorem handleWrite2Proxied.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k :
   wp_method_call
   wp_call
   wp_auto
-  have hspec := GryffParticipant.HandleWrite2.wp_proof pa (replicaIface r) k (valOwn gR) s s' o1
+  have hspec := GryffParticipant.HandleWrite2.wp_proof pa (replicaIface r) k (valOwn (GF := GF) gR) s s' o1
     (write2Of g) g.Vt' rfl Hid hst
   simp only [write2Of] at hspec
   wp_apply hspec $$ [$Hpc $Hpa $Hip $Hval] as %rp ⟨Hpa, Hval, %g', Hrp, %Ho⟩
@@ -409,7 +409,7 @@ theorem handleWrite1Proxied.wp_proof (γ : GryffNames GF) (ρ : Repl2Names) (k :
   wp_method_call
   wp_call
   wp_auto
-  have hspec := GryffParticipant.HandleWrite1.wp_proof pa (replicaIface r) k (valOwn gR) s s'
+  have hspec := GryffParticipant.HandleWrite1.wp_proof pa (replicaIface r) k (valOwn (GF := GF) gR) s s'
     outs (write1Of g) g.V' g.N' (p.[src.gryffproto.Write1Proxied, go!"D"])
     (p.[src.gryffproto.Write1Proxied, go!"MaxAppliedTag"]) g.D' g.MaxAppliedTag' rfl Hid hst
   simp only [write1Of] at hspec
