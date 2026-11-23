@@ -5,7 +5,7 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, fifth agent: see P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
+**State in one line (2026-11-23, fifth agent: see P7, P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -402,6 +402,44 @@ P4 (d)); when they are, recheck that their tables list these packages.
   the command's initializer from `ownGoState ∅` returns `ownInitializing getIs ∗ isPkgInit cmd ∗
   codecFresh ∗ invalidRequest ↦□ ()` (∗ `muxOwner []` for net/http), the shape Net will give
   (gryff's `wp_initialize'_own`); sound because only the boot holds `ownGoState ∅`.
+- **P7. Fifth agent, later (f65f97ae7f)**. Built (`lake build`, 2861 jobs): `Mains.lean` (12
+  `wp_main`s over `KitSpecs`' specs), **`Link.lean`** (namespace `Perennial.EtcdGrove.dsvcraq`:
+  `nodeLaws`, `wp_NewNodeClient`/`factory`/`wp_NewCoordinatorClient` from `craqCodecLaws`,
+  `wp_awaitConf`/`wp_configure` over Net's `net.*.wp_proof`, `wp_Server` (args `HRN`, `HE`),
+  `wp_Client`, `wp_Orch`; instance args `[LogHyp] [RpcHttpAddr] [RpcHttpDial] [RpcHttpServe]
+  [NaInvG]`), `TopLevelDefs.lean` (`boot`, `system`, `craqKitAddrs = serverAddrs ++ clientAddrs
+  ++ confAddrs`), the statement **`Dsverify/Spec/.../craqnet/TopLevelRobustness.lean`'s
+  `craq_remote_robust.spec`** (premises, each `∀ G L` at `heapAt G L` (rabia's) and the start's
+  `π`: net/rpc's and net/http's `InitHyp`, `LogHyp`, `ra`/`rd`/`rs` (the H4 classes; `ra` per
+  `G`), `rpcAlloc` (H4's allocation: `regCtx -∗ addrUnset* ={⊤}=∗ ∃ W, W.SS = SS ∗
+  httpRpcAddr*`), **`RpcBoot` for the eleven client/server commands** (F2: `{{ ownGoState ∅ }}
+  cmd.X.initialize' #() {{ ownInitializing getIs ∗ isPkgInit cmd.X ∗ rpcBootRes }}` for every
+  consistent `getIs`; `rpcBootRes = codecFresh ∗ invalidRequest ↦□ () ∗ muxOwner []`), F1
+  (`removeNodeOk.spec`), F3 (`errOk (nodeSpec …)`: **false of Net's current `errOk`**, so the
+  statement is vacuous until Net restricts `errOk` to `srvErrMsg`; alternatively restate
+  `RpcHttpServe.ServeHTTP` over a local `srvServes` with the restricted `errOk` and prove it for
+  `nodeSpec`)). PkgTables: `etc/dsv/craq.py` `HYP_IMPORTS = 'known'` with `MAIN = [bufio, path,
+  internal.bytealg, net.url, crypto.tls]`, `MAIN_GEN = [bufio]` (as gryff; `'none'` made the
+  tables' `net.http` entries fail); `gen-init --check` clean.
+  **Not yet: `Dsverify/Proof/.../craqnet/TopLevelRobustness.lean`, the proof** (paxos's and
+  rabia's shape): `robust_of_distProtoRB craqKitAddrs`; split `Hs` (servers, clients, confs);
+  `craq_alloc serverAddrs.tail` (Nodup by `decide`) → `γ`, `isCraq`, `ownState γ KvM.init` (=
+  `(kvR γ).sysState kvB.init`, `lift_init`), `tailTok`, `nextHalf`, per chain address two
+  `roleHalf`s, `nlogAuth`, `joinTicket` (one `roleHalf` of each to `coordRes`, the other with
+  `nlogAuth` to `nodeRes`); `rpcAlloc (craqSS γ cAddr chain) serverAddrs` → `W`; `cfg := ⟨γ, W,
+  serverAddrs[0], serverAddrs.tail⟩`, `craqCtx cfg`, `cfgKit cfg` (rfl); `mapCtx_alloc`;
+  `addrs_set_proto` for `clientAddrs` (remote's `reqP`/`repP` of `kvR γ`) and `confAddrs`
+  (`confProto` both ways); `pend_alloc`; the 12 machines' resources; per machine: `haveI` the
+  premises at `heapAt G L`, then a `wp_boot` from `ownGoState ∅`: orch with the generated
+  `cmd.orch.wp_initialize'`, the others with `RpcBoot` (its `rpcBootRes` → `codecFresh`,
+  `muxOwner []`, and `srvEnv` from `isPkgInit net.rpc` (its fact is `cliEnv`'s content) ∗
+  `invalidRequest`), then `cmd.X.wp_main` with `Link`'s `wp_Orch`/`wp_Client`/`wp_Server`. Then
+  `TopLevelRobustness.lean`'s `craq_remote_robust : craq_remote_robust.spec`, `#print axioms`,
+  `etc/theorem-loc.py` (check it counts the premises), `etc/tcb-collections/dsv-craq.txt`.
+  **Lean moved** (coordinator, 2026-11-23): `lean` c4e044df92 (models-rpc-server landed, Perennial
+  c95e92207, `/shared/perennial-c95e92207`); this branch may stay on models-rpc-server 36728bd8ed
+  for now; when merging lean, repoint `.lake/package-overrides.json` and `PERENNIAL_DIR`, rerun
+  gen-init.
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
