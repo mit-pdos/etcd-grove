@@ -1,6 +1,7 @@
 /-
 The proof of `serverCodec.ReadRequestBody` (`Net/Spec/net/rpc/serverCodec__ReadRequestBody.lean`):
-`readFrame`, then for a non-`nil` body the registered codec's `Decode` (`decOk`).
+`readFrame`, then for a non-`nil` body the guard of the payload read and the registered codec's
+`Decode` (`decOk`).
 -/
 module
 
@@ -28,8 +29,9 @@ variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG)) :
     serverCodec.ReadRequestBody.spec (GF := GF) (hG := hG) := by
-  intro c t cn s a la ra body r0 C D Θ P eof ueof ed ef
-  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, Hrerr, #Hacc⟩
+  intro c t cn s a la ra body r0 C D G Θ P eof ueof ed ef
+  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hguard, Hrerr,
+    #Hacc⟩
   wp_auto
   cases r0 with
   | ok e0 =>
@@ -77,9 +79,12 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
     iframe HD Hrerr
     ipureintro; exact ⟨Hgot, Hpl⟩
   | ok b =>
-    unfold bodyDec
+    unfold bodyDecG
     icases Hdec with ⟨#Hset, #Hd⟩
+    subst Hgot
+    ihave HPG := Hguard $$ %pl %Hpl HP
     wp_auto
+    icases HPG with ⟨HP, HG⟩
     wp_apply wp_getCodec C $$ Hset as %cd #Hcd
     unfold codecIs
     icases Hcd with ⟨%v, #Hv, #Henc, #Hdecok, -⟩
@@ -87,8 +92,8 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
     wp_auto
     unfold decOk
     wp_bind (App (App (Val #v.Decode') _) _)
-    iapply Hdecok $$ Hp [HD]
-    · iapply Hd $$ HD
+    iapply Hdecok $$ Hp [HD HG]
+    · iapply Hd $$ HD HG
     inext
     iintro %err %ok Hp %Hiff HΘ Herr
     wp_auto
@@ -96,13 +101,13 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
     iright
     isplitr
     · ipureintro; first | rfl | trivial
-    iexists got
+    iexists (frameOf pl)
     iframe HP
     ileft
     iexists pl
     iframe Hrerr
     isplitr
-    · ipureintro; exact ⟨Hgot, Hpl⟩
+    · ipureintro; exact ⟨rfl, Hpl⟩
     unfold bodyRes
     iexists ok
     iframe HΘ
