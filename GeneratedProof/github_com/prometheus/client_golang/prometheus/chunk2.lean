@@ -2,6 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.errors
+public import GeneratedProof.github_com.prometheus.client_model.go
+public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.prometheus.client_golang.prometheus
@@ -16,6 +20,97 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.prometheus.client_golang.prometheus
+
+namespace MetricVec
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.prometheus.client_golang.prometheus.Assumptions]
+
+noncomputable instance MetricVec_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.prometheus.client_golang.prometheus.MetricVec where
+  typedPointstoDef l v dq := iprop(
+    "metricMap" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"metricMap" l) v.metricMap' dq ∗
+    "curry" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"curry" l) v.curry' dq ∗
+    "hashAdd" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAdd" l) v.hashAdd' dq ∗
+    "hashAddByte" ∷ typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAddByte" l) v.hashAddByte' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance MetricVec_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_golang.prometheus.MetricVec github_com.prometheus.client_golang.prometheus.MetricVec.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance MetricVec_access_load_metricMap (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"metricMap" l) v.metricMap' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"metricMap" l) v.metricMap' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance MetricVec_access_store_metricMap (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (metricMap' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"metricMap" l) v.metricMap' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"metricMap" l) metricMap' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with metricMap' := metricMap' } : github_com.prometheus.client_golang.prometheus.MetricVec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance MetricVec_access_load_curry (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"curry" l) v.curry' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"curry" l) v.curry' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance MetricVec_access_store_curry (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (curry' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"curry" l) v.curry' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"curry" l) curry' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with curry' := curry' } : github_com.prometheus.client_golang.prometheus.MetricVec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance MetricVec_access_load_hashAdd (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAdd" l) v.hashAdd' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAdd" l) v.hashAdd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance MetricVec_access_store_hashAdd (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (hashAdd' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAdd" l) v.hashAdd' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAdd" l) hashAdd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hashAdd' := hashAdd' } : github_com.prometheus.client_golang.prometheus.MetricVec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance MetricVec_access_load_hashAddByte (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAddByte" l) v.hashAddByte' dq)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAddByte" l) v.hashAddByte' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance MetricVec_access_store_hashAddByte (l : Loc) (v : github_com.prometheus.client_golang.prometheus.MetricVec) (hashAddByte' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAddByte" l) v.hashAddByte' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.MetricVec go!"hashAddByte" l) hashAddByte' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hashAddByte' := hashAddByte' } : github_com.prometheus.client_golang.prometheus.MetricVec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end MetricVec
 
 namespace curriedLabelValue
 section def_

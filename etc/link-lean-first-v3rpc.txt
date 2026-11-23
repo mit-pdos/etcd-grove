@@ -133,7 +133,9 @@ EtcdServer__AuthInfoFromCtx: @
 EtcdServer__AuthStore: @
 EtcdServer__Watchable: @
 config_ServerConfig__MaxRequestBytesWithOverhead:
-errors_IsCtxErr:
+# `errors.Is` of a context's error against `Canceled`/`DeadlineExceeded`: over Perennial's `errors.Is`
+# at comparable targets (errors-is-axioms, 2026-11-22; a trust-boundary axiom until then).
+errors_IsCtxErr: =_root_.Perennial.errors.wp_Is
 traceutil_Tracer__Start:
 trace_WithAttributes:
 attribute_String:

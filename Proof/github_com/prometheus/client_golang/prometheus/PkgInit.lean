@@ -15,6 +15,9 @@ public import Perennial.Proof.errors
 public import Perennial.Proof.sort
 public import Perennial.Proof.context
 public import Perennial.Proof.bytes
+public import Perennial.Proof.math
+public import Perennial.Proof.sync.atomic
+public import Proof.github_com.prometheus.client_model.go.PkgInit
 
 @[expose] public section
 

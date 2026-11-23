@@ -22,7 +22,7 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewRevBytes Perennial.EtcdGrove.mvc
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.NewStore.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.NewStore Perennial.EtcdGrove.mvcc.NewStore.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.ReportEventReceived.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.mvcc.ReportEventReceived.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReportEventReceived Perennial.EtcdGrove.mvcc.ReportEventReceived.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes Perennial.EtcdGrove.RevToBytes.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.RevToBytes Perennial.EtcdGrove.mvcc.RevToBytes.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Revision__GreaterThan Perennial.EtcdGrove.Revision.GreaterThan.wp_proof  # missing: a proof file proves its spec
