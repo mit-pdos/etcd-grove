@@ -9,9 +9,12 @@ token left:
   program's own connections to `addr` carry requests of its verified or trust-boundary clients (until
   2026-11-22 part (b) of `addrsUnclaimed`, `Proof/runtime/Start.lean`, which program start turned into
   `netAddrFree`). The grpc and net/http transport axioms (`grpc.start`, `http.register`) rest on it
-  until phase 7 (S2, S5) proves the transport over the net extension. Nothing produces it now: program
-  start no longer hands out addresses (the retired single-process closed theorems were its only users);
-  `etcd_safe`'s deployment premise is to give it. Consumed by `net.Listen` (into `netListenerAt`),
+  until phase 7 (S2, S5) proves the transport over the net extension. Program start
+  (`goose_adequacy_start`, `Proof/runtime/Start.lean`) hands it out for the addresses `As` of a
+  single-process closed theorem (removed at the net swap, restored 2026-11-23,
+  `notes/single-process-restore.md`); nothing else produces it; `etcd_safe`'s deployment premise is to
+  give it. The same for `httpProtoFree` below (whose docstring predates the restoration: program start
+  gives it again, with `addrClaim`, for the addresses `As`). Consumed by `net.Listen` (into `netListenerAt`),
   so an address is listened on at most once in a run (`grpcAddrIs_agree`).
 * `netAddrFree addr` := `addrClaim addr ∗ netLisTok addr ∗ ⌜addrOk addr⌝`: the claim, the net
   extension's right to listen at `addr` (`netLisTok`, from its start resources) and `addr` a valid

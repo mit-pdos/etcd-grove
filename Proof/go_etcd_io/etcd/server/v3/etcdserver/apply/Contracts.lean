@@ -550,8 +550,12 @@ theorem alarmGetOk_of (st : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (B
   iunfold alarmGetOk
   iexact HG
 
-/-- **The `*membership.RaftCluster` `c`** (trust boundary: `membership` is names-only):
-`Version` (a `*semver.Version`, maybe nil) and `ID` return; `SetVersion` (with a version not
+/-- **The `*membership.RaftCluster` `c`** (until prove-ps2-bootstage1, 2026-11-23, wholly a trust
+boundary; since then the `Version` and `ID` rows are proved, `isCluster_of`, and the rest,
+`isClusterRest`, is `bootOk`'s trusted `clusterApplyRest`):
+`Version` (a `*semver.Version`, nil or read-only: `cluster.go:580-587` returns
+`semver.MustParse(c.version.String())`, a fresh version nothing else holds; 2026-11-22,
+prove-ps2-semver: until then some pointer, `notes/specs-only/ledger.md`) and `ID` return; `SetVersion` (with a version not
 nil), `UpdateAttributes` and `SetDowngradeInfo` (which keeps the `DowngradeInfo` pointer) write
 the cluster's bucket under the batch lock only with `shouldApplyV3` (`cPre b`: the
 critical-section contract; without it, no write: `ApplyV2storeOnly`; unit 2). (D22, 2026-10-23:
@@ -581,7 +585,7 @@ def isCluster (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"Version")) (Val #()))
-      {{ (v : Loc), RET #v; True }}) ∗
+      {{ (v : Loc), RET #v; ⌜v = null⌝ ∨ ∃ x : github_com.Masterminds.semver.v3.Version, v ↦□ x }}) ∗
     □ ({{ True }}
         (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
           go!"ID")) (Val #()))
@@ -612,6 +616,41 @@ def isCluster (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.
 instance isCluster_persistent (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
     (RO : RestM → IProp GF) (RW : IProp GF) : Persistent (isCluster c Pk f BT RO RW) := by
   unfold isCluster; infer_instance
+
+/-- **`isCluster` without its `Version` and `ID` rows** (prove-ps2-bootstage1, 2026-11-23, #34 stage 1:
+the rows of the cluster's contract not yet proved, `SetVersion`, `UpdateAttributes` and
+`SetDowngradeInfo`; `bootOk`'s trusted part of it, `clusterApplyRest`, which also says the cluster is
+not nil). The
+`Version` and `ID` rows are proved (`isCluster_of`, `ClusterLaws.lean`). -/
+def isClusterRest (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF) (RO : RestM → IProp GF)
+    (RW : IProp GF) : IProp GF :=
+  iprop(
+    □ (∀ (v : Loc) (s : GoString) (b : Bool) (B : mvcc.KBReal) (Pre Q Post : IProp GF) (r : RestM),
+      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+          isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api ∗
+          cPre b (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ ⌜v ≠ null⌝ ∗ semverIs v s ∗
+          ⌜semverAtMostServer s⌝ ∗ RO r }}
+        (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
+          @!! go!"SetVersion")) (Val #v))
+          (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.UpdateCapability))) (Val #b))
+      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗ RO (restSetVersion b s r) }}) ∗
+    □ (∀ (id : w64) (attr : etcdserver.api.membership.Attributes) (cus : List GoString) (b : Bool)
+        (B : mvcc.KBReal) (Pre Q Post : IProp GF) (r : RestM),
+      {{ cPre b (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗
+          attr.ClientURLs' ↦*□ cus ∗ ⌜(r.mem.lookup id).isSome = true⌝ ∗ RO r }}
+        (App (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty
+          @!! go!"UpdateAttributes")) (Val #id)) (Val #attr)) (Val #b))
+      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗
+          RO (restUpdateAttrs b ⟨id, attr.Name', cus⟩ r) }}) ∗
+    □ (∀ (d : Loc) (di : etcdserver.version.DowngradeInfo) (b : Bool) (B : mvcc.KBReal) (Pre Q Post : IProp GF),
+      {{ cPre b (Pk B) f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ BT B ∗ d ↦ di ∗ RW }}
+        (App (App (Val (c @!! go.GoType.PointerType etcdserver.api.membership.RaftCluster.ty @!!
+          go!"SetDowngradeInfo")) (Val #d)) (Val #b))
+      {{ RET #(); cPost b Pre Post ∗ bkRT B ∗ BT B ∗ RW }}))
+
+instance isClusterRest_persistent (c : Loc) (Pk : mvcc.KBReal → IProp GF) (f : GoFunc) (BT : mvcc.KBReal → IProp GF)
+    (RO : RestM → IProp GF) (RW : IProp GF) : Persistent (isClusterRest c Pk f BT RO RW) := by
+  unfold isClusterRest; infer_instance
 
 /-- **The `RaftStatusGetter` `rs`** (the server): `MemberID`, `Leader`, `Term` return. -/
 def isRaftStatus (rs : GoInterface) : IProp GF :=
