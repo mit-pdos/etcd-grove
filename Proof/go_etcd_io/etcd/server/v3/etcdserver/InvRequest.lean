@@ -362,6 +362,16 @@ theorem kvLogSmall_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (h : kvLogSmall γk L) (hl : L.length + 1 < 2 ^ 61) : kvLogSmall γk (L ++ [e]) := by
   unfold kvLogSmall at h ⊢; simp only [List.length_append, List.length_singleton]; omega
 
+end kvGhost
+
+section kvGhostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **`id` was registered by the incarnation of key `k`** (persistent; linkv-txn stage B1,
 2026-10-20; by key since R2c, 2026-11-02, until then by the id's prefix) in its wait registry (the
 cluster's registries' map, `idWaitIs`), with the consumer token `t`: what a proposal's entry
@@ -377,8 +387,28 @@ instance idRegdAt_timeless (γi : IdNames) (k : IdKey) (id : w64) :
     Timeless (idRegdAt (GF := GF) γi k id) := by
   unfold idRegdAt idWaitIs waitRegd; infer_instance
 
+end kvGhostG1
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- `idRegdAt` by the incarnation of the names `γi` (its proposer's). -/
 abbrev idRegd (γi : IdNames) (id : w64) : IProp GF := idRegdAt γi γi.key id
+
+end kvGhost
+
+section kvGhostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **A committed entry's id claimed** (persistent; D19c): a normal entry whose data decode to a
 request with an id was claimed for its data under that id by the incarnation of some key `k` (R2c:
@@ -398,10 +428,30 @@ instance entryClaim_timeless (γi : IdNames) (m : EntryModel) :
     Timeless (entryClaim (GF := GF) γi m) := by
   unfold entryClaim; infer_instance
 
+end kvGhostG1
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- Every conf change of `L` is one the server's `applyConfChange` takes (`ccPolOk`, at raft's
 configuration `cfg`; audit phase B3, 2026-10-18). -/
 def ccLogOk (γ : SrvRaft) (L : List EntryModel) : Prop :=
   ∀ m ∈ L, m.typ ≠ W32 0 → ccPolOk γ m.data
+
+end kvGhost
+
+section kvGhostG3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The workload facts of the committed log `L`** (persistent; D19c): every entry of a good
 shape (`logShape`: a request's premise at every log but for its size clauses; a conf change's id
@@ -420,6 +470,16 @@ instance kvWork_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
 instance kvWork_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Timeless (kvWork (GF := GF) cfg γk L) := by
   unfold kvWork; infer_instance
+
+end kvGhostG3
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **What a committed compaction entry `m` after the log `A` claims** (pure; M2's apply side,
 item 5): in the cluster's compaction mode only, in M2's scope (`compactPropOk`: neither skipped nor
@@ -554,6 +614,16 @@ agree but in bit 63 generate colliding lease ids). -/
 def kvPfxOk (γk : KVNames) : Prop :=
   γk.lm = .revocable → γk.ids.pfx ∈ γk.gps ∧ (γk.gps.map (· &&& leaseIdMask)).Nodup
 
+end kvGhost
+
+section kvGhostG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The KV invariant's generated grant ids** (the lease-expiry plan's E3 (b)): the log's
 revocable-mode grant ids are the ids `U` masked, each `U`'s claim right owned (so `U` has no
 repeat); (E3 (c); lease-mono3 step 2) each of one of the cluster's grant prefixes `gps`, which are
@@ -567,6 +637,16 @@ def kvGrantIds (γk : KVNames) (L : List EntryModel) : IProp GF :=
 instance kvGrantIds_timeless (γk : KVNames) (L : List EntryModel) :
     Timeless (kvGrantIds (GF := GF) γk L) := by
   unfold kvGrantIds idUnclaimed; infer_instance
+
+end kvGhostG2
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **What a proposal of `rq` hands the KV invariant for its grant id**: in the revocable mode, a
 grant's id is a generated id `u` masked, of the KV names' prefix (E3 (c)), with `u`'s claim right;
@@ -605,6 +685,16 @@ theorem grantIdOwn_cmp (γk : KVNames) (rq : apply.IRRModel) (h : compactPropOk 
     ⊢ grantIdOwn (GF := GF) γk rq :=
   grantIdOwn_nonGrant γk rq (by rw [h.1.1]; decide)
 
+end kvGhost
+
+section kvGhostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- The empty log has no grant. -/
 theorem kvGrantIds_nil (γk : KVNames) (L : List EntryModel) (h : logRevGrantIds γk.lm L = [])
     (hp : kvPfxOk γk) :
@@ -615,6 +705,16 @@ theorem kvGrantIds_nil (γk : KVNames) (L : List EntryModel) (h : logRevGrantIds
   · ipureintro; exact ⟨h, List.nodup_nil, fun _ h => (List.not_mem_nil h).elim, hp⟩
   iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2
   itrivial
+
+end kvGhostG1
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **One normal entry on**, its request's grant id handed over (`grantIdOwn`). -/
 theorem kvGrantIds_snoc (γk : KVNames) (L : List EntryModel) (e : EntryModel) (d : List w8)
@@ -803,6 +903,16 @@ theorem kvGrantIds_nodup_of {γk : KVNames} {L : List EntryModel} {U : List w64}
   · rw [HU.1]; exact leaseIdMask_nodup_of_pfxs U γk.gps HU.2.1 HU.2.2.1 (HU.2.2.2 hrev).2
   · rw [logRevGrantIds_nonRev _ _ hrev]; exact List.nodup_nil
 
+end kvGhost
+
+section kvGhostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The KV invariant** (see the section header): the server's half of its log `L` of requested entries
 (after `ai0`, consecutive, plain, every entry above the start's consistent index) and the other
 half of the state's ghost variable at the state of `L`'s model; the start's chain the base chain
@@ -833,6 +943,16 @@ def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
     Persistent (kvInv (GF := GF) γ γk) := by
   unfold kvInv; infer_instance
+
+end kvGhostG1
+
+section kvGhost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **Two KV names the KV invariant cannot tell apart** (R2d-1, Q8 (a), 2026-11-06): they agree on
 every field `kvInv` reads (the state's variable `st`, the start values `c0`, `ch0`, `log0`, the
@@ -2169,6 +2289,16 @@ theorem applyStep_grow {rq : apply.IRRModel} {v3 : Bool} {x x' : apply.ApplyKV}
 
 /-! ### Floors (the vertical slice's unit V2) -/
 
+end wait
+
+section waitG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The floor recorded at `γf`** (persistent, agreeing): the log `F` a request's proposer
 recorded when it claimed the request's id (`idClaim`'s ghost name): a certified log the
 request's client had seen. The apply thread runs a KV write at a log extending it
@@ -2177,6 +2307,16 @@ def floorAt (γf : GName) (F : mvcc.Log) : IProp GF := dghostVar γf DFrac.disca
 
 instance floorAt_persistent (γf : GName) (F : mvcc.Log) : Persistent (floorAt (GF := GF) γf F) := by
   unfold floorAt; infer_instance
+
+end waitG2
+
+section wait
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 theorem floorAt_agree (γf : GName) (F F' : mvcc.Log) :
     ⊢ floorAt (GF := GF) γf F -∗ floorAt γf F' -∗ ⌜F = F'⌝ := by
@@ -2193,12 +2333,32 @@ instance idxNames_countable : Pos.Countable mvcc.IdxNames :=
       obtain ⟨rfl, rfl, rfl, rfl, rfl⟩ := h
       rfl)
 
+end wait
+
+section waitG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The server's claimers' facts, by store** (the cluster's family of facts, `idClusterInv`'s
 `Φs`; R2c, 2026-11-02): a claim's ghost name records a floor certified in the store index `idx`
 its claimer's incarnation registered (`idKeyFactAt`); strict M1, 2026-11-05: the floor a lower
 bound of the store's committed log `slog` (the draft's `srvFloorFactsA`). -/
 def srvFloorFacts (slog : GName) (_id : w64) (_d : List w8) (γf : GName) : IProp GF :=
   iprop(∃ F : mvcc.Log, floorAt γf F ∗ monoListLbOwn slog F)
+
+end waitG1
+
+section wait
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The server's claimers' fact** (the id generator's `Φ`, `idGen ρ.ids g (srvFloorFact E)`):
 a claim's ghost name records a certified floor (`srvFloorFacts` at the store's index). -/
