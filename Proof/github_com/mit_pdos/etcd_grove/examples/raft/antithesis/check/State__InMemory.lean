@@ -661,6 +661,34 @@ theorem State.InMemory.wp_proof
       iexists false
       iframe
       ipureintro; exact Hjp6
+  clear Hjp6
+  simp -zeta only [jp7] at Hjp7
+  wp_join iprop(∃ (gv : GoSlice) (v : SSet),
+      s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      viol_ptr ↦ gv ∗ strsRO gv v ∗ ⌜v.length ≤ s.viol.length + 2 ∧ jpU () v = .ok r⌝)
+    at next with [s ev n viol] as ⟨%gv2, %v2, s, ev, n, viol, #Hv2, %HjpU⟩
+  · cases lcv'
+    · simp only [Bool.false_eq_true, ite_false] at Hjp7
+      wp_auto
+      wp_join_done
+      iexists gv, v1
+      iframe
+      isplitr; · iexact Hv1
+      ipureintro; exact ⟨by omega, Hjp7⟩
+    · simp only [ite_true] at Hjp7
+      wp_auto
+      wp_apply wp_violAdd _ _ _ $$ [Hv1] as %gv' #Hgv'
+      · iframe Hv1; ipureintro; omega
+      wp_join_done
+      iexists gv', vLC
+      iframe
+      isplitr; · iexact Hgv'
+      ipureintro
+      exact ⟨by have := setAdd_length_le v1 [76#8, 101#8, 97#8, 100#8, 101#8, 114#8, 67#8, 111#8, 109#8,
+        112#8, 108#8, 101#8, 116#8, 101#8, 110#8, 101#8, 115#8, 115#8]; simp only [vLC]; omega, Hjp7⟩
+  clear Hjp7
+  simp -zeta only [jpU] at HjpU
+  replace HjpU := bind_ok HjpU; obtain ⟨rl, hrl, HjpU⟩ := HjpU
   trace_state
   sorry
 
