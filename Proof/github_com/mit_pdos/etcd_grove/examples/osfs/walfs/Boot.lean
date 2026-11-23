@@ -371,7 +371,394 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
         · ipureintro; intro h; cases h
         iexists h'; iframe Hh; ipureintro; exact hh'.2
 
+set_option hygiene false in
+/-- `os.Rename`'s error after a failed attempt `e` (`he : e ≠ 0`): `post` after `iapply HΦ`. -/
+local macro "ren_err" " => " post:tacticSeq : tactic => `(tactic| (
+  rw [decide_eq_false (show ¬ e = W64 0 from he)]
+  wp_auto
+  wp_apply wp_errno
+  unfold os.model.linkError
+  rw [show os.model.LinkError = os.LinkError.ty by unfold os.LinkError.ty; rfl]
+  wp_auto
+  iapply HΦ
+  ($post)))
+
+/-- **`os.Rename(d/seg.tmp, d/seg)`**, `seg.tmp` the file of the invariant's key `i`, `seg` absent:
+on success `seg` names `i`. -/
+theorem wp_renameSeg (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ : GName)
+    (h : NamesH) (i : Ino) (hi : h.cur !! tmpB = some (.file i)) (hsn : h.cur !! segB = none) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
+        bHalf (GF := GF) j γ (some i) h }}
+      (App (App (Val (@! os.Rename)) (Val #(child d tmpB))) (Val #(child d segB)))
+    {{ (err : GoInterface), RET #err; osCallPerm (callKey R d) 1 ∗ ∃ h',
+        bHalf (GF := GF) j γ (some i) h' ∗ ⌜err = interface.nil → h'.cur !! segB = some (.file i)⌝ }} := by
+  wp_start as ⟨#Hos, #Hsi, #Hinv, Hperm, Hh⟩
+  imod bHalf_next R j γ (some i) h $$ Hsi Hh with ⟨Hh, #Hlb⟩
+  imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+  -- `lstat(seg)`: not a directory
+  icases osCallPerm_child R d segB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ 1 h.next CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk Hls
+  iclear Hls
+  icases (bHalf_eq (L := hG.goose_localGS) j γ (some i) h).1 $$ Hh with ⟨Hv, Hw⟩
+  wp_apply wp_osLstatDirS_mem R d segB j bN (DFrac.own 1) (DFrac.own (1 : Qp).half) h t s0 1
+    segB_ok bN_seg CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hw Hk
+    as %isDir %e0 %hd Hperm - Hw
+  have hd1 : isDir ≠ W64 1 := fun h1 => by
+    obtain ⟨⟨J', hJ'⟩, -⟩ := hd h1
+    rw [hsn] at hJ'; cases hJ'
+  rw [decide_eq_false hd1]
+  wp_auto
+  ihave Hh := (bHalf_eq (L := hG.goose_localGS) j γ (some i) h).2 $$ [Hv Hw]
+  · iframe
+  -- the rename loop: before the rename, or after it
+  ihave HSt : iprop(bHalf (GF := GF) j γ (some i) h ∨
+      ∃ h', bHalf (GF := GF) j γ (some i) h' ∗
+        ⌜h'.cur !! tmpB = none ∧ h'.cur !! segB = some (.file i)⌝) $$ [Hh]
+  · ileft; iexact Hh
+  iloeb as IH generalizing Hperm HSt
+  imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+  icases osCallPerm_child R d tmpB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ 1 h.next CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
+  iclear Hls1
+  icases HSt with (Hh | ⟨%h', Hh, %hh'⟩)
+  · wp_apply wp_renameTmp R d (DFrac.own 1) j γ h i t1 s1 1 hi hsn hs1
+      $$ Hos Hsi Hinv Hp Hh Hk1 as %e Hperm - Hr
+    icases Hr with (⟨%he, Hh⟩ | ⟨%h', Hh, %hh'⟩)
+    · by_cases he4 : e = W64 4
+      · rw [decide_eq_true he4]
+        wp_auto
+        iapply IH $$ Hperm [Hh] HΦ
+        ileft; iexact Hh
+      rw [decide_eq_false he4]
+      wp_auto
+      ren_err =>
+        iframe Hperm
+        iexists h; iframe Hh; ipureintro; intro hc; cases hc
+    · by_cases he4 : e = W64 4
+      · rw [decide_eq_true he4]
+        wp_auto
+        iapply IH $$ Hperm [Hh] HΦ
+        iright; iexists h'; iframe Hh; ipureintro; exact hh'
+      rw [decide_eq_false he4]
+      wp_auto
+      by_cases he0 : e = W64 0
+      · rw [decide_eq_true he0]
+        wp_auto
+        iapply HΦ
+        iframe Hperm
+        iexists h'; iframe Hh; ipureintro; exact fun _ => hh'.2
+      have he : e ≠ W64 0 := he0
+      ren_err =>
+        iframe Hperm
+        iexists h'; iframe Hh; ipureintro; exact fun _ => hh'.2
+  · icases (bHalf_eq (L := hG.goose_localGS) j γ (some i) h').1 $$ Hh with ⟨Hv, Hw⟩
+    imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp'
+    icases osPathS_sameRoot R d tmpB segB _ j $$ Hp' with ⟨Hp', %hsr⟩
+    wp_apply wp_osRenameAbsentS R d tmpB d segB j j bN (DFrac.own 1) (DFrac.own 1)
+      (DFrac.own (1 : Qp).half) h' t1 s1 1 tmpB_ok segB_ok bN_tmp hh'.1 hsr CoPset.subseteq_top
+      CoPset.subseteq_top $$ Hos Hsi Hp Hp' Hw Hk1 as %e %he Hperm - - Hw
+    ihave Hh := (bHalf_eq (L := hG.goose_localGS) j γ (some i) h').2 $$ [Hv Hw]
+    · iframe
+    by_cases he4 : e = W64 4
+    · rw [decide_eq_true he4]
+      wp_auto
+      iapply IH $$ Hperm [Hh] HΦ
+      iright; iexists h'; iframe Hh; ipureintro; exact hh'
+    rw [decide_eq_false he4]
+    wp_auto
+    ren_err =>
+      iframe Hperm
+      iexists h'; iframe Hh; ipureintro; exact fun _ => hh'.2
+
 end oscalls
+
+/-! ## `commit` and `Boot` -/
+
+section prog
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicIntoValInj]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assumptions]
+variable [os.Assumptions] [os.file.FieldAssumptions]
+
+/-- `commit(d)`, `d` the root of `j`, nothing at `seg.tmp` or `seg` now: it does not panic. -/
+theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
+    (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ : GName) (ko : Option Ino)
+    (h : NamesH) (hn : h.cur !! tmpB = none) (hs : h.cur !! segB = none) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
+        bHalf (GF := GF) j γ ko h }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.commit)) (Val #d))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, #Hsi, #Hinv, Hperm, Hh⟩
+  wp_auto
+  rw [show d ++ go!"/seg.tmp" = child d tmpB from rfl, show (W64 2 ||| W64 64) = W64 66 from by decide]
+  wp_apply wp_openTmp R d j hrj γ ko h hn (W32 438) $$ [Hperm Hh] as %f %err ⟨Hperm, Hr⟩
+  · iframe; iframe #
+  icases Hr with (⟨%fd, %i, %h2, %hek, Hf, Hfd, Hm, Hh⟩ | ⟨%herr, -⟩)
+  rotate_left
+  · cases err with
+    | nil => exact absurd rfl herr
+    | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  obtain ⟨rfl, hk2, hs2⟩ := hek
+  rw [hs] at hs2
+  (try wp_auto)
+  -- the data at 0
+  wp_apply DSBase.wp_newData as %sl Hsl
+  (try wp_auto)
+  ihave Hb0 : osBytes (GF := GF) i (W64 0).toNat (DFrac.own 1) [] $$ []
+  · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
+  ihave Hmc : mcellsAny (GF := GF) newMeta.maps (W64 0).toNat ((W64 0).toNat + DSBase.dataC.length) $$ []
+  · unfold mcellsAny; rw [show newMeta.maps = ∅ from rfl]
+    iapply BigSepM.bigSepM_empty.2; iempintro
+  wp_apply wp_WriteAt f fd (child d tmpB) (DFrac.own 1) sl DSBase.dataC (DFrac.own 1) (W64 0)
+      (DFrac.own 1) ⟨i, true, true, none, none⟩ newMeta [] rfl (by decide) (by decide) (by decide)
+      (by decide) (by decide) (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
+    as %n %err ⟨Hf, Hsl, Hfd, %k, %ys, %Hres, Hm, Hys, -⟩
+  · iframe; iexact Hos
+  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne, -⟩⟩ := Hres
+  rotate_left
+  · cases err with
+    | nil => exact absurd rfl hne
+    | ok ie =>
+    (try wp_auto)
+    wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e -
+    · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  have hys' : ys.map Prod.fst = DSBase.dataC := DS.pwOut_data hys
+  have hysl : ys.length = (pwPost newMeta (W64 0).toNat DSBase.dataC.length DSBase.dataC.length).size := by
+    rw [hys.1]; rfl
+  (try wp_auto)
+  -- `fdatasync`
+  wp_apply wp_Fd f fd (child d tmpB) (DFrac.own 1) $$ Hf as Hf
+  (try wp_auto)
+  wp_apply wp_Fdatasync fd (DFrac.own 1) ⟨i, true, true, none, none⟩ _ 0 ys (OsMeta.covers_whole _ hysl)
+      $$ [Hos Hfd Hm Hys]
+    as %e ⟨Hfd, Hr⟩
+  · iframe; iexact Hos
+  icases Hr with (⟨%he, Hm, Hys⟩ | ⟨%he, -, -⟩)
+  rotate_left
+  · rw [show errnoErr e = interface.mkOk syscall.Errno.ty #e from if_neg he.1]
+    dsimp only
+    (try wp_auto)
+    wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
+    · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  subst he
+  rw [show errnoErr 0 = interface.nil from if_pos rfl]
+  dsimp only
+  (try wp_auto)
+  wp_apply wp_Close f fd (child d tmpB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e' -
+  · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
+  (try wp_auto)
+  -- the file, durable, goes into the invariant under the key `i`
+  icases (osMeta_halves (L := hG.goose_localGS) i _).1 $$ Hm with ⟨Hm, Hmi⟩
+  icases (osBytes_halves (L := hG.goose_localGS) i 0 _).1 $$ Hys with ⟨Hys, Hysi⟩
+  ihave Hk : DS.keyRes (L := hG.goose_localGS) (some i) $$ [Hmi Hysi]
+  · unfold DS.keyRes
+    iexists _, _
+    iframe Hmi Hysi
+    ipureintro; exact DS.synced_good _ rfl ys hys'
+  imod boot_deposit j γ ko h2 i hs2 $$ Hinv Hh Hk with Hh
+  -- the rename
+  try rw [show d ++ go!"/seg" = child d segB from rfl]
+  try rw [show d ++ go!"/seg.tmp" = child d tmpB from rfl]
+  wp_apply wp_renameSeg R d j hrj γ h2 i hk2 hs2 $$ [Hperm Hh] as %err ⟨Hperm, %h3, Hh, %hh3⟩
+  · iframe; iframe #
+  cases err with
+  | ok ie =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  | nil =>
+  have hk3 := hh3 rfl
+  (try wp_auto)
+  -- the directory's sync
+  imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+  wp_apply DS.wp_syncDir R d (DFrac.own 1) j 1 $$ [Hp Hperm] as %ok ⟨Hp, Hperm⟩
+  · iframe; iframe #
+  cases ok with
+  | false =>
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  | true =>
+  (try wp_auto)
+  icases (bHalf_eq (L := hG.goose_localGS) j γ (some i) h3).1 $$ Hh with ⟨-, Hw⟩
+  wp_apply DS.wp_check wp_ReadAt wp_Close R d (DFrac.own 1) j bN (DFrac.own (1 : Qp).half) h3 1 i
+      bN_seg hk3 _ _
+      (checkOk_synced (pwPost newMeta (W64 0).toNat DSBase.dataC.length DSBase.dataC.length) rfl ys hys')
+      $$ [Hp Hw Hperm Hm Hys]
+  · iframe; iframe #
+  (try wp_auto)
+  iapply HΦ
+  itrivial
+
+/-- `Boot(d)`, `d` the root of `j`, with the program's half of the claim (history `h0`, key `ko0`)
+and of the key's file: it does not panic. -/
+theorem wp_Boot (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+    (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
+    (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ : GName) (ko0 : Option Ino)
+    (h0 : NamesH) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ bootInv (GF := GF) j γ ∗ osCallPerm (callKey R d) 1 ∗
+        bHalf (GF := GF) j γ ko0 h0 ∗ DS.segRes (GF := GF) ko0 }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Boot)) (Val #d))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, #Hsi, #Hinv, Hperm, Hh, Hs⟩
+  imod boot_facts R j γ ko0 h0 $$ Hinv Hsi Hh with ⟨Hh, %hnow⟩
+  wp_auto
+  imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+  icases (bHalf_eq (L := hG.goose_localGS) j γ ko0 h0).1 $$ Hh with ⟨Hv, Hw⟩
+  wp_apply DSBase.wp_readNamesS d R j (DFrac.own 1) 1 bN (DFrac.own (1 : Qp).half) h0
+    $$ [Hp Hperm Hw] as %sl %ok ⟨-, Hperm, Hw, Hr⟩
+  · iframe; iframe #
+  ihave Hh := (bHalf_eq (L := hG.goose_localGS) j γ ko0 h0).2 $$ [Hv Hw]
+  · iframe
+  icases Hr with (%hok | ⟨%names, %hn, Hsl⟩)
+  · subst hok
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  obtain ⟨rfl, -, hmem, -⟩ := hn
+  (try wp_auto)
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+  ihave IH : iprop(∃ (i : w64) (nv : GoString) (hv : Bool) (h : NamesH),
+      "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ nv ∗ "Hhv" ∷ have_ptr ↦ hv ∗
+      "Hperm" ∷ osCallPerm (GF := GF) (callKey R d) 1 ∗
+      "Hh" ∷ bHalf (GF := GF) j γ ko0 h ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ names.length ∧
+        hv = decide (segB ∈ names.take (sint.nat i)) ∧
+        h.cur !! segB = h0.cur !! segB ∧
+        (tmpB ∈ names.take (sint.nat i) → h.cur !! tmpB = none) ∧
+        (tmpB ∉ names.take (sint.nat i) → h = h0)⌝) $$ [i n «have» Hperm Hh]
+  · iexists W64 0, _, false, h0
+    iframe
+    ipureintro
+    refine ⟨by decide, ?_, ?_, rfl, ?_, fun _ => rfl⟩ <;>
+      rw [show sint.nat (W64 0) = 0 from rfl] <;> simp
+  wp_for IH
+  obtain ⟨hi0, hil, hhv, hseg, htmp, hsame⟩ := Hi
+  wp_if_destruct
+  · have Hlt : sint.nat i < names.length := by word
+    have Hbnd : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨hi0, Hif⟩
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    obtain ⟨b, hb⟩ : ∃ b, names[sint.nat i]? = some b := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    wp_apply wp_load_slice_index sl (sint.Z i) names (DFrac.own 1) b hi0 $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact hb
+    have htake : names.take (sint.nat (i + W64 1)) = names.take (sint.nat i) ++ [b] := by
+      rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word]
+      rw [List.take_add_one, hb]; rfl
+    (try wp_auto)
+    by_cases hbs : b = segB
+    · subst hbs
+      rw [decide_eq_true (show segB = go!"seg" from rfl)]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1, segB, true, h
+      iframe
+      ipureintro
+      refine ⟨by word, by word, ?_, hseg, ?_, ?_⟩
+      · rw [htake]; simp
+      · rw [htake]; intro h
+        simp only [List.mem_append, List.mem_singleton, tmp_ne_seg, or_false] at h
+        exact htmp h
+      · rw [htake]; intro h
+        simp only [List.mem_append, List.mem_singleton, tmp_ne_seg, or_false] at h
+        exact hsame h
+    rw [decide_eq_false (show ¬ b = go!"seg" from hbs)]
+    wp_auto
+    by_cases hbt : b = tmpB
+    · subst hbt
+      rw [decide_eq_true (show tmpB = go!"seg.tmp" from rfl)]
+      wp_auto
+      rw [show d ++ go!"/seg.tmp" = child d tmpB from rfl]
+      wp_apply wp_removeTmp R d j hrj γ ko0 h $$ [Hperm Hh] as %err ⟨Hperm, %h', Hh, %hh'⟩
+      · iframe; iframe #
+      cases err with
+      | ok ie =>
+        (try wp_auto)
+        wp_for_post
+        iapply HΦ
+        itrivial
+      | nil =>
+      (try wp_auto)
+      wp_for_post
+      iframe
+      iexists i + W64 1, tmpB, hv, h'
+      iframe
+      ipureintro
+      refine ⟨by word, by word, ?_, hh'.1.trans hseg, fun _ => hh'.2 rfl, ?_⟩
+      · rw [htake, hhv]; simp [Ne.symm tmp_ne_seg]
+      · rw [htake]; simp
+    rw [decide_eq_false (show ¬ b = go!"seg.tmp" from hbt)]
+    wp_auto
+    wp_for_post
+    iframe
+    iexists i + W64 1, b, hv, h
+    iframe
+    ipureintro
+    refine ⟨by word, by word, ?_, hseg, ?_, ?_⟩
+    · rw [htake, hhv]; simp [Ne.symm hbs]
+    · rw [htake]; intro h; simp [Ne.symm hbt] at h; exact htmp h
+    · rw [htake]; intro h; simp [Ne.symm hbt] at h; exact hsame h
+  · -- the loop is done
+    have hie : sint.nat i = names.length := by word
+    rw [hie, List.take_length] at hhv htmp hsame
+    subst hhv
+    by_cases hsin : segB ∈ names
+    · rw [decide_eq_true hsin]
+      (try wp_auto)
+      have hsome := (hmem segB bN_seg).2 hsin
+      obtain ⟨-, -, hn | ⟨k, rfl, hk⟩⟩ := hnow
+      · rw [hn] at hsome; cases hsome
+      unfold DS.segRes
+      icases Hs with ⟨%m, %bs, Hm, Hb, %hok⟩
+      imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
+      icases (bHalf_eq (L := hG.goose_localGS) j γ _ h).1 $$ Hh with ⟨-, Hw⟩
+      wp_apply DS.wp_check wp_ReadAt wp_Close R d (DFrac.own 1) j bN (DFrac.own (1 : Qp).half) h 1 k
+          bN_seg (hseg.trans hk) m bs hok $$ [Hp Hw Hperm Hm Hb]
+      · iframe; iframe #
+      (try wp_auto)
+      iapply HΦ
+      itrivial
+    · rw [decide_eq_false hsin]
+      (try wp_auto)
+      have hs0 : h0.cur !! segB = none := by
+        cases hc : h0.cur !! segB with
+        | none => rfl
+        | some x => exact absurd ((hmem segB bN_seg).1 (by rw [hc]; rfl)) hsin
+      have hn : h.cur !! tmpB = none := by
+        by_cases ht : tmpB ∈ names
+        · exact htmp ht
+        · rw [hsame ht]
+          cases hc : h0.cur !! tmpB with
+          | none => rfl
+          | some x => exact absurd ((hmem tmpB bN_tmp).1 (by rw [hc]; rfl)) ht
+      wp_apply wp_commit wp_ReadAt wp_Close wp_WriteAt wp_Fd wp_Fdatasync R d j hrj γ ko0 h hn
+          (hseg.trans hs0) $$ [Hperm Hh]
+      · iframe; iframe #
+      (try wp_auto)
+      iapply HΦ
+      itrivial
+
+end prog
 
 end osfs_walfs
 end EtcdGrove
