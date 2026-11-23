@@ -190,8 +190,9 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         "%Happ2" ∷ ⌜∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         -- (2026-11-11, slice 30c) traced, the protocol reading unchanged (`AckEnd`: no automatic
-        -- leave at a traced node)
-        "%Hack" ∷ ⌜s.gh.tr.isSome → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd⌝ ∗
+        -- leave at a traced node); (#33 S3c design §2.4) and untraced in `AckScope`, where `appliedTo`
+        -- leaves no joint configuration
+        "%Hack" ∷ ⌜s.gh.tr.isSome ∨ AckScope c → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd⌝ ∗
         "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
@@ -364,7 +365,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       ipureintro
       refine ⟨StepCD.trans_leave Hst1 Hst2 Hrl (by rw [Hps1]) Happl2 Hbound,
         .inr ⟨e, by simp, Happl2.trans Happ1⟩, fun e0 He0 => ?_, rfl,
-        fun h => by rw [Htr (by simp) Hal] at h; cases h⟩
+        fun h => h.elim (fun h => by rw [Htr (by simp) Hal] at h; cases h)
+          (fun h => by unfold AckScope at h; rw [h] at Hal; cases Hal)⟩
       have He0' : e = e0 := by simpa using He0
       subst He0'
       rw [Happl2, Happ1]; exact Happ2'

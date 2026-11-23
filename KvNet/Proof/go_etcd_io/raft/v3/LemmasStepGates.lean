@@ -183,6 +183,10 @@ which `toPState` does not read: the traced scope's (`TrScope`) through an acknow
 def AckEnd (m : MessageM) (s s' : NState) : Prop :=
   AckTy m.Type' → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd
 
+/-- (#33 S3c design §2.4) **The untraced scope in which a storage acknowledgement leaves the protocol
+reading unchanged**: no automatic leave of a joint configuration. -/
+def AckScope (c : CfgM) : Prop := c.autoLeave = false
+
 theorem AckEnd.of_ty {m : MessageM} {s s' : NState} (h : ¬ AckTy m.Type') : AckEnd m s s' :=
   fun h' => absurd h' h
 
@@ -713,8 +717,8 @@ by the type (`CloseMid.ty`). -/
 def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
-    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
-    ⌜s.gh.tr.isSome → AckEnd m s s'⌝ -∗
+    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜StepEnd c id m ents ctx s s'⌝ -∗
+    ⌜s.gh.tr.isSome ∨ AckScope c → AckEnd m s s'⌝ -∗
     stepOutG c m s R s'.outbox -∗
     |={⊤}=> ((⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost γ md c id s) ∨
         ∃ s1, ⌜CloseMid id m ents s s1 s'⌝ ∗ ownStepGhost γ md c id s1) ∗
@@ -725,8 +729,8 @@ def stepClose (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM)
 def stepCloseAt (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : MessageM) (ents : List EntryM)
     (ctx : List w8) (s : NState) (R : StepG GF) (Gout : NState → IProp GF) : IProp GF :=
   iprop(∀ (s' : NState) (B : Int) (recv : List Msg),
-    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜s.gh.tr.isSome → StepEnd c id m ents ctx s s'⌝ -∗
-    ⌜s.gh.tr.isSome → AckEnd m s s'⌝ -∗
+    ⌜s.gh.tr.isSome → StepCD c id B m s recv s'⌝ -∗ ⌜StepEnd c id m ents ctx s s'⌝ -∗
+    ⌜s.gh.tr.isSome ∨ AckScope c → AckEnd m s s'⌝ -∗
     stepOut R s'.outbox -∗
     |={⊤}=> ownStepGhost γ md c id s ∗ Gout s' ∗ ⌜OutTrStep s s'⌝)
 

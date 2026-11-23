@@ -322,11 +322,11 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and vote decision, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       obtain ⟨pvs, hve⟩ : ∃ pvs : GMap w64 Progress,
           VoteEnd id { becomeFollower s m.Term' (W64 0) with prvals := pvs } m s' := by
-        rcases ((hend (by rw [htr]; rfl)) hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
+        rcases (hend hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
         · rw [hcq] at h; cases h
         · exact ⟨pvs, by rw [hpre pvs] at h; exact h⟩
       exact OutTyStep.trans (s1 := { becomeFollower s m.Term' (W64 0) with prvals := pvs }) rfl
@@ -338,7 +338,7 @@ theorem stepBundle_traced_utVote : stepBundle_traced.on (GF := GF) (hG := hG) UT
     iintro %s' %B %recv %_ %hend %_ Hout
     obtain ⟨pvs, hve⟩ : ∃ pvs : GMap w64 Progress,
         VoteEnd id { becomeFollower s m.Term' (W64 0) with prvals := pvs } m s' := by
-      rcases ((hend (by rw [htr]; rfl)) hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
+      rcases (hend hty).2.2.1 hns hTy with ⟨h, -⟩ | ⟨pvs, h⟩
       · rw [hcq] at h; cases h
       · exact ⟨pvs, by rw [hpre pvs] at h; exact h⟩
     have hmono : γ.reTrace.isSome → ∀ C cs P, VPin tn.voters

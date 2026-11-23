@@ -508,7 +508,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's step-down and stale or rejecting handling, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       obtain ⟨pvs, ht, hint, hhi, hht, hse⟩ : ∃ (pvs : GMap w64 Progress) (ht hint : w64),
           uint.Z hint ≤ uint.Z m.Index' ∧ uint.Z ht ≤ uint.Z m.LogTerm' ∧
@@ -516,7 +516,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
             [appResp id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with lead := m.From' }
               m.From' (!b) (if b then s.logst.committed else m.Index')
               (if b then W64 0 else ht) (if b then W64 0 else hint)] := by
-        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
         unfold FollowerStepResultC at hf
@@ -549,7 +549,7 @@ theorem stepBundle_traced_utAppSR (b : Bool) : stepBundle_traced.on (GF := GF) (
           [appResp id { ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) with lead := m.From' }
             m.From' (!b) (if b then s.logst.committed else m.Index')
             (if b then W64 0 else ht) (if b then W64 0 else hint)] := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 (by simp [becomeFollower])
       unfold FollowerStepResultC at hf

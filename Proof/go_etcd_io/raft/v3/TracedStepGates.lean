@@ -463,12 +463,12 @@ theorem gate_close_g [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id
     (ents : List EntryM) (ctx : List w8) (s : NState)
     (R : StepG GF) (Gout : NState → IProp GF) (s' : NState) (B : Int) (recv : List Msg)
     (h : s.gh.tr.isSome → StepCD c id B m s recv s')
-    (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
+    (he : StepEnd c id m ents ctx s s')
     -- (2026-11-11, slice 23a) a close of another type than `MsgProp`: the ghost state back at `s`
     -- ((slice 25b) nor a candidate's won vote)
     (hnp : ∀ s1, ¬ CloseMid id m ents s s1 s')
     -- (2026-11-11, slice 30c) a storage acknowledgement's end state (`AckEnd`)
-    (ha : s.gh.tr.isSome → AckEnd m s s') :
+    (ha : s.gh.tr.isSome ∨ AckScope c → AckEnd m s s') :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOutG c m s (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout s' ∗
@@ -490,12 +490,12 @@ theorem gate_close [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (id :
     (ents : List EntryM) (ctx : List w8) (s : NState)
     (R : StepG GF) (Gout : NState → IProp GF) (s' : NState) (B : Int) (recv : List Msg)
     (h : s.gh.tr.isSome → StepCD c id B m s recv s')
-    (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
+    (he : StepEnd c id m ents ctx s s')
     (hnp : m.Type' ≠ MsgProp) (hnv : m.Type' ≠ MsgVoteResp)
     -- (2026-11-11, slice 28c) nor a leader's accepted append response
     (hna : m.Type' ≠ MsgAppResp)
     -- (2026-11-11, slice 30c) a storage acknowledgement's end state (`AckEnd`)
-    (ha : s.gh.tr.isSome → AckEnd m s s') :
+    (ha : s.gh.tr.isSome ∨ AckScope c → AckEnd m s s') :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOut (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ownRaftGhost γ id (toPState s) md.isDyn ∗ ghostRest γ md c id s ∗ Gout s' ∗
@@ -509,8 +509,8 @@ theorem gate_close_mid [go.Semantics] (γ : RaftNames) (md : GMode) (c : CfgM) (
     (ents : List EntryM) (ctx : List w8) (s : NState)
     (R : StepG GF) (Gout : NState → IProp GF) (s' : NState) (B : Int) (recv : List Msg)
     (h : s.gh.tr.isSome → StepCD c id B m s recv s')
-    (he : s.gh.tr.isSome → StepEnd c id m ents ctx s s')
-    (ha : s.gh.tr.isSome → AckEnd m s s') :
+    (he : StepEnd c id m ents ctx s s')
+    (ha : s.gh.tr.isSome ∨ AckScope c → AckEnd m s s') :
     ⊢ stepClose γ md c id m ents ctx s R Gout -∗
       stepOutG c m s (ghostIn γ md c id s R) s'.outbox -∗
       |={⊤}=> ((⌜CloseAt id m ents s s'⌝ ∗ ownStepGhost γ md c id s) ∨
