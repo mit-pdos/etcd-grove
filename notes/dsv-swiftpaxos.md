@@ -124,7 +124,9 @@ asked only of the method's answers; methodOk's `argDec`; `Server.Accept` over `s
 `origin/dsv-bufio-laws` `f5de3d32b8`. **Do not merge `lean` past `07268ddb57`** (coordinator: its Perennial
 `c95e92207` has no shared checkout yet). After the lean merge, `etc/gen-init.py --check` (268 files) and
 `etc/goose.py --check --project dsv-swiftpaxos` are up to date. Regenerating the paxos `PkgTable`s was
-needed: `syscall` now imports `internal/oserror`.
+needed: `syscall` now imports `internal/oserror`. `etc/goose.py` and `etc/gen-init.py` are lean's own (`git checkout origin/lean`): the
+dsv-infra migration had dropped lean's prove-ps2-metrics hunks. `git diff origin/lean` of both files is
+empty, and both `--check`s pass.
 
 **net/rpc client.** `lib/RpcClient.lean` is gone. `client/Client__call` uses `Net/Proof/net/rpc/Results`'
 `net.rpc.Client.Call.wp`. `client.Client.call.specI` (`client/ConnectSpecs`) takes Call's new premise,
