@@ -5,7 +5,7 @@ fields and table `epaxos.New` sets up, and `fwStart`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Specs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.RpcTable
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos_epaxos.replica
 
 @[expose] public section
@@ -31,6 +31,8 @@ theorem defs_latencyConf :
   iintro #H
   ihave #Hd := isPkgInit_access $$ H
   iexact Hd
+
+variable [EpReplicaDeps GF]
 
 theorem replica.New.spec_holds (hIS : state.InitState.spec (GF := GF)) : replica.New.spec (GF := GF) := by
   intro γ knode id L sl als cfg logger proxy c
@@ -59,7 +61,7 @@ theorem replica.New.spec_holds (hIS : state.InitState.spec (GF := GF)) : replica
   have hIS' := hIS
   unfold state.InitState.spec at hIS'
   wp_apply hIS' as %st Hst
-  have hNT := rpc.NewTableId.wp_proof (GF := GF)
+  have hNT := EpReplicaDeps.newTableId (GF := GF)
   unfold rpc.NewTableId.spec at hNT
   wp_apply hNT as %tbl Htbl
   wp_apply (wp_map_make1 (K := GoString) (V := w64) _ _) as %sm Hsm

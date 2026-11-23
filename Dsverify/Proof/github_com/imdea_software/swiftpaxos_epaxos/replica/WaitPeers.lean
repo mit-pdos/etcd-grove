@@ -7,7 +7,8 @@ back on `done`.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.WaitClients
-public import Net.Proof.net.Listen
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Net.Proof.net.AtAddr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Dial
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.WaitClients
 
@@ -56,6 +57,8 @@ def replica.Replica.waitForPeerConnections.specX : Prop :=
       (Val #done))
   {{ RET #(); True }}
 
+variable [EpNetDeps GF] [EpReplicaDeps GF]
+
 theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica.serveConnDial.specX (GF := GF))
     (hPrintln : dlog.Logger.Println.spec (GF := GF)) (hFatal : dlog.Logger.Fatal.spec (GF := GF)) :
     replica.Replica.waitForPeerConnections.specX (GF := GF) := by
@@ -85,7 +88,7 @@ theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica
   wp_apply wp_load_slice_index p.addrs (id : Int) L DFrac.discard (L.getD id []) (by omega)
     $$ [HL0] as -
   · iframe #; ipureintro; simpa using hgl
-  wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp (L.getD id [])
+  wp_apply (net.Listen.spec_addrOk EpNetDeps.listen) go!"tcp" net.tcpNet_tcp (L.getD id [])
     as %lv %err Hres
   · iframe %Hok
     iapply listen_au $$ Hap
@@ -129,7 +132,7 @@ theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica
     wp_apply wp_load_slice_index p.addrs (id : Int) L DFrac.discard (L.getD id []) (by omega)
       $$ [HL0] as -
     · iframe #; ipureintro; simpa using hgl
-    wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp (L.getD id [])
+    wp_apply (net.Listen.spec_addrOk EpNetDeps.listen) go!"tcp" net.tcpNet_tcp (L.getD id [])
       as %lv2 %err2 Hres
     · iframe %Hok
       iapply listen_au $$ Hap
@@ -162,7 +165,7 @@ theorem replica.Replica.waitForPeerConnections.spec_holds (hSC : replica.Replica
   rw [hN]
   wp_if_destruct
   · -- one more accept
-    wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) tl l x (L.getD id [])
+    wp_apply (net.Listener.Accept.spec_addrOk EpNetDeps.accept) tl l x (L.getD id [])
         (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l (L.getD id []) true)
         (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l (L.getD id []) true ∗
           connEnd (Gg := hG.goose_globalGS) cn true (repAccP γ (L.getD id [])) (repDialP γ (L.getD id []))

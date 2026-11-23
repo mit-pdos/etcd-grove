@@ -3,8 +3,7 @@
 -/
 module
 
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Specs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Log
 
@@ -120,6 +119,8 @@ theorem send_stream_eq (hdr old : List w8) (code : w8) (body : List w8)
   rw [List.append_assoc, List.take_append_drop, h2.2.2.2.1 he2, h1.2.1 he1, hst herr]
   simp [List.append_assoc]
 
+variable [EpBufioDeps GF]
+
 theorem replica.Replica.SendMsg.spec_holds (hPrintf : dlog.Logger.Printf.spec (GF := GF))
     (hM : Serializable.Marshal.spec (GF := GF)) :
     replica.Replica.SendMsg.spec (GF := GF) := by
@@ -207,7 +208,7 @@ theorem replica.Replica.SendMsg.spec_holds (hPrintf : dlog.Logger.Printf.spec (G
     have hfull : streamHdr (dialerOf id t side) side ++ (wsm ++ [m]).flatMap encMsg =
         (streamHdr (dialerOf id t side) side ++ wsm.flatMap encMsg ++ [m.code]) ++ m.body := by
       simp [encMsg, List.flatMap_append, List.append_assoc]
-    wp_apply EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+    wp_apply EpBufioDeps.writeByte
       (ws.getD t null) _ _ _ _ _ sent pend err m.code
       $$ [$Hw] as %e1 ⟨%sent1, %pend1, %Hw1, Hw⟩
     · iintro %He
@@ -242,7 +243,7 @@ theorem replica.Replica.SendMsg.spec_holds (hPrintf : dlog.Logger.Printf.spec (G
           m.body = streamHdr (dialerOf id t side) side ++ List.flatMap encMsg (wsm ++ [m]) by
         unfold dialerOf; simp [encMsg, List.flatMap_append, List.append_assoc]]
       iexact HQ
-    wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof (ws.getD t null) _ _ _ _ _ sent2 pend2 e2
+    wp_apply EpBufioDeps.flush (ws.getD t null) _ _ _ _ _ sent2 pend2 e2
       $$ [$Hw] as %e3 ⟨%k, %Hk3, Hw⟩
     have Hw1' : sent <+: sent1 ∧ (e1 = interface.nil → sent1 ++ pend1 = sent ++ pend ++ [m.code]) ∧
         (e1 ≠ interface.nil → sent1 ++ pend1 = sent ++ pend) ∧ (err ≠ interface.nil → e1 = err) :=

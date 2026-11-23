@@ -4,7 +4,7 @@
 -/
 module
 
-public import Proof.bufio.Writer__Flush
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.SendMsg
 
 @[expose] public section
@@ -21,6 +21,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
+variable [EpBufioDeps GF]
 
 theorem replica.Replica.ReplyProposeTS.spec_holds
     (hM : replica.defs.ProposeReplyTS.Marshal.spec (GF := GF)) : replica.Replica.ReplyProposeTS.spec (GF := GF) := by
@@ -77,7 +78,7 @@ theorem replica.Replica.ReplyProposeTS.spec_holds
     ipureintro
     refine ⟨Hv.1, Hv.2, ?_⟩
     simp [ProposeReplyV.enc]
-  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof w _ _ _ _ _ sent2 pend2 e2
+  wp_apply EpBufioDeps.flush w _ _ _ _ _ sent2 pend2 e2
     $$ [$Hw] as %e3 ⟨%k, %Hk3, Hw⟩
   ihave Hcs := Hcs $$ [Hw Hrt]
   · iexists c, sent2 ++ pend2.take k, pend2.drop k, e3, tc, la, ra, ed, eof

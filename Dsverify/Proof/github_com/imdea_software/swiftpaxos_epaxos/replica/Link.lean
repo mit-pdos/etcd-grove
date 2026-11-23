@@ -27,6 +27,14 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.RpcTable
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Link
 public import Perennial.Proof.time.Link
+public import Net.Proof.net.Conn__Read
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.Conn__RemoteAddr
+public import Net.Proof.net.Dial
+public import Net.Proof.net.Listen
+public import Net.Proof.net.Listener__Accept
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.IoReadFull
 
 @[expose] public section
 
@@ -45,6 +53,26 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [io.Assumptions]
   [field_sem : net.FieldAssumptions]
+
+/-! ## The library hypotheses of the replica proofs (`Interface/LibDeps.lean`), closed
+
+Local instances of this section only (bufio's, `epBufioDeps_holds`, from `wire/Link.lean`). -/
+
+theorem epNetDeps_holds : EpNetDeps GF where
+  connRead := net.Conn.Read.wp_proof
+  connWrite := net.Conn.Write.wp_proof
+  connClose := net.Conn.Close.wp_proof
+  connRemoteAddr := net.Conn.RemoteAddr.wp_proof
+  dial := net.Dial.wp_proof
+  listen := net.Listen.wp_proof
+  accept := net.Listener.Accept.wp_proof
+
+theorem epReplicaDeps_holds : EpReplicaDeps GF where
+  newTableId := rpc.NewTableId.wp_proof
+  tableGet := rpc.Table.Get.wp_proof
+  readFull := ioReadFullPre.wp_proof ioReadAtLeastPre.wp_proof
+
+attribute [local instance] epBufioDeps_holds epNetDeps_holds epReplicaDeps_holds
 
 /-! ## Package-internal functions (closed) -/
 

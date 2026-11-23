@@ -6,10 +6,10 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ClientListener
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Pkg
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.IoReadFull
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Net.Proof.net.ConnIo
+public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.RProg
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Specs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Log
 
@@ -232,6 +232,8 @@ theorem slot_install (γ : EpNames) (id : Nat) (L : List GoString) (ew : GoSlice
   refine ⟨rfl, fun _ h => by simp at h, fun _ => ?_⟩
   simp [streamHdr]
 
+variable [EpBufioDeps GF] [EpNetDeps GF] [EpReplicaDeps GF]
+
 /-- `io.ReadFull(conn, buf)` on the acceptor's end of a connection (Perennial's `io.wp_ReadFull`
 over `net.conn_readerOk`): the lab's `bufio.wp_ReadFull` shape. -/
 theorem wp_ReadFull_conn (t : Loc) (cn : Nat) (a : GoString) (la ra eof ed : GoInterface)
@@ -248,9 +250,9 @@ theorem wp_ReadFull_conn (t : Loc) (cn : Nat) (a : GoString) (la ra eof ed : GoI
   ihave #Hbuf : (isPkgInit (PROP := IProp GF) pkg_id.bufio) $$ []
   · iPkgInit
   ihave ⟨%eof', %ueof, %sb, %Hne, #Hio, #Heof, #Hueof, -⟩ := io_errs $$ Hbuf
-  ihave #Hok := net.conn_readerOk net.Conn.Read.wp_proof t cn true a la ra eof ed P $$ [Hio Hca Heof0 Hed]
+  ihave #Hok := net.conn_readerOk EpNetDeps.connRead t cn true a la ra eof ed P $$ [Hio Hca Heof0 Hed]
   · iframe #
-  wp_apply (ioReadFullPre.wp_proof ioReadAtLeastPre.wp_proof) (net.connIface t) _ (recvTokL (Gg := hG.goose_globalGS) cn true P) _ R buf bs
+  wp_apply EpReplicaDeps.readFull (net.connIface t) _ (recvTokL (Gg := hG.goose_globalGS) cn true P) _ R buf bs
       eof' ueof $$ [$Hio $Hok $Heof $Hueof $Hr $Hb] as %n %err ⟨%ys, %Hys, Hb, Hr, #Hres⟩
   · ipureintro; intro ys hys; omega
   obtain ⟨hn, hle⟩ := Hys
@@ -462,12 +464,11 @@ theorem replica.Replica.serveConn.spec_holds
       · iframe; ipureintro; omega
       ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
       · iPkgInit
-      ihave #Hrdok := net.conn_readerOk net.Conn.Read.wp_proof tc cid true a la ra eof ed
+      ihave #Hrdok := net.conn_readerOk EpNetDeps.connRead tc cid true a la ra eof ed
         (repDialP γ (L.getD id [])) $$ [Hio Hca Heof Hed]
       · iframe #
       ihave HrL := recvTok_L cid true _ first $$ Hrecv
-      wp_apply EtcdGrove.bufio.NewReader.wp_proofOk
-        (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE) (net.connIface tc)
+      wp_apply EpBufioDeps.newReaderOk (net.connIface tc)
         (fun _ m => 0 < m) (recvTokL (Gg := hG.goose_globalGS) cid true (repDialP γ (L.getD id [])))
         (net.connReadE eof la ra ed) first $$ [HrL] as %br Hbr
       · isplitr
@@ -485,10 +486,10 @@ theorem replica.Replica.serveConn.spec_holds
       rw [hdz, if_pos (show 0 ≤ (d : Int) ∧ (d : Int) < sint.Z p.readers.len by omega)]
       wp_apply wp_store_slice_index p.readers (d : Int) rs _ $$ [Hrs] as Hrs
       · iframe; ipureintro; omega
-      ihave #Hwrok := net.conn_streamWriterOk net.Conn.Write.wp_proof tc cid true a la ra ed
+      ihave #Hwrok := net.conn_streamWriterOk EpNetDeps.connWrite tc cid true a la ra ed
         (repAccP γ (L.getD id [])) (repAccP_ppc γ _) $$ [Hca Hed]
       · iframe #
-      wp_apply EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof
+      wp_apply EpBufioDeps.newWriter
         (net.connIface tc) _ _ _ [] $$ [Hsend] as %bw Hbw
       · isplitr
         · ipureintro

@@ -6,8 +6,9 @@ The dialing phase of `ConnectToPeers` (package-internal): the listener goroutine
 -/
 module
 
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Net.Proof.net.ConnIo
+public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ServeConn
 
 @[expose] public section
@@ -67,6 +68,8 @@ theorem pend_null_of_peer (γ : EpNames) (id : Nat) (L : List GoString) (ew : Go
       iexfalso
       iapply connFresh_excl (Gg := hG.goose_globalGS) cid true
       iframe
+
+variable [EpBufioDeps GF] [EpNetDeps GF] [EpReplicaDeps GF]
 
 theorem replica.Replica.serveConnDial.spec_holds
     (hCL : replica.Replica.clientListener.spec (GF := GF))
@@ -250,12 +253,11 @@ theorem replica.Replica.serveConnDial.spec_holds
       wp_auto
       ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
       · iPkgInit
-      ihave #Hrdok := net.conn_readerOk net.Conn.Read.wp_proof tc cid true a la ra eof ed
+      ihave #Hrdok := net.conn_readerOk EpNetDeps.connRead tc cid true a la ra eof ed
         (repDialP γ (L.getD id [])) $$ [Hio Hca Heof Hed]
       · iframe #
       ihave HrL := recvTok_L cid true _ first $$ Hrecv
-      wp_apply EtcdGrove.bufio.NewReader.wp_proofOk
-        (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE) (net.connIface tc)
+      wp_apply EpBufioDeps.newReaderOk (net.connIface tc)
         (fun _ m => 0 < m) (recvTokL (Gg := hG.goose_globalGS) cid true (repDialP γ (L.getD id [])))
         (net.connReadE eof la ra ed) first $$ [HrL] as %br Hbr
       · isplitr
@@ -268,10 +270,10 @@ theorem replica.Replica.serveConnDial.spec_holds
         iapply EtcdGrove.bufio.preUpTo_trivial
       rw [hdz, if_pos (show 0 ≤ (d : Int) ∧ (d : Int) < sint.Z p.readers.len by omega)]
       wp_auto
-      ihave #Hwrok := net.conn_streamWriterOk net.Conn.Write.wp_proof tc cid true a la ra ed
+      ihave #Hwrok := net.conn_streamWriterOk EpNetDeps.connWrite tc cid true a la ra ed
         (repAccP γ (L.getD id [])) (repAccP_ppc γ _) $$ [Hca Hed]
       · iframe #
-      wp_apply EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof
+      wp_apply EpBufioDeps.newWriter
         (net.connIface tc) _ _ _ [] $$ [Hsend] as %bw Hbw
       · isplitr
         · ipureintro

@@ -12,9 +12,7 @@ the writer was healthy at the start. Each write moves bytes from `todo` to `done
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.Marshal
-public import Proof.bufio.Writer__Write
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 
 @[expose] public section
 
@@ -152,6 +150,8 @@ theorem wprog_obl (wr : BufWr GF) (sent pend done x todo s' p' : List w8)
 
 set_option goose.wp.extras true
 
+variable [EpBufioDeps GF]
+
 /-- `bw.Write(p)` (on the `*bufio.Writer`) with the next bytes `x` of the encoding. -/
 theorem wp_wprog_Write (bw : Loc) (wr : BufWr GF)
     (sent pend : List w8) (err : GoInterface) (done rest x todo : List w8) (p : GoSlice)
@@ -166,7 +166,7 @@ theorem wp_wprog_Write (bw : Loc) (wr : BufWr GF)
   iunfold wprog at Hw
   icases Hw with ⟨#HQ, %s', %p', %e, %hw, Hown⟩
   ihave HQx := wprog_obl wr sent pend done x todo s' p' err e hw $$ HQ
-  wp_apply EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof bw wr.wi wr.J wr.Q wr.Ew wr.sz s' p' e p dq x
+  wp_apply EpBufioDeps.write bw wr.wi wr.J wr.Q wr.Ew wr.sz s' p' e p dq x
     $$ [$Hown $HQx $Hp]
     as %nn %e2 ⟨%k, %s2, %p2, %Hk, Hp, Hown⟩
   obtain ⟨-, h1, h2, h3, h4, h5, -⟩ := Hk
@@ -197,7 +197,7 @@ theorem wp_wprog_WriteByte (bw : Loc) (wr : BufWr GF)
   have hob := wprog_obl wr sent pend done [c] todo s' p' err e hw
   simp only [List.singleton_append] at hob
   ihave HQx := hob $$ HQ
-  wp_apply EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+  wp_apply EpBufioDeps.writeByte
     bw wr.wi wr.J wr.Q wr.Ew wr.sz s' p' e c
     $$ [$Hown $HQx]
     as %e2 ⟨%s2, %p2, %Hk, Hown⟩

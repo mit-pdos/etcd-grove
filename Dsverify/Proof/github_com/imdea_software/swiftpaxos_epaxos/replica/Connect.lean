@@ -9,10 +9,10 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.WaitPeers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ServeConn
-public import Net.Proof.net.Dial
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Net.Proof.net.ConnIo
+public import Proof.bufio.Own
 public import Perennial.Proof.encoding.binary.Results
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ConnectGhost
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ReplicaListener
 
@@ -51,6 +51,8 @@ theorem lisRes_not_null (γ : EpNames) (id : Nat) (L : List GoString) (ew : GoSl
   isplitl
   · iexists t, la, ra, ed, eof; iframe; iframe #; ipureintro; exact Hs
   · ipureintro; exact Hnn
+
+variable [EpBufioDeps GF] [EpNetDeps GF] [EpReplicaDeps GF]
 
 theorem replica.Replica.ConnectToPeers.spec_holds
     (hWP : replica.Replica.waitForPeerConnections.specX (GF := GF)) (hRL : replica.Replica.replicaListener.spec (GF := GF))
@@ -188,7 +190,7 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     · iframe #; ipureintro; simpa using hgl
     ihave %Hokk := addrTok_ok _ $$ [Hap]
     · iapply addrProto_tok $$ Hap
-    wp_apply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp (L.getD k []) iprop(True)
+    wp_apply EpNetDeps.dial go!"tcp" net.tcpNet_tcp (L.getD k []) iprop(True)
         (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (repDialP γ (L.getD k []))
           (repAccP γ (L.getD k [])) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
       as %cv %err (⟨%Herr, %cid, #Hc, Hend, Hfresh⟩ | ⟨-, %x, -, #Herr⟩)
@@ -260,7 +262,7 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     wp_auto
     rw [show u32Le (W32 (id : Int)) ++ [] = encId id by simp [encId]]
     ihave #Hacc := write_acc (Gg := hG.goose_globalGS) cid false (repDialP γ (L.getD k [])) [] (encId id) $$ HQ
-    wp_apply net.Conn.Write.wp_proof c' cid false (L.getD k []) la ra _ (encId id) (DFrac.own 1) ed
+    wp_apply EpNetDeps.connWrite c' cid false (L.getD k []) la ra _ (encId id) (DFrac.own 1) ed
         (writeP (Gg := hG.goose_globalGS) cid false (repDialP γ (L.getD k [])) []) $$ [Hb Hsend]
       as %n %err ⟨%w, %res, Hsend, Hb, %Hw, #Herr⟩
     · iframe Hca Hed Hb Hacc
@@ -286,13 +288,12 @@ theorem replica.Replica.ConnectToPeers.spec_holds
       wp_auto
       ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
       · iPkgInit
-      ihave #Hrdok := net.conn_readerOk net.Conn.Read.wp_proof c' cid false _ la ra eof ed
+      ihave #Hrdok := net.conn_readerOk EpNetDeps.connRead c' cid false _ la ra eof ed
         (repAccP γ (L.getD k [])) $$ [Hio Hca Heof Hed]
       · iframe #
       ihave HrL := recvTok_L cid false _ [] $$ Hrecv
       rw [show interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c' = GoInterface.ok (net.connIface c') from rfl]
-      wp_apply EtcdGrove.bufio.NewReader.wp_proofOk
-        (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE) (net.connIface c')
+      wp_apply EpBufioDeps.newReaderOk (net.connIface c')
         (fun _ m => 0 < m) (recvTokL (Gg := hG.goose_globalGS) cid false (repAccP γ (L.getD k [])))
         (net.connReadE eof la ra ed) [] $$ [HrL] as %br Hbr
       · isplitr
@@ -307,11 +308,11 @@ theorem replica.Replica.ConnectToPeers.spec_holds
       wp_auto
       rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.peers.len by omega)]
       wp_auto
-      ihave #Hwrok := net.conn_streamWriterOk net.Conn.Write.wp_proof c' cid false _ la ra ed
+      ihave #Hwrok := net.conn_streamWriterOk EpNetDeps.connWrite c' cid false _ la ra ed
         (repDialP γ (L.getD k [])) (repDialP_ppc γ _) $$ [Hca Hed]
       · iframe #
       rw [show ([] : List w8) ++ encId id = encId id from rfl] at *
-      wp_apply EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof
+      wp_apply EpBufioDeps.newWriter
         (net.connIface c') _ _ _ (encId id) $$ [Hsend] as %bw Hbw
       · isplitr
         · ipureintro

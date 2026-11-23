@@ -34,6 +34,15 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.St
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.State.String
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Misc.Dlog
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Misc.IsProxy
+public import Proof.bufio.Writer__Flush
+public import Proof.bufio.Writer__WriteByte
+public import Proof.bufio.Writer__Write
+public import Proof.bufio.Reader__ReadByte
+public import Proof.bufio.Reader__ReadOk
+public import Proof.bufio.NewReaderOk
+public import Proof.bufio.NewReaderSize
+public import Proof.bufio.NewWriter
+public import Proof.bufio.NewWriterSize
 
 @[expose] public section
 
@@ -83,6 +92,20 @@ end
 section
 variable [state.Assumptions] [replica.defs.Assumptions] [epaxos.Assumptions] [bufio.Assumptions]
   [io.Assumptions]
+
+/-- bufio's proofs, the wire proofs' hypothesis `EpBufioDeps` (`Interface/LibDeps.lean`), a local
+instance of this section only. -/
+theorem epBufioDeps_holds : EpBufioDeps GF where
+  flush := EtcdGrove.bufio.Writer.Flush.wp_proof
+  writeByte := EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+  write := EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+  readByte := EtcdGrove.bufio.Reader.ReadByte.wp_proof
+  readOk := EtcdGrove.bufio.Reader.Read.wp_proofOk
+  newReaderOk := EtcdGrove.bufio.NewReader.wp_proofOk
+    (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE)
+  newWriter := EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof
+
+attribute [local instance] epBufioDeps_holds
 
 theorem state.Operation.Marshal.wp_proof : state.Operation.Marshal.spec (GF := GF) :=
   state.Operation.Marshal.spec_holds

@@ -6,8 +6,9 @@ closed.
 -/
 module
 
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Net.Proof.net.ConnIo
+public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.PrefixReader
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.DelayChan
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ClientWire
@@ -15,15 +16,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Stream
 public import Perennial.Proof.strings.Link
-public import Proof.bufio.Reader__ReadByte
-public import Proof.bufio.NewReaderOk
-public import Proof.bufio.NewReaderSize
-public import Proof.bufio.NewWriter
-public import Proof.bufio.NewWriterSize
-public import Net.Proof.net.Conn__Close
-public import Net.Proof.net.Conn__RemoteAddr
-public import Net.Proof.net.Conn__Read
-public import Net.Proof.net.Conn__Write
 
 @[expose] public section
 
@@ -59,13 +51,15 @@ theorem tcpAddrString : TCPAddrStringHyp (GF := GF) := by
   iapply HΦ
   itrivial
 
+variable [EpBufioDeps GF] [EpNetDeps GF]
+
 /-- `Close()` of a connection whose outcome nobody keeps (`net.Conn.Close.spec` by `close_au`). -/
 theorem wp_connClose (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
     {{ net.connAt (GF := GF) t cn s a la ra ∗ connIs (Gg := hG.goose_globalGS) cn }}
       (App (Val #(methods (go.GoType.PointerType net.TCPConn.ty) go!"Close" #t)) (Val #()))
     {{ (err : GoInterface), RET #err; True }} := by
   iintro %Φ ⟨#Hc, #Hi⟩ HΦ
-  iapply (net.Conn.Close.wp_proof t cn s a la ra (fun _ => iprop(True))) $$ [] [HΦ]
+  iapply (EpNetDeps.connClose t cn s a la ra (fun _ => iprop(True))) $$ [] [HΦ]
   · iframe Hc
     imod close_au cn s $$ Hi with ⟨%st, %dd, Hst, Hdd, Hcl⟩
     imodintro
@@ -203,12 +197,11 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
   iStructNamedPrefix Hpr "pr_"
   ipersist pr_conn
   wp_auto
-  ihave #Hrdok := prefixReader_readerOk net.Conn.Read.wp_proof pr t cid a la ra eof ed
+  ihave #Hrdok := prefixReader_readerOk EpNetDeps.connRead pr t cid a la ra eof ed
     (repDialP γ (L.getD id [])) first $$ [Hca Heof Hed]
   · iframe #; iPkgInit
   ihave HrL := recvTok_L cid true _ first $$ Hrecv
-  wp_apply EtcdGrove.bufio.NewReader.wp_proofOk
-    (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE) (prIface pr)
+  wp_apply EpBufioDeps.newReaderOk (prIface pr)
     (fun _ m => 0 < m) (prI pr (interface.ok (net.connIface t)) cid (repDialP γ (L.getD id [])) first)
     (net.connReadE eof la ra ed) [] $$ [pr_first Hfsl HrL] as %br Hbr
   · isplitr
@@ -225,10 +218,10 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
     simp only [List.drop_zero, List.append_nil, List.take_zero]
     iframe; iframe #
     ipureintro; simp
-  ihave #Hwrok := net.conn_streamWriterOk net.Conn.Write.wp_proof t cid true a la ra ed
+  ihave #Hwrok := net.conn_streamWriterOk EpNetDeps.connWrite t cid true a la ra ed
     (repAccP γ (L.getD id [])) (repAccP_ppc γ _) $$ [Hca Hed]
   · iframe #
-  wp_apply EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof (net.connIface t)
+  wp_apply EpBufioDeps.newWriter (net.connIface t)
     _ _ _ [] $$ [Hsend] as %bw Hbw
   · isplitr
     · ipureintro
@@ -239,7 +232,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
     iframe Hwrok Hsend
     imodintro; unfold repAccP; ileft; ipureintro; rfl
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
-  wp_apply net.Conn.RemoteAddr.wp_proof t cid true a la _ $$ [$Hca]
+  wp_apply EpNetDeps.connRemoteAddr t cid true a la _ $$ [$Hca]
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
     (Val (LiteralValueV _)))
   iapply wp_slice_literal (V := GoInterface) (t := go.any)
@@ -250,7 +243,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
   wp_auto
   wp_apply wp_rPrintln hPrintln γ r id L p $$ [$Hro]
   wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked $HR]
-  wp_apply net.Conn.RemoteAddr.wp_proof t cid true a la _ $$ [$Hca]
+  wp_apply EpNetDeps.connRemoteAddr t cid true a la _ $$ [$Hca]
   ihave #Hna' := Hna
   iunfold net.netAddr at Hna'
   icases Hna' with ⟨%pa, %va, %Hra, #Hpa⟩
@@ -314,7 +307,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
     · exfalso; simp only [goose_wp_simp_extra, goose_wp_simp] at Hif
     try simp only [decide_true, ↓reduceIte]
     wp_apply wp_connClose t cid true a la _ $$ [$Hca $Hcis] as %ce -
-    wp_apply net.Conn.RemoteAddr.wp_proof t cid true a la _ $$ [$Hca]
+    wp_apply EpNetDeps.connRemoteAddr t cid true a la _ $$ [$Hca]
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
       (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := GoInterface) (t := go.any)
@@ -334,7 +327,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
   rotate_left
   · -- after the proposal: no more bytes can come
     try simp only [decide_true, ↓reduceIte]
-    wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br _ _ _ _ _ $$ [$Hbr] as %b %e1 Hrb
+    wp_apply EpBufioDeps.readByte br _ _ _ _ _ $$ [$Hbr] as %b %e1 Hrb
     icases Hrb with (⟨%He1, Hbr⟩ | ⟨%He1, #Herr, -, Hbr⟩)
     · ihave ⟨-, Hp⟩ := rd_clientU γ _ br pr t cid eof la ra ed c i first _ $$ Hbr Hcc
       imod Hp with %Hp
@@ -348,7 +341,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
     wp_for_post
     try simp only [decide_true, ↓reduceIte]
     wp_apply wp_connClose t cid true a la _ $$ [$Hca $Hcis] as %ce -
-    wp_apply net.Conn.RemoteAddr.wp_proof t cid true a la _ $$ [$Hca]
+    wp_apply EpNetDeps.connRemoteAddr t cid true a la _ $$ [$Hca]
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
       (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := GoInterface) (t := go.any)
@@ -361,7 +354,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
     iapply HΦ; itrivial
   -- the first message: the proposal
   try simp only [decide_true, ↓reduceIte]
-  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br _ _ _ _ _ $$ [$Hbr] as %b %e1 Hrb
+  wp_apply EpBufioDeps.readByte br _ _ _ _ _ $$ [$Hbr] as %b %e1 Hrb
   icases Hrb with (⟨%He1, Hbr⟩ | ⟨%He1, #Herr, -, Hbr⟩)
   rotate_left
   · cases e1 with
@@ -371,7 +364,7 @@ theorem replica.Replica.clientListener.spec_holds (hPrintln : dlog.Logger.Printl
     wp_for_post
     try simp only [decide_true, ↓reduceIte]
     wp_apply wp_connClose t cid true a la _ $$ [$Hca $Hcis] as %ce -
-    wp_apply net.Conn.RemoteAddr.wp_proof t cid true a la _ $$ [$Hca]
+    wp_apply EpNetDeps.connRemoteAddr t cid true a la _ $$ [$Hca]
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
       (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := GoInterface) (t := go.any)

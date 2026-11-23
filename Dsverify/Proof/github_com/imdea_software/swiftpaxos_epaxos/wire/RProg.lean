@@ -14,7 +14,8 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.Marshal
 public import Proof.bufio.ReaderLaws
-public import Proof.bufio.Reader__ReadOk
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Proof.bufio.Own
 public import Perennial.Proof.io.Link
 
 @[expose] public section
@@ -127,6 +128,8 @@ theorem io_errs :
 
 set_option goose.wp.extras true
 
+variable [EpBufioDeps GF]
+
 /-- `io.ReadFull(br, buf)` on the buffered reader. -/
 theorem wp_ReadFull_br (br : Loc) (rd : BufRd GF)
     (R : List w8) (buf : GoSlice) (bs : List w8) :
@@ -138,7 +141,7 @@ theorem wp_ReadFull_br (br : Loc) (rd : BufRd GF)
         buf ↦* (data ++ bs.drop data.length) ∗ rdOwn br rd (R ++ data) }} := by
   iintro %Φ ⟨#Hpkg, Hown, Hb⟩ HΦ
   ihave ⟨%eof, %ueof, %sb, %Hne, #Hio, #Heof, #Hueof, -⟩ := io_errs $$ Hpkg
-  ihave #Hok := EtcdGrove.bufio.ownBufReader_readerOk EtcdGrove.bufio.Reader.Read.wp_proofOk br
+  ihave #Hok := EtcdGrove.bufio.ownBufReader_readerOk EpBufioDeps.readOk br
     rd.ri rd.Pre rd.S rd.E
   rw [show brIface br = interface.ok (EtcdGrove.bufio.readerIface br) from rfl]
   wp_apply io.wp_ReadFull (EtcdGrove.bufio.readerIface br) _
@@ -174,7 +177,7 @@ theorem wp_ReadAtLeast_br (br : Loc) (rd : BufRd GF)
         buf ↦* (data ++ bs.drop data.length) ∗ rdOwn br rd (R ++ data) }} := by
   iintro %Φ ⟨#Hpkg, Hown, Hb⟩ HΦ
   ihave ⟨%eof, %ueof, %sb, %Hne, #Hio, #Heof, #Hueof, #Hsb⟩ := io_errs $$ Hpkg
-  ihave #Hok := EtcdGrove.bufio.ownBufReader_readerOk EtcdGrove.bufio.Reader.Read.wp_proofOk br
+  ihave #Hok := EtcdGrove.bufio.ownBufReader_readerOk EpBufioDeps.readOk br
     rd.ri rd.Pre rd.S rd.E
   rw [show brIface br = interface.ok (EtcdGrove.bufio.readerIface br) from rfl]
   wp_apply io.wp_ReadAtLeast (EtcdGrove.bufio.readerIface br) _

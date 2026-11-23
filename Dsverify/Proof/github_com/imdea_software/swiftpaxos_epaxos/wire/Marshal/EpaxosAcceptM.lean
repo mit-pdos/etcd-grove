@@ -21,6 +21,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [bufio.Assumptions] [io.Assumptions]
+variable [EpBufioDeps GF]
 
 set_option goose.wp.extras true
 

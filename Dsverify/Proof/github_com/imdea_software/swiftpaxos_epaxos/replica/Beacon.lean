@@ -6,8 +6,7 @@ beacons before `ConnectToPeers` has deposited the readers slice.
 -/
 module
 
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.SendMsg
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs
 
@@ -92,6 +91,8 @@ def replica.Replica.ReplyBeacon.specI : Prop :=
     (App (Val (fwMethod r go!"ReplyBeacon")) (Val #b))
   {{ RET #(); b ↦{dq} replica.defs.GBeacon.mk (W32 t) ts }}
 
+variable [EpBufioDeps GF]
+
 theorem replica.Replica.ReplyBeacon.specI_holds (hPrintf : dlog.Logger.Printf.spec (GF := GF))
     (hM : replica.defs.BeaconReply.Marshal.spec (GF := GF)) :
     replica.Replica.ReplyBeacon.specI (GF := GF) := by
@@ -175,7 +176,7 @@ theorem replica.Replica.ReplyBeacon.specI_holds (hPrintf : dlog.Logger.Printf.sp
     have hfull : streamHdr (dialerOf id t side) side ++ (wsm ++ [Msg.beaconReply ts]).flatMap encMsg =
         (streamHdr (dialerOf id t side) side ++ wsm.flatMap encMsg ++ [W8 7]) ++ encBeacon ts := by
       simp [encMsg, Msg.code, Msg.body, List.flatMap_append, List.append_assoc]
-    wp_apply EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+    wp_apply EpBufioDeps.writeByte
       (ws.getD t null) _ _ _ _ _ sent pend err (W8 7)
       $$ [$Hw] as %e1 ⟨%sent1, %pend1, %Hw1, Hw⟩
     · iintro %He
@@ -204,7 +205,7 @@ theorem replica.Replica.ReplyBeacon.specI_holds (hPrintf : dlog.Logger.Printf.sp
       rw [← hfull]
       imodintro
       iexact HQ
-    wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof (ws.getD t null) _ _ _ _ _ sent2 pend2 e2
+    wp_apply EpBufioDeps.flush (ws.getD t null) _ _ _ _ _ sent2 pend2 e2
       $$ [$Hw] as %e3 ⟨%k, %Hk3, Hw⟩
     ihave Hslot : peerSlotX γ id L p.ewma t (cs.getD t interface.nil) (ws.getD t null) $$ [Hs Hw Hfr]
     · unfold peerSlotX
@@ -332,7 +333,7 @@ theorem replica.Replica.SendBeacon.spec_holds (hPrintf : dlog.Logger.Printf.spec
     have hfull0 : streamHdr (dialerOf id t side) side ++ (wsm ++ [Msg.beacon (W64 0)]).flatMap encMsg =
         (streamHdr (dialerOf id t side) side ++ wsm.flatMap encMsg ++ [W8 6]) ++ encBeacon (W64 0) := by
       simp [encMsg, Msg.code, Msg.body, List.flatMap_append, List.append_assoc]
-    wp_apply EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+    wp_apply EpBufioDeps.writeByte
       (ws.getD t null) _ _ _ _ _ sent pend err (W8 6)
       $$ [$Hw] as %e1 ⟨%sent1, %pend1, %Hw1, Hw⟩
     · iintro %He
@@ -369,7 +370,7 @@ theorem replica.Replica.SendBeacon.spec_holds (hPrintf : dlog.Logger.Printf.spec
       rw [← hfull]
       imodintro
       iexact HQ
-    wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof (ws.getD t null) _ _ _ _ _ sent2 pend2 e2
+    wp_apply EpBufioDeps.flush (ws.getD t null) _ _ _ _ _ sent2 pend2 e2
       $$ [$Hw] as %e3 ⟨%k, %Hk3, Hw⟩
     ihave Hslot : peerSlotX γ id L p.ewma t (cs.getD t interface.nil) (ws.getD t null) $$ [Hs Hw Hfr]
     · unfold peerSlotX

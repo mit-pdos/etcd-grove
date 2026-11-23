@@ -6,7 +6,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Pkg
 public import Net.Proof.net.AtAddr
-public import Net.Proof.net.Listener__Accept
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Specs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Log
 
@@ -24,6 +24,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] [field_sem : net.FieldAssumptions]
+variable [EpNetDeps GF]
 
 theorem replica.Replica.WaitForClientConnections.spec_holds (hSC : replica.Replica.serveConn.spec (GF := GF))
     (hPrintln : dlog.Logger.Println.spec (GF := GF)) : replica.Replica.WaitForClientConnections.spec (GF := GF) := by
@@ -62,7 +63,7 @@ theorem replica.Replica.WaitForClientConnections.spec_holds (hSC : replica.Repli
     IProp GF) $$ [Hnl]
   · iframe Hnl
   wp_for HI
-  wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) tl l x (L.getD id [])
+  wp_apply (net.Listener.Accept.spec_addrOk EpNetDeps.accept) tl l x (L.getD id [])
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l (L.getD id []) true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l (L.getD id []) true ∗
         connEnd (Gg := hG.goose_globalGS) cn true (repAccP γ (L.getD id [])) (repDialP γ (L.getD id []))

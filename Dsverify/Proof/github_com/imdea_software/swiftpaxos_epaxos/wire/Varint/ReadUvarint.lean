@@ -6,7 +6,8 @@ lab's `wp_ReadByte_wf` added), the stream fact a step later (`nextIs_read`).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.RProg
-public import Proof.bufio.Reader__ReadByte
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Varint.Decode
 
 @[expose] public section
@@ -30,6 +31,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [bufio.Assumptions] [io.Assumptions]
 
 set_option goose.wp.extras true
+
+variable [EpBufioDeps GF]
 
 theorem epaxos.readUvarint.spec_holds (br : Loc) (rd : BufRd GF) (R : List w8) :
   {{ pkgInit_epaxos ∗ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ rdOwn br rd R ∗ nextIs rd R uvarintEnc (fun n => n < 2 ^ 64) }}
@@ -64,7 +67,7 @@ theorem epaxos.readUvarint.spec_holds (br : Loc) (rd : BufRd GF) (R : List w8) :
     rw [hdZ]; have : sint.Z (W64 10) = 10 := rfl; omega
   simp only [hlt, _root_.decide_true, ↓reduceIte]
   wp_auto
-  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br rd.ri rd.Pre rd.S rd.E (R ++ d) $$ [$Hown]
+  wp_apply EpBufioDeps.readByte br rd.ri rd.Pre rd.S rd.E (R ++ d) $$ [$Hown]
     as %c %err Hres
   icases Hres with (⟨%Hen, Hown⟩ | ⟨%Hen, -, %Hewf, Hown⟩)
   · -- a byte

@@ -9,8 +9,8 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Stream
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Beacon
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Defs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.RpcTable
-public import Proof.bufio.Reader__ReadByte
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.Interface.LibDeps
+public import Proof.bufio.Own
 
 @[expose] public section
 
@@ -74,6 +74,8 @@ theorem listener_msgSent_later (γ : EpNames) (id : Nat) (L : List GoString) (j 
   iintro #Hf #Hr Hp
   inext
   iapply listener_msgSent γ id L j side cid dl hdl hd hid hj ws m hwf hm hp $$ Hf Hr Hp
+
+variable [EpBufioDeps GF] [EpReplicaDeps GF]
 
 theorem replica.Replica.replicaListener.spec_holds
     (hRB : replica.Replica.ReplyBeacon.specI (GF := GF))
@@ -161,7 +163,7 @@ theorem replica.Replica.replicaListener.spec_holds
   wp_if_destruct
   rotate_left
   · exfalso; simp only [goose_wp_simp_extra, goose_wp_simp] at Hif
-  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof rd _ _ _ _ _ $$ [$Hrd] as %b %e1 Hrb
+  wp_apply EpBufioDeps.readByte rd _ _ _ _ _ $$ [$Hrd] as %b %e1 Hrb
   icases Hrb with (⟨%He1, Hrd⟩ | ⟨%He1, #Herr, -, Hrd⟩)
   rotate_left
   · -- the read failed: the loop ends
@@ -369,7 +371,7 @@ theorem replica.Replica.replicaListener.spec_holds
     ihave #Hk := (BigSepL.bigSepL_mem hk) $$ HEs
     icases Hk with ⟨%obj, %ch, %γc, %Hlk, #Hbag⟩
     obtain ⟨Hlk, Hpo⟩ := Hlk
-    wp_apply rpc.Table.Get.wp_proof p.tbl E k.code $$ [Htbl]
+    wp_apply EpReplicaDeps.tableGet p.tbl E k.code $$ [Htbl]
     · iframe #
     rw [Hlk]
     simp only [Option.getD_some, Option.isSome_some]
