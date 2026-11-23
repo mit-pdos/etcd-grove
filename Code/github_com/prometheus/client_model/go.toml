@@ -1,12 +1,16 @@
 # Names only (prove-ps2-metrics, 2026-11-22): the type of prometheus's metrics' `labelPairs`.
 translate = ["!*"]
 imports = ["!*"]
+# (prove-ps2-cminit, 2026-11-23, etcd-grove#32's pattern) the `init` function (the file descriptor's
+# registration) trusted: a model that does nothing (TrustedCode/github_com/prometheus/client_model/go.lean;
+# until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---
 # Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
 # reference to one from translated code, so no verified code reads them; the reason says why not
 # running the initializer is unobservable. (`init.0`, `file_io_prometheus_client_metrics_proto_init()`,
-# which registers the file descriptor, stays names-only: `initFuncsOk`, as for etcd's `*pb` packages.)
+# which registers the file descriptor, is trusted above: its model reads none of them.)
 [[skip]]
 names = ["MetricType_name", "MetricType_value", "file_io_prometheus_client_metrics_proto_rawDesc",
   "file_io_prometheus_client_metrics_proto_rawDescData", "file_io_prometheus_client_metrics_proto_enumTypes",
