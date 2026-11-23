@@ -264,6 +264,30 @@ P4 (d)); when they are, recheck that their tables list these packages.
   functions of those instances (`∀ [GooseGlobalGS .hasLC remoteGF] [NetProtoGS], …`). Then check
   `etc/theorem-loc.py` counts these premises (say so here) and set
   `etc/tcb-collections/dsv-craq.txt`'s roots to the statement.
+- **P5. Fourth agent (2026-11-23, from df9b0b26f5)**: (1) the server side.
+  `Craq/CodecSrv.lean` states the server's codec laws (`SrvCodecLaws`: `decA_*` decode a
+  deposit's argument bytes `⌜args = enc…⌝` into `NewArg()`'s fresh value, giving back exactly
+  the encoded value; `enc_*` of the reply types); `Craq/CodecSrvProof.lean` (a subagent, in
+  progress) proves them (`craqSrvCodecLaws`) and the pure facts `ArgFacts` (encodings injective
+  under `len < 2^63`) and `decLen.spec`. `Craq/Netrpc/Bindings.lean` (**proved**, over
+  `L : SrvCodecLaws`, `I : ArgFacts`, `Hlen : decLen.spec` as theorem arguments until the proof
+  file lands): per method `newArg_*` (`newArgOk`, i.e. `methodOk`'s body; `methodOk_of`) for all
+  10 `NodeBinding` methods (`ClientWrite`, `ReadAll`: spec `False`) and `cnewArg_AddNode`,
+  `cnewArg_Write`; the receivers `nodeRcv` (`nodeB cfg b svc a ⊢ craqCodec.rcv (ptrIface
+  NodeBinding.ty b) (rcvrIs craqCodec _ (nodeSpec …) "NodeBinding" false)`) and `coordRcv`.
+  **Finding F1 (blocks `RemoveNode`, needs Net)**: Net's `callRet` (`Net/Proof/net/rpc/
+  ServerDefs.lean`) asks a method's error for a fixed message (`errMsg e msg`), but
+  `CoordinatorBinding.RemoveNode` returns `coordinator.RemoveNode`'s error, which can be a
+  net/rpc client error from `sendMeta`/`updateNode` (`Client.Call.spec` gives only
+  `models_lab.errAny` for non-`ServerError` errors; `isCoordSvc`'s RemoveNode post is `errAny`).
+  So `coordRcv` takes RemoveNode's `newArgOk` as a premise `HRN`. Fix in Net, either (a)
+  `callRet`'s error branch also admits `errAny e ∗ ∀ msg, (if msg = [] then C.enc replyv (Φ · [])
+  else Φ [] msg)` (the server calls `Error()` once), or (b) `Client.Call.spec`'s non-server
+  errors get `∃ msg, errMsg err msg` (ErrShutdown, decode and io/net errors have deterministic
+  `Error()`), after which `isNodeClient`/`isCoordSvc`'s `errAny` could be strengthened. (2), (3):
+  `examples/craqnet/Conf.lean`, `ConfProof.lean` (a subagent, in progress: `choose`, `plan`,
+  `mine`, `encode`, `decode`, `sendConf`, `configure`, `awaitConf` over a trivial protocol at the
+  conf addresses).
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
