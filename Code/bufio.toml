@@ -1,15 +1,26 @@
-# (project etcd's part `LinuxFs/`; Perennial does not translate bufio) types and names, and (WAL
-# leaf specs, 2026-11-13) with their bodies what the WAL's decoder runs of a `*bufio.Reader`
-# (`fileutil.NewFileBufReader`'s `NewReader`, and `Read`, through `io.ReadFull`/`binary.Read`):
-# `NewReader`, `NewReaderSize`, `(*Reader).reset`, `Read`, `readErr`, `Buffered`, the constants
-# they use, and the package's error variables (`errors.New` calls), proved in
-# `Proof/bufio/`.
-translate = ["!*", "Reader", "NewReader", "NewReaderSize", "Reader.reset", "Reader.Read",
-  "Reader.readErr", "Reader.Buffered", "defaultBufSize", "minReadBufferSize",
+# (project etcd's part `LinuxFs/` until 2026-11-15; Perennial does not translate bufio) types and
+# names, and with their bodies:
+# * (WAL leaf specs, 2026-11-13) what the WAL's decoder runs of a `*bufio.Reader`
+#   (`fileutil.NewFileBufReader`'s `NewReader`, and `Read`, through `io.ReadFull`/`binary.Read`):
+#   `NewReader`, `NewReaderSize`, `(*Reader).reset`, `Read`, `readErr`, `Buffered`;
+# * (dsv-bufio, 2026-11-23, mit-pdos/etcd-grove#24: the dsverify kits rabia, epaxos, gryff and
+#   swiftpaxos, which frame messages over a `net.Conn` through a buffered reader and writer) the
+#   rest of the reader's byte path, `(*Reader).fill`, `ReadByte`, `Size`, and `ReadString` with
+#   what it runs (`collectFragments`, `ReadSlice`); the writer, `NewWriter`, `NewWriterSize`,
+#   `(*Writer).{Write,WriteByte,WriteString,Flush,Available,Buffered,Size}`; `NewReadWriter`;
+# the constants they use, and the package's error variables (`errors.New` calls). Specs in
+# `Spec/bufio/`, proofs in `Proof/bufio/` (generic over an `io.Reader`/`io.Writer` contract).
+translate = ["!*", "Reader", "Writer", "ReadWriter",
+  "NewReader", "NewReaderSize", "Reader.reset", "Reader.fill", "Reader.Read", "Reader.readErr",
+  "Reader.Buffered", "Reader.Size", "Reader.ReadByte", "Reader.ReadSlice",
+  "Reader.collectFragments", "Reader.ReadString",
+  "NewWriter", "NewWriterSize", "Writer.Flush", "Writer.Available", "Writer.Buffered",
+  "Writer.Size", "Writer.Write", "Writer.WriteByte", "Writer.WriteString", "NewReadWriter",
+  "defaultBufSize", "minReadBufferSize", "maxConsecutiveEmptyReads",
   "errNegativeRead", "ErrInvalidUnreadByte", "ErrInvalidUnreadRune", "ErrBufferFull",
   "ErrNegativeCount", "errNegativeWrite", "ErrTooLong", "ErrNegativeAdvance", "ErrAdvanceTooFar",
   "ErrBadReadCount", "ErrFinalToken"]
-imports = ["!*", "io", "errors"]
+imports = ["!*", "io", "errors", "bytes", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

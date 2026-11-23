@@ -3,8 +3,10 @@ module
 
 public import GeneratedProof.bufio
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.bytes.Base
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.io.Base
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 noncomputable section
