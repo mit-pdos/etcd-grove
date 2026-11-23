@@ -79,14 +79,17 @@ def registerSpec (γ : EpNames) (args : List w8) (Φ : List w8 → GoString → 
     ((∀ (id : w64) (nl : List GoString) (ready il : Bool), regReplyOk γ k id nl ready -∗
         Φ (encRegisterReply id nl ready il) []) ∧ errAns Φ))
 
-/-- A method no node calls (`GetLeader`, `GetReplicaList`): any reply, any message. -/
-def anySpec (_args : List w8) (Φ : List w8 → GoString → IProp GF) : IProp GF :=
-  iprop(∀ (rep : List w8) (msg : GoString), Φ rep msg)
+/-- A method no node calls (`GetLeader`, `GetReplicaList`): on its (empty) arguments `a0` (the
+receiver decodes only bytes of the argument's type: `rpcDecode` panics on another type's), any
+reply, any message. -/
+def anySpec (a0 args : List w8) (Φ : List w8 → GoString → IProp GF) : IProp GF :=
+  iprop(⌜args = a0⌝ ∗ ∀ (rep : List w8) (msg : GoString), Φ rep msg)
 
 /-- The `Master` service. -/
 def masterSvc (γ : EpNames) : net.rpc.MethodSpec GF := fun m args Φ =>
   if m = go!"Register" then registerSpec γ args Φ
-  else if m = go!"GetLeader" ∨ m = go!"GetReplicaList" then anySpec args Φ
+  else if m = go!"GetLeader" then anySpec encGetLeaderArgs args Φ
+  else if m = go!"GetReplicaList" then anySpec encGetReplicaListArgs args Φ
   else iprop(False)
 
 /-- `Replica.BeTheLeader`: on the master's (empty) arguments, the zero reply (or an error). -/
@@ -174,9 +177,15 @@ theorem masterSvc_errOk (γ : EpNames) : ⊢ net.rpc.errOk (GF := GF) (masterSvc
     ipureintro; exact hmsg
   · split
     · unfold anySpec
+      icases HS with ⟨-, HS⟩
       imodintro
       iapply HS
-    · iexfalso; iexact HS
+    · split
+      · unfold anySpec
+        icases HS with ⟨-, HS⟩
+        imodintro
+        iapply HS
+      · iexfalso; iexact HS
 
 theorem replicaSvc_errOk : ⊢ net.rpc.errOk (GF := GF) replicaSvc := by
   unfold net.rpc.errOk

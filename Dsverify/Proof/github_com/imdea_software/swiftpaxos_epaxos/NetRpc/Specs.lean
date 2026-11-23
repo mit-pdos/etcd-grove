@@ -141,15 +141,16 @@ abbrev replicaPing.spec (isR : Loc → IProp GF) : Prop :=
 /-! ## The receivers -/
 
 /-- The master `m` as `rpc.Register(m)` takes it: the codec's `rcv` gives the receiver with the
-`Master` service's spec. -/
+`Master` service's spec (the registered codec, which `Server.Register` also asks for, is what
+the methods' argument decoding, Net's `argDec`, offers). -/
 abbrev masterRcv.spec (γ : EpNames) (isM : Loc → IProp GF) : Prop :=
-  ∀ (m : Loc), ⌜m ≠ null⌝ ∗ isM m ⊢
+  ∀ (m : Loc), ⌜m ≠ null⌝ ∗ net.rpc.codecSet epCodec ∗ isM m ⊢
     epCodec.rcv (ptrIface master.Master.ty m)
       (net.rpc.rcvrIs epCodec (ptrIface master.Master.ty m) (masterSvc γ) go!"Master" false)
 
 /-- A replica `r` as `rpc.Register(rep)` takes it. -/
 abbrev replicaRcv.spec (isR : Loc → IProp GF) : Prop :=
-  ∀ (r : Loc), ⌜r ≠ null⌝ ∗ isR r ⊢
+  ∀ (r : Loc), ⌜r ≠ null⌝ ∗ net.rpc.codecSet epCodec ∗ isR r ⊢
     epCodec.rcv (ptrIface epaxos.Replica.ty r)
       (net.rpc.rcvrIs epCodec (ptrIface epaxos.Replica.ty r) replicaSvc go!"Replica" false)
 
