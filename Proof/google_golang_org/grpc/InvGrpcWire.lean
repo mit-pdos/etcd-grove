@@ -83,6 +83,18 @@ def be32 (n : Nat) : List w8 :=
 
 @[simp] theorem be32_length (n : Nat) : (be32 n).length = 4 := rfl
 
+/-- `be32` is the reverse of the little-endian encoding (what `binary.BigEndian.AppendUint32`
+appends: `Spec/encoding/binary/bigEndian__AppendUint32.lean`). -/
+theorem u32Le_reverse (v : w32) : (u32Le v).reverse = be32 (uint.nat v) := by
+  simp only [u32Le, u32LeDef, LittleEndian.split, be32, List.reverse_cons, List.reverse_nil,
+    List.nil_append, List.cons_append, Nat.div_div_eq_div_mul]
+
+/-- `be32` sees its argument modulo `2 ^ 32`. -/
+theorem be32_mod (n : Nat) : be32 (n % 2 ^ 32) = be32 n := by
+  simp only [be32, List.cons.injEq, and_true]
+  refine ⟨?_, ?_, ?_, ?_⟩ <;> apply BitVec.eq_of_toNat_eq <;> simp only [BitVec.toNat_ofNat] <;>
+    omega
+
 /-- HTTP/2's client connection preface (`clientPreface`). -/
 def clientPrefaceBytes : List w8 := go!"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
 
@@ -339,8 +351,85 @@ theorem dataFrame_prefix_inj {bs bs' : List w8} {y : List w8} (h : bs.length < 2
   obtain ⟨hl, hz⟩ := be32_append_inj h h' hz
   exact (List.append_inj hz hl).1
 
+/-- What `appendData` appends, with the header of the message `bs` and `bs` itself, is
+`dataFrame bs`. -/
+theorem appendData_dataFrame (vs bs : List w8) :
+    vs ++ frameData :: (grpcMsgHdr bs ++ bs) = vs ++ dataFrame bs := by
+  simp [dataFrame]
+
 theorem dataFrame_length (bs : List w8) : (dataFrame bs).length = 6 + bs.length := by
   simp [dataFrame, grpcMsgHdr]; omega
+
+/-! ### What `appendHeaderBlock`'s loops build (its proof's invariants) -/
+
+/-- The block length's sum over the first `n` fields. -/
+def hbLenPre (fs : List (GoString × GoString)) (n : Nat) : Nat :=
+  ((fs.take n).map fun f => 8 + f.1.length + f.2.length).sum
+
+/-- The bytes of the first `n` fields. -/
+def hbBytesPre (fs : List (GoString × GoString)) (n : Nat) : List w8 :=
+  ((fs.take n).map fieldBytes).flatten
+
+theorem hbLenPre_succ (fs : List (GoString × GoString)) (n : Nat) (h : n < fs.length) :
+    hbLenPre fs (n + 1) = hbLenPre fs n + (8 + fs[n].1.length + fs[n].2.length) := by
+  unfold hbLenPre
+  rw [List.take_add_one, List.getElem?_eq_getElem h, Option.toList_some, List.map_append]
+  simp
+
+theorem hbBytesPre_succ (fs : List (GoString × GoString)) (n : Nat) (h : n < fs.length) :
+    hbBytesPre fs (n + 1) = hbBytesPre fs n ++ fieldBytes fs[n] := by
+  unfold hbBytesPre
+  rw [List.take_add_one, List.getElem?_eq_getElem h, Option.toList_some, List.map_append]
+  simp
+
+/-- The sum of `8 + …` is at most the list's size (`32 + …`). -/
+theorem hbLenPre_le (fs : List (GoString × GoString)) (n : Nat) :
+    hbLenPre fs n ≤ (fs.map fun f => 32 + f.1.length + f.2.length).sum := by
+  unfold hbLenPre
+  induction fs generalizing n with
+  | nil => simp
+  | cons a fs ih =>
+    cases n with
+    | zero => simp
+    | succ n =>
+      simp only [List.take_succ_cons, List.map_cons, List.sum_cons]
+      have := ih n; omega
+
+theorem hbLen_full (fs : List (GoString × GoString)) :
+    hbLenPre fs fs.length = (fs.map fun f => 8 + f.1.length + f.2.length).sum := by
+  simp [hbLenPre]
+
+theorem hbBytes_full (fs : List (GoString × GoString)) :
+    hbBytesPre fs fs.length = (fs.map fieldBytes).flatten := by
+  simp [hbBytesPre]
+
+/-- A list within the limit has at most `maxHeaderBlock / 32` fields. -/
+theorem listOk_length (fs : List (GoString × GoString)) (h : headerListOk fs) :
+    32 * fs.length ≤ maxHeaderBlock := by
+  unfold headerListOk at h
+  have : 32 * fs.length ≤ (fs.map fun f => 32 + f.1.length + f.2.length).sum := by
+    clear h
+    induction fs with
+    | nil => simp
+    | cons a fs ih => simp only [List.map_cons, List.sum_cons, List.length_cons]; omega
+  omega
+
+/-- Each field of a list within the limit is within it. -/
+theorem listOk_field (fs : List (GoString × GoString)) (h : headerListOk fs) (n : Nat)
+    (hn : n < fs.length) : 32 + fs[n].1.length + fs[n].2.length ≤ maxHeaderBlock := by
+  unfold headerListOk at h
+  have : 32 + fs[n].1.length + fs[n].2.length ≤
+      (fs.map fun f => 32 + f.1.length + f.2.length).sum := by
+    clear h
+    induction fs generalizing n with
+    | nil => simp at hn
+    | cons a fs ih =>
+      cases n with
+      | zero => simp
+      | succ n =>
+        simp only [List.map_cons, List.sum_cons, List.getElem_cons_succ]
+        have := ih n (by simpa using hn); omega
+  omega
 
 /-! ## Outcomes, keys, readiness -/
 
