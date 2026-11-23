@@ -939,7 +939,7 @@ theorem waitConf.wp_proof : waitConf.spec (GF := GF) := by
   wp_apply wp_bag_receive γch ch (confChanP γ) $$ [$Hbag] as %v Hv
   try wp_auto
   iapply HΦ
-  iexact Hv
+  iunfold confChanP at Hv; iexact Hv
 
 end proof
 
