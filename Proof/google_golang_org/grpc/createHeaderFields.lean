@@ -679,19 +679,15 @@ theorem grpc.createHeaderFields.wp_proof
   wp_auto
   ihave #Hfn := outRawFn_law $$ Hpkg
   iunfold outRawIs at Hout
-  icases Hout with ⟨%vo, #Hval, %Hvty, Ho⟩
+  icases Hout with ⟨%vo, #Hval, Ho⟩
   wp_auto
-  wp_apply (wp_fromOutgoingContextRaw ctx vo Hvty) $$ [Hval] as %mdl %addl %okr %Hokr
-  · iexact Hval
   rcases o with _ | ⟨Mo, rows⟩
   · -- no `rawMD`: no outgoing fields
     icases Ho with %Ho
-    obtain rfl : okr = false := by
-      cases okr with
-      | false => rfl
-      | true =>
-        simp only [↓reduceIte] at Hokr
-        exact absurd rfl (Ho _ Hokr)
+    wp_apply (wp_fromOutgoingContextRaw ctx vo none Ho) $$ [Hval] as %mdl %addl %okr %Hokr
+    · iexact Hval
+    simp only at Hokr
+    subst Hokr
     wp_auto
     ihave Hch : chp ↦{dq} ch $$ [Host Method SendCompress AcceptedCompressors Creds ContentSubtype
       PreviousAttempts Authority]
@@ -708,7 +704,12 @@ theorem grpc.createHeaderFields.wp_proof
     iframe
     ipureintro
     exact ⟨by simp [Hfs5.1], Hfs4.2, HM.1, HM.2.1, Hfs5.2, rfl⟩
-  · sorry
+  · icases Ho with ⟨%r, %ms, %rsl, %Hvo, #Hmd, %Hdom, #Hms, #Had, %Hrows, #Hrs⟩
+    wp_apply (wp_fromOutgoingContextRaw ctx vo (some r) Hvo) $$ [Hval] as %mdl %addl %okr %Hokr
+    · iexact Hval
+    obtain ⟨rfl, rfl, rfl⟩ := Hokr
+    wp_auto
+    sorry
 
 end proof
 

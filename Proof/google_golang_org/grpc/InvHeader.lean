@@ -192,20 +192,16 @@ header): `Value(mdOutgoingKey{})` returns one `v`; with `o = none`, no `rawMD`; 
 def outRawIs (ctx : GoInterfaceOk)
     (o : Option (GMap GoString (List GoString) × List (List GoString))) : IProp GF :=
   iprop(∃ v : GoInterface, context.valueAt ctx metadata.mdOutgoingKeyAny (· = v) ∗
-    ⌜∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
-      vi.ty = google_golang_org.grpc.metadata.rawMD.ty →
-      ∃ r : google_golang_org.grpc.metadata.rawMD, vi.v = #r⌝ ∗
     match o with
     | none => ⌜∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
         vi.ty ≠ google_golang_org.grpc.metadata.rawMD.ty⌝
-    | some (M, rows) => □ ∃ (md : GoMap) (added : GoSlice) (ms : GMap GoString GoSlice)
-        (rsl : List GoSlice),
-      ⌜v = interface.mkOk google_golang_org.grpc.metadata.rawMD.ty
-        #(google_golang_org.grpc.metadata.rawMD.mk md added)⌝ ∗
-      (⌜md = null ∧ ms = ∅⌝ ∨ ownMap md DFrac.discard ms) ∗
+    | some (M, rows) => □ ∃ (r : google_golang_org.grpc.metadata.rawMD)
+        (ms : GMap GoString GoSlice) (rsl : List GoSlice),
+      ⌜v = interface.mkOk google_golang_org.grpc.metadata.rawMD.ty #r⌝ ∗
+      (⌜r.md' = null ∧ ms = ∅⌝ ∨ ownMap r.md' DFrac.discard ms) ∗
       ⌜∀ k, (M !! k).isSome = (ms !! k).isSome⌝ ∗
       ([∗map] k ↦ sl ∈ ms, sl ↦*□ ((M !! k).getD [])) ∗
-      added ↦*□ rsl ∗ ⌜rsl.length = rows.length ∧ ∀ row ∈ rows, grpcHdr.rowKeysLower row⌝ ∗
+      r.added' ↦*□ rsl ∗ ⌜rsl.length = rows.length ∧ ∀ row ∈ rows, grpcHdr.rowKeysLower row⌝ ∗
       ([∗list] i ↦ sl ∈ rsl, sl ↦*□ (rows.getD i [])))
 
 instance outRawIs_persistent (ctx : GoInterfaceOk)

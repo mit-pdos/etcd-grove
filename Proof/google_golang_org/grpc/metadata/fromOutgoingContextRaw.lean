@@ -27,34 +27,35 @@ variable [package_sem : google_golang_org.grpc.metadata.Assumptions]
 
 theorem metadata.fromOutgoingContextRaw.wp_proof :
     metadata.fromOutgoingContextRaw.spec (GF := GF) (hG := hG) := by
-  intro ctx v hv
+  intro ctx v ro hv
   wp_start as #Hv
   iunfold context.valueAt at Hv
   wp_auto
   wp_apply Hv as %w %hw
   subst hw
-  cases w with
-  | nil =>
+  cases ro with
+  | some r =>
+    simp only at hv
+    subst hv
+    simp only [interface.mkOk, ↓reduceIte, decide_true]
     wp_auto
     iapply HΦ
     ipureintro
-    intro vi h; cases h
-  | ok wi =>
-    by_cases hty : wi.ty = google_golang_org.grpc.metadata.rawMD.ty
-    · obtain ⟨r, hr⟩ := hv wi rfl hty
-      simp only [hty, hr, ↓reduceIte, decide_true]
+    exact ⟨rfl, rfl, rfl⟩
+  | none =>
+    simp only at hv
+    cases w with
+    | nil =>
       wp_auto
       iapply HΦ
-      ipureintro
-      simp only [↓reduceIte]
-      cases wi
-      simp_all
-    · wp_auto
+      ipureintro; rfl
+    | ok wi =>
+      have hty := hv wi rfl
+      wp_auto
       simp only [hty, ↓reduceIte]
       wp_auto
       iapply HΦ
-      ipureintro
-      intro vi h; cases h; exact hty
+      ipureintro; rfl
 
 end proof
 
