@@ -20,7 +20,7 @@ public import Proof.bufio.Writer__Flush
 public import Proof.bufio.ReaderLaws
 public import Proof.bufio.Reader__ReadOk
 public import Perennial.Proof.io.Link
-public import Perennial.Proof.encoding.binary.Link
+public import Perennial.Proof.encoding.binary.Results
 
 @[expose] public section
 
@@ -587,7 +587,7 @@ theorem wp_wire_ReadAtLeast (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF)
     {{ (nr : w64) (err : GoInterface), RET (PairV #nr #err); ∃ data : List w8,
         ownReader br rd I (R ++ data) ∗
         ((⌜err = interface.nil ∧ data.length = vs.length⌝ ∗ sl ↦* data) ∨
-         (rdErr rd err ∗ ∃ vs' : List w8, sl ↦* vs')) }} := by
+         (⌜err ≠ interface.nil⌝ ∗ rdErr rd err ∗ ∃ vs' : List w8, sl ↦* vs')) }} := by
   wp_start_folded as ⟨#Hrd, Hown, Hs⟩
   iunfold readerOk at Hrd
   icases Hrd with ⟨#Hio, #Hbuf⟩
@@ -621,6 +621,72 @@ theorem wp_wire_ReadAtLeast (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF)
     ipureintro; exact ⟨rfl, rfl⟩
   · obtain ⟨-, hlt, hne, hueof, hother⟩ := He
     iright
+    have hne' : err ≠ interface.nil := by
+      by_cases hx : e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #eofl ∧
+          data ≠ []
+      · rw [hueof hx]; intro h; cases h
+      · rw [hother hx]; exact hne
+    isplitr
+    · ipureintro; exact hne'
+    isplitr
+    · unfold rdErr
+      by_cases hx : e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #eofl ∧
+          data ≠ []
+      · rw [hueof hx]
+        isplitr
+        · ipureintro; intro h; cases h
+        imodintro; iright; ileft; iexact Hueof
+      · rw [hother hx]
+        isplitr
+        · ipureintro; exact hne
+        imodintro; ileft; iexists _; iexact HE
+    iexists _; iexact Hs
+
+/-- `io.ReadFull(wire, bs)` on the `*bufio.Reader` `br`: as `wp_wire_ReadAtLeast`. -/
+theorem wp_wire_ReadFull (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF)
+    (R : List w8) (sl : GoSlice) (vs : List w8) :
+    {{ readerOk rd I ∗ ownReader br rd I R ∗ sl ↦* vs }}
+      (App (App (Val (@! io.ReadFull))
+          (Val #(interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br))) (Val #sl))
+    {{ (nr : w64) (err : GoInterface), RET (PairV #nr #err); ∃ data : List w8,
+        ownReader br rd I (R ++ data) ∗
+        ((⌜err = interface.nil ∧ data.length = vs.length⌝ ∗ sl ↦* data) ∨
+         (⌜err ≠ interface.nil⌝ ∗ rdErr rd err ∗ ∃ vs' : List w8, sl ↦* vs')) }} := by
+  wp_start_folded as ⟨#Hrd, Hown, Hs⟩
+  iunfold readerOk at Hrd
+  icases Hrd with ⟨#Hio, #Hbuf⟩
+  ihave #Hinit := io.isInit_access $$ Hio
+  icases Hinit with ⟨-, -, -, -, #HEOF, #HUE, -⟩
+  iunfold errors.newVar at HEOF HUE
+  icases HEOF with ⟨%eofl, #Heof, -⟩
+  icases HUE with ⟨%ueofl, #Hueof, -⟩
+  ihave #HrOk := EtcdGrove.bufio.ownBufReader_readerOk EtcdGrove.bufio.Reader.Read.wp_proofOk br
+    rd.ri (fun _ m => 0 < m) I rd.E
+  rw [show interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br =
+    GoInterface.ok (EtcdGrove.bufio.readerIface br) from rfl]
+  wp_apply io.wp_ReadFull (EtcdGrove.bufio.readerIface br) _ _ _ R sl vs _ _
+    $$ [$Hio $HrOk $Heof $Hueof $Hown $Hs] as %nr %err ⟨%data, %Hd, Hs, Hown, #Hres⟩
+  · ipureintro; intro _ _ h; exact h
+  obtain ⟨-, hdl⟩ := Hd
+  iapply HΦ
+  iexists data
+  iframe Hown
+  iunfold io.readFullRes at Hres
+  icases Hres with (%Hok | ⟨%e, %He, #HE⟩)
+  · obtain ⟨h2, rfl⟩ := Hok
+    ileft
+    rw [h2, List.drop_length, List.append_nil]
+    iframe Hs
+    ipureintro; exact ⟨rfl, rfl⟩
+  · obtain ⟨hlt, hne, hueof, hother⟩ := He
+    iright
+    have hne' : err ≠ interface.nil := by
+      by_cases hx : e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #eofl ∧
+          data ≠ []
+      · rw [hueof hx]; intro h; cases h
+      · rw [hother hx]; exact hne
+    isplitr
+    · ipureintro; exact hne'
     isplitr
     · unfold rdErr
       by_cases hx : e = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #eofl ∧
@@ -647,7 +713,7 @@ theorem wp_wire_ReadAtLeast_arr (br : Loc) (rd : RSt GF) (I : List w8 → IProp 
         ownReader br rd I (R ++ data) ∗
         ((⌜err = interface.nil ∧ data.length = sint.nat k⌝ ∗
             typedPointsto p (array.mk n (data ++ vs.drop (sint.nat k))) (DFrac.own 1)) ∨
-         (rdErr rd err ∗ ∃ vs' : List w8,
+         (⌜err ≠ interface.nil⌝ ∗ rdErr rd err ∗ ∃ vs' : List w8,
             typedPointsto p (array.mk n vs') (DFrac.own 1))) }} := by
   wp_start_folded as ⟨#Hrd, Hown, Hp, %Hk⟩
   obtain ⟨hk0, hkn, hkc⟩ := Hk
@@ -661,7 +727,7 @@ theorem wp_wire_ReadAtLeast_arr (br : Loc) (rd : RSt GF) (I : List w8 → IProp 
   iapply HΦ
   iexists data
   iframe Hown
-  icases Hr with (⟨⟨%Hnil, %Hlen⟩, Hs⟩ | ⟨#Ha, %vs', Hs⟩)
+  icases Hr with (⟨⟨%Hnil, %Hlen⟩, Hs⟩ | ⟨%Hne, #Ha, %vs', Hs⟩)
   · ileft
     ihave Hp := array_of_prefix_slice (GF := GF) p k c _ _ _ $$ [$Hs $Hrest]
     rw [show sint.Z k + (n - sint.Z k) = n by omega]
@@ -673,6 +739,8 @@ theorem wp_wire_ReadAtLeast_arr (br : Loc) (rd : RSt GF) (I : List w8 → IProp 
     omega
   · iright
     iframe Ha
+    isplitr
+    · ipureintro; exact Hne
     ihave Hp := array_of_prefix_slice (GF := GF) p k c _ _ _ $$ [$Hs $Hrest]
     rw [show sint.Z k + (n - sint.Z k) = n by omega]
     iexists _
@@ -685,6 +753,63 @@ theorem ownReader_eq (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (X Y : 
 theorem ownReader_app_eq (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R D1 D2 : List w8)
     (h : D1 = D2) : ownReader br rd I (R ++ D1) ⊢ ownReader br rd I (R ++ D2) := by
   rw [h]
+
+/-- **The bytes after the reader's position `R` meet `P`, up to extension**, learned at each later
+position `R ++ V` (the lab's `□ (∀ D, I (R ++ D) ={⊤}=∗ I (R ++ D) ∗ ⌜P D⌝)`, which unfolded its
+reader to reach the buffered bytes; here stated of the reader `ownReader` itself, never unfolded:
+for a connection it follows from `net.connReader_proto`). -/
+def readNext (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
+    (P : List w8 → Prop) : IProp GF :=
+  iprop(□ ∀ V : List w8, ownReader br rd I (R ++ V) ={⊤}=∗
+    ownReader br rd I (R ++ V) ∗ ⌜∃ pend, P (V ++ pend)⌝)
+
+instance readNext_persistent (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
+    (P : List w8 → Prop) : Persistent (readNext br rd I R P) := by
+  unfold readNext; infer_instance
+
+/-- A fact `P` of the stream after the reader's position, at the bytes it has returned. -/
+theorem ownReader_peek (P : List w8 → Prop) (br : Loc) (rd : RSt GF)
+    (I : List w8 → IProp GF) (R V : List w8) :
+    readNext br rd I R P ∗ ownReader br rd I (R ++ V) ⊢
+      |={⊤}=> ownReader br rd I (R ++ V) ∗ ⌜∃ pend, P (V ++ pend)⌝ := by
+  iintro ⟨#HP, Hown⟩
+  iunfold readNext at HP
+  iapply HP $$ Hown
+
+/-- A trivial fact. -/
+theorem readNext_true (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
+    (P : List w8 → Prop) (hP : ∀ D, P D) : ⊢ readNext br rd I R P := by
+  iunfold readNext
+  iintro !> %V Hown
+  imodintro
+  iframe Hown
+  ipureintro; exact ⟨[], hP _⟩
+
+/-- The fact after `X` more bytes. -/
+theorem readNext_shift (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R X : List w8)
+    (P : List w8 → Prop) :
+    readNext br rd I R P ⊢ readNext br rd I (R ++ X) (fun D => P (X ++ D)) := by
+  iunfold readNext
+  iintro #HP !> %V Hown
+  rw [List.append_assoc] at *
+  imod HP $$ %(X ++ V) Hown with ⟨Hown, %Hp⟩
+  imodintro
+  iframe Hown
+  ipureintro
+  obtain ⟨pend, hp⟩ := Hp
+  exact ⟨pend, by simpa [List.append_assoc] using hp⟩
+
+theorem readNext_mono (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
+    (P P' : List w8 → Prop) (h : ∀ D, P D → P' D) :
+    readNext br rd I R P ⊢ readNext br rd I R P' := by
+  iunfold readNext
+  iintro #HP !> %V Hown
+  imod HP $$ %V Hown with ⟨Hown, %Hp⟩
+  imodintro
+  iframe Hown
+  ipureintro
+  obtain ⟨pend, hp⟩ := Hp
+  exact ⟨pend, h _ hp⟩
 
 end reader
 

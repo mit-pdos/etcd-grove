@@ -32,63 +32,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The bytes after the reader's position `R` meet `P`, up to extension**, learned at each later
-position `R ++ V` (the lab's `□ (∀ D, I (R ++ D) ={⊤}=∗ I (R ++ D) ∗ ⌜P D⌝)`, which unfolded its
-reader to reach the buffered bytes; here stated of the reader `ownReader` itself, never unfolded:
-for a connection it follows from `net.connReader_proto`). -/
-def readNext (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
-    (P : List w8 → Prop) : IProp GF :=
-  iprop(□ ∀ V : List w8, ownReader br rd I (R ++ V) ={⊤}=∗
-    ownReader br rd I (R ++ V) ∗ ⌜∃ pend, P (V ++ pend)⌝)
-
-instance readNext_persistent (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
-    (P : List w8 → Prop) : Persistent (readNext br rd I R P) := by
-  unfold readNext; infer_instance
-
-/-- A fact `P` of the stream after the reader's position, at the bytes it has returned. -/
-theorem ownReader_peek (P : List w8 → Prop) (br : Loc) (rd : RSt GF)
-    (I : List w8 → IProp GF) (R V : List w8) :
-    readNext br rd I R P ∗ ownReader br rd I (R ++ V) ⊢
-      |={⊤}=> ownReader br rd I (R ++ V) ∗ ⌜∃ pend, P (V ++ pend)⌝ := by
-  iintro ⟨#HP, Hown⟩
-  iunfold readNext at HP
-  iapply HP $$ Hown
-
-/-- A trivial fact. -/
-theorem readNext_true (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
-    (P : List w8 → Prop) (hP : ∀ D, P D) : ⊢ readNext br rd I R P := by
-  iunfold readNext
-  iintro !> %V Hown
-  imodintro
-  iframe Hown
-  ipureintro; exact ⟨[], hP _⟩
-
-/-- The fact after `X` more bytes. -/
-theorem readNext_shift (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R X : List w8)
-    (P : List w8 → Prop) :
-    readNext br rd I R P ⊢ readNext br rd I (R ++ X) (fun D => P (X ++ D)) := by
-  iunfold readNext
-  iintro #HP !> %V Hown
-  rw [List.append_assoc] at *
-  imod HP $$ %(X ++ V) Hown with ⟨Hown, %Hp⟩
-  imodintro
-  iframe Hown
-  ipureintro
-  obtain ⟨pend, hp⟩ := Hp
-  exact ⟨pend, by simpa [List.append_assoc] using hp⟩
-
-theorem readNext_mono (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
-    (P P' : List w8 → Prop) (h : ∀ D, P D → P' D) :
-    readNext br rd I R P ⊢ readNext br rd I R P' := by
-  iunfold readNext
-  iintro #HP !> %V Hown
-  imod HP $$ %V Hown with ⟨Hown, %Hp⟩
-  imodintro
-  iframe Hown
-  ipureintro
-  obtain ⟨pend, hp⟩ := Hp
-  exact ⟨pend, h _ hp⟩
-
 end varint
 
 section hyps
