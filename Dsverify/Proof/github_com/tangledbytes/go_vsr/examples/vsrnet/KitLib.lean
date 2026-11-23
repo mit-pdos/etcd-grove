@@ -1,10 +1,10 @@
 /-
 The vr kit's small functions both machine kinds call (`kit.go`; notes/dsv-vr.md): `Addrs()` (the
-go-vsr addresses, `VsrWire.addrs`), `RegisterJSON()` (nothing, until jsongen writes the codec:
-finding 2), `logger()` (`slog.New(slog.DiscardHandler)`, over its callees' specs
+go-vsr addresses, `VsrWire.addrs`), `logger()` (`slog.New(slog.DiscardHandler)`, over its callees' specs
 `log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`, `Dsverify/Spec/log/slog/Logger.lean`), and
 `kit_frameDecoderSet`: the hook is set for good, `vsrwire`'s package fact (the kit links
-`vsrwire`). One copy each (the client's `MkClientProof.lean` and the server's `ServerProof.lean`
+`vsrwire`). One copy each (`RegisterJSON()` is jsongen's now: the premise
+`RegisterJSON.codecSet_spec`, `JsonHyps.lean`) (the client's `MkClientProof.lean` and the server's `ServerProof.lean`
 had their own).
 -/
 module
@@ -68,15 +68,6 @@ theorem wp_Addrs :
   wp_auto
   iapply HΦ
   iexact Hsl
-
-/-- `RegisterJSON()`: nothing (`register.go`, notes/dsv-vr.md finding 2). -/
-theorem wp_RegisterJSON :
-    {{ isPkgInit (PROP := IProp GF) kpkg }}
-      (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.RegisterJSON)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start
-  iapply HΦ
-  itrivial
 
 /-- `logger()` = `slog.New(slog.DiscardHandler)`: a logger. -/
 theorem wp_logger (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
