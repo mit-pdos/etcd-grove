@@ -32,10 +32,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics] [package_sem : log.slog.Assumptions]
 
 /-- `DiscardHandler`'s value: `discardHandler{}` as a `Handler`. -/
-abbrev dhV : GoInterface := interface.mkOk discardHandler.ty #(discardHandler.mk)
+abbrev dhV : GoInterface := interface.mkOk discardHandler.ty #(zero_val discardHandler)
 
 /-- The default logger's handler: `defaultHandler{}` as a `Handler`. -/
-abbrev defHV : GoInterface := interface.mkOk defaultHandler.ty #(defaultHandler.mk)
+abbrev defHV : GoInterface := interface.mkOk defaultHandler.ty #(zero_val defaultHandler)
 
 /-- The package fact: `DiscardHandler` holds `dhV`; `defaultLogger` points to a `Logger` whose
 handler is `defHV` (persistent). -/
@@ -51,6 +51,10 @@ instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.log.slog :=
   define_is_pkg_init (pkgState (GF := GF))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.log.slog :=
   build_get_is_pkg_init_wf
+
+/-- The package fact, from `isPkgInit`. -/
+theorem pkgState_of_init : isPkgInit (PROP := IProp GF) pkg_id.log.slog ⊢ pkgState (GF := GF) :=
+  isPkgInit_access (PROP := IProp GF) pkg_id.log.slog
 
 end def_
 

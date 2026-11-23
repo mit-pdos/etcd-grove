@@ -69,7 +69,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of DiscardHandler))
   -- translated initializer of defaultLogger))
   try wp_auto
-  done
+  ipersist HDiscardHandler
+  ipersist HdefaultLogger
+  iStructNamed «$r0»
+  ipersist handler
+  iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
+  is_pkg_init_finish
+  imodintro
+  iunfold _root_.Perennial.log.slog.pkgState
+  iframe HDiscardHandler
+  iexists _
+  iframe HdefaultLogger handler
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

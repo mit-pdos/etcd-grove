@@ -95,6 +95,9 @@ points to a `Logger` whose handler is `defHV`, both read-only for good. Its init
 the two variables, initializes its imports and runs their translated initializers (a conversion to
 `Handler`; a new `Logger`).''',
         alloc_types={'DiscardHandler': 'GoInterface', 'defaultLogger': 'Loc'},
-        finish=['try wp_auto', 'done'],
+        finish=['try wp_auto', 'ipersist HDiscardHandler', 'ipersist HdefaultLogger',
+                'iStructNamed «$r0»', 'ipersist handler'] + FIN_PRE[:6] +
+               ['imodintro', 'iunfold _root_.Perennial.log.slog.pkgState', 'iframe HDiscardHandler',
+                'iexists _', 'iframe HdefaultLogger handler'],
     )
     return SPECIAL
