@@ -374,6 +374,10 @@ namespace sync
 keys' values `M` (exclusive; abstract). -/
 structure MapVocab [GooseExts] (GF : BundledGFunctors) where
   own : Loc → GMap GoString GoInterface → IProp GF
+  /-- the memory of a zero `sync.Map` at `m` (abstract: Perennial's typed points-to of
+  `sync.Map` is `sorry`, its field `internal/sync.HashTrieMap` an axiomatized type; see
+  notes/dsv-quepaxa.md, "sync.Map's points-to") -/
+  zero : Loc → IProp GF
 
 /-- A string key as the interface the map stores. -/
 abbrev strKey [GooseExts] [GoGlobalContext] (k : GoString) : GoInterface :=
@@ -419,7 +423,7 @@ end defs
 class MapHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] (V : MapVocab GF) : Prop where
   own_timeless : ∀ m M, Timeless (V.own m M)
-  own_zero : ∀ m : Loc, ⊢ (m ↦ (zero_val Perennial.sync.Map) : IProp GF) ==∗ V.own m ∅
+  own_zero : ∀ m : Loc, ⊢ V.zero m ==∗ V.own m ∅
   Load : Map.Load.spec V
   Store : Map.Store.spec V
   Delete : Map.Delete.spec V

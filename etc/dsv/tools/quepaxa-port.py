@@ -22,6 +22,8 @@ for rel in sys.argv[1:]:
     s=s.replace("[raxos.examples.quepaxanet.Assumptions] [net.model.Assumptions]\n", "[raxos.examples.quepaxanet.Assumptions]\n\nattribute [local instance] hyp.qpCodec\n\nvariable [gh : hyp.grpc.GrpcHyp qv.grpc]\n")
     s=re.sub(r"\nvariable \[sem : go.Semantics\]\n", "\nvariable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]\n", s)
     s=s.replace("Iris.ProofMode Net Net\n", "Iris.ProofMode Net\n")
+    s=s.replace(" [net.model.Assumptions]", "")
+    s=re.sub(r"\s\[(io|sync|time|strconv|fmt|sort)\.ExtraAssumptions\]", "", s)
     s=s.replace("KvInput GoString GoString","KIn").replace("KvOutput GoString","KOut")
     import os
     os.makedirs(os.path.dirname(DST+rel),exist_ok=True)
