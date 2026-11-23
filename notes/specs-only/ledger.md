@@ -4885,3 +4885,35 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. etcd's client instantiates `Ok := anyRes` (every resource; its credentials'
   axiom needs none yet) and passes `R := True`; etcd's handlers use the chains at `R := True`.
 - **Decision.** Applied (agreed on #24; reviewed there before landing). No top-level statement changes.
+
+## 2026-11-23: `api.IsCapabilityEnabled.spec` takes a level-0 token; etcd's interceptors' resource is that token (prove-ps2-cap)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/IsCapabilityEnabled.lean`: under
+  `[ThreadBoundLe GF (2 ^ 30)]`, the pre gains `levelTok 0` and the post gives it back (the key `c : GoString`,
+  `Capability`'s type, in place of any `val`). `v3rpc.newUnaryInterceptor.spec` (under the same instance):
+  `srvInterceptorOk ic (levelTok 0) learnerReqOk` in place of `… iprop(True) …`; `v3rpc.newStreamInterceptor.spec`:
+  `srvStreamInterceptorWOk ic (levelTok 0)` in place of `… iprop(True)`; `v3rpc.Server.spec`'s post likewise for
+  `iu` and `is`. `etcdserver/api`'s package fact: `capInit` (`api/CapPool.lean`) in place of `True`.
+  `client.etcdIcRs s` (the unary chain's lent resources) is `[srvLgReader s, True, levelTok 0]`, so
+  `etcdGrpcSlot` holds the run's level 0 (`etcdGrpcSlot_bundle : srvRunBundle ⊣⊢ etcdGrpcSlot`, until then
+  `⊣⊢ etcdGrpcSlot ∗ levelTok 0`) and the lease handlers take the level 0 the interceptors lend.
+- **Defect.** The trust-boundary axiom `api.IsCapabilityEnabled.wp_proof` read-locked `enableMapMu` with no
+  reader token (`{{ isPkgInit api }} … {{ b, True }}`): a reader slot of an `RWMutex` for free, which is
+  false of Go without a bound on concurrent readers (`notes/bounds-plan.md`).
+- **Evidence.** `IsCapabilityEnabled` translated with its body (`api.toml`) and proved
+  (`Proof/.../api/IsCapabilityEnabled.lean`): the package's initializer builds `enableMapMu`'s reader slots into
+  a level-0 thread pool (`capInit_alloc`, `sync.init_RWMutex_threadPoolL`), and a reader borrows one with a
+  level-0 token. The callers are v3rpc's interceptors, run by grpc on a gRPC run's goroutine before the handler:
+  the run's bundle holds its level 0 (`srvRunBundle`/`srvStreamBundle`), free during the interceptor's call
+  (`RevokeCtx.lean`'s header).
+- **Why true of the code.** `IsCapabilityEnabled` (`capability.go:85`) `RLock`s, reads `enabledMap` (nil or a
+  map nothing writes after `init()`: `UpdateCapability` stores one of `capabilityMaps`' inner maps under the write
+  lock; `EnableCapability`, the only writer of entries, is called by tests only) and `RUnlock`s by `defer`;
+  `newUnaryInterceptor`'s and `newStreamInterceptor`'s closures call it first (`interceptor.go:49,220`), before
+  the handler. The unary contract lends the token to the handler (`srvInterceptorOk`), so the lease handlers'
+  level-0 pools use it after; the stream contract keeps it (`srvStreamInterceptorWOk`), and the watch handler,
+  the one stream handler proved, does not use level 0.
+- **Proposed change.** As above; callers updated (`v3rpc.Server`'s proof, the served theorems' slots: the KV,
+  lease, auth and watch ones, `etcdstart`'s `grpcUp`).
+- **Decision.** Applied: an axiom retired, callee contracts restated so that every caller proves on top; no
+  top-level statement changes.

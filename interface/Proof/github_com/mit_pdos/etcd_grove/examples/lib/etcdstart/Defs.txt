@@ -113,9 +113,9 @@ def etcdstart.grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
                   v3rpc.isWatchServer pw R ∗
                     (□ ∀ Q, srvInterceptorOk il (srvLgReader s) Q) ∗
                       (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
-                        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+                        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
-                            srvStreamInterceptorWOk is iprop(True) ∗
+                            srvStreamInterceptorWOk is (levelTok 0) ∗
                               srvLgReader s ∗
                                 srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
@@ -155,9 +155,9 @@ def etcdstart.grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Read
                   v3rpc.isWatchServer pw R ∗
                     (□ ∀ Q, srvInterceptorOk il (srvLgReader s) Q) ∗
                       (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
-                        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+                        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
                           srvStreamInterceptorOk ims iprop(True) ∗
-                            srvStreamInterceptorWOk is iprop(True) ∗
+                            srvStreamInterceptorWOk is (levelTok 0) ∗
                               srvLgReader s ∗
                                 srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
@@ -283,9 +283,9 @@ def etcdstart.grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
                 v3rpc.isWatchServer pw R ∗
                   (□ ∀ Q, srvInterceptorOk il (srvLgReader s) Q) ∗
                     (□ ∀ Q, srvInterceptorOk im iprop(True) Q) ∗
-                      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+                      srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
                         srvStreamInterceptorOk ims iprop(True) ∗
-                          srvStreamInterceptorWOk is iprop(True) ∗
+                          srvStreamInterceptorWOk is (levelTok 0) ∗
                             srvLgReader s ∗
                               srvBemuReader s ∗ srvGoRes s ∗ netListenerAt lis addr ∗ etcdstart.grpcLeaseUp s C.A regs)
 
