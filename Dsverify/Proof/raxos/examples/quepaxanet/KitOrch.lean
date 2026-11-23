@@ -32,29 +32,6 @@ namespace raxos.examples.quepaxanet
 open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote
 open raxos raxos.pure
 
-/-- Node `n`'s configuration address (`1 ≤ n ≤ 11`) carries the configuration protocols. -/
-theorem confProto_of_shared [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-    [GoGlobalContext] {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
-    [NetProtoGS] [qv : hyp.QpVocab GF] (γ : QNames) (n : Nat) (hn : 1 ≤ n ∧ n ≤ 11) :
-    sharedRes (GF := GF) γ ⊢ addrProto (portAddr (7640 + n)) (confInProto γ) ackProto := by
-  unfold sharedRes netProtos
-  iintro ⟨-, -, ⟨-, -, -, #Hcc, -, #Hcs, -⟩, -⟩
-  by_cases h : n ≤ 6
-  · have hm : n - 1 ∈ List.range 6 := by simp; omega
-    have he : cconfAddr (n - 1) = portAddr (7640 + n) := by
-      rw [cconfAddr_eq]; congr 2; omega
-    rw [← he]
-    iapply (BigSepL.bigSepL_mem (Φ := fun c : Nat => addrProto (cconfAddr c)
-      (confInProto (GF := GF) γ) ackProto) hm)
-    iexact Hcc
-  · have hm : n - 6 ∈ ([1, 2, 3, 4, 5] : List Nat) := by simp; omega
-    have he : confAddr (n - 6) = portAddr (7640 + n) := by
-      rw [confAddr_eq]; congr 2; omega
-    rw [← he]
-    iapply (BigSepL.bigSepL_mem (Φ := fun k : Nat => addrProto (confAddr k)
-      (confInProto (GF := GF) γ) ackProto) hm)
-    iexact Hcs
-
 section send
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]

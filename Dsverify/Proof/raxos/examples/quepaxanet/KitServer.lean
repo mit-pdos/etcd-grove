@@ -9,7 +9,7 @@ parameters (`strings.Split`: Perennial's; the replica's: `Replica/Results`; the 
 -/
 module
 
-public import Dsverify.Proof.raxos.examples.quepaxanet.KitOrch
+public import Dsverify.Proof.raxos.examples.quepaxanet.KitAwait
 public import Dsverify.Proof.raxos.Replica
 public import Perennial.Spec.strings.Split
 
