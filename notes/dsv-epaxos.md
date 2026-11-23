@@ -134,6 +134,9 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    re-proved over `TreemapHyp` (`Select_spec` with the closure's triple, `Iterator_spec`, a loop
    over `ownIter`; pure: `ScanPure.scan_flatten_sorted`, `Execute.vals_es`); `ScanPure` defines
    `keysSorted` (was `TreemapLemmas`'). `#print axioms`: Lean's three (2026-11-23).
+3d. **`Interface/Misc.lean`** (dlog's non-verbose `Println`/`Printf`/`Fatal`, config's
+   `IsProxy` on an empty `ProxyInfo`) and its proofs `wire/Misc/{Dlog,IsProxy}.lean`: ported, check
+   with 0 errors (2026-11-23). The lab's import of `Top/PkgState` is dropped (not needed).
 4. **Not started:** the rest of the model layer's bridge to remote and the kit's model (the lab's
    `Interface/*` beyond `Wire`: they are stated over the lab's harness `EpaxosNetSpec`, the
    `netConnExts` world and its `kvScan` escrow; here they must be restated over `Net/`'s specs and
@@ -190,14 +193,48 @@ through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (n
 
 ## Next (for a successor)
 
-1. Model layer over remote. The first file that is not pure is `Interface/Net.lean` (the peer
-   streams' ghost vocabulary: `msgSent`, `sentHalf`, `delivTok`, `dialTok`, `peerConn`, `addrId`,
-   `peerStreamOk`), stated in the lab over `netDistGF` and the ghost names `EpNames` of `Names.lean`
-   (the lab harness's `EpaxosNetSpec`). Decide its GF and names over the part's world (as the paxos
-   port did for its ghost state), then restate the lab's `Interface/{Client,ClientSpec,Epaxos,EpaxosGhost,
-   EpaxosRep,Replica,ReplicaSpec,State,PeerWire,Net,Marshal,Misc,Servers}` over `Net/`'s `net.Conn`
-   specs (as `Dsverify/Proof/…/paxos`'s port did) and the kit's model; drop `Names`/
-   `EpaxosNetSpec`, the harness's `kvScan` escrow and `RunRemote`.
-2. Code proofs (`Epaxos/Proof/{epaxos,replica,examples/epaxosnet,...}`), over the hypotheses
-   above (state each as a `Prop` class in `Dsverify/Proof/<pkg>/…`, named after the lab's spec).
-3. The kit's model proof, the mains/links, `epaxos_remote_robust`, the TCB baseline.
+State at handoff (2026-11-23, after the dsv-infra/models-rpc-server merges): done are the Go, the
+translation, the inits, the pure model, `Interface/{Names,Net,Client,PeerWire,Wire,Treemap,State,
+Misc}` and the proofs of the `state` package (`wire/State`) and of `wire/Misc`. Everything above
+the state package waits on one of three library pieces:
+
+1. **bufio (the marshal layer).** `Interface/Marshal.lean` (the lab's: message kinds,
+   `marshalTriple`/`unmarshalTriple`, the `own*` message predicates, the per-type marshaler specs,
+   `epaxos.putVarint`/`readVarint`), then `wire/{WProg,RProg,Bytes,Binary16,Codec}`,
+   `wire/Varint/*`, `wire/Marshal/*` (~7k lines), are stated in the lab over its harness's
+   `bufio.ownWriter`/`ownReader` (`Interface/BufioLocal.lean`). Restate them over dsv-bufio's
+   **revised** `ownBufWriter`/`ownBufReader` (origin/dsv-bufio is being revised after Upamanyu's
+   review: R1, R3, W1, W2 and the new laws `ownBufReader_fact`, `ownBufWriter_fact`,
+   `recvTokL_proto`; the coordinator's resume-addendum). As of 2026-11-23 the revision was not
+   pushed (origin/dsv-bufio still `bb18c0f3ef`): merge it once it is, or mirror its revised shapes
+   as hypotheses. Never unfold the bufio predicates. The pure pieces of `wire/Varint` (`PutUvarint`,
+   `PutVarint`, `Decode`) need only `epaxos.putVarint.spec`: they can be ported first, with that
+   spec moved out of `Interface/Marshal` into a small file of its own.
+2. **net/rpc over HTTP** (the master and the replicas: `rpc.Register` on `DefaultServer`,
+   `rpc.HandleHTTP`, `http.Serve(l, nil)`, `rpc.DialHTTP`). `origin/models-rpc-server` (merged
+   here) proves `NewServer`, `Server.Register(Name)`, `ServeConn`/`ServeCodec`, `Accept`, `Dial`,
+   the client, the codecs; not `DialHTTP`/`DialHTTPPath`, `HandleHTTP`, `ServeHTTP`, the
+   package-level `Register` (DefaultServer), nor net/http's `Serve`. The coordinator (2026-11-23):
+   do **not** change the fork's Go to avoid HTTP (an attempt to serve with `rpc.NewServer` +
+   `Accept` and dial with `rpc.Dial` was reverted, never committed); a hypothesis for `DialHTTP`
+   must use a protocol of the handshake (`"CONNECT /_goRPC_ HTTP/1.0\n\n"`, then
+   ServeHTTP's response) followed by frames: the model's `isClient` over `rpcAddr` (frames from
+   byte 0) is false of it. Name such hypotheses after the plan's phase 5.2 specs
+   (`notes/dsverify-net-port-plan.md` on origin/lean, ~580-725); the coordinator asked Upamanyu on
+   #24 for that `Net/` piece.
+3. **gods' treemap**: `TreemapHyp` (above) until a spec of `models/gods` is proved.
+
+Then: the lab's `Interface/{Rpc,RpcPure,RpcTable,Registry,MasterSpec,Replica,ReplicaSpec,
+Epaxos,EpaxosGhost,EpaxosRep,ClientSpec,Servers}` restated over `Net/`'s specs (`Net/Spec/net/*`,
+`Net/Spec/net/rpc/*`) and `Proto.lean`'s laws; the code proofs (`Proof/{epaxos,replica,codec,
+rpcmaster,examples/epaxosnet,init}`, ~38k lines; `codec` is replaced by rpcgen's codec, whose
+proof is models-rpc-server's `Codec`); the kit's model proof (Go `step` vs the set semantics, as
+paxos's `ModelSet`/`ModelProof`); the mains/links; `epaxos_remote_robust` in
+`Dsverify/Spec/.../epaxosnet/TopLevelRobustness.lean` with every `[<pkg>.InitHyp GF]`
+(`encoding.json`, `net.rpc`, `net.http`) and `[TreemapHyp GF]` as visible premises of its
+`.spec` (etc/dsv/README.md; never an `instance`); confirm `etc/theorem-loc.py` counts them; the
+TCB baseline `etc/tcb-collections/dsv-epaxos.txt` (still the roots and an empty baseline).
+
+Edit loop: `export PATH=$HOME/.elan/bin:$PATH` (lake is not on the default PATH here), then
+`etc/lean-check.py -a -q FILE`; `etc/gen-init.py --check` needs
+`PERENNIAL_DIR=/shared/perennial-9c3b81f30` (the worktree has no `.lake/packages`).
