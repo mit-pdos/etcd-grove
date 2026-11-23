@@ -675,7 +675,40 @@ theorem grpc.createHeaderFields.wp_proof
         · rw [← HM.2.2 k]; exact Hmem k
         · simp only [grpcHdr.mapFields]
           congr 1; funext k; rw [HM.2.2 k]
-  sorry
+  wp_call
+  wp_auto
+  ihave #Hfn := outRawFn_law $$ Hpkg
+  iunfold outRawIs at Hout
+  icases Hout with ⟨%vo, #Hval, %Hvty, Ho⟩
+  wp_auto
+  wp_apply (wp_fromOutgoingContextRaw ctx vo Hvty) $$ [Hval] as %mdl %addl %okr %Hokr
+  · iexact Hval
+  rcases o with _ | ⟨Mo, rows⟩
+  · -- no `rawMD`: no outgoing fields
+    icases Ho with %Ho
+    obtain rfl : okr = false := by
+      cases okr with
+      | false => rfl
+      | true =>
+        simp only [↓reduceIte] at Hokr
+        exact absurd rfl (Ho _ Hokr)
+    wp_auto
+    ihave Hch : chp ↦{dq} ch $$ [Host Method SendCompress AcceptedCompressors Creds ContentSubtype
+      PreviousAttempts Authority]
+    · iapply typedPointsto_combine _ _ _ Hchnn
+      simp only [TypedPointsto.typedPointstoDef, named]
+      rw [hcreds]
+      iframe
+    iapply HΦ
+    iframe
+    ileft
+    isplitr
+    · itrivial
+    iexists fs5, cms, tfs, afs, []
+    iframe
+    ipureintro
+    exact ⟨by simp [Hfs5.1], Hfs4.2, HM.1, HM.2.1, Hfs5.2, rfl⟩
+  · sorry
 
 end proof
 
