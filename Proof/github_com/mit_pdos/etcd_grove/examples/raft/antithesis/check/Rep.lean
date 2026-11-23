@@ -56,6 +56,7 @@ abbrev G.Pre := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pr
 abbrev G.QItem := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.QItem
 abbrev G.ReadRec := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.ReadRec
 abbrev G.State := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State
+abbrev G.AppendFact := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.AppendFact
 
 end types
 
@@ -109,6 +110,15 @@ def Stream.Bounded (evs : List Event) : Prop :=
 /-- The configuration's sets within `numBound` (`Majority`'s `Cardinality(...) * 2`). -/
 def Config.Bounded (cfg : Config) : Prop :=
   (cfg.server.length : Int) < numBound ∧ (cfg.initVoters.length : Int) < numBound
+
+/-- The sizes a configuration change can add (`ConfOf`'s sets grow by its changes' `add`s; `SetOf`
+of a change's `remove`). -/
+def Entry.chgSize (e : Entry) : Nat := e.value.add.length + e.value.remove.length
+
+/-- `ConfOf(l, a)` from `c0`: the sets it builds far from overflow (`Majority`'s `* 2`, `SetAdd`'s
+`len + 1`). -/
+def ConfOf.Bounded (l : List Entry) (c0 : Conf) : Prop :=
+  ((c0.cin.length + c0.cout.length + (l.map Entry.chgSize).sum : Nat) : Int) < 2 ^ 61
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -210,6 +220,21 @@ def fCtx : w32 := W32 1048576
 /-- A Go `SnapRef` holding `s`. -/
 def snapRel (g : G.SnapRef) (s : SnapRef) : Prop := sint.Z g.Index' = s.index ∧ sint.Z g.Term' = s.term
 
+/-- `ev.has(f)` (Go: `Event.has`): whether the report has the field of bit `f`, for the bits the
+checker tests (`none` for another `f`). -/
+def Event.hasF (ev : Event) (f : w32) : Option Bool :=
+  if f = fBy then some ev.byE.isSome else if f = fRole then some ev.role.isSome
+  else if f = fTerm then some ev.term.isSome else if f = fVote then some ev.vote.isSome
+  else if f = fCommit then some ev.commit.isSome else if f = fFirst then some ev.first.isSome
+  else if f = fEntries then some ev.entries.isSome else if f = fLastIndex then some ev.lastIndex.isSome
+  else if f = fLastTerm then some ev.lastTerm.isSome else if f = fApplied then some ev.applied.isSome
+  else if f = fVoters then some ev.voters.isSome else if f = fOutgoing then some ev.outgoing.isSome
+  else if f = fSnap then some ev.snap.isSome else if f = fMsg then some ev.msg.isSome
+  else if f = fCause then some ev.cause.isSome else if f = fB then some ev.b
+  else if f = fA then some ev.a else if f = fW then some ev.w.isSome
+  else if f = fMore then some ev.more.isSome else if f = fIndex then some ev.index.isSome
+  else if f = fCtx then some ev.ctx.isSome else none
+
 /-- A Go `*Event` holding `ev`. -/
 def eventRO (p : Loc) (ev : Event) : IProp GF :=
   iprop(∃ g : G.Event, p ↦□ g ∗
@@ -236,6 +261,11 @@ def eventsRO (sl : GoSlice) (evs : List Event) : IProp GF :=
 def configRO (p : Loc) (cfg : Config) : IProp GF :=
   iprop(∃ g : G.Config, p ↦□ g ∗ strsRO g.Server' cfg.server ∗ strsRO g.InitVoters' cfg.initVoters ∗
     ⌜g.Bootstrapped' = cfg.bootstrapped⌝)
+
+/-- A Go `AppendFact` (a value) holding `m`. -/
+def appendFactRO (g : G.AppendFact) (m : AppendFact) : IProp GF :=
+  iprop(⌜g.Src' = m.src ∧ g.Dst' = m.dst ∧ sint.Z g.Term' = m.term ∧ sint.Z g.PrevLogIndex' = m.prevLogIndex ∧
+      sint.Z g.PrevLogTerm' = m.prevLogTerm ∧ sint.Z g.Commit' = m.commit⌝ ∗ logRO g.Entries' m.entries)
 
 /-! ## Verdicts -/
 
@@ -432,6 +462,9 @@ instance msgRO_persistent (g : G.Msg) (m : Msg) : Persistent (msgRO (GF := GF) g
 
 instance msgsRO_persistent (sl : GoSlice) (ms : List Msg) : Persistent (msgsRO (GF := GF) sl ms) := by
   unfold msgsRO; infer_instance
+
+instance appendFactRO_persistent (g : G.AppendFact) (m : AppendFact) : Persistent (appendFactRO (GF := GF) g m) := by
+  unfold appendFactRO; infer_instance
 
 instance eventRO_persistent (p : Loc) (ev : Event) : Persistent (eventRO (GF := GF) p ev) := by
   unfold eventRO; infer_instance

@@ -1,0 +1,37 @@
+/-
+Lean-first (no Rocq counterpart). #33 S3b-2 (2026-11-23): `s.AllSwitched(i, l)`.
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Rep
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace AntCheck
+
+open Iris Iris.BI
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
+
+/-- R 174-175 `AllSwitched(i, l)`: `State.allSwitched`, where defined. -/
+abbrev State.AllSwitched.spec : Prop :=
+  ∀ (p : Loc) (s : State) (i : w64) (sl : GoSlice) (l : List Entry) (b : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
+      stateRO p s ∗ logRO sl l ∗ ⌜0 ≤ sint.Z i ∧ sint.Z i < s.cfg.server.length ∧ s.allSwitched (sint.nat i) l = .ok b⌝ }}
+    (App (App (Val (p @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.ty @!! go!"AllSwitched")) (Val #i)) (Val #sl))
+  {{ RET #b; True }}
+
+end spec
+
+end AntCheck
+end EtcdGrove
+end Perennial
