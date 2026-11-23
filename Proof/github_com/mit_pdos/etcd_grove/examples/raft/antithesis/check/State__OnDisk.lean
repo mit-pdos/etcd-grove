@@ -1303,5 +1303,81 @@ theorem State.OnDisk.wp_proof
       odjret (by subst Ho; rfl)
     simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
     try wp_auto
-    done
+    -- H: `x.first() <= len(x.L0())`: `At(x.L0(), x.first()).Term == At(x.es(), 1).Term`, else
+    -- `x.first() != len(x.L0())+1`
+    obtain ⟨fi, hfi, Ho⟩ := bind_ok Ho
+    have hfib := first_bigOk HW hb hfi
+    have hl0b := OnDisk.L0_le HW
+    odm first
+    wp_apply wp_first _ X fi $$ [Hx] as %ufi %Hufi
+    · iframe Hx; ipureintro; exact hfi
+    try wp_auto
+    odm L0
+    wp_apply wp_L0 _ X $$ [Hx] as %l0 #Hl0
+    · iexact Hx
+    ihave %Hl0l := logRO_len _ _ $$ Hl0
+    try wp_auto
+    rw [Hufi, Hl0l]
+    by_cases hfl : fi ≤ (X.L0.length : Int)
+    · rw [decide_eq_true hfl]
+      simp only [hfl, decide_true, ite_true] at Ho
+      obtain ⟨ea, hea, Ho⟩ := bind_ok Ho
+      obtain ⟨es', hes', Ho⟩ := bind_ok Ho
+      rw [hes] at hes'; cases hes'
+      obtain ⟨eb, heb, Ho⟩ := bind_ok Ho
+      try wp_auto
+      odm L0
+      wp_apply wp_L0 _ X $$ [Hx] as %l0' #Hl0'
+      · iexact Hx
+      try wp_auto
+      odm first
+      wp_apply wp_first _ X fi $$ [Hx] as %ufi' %Hufi'
+      · iframe Hx; ipureintro; exact hfi
+      try wp_auto
+      wp_apply wp_At l0' X.L0 ufi' ea $$ [Hl0'] as %gea #Hgea
+      · iframe Hl0'; ipureintro; rw [Hufi']; exact hea
+      try wp_auto
+      odm es
+      wp_apply wp_es _ X es $$ [Hx] as %esl' #Hes'
+      · iframe Hx; ipureintro; exact hes
+      try wp_auto
+      wp_apply wp_At esl' es (W64 1) eb $$ [Hes'] as %geb #Hgeb
+      · iframe Hes'; ipureintro; rw [sint_one]; exact heb
+      try wp_auto
+      iunfold entryRO at Hgea Hgeb
+      icases Hgea with ⟨%Hgea1, #-⟩
+      icases Hgeb with ⟨%Hgeb1, #-⟩
+      rw [decide_w64_eq, Hgea1.1, Hgeb1.1]
+      by_cases hte : ea.term = eb.term
+      · rw [decide_eq_true hte]
+        simp only [hte, beq_self_eq_true, ite_true, pure_ok, Except.ok.injEq] at Ho
+        odjret (by subst Ho; rfl)
+      rw [decide_eq_false hte]
+      simp only [show (ea.term == eb.term) = false by simpa using hte, Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    rw [decide_eq_false hfl]
+    simp only [hfl, decide_false, Bool.false_eq_true, ite_false] at Ho
+    try wp_auto
+    odm first
+    wp_apply wp_first _ X fi $$ [Hx] as %ufi' %Hufi'
+    · iframe Hx; ipureintro; exact hfi
+    try wp_auto
+    odm L0
+    wp_apply wp_L0 _ X $$ [Hx] as %l0' #Hl0'
+    · iexact Hx
+    ihave %Hl0l' := logRO_len _ _ $$ Hl0'
+    try wp_auto
+    have hadd : sint.Z (l0'.len + W64 1) = (X.L0.length : Int) + 1 := by
+      rw [sint_add_one (by omega), Hl0l']
+    rw [decide_w64_eq, hadd, Hufi']
+    by_cases hfe : fi = (X.L0.length : Int) + 1
+    · rw [decide_eq_true hfe]
+      simp only [hfe, bne_self_eq_false, Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    rw [decide_eq_false hfe]
+    simp only [show (fi != (X.L0.length : Int) + 1) = true by simpa using hfe, ite_true, pure_ok,
+      Except.ok.injEq] at Ho
+    odjret (by subst Ho; rfl)
+  odjafter
+  subst hK
   done
