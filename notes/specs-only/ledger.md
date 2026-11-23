@@ -5167,4 +5167,33 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `bodyDec C argv D Θ`, a decoding of every request body, which a generated codec with two types does not meet
   either (`serverCodec.ReadRequestBody`, `Server.readRequest`); the same guard from the deposit `S m args Φ`
   would fix it.
-- **Decision.** Applied for the client (branch `models-rpc-server`); the server's request decoding open.
+- **Decision.** Applied for the client (branch `models-rpc-server`); the server's request decoding closed the
+  same day (next entry).
+
+## 2026-11-23: `methodOk` asks the codec to decode only the arguments a client deposited (net/rpc model, server)
+
+- **Spec.** `Net/Proof/net/rpc/ServerDefs.lean`: `methodOk`'s `NewArg` gave `bodyDec C argv D Θ`, i.e.
+  `codecSet C ∗ □ (D -∗ ∀ pl, C.dec pl argv (Θ pl))`; it now gives `argDec C argv D Sm Θ :=
+  codecSet C ∗ □ (D -∗ ∀ args Φ, Sm args Φ -∗ Sm args Φ ∗ C.dec args argv (Θ args))` (the method's deposit
+  is the guard, and is kept: the call obligation `Sm args Φ -∗ Θ args true -∗ callObl …` and the error
+  answers through `errOk` use it after the decoding, unchanged). `Net/Spec/net/rpc/serverCodec__ReadRequestBody.lean`:
+  `bodyDec C body D Θ` becomes `bodyDecG C body D G Θ` with the guard premise `□ (∀ pl, ⌜pl.length ≤
+  maxFrameN⌝ -∗ P (frameOf pl) -∗ ▷ (P (frameOf pl) ∗ G pl))`, as `clientCodec.ReadResponseBody.spec`'s.
+  `bodyDec` (`Codec.lean`) is gone, no user left.
+- **Defect.** The server twin of the previous entry's: a generated codec with two types or more panics
+  `rpcNotModelled` decoding another listed type's value, so no kit could prove its methods' `methodOk` (the
+  decoding of every request body into the argument).
+- **Evidence.** Proved: `Server.readRequest`'s proof (`Net/Proof/net/rpc/Server__readRequest.lean`) applies
+  `argDec` to the request's deposit `S m r.body Φ` (taken at the header, `take_req`) before the body read,
+  getting the deposit back and `C.dec r.body argv (Θ r.body)` as `ReadRequestBody`'s decoding resource, with
+  the guard `pl = r.body` (`req_guard`, `ServerGhost.lean`: by `req_body`, the body frame after request
+  `k`'s header is its argument bytes). On a read failure the resource is dropped and the deposit pays the
+  error answer, as before. `ServeCodec`'s proof unchanged. `lake build Net.Proof.net.rpc.Results` green,
+  every linked result Lean's three axioms.
+- **Why true of the code.** A request's body is the client's encoding of `args` (`Call`'s `C.enc args (fun bs
+  => S M bs Φ ∗ …)`), so the deposit's bytes are what the method's spec says a client sends; a method spec that
+  deposits only for `args` an encoding of the argument type (as a kit's can) makes the decoding provable. The
+  guard does not consume the deposit: a decoding needs to know the bytes' type, not to spend the call.
+- **Proposed change.** As above; callers updated (`readRequest`'s and `ReadRequestBody`'s proofs). The client
+  is unchanged. At-most-once and the other guarantees unchanged.
+- **Decision.** Applied (branch `models-rpc-server`); closes the previous entry's open item.
