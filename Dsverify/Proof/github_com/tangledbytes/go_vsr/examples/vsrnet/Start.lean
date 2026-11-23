@@ -4,7 +4,7 @@ waits for #24's blockers (1) and (2)): from the protocol library's registry and 
 addresses unset (what `robust_of_distProtoRB`'s start gets), the ghost layer (`ghost_alloc`), the
 addresses' protocols (go-vsr's `VsrWire.protoOf γ` both ways, the configuration addresses'
 `confProto γ`/`ackProto`, the client machines' remote's `reqP`/`repP` of the far side's store
-`kvR γ.gn`), remote's slot map (`mapCtx_alloc`) and pending library (`pend_alloc` over the
+`kvR γ.gn`), remote's slot map and the client addresses' call budgets, 24 each (`mapCtx_alloc`) and pending library (`pend_alloc` over the
 abstract state `absOwn γ`), and each machine's share: the orchestrator's (`orchShare`), client
 `c`'s (`clientShare`, with its request counter `nextReq γ (c + 1) 1`), server `id`'s (`srvShare`,
 `ServerProof.lean`). With `Mains.lean`, each machine's `main` runs from its share, but for the
@@ -46,13 +46,15 @@ def orchShare [ρ : RemoteGS] (γ : Names) (γp : PendNames) : IProp GF :=
   iprop(sysInv γ ∗ sizeTok γ ∗ confProtos γ ∗
     ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (kvR γ.gn) a) ∗
     mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (kvR γ.gn) (kvS0 (GF := GF)) γp ∗
-    pendLib (Gg := G) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init)
+    pendLib (Gg := G) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
+    [∗list] a ∈ clientAddrs, budUnits (Gg := G) a 24)
 
 /-- Client machine `c`'s share: `Client.spec`'s precondition but its package's fact and the
 packages' state (`pkgStates`, blocker (2)). -/
 def clientShare [ρ : RemoteGS] (γ : Names) (c : Nat) : IProp GF :=
   iprop(confProtos γ ∗ VsrWire.protos γ ∗ sysInv γ ∗ regInv γ ∗ nextReq γ (c + 1) 1 ∗
-    remoteAddr (Gg := G) (kvR γ.gn) (clientAddrs.getD c []))
+    remoteAddr (Gg := G) (kvR γ.gn) (clientAddrs.getD c []) ∗
+    ⌜ρ.bud (clientAddrs.getD c []) = some 24⌝)
 
 theorem clientAddrs_getD (c : Nat) (hc : c < 6) :
     clientAddrs[c]? = some (clientAddrs.getD c []) := by
@@ -70,7 +72,7 @@ theorem vr_start :
   unfold vrKitAddrs
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hs, Hsc⟩
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hsv, Hscf⟩
-  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ with ⟨%ρ, #Hmap⟩
+  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ clientAddrs 24 (by decide) with ⟨%ρ, %Hρ, #Hmap, Hunits⟩
   imod ghost_alloc (GF := GF) with ⟨%γ, #Hsys, #HregI, Habs, Hsize, Hreps, Hnexts⟩
   imod addrs_set_proto (Gg := G) ⊤ (fun _ => VsrWire.protoOf γ) (fun _ => VsrWire.protoOf γ)
     VsrWire.addrs $$ Hreg Hsv with #Hpv
@@ -90,7 +92,7 @@ theorem vr_start :
   · unfold remoteAddr svcAddr; iexact Hpc
   imodintro
   iexists ρ, γ, γp
-  isplitl [Hsize Hlib]
+  isplitl [Hsize Hlib Hunits]
   · unfold orchShare
     iframe #
     iframe
@@ -104,7 +106,10 @@ theorem vr_start :
     unfold clientShare
     iframe #
     iframe Hn
-    iapply BigSepL.bigSepL_lookup (clientAddrs_getD c hc) $$ Hra
+    isplitl []
+    · iapply BigSepL.bigSepL_lookup (clientAddrs_getD c hc) $$ Hra
+    ipureintro
+    rw [Hρ, if_pos (List.mem_of_getElem? (clientAddrs_getD c hc))]
   · iapply (BigSepL.bigSepL_impl (Φ := fun _ r => repOwn (G := G) γ r VsrModel.initRep)) $$ Hreps
     imodintro
     iintro %k %s %hk Hr

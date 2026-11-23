@@ -3,20 +3,12 @@ Client machine `c`'s program (`kit.go`'s `Client`, notes/dsv-vr.md): `mkClient(A
 waitConf(CfgAddrs(), 1 + c), c)`, then `remote.ServeClient(c, ClientAddrs()[c], newClient, Op,
 Codec(), attempt())` with `newClient` returning the system made before.
 
-**Not against remote's `ServeClient.spec`**, which cannot be met here, for two reasons (findings,
-notes/dsv-vr.md):
-1. its `newClient` premise is a persistent triple with precondition `True`, so `tok sys` must be
-   made from nothing any number of times, while the client's system is exclusive (its go-vsr
-   client's request numbers, the ghost layer's counter); `ServeClient` calls `newClient` once.
-2. its operation premise (`svcOp`) is for unboundedly many calls with the same `tok`, while each
-   `Op` registers a request with the ghost layer, whose budget is below 2^28 requests per client
-   (`ghost_register`, `RegBound`: what bounds every message's line); nothing in remote's protocol
-   bounds the calls a client machine serves (`reqP` admits any number of slots).
-
-`ServeClientB.spec` states the contract remote would give with both changed: `newClient`'s call
-once (its WP, a resource), and a budget `K` of calls (`svcOpB`: `tok (k + 1)` to `tok k`). It is
-**not proved by remote** (and not provable from `Serve`'s loop without a budget in its protocol); it
-is a premise of `Client.wp_proof` only, so that the rest of the client machine is proved.
+Against remote's `ServeClient.spec` (remote-serveclient): `newClient` is a one-shot WP, which here
+consumes the client's exclusive system (`sysRes`: its go-vsr client, the ghost layer's request
+counter `nextReq`) and starts the far side's count of served calls (`budUsed_zero`); each call of
+`Op` comes with one of the address's call units (`budUnit`), counted by `budUsed_add`, which bounds
+the request counter by the address's budget (24 units: `Check`'s 8 operations of `readTries`
+attempts), well below the ghost layer's 2^28 (`Op.spec`'s `n < 2 ^ 28`).
 -/
 module
 
@@ -56,42 +48,24 @@ local notation "kpkg" => pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet
 
 set_option goose.wp.extras true
 
-/-- The far side's operation `op` with a budget: from `tok (k + 1) sys` and the update of `i`, it
-returns an output with `Φ` of it, or an answer that is not one, and `tok k sys`. -/
-def svcOpB {I O : Type} [Pos.Countable I] [Pos.Countable O] (S : RSvc GF I O)
-    (tok : Nat → GoInterface → IProp GF) (op : GoFunc) : IProp GF :=
-  iprop(∀ (k : Nat) (sys : GoInterface) (i : I) (Φ : O → IProp GF),
-    {{ tok (k + 1) sys ∗ S.upd i Φ }}
-      (App (App (Val #op) (Val #sys)) (Val #(S.iv i)))
-    {{ (v : GoInterface), RET #v; tok k sys ∗ ((∃ o, ⌜v = S.ov o⌝ ∗ Φ o) ∨ ⌜S.unkAns i v⌝) }})
+/-- Client `c`'s system at its address `a`: its request counter `n` is at most one more than the
+calls to `a` it served (`budUsed a m`). -/
+def sysTok (γ : Names) (c : Nat) (a : GoString) (sys : GoInterface) : IProp GF :=
+  iprop(∃ n m : Nat, ⌜n ≤ m + 1⌝ ∗ sysRes γ c sys n ∗ budUsed (Gg := hG.goose_globalGS) a m)
 
-/-- **Not remote's** (see the file header): `ServeClient` with `newClient` called once and a
-budget of `K` calls of `op`. -/
-abbrev ServeClientB.spec : Prop :=
-  ∀ {I O : Type} [Pos.Countable I] [Pos.Countable O] (S : RSvc GF I O) (c : w64) (a : GoString)
-    (newClient op : GoFunc) (cd : github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec) (d : w64) (tok : Nat → GoInterface → IProp GF)
-    (K : Nat),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗
-      svcAddr (Gg := hG.goose_globalGS) S a ∗ wireOk S cd ∗ svcOpB S tok op ∗
-      WP (App (Val #newClient) (Val #c)) {{ v, ∃ sys : GoInterface, ⌜v = #sys⌝ ∗ tok K sys }} }}
-    (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient))
-      (Val #c)) (Val #a)) (Val #newClient)) (Val #op)) (Val #cd)) (Val #d))
-  {{ RET #(); False }}
-
-/-- Client `c`'s system with `k` calls left: its counter `n` leaves room for `k` registrations. -/
-def sysTok (γ : Names) (c : Nat) (k : Nat) (sys : GoInterface) : IProp GF :=
-  iprop(∃ n : Nat, ⌜n + k < 2 ^ 28⌝ ∗ sysRes γ c sys n)
-
-/-- `Op` meets the budgeted contract over `sysTok`. -/
-theorem Op_svcOpB (wp_Op : Op.spec (GF := GF) (hG := hG)) (γ : Names) (c : Nat) (hc : c < 6) :
+/-- `Op` meets remote's `svcOp` over `sysTok`, at an address whose budget is 24 calls. -/
+theorem Op_svcOp (wp_Op : Op.spec (GF := GF) (hG := hG)) (γ : Names) (c : Nat) (hc : c < 6)
+    (a : GoString) (hbud : ρ.bud a = some 24) :
     isPkgInit (PROP := IProp GF) kpkg ⊢
-      svcOpB (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) (sysTok γ c)
+      svcOp (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) a (sysTok γ c a)
         (functions github_com.tangledbytes.go_vsr.examples.vsrnet.Op []) := by
-  unfold svcOpB
-  iintro #Hpkg %k %sys %i %Ψ
-  iintro !> %Φ ⟨Htok, HU⟩ HΦ
+  unfold svcOp
+  iintro #Hpkg %sys %i %Ψ
+  iintro !> %Φ ⟨Htok, HU, Hu⟩ HΦ
   unfold sysTok
-  icases Htok with ⟨%n, %hn, Hres⟩
+  icases Htok with ⟨%n, %m, %hnm, Hres, Hused⟩
+  ihave ⟨Hused, %Hle⟩ := budUsed_add (Gg := hG.goose_globalGS) a m $$ Hused Hu
+  have hm : m + 1 ≤ 24 := Hle 24 hbud
   iapply (wp_Op γ c n sys i Ψ hc (by omega)) $$ [Hres HU]
   · isplitr
     · iexact Hpkg
@@ -100,8 +74,8 @@ theorem Op_svcOpB (wp_Op : Op.spec (GF := GF) (hG := hG)) (γ : Names) (c : Nat)
     iexact HU
   iintro !> %v ⟨%n', %hn', Hres, Hv⟩
   iapply HΦ
-  isplitl [Hres]
-  · iexists n'
+  isplitl [Hres Hused]
+  · iexists n', m + 1
     iframe
     ipureintro; omega
   icases Hv with (⟨%o, %Ho, HΨ⟩ | %Hv)
@@ -116,7 +90,8 @@ abbrev Client.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ confProtos (G := hG.goose_globalGS) γ ∗
       pkg.network.netProtos γ ∗ sysInv (G := hG.goose_globalGS) γ ∗
       regInv (G := hG.goose_globalGS) γ ∗ nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗
-      pkgStates ∗ remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD c []) }}
+      pkgStates ∗ remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD c []) ∗
+      ⌜ρ.bud (clientAddrs.getD c []) = some 24⌝ }}
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Client)) (Val #(W64 (c : Int))))
   {{ RET #(); False }}
 
@@ -127,10 +102,10 @@ theorem Client.wp_proof
     (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
     (codec_ok : vsrnet.codecOk (GF := GF) (hG := hG))
     (wp_Op : Op.spec (GF := GF) (hG := hG))
-    (wp_ServeClientB : ServeClientB.spec (GF := GF) (hG := hG)) :
+    (wp_ServeClient : github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient.spec (GF := GF) (hG := hG) (I := KIn) (O := KOut)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro γ c hc
-  wp_start as ⟨#Hcp, #Hnp, #HsysI, #HregI, Hnext, #Hst, #Hra⟩
+  wp_start as ⟨#Hcp, #Hnp, #HsysI, #HregI, Hnext, #Hst, #Hra, %Hbud⟩
   ihave #Hrp : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
   · iPkgInit
@@ -167,24 +142,24 @@ theorem Client.wp_proof
   wp_auto
   wp_apply (Codec.wp_proof γ.gn) as %cd #Hcd
   wp_apply wp_attempt as %d -
-  wp_apply (wp_ServeClientB (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) (W64 (c : Int))
+  wp_apply (wp_ServeClient (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) (W64 (c : Int))
     (clientAddrs.getD c []) _ (functions github_com.tangledbytes.go_vsr.examples.vsrnet.Op []) cd d
-    (sysTok γ c) (2 ^ 28 - 2)) $$ [Hres sys] as ⟨⟩
+    (sysTok γ c (clientAddrs.getD c []))) $$ [Hres] as ⟨⟩
   iframe #
   isplit
   · iapply codecOk_wireOk $$ Hcd
   isplitl []
-  · iapply (Op_svcOpB wp_Op γ c hc) $$ Hpkg
-  -- `newClient(c)`: the system made before
+  · iapply (Op_svcOp wp_Op γ c hc _ Hbud) $$ Hpkg
+  -- `newClient(c)`: the system made before, with the far side's count at none
+  iintro %Φn HΦn
   wp_auto
-  iexists interface.mkOk (go.GoType.PointerType Sys.ty) #x
-  isplitr
-  · ipureintro; rfl
+  iapply HΦn
   unfold sysTok
-  iexists 1
+  iexists 1, 0
   iframe
-  ipureintro
-  decide
+  isplitr
+  · ipureintro; omega
+  iapply budUsed_zero
 
 end proof
 

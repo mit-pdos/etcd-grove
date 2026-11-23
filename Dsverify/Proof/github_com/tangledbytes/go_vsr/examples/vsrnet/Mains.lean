@@ -53,14 +53,15 @@ theorem wp_main (wp_Orch : vsrnet.Orch.spec (GF := GF) (hG := hG)) (γ : Names) 
         ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
         pendCtx (Gg := hG.goose_globalGS) (kvR γ.gn) (kvS0 (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init }}
+        pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
+        [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 24 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hsys, Hsize, #Hcp, #Has, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Hsys, Hsize, #Hcp, #Has, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch γ γp hrb $$ [Hsize Hlib]
+  wp_apply wp_Orch γ γp hrb $$ [Hsize Hlib Hbud]
   · iframe #
     iframe
   iapply HΦ
@@ -86,10 +87,11 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (0 + 1) 1 ∗ pkgStates ∗
-        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 0 []) }}
+        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 0 []) ∗
+        ⌜ρ.bud (clientAddrs.getD 0 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -118,10 +120,11 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (1 + 1) 1 ∗ pkgStates ∗
-        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 1 []) }}
+        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 1 []) ∗
+        ⌜ρ.bud (clientAddrs.getD 1 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -150,10 +153,11 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (2 + 1) 1 ∗ pkgStates ∗
-        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 2 []) }}
+        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 2 []) ∗
+        ⌜ρ.bud (clientAddrs.getD 2 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -182,10 +186,11 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (3 + 1) 1 ∗ pkgStates ∗
-        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 3 []) }}
+        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 3 []) ∗
+        ⌜ρ.bud (clientAddrs.getD 3 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -214,10 +219,11 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (4 + 1) 1 ∗ pkgStates ∗
-        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 4 []) }}
+        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 4 []) ∗
+        ⌜ρ.bud (clientAddrs.getD 4 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -246,10 +252,11 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         confProtos (G := hG.goose_globalGS) γ ∗ pkg.network.netProtos γ ∗
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (5 + 1) 1 ∗ pkgStates ∗
-        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 5 []) }}
+        remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 5 []) ∗
+        ⌜ρ.bud (clientAddrs.getD 5 []) = some 24⌝ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hst, #Hra, #Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)

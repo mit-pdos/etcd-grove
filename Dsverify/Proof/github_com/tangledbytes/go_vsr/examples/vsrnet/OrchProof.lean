@@ -144,7 +144,8 @@ abbrev Orch.spec : Prop :=
       ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
       pendCtx (Gg := hG.goose_globalGS) (kvR γ.gn) (kvS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
+      [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 24 }}
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Orch)) (Val #()))
   {{ RET #(); True }}
 
@@ -154,7 +155,7 @@ theorem Orch.wp_proof (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_kvS, pendLib_kvS]
-  wp_start as ⟨#Hsys, Hsize, #Hcp, #Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Hsys, Hsize, #Hcp, #Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -183,9 +184,9 @@ theorem Orch.wp_proof (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
   wp_apply wp_Check (kvR γ.gn) kvS γp m addrs clientAddrs cd _ (W64 8) d pendN_vsr lintestN_vsr
     (kvS_pendDec γ.gn) (kvR_encOut_inj γ.gn) (fun st => kvR_timeless γ.gn st) hrb
-    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) $$ [Hlib]
+    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) 24 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)
         (functions github_com.tangledbytes.go_vsr.examples.vsrnet.Gen [])
         (fun x => iprop(∃ i, ⌜x = (kvR (Gg := hG.goose_globalGS) γ.gn).iv i⌝)) from Gen.wp_proof)

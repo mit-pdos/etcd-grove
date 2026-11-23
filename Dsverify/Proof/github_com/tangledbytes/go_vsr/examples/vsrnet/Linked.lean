@@ -3,8 +3,7 @@ The vr kit's links (notes/dsv-vr.md), as paxos's `Linked.lean`: the machines' fu
 (`OrchProof`, `ClientProof`, `ServerProof`) applied to their callees' results (the packages'
 `Results.lean`, remote's `Link.lean`, `Net/`'s net proofs), over the library hypotheses that remain
 (`LibHyps`, one `Prop` bundling them: `log/slog` and `encoding/json`, which have no Lean model
-here, and `connReaderOk`, finding 5) and, for the client machines, `ServeClientB.spec` (the remote
-contract #24 proposes; blocker (1)). Not a statement: the statement waits for #24.
+here, and `connReaderOk`, finding 5); remote's `Check` and `ServeClient` are remote's proofs.
 -/
 module
 
@@ -68,8 +67,7 @@ theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) : Server.spec (GF := GF) (
     h.slog_LError h.conn_readerOk h.json_newDecoder h.json_Decode_frame h.json_Unmarshal
     h.json_NewEncoder h.json_Encode h.codec_ok
 
-theorem wp_Client (h : LibHyps (GF := GF) (hG := hG))
-    (wp_ServeClientB : ServeClientB.spec (GF := GF) (hG := hG)) :
+theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) :=
   Client.wp_proof h.conn_readerOk
     (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp h.json_Decode_frame h.json_Unmarshal
@@ -82,7 +80,7 @@ theorem wp_Client (h : LibHyps (GF := GF) (hG := hG))
       (pkg.client.Client.Run.wp (pkg.network.TCP.Send.wp h.slog_Debug h.json_newDecoder)
         (fun jc => pkg.events.Event.ToWriter.wp (C := jc) h.json_NewEncoder h.json_Encode h.codec_ok)
         h.slog_LError h.slog_LDebug))
-    wp_ServeClientB
+    EtcdGrove.remote.wp_ServeClient
 
 end linked
 
