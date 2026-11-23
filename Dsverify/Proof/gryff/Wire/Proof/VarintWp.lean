@@ -11,6 +11,7 @@ module
 
 public import Dsverify.Proof.gryff.Wire.Proof.Lemmas
 public import Dsverify.Proof.gryff.Wire.Proof.Varint
+public import Perennial.Proof.errors.NewVar
 
 @[expose] public section
 
@@ -83,6 +84,12 @@ class BinaryVarintHyps : Prop where
       {{ RET #(W64 (varintEnc (sint.Z x)).length);
           typedPointsto p (array.mk nI
             (varintEnc (sint.Z x) ++ vs.drop (varintEnc (sint.Z x)).length)) (DFrac.own 1) }}
+  /-- `var errOverflow = errors.New("binary: varint overflows a 64-bit integer")` (Go's
+  `encoding/binary/varint.go`; Perennial's package facts of `binary` do not describe it): what a
+  caller logging or comparing a `ReadUvarint`/`ReadVarint` error needs of it. -/
+  errOverflowVar : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ⊢
+    errors.newVar (GF := GF) encoding.binary.errOverflow
+      go!"binary: varint overflows a 64-bit integer"
 
 end hyps
 

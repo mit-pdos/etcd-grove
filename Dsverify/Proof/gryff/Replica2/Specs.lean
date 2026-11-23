@@ -320,18 +320,24 @@ the reader over the client stream protocol `clientReqsOk`, the connection's writ
 writer contract for the writer `serveClient` makes). Port (`Net/`): the connection is a
 `*TCPConn` `t` with `net.connAt t cn true a la ra` (accepted at any address `a` the wildcard
 listener at `lisAddrOf a0` takes; its protocols are `a0`'s, `lisProto`); the reader is
-dsv-bufio's over the connection (`net.conn_readerOk`), the reader's peek an update of the
+dsv-bufio's over the connection (`net.conn_readerOk`'s contract, read errors `connReadE`, so that
+`serveClient` can log them), the reader's peek an update of the
 reader resource (`wire.readNext`'s shape); the writer contract is `net.conn_streamWriterOk`'s
 (`J := sendTok cn true Q`, `Q := gryffWireQ γ a0 cn`, write errors `connWriteE`); the lab's
 `sharedInvs` is `protoInvs` (Gryff's and the placers' invariants). -/
 @[irreducible] def clientConnIn (_γ : GryffNames GF) (_ρ : Repl2Names) (_k : Fin 3)
     (_conn : GoInterface) (_rd : Loc) (_hs : w32) : IProp GF :=
-  iprop(∃ (t : Loc) (c : Nat) (a a0 : GoString) (la ra ed : GoInterface) (rdi : wire.RSt GF)
+  iprop(∃ (t : Loc) (c : Nat) (a a0 : GoString) (la ra ed eof : GoInterface)
       (I : List w8 → IProp GF),
     ⌜_conn = interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∧ a0 ∈ replicaAddrs⌝ ∗
-    net.connAt t c true a la ra ∗
-    wire.readerOk rdi I ∗ wire.ownReader _rd rdi I (u32Le _hs) ∗
-    □ (∀ Y, wire.ownReader _rd rdi I (u32Le _hs ++ Y) ={⊤}=∗ wire.ownReader _rd rdi I (u32Le _hs ++ Y) ∗
+    net.connAt t c true a la ra ∗ globalAddr io.EOF ↦□ eof ∗
+    wire.readerOk ⟨Perennial.net.connIface t, Perennial.net.connReadE eof la ra ed⟩ I ∗
+    wire.ownReader _rd ⟨Perennial.net.connIface t, Perennial.net.connReadE eof la ra ed⟩ I
+      (u32Le _hs) ∗
+    □ (∀ Y, wire.ownReader _rd ⟨Perennial.net.connIface t, Perennial.net.connReadE eof la ra ed⟩ I
+        (u32Le _hs ++ Y) ={⊤}=∗
+      wire.ownReader _rd ⟨Perennial.net.connIface t, Perennial.net.connReadE eof la ra ed⟩ I
+        (u32Le _hs ++ Y) ∗
       ∃ (last : Int) (body : List w8), clientReqsOk _γ _hs last body ∗ ⌜Y <+: body⌝) ∗
     wire.writerOk ⟨net.connIface t, Perennial.net.connWriteE la ra ed, 4096⟩
       (sendTok c true (gryffWireQ _γ a0)) (gryffWireQ _γ a0 c) ∗
