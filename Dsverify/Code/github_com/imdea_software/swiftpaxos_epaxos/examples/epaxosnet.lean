@@ -751,7 +751,7 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 /-- Client is client machine c's program (c < NC): remote.ServeClient whose system is the server
-    addresses and whose operation is Op, the first one after start(c).
+    addresses and whose operation is Op, none before start(c).
 
     go: kit.go:175:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
@@ -760,9 +760,6 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "c" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "c"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve ServerAddrs []))) (Val #())) (Val #()))
   (Let "addrs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (Let "first" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
@@ -776,6 +773,9 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0")))))
   (Let "newClient" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (Let "t0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "sys"
   (Lam "in"
@@ -793,17 +793,19 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.any))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "first"))
-  (Let "$r0" (Val #false)
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub _root_.Perennial.time.Duration.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))
+  (App (App (Val (GoInstruction (FuncResolve start []))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "t0"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Since []))) (Val #())) (Var "$a0")))))
+  (Let "d" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt _root_.Perennial.time.Duration.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "d")) (Val #(W64 0)))))
   (App (Val doExecute)
-  (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))
-  (App (App (Val (GoInstruction (FuncResolve start []))) (Val #())) (Var "$a0")))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "first") (Var "$r0"))))))
+  (Val #())))))
   (App (Val doExecute)
-  (Val #())))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "d") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.any))) (Var "$res0"))))))
   (Let "op" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.any]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.any]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -818,9 +820,9 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.any]))))) (Pair (Var "op") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "t0") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "first") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "addrs") (Var "$r0")))))))))
   (Val #())))
@@ -828,7 +830,7 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Server is server machine id's program (1 <= id <= NReplicas+1). It never returns (but on a
     failed rpc.Register or Listen).
 
-    go: kit.go:193:6 -/
+    go: kit.go:194:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)
@@ -843,7 +845,7 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
 /-- nodeConfig is node id's configuration as SwiftPaxos's config.Read gives it for a config file
     with no proxies and no leader (no quorum, latency or log file: defs.LatencyConf stays "").
 
-    go: kit.go:199:6 -/
+    go: kit.go:200:6 -/
 noncomputable def nodeConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "port"
@@ -871,7 +873,7 @@ noncomputable def nodeConfig.impl [GooseExts] [GoGlobalContext] : val :=
     which fails forever once its connection broke) and waits RegisterMs between calls (runReplica
     4 ns).
 
-    go: kit.go:214:6 -/
+    go: kit.go:215:6 -/
 noncomputable def register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ip"
   (Lam "port"
@@ -960,7 +962,7 @@ noncomputable def register.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- host is addr's host part (addr is "host:port").
 
-    go: kit.go:237:6 -/
+    go: kit.go:238:6 -/
 noncomputable def host.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1001,7 +1003,7 @@ noncomputable def host.impl [GooseExts] [GoGlobalContext] : val :=
     dlog.Logger (dlog.New(path, false) less the log file it never writes): no output, and its Fatal
     does not exit.
 
-    go: kit.go:250:6 -/
+    go: kit.go:251:6 -/
 noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -1126,7 +1128,7 @@ noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- itoa is n in decimal.
 
-    go: kit.go:275:6 -/
+    go: kit.go:276:6 -/
 noncomputable def itoa.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))

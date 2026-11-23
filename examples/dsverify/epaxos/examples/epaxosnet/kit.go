@@ -171,17 +171,18 @@ func Orch() {
 }
 
 // Client is client machine c's program (c < NC): remote.ServeClient whose system is the server
-// addresses and whose operation is Op, the first one after start(c).
+// addresses and whose operation is Op, none before start(c).
 func Client(c uint64) {
 	addrs := ServerAddrs()
-	first := true
 	newClient := func(id int) any {
 		return addrs
 	}
+	// The first operation waits until start(c) after the machine's start (the op closure reads
+	// t0 only: no state written between its calls, as its verification wants; notes/dsv-epaxos.md).
+	t0 := time.Now()
 	op := func(sys any, in any) any {
-		if first {
-			first = false
-			time.Sleep(start(c))
+		if d := start(c) - time.Since(t0); d > 0 {
+			time.Sleep(d)
 		}
 		return Op(sys.([]string), c, in.(In))
 	}
