@@ -1,5 +1,8 @@
-# Project dsv-swiftpaxos (etc/goose.py): `os/signal`, names and types only (no model yet; the
-# specs the kit's proof uses are its hypotheses, notes/dsv-swiftpaxos.md).
+# names only (project dsv-rabia, notes/dsv-rabia.md): the lab replaced this library by its own
+# model (harness/rpcmodel); this repository has no model of it yet, so the kit's proof takes the
+# specs of what it calls as hypotheses.
 translate = ["!*"]
 imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
 translate_types = true

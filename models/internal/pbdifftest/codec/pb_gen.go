@@ -14,15 +14,18 @@ import (
 // is the generator's (models/protobuf/pbgen_core.py's doc, field kind by field kind, against protobuf-go
 // v1.36.12):
 //
-//   - pbMarshal(m), m a *T of a type below: real proto.Marshal(m)'s bytes (fields in number
-//     order, proto3's zero values omitted, a nil element of a repeated message field written as
-//     an empty message; nil for a nil *T, an empty non-nil slice for an empty message), or an
-//     error where the real one errs (a string field that is not UTF-8).
+//   - pbMarshal(m), m a *T of a type below: real proto.Marshal(m)'s bytes (the fields in no
+//     oneof in number order, then the oneofs' set members; proto3's zero values omitted, fields
+//     with explicit presence written when set, a nil element of a repeated message field
+//     written as an empty message; nil for a nil *T, an empty non-nil slice for an empty
+//     message), or an error where the real one errs (a proto3 string field that is not UTF-8, a
+//     required field not set).
 //   - pbUnmarshal(b, m), m a non-nil *T of a type below: resets *m and decodes b into it as
-//     real proto.Unmarshal does (merging repeated occurrences), or an error where the real one
-//     errs (malformed input, a field number 0 or above 2^29-1, invalid UTF-8 in a string field,
-//     messages nested deeper than 10000). Unknown fields are checked and skipped (the real one
-//     keeps them in the message: the model does not). A nil *T panics, as the real one does.
+//     real proto.Unmarshal does (merging repeated occurrences, the last member of a oneof
+//     winning), or an error where the real one errs (malformed input, a field number 0 or above
+//     2^29-1, invalid UTF-8 in a proto3 string field, messages nested deeper than 10000, a
+//     required field missing). Unknown fields are checked and skipped (the real one keeps them
+//     in the message: the model does not). A nil *T panics, as the real one does.
 //   - Any other value (another type, a non-pointer, a nil interface) panics: outside the
 //     subset.
 //
@@ -150,8 +153,9 @@ func pbUnmarshal(b []byte, m interface{}) error {
 	panic("protobuf model: unmarshaling into a value of a type the codec was not generated for")
 }
 
-// pbenc_pb_Args appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+// pbenc_pb_Args appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_pb_Args(b []byte, m *pb.Args) ([]byte, bool) {
 	if m == nil {
 		return b, true
@@ -235,7 +239,7 @@ func pbenc_pb_Args(b []byte, m *pb.Args) ([]byte, bool) {
 
 // pbdec_pb_Args decodes b into *m, merging into what is there, as the real Unmarshal does;
 // depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
 func pbdec_pb_Args(b []byte, m *pb.Args, depth uint64) bool {
 	if depth == 0 {
 		return false
@@ -261,7 +265,7 @@ func pbdec_pb_Args(b []byte, m *pb.Args, depth uint64) bool {
 
 // pbdecField_pb_Args decodes the value of field num (wire type typ) at the start of b into
 // *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
 func pbdecField_pb_Args(b []byte, num uint64, typ uint64, m *pb.Args, depth uint64) (uint64, bool) {
 	if num == 1 && typ == pbcodec.VarintType {
 		v, k, ok := pbcodec.ConsumeVarint(b)
@@ -409,8 +413,9 @@ func pbdecField_pb_Args(b []byte, num uint64, typ uint64, m *pb.Args, depth uint
 	return pbcodec.SkipField(num, typ, b)
 }
 
-// pbenc_pb_Empty appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+// pbenc_pb_Empty appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_pb_Empty(b []byte, m *pb.Empty) ([]byte, bool) {
 	if m == nil {
 		return b, true
@@ -420,7 +425,7 @@ func pbenc_pb_Empty(b []byte, m *pb.Empty) ([]byte, bool) {
 
 // pbdec_pb_Empty decodes b into *m, merging into what is there, as the real Unmarshal does;
 // depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
 func pbdec_pb_Empty(b []byte, m *pb.Empty, depth uint64) bool {
 	if depth == 0 {
 		return false
@@ -446,13 +451,14 @@ func pbdec_pb_Empty(b []byte, m *pb.Empty, depth uint64) bool {
 
 // pbdecField_pb_Empty decodes the value of field num (wire type typ) at the start of b into
 // *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
 func pbdecField_pb_Empty(b []byte, num uint64, typ uint64, m *pb.Empty, depth uint64) (uint64, bool) {
 	return pbcodec.SkipField(num, typ, b)
 }
 
-// pbenc_pb_Inner appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+// pbenc_pb_Inner appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_pb_Inner(b []byte, m *pb.Inner) ([]byte, bool) {
 	if m == nil {
 		return b, true
@@ -481,7 +487,7 @@ func pbenc_pb_Inner(b []byte, m *pb.Inner) ([]byte, bool) {
 
 // pbdec_pb_Inner decodes b into *m, merging into what is there, as the real Unmarshal does;
 // depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
 func pbdec_pb_Inner(b []byte, m *pb.Inner, depth uint64) bool {
 	if depth == 0 {
 		return false
@@ -507,7 +513,7 @@ func pbdec_pb_Inner(b []byte, m *pb.Inner, depth uint64) bool {
 
 // pbdecField_pb_Inner decodes the value of field num (wire type typ) at the start of b into
 // *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
 func pbdecField_pb_Inner(b []byte, num uint64, typ uint64, m *pb.Inner, depth uint64) (uint64, bool) {
 	if num == 1 && typ == pbcodec.BytesType {
 		v, k, ok := pbcodec.ConsumeBytes(b)
@@ -544,8 +550,9 @@ func pbdecField_pb_Inner(b []byte, num uint64, typ uint64, m *pb.Inner, depth ui
 	return pbcodec.SkipField(num, typ, b)
 }
 
-// pbenc_pb_Reply appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+// pbenc_pb_Reply appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_pb_Reply(b []byte, m *pb.Reply) ([]byte, bool) {
 	if m == nil {
 		return b, true
@@ -567,7 +574,7 @@ func pbenc_pb_Reply(b []byte, m *pb.Reply) ([]byte, bool) {
 
 // pbdec_pb_Reply decodes b into *m, merging into what is there, as the real Unmarshal does;
 // depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
 func pbdec_pb_Reply(b []byte, m *pb.Reply, depth uint64) bool {
 	if depth == 0 {
 		return false
@@ -593,7 +600,7 @@ func pbdec_pb_Reply(b []byte, m *pb.Reply, depth uint64) bool {
 
 // pbdecField_pb_Reply decodes the value of field num (wire type typ) at the start of b into
 // *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
 func pbdecField_pb_Reply(b []byte, num uint64, typ uint64, m *pb.Reply, depth uint64) (uint64, bool) {
 	if num == 1 && typ == pbcodec.VarintType {
 		v, k, ok := pbcodec.ConsumeVarint(b)
@@ -619,8 +626,9 @@ func pbdecField_pb_Reply(b []byte, num uint64, typ uint64, m *pb.Reply, depth ui
 	return pbcodec.SkipField(num, typ, b)
 }
 
-// pbenc_xpb_Kinds appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+// pbenc_xpb_Kinds appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_xpb_Kinds(b []byte, m *xpb.Kinds) ([]byte, bool) {
 	if m == nil {
 		return b, true
@@ -812,7 +820,7 @@ func pbenc_xpb_Kinds(b []byte, m *xpb.Kinds) ([]byte, bool) {
 
 // pbdec_xpb_Kinds decodes b into *m, merging into what is there, as the real Unmarshal does;
 // depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
 func pbdec_xpb_Kinds(b []byte, m *xpb.Kinds, depth uint64) bool {
 	if depth == 0 {
 		return false
@@ -838,7 +846,7 @@ func pbdec_xpb_Kinds(b []byte, m *xpb.Kinds, depth uint64) bool {
 
 // pbdecField_xpb_Kinds decodes the value of field num (wire type typ) at the start of b into
 // *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
 func pbdecField_xpb_Kinds(b []byte, num uint64, typ uint64, m *xpb.Kinds, depth uint64) (uint64, bool) {
 	if num == 1 && typ == pbcodec.VarintType {
 		v, k, ok := pbcodec.ConsumeVarint(b)
@@ -1290,8 +1298,9 @@ func pbdecField_xpb_Kinds(b []byte, num uint64, typ uint64, m *xpb.Kinds, depth 
 	return pbcodec.SkipField(num, typ, b)
 }
 
-// pbenc_xpb_Other appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+// pbenc_xpb_Other appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_xpb_Other(b []byte, m *xpb.Other) ([]byte, bool) {
 	if m == nil {
 		return b, true
@@ -1320,7 +1329,7 @@ func pbenc_xpb_Other(b []byte, m *xpb.Other) ([]byte, bool) {
 
 // pbdec_xpb_Other decodes b into *m, merging into what is there, as the real Unmarshal does;
 // depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
 func pbdec_xpb_Other(b []byte, m *xpb.Other, depth uint64) bool {
 	if depth == 0 {
 		return false
@@ -1346,7 +1355,7 @@ func pbdec_xpb_Other(b []byte, m *xpb.Other, depth uint64) bool {
 
 // pbdecField_xpb_Other decodes the value of field num (wire type typ) at the start of b into
 // *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
 func pbdecField_xpb_Other(b []byte, num uint64, typ uint64, m *xpb.Other, depth uint64) (uint64, bool) {
 	if num == 1 && typ == pbcodec.BytesType {
 		v, k, ok := pbcodec.ConsumeBytes(b)

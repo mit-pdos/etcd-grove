@@ -14,169 +14,550 @@ import (
 	"strings"
 	"testing"
 
+	authpb "go.etcd.io/etcd/api/v3/authpb"
 	etcdserverpb "go.etcd.io/etcd/api/v3/etcdserverpb"
+	membershippb "go.etcd.io/etcd/api/v3/membershippb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
+	walpb "go.etcd.io/etcd/server/v3/storage/wal/walpb"
+	raftpb "go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 // pbUnknownNum: a field number no codec message has.
-const pbUnknownNum protowire.Number = 14
+const pbUnknownNum protowire.Number = 15
 
 // pbNums: the listed field numbers (and pbUnknownNum), for mutations.
-var pbNums = []protowire.Number{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}
+var pbNums = []protowire.Number{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 64, 100, 1000, 1011, 1012, 1013, 1100, 1101, 1102, 1103, 1104, 1105, 1106, 1107, 1200, 1201, 1202, 1203, 1204, 1300, 1301, 1302, 9900}
 
-// pbHasStrings: some codec message has a string field.
+// pbHasStrings: some codec message has a UTF-8-checked string field.
 const pbHasStrings = true
+
+// pbHasRequired: some codec message has a required field.
+const pbHasRequired = false
 
 // pbTypes: the codec's message types.
 func pbTypes() []pbType {
 	return []pbType{
-		{name: "etcdserverpb.DeleteRangeRequest", new: func() proto.Message { return &etcdserverpb.DeleteRangeRequest{} },
+		{name: "authpb.Permission", new: func() proto.Message { return &authpb.Permission{} }, req: false, init: false,
 			fields: []pbField{
-				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"PrevKv", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"PermType", 1, protoreflect.EnumKind, false, false, string(authpb.Permission_Type(0).Descriptor().FullName()), pbTypeOf[authpb.Permission_Type](), false, false, true, "", "", nil},
+				{"Key", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"RangeEnd", 3, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.DeleteRangeResponse", new: func() proto.Message { return &etcdserverpb.DeleteRangeResponse{} },
+		{name: "authpb.UserAddOptions", new: func() proto.Message { return &authpb.UserAddOptions{} }, req: false, init: false,
 			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"Deleted", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"PrevKvs", 3, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[[]*mvccpb.KeyValue]()},
+				{"NoPassword", 1, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.LeaseGrantRequest", new: func() proto.Message { return &etcdserverpb.LeaseGrantRequest{} },
+		{name: "etcdserverpb.AlarmRequest", new: func() proto.Message { return &etcdserverpb.AlarmRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"TTL", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"ID", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"Action", 1, protoreflect.EnumKind, false, false, string(etcdserverpb.AlarmRequest_AlarmAction(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.AlarmRequest_AlarmAction](), false, false, true, "", "", nil},
+				{"MemberID", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"Alarm", 3, protoreflect.EnumKind, false, false, string(etcdserverpb.AlarmType(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.AlarmType](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.LeaseGrantResponse", new: func() proto.Message { return &etcdserverpb.LeaseGrantResponse{} },
+		{name: "etcdserverpb.AuthDisableRequest", new: func() proto.Message { return &etcdserverpb.AuthDisableRequest{} }, req: false, init: false,
+			fields: []pbField{},
+		},
+		{name: "etcdserverpb.AuthEnableRequest", new: func() proto.Message { return &etcdserverpb.AuthEnableRequest{} }, req: false, init: false,
+			fields: []pbField{},
+		},
+		{name: "etcdserverpb.AuthRoleAddRequest", new: func() proto.Message { return &etcdserverpb.AuthRoleAddRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"ID", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"TTL", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Error", 4, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.LeaseTimeToLiveResponse", new: func() proto.Message { return &etcdserverpb.LeaseTimeToLiveResponse{} },
+		{name: "etcdserverpb.AuthRoleDeleteRequest", new: func() proto.Message { return &etcdserverpb.AuthRoleDeleteRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"ID", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"TTL", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"GrantedTTL", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Keys", 5, protoreflect.BytesKind, true, false, "", pbTypeOf[[][]byte]()},
+				{"Role", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.Member", new: func() proto.Message { return &etcdserverpb.Member{} },
+		{name: "etcdserverpb.AuthRoleGetRequest", new: func() proto.Message { return &etcdserverpb.AuthRoleGetRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"ID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"Name", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
-				{"PeerURLs", 3, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
-				{"ClientURLs", 4, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
-				{"IsLearner", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"Role", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.MemberListResponse", new: func() proto.Message { return &etcdserverpb.MemberListResponse{} },
+		{name: "etcdserverpb.AuthRoleGrantPermissionRequest", new: func() proto.Message { return &etcdserverpb.AuthRoleGrantPermissionRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"Members", 2, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.Member{}), pbTypeOf[[]*etcdserverpb.Member]()},
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Perm", 2, protoreflect.MessageKind, false, false, pbFullName(&authpb.Permission{}), pbTypeOf[*authpb.Permission](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.PutRequest", new: func() proto.Message { return &etcdserverpb.PutRequest{} },
+		{name: "etcdserverpb.AuthRoleListRequest", new: func() proto.Message { return &etcdserverpb.AuthRoleListRequest{} }, req: false, init: false,
+			fields: []pbField{},
+		},
+		{name: "etcdserverpb.AuthRoleRevokePermissionRequest", new: func() proto.Message { return &etcdserverpb.AuthRoleRevokePermissionRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Value", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Lease", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"PrevKv", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"IgnoreValue", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"IgnoreLease", 6, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"Role", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Key", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"RangeEnd", 3, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.PutResponse", new: func() proto.Message { return &etcdserverpb.PutResponse{} },
+		{name: "etcdserverpb.AuthStatusRequest", new: func() proto.Message { return &etcdserverpb.AuthStatusRequest{} }, req: false, init: false,
+			fields: []pbField{},
+		},
+		{name: "etcdserverpb.AuthUserAddRequest", new: func() proto.Message { return &etcdserverpb.AuthUserAddRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"PrevKv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Password", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Options", 3, protoreflect.MessageKind, false, false, pbFullName(&authpb.UserAddOptions{}), pbTypeOf[*authpb.UserAddOptions](), false, false, true, "", "", nil},
+				{"HashedPassword", 4, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.RangeRequest", new: func() proto.Message { return &etcdserverpb.RangeRequest{} },
+		{name: "etcdserverpb.AuthUserChangePasswordRequest", new: func() proto.Message { return &etcdserverpb.AuthUserChangePasswordRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Limit", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Revision", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"SortOrder", 5, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortOrder(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortOrder]()},
-				{"SortTarget", 6, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortTarget(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortTarget]()},
-				{"Serializable", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"KeysOnly", 8, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"CountOnly", 9, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"MinModRevision", 10, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"MaxModRevision", 11, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"MinCreateRevision", 12, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"MaxCreateRevision", 13, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Password", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"HashedPassword", 3, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.RangeResponse", new: func() proto.Message { return &etcdserverpb.RangeResponse{} },
+		{name: "etcdserverpb.AuthUserDeleteRequest", new: func() proto.Message { return &etcdserverpb.AuthUserDeleteRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"Kvs", 2, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[[]*mvccpb.KeyValue]()},
-				{"More", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"Count", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.ResponseHeader", new: func() proto.Message { return &etcdserverpb.ResponseHeader{} },
+		{name: "etcdserverpb.AuthUserGetRequest", new: func() proto.Message { return &etcdserverpb.AuthUserGetRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"ClusterId", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"MemberId", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"Revision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"RaftTerm", 4, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"LeaderId", 5, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.WatchCreateRequest", new: func() proto.Message { return &etcdserverpb.WatchCreateRequest{} },
+		{name: "etcdserverpb.AuthUserGrantRoleRequest", new: func() proto.Message { return &etcdserverpb.AuthUserGrantRoleRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"StartRevision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"ProgressNotify", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"Filters", 5, protoreflect.EnumKind, true, true, string(etcdserverpb.WatchCreateRequest_FilterType(0).Descriptor().FullName()), pbTypeOf[[]etcdserverpb.WatchCreateRequest_FilterType]()},
-				{"PrevKv", 6, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"WatchId", 7, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Fragment", 8, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"User", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Role", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "etcdserverpb.WatchResponse", new: func() proto.Message { return &etcdserverpb.WatchResponse{} },
+		{name: "etcdserverpb.AuthUserListRequest", new: func() proto.Message { return &etcdserverpb.AuthUserListRequest{} }, req: false, init: false,
+			fields: []pbField{},
+		},
+		{name: "etcdserverpb.AuthUserRevokeRoleRequest", new: func() proto.Message { return &etcdserverpb.AuthUserRevokeRoleRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"WatchId", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Created", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"Canceled", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"CompactRevision", 5, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"CancelReason", 6, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
-				{"Fragment", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"Events", 11, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.Event{}), pbTypeOf[[]*mvccpb.Event]()},
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Role", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "mvccpb.Event", new: func() proto.Message { return &mvccpb.Event{} },
+		{name: "etcdserverpb.CompactionRequest", new: func() proto.Message { return &etcdserverpb.CompactionRequest{} }, req: false, init: false,
 			fields: []pbField{
-				{"Type", 1, protoreflect.EnumKind, false, false, string(mvccpb.Event_EventType(0).Descriptor().FullName()), pbTypeOf[mvccpb.Event_EventType]()},
-				{"Kv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
-				{"PrevKv", 3, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
+				{"Revision", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Physical", 2, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
 			},
 		},
-		{name: "mvccpb.KeyValue", new: func() proto.Message { return &mvccpb.KeyValue{} },
+		{name: "etcdserverpb.Compare", new: func() proto.Message { return &etcdserverpb.Compare{} }, req: false, init: false,
 			fields: []pbField{
-				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"CreateRevision", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"ModRevision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Version", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Value", 5, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Lease", 6, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"Result", 1, protoreflect.EnumKind, false, false, string(etcdserverpb.Compare_CompareResult(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.Compare_CompareResult](), false, false, true, "", "", nil},
+				{"Target", 2, protoreflect.EnumKind, false, false, string(etcdserverpb.Compare_CompareTarget(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.Compare_CompareTarget](), false, false, true, "", "", nil},
+				{"Key", 3, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Version", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "target_union", "TargetUnion", pbTypeOf[*etcdserverpb.Compare_Version]()},
+				{"CreateRevision", 5, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "target_union", "TargetUnion", pbTypeOf[*etcdserverpb.Compare_CreateRevision]()},
+				{"ModRevision", 6, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "target_union", "TargetUnion", pbTypeOf[*etcdserverpb.Compare_ModRevision]()},
+				{"Value", 7, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "target_union", "TargetUnion", pbTypeOf[*etcdserverpb.Compare_Value]()},
+				{"Lease", 8, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "target_union", "TargetUnion", pbTypeOf[*etcdserverpb.Compare_Lease]()},
+				{"RangeEnd", 64, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.DeleteRangeRequest", new: func() proto.Message { return &etcdserverpb.DeleteRangeRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"PrevKv", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.DeleteRangeResponse", new: func() proto.Message { return &etcdserverpb.DeleteRangeResponse{} }, req: false, init: false,
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"Deleted", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"PrevKvs", 3, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[[]*mvccpb.KeyValue](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.DowngradeVersionTestRequest", new: func() proto.Message { return &etcdserverpb.DowngradeVersionTestRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Ver", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.InternalAuthenticateRequest", new: func() proto.Message { return &etcdserverpb.InternalAuthenticateRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Password", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"SimpleToken", 3, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.InternalRaftRequest", new: func() proto.Message { return &etcdserverpb.InternalRaftRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"ID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"Range", 3, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.RangeRequest{}), pbTypeOf[*etcdserverpb.RangeRequest](), false, false, true, "", "", nil},
+				{"Put", 4, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.PutRequest{}), pbTypeOf[*etcdserverpb.PutRequest](), false, false, true, "", "", nil},
+				{"DeleteRange", 5, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.DeleteRangeRequest{}), pbTypeOf[*etcdserverpb.DeleteRangeRequest](), false, false, true, "", "", nil},
+				{"Txn", 6, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.TxnRequest{}), pbTypeOf[*etcdserverpb.TxnRequest](), false, false, true, "", "", nil},
+				{"Compaction", 7, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.CompactionRequest{}), pbTypeOf[*etcdserverpb.CompactionRequest](), false, false, true, "", "", nil},
+				{"LeaseGrant", 8, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.LeaseGrantRequest{}), pbTypeOf[*etcdserverpb.LeaseGrantRequest](), false, false, true, "", "", nil},
+				{"LeaseRevoke", 9, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.LeaseRevokeRequest{}), pbTypeOf[*etcdserverpb.LeaseRevokeRequest](), false, false, true, "", "", nil},
+				{"Alarm", 10, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AlarmRequest{}), pbTypeOf[*etcdserverpb.AlarmRequest](), false, false, true, "", "", nil},
+				{"LeaseCheckpoint", 11, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.LeaseCheckpointRequest{}), pbTypeOf[*etcdserverpb.LeaseCheckpointRequest](), false, false, true, "", "", nil},
+				{"Header", 100, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.RequestHeader{}), pbTypeOf[*etcdserverpb.RequestHeader](), false, false, true, "", "", nil},
+				{"AuthEnable", 1000, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthEnableRequest{}), pbTypeOf[*etcdserverpb.AuthEnableRequest](), false, false, true, "", "", nil},
+				{"AuthDisable", 1011, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthDisableRequest{}), pbTypeOf[*etcdserverpb.AuthDisableRequest](), false, false, true, "", "", nil},
+				{"Authenticate", 1012, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.InternalAuthenticateRequest{}), pbTypeOf[*etcdserverpb.InternalAuthenticateRequest](), false, false, true, "", "", nil},
+				{"AuthStatus", 1013, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthStatusRequest{}), pbTypeOf[*etcdserverpb.AuthStatusRequest](), false, false, true, "", "", nil},
+				{"AuthUserAdd", 1100, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthUserAddRequest{}), pbTypeOf[*etcdserverpb.AuthUserAddRequest](), false, false, true, "", "", nil},
+				{"AuthUserDelete", 1101, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthUserDeleteRequest{}), pbTypeOf[*etcdserverpb.AuthUserDeleteRequest](), false, false, true, "", "", nil},
+				{"AuthUserGet", 1102, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthUserGetRequest{}), pbTypeOf[*etcdserverpb.AuthUserGetRequest](), false, false, true, "", "", nil},
+				{"AuthUserChangePassword", 1103, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthUserChangePasswordRequest{}), pbTypeOf[*etcdserverpb.AuthUserChangePasswordRequest](), false, false, true, "", "", nil},
+				{"AuthUserGrantRole", 1104, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthUserGrantRoleRequest{}), pbTypeOf[*etcdserverpb.AuthUserGrantRoleRequest](), false, false, true, "", "", nil},
+				{"AuthUserRevokeRole", 1105, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthUserRevokeRoleRequest{}), pbTypeOf[*etcdserverpb.AuthUserRevokeRoleRequest](), false, false, true, "", "", nil},
+				{"AuthUserList", 1106, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthUserListRequest{}), pbTypeOf[*etcdserverpb.AuthUserListRequest](), false, false, true, "", "", nil},
+				{"AuthRoleList", 1107, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthRoleListRequest{}), pbTypeOf[*etcdserverpb.AuthRoleListRequest](), false, false, true, "", "", nil},
+				{"AuthRoleAdd", 1200, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthRoleAddRequest{}), pbTypeOf[*etcdserverpb.AuthRoleAddRequest](), false, false, true, "", "", nil},
+				{"AuthRoleDelete", 1201, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthRoleDeleteRequest{}), pbTypeOf[*etcdserverpb.AuthRoleDeleteRequest](), false, false, true, "", "", nil},
+				{"AuthRoleGet", 1202, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthRoleGetRequest{}), pbTypeOf[*etcdserverpb.AuthRoleGetRequest](), false, false, true, "", "", nil},
+				{"AuthRoleGrantPermission", 1203, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthRoleGrantPermissionRequest{}), pbTypeOf[*etcdserverpb.AuthRoleGrantPermissionRequest](), false, false, true, "", "", nil},
+				{"AuthRoleRevokePermission", 1204, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.AuthRoleRevokePermissionRequest{}), pbTypeOf[*etcdserverpb.AuthRoleRevokePermissionRequest](), false, false, true, "", "", nil},
+				{"ClusterVersionSet", 1300, protoreflect.MessageKind, false, false, pbFullName(&membershippb.ClusterVersionSetRequest{}), pbTypeOf[*membershippb.ClusterVersionSetRequest](), false, false, true, "", "", nil},
+				{"ClusterMemberAttrSet", 1301, protoreflect.MessageKind, false, false, pbFullName(&membershippb.ClusterMemberAttrSetRequest{}), pbTypeOf[*membershippb.ClusterMemberAttrSetRequest](), false, false, true, "", "", nil},
+				{"DowngradeInfoSet", 1302, protoreflect.MessageKind, false, false, pbFullName(&membershippb.DowngradeInfoSetRequest{}), pbTypeOf[*membershippb.DowngradeInfoSetRequest](), false, false, true, "", "", nil},
+				{"DowngradeVersionTest", 9900, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.DowngradeVersionTestRequest{}), pbTypeOf[*etcdserverpb.DowngradeVersionTestRequest](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.LeaseCheckpoint", new: func() proto.Message { return &etcdserverpb.LeaseCheckpoint{} }, req: false, init: false,
+			fields: []pbField{
+				{"ID", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Remaining_TTL", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.LeaseCheckpointRequest", new: func() proto.Message { return &etcdserverpb.LeaseCheckpointRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Checkpoints", 1, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.LeaseCheckpoint{}), pbTypeOf[[]*etcdserverpb.LeaseCheckpoint](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.LeaseGrantRequest", new: func() proto.Message { return &etcdserverpb.LeaseGrantRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"TTL", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"ID", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.LeaseGrantResponse", new: func() proto.Message { return &etcdserverpb.LeaseGrantResponse{} }, req: false, init: false,
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"ID", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"TTL", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Error", 4, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.LeaseRevokeRequest", new: func() proto.Message { return &etcdserverpb.LeaseRevokeRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"ID", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.LeaseTimeToLiveResponse", new: func() proto.Message { return &etcdserverpb.LeaseTimeToLiveResponse{} }, req: false, init: false,
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"ID", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"TTL", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"GrantedTTL", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Keys", 5, protoreflect.BytesKind, true, false, "", pbTypeOf[[][]byte](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.Member", new: func() proto.Message { return &etcdserverpb.Member{} }, req: false, init: false,
+			fields: []pbField{
+				{"ID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"Name", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"PeerURLs", 3, protoreflect.StringKind, true, false, "", pbTypeOf[[]string](), false, false, true, "", "", nil},
+				{"ClientURLs", 4, protoreflect.StringKind, true, false, "", pbTypeOf[[]string](), false, false, true, "", "", nil},
+				{"IsLearner", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.MemberListResponse", new: func() proto.Message { return &etcdserverpb.MemberListResponse{} }, req: false, init: false,
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"Members", 2, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.Member{}), pbTypeOf[[]*etcdserverpb.Member](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.PutRequest", new: func() proto.Message { return &etcdserverpb.PutRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Value", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Lease", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"PrevKv", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"IgnoreValue", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"IgnoreLease", 6, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.PutResponse", new: func() proto.Message { return &etcdserverpb.PutResponse{} }, req: false, init: false,
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"PrevKv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.RangeRequest", new: func() proto.Message { return &etcdserverpb.RangeRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Limit", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Revision", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"SortOrder", 5, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortOrder(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortOrder](), false, false, true, "", "", nil},
+				{"SortTarget", 6, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortTarget(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortTarget](), false, false, true, "", "", nil},
+				{"Serializable", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"KeysOnly", 8, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"CountOnly", 9, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"MinModRevision", 10, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"MaxModRevision", 11, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"MinCreateRevision", 12, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"MaxCreateRevision", 13, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.RangeResponse", new: func() proto.Message { return &etcdserverpb.RangeResponse{} }, req: false, init: false,
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"Kvs", 2, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[[]*mvccpb.KeyValue](), false, false, true, "", "", nil},
+				{"More", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"Count", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.RequestHeader", new: func() proto.Message { return &etcdserverpb.RequestHeader{} }, req: false, init: false,
+			fields: []pbField{
+				{"ID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"Username", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"AuthRevision", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.RequestOp", new: func() proto.Message { return &etcdserverpb.RequestOp{} }, req: false, init: false,
+			nest:     []string{"Request", "Success"},
+			nestNums: []protowire.Number{4, 2},
+			nestWrap: []reflect.Type{pbTypeOf[*etcdserverpb.RequestOp_RequestTxn](), nil},
+			fields: []pbField{
+				{"RequestRange", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.RangeRequest{}), pbTypeOf[*etcdserverpb.RangeRequest](), false, false, true, "request", "Request", pbTypeOf[*etcdserverpb.RequestOp_RequestRange]()},
+				{"RequestPut", 2, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.PutRequest{}), pbTypeOf[*etcdserverpb.PutRequest](), false, false, true, "request", "Request", pbTypeOf[*etcdserverpb.RequestOp_RequestPut]()},
+				{"RequestDeleteRange", 3, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.DeleteRangeRequest{}), pbTypeOf[*etcdserverpb.DeleteRangeRequest](), false, false, true, "request", "Request", pbTypeOf[*etcdserverpb.RequestOp_RequestDeleteRange]()},
+				{"RequestTxn", 4, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.TxnRequest{}), pbTypeOf[*etcdserverpb.TxnRequest](), false, false, true, "request", "Request", pbTypeOf[*etcdserverpb.RequestOp_RequestTxn]()},
+			},
+		},
+		{name: "etcdserverpb.ResponseHeader", new: func() proto.Message { return &etcdserverpb.ResponseHeader{} }, req: false, init: false,
+			fields: []pbField{
+				{"ClusterId", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"MemberId", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"Revision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"RaftTerm", 4, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"LeaderId", 5, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.ResponseOp", new: func() proto.Message { return &etcdserverpb.ResponseOp{} }, req: false, init: false,
+			nest:     []string{"Response", "Responses"},
+			nestNums: []protowire.Number{4, 3},
+			nestWrap: []reflect.Type{pbTypeOf[*etcdserverpb.ResponseOp_ResponseTxn](), nil},
+			fields: []pbField{
+				{"ResponseRange", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.RangeResponse{}), pbTypeOf[*etcdserverpb.RangeResponse](), false, false, true, "response", "Response", pbTypeOf[*etcdserverpb.ResponseOp_ResponseRange]()},
+				{"ResponsePut", 2, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.PutResponse{}), pbTypeOf[*etcdserverpb.PutResponse](), false, false, true, "response", "Response", pbTypeOf[*etcdserverpb.ResponseOp_ResponsePut]()},
+				{"ResponseDeleteRange", 3, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.DeleteRangeResponse{}), pbTypeOf[*etcdserverpb.DeleteRangeResponse](), false, false, true, "response", "Response", pbTypeOf[*etcdserverpb.ResponseOp_ResponseDeleteRange]()},
+				{"ResponseTxn", 4, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.TxnResponse{}), pbTypeOf[*etcdserverpb.TxnResponse](), false, false, true, "response", "Response", pbTypeOf[*etcdserverpb.ResponseOp_ResponseTxn]()},
+			},
+		},
+		{name: "etcdserverpb.TxnRequest", new: func() proto.Message { return &etcdserverpb.TxnRequest{} }, req: false, init: false,
+			nest:     []string{"Success", "Request"},
+			nestNums: []protowire.Number{2, 4},
+			nestWrap: []reflect.Type{nil, pbTypeOf[*etcdserverpb.RequestOp_RequestTxn]()},
+			fields: []pbField{
+				{"Compare", 1, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.Compare{}), pbTypeOf[[]*etcdserverpb.Compare](), false, false, true, "", "", nil},
+				{"Success", 2, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.RequestOp{}), pbTypeOf[[]*etcdserverpb.RequestOp](), false, false, true, "", "", nil},
+				{"Failure", 3, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.RequestOp{}), pbTypeOf[[]*etcdserverpb.RequestOp](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.TxnResponse", new: func() proto.Message { return &etcdserverpb.TxnResponse{} }, req: false, init: false,
+			nest:     []string{"Responses", "Response"},
+			nestNums: []protowire.Number{3, 4},
+			nestWrap: []reflect.Type{nil, pbTypeOf[*etcdserverpb.ResponseOp_ResponseTxn]()},
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"Succeeded", 2, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"Responses", 3, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.ResponseOp{}), pbTypeOf[[]*etcdserverpb.ResponseOp](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.WatchCancelRequest", new: func() proto.Message { return &etcdserverpb.WatchCancelRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"WatchId", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.WatchCreateRequest", new: func() proto.Message { return &etcdserverpb.WatchCreateRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"StartRevision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"ProgressNotify", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"Filters", 5, protoreflect.EnumKind, true, true, string(etcdserverpb.WatchCreateRequest_FilterType(0).Descriptor().FullName()), pbTypeOf[[]etcdserverpb.WatchCreateRequest_FilterType](), false, false, true, "", "", nil},
+				{"PrevKv", 6, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"WatchId", 7, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Fragment", 8, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "etcdserverpb.WatchProgressRequest", new: func() proto.Message { return &etcdserverpb.WatchProgressRequest{} }, req: false, init: false,
+			fields: []pbField{},
+		},
+		{name: "etcdserverpb.WatchRequest", new: func() proto.Message { return &etcdserverpb.WatchRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"CreateRequest", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.WatchCreateRequest{}), pbTypeOf[*etcdserverpb.WatchCreateRequest](), false, false, true, "request_union", "RequestUnion", pbTypeOf[*etcdserverpb.WatchRequest_CreateRequest]()},
+				{"CancelRequest", 2, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.WatchCancelRequest{}), pbTypeOf[*etcdserverpb.WatchCancelRequest](), false, false, true, "request_union", "RequestUnion", pbTypeOf[*etcdserverpb.WatchRequest_CancelRequest]()},
+				{"ProgressRequest", 3, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.WatchProgressRequest{}), pbTypeOf[*etcdserverpb.WatchProgressRequest](), false, false, true, "request_union", "RequestUnion", pbTypeOf[*etcdserverpb.WatchRequest_ProgressRequest]()},
+			},
+		},
+		{name: "etcdserverpb.WatchResponse", new: func() proto.Message { return &etcdserverpb.WatchResponse{} }, req: false, init: false,
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader](), false, false, true, "", "", nil},
+				{"WatchId", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Created", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"Canceled", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"CompactRevision", 5, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"CancelReason", 6, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"Fragment", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"Events", 11, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.Event{}), pbTypeOf[[]*mvccpb.Event](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "membershippb.Attributes", new: func() proto.Message { return &membershippb.Attributes{} }, req: false, init: false,
+			fields: []pbField{
+				{"Name", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+				{"ClientUrls", 2, protoreflect.StringKind, true, false, "", pbTypeOf[[]string](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "membershippb.ClusterMemberAttrSetRequest", new: func() proto.Message { return &membershippb.ClusterMemberAttrSetRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Member_ID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64](), false, false, true, "", "", nil},
+				{"MemberAttributes", 2, protoreflect.MessageKind, false, false, pbFullName(&membershippb.Attributes{}), pbTypeOf[*membershippb.Attributes](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "membershippb.ClusterVersionSetRequest", new: func() proto.Message { return &membershippb.ClusterVersionSetRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Ver", 1, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "membershippb.DowngradeInfoSetRequest", new: func() proto.Message { return &membershippb.DowngradeInfoSetRequest{} }, req: false, init: false,
+			fields: []pbField{
+				{"Enabled", 1, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
+				{"Ver", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "mvccpb.Event", new: func() proto.Message { return &mvccpb.Event{} }, req: false, init: false,
+			fields: []pbField{
+				{"Type", 1, protoreflect.EnumKind, false, false, string(mvccpb.Event_EventType(0).Descriptor().FullName()), pbTypeOf[mvccpb.Event_EventType](), false, false, true, "", "", nil},
+				{"Kv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue](), false, false, true, "", "", nil},
+				{"PrevKv", 3, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "mvccpb.KeyValue", new: func() proto.Message { return &mvccpb.KeyValue{} }, req: false, init: false,
+			fields: []pbField{
+				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"CreateRevision", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"ModRevision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Version", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"Value", 5, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Lease", 6, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.ConfChange", new: func() proto.Message { return &raftpb.ConfChange{} }, req: false, init: false,
+			fields: []pbField{
+				{"Id", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Type", 2, protoreflect.EnumKind, false, false, string(raftpb.ConfChangeType(0).Descriptor().FullName()), pbTypeOf[*raftpb.ConfChangeType](), true, false, true, "", "", nil},
+				{"NodeId", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Context", 4, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.ConfChangeSingle", new: func() proto.Message { return &raftpb.ConfChangeSingle{} }, req: false, init: false,
+			fields: []pbField{
+				{"Type", 1, protoreflect.EnumKind, false, false, string(raftpb.ConfChangeType(0).Descriptor().FullName()), pbTypeOf[*raftpb.ConfChangeType](), true, false, true, "", "", nil},
+				{"NodeId", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.ConfChangeV2", new: func() proto.Message { return &raftpb.ConfChangeV2{} }, req: false, init: false,
+			fields: []pbField{
+				{"Transition", 1, protoreflect.EnumKind, false, false, string(raftpb.ConfChangeTransition(0).Descriptor().FullName()), pbTypeOf[*raftpb.ConfChangeTransition](), true, false, true, "", "", nil},
+				{"Changes", 2, protoreflect.MessageKind, true, false, pbFullName(&raftpb.ConfChangeSingle{}), pbTypeOf[[]*raftpb.ConfChangeSingle](), false, false, true, "", "", nil},
+				{"Context", 3, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.ConfState", new: func() proto.Message { return &raftpb.ConfState{} }, req: false, init: false,
+			fields: []pbField{
+				{"Voters", 1, protoreflect.Uint64Kind, true, false, "", pbTypeOf[[]uint64](), false, false, true, "", "", nil},
+				{"Learners", 2, protoreflect.Uint64Kind, true, false, "", pbTypeOf[[]uint64](), false, false, true, "", "", nil},
+				{"VotersOutgoing", 3, protoreflect.Uint64Kind, true, false, "", pbTypeOf[[]uint64](), false, false, true, "", "", nil},
+				{"LearnersNext", 4, protoreflect.Uint64Kind, true, false, "", pbTypeOf[[]uint64](), false, false, true, "", "", nil},
+				{"AutoLeave", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[*bool](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.Entry", new: func() proto.Message { return &raftpb.Entry{} }, req: false, init: false,
+			fields: []pbField{
+				{"Type", 1, protoreflect.EnumKind, false, false, string(raftpb.EntryType(0).Descriptor().FullName()), pbTypeOf[*raftpb.EntryType](), true, false, true, "", "", nil},
+				{"Term", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Index", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Data", 4, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.HardState", new: func() proto.Message { return &raftpb.HardState{} }, req: false, init: false,
+			fields: []pbField{
+				{"Term", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Vote", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Commit", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.Message", new: func() proto.Message { return &raftpb.Message{} }, req: false, init: false,
+			nest:     []string{"Responses"},
+			nestNums: []protowire.Number{14},
+			nestWrap: []reflect.Type{nil},
+			fields: []pbField{
+				{"Type", 1, protoreflect.EnumKind, false, false, string(raftpb.MessageType(0).Descriptor().FullName()), pbTypeOf[*raftpb.MessageType](), true, false, true, "", "", nil},
+				{"To", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"From", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Term", 4, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"LogTerm", 5, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Index", 6, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Entries", 7, protoreflect.MessageKind, true, false, pbFullName(&raftpb.Entry{}), pbTypeOf[[]*raftpb.Entry](), false, false, true, "", "", nil},
+				{"Commit", 8, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Snapshot", 9, protoreflect.MessageKind, false, false, pbFullName(&raftpb.Snapshot{}), pbTypeOf[*raftpb.Snapshot](), false, false, true, "", "", nil},
+				{"Reject", 10, protoreflect.BoolKind, false, false, "", pbTypeOf[*bool](), true, false, true, "", "", nil},
+				{"RejectHint", 11, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Context", 12, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), true, false, true, "", "", nil},
+				{"Vote", 13, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Responses", 14, protoreflect.MessageKind, true, false, pbFullName(&raftpb.Message{}), pbTypeOf[[]*raftpb.Message](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.Snapshot", new: func() proto.Message { return &raftpb.Snapshot{} }, req: false, init: false,
+			fields: []pbField{
+				{"Data", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), true, false, true, "", "", nil},
+				{"Metadata", 2, protoreflect.MessageKind, false, false, pbFullName(&raftpb.SnapshotMetadata{}), pbTypeOf[*raftpb.SnapshotMetadata](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "raftpb.SnapshotMetadata", new: func() proto.Message { return &raftpb.SnapshotMetadata{} }, req: false, init: false,
+			fields: []pbField{
+				{"ConfState", 1, protoreflect.MessageKind, false, false, pbFullName(&raftpb.ConfState{}), pbTypeOf[*raftpb.ConfState](), false, false, true, "", "", nil},
+				{"Index", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Term", 3, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "walpb.Record", new: func() proto.Message { return &walpb.Record{} }, req: false, init: false,
+			fields: []pbField{
+				{"Type", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[*int64](), true, false, true, "", "", nil},
+				{"Crc", 2, protoreflect.Uint32Kind, false, false, "", pbTypeOf[*uint32](), true, false, true, "", "", nil},
+				{"Data", 3, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), true, false, true, "", "", nil},
+			},
+		},
+		{name: "walpb.Snapshot", new: func() proto.Message { return &walpb.Snapshot{} }, req: false, init: false,
+			fields: []pbField{
+				{"Index", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"Term", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"ConfState", 3, protoreflect.MessageKind, false, false, pbFullName(&raftpb.ConfState{}), pbTypeOf[*raftpb.ConfState](), false, false, true, "", "", nil},
 			},
 		},
 	}
+}
+
+// pbOneofWrappers: each oneof holder's interface type, with its wrapper types.
+var pbOneofWrappers = pbOneofWrappersOf()
+
+func pbOneofWrappersOf() map[reflect.Type][]reflect.Type {
+	w := map[reflect.Type][]reflect.Type{}
+	w[pbHolderType[etcdserverpb.Compare]("TargetUnion")] = []reflect.Type{pbTypeOf[*etcdserverpb.Compare_Version](), pbTypeOf[*etcdserverpb.Compare_CreateRevision](), pbTypeOf[*etcdserverpb.Compare_ModRevision](), pbTypeOf[*etcdserverpb.Compare_Value](), pbTypeOf[*etcdserverpb.Compare_Lease]()}
+	w[pbHolderType[etcdserverpb.RequestOp]("Request")] = []reflect.Type{pbTypeOf[*etcdserverpb.RequestOp_RequestRange](), pbTypeOf[*etcdserverpb.RequestOp_RequestPut](), pbTypeOf[*etcdserverpb.RequestOp_RequestDeleteRange](), pbTypeOf[*etcdserverpb.RequestOp_RequestTxn]()}
+	w[pbHolderType[etcdserverpb.ResponseOp]("Response")] = []reflect.Type{pbTypeOf[*etcdserverpb.ResponseOp_ResponseRange](), pbTypeOf[*etcdserverpb.ResponseOp_ResponsePut](), pbTypeOf[*etcdserverpb.ResponseOp_ResponseDeleteRange](), pbTypeOf[*etcdserverpb.ResponseOp_ResponseTxn]()}
+	w[pbHolderType[etcdserverpb.WatchRequest]("RequestUnion")] = []reflect.Type{pbTypeOf[*etcdserverpb.WatchRequest_CreateRequest](), pbTypeOf[*etcdserverpb.WatchRequest_CancelRequest](), pbTypeOf[*etcdserverpb.WatchRequest_ProgressRequest]()}
+	return w
 }
 
 // pbType: a message type of the codec, with its fields as the generator derived them.
@@ -185,9 +566,13 @@ type pbType struct {
 	new    func() proto.Message
 	fields []pbField
 	// nest: the Go field names and numbers of a path of message fields from the type back to
-	// itself (nil: not recursive)
+	// itself (nil: not recursive); nestWrap: per step, the oneof wrapper type (*W) or nil
 	nest     []string
 	nestNums []protowire.Number
+	nestWrap []reflect.Type
+	// req: the type has a required field; init: it reaches one (Marshal and Unmarshal check
+	// them)
+	req, init bool
 }
 
 type pbField struct {
@@ -198,6 +583,12 @@ type pbField struct {
 	packed bool
 	ref    string // a message or enum field's type's full name
 	goType reflect.Type
+	pres   bool         // explicit presence (not a message, not in a oneof)
+	req    bool         // required
+	utf8   bool         // a string field whose UTF-8 is checked
+	oneof  string       // the (non-synthetic) oneof's name
+	holder string       // a oneof member's holder field
+	wrap   reflect.Type // a oneof member's wrapper type (*W); goName is W's field
 }
 
 func pbFullName(m proto.Message) string {
@@ -206,6 +597,15 @@ func pbFullName(m proto.Message) string {
 
 func pbTypeOf[T any]() reflect.Type {
 	return reflect.TypeOf((*T)(nil)).Elem()
+}
+
+// pbHolderType: the type of T's struct field name (a oneof's holder).
+func pbHolderType[T any](name string) reflect.Type {
+	f, ok := reflect.TypeOf((*T)(nil)).Elem().FieldByName(name)
+	if !ok {
+		panic("no field " + name)
+	}
+	return f.Type
 }
 
 func pbNil(m proto.Message) proto.Message {
@@ -235,11 +635,11 @@ func TestProtoShapes(t *testing.T) {
 			t.Errorf("%s: no descriptor", tp.name)
 			continue
 		}
-		if md.ParentFile().Syntax() != protoreflect.Proto3 {
-			t.Errorf("%s: syntax %v, not proto3 (outside the codec)", tp.name, md.ParentFile().Syntax())
+		if sx := md.ParentFile().Syntax(); sx != protoreflect.Proto3 && sx != protoreflect.Proto2 {
+			t.Errorf("%s: syntax %v, not proto2 or proto3 (outside the codec)", tp.name, sx)
 		}
-		if md.Oneofs().Len() != 0 || md.ExtensionRanges().Len() != 0 {
-			t.Errorf("%s: has oneofs or extension ranges (outside the codec)", tp.name)
+		if md.ExtensionRanges().Len() != 0 {
+			t.Errorf("%s: has extension ranges (outside the codec)", tp.name)
 		}
 		if md.Fields().Len() != len(tp.fields) {
 			t.Errorf("%s: the message has %d fields, the generator derived %d", tp.name, md.Fields().Len(), len(tp.fields))
@@ -251,8 +651,25 @@ func TestProtoShapes(t *testing.T) {
 				exported++
 			}
 		}
-		if exported != len(tp.fields) {
-			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d", tp.name, exported, len(tp.fields))
+		holders := map[string]bool{}
+		plain := 0
+		for _, f := range tp.fields {
+			if f.oneof != "" {
+				holders[f.holder] = true
+			} else {
+				plain++
+			}
+		}
+		if exported != plain+len(holders) {
+			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d fields and %d oneofs",
+				tp.name, exported, plain, len(holders))
+		}
+		req := false
+		for i := 0; i < md.Fields().Len(); i++ {
+			req = req || md.Fields().Get(i).Cardinality() == protoreflect.Required
+		}
+		if req != tp.req {
+			t.Errorf("%s: required fields %v, the generator says %v", tp.name, req, tp.req)
 		}
 		for _, f := range tp.fields {
 			fd := md.Fields().ByNumber(f.num)
@@ -264,8 +681,21 @@ func TestProtoShapes(t *testing.T) {
 				t.Errorf("%s.%s (%d): kind %v, list %v, map %v, packed %v; the generator says %v, %v, false, %v",
 					tp.name, f.goName, f.num, fd.Kind(), fd.IsList(), fd.IsMap(), fd.IsPacked(), f.kind, f.rep, f.packed)
 			}
-			if fd.ContainingOneof() != nil || fd.HasPresence() != (!f.rep && f.kind == protoreflect.MessageKind) {
-				t.Errorf("%s.%s: explicit presence or a oneof (outside the codec)", tp.name, f.goName)
+			od := fd.ContainingOneof()
+			if od != nil && od.IsSynthetic() {
+				od = nil
+			}
+			oneof := ""
+			if od != nil {
+				oneof = string(od.Name())
+			}
+			pres := fd.HasPresence() && f.kind != protoreflect.MessageKind && od == nil
+			if oneof != f.oneof || pres != f.pres || (fd.Cardinality() == protoreflect.Required) != f.req {
+				t.Errorf("%s.%s: oneof %q, presence %v, required %v; the generator says %q, %v, %v", tp.name,
+					f.goName, oneof, pres, fd.Cardinality() == protoreflect.Required, f.oneof, f.pres, f.req)
+			}
+			if fd.Kind() == protoreflect.StringKind && f.utf8 != (fd.Syntax() == protoreflect.Proto3) {
+				t.Errorf("%s.%s: a %v string, the generator says UTF-8 checked %v", tp.name, f.goName, fd.Syntax(), f.utf8)
 			}
 			ref := ""
 			if fd.Message() != nil {
@@ -276,7 +706,18 @@ func TestProtoShapes(t *testing.T) {
 			if ref != f.ref {
 				t.Errorf("%s.%s: type %q, the generator says %q", tp.name, f.goName, ref, f.ref)
 			}
-			sf, ok := st.FieldByName(f.goName)
+			ft := st
+			if f.oneof != "" {
+				hf, ok := st.FieldByName(f.holder)
+				if !ok || hf.Tag.Get("protobuf_oneof") != f.oneof || hf.Type.Kind() != reflect.Interface ||
+					!f.wrap.Implements(hf.Type) {
+					t.Errorf("%s.%s: holder %s (%v, tag %q) of oneof %s, wrapper %v", tp.name, f.goName, f.holder,
+						hf.Type, hf.Tag.Get("protobuf_oneof"), f.oneof, f.wrap)
+					continue
+				}
+				ft = f.wrap.Elem()
+			}
+			sf, ok := ft.FieldByName(f.goName)
 			if !ok || sf.Type != f.goType || pbTagNumber(sf.Tag.Get("protobuf")) != f.num {
 				t.Errorf("%s.%s: Go field %v (tag %q), the generator says %v number %d", tp.name, f.goName,
 					sf.Type, sf.Tag.Get("protobuf"), f.goType, f.num)
@@ -356,12 +797,35 @@ func pbRandValue(r *rand.Rand, f reflect.Value, depth int) {
 	case reflect.String:
 		f.SetString(pbRndString(r))
 	case reflect.Pointer:
+		if f.Type().Elem().Kind() != reflect.Struct { // explicit presence: often a zero value
+			p := reflect.New(f.Type().Elem())
+			if r.Intn(3) != 0 {
+				pbRandValue(r, p.Elem(), depth)
+			}
+			f.Set(p)
+			return
+		}
 		if depth >= 5 {
 			return
 		}
 		p := reflect.New(f.Type().Elem())
 		if r.Intn(4) != 0 {
 			pbRandFill(r, p.Elem(), depth+1)
+		}
+		f.Set(p)
+	case reflect.Interface: // a oneof: one of its wrappers (rarely a typed nil one)
+		ws := pbOneofWrappers[f.Type()]
+		if len(ws) == 0 {
+			panic("pbRandValue: no wrappers for " + f.Type().String())
+		}
+		w := ws[r.Intn(len(ws))]
+		if r.Intn(10) == 0 {
+			f.Set(reflect.Zero(w))
+			return
+		}
+		p := reflect.New(w.Elem())
+		if r.Intn(5) != 0 {
+			pbRandValue(r, p.Elem().Field(0), depth)
 		}
 		f.Set(p)
 	case reflect.Slice:
@@ -406,7 +870,12 @@ func pbChain(tp pbType, d int) proto.Message {
 	for i := 0; i < d; i++ {
 		f := cur.FieldByName(tp.nest[i%len(tp.nest)])
 		var child reflect.Value
-		if f.Kind() == reflect.Pointer {
+		if w := tp.nestWrap[i%len(tp.nest)]; w != nil {
+			wv := reflect.New(w.Elem())
+			child = reflect.New(wv.Elem().Field(0).Type().Elem())
+			wv.Elem().Field(0).Set(child)
+			f.Set(wv)
+		} else if f.Kind() == reflect.Pointer {
 			child = reflect.New(f.Type().Elem())
 			f.Set(child)
 		} else {
@@ -426,6 +895,11 @@ func pbEq(a, b reflect.Value) bool {
 			return a.IsNil() == b.IsNil()
 		}
 		return pbEq(a.Elem(), b.Elem())
+	case reflect.Interface:
+		if a.IsNil() || b.IsNil() {
+			return a.IsNil() == b.IsNil()
+		}
+		return a.Elem().Type() == b.Elem().Type() && pbEq(a.Elem(), b.Elem())
 	case reflect.Struct:
 		for i := 0; i < a.NumField(); i++ {
 			if a.Type().Field(i).IsExported() && !pbEq(a.Field(i), b.Field(i)) {
@@ -485,13 +959,14 @@ func TestProtoMarshal(t *testing.T) {
 			}
 		}
 	}
-	if pbHasStrings && pbStats.marshalErrs == 0 {
-		t.Fatalf("no Marshal error (invalid UTF-8) seen")
+	if (pbHasStrings || pbHasRequired) && pbStats.marshalErrs == 0 {
+		t.Fatalf("no Marshal error (invalid UTF-8, a required field not set) seen")
 	}
 	t.Logf("%d encodings, %d errors", pbStats.marshalOK, pbStats.marshalErrs)
 }
 
-// pbSamples: real encodings of random values of every type of the codec.
+// pbSamples: real encodings of random values of every type of the codec (a third of those of
+// types with required fields marshaled with AllowPartial: missing some).
 func pbSamples(r *rand.Rand, n int) [][]byte {
 	types := pbTypes()
 	var out [][]byte
@@ -500,6 +975,9 @@ func pbSamples(r *rand.Rand, n int) [][]byte {
 		m := tp.new()
 		pbRandFill(r, reflect.ValueOf(m).Elem(), 0)
 		b, err := proto.Marshal(m)
+		if err != nil && tp.init && r.Intn(3) == 0 {
+			b, err = proto.MarshalOptions{AllowPartial: true}.Marshal(m)
+		}
 		if err == nil {
 			out = append(out, b)
 		}
@@ -958,9 +1436,11 @@ func pbNest(nums []protowire.Number, k int, inner []byte) []byte {
 func TestProtoDepth(t *testing.T) {
 	r := rand.New(rand.NewSource(4))
 	for _, tp := range pbTypes() {
+		// (the expected outcomes below hold for messages that need no required field; the
+		// codec is compared with the real one in every case)
 		for _, d := range []int{1, 2, 10001, 10002} {
 			ok := pbCheckUnmarshal(t, r, tp, pbGroup(pbUnknownNum, d))
-			if ok != (d <= 10001) {
+			if ok != (d <= 10001) && !tp.req {
 				t.Fatalf("%s: a group nested %d deep: real %v", tp.name, d, ok)
 			}
 		}
@@ -969,13 +1449,14 @@ func TestProtoDepth(t *testing.T) {
 		}
 		for _, k := range []int{1, 2, 9999, 10000, 10001} {
 			ok := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, k, nil))
-			if ok != (k < 10000) {
+			if ok != (k < 10000) && !tp.init {
 				t.Fatalf("%s: nested %d deep: real %v", tp.name, k, ok)
 			}
 		}
 		// groups at protowire's limit inside messages at the recursion limit
-		if !pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10001))) ||
-			pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10002))) {
+		ok1 := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10001)))
+		ok2 := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10002)))
+		if (!ok1 || ok2) && !tp.init {
 			t.Fatalf("%s: groups inside deep nesting: the real one's limits are not as expected", tp.name)
 		}
 	}

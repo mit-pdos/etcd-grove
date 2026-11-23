@@ -29,6 +29,7 @@ public import Perennial.Code.encoding.binary
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
+public import Perennial.Code.internal.bytealg
 public import Perennial.Code.internal.oserror
 public import Perennial.Code.internal.stringslite
 public import Perennial.Code.io
@@ -44,6 +45,7 @@ public import Perennial.Code.strings
 public import Perennial.Code.sync
 public import Perennial.Code.sync.atomic
 public import Perennial.Code.time
+public import Perennial.Code.unicode.utf8
 public import Perennial.Code.unsafe
 
 @[expose] public section
@@ -72,6 +74,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | go_etcd_io_raft_v3_raftpb : ExternalInit pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
   | go_etcd_io_raft_v3_tracker : ExternalInit pkg_id.go_etcd_io.raft.v3.tracker _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize'
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
+  | internal_bytealg : ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
   | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
@@ -88,6 +91,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | sync : ExternalInit pkg_id.sync _root_.Perennial.sync.initialize'
   | sync_atomic : ExternalInit pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
   | time : ExternalInit pkg_id.time _root_.Perennial.time.initialize'
+  | unicode_utf8 : ExternalInit pkg_id.unicode.utf8 _root_.Perennial.unicode.utf8.initialize'
   | unsafe_ : ExternalInit pkg_id.«unsafe» _root_.Perennial.«unsafe».initialize'
 
 section ax
