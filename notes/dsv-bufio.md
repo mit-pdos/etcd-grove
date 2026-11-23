@@ -197,15 +197,16 @@ Upamanyu: ready to land once N1 and N2 are settled.
   `(ys.length : Int) < sint.Z min ∧ ys.length < xs.length → Pre …` (with `min > len(buf)`, the
   `ErrShortBuffer` path, the first version asked `Pre _ 0`); `ReadFull`'s proof uses the second conjunct.
 
-**Follow-ups (after landing).**
-- Retire `bufio.ownReader` (the WAL's view, `Spec/bufio/Reader__Read.lean`, `OwnReaderE.lean`), and
+**Follow-ups (after landing).** Status 2026-11-23 (branch `dsv-bufio-laws`, below): all three
+still open.
+- *Open.* Retire `bufio.ownReader` (the WAL's view, `Spec/bufio/Reader__Read.lean`, `OwnReaderE.lean`), and
   `szOk` with it (it exists only for that view): move the WAL's callers (`fileutil.NewFileBufReader`,
   the decoder) onto `ownBufReader`.
-- The WAL specs' remaining premises outside the triple (R3): `bufio.NewReader.spec`'s Lean implication
+- *Open.* The WAL specs' remaining premises outside the triple (R3): `bufio.NewReader.spec`'s Lean implication
   `ri.ty ≠ *bufio.Reader →` and `bufio.Reader.Read.spec`'s `io.readerStream … -∗ (□ bound) -∗` before the
   triple, into the preconditions as in the generic specs (with the WAL's callers).
 
-- Unify `io.streamWriterOk` (`Proof/io/StreamWriterOk.lean`, the kits' `bufio.Writer` over a connection)
+- *Open.* Unify `io.streamWriterOk` (`Proof/io/StreamWriterOk.lean`, the kits' `bufio.Writer` over a connection)
   with `lean`'s `io.writerOk w Wr` (`Proof/io/SectionReader.lean`, S4's `Tx.WriteTo`/`io.CopyN`): two
   contracts of `io.Writer`, with no law between them. (Ours was `io.writerOk` until the two met on
   `lean`, 2026-11-23: renamed `io.streamWriterOk`, `io.streamWriterOk_persistent`,
@@ -221,3 +222,24 @@ Upamanyu: ready to land once N1 and N2 are settled.
 `af905abba`: `Perennial.Proof.io.{ReadAtLeast,ReadFull,Link}` built, both proofs' axioms Lean's three.
 Not built: the WAL `Link`'s importers (`WalTester/.../wal/Link`, `etcdserver.RnNewStorageLinked`; no
 statement they use changed).
+
+## Laws for the kit ports (branch `dsv-bufio-laws`, 2026-11-23)
+
+Off `origin/lean` `361ca5c7b7`, so that no kit unfolds `bufio`'s predicates (SwiftPaxos's interim
+`bufio.ownWriter_excl_heap` and `ownReader_not_null` did). In `Proof/bufio/Own.lean`:
+
+- `bufio.ownBufWriter_excl`: `ownBufWriter bw wi J Q Ew sz sent pend err ∗ ownBufWriter bw wi' J' Q'
+  Ew' sz' sent' pend' err' ⊢ False` (any contracts, sizes and states), from the `err` fields'
+  points-tos, through `bufio.iface_pointsto_excl` (`l ↦ v1 ∗ l ↦ v2 ⊢ False` at an interface type;
+  a candidate for Perennial, as a typed-points-to exclusion lemma).
+- `bufio.ownBufWriter_not_null`: `ownBufWriter bw … ⊢ ⌜bw ≠ null⌝`.
+- `bufio.ownBufReaderE_not_null`: `ownBufReaderE br … ⊢ ⌜br ≠ null⌝`; `bufio.ownBufReader_not_null`
+  its instance.
+
+The round-2 follow-ups above stay open (none done here); the earlier "Not done / left" items
+(`WriteString`/`ReadString`/`ReadSlice` specs, a link file for the new specs, the WAL on the
+generic specs) also stay open.
+
+**Checked.** `lake build` of every `Proof/bufio/` module and `Net.Proof.net.ConnIo`: ok.
+`#print axioms` of the four laws and `bufio.iface_pointsto_excl`: `propext`, `Classical.choice`,
+`Quot.sound`. `etc/lean-check.py -a Proof/bufio/Own.lean`: 0 errors. `etc/tier-check.py --check`: ok.

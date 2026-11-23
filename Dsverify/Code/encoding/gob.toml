@@ -1,0 +1,7 @@
+# Projects dsv-swiftpaxos and dsv-quepaxa (etc/goose.py): `encoding/gob`, names and types only (no
+# model yet). swiftpaxos's specs of it are its proof's hypotheses (notes/dsv-swiftpaxos.md; they name
+# `Encoder`/`Decoder`, hence the types); quepaxa's `common.GetRealSizeOf` calls gob's encoder (size
+# estimates for the benchmark), which its kit never reaches.
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true

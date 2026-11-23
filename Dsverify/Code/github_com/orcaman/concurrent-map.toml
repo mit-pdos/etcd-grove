@@ -1,0 +1,7 @@
+# Project dsv-swiftpaxos (etc/goose.py): `github.com/orcaman/concurrent-map`. The project lists the package among
+# those it translates, so goose translates its bodies (`fnv32.impl`, `ConcurrentMap.*.impl`; the proofs of
+# Proof/github_com/orcaman/concurrent_map build over them) and the two lines below have no effect (checked
+# 2026-11-23: `etc/goose.py --check --project dsv-swiftpaxos` is up to date with them; notes/dsv-swiftpaxos.md).
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true

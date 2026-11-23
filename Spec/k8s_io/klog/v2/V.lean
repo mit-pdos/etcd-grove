@@ -1,6 +1,7 @@
 /-
-`klog.V(level)` (names-only): some `Verbose`. The trust boundary: an axiom, `Proof/k8s_io/klog/v2/V.lean`. Lean-first (no Rocq
-counterpart).
+`klog.V(level)`: some `Verbose`. Proved over klog's translated `V` (`Proof/k8s_io/klog/v2/V.lean`;
+klog-leaves, 2026-11-23, etcd-grove#25: until then names-only and a trust-boundary axiom), from klog's
+package fact (`klogInit`: no `-vmodule`, no global logger). Lean-first (no Rocq counterpart).
 -/
 module
 

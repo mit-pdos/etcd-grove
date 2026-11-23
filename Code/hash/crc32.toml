@@ -2,14 +2,21 @@
 # `Castagnoli`, `MakeTable`, `Update`) and (prove-etcdint3, 2026-11-21) what mvcc's `kvHasher` calls
 # (`New`, the digest's `Write` and `Sum32`), with bodies, and the package's variable initializers
 # (`IEEETable`, `simpleMakeTable(IEEE)`, over `simplePopulateTable`; the two `sync.OnceFunc`s), so
-# that its initializer is translated. `MakeTable` and `update` are trusted
-# (TrustedCode/hash/crc32.lean: Go's portable table-driven code over the Castagnoli table; the
-# assembly is not translatable), pending the user's review (2026-11-13; `update` in place of
-# `Update`, which calls it, since 2026-11-21).
-translate = ["!*", "New", "digest.Write", "digest.Sum32", "Update", "IEEETable", "simpleMakeTable",
-  "simplePopulateTable", "castagnoliInitOnce", "ieeeInitOnce", "IEEE", "Castagnoli"]
-imports = ["!*", "sync", "sync/atomic", "hash"]
-trusted = ["MakeTable", "update"]
+# that its initializer is translated.
+# (crc32-hooks2, 2026-11-22: etcd-grove#14, the fix upamanyus approved) `MakeTable` and `update` are
+# translated with their bodies, with what they reach: the Castagnoli once (`castagnoliInitOnce`), the
+# package state it sets up (`castagnoliTable`, `castagnoliTable8`, `updateCastagnoli`,
+# `haveCastagnoli`; the IEEE path's `ieeeTable8`, `updateIEEE`), `simpleUpdate` and the slicing-by-8
+# code (`slicingMakeTable`, `slicingUpdate`, over `internal/byteorder`'s `LEUint32`). Trusted: only
+# the amd64 hooks of the Castagnoli fast path (TrustedCode/hash/crc32.lean), whose Go is SSE4.2
+# assembly; the IEEE hooks stay names only (no proof reaches the IEEE path).
+translate = ["!*", "New", "digest.Write", "digest.Sum32", "Update", "update", "MakeTable",
+  "IEEETable", "simpleMakeTable", "simplePopulateTable", "simpleUpdate", "slicingMakeTable",
+  "slicingUpdate", "slicing8Cutoff", "castagnoliInitOnce", "ieeeInitOnce", "castagnoliTable",
+  "castagnoliTable8", "updateCastagnoli", "haveCastagnoli", "ieeeTable8", "updateIEEE", "IEEE",
+  "Castagnoli"]
+imports = ["!*", "sync", "sync/atomic", "hash", "internal/byteorder"]
+trusted = ["archAvailableCastagnoli", "archInitCastagnoli", "archUpdateCastagnoli"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

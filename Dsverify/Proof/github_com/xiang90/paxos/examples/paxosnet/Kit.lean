@@ -227,7 +227,8 @@ abbrev Orch.spec : Prop :=
       ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (woR Γ) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := BStr) ∗
       pendCtx (Gg := hG.goose_globalGS) (woR Γ) (woS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (woS0 (GF := GF)) γp (woS0 (GF := GF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (woS0 (GF := GF)) γp (woS0 (GF := GF)).M.init ∗
+      [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 3 }}
     (App (Val (@! github_com.xiang90.paxos.examples.paxosnet.Orch)) (Val #()))
   {{ RET #(); True }}
 

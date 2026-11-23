@@ -41936,3 +41936,147 @@ contract chooses the ghost table, so naming three more buckets in it constrains 
 **Why not** derive `P.has` from the data (`D.lookup n = some _`): the table is a free parameter of `KBReal`, and
 the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
 by #30 at the time).
+
+## pbgen's subset extended to proto2 and oneofs (2026-11-23 · proving session 2, #18, offered by #24 · branch `ps2-pbgen-proto2/2026-11-23`, not landed: for the user's review)
+
+**Context.** pbgen (`models/protobuf/`, "Trusted generated code: the generator is the trusted
+artifact", above) accepted proto3 messages only. Every raftpb and walpb type (proto2: explicit
+presence, closed enums, unpacked repeated fields) and etcd's transaction and raft-entry requests
+(oneofs: `Compare.target_union`, `RequestOp.request`, `ResponseOp.response`) were refused, which
+blocks replacing the per-type protobuf axioms of raft, the WAL and the apply path by generated
+codecs (`/shared/tmp/ps2/pbgen/triage.md`, item E2 (b) of `notes/dsverify-net-port-plan.md` phase 5).
+
+**Decision.** The trusted core now accepts proto2 and proto3 files with explicit presence
+(proto2 `optional`/`required`, proto3 `optional`), required fields (Marshal and Unmarshal check
+initialization as protobuf-go's `checkInitialized`), explicit defaults (wire-irrelevant: only the
+getters read them), closed enums (decoded as open, as protobuf-go does), packed and unpacked
+repeated scalars per the descriptor, and oneofs (marshaled after the other fields, in declaration
+order, as protobuf-go's `LegacyFieldOrder`; the last member decoded wins; a member decoded again
+goes into the wrapper already there, a message merging into its message). Each rule is cited to protobuf-go v1.36.12 in `pbgen_core.py`'s doc. `pbdesc`
+(trusted with the core) dumps three new facts: each oneof's holder field, each member's wrapper
+type (from the registered `MessageInfo.OneofWrappers`, as protobuf-go's `structInfo`), and the
+presence or lazy state fields of the opaque and hybrid APIs (refused). Still refused: editions,
+maps, groups, float/double, extensions, MessageSet, weak and lazy fields.
+
+**Two new refusals where protobuf-go is not what its descriptors say** (both found while testing,
+shown on protobuf-go by `models/internal/pbgenrand`'s `TestProtobufQuirks`): a message type that
+has no required field of its own, reaches one and lies on a cycle of two or more message types
+(conservatively also when it reaches one outside the cycle; `needsInitCheck`'s cache
+keeps a false for it, depending on which type the program uses first, so its checks are skipped
+nondeterministically); a oneof member other than the oneof's first declared one, of a type with
+required fields (Unmarshal's fast path never consults it: a missing required field there passes
+Unmarshal and fails Marshal). The emitted code could reproduce the second, not the first (it
+depends on the program's history); refusing both keeps the core's required-field check one rule.
+Neither arises in etcd (no etcd message has a required field).
+
+**Evidence.** `pbgenrand`'s random schemas now mix proto2 and proto3 files with all of the above
+(their constructs counted in the test's log), `TestOrders` runs a hand-built schema of required fields in and near cycles, a oneof whose first
+member needs the check and a message of 70 required fields against protobuf-go in 13 orders of its
+lazy type setup (each in a fresh process), `TestRefusals` has one schema per remaining refusal
+and checks the newly accepted constructs are not refused, `examples/models/pbetcd` covers raftpb,
+walpb and the oneof requests (its generated regression test), and the new section of
+`notes/axiom-review/pbgen.md` is the review.
+
+## The protobuf boundary's stage S1: `entryEncC`, `entDecode`, `ccDecodeV2` are concrete; `entryEncC_ok`, `ccDecodeV2_nil` theorems (2026-11-23 · #37 · branch `proto-s1`)
+
+**2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37)**
+
+Until now `entDecode` (an `Entry`'s decoding), `entryEncC` (its encoding) and `ccDecodeV2` (a
+`ConfChangeV2`'s decoding) were `opaque`, and what was known of them were two axioms,
+`entryEncC_ok` (the round trip and the length of an `Entry`'s encoding) and `ccDecodeV2_nil` (the
+empty bytes decode to the empty `ConfChangeV2`), and the trusted specs of `proto.Marshal`/
+`proto.Unmarshal` that name them.
+
+**Decision:** they are definitions, over a generic wire format:
+`Proof/google_golang_org/protobuf/proto/Wire.lean` (varints, tags, length-delimited and fixed
+values, proto2 explicit presence `opt`, unknown fields appended after the known fields; a
+decoder for flat schemas, its tags and values read as protobuf-go reads them: non-minimal
+varints, the 10-byte limit, number ranges, wire types 4, 6, 7 refused, groups skipped up to 10001
+deep, a known field's records in input order and the last scalar winning, the rest kept in the
+unknown fields with its tag re-encoded minimally), and the per-type codecs
+`Proof/go_etcd_io/raft/v3/PbWireRaft.lean` (`entryEncRaw`, `entDecodeRaw`, `cc2DecodeRaw`; an enum
+written sign-extended and read as its low 32 bits). `decode_encode` (records the decoder reads
+back and unknown fields as `ufWire` says decode to themselves) gives `entryEncC_ok` (now a
+theorem, its statement unchanged); `ccDecodeV2_nil` is `simp`. Both axioms left the trust base.
+
+**What it changes in the trust base.** Nothing is weaker, and two trusted specs say more:
+`proto.MarshalPb`/`UnmarshalPb` (at `Entry`) and `proto.MarshalConfChangeV2`/
+`UnmarshalConfChangeV2` now claim byte-exact agreement of protobuf-go with these Lean functions
+(Unmarshal fails exactly where the decoder says `none`, and otherwise gives its result; Marshal's
+bytes, at `Entry`, are `entryEncRaw`'s). That is true, and its evidence is
+`examples/pbschema/wirevectors_test.go`: protobuf-go v1.36.12's `Marshal` of random `Entry`s
+(presence, extreme values, unknown fields) and `Unmarshal`'s outcome on their encodings, on
+encodings with interleaved and adversarial records, on byte mutations of all of them and on edge
+cases (varint limits, number limits, wire types, groups 10001 and 10002 deep), and on
+`ConfChangeV2`s and their mutations: 962 vectors, written as the `#guard`s of
+`Proof/google_golang_org/protobuf/proto/EntryWireVectors.lean` (checked when it builds; the test
+fails if the module is not what it generates; gated in `etc/gates.sh`'s models section). Until stage
+S3 proves the Go model of `proto` against these functions, the vectors are what backs them.
+
+*Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
+`ccDecodeV1` (still opaque: nothing needed it).
+
+## The protobuf boundary's stage S2: `msgEncC`, `msgDecode`, `recDecode` concrete, `irrDecode`'s `AuthUserGrantRole` concrete; `msgEncC_ok`, `recEncC_ok`, `apply.irrDecode_utf8` theorems (2026-11-23 · #37 · branch `proto-s2`)
+
+**2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37; stacked on stage S1)**
+
+**What was trusted.**
+- `msgEncC` (a `raftpb.Message`'s encoding, rafthttp's `PerTypeMessage.lean`), `msgDecode` (its decoding, raft's `PbMessage.lean`) and `recDecode` (a `walpb.Record`'s decoding, `wal/walpb/PbRecord.lean`) were `opaque`.
+- Three axioms said something about them:
+  - `msgEncC_ok`: the round trip and the length of a `Message`'s encoding;
+  - `recEncC_ok`: the round trip of `recEnc`, already a Lean function;
+  - `apply.irrDecode_utf8`: a decoded `InternalRaftRequest`'s `AuthUserGrantRole.role` is valid UTF-8, over the opaque `irrDecode`.
+
+**Decision.**
+- **`Wire.lean`** gains `decodeMerged`: a singular message field's occurrences, merged as `consumeMessageInfo` merges them, which is their records concatenated.
+- **`PbWireRaft.lean`** gains `Message`'s codec:
+  - raw encoders `csEncRaw`, `metaEncRaw`, `snapEncRaw`, `msgEncRaw`, each taking its sub-messages already encoded;
+  - decoders `csDecodeD`, `metaDecodeD`, `snapDecodeD`, `msgDecodeD`, with:
+    - unpacked and packed repeated `uint64`s, a packed record that does not parse failing the message;
+    - merged singular sub-messages;
+    - a `bool` read as non-zero;
+    - `responses` decoded (their failure fails the message) and counted;
+    - protobuf-go's recursion depth: `msgDecodeRaw = msgDecodeD 10000`, each sub-message one level, an empty one included.
+  - round-trip theorems at each level (`msgDecodeD_enc` and the others).
+- **The definitions over them.**
+  - `msgEncC` is `msgEncRaw` composed over `MsgC`, responses included.
+  - `msgDecode` is `msgDecodeRaw` mapped to `MsgWire`.
+  - `msgEncC_ok` is a theorem, its statement unchanged.
+- **`walpb.Record`.**
+  - `WalPbWire.lean` gains `recDecodeRaw`: `int64` read as the low 64 bits, `uint32` as the low 32.
+  - `recDecode` is `recDecodeRaw`, and `recEncC_ok` is a theorem.
+- **`irrDecode` is now a hybrid.** Decoding the whole `InternalRaftRequest` into `IRRModel` would have meant a Lean decoder for every request type (the transactions, the lease and auth requests, ...), well beyond this stage. Only what the axiom needs is concrete:
+  - `apply.irrDecode bs` is `irrDecodeRest bs` (opaque, every field but one) with its `authUserGrantRole` replaced by `IrrWire.irrUgrDecodeRaw bs`, and `none` unless both succeed.
+  - `irrUgrDecodeRaw` is protobuf-go's reading of field 1104 as a Lean function:
+    - the top-level records are read with only field 1104 declared, every other record skipped as `ConsumeFieldValue` skips it;
+    - the `AuthUserGrantRoleRequest` occurrences are merged;
+    - every `string` record must be valid UTF-8 (`utf8ValidB`, Go's `utf8.Valid`), and the last one wins.
+  - **Why the hybrid is sound.** Wherever protobuf-go's `Unmarshal` succeeds, the reader succeeds too and reads the same field: every other field's coder reads the same bytes the skip does, and fails only where the skip fails or later. So the axioms naming `irrDecode` (`proto.MarshalIRR`, `pbutil.MustUnmarshalMessage`'s premise) stay true with `irrDecodeRest` taken to be protobuf-go's decoder.
+  - **The theorem.** `irrDecode_utf8` follows from the definition (`IrrWire.irrUgrDecodeRaw_utf8`).
+
+**What it changes in the trust base.**
+- Three axioms left it (`etc/tcb-baseline.txt` and the collections).
+- Nothing became weaker.
+- **Trusted specs that now say more** (D3):
+  - `proto.MarshalPb`/`UnmarshalPb` at `Message`, and rafthttp's codecs through `MsgWireOk`/`MsgEnc`: protobuf-go's bytes are `msgEncC`'s, and its `Unmarshal` fails exactly where `msgDecodeRaw` says `none`, and otherwise agrees with it;
+  - `proto.UnmarshalWalRecord` and the WAL decoder's spec: the same at `walpb.Record`, with `recDecodeRaw`;
+  - `proto.MarshalIRR` and `MustUnmarshalMessage`: their `irrDecode` includes the concrete `AuthUserGrantRole` reader, and claims agreement only where protobuf-go succeeds.
+- **The claims are pinned** to protobuf-go v1.36.12, `examples/go.mod`'s pin; protobuf-go documents that its output may change between versions.
+- **No map fields** (D3 caution, kaashoek's review on #37): checked in the `.proto` sources at the pins (`raftpb/raft.proto`, `walpb/record.proto`, `etcdserverpb/raft_internal.proto` and `rpc.proto`, `membershippb`, `versionpb`): none has a `map<` field, so the encodings are deterministic.
+
+**Evidence.** `examples/pbschema/wirevectors_s2_test.go` writes three `#guard` modules from protobuf-go v1.36.12, with fixed seeds. `etc/gates.sh` checks them, and the build runs the guards.
+- **`MessageWireVectors.lean`, 1055 guards.**
+  - 150 `Marshal`s of random `Message`s, as the composed raw encoders. They cover every presence combination, enums out of range, entries, a snapshot with or without metadata and conf state, responses, and unknown fields at every level.
+  - 80 re-encodings (D2, kaashoek's note on #37): a message decoded from records with unknown fields interleaved at every level, then `Marshal`ed. protobuf-go writes the known fields in field-number order and the unknown fields, kept in arrival order, after them, and the Lean encoder of the decoded content gives the same bytes (`encode ks uf = encFields ks ++ uf`).
+  - 823 `Unmarshal` outcomes, covering every getter, the conf state's lists and the number of responses, or the error. Inputs:
+    - those encodings;
+    - encodings with unknown fields interleaved;
+    - adversarial encodings, including packed conf states;
+    - mutations of all of these;
+    - edge cases: merged snapshots, metadata and conf states, unparsable packed lists, bools 2 and 5, empty and invalid entries, responses nested 300 deep.
+- **`TestMessageDepthLimit`, in Go only.** It checks that 10000 nested messages decode and 10001 do not, with an entry or a conf state counting as a level. The Lean decoder's cost is quadratic in the nesting, so the guards stop at 300.
+- **`RecordWireVectors.lean`, 578 guards.** `recEnc` against `Marshal`, `recDecodeRaw` against `Unmarshal` (including int64/uint32 truncation), and 69 decoded records with interleaved unknown fields re-encoded (D2).
+- **`IrrWireVectors.lean`, 504 guards.**
+  - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
+  - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
+- **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.

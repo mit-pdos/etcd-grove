@@ -1,4 +1,4 @@
-// Package env is what every machine program of etcd_dist_safe does to its environment before
+// Package env is what every machine program of etcd_safe does to its environment before
 // anything reads it (notes/etcd-dist-plan.md, §4 and Q10): the server's and the clients' Main call
 // ClearProxy first.
 package env

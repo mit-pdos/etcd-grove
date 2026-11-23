@@ -199,13 +199,47 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseTimeToLive`** (see the file header): the reply is about the lease the
 request asks about. The weakest spec `leasekv` needs: nothing of the header, `TTL` or `GrantedTTL`
 (the server's answer, `v3rpc.leaseTTLOut`, gives more; a stronger spec of the method can be
 registered beside it). -/
-def etcdLeaseTTLSpec : GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
+def etcdLeaseTTLSpecW : w64 × Bool → (LeaseTTLRespM → IProp GF) → IProp GF :=
   fun (req : w64 × Bool) (Φ : LeaseTTLRespM → IProp GF) =>
     iprop(∀ m : LeaseTTLRespM, ⌜m.id = req.1⌝ -∗ Φ m)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdLeaseTTLSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec
+is `etcdLeaseTTLSpecW`, over the models alone, what a service table holds; this is its form at the
+message types). -/
+def etcdLeaseTTLSpec :
+    GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
+  etcdLeaseTTLSpecW
+
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's old spec of `LeaseLeases`**: the reply lists no lease twice. Since the lease-grant
 review's S6 (2026-11-02) a corollary of the contract `etcdLeaseLeasesSpec`
@@ -213,9 +247,25 @@ review's S6 (2026-11-02) a corollary of the contract `etcdLeaseLeasesSpec`
 kept for its callers. The weakest spec `leasekv`
 needs: nothing of which leases (the server's answer, `v3rpc.leaseLeasesOut`, gives the lessor's at an
 index of its history). -/
-def etcdLeaseLeasesSpecAny : GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+def etcdLeaseLeasesSpecAnyW : Unit → (LeaseLeasesRespM → IProp GF) → IProp GF :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>
     iprop(∀ m : LeaseLeasesRespM, ⌜m.ids.Nodup⌝ -∗ Φ m)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdLeaseLeasesSpecAnyW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseLeasesSpecAnyW`, over the models alone, what a service table holds; this is its
+form at the message types). -/
+def etcdLeaseLeasesSpecAny :
+    GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+  etcdLeaseLeasesSpecAnyW
 
 namespace client
 

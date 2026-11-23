@@ -96,7 +96,7 @@ revoked it). -/
 def etcdLeaseGrantLiveAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseGrant"
       (etcdLeaseGrantSpecLive (EM := v3rpc.etcdModelOfServer E γr false) (mvcc.api.mvccLeases E.γ)) ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) s) ∗
+    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) (leaseTTLRow s (mvcc.api.mvccLeases E.γ))) ∗
     isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" (etcdLeaseLeasesSpecLive (mvcc.api.mvccLeases E.γ)))
 
 instance etcdLeaseGrantLiveAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF)

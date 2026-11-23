@@ -185,36 +185,74 @@ type msgRef struct {
 
 type schemaGen struct {
 	r *rand.Rand
+	// closed: the enums generated so far that are closed (of proto2 files)
+	closed map[string]bool
 }
 
-// file is a random proto3 file: messages (some nested), enums (some nested), fields of every
-// kind referring to its own types and to those of deps.
-func (g schemaGen) file(name, pkg, goPath, goPkg string, deps []*descriptorpb.FileDescriptorProto,
+// defaultFor: a random default value (the descriptor's text form) for a singular field of
+// scalar type typ, or of enum e (one of its value names).
+func (g schemaGen) defaultFor(typ descriptorpb.FieldDescriptorProto_Type, e *descriptorpb.EnumDescriptorProto) string {
+	r := g.r
+	switch typ {
+	case descriptorpb.FieldDescriptorProto_TYPE_BOOL:
+		return []string{"true", "false"}[r.Intn(2)]
+	case descriptorpb.FieldDescriptorProto_TYPE_STRING:
+		return []string{"", "x", "d\u00e9faut"}[r.Intn(3)]
+	case descriptorpb.FieldDescriptorProto_TYPE_BYTES:
+		return []string{"", "ab", "\\001\\377"}[r.Intn(3)]
+	case descriptorpb.FieldDescriptorProto_TYPE_ENUM:
+		return e.GetValue()[r.Intn(len(e.GetValue()))].GetName()
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT32, descriptorpb.FieldDescriptorProto_TYPE_FIXED32:
+		return []string{"0", "7", "4294967295"}[r.Intn(3)]
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT64, descriptorpb.FieldDescriptorProto_TYPE_FIXED64:
+		return []string{"0", "7", "18446744073709551615"}[r.Intn(3)]
+	case descriptorpb.FieldDescriptorProto_TYPE_INT32, descriptorpb.FieldDescriptorProto_TYPE_SINT32,
+		descriptorpb.FieldDescriptorProto_TYPE_SFIXED32:
+		return []string{"0", "-7", "2147483647", "-2147483648"}[r.Intn(4)]
+	}
+	return []string{"0", "-7", "9223372036854775807", "-9223372036854775808"}[r.Intn(4)]
+}
+
+// file is a random proto2 or proto3 file: messages (some nested), enums (some nested), fields
+// of every kind referring to its own types and to those of deps; in proto2 files optional
+// (explicit presence), required and repeated fields (unpacked, or packed), defaults and closed
+// enums; in proto3 files implicit presence, proto3 `optional` and repeated fields (packed, or
+// unpacked); oneofs in both (scalars, enums, messages).
+func (g schemaGen) file(name, pkg, goPath, goPkg, syntax string, deps []*descriptorpb.FileDescriptorProto,
 	depMsgs []msgRef, depEnums []string) (*descriptorpb.FileDescriptorProto, []msgRef, []string) {
 	r := g.r
+	proto2 := syntax == "proto2"
 	fd := &descriptorpb.FileDescriptorProto{
 		Name:    proto.String(name),
 		Package: proto.String(pkg),
-		Syntax:  proto.String("proto3"),
+		Syntax:  proto.String(syntax),
 		Options: &descriptorpb.FileOptions{GoPackage: proto.String(goPath + ";" + goPkg)},
+	}
+	if proto2 && r.Intn(4) == 0 {
+		fd.Syntax = nil // proto2 by default
 	}
 	for _, d := range deps {
 		fd.Dependency = append(fd.Dependency, d.GetName())
 	}
 	var msgs []msgRef
 	var enums []string
+	enumDesc := map[string]*descriptorpb.EnumDescriptorProto{}
 	newEnum := func(name, full string) *descriptorpb.EnumDescriptorProto {
 		ed := &descriptorpb.EnumDescriptorProto{Name: proto.String(name)}
 		prefix := strings.ReplaceAll(strings.TrimPrefix(full, "."), ".", "_")
-		ed.Value = append(ed.Value, &descriptorpb.EnumValueDescriptorProto{
-			Name: proto.String(prefix + "_ZERO"), Number: proto.Int32(0)})
 		vals := []int32{1, 2, -1, 7, 2147483647, -2147483648, 100}
 		r.Shuffle(len(vals), func(i, j int) { vals[i], vals[j] = vals[j], vals[i] })
-		for i := 0; i < r.Intn(4); i++ {
+		if !proto2 || r.Intn(2) == 0 { // open enums start at 0; closed ones need not
+			ed.Value = append(ed.Value, &descriptorpb.EnumValueDescriptorProto{
+				Name: proto.String(prefix + "_ZERO"), Number: proto.Int32(0)})
+		}
+		for i := 0; i < r.Intn(4) || len(ed.Value) == 0; i++ {
 			ed.Value = append(ed.Value, &descriptorpb.EnumValueDescriptorProto{
 				Name: proto.String(fmt.Sprintf("%s_V%d", prefix, i)), Number: proto.Int32(vals[i])})
 		}
 		enums = append(enums, full)
+		g.closed[full] = proto2
+		enumDesc[full] = ed
 		return ed
 	}
 	nm := 1 + r.Intn(4)
@@ -240,15 +278,36 @@ func (g schemaGen) file(name, pkg, goPath, goPkg string, deps []*descriptorpb.Fi
 		fd.EnumType = append(fd.EnumType, newEnum(en, "."+pkg+"."+en))
 	}
 	msgPool := append(append([]msgRef{}, msgs...), depMsgs...)
-	enumPool := append(append([]string{}, enums...), depEnums...)
+	var enumPool []string // a proto3 field may only use open enums
+	for _, e := range append(append([]string{}, enums...), depEnums...) {
+		if proto2 || !g.closed[e] {
+			enumPool = append(enumPool, e)
+		}
+	}
 	for _, md := range all {
 		nf := r.Intn(11)
 		if r.Intn(7) == 0 {
 			nf = 0 // an empty message
 		}
+		// the fields: nf plain ones, then the members of 0..2 oneofs (consecutive, as protodesc
+		// requires), then proto3 `optional` ones (their synthetic oneofs after the real ones)
+		var groups []int // the oneofs' sizes
+		for k := r.Intn(3); k > 0; k-- {
+			if r.Intn(2) == 0 {
+				groups = append(groups, 1+r.Intn(4))
+			}
+		}
+		nopt := 0
+		if !proto2 && r.Intn(2) == 0 {
+			nopt = 1 + r.Intn(3)
+		}
+		total := nf + nopt
+		for _, k := range groups {
+			total += k
+		}
 		used := map[int32]bool{}
 		usedName := map[string]bool{}
-		for j := 0; j < nf; j++ {
+		for j := 0; j < total; j++ {
 			var num int32
 			for num == 0 || used[num] {
 				if r.Intn(2) == 0 {
@@ -261,9 +320,22 @@ func (g schemaGen) file(name, pkg, goPath, goPkg string, deps []*descriptorpb.Fi
 				}
 			}
 			used[num] = true
+			// which part: plain (j < nf), oneof g, or proto3 optional
+			oneof := int32(-1)
+			acc := nf
+			for gi, k := range groups {
+				if j >= acc && j < acc+k {
+					oneof = int32(gi)
+				}
+				acc += k
+			}
+			p3opt := j >= acc
 			name := fmt.Sprintf("f%d", j)
 			if s := specialNames[r.Intn(len(specialNames))]; r.Intn(8) == 0 && !usedName[s] {
 				name = s
+			}
+			if oneof >= 0 && r.Intn(6) == 0 && !usedName["n"] {
+				name = "n" // its wrapper M_N collides with a nested message N (protoc-gen-go renames it)
 			}
 			usedName[name] = true
 			f := &descriptorpb.FieldDescriptorProto{
@@ -272,8 +344,11 @@ func (g schemaGen) file(name, pkg, goPath, goPkg string, deps []*descriptorpb.Fi
 				Label:    descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(),
 				JsonName: proto.String(jsonName(name)),
 			}
-			if r.Intn(3) == 0 {
+			plain := oneof < 0 && !p3opt
+			if plain && r.Intn(3) == 0 {
 				f.Label = descriptorpb.FieldDescriptorProto_LABEL_REPEATED.Enum()
+			} else if plain && proto2 && r.Intn(10) == 0 {
+				f.Label = descriptorpb.FieldDescriptorProto_LABEL_REQUIRED.Enum()
 			}
 			switch k := r.Intn(10); {
 			case k < 6 || (k < 8 && len(enumPool) == 0):
@@ -285,10 +360,132 @@ func (g schemaGen) file(name, pkg, goPath, goPkg string, deps []*descriptorpb.Fi
 				f.Type = descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum()
 				f.TypeName = proto.String(msgPool[r.Intn(len(msgPool))].full)
 			}
+			rep := f.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
+			numeric := f.GetType() != descriptorpb.FieldDescriptorProto_TYPE_STRING &&
+				f.GetType() != descriptorpb.FieldDescriptorProto_TYPE_BYTES &&
+				f.GetType() != descriptorpb.FieldDescriptorProto_TYPE_MESSAGE
+			if rep && numeric && r.Intn(3) == 0 {
+				f.Options = &descriptorpb.FieldOptions{Packed: proto.Bool(proto2)} // the other way
+			}
+			if proto2 && !rep && oneof < 0 && f.GetType() != descriptorpb.FieldDescriptorProto_TYPE_MESSAGE && r.Intn(4) == 0 {
+				var e *descriptorpb.EnumDescriptorProto
+				if f.GetType() == descriptorpb.FieldDescriptorProto_TYPE_ENUM {
+					e = enumDesc[f.GetTypeName()]
+				}
+				if f.GetType() != descriptorpb.FieldDescriptorProto_TYPE_ENUM || e != nil {
+					f.DefaultValue = proto.String(g.defaultFor(f.GetType(), e))
+				}
+			}
+			if oneof >= 0 {
+				f.OneofIndex = proto.Int32(oneof)
+			}
+			if p3opt {
+				f.Proto3Optional = proto.Bool(true)
+				f.OneofIndex = proto.Int32(int32(len(md.OneofDecl)))
+				md.OneofDecl = append(md.OneofDecl, &descriptorpb.OneofDescriptorProto{Name: proto.String("_" + name)})
+			} else if oneof >= 0 && int(oneof) >= len(md.OneofDecl) {
+				md.OneofDecl = append(md.OneofDecl, &descriptorpb.OneofDescriptorProto{
+					Name: proto.String(fmt.Sprintf("u%d", oneof))})
+			}
 			md.Field = append(md.Field, f)
 		}
 	}
 	return fd, msgs, enums
+}
+
+// avoidQuirks changes a random schema (its files) where pbgen refuses a schema because
+// protobuf-go's own required-field checks differ from what the descriptors say (pbgen_core.py,
+// the refusals for required fields): a message field to an int32 field, until no message type
+// that needs required checks is a oneof member other than the oneof's first declared one, and
+// none has no required field of its own, reaches one, and lies on a cycle of two or more
+// message types. (TestProtobufQuirks has one of each.)
+func avoidQuirks(files []*descriptorpb.FileDescriptorProto) {
+	msgs := map[string]*descriptorpb.DescriptorProto{}
+	var walk func(prefix string, ms []*descriptorpb.DescriptorProto)
+	walk = func(prefix string, ms []*descriptorpb.DescriptorProto) {
+		for _, m := range ms {
+			full := prefix + "." + m.GetName()
+			msgs[full] = m
+			walk(full, m.NestedType)
+		}
+	}
+	for _, f := range files {
+		walk("."+f.GetPackage(), f.MessageType)
+	}
+	isMsg := func(f *descriptorpb.FieldDescriptorProto) bool {
+		return f.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE && msgs[f.GetTypeName()] != nil
+	}
+	direct := func(m *descriptorpb.DescriptorProto) bool {
+		for _, f := range m.Field {
+			if f.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_REQUIRED {
+				return true
+			}
+		}
+		return false
+	}
+	reaches := func(from, to string) bool {
+		seen := map[string]bool{}
+		todo := []string{from}
+		for len(todo) > 0 {
+			t := todo[len(todo)-1]
+			todo = todo[:len(todo)-1]
+			for _, f := range msgs[t].Field {
+				if isMsg(f) && !seen[f.GetTypeName()] {
+					if f.GetTypeName() == to {
+						return true
+					}
+					seen[f.GetTypeName()] = true
+					todo = append(todo, f.GetTypeName())
+				}
+			}
+		}
+		return false
+	}
+	toInt32 := func(f *descriptorpb.FieldDescriptorProto) {
+		f.Type = descriptorpb.FieldDescriptorProto_TYPE_INT32.Enum()
+		f.TypeName = nil
+	}
+	for changed := true; changed; {
+		changed = false
+		needs := map[string]bool{}
+		for grow := true; grow; {
+			grow = false
+			for full, m := range msgs {
+				if needs[full] {
+					continue
+				}
+				n := direct(m)
+				for _, f := range m.Field {
+					n = n || (isMsg(f) && needs[f.GetTypeName()])
+				}
+				if n {
+					needs[full], grow = true, true
+				}
+			}
+		}
+		for full, m := range msgs {
+			first := map[int32]bool{}
+			for _, f := range m.Field {
+				if f.OneofIndex == nil || f.GetProto3Optional() {
+					continue
+				}
+				if !first[f.GetOneofIndex()] {
+					first[f.GetOneofIndex()] = true
+				} else if isMsg(f) && needs[f.GetTypeName()] {
+					toInt32(f)
+					changed = true
+				}
+			}
+			if needs[full] && !direct(m) {
+				for _, f := range m.Field {
+					if isMsg(f) && f.GetTypeName() != full && reaches(f.GetTypeName(), full) {
+						toInt32(f)
+						changed = true
+					}
+				}
+			}
+		}
+	}
 }
 
 // jsonName is protoc's default json_name (lowerCamelCase).
@@ -322,8 +519,9 @@ func TestRandomSchemas(t *testing.T) {
 		scale = "0.2"
 	}
 	r := rand.New(rand.NewSource(seed))
-	g := schemaGen{r}
+	g := schemaGen{r, map[string]bool{}}
 	var types, fields, encs, encErrs, decs, decErrs int
+	var cov coverage
 	for b0 := int64(0); b0 < n; b0 += batch {
 		dir := t.TempDir()
 		s.newModule(t, dir)
@@ -337,7 +535,8 @@ func TestRandomSchemas(t *testing.T) {
 			if r.Intn(4) == 0 {
 				gpa = goPkgNames[r.Intn(len(goPkgNames))]
 			}
-			fa, ma, ea := g.file(pa+"/"+pa+".proto", pa, "pbgenrand.tmp/"+pa, gpa, nil, nil, nil)
+			syn := []string{"proto3", "proto2"}[r.Intn(2)]
+			fa, ma, ea := g.file(pa+"/"+pa+".proto", pa, "pbgenrand.tmp/"+pa, gpa, syn, nil, nil, nil)
 			files = append(files, fa)
 			ms := []msgRef{}
 			for _, m := range ma {
@@ -354,12 +553,17 @@ func TestRandomSchemas(t *testing.T) {
 					gpb = goPkgNames[r.Intn(len(goPkgNames))]
 				}
 				fb, mb, _ := g.file(pb+"/"+pb+".proto", pb, "pbgenrand.tmp/"+pb, gpb,
-					[]*descriptorpb.FileDescriptorProto{fa}, ma, ea)
+					[]string{"proto3", "proto2"}[r.Intn(2)], []*descriptorpb.FileDescriptorProto{fa}, ma, ea)
 				files = append(files, fb)
 				for _, m := range mb {
 					ms = append(ms, m)
 					paths[m.full] = pb
 				}
+			}
+			if len(files) > 0 && files[len(files)-1] != fa {
+				avoidQuirks(files[len(files)-2:])
+			} else {
+				avoidQuirks(files[len(files)-1:])
 			}
 			// roots: one or more messages of the schema; their packages named in imports
 			r.Shuffle(len(ms), func(i, j int) { ms[i], ms[j] = ms[j], ms[i] })
@@ -370,6 +574,7 @@ func TestRandomSchemas(t *testing.T) {
 				roots = append(roots, alias+"."+m.goName)
 			}
 		}
+		cov.add(files)
 		s.protocGenGo(t, dir, files, "")
 		var toml strings.Builder
 		toml.WriteString("[protobuf]\nimports = { ")
@@ -423,6 +628,73 @@ func TestRandomSchemas(t *testing.T) {
 	t.Logf("seed %d: %d schemas, %d message types, %d fields; Marshal: %d encodings equal, %d errors "+
 		"agreed; mutated encodings: %d decodes equal, %d errors agreed (plus the fixed field, depth "+
 		"and panic tests per type)", seed, n, types, fields, encs, encErrs, decs, decErrs)
+	t.Logf("the schemas' constructs (all declared, reached by the roots or not): %s", cov)
+}
+
+// coverage counts the constructs of the random schemas.
+type coverage struct {
+	proto2, proto3, explicit, p3optional, required, defaults, oneofs, oneofFields, unpacked, packed,
+	closedEnums int
+}
+
+func (c *coverage) add(files []*descriptorpb.FileDescriptorProto) {
+	var walk func(ms []*descriptorpb.DescriptorProto, proto2 bool)
+	walk = func(ms []*descriptorpb.DescriptorProto, proto2 bool) {
+		for _, m := range ms {
+			for _, o := range m.OneofDecl {
+				if !strings.HasPrefix(o.GetName(), "_") {
+					c.oneofs++
+				}
+			}
+			for _, f := range m.Field {
+				rep := f.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_REPEATED
+				msg := f.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE
+				switch {
+				case f.GetProto3Optional():
+					c.p3optional++
+				case f.OneofIndex != nil:
+					c.oneofFields++
+				case proto2 && !rep && !msg:
+					c.explicit++
+				}
+				if f.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_REQUIRED {
+					c.required++
+				}
+				if f.DefaultValue != nil {
+					c.defaults++
+				}
+				if rep && !msg && f.GetType() != descriptorpb.FieldDescriptorProto_TYPE_STRING &&
+					f.GetType() != descriptorpb.FieldDescriptorProto_TYPE_BYTES {
+					if (proto2 && !f.GetOptions().GetPacked()) || (!proto2 && f.GetOptions() != nil && !f.GetOptions().GetPacked()) {
+						c.unpacked++
+					} else {
+						c.packed++
+					}
+				}
+			}
+			walk(m.NestedType, proto2)
+		}
+	}
+	for _, f := range files {
+		proto2 := f.GetSyntax() != "proto3"
+		if proto2 {
+			c.proto2++
+			c.closedEnums += len(f.EnumType)
+			for _, m := range f.MessageType {
+				c.closedEnums += len(m.EnumType)
+			}
+		} else {
+			c.proto3++
+		}
+		walk(f.MessageType, proto2)
+	}
+}
+
+func (c coverage) String() string {
+	return fmt.Sprintf("%d proto2 and %d proto3 files; %d proto2 optional or required non-message fields "+
+		"(%d required), %d proto3 optional, %d defaults, %d oneofs (%d members), %d unpacked and %d packed "+
+		"repeated scalars, %d closed enums", c.proto2, c.proto3, c.explicit, c.required, c.p3optional,
+		c.defaults, c.oneofs, c.oneofFields, c.unpacked, c.packed, c.closedEnums)
 }
 
 func tail(s string, n int) string {
@@ -469,7 +741,8 @@ func refusedFile(name, syntax string, msgs ...*descriptorpb.DescriptorProto) *de
 }
 
 // TestRefusals: one unsupported construct per message; pbgen must refuse the schema (exit 2,
-// nothing written), naming each message and field.
+// nothing written), naming each message and field, and say nothing of the constructs inside
+// the subset beside them.
 func TestRefusals(t *testing.T) {
 	s := newSetup(t)
 	dir := t.TempDir()
@@ -489,6 +762,22 @@ func TestRefusals(t *testing.T) {
 			NestedType: []*descriptorpb.DescriptorProto{{Name: proto.String("Grp"),
 				Field: []*descriptorpb.FieldDescriptorProto{fld("a", 7, i32, opt)}}},
 		},
+		&descriptorpb.DescriptorProto{Name: proto.String("G2"),
+			Field: []*descriptorpb.FieldDescriptorProto{
+				func() *descriptorpb.FieldDescriptorProto {
+					f := fld("a", 1, i32, opt)
+					f.OneofIndex = proto.Int32(0)
+					return f
+				}(),
+				func() *descriptorpb.FieldDescriptorProto {
+					f := withType(fld("g", 2, descriptorpb.FieldDescriptorProto_TYPE_GROUP, opt), ".p2.G2.G")
+					f.OneofIndex = proto.Int32(0)
+					return f
+				}(),
+			},
+			OneofDecl: []*descriptorpb.OneofDescriptorProto{{Name: proto.String("u")}},
+			NestedType: []*descriptorpb.DescriptorProto{{Name: proto.String("G"),
+				Field: []*descriptorpb.FieldDescriptorProto{fld("b", 3, i32, opt)}}}},
 		&descriptorpb.DescriptorProto{Name: proto.String("Ext"),
 			ExtensionRange: []*descriptorpb.DescriptorProto_ExtensionRange{{Start: proto.Int32(100), End: proto.Int32(200)}}})
 	p2.EnumType = []*descriptorpb.EnumDescriptorProto{{Name: proto.String("Closed"),
@@ -521,17 +810,22 @@ func TestRefusals(t *testing.T) {
 		&descriptorpb.DescriptorProto{Name: proto.String("Unp"), Field: []*descriptorpb.FieldDescriptorProto{unp}},
 		&descriptorpb.DescriptorProto{Name: proto.String("Lz"), Field: []*descriptorpb.FieldDescriptorProto{lazy}},
 		&descriptorpb.DescriptorProto{Name: proto.String("Ok"), Field: []*descriptorpb.FieldDescriptorProto{fld("x", 1, i32, opt)}},
+		&descriptorpb.DescriptorProto{Name: proto.String("Leg"), Field: []*descriptorpb.FieldDescriptorProto{fld("x", 1, i32, opt)}},
 		&descriptorpb.DescriptorProto{Name: proto.String("Ind"), Field: []*descriptorpb.FieldDescriptorProto{
 			withType(fld("p", 1, descriptorpb.FieldDescriptorProto_TYPE_MESSAGE, opt), ".p2.P2")}})
 	p3.Dependency = []string{p2.GetName()}
 	s.protocGenGo(t, dir, []*descriptorpb.FileDescriptorProto{p2, ed, p3}, "")
+	// Leg: a generated message given its own codec methods (as APIv1 and gogo types have)
+	must(t, os.WriteFile(filepath.Join(dir, "p3", "leg.go"), []byte("package p3\n\n"+
+		"func (x *Leg) Marshal() ([]byte, error) { return nil, nil }\n\n"+
+		"func (x *Leg) Unmarshal(b []byte) error { return nil }\n"), 0o644))
 	opq := refusedFile("opq", "proto3", &descriptorpb.DescriptorProto{Name: proto.String("Opq"),
 		Field: []*descriptorpb.FieldDescriptorProto{fld("x", 1, i32, opt)}})
 	s.protocGenGo(t, dir, []*descriptorpb.FileDescriptorProto{opq}, ",default_api_level=API_OPAQUE")
 
 	toml := `[protobuf]
 imports = { p2 = "pbgenrand.tmp/p2", ed = "pbgenrand.tmp/ed", p3 = "pbgenrand.tmp/p3", opq = "pbgenrand.tmp/opq" }
-roots = ["p2.P2", "p2.Ext", "ed.Ed", "p3.Opt", "p3.One", "p3.Mp", "p3.Fl", "p3.Unp", "p3.Lz", "p3.Ind", "opq.Opq"]
+roots = ["p2.P2", "p2.G2", "p2.Ext", "ed.Ed", "p3.Opt", "p3.One", "p3.Mp", "p3.Fl", "p3.Unp", "p3.Lz", "p3.Ind", "p3.Leg", "opq.Opq"]
 `
 	tomlPath := filepath.Join(dir, "protobuf.toml")
 	must(t, os.WriteFile(tomlPath, []byte(toml), 0o644))
@@ -543,33 +837,27 @@ roots = ["p2.P2", "p2.Ext", "ed.Ed", "p3.Opt", "p3.One", "p3.Mp", "p3.Fl", "p3.U
 		t.Fatalf("pbgen wrote files for a refused schema")
 	}
 	for _, want := range []string{
-		"message p2.P2 (p2/p2.proto): a proto2 file",
-		"field p2.P2.x (number 1): explicit presence",
-		"field p2.P2.r (number 3): required",
-		"field p2.P2.d (number 4): an explicit default",
 		"field p2.P2.grp (number 6): a group",
-		"enum p2.Closed (p2/p2.proto): an enum of a proto2 file",
-		"enum p2.Closed (p2/p2.proto): a closed enum",
+		"field p2.G2.g (number 2): a group",
 		"message p2.Ext (p2/p2.proto): extension ranges",
 		"message ed.Ed (ed/ed.proto): a editions file",
-		"field ed.Ed.x (number 1): explicit presence",
-		"field p3.Opt.x (number 1): proto3 `optional`",
-		"field p3.One.a (number 1): in oneof u",
-		"field p3.One.b (number 2): in oneof u",
 		"message p3.Mp.MEntry (p3/p3.proto): a map entry",
 		"field p3.Mp.m (number 1): a map",
 		"field p3.Fl.f (number 1): float",
 		"field p3.Fl.d (number 2): double",
-		"field p3.Unp.xs (number 1): a repeated int32 not packed",
 		"field p3.Lz.s (number 1): weak or lazy",
 		"field opq.Opq.x (number 1): no exported Go struct field",
+		"message p3.Leg (p3/p3.proto): not an APIv2 message, or with its own Marshal/Unmarshal methods",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("pbgen's refusal does not say %q:\n%s", want, out)
 		}
 	}
-	// and nothing about the messages inside the subset
-	for _, ok := range []string{"p3.Ok ", "p3.Ok.", "p3.Ind"} {
+	// and nothing about the messages and fields inside the subset (since 2026-11-23: proto2's
+	// explicit presence, required fields, defaults and closed enums; proto3 `optional`; oneofs;
+	// unpacked repeated scalars)
+	for _, ok := range []string{"p3.Ok ", "p3.Ok.", "p3.Ind", "p2.P2.x ", "p2.P2.r ", "p2.P2.d ", "p2.P2.c ",
+		"p2.Closed", "p2.G2.a ", "p3.Opt", "p3.One", "p3.Unp", "ed.Ed.x "} {
 		if strings.Contains(out, ok) {
 			t.Errorf("pbgen refuses %s, inside the subset:\n%s", ok, out)
 		}
