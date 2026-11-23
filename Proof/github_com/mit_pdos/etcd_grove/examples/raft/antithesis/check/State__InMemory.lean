@@ -718,6 +718,37 @@ theorem State.InMemory.wp_proof
     wp_auto
     wp_apply wp_load_at _ _ _ Hn $$ [Hroln] as -
     · iexact Hroln
+    have hcand : candidate = [99#8, 97#8, 110#8, 100#8, 105#8, 100#8, 97#8, 116#8, 101#8] := rfl
+    by_cases h2 : s.role[sint.nat n]! = candidate
+    case pos =>
+      rw [decide_eq_true (show s.role[sint.nat n]! = [99#8, 97#8, 110#8, 100#8, 105#8, 100#8, 97#8, 116#8, 101#8] from h2)]
+      simp only [h2, bne_self_eq_false, Bool.true_and, Bool.false_and, Bool.false_eq_true, ite_false] at HjpU
+      wp_auto
+      wp_join_done
+      iexists gv2, v2
+      iframe
+      isplitr; · iexact Hv2
+      ipureintro; exact ⟨by omega, HjpU⟩
+    rw [decide_eq_false (show ¬ s.role[sint.nat n]! = [99#8, 97#8, 110#8, 100#8, 105#8, 100#8, 97#8, 116#8, 101#8] from h2)]
+    have h2' : (s.role[sint.nat n]! != candidate) = true := by simpa using h2
+    simp only [h2', Bool.true_and] at HjpU
+    wp_auto
+    iStructNamed Hgcfg
+    try wp_auto
+    wp_apply wp_load_at _ _ _ Hn $$ [Hme] as -
+    · iexact Hme
+    iunfold sliceAt at Hgcn
+    icases Hgcn with ⟨%cxs, #Hcxs, %Hcx⟩
+    icases ownSlice_elem_acc (sint.Z n) gcn g.Config' DFrac.discard cxs Hn (by rw [show (sint.Z n).toNat = sint.nat n by word]; exact Hcx) $$ [Hcxs] with ⟨#Hel, -⟩
+    · iexact Hcxs
+    iStructNamedPrefix Hel "C"
+    ihave %Hcxl := ownSlice_len _ _ _ $$ Hcxs
+    have hnb : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z g.Config'.len := by
+      have := (List.getElem?_eq_some_iff.1 Hcx).1; constructor <;> word
+    rw [if_pos hnb]
+    try wp_auto
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Set.TypeAssumptions.ptr_Has_unfold.method_unfold]
+    try wp_auto
     trace_state
     sorry
   clear HjpU
