@@ -280,6 +280,33 @@ theorem wp_awaitConf_of
         ipureintro; simp
     · exact absurd rfl Hne
 
+/-- `registerProto()`: nothing. -/
+theorem wp_registerProto :
+    {{ isPkgInit (PROP := IProp GF) kpkg }}
+      (App (Val (@! raxos.examples.quepaxanet.registerProto)) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start
+  wp_end
+
+/-- A new bag channel of capacity 1. -/
+theorem wp_make_bag1 {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
+    {t : go.GoType} [IntoValTyped (GF := GF) V t] (P : V → IProp GF) :
+    {{ (True : IProp GF) }}
+      (App (Val #(functions go.make2 [go.GoType.ChannelType go.ChanDir.sendrecv t]))
+        (Val #(W64 1)))
+    {{ (ch : Loc), RET #ch; ∃ γc, isChanBag γc ch P }} := by
+  iintro %Φ - HΦ
+  iapply wp_fupd
+  wp_apply (chan.wp_make2 (V := V) (W64 1)) as %ch %γc ⟨#Hch, -, Hoc⟩
+  · ipureintro; word
+  have Hs : match (if (W64 1) = W64 0 then ChanState.Idle else ChanState.Buffered ([] : List V)) with
+      | .Idle | .Buffered [] => True | _ => False := by
+    rw [if_neg (by decide)]; trivial
+  imod start_bag P _ ch γc Hs $$ Hch Hoc with #Hbag
+  imodintro
+  iapply HΦ
+  iexists γc; iexact Hbag
+
 end await
 
 end raxos.examples.quepaxanet

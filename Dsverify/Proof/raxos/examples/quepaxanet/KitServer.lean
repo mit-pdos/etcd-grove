@@ -77,24 +77,6 @@ local notation "kpkg" => pkg_id.raxos.examples.quepaxanet
 
 set_option goose.wp.extras true
 
-/-- `Addrs()` returns a new slice of the proxies' addresses. -/
-theorem wp_Addrs :
-    {{ isPkgInit (PROP := IProp GF) kpkg }}
-      (App (Val (@! raxos.examples.quepaxanet.Addrs)) (Val #()))
-    {{ (sl : GoSlice), RET #sl; sl ↦* addrsL }} := by
-  wp_start as -
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.string))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := GoString) (t := go.string) addrsL
-  wp_auto
-  isplitl []
-  · ipureintro; rw [addrsL_lit]; rfl
-  iintro %sl ⟨Hsl, -⟩
-  wp_auto
-  iapply HΦ
-  iexact Hsl
-
 /-- `RecAddrs()` returns a new slice of the recorders' addresses. -/
 theorem wp_RecAddrs :
     {{ isPkgInit (PROP := IProp GF) kpkg }}
@@ -322,34 +304,6 @@ theorem kn_le (k : w64) (c : QConf) (hc : c.ok) (h : uint.Z k ≤ uint.Z (W64 (c
     uint.nat k ≤ c.n := by
   have : c.n ≤ 5 := by rcases hc.1 with h | h <;> omega
   word
-
-omit π ρ qv in
-/-- `registerProto()`: nothing. -/
-theorem wp_registerProto :
-    {{ isPkgInit (PROP := IProp GF) kpkg }}
-      (App (Val (@! raxos.examples.quepaxanet.registerProto)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start
-  wp_end
-
-/-- A new bag channel of capacity 1. -/
-theorem wp_make_bag1 {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
-    {t : go.GoType} [IntoValTyped (GF := GF) V t] (P : V → IProp GF) :
-    {{ (True : IProp GF) }}
-      (App (Val #(functions go.make2 [go.GoType.ChannelType go.ChanDir.sendrecv t]))
-        (Val #(W64 1)))
-    {{ (ch : Loc), RET #ch; ∃ γc, isChanBag γc ch P }} := by
-  iintro %Φ - HΦ
-  iapply wp_fupd
-  wp_apply (chan.wp_make2 (V := V) (W64 1)) as %ch %γc ⟨#Hch, -, Hoc⟩
-  · ipureintro; word
-  have Hs : match (if (W64 1) = W64 0 then ChanState.Idle else ChanState.Buffered ([] : List V)) with
-      | .Idle | .Buffered [] => True | _ => False := by
-    rw [if_neg (by decide)]; trivial
-  imod start_bag P _ ch γc Hs $$ Hch Hoc with #Hbag
-  imodintro
-  iapply HΦ
-  iexists γc; iexact Hbag
 
 /-- The replica's share from the server's and the configuration's. -/
 theorem replicaRes_of (γ : QNames) (c : QConf) (k : Nat) (hc : c.ok) (hk : 1 ≤ k ∧ k ≤ c.n) :

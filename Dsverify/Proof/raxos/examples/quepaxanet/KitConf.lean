@@ -177,6 +177,24 @@ local notation "kpkg" => pkg_id.raxos.examples.quepaxanet
 
 set_option goose.wp.extras true
 
+/-- `Addrs()` returns a new slice of the proxies' addresses. -/
+theorem wp_Addrs :
+    {{ isPkgInit (PROP := IProp GF) kpkg }}
+      (App (Val (@! raxos.examples.quepaxanet.Addrs)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; sl ↦* addrsL }} := by
+  wp_start as -
+  wp_auto
+  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.string))))
+    (Val (LiteralValueV _)))
+  iapply wp_slice_literal (V := GoString) (t := go.string) addrsL
+  wp_auto
+  isplitl []
+  · ipureintro; rw [addrsL_lit]; rfl
+  iintro %sl ⟨Hsl, -⟩
+  wp_auto
+  iapply HΦ
+  iexact Hsl
+
 /-- `CfgAddrs()` returns a new slice of the configuration addresses. -/
 theorem wp_CfgAddrs :
     {{ isPkgInit (PROP := IProp GF) kpkg }}
