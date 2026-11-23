@@ -190,6 +190,18 @@ Read with the sixth and fifth sessions' states below (accurate where this does n
 - treemap: `NewWith` asks `cmpOk cmp enc`; `Put`/`Get` over `isTreeMap`: plausible as stated, to
   recheck against dsv-tpmodels' Go model of gods (landed, `models/gods`, no Lean proofs).
 
+**Frontier (build 21 of all 480 kit modules, after this session's changes; scratch `sw-build21.log`):
+65 unbuilt**, 20 failing directly, the rest importing them. Outside the lab kit (`examples.swiftnet.*`,
+which step 5 replaces) only: the lab's missing models (`encoding.gob.SetCodec`,
+`netrpc.rpc.LocalRegister`), the lab codec proofs (`master.Rcvr`, `swift.{Rcvr,CodecFns}`), and the
+links over them (`client.Link`, `master.Link`, `swift.{Link,DescLink,NewDescLink,NewProof}`).
+Everything else, `master.RunLoop` included, builds.
+
+**Lean.** models-rpc-server landed (`lean` `c4e044df92`, Perennial `c95e92207`,
+`/shared/perennial-c95e92207`). This branch keeps its merge of `36728bd8ed` (coordinator's word).
+When merging `lean`: repoint the `.lake/packages` overrides and `PERENNIAL_DIR` to
+`/shared/perennial-c95e92207`, and regenerate the PkgTables if `gen-init.py --check` asks.
+
 **Next, in order (step 5 and landing).**
 1. The codec switch: `sp.KitVal.encode` as rpcgen's bytes; per-type lemmas over the generated
    `rpcEnc_t*`/`rpcDec_t*` (craq's `CodecProof.lean`, ~2700 lines there; here ~11 types incl.
