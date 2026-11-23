@@ -93,7 +93,7 @@ structure Sys where
   /-- each key's global execution sequence (the slots touching it, with their commands) -/
   gexec : w64 → List (Slot × WCmd)
   /-- the fired outputs, by connection id -/
-  fired : w64 → Option (KvsOutput (List w8))
+  fired : Nat → Option (KvsOutput (List w8))
   /-- the ghost history: every event, with the replica, in order -/
   hist : List (Nat × Event)
 

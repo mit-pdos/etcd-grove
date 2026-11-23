@@ -109,7 +109,7 @@ deriving DecidableEq, Inhabited
 `*defs.GPropose`'s `Reply` writer is that connection's; `CommandId` and `Timestamp` are 0 for the
 kit's client) and its command. -/
 structure Proposal where
-  cid : w64
+  cid : Nat
   cmd : WCmd
 deriving DecidableEq, Inhabited
 
