@@ -618,6 +618,147 @@ theorem newArg_LatestVersion (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
     iapply HΦ
     ipureintro; exact Hmsg
 
+theorem newArg_Read (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.NodeBinding.ty b)
+      (nodeSpec cfg.γ cfg.chain a go!"Read")
+      (mOf examples.craqnet.rpcNewArg_r0_Read examples.craqnet.rpcNewReply_r0_Read
+        examples.craqnet.rpcCall_r0_Read) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold nodeB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface go.string p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface go.string p) (p ↦ (go!"" : GoString))
+      (nodeSpec cfg.γ cfg.chain a go!"Read")
+      (fun args ok => iprop(if ok then ∃ k : GoString, ⌜args = encString k⌝ ∗ p ↦ k else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    rw [nodeSpec_Read]
+    icases HS with ⟨%k, %Q, %Hargs, HS⟩
+    isplitl [HS]
+    · iexists k, Q
+      isplitr
+      · ipureintro; exact Hargs
+      iexact HS
+    iapply L.decA_string _ _ k
+    iframe
+    isplitr
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      iexists k
+      iframe
+      ipureintro; exact Hargs
+  ihave Hp : p ↦ (go!"" : GoString) $$ [Hp]
+  · rw [show (go!"" : GoString) = zero_val GoString from rfl]; iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS Hp
+  simp only [ite_true]
+  icases Hp with ⟨%k, %Hm, Hp⟩
+  rw [nodeSpec_Read]
+  icases HS with ⟨%k', %Q, %Hargs, HAU, HS⟩
+  have hk : k = k' := I.encString_inj k k' (Hm ▸ Hargs)
+  subst hk
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_method_call
+  wp_call
+  iStructNamed Hbs
+  wp_auto
+  unfold isNodeSvc
+  icases Hsvc with ⟨%e, %He, #Hm⟩
+  subst He
+  icases Hm with ⟨-, -, -, -, -, #HR, -⟩
+  wp_apply HR $$ %k %Q %_ HAU as %k' %sl %err Herr
+  (try wp_auto)
+  unfold readCont
+  icases Herr with (⟨⟨%Herr, %Hk⟩, %x, %σ, #Hsl, HQ, %Hσ⟩ | ⟨#Hem, %σ, HQ, %Hσ⟩ | ⟨%msg, ⟨%Hmsg, %Hnf⟩, #Hem⟩)
+  · subst Herr Hk
+    wp_auto
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    unfold net.rpc.callRet
+    ileft
+    isplitr
+    · ipureintro; rfl
+    icases HS with ⟨HΦ, -⟩
+    iapply L.enc_Item _ _ k' sl _ x
+    isplitl [«$r0»]
+    · iexact «$r0»
+    isplitr [HΦ HQ]
+    · iexact Hsl
+    iintro _ _
+    iapply HΦ $$ HQ
+    ipureintro; exact Hσ
+  · unfold net.rpc.errMsg
+    icases Hem with ⟨%ee, %Hee, %Hty, #HE⟩
+    subst Hee
+    wp_auto
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    unfold net.rpc.callRet
+    iright
+    iexists notFoundMsg
+    isplitr [HS HQ]
+    · unfold net.rpc.errMsg
+      iexists ee
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; exact Hty
+      iexact HE
+    rw [if_neg (by decide)]
+    icases HS with ⟨-, HΦ, -⟩
+    iapply HΦ $$ HQ
+    ipureintro; exact Hσ
+  · unfold net.rpc.errMsg
+    icases Hem with ⟨%ee, %Hee, %Hty, #HE⟩
+    subst Hee
+    wp_auto
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    unfold net.rpc.callRet
+    iright
+    iexists msg
+    isplitr [HS]
+    · unfold net.rpc.errMsg
+      iexists ee
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; exact Hty
+      iexact HE
+    rw [if_neg Hmsg]
+    icases HS with ⟨-, -, HΦ⟩
+    iapply HΦ
+    ipureintro; exact ⟨Hmsg, Hnf⟩
+
 end proofs
 
 end netrpcP
