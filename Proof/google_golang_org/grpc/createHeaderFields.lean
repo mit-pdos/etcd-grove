@@ -709,6 +709,138 @@ theorem grpc.createHeaderFields.wp_proof
     · iexact Hval
     obtain ⟨rfl, rfl, rfl⟩ := Hokr
     wp_auto
+    -- the map's fields
+    wp_join iprop(∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField)
+        (mkeys : List GoString),
+        headerFields_ptr ↦ hsl ∗ hsl ↦* fs ∗
+        ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+        ⌜grpcHdr.enumKeys (Mo !! ·) mkeys ∧
+          hfPairs fs = grpcHdr.callHdrFields ch acc ua ++ tfs ++ afs ++
+            mkeys.flatMap (fun k => grpcHdr.mdKeyFields k ((Mo !! k).getD []))⌝) at next
+      with [headerFields Hhf Hcap vv k]
+      as ⟨%hsl6, %fs6, %mkeys, headerFields, Hhf, Hcap, %Hfs6⟩
+    · icases Hmd with (%Hnull | #Hmd)
+      · obtain ⟨hmd, rfl⟩ := Hnull
+        rw [hmd]
+        wp_call
+        isplitr
+        · itrivial
+        iexists _, _, []
+        iframe
+        ipureintro
+        refine ⟨⟨List.nodup_nil, fun k => ?_⟩, by simp [Hfs5.1]⟩
+        have := Hdom k
+        simp only [List.not_mem_nil, false_iff]
+        intro h
+        rw [this] at h
+        simp at h
+      · wp_apply (wp_map_for_range (K := GoString) (V := GoSlice) (fun keys (j : Int) => iprop(
+            ∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField) (kv : GoString)
+              (vvv : GoSlice),
+            "headerFields" ∷ headerFields_ptr ↦ hsl ∗ "Hhf" ∷ hsl ↦* fs ∗
+            "Hcap" ∷ ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+            "k" ∷ k_ptr ↦ kv ∗ "vv" ∷ vv_ptr ↦ vvv ∗
+            "%Hfj" ∷ ⌜0 ≤ j ∧ hfPairs fs = grpcHdr.callHdrFields ch acc ua ++ tfs ++ afs ++
+              (keys.take j.toNat).flatMap
+                (fun k => grpcHdr.mdKeyFields k ((Mo !! k).getD []))⌝))) $$ Hmd
+        iintro %keys ⟨%Hmem, %Hsize, %Hnd⟩
+        isplitl [headerFields Hhf Hcap k vv]
+        · iexists _, _, _, _
+          simp only [named]
+          iframe
+          ipureintro
+          refine ⟨by omega, ?_⟩
+          simp [Hfs5.1]
+        isplitr
+        · imodintro
+          iintro %j %key %slv ⟨%Hk, %Hlook⟩ ⟨%hsl, %fs, %kv, %vvv, headerFields, Hhf, Hcap, k, vv, %Hfj⟩
+          wp_auto
+          wp_apply wp_isReservedHeader
+          have htake : keys.take (j + 1).toNat = keys.take j.toNat ++ [key] := by
+            rw [show (j + 1).toNat = j.toNat + 1 by omega, List.take_add_one, Hk]; rfl
+          by_cases hres : grpcHdr.reservedHdr key
+          · rw [decide_eq_true hres]
+            wp_auto
+            unfold forMapPostcondition
+            ileft
+            isplitr
+            · itrivial
+            iexists _, _, key, slv
+            simp only [named]
+            iframe
+            ipureintro
+            refine ⟨by omega, ?_⟩
+            rw [htake, List.flatMap_append, Hfj.2]
+            simp [grpcHdr.mdKeyFields, hres]
+          · rw [decide_eq_false hres]
+            wp_auto
+            ihave #Hsl := (BigSepM.bigSepM_lookup (Φ := fun k sl => iprop(sl ↦*□ ((Mo !! k).getD [])))
+              Hlook) $$ Hms
+            ihave %Hslen := ownSlice_len _ _ _ $$ Hsl
+            ihave IH : iprop(∃ (n : w64) (vx : GoString) (hsl' : GoSlice)
+                (fs' : List google_golang_org.grpc.headerField),
+                "i" ∷ i_ptr ↦ n ∗ "v" ∷ v_ptr ↦ vx ∗ "headerFields" ∷ headerFields_ptr ↦ hsl' ∗
+                "Hhf" ∷ hsl' ↦* fs' ∗
+                "Hcap" ∷ ownSliceCap google_golang_org.grpc.headerField hsl' (DFrac.own 1) ∗
+                "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ ((Mo !! key).getD []).length ∧
+                  hfPairs fs' = hfPairs fs ++ ((((Mo !! key).getD []).take (sint.nat n)).map
+                    fun v => (key, grpcHdr.encMdHdr key v))⌝) $$ [i v headerFields Hhf Hcap]
+            · iexists W64 0, _, _, _
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by decide, by simp, ?_⟩
+              simp
+            wp_for IH
+            by_cases hlt : sint.Z n < sint.Z slv.len
+            · rw [ite_eq_left (by simp [hlt])]
+              have Hlt : sint.nat n < ((Mo !! key).getD []).length := by
+                obtain ⟨hl, _⟩ := Hslen; word
+              obtain ⟨x, Hx⟩ : ∃ x, ((Mo !! key).getD [])[sint.nat n]? = some x :=
+                ⟨_, List.getElem?_eq_getElem Hlt⟩
+              have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z slv.len := ⟨Hn.1, hlt⟩
+              wp_auto
+              (try rw [ite_eq_left Hbnd])
+              wp_apply wp_load_slice_index slv (sint.Z n) _ DFrac.discard x Hn.1 $$ [$Hsl] as -
+              · ipureintro; exact Hx
+              wp_apply wp_encodeMetadataHeader
+              append_hf
+              wp_for_post
+              iframe
+              iexists n + W64 1, x, _, _
+              simp only [named]
+              iframe
+              ipureintro
+              have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+              refine ⟨by word, by rw [hn1]; omega, ?_⟩
+              rw [hn1, List.take_add_one, Hx]
+              simp only [hfPairs] at Hn ⊢
+              simp [Hn.2.2]
+            · have hn : sint.nat n = ((Mo !! key).getD []).length := by
+                obtain ⟨hl, _⟩ := Hslen; obtain ⟨_, hle, _⟩ := Hn; word
+              rw [ite_eq_right (by simp [hlt]), ite_eq_right (by simp [hlt])]
+              unfold forMapPostcondition
+              iright; ileft
+              isplitr
+              · itrivial
+              iexists _, _, key, slv
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by omega, ?_⟩
+              rw [htake, List.flatMap_append, Hn.2.2, Hfj.2, hn, List.take_length]
+              simp [grpcHdr.mdKeyFields, hres]
+        · iintro ⟨%hsl, %fs, %kv, %vvv, headerFields, Hhf, Hcap, k, vv, %Hfj⟩ Hmd'
+          isplitr
+          · itrivial
+          iexists _, _, keys
+          iframe
+          ipureintro
+          have htk : keys.take (GMap.size ms : Int).toNat = keys := by
+            apply List.take_of_length_le; rw [Hsize]; simp
+          rw [htk] at Hfj
+          refine ⟨⟨Hnd, fun k => ?_⟩, Hfj.2⟩
+          rw [Hmem k, Hdom k]
     sorry
 
 end proof
