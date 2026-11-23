@@ -486,6 +486,42 @@ Next: `newClientTransportStream` (`headerListTooLarge`, `appendHeaderBlock` unde
 `Write` and `reader`; then the batched `grpcInit` change (`metadataFromOutgoingContextRaw`, `errStreamDone`,
 `transportFailureCodes`), which proves `grpc.outRawFn.law`.
 
+**Built in the session's seventh part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **The metadata gap, `outMD` side, closed by a definition.** `metadata.builtRawMDRaw v f` (`Proof/context/LibKeys.lean`),
+  a trusted opaque with no law since errdesc stage 1, is now `∃ M rows, metadata.rawMDAt v M rows ∗ ⌜f = rawView M rows⌝`:
+  the `rawMD`'s read-only contents (the map's values `M`, the `added` rows), map and row keys lower case, rows of even
+  length (`rawOk`), and `f` `FromOutgoingContext`'s merge (`rawView`: a key's map values, then its rows' values in
+  order). `metadata.outMD`'s text is unchanged. Proved: `outRawIs_of_outMD` (`InvHeader.lean`): a context with
+  `outMD ctx md` has the raw contents `o` the transport reads (`outRawIs`, `createHeaderFields`' premise) with
+  `md = outViewOf o`. Ledger 2026-11-23 (`builtRawMDRaw`): the producing axioms (`AppendToOutgoingContext`,
+  `withVersion`, `WithRequireLeader`, `WithCancelValCtx`, the model's server contexts) now claim the contents; checked
+  against grpc v1.84 and etcd; narrowed to lower-case map keys (the opaque allowed non-colliding upper-case keys of a
+  literal `MD`, which no verified program builds). For the user's review.
+- **Not retired:** the axioms `metadata.AppendToOutgoingContext`, `withVersion`, `WithRequireLeader`. Their bodies need
+  `context.WithValue` at `mdOutgoingKey{}` returning a `*valueCtx` (the chain form `outMD` is in): this repository's
+  `context.WithValue.spec` is a trust-boundary axiom (Perennial translates `context` without `WithValue`'s body) whose key
+  list excludes grpc's key, and extending it changes a trusted statement (the same decision as `requestInfoKey`, fifth
+  part). Proposed: Perennial translates `WithValue` with its body (a `valueCtx` allocation; `ctxValue_valueCtx` already
+  exists), after which these three and `NewContextWithRequestInfo` are provable here.
+- **`credsYield`, not done: the design.** `credsYield conn cm` (opaque) is the only link from a connection to what its
+  credentials returned. Replacing it needs the credentials' predicate at the attempt: `grpcConn` (an axiomatized
+  predicate) gains `CQ : GrpcMd → IProp GF` (NewClient's post: `credsQOf (credsOfDial ds) Q`, `[] ↦ ⌜cm = none⌝`,
+  `[_] ↦ □ Q cm`, more ↦ `True`; `connCredsOk` goes), `grpcInvokerOk conn addrs Ok CQ inv` asks
+  `▷ ∀ md cm, CQ cm -∗ ⌜grpcAttemptMd cm om md⌝ -∗ Spec md m Φ Ψe` with `grpcAttemptMd` pure over the merged
+  credentials' metadata `cm` (`credsLookup` of `createHeaderFields`' `cms`, `credsMapIs` per map), and the etcd client's
+  `isEtcdConnG`/`connTokOk` carry `CQ` (`connTokOk conn P` becomes `□ ∀ cm, CQ cm -∗ tokMdOk P cm`, no consumer today).
+  36 uses of `grpcConn`, 67 of `grpcInvokerOk` (15 files, three trusted statements: `NewClient`, `ClientConn.Invoke`,
+  `ClientConn.NewStream`): a spec change at the client boundary, to do with `ClientConn.Invoke`'s proof over the model
+  (where `grpcConn` becomes a definition and `CQ` its dial's), not before it.
+
+- **The user's rule (2026-11-23): no hand-written stand-ins for real library functions in the models.** Go's real
+  function is translated and proved (in Perennial), or becomes a Go model under perennial#692's overlay; until then the
+  call stays as Go writes it and proofs through it wait. The fourth part's `LastIndex` byte loop in
+  `createHeaderFields` stays for now (a separate branch reverts it to `strings.LastIndex` once Perennial has it); no
+  further proof here depends on the loop specifically (the client attempt's proof takes `createHeaderFields.spec`, whose
+  statement names no audience). The user approves any change that adds no Lean axiom and no premise of a top-level
+  theorem.
+
 ### 1. The vocabulary
 
 #### 1.1 Deposit slots (net library, neutral: `GooseLang/Ext/Net/Slot.lean`)

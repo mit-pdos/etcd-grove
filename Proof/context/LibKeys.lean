@@ -15,7 +15,8 @@ and `TestContradictions`).
 * The results the libraries accept (`peer.peerRes`, `trace.spanRes`; at grpc's outgoing key
   `metadata.outgoingHeld`, an `IProp` since errdesc stage 1): a value of another type than the library
   stores (nothing to misuse: the library's type assertion fails), or one the library made (the opaque,
-  trusted predicates `metadata.builtRawMDRaw`, `peer.transportPeer`, `trace.otelSpan`; D4: only the
+  trusted predicates `peer.transportPeer`, `trace.otelSpan`, and `metadata.builtRawMDRaw`, a definition
+  over the `rawMD`'s contents since 2026-11-23; D4: only the
   owning package can store a value under its unexported key).
 * (perheap step 0, 2026-11-18; `notes/perheap-scope.md` §2) **The incoming metadata as a per-heap
   relation**: `metadata.ctxInMD ctx md` (persistent), "`ctx`'s incoming metadata is `md`", over
@@ -90,21 +91,88 @@ sampler, ID generator or span processor of the program's own, which may read the
 its own (`TestOtelExcludedComponents`), makes no `otelSpan`. -/
 opaque trace.otelSpan [GooseExts] : GoInterface → Prop
 
-/-- (opaque; TRUSTED; no law; errdesc stage 1, 2026-11-20) **A `rawMD` grpc's `metadata` made, with
-the outgoing metadata `f`**: the value `metadata.NewOutgoingContext(ctx, md)` (`rawMD{md: md}`) or
-`AppendToOutgoingContext(ctx, kv...)` (`rawMD{md: md.md, added: added}`, the pairs appended, each key
-lower-cased) stores under `mdOutgoingKey{}` (grpc v1.84.0 `metadata/metadata.go`), never written after,
-whose `FromOutgoingContext` view (the map's pairs merged with the added ones, keys lower-cased) is `f`,
-and with no two keys of `md` equal up to case (every `MD` this repository's code passes to
-`NewOutgoingContext` is built by `metadata.Pairs`/`New`, which lower-case). An `IProp` of the heap whose
-names it takes (`hG`), given only by the posts of grpc's uninterpreted `metadata` functions (and etcd's
-names-only `withVersion`, `WithRequireLeader`); no law relates two of them (the per-heap rule,
-`notes/errdesc-ghost-plan.md`). Until 2026-11-20 the opaque pure `builtRawMD : GoInterface → Prop`, with
-the metadata the pure `metadata.outgoingOf`, a function of the context value, which no implementation
-can meet for the contexts it allocates. -/
-opaque metadata.builtRawMDRaw [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+/-! ### grpc's outgoing metadata value, by its contents (phase 7 S2 core, 2026-11-23)
+
+Until 2026-11-23 `metadata.builtRawMDRaw v f` was an opaque, trusted `IProp` with no law (errdesc stage 1,
+2026-11-20). It is now defined by what grpc's transport and `FromOutgoingContext` read of the value
+(`notes/phase7-plan.md` §0a, part 7; the change in `notes/specs-only/ledger.md`): a `rawMD` whose map has
+the values `M`, lower-case keys, and whose `added` rows are `rows`, all read-only, each row of even length
+with lower-case keys, and `f` its merged view (`rawView M rows`: a key's map values, then its rows' values
+in order, as `FromOutgoingContext` merges them, `metadata.go:331-361`). -/
+
+namespace metadata
+
+/-- A row's pairs (`k1, v1, k2, v2, ...`). -/
+def rowPairs : List GoString → List (GoString × GoString)
+  | k :: v :: rest => (k, v) :: rowPairs rest
+  | _ => []
+
+/-- The rows' values at the key `k`, in order. -/
+def rowsVals (rows : List (List GoString)) (k : GoString) : List GoString :=
+  (rows.flatMap rowPairs).filterMap fun p => if p.1 = k then some p.2 else none
+
+/-- **The merged view of a `rawMD`** (`FromOutgoingContext`'s result): a key of the map or of a row has
+its map values (if any), then its rows' values. -/
+def rawView (M : GMap GoString (List GoString)) (rows : List (List GoString)) :
+    GoString → Option (List GoString) :=
+  fun k => if (M !! k).isSome ∨ k ∈ (rows.flatMap rowPairs).map Prod.fst then
+    some ((M !! k).getD [] ++ rowsVals rows k) else none
+
+/-- An ASCII word with no upper-case letter (`strings.lowerWord`). -/
+def rawKeyLower (k : GoString) : Prop := ∀ b ∈ k, b < W8 128 ∧ ¬ (W8 65 ≤ b ∧ b ≤ W8 90)
+
+/-- The pure side of a `rawMD`'s contents: the map's keys and the rows' keys lower case, every row of
+even length. -/
+def rawOk (M : GMap GoString (List GoString)) (rows : List (List GoString)) : Prop :=
+  (∀ k, (M !! k).isSome → rawKeyLower k) ∧
+    ∀ row ∈ rows, row.length % 2 = 0 ∧
+      ∀ (i : Nat) (h : i < row.length), i % 2 = 0 → rawKeyLower row[i]
+
+end metadata
+
+/-- **The value `v` is a `rawMD` with the map values `M` and the rows `rows`** (persistent): its map
+(`nil` and empty, or read-only, `ms`) has `M`'s keys, each key's slice read-only at `M`'s values; its
+`added` slice is read-only at the rows' slices, each read-only at its row; `rawOk M rows`. -/
+def metadata.rawMDAt [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.Semantics] (v : GoInterface)
-    (f : GoString → Option (List GoString)) : IProp GF
+    (M : GMap GoString (List GoString)) (rows : List (List GoString)) : IProp GF :=
+  iprop(□ ∃ (r : google_golang_org.grpc.metadata.rawMD)
+      (ms : GMap GoString GoSlice) (rsl : List GoSlice),
+    ⌜v = interface.mkOk google_golang_org.grpc.metadata.rawMD.ty #r⌝ ∗
+    (⌜r.md' = null ∧ ms = ∅⌝ ∨ ownMap r.md' DFrac.discard ms) ∗
+    ⌜∀ k, (M !! k).isSome = (ms !! k).isSome⌝ ∗
+    ([∗map] k ↦ sl ∈ ms, sl ↦*□ ((M !! k).getD [])) ∗
+    r.added' ↦*□ rsl ∗ ⌜rsl.length = rows.length⌝ ∗
+    ([∗list] i ↦ sl ∈ rsl, sl ↦*□ (rows.getD i [])) ∗
+    ⌜metadata.rawOk M rows⌝)
+
+/-- (TRUSTED in its producers only; a definition since 2026-11-23, until then an opaque with no law)
+**A `rawMD` grpc's `metadata` made, with the outgoing metadata `f`**: the value
+`metadata.NewOutgoingContext(ctx, md)` (`rawMD{md: md}`) or `AppendToOutgoingContext(ctx, kv...)`
+(`rawMD{md: md.md, added: added}`, the pairs appended, each key lower-cased) stores under
+`mdOutgoingKey{}` (grpc v1.84.0 `metadata/metadata.go`), never written after: a `rawMD` with some map
+values `M` and rows `rows` (`rawMDAt`), whose `FromOutgoingContext` view is `f` (`rawView M rows`). Its
+producers are the posts of grpc's names-only `metadata` functions and of etcd's names-only `withVersion`
+and `WithRequireLeader` (trust-boundary axioms, which now claim these contents: every `MD` they pass to
+`NewOutgoingContext` is built by `metadata.Pairs`/`MD.Set`/`FromOutgoingContext`, which lower-case its
+keys, and is not written after). -/
+def metadata.builtRawMDRaw [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.Semantics] (v : GoInterface)
+    (f : GoString → Option (List GoString)) : IProp GF :=
+  iprop(∃ (M : GMap GoString (List GoString)) (rows : List (List GoString)),
+    metadata.rawMDAt v M rows ∗ ⌜f = metadata.rawView M rows⌝)
+
+instance metadata.rawMDAt_persistent [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.Semantics] (v : GoInterface)
+    (M : GMap GoString (List GoString)) (rows : List (List GoString)) :
+    Persistent (metadata.rawMDAt (GF := GF) v M rows) := by
+  unfold metadata.rawMDAt; infer_instance
+
+instance metadata.builtRawMDRaw_persistent [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.Semantics]
+    (v : GoInterface) (f : GoString → Option (List GoString)) :
+    Persistent (metadata.builtRawMDRaw (GF := GF) v f) := by
+  unfold metadata.builtRawMDRaw; infer_instance
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
