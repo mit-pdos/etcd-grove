@@ -31,7 +31,17 @@
 // io.EOF if the connection ends before a frame, io.ErrUnexpectedEOF if within one (gob's two
 // cases), the connection's error otherwise; a frame longer than maxFrame, or a header frame that
 // does not parse, is an error the model's own (gob's malformed input errors are not modelled:
-// no model peer sends such input). Write errors are sticky, as gob's bufio.Writer's.
+// no model peer sends such input). Write errors are sticky, as gob's bufio.Writer's. The server
+// codec's frame read errors are sticky too (serverCodec.rerr): after one, every later read fails
+// with it. Go's gob reads on after a read error; the server loop then reads on only after a body's
+// read error (ServeCodec answers it and continues), and a frame cut short leaves gob, and the
+// model, in the middle of a frame, reading from there as if a frame started. Over Linux a
+// connection's end yields no byte after a read error (an error comes once the unread bytes are
+// read: then EOF, examples/net/semantics' TestResetInNetwork, TestKilledWithUnreadInput,
+// TestTimeoutOnBreak), so Go's later reads fail too and the loop ends at the next header, as the
+// model's does: the same behavior, but for a read deadline's timeout, after which Go reads on
+// (outside the model's claim: a program that sets a read deadline on a connection it serves; the
+// net extension's semantics allows bytes after a read error too, which is why the model says it).
 package rpc
 
 import (
@@ -255,6 +265,7 @@ func (c *clientCodec) Close() error {
 type serverCodec struct {
 	rwc    io.ReadWriteCloser
 	werr   error // as clientCodec's
+	rerr   error // the first frame read error: every later read fails with it (the package doc)
 	closed bool
 }
 
@@ -263,8 +274,12 @@ func newServerCodec(conn io.ReadWriteCloser) *serverCodec {
 }
 
 func (c *serverCodec) ReadRequestHeader(r *Request) error {
+	if c.rerr != nil {
+		return c.rerr
+	}
 	p, err := readFrame(c.rwc)
 	if err != nil {
+		c.rerr = err
 		return err
 	}
 	if len(p) < 8 {
@@ -282,8 +297,12 @@ func (c *serverCodec) ReadRequestHeader(r *Request) error {
 
 // ReadRequestBody reads the body frame that follows the header (with body nil, to discard it).
 func (c *serverCodec) ReadRequestBody(body any) error {
+	if c.rerr != nil {
+		return c.rerr
+	}
 	p, err := readFrame(c.rwc)
 	if err != nil {
+		c.rerr = err
 		return err
 	}
 	if body == nil {

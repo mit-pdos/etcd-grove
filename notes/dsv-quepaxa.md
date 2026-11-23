@@ -232,20 +232,54 @@ grpc-go, "Hypotheses" above).
 
 ## State
 
-**Done (2026-11-23)**: the whole port. The Go, the translation, the protocol's proof
-(`Replica`, `Proxy`, `Proposer` `Results`), the kit's proofs and links, the start, the mains and
-**`quepaxa_remote_robust`** (`lake build Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness`
-OK; `#print axioms` Lean's three, checked in `Dsverify/Scratch/QpTopAx.lean`, untracked). No
-`sorry` and no `axiom` declaration in `Dsverify/` outside `Scratch/` (the generated
+**Done (2026-11-23)**: the whole port, prepared for landing. The Go, the translation, the
+protocol's proof (`Replica`, `Proxy`, `Proposer` `Results`), the kit's proofs and links, the start,
+the mains and **`quepaxa_remote_robust`** (`lake build Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness`
+OK, and every module under `Dsverify/{Proof,Spec}/raxos/`; `#print axioms` Lean's three). No
+`sorry` and no `axiom` declaration in `Dsverify/` (the generated
 `GeneratedProof/google_golang_org/grpc/chunk*.lean` hold goose's `sorry -- axiomatized type`
 instances of the names-only grpc's opaque types, which nothing reaches: `#print axioms`). The only
-trusted code: the two descriptor-table init files (collection). Checks of the last session:
-`etc/tier-check.py --check`: 19 raxos non-scratch violations (unchanged; the new modules add none,
-the top level is a linking module), the rest `Dsverify/Scratch`'s; `PERENNIAL_DIR=... etc/gen-init.py
---check`: 268 files up to date; `etc/goose.py --check --project dsv-quepaxa --perennial
-/shared/perennial-7b2259a12`: up to date. `etc/tcb-report.py --collection
-etc/tcb-collections/dsv-quepaxa.txt --check` not run (it needs every root module of the
-repository built, a full build; gates.sh runs it).
+trusted code: the two descriptor-table init files (collection).
+
+**Landing preparation (2026-11-23)**:
+- **Import tiers**: `etc/tier-check.py --check` passes with no new baseline or `etc/tier-linking.txt`
+  entry (the 19 raxos violations fixed, dsv-epaxos's pattern). The library callees of the proxy,
+  replica and kit proofs are hypotheses, `Dsverify/Proof/raxos/LibDeps.lean` (defs tier, specs
+  only): `QpBufioDeps` (bufio's `Writer.{Flush,WriteByte,Write}`, `Reader.{ReadByte,Read}`,
+  `NewWriter`), `QpNetDeps` (`Conn.{Write,Close}`, `Dial`, `Listen`), `QpFormatIntDeps`,
+  `QpPrintfDeps`; the modules take them as section variables (`MabCalc`, `NetDial`, `NetListen`,
+  `NetSend`, `NetUnmarshal`, `Serve`, `Server`, `KitConn`, `KitRecv`, `KitWire`, `KitOp`,
+  `KitNewClient`, `KitClient`); `Proxy/Results.lean` proves them from the libraries' proofs
+  (`qpBufioDeps_holds`, `qpNetDeps_holds`, `qpFormatIntDeps_holds`, `qpPrintfDeps_holds`), local
+  instances there, in `Replica/Results.lean` and in `examples/quepaxanet/Linked.lean`; no `instance`
+  of them exists, and they are no premise of the statement. `io.ReadFull`'s local statements moved to
+  `IoReadFullSpec.lean` (`NetSpecs` imports them, not the proofs); `Replica/Server.lean` uses
+  `Proposer/Run.lean`'s `prop.wp_NewProposer`/`prop.wp_runProposer` (was `Proposer/Results`, a
+  linking module).
+- **Merged `lean` 20cfe852d5** (Perennial 71de6f043, `/shared/perennial-71de6f043`): conflicts only in
+  go-redis's names-only translation and `Init`/`Base` and math/rand's `Init` (both kits add them;
+  taken from `lean`, dsv-rabia's). `Proxy/NetAcceptLib.lean`'s `opError_resErr`: `net.OpError.Error`
+  now maps an empty string to `"error"` (a branch). No local copy of dsv-protolaws' laws here (QuePaxa
+  uses no `sentLb`).
+- **go-redis** (finding): dsv-rabia (landed) translates go-redis **v8.8.2** into the same modules
+  (`Dsverify/{Code,GeneratedProof}/github_com/go_redis`, with `translate_types`); QuePaxa's go.mod has
+  **v8.11.5**, and two projects cannot own one module path. QuePaxa's goose project no longer
+  translates or owns go-redis (`etc/dsv/quepaxa.py`): its code's references resolve to rabia's
+  translation. Pinning QuePaxa to v8.8.2 instead fails: v8.8.2 needs otel v0.19 (`metric/global`),
+  grpc v1.84 a 1.x otel, and the downgrade takes grpc to `v1.69.0-dev`. Harmless for the theorem:
+  QuePaxa reaches go-redis only in benchmark mode 1, which the proof shows unreachable, and its
+  `InitHyp` says only that the initializer does not panic, true of both versions. The cleaner fix (one
+  version for both kits, e.g. rabia on v8.11.5) is a follow-up.
+- Link namespace: the kit has no `Link.lean` (its links are `examples/quepaxanet/Linked.lean` and the
+  `Results` modules, which `etc/proof_roots.py`'s `namespace()` does not read); `namespace()` stays
+  `Perennial.EtcdGrove.`.
+- Checks (2026-11-23, at Perennial 71de6f043): `PERENNIAL_DIR=/shared/perennial-71de6f043
+  etc/gen-init.py --check` (266 files up to date), `etc/goose.py --check` (all projects up to date
+  once go-redis left this project), `etc/copy-part.py --check`, `etc/tier-check.py --check`,
+  `errorf-wrap-check`'s `init_errors()` `[]`, `etc/theorem-loc.py quepaxa_remote_robust --no-go
+  --list-tcb` (tcb 582, all premises, 0 axioms). `etc/tcb-report.py --collection
+  etc/tcb-collections/dsv-quepaxa.txt --check` not run (it needs every root of the repository built;
+  `etc/gates.sh` runs it).
 
 Last session's changes (top level): `Hyp.lean` `GrpcHyp.world_alloc` → `class GrpcWorldHyp`
 over `GooseGlobalGS`, `kit_start` takes it as an instance (was the premise `hW`); `Wire.lean`'s
@@ -253,7 +287,7 @@ unused `ClientBatch.Marshal.spec`/`Unmarshal.spec` deleted (`KitWire`'s `cbMarsh
 `NetUnmarshal`'s `unmarshalB.spec` are the ones used); new `TopLevelDefs.lean`, `Mains.lean`,
 `TopLevelRobustness.lean` (Proof and Spec), `etc/tcb-collections/dsv-quepaxa.txt`.
 
-Build: `PERENNIAL_DIR=/shared/perennial-7b2259a12 etc/goose.py --project dsv-quepaxa`, `... etc/gen-init.py`,
+Build: `PERENNIAL_DIR=/shared/perennial-71de6f043 etc/goose.py --project dsv-quepaxa`, `... etc/gen-init.py`,
 `lake build Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness`.
 
 ## Design findings
@@ -281,8 +315,7 @@ Build: `PERENNIAL_DIR=/shared/perennial-7b2259a12 etc/goose.py --project dsv-que
   `sort.Ints` (Perennial's translation + the lab's proof over `slices.wp_Sort`), `time.Time.UTC`,
   `fmt.Println`, math/rand, `sync.Map` (Perennial's `HashTrieMap` instances), the `InitHyp`s.
 - `DistBridgeLis.lean` into `Net/Statement/` if other kits need wildcards.
-- Tier violations (19 raxos, from the lab's layout: defs modules importing proofs) and
-  `Dsverify/Scratch/` (untracked) to clean.
+- One go-redis version for QuePaxa and rabia (the State's "go-redis").
 - The per-function spec/proof layout and generated Links, as paxos's follow-ups.
 
 ## Which lab run

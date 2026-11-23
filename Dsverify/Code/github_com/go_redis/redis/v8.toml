@@ -1,5 +1,8 @@
-# Names only: the replica's benchmark mode 1 (`Init`, `redisExecute`) calls go-redis; the kit runs
-# mode 0 (the resident store) and never reaches it (the lab replaced go-redis by a cut-down model,
-# not brought over: notes/dsv-quepaxa.md).
+# names only (project dsv-rabia, notes/dsv-rabia.md): the lab replaced this library by its own
+# model (harness/rpcmodel); this repository has no model of it yet, so the kit's proof takes the
+# specs of what it calls as hypotheses.
 translate = ["!*"]
 imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

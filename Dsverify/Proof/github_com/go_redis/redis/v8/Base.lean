@@ -1,5 +1,5 @@
 /-
-The package fact of go-redis (names only, never reached): `True` (notes/dsv-quepaxa.md).
+The package fact of `github_com.go_redis.redis.v8`: `True` (names only here (no model: notes/dsv-rabia.md), no variables).
 -/
 module
 

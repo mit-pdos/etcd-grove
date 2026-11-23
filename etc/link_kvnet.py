@@ -22,8 +22,9 @@ at `kvFacts γ _`, `kvRep γ vs dir`, ...), so a result's statement is not alway
   parameter of that result.
 - **The callees' results**: the part's own (this file's), else the linked results of the Links of
   `EXT_LINKS` (raft-noax's `Link` and `Linked`, `durable`'s, lintest's and porcupine's, Perennial's),
-  used as they are: a result of theirs with a hypothesis (`durable`'s `h_errors_IsPathErrnoNotExist`)
-  makes it a hypothesis of every result that reaches it, `h_<name>`, in `section links_pending`.
+  used as they are: a result of theirs with a hypothesis (until 2026-11-22, `durable`'s
+  `h_errors_IsPathErrnoNotExist`; none today) makes it a hypothesis of every result that reaches it,
+  `h_<name>`, in `section links_pending`.
   A spec no result proves is a hypothesis too.
 - Instance binders are section variables (`SEC_VARS`, then the proofs' own `variable` lines'
   instances), all `include`d; `kdStorageModel` is the section's `StorageModel` (kvnet's storage is

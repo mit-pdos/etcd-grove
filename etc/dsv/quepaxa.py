@@ -13,7 +13,11 @@ GOOSE = dict(
     # protobuf, lintest, porcupine, bufio and os the main tree's; grpc (from its model,
     # models/grpc), grpc/codes, grpc/status types and names only into the part (the main tree's
     # grpc imports the main tree's `net`); yaml.v2, go-redis, io/ioutil and encoding/gob names
-    # only into the part (the lab's cut-down model of go-redis is not brought over).
+    # only into the part (the lab's cut-down model of go-redis is not brought over). go-redis's
+    # translation is project dsv-rabia's (v8.8.2, names and types only; it owns
+    # `github_com/go_redis`): QuePaxa's go.mod has v8.11.5, which cannot be translated into the
+    # same modules, and QuePaxa reaches go-redis only in benchmark mode 1, which the kit never
+    # runs (notes/dsv-quepaxa.md, "go-redis").
     repo=None,
     rev=None,
     local=os.path.join("examples", "dsverify", "quepaxa"),
@@ -26,15 +30,14 @@ GOOSE = dict(
                 "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                 "google.golang.org=", "bufio=",
                 "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
-    packages=["gopkg.in/yaml.v2", "github.com/go-redis/redis/v8", "io/ioutil", "encoding/gob",
+    packages=["gopkg.in/yaml.v2", "io/ioutil", "encoding/gob",
               "google.golang.org/grpc", "google.golang.org/grpc/codes",
               "google.golang.org/grpc/status",
               "./common", "./configuration", "./proto", "./proto/client", "./replica/src",
               "./examples/quepaxanet", "./examples/quepaxanet/cmd/orch"]
              + ["./examples/quepaxanet/cmd/client%d" % c for c in range(6)]
              + ["./examples/quepaxanet/cmd/server%d" % s for s in range(1, 6)],
-    owned=["raxos", os.path.join("gopkg_in", "yaml_v2"),
-           os.path.join("github_com", "go_redis"), os.path.join("io", "ioutil"),
+    owned=["raxos", os.path.join("gopkg_in", "yaml_v2"), os.path.join("io", "ioutil"),
            os.path.join("encoding", "gob"), os.path.join("google_golang_org", "grpc")],
     expand_comment_tabs=True,
 )

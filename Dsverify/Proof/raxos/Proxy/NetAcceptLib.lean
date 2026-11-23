@@ -135,7 +135,10 @@ theorem errAny_resErr' [net.Assumptions] [fmt.Assumptions] (k : NetErr) (op : Go
   wp_bind (ExternalOp _ _ _)
   iapply wp_net_AnyString
   iintro %str
-  iapply HΦ
+  (try wp_auto)
+  wp_if_destruct
+  · iapply HΦ
+  · iapply HΦ
 
 omit π qv in
 /-- An `errors.New` variable's value is not a `fmt.Formatter`, and is `errAny`
