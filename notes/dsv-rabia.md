@@ -147,6 +147,14 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
   (SigListen closes it on a signal): the tcp endpoints' loops, the layers' routines, `ServerMain`,
   `TerminalLogger`, which today treat `Done` as never closed (safety only, not liveness).
 
+- **Linked packages vs the facts used** (the coordinator's check from dsv-vr's finding 7, 2026-11-23):
+  the rabia package facts that are not `True` are `internal/config`'s (`confInv`) and
+  `internal/message`'s (`msgFact`: its two `errors.New` globals); both packages are imported by the
+  kit (`kit.go` imports `config`, `message`, `tcp`, `roles/server`), so every one of the twelve
+  programs links them, and each program's `PkgTable.lean` lists them (checked for orch, client0,
+  server1; the tables are generated from the same closure). No fact rests on a hook another package's
+  `init` sets; gogo proto's `Register*` calls are in `message`'s own `init`.
+
 ## The hypotheses (missing model pieces; named after the lab's specs)
 
 **Stated** (classes, instance arguments of every theorem above them, up to the closed statement):
