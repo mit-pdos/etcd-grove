@@ -41,7 +41,6 @@ axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.initFuncsOk
 axiom Perennial.k8s_io.apimachinery.pkg.apis.meta.v1.opaqueInitsOk
 axiom Perennial.k8s_io.apiserver.pkg.features.init_0_ok
 axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker_init
-axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
@@ -217,7 +216,6 @@ axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof

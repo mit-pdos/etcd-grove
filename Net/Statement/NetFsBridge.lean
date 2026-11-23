@@ -223,7 +223,7 @@ theorem robust_of_netFsBoot [lctx : GoLocalContext] (addrs : List GoString)
     imod HQ (e', σ') Hes L hL $$ HQL Htok with ⟨Hwp, Hcr⟩
     imodintro
     iframe Hwp
-    iintro %L' Hcrd Hcs Hgs
+    iintro %L' Hcrd Hcs Hgs _
     icases kvnet_fs_crashStart L L' $$ Hcs with Hcs
     unfold Fs.osCrashStart
     icases Hcs with ⟨Hv, %V', Hr⟩
