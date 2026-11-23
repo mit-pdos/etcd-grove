@@ -3716,11 +3716,16 @@ SPECIAL['go_etcd_io.etcd.server.v3.features'] = dict(
 )
 _API = 'go_etcd_io.etcd.server.v3.etcdserver.api'
 SPECIAL[_API] = dict(
-    doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs the
+    doc='''Its fact (`capInit`, `CapPool.lean`; prove-ps2-cap, 2026-11-23, until then `True`):
+`enableMapMu`'s guard and its reader slots, pooled at level 0, over `enabledMap` holding `nil` or a
+read-only map. Its initializer initializes its imports, allocates its variables and runs the
 translated initializer of `capabilityMaps` (a map literal of map literals) and its translated `init`
 function, which sets `enabledMap` to a map literal (prove-smallinits, 2026-11-20; until then the
-trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).''',
-    alloc_types={'capabilityMaps': 'Loc', 'enabledMap': 'Loc'},
+trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`), and makes the fact from the map, made
+read-only, and the fresh lock (`capInit_alloc`).''',
+    alloc_types={'capabilityMaps': 'Loc', 'enabledMap': 'Loc',
+                 # (prove-ps2-cap, 2026-11-23) the lock `IsCapabilityEnabled` read-locks
+                 'enableMapMu': '_root_.Perennial.sync.RWMutex'},
     before={'capabilityMaps': ['try wp_auto',
         f'wp_apply (wp_map_make1 (K := GoString) (V := Loc) go.string (go.GoType.MapType {_API}.Capability.ty go.bool)) as %mcm Hcm',
         'try wp_auto'] + [l for k in range(9) for l in
@@ -3730,6 +3735,11 @@ trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).''',
     # `enabledMap = map[Capability]bool{AuthCapability: true, V3rpcCapability: true}`
     after={'init.«0»': [f'wp_apply (wp_map_make1 (K := GoString) (V := Bool) {_API}.Capability.ty go.bool) as %me He',
         'try wp_auto'] + [f'wp_apply (wp_mapInsert (K := GoString) (V := Bool) {_API}.Capability.ty) $$ He as He', 'try wp_auto'] * 2},
+    # (prove-ps2-cap, 2026-11-23) the fact `capInit`: `init()`'s map read-only, `enableMapMu`'s guard
+    # and its reader slots pooled (`capInit_alloc`)
+    finish=['ipersist He',
+            f'imod ({_API}.capInit_alloc ⊤ _ _) $$ [HenabledMap HenableMapMu] with #HCI',
+            '· iframe HenabledMap HenableMapMu; iexact He'] + FIN_PRE[:6],
 )
 
 # (prove-smallinits, 2026-11-20) k8s's single-item lists: a func literal, an `errors.New` call, empty

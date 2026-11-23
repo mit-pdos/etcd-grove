@@ -83,7 +83,7 @@ theorem ak_served_kv (addr : GoString) (gs q p pa s : Loc) (lis : GoInterface)
         v3rpc.authServerIs pa s ∗ srvAuthStoreOn s E.RD ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd ⊢
       |={⊤}=> ∃ γ : GName, grpcServeTok gs lis γ ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
@@ -142,7 +142,7 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isServerReadM true s E γr ∗ v3rpc.isWatchServer pw V.R ∗
         v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
-        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
+        srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
         grpcStreamServerAt addr [ims, is] sregs γ ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗ client.eofOk ⊢
       |={⊤}=> watchAddrFacts V ∗ auth.modeTag V.R.tag E.authMode := by

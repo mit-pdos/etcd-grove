@@ -14,7 +14,7 @@
 # `etcd_watch_served_etcd_chain` (etcd's `newStreamInterceptor` discharging the served chain's
 # second premise, under the premise `runsNoRequireLeader`); its boundary is `newUnaryInterceptor`'s
 # (the server's names-only `IsMemberExist`/`IsLearner` with `membership.localKept`,
-# `api.IsCapabilityEnabled`, grpc's `MD.Get`, `utf8.ValidString`, prometheus's
+# grpc's `MD.Get`, `utf8.ValidString`, prometheus's
 # `CounterVec.WithLabelValues`); the leader monitor (`monitorLeader`) adds none.
 # Unit W-C (2026-10-16): the client's watcher (`client_watcher_rangeWatcher`,
 # `client_newWatcher_rangeWatcher`, client/v3/Results.lean: client/v3/watch.go over the stub); new
