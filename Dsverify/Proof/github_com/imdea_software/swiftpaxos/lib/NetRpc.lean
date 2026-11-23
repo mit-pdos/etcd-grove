@@ -24,7 +24,11 @@ there), and the statements of the server side and of the HTTP path, which have n
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.Bufio
-public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.rpc.Client__Call
+public import Net.Proof.net.rpc.Client__Close
+public import Net.Proof.net.rpc.Dial
+public import Net.Proof.net.rpc.SetCodec
+public import Net.Proof.net.rpc.Errs
 public import Net.Spec.net.rpc.Dial
 public import Net.Spec.net.rpc.Client__Call
 public import Net.Spec.net.rpc.Client__Close
