@@ -232,7 +232,7 @@ hypothesis of the kit's theorems named after the lab's spec, until the piece lan
    `sint.nat k = 0` for an empty read: the count could be negative, #24 item 4). To discharge it, one
    of: Perennial's `ReadFull`/`ReadAtLeast` premise to `ys.length < xs.length` (ReadAtLeast only reads
    while bytes remain); `Conn.Read`'s count exact (`sint.Z k = …`); a `conn_readerOk` variant on
-   dsv-bufio allowing `m = 0`. Not decided here (a Perennial or Net/ change).
+   dsv-bufio allowing `m = 0` (the revised dsv-bufio `75ef5881aa` still has `0 < m`; VR's Go uses no bufio, so the port does not merge it). Not decided here (a Perennial or Net/ change).
 4. `ServeClient`'s `newClient` (paxos's finding) applies here as well; the kit sidesteps it the same
    way.
 
