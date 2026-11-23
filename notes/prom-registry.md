@@ -847,8 +847,11 @@ Option 4 as perennial#684).
   `AdequacyMembers`; and `etc/proof_roots.py` grouped `Net/` roots that reach the main tree's
   `Code.net.textproto` with ones that reach `Net.Code.net.textproto` (the same names) into one Lean run of
   `etc/tcb-report.py`, which could not load ("environment already contains ..."): `shadows_part` now keys a run
-  also by the main-tree translations a part translates too. `etc/ModelParamCheck.lean` (gates' model-param) has
-  the same clash, not fixed here.
+  also by the main-tree translations a part translates too. `etc/ModelParamCheck.lean` (gates' model-param) had
+  the same clash and passes with it too.
+* **Gates**: `etc/gates.sh` (`LAKE_PACKAGES=/shared/tmp/manifest-1a03.json`, `PERENNIAL_DIR=/shared/perennial-1a0322fc6`,
+  `GATES_FAILFAST=0`) all passed at `569d24e638` plus this note (build 24784 jobs, tcb 376 axioms 0 sorries, 51
+  collections, goose, gen-init, tier, interfaces, model-param, axiom-tok).
 * **`Start.lean`, removal only**: `prometheus.nameFree` out of `startRights`; `Ns`/`hNs`/`hNsFree` out of
   `goose_adequacy_start` and `goose_adequacy_start_all`, and `hNsIds` out of the latter; the axiom
   `prometheus.nameUnclaimed` and `prometheus.namesUnclaimed` deleted. Then dead and deleted: the axiom
