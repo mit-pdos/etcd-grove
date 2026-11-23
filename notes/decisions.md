@@ -42062,11 +42062,12 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
   - `proto.UnmarshalWalRecord` and the WAL decoder's spec: the same at `walpb.Record`, with `recDecodeRaw`;
   - `proto.MarshalIRR` and `MustUnmarshalMessage`: their `irrDecode` includes the concrete `AuthUserGrantRole` reader, and claims agreement only where protobuf-go succeeds.
 - **The claims are pinned** to protobuf-go v1.36.12, `examples/go.mod`'s pin; protobuf-go documents that its output may change between versions.
-- **No map fields.** None of these types has one (kaashoek's review on #37), so the encodings are deterministic.
+- **No map fields** (D3 caution, kaashoek's review on #37): checked in the `.proto` sources at the pins (`raftpb/raft.proto`, `walpb/record.proto`, `etcdserverpb/raft_internal.proto` and `rpc.proto`, `membershippb`, `versionpb`): none has a `map<` field, so the encodings are deterministic.
 
 **Evidence.** `examples/pbschema/wirevectors_s2_test.go` writes three `#guard` modules from protobuf-go v1.36.12, with fixed seeds. `etc/gates.sh` checks them, and the build runs the guards.
-- **`MessageWireVectors.lean`, 973 guards.**
+- **`MessageWireVectors.lean`, 1055 guards.**
   - 150 `Marshal`s of random `Message`s, as the composed raw encoders. They cover every presence combination, enums out of range, entries, a snapshot with or without metadata and conf state, responses, and unknown fields at every level.
+  - 80 re-encodings (D2, kaashoek's note on #37): a message decoded from records with unknown fields interleaved at every level, then `Marshal`ed. protobuf-go writes the known fields in field-number order and the unknown fields, kept in arrival order, after them, and the Lean encoder of the decoded content gives the same bytes (`encode ks uf = encFields ks ++ uf`).
   - 823 `Unmarshal` outcomes, covering every getter, the conf state's lists and the number of responses, or the error. Inputs:
     - those encodings;
     - encodings with unknown fields interleaved;
@@ -42074,7 +42075,7 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
     - mutations of all of these;
     - edge cases: merged snapshots, metadata and conf states, unparsable packed lists, bools 2 and 5, empty and invalid entries, responses nested 300 deep.
 - **`TestMessageDepthLimit`, in Go only.** It checks that 10000 nested messages decode and 10001 do not, with an entry or a conf state counting as a level. The Lean decoder's cost is quadratic in the nesting, so the guards stop at 300.
-- **`RecordWireVectors.lean`, 509 guards.** `recEnc` against `Marshal`, and `recDecodeRaw` against `Unmarshal`, including int64/uint32 truncation.
+- **`RecordWireVectors.lean`, 578 guards.** `recEnc` against `Marshal`, `recDecodeRaw` against `Unmarshal` (including int64/uint32 truncation), and 69 decoded records with interleaved unknown fields re-encoded (D2).
 - **`IrrWireVectors.lean`, 504 guards.**
   - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
   - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.

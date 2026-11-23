@@ -267,6 +267,34 @@ func buildMessageVectors(t *testing.T) string {
 	for _, b := range ins {
 		out = append(out, msgDecGuard(b, lh(b)))
 	}
+
+	// D2 (kaashoek, #37): a message decoded from records with unknown fields interleaved at every
+	// level, re-encoded: protobuf-go writes the known fields in field-number order and the unknown
+	// fields, kept in arrival order, after them; the Lean encoder of the decoded content agrees.
+	out = append(out, "", "/-! ## `Message`: `proto.Marshal` of decoded messages (unknown fields interleaved) -/", "")
+	nre := 0
+	for i := 0; nre < 80 && i < 2000; i++ {
+		b := encodeWithUF(r, "Message", 0, validUF)
+		if r.Intn(3) == 0 {
+			b = append(b, encodeWithUF(r, "Message", 0, validUF)...)
+		}
+		var m pb.Message
+		if proto.Unmarshal(b, &m) != nil || len(m.ProtoReflect().GetUnknown()) == 0 {
+			continue
+		}
+		re, err := proto.Marshal(&m)
+		if err != nil {
+			t.Fatalf("Marshal: %v", err)
+		}
+		if bytes.Equal(re, b) {
+			continue // already canonical: not an interleaving
+		}
+		out = append(out, fmt.Sprintf("#guard %s = %s", leanMsgEnc(contentOfMsg(&m)), lh(re)))
+		nre++
+	}
+	if nre < 80 {
+		t.Fatalf("only %d re-encoded interleavings", nre)
+	}
 	return strings.Join(out, "\n")
 }
 
@@ -312,6 +340,21 @@ func randRecord(r *rand.Rand) *walpb.Record {
 	return rec
 }
 
+func recEncGuard(rec *walpb.Record, b []byte) string {
+	typ, crc := "none", "none"
+	if rec.Type != nil {
+		typ = fmt.Sprintf("(some %d)", uint64(*rec.Type))
+	}
+	if rec.Crc != nil {
+		crc = fmt.Sprintf("(some %d)", *rec.Crc)
+	}
+	data := "none"
+	if rec.Data != nil {
+		data = fmt.Sprintf("(some %s)", lh(rec.Data))
+	}
+	return fmt.Sprintf("#guard recEnc ⟨%s, %s, %s, %s⟩ = %s", typ, crc, data, lh(rec.ProtoReflect().GetUnknown()), lh(b))
+}
+
 func recDecGuard(b []byte) string {
 	var rec walpb.Record
 	if err := proto.Unmarshal(b, &rec); err != nil {
@@ -353,18 +396,7 @@ func buildRecordVectors(t *testing.T) string {
 		if proto.Size(rec) != len(b) {
 			t.Fatalf("Size %d != len %d", proto.Size(rec), len(b))
 		}
-		typ, crc := "none", "none"
-		if rec.Type != nil {
-			typ = fmt.Sprintf("(some %d)", uint64(*rec.Type))
-		}
-		if rec.Crc != nil {
-			crc = fmt.Sprintf("(some %d)", *rec.Crc)
-		}
-		data := "none"
-		if rec.Data != nil {
-			data = fmt.Sprintf("(some %s)", lh(rec.Data))
-		}
-		out = append(out, fmt.Sprintf("#guard recEnc ⟨%s, %s, %s, %s⟩ = %s", typ, crc, data, lh(rec.ProtoReflect().GetUnknown()), lh(b)))
+		out = append(out, recEncGuard(rec, b))
 		pool = append(pool, b)
 	}
 	out = append(out, "", "/-! ## `walpb.Record`: `proto.Unmarshal` -/", "")
@@ -391,6 +423,24 @@ func buildRecordVectors(t *testing.T) string {
 	)
 	for _, b := range ins {
 		out = append(out, recDecGuard(b))
+	}
+	// D2: decoded records with unknown fields interleaved, re-encoded
+	out = append(out, "", "/-! ## `walpb.Record`: `proto.Marshal` of decoded records (unknown fields interleaved) -/", "")
+	nre := 0
+	for _, b := range ins {
+		var rec walpb.Record
+		if proto.Unmarshal(b, &rec) != nil || len(rec.ProtoReflect().GetUnknown()) == 0 {
+			continue
+		}
+		re, err := proto.Marshal(&rec)
+		if err != nil || bytes.Equal(re, b) {
+			continue
+		}
+		out = append(out, recEncGuard(&rec, re))
+		nre++
+	}
+	if nre < 20 {
+		t.Fatalf("only %d re-encoded records", nre)
 	}
 	return strings.Join(out, "\n")
 }
