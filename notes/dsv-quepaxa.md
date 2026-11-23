@@ -107,11 +107,12 @@ named after the lab's specs, until each comes as one shared change:
 
 ## State
 
-- Done: the Go (commit `0fbd49207a`); the translation, building (`28eddbe98d`; Go comments with tabs
-  expanded in `common/common.go` and `replica/src/server.go`, as the lab's goose.sh did: Lean rejects
-  tabs in the doc comments goose copies. Interim: the rabia port is looking at a translation-side fix,
-  after which the fork's copy goes back to byte-identical); `Pure/Conf`, `Pure/Consensus`; the package facts and
+- Done: the Go (commit `0fbd49207a`; the fork's files byte-identical to the lab's since the
+  dsv-infra merge: goose's `expand_comment_tabs` expands the tabs of Go comments, which Lean rejects,
+  in the translation); the translation, building (`28eddbe98d`); `Pure/Conf`, `Pure/Consensus`; the package facts and
   initialization, all twelve `PkgTable`s building (`0e2763910c`).
+- Configuration: `etc/dsv/quepaxa.py` (dsv-infra's per-kit file: goose project, gen-init lists and
+  `special(g)`).
 - Build: `PERENNIAL_DIR=/shared/perennial-9c3b81f30 etc/goose.py --project dsv-quepaxa`, then
   `PERENNIAL_DIR=... python3 etc/gen-init.py`, then `lake build
   Dsverify.Proof.raxos.examples.quepaxanet.cmd.orch.PkgTable` (and the other eleven).
