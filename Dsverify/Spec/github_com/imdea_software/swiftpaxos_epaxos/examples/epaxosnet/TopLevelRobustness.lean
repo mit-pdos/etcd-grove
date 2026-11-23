@@ -16,13 +16,13 @@ The step bound: Net's net/rpc server (`Server.ServeCodec.spec`) needs the machin
 `threadBound GF ≤ 2 ^ 31` (its wait group's counter is an `int32`), and the deployment bridge's
 thread bound is the step count plus 2 (`Bridge.lean`, `robust_of_distProtoLisRBT`).
 
+gods' treemap, which `state` keeps its store in, is not a premise: its specs are proved of gods'
+own code (`github_com.emirpasic.gods.maps.treemap.hyps_true`, notes/gods-verified.md).
+
 **Premises** (visible, each a hypothesis of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L` and the start's `NetProtoGS`):
 * the package initializers Net and the main tree have no proof of: net/rpc's, net/http's,
   encoding/json's (`InitHyp`, `etc/dsv/README.md`);
-* gods' treemap (`github_com.emirpasic.gods.maps.treemap.Hyps`, the specs shared with the swiftpaxos
-  kit: `Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`; `state`'s use of it,
-  `StateTreemap`, is derived from it: `Interface/Treemap.lean`);
 * net/rpc over HTTP (`Interface/RpcHttpHyps.lean`; Net's `models-rpc-http`, not landed, named after
   its shapes): the addresses' and listeners' protocols (`RpcHttpAddr`, per global ghost state) and
   the specs (`RpcHttpHyp`: `DialHTTP(Path)`, `HandleHTTP`, the package-level `Register`,
@@ -83,8 +83,6 @@ def epaxos_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; net.http.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; encoding.json.InitHyp remoteGF) →
-    (∀ (G : GooseGlobalGS HasLC.hasLC remoteGF) (L : GooseLocalGS remoteGF), letI := heapAt G L;
-      github_com.emirpasic.gods.maps.treemap.Hyps remoteGF) →
     ∀ (ra : ∀ (G : GooseGlobalGS HasLC.hasLC remoteGF) (π : NetProtoGS), letI := G;
         RpcHttpAddr remoteGF)
       (rh : ∀ G L (π : NetProtoGS), letI := heapAt G L; letI := ra G π; RpcHttpHyp remoteGF),

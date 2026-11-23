@@ -20,7 +20,7 @@ open github_com.emirpasic.gods.maps.treemap (cmpOk sortedE Entries lookupE putE)
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [redblacktree.Assumptions] [go.BasicIntoValInj]
+variable [redblacktree.Assumptions]
 
 theorem Tree.lookup.wp_proof : Tree.lookup.spec (GF := GF) := by
   intro tr enc cmp T h D k
@@ -39,7 +39,7 @@ theorem Tree.lookup.wp_proof : Tree.lookup.spec (GF := GF) := by
   obtain ⟨hTCS, hb⟩ := HCS
   have hrepS : Rep enc h S (Ctx.parent C null) := ((Rep_plug C S null).mp (hTCS ▸ hrep)).2
   wp_if_destruct
-  · have hS : S.loc ≠ null := not_of_not_decide_val Hif
+  · have hS : S.loc ≠ null := not_of_not_decide_val (hG := hG) Hif
     cases S with
     | leaf => exact absurd rfl hS
     | node n k' v' L R =>
@@ -104,8 +104,8 @@ theorem Tree.lookup.wp_proof : Tree.lookup.spec (GF := GF) := by
           have : sint.Z cv = 0 := by omega
           exact this
   · -- not found
-    have hS : S.loc = null := of_not_not_decide_val Hif
-    rw [if_pos (decide_eq_true (not_decide_val_false hS))]
+    have hS : S.loc = null := of_not_not_decide_val (hG := hG) Hif
+    rw [if_pos (decide_eq_true (not_decide_val_false (hG := hG) hS))]
     have hSl : S = .leaf := (Rep_loc_eq_null hrepS).mp hS
     subst hSl
     wp_auto

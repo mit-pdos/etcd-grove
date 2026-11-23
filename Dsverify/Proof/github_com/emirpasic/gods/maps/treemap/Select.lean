@@ -23,7 +23,7 @@ open github_com.emirpasic.gods.trees.redblacktree (RB isTree treeRaw ownIterT tr
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [treemap.Assumptions] [go.BasicIntoValInj]
+variable [treemap.Assumptions]
 
 theorem Map.Select.wp_proof (wp_new : trees.redblacktree.NewWith.spec (GF := GF))
     (wp_itT : Map.IteratorT.spec (GF := GF)) (wp_nextT : Iterator.NextT.spec (GF := GF))

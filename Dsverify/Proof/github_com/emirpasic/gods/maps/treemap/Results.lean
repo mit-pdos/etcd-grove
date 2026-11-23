@@ -30,7 +30,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 section linked
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [maps.treemap.Assumptions] [go.BasicIntoValInj]
+variable [maps.treemap.Assumptions]
 
 namespace trees.redblacktree
 
@@ -72,8 +72,7 @@ theorem Map.Put.wp_linked : Map.Put.spec (GF := GF) isTreeMapR :=
   Map.Put.wp_proof trees.redblacktree.Tree.Put.wp_linked
 
 /-- **The treemap specs hold of gods' code** (the file header): the shared `Hyps` at the concrete
-predicates, given Goose's injectivity of basic values (`go.BasicIntoValInj`, in scope wherever
-the kits' statements are). -/
+predicates. -/
 def hyps_true : Hyps GF where
   isTreeMap := isTreeMapR
   iterVal := iterValR

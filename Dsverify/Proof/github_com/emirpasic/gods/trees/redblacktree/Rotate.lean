@@ -20,7 +20,7 @@ open github_com.emirpasic.gods.maps.treemap (cmpOk sortedE Entries lookupE putE)
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [redblacktree.Assumptions] [go.BasicIntoValInj]
+variable [redblacktree.Assumptions]
 
 theorem Tree.replaceNode.wp_proof : Tree.replaceNode.spec (GF := GF) := by
   intro tr rt sz cmp h D old new

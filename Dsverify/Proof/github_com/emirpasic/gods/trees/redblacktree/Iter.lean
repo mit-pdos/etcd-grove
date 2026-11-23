@@ -16,21 +16,31 @@ namespace Perennial.github_com.emirpasic.gods.trees.redblacktree
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section proof
+section helpers
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [redblacktree.Assumptions] [go.BasicIntoValInj]
 
+include hG sem in
 theorem not_of_not_decide_val {P : Prop} [Decidable P] (h : (#(!decide P) : val) = #true) : ¬P := by
+  haveI : go.BasicIntoValInj := inferInstance
   intro hp
-  simp only [hp, decide_true, Bool.not_true] at h
+  simp only [hp, _root_.decide_true, Bool.not_true] at h
   exact Bool.false_ne_true (go.intoVal_inj h)
 
+include hG sem in
 theorem of_not_not_decide_val {P : Prop} [Decidable P] (h : ¬ (#(!decide P) : val) = #true) : P := by
   revert h; by_cases hp : P <;> simp [hp]
 
+include hG sem in
 theorem not_decide_val_false {P : Prop} [Decidable P] (hp : P) : (#(!decide P) : val) = #false := by
   simp [hp]
+
+end helpers
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [redblacktree.Assumptions]
 
 theorem Tree.Iterator.wp_proof : Tree.Iterator.spec (GF := GF) := by
   intro tr
@@ -110,7 +120,7 @@ theorem Tree.Left.wp_proof : Tree.Left.spec (GF := GF) := by
   obtain ⟨hTCS, hpre⟩ := HCS
   have hrepS : Rep enc h S (Ctx.parent C null) := ((Rep_plug C S null).mp (hTCS ▸ hrep)).2
   wp_if_destruct
-  · have hS : S.loc ≠ null := not_of_not_decide_val Hif
+  · have hS : S.loc ≠ null := not_of_not_decide_val (hG := hG) Hif
     cases S with
     | leaf => exact absurd rfl hS
     | node n k v L R =>
@@ -126,8 +136,8 @@ theorem Tree.Left.wp_proof : Tree.Left.spec (GF := GF) := by
     iframe
     ipureintro
     exact ⟨hTCS, by simp [Ctx.pre, Frame.pre, hpre]⟩
-  · have hS : S.loc = null := of_not_not_decide_val Hif
-    rw [if_pos (decide_eq_true (not_decide_val_false hS))]
+  · have hS : S.loc = null := of_not_not_decide_val (hG := hG) Hif
+    rw [if_pos (decide_eq_true (not_decide_val_false (hG := hG) hS))]
     have hSl : S = .leaf := (Rep_loc_eq_null hrepS).mp hS
     subst hSl
     wp_auto
@@ -241,7 +251,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
         ihave Hns := Hback $$ Hs
         wp_if_destruct
         · -- a parent
-          have hpar : Ctx.parent C' null ≠ null := not_of_not_decide_val Hif
+          have hpar : Ctx.parent C' null ≠ null := not_of_not_decide_val (hG := hG) Hif
           cases C' with
           | nil => exact absurd rfl hpar
           | cons f C'' =>
@@ -300,9 +310,9 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
             cases C' with
             | nil => rfl
             | cons f C'' =>
-              exact absurd (of_not_not_decide_val Hif) (RepC_parent_ne_null hrepC' (by simp))
+              exact absurd (of_not_not_decide_val (hG := hG) Hif) (RepC_parent_ne_null hrepC' (by simp))
           subst hC
-          rw [if_pos (decide_eq_true (not_decide_val_false (of_not_not_decide_val Hif)))]
+          rw [if_pos (decide_eq_true (not_decide_val_false (hG := hG) (of_not_not_decide_val (hG := hG) Hif)))]
           dsimp only [«end»]
           wp_auto
           iapply HΦ
@@ -340,7 +350,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
         wp_auto
         wp_if_destruct
         · -- a left child: down
-          have hSL : SL.loc ≠ null := not_of_not_decide_val Hif
+          have hSL : SL.loc ≠ null := not_of_not_decide_val (hG := hG) Hif
           ihave Hns := Hback $$ Hs
           wp_for_post
           iframe
@@ -351,8 +361,8 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           · intro h0; subst h0; exact hSL rfl
           · rw [← hent]; simp [Ctx.post, Frame.post]
         · -- the leftmost node
-          have hSL : SL.loc = null := of_not_not_decide_val Hif
-          rw [if_pos (decide_eq_true (not_decide_val_false hSL))]
+          have hSL : SL.loc = null := of_not_not_decide_val (hG := hG) Hif
+          rw [if_pos (decide_eq_true (not_decide_val_false (hG := hG) hSL))]
           ihave Hns := Hback $$ Hs
           have hSL' : SL = .leaf := (Rep_loc_eq_null hrepSL).mp hSL
           subst hSL'
