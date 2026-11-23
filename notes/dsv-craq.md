@@ -185,14 +185,20 @@ the shared piece lands; none is an axiom.
   `Hif` from `wp_if_destruct` is sometimes the Prop, sometimes `#(decide _) = #true` (`first |
   exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)`); `isimp only [..] at H` rewrites an
   Iris hypothesis.
-  (b) `examples/craqnet/ModelProof.lean`: `pushPend`, `copyMap`, `set`, `findPend` (first index,
-  over fields `K'`/`V'`), `erasePend` (`P.eraseIdx i`) proved. Still to do: `step` (spec: on
-  `ownMap mp □ m`, `sl ↦*□ P.map pendOf`, `m` agreeing with `a`, `P` all puts, returns
-  `(goStep a P i (decAns i u f w)).isSome` and, when ok, the next `(mp', sl')` holding `goStep`'s
-  `(a', P')`; the branches are listed in kit.go's `step`; `findPend` ↔ membership needs `pendOf`
-  injective on puts, and `P.erase x = P.eraseIdx (first index)`), then `Model.wp_proof` as paxos's
-  (`isModel kvS`: Init gives `kvRep 0` with `sim_init`; Step uses `sim_step` and `linkv.pM_step`;
-  `Equal` is `false`, so its spec is trivial).
+  (b) `examples/craqnet/ModelProof.lean` (built with `lake build`): `pushPend`, `copyMap`, `set`,
+  `findPend` (first index, over fields `K'`/`V'`), `erasePend` (`P.eraseIdx i`) and **`step`**
+  (`wp_step`: from `ownMap mp □ m`, `sl ↦*□ P.map pendOf`, `mrep m a`, `P` all puts, it returns
+  `stepPost`: `ok = (goStep a P i (decAns i u f w)).isSome` and, when ok, `(mp', sl')` holding
+  `goStep`'s next `(a', P')`, `P'.length ≤ P.length + 1`) proved; pure lemmas `mrep_set`,
+  `erase_first`, `map_eraseIdx'`, `pendOf_put`, `find_some`, `find_none`. `Model.spec` stated.
+  Still to do: `Model.wp_proof`, as paxos's (`origin/dsv-paxos`, `ModelProof.lean`'s last
+  theorem): Init (`State{M: make(map)}`: `ownMap_persist`, `kvRep 0` from `sim_init`, `mrep ∅
+  kvB.init`); Step (the closure's type assertions; `kvS0.ioOk` gives `i = ivK x`, `o = outV u f
+  w.1`; `wp_step` with `inOf x`; then `sim_step` and `linkv.pM_step kvB kvDec _ _ x _ (kvDec_box x
+  u f w)`, where `kvDec_box : kvDec (ivK x, outV u f w.1) = some (x, decAns x u f w)` is still to
+  prove, from the injectivity of `ivK` and `outV` (paxos's `out_intoVal_inj` pattern: `In`'s and
+  `Out`'s `TypeAssumptions.get_*` determinism), and `kvRep (k+1)` from `stepPost`); Equal (always
+  `false`: `isEqHash`'s equal spec holds trivially).
   (c)-(e) not started: `KitProof.lean` (`Codec`, `Gen`, `op`, `Client`/`ServeClient`, `Orch`/
   `remote.Check`, `Server`/`runNode` over `HttpRpc.lean`'s classes), `Mains`, `TopLevelDefs`,
   `TopLevelRobustness` as paxos's; the statement's premises: every `InitHyp` (net.rpc, net.http),
