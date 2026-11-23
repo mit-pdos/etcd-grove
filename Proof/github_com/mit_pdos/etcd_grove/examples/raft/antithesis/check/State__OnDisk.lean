@@ -1141,5 +1141,115 @@ theorem State.OnDisk.wp_proof
       rw [decide_eq_false hts]
       odretc (by rw [← hcA, hA2f (by simpa using hts)]; rfl)
     odafterj cA
+    -- B: `x.m().typ() == "snap" && !x.snaps()`
+    obtain ⟨cB, hcB, Ho⟩ := bind_ok Ho
+    obtain ⟨b1, hb1, hBt, hBf⟩ := andM_ok hcB
+    obtain ⟨m, hm, hb1⟩ := bind_ok hb1
+    obtain ⟨ty, hty, hb1⟩ := bind_ok hb1
+    simp only [pure_ok, Except.ok.injEq] at hb1
+    subst hb1
+    odguard cB
+    · odm m
+      wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+      · iframe Hx; ipureintro; exact hm
+      try wp_auto
+      wp_apply wp_Msg_typ gm m ty $$ [Hm]
+      · iframe Hm; ipureintro; exact hty
+      by_cases hts : ty = go!"snap"
+      case neg =>
+        rw [decide_eq_false hts]
+        odskip (hBf (by simpa using hts))
+      rw [decide_eq_true hts]
+      have hB := hBt (by simp [hts])
+      simp only [pure_ok, Except.ok.injEq] at hB
+      try wp_auto
+      odm snaps
+      wp_apply wp_snaps _ X $$ [Hx]
+      · iexact Hx
+      subst hB
+      cases X.snaps
+      · odretc rfl
+      · odskip rfl
+    odafterj cB
+    -- C: `!(SnapOk(ll, x.m()) && SendableIn(ld, ll, ch, tl, x.f()))`
+    have hfnl : X.f = X.fm := f_notLeads hld1
+    obtain ⟨okC, hokC, Ho⟩ := bind_ok Ho
+    generalize hcC : (!okC) = cC at Ho
+    obtain ⟨c1, hc1, hCt, hCf⟩ := andM_ok hokC
+    obtain ⟨m, hm, hc1⟩ := bind_ok hc1
+    odguard cC
+    · odm m
+      wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+      · iframe Hx; ipureintro; exact hm
+      try wp_auto
+      wp_apply wp_SnapOk lll ll gm m c1 $$ [Hll Hm]
+      · iframe Hll Hm; ipureintro; exact hc1
+      cases c1
+      · odretc (by rw [← hcC, hCf rfl]; rfl)
+      have hC := hCt rfl
+      obtain ⟨f, hf, hC⟩ := bind_ok hC
+      obtain ⟨hfp, hfe', -⟩ := OnDisk.f_within hb HW hf
+      try wp_auto
+      odm f
+      wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+      · iframe Hx; ipureintro; exact hf
+      try wp_auto
+      wp_apply wp_SendableIn ldl ld lll ll chl ch tll tl gf f okC $$ [Hld Hll Hch Htl Hf]
+      · iframe Hld Hll Hch Htl Hf; ipureintro; exact ⟨hC, hfp, by omega⟩
+      subst hcC
+      cases okC
+      · odretc rfl
+      · odskip rfl
+    odafterj cC
+    -- D: `!s.PrevOk(n, x.f())`
+    obtain ⟨f, hf, Ho⟩ := bind_ok Ho
+    obtain ⟨pv, hpv, Ho⟩ := bind_ok Ho
+    obtain ⟨hfp, hfe', hfc⟩ := OnDisk.f_within hb HW hf
+    odm f
+    wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+    · iframe Hx; ipureintro; exact hf
+    try wp_auto
+    wp_apply wp_SPrevOk p s n gf f pv $$ [Hs Hf]
+    · iframe Hs Hf; ipureintro; exact ⟨Hn, Hlt, hpv⟩
+    cases pv
+    · simp only [Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+      odjret (by subst Ho; rfl)
+    simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    try wp_auto
+    -- `k := x.k()`; E: `!(1 <= k && k <= len(x.f().Entries))`
+    obtain ⟨k, hk, Ho⟩ := bind_ok Ho
+    obtain ⟨f', hf', Ho⟩ := bind_ok Ho
+    rw [hf] at hf'; cases hf'
+    generalize hcE : (!(decide (1 ≤ k) && decide (k ≤ (f.entries.length : Int)))) = cE at Ho
+    odm k
+    wp_apply wp_k _ X k $$ [Hx] as %uk %Huk
+    · iframe Hx; ipureintro; exact hk
+    try wp_auto
+    iunfold appendFactRO at Hf
+    icases Hf with ⟨%Hfr, #Hfes⟩
+    ihave %Hfesl := logRO_len _ _ $$ Hfes
+    ipersist k
+    odguard cE
+    · rw [Huk, sint_one]
+      by_cases hk1 : 1 ≤ k
+      case neg =>
+        rw [decide_eq_false hk1]
+        odretc (by rw [← hcE]; simp [hk1])
+      rw [decide_eq_true hk1]
+      try wp_auto
+      odm f
+      wp_apply wp_f _ X f $$ [Hx] as %gf' #Hf'
+      · iframe Hx; ipureintro; exact hf
+      try wp_auto
+      iunfold appendFactRO at Hf'
+      icases Hf' with ⟨%-, #Hfes'⟩
+      ihave %Hl' := logRO_len _ _ $$ Hfes'
+      rw [Huk, Hl']
+      by_cases hkl : k ≤ (f.entries.length : Int)
+      · rw [decide_eq_true hkl]
+        odskip (by rw [← hcE]; simp [hk1, hkl])
+      · rw [decide_eq_false hkl]
+        odretc (by rw [← hcE]; simp [hk1, hkl])
+    odafterj cE
     done
   done
