@@ -64,6 +64,26 @@
 //	                                  every Write fails (EPIPE: RST in CLOSE_WAIT); the Read is EOF
 //	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET                 measured   WriteOutcome (open: steps, then sys, cut)
 //
+// Sticky read errors (sticky_test.go, sticky_netns_test.go; notes/net-sticky-read.md, a proposed
+// change to D1, not yet in Impl.lean: a sys read error only once nothing is unread, so that no
+// byte follows a read error but a deadline's timeout):
+//
+//	TestStickyEOF                D1   FIN: the bytes, EOF, EOF ...; a later RST (peer's Close with      measured   ReadAvail (EOF; sticky
+//	                                  unread input) changes nothing, EOF (SOCK_DONE before sk_err);                 already)
+//	                                  a Write after EOF succeeds, after the RST EPIPE
+//	TestStickyReset              D1,D14 a RST with bytes received: the bytes, then ECONNRESET with 0     measured   ReadAvail (sys: proposed
+//	                                  unread (SIOCINQ), then EOF on every Read; an expired deadline:                d.bytes = [])
+//	                                  timeout; an empty Read (0, nil); Writes EPIPE
+//	TestStickyResetBlockedRead   D1,D14 a RST while a Read waits: ECONNRESET, then EOF                   measured   ReadOutcome (break)
+//	TestStickyKilledPeer         D1,D10,D11 a killed or exited peer with unread input: the bytes,        measured   ReadOutcome (break)
+//	                                  ECONNRESET with 0 unread, then EOF; Write EPIPE
+//	TestStickyOwnClose           D1,D3 own Close with bytes unread: ErrClosed on every Read and Write   measured   NetEnd.closed
+//	TestStickyNotTimeout         D1,D5 the exception: after a read deadline's timeout (blocked, or       measured   ReadAvail (timeout: d' = d)
+//	                                  expired with bytes unread) the bytes follow once it is cleared
+//	TestStickyTimedOut           D1,D14 (network namespaces) the kernel gives up with bytes received:    measured   ReadAvail (sys: proposed
+//	                                  the bytes, then ETIMEDOUT (a partition) or EHOSTUNREACH (an ICMP              d.bytes = [])
+//	                                  host-unreachable: sk_err_soft) with 0 unread, then EOF; Write EPIPE
+//
 // Writes (write_test.go, v3_test.go):
 //
 //	TestEmptyWrite               D2   an empty Write (one step): (0, nil) live; (0, timeout) with an      measured   WriteOutcome
@@ -231,6 +251,9 @@
 //	                                  EOF, EPIPE
 //	TestPartitionHealed          D1,D2 a 2 s partition shorter than every timeout, healed: every byte     measured   ReadOutcome, WriteOutcome (no break)
 //	                                  both ways once, in order, no error (Writes block up to 2.9 s)
+//	TestStickyTimedOut           D1,D14 (sticky_netns_test.go) the kernel gives up on a connection    measured   ReadAvail (sys)
+//	                                  with bytes received: the bytes, then ETIMEDOUT or EHOSTUNREACH, then
+//	                                  EOF (above, "Sticky read errors")
 //	TestAcceptOrder              D7   8 pending: back-to-back Dials accepted in Dial order (0/50 out of    measured   AcceptStep (any pending connection)
 //	                                  order); concurrent ones 47-50/50 out of Dial-return order
 //
