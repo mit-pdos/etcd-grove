@@ -70,9 +70,10 @@ def special(g):
 `false`.''',
         alloc_types={'DLOG': 'Bool'})
     SPECIAL[f'{DSV_EPAXOS}.replica.defs'] = dict(
-        doc='''Its fact is `True`. Its initializer initializes its imports, allocates `LatencyConf`,
-`Storage` and `StoreFilname` and stores their string constants.''',
-        alloc_types={'LatencyConf': 'GoString', 'Storage': 'GoString', 'StoreFilname': 'GoString'})
+        doc='''Its fact is `LatencyConf ↦□ ""` (no code writes it). Its initializer initializes its
+imports, allocates `LatencyConf`, `Storage` and `StoreFilname` and stores their string constants.''',
+        alloc_types={'LatencyConf': 'GoString', 'Storage': 'GoString', 'StoreFilname': 'GoString'},
+        finish=['ipersist HLatencyConf', 'iframe Hown', 'is_pkg_init_finish'])
     SPECIAL[f'{DSV_EPAXOS}.replica'] = newvars_cfg(dict(
         doc='''Its fact is `True`. Its initializer initializes its imports, allocates its two error
 variables and runs their translated initializers (`quorum.go`: `errors.New` calls).'''),

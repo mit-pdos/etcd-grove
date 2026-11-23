@@ -2,8 +2,8 @@
 Package initialization of `github_com.imdea_software.swiftpaxos_epaxos.replica.defs`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, allocates `LatencyConf`,
-`Storage` and `StoreFilname` and stores their string constants.
+Its fact is `LatencyConf ↦□ ""` (no code writes it). Its initializer initializes its
+imports, allocates `LatencyConf`, `Storage` and `StoreFilname` and stores their string constants.
 -/
 module
 
@@ -56,6 +56,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoString) LatencyConf _ as HLatencyConf
   wp_apply wp_GlobalAlloc (V := GoString) StoreFilname _ as HStoreFilname
   wp_apply wp_GlobalAlloc (V := GoString) Storage _ as HStorage
@@ -74,6 +75,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of Storage))
   -- translated initializer of StoreFilname))
   -- translated initializer of LatencyConf))
+  ipersist HLatencyConf
   iframe Hown
   is_pkg_init_finish
 

@@ -1,5 +1,5 @@
 /-
-The package fact of `github_com.imdea_software.swiftpaxos_epaxos.replica.defs` (dsv-epaxos, notes/dsv-epaxos.md): `True` (`LatencyConf`, `Storage`, `StoreFilname` (to be refined: the lab's `defsPkgStateDef`, `LatencyConf` holds `""` for good)).
+The package fact of `github_com.imdea_software.swiftpaxos_epaxos.replica.defs` (dsv-epaxos, notes/dsv-epaxos.md): `LatencyConf` holds `""` for good (the lab's `defsPkgStateDef`; no code writes it).
 -/
 module
 
@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.replica.defs :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init iprop(globalAddr replica.defs.LatencyConf ↦□ ([] : GoString))
 instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.replica.defs :=
   build_get_is_pkg_init_wf
