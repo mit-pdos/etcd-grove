@@ -200,7 +200,17 @@ was two parts of the premises the statement names, both removed:
 Any instance of the old premises gives one of the new (drop the fields), so the new statement implies
 the old one.
 
-## Checks
+## Checks (2026-11-23)
 
-See the final report of the session (the six TopLevelRobustness modules built on fk-lean1, `#print
-axioms`, tier-check, gen-init/goose/copy-part `--check`, `proof_roots.namespace()`, dups).
+* fk-lean1 (`fklean1-check.sh`, head 312fff30bc): the six TopLevelRobustness modules (swiftnet,
+  epaxosnet, rabianet, quepaxanet, paxosnet, Net's remote counter) build; `#print axioms` of
+  `swiftpaxos_remote_robust`, `epaxos_remote_robust`, `rabia_remote_robust`, `quepaxa_remote_robust`,
+  `paxos_remote_robust`, `counter_remote_robust` and `treemap.hyps_true`: `[propext,
+  Classical.choice, Quot.sound]` each.
+* Here: `etc/tier-check.py --check` ok (227 known, no new); `etc/gen-init.py --check` ok (271 files;
+  gods' `Init.lean`s unchanged: their initializers are gods' and were translated before);
+  `etc/goose.py --check` ok (all 71 projects); `etc/copy-part.py --check` 0 differ;
+  `proof_roots.namespace()` = `Perennial.EtcdGrove.` (as on `lean`); the dup scan: no new names (the
+  4 hits are the scan's pre-existing false positives); `git diff <base> -- etc/goose.py
+  etc/gen-init.py` empty (gods' settings are in `etc/dsv/{epaxos,swiftpaxos}.py`).
+* `models/internal/tpdifftest/run.sh`: ok.
