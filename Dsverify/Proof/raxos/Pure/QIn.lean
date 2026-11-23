@@ -2,7 +2,7 @@
 The kit's inputs as remote sees them (notes/dsv-quepaxa.md, the kit's design point, option A): the
 inputs the kit makes, `QIn := {i : KIn // inputOk i}` (keys of `keyLen` bytes, a put's value
 nonempty and not `"nil"`: `kit.go`'s `result` reads a get's value after the key, so the kit is only
-correct on these), and the store's specification on them, `qB` (`kvB` through the subtype).
+correct on these; and short), and the store's specification on them, `qB` (`kvB` through the subtype).
 
 The kit's porcupine model is `pSeq kvB`'s state sets (`ModelSet.lean`, over `KIn`); remote's pending
 library takes the model over remote's input type, `QIn`. This file transfers the one to the other,
@@ -242,11 +242,15 @@ end sub
 
 /-! ## The kit's inputs -/
 
-/-- **The kit's inputs**: the key-value inputs the kit makes (`inputOk`, which `Gen` meets). -/
-abbrev QIn := {i : KIn // inputOk i}
+/-- The inputs the kit makes (`Gen`): `inputOk` (keys of `keyLen` bytes, a put's value nonempty and
+not `"nil"`), and short (remote's frames and QuePaxa's messages carry them). -/
+def qInOk (i : KIn) : Prop := inputOk i ∧ (i.k.length + i.v.length : Int) < 2 ^ 48
+
+/-- **The kit's inputs** (remote's input type). -/
+abbrev QIn := {i : KIn // qInOk i}
 
 /-- **The store's specification on the kit's inputs**: `kvB` on `QIn`. -/
-abbrev qB : PendSpec Store QIn KOut := subB kvB inputOk
+abbrev qB : PendSpec Store QIn KOut := subB kvB qInOk
 
 theorem qB_step (i : QIn) (st : Store) : qB.step i st = kvB.step i.1 st := rfl
 

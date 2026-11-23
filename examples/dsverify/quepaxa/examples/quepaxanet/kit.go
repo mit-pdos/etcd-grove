@@ -10,7 +10,8 @@
 //     with pending puts (Model, model.go);
 //   - client machine c (Client, c < NC): its QuePaxa client (NewClient: it waits for the
 //     configuration, listens for the replicas' connections back and connects to every replica's
-//     proxy), then remote.ServeClient whose operation is Op over that client;
+//     proxy), then remote.ServeClient whose operation is Op over that client (at most K requests:
+//     later operations are unknown);
 //   - server machine id (Server, 1 <= id <= MaxReplicas): it waits for the configuration; if it is
 //     one of the configuration's replicas it runs QuePaxa replica id, as replica/main.go runs it.
 //
@@ -255,7 +256,7 @@ type replica struct {
 
 // Sys is a client machine's view of the deployment: client c as one QuePaxa client (name
 // ClientName+c) connected to every replica's proxy, matching answers to its requests by batch id,
-// and the sequence number of its next request.
+// and the sequence number of its next request (both under mu).
 type Sys struct {
 	conf     Conf
 	c        uint64
@@ -440,12 +441,26 @@ func command(in In) string {
 // answer in time is an unknown outcome (Out{Unknown: true}). An answer's command is the store's
 // result: "0"+key+"ok" for a put, "1"+key+value for a get ("1"+key+"nil": not found; Gen's values
 // are never "nil").
+//
+// The sequence number is taken under s.mu, and a client sends at most K requests: remote may run
+// Op more than K times on a client machine (remote.Do retries a read, and a retried call may
+// overlap the one it retries), and the replicas' slots are bounded by the workload's requests
+// (NC clients, K each: notes/dsv-quepaxa.md). An operation past the budget has an unknown outcome
+// without sending anything.
 func Op(s *Sys, in In) Out {
-	if s.next == 0 {
+	s.mu.Lock()
+	seq := s.next
+	if seq < K {
+		s.next = seq + 1
+	}
+	s.mu.Unlock()
+	if seq >= K {
+		return Out{Unknown: true}
+	}
+	if seq == 0 {
 		time.Sleep(time.Duration(s.c*StaggerMs) * time.Millisecond)
 	}
-	id := digits(s.name) + "." + digits(s.next)
-	s.next++
+	id := digits(s.name) + "." + digits(seq)
 	ch := make(chan *client.ClientBatch, 1)
 	s.mu.Lock()
 	s.waiting[id] = ch
@@ -512,14 +527,18 @@ func Gen(c uint64, j uint64) In {
 	return In{Put: false, K: k, V: ""}
 }
 
-// Gens is remote's generator over Gen: client c's i-th call gives Gen(c, i) (each client's calls
-// are made one after the other, by its own goroutine of the driver, so each touches only its own
-// counter).
+// Gens is remote's generator over Gen: client c's i-th call gives Gen(c, i). remote's generator
+// may be called for any c >= 0, concurrently (its spec is lintest's genSpec), so the counters are
+// taken under a lock, client c's at index c mod NC.
 func Gens() func(int) any {
+	var mu sync.Mutex
 	next := make([]uint64, NC)
 	return func(c int) any {
-		j := next[c]
-		next[c] = j + 1
+		mu.Lock()
+		i := uint64(c) % NC
+		j := next[i]
+		next[i] = j + 1
+		mu.Unlock()
 		return Gen(uint64(c), j)
 	}
 }
