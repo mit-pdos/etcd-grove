@@ -108,7 +108,7 @@ def leaseReady (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (
     grpcLeaseUp s A regs ∗
     srvInterceptorOk il (srvLgReader s) v3rpc.learnerReqOk ∗
     srvInterceptorOk im iprop(True) v3rpc.learnerReqOk ∗
-    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+    srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     grpcServerAt addr [il, im, iu] regs γ ∗ srvRevokeBuilt s E ∗ srvRunPool s E ρ.rd)
 
 instance leaseReady_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)

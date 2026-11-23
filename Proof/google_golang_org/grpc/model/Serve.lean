@@ -101,7 +101,9 @@ theorem grpc.model.runCall_wp
     unfold model.runCall model.runStream
     wp_auto
     rcases hs : c.sics with _ | ⟨ic, ics'⟩
-    · iunfold grpcSrvStreamChain at Hsch
+    · iunfold grpcSrvStreamChainAll at Hsch
+      ihave Hsch := Hsch $$ %iprop(True)
+      iunfold grpcSrvStreamChain at Hsch
       icases Hsch with %Hsi
       subst Hsi
       simp only [srvStreamChainWP]
@@ -109,23 +111,27 @@ theorem grpc.model.runCall_wp
       wp_bind (App (App (Val #mh) _) _)
       iapply wp_wand_r
       isplitl [Hw]
-      · iexact Hw
-      iintro %v ⟨%err, %Hv, #Hse, HT⟩
+      · iapply Hw $$ []
+        itrivial
+      iintro %v ⟨-, %err, %Hv, #Hse, HT⟩
       subst Hv
       wp_pures
       wp_apply hF $$ %gs %_ %err [Hse]
       · iexact Hse
       iframe
       ipureintro; exact isPanic_intoVal ()
-    · iunfold grpcSrvStreamChain at Hsch
+    · iunfold grpcSrvStreamChainAll at Hsch
+      ihave Hsch := Hsch $$ %iprop(True)
+      iunfold grpcSrvStreamChain at Hsch
       icases Hsch with ⟨%Hsi, #Hch⟩
       rw [decide_eq_false Hsi]
       wp_pures
       wp_bind (App (App (App (App (Val #si) _) _) _) _)
       iapply wp_wand_r
       isplitl [Hw]
-      · iapply Hch $$ %#srv %#st %#info %mh %_ Hw
-      iintro %v ⟨%err, %Hv, #Hse, HT⟩
+      · iapply Hch $$ %#srv %#st %#info %mh %_ Hw []
+        itrivial
+      iintro %v ⟨-, %err, %Hv, #Hse, HT⟩
       subst Hv
       wp_pures
       wp_apply hF $$ %gs %_ %err [Hse]
