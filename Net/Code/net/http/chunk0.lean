@@ -2296,6 +2296,15 @@ noncomputable def modelTrimLeftByte [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def modelChunked [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.modelChunked"
 
+noncomputable def modelParseRequestURI [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelParseRequestURI"
+
+noncomputable def modelPathBytes [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelPathBytes"
+
+noncomputable def modelPathByte [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelPathByte"
+
 noncomputable def newTransferWriter [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.newTransferWriter"
 
@@ -3375,7 +3384,7 @@ noncomputable def readRequestLimit.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Let "$l0" (App (Val (GoInstruction (StructFieldRef Request.ty go!"URL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "req")))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rawurl"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.url.ParseRequestURI []))) (Val #())) (Var "$a0")))
+  (App (App (Val (GoInstruction (FuncResolve modelParseRequestURI []))) (Val #())) (Var "$a0")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -3525,7 +3534,7 @@ noncomputable def readRequestLimit.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Request.ty)))) (Pair (Var "req") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: request.go:1534:19 -/
+/-- go: request.go:1535:19 -/
 noncomputable def Request.expectsContinue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3543,7 +3552,7 @@ noncomputable def Request.expectsContinue.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: request.go:1538:19 -/
+/-- go: request.go:1539:19 -/
 noncomputable def Request.wantsHttp10KeepAlive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -3571,7 +3580,7 @@ noncomputable def Request.wantsHttp10KeepAlive.impl [GooseExts] [GoGlobalContext
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
-/-- go: request.go:1545:19 -/
+/-- go: request.go:1546:19 -/
 noncomputable def Request.wantsClose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -8241,7 +8250,7 @@ noncomputable def checkConnErrorWriter.Write.impl [GooseExts] [GoGlobalContext] 
 
 /-- NotModelled marks the value as the models' panic.
 
-    go: textproto_model.go:49:20 -/
+    go: textproto_model.go:54:20 -/
 noncomputable def notModelled.NotModelled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -8254,7 +8263,7 @@ noncomputable def notModelled.NotModelled.impl [GooseExts] [GoGlobalContext] : v
     "\r\n"; at the end of the input, the bytes before it (without error) if there are any, else
     the read error (bufio's ReadLine, which textproto's readLineSlice calls).
 
-    go: textproto_model.go:54:6 -/
+    go: textproto_model.go:59:6 -/
 noncomputable def modelReadLine.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -8344,7 +8353,7 @@ noncomputable def modelReadLine.impl [GooseExts] [GoGlobalContext] : val :=
 /-- trimLine is textproto's trim (reader.go): the line without leading and trailing spaces and
     tabs.
 
-    go: textproto_model.go:76:6 -/
+    go: textproto_model.go:81:6 -/
 noncomputable def trimLine.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -8389,7 +8398,7 @@ noncomputable def trimLine.impl [GooseExts] [GoGlobalContext] : val :=
     heads without continuation lines: header lines up to an empty line, each "Name: value" (the
     name canonicalized, the value without the space around it), at most maxHeaders of them.
 
-    go: textproto_model.go:94:6 -/
+    go: textproto_model.go:99:6 -/
 noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "maxHeaders"
@@ -8686,7 +8695,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
     false when s holds none. strings.Cut finds the first instance with strings.Index, which for a
     one-byte separator is the first index of that byte.
 
-    go: textproto_model.go:164:6 -/
+    go: textproto_model.go:169:6 -/
 noncomputable def modelCutByte.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "sep"
@@ -8750,7 +8759,7 @@ noncomputable def modelCutByte.impl [GooseExts] [GoGlobalContext] : val :=
     calls it in place of strings.TrimLeft, a name only in Perennial's translation): Go's TrimLeft of a
     one-byte ASCII cutset is strings' trimLeftByte, this loop.
 
-    go: textproto_model.go:176:6 -/
+    go: textproto_model.go:181:6 -/
 noncomputable def modelTrimLeftByte.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -8778,7 +8787,7 @@ noncomputable def modelTrimLeftByte.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelChunked stands for a chunked body's reader: not modelled.
 
-    go: textproto_model.go:184:6 -/
+    go: textproto_model.go:189:6 -/
 noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
@@ -8788,6 +8797,120 @@ noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (Convert notModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/http model: a chunked message body is not modelled")))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res0")))))
+
+/-- modelParseRequestURI is url.ParseRequestURI(rawurl) (Go 1.27.3's net/url). On a URI that is "/"
+    followed by bytes modelPathByte accepts, it returns what Go's parse(rawurl, true) returns, the
+    URL with that path and nothing else: no scheme (getScheme stops at the first byte, '/'), no
+    query (no '?': strings.Cut finds none, RawQuery ""), no authority (a request URI without a
+    scheme has none, even after "//"), Path the URI unescaped (no '%': unchanged), RawPath "" (escape
+    in encodePath mode changes none of these bytes). On every other URI it is Go's function.
+    MODEL: Go's parse calls strings.Cut, ToLower and Index, which Perennial translates as names only.
+
+    go: textproto_model.go:200:6 -/
+noncomputable def modelParseRequestURI.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "rawurl"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "rawurl" (App (Val (GoInstruction (GoAlloc go.string))) (Var "rawurl"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rawurl"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.url.ParseRequestURI []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rawurl"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "rawurl")) (Val #(W64 0)))) (Val #(W8 47)))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rawurl"))
+  (App (App (Val (GoInstruction (FuncResolve modelPathBytes []))) (Val #())) (Var "$a0"))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.url.URL.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "rawurl"))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.net.url.URL.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Path")) (ElementExpression go.string (Var "$v0")))]))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+
+/-- modelPathBytes reports whether every byte of s is one modelPathByte accepts.
+
+    go: textproto_model.go:208:6 -/
+noncomputable def modelPathBytes.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (App (App (Val (GoInstruction (FuncResolve modelPathByte []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- modelPathByte reports whether c is a byte net/url leaves alone in a path: RFC 3986's unreserved
+    bytes (letters, digits, "-", "_", ".", "~") and the sub-delimiters and separators that
+    shouldEscape(c, encodePath) does not escape ("$", "&", "+", ",", "/", ":", ";", "=", "@").
+
+    go: textproto_model.go:220:6 -/
+noncomputable def modelPathByte.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "c"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (If (If (If (If (If (If (If (If (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 45)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 95))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 46))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 126))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 36))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 38))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 43))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 44))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 47))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 58))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 59))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 61))))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 64)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (If (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 97)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 122)))) (Val #false)) (Val #true) (If (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 65)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 90)))) (Val #false))) (Val #true) (If (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 48)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 57)))) (Val #false))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- go: transfer.go:257:6 -/
 noncomputable def noResponseBodyExpected.impl [GooseExts] [GoGlobalContext] : val :=

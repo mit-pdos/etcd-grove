@@ -14,6 +14,9 @@ extension's `Conn.SetDeadline`/`SetReadDeadline` and bufio's `Writer.Reset`; and
 read, `connReader.backgroundRead`, over `Conn.Read` and `OpError.Timeout`, and its start,
 `connReader.startBackgroundRead` (over `Conn.SetReadDeadline`); `connReader.releaseConn`; and the
 head's read, `connReader.Read` in the head phase (`crHead`, over `Conn.Read`).
+
+The request's URI (2026-11-23): the model's `modelParseRequestURI` (`url.ParseRequestURI`) on a
+`reqPath`, over `modelPathBytes` and `modelPathByte`.
 -/
 module
 
@@ -52,6 +55,9 @@ public import Net.Proof.net.Conn__SetDeadline
 public import Net.Proof.net.Conn__SetReadDeadline
 public import Net.Proof.net.OpError__Timeout
 public import Proof.bufio.Writer__Reset
+public import Net.Proof.net.http.modelParseRequestURI
+public import Net.Proof.net.http.modelPathBytes
+public import Net.Proof.net.http.modelPathByte
 
 @[expose] public section
 
@@ -93,6 +99,9 @@ theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
   ReadResponse.wp_proof modelReadLine.wp modelReadMIMEHeader.wp modelCutByte.wp_proof
     modelTrimLeftByte.wp_proof ParseHTTPVersion.wp_proof (badStringError.wp_proof fmt.wp_Errorf)
     fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
+
+theorem modelParseRequestURI.wp : modelParseRequestURI.spec (GF := GF) (hG := hG) :=
+  modelParseRequestURI.wp_proof (modelPathBytes.wp_proof modelPathByte.wp_proof)
 
 end link
 
@@ -140,3 +149,4 @@ end Perennial
 #print axioms Perennial.net.http.connReader.startBackgroundRead.wp
 #print axioms Perennial.net.http.connReader.releaseConn.wp
 #print axioms Perennial.net.http.connReader.Read.wp
+#print axioms Perennial.net.http.modelParseRequestURI.wp

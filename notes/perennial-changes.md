@@ -17,6 +17,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `net/url.ParseRequestURI` unreachable over bodies: `strings.Cut`/`ToLower`/`Index`/`Count` names only (2026-11-23, models-rpc-http)
+
+- **Limitation.** Go's `url.parse(rawURL, true)` calls `strings.ToLower` (always, on the scheme), `strings.Cut(rest,
+  "?")` (whenever the URI does not end in a lone `"?"`), and on other inputs `strings.Count`, `Index`, `Contains`;
+  Perennial translates them as names only (and `Cut`/`Index` reach `bytealg.IndexByteString`, untranslated, assembly).
+  Besides, `setPath`'s `escape` reads `net/url`'s `table` (a `[[skip]]` variable of the main tree's `Code/net/url.toml`),
+  and the main tree's `net/url` is names-only (project etcd), so translating it with bodies rebuilds every importer
+  (`zap`, `rafthttp`, `types`).
+- **Who needs it.** net/http's `readRequest` (the request URI of net/rpc's `CONNECT /_goRPC_`), `Net/Proof/net/http/`.
+- **Workaround.** In the model (`models/net/http/textproto_model.go`, MODEL, pending the user's review):
+  `modelParseRequestURI`, Go's result on a `/`-initial path of bytes `net/url` leaves alone (`modelPathByte`), Go's
+  function on every other URI; translated with its body and proved; evidence `internal/httpdifftest`'s
+  `TestReadRequestURI` (every byte after `/`, inside a path and after `//`, 2000 random paths; `URL`'s every field).
+- **Proposed change.** `strings.ToLower` (ASCII fast path), `Cut`, `Index`, `Count` translated in Perennial with
+  `bytealg.IndexByteString`/`CountString` as trusted models (as `LastIndexByteString` is translated), with specs; then
+  `net/url`'s `parse` with its bodies.
+- **Status.** Not proposed yet.
+
 ### `sync.NewCond.spec` does not say its result is not `nil`; `context.WithValue` names-only (2026-11-23, models-rpc-http)
 
 - **Limitation.** (1) `NewCond.spec`'s post is `isCond c m`, without `⌜c ≠ null⌝` (the struct field

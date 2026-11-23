@@ -190,6 +190,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   modelCutByte_unfold : FuncUnfold modelCutByte [] modelCutByte.impl
   modelTrimLeftByte_unfold : FuncUnfold modelTrimLeftByte [] modelTrimLeftByte.impl
   modelChunked_unfold : FuncUnfold modelChunked [] modelChunked.impl
+  modelParseRequestURI_unfold : FuncUnfold modelParseRequestURI [] modelParseRequestURI.impl
+  modelPathBytes_unfold : FuncUnfold modelPathBytes [] modelPathBytes.impl
+  modelPathByte_unfold : FuncUnfold modelPathByte [] modelPathByte.impl
   noResponseBodyExpected_unfold : FuncUnfold noResponseBodyExpected [] noResponseBodyExpected.impl
   bodyAllowedForStatus_unfold : FuncUnfold bodyAllowedForStatus [] bodyAllowedForStatus.impl
   readTransfer_unfold : FuncUnfold readTransfer [] readTransfer.impl
@@ -388,6 +391,9 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.modelCutByte_unfold
   Assumptions.modelTrimLeftByte_unfold
   Assumptions.modelChunked_unfold
+  Assumptions.modelParseRequestURI_unfold
+  Assumptions.modelPathBytes_unfold
+  Assumptions.modelPathByte_unfold
   Assumptions.noResponseBodyExpected_unfold
   Assumptions.bodyAllowedForStatus_unfold
   Assumptions.readTransfer_unfold

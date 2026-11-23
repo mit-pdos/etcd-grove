@@ -15,7 +15,8 @@
 # forwarding module Net/Code/golang_org/x/net/http/httpguts.lean).
 translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessageTooLarge",
              "notModelled", "notModelled.*", "modelChunked", "Method*", "Status*", "!StatusText",
-             "ReadResponse", "modelCutByte", "modelTrimLeftByte", "ParseHTTPVersion", "badStringError",
+             "ReadResponse", "modelCutByte", "modelTrimLeftByte", "modelParseRequestURI", "modelPathBytes",
+             "modelPathByte", "ParseHTTPVersion", "badStringError",
              "fixPragmaCacheControl", "readTransfer", "transferReader.parseTransferEncoding",
              "transferReader.protoAtLeast", "fixLength", "fixTrailer", "shouldClose",
              "bodyAllowedForStatus", "noResponseBodyExpected", "Header.Del", "Handle", "ServeMux.Handle", "ServeMux.register", "ServeMux.registerErr",
