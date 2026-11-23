@@ -17,6 +17,17 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode
 
+/-- The translated body's value is `byteorder.le32`. Proved outside the section with `hlc : HasLC`
+in context: `bv_decide` there realizes `Iris.HasLC.enumToBitVec`, which clashes with another
+module's realization when both are imported. -/
+theorem byteorder.le32_of_shifts (b0 b1 b2 b3 : w8) :
+    W32 (uint.Z b0) ||| W32 (uint.Z b1) <<< W64 8 ||| W32 (uint.Z b2) <<< W64 16 |||
+      W32 (uint.Z b3) <<< W64 24 = byteorder.le32 b0 b1 b2 b3 := by
+  have hz : ∀ v : w8, W32 (uint.Z v) = v.zeroExtend 32 := fun v => by
+    apply BitVec.eq_of_toNat_eq; simp [uint.Z]
+  simp only [hz, byteorder.le32]
+  bv_decide
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -35,13 +46,7 @@ theorem byteorder.LEUint32.wp_proof : byteorder.LEUint32.spec (GF := GF) (hG := 
     wp_apply wp_load_slice_index b _ _ _ _ (by word) $$ [Hb] as Hb
     · iframe; ipureintro; rfl
     try wp_auto)
-  have he : W32 (uint.Z b0) ||| W32 (uint.Z b1) <<< W64 8 ||| W32 (uint.Z b2) <<< W64 16 |||
-      W32 (uint.Z b3) <<< W64 24 = byteorder.le32 b0 b1 b2 b3 := by
-    have hz : ∀ v : w8, W32 (uint.Z v) = v.zeroExtend 32 := fun v => by
-      apply BitVec.eq_of_toNat_eq; simp [uint.Z]
-    simp only [hz, byteorder.le32]
-    bv_decide
-  rw [he]
+  rw [byteorder.le32_of_shifts]
   iapply HΦ $$ Hb
 
 end proof
