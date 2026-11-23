@@ -4,9 +4,8 @@ start (`bootstrap.go:53-130` at the etcd pin `edc800c6f`), straight-line over it
 the laws of `BootParts.lean`. Lean-first; claim #34, stage 3 (2026-11-23),
 `notes/bootstrap-proof-plan.md` §7.3.
 
-**TEMPORARY gaps** (section `gaps`, each a hypothesis of `bootstrap.wp_proof` until fixed where it
-belongs): `bootstrap.recStrGap` (the package's facts do not give `recommendedMaxRequestBytesString`,
-read by the request-size warning), and `bootFs.touchData.lawE`/`bootFs.touchMember.lawE` (the
+**TEMPORARY gaps** (section `gaps`, hypotheses of `bootstrap.wp_proof` until fixed where they
+belong): `bootFs.touchData.lawE`/`bootFs.touchMember.lawE` (the
 committed laws with `fmtErrorOk err` on their error disjunct, which `fmt.Errorf("...: %w", terr)`
 needs), in place of `bootFs.touchData.law`/`bootFs.touchMember.law`.
 -/
@@ -51,16 +50,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- **TEMPORARY (a gap): the package's facts give `recommendedMaxRequestBytesString`'s value**, read
-by `bootstrap`'s warning (`bootstrap.go:59`, when `MaxRequestBytes` exceeds 10 MiB). True of Go: the
-variable is written once by the package's initializer (`humanize.Bytes(...)`, `InitLinked.lean`)
-and never again. Not provable today: `srvInit` (`BaseApply.lean`) does not mention the variable.
-The fix: add `∃ s : GoString, globalAddr recommendedMaxRequestBytesString ↦□ s` to `srvInit` (its
-initializer's proof already allocates it). -/
-abbrev bootstrap.recStrGap : Prop :=
-  isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ⊢
-    ∃ s : GoString, globalAddr recommendedMaxRequestBytesString ↦□ s
 
 /-- **TEMPORARY (a gap): `bootFs.touchData.law` with the error's `fmt` facts** (`fmtErrorOk err`
 in its error disjunct), which `bootstrap`'s `fmt.Errorf("cannot access data directory: %w", terr)`
@@ -133,8 +122,7 @@ theorem bootstrap.wp_proof
     (hUint : zap.Uint.spec (GF := GF) (hG := hG))
     (hStr : zap.String.spec (GF := GF) (hG := hG))
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
-    (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG))
-    (hRecStr : bootstrap.recStrGap (GF := GF) (hG := hG)) :
+    (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     bootstrap.spec (GF := GF) (hG := hG) := by
   intro cfg U γ N HU Hvs Hlog Hmem
   wp_start as ⟨%Hpure, #Hzlg, Hfg, Hvoff, #Hro, Hrauth, Hres⟩
@@ -148,7 +136,9 @@ theorem bootstrap.wp_proof
   wp_join (iprop(True) : IProp GF) with [] as -
   · ihave #Hhpkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.dustin.go_humanize $$ []
     · iPkgInit
-    ihave ⟨%rs, #Hrs⟩ := hRecStr $$ Hpkg
+    ihave Hsi : (srvInit : IProp GF) $$ []
+    · iapply isPkgInit_access $$ Hpkg
+    icases Hsi with ⟨-, -, -, -, -, -, -, -, ⟨%rs, #Hrs⟩⟩
     wp_apply hUint as %f0 -
     wp_apply hBytes as %hs -
     wp_apply hStr as %f1 -
