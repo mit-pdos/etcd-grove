@@ -104,16 +104,16 @@ theorem flatten_segsPath : ∀ cs : List GoString,
   | [] => rfl
   | c :: cs => by
     rw [List.map_cons, List.flatten_cons, flatten_segsPath cs]
-    unfold path.segsPath
+    conv => rhs; unfold path.segsPath
     rw [List.foldl_cons, path.segsPath_foldl]
-    rfl
+    simp
 
 /-- **A clean absolute path in `cleanAbsPath`'s form is one in `filepath.CleanAbs`'s.** -/
 theorem cleanAbs_of_cleanAbsPath {p : GoString} (hp : cleanAbsPath p) : filepath.CleanAbs p := by
   obtain ⟨cs, hne, hok, rfl⟩ := hp
   refine ⟨cs, hne, fun c hc => ?_, flatten_segsPath cs⟩
   obtain ⟨h1, h2, h3, h4⟩ := hok c hc
-  exact ⟨h1, fun x hx he => h2 (he ▸ hx), h3, h4⟩
+  exact ⟨h1, fun x hx he => h2 (by subst he; exact hx), h3, h4⟩
 
 /-- **The snapshot directory is `snap` in the member directory**, when the member directory
 `Join(dd, "member")` is clean and absolute. -/
