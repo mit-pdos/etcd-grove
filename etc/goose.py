@@ -932,6 +932,37 @@ PROJECTS = [
         owned=[os.path.join("github_com", "xiang90")],
     ),
     Project(
+        name="dsv-rabia",
+        # dsverify-lab's rabia kit (notes/dsv-rabia.md; notes/dsverify-net-port-plan.md, phase 6):
+        # the lab's Rabia fork (examples/rabia/fork/rabia at lab master 915f964, fork ef2a93b, run
+        # rabia-r1wake-1) with its kit ported onto examples/lib/remote, `examples/dsverify/rabia`
+        # (module `rabia`). Into the part `Dsverify/`, with remote and `net` the part `Net/`'s,
+        # lintest, porcupine, bufio, container/heap and path the main tree's; zerolog, gogo/protobuf,
+        # go-redis and os/signal names only into the part (no model here: notes/dsv-rabia.md).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "dsverify", "rabia"),
+        root="Dsverify",
+        lean_roots=["rabia=Dsverify", "github.com/rs/zerolog=Dsverify",
+                    "github.com/gogo/protobuf=Dsverify", "github.com/go-redis/redis/v8=Dsverify",
+                    "os/signal=Dsverify",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
+                    "bufio=", "container/heap=", "path="],
+        packages=["github.com/rs/zerolog", "github.com/gogo/protobuf/proto",
+                  "github.com/gogo/protobuf/gogoproto", "github.com/go-redis/redis/v8",
+                  "github.com/go-redis/redis/v8/internal/proto", "os/signal", "./internal/config", "./internal/message", "./internal/queue", "./internal/ledger",
+                  "./internal/tcp", "./internal/logger", "./internal/system",
+                  "./roles/server/layers/network", "./roles/server/layers/consensus",
+                  "./roles/server/layers/proxy", "./roles/server", "./examples/rabianet",
+                  "./examples/rabianet/cmd/orch"]
+                 + ["./examples/rabianet/cmd/client%d" % c for c in range(6)]
+                 + ["./examples/rabianet/cmd/server%d" % s for s in range(1, 6)],
+        owned=["rabia", os.path.join("github_com", "rs"), os.path.join("github_com", "gogo"),
+               os.path.join("github_com", "go_redis"), os.path.join("os", "signal")],
+    ),
+    Project(
         name="models-net",
         # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
         # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take

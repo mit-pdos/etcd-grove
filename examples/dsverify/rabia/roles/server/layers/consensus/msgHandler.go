@@ -21,10 +21,10 @@ import (
 )
 
 /*
-	The MsgHandler routine does not forward each of Proposal, State, Vote, and Decision messages directly to the
-	Executor. Instead, after gathering strictly n - f messages for each round (see where HasEnoughMsg is called),
-	it then notifies the Executor. MsgHandler ignores future messages for this round to make sure the majority value
-	is stable after notifying the Executor.
+    The MsgHandler routine does not forward each of Proposal, State, Vote, and Decision messages directly to the
+    Executor. Instead, after gathering strictly n - f messages for each round (see where HasEnoughMsg is called),
+    it then notifies the Executor. MsgHandler ignores future messages for this round to make sure the majority value
+    is stable after notifying the Executor.
 */
 func (c *Consensus) MsgHandler() {
 	defer c.Wg.Done()
@@ -39,9 +39,9 @@ func (c *Consensus) MsgHandler() {
 				c.QPush(*msg.Obj) // push the object to the pending request queue
 			case message.ProposalRequest:
 				/*
-					msg.Value contains the sequence number of the message, we are testing whether the term of the
-					message is the same as the term of the Slot object
-				*/
+                    msg.Value contains the sequence number of the message, we are testing whether the term of the
+                    message is the same as the term of the Slot object
+                */
 				if msg.Value >= config.Conf.LenLedger { // SCOPE GUARD (see getRequest): no slot is reused
 					continue
 				}
@@ -49,9 +49,9 @@ func (c *Consensus) MsgHandler() {
 					continue
 				}
 				/*
-					Maybe you wonder there's a potential race? see out comments in "Race Conditions Documented" in
-					consensus.go.
-				*/
+                    Maybe you wonder there's a potential race? see out comments in "Race Conditions Documented" in
+                    consensus.go.
+                */
 				slot := msg.Value % config.Conf.LenLedger
 				if c.Ledger[slot].HasEnoughMsg(0, 1) {
 					if c.Ledger[slot].RecvProposalsMajT() >= config.Conf.Majority {
@@ -68,7 +68,7 @@ func (c *Consensus) MsgHandler() {
 }
 
 /*
-	Handles Proposal, State, Vote, and Decision messages
+    Handles Proposal, State, Vote, and Decision messages
 */
 func (c *Consensus) binConMsgHandling(msg message.Msg) {
 	seq := msg.Obj.SvrSeq

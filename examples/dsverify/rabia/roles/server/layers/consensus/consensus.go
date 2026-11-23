@@ -14,17 +14,17 @@
     limitations under the License.
 */
 /*
-	The consensus package defines the struct of a consensus instance and methods shared by the consensus executor and
-	the message handler. Both routines modify states in the server Ledger, but the executor follows the pseudo-code of
-	Rabia. The handler does the dirty work that is not described in the pseudo-code -- basically, send and receive
-	messages on the behalf of this executor (but the proposal request and reply phase is an exception). See descriptions
-	in executor.go and msg_handler.go for more details.
+    The consensus package defines the struct of a consensus instance and methods shared by the consensus executor and
+    the message handler. Both routines modify states in the server Ledger, but the executor follows the pseudo-code of
+    Rabia. The handler does the dirty work that is not described in the pseudo-code -- basically, send and receive
+    messages on the behalf of this executor (but the proposal request and reply phase is an exception). See descriptions
+    in executor.go and msg_handler.go for more details.
 
-	Note:
+    Note:
 
-	1. The implemented code for deciding each slot is somewhat different from the algorithm in our paper; The
-	implementation follows a more verbose version of the algorithm presented in the SOSP paper, see the document in the
-	docs folder
+    1. The implemented code for deciding each slot is somewhat different from the algorithm in our paper; The
+    implementation follows a more verbose version of the algorithm presented in the SOSP paper, see the document in the
+    docs folder
 */
 package consensus
 
@@ -43,76 +43,76 @@ import (
 )
 
 /*
-	Race Conditions Documented
+    Race Conditions Documented
 
-	The correct execution of Rabia assumes a few timing issues documented below never occur. In fact, given the
-	right/default user parameters, these issues are extremely unlikely to happen and they never happened in any
-	testing or benchmarking runs.
+    The correct execution of Rabia assumes a few timing issues documented below never occur. In fact, given the
+    right/default user parameters, these issues are extremely unlikely to happen and they never happened in any
+    testing or benchmarking runs.
 
-	Why we claim they virtually cannot occur:
+    Why we claim they virtually cannot occur:
 
-	These timing issues are there because we use a circular ring buffer, and when one of the MsgHandler/Executor resets
-	a slot while the other access to the slot, problematic results may get returned. Since our default configuration
-	assumes a long ledger (10000+ slots), slots are reset are far away from slots are currently accessed, those timing
-	issues never had a chance to occur.
+    These timing issues are there because we use a circular ring buffer, and when one of the MsgHandler/Executor resets
+    a slot while the other access to the slot, problematic results may get returned. Since our default configuration
+    assumes a long ledger (10000+ slots), slots are reset are far away from slots are currently accessed, those timing
+    issues never had a chance to occur.
 
-	Two cases where race condition may occur (extremely unlikely by the default parameter):
+    Two cases where race condition may occur (extremely unlikely by the default parameter):
 
-	1. In MsgHandler's function binConMsgHandling(), the routine may call UpdateTermIfNecessary(), which may reset the
-	slot X. However, the Executor may call putBackMyProposal() in the epilogue() function, which may access fields of
-	slot X.
+    1. In MsgHandler's function binConMsgHandling(), the routine may call UpdateTermIfNecessary(), which may reset the
+    slot X. However, the Executor may call putBackMyProposal() in the epilogue() function, which may access fields of
+    slot X.
 
-	2. In Executor's function getRequest(), the routine may call UpdateTermIfNecessary(), which may reset the slot X.
-	However, the MsgHandler may access slot X after when it receives a ProposalRequest.
+    2. In Executor's function getRequest(), the routine may call UpdateTermIfNecessary(), which may reset the slot X.
+    However, the MsgHandler may access slot X after when it receives a ProposalRequest.
 
-	How to eradicate this issue:
+    How to eradicate this issue:
 
-	When modifying or reading Term, IsDone, and Decision fields, acquire Slot.lock first to avoid concurrent writing,
-	undesirable resetting or data overriding. The downside of this modification is this may slow down Rabia. In future
-	versions of Rabia, we will tackle this issue.
+    When modifying or reading Term, IsDone, and Decision fields, acquire Slot.lock first to avoid concurrent writing,
+    undesirable resetting or data overriding. The downside of this modification is this may slow down Rabia. In future
+    versions of Rabia, we will tackle this issue.
 */
 
 /*
-	For recording the instance's runtime statistics
-	maybe: use Stat in the future
+    For recording the instance's runtime statistics
+    maybe: use Stat in the future
 */
 type Stat struct {
 	/*
-		NumOfRounds:
-		the i-th entry stores the number of consensus rounds used in deciding slot i, this number may vary from server
-		to server: those server who learn the slot decision from other servers may have a higher value in the entry.
+        NumOfRounds:
+        the i-th entry stores the number of consensus rounds used in deciding slot i, this number may vary from server
+        to server: those server who learn the slot decision from other servers may have a higher value in the entry.
 
-		DecisionTyp:
-			0 -- Matched Slots: the decision is not null and my proposal = the decision
-			1 -- Unmatched Slots: the decision is not null and my proposal != the decision
-			2 -- Null Slots: the decision is null
-	*/
+        DecisionTyp:
+            0 -- Matched Slots: the decision is not null and my proposal = the decision
+            1 -- Unmatched Slots: the decision is not null and my proposal != the decision
+            2 -- Null Slots: the decision is null
+    */
 	NumOfRounds []uint32
 	DecisionTyp []uint32 // 0: a matched slot, 1: a unmatched slot, 2: a null slot
 	NumOfCliReq []int    // the number of client-batched requests in this slot
 	/*
-		These two numbers are calculated just before the program exits.
-		TotalSlots: the sum of Matched Slots, Unmatched Slots, and Null Slots
-		TotalRounds: the sum of numbers in NumOfRounds entries
-	*/
+        These two numbers are calculated just before the program exits.
+        TotalSlots: the sum of Matched Slots, Unmatched Slots, and Null Slots
+        TotalRounds: the sum of numbers in NumOfRounds entries
+    */
 
 	TotalRounds  uint32
 	TotalSlots   uint32
 	NotNullSoFar int // the number of matched slots + the number of unmatched slots decided so far
 	CliReqSoFar  int // the number of client-batched requests that have been made into decided slots so far
 	/*
-		Tally the msg with "bad" terms. May increase as the consensus instance executes
-		Definition: the term of a message -- for a message that is associated with a logical slot number, the term of
-		the message is the term of the Slot object that represents the logical slot.
-		Example: when LenCommandsArray (the Ledger's length) = 10:
-			for logical slot 5, the term is 0;
-			for logical slot 9, the term is 0;
-			for logical slot 15, the term is 1;
-			for logical slot 19, the term is 1;
-		Say a message's term is x, and the the current term of the Slot object is y:
-		A msg's term is bad if x < y or x > y + 1 (strictly one more).
-		Otherwise, when x = y or x = y + 1, the term is not bad.
-	*/
+        Tally the msg with "bad" terms. May increase as the consensus instance executes
+        Definition: the term of a message -- for a message that is associated with a logical slot number, the term of
+        the message is the term of the Slot object that represents the logical slot.
+        Example: when LenCommandsArray (the Ledger's length) = 10:
+            for logical slot 5, the term is 0;
+            for logical slot 9, the term is 0;
+            for logical slot 15, the term is 1;
+            for logical slot 19, the term is 1;
+        Say a message's term is x, and the the current term of the Slot object is y:
+        A msg's term is bad if x < y or x > y + 1 (strictly one more).
+        Otherwise, when x = y or x = y + 1, the term is not bad.
+    */
 	BadTermMsg int
 }
 
@@ -135,10 +135,10 @@ type Consensus struct {
 	Coin   *rand.Rand // the common coin used in the algorithm
 
 	/*
-		Discard: if it turns out that my proposal != the decision, the consensus object's proxy id and proxy sequence of
-		the decision is recorded in the Discard dictionary. The next time we see the consensus object in the pending
-		queue, we discard the decision.
-	*/
+        Discard: if it turns out that my proposal != the decision, the consensus object's proxy id and proxy sequence of
+        the decision is recorded in the Discard dictionary. The next time we see the consensus object in the pending
+        queue, we discard the decision.
+    */
 	Discard map[uint64]bool // VERIFICATION WORKAROUND (G8): keyed by idSeqKey, see there
 	Logger  zerolog.Logger // consensus layer level logger
 	LogFile *os.File       // the log file that should be called .Sync() method before the routine exits
@@ -154,9 +154,9 @@ type Consensus struct {
 	NumOfRoundsDist []int // index: num of rounds, element: frequency
 
 	/*
-		StatLock: NormalSlots, UnmatchedSlots, NullSlots and NumClientBatchedRequests are written by the executor and
-		read by the server's terminal logger (SlotStats), under StatLock.
-	*/
+        StatLock: NormalSlots, UnmatchedSlots, NullSlots and NumClientBatchedRequests are written by the executor and
+        read by the server's terminal logger (SlotStats), under StatLock.
+    */
 	StatLock sync.Mutex
 
 	Per1000RoundDist []int          // for each 1000 slots, log the number of rounds distribution to roundDist log files
@@ -165,7 +165,7 @@ type Consensus struct {
 }
 
 /*
-	Initialize a consensus instance
+    Initialize a consensus instance
 */
 func ConsensusInit(svrId, insId uint32, done chan struct{}, doneWg *sync.WaitGroup, netToMsgHandler, msgHandlerToNet,
 	netToConExecutor, conExecutorToNet chan message.Msg, ledger ledger.Ledger) *Consensus {
@@ -195,9 +195,9 @@ func ConsensusInit(svrId, insId uint32, done chan struct{}, doneWg *sync.WaitGro
 
 		NumOfRoundsDist: make([]int, config.Conf.LenBlockArray*2+2),
 		/*
-			the length of the array above is capped
-			why + 2: if old = 20, new = 21, then [21] is used (see comments in executor.go)
-		*/
+            the length of the array above is capped
+            why + 2: if old = 20, new = 21, then [21] is used (see comments in executor.go)
+        */
 
 		Per1000RoundDist: make([]int, config.Conf.LenBlockArray*2+1),
 		RoundDistLogger:  zerologger2,
@@ -208,14 +208,14 @@ func ConsensusInit(svrId, insId uint32, done chan struct{}, doneWg *sync.WaitGro
 }
 
 /*
-	Determines whether the consensus instance needs to update (the term of) a Slot object when receiving a new message
-	object. See comments near the code for detailed explanations.
+    Determines whether the consensus instance needs to update (the term of) a Slot object when receiving a new message
+    object. See comments near the code for detailed explanations.
 
-	seq: the logical slot's sequence embedded in a incoming message
-	pan: if the incoming message is associated with a bad term (see below), triggers a panic
+    seq: the logical slot's sequence embedded in a incoming message
+    pan: if the incoming message is associated with a bad term (see below), triggers a panic
 
-	It returns a boolean that indicates whether the term of the message is of a not-bad term, it is of a not-bad term if
-	the message's term = the slot's current term or the message's term = (the slot's current term + 1).
+    It returns a boolean that indicates whether the term of the message is of a not-bad term, it is of a not-bad term if
+    the message's term = the slot's current term or the message's term = (the slot's current term + 1).
 */
 func (c *Consensus) UpdateTermIfNecessary(seq uint32, pan bool) (ret bool) {
 	slot := seq % config.Conf.LenLedger
@@ -241,7 +241,7 @@ func (c *Consensus) UpdateTermIfNecessary(seq uint32, pan bool) (ret bool) {
 }
 
 /*
-	Panics if the term associated with seq is not equal to the slot's current term.
+    Panics if the term associated with seq is not equal to the slot's current term.
 */
 func (c *Consensus) PanicTermNotMatched(seq uint32) {
 	if !c.IsTermMatched(seq) {
@@ -253,8 +253,8 @@ func (c *Consensus) PanicTermNotMatched(seq uint32) {
 }
 
 /*
-	Returns false if the term associated with seq is not equal to the slot's current term.
-	Otherwise, return true
+    Returns false if the term associated with seq is not equal to the slot's current term.
+    Otherwise, return true
 */
 func (c *Consensus) IsTermMatched(seq uint32) bool {
 	slot := seq % config.Conf.LenLedger
@@ -266,16 +266,16 @@ func (c *Consensus) IsTermMatched(seq uint32) bool {
 }
 
 /*
-	VERIFICATION WORKAROUND (G8): the Discard dictionary's key of a consensus object, its proxy id and proxy sequence
-	(as GetIdSeq's string "ProId-ProSeq" was, without formatting the numbers: strconv.Itoa has no model in Perennial).
-	Two objects have the same key exactly when they had the same GetIdSeq.
+    VERIFICATION WORKAROUND (G8): the Discard dictionary's key of a consensus object, its proxy id and proxy sequence
+    (as GetIdSeq's string "ProId-ProSeq" was, without formatting the numbers: strconv.Itoa has no model in Perennial).
+    Two objects have the same key exactly when they had the same GetIdSeq.
 */
 func idSeqKey(obj *message.ConsensusObj) uint64 {
 	return uint64(obj.ProId)<<32 | uint64(obj.ProSeq)
 }
 
 /*
-	Pushes a ConsensusObj to the pending request queue
+    Pushes a ConsensusObj to the pending request queue
 */
 func (c *Consensus) QPush(obj message.ConsensusObj) {
 	c.QLock.Lock()
@@ -284,7 +284,7 @@ func (c *Consensus) QPush(obj message.ConsensusObj) {
 }
 
 /*
-	Pops a ConsensusObj from the pending request queue if there are any requests
+    Pops a ConsensusObj from the pending request queue if there are any requests
 */
 func (c *Consensus) QPop() (message.ConsensusObj, bool) {
 	c.QLock.Lock()
@@ -297,7 +297,7 @@ func (c *Consensus) QPop() (message.ConsensusObj, bool) {
 }
 
 /*
-	Returns NormalSlots, UnmatchedSlots, NullSlots and NumClientBatchedRequests (for the server's terminal logger).
+    Returns NormalSlots, UnmatchedSlots, NullSlots and NumClientBatchedRequests (for the server's terminal logger).
 */
 func (c *Consensus) SlotStats() (int, int, int, int) {
 	c.StatLock.Lock()
@@ -306,7 +306,7 @@ func (c *Consensus) SlotStats() (int, int, int, int) {
 }
 
 /*
-	Removes trailing zeros in an integer array, e.g., [1, 0, 1, 0] can produce [1, 0, 1] after the function call
+    Removes trailing zeros in an integer array, e.g., [1, 0, 1, 0] can produce [1, 0, 1] after the function call
 */
 func RemoveTrailingZeros(array []int) []int {
 	endIndex := len(array)
@@ -320,7 +320,7 @@ func RemoveTrailingZeros(array []int) []int {
 }
 
 /*
-	The total frequency should equal to the sum of NormalSlots, UnmatchedSlots, NullSlots when the executor exits
+    The total frequency should equal to the sum of NormalSlots, UnmatchedSlots, NullSlots when the executor exits
 */
 func (c *Consensus) freqSum() int {
 	acc := 0
@@ -331,7 +331,7 @@ func (c *Consensus) freqSum() int {
 }
 
 /*
-	Find the number of rounds given a percentile (e.g. 50, 95, 99)
+    Find the number of rounds given a percentile (e.g. 50, 95, 99)
 */
 func (c *Consensus) findRds(percentile int) int {
 	acc := 0

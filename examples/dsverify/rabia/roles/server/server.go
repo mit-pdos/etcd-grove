@@ -14,11 +14,11 @@
     limitations under the License.
 */
 /*
-	The server package defines a Rabia server's struct and its initialization, preparation, and main function. Note: A
-	server has many Goroutines, and each routine belongs to one of the three server layers: the proxy/application layer,
-	the peer-communicating network layer, and the consensus instance layer. There are one or two main Go routines at
-	each layer. When a server wants to exit, it needs to wait for them all. Besides, the proxy and network layers
-	maintain their TCP connections, which require a few more Goroutines to send requests and to wait for responses.
+    The server package defines a Rabia server's struct and its initialization, preparation, and main function. Note: A
+    server has many Goroutines, and each routine belongs to one of the three server layers: the proxy/application layer,
+    the peer-communicating network layer, and the consensus instance layer. There are one or two main Go routines at
+    each layer. When a server wants to exit, it needs to wait for them all. Besides, the proxy and network layers
+    maintain their TCP connections, which require a few more Goroutines to send requests and to wait for responses.
 */
 package server
 
@@ -39,7 +39,7 @@ import (
 )
 
 /*
-	A Rabia server
+    A Rabia server
 */
 type Server struct {
 	SvrId uint32
@@ -62,11 +62,11 @@ type Server struct {
 }
 
 /*
-	Initialize a server -- go channels and routine allocations
+    Initialize a server -- go channels and routine allocations
 
-	Difference between *Init() functions and *Prepare/Prologue()  functions in the Rabia project:
-	*Init(): allocating objects, does not involve the network activity (except allocating a listener)
-	*Prepare/Prologue(): involves the network activity and starts to listen to OS signals
+    Difference between *Init() functions and *Prepare/Prologue()  functions in the Rabia project:
+    *Init(): allocating objects, does not involve the network activity (except allocating a listener)
+    *Prepare/Prologue(): involves the network activity and starts to listen to OS signals
 */
 func ServerInit(svrId uint32, proxyIp, netIp string) *Server {
 	s := &Server{
@@ -102,11 +102,11 @@ func ServerInit(svrId uint32, proxyIp, netIp string) *Server {
 }
 
 /*
-	1. start the OS signal listener
-	2. add the number of major routines in Proxy and Network layers to Wg
-	3. start the network layer
-	4. start the proxy layer
-	5. starts a terminal logger
+    1. start the OS signal listener
+    2. add the number of major routines in Proxy and Network layers to Wg
+    3. start the network layer
+    4. start the proxy layer
+    5. starts a terminal logger
 */
 func (s *Server) Prologue() {
 	go system.SigListen(s.Done)
@@ -116,10 +116,10 @@ func (s *Server) Prologue() {
 }
 
 /*
-	1. start the proxy layer (two separate routines)
-	2. start the network layer (two separate routines)
-	3. start the consensus layer (two separate routines)
-	4. wait all layers to finish
+    1. start the proxy layer (two separate routines)
+    2. start the network layer (two separate routines)
+    3. start the consensus layer (two separate routines)
+    4. wait all layers to finish
 */
 func (s *Server) ServerMain() {
 	s.Wg.Add(2)
@@ -138,9 +138,9 @@ func (s *Server) ServerMain() {
 }
 
 /*
-	1. calling proxy level exit
-	2. calling network level exit
-	3. wait major routines are done
+    1. calling proxy level exit
+    2. calling network level exit
+    3. wait major routines are done
 */
 func (s *Server) Epilogue() {
 	s.Proxy.Epilogue()
@@ -149,7 +149,7 @@ func (s *Server) Epilogue() {
 }
 
 /*
-	A terminal logger that prints the status of a server to terminal
+    A terminal logger that prints the status of a server to terminal
 */
 func (s *Server) TerminalLogger() {
 	tLogger, file := logger.InitLogger("server", s.SvrId, 1, "both")

@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose converts to another package's constant type without importing its module (2026-11-23, dsv-rabia)
+
+- **Limitation.** `err == redis.Nil` (go-redis v8: `const Nil = proto.Nil`, of type
+  `internal/proto.RedisError`) is translated as a `Convert` to
+  `github_com.go_redis.redis.v8.internal.proto.RedisError.ty`, but the translation of the calling
+  package (`rabia/roles/server/layers/proxy`) does not import that package's module: "Unknown
+  identifier".
+- **Who needs it.** `Proxy.redisExecuteCmd` (dsv-rabia, `notes/dsv-rabia.md`).
+- **Workaround.** `Dsverify/Code/rabia/roles/server/layers/proxy.toml` leaves `Proxy.redisExecuteCmd`
+  names only (the kit never uses Redis: `Conf.StorageMode` 0).
+- **Proposed change.** goose imports the package of every named type it emits, a constant's type
+  included.
+- **Status.** Not proposed yet.
+
 ### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
 
 - **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a

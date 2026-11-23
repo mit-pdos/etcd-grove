@@ -23,14 +23,14 @@ import (
 )
 
 /*
-	The consensus executor's main function, mainly an event-driven (incoming messages) for-loop. See more comments in
-	called functions. After the for-loop, it counts statistics and write them to the log file.
+    The consensus executor's main function, mainly an event-driven (incoming messages) for-loop. See more comments in
+    called functions. After the for-loop, it counts statistics and write them to the log file.
 
-	Special notes on ProposalRequest and ProposalReply (again)
-	ProposalRequest:
- 	Phase: SvrId (the source server's id), Value: the sequence number of the proposal
-	ProposalReply:
- 	Phase: the destination server's id, Value: the sequence number of the proposal
+    Special notes on ProposalRequest and ProposalReply (again)
+    ProposalRequest:
+     Phase: SvrId (the source server's id), Value: the sequence number of the proposal
+    ProposalReply:
+     Phase: the destination server's id, Value: the sequence number of the proposal
 */
 func (c *Consensus) Executor() {
 	time.Sleep(config.Conf.ConsensusStartAfter)
@@ -71,7 +71,7 @@ func (c *Consensus) Executor() {
 }
 
 /*
-	Decides slot seq, the executor's current slot (the body of Executor's loop)
+    Decides slot seq, the executor's current slot (the body of Executor's loop)
 */
 func (c *Consensus) decideSlot(seq uint32) {
 	c.phase0Round1BeforeWait(seq)
@@ -118,7 +118,7 @@ func (c *Consensus) decideSlot(seq uint32) {
 }
 
 /*
-	Generates a Proposal message by fetching the MyProposal field in the Ledger slot
+    Generates a Proposal message by fetching the MyProposal field in the Ledger slot
 */
 func (c *Consensus) genProposalMsg(seq uint32) message.Msg {
 	c.PanicTermNotMatched(seq)
@@ -130,7 +130,7 @@ func (c *Consensus) genProposalMsg(seq uint32) message.Msg {
 }
 
 /*
-	Generates a State or Vote message by fetching the MyBiConMsg field in the Ledger slot
+    Generates a State or Vote message by fetching the MyBiConMsg field in the Ledger slot
 */
 func (c *Consensus) genBinConMsg(seq, pse, rod uint32) message.Msg {
 	c.PanicTermNotMatched(seq)
@@ -149,7 +149,7 @@ func (c *Consensus) genBinConMsg(seq, pse, rod uint32) message.Msg {
 }
 
 /*
-	Generates a Decision message by concluding information (i.e., the current majority value) from the Ledger
+    Generates a Decision message by concluding information (i.e., the current majority value) from the Ledger
 */
 func (c *Consensus) genDecMsgType1(seq uint32) message.Msg {
 	c.PanicTermNotMatched(seq)
@@ -161,8 +161,8 @@ func (c *Consensus) genDecMsgType1(seq uint32) message.Msg {
 }
 
 /*
-	Generates a Decision message by concluding information (i.e., the consensus object) from an incoming Decision
-	message
+    Generates a Decision message by concluding information (i.e., the consensus object) from an incoming Decision
+    message
 */
 func (c *Consensus) genDecMsgType2(seq uint32, obj message.ConsensusObj) message.Msg {
 	obj.SvrSeq = seq
@@ -171,10 +171,10 @@ func (c *Consensus) genDecMsgType2(seq uint32, obj message.ConsensusObj) message
 }
 
 /*
-	Generates a ProposalReply message to answer a particular ProposalRequest.
-	Note: call this function only when it is safe to reply:
-		1. the slot holds >= n - f proposal, and
-		2. the majority value's count >= n / 2 + 1
+    Generates a ProposalReply message to answer a particular ProposalRequest.
+    Note: call this function only when it is safe to reply:
+        1. the slot holds >= n - f proposal, and
+        2. the majority value's count >= n / 2 + 1
 */
 func (c *Consensus) genProposalReply(seq uint32, dst uint32) message.Msg {
 	c.PanicTermNotMatched(seq)
@@ -186,8 +186,8 @@ func (c *Consensus) genProposalReply(seq uint32, dst uint32) message.Msg {
 }
 
 /*
-	Waits enough Proposal, State, or Vote message or jumps out of the process of deciding the current slot if a Decision
-	message is received
+    Waits enough Proposal, State, or Vote message or jumps out of the process of deciding the current slot if a Decision
+    message is received
 */
 func (c *Consensus) wait(seq uint32) bool {
 	c.PanicTermNotMatched(seq)
@@ -219,10 +219,10 @@ func (c *Consensus) wait(seq uint32) bool {
 					panic("should not happen 5 (reason see the if case)")
 				}
 				/*
-					Even if the server receives a decision message before reaching a round-based consensus with other
-					servers, the number of rounds should be calculated from the variables (Phase and Round) of this
-					server.
-				*/
+                    Even if the server receives a decision message before reaching a round-based consensus with other
+                    servers, the number of rounds should be calculated from the variables (Phase and Round) of this
+                    server.
+                */
 				c.epilogue(seq, *msg.Obj)
 				return false // should start to decide the next slot
 			}
@@ -231,7 +231,7 @@ func (c *Consensus) wait(seq uint32) bool {
 }
 
 /*
-	The code for Phase 0, Round 1, before waiting for enough message
+    The code for Phase 0, Round 1, before waiting for enough message
 */
 func (c *Consensus) phase0Round1BeforeWait(seq uint32) {
 	msg := c.genProposalMsg(seq)
@@ -239,7 +239,7 @@ func (c *Consensus) phase0Round1BeforeWait(seq uint32) {
 }
 
 /*
-	The code for Phase 0, Round 1, after enough messages are arrived
+    The code for Phase 0, Round 1, after enough messages are arrived
 */
 func (c *Consensus) phase0Round1AfterWait(seq uint32) (message.ConsensusObj, bool) {
 	c.PanicTermNotMatched(seq)
@@ -259,7 +259,7 @@ func (c *Consensus) phase0Round1AfterWait(seq uint32) (message.ConsensusObj, boo
 }
 
 /*
-	The code for Phase 0, Round 2, before waiting for enough message
+    The code for Phase 0, Round 2, before waiting for enough message
 */
 func (c *Consensus) phase0Round2BeforeWait(seq uint32) {
 	msg := c.genBinConMsg(seq, 0, 2)
@@ -267,7 +267,7 @@ func (c *Consensus) phase0Round2BeforeWait(seq uint32) {
 }
 
 /*
-	The code for Phase 0, Round 2, after enough messages are arrived
+    The code for Phase 0, Round 2, after enough messages are arrived
 */
 func (c *Consensus) phase0Round2AfterWait(seq uint32) (message.ConsensusObj, bool) {
 	c.PanicTermNotMatched(seq)
@@ -292,7 +292,7 @@ func (c *Consensus) phase0Round2AfterWait(seq uint32) (message.ConsensusObj, boo
 }
 
 /*
-	The code for Phase 1-N, Round 1, before waiting for enough message
+    The code for Phase 1-N, Round 1, before waiting for enough message
 */
 func (c *Consensus) phaseNRound1BeforeWait(seq uint32) {
 	c.PanicTermNotMatched(seq)
@@ -303,7 +303,7 @@ func (c *Consensus) phaseNRound1BeforeWait(seq uint32) {
 }
 
 /*
-	The code for Phase 1-N, Round 1, after enough messages are arrived
+    The code for Phase 1-N, Round 1, after enough messages are arrived
 */
 func (c *Consensus) phaseNRound1AfterWait(seq uint32) (message.ConsensusObj, bool) {
 	c.PanicTermNotMatched(seq)
@@ -326,7 +326,7 @@ func (c *Consensus) phaseNRound1AfterWait(seq uint32) (message.ConsensusObj, boo
 }
 
 /*
-	The code for Phase 0, Round 2, before waiting for enough message
+    The code for Phase 0, Round 2, before waiting for enough message
 */
 func (c *Consensus) phaseNRound2BeforeWait(seq uint32) {
 	c.PanicTermNotMatched(seq)
@@ -338,7 +338,7 @@ func (c *Consensus) phaseNRound2BeforeWait(seq uint32) {
 }
 
 /*
-	The code for Phase 0, Round 2, after enough messages are arrived
+    The code for Phase 0, Round 2, after enough messages are arrived
 */
 func (c *Consensus) phaseNRound2AfterWait(seq uint32) (message.ConsensusObj, bool) {
 	c.PanicTermNotMatched(seq)
@@ -368,7 +368,7 @@ func (c *Consensus) phaseNRound2AfterWait(seq uint32) (message.ConsensusObj, boo
 }
 
 /*
-	sends a proposal request and waits for a respective reply
+    sends a proposal request and waits for a respective reply
 */
 func (c *Consensus) requestProposalAndWait(seq uint32) message.ConsensusObj {
 	//fmt.Println(c.SvrId, "seq = ", seq, "requestProposalAndWait")
@@ -388,7 +388,7 @@ func (c *Consensus) requestProposalAndWait(seq uint32) message.ConsensusObj {
 }
 
 /*
-	The find return value function that follows Rabia's pseudo-code
+    The find return value function that follows Rabia's pseudo-code
 */
 func (c *Consensus) findReturnValue(seq, pse, rod uint32) message.ConsensusObj {
 	c.PanicTermNotMatched(seq)
@@ -407,14 +407,14 @@ func (c *Consensus) findReturnValue(seq, pse, rod uint32) message.ConsensusObj {
 }
 
 /*
-	Sends a message to the network layer
+    Sends a message to the network layer
 */
 func (c *Consensus) toNet(msg message.Msg) {
 	c.ConExecutorToNet <- msg
 }
 
 /*
-	Sets my proposal and return true if there's a pending request, otherwise, return false
+    Sets my proposal and return true if there's a pending request, otherwise, return false
 */
 func (c *Consensus) getRequest() bool {
 	if c.SvrSeq+1 >= int(config.Conf.LenLedger) {
@@ -443,7 +443,7 @@ func (c *Consensus) getRequest() bool {
 }
 
 /*
-	Actions performed when a decision is reached
+    Actions performed when a decision is reached
 */
 func (c *Consensus) epilogue(seq uint32, dec message.ConsensusObj) {
 	c.PanicTermNotMatched(seq)
@@ -479,22 +479,22 @@ func (c *Consensus) epilogue(seq uint32, dec message.ConsensusObj) {
 	c.StatLock.Unlock()
 
 	/*
-		Since this implementation is a mix of our old and new versions of pseudo-code, the variable currentRoundNum
-		below may not equal to the number of rounds described in our new algorithm in our paper. See the package-level
-		comments for more information.
+        Since this implementation is a mix of our old and new versions of pseudo-code, the variable currentRoundNum
+        below may not equal to the number of rounds described in our new algorithm in our paper. See the package-level
+        comments for more information.
 
-		Now, NumOfRounds and NumOfRoundsDist store the new version of round numbers. Per1000RoundDist supports both
-		versions -- use the UseOldVersion flag switch version.
+        Now, NumOfRounds and NumOfRoundsDist store the new version of round numbers. Per1000RoundDist supports both
+        versions -- use the UseOldVersion flag switch version.
 
-		Anyhow, the conversion table is here:
-			old version: 1 2 3 4 5 6 7 8 9 ... 18 19 20
-			new version: 3 3 3 5 5 7 7 9 9 ... 19 19 21
+        Anyhow, the conversion table is here:
+            old version: 1 2 3 4 5 6 7 8 9 ... 18 19 20
+            new version: 3 3 3 5 5 7 7 9 9 ... 19 19 21
 
-		Note 1: currentRoundNum below is never 0 (because round numbers are never zero after the getRequest function call)
+        Note 1: currentRoundNum below is never 0 (because round numbers are never zero after the getRequest function call)
 
-		Note 2: if Per1000RoundDist(old/new) is [0 7 16 977], it does NOT mean there are 7 2-round slots,
-		instead, it means there are 7 1-round slots among the pass 1000 slots.
-	*/
+        Note 2: if Per1000RoundDist(old/new) is [0 7 16 977], it does NOT mean there are 7 2-round slots,
+        instead, it means there are 7 1-round slots among the pass 1000 slots.
+    */
 	currentRoundNum := c.Ledger[slot].Phase*2 + c.Ledger[slot].Round
 	if currentRoundNum <= 3 {
 		currentRoundNum = 3
@@ -510,44 +510,44 @@ func (c *Consensus) epilogue(seq uint32, dec message.ConsensusObj) {
 	c.NumOfRoundsDist[currentRoundNum] += 1
 
 	/*
-		Below is the code for Per1000RoundDists
-	*/
+        Below is the code for Per1000RoundDists
+    */
 	//UseOldVersion := true
 	//c.Per1000RoundDist[currentRoundNum] += 1
 	//c.NumOfRoundsIdx++ // deprecated when NumOfRounds is deprecated
 	//if c.NumOfRoundsIdx%1000 == 0 {
-	//	if UseOldVersion {
-	//		c.RoundDistLogger.Info().
-	//			//Int("start", c.NumOfRoundsIdx-1000).
-	//			//Int("end", c.NumOfRoundsIdx-1).
-	//			Ints("RoundDist(old)", RemoveTrailingZeros(c.Per1000RoundDist)).Msg("")
-	//		// If the array is [0 7 16 977], that means there are
-	//		// 7 1-round slots, 16 2-round slots, and 977 3-round slots
+	//    if UseOldVersion {
+	//        c.RoundDistLogger.Info().
+	//            //Int("start", c.NumOfRoundsIdx-1000).
+	//            //Int("end", c.NumOfRoundsIdx-1).
+	//            Ints("RoundDist(old)", RemoveTrailingZeros(c.Per1000RoundDist)).Msg("")
+	//        // If the array is [0 7 16 977], that means there are
+	//        // 7 1-round slots, 16 2-round slots, and 977 3-round slots
 	//
-	//	} else {
-	//		newVersion := make([]int, Conf.LenBlockArray*2+2) // why + 2: if old = 20, new = 21, then [21] is used
-	//		for i := 0; i < len(c.Per1000RoundDist); i++ {
-	//			if i <= 3 {
-	//				newVersion[3] += c.Per1000RoundDist[i]
-	//			} else if i%2 == 0 {
-	//				newVersion[i+1] += c.Per1000RoundDist[i]
-	//			} else {
-	//				newVersion[i] += c.Per1000RoundDist[i]
-	//			}
-	//		}
-	//		c.RoundDistLogger.Info().
-	//			//Int("start", c.NumOfRoundsIdx-1000).
-	//			//Int("end", c.NumOfRoundsIdx-1).
-	//			Ints("RoundDist(new)", RemoveTrailingZeros(newVersion)).Msg("")
-	//		// If the array is [0 0 0 958 0 38 0 4], that means there are
-	//		// 958 3-round slots, 38 5-round slots, and 4 7-round slots
-	//	}
-	//	c.Per1000RoundDist = make([]int, Conf.LenBlockArray*2+1)
+	//    } else {
+	//        newVersion := make([]int, Conf.LenBlockArray*2+2) // why + 2: if old = 20, new = 21, then [21] is used
+	//        for i := 0; i < len(c.Per1000RoundDist); i++ {
+	//            if i <= 3 {
+	//                newVersion[3] += c.Per1000RoundDist[i]
+	//            } else if i%2 == 0 {
+	//                newVersion[i+1] += c.Per1000RoundDist[i]
+	//            } else {
+	//                newVersion[i] += c.Per1000RoundDist[i]
+	//            }
+	//        }
+	//        c.RoundDistLogger.Info().
+	//            //Int("start", c.NumOfRoundsIdx-1000).
+	//            //Int("end", c.NumOfRoundsIdx-1).
+	//            Ints("RoundDist(new)", RemoveTrailingZeros(newVersion)).Msg("")
+	//        // If the array is [0 0 0 958 0 38 0 4], that means there are
+	//        // 958 3-round slots, 38 5-round slots, and 4 7-round slots
+	//    }
+	//    c.Per1000RoundDist = make([]int, Conf.LenBlockArray*2+1)
 	//}
 }
 
 /*
-	Put my proposal back to the request pending queue
+    Put my proposal back to the request pending queue
 */
 func (c *Consensus) putBackMyProposal(seq uint32) {
 	c.PanicTermNotMatched(seq)

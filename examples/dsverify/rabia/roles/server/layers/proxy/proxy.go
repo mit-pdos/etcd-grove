@@ -14,10 +14,10 @@
     limitations under the License.
 */
 /*
-	The proxy package defines the proxy/application layer of a server. The proxy connects to one or more Rabia clients
-	to send and receive client requests. It also executes client commands decided by consensus instance(s). For these
-	two reasons, it has two primary routines that run concurrently, one is CmdReceiver (client command receiver), and
-	the other is KVSExecutor (KV-store executor).
+    The proxy package defines the proxy/application layer of a server. The proxy connects to one or more Rabia clients
+    to send and receive client requests. It also executes client commands decided by consensus instance(s). For these
+    two reasons, it has two primary routines that run concurrently, one is CmdReceiver (client command receiver), and
+    the other is KVSExecutor (KV-store executor).
 */
 package proxy
 
@@ -37,7 +37,7 @@ import (
 )
 
 /*
-	A Rabia proxy
+    A Rabia proxy
 */
 type Proxy struct {
 	SvrId uint32
@@ -67,7 +67,7 @@ type Proxy struct {
 }
 
 /*
-	Initialize a Rabia proxy
+    Initialize a Rabia proxy
 */
 func ProxyInit(svrId uint32, done chan struct{}, doneWg *sync.WaitGroup, proxyIp string,
 	toProxy chan message.Command, toNet, netIn chan message.Msg, ledger ledger.Ledger) *Proxy {
@@ -93,8 +93,8 @@ func ProxyInit(svrId uint32, done chan struct{}, doneWg *sync.WaitGroup, proxyIp
 	}
 
 	/*
-		The purpose of these function pointers is to reduce branching on the critical path
-	*/
+        The purpose of these function pointers is to reduce branching on the critical path
+    */
 	switch config.Conf.StorageMode {
 	case 0: // default: use the dictionary KV Store, no Redis function involved
 		p.executeCmdFunc = p.naiveExecuteCmd
@@ -113,15 +113,15 @@ func ProxyInit(svrId uint32, done chan struct{}, doneWg *sync.WaitGroup, proxyIp
 }
 
 /*
-	1. establish proxy-layer TCP connection(s)
+    1. establish proxy-layer TCP connection(s)
 */
 func (p *Proxy) Prologue() {
 	p.TCP.Connect()
 }
 
 /*
-	1. sync the log file
-	2. close proxy-layer TCP connection(s)
+    1. sync the log file
+    2. close proxy-layer TCP connection(s)
 */
 func (p *Proxy) Epilogue() {
 	if p.LogFile != nil { // VERIFICATION WORKAROUND (G4): no log file
@@ -133,7 +133,7 @@ func (p *Proxy) Epilogue() {
 }
 
 /*
-	Proxy-level main thread 1: receive commands from clients, batch them, and then send to the network layer
+    Proxy-level main thread 1: receive commands from clients, batch them, and then send to the network layer
 */
 func (p *Proxy) CmdReceiver() {
 	defer p.Wg.Done()
@@ -194,8 +194,8 @@ func (p *Proxy) CmdReceiver() {
 }
 
 /*
-	Proxy-level main thread 2: check the Ledger to see if there's a new command, apply all new commands in sequence on
-	the KV store
+    Proxy-level main thread 2: check the Ledger to see if there's a new command, apply all new commands in sequence on
+    the KV store
 */
 func (p *Proxy) KVSExecutor() {
 	defer p.Wg.Done()
@@ -236,7 +236,7 @@ func (p *Proxy) KVSExecutor() {
 }
 
 /*
-	the actual executeCmdFunc depends on Conf.EnableRedis
+    the actual executeCmdFunc depends on Conf.EnableRedis
 */
 func (p *Proxy) singleExecuteAndReply() {
 	for idx, cid := range p.CurrDec.CliIds {
@@ -263,7 +263,7 @@ func (p *Proxy) batchExecuteAndReply() {
 }
 
 /*
-	Execute the KV store command and assemble a reply
+    Execute the KV store command and assemble a reply
 */
 func (p *Proxy) naiveExecuteCmd(cmd string) string {
 	typ := cmd[0:1]

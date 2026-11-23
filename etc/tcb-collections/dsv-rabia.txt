@@ -1,0 +1,12 @@
+# dsv-rabia (notes/dsv-rabia.md): dsverify-lab's rabia kit (rabia-r1wake-1) ported onto the net
+# extension and examples/lib/remote, in the part Dsverify/. In progress: no linked result yet (the
+# statement `rabia_remote_robust` is not stated; notes/dsv-rabia.md, "State"). The baseline below is
+# empty: written by hand (2026-11-23) for a part with no axiom and no hand-written `sorry`.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-rabia.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline.
+roots ^Dsverify/Proof/rabia/

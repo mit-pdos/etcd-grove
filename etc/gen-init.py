@@ -5267,6 +5267,26 @@ DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
                 f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
                 for n in DSV_NODES}
 
+# project dsv-rabia (notes/dsv-rabia.md): Rabia's packages, the names-only libraries the lab
+# modelled, the kit and its programs
+# the main tree's packages the kits import beside `NET_MAIN`'s (rabia: bufio, container/heap, path)
+# (their `Init.lean` generated into the part, over `Net/`'s `PkgInitExt`, as `Net/`'s `NET_MAIN`; the
+# instances of `container.heap`, `path` and `internal.bytealg`, which the main tree declares in etcd's
+# packages, the part's own `Base.lean`)
+DSV_MAIN = ['bufio', 'container.heap', 'path', 'internal.bytealg']
+DSV_RABIA_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
+DSV_PKGS += ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
+             'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
+             'github_com.go_redis.redis.v8.internal.proto', 'os.signal'] + \
+    [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
+                            'internal.ledger', 'internal.tcp', 'internal.logger', 'internal.system',
+                            'roles.server.layers.network', 'roles.server.layers.consensus',
+                            'roles.server.layers.proxy', 'roles.server', 'examples.rabianet']] + \
+    [f'rabia.examples.rabianet.cmd.{n}' for n in DSV_RABIA_NODES]
+SPECIAL['rabia.internal.config'] = {'alloc_types': {'Conf': 'rabia.internal.config.Config'}}
+DSV_PROGRAMS.update({f'rabia.examples.rabianet.cmd.{n}':
+                     f'Proof/rabia/examples/rabianet/cmd/{n}/PkgTable.lean' for n in DSV_RABIA_NODES})
+
 
 def dsv_inits():
     """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
@@ -5279,6 +5299,15 @@ def dsv_inits():
         for p in NET_MAIN:
             inv[p] = saved[0][p]
             inst[p] = saved[1][p]
+        st = list(DSV_MAIN)
+        while st:
+            p = st.pop()
+            if p in inv or p not in saved[0]:
+                continue
+            inv[p] = saved[0][p]
+            if p in saved[1]:
+                inst[p] = saved[1][p]
+            st += saved[0][p]['imports']
         for q, d in inventory(f'{DSV_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
@@ -5286,6 +5315,7 @@ def dsv_inits():
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
                if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
                for path, txt in gen(p, SPECIAL.get(p))]
+        raw += [(f'{DSV_ROOT}/{path}', txt) for p in DSV_MAIN for path, txt in gen(p, SPECIAL.get(p))]
         made = {path for path, _ in raw}
         for p, path in DSV_PROGRAMS.items():
             path, txt = gen_table(p, path)
