@@ -55,8 +55,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Work-around here.** None: the three stay trust-boundary axioms.
 - **Proposed (general).** Model the type check: `GoInterfaceOk` carries its dynamic type (`fi.ty`), so `Store`/`Swap`/
   `CompareAndSwap` can compare the old and new values' types (panic only when they differ, as Go), and their specs
-  take `ownValue u 1 x` with `x = nil ∨ x.ty = v.ty` instead of `x = nil`. **Status.** Not started; needs a
-  Perennial branch (not this repository's call).
+  take `ownValue u 1 x` with `x = nil ∨ x.ty = v.ty` instead of `x = nil`. **Status.** Done in Perennial
+  `87ffd73b7` (a pure `TypeOfEq` instruction; specs over any `x` with `sameTypeOrNil x v`), in the pin since
+  `71de6f043` (2026-11-23). The three axioms above are not yet proved over it.
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
