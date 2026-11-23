@@ -1961,6 +1961,7 @@ theorem State.OnDisk.wp_proof
     · iapply Init0_logNil
     iframe Hpm Hpv
     iapply Init0_factsNil
+  ipersist pre
   -- u4: `if x.stores() { pre.Keep = x.first() - 1; pre.Suffix = SubSeq(x.L0(), x.first(), len(x.L0())) } else { pre.Keep = len(x.L0()) }`
   obtain ⟨pre4, Ho, hpre4⟩ := u4_ok Ho
   rw [OnDiskProofLaws.pre0_eq] at hpre4
