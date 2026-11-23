@@ -631,3 +631,8 @@ new file of its own (named below), and it reports its link lines, which the inte
   and `Bind`, in Link's `links_pending` section over the two proofs left: `State.Send` (one branch
   left, appresp's non-boot tail) and `State.OnDisk` (in progress).
 - **W5 done:** H3c finished `State.Send` (linked). Left: `State.OnDisk` (H4b), the one pending hypothesis of Link's `links_pending` section.
+- **`State.OnDisk` in progress** (H4b, then H4c): branch `antithesis-ondisk-wip` (local `ant-h4`, worktree
+  `tmp/ant-h4`), `P/State__OnDisk.lean` one theorem over `wp_join` (local macros `odguard`/`odjoin`/...),
+  laws `OnDiskProofLaws.lean`. Done: guards g1-g6, successor u0, u1; left: `msgs` joins (written, not
+  re-checked), votes, leaders/ledLog, `pre`, u4-u8, `viol` v1-v5, the final `succOwn`. Its link line is
+  in H4b's report (the `State__OnDisk: ?` line of the link list until then).
