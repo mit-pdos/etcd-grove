@@ -16,7 +16,6 @@ import (
 
 	master "github.com/imdea-software/swiftpaxos/master"
 	defs "github.com/imdea-software/swiftpaxos/replica/defs"
-	state "github.com/imdea-software/swiftpaxos/state"
 	swift "github.com/imdea-software/swiftpaxos/swift"
 )
 
@@ -207,152 +206,6 @@ func rpcRand_t83(r *rand.Rand, d int) defs.PingArgs {
 func rpcRand_t85(r *rand.Rand, d int) defs.PingReply {
 	_ = d
 	var v defs.PingReply
-	return v
-}
-
-func rpcRand_t88(r *rand.Rand, d int) swift.CommandId {
-	_ = d
-	var v swift.CommandId
-	v.ClientId = rpcRand_t26(r, d+1)
-	v.SeqNum = rpcRand_t26(r, d+1)
-	return v
-}
-
-func rpcRand_t87(r *rand.Rand, d int) map[swift.CommandId]int {
-	_ = d
-	if d > 3 {
-		return nil
-	}
-	switch r.Intn(4) {
-	case 0:
-		return nil
-	case 1:
-		return map[swift.CommandId]int{}
-	}
-	v := map[swift.CommandId]int{}
-	for i := r.Intn(4); i >= 0; i-- {
-		v[rpcRand_t88(r, d+1)] = rpcRand_t4(r, d+1)
-	}
-	return v
-}
-
-func rpcRand_t63(r *rand.Rand, d int) state.Operation {
-	_ = d
-	switch r.Intn(5) {
-	case 0:
-		return 0
-	case 1:
-		return state.Operation(r.Intn(3))
-	case 2:
-		var z state.Operation
-		return ^z
-	}
-	return state.Operation(r.Uint64())
-}
-
-func rpcRand_t64(r *rand.Rand, d int) state.Key {
-	_ = d
-	switch r.Intn(5) {
-	case 0:
-		return 0
-	case 1:
-		return state.Key(r.Intn(3))
-	case 2:
-		var z state.Key
-		return ^z
-	}
-	return state.Key(r.Uint64())
-}
-
-func rpcRand_t65(r *rand.Rand, d int) state.Value {
-	_ = d
-	if d > 3 {
-		return nil
-	}
-	switch r.Intn(4) {
-	case 0:
-		return nil
-	case 1:
-		return state.Value{}
-	}
-	v := make(state.Value, 0, r.Intn(3))
-	for i := r.Intn(4); i >= 0; i-- {
-		v = append(v, rpcRand_t66(r, d+1))
-	}
-	return v
-}
-
-func rpcRand_t62(r *rand.Rand, d int) state.Command {
-	_ = d
-	var v state.Command
-	v.Op = rpcRand_t63(r, d+1)
-	v.K = rpcRand_t64(r, d+1)
-	v.V = rpcRand_t65(r, d+1)
-	return v
-}
-
-func rpcRand_t89(r *rand.Rand, d int) map[swift.CommandId]state.Command {
-	_ = d
-	if d > 3 {
-		return nil
-	}
-	switch r.Intn(4) {
-	case 0:
-		return nil
-	case 1:
-		return map[swift.CommandId]state.Command{}
-	}
-	v := map[swift.CommandId]state.Command{}
-	for i := r.Intn(4); i >= 0; i-- {
-		v[rpcRand_t88(r, d+1)] = rpcRand_t62(r, d+1)
-	}
-	return v
-}
-
-func rpcRand_t91(r *rand.Rand, d int) swift.Dep {
-	_ = d
-	if d > 3 {
-		return nil
-	}
-	switch r.Intn(4) {
-	case 0:
-		return nil
-	case 1:
-		return swift.Dep{}
-	}
-	v := make(swift.Dep, 0, r.Intn(3))
-	for i := r.Intn(4); i >= 0; i-- {
-		v = append(v, rpcRand_t88(r, d+1))
-	}
-	return v
-}
-
-func rpcRand_t90(r *rand.Rand, d int) map[swift.CommandId]swift.Dep {
-	_ = d
-	if d > 3 {
-		return nil
-	}
-	switch r.Intn(4) {
-	case 0:
-		return nil
-	case 1:
-		return map[swift.CommandId]swift.Dep{}
-	}
-	v := map[swift.CommandId]swift.Dep{}
-	for i := r.Intn(4); i >= 0; i-- {
-		v[rpcRand_t88(r, d+1)] = rpcRand_t91(r, d+1)
-	}
-	return v
-}
-
-func rpcRand_t86(r *rand.Rand, d int) swift.MSync {
-	_ = d
-	var v swift.MSync
-	v.Replica = rpcRand_t26(r, d+1)
-	v.Ballot = rpcRand_t26(r, d+1)
-	v.Phases = rpcRand_t87(r, d+1)
-	v.Cmds = rpcRand_t89(r, d+1)
-	v.Deps = rpcRand_t90(r, d+1)
 	return v
 }
 
@@ -638,34 +491,6 @@ func TestRPCCodecAgainstGob(t *testing.T) {
 			}
 			if err := rpcDecode(rpcEncode(v), model3); err != nil || !reflect.DeepEqual(real3, model3) {
 				t.Fatalf("defs.PingReply %#v into %s: gob gives %#v, the model %#v (%v)", v, before, *real3, *model3, err)
-			}
-		}
-		{
-			v := rpcRand_t86(r, 0)
-			if i == 0 {
-				var z swift.MSync
-				v = z
-			}
-			real, model, model2 := new(swift.MSync), new(swift.MSync), new(swift.MSync)
-			if err := rpcGob(v, real); err != nil {
-				t.Fatalf("swift.MSync: gob: %v", err)
-			}
-			if err := rpcDecode(rpcEncode(v), model); err != nil || !reflect.DeepEqual(real, model) {
-				t.Fatalf("swift.MSync %#v: gob gives %#v, the model %#v (%v)", v, *real, *model, err)
-			}
-			if err := rpcDecode(rpcEncode(&v), model2); err != nil || !reflect.DeepEqual(real, model2) {
-				t.Fatalf("*swift.MSync %#v: gob gives %#v, the model %#v (%v)", v, *real, *model2, err)
-			}
-			// into a non-zero value: the same random value twice
-			r1, r2 := rand.New(rand.NewSource(seed)), rand.New(rand.NewSource(seed))
-			real3, model3 := new(swift.MSync), new(swift.MSync)
-			*real3, *model3 = rpcRand_t86(r1, 0), rpcRand_t86(r2, 0)
-			before := fmt.Sprintf("%#v", *real3)
-			if err := rpcGob(v, real3); err != nil {
-				t.Fatalf("swift.MSync into a non-zero value: gob: %v", err)
-			}
-			if err := rpcDecode(rpcEncode(v), model3); err != nil || !reflect.DeepEqual(real3, model3) {
-				t.Fatalf("swift.MSync %#v into %s: gob gives %#v, the model %#v (%v)", v, before, *real3, *model3, err)
 			}
 		}
 	}

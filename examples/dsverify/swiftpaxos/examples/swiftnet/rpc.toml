@@ -1,8 +1,9 @@
 # The net/rpc model's codec for the kit (models/net/rpc/rpcgen.py): the receivers the kit's
 # server nodes register, the master's (*master.Master) and a replica's (*swift.Replica).
+# MSync is not listed: it goes through the real encoding/gob, never net/rpc.
 #   models/net/rpc/rpcgen.py examples/dsverify/swiftpaxos/examples/swiftnet/rpc.toml \
 #     examples/dsverify/swiftpaxos/examples/swiftnet --pkg swiftnet
 [rpc]
 imports = { master = "github.com/imdea-software/swiftpaxos/master", swift = "github.com/imdea-software/swiftpaxos/swift" }
 receivers = ["*master.Master", "*swift.Replica"]
-types = ["swift.MSync"]
+

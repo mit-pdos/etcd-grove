@@ -11,7 +11,6 @@ public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.confi
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.dlog
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.master
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.replica.defs
-public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.state
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.swift
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.remote
 public import Perennial.GeneratedProof.io

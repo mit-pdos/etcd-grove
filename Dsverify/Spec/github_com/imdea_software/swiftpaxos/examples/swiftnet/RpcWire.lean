@@ -1,79 +1,117 @@
 /-
-**Step 5, the codec switch (started, eighth session).** The bytes the kit's generated net/rpc
-codec (`examples/swiftnet/rpc_gen.go`, rpcgen) writes for the values of its listed rpc types, as
-pure functions over the lab's `sp.KitVal` (Spec/swift/Wire.lean): what `sp.KitVal.encode` (the
-lab's kitgen format) is to be restated as. Not used yet.
+The wire values of the kit's net/rpc calls (the master's `Register`, `GetLeader`,
+`GetReplicaList`; a replica's `BeTheLeader`, `Ping`): the kit's generated codec
+(`examples/swiftnet/rpc_gen.go`, by `models/net/rpc/rpcgen.py`) as pure Lean functions of the
+abstract values. (The lab's `Interface/RpcPure.lean` described its own kitgen codec, `RpcVal`; it
+is not ported: the bytes here are rpcgen's, as dsv-craq's `Craq/Wire.lean`.)
 
-rpcgen's format (`rpcEncode`): the type's tag (`rpcPutTag`: its full Go name, as an 8-byte
-little-endian length then the bytes), then the value (`rpcEnc_t*`): a struct is a presence byte
-`1`, then per field a byte `1` and the field's encoding when it is sent (`rpcSent_t*`: gob's
-non-zero test) or a byte `0`; an integer is 8 bytes little-endian (signed ones sign-extended,
-`uint64(int64(v))`); a string or slice is its length (8 bytes) then its elements; a bool is a
-byte.
+A top-level value is its type's name (`rpcPutTag`: the name's length, 8 bytes little-endian, and
+its bytes) and the value. A string is its length and its bytes; an `int`, `int32`, `uint8` 8
+bytes little-endian (the signed ones sign-extended to 64 bits); a `bool` one byte; a slice its
+count and its elements. A struct is the byte 1, then per field a byte 1 and the field's value if
+the field is sent (not its zero value: gob's rule), else a byte 0.
 -/
 module
 
-public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Wire
+public import Perennial.Std.Word.LittleEndian
+public import Perennial.Std.ByteString
 
 @[expose] public section
 
 noncomputable section
 
-namespace Perennial.github_com.imdea_software.swiftpaxos
+namespace Perennial
 
-namespace sp
+namespace github_com.imdea_software.swiftpaxos.netrpcw
 
-/-- `rpcPutU64` of a signed 32-bit value (`rpcEnc_t26`: `uint64(int64(v))`). -/
-def rI32 (x : w32) : List w8 := u64Le (BitVec.signExtend 64 x)
+/-- A 64-bit word (`int`, rpcgen's `t4`; also `int32`'s and `uint8`'s extension). -/
+def encU64 (x : w64) : List w8 := u64Le x
 
-/-- `rpcEnc_t14` (a string), `rpcEnc_t13` (`[]string`), `rpcEnc_t16`/`t15` (bool, `[]bool`). -/
-def rStr (s : GoString) : List w8 := u64Le (W64 s.length) ++ s
-def rStrs (l : List GoString) : List w8 := u64Le (W64 l.length) ++ (l.map rStr).flatten
-def rBool (b : Bool) : List w8 := [if b then W8 1 else W8 0]
-def rBools (l : List Bool) : List w8 := u64Le (W64 l.length) ++ (l.map rBool).flatten
+/-- A string: its length and its bytes (`t14`). -/
+def encStr (s : GoString) : List w8 := u64Le (W64 s.length) ++ s
 
-/-- A struct field: `1` and its encoding when sent, else `0`. -/
-def rField (sent : Bool) (enc : List w8) : List w8 := if sent then W8 1 :: enc else [W8 0]
+/-- A `bool` (`t16`). -/
+def encBool (b : Bool) : List w8 := [if b then W8 1 else W8 0]
 
-/-- `rpcPutTag`: the type name's length (8 bytes), then the name. -/
-def rTag (t : GoString) : List w8 := u64Le (W64 t.length) ++ t
+/-- An `int32` (`t26`): sign-extended. -/
+def encI32 (x : w32) : List w8 := u64Le (W64 (sint.Z x))
 
-/-- The Go name of a listed type (`rpcEncode`'s tags). -/
-def KitVal.rpcName : KitVal → GoString
-  | .registerArgs .. => go!"github.com/imdea-software/swiftpaxos/replica/defs.RegisterArgs"
-  | .registerReply .. => go!"github.com/imdea-software/swiftpaxos/replica/defs.RegisterReply"
-  | .getLeaderArgs => go!"github.com/imdea-software/swiftpaxos/replica/defs.GetLeaderArgs"
-  | .getLeaderReply .. => go!"github.com/imdea-software/swiftpaxos/replica/defs.GetLeaderReply"
-  | .getReplicaListArgs =>
-      go!"github.com/imdea-software/swiftpaxos/replica/defs.GetReplicaListArgs"
-  | .getReplicaListReply .. =>
-      go!"github.com/imdea-software/swiftpaxos/replica/defs.GetReplicaListReply"
-  | .pingArgs .. => go!"github.com/imdea-software/swiftpaxos/replica/defs.PingArgs"
-  | .pingReply => go!"github.com/imdea-software/swiftpaxos/replica/defs.PingReply"
-  | .beTheLeaderArgs => go!"github.com/imdea-software/swiftpaxos/replica/defs.BeTheLeaderArgs"
-  | .beTheLeaderReply .. => go!"github.com/imdea-software/swiftpaxos/replica/defs.BeTheLeaderReply"
-  | .msync .. => go!"github.com/imdea-software/swiftpaxos/swift.MSync"
+/-- A `uint8` (`t66`). -/
+def encU8 (x : w8) : List w8 := u64Le (W64 (uint.Z x))
 
-/-- The value's encoding after its tag (`rpcEnc_t*`). `MSync`'s (`rpcEnc_t86`, listed in
-`rpc.toml` but never sent over net/rpc: `MSync` goes through `encoding/gob`) is left out. -/
-def KitVal.rpcBody : KitVal → List w8
-  | .registerArgs a p => W8 1 :: (rField (a ≠ []) (rStr a) ++ rField (p ≠ 0) (u64Le p))
-  | .registerReply i ns r l => W8 1 :: (rField (i ≠ 0) (u64Le i) ++ rField (ns ≠ []) (rStrs ns) ++
-      rField r (rBool r) ++ rField l (rBool l))
-  | .getLeaderArgs => [W8 1]
-  | .getLeaderReply i => W8 1 :: rField (i ≠ 0) (u64Le i)
-  | .getReplicaListArgs => [W8 1]
-  | .getReplicaListReply rs al r => W8 1 :: (rField (rs ≠ []) (rStrs rs) ++
-      rField (al ≠ []) (rBools al) ++ rField r (rBool r))
-  | .pingArgs a => W8 1 :: rField (a ≠ 0) (u64Le (BitVec.zeroExtend 64 a))
-  | .pingReply => [W8 1]
-  | .beTheLeaderArgs => [W8 1]
-  | .beTheLeaderReply l n => W8 1 :: (rField (l ≠ 0) (rI32 l) ++ rField (n ≠ 0) (rI32 n))
-  | .msync .. => []
+/-- A `[]string` (`t13`): its count and its elements. -/
+def encStrs (ss : List GoString) : List w8 := u64Le (W64 ss.length) ++ (ss.map encStr).flatten
 
-/-- `rpcEncode`'s bytes of a value of a listed type (other than `MSync`). -/
-def KitVal.rpcEncode (v : KitVal) : List w8 := rTag v.rpcName ++ v.rpcBody
+/-- A `[]bool` (`t15`): its count and its elements. -/
+def encBools (bs : List Bool) : List w8 := u64Le (W64 bs.length) ++ (bs.map encBool).flatten
 
-end sp
+/-- A struct field: sent (`1` and its value) or not (`0`). -/
+def fld (sent : Bool) (body : List w8) : List w8 := if sent then W8 1 :: body else [W8 0]
 
-end Perennial.github_com.imdea_software.swiftpaxos
+def fStr (s : GoString) : List w8 := fld (decide (s ≠ [])) (encStr s)
+def fInt (x : w64) : List w8 := fld (decide (x ≠ W64 0)) (encU64 x)
+def fBool (b : Bool) : List w8 := fld b (encBool b)
+def fI32 (x : w32) : List w8 := fld (decide (x ≠ W32 0)) (encI32 x)
+def fU8 (x : w8) : List w8 := fld (decide (x ≠ W8 0)) (encU8 x)
+def fStrs (ss : List GoString) : List w8 := fld (decide (ss ≠ [])) (encStrs ss)
+def fBools (bs : List Bool) : List w8 := fld (decide (bs ≠ [])) (encBools bs)
+
+/-- A struct of the fields `fs`. -/
+def strct (fs : List (List w8)) : List w8 := W8 1 :: fs.flatten
+
+/-- A top-level value of the type named `t`. -/
+def tagged (t : GoString) (body : List w8) : List w8 := encStr t ++ body
+
+/-- The type names (`rpcPutTag`'s arguments). -/
+def tRegisterArgs : GoString := go!"github.com/imdea-software/swiftpaxos/replica/defs.RegisterArgs"
+def tRegisterReply : GoString := go!"github.com/imdea-software/swiftpaxos/replica/defs.RegisterReply"
+def tGetLeaderArgs : GoString := go!"github.com/imdea-software/swiftpaxos/replica/defs.GetLeaderArgs"
+def tGetLeaderReply : GoString := go!"github.com/imdea-software/swiftpaxos/replica/defs.GetLeaderReply"
+def tGetReplicaListArgs : GoString :=
+  go!"github.com/imdea-software/swiftpaxos/replica/defs.GetReplicaListArgs"
+def tGetReplicaListReply : GoString :=
+  go!"github.com/imdea-software/swiftpaxos/replica/defs.GetReplicaListReply"
+def tBeTheLeaderArgs : GoString := go!"github.com/imdea-software/swiftpaxos/replica/defs.BeTheLeaderArgs"
+def tBeTheLeaderReply : GoString :=
+  go!"github.com/imdea-software/swiftpaxos/replica/defs.BeTheLeaderReply"
+def tPingArgs : GoString := go!"github.com/imdea-software/swiftpaxos/replica/defs.PingArgs"
+def tPingReply : GoString := go!"github.com/imdea-software/swiftpaxos/replica/defs.PingReply"
+
+/-! ## The values -/
+
+/-- `defs.RegisterArgs{Addr, Port}`. -/
+def encRegisterArgs (addr : GoString) (port : w64) : List w8 :=
+  tagged tRegisterArgs (strct [fStr addr, fInt port])
+
+/-- `defs.RegisterReply{ReplicaId, NodeList, Ready, IsLeader}`. -/
+def encRegisterReply (id : w64) (nl : List GoString) (ready isLeader : Bool) : List w8 :=
+  tagged tRegisterReply (strct [fInt id, fStrs nl, fBool ready, fBool isLeader])
+
+/-- `defs.GetLeaderArgs{}`. -/
+def encGetLeaderArgs : List w8 := tagged tGetLeaderArgs (strct [])
+
+/-- `defs.GetLeaderReply{LeaderId}`. -/
+def encGetLeaderReply (id : w64) : List w8 := tagged tGetLeaderReply (strct [fInt id])
+
+/-- `defs.GetReplicaListArgs{}`. -/
+def encGetReplicaListArgs : List w8 := tagged tGetReplicaListArgs (strct [])
+
+/-- `defs.GetReplicaListReply{ReplicaList, AliveList, Ready}`. -/
+def encGetReplicaListReply (rl : List GoString) (al : List Bool) (ready : Bool) : List w8 :=
+  tagged tGetReplicaListReply (strct [fStrs rl, fBools al, fBool ready])
+
+/-- `defs.BeTheLeaderArgs{}`. -/
+def encBtlArgs : List w8 := tagged tBeTheLeaderArgs (strct [])
+
+/-- `defs.BeTheLeaderReply{Leader, NextLeader}`. -/
+def encBtlReply (l nl : w32) : List w8 := tagged tBeTheLeaderReply (strct [fI32 l, fI32 nl])
+
+/-- `defs.PingArgs{ActAsLeader}`. -/
+def encPingArgs (a : w8) : List w8 := tagged tPingArgs (strct [fU8 a])
+
+/-- `defs.PingReply{}`. -/
+def encPingReply : List w8 := tagged tPingReply (strct [])
+
+end github_com.imdea_software.swiftpaxos.netrpcw
+
+end Perennial
