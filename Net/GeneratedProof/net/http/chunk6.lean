@@ -17,6 +17,7 @@ public import Net.GeneratedProof.net.textproto
 public import GeneratedProof.net.url
 public import GeneratedProof.path
 public import Perennial.GeneratedProof.runtime
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync

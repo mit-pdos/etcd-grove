@@ -3651,9 +3651,9 @@ func (s *Server) protocols() Protocols {
 	// If GODEBUG=http2server=0, then HTTP/2 is disabled unless
 	// the user has manually added an "h2" entry to TLSNextProto
 	// (probably by using x/net/http2 directly).
-	if http2server.Value() == "0" && !hasH2 {
-		http2Disabled = true
-	}
+	// MODEL: the GODEBUG setting is not read (internal/godebug is not translated): it decides
+	// only the HTTP/2 bit, which only a TLS connection (not modelled) reads; a connection the
+	// model serves reads only HTTP1 and UnencryptedHTTP2 (conn.serve).
 
 	var p Protocols
 	p.SetHTTP1(true) // default always includes HTTP/1
@@ -3968,25 +3968,30 @@ var http2server = godebug.New("http2server")
 // onceSetNextProtoDefaults configures HTTP/2, if the user hasn't
 // configured otherwise. (by setting s.TLSNextProto non-nil)
 // It must only be called via s.nextProtoOnce (use s.setupHTTP2_*).
+//
+// MODEL: HTTP/2 is not configured, as in a build with the nethttpomithttp2 tag (Go's code below,
+// commented out): configuring it sets the Server's TLSConfig, TLSNextProto and h2IdleTimeout and
+// registers a shutdown hook, which only a TLS connection (not modelled) uses; the model's claim
+// excludes programs that read those fields after Serve, or Shutdown's hook count.
 func (s *Server) onceSetNextProtoDefaults() {
-	if omitBundledHTTP2 {
-		return
-	}
-	p := s.protocols()
-	if !p.HTTP2() && !p.UnencryptedHTTP2() {
-		return
-	}
-	if http2server.Value() == "0" {
-		http2server.IncNonDefault()
-		return
-	}
-	if _, ok := s.TLSNextProto["h2"]; ok {
-		// TLSNextProto already contains an HTTP/2 implementation.
-		// The user probably called golang.org/x/net/http2.ConfigureServer
-		// to add it.
-		return
-	}
-	s.configureHTTP2()
+	// if omitBundledHTTP2 {
+	// 	return
+	// }
+	// p := s.protocols()
+	// if !p.HTTP2() && !p.UnencryptedHTTP2() {
+	// 	return
+	// }
+	// if http2server.Value() == "0" {
+	// 	http2server.IncNonDefault()
+	// 	return
+	// }
+	// if _, ok := s.TLSNextProto["h2"]; ok {
+	// 	// TLSNextProto already contains an HTTP/2 implementation.
+	// 	// The user probably called golang.org/x/net/http2.ConfigureServer
+	// 	// to add it.
+	// 	return
+	// }
+	// s.configureHTTP2()
 }
 
 // TimeoutHandler returns a [Handler] that runs h with the given time limit.
