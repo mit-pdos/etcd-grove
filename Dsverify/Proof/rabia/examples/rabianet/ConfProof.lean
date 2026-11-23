@@ -18,6 +18,7 @@ public import Dsverify.Proof.log.Spec
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.AtAddr
 public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
@@ -738,6 +739,207 @@ theorem New.wp_proof : New.spec (GF := GF) := by
   iapply HΦ
   iexists cf
   iframe #
+
+theorem cfgIs_ok' (γ : RabiaNames) (cf : RCfg) : cfgIs (GF := GF) γ cf ⊢ ⌜cf.Ok⌝ := by
+  unfold cfgIs; iintro ⟨-, %h⟩; ipureintro; exact h
+
+set_option goose.wp.extras true in
+/-- `awaitConf(a, ch)` (`awaitConf.spec`). -/
+theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
+  intro γ a ch γch
+  wp_start as ⟨#Hproto, #Hbag⟩
+  ihave %Haok := addrTok_ok a $$ [Hproto]
+  · iapply addrProto_tok $$ Hproto
+  ihave ⟨%ed, #Hed⟩ := kit_ed_init $$ Hpkg
+  ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp a as %lv %err Hres
+  · iframe %Haok
+    iapply listen_au $$ Hproto
+  ihave HI : (∃ (lv err : GoInterface), "l" ∷ l_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ err ∗
+      "Hres" ∷ ((⌜err = interface.nil⌝ ∗ ∃ l, ownListener lv l a) ∨
+        ∃ i, ⌜err = interface.ok i⌝) : IProp GF) $$ [l err Hres]
+  · iexists lv, err
+    iframe
+    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+    · ileft; iframe %He; iexists l; unfold ownListener; iframe Hl Hlis Hla
+    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
+      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+      iright; iexists _; ipureintro; rfl
+  wp_for HI
+  icases Hres with (⟨%Heq, %l, Hl⟩ | ⟨%i, %Hne⟩)
+  · subst Heq
+    wp_auto
+    cleanup_bool_decide
+    wp_auto
+    unfold ownListener
+    icases Hl with ⟨#Hli, Hlis, #Hla⟩
+    unfold net.isListener
+    icases Hli with ⟨%t, %x, %Ht, #Hlt⟩
+    subst Ht
+    ihave HJ : (∃ fb : Bool, "first" ∷ first_ptr ↦ fb ∗
+        "Hlis" ∷ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true : IProp GF) $$ [first Hlis]
+    · iexists true; iframe
+    wp_for HJ
+    wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) t l x a
+        (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
+        (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
+          connEnd (Gg := hG.goose_globalGS) cn true cfgQ (cfgP γ) [] [] ∗
+          connFresh (Gg := hG.goose_globalGS) cn true))
+        $$ [Hlis]
+      as %cv %err (⟨%Herr, %cid, #Hcv, Hlis, Hend, -⟩ | ⟨%kk, Hlis, #Herr⟩)
+    · iframe Hlt Hla
+      iapply accept_au a (cfgP γ) cfgQ _ l true $$ Hproto Hlis
+    · subst Herr
+      wp_auto_lc 1
+      iunfold connEnd at Hend
+      icases Hend with ⟨Hsend, Hrecv⟩
+      ihave #Hconn := sendTok_connIs cid true _ _ $$ Hsend
+      unfold net.isConn
+      icases Hcv with ⟨%tc, %la, %ra, %Hct, #Hca⟩
+      subst Hct
+      ihave Hsl := slice_array (V := w8) b_ptr 5 _ (by decide) $$ b
+      ihave HRL := recvTok_L cid true (cfgP γ) [] $$ Hrecv
+      try wp_auto
+      rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
+        show (W64 5 - W64 0 : w64) = W64 5 from rfl]
+      wp_apply wp_connReadFull tc cid true a la ra ed (cfgP γ) [] _ _ $$ [$Hio $Hca $Hed $HRL $Hsl]
+        as %n %err ⟨%data, %Hd, Hsl, Hrecv⟩
+      obtain ⟨-, hdl, herr⟩ := Hd
+      have hz : (List.replicate 5 (zero_val w8)).length = 5 := rfl
+      by_cases hl5 : data.length = 5
+      · ihave ⟨Hrecv, Hp⟩ := recvTokL_proto _ _ _ _ $$ Hrecv
+        iapply fupd_wp
+        imod (lc_fupd_elim_later (GF := GF) (E := ⊤)) $$ Hlc1 Hp with #Hp
+        imodintro
+        unfold protoPrefix
+        icases Hp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
+        · exfalso; simp at Hnil; rw [Hnil] at hl5; simp at hl5
+        unfold cfgP
+        icases HP with ⟨%cf, #Hcfg, %Hpre⟩
+        ihave %Hok := cfgIs_ok' γ.rab cf $$ Hcfg
+        have hdata : data = cf.enc := by
+          have h1 : data <+: cf.enc := (List.nil_append data ▸ Hext).trans Hpre
+          exact List.IsPrefix.eq_of_length h1 (by rw [hl5]; rfl)
+        subst hdata
+        rw [show List.drop cf.enc.length (List.replicate 5 (zero_val w8)) = [] by
+          rw [hl5]; rfl, List.append_nil]
+        rcases err with e | _
+        · dsimp only
+          wp_auto
+          wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+          · iframe #
+          wp_for_post
+          iframe
+          iexists fb
+          iframe
+        wp_auto
+        rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
+          show (W64 5 - W64 0 : w64) = W64 5 from rfl]
+        wp_apply decode.wp_proof _ (DFrac.own 1) cf Hok $$ [$Hsl] as Hsl
+        ihave #HQ : □ cfgQ (GF := GF) cid ([] ++ [W8 107]) $$ []
+        · imodintro; unfold cfgQ; ipureintro; exact List.prefix_refl _
+        rcases fb with _ | _
+        all_goals wp_auto
+        rotate_left
+        · wp_apply wp_bag_send γch ch (confV cf) (confChanP γ) $$ [$Hbag]
+          · unfold confChanP; iexists cf; iframe #; ipureintro; rfl
+          try wp_auto
+          wp_apply wp_slice_literal (V := w8) (t := go.byte) _
+          isplitr
+          · ipureintro; rfl
+          iintro %ls ⟨Hls, -⟩
+          try wp_auto
+          wp_apply net.Conn.Write.wp_proof tc cid true a la ra _ [W8 107] (DFrac.own 1) ed
+              (writeP cid true cfgQ []) $$ [Hls Hsend] as %nw %err' -
+          · iframe Hca Hls Hed
+            isplitl [Hsend]
+            · iapply writeP_init $$ Hsend
+            · iapply write_acc cid true cfgQ [] [W8 107] $$ HQ
+          try wp_auto
+          wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+          · iframe #
+          wp_for_post
+          iframe
+          iexists _
+          iframe
+        wp_apply wp_slice_literal (V := w8) (t := go.byte) _
+        isplitr
+        · ipureintro; rfl
+        iintro %ls ⟨Hls, -⟩
+        try wp_auto
+        wp_apply net.Conn.Write.wp_proof tc cid true a la ra _ [W8 107] (DFrac.own 1) ed
+            (writeP cid true cfgQ []) $$ [Hls Hsend] as %nw %err' -
+        · iframe Hca Hls Hed
+          isplitl [Hsend]
+          · iapply writeP_init $$ Hsend
+          · iapply write_acc cid true cfgQ [] [W8 107] $$ HQ
+        try wp_auto
+        wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+        · iframe #
+        wp_for_post
+        iframe
+        iexists _
+        iframe
+      · obtain ⟨e, rfl⟩ : ∃ e, err = interface.ok e := by
+          rcases err with e | _
+          · exact ⟨e, rfl⟩
+          · exact absurd (herr rfl) (fun h => hl5 h)
+        dsimp only
+        wp_auto
+        wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+        · iframe #
+        wp_for_post
+        iframe
+        iexists fb
+        iframe
+    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
+      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+      try wp_auto
+      wp_for_post
+      iframe
+      iexists fb
+      iframe
+  · subst Hne
+    wp_auto
+    rw [if_pos (by simp)]
+    wp_auto
+    wp_apply time.wp_Sleep
+    wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp a as %lv' %err' Hres
+    · iframe %Haok
+      iapply listen_au $$ Hproto
+    wp_for_post
+    iframe
+    iexists lv', err'
+    iframe
+    icases Hres with (⟨%He, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+    · ileft; iframe %He; iexists l; unfold ownListener; iframe Hl Hlis Hla
+    · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne'
+      obtain ⟨pe, rfl⟩ := Hne'.2 (by simp)
+      iright; iexists _; ipureintro; rfl
+
+set_option goose.wp.extras true in
+/-- `waitConf(a)` (`waitConf.spec`). -/
+theorem waitConf.wp_proof : waitConf.spec (GF := GF) := by
+  intro γ a
+  wp_start as #Hproto
+  wp_auto
+  wp_apply (chan.wp_make2 (V := _root_.Perennial.rabia.examples.rabianet.Conf) (W64 1)) as %ch %γch
+    ⟨#Hch, -, Hcho⟩
+  · ipureintro; decide
+  iapply fupd_wp
+  imod start_bag (confChanP (GF := GF) γ) (.Buffered []) ch γch (by simp) $$ Hch Hcho with #Hbag
+  imodintro
+  try wp_auto
+  wp_apply wp_fork $$ []
+  · wp_apply awaitConf.wp_proof γ a ch γch $$ [] as Hf
+    · iframe #
+    iexfalso; iexact Hf
+  wp_apply wp_bag_receive γch ch (confChanP γ) $$ [$Hbag] as %v Hv
+  try wp_auto
+  iapply HΦ
+  iexact Hv
 
 end proof
 
