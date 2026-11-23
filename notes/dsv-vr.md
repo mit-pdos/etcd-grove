@@ -52,6 +52,71 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
+### Round 4 (2026-11-23 evening; the current handoff; the older rounds below are history)
+
+Branch merged with `origin/lean` `76c00a8d81` (Perennial pin `160fcf12a`, `/shared/perennial-160fcf12a`);
+PkgTables regenerated (`etc/gen-init.py`, PERENNIAL_DIR set; `--check` clean); `goose.py --check
+--project dsv-vr` clean. **All Lean builds run on fk-lean1** (`/shared/tmp/fklean1-check.sh`).
+
+**Remote adapted** (remote-serveclient landed, lean `866c324ee6`; `remote-adapt.md` items 1-5):
+- `Start.lean`: `mapCtx_alloc ⊤ clientAddrs 24`: 24 call units per client address (`Check`'s 8
+  operations × `readTries`); the orchestrator's share carries them (`budUnits a 24`), client `c`'s
+  share the pure `ρ.bud (clientAddrs.getD c []) = some 24`.
+- `OrchProof.lean`: `Orch.spec` takes the units; `wp_Check … 24 (by decide)`.
+- `ClientProof.lean`: against remote's own `ServeClient.spec` (`ServeClientB.spec` gone).
+  `newClient` is the one-shot WP: it returns the system made before, consuming the exclusive
+  `sysRes γ c sys 1` (go-vsr client, `nextReq`) and starting the far side's count (`budUsed_zero`).
+  `sysTok γ c a sys := ∃ n m, ⌜n ≤ m + 1⌝ ∗ sysRes γ c sys n ∗ budUsed a m`; `Op_svcOp` counts each
+  call's unit with `budUsed_add` (`m + 1 ≤ 24`), so `Op.spec`'s `n < 2 ^ 28` holds: the budgets bound
+  the request counter. `Link.lean`'s `wp_Client` passes `EtcdGrove.remote.wp_ServeClient`.
+- `Mains.lean`: the client mains carry the budget fact, the orchestrator's the units.
+
+**The JSON dependency, separated** (`examples/vsrnet/JsonHyps.lean`; read its header): every
+`encoding/json` premise is a field of one `Prop`, `JsonHyps` — `Unmarshal`, `NewEncoder`,
+`Encode_conn` (`encoding.json.*.spec`, `Proof/events/LibHyps.lean`), `newDecoder`, `Decode_frame`
+(`pkg.events.*.spec`, `Spec/events.lean`), `codecOk` (`vsrnet.codecOk`, `Spec/json.lean`) and
+`RegisterJSON` (`RegisterJSON.codecSet_spec`: the kit's `RegisterJSON()` leaves `codecSet`) — plus
+the data classes `DecoderRep`/`EncoderRep` and `encoding.json.InitHyp`. `codecSet` is no longer a
+precondition of any machine (`pkgStates`/`srvLibState` gone): `mkClient`/`runReplica` get it from
+`RegisterJSON`'s call. **`RegisterJSON.codecSet_spec` is false of today's placeholder** (empty
+`RegisterJSON`), so `JsonHyps` has no instance until jsongen's codec is in: the statement is vacuous
+until then, by design (the JSON premises are visible, not hidden).
+
+**Other premises** (`examples/vsrnet/LibHyps.lean`): `LibHyps` = the seven `log/slog` specs and
+`connReaderOk` (finding 5; now over Net's landed `net.connReadE`, vr's copy gone).
+
+**The statement** (`Dsverify/Spec/github_com/tangledbytes/go_vsr/examples/vsrnet/TopLevelRobustness.lean`,
+`vr_remote_robust.spec`), in the landed kits' shape:
+premises `∀ G L, encoding.json.InitHyp`, `∀ G L, log.slog.InitHyp`, `∀ [DecoderRep] [EncoderRep]`,
+`∀ G L π, LibHyps`, `∀ G L π, JsonHyps`; then `DistDeploy vrKitAddrs (system σ) g →
+Robust [] (system σ) g threads (2 ^ 63)`. Proof: `examples/vsrnet/TopLevelRobustness.lean`
+(`robust_of_distProtoRB`, `vr_start`, each machine's `wp_boot` from its generated `wp_initialize'`
+and `wp_main`). Definitions: `TopLevelDefs.lean` (`boot`, `system`, `vrKitAddrs`, `heapAt`); the
+address lists moved to `Wire/Addrs.lean` (defs) so the statement imports no proof module.
+Links: `examples/vsrnet/Link.lean` (was `Linked.lean`), namespace `Perennial.EtcdGrove.dsvvr`
+(`proof_roots.namespace()` = `Perennial.EtcdGrove.`, as on lean).
+
+**One canonical copy:** `bufio.errWf`/`errOrNil` moved to `Dsverify/Proof/bufio/ErrOrNil.lean`
+(swiftpaxos's `lib/Bufio.lean` and vr's `Spec/jsonlib.lean` had identical copies; J1's main-tree
+`Proof/bufio/ErrOrNil.lean` will replace it). `dups.py` over all landed kits: no real duplicate left.
+
+**Tier check:** 144 violations, all vr's older files (78 defs→linking, 30 defs→proof, 21
+proof→linking, 15 proof→proof: package proofs importing callees' `Results`, `Mains`/`KitLib`
+importing proofs); the new files (statement, `TopLevelDefs`, `JsonHyps`, `LibHyps`, `Link`) add
+none. Restructure before landing.
+
+BUILD/AXIOMS: see "Checks (round 4)" below (filled in after fk-lean1's build).
+
+**After J1 and jsongen land:** (1) regenerate the kit's codec with jsongen (`json.toml` as is; the
+real `RegisterJSON` replaces `register*.go`); (2) prove `RegisterJSON.codecSet_spec` from J2's
+`SetCodec` spec; (3) prove `codecOk` (jsongen's codec for the kit's types: the lab's ~8k lines,
+plus `log.Logs`' `MarshalJSON`/`UnmarshalJSON`, which call `json.Marshal`/`Unmarshal` back through
+the registered codec: a recursive dependency the proof must cut, e.g. by Löb induction); (4) move
+`JsonHyps`' `Unmarshal`/`NewEncoder`/`Encode_conn` to J1's statements (`codecSetWith`/`codecOkWith`
+at our `kitFn`s), drop `Dsverify/Code/encoding/json.lean`, `Spec/jsonlib.lean`,
+`Dsverify/Proof/bufio/ErrOrNil.lean` and `encoding.json.InitHyp` (J1 proves the init); (5) J1 lacks
+`NewDecoder`/`Decode` and `Marshal` specs, which vr needs (its decoder hypotheses, `Logs.MarshalJSON`).
+
 Done: the Go (`go vet`, `go test ./...` green: the deployment test, ~5 s, the fork's own tests), the
 translation (builds), the pure model, **the package initialization** (step 1) and **the ghost layer**
 (step 2; `lean-check` clean). **No `sorry`, no axiom in the part's vr files**: every node's

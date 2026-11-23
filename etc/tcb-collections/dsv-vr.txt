@@ -1,7 +1,8 @@
 # dsv-vr (notes/dsv-vr.md): dsverify-lab's vr kit (vsr-bump-1) ported onto the net extension and
-# examples/lib/remote, in the part Dsverify/. Its closed theorem `vr_remote_robust` is not stated
-# yet (notes/dsv-vr.md, "State"); the roots are the kit's proof modules, which have no Link,
-# MainLinked or Results yet, so the collection selects nothing so far.
+# examples/lib/remote, in the part Dsverify/. Its theorem `vr_remote_robust`
+# (examples/vsrnet/TopLevelRobustness.lean) rests on the visible premises of its statement (the JSON
+# ones pending jsongen and J1: notes/dsv-vr.md, "State"); the roots are the kit's Link,
+# TopLevelRobustness and Results modules.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-vr.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/dsv-vr.txt --check    against the lines below
