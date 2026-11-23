@@ -406,6 +406,35 @@ theorem req_body (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
   ipureintro
   simp at hr1; exact hr1.symm
 
+/-- The guard of a request's body read (`ReadRequestBody`'s): after the frames `ps` of the first
+`k` requests and the header `h` of request `k` (`r`, the `k`-th of `L`), the body frame read is
+its argument bytes, one step later. -/
+theorem req_guard (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
+    (L : List RpcReq) (r : RpcReq) (ps : List (List w8)) (k : Nat) (h : List w8)
+    (hr : L[k]? = some r) (hps : ps.length = 2 * k) (hb : ∀ q ∈ ps, q.length < 2 ^ 63)
+    (hh : h.length < 2 ^ 63) :
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ⊢
+    □ (∀ pl : List w8, ⌜pl.length ≤ maxFrameN⌝ -∗
+      recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
+        (framesOf (ps ++ [h]) ++ frameOf pl) -∗
+      ▷ (recvTokL (Gg := hG.goose_globalGS) cn true (reqProto (Gg := hG.goose_globalGS) W a)
+          (framesOf (ps ++ [h]) ++ frameOf pl) ∗ ⌜pl = r.body⌝)) := by
+  iintro ⟨#Hrpc, #Hlb⟩
+  imodintro
+  iintro %pl %Hpl HP
+  ihave HrL := recvTokL_later (Gg := hG.goose_globalGS) cn true _ _ $$ HP
+  inext
+  icases recvTok_proto (Gg := hG.goose_globalGS) cn true _ _ $$ HrL with ⟨HrT, #Hpp⟩
+  have hpl : pl.length < 2 ^ 63 := by unfold maxFrameN at Hpl; omega
+  have hfr : framesOf (ps ++ [h]) ++ frameOf pl = framesOf (ps ++ [h] ++ [pl]) := by
+    rw [framesOf_append (ps ++ [h]) [pl], framesOf_cons, framesOf_nil, List.append_nil]
+  rw [hfr]
+  ihave %Hbody := req_body W a cn γ L r ps k h pl hr hps hb hh hpl $$ [$Hrpc $Hlb $Hpp]
+  rw [← hfr]
+  isplitl [HrT]
+  · iapply recvTok_L $$ HrT
+  ipureintro; exact Hbody
+
 /-- The answer to request `k`, from the right to answer it and the continuation's `Φ reply msg`:
 its persistent `ans` element; the continuation goes to the connection for the client. -/
 theorem answer (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString)
