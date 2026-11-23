@@ -8,6 +8,8 @@
 # `Patch`, `Prerelease`, `compareSegment`, `comparePrerelease`, `comparePrePart`), over the specs
 # of `strings.Split` and `strconv.ParseUint`. `String` stays the trust boundary: its
 # `fmt.Fprintf` into a `bytes.Buffer` has no model in Perennial.
+# (prove-ps2-version, 2026-11-23) `LessThan`'s proof reverted to the trust boundary (its caller
+# `ClusterVersionSet` has no ownership of the cluster's `Version()`); `Compare` and below stay proved.
 translate = ["!*", "New", "Version.Major", "Version.Minor", "MustParse", "Version.LessThan",
   "Version.Compare", "Version.Patch", "Version.Prerelease", "compareSegment", "comparePrerelease",
   "comparePrePart"]

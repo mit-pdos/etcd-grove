@@ -2,7 +2,8 @@
 The callee specs `wal.Exist`'s proof takes as hypotheses (W12 of `notes/wal-fsext-plan.md`, the W7-W12
 log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
 `Proof/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`: `ReadDir.wp_specAbsentIs`,
-`ReadDir.wp_specChildIs`, from `ReadDir.wp_core`) given `errors.IsPathErrnoNotExist.spec`, which is not.
+`ReadDir.wp_specChildIs`, from `ReadDir.wp_core`) given `errors.IsPathErrnoNotExist.spec`, proved since
+2026-11-22 (`Proof/errors/IsPathErrnoNotExist.lean`), which the Link passes.
 
 * **`errIsNotExist err b`**: `errors.Is(err, os.ErrNotExist)` returns `b` (persistent; for any value of
   the `os.ErrNotExist` variable). What `Exist` asks of `ReadDir`'s errors.
@@ -20,14 +21,15 @@ log). `fileutil.ReadDir.specAbsentIs` and `specChildIs` are proved (2026-11-14,
   (`Proof/os/NsChildS.lean`: `os.Open.wp_dirChildS`, `os.File.Readdirnames.wp_dirChildS`, over
   the extension's `wp_osOpenDirChildS`/`wp_osDirReadNextChildS`; errors `os.errnoPathErr err e`,
   `e ≠ ENOENT`), `ReadDir`'s loops (`ReadDir.wp_core`) and the names' bound (`Readdirnames`' model
-  assumes Go's `growslice` limit, under `2^44` names, pending the user's review) are proved; left:
-  `errors.IsPathErrnoNotExist.spec` (`Spec/errors/IsPathErrnoNotExist.lean`).
+  assumes Go's `growslice` limit, under `2^44` names, pending the user's review) are proved, and so is
+  `errors.IsPathErrnoNotExist.spec` (`Spec/errors/IsPathErrnoNotExist.lean`, since 2026-11-22).
 * **`errors.IsPathErrnoNotExist.spec`**: `errors.Is(err, os.ErrNotExist)` of a `*PathError` of a nonzero
   errno `e` answers `e = ENOENT`. True in Go (`errors.Is` unwraps the `*PathError` to the `Errno`, whose
   `Is` compares the target with `oserror.ErrNotExist`); its proof needs the error tree of the part's `os`
   errors (Perennial's `errors.Is.spec` with `syscall.Errno.Is`, `notes/perennial-changes.md`, as
   `errors.IsErrno.spec`) and `os`'s package fact to say `os.ErrNotExist` is `oserror.ErrNotExist`, distinct
-  from `ErrPermission`, `ErrExist` and `errors.ErrUnsupported` (it says only "some error"). Not proved.
+  from `ErrPermission`, `ErrExist` and `errors.ErrUnsupported` (it says only "some error"). Proved
+  2026-11-22 (`Proof/errors/IsPathErrnoNotExist.lean`).
 Lean-first.
 -/
 module

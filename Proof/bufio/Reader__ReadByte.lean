@@ -1,10 +1,10 @@
 /-
-`(*bufio.Reader).ReadByte` (see `Spec/bufio/Reader__ReadByte.lean`).
+`(*bufio.Reader).ReadByte` (see `Spec/bufio/Reader__ReadByte.lean`), with `(*Reader).fill`
+(`bufio.wp_fill`). Ported from dsverify-lab's `Harness/Proof/bufio/Reader.lean`.
 -/
 module
 
 public import Spec.bufio.Reader__ReadByte
-public import Spec.bufio.Reader__fill
 
 @[expose] public section
 
@@ -22,159 +22,274 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.bufio.Assumptions]
 
-/-- `b.readErr()`: the pending error, cleared. -/
-theorem bufio.wp_readErr_rb (b : Loc) (v : _root_.Perennial.bufio.Reader) :
-    {{ (b ↦ v : IProp GF) }}
-      (App (Val (b @!! go.GoType.PointerType _root_.Perennial.bufio.Reader.ty @!! go!"readErr"))
+set_option goose.wp.extras true
+
+/-- `fill()` with nothing buffered (`r = w`) and no pending error: reads into the buffer until
+the underlying reader returns a byte or an error (or `io.ErrNoProgress` after 100 empty
+reads). -/
+theorem bufio.wp_fill (br : Loc) (ri : GoInterfaceOk) (Pre : List w8 → Nat → Prop)
+    (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF) (R : List w8)
+    (buf : GoSlice) (r lb lrs : w64) (bs : List w8)
+    (szOk : Nat → Prop) (hr : 0 ≤ sint.Z r ∧ sint.Z r ≤ bs.length) (hbs : 0 < bs.length)
+    (hsz : szOk bs.length) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ _root_.Perennial.io.readerOk ri Pre S E ∗
+        bufio.preUpTo S Pre bs.length ∗ S R ∗
+        br ↦ _root_.Perennial.bufio.Reader.mk buf (interface.ok ri) r r interface.nil lb lrs ∗
+        buf ↦* bs }}
+      (App (Val (br @!! go.GoType.PointerType _root_.Perennial.bufio.Reader.ty @!! go!"fill"))
         (Val #()))
-    {{ RET #v.err'; b ↦ { v with err' := GoInterface.nil } }} := by
-  wp_start as Hv
-  try wp_auto
-  iapply HΦ
-  iexact Hv
-
-theorem bufio.w64_eq_of_sZ (a c : w64) (h : sint.Z a = sint.Z c) : a = c := by word
-
-theorem bufio.sZ_le_of_nat (w l : w64) (n : Nat) (h : sint.nat w ≤ n) (hn : n = sint.nat l)
-    (h0 : 0 ≤ sint.Z l) (hw : 0 ≤ sint.Z w) : sint.Z w ≤ sint.Z l := by subst hn; word
-
-theorem bufio.nat_lt_of_sZ (a c : w64) (h0 : 0 ≤ sint.Z a) (h : sint.Z a < sint.Z c) :
-    sint.nat a < sint.nat c := by word
-
-theorem bufio.nat_add_one (a c : w64) (h0 : 0 ≤ sint.Z a) (h : sint.Z a < sint.Z c) :
-    sint.nat (a + W64 1) = sint.nat a + 1 := by word
-
-theorem bufio.sZ_add_one (a c : w64) (h0 : 0 ≤ sint.Z a) (h : sint.Z a < sint.Z c) :
-    sint.Z (a + W64 1) = sint.Z a + 1 := by word
-
-theorem bufio.sZ_toNat (a : w64) : (sint.Z a).toNat = sint.nat a := rfl
-
-theorem bufio.Reader.ReadByte.wp_proof (wp_fill : bufio.Reader.fill.spec (GF := GF) (hG := hG)) :
-    bufio.Reader.ReadByte.spec (GF := GF) (hG := hG) := by
-  intro b ri S E r
-  iintro #Hrd #HSb
-  wp_start as Hb
-  iunfold bufio.ownReader at Hb
-  icases Hb with ⟨#Hpkg, %v, %bs, Hv, Hbuf, %Hwf, HS, #Herr⟩
-  try wp_auto
-  ihave Hinv : (∃ q e, bufio.ownReaderBuf b ri S E r q e) $$ [Hv Hbuf HS]
-  · iexists _, _
-    iunfold bufio.ownReaderBuf
-    iframe Hpkg
-    iexists _, bs
-    iframe Hv Hbuf
-    iframe HS Herr
-    ipureintro
-    exact ⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, Hwf.2.2.2.2.1, Hwf.2.2.2.2.2, rfl, rfl⟩
-  iclear Herr
-  clear Hwf
-  wp_for
-  icases Hinv with ⟨%q, %e, Hinv⟩
-  iunfold bufio.ownReaderBuf at Hinv
-  icases Hinv with ⟨-, %v, %bs, Hv, Hbuf, %Hwf, HS, #Herr⟩
-  ihave %Hblen := ownSlice_len _ _ _ $$ Hbuf
-  try wp_auto
+    {{ RET #(); ∃ (pend : List w8) (perr : GoInterface),
+        ⌜pend ≠ [] ∨ perr ≠ interface.nil⌝ ∗ S (R ++ pend) ∗
+        bufio.readerRep br ri Pre S (bufio.errE E) szOk R pend perr }} := by
+  wp_start as ⟨#Hrd, #Hpu, HI, Hb, Hbuf⟩
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hbuf
+  ihave %Hwf := ownSlice_wf _ _ _ $$ Hbuf
+  have hl : (bs.length : Int) = sint.Z buf.len := by
+    rw [Hlen.1]; exact Int.toNat_of_nonneg Hlen.2
+  wp_auto
   wp_if_destruct
-  · have hrw : v.r' = v.w' := by simpa using go.intoVal_inj Hif
-    have hq : q = [] := by rw [← Hwf.2.2.2.2.2.2.1, hrw]; simp [subslice]
-    subst hq
-    rcases hve : v.err' with e' | _
-    · simp only []
-      try wp_auto
-      wp_apply (bufio.wp_readErr_rb b v) $$ Hv as Hv
-      try wp_auto
+  -- `r > 0`: slide the (empty) buffered part to the front
+  rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨hr.1, Int.le_refl _, by omega⟩)]
+  wp_apply wp_slice_copy_of_len_zero (V := w8) buf (slice.slice buf w8 r r) (by simp [slice.slice])
+  isimp at Hb
+  ihave Hb : (br ↦ _root_.Perennial.bufio.Reader.mk buf (interface.ok ri) 0 0 interface.nil lb lrs :
+    IProp GF) $$ [Hb]
+  · iexact Hb
+  rotate_left
+  -- `r = 0`
+  have : r = 0 := by
+    apply BitVec.eq_of_toInt_eq
+    show sint.Z r = sint.Z 0
+    rw [show sint.Z (0 : w64) = 0 from rfl]
+    rw [show sint.Z (W64 0) = 0 from rfl] at *; omega
+  subst this
+  all_goals
+    wp_if_destruct
+    · exfalso
+      have h0 : sint.Z (0 : w64) = 0 := rfl
+      have h0' : sint.Z (0#64) = 0 := rfl
+      (try simp only [BitVec.sub_self] at *)
+      omega
+    ihave #Hio := bufio.io_init_of_bufio $$ Hpkg
+    ihave ⟨%enp, #Henp, %Hnp⟩ := bufio.errNoProgress_init $$ Hio
+    ihave HL : (∃ (i : w64) (bs' : List w8), "i" ∷ i_ptr ↦ i ∗
+        "Hb" ∷ br ↦ _root_.Perennial.bufio.Reader.mk buf (interface.ok ri) 0 0 interface.nil lb lrs ∗
+        "Hbuf" ∷ buf ↦* bs' ∗ "HI" ∷ S R ∗ "%Hbs" ∷ ⌜bs'.length = bs.length⌝ : IProp GF)
+      $$ [i Hb Hbuf HI]
+    · iexists _, bs; iframe; ipureintro; rfl
+    wp_for HL
+    have h0 : sint.Z (0 : w64) = 0 := rfl
+    have hbs' : (bs'.length : Int) = sint.Z buf.len := by omega
+    wp_if_destruct
+    · rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Int.le_refl _, by omega, Hwf.2⟩)]
+      ihave Hsl := (bufio.whole_slice buf _ bs').1 $$ Hbuf
+      ihave ⟨HI, %hPre⟩ := bufio.preUpTo_at S Pre _ R $$ Hpu HI
+      wp_auto
+      wp_apply _root_.Perennial.io.wp_reader_Read ri Pre S E R _ bs'
+        (hPre bs'.length (by omega) (by omega)) $$ [$Hrd $HI $Hsl]
+        as %n %err ⟨%data, %Hd, Hsl, HI, #Herr, %Hty⟩
+      obtain ⟨hn, hdl0⟩ := Hd
+      have hn' := bufio.w64_of_sintZ hn
+      subst hn'
+      ihave Hbuf := (bufio.whole_slice buf _ _).2 $$ Hsl
+      have h63 : sint.Z buf.len < 2 ^ 63 := by word
+      have hdl : data.length < 2 ^ 63 := by omega
+      have hZ : sint.Z (W64 data.length) = data.length := bufio.sint_Z_W64_length hdl
+      have hW0 : sint.Z (W64 0) = 0 := rfl
+      wp_if_destruct
+      · exfalso; omega
+      have hw : sint.Z (0 + W64 data.length) = data.length := by
+        simpa using hZ
+      ihave #Herr' := bufio.errAt_errE E (R ++ data) err $$ Herr
+      rcases err with ei | _
+      · -- an error: keep it pending, return
+        wp_auto
+        wp_for_post
+        iapply HΦ
+        iexists data, interface.ok ei
+        iframe HI
+        isplitr
+        · ipureintro; right; simp
+        unfold bufio.readerRep
+        iexists buf, 0, 0 + W64 data.length, lb, lrs, [], bs'.drop data.length
+        simp only [List.nil_append, List.length_nil, List.length_append,
+          List.length_drop]
+        iframe Hb Hbuf Herr'
+        isplitl []
+        · ipureintro
+          refine ⟨h0, by rw [hw]; simp, by omega, ?_, Hty⟩
+          rw [show data.length + (bs'.length - data.length) = bs.length by omega]; exact hsz
+        iapply bufio.preUpTo_eq (by omega) $$ Hpu
+      · wp_auto
+        wp_if_destruct
+        · -- a byte read: return
+          wp_for_post
+          iapply HΦ
+          iexists data, interface.nil
+          iframe HI
+          isplitr
+          · ipureintro; left; intro h; subst h; simp at Hif
+          unfold bufio.readerRep
+          iexists buf, 0, 0 + W64 data.length, lb, lrs, [], bs'.drop data.length
+          simp only [List.nil_append, List.length_nil, List.length_append,
+            List.length_drop]
+          iframe Hb Hbuf Herr'
+          isplitl []
+          · ipureintro
+            refine ⟨h0, by rw [hw]; simp, by omega, ?_, Hty⟩
+            rw [show data.length + (bs'.length - data.length) = bs.length by omega]; exact hsz
+          iapply bufio.preUpTo_eq (by omega) $$ Hpu
+        · -- nothing read: try again
+          have hd : data = [] := by
+            apply List.eq_nil_of_length_eq_zero; omega
+          subst hd
+          wp_for_post
+          (try isimp at Hb)
+          iframe
+          iexists (i - W64 1), bs'
+          simp only [List.append_nil, List.nil_append, List.length_nil, List.drop_zero]
+          iframe HI Hbuf i
+          isplitl [Hb]
+          · (try isimp); iexact Hb
+          ipureintro; exact Hbs
+    · -- 100 empty reads: `io.ErrNoProgress`
+      have hP : ¬ (sint.Z (W64 0) < sint.Z i) := by
+        first | exact Hif | (intro h; apply Hif; simp [h])
+      (try simp only [decide_eq_false hP, decide_true, ↓reduceIte])
+      (try wp_auto)
+      iapply HΦ
+      iexists [], enp
+      rw [List.append_nil]
+      iframe HI
+      isplitr
+      · ipureintro; right; exact Hnp.2
+      unfold bufio.readerRep
+      iexists buf, 0, 0, lb, lrs, [], bs'
+      simp only [List.nil_append, List.length_nil, List.append_nil]
+      iframe Hb Hbuf
+      isplitr
+      · ipureintro
+        refine ⟨h0, by simp, by omega, ?_, Hnp.1⟩
+        rw [Hbs]; exact hsz
+      isplitr
+      · iapply bufio.preUpTo_eq (by omega) $$ Hpu
+      unfold _root_.Perennial.io.errAt bufio.errE
+      iright; imodintro; iright; iexact Henp
+
+/-- See `Spec/bufio/Reader__ReadByte.lean`. -/
+theorem bufio.Reader.ReadByte.wp_proof : bufio.Reader.ReadByte.spec (GF := GF) (hG := hG) := by
+  intro br ri Pre S E R
+  wp_start as Hown
+  iunfold bufio.ownBufReader, bufio.ownBufReaderE at Hown
+  icases Hown with ⟨#Hpkg, #Hrd, %pend, %perr, HI, Hrep⟩
+  iunfold bufio.readerRep at Hrep
+  icases Hrep with ⟨%buf, %r, %w, %lb, %lrs, %pre, %post, Hb, Hbuf, %Hrw, #Hpu, #Herr⟩
+  wp_auto
+  ihave HL : (∃ (pend : List w8) (perr : GoInterface) (buf : GoSlice) (r w lb lrs : w64)
+      (pre post : List w8),
+      "HI" ∷ S (R ++ pend) ∗
+      "Hb" ∷ br ↦ _root_.Perennial.bufio.Reader.mk buf (interface.ok ri) r w perr lb lrs ∗
+      "Hbuf" ∷ buf ↦* (pre ++ pend ++ post) ∗
+      "%Hrw" ∷ ⌜sint.Z r = pre.length ∧ sint.Z w = pre.length + pend.length ∧
+        0 < (pre ++ pend ++ post).length ∧ True ∧
+        _root_.Perennial.io.ptrTyped perr⌝ ∗
+      "#Hpu" ∷ bufio.preUpTo S Pre (pre ++ pend ++ post).length ∗
+      "#Herr" ∷ _root_.Perennial.io.errAt (bufio.errE E) (R ++ pend) perr : IProp GF)
+      $$ [HI Hb Hbuf]
+  · iexists pend, perr, buf, r, w, lb, _, pre, post
+    iframe
+    isplitr
+    · ipureintro; exact Hrw
+    iframe Hpu
+    iexact Herr
+  wp_for HL
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hbuf
+  have h63 : sint.Z buf.len < 2 ^ 63 := by word
+  have hl : ((pre ++ pend ++ post).length : Int) = sint.Z buf.len := by
+    rw [Hlen.1]; exact Int.toNat_of_nonneg Hlen.2
+  obtain ⟨Hr, Hw, Hpos, Hpre, Hty⟩ := Hrw
+  have Hpre' := Hpre
+  simp only [List.length_append] at hl Hpre'
+  wp_if_destruct
+  · -- nothing buffered
+    subst Hif
+    have hp : pend = [] := List.eq_nil_of_length_eq_zero (by omega)
+    subst hp
+    rcases perr with ep | _
+    · -- a pending error: return it
+      wp_auto
+      wp_apply bufio.wp_readErr $$ Hb as Hb
       wp_for_post
       iapply HΦ
       iright
-      rw [hve]
-      have he : e = GoInterface.ok e' := Hwf.2.2.2.2.2.2.2.symm.trans hve
-      subst he
+      rw [List.append_nil] at *
+      unfold _root_.Perennial.io.errAt
+      icases Herr with (%Hn | #Ha)
+      · cases Hn
+      iframe Ha
       isplitr
       · ipureintro; simp
       isplitr
-      · iapply (io.errAt_eq (List.append_nil r)); iexact Herr
-      iunfold bufio.ownReader
-      iframe Hpkg
-      iexists { v with err' := GoInterface.nil }, bs
-      iframe Hv Hbuf
-      simp only []
-      rw [Hwf.2.2.2.2.2.2.1]
-      iframe HS
+      · ipureintro; exact Hty
+      iunfold bufio.ownBufReader, bufio.ownBufReaderE, bufio.readerRep
+      iframe Hpkg Hrd
+      iexists [], interface.nil
+      simp only [List.append_nil]
+      iframe HI
+      iexists buf, r, r, lb, lrs, pre, post
+      iframe Hbuf Hb Hpu
       isplitr
-      · ipureintro
-        exact ⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, Hwf.2.2.2.2.1, Hwf.2.2.2.2.2.1⟩
-      iapply io.errAt_nil
-    · simp only []
-      try wp_auto
-      ihave Hf := wp_fill b ri S E r $$ Hrd HSb
-      wp_apply Hf $$ [Hv Hbuf HS] as ⟨%ys, %e2, %Hne, Hb2⟩
-      · iunfold bufio.ownReaderBuf
-        iframe Hpkg
-        iexists v, bs
-        iframe Hv Hbuf HS
-        isplitr
-        · ipureintro
-          exact ⟨Hwf.1, Hwf.2.1, Hwf.2.2.1, Hwf.2.2.2.1, Hwf.2.2.2.2.1, Hwf.2.2.2.2.2.1,
-            Hwf.2.2.2.2.2.2.1, hve⟩
-        iapply io.errAt_nil
+      · ipureintro; exact ⟨Hr, by simpa using Hw, Hpos, Hpre, _root_.Perennial.io.ptrTyped_nil⟩
+      iapply bufio.errAt_nil'
+    · wp_auto
+      isimp only [List.append_nil] at HI
+      wp_apply bufio.wp_fill br ri Pre S E R buf r lb lrs (pre ++ [] ++ post) (fun _ => True)
+        (by simp at hl ⊢; omega) (by simp at Hpos ⊢; omega) trivial
+        $$ [$Hpkg $Hrd $Hpu $HI $Hb $Hbuf] as ⟨%pend', %perr', -, HI, Hrep⟩
       wp_for_post
+      iunfold bufio.readerRep at Hrep
+      icases Hrep with ⟨%buf', %r', %w', %lb', %lrs', %pre', %post', Hb, Hbuf, %Hrw', #Hpu', #Herr'⟩
       iframe
-      iexists ys, e2
-      iexact Hb2
-  · have hrw : v.r' ≠ v.w' := by
-      intro h; apply Hif; simp [h]
-    rw [decide_eq_false hrw]
-    simp only [Bool.false_eq_true, ite_false]
-    try wp_auto
-    have hlt : sint.Z v.r' < sint.Z v.w' := by
-      have : sint.Z v.r' ≠ sint.Z v.w' := fun h => hrw (bufio.w64_eq_of_sZ _ _ h)
-      have := Hwf.2.2.1; omega
-    have hwlen : sint.Z v.w' ≤ sint.Z v.buf'.len := by
-      exact bufio.sZ_le_of_nat _ _ _ Hwf.2.2.2.1 Hblen.1 Hblen.2 (by omega)
-    rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z v.r' ∧ sint.Z v.r' < sint.Z v.buf'.len
-      from ⟨Hwf.2.1, by omega⟩))]
-    have hrl : (sint.Z v.r').toNat < bs.length := by
-      rw [bufio.sZ_toNat]
-      have := bufio.nat_lt_of_sZ _ _ Hwf.2.1 hlt
-      have := Hwf.2.2.2.1; omega
-    obtain ⟨x, hx⟩ : ∃ x, bs[(sint.Z v.r').toNat]? = some x :=
-      ⟨_, List.getElem?_eq_getElem hrl⟩
-    wp_apply (wp_load_slice_index v.buf' _ bs (DFrac.own 1) x Hwf.2.1) $$ [Hbuf] as Hbuf
-    · iframe; ipureintro; exact hx
-    try wp_auto
+      iexists pend', perr', buf', r', w', lb', lrs', pre', post'
+      iframe
+      isplitr
+      · ipureintro; exact Hrw'
+      iframe Hpu'
+      iexact Herr'
+  · -- a byte is buffered: return it
+    obtain ⟨c, rest, rfl⟩ : ∃ c rest, pend = c :: rest := by
+      cases pend with
+      | nil =>
+        exfalso; apply Hif; apply BitVec.eq_of_toInt_eq
+        show sint.Z r = sint.Z w
+        simp at Hw; omega
+      | cons c rest => exact ⟨c, rest, rfl⟩
+    simp only [List.length_cons] at hl
+    rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by omega, by omega⟩)]
+    wp_apply wp_load_slice_index buf (sint.Z r) (pre ++ c :: rest ++ post) _ c (by omega)
+      $$ [$Hbuf] as Hbuf
+    · ipureintro
+      rw [Hr]
+      simp
+    have hr1 : sint.Z (r + W64 1) = (pre ++ [c]).length := by
+      simp only [List.length_append, List.length_singleton]
+      have : sint.Z (W64 1) = 1 := rfl
+      word
     iapply HΦ
     ileft
     isplitr
     · ipureintro; rfl
-    have hq : q = x :: subslice (sint.nat (v.r' + W64 1)) (sint.nat v.w') bs := by
-      rw [← Hwf.2.2.2.2.2.2.1]
-      have hn : sint.nat (v.r' + W64 1) = sint.nat v.r' + 1 := bufio.nat_add_one _ _ Hwf.2.1 hlt
-      rw [hn]
-      simp only [subslice]
-      have hn1 : sint.nat v.r' < sint.nat v.w' := bufio.nat_lt_of_sZ _ _ Hwf.2.1 hlt
-      have hn2 : sint.nat v.w' ≤ bs.length := Hwf.2.2.2.1
-      rw [List.drop_eq_getElem_cons (by rw [List.length_take]; omega)]
-      congr 1
-      simp only [List.getElem_take]
-      have h2 : bs[sint.nat v.r']? = some x := hx
-      rw [← bufio.sZ_toNat] at h2
-      rw [List.getElem?_eq_getElem hrl] at h2
-      exact Option.some.inj h2
-    have hr2 : r ++ q = (r ++ [x]) ++ subslice (sint.nat (v.r' + W64 1)) (sint.nat v.w') bs := by
-      rw [hq]; simp
-    iunfold bufio.ownReader
-    iframe Hpkg
-    iexists _, bs
-    iframe Hv Hbuf
-    simp only []
-    rw [← hr2]
-    iframe HS
-    isplitr
-    · ipureintro
-      have h1 := bufio.sZ_add_one _ _ Hwf.2.1 hlt
-      exact ⟨Hwf.1, by omega, by omega, Hwf.2.2.2.1, Hwf.2.2.2.2.1, Hwf.2.2.2.2.2.1⟩
-    rw [Hwf.2.2.2.2.2.2.2]
-    iexact Herr
+    iunfold bufio.ownBufReader, bufio.ownBufReaderE, bufio.readerRep
+    iframe Hpkg Hrd
+    iexists rest, perr
+    rw [show R ++ [c] ++ rest = R ++ c :: rest by simp]
+    iframe HI
+    iexists buf, r + W64 1, w, W64 (uint.Z c), lrs, pre ++ [c], post
+    rw [show pre ++ [c] ++ rest ++ post = pre ++ c :: rest ++ post by simp]
+    iframe Hbuf Hb Hpu Herr
+    ipureintro
+    refine ⟨hr1, ?_, Hpos, Hpre, Hty⟩
+    · simp at Hw ⊢; omega
 
 end proof
 

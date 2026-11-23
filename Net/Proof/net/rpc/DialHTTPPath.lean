@@ -152,8 +152,18 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       simp only [ne_eq, go.GoType.PointerType.injEq]
       unfold net.rpc.connectReader.ty _root_.Perennial.bufio.Reader.ty
       simp
+    ihave #Hstream0 := EtcdGrove.io.readerStreamNE_readerStream _ _ _ $$ Hstream
+    ihave #Hbound : (□ ∀ r0, crSt W a cn γ cr γe r0 -∗ ⌜r0.length + 2 ^ 12 < 2 ^ 62⌝ : IProp GF) $$ []
+    · imodintro
+      iintro %r0 HS
+      iunfold crSt at HS
+      icases HS with ⟨%f, %R, -, -, -, -, ⟨%h1, %h2⟩, -⟩
+      ipureintro
+      have h3 := (h1.trans h2).length_le
+      have h4 : connectAns.length = 34 := by decide
+      omega
     wp_apply wp_NewReader ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
-        (crSt W a cn γ cr γe) (crErr γe) [] hty $$ [$Hbufio $HS0] as %b Hb
+        (crSt W a cn γ cr γe) (crErr γe) [] hty $$ [$Hbufio $Hstream0 $Hbound $HS0] as %b Hb
     irename «$a1» => Hreq
     generalize «$a1_ptr» = req at *
     -- the laws `ReadResponse` takes of the stream

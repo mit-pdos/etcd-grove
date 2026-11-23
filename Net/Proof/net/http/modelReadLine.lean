@@ -1,12 +1,12 @@
 /-
 The proof of `modelReadLine` (`Net/Spec/net/http/modelReadLine.lean`): a loop of
-`bufio.Reader.ReadByte` (`Spec/bufio/Reader__ReadByte.lean`) appending to `line`; the invariant: the
+`bufio.Reader.ReadByte` (`Spec/bufio/Reader__ReadByteNE.lean`) appending to `line`; the invariant: the
 reader has delivered `l` after `r`, the bytes of `line`, with no `"\n"` among them.
 -/
 module
 
 public import Net.Spec.net.http.modelReadLine
-public import Spec.bufio.Reader__ReadByte
+public import Spec.bufio.Reader__ReadByteNE
 
 @[expose] public section
 
@@ -35,7 +35,7 @@ theorem modelReadLine.last_idx (l : List w8) (sl : GoSlice) (hlen : l.length = s
   rw [h1]; omega
 
 theorem modelReadLine.wp_proof
-    (wp_ReadByte : EtcdGrove.bufio.Reader.ReadByte.spec (GF := GF) (hG := hG)) :
+    (wp_ReadByte : EtcdGrove.bufio.Reader.ReadByte.specNE (GF := GF) (hG := hG)) :
     modelReadLine.spec (GF := GF) (hG := hG) := by
   intro b ri S E r
   iintro #Hrd #HSb
