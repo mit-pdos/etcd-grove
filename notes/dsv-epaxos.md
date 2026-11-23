@@ -6,11 +6,11 @@ Source: dsverify-lab `master` `915f964`, `examples/epaxos/` (run **`epaxos-e1nog
 verified run of EPaxos: clients on nodes of their own, Perennial `3afd77e35`, the E1-opt1/opt2 perf
 fixes; proof `c276a91` tag `final`; fork `71d99d4`). Read only: nothing in the lab changed.
 
-**State: BLOCKED after the Go and the translation** (below, "What blocks"). No Lean proof is
-ported yet: the protocol proof (88k lines in the lab) rests at every layer on library pieces that
-are not proved here (bufio's writer and reader methods, net/rpc's server, net/http's server and
-`DialHTTP`, gods' treemap), which the coordinator said to take as hypotheses rather than add; that
-work has not started.
+**State (2026-11-23):** the Go, the translation, the package initializers (all 32 packages and the
+17 programs' `PkgTable`s build, no axiom: the names-only inits are `InitHyp` hypotheses) and the
+mechanical port of the pure model (below, "Proof port: progress") are done. The code proofs, the
+kit's model proof and `epaxos_remote_robust` are not started; every layer of them rests on library
+specs that are hypotheses here ("Hypotheses").
 
 ## What is where
 
@@ -18,7 +18,9 @@ work has not started.
 |---|---|
 | Go | `examples/dsverify/epaxos/` (module `github.com/imdea-software/swiftpaxos-epaxos`: the fork's path with `-epaxos`, see below): the fork's packages the kit runs (`rpc` = fastrpc, `dlog`, `config`, `state`, `replica/defs`, `replica`, `epaxos`, `master`, with the fork's `fix_*_test.go` regression tests) and the kit `examples/epaxosnet` with its 17 commands `cmd/{orch,client0..9,server1..6}` |
 | the kit | `examples/epaxosnet/kit.go` (configuration, addresses, `Gen`, `Op`, `Orch`, `Client`, `Server`, the replicas' registration), `model.go` (the porcupine model and remote's `Codec`), `rpc.toml` + `rpc_gen.go`, `rpc_model_gen.go`, `rpc_real_gen.go`, `rpc_gen_test.go` (rpcgen's codec of the master's and the replica's net/rpc receivers), `kit_test.go` |
-| translation | `etc/goose.py` project `dsv-epaxos` into the part `Dsverify/` (`Dsverify/{Code,GeneratedProof}/github_com/imdea_software/swiftpaxos_epaxos/**`, and gods v1.18.1 at `Dsverify/{Code,GeneratedProof}/github_com/emirpasic/gods/**`); remote, `net`, net/rpc and net/http the part `Net/`'s (std_models `net/rpc`, `net/http`); lintest, porcupine, `bufio`, `encoding/json`, `os` the main tree's; the rest Perennial's |
+| translation | `etc/goose.py` project `dsv-epaxos` into the part `Dsverify/` (`Dsverify/{Code,GeneratedProof}/github_com/imdea_software/swiftpaxos_epaxos/**`, and gods v1.18.1 at `Dsverify/{Code,GeneratedProof}/github_com/emirpasic/gods/**`); remote, `net`, net/rpc and net/http the part `Net/`'s (std_models `net/rpc`, `net/http`); `encoding/json` the part's names-only translation of the model (dsv-vr's, std_models `encoding/json`; files identical to dsv-vr's); lintest, porcupine, `bufio`, `os` the main tree's; the rest Perennial's |
+| initializers | `etc/gen-init.py` (additive: `DSV_EPAXOS`, `DSV_MAIN`, `DSV_MAIN_COPY`, the epaxos `SPECIAL`s, `DSV_PKGS`/`DSV_PROGRAMS`; dsv-vr's `dsv_hyp_fix`/`DSV_HYP_NEED` taken over verbatim, `DSV_HYP_INITS` the union `encoding.json`, `net.rpc`, `net.http`): `Init.lean` of every package, `PkgTable.lean` of the 17 programs; `Base.lean` facts all `True` (hand-written, `Dsverify/Proof/**/Base.lean`); `Dsverify/Proof/bufio/Init.lean` a generated copy of the main tree's; hypotheses `Dsverify/Proof/{net/rpc,net/http,encoding/json}/Init.lean` (the first two from `scratchpad`'s template, the same shape as dsv-vr's) |
+| pure model | `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/{Model/**,Interface/Wire.lean,epaxos/{Tarjan,ExecModel}.lean}` (the lab's, renamed), `Model/KvScan.lean` (the lab harness's `kvScan`, pure) |
 | goose configuration | `Dsverify/Code/github_com/emirpasic/gods/trees/redblacktree.toml` (the iterator's `Next`/`Prev` names only: `goto`) |
 
 The translation builds (2026-11-23, `lake build` of `Dsverify.GeneratedProof...examples.epaxosnet.cmd.{server2,orch,client0}`, which import every translated package; build seeded from `/shared/etcd-grove-dsvvr/.lake/build`, Perennial from `/shared/perennial-9c3b81f30` through `.lake/package-overrides.json`). `etc/tcb-collections/dsv-epaxos.txt`: the roots, an empty baseline (nothing proved yet). Not yet: initializers (`etc/gen-init.py`), the proof, the statement.
@@ -77,11 +79,44 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 `GOROOT=DIR GOTOOLCHAIN=local PATH=DIR/bin:$PATH go test -tags netmodel ./examples/...`. Both pass
 (2026-11-23).
 
-## What blocks
+## Proof port: progress
 
-The proof needs specs of library code that is not proved in this repository (the coordinator's
-instruction, 2026-11-23: state each as a hypothesis named after the lab's spec, list it here, do
-not widen shared translations or add models):
+1. **Initializers: done** (`01ac72f60b`, `c7617216ca`). Notes: `gen-init`'s closure stops at a
+   hypothesis package (its `imports=[]` and `pkginfo_imports` → `[]`: its `GetIsPkgInitWf` is
+   hand-written, `g p = isPkgInit p ∧ True`), so a program's table does not need facts of net/http's
+   untranslated closure. `epaxos`' initializer: `deferMap` is `make(map[uint64]uint64)`
+   (`wp_map_make1`), `errVarintOverflow` an `errors.New`. The facts the lab proves
+   (`Epaxos/Top/PkgState.lean`: `errVarintOverflow`, `deferMap` ↦□, `LatencyConf` ↦□ "") are not
+   yet in `Base.lean`: add them (gen-init `finish` steps) when a code proof reads them.
+2. **Pure model: ported mechanically** (`scratchpad/port/port.py`, reproduced here: module
+   `Epaxos.{Model,Interface}.X` → `Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.
+   {Model,Interface}.X`, `Epaxos.Proof.X` → `…swiftpaxos_epaxos.X`; identifier `swiftpaxos` →
+   `swiftpaxos_epaxos`; `dsverify_lab.harness` → `…swiftpaxos_epaxos.kvs`; `KvsInput/KvsOutput/
+   Option GoString` → `(List w8)`, as this Perennial's `GoString` is not `List w8`). By hand:
+   `Interface/Wire.lean` imports `Model/KvScan.lean` in place of `Interface/Names.lean` (the lab's
+   net harness) and drops the harness's local instances. **Builds** (2026-11-23, `lake build
+   …Model.Proof.{ExecWfInv,G1Replay,NoneRec}`, the leaves; 63 files, 32k lines, no `sorry`;
+   `#print axioms model.inv_step_deliver`: Lean's three).
+3. **Not started:** the model layer's bridge to remote and the kit's model (the lab's
+   `Interface/*` beyond `Wire`: they are stated over the lab's harness `EpaxosNetSpec`, the
+   `netConnExts` world and its `kvScan` escrow; here they must be restated over `Net/`'s specs and
+   `Proto.lean`'s laws and the kit's set-of-configurations model), the code proofs
+   (`Epaxos/Proof/**`, ~40k lines), the model proof (Go `step` vs the set semantics, as paxos's
+   `ModelSet`/`ModelProof`), `epaxos_remote_robust`.
+
+## Hypotheses
+
+Stated in Lean (no axiom, no `sorry`; each a `Prop` class taken as an instance by every theorem
+that needs it):
+
+- `net.rpc.InitHyp GF` (`Dsverify/Proof/net/rpc/Init.lean`): net/rpc's initializer.
+- `net.http.InitHyp GF` (`Dsverify/Proof/net/http/Init.lean`): net/http's initializer.
+- `encoding.json.InitHyp GF` (`Dsverify/Proof/encoding/json/Init.lean`, dsv-vr's): encoding/json's.
+
+To be stated when the code proofs reach them (the library specs below, named after the lab's):
+
+(The coordinator's instruction, 2026-11-23: state each as a hypothesis named after the lab's spec,
+list it here, do not widen shared translations or add models.)
 
 1. **bufio** (the main tree's `Code/bufio.toml` translates only `NewReader(Size)`, `Reader.Read`):
    the kit's `Op`, fastrpc's `Marshal`/`Unmarshal` of every message, the replica's peer and client
@@ -100,18 +135,18 @@ not widen shared translations or add models):
    lab's: `Harness/Proof/net/http/` (over 34 axioms there).
 4. **gods' treemap** (`NewWith`, `Put`, `Get`, `Select`, `Iterator`, `Next`, `Key`, `Value`): the
    real red-black tree is translated, but `Iterator.Next`/`Prev` are not translatable (`goto`), and
-   nothing proves the rest. The lab used a cut-down copy with its own proof. A model of gods for
-   `models/` is the coordinator's to decide.
+   nothing proves the rest. The lab used a cut-down copy with its own proof. dsv-tpmodels is
+   building a gods treemap model; until then treemap's specs are hypotheses (the coordinator).
 5. Also used, with specs to check before the port: `log` (`Logger.Printf`/`Println`/`Fatal`,
-   through dlog), `encoding/json` (the replica's latency config, never read: `LatencyConf` ""),
+   through dlog), `encoding/json` (names only; the replica's latency config, never read: `LatencyConf` ""),
    `sort`, `math`, `strconv`, `fmt.Sprintf` (the master), `time`, `os`.
 
 ## Next (for a successor)
 
-1. Initializers: extend `etc/gen-init.py`'s `DSV_PKGS`/`DSV_PROGRAMS` (additively) with this kit's
-   packages and 17 programs; write the packages' `Base.lean` facts (the lab's `Epaxos/Proof/init/`).
-2. The pure model (`Epaxos/Model/`, 31k lines, plus `Interface/{Names,Wire}`, `Proof/epaxos/{Tarjan,
-   ExecModel}`): mostly namespace edits (`github_com.imdea_software.swiftpaxos` →
-   `..._epaxos`, `Epaxos.` → `Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.`).
-3. The code proofs over `Net/`'s specs with the hypotheses above; the kit's model proof (as paxos's
-   `ModelSet`/`ModelProof`); the statement `epaxos_remote_robust`.
+1. Model layer over remote: restate the lab's `Interface/{Client,ClientSpec,Epaxos,EpaxosGhost,
+   EpaxosRep,Replica,ReplicaSpec,State,PeerWire,Net,Marshal,Misc,Servers}` over `Net/`'s `net.Conn`
+   specs (as `Dsverify/Proof/…/paxos`'s port did) and the kit's model; drop `Names`/
+   `EpaxosNetSpec`, the harness's `kvScan` escrow and `RunRemote`.
+2. Code proofs (`Epaxos/Proof/{epaxos,replica,examples/epaxosnet,...}`), over the hypotheses
+   above (state each as a `Prop` class in `Dsverify/Proof/<pkg>/…`, named after the lab's spec).
+3. The kit's model proof, the mains/links, `epaxos_remote_robust`, the TCB baseline.
