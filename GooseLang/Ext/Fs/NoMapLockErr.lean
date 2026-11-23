@@ -288,7 +288,7 @@ theorem noIoErr_noMapLockErr_keeps (S T : IoSet) :
     StepKeeps (StepPrem.and (NoIoErr S) (NoMapLockErr T)) := by
   intro _ _ o v h st e' h' st' huniq hs
   by_cases hO : o = "Open" ∧ ∀ fd, ¬ FdFree st fd
-  · obtain ⟨rfl, -⟩ := hO
+  · obtain ⟨rfl, hnf⟩ := hO
     obtain ⟨hst, -, hr⟩ := fsStepV_of_ne (by decide) hs
     by_cases hz : ∃ e'' st'', IsFsStep "Open" v st e'' st'' ∧ ErrnoZero "Open" e''
     · obtain ⟨e'', st'', hs'', hz''⟩ := hz
@@ -297,8 +297,13 @@ theorem noIoErr_noMapLockErr_keeps (S T : IoSet) :
         fun _ => ⟨fun _ => hz'', fun hn => absurd ⟨e'', st'', hs'', hz''⟩ hn⟩, fun _ _ => Or.inl hz''⟩
     · obtain ⟨st'', hs'', hm''⟩ := isFsStep_open_eintr hst
       obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_open_maps hst) hm'' hr
+      -- `PathErrno`'s `open` case asks for a free fd
+      have hpe : PathErrno "Open" v st (osRes (#(-1 : w64)) EINTR) := by
+        simp only [IsFsStep] at hst
+        rcases hst with ⟨p, fl, t, -, hv, -⟩ | ⟨p, fl, t, -, hv, -⟩ <;>
+          exact ⟨t, p, fl, hv, fun h => absurd h.2.2.2 (fun ⟨fd, hf⟩ => hnf fd hf)⟩
       exact ⟨_, h'', st'', .inl ⟨hs'', mapsFresh_same hm'', hr''⟩,
-        fun _ => ⟨fun hex => absurd hex hz, fun _ => trivial⟩, fun _ _ => Or.inr rfl⟩
+        fun _ => ⟨fun hex => absurd hex hz, fun _ => hpe⟩, fun _ _ => Or.inr rfl⟩
   have hdisj : (∀ e' st', NoIoErr S o v st e' st') ∨ (∀ e' st', NoMapLockErr T o v st e' st') := by
     by_cases ho : o = "Flock" ∨ o = "Mmap" ∨ o = "Munmap" ∨ o = "Madvise"
     · left
