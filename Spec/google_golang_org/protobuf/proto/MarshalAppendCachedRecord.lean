@@ -48,16 +48,22 @@ slice; no []byte argument is stored anywhere. Measured: `examples/stdlib/walpb/m
 `b`'s capacity or shares nothing with it, and in place whenever it fits with an up-to-date cache;
 `TestMarshalAppendStaleCache`: a stale size, `b`'s array written past `len b`, then a fresh result).
 
-Against protobuf-go v1.36.12 (`proto/encode.go:153`, `:174`; `internal/impl/encode.go`,
-`sizePointer`): `UseCachedSize` makes the sizer return the size cached in the message's
-`sizeCache` (+1, `0` meaning none) instead of recomputing it; `marshal` uses that size only to grow
-the output buffer before appending (a wrong one only changes when Go's `append` reallocates), and
-nested messages' length prefixes, which a stale cache would make wrong. **That is why the spec is
-stated at `walpb.Record` only**: it has no message field (`record.proto`: two varints and `bytes`),
-so its bytes do not depend on the cache, whatever value the hidden-field invariant holds there. Not
-stated for registered types in general: at a type with message fields a stale cache gives other
-bytes. Measured: `examples/stdlib/walpb` (`TestRecordEncoder`: after `proto.Size`, the bytes equal
-`recEnc`). The registration is keyed by `I.data.ty` (then `I.data.ty = walpb.Record.ty`), the
+Against protobuf-go v1.36.12 (`proto/encode.go:153-161`, `:174-210`; `internal/impl/encode.go:47-61`,
+`sizePointer`): `UseCachedSize` makes the sizer return the size cached in a message's `sizeCache`
+(size + 1, `0` meaning none: `:52-58`) instead of recomputing it; a level whose cache is `0` is
+recomputed, still reading its sub-messages' caches, and stores what it computed (`:118-129`). At the
+top level `marshal` uses that size only to grow the output buffer before appending
+(`proto/encode.go:184-193`: a stale one only changes when Go's `append` reallocates; the bytes are
+right). At a nested message the cached size is the length prefix, and it is checked against the bytes
+then appended (`internal/impl/codec_field.go:163-172`; a repeated message field `:420-433`): a stale
+nested cache makes the call fail with a size mismatch (`proto/encode.go:199-203`) and return a nil
+slice, never wrong bytes. **That is why the spec is stated at `walpb.Record` only**: it has no
+message field (`record.proto`: two varints and `bytes`), so the call cannot fail and its bytes do not
+depend on the cache, whatever value the hidden-field invariant holds there. Not stated for registered
+types in general: at a type with message fields a stale nested cache makes it fail (etcd-grove #37,
+"S3 design: protobuf-go's size cache"). Measured: `examples/stdlib/walpb` (`TestRecordEncoder`: after
+`proto.Size`, the bytes equal `recEnc`); `models/internal/pbcachetest` (`TestCachedTopLevelStale`,
+`TestCachedStaleNestedFails`: protobuf-go's cache behavior at nested types). The registration is keyed by `I.data.ty` (then `I.data.ty = walpb.Record.ty`), the
 form the model-param gate's rule 1 reads as tying `I` to its Go type (2026-11-15; until then keyed
 by `walpb.Record.ty` directly, the same statement). -/
 abbrev proto.MarshalAppendCachedRecord.spec : Prop :=

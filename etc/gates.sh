@@ -280,6 +280,10 @@ done
 # overlays of net/rpc, net/http and encoding/json are of that release, not of the gates' go1.27.1)
 (cd models && export GOTOOLCHAIN=go1.27.3 && GOWORK=off go vet ./... && GOWORK=off gotest ./...) \
   >> "$tmp/nm.log" 2>&1 || nm=1
+# protobuf-go's size cache (models/internal/pbcachetest, #37's S3 design): its characterisation tests
+# run above; again under -race, for the concurrent Size/Marshal of a shared message
+(cd models && export GOTOOLCHAIN=go1.27.3 && GOWORK=off gotest -race ./internal/pbcachetest/) \
+  >> "$tmp/nm.log" 2>&1 || nm=1
 # the net/rpc and net/http models (models/net/; phase 5.2): rpcgen's codec is its output for the
 # derived input (--check, inside run.sh), and the differential tests pass against the real packages
 # and against the models (an overlay of the toolchain's source, models/goroot.py)

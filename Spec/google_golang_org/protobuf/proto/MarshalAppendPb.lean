@@ -29,7 +29,9 @@ encoding (`pbEncC I c`) to `b` and returns the result and `nil`; if it fits `b`'
 array (the same pointer and capacity).
 
 Against protobuf-go v1.36.12 (`proto/encode.go:153`, `:174`): `MarshalAppend` is `Marshal`
-appending to `b` (Go's `append`: in place within the capacity); the premise is the Scope's
+appending to `b` (Go's `append`: in place within the capacity), with the same size pass that stores
+every level's size cache before the marshal pass reads them, so it fails only as `proto.MarshalPb`'s
+docstring says (a nested cache changed between the passes); the premise is the Scope's
 (`[v6]` §4, unchanged from revision 5), keeping the grown allocation below `maxAlloc`. -/
 abbrev proto.MarshalAppendPb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
