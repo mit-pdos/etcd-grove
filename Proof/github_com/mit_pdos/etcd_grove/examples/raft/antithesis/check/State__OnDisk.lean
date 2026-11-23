@@ -1914,6 +1914,110 @@ theorem State.OnDisk.wp_proof
   generalize hS5 : ({ { { S4 with votes := OnDiskProofLaws.votes3 X t1 vd } with leaders := ld } with
     ledLog := ll } : State) = S5
   have hcfg5 : S5.cfg = s.cfg := by rw [← hS5]; exact hcfg4
+  have hS5m : S5.msgs = msgs2 := by rw [← hS5, ← hS4]
+  have hS5v : S5.votes = OnDiskProofLaws.votes3 X t1 vd := by rw [← hS5]
+  -- `pre := &Pre{Term: x.T0(), VoteTerm: s.VoteTerm[n], …, Msgs: factsMinus(ns.Msgs, s.Msgs), Votes: …}`
+  odm T0
+  wp_apply wp_T0 _ X $$ [Hx] as %ut0 %Hut0
+  · iexact Hx
+  icases intsRO_at g.VoteTerm' s.voteTerm n ⟨Hn, by rw [HWf.len_voteTerm]; exact Hlt⟩ $$ HVoteTerm
+    with ⟨%wvt, #Hwvta, %Hwvt⟩
+  try wp_auto
+  wp_apply wp_load_at _ _ wvt Hn $$ [Hwvta]
+  · iexact Hwvta
+  ihave #Hwvfa := strsRO_at g.VoteFor' s.voteFor n ⟨Hn, by rw [HWf.len_voteFor]; exact Hlt⟩ $$ HVoteFor
+  try wp_auto
+  wp_apply wp_load_at _ _ _ Hn $$ [Hwvfa] as -
+  · iexact Hwvfa
+  icases intsRO_at g.CommitIndex' s.commitIndex n ⟨Hn, by rw [HWf.len_commitIndex]; exact Hlt⟩ $$ HCommitIndex
+    with ⟨%wci, #Hwcia, %Hwci⟩
+  try wp_auto
+  wp_apply wp_load_at _ _ wci Hn $$ [Hwcia]
+  · iexact Hwcia
+  icases confirmedsRO_at g.Confirmed' s.confirmed n ⟨Hn, by rw [HWf.len_confirmed]; exact Hlt⟩ $$ HConfirmed
+    with ⟨%wcf, #Hwcfa, %Hwcf⟩
+  try wp_auto
+  wp_apply wp_load_at _ _ wcf Hn $$ [Hwcfa]
+  · iexact Hwcfa
+  icases OnDiskProofLaws.stateOwn_msgs_votes q S5 $$ Hq with ⟨%gq, Hqp, #HqM, #HqV, Hqc⟩
+  try wp_auto
+  wp_apply wp_factsMinus gq.Msgs' S5.msgs g.Msgs' s.msgs $$ [HqM HMsgs] as %pm #Hpm
+  · iframe HqM HMsgs
+  try wp_auto
+  wp_apply wp_votesMinus gq.Votes' S5.votes g.Votes' s.votes $$ [HqV HVotes] as %pv #Hpv
+  · iframe HqV HVotes
+  ihave Hq := Hqc $$ Hqp
+  try wp_auto
+  ihave Hpo : OnDiskProofLaws.preOwn «$r0_ptr» (OnDiskProofLaws.pre0' X S5.msgs S5.votes) $$ [«$r0»]
+  · iunfold OnDiskProofLaws.preOwn
+    iexists _
+    iframe «$r0»
+    unfold OnDiskProofLaws.pre0'
+    rw [hXs, hXn]
+    dsimp only
+    isplitr
+    · ipureintro; exact ⟨Hut0, Hwvt, rfl, Hwci, rfl, Hwcf, rfl, rfl⟩
+    isplitl []
+    · iapply Init0_logNil
+    iframe Hpm Hpv
+    iapply Init0_factsNil
+  -- u4: `if x.stores() { pre.Keep = x.first() - 1; pre.Suffix = SubSeq(x.L0(), x.first(), len(x.L0())) } else { pre.Keep = len(x.L0()) }`
+  obtain ⟨pre4, Ho, hpre4⟩ := u4_ok Ho
+  rw [OnDiskProofLaws.pre0_eq] at hpre4
+  dsimp only at hpre4
+  rw [← hS5m, ← hS5v] at hpre4
+  wp_join (v := executeVal) iprop(OnDiskProofLaws.preOwn «$r0_ptr» pre4) at next with [Hpo] as Hpo
+  · iunfold OnDiskProofLaws.preOwn at Hpo
+    icases Hpo with ⟨%gp, Hpl, %Hpr, #Hps, #Hpms, #Hpvs, #Hpas⟩
+    obtain ⟨h1, h2, h3, h4, -, h6, h7, h8⟩ := Hpr
+    rcases hpre4 with ⟨hst, rfl⟩ | ⟨fi, suf, hst, hfi, hsuf, rfl⟩
+    · odm stores
+      wp_apply wp_stores _ X false $$ [Hx]
+      · iframe Hx; ipureintro; exact hst
+      try wp_auto
+      odm L0
+      wp_apply wp_L0 _ X $$ [Hx] as %gl0 #Hl0
+      · iexact Hx
+      ihave %Hl0l := logRO_len _ _ $$ Hl0
+      try wp_auto
+      wp_join_done
+      iunfold OnDiskProofLaws.preOwn
+      iexists _; iframe Hpl Hps Hpms Hpvs Hpas
+      ipureintro
+      exact ⟨h1, h2, h3, h4, Hl0l, h6, h7, h8⟩
+    have hfb := first_bigOk HW hb hfi
+    unfold bigOk at hfb
+    odm stores
+    wp_apply wp_stores _ X true $$ [Hx]
+    · iframe Hx; ipureintro; exact hst
+    try wp_auto
+    odm first
+    wp_apply wp_first _ X fi $$ [Hx] as %ufi %Hufi
+    · iframe Hx; ipureintro; exact hfi
+    try wp_auto
+    odm L0
+    wp_apply wp_L0 _ X $$ [Hx] as %gl0 #Hl0
+    · iexact Hx
+    try wp_auto
+    odm first
+    wp_apply wp_first _ X fi $$ [Hx] as %ufi' %Hufi'
+    · iframe Hx; ipureintro; exact hfi
+    try wp_auto
+    odm L0
+    wp_apply wp_L0 _ X $$ [Hx] as %gl0' #Hl0'
+    · iexact Hx
+    ihave %Hl0l := logRO_len _ _ $$ Hl0'
+    try wp_auto
+    wp_apply wp_SubSeq gl0 X.L0 ufi' gl0'.len suf $$ [Hl0] as %gsuf #Hsuf
+    · iframe Hl0; ipureintro; rw [Hufi', Hl0l]; exact hsuf
+    try wp_auto
+    wp_join_done
+    iunfold OnDiskProofLaws.preOwn
+    iexists _; iframe Hpl Hsuf Hpms Hpvs Hpas
+    ipureintro
+    refine ⟨h1, h2, h3, h4, ?_, h6, h7, h8⟩
+    dsimp only
+    rw [sint_sub (by rw [Hufi, sint_one]; omega) (by rw [Hufi, sint_one]; omega), Hufi, sint_one]
   done
 
 end proof

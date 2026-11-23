@@ -6,6 +6,8 @@ needs (the vote, `voteFor`, the exact `viol`), as `OnDiskLaws2`'s `_ok` lemmas d
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskLaws2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.StateLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Init0Laws
 
 @[expose] public section
 
@@ -124,6 +126,52 @@ theorem u3_ok'' {t1 : Int} {voted : Bool} {K : List VoteRec → EvalM (Option St
     have : x.w.vote = some v := need_ok hv
     simp only [votes3, ite_true, this, Option.getD_some]
     exact h
+
+/-- `pre` before its updates (`OnDiskLaws2.pre0`), from the successor's `msgs` and `votes` only. -/
+def pre0' (x : OnDisk) (msgs : List Fact) (votes : List VoteRec) : Pre :=
+  { term := x.T0, voteTerm := x.s.voteTerm[x.n]!, voteFor := x.s.voteFor[x.n]!,
+    commit := x.s.commitIndex[x.n]!, confirmed := x.s.confirmed[x.n]!,
+    msgs := lset.minus msgs x.s.msgs, votes := lset.minus votes x.s.votes }
+
+theorem pre0_eq (x : OnDisk) (ns : State) : pre0 x ns = pre0' x ns.msgs ns.votes := rfl
+
+section iris
+open Iris Iris.BI Iris.ProofMode
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
+
+/-- An owned successor's struct opened to read its `Msgs` and `Votes` fields (B 349-352's `pre`). -/
+theorem stateOwn_msgs_votes (q : Loc) (s : State) :
+    stateOwn (GF := GF) q s ⊢ ∃ g : G.State, q ↦ g ∗ factsRO g.Msgs' s.msgs ∗ votesRO g.Votes' s.votes ∗
+      (q ↦ g -∗ stateOwn q s) := by
+  iintro Hq
+  iunfold stateOwn at Hq
+  iNamed Hq
+  icases Hf with #Hf
+  ihave #Hf2 := Hf
+  iNamed Hf2
+  iexists g
+  iframe Hp HMsgs HVotes
+  iintro Hp
+  iunfold stateOwn
+  iexists g
+  iframe Hp Hf
+
+/-- A Go `Pre`'s scalar fields holding `u`'s (as in `preRO`). -/
+def preRel (g : G.Pre) (u : Pre) : Prop :=
+  sint.Z g.Term' = u.term ∧ sint.Z g.VoteTerm' = u.voteTerm ∧ g.VoteFor' = u.voteFor ∧
+    sint.Z g.Commit' = u.commit ∧ sint.Z g.Keep' = u.keep ∧ confirmedRel g.Confirmed' u.confirmed ∧
+    sint.Z g.Low' = u.low ∧ g.Made' = u.made
+
+/-- A `*Pre` being built (`OnDisk`'s `pre`, B 349-359), the struct owned, holding `u`. -/
+noncomputable def preOwn (l : Loc) (u : Pre) : IProp GF :=
+  iprop(∃ g : G.Pre, l ↦ g ∗ ⌜preRel g u⌝ ∗ logRO g.Suffix' u.suffix ∗ factsRO g.Msgs' u.msgs ∗
+    votesRO g.Votes' u.votes ∗ factsRO g.Acks' u.acks)
+
+end iris
 
 end OnDiskProofLaws
 end AntCheck
