@@ -328,9 +328,14 @@ theorem network.opErr_errOrNil (op : GoString) (src addr e err : GoInterface) :
     wp_method_call
     wp_call
     unfold net.OpError.Error.impl
-    wp_pures
+    wp_auto
+    wp_bind (ExternalOp _ _ _)
     iapply wp_net_AnyString
-    iapply HΦ
+    iintro %str
+    wp_auto
+    wp_if_destruct
+    · iapply HΦ
+    · iapply HΦ
   · ipureintro
     intro e' h T hT
     simp [interface.mkOk] at h

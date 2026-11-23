@@ -362,5 +362,7 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
     iapply BigSepL.bigSepL_nil.2
     iempintro
 
+#print axioms vr_remote_robust
+
 end github_com.tangledbytes.go_vsr.examples.vsrnet
 end Perennial
