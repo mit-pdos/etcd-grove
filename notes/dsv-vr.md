@@ -153,6 +153,14 @@ hypothesis about that logger could replace it.
 `Server`/`runReplica`), then `Mains`/`Linked`/`TopLevelRobustness` as paxos's (the statement
 `vr_remote_robust`, the start's ghost allocation and protocols, linking every Results theorem and
 leaving only library hypotheses), `etc/tcb-collections/dsv-vr.txt`.
+**Kit layer (`fc8f1bbe4b`, clean, Lean's three axioms over their premises):** `OrchProof.lean`
+(`Orch.spec`/`Orch.wp_proof`: Configure (with `conf_size`) then remote's `Check`; `kvS_pendDec`, masks),
+`ClientDefs.lean` (`sysRes γ c sys n`, the client machine's resource; `reply_short`: a valid reply's
+result < 2^16, so `Op`'s output is a `KOut`), `OpProof.lean` (`Op.spec`/`Op.wp_proof`, one call, from
+`slotUpd (kvR γ.gn) i Ψ`), `MkClientProof.lean` (`mkClient.spec`; precondition `pkgStates` =
+`frameDecoderSet ∗ codecSet ∗ ErrNoConn`'s value: package facts missing, see events' open item;
+hypotheses `slogNew.spec`, `slogDiscard.spec` (DiscardHandler's type is names-only: no points-to)),
+`ClientProof.lean` (`Client.spec`/`Client.wp_proof` over **`ServeClientB.spec`**, finding 6).
 **Open (events' package facts):** `pkg/events/Base.lean`/`examples/vsrwire/Base.lean` still
 have the weak facts; the hub specs take `hookKnownFull`/`frameDecoderSet` as preconditions. To make
 them package facts: move `frameDecOk`, `rstream`, `hookLockInvFull`, `hookKnownFull`,
@@ -280,6 +288,17 @@ hypothesis of the kit's theorems named after the lab's spec, until the piece lan
    `json.RawMessage` (`Unknown identifier encoding.json.jsontext.Value`); the port translates the
    model's names instead (its `RawMessage` is its own `[]byte` type), which is also what the
    eventual Lean half will be.
+6. **BLOCKER: remote's `ServeClient.spec` cannot be met by this kit's client** (nor `Serve.spec`).
+   (a) `newClient` is specified as a persistent `{{True}}` triple yet called once: it would have to
+   produce the exclusive `tok sys` (the `Sys` flags, go-vsr's request numbers, the ghost counter
+   `nextReq`) from nothing any number of times (paxos escaped: its `tok` was persistent); (b) no budget
+   on calls: `svcOp`/`Serve.spec` cover unboundedly many `op` calls with one `tok`, but each `Op`
+   registers a request (`ghost_register`, budget < 2^28 per client, which bounds every message line), and
+   remote's `reqP` admits any number of slots. Fix (a change to `examples/lib/remote`): pass
+   `newClient`'s WP as a (non-persistent) resource, and budget calls (e.g. a per-address slot bound in
+   `reqP` from `Check`'s `ops`, `tok (k+1) → tok k`). `examples/vsrnet/ClientProof.lean` states that
+   contract as `ServeClientB.spec`, a premise of `Client.wp_proof` only (not dischargeable as remote
+   stands; probably refutable since a dialer can open more slots than the budget).
 5. **`io.ReadFull` over a connection needs a reader contract at length 0.** Perennial's
    `io.ReadFull.spec` (and `ReadAtLeast`) asks the reader's `Pre` for every remaining length up to and
    including `len(buf)`, so at 0, which dsv-bufio's `conn_readerOk` (`Pre := 0 < m`) rules out. So
