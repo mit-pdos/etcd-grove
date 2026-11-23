@@ -5,7 +5,7 @@ A linking module (its name: `*Linked`): `kvReplica_wp`, the WP of `kvnetReplicaP
 initialization, then `RunNode`) from the generation's empty package state and `StartNode`'s start
 resource at every address map (`kvNodeStart`, from `TopBoot.lean`'s `kvGen_boot`), through kvnet's
 linked `wp_RunNode`. (`errors.IsPathErrnoNotExist.spec` is proved since 2026-11-22, `wal-safe-errors`, and
-`durable`'s Link uses the proof; the hypothesis `h_err` is unused, left for kvnet's top level to drop.)
+`durable`'s Link uses the proof, so neither theorem takes it.)
 -/
 module
 
@@ -59,7 +59,6 @@ replica's address protocols and the start resource at every address map holding 
 addresses, given the globals the package's imports' facts give (`TopPkg.lean`), which `RunNode`
 reads too. -/
 theorem kvReplica_wp
-    (h_err : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
     (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
     (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
       (uint.nat cl.maxCommittedSizePerReady) (uint.nat cl.maxInflightMsgs) = true)
@@ -102,7 +101,6 @@ extension's local interpretation `σ` (kept), the boot (`kvGen_boot`), then the 
 (`kvReplica_wp`) and the crash obligation (`kvGen_crash`, with one later credit), which gives the next
 generation's `kvGen` at the same file. -/
 theorem kvRep_gen
-    (h_err : _root_.Perennial.EtcdGrove.errors.IsPathErrnoNotExist.spec (GF := GF) (hG := hG))
     (γ : KdNames) (vs : List w64) (cl : ClusterConfig) (addrs dir : GoString) (id : w64)
     (f : DurFs.DFile) (R : Fs.Roots) (σ : Fs.OsState)
     (hvc : validCluster (splitAddrs addrs) (uint.nat cl.voters) (uint.nat cl.maxSizePerMsg)
@@ -134,7 +132,7 @@ theorem kvRep_gen
   imodintro
   iframe Hl
   isplitl [Hgs Hst]
-  · iapply kvReplica_wp h_err γ vs cl addrs dir id hvc hid1 hid2 $$ Hgs Hpr
+  · iapply kvReplica_wp γ vs cl addrs dir id hvc hid1 hid2 $$ Hgs Hpr
     iintro #Hcg #Hcc %M %hM
     unfold kvNodeStart
     isplitr
