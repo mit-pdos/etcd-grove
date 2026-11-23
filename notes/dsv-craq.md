@@ -531,3 +531,14 @@ P4 (d)); when they are, recheck that their tables list these packages.
 own, a chain of 3-5 with late joins and either read mode chosen at random, removals asked by client
 nodes. Its axioms: Lean's three and porcupine's `CheckOperations.wp_proof` (here the verified
 porcupine replaces it).
+- **P11. Landing prep (2026-11-23).** Upamanyu signed off net-rpc-errors (trusted 3d0cc4bc8b and the
+  #8 point). Merged origin/lean 29f93a3c2c (Perennial ccfeb3895, `/shared/perennial-ccfeb3895`;
+  dsv-json-main included) and net-rpc-errors b58da6a1a6; PkgTables regenerated with gen-init (the
+  twelve craqnet `cmd/*/PkgTable.lean`: the new pin's `slices` imports `iter`). The statement
+  (`Dsverify/Spec/.../craqnet/TopLevelRobustness.lean`, the proof's `TopLevel*`) is textually
+  unchanged against bcfe226b18. **Built on fk-lean1** (0e6cbf1f25): a scratch module importing
+  craq's `TopLevelRobustness` and the six landed ones, 4996 jobs green; `#print axioms` of all seven:
+  `propext`, `Classical.choice`, `Quot.sound`. Scratch dropped. Here: tier-check ok (227 known, none
+  new); gen-init `--check` up to date; `proof_roots.namespace()` `Perennial.EtcdGrove.`; goose.py,
+  gen-init.py and the six landed `TopLevelRobustness` files equal origin/lean's; dup scan
+  (`dups.py` at the new pin): no craq duplicates (the 4 hits are the scanner's known false positives).
