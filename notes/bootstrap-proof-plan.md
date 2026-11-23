@@ -303,6 +303,32 @@ final stage checks that each example's `Uok` implies it (as its `peerURLsDir` al
 - **S3, `crypto/sha1`, `netutil.URLStringsEqual` (IP literals), the `net/http` client in
   `isMemberBootstrapped`.** Translation is tried first. If goose or the semantics fails (e.g.
   `crypto/internal/fips140` build tags, `net.Resolver`), I stop with the reason.
+  Probe results (2026-11-23, goose `c95e922` on Go 1.27.3's library and etcd `edc800c6f`, in a
+  scratch directory):
+  - **`crypto/sha1`** translates completely with `-tags purego` (`Sum`, `digest.Write`,
+    `checkSum`, `blockGeneric`, and `init`'s `crypto.RegisterHash`). Without `purego`, goose stops on
+    the assembly `blockAVX2`/`blockSHANI` (`sha1block_amd64.go:15,18`). What remains are leaves with
+    no Go body: `crypto/internal/boring/sig.StandardCrypto` (an assembly marker that does nothing),
+    `crypto/fips140.isBypassed` (`go:linkname`), and `internal/godebug`'s linkname'd functions
+    under `fips140.enabled`. `Sum` panics if `fips140only.Enforced()`, so a model of it returning
+    false carries an environment premise (`GODEBUG` lacks `fips140=only`). `purego` also trusts
+    that the assembly computes `blockGeneric`'s function. The alternative is one trusted `sha1.Sum`,
+    like the existing `sha256.Sum256`. **Owner's choice, before stage 2.**
+  - `encoding/binary.BigEndian`, `sort.Strings`: translated in Perennial already.
+    `strings.Join`: trusted there already.
+  - **`netutil.URLStringsEqual`** (12 functions) translates. With IP-literal hosts and numeric ports
+    it reaches `url.Parse`, `URL.String`, `net.SplitHostPort`/`ParseIP`/`IP.*`, and no resolver.
+    Perennial-side gaps: the `internal/bytealg` assembly
+    (`IndexByteString`/`IndexString`/`CountString`), `netip`'s package `init` calling `unique.Make`
+    (the runtime's weak interning table), `strings.Builder.String` (`unsafe.String`),
+    `strings.IndexRune` (a label goose rejects, `strings.go:157`), `url.badSetPath` (linkname),
+    `godebug.Setting.Value`.
+  - **`isMemberBootstrapped`.** With one member it makes no HTTP request: `getRemotePeerURLs`
+    skips the local member, so it allocates a client and returns false. That part translates now.
+    With several members it calls `Client.Get` per peer, which translates (after un-skipping
+    `DefaultTransport`, `NoBody`, `ErrSchemeMismatch`, `ErrUseLastResponse`), with `RoundTrip`
+    and the body reads as the network boundary. `json.Unmarshal` into `[]*Member` runs on any
+    response (the status is not checked), and that is reflection again.
 - **S4, build capacity.** A full build is about 49 GB; the disk had 22 GB free on 2026-11-23, and
   `bootstrap`'s cone is most of the server. Each stage's check is a target-limited `lake build`
   under `/shared/tmp/build-slot.sh`.
