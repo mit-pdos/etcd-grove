@@ -44,6 +44,18 @@ abbrev G.SnapRef := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 abbrev G.Event := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Event
 abbrev G.Config := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Config
 abbrev G.Verdict := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Verdict
+abbrev G.Conf := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Conf
+abbrev G.Fact := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Fact
+abbrev G.VoteRec := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.VoteRec
+abbrev G.LeaderRec := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.LeaderRec
+abbrev G.Confirmed := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Confirmed
+abbrev G.TermLog := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermLog
+abbrev G.TermConf := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermConf
+abbrev G.TermInt := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInt
+abbrev G.Pre := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Pre
+abbrev G.QItem := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.QItem
+abbrev G.ReadRec := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.ReadRec
+abbrev G.State := github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State
 
 end types
 
@@ -235,6 +247,112 @@ def kindW : Kind → w64
 def verdictRO (r : G.Verdict) (v : Verdict) : IProp GF :=
   iprop(⌜r.Kind' = kindW v.kind ∧ sint.Z r.K' = v.k ∧ r.Err' = []⌝ ∗ strsRO r.Names' v.names)
 
+/-! ## States (`state.go`; for the proofs of `binding.go` and `check.go`, none proved yet) -/
+
+/-- A Go `[]int` holding `xs`. -/
+def intsRO (sl : GoSlice) (xs : List Int) : IProp GF :=
+  iprop(∃ ws : List w64, sl ↦*□ ws ∗ ⌜ws.map sint.Z = xs⌝)
+
+/-- A Go `Conf` holding `c`. -/
+def confRO (g : G.Conf) (c : Conf) : IProp GF := iprop(strsRO g.In' c.cin ∗ strsRO g.Out' c.cout)
+
+/-- A Go `[]Conf` holding `cs`. -/
+def confsRO (sl : GoSlice) (cs : List Conf) : IProp GF :=
+  iprop(∃ gs : List G.Conf, sl ↦*□ gs ∗ [∗list] g;c ∈ gs;cs, confRO g c)
+
+/-- A Go `[][]Entry` holding `ls`. -/
+def logsRO (sl : GoSlice) (ls : List (List Entry)) : IProp GF :=
+  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;l ∈ gs;ls, logRO g l)
+
+/-- A Go `Fact` holding `f` (every field: Go's `==` on `Fact`s is the Lean's `=`). -/
+def factRel (g : G.Fact) (f : Fact) : Prop :=
+  g.Type' = f.type ∧ g.Src' = f.src ∧ g.Dst' = f.dst ∧ sint.Z g.Term' = f.term ∧
+  sint.Z g.LastLogIndex' = f.lastLogIndex ∧ sint.Z g.LastLogTerm' = f.lastLogTerm ∧ sint.Z g.Index' = f.index
+
+/-- A Go `[]Fact` holding `fs`. -/
+def factsRO (sl : GoSlice) (fs : List Fact) : IProp GF :=
+  iprop(∃ gs : List G.Fact, sl ↦*□ gs ∗ ⌜List.Forall₂ factRel gs fs⌝)
+
+/-- A Go `VoteRec` holding `v`. -/
+def voteRel (g : G.VoteRec) (v : VoteRec) : Prop :=
+  g.Voter' = v.voter ∧ sint.Z g.Term' = v.term ∧ g.Cand' = v.cand
+
+/-- A Go `[]VoteRec` holding `vs`. -/
+def votesRO (sl : GoSlice) (vs : List VoteRec) : IProp GF :=
+  iprop(∃ gs : List G.VoteRec, sl ↦*□ gs ∗ ⌜List.Forall₂ voteRel gs vs⌝)
+
+/-- A Go `[]LeaderRec` holding `ls`. -/
+def leadersRO (sl : GoSlice) (ls : List LeaderRec) : IProp GF :=
+  iprop(∃ gs : List G.LeaderRec, sl ↦*□ gs ∗
+    ⌜List.Forall₂ (fun (g : G.LeaderRec) (l : LeaderRec) => g.Server' = l.server ∧ sint.Z g.Term' = l.term) gs ls⌝)
+
+/-- A Go `Confirmed` holding `c`. -/
+def confirmedRel (g : G.Confirmed) (c : Confirmed) : Prop := sint.Z g.Term' = c.term ∧ sint.Z g.Index' = c.index
+
+/-- A Go `[]Confirmed` holding `cs`. -/
+def confirmedsRO (sl : GoSlice) (cs : List Confirmed) : IProp GF :=
+  iprop(∃ gs : List G.Confirmed, sl ↦*□ gs ∗ ⌜List.Forall₂ confirmedRel gs cs⌝)
+
+/-- A Go `TermLogs` holding `f`. -/
+def termLogsRO (sl : GoSlice) (f : TermFn (List Entry)) : IProp GF :=
+  iprop(∃ gs : List G.TermLog, sl ↦*□ gs ∗
+    [∗list] g;p ∈ gs;f, ⌜sint.Z g.T' = p.1⌝ ∗ logRO g.L' p.2)
+
+/-- A Go `TermConfs` holding `f`. -/
+def termConfsRO (sl : GoSlice) (f : TermFn Conf) : IProp GF :=
+  iprop(∃ gs : List G.TermConf, sl ↦*□ gs ∗
+    [∗list] g;p ∈ gs;f, ⌜sint.Z g.T' = p.1⌝ ∗ confRO g.C' p.2)
+
+/-- A Go `TermInts` holding `f`. -/
+def termIntsRO (sl : GoSlice) (f : TermFn Int) : IProp GF :=
+  iprop(∃ gs : List G.TermInt, sl ↦*□ gs ∗
+    ⌜List.Forall₂ (fun (g : G.TermInt) (p : Int × Int) => sint.Z g.T' = p.1 ∧ sint.Z g.V' = p.2) gs f⌝)
+
+/-- A Go `*Pre` holding `o`: nil for `none` (`NoWrite`). -/
+def preRO (p : Loc) (o : Option Pre) : IProp GF :=
+  match o with
+  | none => iprop(⌜p = null⌝)
+  | some u => iprop(∃ g : G.Pre, p ↦□ g ∗
+      ⌜sint.Z g.Term' = u.term ∧ sint.Z g.VoteTerm' = u.voteTerm ∧ g.VoteFor' = u.voteFor ∧
+        sint.Z g.Commit' = u.commit ∧ sint.Z g.Keep' = u.keep ∧ confirmedRel g.Confirmed' u.confirmed ∧
+        sint.Z g.Low' = u.low ∧ g.Made' = u.made⌝ ∗
+      logRO g.Suffix' u.suffix ∗ factsRO g.Msgs' u.msgs ∗ votesRO g.Votes' u.votes ∗ factsRO g.Acks' u.acks)
+
+/-- A Go `[]*Pre` holding `us`. -/
+def undoRO (sl : GoSlice) (us : List (Option Pre)) : IProp GF :=
+  iprop(∃ ps : List Loc, sl ↦*□ ps ∗ [∗list] p;u ∈ ps;us, preRO p u)
+
+/-- A Go `[][]Msg` holding `ms`. -/
+def pendingRO (sl : GoSlice) (ms : List (List Msg)) : IProp GF :=
+  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;m ∈ gs;ms, msgsRO g m)
+
+/-- A Go `QItem` holding `q`. -/
+def qitemRO (g : G.QItem) (q : QItem) : IProp GF := iprop(eventRO g.Ev' q.ev ∗ msgsRO g.M' q.m)
+
+/-- A Go `[][]QItem` holding `qs`. -/
+def queueRO (sl : GoSlice) (qs : List (List QItem)) : IProp GF :=
+  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;q ∈ gs;qs,
+    ∃ items : List G.QItem, g ↦*□ items ∗ [∗list] i;x ∈ items;q, qitemRO i x)
+
+/-- A Go `[][]ReadRec` holding `rs`. -/
+def readsRO (sl : GoSlice) (rs : List (List ReadRec)) : IProp GF :=
+  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;r ∈ gs;rs,
+    ∃ items : List G.ReadRec, g ↦*□ items ∗
+      ⌜List.Forall₂ (fun (i : G.ReadRec) (x : ReadRec) => i.Ctx' = x.ctx ∧ sint.Z i.Floor' = x.floor) items r⌝)
+
+/-- A Go `*State` holding `s` (never written once built, so persistent). -/
+def stateRO (p : Loc) (s : State) : IProp GF :=
+  iprop(∃ g : G.State, p ↦□ g ∗ configRO g.Cfg' s.cfg ∗
+    intsRO g.CurrentTerm' s.currentTerm ∗ intsRO g.VoteTerm' s.voteTerm ∗ strsRO g.VoteFor' s.voteFor ∗
+    logsRO g.Log' s.log ∗ intsRO g.CommitIndex' s.commitIndex ∗ strsRO g.Role' s.role ∗
+    intsRO g.LastApplied' s.lastApplied ∗ confsRO g.Config' s.config ∗ intsRO g.ConfAt' s.confAt ∗
+    confirmedsRO g.Confirmed' s.confirmed ∗ factsRO g.Msgs' s.msgs ∗ votesRO g.Votes' s.votes ∗
+    leadersRO g.Leaders' s.leaders ∗ termLogsRO g.LedLog' s.ledLog ∗ termConfsRO g.LedConf' s.ledConf ∗
+    termIntsRO g.LedAt' s.ledAt ∗ termIntsRO g.ElAt' s.elAt ∗ ⌜sint.Z g.I' = s.i⌝ ∗
+    undoRO g.Undo' s.undo ∗ pendingRO g.Pending' s.pending ∗ queueRO g.Queue' s.queue ∗
+    readsRO g.Reads' s.reads ∗ logRO g.Chain' s.chain ∗ termIntsRO g.TermLen' s.termLen ∗
+    strsRO g.Viol' s.viol)
+
 /-! ## Persistence -/
 
 instance fieldRO_persistent {α β : Type} (has bit : w32) (rep : α → β → IProp GF)
@@ -267,6 +385,60 @@ instance eventsRO_persistent (sl : GoSlice) (evs : List Event) : Persistent (eve
 
 instance configRO_persistent (p : Loc) (cfg : Config) : Persistent (configRO (GF := GF) p cfg) := by
   unfold configRO; infer_instance
+
+instance intsRO_persistent (sl : GoSlice) (xs : List Int) : Persistent (intsRO (GF := GF) sl xs) := by
+  unfold intsRO; infer_instance
+
+instance confRO_persistent (g : G.Conf) (c : Conf) : Persistent (confRO (GF := GF) g c) := by
+  unfold confRO; infer_instance
+
+instance confsRO_persistent (sl : GoSlice) (cs : List Conf) : Persistent (confsRO (GF := GF) sl cs) := by
+  unfold confsRO; infer_instance
+
+instance logsRO_persistent (sl : GoSlice) (ls : List (List Entry)) : Persistent (logsRO (GF := GF) sl ls) := by
+  unfold logsRO; infer_instance
+
+instance factsRO_persistent (sl : GoSlice) (fs : List Fact) : Persistent (factsRO (GF := GF) sl fs) := by
+  unfold factsRO; infer_instance
+
+instance votesRO_persistent (sl : GoSlice) (vs : List VoteRec) : Persistent (votesRO (GF := GF) sl vs) := by
+  unfold votesRO; infer_instance
+
+instance leadersRO_persistent (sl : GoSlice) (ls : List LeaderRec) : Persistent (leadersRO (GF := GF) sl ls) := by
+  unfold leadersRO; infer_instance
+
+instance confirmedsRO_persistent (sl : GoSlice) (cs : List Confirmed) : Persistent (confirmedsRO (GF := GF) sl cs) := by
+  unfold confirmedsRO; infer_instance
+
+instance termLogsRO_persistent (sl : GoSlice) (f : TermFn (List Entry)) : Persistent (termLogsRO (GF := GF) sl f) := by
+  unfold termLogsRO; infer_instance
+
+instance termConfsRO_persistent (sl : GoSlice) (f : TermFn Conf) : Persistent (termConfsRO (GF := GF) sl f) := by
+  unfold termConfsRO; infer_instance
+
+instance termIntsRO_persistent (sl : GoSlice) (f : TermFn Int) : Persistent (termIntsRO (GF := GF) sl f) := by
+  unfold termIntsRO; infer_instance
+
+instance preRO_persistent (p : Loc) (o : Option Pre) : Persistent (preRO (GF := GF) p o) := by
+  cases o <;> unfold preRO <;> infer_instance
+
+instance undoRO_persistent (sl : GoSlice) (us : List (Option Pre)) : Persistent (undoRO (GF := GF) sl us) := by
+  unfold undoRO; infer_instance
+
+instance pendingRO_persistent (sl : GoSlice) (ms : List (List Msg)) : Persistent (pendingRO (GF := GF) sl ms) := by
+  unfold pendingRO; infer_instance
+
+instance qitemRO_persistent (g : G.QItem) (q : QItem) : Persistent (qitemRO (GF := GF) g q) := by
+  unfold qitemRO; infer_instance
+
+instance queueRO_persistent (sl : GoSlice) (qs : List (List QItem)) : Persistent (queueRO (GF := GF) sl qs) := by
+  unfold queueRO; infer_instance
+
+instance readsRO_persistent (sl : GoSlice) (rs : List (List ReadRec)) : Persistent (readsRO (GF := GF) sl rs) := by
+  unfold readsRO; infer_instance
+
+instance stateRO_persistent (p : Loc) (st : State) : Persistent (stateRO (GF := GF) p st) := by
+  unfold stateRO; infer_instance
 
 instance verdictRO_persistent (r : G.Verdict) (v : Verdict) : Persistent (verdictRO (GF := GF) r v) := by
   unfold verdictRO; infer_instance

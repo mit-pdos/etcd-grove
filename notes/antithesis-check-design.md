@@ -403,7 +403,11 @@ callees through their specs, a `Link.lean` from a `link-lean-first` list once th
 with `onDisk`'s, `Ready`..`ReadGiven`, `Bind`, `Garbage`..`GC`, `Step`), `state.go` (`Init0`, the
 `set*` copies, `idx`), `check.go` (`violated`, `Next`, `End`, `Run`). A `State` is never written once
 built, so its representation is persistent (`stateRO`, to write with `binding.go`'s layer), and
-the loop invariant of `Run` is `stateRO` of the Lean checker's state after the events taken.
-Proved so far (no `sorry`, no axiom): `TermAt`, `At`, `SubSeq`.
+the loop invariant of `Run` is `stateRO` of the Lean checker's state after the events taken
+(`stateRO` and its parts are defined in `Rep.lean`, persistent, not yet used by a proof).
+Proved so far and linked (`Link.lean`, `etc/gen-link.py --antcheck`; no `sorry`, no axiom, `#print
+axioms` Lean's three): `TermAt`, `At`, `SubSeq`, `stringsEqual`, `Value.Equal`, `Entry.Equal`,
+`EntriesEqual`, `IsPrefix`. The rest of the checker (about 140 functions, `InMemory` and `OnDisk`
+the largest) and `Run` are not.
 
 **Questions** (for the coordinator): see the S3b report.
