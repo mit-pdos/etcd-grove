@@ -180,6 +180,28 @@ theorem plug_append (C D : Ctx α) (t : RB α) : plug (C ++ D) t = plug D (plug 
 
 end Ctx
 
+/-! ## Distinct addresses -/
+
+/-- The addresses of `node n A (node r B E)` are distinct. -/
+theorem locs_rot_facts {α : Type u} {n : Loc} {k : w64} {v : α} {A : RB α} {r : Loc} {k' : w64}
+    {v' : α} {B E : RB α} (h : (RB.node n k v A (RB.node r k' v' B E)).locs.Nodup) :
+    n ≠ r ∧ n ∉ A.locs ∧ n ∉ B.locs ∧ n ∉ E.locs ∧ r ∉ A.locs ∧ r ∉ B.locs ∧ r ∉ E.locs ∧
+    (∀ x ∈ A.locs, x ∉ B.locs) ∧ (∀ x ∈ A.locs, x ∉ E.locs) ∧ (∀ x ∈ B.locs, x ∉ E.locs) ∧
+    A.locs.Nodup ∧ B.locs.Nodup ∧ E.locs.Nodup := by
+  simp only [RB.locs_node, List.nodup_cons, List.nodup_append, List.mem_append, List.mem_cons,
+    not_or] at h
+  grind
+
+/-- The addresses of `node n (node l A B) E` are distinct. -/
+theorem locs_rotR_facts {α : Type u} {n : Loc} {k : w64} {v : α} {l : Loc} {k' : w64} {v' : α}
+    {A B E : RB α} (h : (RB.node n k v (RB.node l k' v' A B) E).locs.Nodup) :
+    n ≠ l ∧ n ∉ A.locs ∧ n ∉ B.locs ∧ n ∉ E.locs ∧ l ∉ A.locs ∧ l ∉ B.locs ∧ l ∉ E.locs ∧
+    (∀ x ∈ A.locs, x ∉ B.locs) ∧ (∀ x ∈ A.locs, x ∉ E.locs) ∧ (∀ x ∈ B.locs, x ∉ E.locs) ∧
+    A.locs.Nodup ∧ B.locs.Nodup ∧ E.locs.Nodup := by
+  simp only [RB.locs_node, List.nodup_cons, List.nodup_append, List.mem_append, List.mem_cons,
+    not_or] at h
+  grind
+
 /-! ## Search: the keys around a subtree -/
 
 section search

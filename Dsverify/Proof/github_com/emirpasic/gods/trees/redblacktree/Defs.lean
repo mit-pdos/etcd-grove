@@ -168,6 +168,31 @@ def replaceRes (rt : Loc) (h : Loc → Node) (old new : Loc) : Loc × (Loc → N
     else (rt, upd h p { h p with Right' := new })
   (r1.1, if new = null then r1.2 else upd r1.2 new { r1.2 new with Parent' := p })
 
+theorem replaceRes_root {rt : Loc} {h : Loc → Node} {old new : Loc} (hp : (h old).Parent' = null) :
+    replaceRes rt h old new =
+      (new, if new = null then h else upd h new { h new with Parent' := (h old).Parent' }) := by
+  simp only [replaceRes, hp, if_true]
+
+theorem replaceRes_left {rt : Loc} {h : Loc → Node} {old new : Loc} (hp : (h old).Parent' ≠ null)
+    (hL : (h (h old).Parent').Left' = old) :
+    replaceRes rt h old new =
+      (rt, if new = null then upd h (h old).Parent' { h (h old).Parent' with Left' := new }
+        else upd (upd h (h old).Parent' { h (h old).Parent' with Left' := new }) new
+          { upd h (h old).Parent' { h (h old).Parent' with Left' := new } new with
+            Parent' := (h old).Parent' }) := by
+  simp only [replaceRes]
+  rw [if_neg hp, if_pos hL]
+
+theorem replaceRes_right {rt : Loc} {h : Loc → Node} {old new : Loc} (hp : (h old).Parent' ≠ null)
+    (hL : ¬ (h (h old).Parent').Left' = old) :
+    replaceRes rt h old new =
+      (rt, if new = null then upd h (h old).Parent' { h (h old).Parent' with Right' := new }
+        else upd (upd h (h old).Parent' { h (h old).Parent' with Right' := new }) new
+          { upd h (h old).Parent' { h (h old).Parent' with Right' := new } new with
+            Parent' := (h old).Parent' }) := by
+  simp only [replaceRes]
+  rw [if_neg hp, if_neg hL]
+
 /-- The leftmost node of `T` (`tree.Left()`): `nil` for an empty tree. -/
 def leftmost (T : RB GoInterface) (m : Loc) : Prop :=
   (T = .leaf ∧ m = null) ∨
@@ -231,6 +256,212 @@ theorem Ctx.pre_cons_nil {f : Frame GoInterface} {C : Ctx GoInterface} (hp : Ctx
   cases f with
   | L n k v r => exact ⟨⟨n, k, v, r, rfl⟩, hp.1⟩
   | R n k v l => simp [Frame.pre] at hp
+
+/-! ### Rotations -/
+
+/-- `x`'s child pointer toward the frame's hole set to `r`. -/
+def holeSet (f : Frame GoInterface) (x : Node) (r : Loc) : Node :=
+  match f with
+  | .L .. => { x with Left' := r }
+  | .R .. => { x with Right' := r }
+
+theorem nodeOf_eq_iff (x : Node) (k : w64) (v : GoInterface) (l r p : Loc) :
+    x = nodeOf enc k v x.color' l r p ↔
+      x.Key' = enc k ∧ x.Value' = v ∧ x.Left' = l ∧ x.Right' = r ∧ x.Parent' = p := by
+  cases x
+  simp only [nodeOf, Node.mk.injEq, true_and]
+
+/-- The nodes of a rotation's subtree are distinct from each other and from the context's. -/
+theorem rot_distinct {C : Ctx GoInterface} {t : RB GoInterface}
+    (hnd : (Ctx.plug C t).locs.Nodup) : t.locs.Nodup ∧ ∀ x ∈ t.locs, x ∉ Ctx.locs C :=
+  ⟨(nodup_plug hnd).1, (nodup_plug hnd).2.2⟩
+
+/-- The context's addresses, and its innermost frame's node among them. -/
+theorem frame_loc_mem {C : Ctx GoInterface} {f : Frame GoInterface} {C' : Ctx GoInterface}
+    (hC : C = f :: C') : f.loc ∈ Ctx.locs C := by
+  subst hC; cases f <;> simp [Ctx.locs, Frame.locs, Frame.loc]
+
+/-- The context of a rotation, its hole's pointer now `r`: the innermost frame's node is
+`holeSet`, the rest unchanged. -/
+theorem RepC_rot {C : Ctx GoInterface} {old r : Loc} (h' : Loc → Node)
+    (hC : RepC enc h C old null) (hndC : (Ctx.locs C).Nodup)
+    (hp : ∀ f C', C = f :: C' → h' f.loc = holeSet f (h f.loc) r)
+    (ho : ∀ l ∈ Ctx.locs C, (∀ f C', C = f :: C' → l ≠ f.loc) → h' l = h l) :
+    RepC enc h' C r null := by
+  cases C with
+  | nil => trivial
+  | cons f C' =>
+    obtain ⟨hf, hC'⟩ := hC
+    simp only [Ctx.locs, List.nodup_append] at hndC
+    have hfl := hp f C' rfl
+    have hfno : ∀ l ∈ Ctx.locs C', l ≠ f.loc := by
+      intro l hl e; subst e
+      exact hndC.2.2 _ (by cases f <;> simp [Frame.locs, Frame.loc]) _ hl rfl
+    refine ⟨?_, RepC_congr h' C' f.loc null (fun l hl => ho l (by simp [Ctx.locs, hl])
+      (by intro f' C'' he; cases he; exact hfno l hl)) hC'⟩
+    cases f with
+    | L fn fk fv fr =>
+      obtain ⟨hfn, hhf, hfr⟩ := hf
+      have hnd1 := hndC.1
+      simp only [Frame.locs, List.nodup_cons] at hnd1
+      refine ⟨hfn, ?_, Rep_congr h' fr fn (fun l hl => ho l (by simp [Ctx.locs, Frame.locs, hl])
+        (by intro f' C'' he; cases he; intro e; subst e; exact hnd1.1 hl)) hfr⟩
+      simp only [Frame.loc, holeSet] at hfl
+      rw [hfl, hhf]
+    | R fn fk fv fl =>
+      obtain ⟨hfn, hhf, hfl'⟩ := hf
+      have hnd1 := hndC.1
+      simp only [Frame.locs, List.nodup_cons] at hnd1
+      refine ⟨hfn, ?_, Rep_congr h' fl fn (fun l hl => ho l (by simp [Ctx.locs, Frame.locs, hl])
+        (by intro f' C'' he; cases he; intro e; subst e; exact hnd1.1 hl)) hfl'⟩
+      simp only [Frame.loc, holeSet] at hfl
+      rw [hfl, hhf]
+
+/-- **A left rotation** (`rotateLeft(n)`), by what the new heap `h'` holds at the nodes it
+changes: `n`, `r`, `B`'s root and the parent of `n` (`holeSet`); elsewhere it is `h`. -/
+theorem Rep_rotL {C : Ctx GoInterface} {n : Loc} {k : w64} {v : GoInterface}
+    {A : RB GoInterface} {r : Loc} {k' : w64} {v' : GoInterface} {B E : RB GoInterface}
+    (hrep : Rep enc h (Ctx.plug C (.node n k v A (.node r k' v' B E))) null)
+    (hnd : (Ctx.plug C (.node n k v A (.node r k' v' B E))).locs.Nodup)
+    (h' : Loc → Node)
+    (hn : h' n = nodeOf enc k v (h' n).color' A.loc B.loc r)
+    (hr : h' r = nodeOf enc k' v' (h' r).color' n E.loc (Ctx.parent C null))
+    (hB : ∀ b kb vb BL BR, B = .node b kb vb BL BR → h' b = { h b with Parent' := n })
+    (hp : ∀ f C', C = f :: C' → h' f.loc = holeSet f (h f.loc) r)
+    (ho : ∀ l, l ≠ n → l ≠ r → (∀ b kb vb BL BR, B = .node b kb vb BL BR → l ≠ b) →
+      (∀ f C', C = f :: C' → l ≠ f.loc) → h' l = h l) :
+    Rep enc h' (Ctx.plug C (.node r k' v' (.node n k v A B) E)) null := by
+  rw [Rep_plug] at hrep ⊢
+  obtain ⟨hC, hnn, hhn, hA, hrn, hhr, hB', hE⟩ := hrep
+  obtain ⟨hndt, hndC, hdis⟩ := nodup_plug hnd
+  obtain ⟨hnr, hnA, hnB, hnE, hrA, hrB, hrE, hAB, hAE, hBE, -, hBnd, -⟩ := locs_rot_facts hndt
+  have hdisC : ∀ x, (x ∈ A.locs ∨ x = n ∨ x = r ∨ x ∈ B.locs ∨ x ∈ E.locs) →
+      x ∉ Ctx.locs C := by
+    intro x hx
+    apply hdis x
+    simp only [RB.locs_node, List.mem_cons, List.mem_append]
+    grind
+  have hBroot : ∀ b kb vb BL BR, B = .node b kb vb BL BR → b ∈ B.locs := by
+    intro b kb vb BL BR e; subst e; simp
+  -- a node of the subtrees `A`, `E` or below `B`'s root, or of the context but its innermost
+  -- frame's node, is unchanged
+  have hun : ∀ l, (l ∈ A.locs ∨ l ∈ E.locs ∨
+      (∃ b kb vb BL BR, B = .node b kb vb BL BR ∧ (l ∈ BL.locs ∨ l ∈ BR.locs))) →
+      h' l = h l := by
+    intro l hl
+    apply ho l
+    · intro e; subst e; rcases hl with hl | hl | ⟨b, kb, vb, BL, BR, rfl, hl⟩
+      · exact hnA hl
+      · exact hnE hl
+      · exact hnB (by simp; grind)
+    · intro e; subst e; rcases hl with hl | hl | ⟨b, kb, vb, BL, BR, rfl, hl⟩
+      · exact hrA hl
+      · exact hrE hl
+      · exact hrB (by simp; grind)
+    · intro b kb vb BL BR hBe e; subst e hBe
+      simp only [RB.locs_node, List.nodup_cons, List.mem_append, not_or] at hBnd
+      rcases hl with hl | hl | ⟨b', kb', vb', BL', BR', he, hl⟩
+      · exact hAB _ hl (by simp)
+      · exact hBE _ (by simp) hl
+      · cases he; grind
+    · intro f C' hC e; subst e
+      apply hdisC _ _ (frame_loc_mem hC)
+      rcases hl with hl | hl | ⟨b, kb, vb, BL, BR, rfl, hl⟩
+      · exact Or.inl hl
+      · exact Or.inr (Or.inr (Or.inr (Or.inr hl)))
+      · exact Or.inr (Or.inr (Or.inr (Or.inl (by simp; grind))))
+  refine ⟨?_, hrn, ?_, ⟨hnn, ?_, ?_, ?_⟩, ?_⟩
+  · -- the context, its hole now `r`
+    refine RepC_rot h' hC hndC hp (fun l hl hf => ho l ?_ ?_ ?_ hf)
+    · intro e; subst e; exact hdisC _ (Or.inr (Or.inl rfl)) hl
+    · intro e; subst e; exact hdisC _ (Or.inr (Or.inr (Or.inl rfl))) hl
+    · intro b kb vb BL BR hBe e; subst e
+      exact hdisC _ (Or.inr (Or.inr (Or.inr (Or.inl (hBroot _ _ _ _ _ hBe))))) hl
+  · simpa using hr
+  · simpa using hn
+  · exact Rep_congr h' A n (fun l hl => hun l (Or.inl hl)) hA
+  · -- B, its root's parent now `n`
+    cases B with
+    | leaf => trivial
+    | node b kb vb BL BR =>
+      obtain ⟨hbn, hhb, hBL, hBR⟩ := hB'
+      have hb := hB b kb vb BL BR rfl
+      refine ⟨hbn, ?_, Rep_congr h' BL b (fun l hl => hun l (Or.inr (Or.inr
+          ⟨b, kb, vb, BL, BR, rfl, Or.inl hl⟩))) hBL,
+        Rep_congr h' BR b (fun l hl => hun l (Or.inr (Or.inr
+          ⟨b, kb, vb, BL, BR, rfl, Or.inr hl⟩))) hBR⟩
+      rw [hb, hhb]
+  · exact Rep_congr h' E r (fun l hl => hun l (Or.inr (Or.inl hl))) hE
+
+/-- **A right rotation** (`rotateRight(n)`), as `Rep_rotL`. -/
+theorem Rep_rotR {C : Ctx GoInterface} {n : Loc} {k : w64} {v : GoInterface} {l : Loc}
+    {k' : w64} {v' : GoInterface} {A B E : RB GoInterface}
+    (hrep : Rep enc h (Ctx.plug C (.node n k v (.node l k' v' A B) E)) null)
+    (hnd : (Ctx.plug C (.node n k v (.node l k' v' A B) E)).locs.Nodup)
+    (h' : Loc → Node)
+    (hn : h' n = nodeOf enc k v (h' n).color' B.loc E.loc l)
+    (hl : h' l = nodeOf enc k' v' (h' l).color' A.loc n (Ctx.parent C null))
+    (hB : ∀ b kb vb BL BR, B = .node b kb vb BL BR → h' b = { h b with Parent' := n })
+    (hp : ∀ f C', C = f :: C' → h' f.loc = holeSet f (h f.loc) l)
+    (ho : ∀ x, x ≠ n → x ≠ l → (∀ b kb vb BL BR, B = .node b kb vb BL BR → x ≠ b) →
+      (∀ f C', C = f :: C' → x ≠ f.loc) → h' x = h x) :
+    Rep enc h' (Ctx.plug C (.node l k' v' A (.node n k v B E))) null := by
+  rw [Rep_plug] at hrep ⊢
+  obtain ⟨hC, hnn, hhn, ⟨hln, hhl, hA, hB'⟩, hE⟩ := hrep
+  obtain ⟨hndt, hndC, hdis⟩ := nodup_plug hnd
+  obtain ⟨hnl, hnA, hnB, hnE, hlA, hlB, hlE, hAB, hAE, hBE, -, hBnd, -⟩ := locs_rotR_facts hndt
+  have hdisC : ∀ x, (x ∈ A.locs ∨ x = n ∨ x = l ∨ x ∈ B.locs ∨ x ∈ E.locs) →
+      x ∉ Ctx.locs C := by
+    intro x hx
+    apply hdis x
+    simp only [RB.locs_node, List.mem_cons, List.mem_append]
+    grind
+  have hBroot : ∀ b kb vb BL BR, B = .node b kb vb BL BR → b ∈ B.locs := by
+    intro b kb vb BL BR e; subst e; simp
+  have hun : ∀ x, (x ∈ A.locs ∨ x ∈ E.locs ∨
+      (∃ b kb vb BL BR, B = .node b kb vb BL BR ∧ (x ∈ BL.locs ∨ x ∈ BR.locs))) →
+      h' x = h x := by
+    intro x hx
+    apply ho x
+    · intro e; subst e; rcases hx with hx | hx | ⟨b, kb, vb, BL, BR, rfl, hx⟩
+      · exact hnA hx
+      · exact hnE hx
+      · exact hnB (by simp; grind)
+    · intro e; subst e; rcases hx with hx | hx | ⟨b, kb, vb, BL, BR, rfl, hx⟩
+      · exact hlA hx
+      · exact hlE hx
+      · exact hlB (by simp; grind)
+    · intro b kb vb BL BR hBe e; subst e hBe
+      simp only [RB.locs_node, List.nodup_cons, List.mem_append, not_or] at hBnd
+      rcases hx with hx | hx | ⟨b', kb', vb', BL', BR', he, hx⟩
+      · exact hAB _ hx (by simp)
+      · exact hBE _ (by simp) hx
+      · cases he; grind
+    · intro f C' hC e; subst e
+      apply hdisC _ _ (frame_loc_mem hC)
+      rcases hx with hx | hx | ⟨b, kb, vb, BL, BR, rfl, hx⟩
+      · exact Or.inl hx
+      · exact Or.inr (Or.inr (Or.inr (Or.inr hx)))
+      · exact Or.inr (Or.inr (Or.inr (Or.inl (by simp; grind))))
+  refine ⟨?_, hln, ?_, Rep_congr h' A l (fun x hx => hun x (Or.inl hx)) hA, ⟨hnn, ?_, ?_, ?_⟩⟩
+  · refine RepC_rot h' hC hndC hp (fun x hx hf => ho x ?_ ?_ ?_ hf)
+    · intro e; subst e; exact hdisC _ (Or.inr (Or.inl rfl)) hx
+    · intro e; subst e; exact hdisC _ (Or.inr (Or.inr (Or.inl rfl))) hx
+    · intro b kb vb BL BR hBe e; subst e
+      exact hdisC _ (Or.inr (Or.inr (Or.inr (Or.inl (hBroot _ _ _ _ _ hBe))))) hx
+  · simpa using hl
+  · simpa using hn
+  · cases B with
+    | leaf => trivial
+    | node b kb vb BL BR =>
+      obtain ⟨hbn, hhb, hBL, hBR⟩ := hB'
+      have hb := hB b kb vb BL BR rfl
+      refine ⟨hbn, ?_, Rep_congr h' BL b (fun x hx => hun x (Or.inr (Or.inr
+          ⟨b, kb, vb, BL, BR, rfl, Or.inl hx⟩))) hBL,
+        Rep_congr h' BR b (fun x hx => hun x (Or.inr (Or.inr
+          ⟨b, kb, vb, BL, BR, rfl, Or.inr hx⟩))) hBR⟩
+      rw [hb, hhb]
+  · exact Rep_congr h' E n (fun x hx => hun x (Or.inr (Or.inl hx))) hE
 
 end heapfn
 
