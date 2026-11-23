@@ -70,6 +70,11 @@ theorem bootSendP_w64_eq_zero {u : w64} : u = W64 0 ↔ sint.Z u = 0 := by
   · intro h; subst h; rfl
   · intro h; word
 
+theorem bootSendP_w64_eq {u v : w64} : u = v ↔ sint.Z u = sint.Z v := by
+  constructor
+  · intro h; subst h; rfl
+  · intro h; word
+
 /-- `ConfOf(l, a, s.InitConf())`'s premise, for a log within budget. -/
 theorem bootSendP_confOf_bounded {s : State} {l : List Entry} {b E w : Nat} (hl : logWithin b E l)
     (hE : ((s.cfg.initVoters.length + (b + w + 1) * E : Nat) : Int) < 2 ^ 61) :
@@ -96,6 +101,128 @@ theorem bootSendP_restored_log {s : State} {b E n : Nat} {u : Pre} {pre : List E
   · rcases List.mem_append.1 he with he | he
     · exact hlog0.2 e (bootSend_subSeq_mem hpre he)
     · exact hu8.2 e he
+
+/-! ## `Send` -/
+
+/-- `Send`'s `mine` (B 516-519): the write's facts, for a boot report. -/
+def bootSendP_mine (bt : Bool) (o : Option Pre) : List Fact :=
+  match bt, o with
+  | true, some u => u.msgs
+  | _, _ => []
+
+/-- `Send`'s `cast` (B 516-519): the write's votes, for a boot report. -/
+def bootSendP_cast (bt : Bool) (o : Option Pre) : List VoteRec :=
+  match bt, o with
+  | true, some u => u.votes
+  | _, _ => []
+
+/-- `Send`'s `dur` (B 520): no write pending, or it was made durable. -/
+def bootSendP_dur (o : Option Pre) : Bool :=
+  match o with
+  | none => true
+  | some u => u.made
+
+/-- `Send`'s tail (B 524-593, after the sender's checks and the write's clearing). -/
+def bootSendP_sendTail (s ns : State) (n : Nat) (ev : Event) (m : Msg) (me : Str) (late bt dur : Bool)
+    (mine : List Fact) (cast : List VoteRec) : EvalM (Option State) := do
+  let mut ns := ns
+  let t ← m.typ
+  if t == go!"vote" then
+    if bt then
+      if !(← andM (pure dur) (orM (do pure (s.msgs.contains (← voteFact m)))
+            (do pure (mine.contains (← voteFact m))))) then return none
+    else if !(← andM (do pure ((← m.term_) == s.currentTerm[n]!))
+          (do pure (s.msgs.contains (← voteFact m)))) then return none
+    return some ns
+  if t == go!"voteresp" then
+    if !(← m.reject_) then
+      let v : VoteRec := { voter := me, term := ← m.term_, cand := ← m.to_ }
+      if !(s.votes.contains v || cast.contains v) then return none
+      if bt && !dur then return none
+      ns := { ns with msgs := lset.add s.msgs { type := go!"grant", src := me, dst := ← m.to_, term := ← m.term_ } }
+    return some ns
+  if (← isReq m) then
+    if !(← orM (pure bt) <| andM (do pure ((← m.term_) == s.currentTerm[n]!))
+          (pure (s.role[n]! == leader))) then return none
+    if !(← andM (snapOk s.ledLog m) (do s.sendable (← reqFactIn s.ledLog m))) then return none
+    return some ns
+  if t == go!"appresp" then
+    if (← m.reject_) then return some ns
+    if bt then
+      if (← m.index_) == 0 then return some ns
+      let ok ← match s.undo[n]! with
+        | none => pure false
+        | some u => andM (pure dur) (do pure (u.acks.contains (ackFact me (← m.to_) (← m.term_) (← m.index_))))
+      if !ok then return none
+      return some ns
+    let c ← if late then need ev.cause else pure (s.pending[n]!)
+    if (← andM (pure (c != [])) <| andM (isReq (c[0]!))
+          (do pure (decide ((← (c[0]!).term_) < s.currentTerm[n]!)))) then
+      if !(← andM (do pure ((← m.index_) == 0)) (do pure ((← m.term_) == s.currentTerm[n]!))) then
+        return none
+      return some ns
+    if (← m.index_) == 0 then return some ns
+    if c == [] then return none
+    let cm ← msgSeqHead c
+    let f ← reqFactIn s.ledLog cm
+    let last := f.prevLogIndex + f.entries.length
+    if !(← andM (orM (do pure ((← cm.typ) == go!"app")) (do pure ((← cm.typ) == go!"snap"))) <|
+          andM (snapOk s.ledLog cm) (s.sendable f)) then return none
+    if !(← andM (do pure ((← m.to_) == (← cm.from_))) <| andM (do pure ((← m.term_) == (← cm.term_)))
+          (do pure (s.currentTerm[n]! == (← cm.term_)))) then return none
+    if (← andM (do pure ((← m.index_) == last)) <| andM (s.prevOk n f) (s.hasFirst n f f.entries.length)) then
+      let old := s.confirmed[n]!
+      let ct ← cm.term_
+      let idx := if old.term == ct then imax old.index last else last
+      ns := { ns with msgs := lset.add s.msgs (ackFact me (← cm.from_) ct last),
+                      confirmed := s.confirmed.set n { term := ct, index := idx } }
+      return some ns
+    if !(← andM (pure (decide (f.prevLogIndex < s.commitIndex[n]!)))
+          (do pure ((← m.index_) == s.commitIndex[n]!))) then return none
+    ns := { ns with msgs := lset.add s.msgs (ackFact me (← cm.from_) (← cm.term_) (s.commitIndex[n]!)) }
+    return some ns
+  if t == go!"hbresp" then
+    let t' := if bt then s.effTerm n else s.currentTerm[n]!
+    if !decide (t' ≤ (← m.term_)) then return none
+    return some ns
+  if isUnmodelled t then return some ns
+  return none
+
+/-- `Send` taken apart: the message, the sender's checks, then the tail from the state with the write
+cleared (or not). -/
+theorem bootSendP_send_ok {s : State} {n : Nat} {ev : Event} {o : Option State}
+    (h : State.send s n ev = .ok o) :
+    ∃ m, need ev.msg = .ok m ∧
+      ∃ x1, orM (do pure ((← m.from_) == s.cfg.server[n]!)) (do pure (isForwarded (← m.typ))) = .ok x1 ∧
+        (x1 = false → o = none) ∧ (x1 = true →
+      ∃ x2, andM (do pure (s.cfg.server.has (← m.to_))) (do pure ((← m.to_) != s.cfg.server[n]!)) = .ok x2 ∧
+        (x2 = false → o = none) ∧ (x2 = true →
+      bootSendP_sendTail s (if !(ev.cause.isSome || ev.b) then { s with undo := s.undo.set n none } else s) n ev m
+        (s.cfg.server[n]!) ev.cause.isSome ev.b (bootSendP_dur (s.undo[n]!)) (bootSendP_mine ev.b (s.undo[n]!))
+        (bootSendP_cast ev.b (s.undo[n]!)) = .ok o)) := by
+  unfold State.send at h
+  obtain ⟨m, hm, h⟩ := bind_ok h
+  refine ⟨m, hm, ?_⟩
+  obtain ⟨x1, hx1, h⟩ := bind_ok h
+  refine ⟨x1, hx1, fun h1 => ?_, fun h1 => ?_⟩
+  · subst h1
+    rw [ite_eq_left_of_eq_true _ _ (eq_true (by decide))] at h; cases h; rfl
+  subst h1
+  rw [ite_eq_right_of_eq_false _ _ (eq_false (by decide))] at h
+  obtain ⟨x2, hx2, h⟩ := bind_ok h
+  refine ⟨x2, hx2, fun h2 => ?_, fun h2 => ?_⟩
+  · subst h2
+    rw [ite_eq_left_of_eq_true _ _ (eq_true (by decide))] at h; cases h; rfl
+  subst h2
+  rw [ite_eq_right_of_eq_false _ _ (eq_false (by decide))] at h
+  unfold bootSendP_sendTail bootSendP_dur bootSendP_mine bootSendP_cast
+  generalize ev.b = bt at h ⊢
+  generalize s.undo[n]! = uo at h ⊢
+  by_cases hlb : (!(ev.cause.isSome || bt)) = true
+  · rw [ite_eq_left_of_eq_true _ _ (eq_true hlb)] at h ⊢
+    cases bt <;> cases uo <;> exact h
+  · rw [ite_eq_right_of_eq_false _ _ (eq_false hlb)] at h ⊢
+    cases bt <;> cases uo <;> exact h
 
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp]
