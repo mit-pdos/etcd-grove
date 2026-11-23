@@ -178,9 +178,13 @@ theorem Client.unaryClientInterceptor.wp_proof
       $$ [Hsp]
     · inext; iapply (attemptPre_attempt conn om vver) $$ Hsp
     wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %Ψe %ci
-        %{ cd with Values := vsv } %(metadata.mdSet om go!"client-api-version" [vver]) %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
-      as %err ⟨Hsend, -, Hres⟩
-    · iframe Hg' Hctx' Hrpc Hver
+        %{ cd with Values := vsv } %(metadata.mdSet om go!"client-api-version" [vver]) %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) %iprop(True) [Hsend Hout Hpb Hsp]
+      as %err ⟨-, Hsend, -, Hres⟩
+    · isplitr
+      · ipureintro; trivial
+      isplitr
+      · itrivial
+      iframe Hg' Hctx' Hrpc Hver
       iframe
       isplitl []
       · iexact Hsz
@@ -249,7 +253,7 @@ theorem Client.unaryClientInterceptor.wp_proof
     | nil =>
       (try wp_auto)
       -- the debug log
-      wp_apply wp_Target conn addr ics dopts $$ [$Hgc] as %ts -
+      wp_apply wp_Target conn addr ics dopts anyRes $$ [$Hgc] as %ts -
       wp_apply wp_zapString as %f1 -
       wp_apply wp_zapString as %f2 -
       wp_apply wp_zapUint as %f3 -
@@ -284,9 +288,13 @@ theorem Client.unaryClientInterceptor.wp_proof
         $$ [Hsp]
       · inext; iapply (attemptPre_attempt conn om vver) $$ Hsp
       wp_apply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ' %Ψe %ci
-          %{ cd with Values := vsv } %(metadata.mdSet om go!"client-api-version" [vver]) %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) [Hsend Hout Hpb Hsp]
-        as %err ⟨Hsend, Hpbs, Hres⟩
-      · iframe Hg' Hctx' Hrpc Hver
+          %{ cd with Values := vsv } %(metadata.mdSet om go!"client-api-version" [vver]) %inp %out %g' %(gs ++ [pv]) %([p_ptr] : List Loc) %iprop(True) [Hsend Hout Hpb Hsp]
+        as %err ⟨-, Hsend, Hpbs, Hres⟩
+      · isplitr
+        · ipureintro; trivial
+        isplitr
+        · itrivial
+        iframe Hg' Hctx' Hrpc Hver
         iframe
         isplitl []
         · iexact Hsz
@@ -308,7 +316,7 @@ theorem Client.unaryClientInterceptor.wp_proof
       | ok ei =>
       (try wp_auto)
       -- the warning
-      wp_apply wp_Target conn addr ics dopts $$ [$Hgc] as %ts2 -
+      wp_apply wp_Target conn addr ics dopts anyRes $$ [$Hgc] as %ts2 -
       wp_apply wp_zapString as %g1 -
       wp_apply wp_PeerString p_ptr $$ [$Hpb] as %pstr Hpb
       wp_apply wp_zapString as %g2 -
@@ -471,7 +479,7 @@ theorem Client.unaryClientInterceptor.wp_proof
         cases gt with
         | ok gti =>
           (try wp_auto)
-          wp_apply wp_Target conn addr ics dopts $$ [$Hgc] as %ts3 -
+          wp_apply wp_Target conn addr ics dopts anyRes $$ [$Hgc] as %ts3 -
           wp_apply wp_zapString as %h1 -
           wp_apply wp_zapError as %h2 -
           wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field) [h1, h2]

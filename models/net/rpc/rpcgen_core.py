@@ -272,14 +272,17 @@ class Schema:
             return f"map[{self.tag(e['key'])}]{self.tag(e['elem'])}"
         raise AssertionError(e)
 
-    def imports(self):
+    def imports(self, receivers=True):
+        """The (alias, path) imports of the closure's types, and with receivers also of the
+        receivers' types: rpc_gen.go names only the types (an import of a receiver's package it
+        does not use would not compile); the generated test names the receivers too."""
         for i in self.closure:
             self.go(i)
         for r, _ in self.receivers:
             self.go(r["type"])
         return sorted((a, p) for p, a in self.alias.items()
                       if any(self.uses(i, p) for i in self.closure)
-                      or any(self.uses(r["type"], p) for r, _ in self.receivers))
+                      or (receivers and any(self.uses(r["type"], p) for r, _ in self.receivers)))
 
     def uses(self, i, path):
         e = self.t[i]
@@ -453,7 +456,7 @@ func rpcPutTag(tag string) []byte {
 
 
 def codec_go(S, header, pkg):
-    imps = S.imports()
+    imps = S.imports(receivers=False)
     o = [header, f"package {pkg}\n\nimport (\n\t\"errors\"\n"]
     if imps:
         o.append("\n")
