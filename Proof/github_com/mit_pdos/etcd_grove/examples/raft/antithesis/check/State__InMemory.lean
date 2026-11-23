@@ -434,8 +434,42 @@ theorem State.InMemory.wp_proof
     icases Hgl with ⟨%gs, #Hgs, #Hgb⟩
     ihave %Hgsl := ownSlice_len _ _ _ $$ Hgs
     ihave %Hgbl := BigSepL2.bigSepL2_length $$ Hgb
-    trace_state
-    sorry
+    ihave HI : (∃ j : Nat, "i" ∷ i_ptr ↦ W64 (j : Int) ∗ "p" ∷ (∃ pv : G.TermLog, p_ptr ↦ pv) ∗
+        "lc" ∷ lc_ptr ↦ false ∗
+        "%Hj" ∷ ⌜j ≤ l.length ∧ anyM (l.drop j) (fun q => andM
+          (do let t ← InMem.T { s := s, n := sint.nat n, ev := ev }; pure (decide (q.1 > t)))
+          (notM (do let nc ← InMem.newC { s := s, n := sint.nat n, ev := ev }; isPrefix nc q.2))) = .ok lcv⌝ : IProp GF)
+      $$ [i p lc]
+    · iexists 0
+      iframe
+      isplitl [p]
+      · iexists _; iexact p
+      ipureintro; exact ⟨Nat.zero_le _, hany⟩
+    wp_for HI
+    obtain ⟨Hjle, Hjany⟩ := Hj
+    by_cases hjl : j < l.length
+    · have hc : sint.Z (W64 (j : Int)) < sint.Z gl.len := by word
+      rw [decide_eq_true hc]
+      simp only [↓reduceIte]
+      wp_auto
+      have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
+      icases p with ⟨%pv, p⟩
+      icases bigSepL2_at (fun (g : G.TermLog) (q : Int × List Entry) => iprop(⌜sint.Z g.T' = q.1⌝ ∗ logRO g.L' q.2))
+        gs l j hjl $$ Hgb with ⟨%gq, %Hgq, %HgqT, #HgqL⟩
+      wp_apply wp_load_index gl (W64 (j : Int)) gs gq h0 (by rw [show sint.nat (W64 (j : Int)) = j by word]; exact Hgq) $$ [Hgs]
+      · iexact Hgs
+      rw [anyM_drop_succ l _ hjl] at Hjany
+      replace Hjany := bind_ok Hjany; obtain ⟨fv, hfv, Hjany⟩ := Hjany
+      obtain ⟨a, ha, hat, haf⟩ := andM_ok hfv
+      replace ha := bind_ok ha; obtain ⟨t, ht, ha⟩ := ha
+      simp only [pure_ok, Except.ok.injEq] at ha
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_T _ _ t $$ [Hx] as %ut %Hut
+      · iframe Hx; ipureintro; exact ht
+      trace_state
+      sorry
+    · sorry
   trace_state
   sorry
 
