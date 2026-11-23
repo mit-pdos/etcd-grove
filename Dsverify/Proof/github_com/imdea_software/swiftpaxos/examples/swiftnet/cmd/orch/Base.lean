@@ -5,7 +5,7 @@ module
 
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.examples.swiftnet.cmd.orch
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Base
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.os.signal.Init

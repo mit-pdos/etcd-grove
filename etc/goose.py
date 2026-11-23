@@ -400,7 +400,11 @@ PROJECTS = [
                     "internal/byteorder=",
                     # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
                     # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
-                    "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall="],
+                    "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall=",
+                    # (featuregate-3, 2026-11-23) `flag`, which featuregate's `MutableFeatureGate`
+                    # names (`AddFlag(*flag.FlagSet, ...)`): this repository's, as `os=` (Perennial's
+                    # would import Perennial's `os`, which must never meet project bboltfs's)
+                    "flag="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -505,6 +509,8 @@ PROJECTS = [
             "hash/crc32", "bufio", "path/filepath", "internal/filepathlite",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
+            # (featuregate-3) names only, but for its initializers and `init` (Code/flag.toml)
+            "flag",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
             # (go.etcd.io/bbolt, etcd's go.mod: v1.5.0, is the bbolt project's translation, from
             # the fork: not translated here)
@@ -514,6 +520,9 @@ PROJECTS = [
             # types only: the interfaces trace.Span embeds and the types of its methods' parameters
             # (so that Goose translates Span as an interface)
             "go.opentelemetry.io/otel/trace/embedded",
+            # (otel-tracing, 2026-11-23) with bodies: the no-op tracer `traceutil.Tracer` holds
+            # (`noop.NewTracerProvider().Tracer(...)`, its initializer)
+            "go.opentelemetry.io/otel/trace/noop",
             "go.opentelemetry.io/otel/codes",
             "go.opentelemetry.io/otel/attribute",
             # (prove-misc, 2026-11-20) names only but its package variables: the carrier interface
@@ -656,7 +665,8 @@ PROJECTS = [
                os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
                os.path.join("github_com", "grpc_ecosystem"),
-               "bufio", os.path.join("path", "filepath"), os.path.join("internal", "filepathlite")],
+               "bufio", os.path.join("path", "filepath"), os.path.join("internal", "filepathlite"),
+               "flag"],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",
@@ -684,6 +694,10 @@ PROJECTS = [
                         "go.etcd.io/raft/v3=KvNet", "google.golang.org="],
             packages=["go.etcd.io/etcd/server/v3/storage/wal/walpb"],
             owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal", "walpb")])],
+        # (jsonlean, 2026-11-23, mit-pdos/etcd-grove#24) encoding/json from its model
+        # (models/encoding/json): the names the main tree's `Code/encoding/json.lean` declares
+        # (project k8s-apiserver's, names only) are the model's
+        std_models=["encoding/json"],
     ),
     Project(
         name="kv",
@@ -1799,6 +1813,10 @@ PROJECTS = [
                os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
+        # (jsonlean, 2026-11-23, mit-pdos/etcd-grove#24) encoding/json from its model
+        # (models/encoding/json): the names the main tree's `Code/encoding/json.lean` declares
+        # (project k8s-apiserver's, names only) are the model's
+        std_models=["encoding/json"],
     ),
     Project(
         name="k8s-daemonset",
@@ -1845,6 +1863,10 @@ PROJECTS = [
                os.path.join("k8s_io", "kubernetes"), os.path.join("k8s_io", "component_helpers"),
                os.path.join("k8s_io", "apiextensions_apiserver"),
                os.path.join("k8s_io", "controller_manager")],
+        # (jsonlean, 2026-11-23, mit-pdos/etcd-grove#24) encoding/json from its model
+        # (models/encoding/json): the names the main tree's `Code/encoding/json.lean` declares
+        # (project k8s-apiserver's, names only) are the model's
+        std_models=["encoding/json"],
     ),
     Project(
         name="k8s-compactor",

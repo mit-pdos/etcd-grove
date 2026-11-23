@@ -331,7 +331,7 @@ noncomputable instance watchChan_access_load_internalPred (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchChan_access_store_internalPred (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.watchChan) (internalPred' : k8s_io.apiserver.pkg.storage.SelectionPredicate) :
+noncomputable instance watchChan_access_store_internalPred (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.watchChan) (internalPred' : _root_.Perennial.k8s_io.apiserver.pkg.storage.SelectionPredicate) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"internalPred" l) v.internalPred' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"internalPred" l) internalPred' (DFrac.own 1))
@@ -347,7 +347,7 @@ noncomputable instance watchChan_access_load_ctx (l : Loc) (v : k8s_io.apiserver
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchChan_access_store_ctx (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.watchChan) (ctx' : context.Context) :
+noncomputable instance watchChan_access_store_ctx (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.watchChan) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"ctx" l) ctx' (DFrac.own 1))
@@ -363,7 +363,7 @@ noncomputable instance watchChan_access_load_cancel (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchChan_access_store_cancel (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.watchChan) (cancel' : context.CancelFunc) :
+noncomputable instance watchChan_access_store_cancel (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.watchChan) (cancel' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"cancel" l) v.cancel' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"cancel" l) cancel' (DFrac.own 1))
@@ -591,7 +591,7 @@ noncomputable instance concurrentOrderedEventProcessing_access_load_groupResourc
  by
   solve_pointsto_access_struct
 
-noncomputable instance concurrentOrderedEventProcessing_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.concurrentOrderedEventProcessing) (groupResource' : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance concurrentOrderedEventProcessing_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.concurrentOrderedEventProcessing) (groupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.concurrentOrderedEventProcessing go!"groupResource" l) v.groupResource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.concurrentOrderedEventProcessing go!"groupResource" l) groupResource' (DFrac.own 1))
@@ -632,7 +632,7 @@ noncomputable instance timedWatchEvent_access_load_Object (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance timedWatchEvent_access_store_Object (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent) (Object' : k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance timedWatchEvent_access_store_Object (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent go!"Object" l) Object' (DFrac.own 1))
@@ -648,7 +648,7 @@ noncomputable instance timedWatchEvent_access_load_recordTime (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance timedWatchEvent_access_store_recordTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent) (recordTime' : time.Time) :
+noncomputable instance timedWatchEvent_access_store_recordTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent) (recordTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent go!"recordTime" l) v.recordTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.timedWatchEvent go!"recordTime" l) recordTime' (DFrac.own 1))

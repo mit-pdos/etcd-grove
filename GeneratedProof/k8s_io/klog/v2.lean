@@ -130,7 +130,7 @@ noncomputable instance logWriter_access_load_Logger (l : Loc) (v : k8s_io.klog.v
  by
   solve_pointsto_access_struct
 
-noncomputable instance logWriter_access_store_Logger (l : Loc) (v : k8s_io.klog.v2.logWriter) (Logger' : github_com.go_logr.logr.Logger) :
+noncomputable instance logWriter_access_store_Logger (l : Loc) (v : k8s_io.klog.v2.logWriter) (Logger' : _root_.Perennial.github_com.go_logr.logr.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) Logger' (DFrac.own 1))
@@ -323,7 +323,7 @@ noncomputable instance severityValue_access_load_Severity (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance severityValue_access_store_Severity (l : Loc) (v : k8s_io.klog.v2.severityValue) (Severity' : k8s_io.klog.v2.internal.severity.Severity) :
+noncomputable instance severityValue_access_store_Severity (l : Loc) (v : k8s_io.klog.v2.severityValue) (Severity' : _root_.Perennial.k8s_io.klog.v2.internal.severity.Severity) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.severityValue go!"Severity" l) v.Severity' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.klog.v2.severityValue go!"Severity" l) Severity' (DFrac.own 1))
@@ -740,7 +740,7 @@ noncomputable instance settings_access_load_file (l : Loc) (v : k8s_io.klog.v2.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_file (l : Loc) (v : k8s_io.klog.v2.settings) (file' : (GoArray io.Writer 4)) :
+noncomputable instance settings_access_store_file (l : Loc) (v : k8s_io.klog.v2.settings) (file' : (GoArray _root_.Perennial.io.Writer 4)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"file" l) v.file' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"file" l) file' (DFrac.own 1))
@@ -756,7 +756,7 @@ noncomputable instance settings_access_load_flushInterval (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance settings_access_store_flushInterval (l : Loc) (v : k8s_io.klog.v2.settings) (flushInterval' : time.Duration) :
+noncomputable instance settings_access_store_flushInterval (l : Loc) (v : k8s_io.klog.v2.settings) (flushInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"flushInterval" l) v.flushInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.klog.v2.settings go!"flushInterval" l) flushInterval' (DFrac.own 1))
@@ -1024,7 +1024,7 @@ noncomputable instance loggingT_access_load_mu (l : Loc) (v : k8s_io.klog.v2.log
  by
   solve_pointsto_access_struct
 
-noncomputable instance loggingT_access_store_mu (l : Loc) (v : k8s_io.klog.v2.loggingT) (mu' : sync.Mutex) :
+noncomputable instance loggingT_access_store_mu (l : Loc) (v : k8s_io.klog.v2.loggingT) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.klog.v2.loggingT go!"mu" l) mu' (DFrac.own 1))

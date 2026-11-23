@@ -59,7 +59,7 @@ noncomputable instance ClientBatch_access_load_state (l : Loc) (v : raxos.proto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClientBatch_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"state" l) state' (DFrac.own 1))
@@ -184,7 +184,7 @@ noncomputable instance ClientStatus_access_load_state (l : Loc) (v : raxos.proto
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientStatus_access_store_state (l : Loc) (v : raxos.proto.client.ClientStatus) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClientStatus_access_store_state (l : Loc) (v : raxos.proto.client.ClientStatus) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"state" l) state' (DFrac.own 1))
@@ -307,7 +307,7 @@ noncomputable instance ClientBatch_SingleMessage_access_load_state (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"state" l) state' (DFrac.own 1))

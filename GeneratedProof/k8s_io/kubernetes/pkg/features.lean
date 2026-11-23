@@ -55,7 +55,7 @@ noncomputable instance clientAdapter_access_load_mfg (l : Loc) (v : k8s_io.kuber
  by
   solve_pointsto_access_struct
 
-noncomputable instance clientAdapter_access_store_mfg (l : Loc) (v : k8s_io.kubernetes.pkg.features.clientAdapter) (mfg' : k8s_io.component_base.featuregate.MutableFeatureGate) :
+noncomputable instance clientAdapter_access_store_mfg (l : Loc) (v : k8s_io.kubernetes.pkg.features.clientAdapter) (mfg' : _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGate) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.features.clientAdapter go!"mfg" l) v.mfg' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.kubernetes.pkg.features.clientAdapter go!"mfg" l) mfg' (DFrac.own 1))

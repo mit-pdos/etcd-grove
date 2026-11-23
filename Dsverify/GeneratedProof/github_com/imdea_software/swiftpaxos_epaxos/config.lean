@@ -408,7 +408,7 @@ noncomputable instance Config_access_load_RunTime (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_RunTime (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.config.Config) (RunTime' : time.Duration) :
+noncomputable instance Config_access_store_RunTime (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.config.Config) (RunTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.config.Config go!"RunTime" l) v.RunTime' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.config.Config go!"RunTime" l) RunTime' (DFrac.own 1))

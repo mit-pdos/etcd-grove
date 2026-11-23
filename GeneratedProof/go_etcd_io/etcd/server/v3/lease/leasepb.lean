@@ -52,7 +52,7 @@ noncomputable instance Lease_access_load_state (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lease_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Lease_access_store_state (l : Loc) (v : go_etcd_io.etcd.server.v3.lease.leasepb.Lease) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.lease.leasepb.Lease go!"state" l) state' (DFrac.own 1))

@@ -76,7 +76,7 @@ noncomputable instance RequestHeader_access_load_state (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RequestHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RequestHeader go!"state" l) state' (DFrac.own 1))
@@ -230,7 +230,7 @@ noncomputable instance InternalRaftRequest_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalRaftRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance InternalRaftRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest go!"state" l) state' (DFrac.own 1))
@@ -838,7 +838,7 @@ noncomputable instance InternalAuthenticateRequest_access_load_state (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalAuthenticateRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance InternalAuthenticateRequest_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.InternalAuthenticateRequest go!"state" l) state' (DFrac.own 1))
@@ -1210,7 +1210,7 @@ noncomputable instance ResponseHeader_access_load_state (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResponseHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ResponseHeader_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader go!"state" l) state' (DFrac.own 1))
@@ -1368,7 +1368,7 @@ noncomputable instance RangeResponse_access_load_state (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RangeResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse go!"state" l) state' (DFrac.own 1))

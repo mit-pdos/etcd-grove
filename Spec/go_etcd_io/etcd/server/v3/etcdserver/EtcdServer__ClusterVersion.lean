@@ -31,7 +31,9 @@ abbrev EtcdServer.ClusterVersion.spec : Prop :=
       srvClusterAddr s ↦□ cl ∗ clusterVersionMono cl γcv ∗
       (if known then monoNatLbOwn γcv 1 else True) }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"ClusterVersion")) (Val #()))
-  {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨ ⌜v ≠ null⌝ ∗ monoNatLbOwn γcv 1 }}
+  {{ (v : Loc), RET #v; ⌜v = null ∧ known = false⌝ ∨
+      ⌜v ≠ null⌝ ∗ (∃ x : github_com.Masterminds.semver.v3.Version, v ↦□ x) ∗
+        monoNatLbOwn γcv 1 }}
 
 end spec
 

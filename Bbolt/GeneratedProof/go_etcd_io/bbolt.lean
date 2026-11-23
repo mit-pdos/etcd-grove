@@ -858,7 +858,7 @@ noncomputable instance DB_access_load_MaxBatchDelay (l : Loc) (v : go_etcd_io.bb
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_MaxBatchDelay (l : Loc) (v : go_etcd_io.bbolt.DB) (MaxBatchDelay' : time.Duration) :
+noncomputable instance DB_access_store_MaxBatchDelay (l : Loc) (v : go_etcd_io.bbolt.DB) (MaxBatchDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"MaxBatchDelay" l) v.MaxBatchDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"MaxBatchDelay" l) MaxBatchDelay' (DFrac.own 1))
@@ -1130,7 +1130,7 @@ noncomputable instance DB_access_load_freelist (l : Loc) (v : go_etcd_io.bbolt.D
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_freelist (l : Loc) (v : go_etcd_io.bbolt.DB) (freelist' : go_etcd_io.bbolt.internal.freelist.Interface) :
+noncomputable instance DB_access_store_freelist (l : Loc) (v : go_etcd_io.bbolt.DB) (freelist' : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"freelist" l) v.freelist' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"freelist" l) freelist' (DFrac.own 1))
@@ -1146,7 +1146,7 @@ noncomputable instance DB_access_load_freelistLoad (l : Loc) (v : go_etcd_io.bbo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_freelistLoad (l : Loc) (v : go_etcd_io.bbolt.DB) (freelistLoad' : sync.Once) :
+noncomputable instance DB_access_store_freelistLoad (l : Loc) (v : go_etcd_io.bbolt.DB) (freelistLoad' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"freelistLoad" l) v.freelistLoad' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"freelistLoad" l) freelistLoad' (DFrac.own 1))
@@ -1162,7 +1162,7 @@ noncomputable instance DB_access_load_pagePool (l : Loc) (v : go_etcd_io.bbolt.D
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_pagePool (l : Loc) (v : go_etcd_io.bbolt.DB) (pagePool' : sync.Pool) :
+noncomputable instance DB_access_store_pagePool (l : Loc) (v : go_etcd_io.bbolt.DB) (pagePool' : _root_.Perennial.sync.Pool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"pagePool" l) v.pagePool' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"pagePool" l) pagePool' (DFrac.own 1))
@@ -1178,7 +1178,7 @@ noncomputable instance DB_access_load_batchMu (l : Loc) (v : go_etcd_io.bbolt.DB
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_batchMu (l : Loc) (v : go_etcd_io.bbolt.DB) (batchMu' : sync.Mutex) :
+noncomputable instance DB_access_store_batchMu (l : Loc) (v : go_etcd_io.bbolt.DB) (batchMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"batchMu" l) v.batchMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"batchMu" l) batchMu' (DFrac.own 1))
@@ -1210,7 +1210,7 @@ noncomputable instance DB_access_load_rwlock (l : Loc) (v : go_etcd_io.bbolt.DB)
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_rwlock (l : Loc) (v : go_etcd_io.bbolt.DB) (rwlock' : sync.Mutex) :
+noncomputable instance DB_access_store_rwlock (l : Loc) (v : go_etcd_io.bbolt.DB) (rwlock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"rwlock" l) v.rwlock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"rwlock" l) rwlock' (DFrac.own 1))
@@ -1226,7 +1226,7 @@ noncomputable instance DB_access_load_metalock (l : Loc) (v : go_etcd_io.bbolt.D
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_metalock (l : Loc) (v : go_etcd_io.bbolt.DB) (metalock' : sync.Mutex) :
+noncomputable instance DB_access_store_metalock (l : Loc) (v : go_etcd_io.bbolt.DB) (metalock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"metalock" l) v.metalock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"metalock" l) metalock' (DFrac.own 1))
@@ -1242,7 +1242,7 @@ noncomputable instance DB_access_load_mmaplock (l : Loc) (v : go_etcd_io.bbolt.D
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_mmaplock (l : Loc) (v : go_etcd_io.bbolt.DB) (mmaplock' : sync.RWMutex) :
+noncomputable instance DB_access_store_mmaplock (l : Loc) (v : go_etcd_io.bbolt.DB) (mmaplock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"mmaplock" l) v.mmaplock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"mmaplock" l) mmaplock' (DFrac.own 1))
@@ -1258,7 +1258,7 @@ noncomputable instance DB_access_load_statlock (l : Loc) (v : go_etcd_io.bbolt.D
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_statlock (l : Loc) (v : go_etcd_io.bbolt.DB) (statlock' : sync.RWMutex) :
+noncomputable instance DB_access_store_statlock (l : Loc) (v : go_etcd_io.bbolt.DB) (statlock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"statlock" l) v.statlock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"statlock" l) statlock' (DFrac.own 1))
@@ -1422,7 +1422,7 @@ noncomputable instance batch_access_load_start (l : Loc) (v : go_etcd_io.bbolt.b
  by
   solve_pointsto_access_struct
 
-noncomputable instance batch_access_store_start (l : Loc) (v : go_etcd_io.bbolt.batch) (start' : sync.Once) :
+noncomputable instance batch_access_store_start (l : Loc) (v : go_etcd_io.bbolt.batch) (start' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"start" l) v.start' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.batch go!"start" l) start' (DFrac.own 1))
@@ -1532,7 +1532,7 @@ noncomputable instance Options_access_load_Timeout (l : Loc) (v : go_etcd_io.bbo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Options_access_store_Timeout (l : Loc) (v : go_etcd_io.bbolt.Options) (Timeout' : time.Duration) :
+noncomputable instance Options_access_store_Timeout (l : Loc) (v : go_etcd_io.bbolt.Options) (Timeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Options go!"Timeout" l) v.Timeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.Options go!"Timeout" l) Timeout' (DFrac.own 1))
@@ -1903,7 +1903,7 @@ noncomputable instance TxStats_access_load_RebalanceTime (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance TxStats_access_store_RebalanceTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (RebalanceTime' : time.Duration) :
+noncomputable instance TxStats_access_store_RebalanceTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (RebalanceTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) v.RebalanceTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"RebalanceTime" l) RebalanceTime' (DFrac.own 1))
@@ -1951,7 +1951,7 @@ noncomputable instance TxStats_access_load_SpillTime (l : Loc) (v : go_etcd_io.b
  by
   solve_pointsto_access_struct
 
-noncomputable instance TxStats_access_store_SpillTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (SpillTime' : time.Duration) :
+noncomputable instance TxStats_access_store_SpillTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (SpillTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) v.SpillTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"SpillTime" l) SpillTime' (DFrac.own 1))
@@ -1983,7 +1983,7 @@ noncomputable instance TxStats_access_load_WriteTime (l : Loc) (v : go_etcd_io.b
  by
   solve_pointsto_access_struct
 
-noncomputable instance TxStats_access_store_WriteTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (WriteTime' : time.Duration) :
+noncomputable instance TxStats_access_store_WriteTime (l : Loc) (v : go_etcd_io.bbolt.TxStats) (WriteTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) v.WriteTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.TxStats go!"WriteTime" l) WriteTime' (DFrac.own 1))
@@ -2367,7 +2367,7 @@ noncomputable instance node_access_load_pgid (l : Loc) (v : go_etcd_io.bbolt.nod
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.node) (pgid' : go_etcd_io.bbolt.internal.common.Pgid) :
+noncomputable instance node_access_store_pgid (l : Loc) (v : go_etcd_io.bbolt.node) (pgid' : _root_.Perennial.go_etcd_io.bbolt.internal.common.Pgid) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"pgid" l) v.pgid' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"pgid" l) pgid' (DFrac.own 1))
@@ -2415,7 +2415,7 @@ noncomputable instance node_access_load_inodes (l : Loc) (v : go_etcd_io.bbolt.n
  by
   solve_pointsto_access_struct
 
-noncomputable instance node_access_store_inodes (l : Loc) (v : go_etcd_io.bbolt.node) (inodes' : go_etcd_io.bbolt.internal.common.Inodes) :
+noncomputable instance node_access_store_inodes (l : Loc) (v : go_etcd_io.bbolt.node) (inodes' : _root_.Perennial.go_etcd_io.bbolt.internal.common.Inodes) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"inodes" l) v.inodes' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.bbolt.node go!"inodes" l) inodes' (DFrac.own 1))

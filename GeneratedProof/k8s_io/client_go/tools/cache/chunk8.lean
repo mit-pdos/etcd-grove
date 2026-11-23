@@ -127,7 +127,7 @@ noncomputable instance controller_access_load_reflectorMutex (l : Loc) (v : k8s_
  by
   solve_pointsto_access_struct
 
-noncomputable instance controller_access_store_reflectorMutex (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (reflectorMutex' : sync.RWMutex) :
+noncomputable instance controller_access_store_reflectorMutex (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (reflectorMutex' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) reflectorMutex' (DFrac.own 1))
@@ -143,7 +143,7 @@ noncomputable instance controller_access_load_clock (l : Loc) (v : k8s_io.client
  by
   solve_pointsto_access_struct
 
-noncomputable instance controller_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance controller_access_store_clock (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"clock" l) clock' (DFrac.own 1))

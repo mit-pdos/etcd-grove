@@ -16,6 +16,80 @@ open Iris Iris.BI
 noncomputable section
 namespace encoding.json
 
+namespace Codec
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : encoding.json.Assumptions]
+
+noncomputable instance Codec_typed_pointsto :
+    TypedPointsto (GF := GF) encoding.json.Codec where
+  typedPointstoDef l v dq := iprop(
+    "Marshal" ∷ typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' dq ∗
+    "Unmarshal" ∷ typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq ∗
+    "Scan" ∷ typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance Codec_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) encoding.json.Codec encoding.json.Codec.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Codec_access_load_Marshal (l : Loc) (v : encoding.json.Codec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' dq)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Codec_access_store_Marshal (l : Loc) (v : encoding.json.Codec) (Marshal' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' (DFrac.own 1))
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) Marshal' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Marshal' := Marshal' } : encoding.json.Codec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Codec_access_load_Unmarshal (l : Loc) (v : encoding.json.Codec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Codec_access_store_Unmarshal (l : Loc) (v : encoding.json.Codec) (Unmarshal' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' (DFrac.own 1))
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) Unmarshal' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unmarshal' := Unmarshal' } : encoding.json.Codec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Codec_access_load_Scan (l : Loc) (v : encoding.json.Codec) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' dq)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Codec_access_store_Scan (l : Loc) (v : encoding.json.Codec) (Scan' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' (DFrac.own 1))
+      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) Scan' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Scan' := Scan' } : encoding.json.Codec) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end Codec
+
 namespace UnmarshalTypeError
 section def_
 
