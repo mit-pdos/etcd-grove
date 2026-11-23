@@ -50,7 +50,7 @@ its bodies.
 | `github.com/orcaman/concurrent-map` v1.0.0 | swiftpaxos | `harness/rpcmodel/cmap` | `models/concurrent-map` |
 | `github.com/rs/zerolog` v1.23.0 | rabia | `harness/rpcmodel/zerolog` (model, translated) | not done (not in #24's agreement) |
 | `github.com/gogo/protobuf` v1.3.2 (`proto`, `gogoproto`) | rabia | `harness/rpcmodel/gogoprotobuf` (names for the generated message.pb.go) | not done; maybe pbgen's territory |
-| `github.com/go-redis/redis/v8` | rabia (v8.8.2), quepaxa (v8.11.5) | `harness/rpcmodel/goredis` (stub: Redis modes not configured) | not done |
+| `github.com/go-redis/redis/v8` | rabia, quepaxa (both v8.11.5 since 2026-11-23, issue #24; rabia's fork pins v8.8.2) | `harness/rpcmodel/goredis` (stub: Redis modes not configured) | not done |
 | `github.com/montanaflynn/stats` v0.6.6 | quepaxa (benchmark client only) | `harness/rpcmodel/stats` (stub, build only) | not needed by a kit |
 | `gopkg.in/yaml.v2` v2.3.0 | quepaxa (`configuration`) | translated by the lab (names) | not done |
 | `google.golang.org/grpc`, `google.golang.org/protobuf` | quepaxa, rabia (protobuf) | lab models | `models/grpc`, pbgen |

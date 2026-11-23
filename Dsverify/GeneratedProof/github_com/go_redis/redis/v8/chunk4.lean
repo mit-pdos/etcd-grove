@@ -1043,6 +1043,154 @@ noncomputable instance XPendingExtCmd_access_store_val (l : Loc) (v : github_com
 end def_
 end XPendingExtCmd
 
+namespace XAutoClaimCmd
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance XAutoClaimCmd_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XAutoClaimCmd where
+  typedPointstoDef l v dq := iprop(
+    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"baseCmd" l) v.baseCmd' dq ∗
+    "start" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"start" l) v.start' dq ∗
+    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"val" l) v.val' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance XAutoClaimCmd_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XAutoClaimCmd github_com.go_redis.redis.v8.XAutoClaimCmd.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance XAutoClaimCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.XAutoClaimCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimCmd_access_load_start (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"start" l) v.start' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"start" l) v.start' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimCmd_access_store_start (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimCmd) (start' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"start" l) v.start' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"start" l) start' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with start' := start' } : github_com.go_redis.redis.v8.XAutoClaimCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"val" l) v.val' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimCmd) (val' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"val" l) v.val' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimCmd go!"val" l) val' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.XAutoClaimCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end XAutoClaimCmd
+
+namespace XAutoClaimJustIDCmd
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance XAutoClaimJustIDCmd_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XAutoClaimJustIDCmd where
+  typedPointstoDef l v dq := iprop(
+    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"baseCmd" l) v.baseCmd' dq ∗
+    "start" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"start" l) v.start' dq ∗
+    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"val" l) v.val' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance XAutoClaimJustIDCmd_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XAutoClaimJustIDCmd github_com.go_redis.redis.v8.XAutoClaimJustIDCmd.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance XAutoClaimJustIDCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimJustIDCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimJustIDCmd_access_load_start (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"start" l) v.start' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"start" l) v.start' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimJustIDCmd_access_store_start (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (start' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"start" l) v.start' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"start" l) start' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with start' := start' } : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimJustIDCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"val" l) v.val' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XAutoClaimJustIDCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (val' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"val" l) v.val' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAutoClaimJustIDCmd go!"val" l) val' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.XAutoClaimJustIDCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end XAutoClaimJustIDCmd
+
 namespace XInfoConsumersCmd
 section def_
 
@@ -1355,120 +1503,6 @@ noncomputable instance XInfoStream_access_store_LastEntry (l : Loc) (v : github_
 
 end def_
 end XInfoStream
-
-namespace ZSliceCmd
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
-
-noncomputable instance ZSliceCmd_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.ZSliceCmd where
-  typedPointstoDef l v dq := iprop(
-    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' dq ∗
-    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance ZSliceCmd_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.ZSliceCmd github_com.go_redis.redis.v8.ZSliceCmd.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance ZSliceCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance ZSliceCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.ZSliceCmd) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance ZSliceCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance ZSliceCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (val' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) val' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.ZSliceCmd) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end ZSliceCmd
-
-namespace ZWithKeyCmd
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
-
-noncomputable instance ZWithKeyCmd_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.ZWithKeyCmd where
-  typedPointstoDef l v dq := iprop(
-    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' dq ∗
-    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance ZWithKeyCmd_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.ZWithKeyCmd github_com.go_redis.redis.v8.ZWithKeyCmd.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance ZWithKeyCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance ZWithKeyCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.ZWithKeyCmd) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance ZWithKeyCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance ZWithKeyCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (val' : Loc) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) val' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.ZWithKeyCmd) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end ZWithKeyCmd
 
 end github_com.go_redis.redis.v8
 end
