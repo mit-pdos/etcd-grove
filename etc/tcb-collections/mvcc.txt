@@ -14,5 +14,4 @@ axiom proto.Marshal.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom strings.ToLower.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

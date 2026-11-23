@@ -73,7 +73,7 @@ theorem kv.Compact.wp_proof
       (fun _ => iprop(True)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret)) (fun x => kvRevLbZ x.γr.kv (sint.Z rev + x.γr.kv.cret))
       (fun x hx => by
         iintro ⟨#Hx, -⟩
-        unfold etcdCompactSpec
+        unfold etcdCompactSpec etcdCompactSpecW
         isplitr
         · ipureintro
           refine ⟨Hr1, rfl, ?_⟩

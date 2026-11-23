@@ -57,7 +57,7 @@ abbrev EtcdServer.LeaseLeases.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); levelTok lease.lessorLvl ∗ mvcc.api.mvccReaders E.γ 1 ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (i : Nat) (ids : List w64), ⌜m ≤ i⌝ ∗
           lease.leaseIdsAt γl i ids ∗ leasesRespIs E resp cid mid ids ∗
-          leaseCheckFrom s E tok n (fun info => iprop([∗list] id ∈ ids,
+          leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id ∈ ids,
             leaseKeysVerdictFrom E.authMode n info γl i id .read))) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil ∧ E.authOn = true⌝ ∗ applyErrIs err ∗
           □ (∀ e : GoInterfaceOk,

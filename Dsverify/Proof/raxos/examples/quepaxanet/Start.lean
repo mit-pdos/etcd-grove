@@ -189,6 +189,7 @@ theorem kit_start [hyp.grpc.GrpcWorldHyp qv.grpc] :
         mapCtx (Gg := Gg) (ρ := ρ) (I := QIn) ∗
         pendCtx (Gg := Gg) (qR γ) (qS0 (GF := GF)) γp ∗
         pendLib (Gg := Gg) (qS0 (GF := GF)) γp (qS0 (GF := GF)).M.init ∗
+        ([∗list] a ∈ clientAddrs, budUnits (Gg := Gg) (ρ := ρ) a 60) ∗
         ([∗list] c ∈ List.range 6, clientRes γ c) ∗
         ([∗list] k ∈ ([1, 2, 3, 4, 5] : List Nat), serverRes γ k) := by
   iintro #Hreg Hs Hl
@@ -222,8 +223,8 @@ theorem kit_start [hyp.grpc.GrpcWorldHyp qv.grpc] :
     exact ⟨rfl, fun _ => rfl, fun h => (by cases h), fun _ _ _ _ _ h => (by cases h)⟩
   ihave #Hsh : sharedRes γ $$ []
   · unfold sharedRes; iframe Hci Hsi Hnet Hb Hspent
-  imod mapCtx_alloc (Gg := Gg) (I := QIn) ⊤ with ⟨%ρ, #Hmap⟩
-  imod addrs_set_proto (Gg := Gg) ⊤ (fun _ => reqP (Gg := Gg) (RBase.svc (qR γ)))
+  imod mapCtx_alloc (Gg := Gg) (I := QIn) ⊤ clientAddrs 60 (by decide) with ⟨%ρ, -, #Hmap, Hbud⟩
+  imod addrs_set_proto (Gg := Gg) ⊤ (fun a => reqP (Gg := Gg) (RBase.svc (qR γ)) a)
     (fun _ => repP (Gg := Gg) (RBase.svc (qR γ))) clientAddrs $$ Hreg Hca with #Hpc
   ihave Hown : (qR (Gg := Gg) γ).sysState (qR (Gg := Gg) γ).B.init $$ [Hp]
   · rw [qR_init]
@@ -240,7 +241,7 @@ theorem kit_start [hyp.grpc.GrpcWorldHyp qv.grpc] :
   · unfold orchRes; iframe Hconf Hsh
   isplitr
   · unfold remoteAddr svcAddr; iexact Hpc
-  iframe Hmap Hpend Hlib
+  iframe Hmap Hpend Hlib Hbud
   isplitl [Hcnt Htick]
   · iapply clients_dist γ (List.range 6) $$ Hsh Hcnt Htick
   · iapply servers_dist γ [1, 2, 3, 4, 5] $$ Hsh Hnets Hrecs Hfronts

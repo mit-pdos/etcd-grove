@@ -297,9 +297,36 @@ theorem idCred_supply (γi : IdNames) (Hb : receiptBound GF ≤ 2 ^ 48) :
   ipureintro
   exact Hb
 
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The right to claim the id `id`** (exclusive). -/
 def idUnclaimed (γi : IdNames) (id : w64) : IProp GF :=
   id ↪[γi.issued] (none : Option IdClaimV)
+
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The id `id` was claimed by this incarnation** for the data `d`, with the claimer's ghost name
 `γf` (persistent; agreeing): the claim records the claimer's key (R2c, 2026-11-02). What the
@@ -320,6 +347,15 @@ instance idClaimAny_persistent (γi : IdNames) (id : w64) (d : List w8) (γf : G
     Persistent (idClaimAny (GF := GF) γi id d γf) := by
   unfold idClaimAny; infer_instance
 
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
 /-- An incarnation's claim is a claim. -/
 theorem idClaimAny_of (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
     idClaim (GF := GF) γi id d γf ⊢ idClaimAny γi id d γf := by
@@ -327,6 +363,15 @@ theorem idClaimAny_of (γi : IdNames) (id : w64) (d : List w8) (γf : GName) :
   iintro #H
   iexists γi.key
   iexact H
+
+end ghost
+
+section ghostG3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **No request claims the id `0`** (persistent; D19c): the issued ids' map holds `0 ↦ none`,
 read-only. The cluster's allocation gives it (`idCluster_alloc`, D21e (A); until stage M4
@@ -348,6 +393,15 @@ def idKeyFactAt {X : Type} [Pos.Countable X] (fs : GName) (k : IdKey) (x : X) : 
 instance idKeyFactAt_persistent {X : Type} [Pos.Countable X] (fs : GName) (k : IdKey) (x : X) :
     Persistent (idKeyFactAt (GF := GF) fs k x) := by
   unfold idKeyFactAt; infer_instance
+
+end ghostG3
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- The claimer's fact of the id `id`'s entry `v` (nothing if unclaimed): the family at its key's
 parameter. -/
@@ -458,12 +512,30 @@ instance idClusterInv_persistent {X : Type} [Pos.Countable X] (issued cnt wn fs 
     Persistent (idClusterInv (GF := GF) issued cnt wn fs Φs) := by
   unfold idClusterInv; infer_instance
 
+end ghost
+
+section ghostG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **An incarnation's share of the cluster's ids** (D21e (A), stage M4; by key since R2c): its
 key's entry of the keys' map, no id issued and no generator yet, its wait slots' map and (stage 2)
 its pending ids' map, empty. `NewGenerator` takes it. -/
 def idShare (γi : IdNames) : IProp GF :=
   iprop(γi.key ↪[γi.cnt] ((([] : List w64), (none : Option Loc)) : IdKeyEntry) ∗
     ghostMapAuth γi.slot 1 (∅ : GMap w64 Unit) ∗ ghostMapAuth γi.pend 1 (∅ : GMap w64 Unit))
+
+end ghostG2
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- **The generator `g`** (persistent): its `prefix` field fixed at the member's prefix `γi.pfx`
 (its 48 low bits 0: the member id shifted by 48, so ids of distinct suffixes differ), its `suffix`
@@ -494,6 +566,15 @@ instance idGen_persistent (γi : IdNames) (g : Loc) (Φ : w64 → List w8 → GN
     Persistent (idGen (GF := GF) γi g Φ) := by
   unfold idGen; infer_instance
 
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A key's entry of the registries' map, not yet set** (exclusive; linkv-txn stage B1,
 2026-10-20; by key since R2c): the map's (persistent) element of the key names a cell the
 incarnation owns, empty; its `start` sets it to its wait registry's ghost name (`idWaitTok_set`). -/
@@ -502,6 +583,24 @@ def idWaitTokAt (wn : GName) (k : IdKey) : IProp GF :=
 
 /-- `idWaitTokAt` at the incarnation's names. -/
 abbrev idWaitTok (γi : IdNames) : IProp GF := idWaitTokAt γi.wn γi.key
+
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+
+end ghost
+
+section ghostG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The incarnation of key `k` registers its requests in the wait registry `W`** (persistent;
 linkv-txn stage B1; by key since R2c): the cell of `k`'s element of the registries' map, set to
@@ -512,6 +611,15 @@ def idWaitIs (γi : IdNames) (k : IdKey) (W : GName) : IProp GF :=
 instance idWaitIs_persistent (γi : IdNames) (k : IdKey) (W : GName) :
     Persistent (idWaitIs (GF := GF) γi k W) := by
   unfold idWaitIs; infer_instance
+
+end ghostG1
+
+section ghost
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
 
 /-- A key's registry is unique. -/
 theorem idWaitIs_agree (γi : IdNames) (k : IdKey) (W W' : GName) :

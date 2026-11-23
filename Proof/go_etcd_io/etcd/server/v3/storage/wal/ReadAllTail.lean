@@ -89,7 +89,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.LastCRC.wp_resid
   iunfold decResid at Hd
   icases Hd with ⟨%h, Hcrc, Hdc⟩
   iunfold ownDecCrc at Hdc
-  icases Hdc with ⟨%l, %tab, %Hh, Hl, #Htab⟩
+  icases Hdc with ⟨%l, %tab, %Hh, Hl, #Htab, #Hc32⟩
   subst Hh
   wp_auto
   wp_apply HSum $$ [Hl] as Hl
@@ -101,7 +101,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.LastCRC.wp_resid
   iunfold ownDecCrc
   iexists l, tab
   iframe
-  iframe Htab
+  iframe Htab Hc32
   ipureintro; rfl
 
 end proof

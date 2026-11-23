@@ -40,7 +40,7 @@ theorem Client.wp_proof
     (wp_Do : remote.Do.spec (GF := GF) (hG := hG) (St := w64) (I := Bool) (O := w64))
     (wp_ServeClient : remote.ServeClient.spec (GF := GF) (hG := hG) (I := Bool) (O := w64)) :
     Client.spec (GF := GF) (hG := hG) := by
-  intro γs c a sa
+  intro γs c a sa hsa
   wp_start as ⟨#Hra, #Hsa, #Hmap, #Hrd⟩
   wp_auto
   ipersist serverAddr
@@ -59,11 +59,12 @@ theorem Client.wp_proof
     iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Φ
-    iintro !> %Φr ⟨-, HL⟩ HΦr
+    iintro !> %Φr ⟨-, HL, -⟩ HΦr
     wp_auto
     wp_apply (wp_Codec γs) as %cd' #Hcd'
     wp_apply wp_attempt as %d' -
     rw [show (boxB i : GoInterface) = (cR (GF := GF) γs).iv i from rfl]
+    ihave Hbu := budUnits_none (Gg := hG.goose_globalGS) sa hsa readTries
     wp_apply wp_Do (cR γs) sa i Φ iprop(True) cd' d' $$ [HL] as %v Hv
     · iframe #
       isplitr [HL]
@@ -107,7 +108,7 @@ theorem Client.wp_proof
     · iright
       ipureintro; exact Hu
   · -- the client's system: nothing
-    iintro !> %Φr - HΦr
+    iintro %Φr HΦr
     wp_auto
     iapply HΦr
     itrivial

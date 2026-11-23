@@ -140,7 +140,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_epS, pendLib_epS]
-  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -156,9 +156,9 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
   wp_apply wp_Check (epR γ) epS γp m addrs clientAddrs cd _ _ d pendN_ep lintestN_ep
     (epS_pendDec γ) (epR_encOut_inj γ) (fun st => epR_timeless γ st) hrb (by rw [hlen']; decide)
-    (by decide) (by rw [hlen']; decide) $$ [Hlib]
+    (by decide) (by rw [hlen']; decide) 6 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)
         (functions github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Gen [])
         (fun x => iprop(∃ i, ⌜x = (epR (Gg := hG.goose_globalGS) γ).iv i⌝)) from wp_Gen)
@@ -226,7 +226,7 @@ theorem Client.wp_proof (wp_Op : examples.epaxosnet.Op.spec (GF := GF) (hG := hG
     iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Ψ
-    iintro !> %Φr ⟨%Hsys, Hupd⟩ HΦr
+    iintro !> %Φr ⟨%Hsys, Hupd, -⟩ HΦr
     subst Hsys
     ihave HU := slotUpd_lin _ i Ψ $$ Hupd
     ihave HU := lin_opU γ i Ψ $$ HU
@@ -255,7 +255,7 @@ theorem Client.wp_proof (wp_Op : examples.epaxosnet.Op.spec (GF := GF) (hG := hG
         rw [bnd_of (by omega)]
         rfl
   · -- the client's system: the server addresses
-    iintro !> %Φr - HΦr
+    iintro %Φr HΦr
     wp_auto
     iapply HΦr
     ipureintro; rfl

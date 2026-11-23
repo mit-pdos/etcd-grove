@@ -103,7 +103,7 @@ theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
   haveI : hyp.grpc.GrpcWorldHyp (Gg := G) qv.grpc := hworld G
   iintro #Hreg Hs Hl
   unfold quepaxaKitAddrs
-  imod kit_start (Gg := G) $$ Hreg Hs Hl with ⟨%γ, %ρ, %γp, Ho, #Has, #Hmap, #Hpend, Hlib, Hcs, Hss⟩
+  imod kit_start (Gg := G) $$ Hreg Hs Hl with ⟨%γ, %ρ, %γp, Ho, #Has, #Hmap, #Hpend, Hlib, Hbud, Hcs, Hss⟩
   rw [show List.range 6 = [0, 1, 2, 3, 4, 5] from rfl]
   icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc0, Hcs⟩
   icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc1, Hcs⟩
@@ -129,7 +129,7 @@ theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
   ihave #Hra5 : remoteAddr (Gg := G) (ρ := ρ) (qR γ) (clientAddrs.getD 5 []) $$ []
   · iapply BigSepL.bigSepL_lookup (i := 5) rfl $$ Has
   imodintro
-  iexists fun i => if i = 0 then iprop(orchRes (Gg := G) γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (ρ := ρ) (qR γ) a) ∗ mapCtx (Gg := G) (ρ := ρ) (I := QIn) ∗ pendCtx (Gg := G) (qR γ) (qS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (qS0 (GF := remoteGF)) γp (qS0 (GF := remoteGF)).M.init)
+  iexists fun i => if i = 0 then iprop(orchRes (Gg := G) γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (ρ := ρ) (qR γ) a) ∗ mapCtx (Gg := G) (ρ := ρ) (I := QIn) ∗ pendCtx (Gg := G) (qR γ) (qS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (qS0 (GF := remoteGF)) γp (qS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G) (ρ := ρ) a 60)
       else if i = 1 then iprop(clientRes (Gg := G) γ 0 ∗ remoteAddr (Gg := G) (ρ := ρ) (qR γ) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G) (ρ := ρ) (I := QIn))
       else if i = 2 then iprop(clientRes (Gg := G) γ 1 ∗ remoteAddr (Gg := G) (ρ := ρ) (qR γ) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G) (ρ := ρ) (I := QIn))
       else if i = 3 then iprop(clientRes (Gg := G) γ 2 ∗ remoteAddr (Gg := G) (ρ := ρ) (qR γ) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G) (ρ := ρ) (I := QIn))
@@ -168,12 +168,12 @@ theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro ⟨Ho0, #Has0, #Hmap0, #Hpend0, Hlib0⟩ Hgs
+      iintro ⟨Ho0, #Has0, #Hmap0, #Hpend0, Hlib0, Hbud0⟩ Hgs
       iapply wp_boot cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit
           (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf) _
-          (cmd.orch.wp_main wp_Orch γ γp hrb) $$ [Ho0 Hlib0] Hgs
+          (cmd.orch.wp_main wp_Orch γ γp hrb) $$ [Ho0 Hlib0 Hbud0] Hgs
       iframe #
-      iframe Ho0 Hlib0
+      iframe Ho0 Hlib0 Hbud0
     | 1, hm =>
       cases hm
       dsimp only
@@ -286,10 +286,10 @@ theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
       iframe Hs0
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Ho Hlib]
+    isplitl [Ho Hlib Hbud]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
       iframe #
-      iframe Ho Hlib
+      iframe Ho Hlib Hbud
     iapply BigSepL.bigSepL_cons.2
     isplitl [Hc0]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]

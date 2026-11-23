@@ -63,6 +63,15 @@ def waitRecv (γh : HandoffNames) (ch : Loc) (Ψ : GoInterface → IProp GF) : I
   iprop(isHandoff (V := GoInterface) γh ch (waitVal γh Ψ) iprop(True) iprop(False) ∗
     handoffConsumer γh false)
 
+end wait
+
+section waitG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **`id` was registered** (persistent) with a channel whose consumer token is named `t`: the
 names of `id`'s shard (`id % 64`) in the wait's ghost map `γw` (the shard's live map `γs`, its
 record `γr` of every id ever registered there; `wait/List.lean`), and `id`'s element of `γr`: `t`
@@ -75,6 +84,15 @@ def waitRegd (γw : GName) (id : w64) (t : GName) : IProp GF :=
 instance waitRegd_persistent (γw : GName) (id : w64) (t : GName) :
     Persistent (waitRegd (GF := GF) γw id t) := by
   unfold waitRegd; infer_instance
+
+end waitG1
+
+section wait
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 /-- **`id`'s registration is gone** (persistent): it was registered (with the consumer token
 named `t`) and a `Trigger(id, _)` took it out of the registry since, so its channel has been or

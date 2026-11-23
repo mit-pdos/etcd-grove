@@ -1,5 +1,5 @@
 /-
-The package-initialization instances of zap and `zapcore`: fact `True` (names only). One home, shared by the server's
+The package-initialization instances of zap and `zapcore`, and zap's internal packages. One home, shared by the server's
 `Base.lean` files and the WAL (until 2026-11-15 declared in the cache's `Base.lean` and the WAL's `DepsPkgInit.lean`; notes/wal-lean-integration.md).
 -/
 module
@@ -8,8 +8,12 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.go_uber_org.zap.internal.pool
 public import GeneratedProof.go_uber_org.zap.internal.color
 public import GeneratedProof.go_uber_org.zap.internal
+public import GeneratedProof.go_uber_org.zap.internal.stacktrace
+public import GeneratedProof.go_uber_org.zap.internal.bufferpool
+public import GeneratedProof.go_uber_org.zap.buffer
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.io
+public import Perennial.Proof.runtime.Base
 public import Perennial.Proof.fmt
 public import Perennial.Proof.time
 public import Perennial.Proof.sync
@@ -57,6 +61,36 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.za
   build_get_is_pkg_init_wf
 
 end go_uber_org.zap.internal.color
+
+-- `Logger.check` names its stack capture; its package variable is skipped (zap-z1, 2026-11-23)
+namespace go_uber_org.zap.internal.stacktrace
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal.stacktrace :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.internal.stacktrace :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.zap.internal.stacktrace
+
+-- `bufferpool` calls its `NewPool` (zap-z1, 2026-11-23)
+namespace go_uber_org.zap.buffer
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.buffer :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.buffer :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.zap.buffer
+
+-- `Logger.check` reads its `Get`; its variables hold a buffer pool and its `Get` method value (zap-z1, 2026-11-23)
+namespace go_uber_org.zap.internal.bufferpool
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal.bufferpool :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.internal.bufferpool :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.zap.internal.bufferpool
 
 namespace go_uber_org.zap.zapcore
 

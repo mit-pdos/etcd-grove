@@ -23,7 +23,10 @@ translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
   "Time", "_minTimeInt64", "_maxTimeInt64",
   # (prove-ps2-rqb, 2026-11-22) `Float64` (`roundRobinQuorumBackoff`'s debug log; `math.Float64bits`,
   # translated in Perennial since #675)
-  "Float64"]
+  "Float64",
+  # (zap-z1, 2026-11-23) `Logger.check` (until then the trust boundary of leveled logging) and the hook
+  # override it calls; what its annotation path names (stack traces, buffers) stays names only
+  "Logger.check", "terminalHookOverride"]
 # zapcore so that the generic `anyFieldC[T]` (a function type returning `zapcore.Field`) is
 # translated: Goose emits an axiomatized generic type as `∀ (T : go.type), go.type`, which
 # does not elaborate (the Lean name is go.GoType).
@@ -36,7 +39,9 @@ imports = ["!*", "go.uber.org/zap/zapcore",
   # (prove-initleft) `AtomicLevel`'s field, an `*atomic.Int32` (the `var _` assertion builds one)
   "sync/atomic",
   # (prove-zap3) the last variables' initializers
-  "time", "math", "strings", "sync", "os", "net/url"]
+  "time", "math", "strings", "sync", "os", "net/url",
+  # (zap-z1) what `Logger.check`'s caller and stack annotation name (no proof reaches them)
+  "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool", "go.uber.org/zap/buffer"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

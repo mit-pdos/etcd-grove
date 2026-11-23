@@ -340,7 +340,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : StateTreemap GF]
 
 theorem repInstsX_acc2 (γ : EpNames) (i : Nat) (r : Loc) (F : Nat → List Loc)
     (inst : InstId → Option InstRec) (ix : InstId → Option (Nat × Nat)) (x z : InstId)

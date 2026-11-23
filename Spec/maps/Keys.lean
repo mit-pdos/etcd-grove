@@ -1,12 +1,13 @@
 /-
-`maps.Keys(m)` (names-only here) on a `map[string]runtime.Object`, as the checker uses it:
+`maps.Keys(m)` on a `map[string]runtime.Object`, as the checker uses it:
 `slices.Sorted(maps.Keys(s.Items))` (`Model.list`, `Model.listItems`). `Keys` returns an iterator
 `f`, and `slices.Sorted(f)` (names-only too) returns a fresh slice of the map's keys at the time of
 the `Sorted` call, each once, strictly increasing in Go's string order (`go.GoStringLt`, bytewise).
 One spec for the pair, at this one map type (`spec_objMap`): the iterator is used only by
 `Sorted`, and what it yields depends on the map when it runs, not when `Keys` returns. Its axiom
-will be `maps.Keys.wp_proof_objMap` (k8s 7g, `notes/k8s-7g-trust.md`), until Perennial translates
-`maps` and `slices.Sorted` (`notes/perennial-changes.md`, "Generic maps and slices iterators").
+is `maps.Keys.wp_proof_objMap` (k8s 7g, `notes/k8s-7g-trust.md`), until Perennial has iterator
+specs: it translates `maps.Keys` (since `70706ce5e`) but `slices.Sorted` names only
+(`notes/perennial-changes.md`, "Generic maps and slices iterators").
 
 Faithful (go1.27.3, `maps/iter.go`, `slices/iter.go`, `slices/sort.go`): `Keys(m)` is
 `func(yield func(K) bool) { for k := range m { if !yield(k) { return } } }`: it reads nothing when

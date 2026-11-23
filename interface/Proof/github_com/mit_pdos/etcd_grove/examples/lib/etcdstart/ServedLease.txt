@@ -57,7 +57,7 @@ def etcdstart.etcdLeaseGrantLiveAt [v3rpc_sem :
         (etcdLeaseGrantSpecLive (mvcc.api.mvccLeases E.γ)) ∗
       isGrpcRpc addr
           go!"/etcdserverpb.Lease/LeaseTimeToLive"
-          (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) s) ∗
+          (etcdLeaseTTLSpecLive (mvcc.api.mvccLeases E.γ) (leaseTTLRow s (mvcc.api.mvccLeases E.γ))) ∗
         isGrpcRpc addr
           go!"/etcdserverpb.Lease/LeaseLeases"
           (etcdLeaseLeasesSpecLive (mvcc.api.mvccLeases E.γ)))

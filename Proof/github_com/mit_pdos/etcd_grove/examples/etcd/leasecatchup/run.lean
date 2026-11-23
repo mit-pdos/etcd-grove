@@ -148,7 +148,7 @@ theorem run.wp_proof
   · iframe #
     isplitl; rotate_left; · ipureintro; exact hAs
     imodintro; inext
-    iunfold etcdLeaseGrantSpec
+    iunfold etcdLeaseGrantSpec, etcdLeaseGrantSpecW
     iintro %m - - Hgi
     iexact Hgi
   icases Hg1 with (⟨%Hgerr, %mg, #Hgid, #HQg⟩ | %Hgfail)
@@ -203,7 +203,7 @@ theorem run.wp_proof
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
-      iunfold etcdLeaseGrantSpec
+      iunfold etcdLeaseGrantSpec, etcdLeaseGrantSpecW
       iintro %m - - -
       itrivial
     icases Hf with (⟨%Hferr, %mf, #Hfid, -⟩ | %Hffail)
@@ -255,7 +255,7 @@ theorem run.wp_proof
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
-      iunfold etcdLeaseLeasesSpec
+      iunfold etcdLeaseLeasesSpec, etcdLeaseLeasesSpecW
       iexists [mg.id]
       isplitl
       · iapply BigSepL.bigSepL_cons.2
