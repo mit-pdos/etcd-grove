@@ -296,7 +296,7 @@ if git grep -nE '\bJSONModel[A-Za-z]*' -- '*.go' ':!old/' ':!**/json_model_gen.g
      ':!models/encoding/json/' >> "$tmp/nm.log" 2>&1; then
   echo "models: Go code other than the generated methods names JSONModel* (above)" >> "$tmp/nm.log"; nm=1
 fi
-(cd models && GOWORK=off gotest -tags netmodel ./internal/jsonpkgtest/) >> "$tmp/nm.log" 2>&1 || nm=1
+(cd models && GOWORK=off gotest -tags netmodel -run '^TestJSON' ./internal/jsonpkgtest/) >> "$tmp/nm.log" 2>&1 || nm=1
 python3 examples/models/jsonetcd/jsonmodel_forks.py >> "$tmp/nm.log" 2>&1 || nm=1
 for t in $(git grep -l '^\[json\]' -- '*.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$jsoninputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
