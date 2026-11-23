@@ -46,6 +46,7 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 - **Addresses** are loopback constants (`Addrs`, `CfgAddrs`, `ClientAddrs`: `127.0.0.1:75xx`, a port
   per machine and role), not `ports(addrs, ConfigPort)` (`strings.Split`). The first operation of a
   client waits `StartMs + c·StaggerMs` (the lab's `Start(c)`, which remote has no hook for).
+- **The kit links `vsrwire`** (a blank import in `kit.go`; finding 7).
 - **`RegisterJSON` is hand-written** (`register.go`: nothing, in the real build;
   `register_goose.go`: nothing, under goose), not jsongen's: see "Findings".
 
@@ -167,21 +168,67 @@ regInv, replica `id-1`'s initial share, given to every server machine since N is
 `runReplica.spec`/`wp_proof`, `Server.spec`/`Server.wp_proof` (replica's `Run` hypotheses discharged
 from network's and events' Results). New slog hypotheses `log.slog.New.spec`,
 `log.slog.DiscardHandler.load_spec` (duplicates of MkClientProof's `slogNew`/`slogDiscard`: merge).
-**Why no statement yet (blockers, in order):** (1) finding 6 (remote's `ServeClient`); (2) `codecSet`
-in `srvLibState`/`pkgStates`: nothing establishes it (`RegisterJSON` is empty here because jsongen
-refuses go-vsr's `log.Logs`, finding 2), so no start can supply it and a top statement over it would be
-vacuous: needs the generated codec and its registration; (3) `frameDecoderSet`/`ErrNoConn` as package
-facts (events' open item below). Then: the start (ghost alloc, protocols, pend state, `nextReq` per
-client), `Mains`, `Linked`, `TopLevelRobustness` (`vr_remote_robust` with every `InitHyp`, `DecoderRep`,
-`EncoderRep` and library hypothesis as visible premises), `etc/tcb-collections/dsv-vr.txt`.
-**Open (events' package facts):** `pkg/events/Base.lean`/`examples/vsrwire/Base.lean` still
-have the weak facts; the hub specs take `hookKnownFull`/`frameDecoderSet` as preconditions. To make
-them package facts: move `frameDecOk`, `rstream`, `hookLockInvFull`, `hookKnownFull`,
-`frameDecoderSet` out of `Spec/events.lean` into a module importing no package `Base` (now a cycle),
-and vsrwire's initialization needs `Decode_frame.spec` (an `InitHyp`-style hypothesis in
-`etc/dsv/vr.py`) and events' init must allocate the hook's flag. Until then the kit gets
-`frameDecoderSet` from a direct `init0` call.
-**Now in progress (helper agents, parallel):** `Proof/replica/*`, `Proof/client/*`, `Proof/network/*`,
+**Round 3 (2026-11-23, after #24 comment 7092077493; branch merged with `origin/lean` 07268ddb57,
+Perennial 7b2259a12):** the work the blockers do not block.
+- (a) **Package facts.** `pkg/events/Base.lean`'s fact is the hook's lock with its flag
+  (`hookKnownFull`; `hookLockInvFull γh`: `frameDecoder` is `nil` with the flag `[]`, or
+  `kitFrameDecoder` = `vsrwire`'s `decodeFrame` with `[()]`); `examples/vsrwire/Base.lean`'s is
+  `frameDecoderSet`; `pkg/network/Base.lean`'s is `errors.newVar ErrNoConn noConnMsg`. Their
+  generated `Init.lean`s prove them (`etc/dsv/vr.py`: events' init allocates the flag with
+  `mono_list_own_alloc`; vsrwire's init calls `pkg/events/SetFrameDecoder.lean`'s
+  `wp_SetFrameDecoder`, no hypothesis; network's keeps `errors.New`'s field). **Design change
+  against the brief:** the lock invariant names the function (`f = kitFrameDecoder`) instead of
+  storing its spec (`frameDecOk f`, the lab's): `frameDecOk` mentions `DecoderRep`, `JsonCodec`,
+  `NetProtoGS` and the json/net `Assumptions`, which as package-fact parameters would have had to
+  propagate into every importer's `IsPkgInit` instance and every proof section; with the name, the
+  fact names no class, the `Spec/events.lean` ↔ `Base` cycle is gone, and **no InitHyp-style
+  class for `Decode_frame.spec` is needed**: `FromDecoder`'s proof gets `frameDecOk` from
+  `decodeFrame`'s spec (`Proof/vsrwire/Hook.lean`), so `events.Decoder.Decode_frame.spec` is an
+  ordinary hypothesis of `events.Event.FromDecoder.wp` (it was one of `vsrwire.init0.wp`).
+  `NewTCP.spec` no longer takes `ErrNoConn` (the package fact); `pkgStates`/`srvLibState` are
+  `codecSet` alone; `KitLib.kit_frameDecoderSet` reads the hook from `isPkgInit` of the kit.
+  **Finding 7:** nothing linked `vsrwire` in this port (the lab's kit linked it through its
+  generated codec, `json_gen.go`), so the hook was never set and `frameDecoderSet` was unsatisfiable
+  in the deployment (the old `pkgStates` premise was vacuous); `kit.go` now imports `vsrwire`
+  blank (`go test` green; translation regenerated).
+- (b) **slog:** one copy of each hypothesis: `log.slog.New.spec`, `DiscardHandler.load_spec`,
+  `Logger.{Debug,Info,Warn,Error}.spec` in `Proof/replica/LibHyps.lean`, `log.slog.Debug.spec` in
+  `Proof/network/LibHyps.lean` (MkClientProof's `slogNew`/`slogDiscard` merged away). Narrowing to
+  the `DiscardHandler` logger considered, not done: `DiscardHandler`'s type is names-only, so its
+  value cannot be named; a narrower hypothesis needs a shared `dh : GoInterface` across
+  `load_spec`, `New.spec` (at `dh`) and the `Logger.*` specs (on loggers holding `dh`, where
+  `argOk` could go: a discard handler formats nothing). Worth doing with the statement.
+- (c) **Addresses:** one list, `VsrWire.addrs` (`Wire/Addrs.lean`); `ipv4port.addrs`,
+  `client.addrs_eq` gone; `KitLib.wp_Addrs` proves `Addrs()` returns it (one copy; MkClientProof's
+  and ServerProof's duplicates of `wp_Addrs`, `wp_RegisterJSON`, `wp_logger` merged into
+  `examples/vsrnet/KitLib.lean`).
+- (d) **net linked:** `net.Dial`, `Listen`, `Listener.Accept`, `Conn.Write`, `Conn.Close`,
+  `Conn.RemoteAddr` are `Net/Proof/net/*`'s `wp_proof`s (network `Results.lean`, `Orch.wp_proof`,
+  `Client.wp_proof`, `runReplica`/`Server.wp_proof` no longer take them); `events.NewNetworkEvent`
+  is events' proof. `net.Conn.Read` stays behind `connReaderOk` (finding 5).
+- (e) **Start, mains, links** (no statement): `examples/vsrnet/Start.lean` (`vrKitAddrs` =
+  `VsrWire.addrs ++ cfgAddrs ++ clientAddrs`; `orchShare`, `clientShare`; **`vr_start`**: from
+  `regCtx` and the addresses unset, `ghost_alloc`, the three address groups' protocols, remote's
+  `mapCtx_alloc` and `pend_alloc` over `absOwn γ`, and every machine's share),
+  `examples/vsrnet/Mains.lean` (the twelve `wp_main`s, from `Orch.spec`/`Client.spec`/
+  `Server.spec`), `examples/vsrnet/Linked.lean` (`LibHyps`, one `Prop` bundling the 14 library
+  hypotheses; `wp_Orch h`, `wp_Server h`, `wp_Client h wp_ServeClientB`: every package result
+  linked; `wp_Check` remote's). All build (`lake build ...vsrnet.Linked`), Lean's three axioms.
+
+**What is waiting on #24 (do not state `vr_remote_robust` before):** (1) remote's `ServeClient`:
+`Client.wp_proof` (so `wp_Client`) takes `ServeClientB.spec` (newClient's WP as a resource, a call
+budget); when remote gives it, `wp_Client` loses that premise and `clientShare` may need the budget
+token from the start. (2) `codecSet` (in `pkgStates`/`srvLibState`, the `wp_main`s'
+preconditions beyond the start's shares): needs jsongen's codec for `log.Logs` (finding 2) and its
+registration's spec (`RegisterJSON` then gives `codecSet`). Finding 5 (`ReadFull` at 0) is
+Perennial's `readatleast-prefix` (af905abba, not landed): then `connReaderOk` leaves `LibHyps`.
+**Then the statement:** `TopLevelDefs`/`TopLevelRobustness` as paxos's: `robust_of_distProtoRB`
+over `vrKitAddrs`, `vr_start`, the `wp_main`s with `wp_boot`; premises: `LibHyps`, the two
+`InitHyp`s (`encoding.json`, `log.slog`), `DecoderRep`/`EncoderRep` (data classes; or the
+model's representation when its Lean half lands); confirm `etc/theorem-loc.py` counts them;
+`etc/tcb-collections/dsv-vr.txt`.
+
+**(Earlier, done:)** helper agents proved `Proof/replica/*`, `Proof/client/*`, `Proof/network/*`,
 `Proof/{events,vsrwire}/*`, each ending with `Results.lean` over hypotheses for library specs
 (`Proof/<p>/LibHyps.lean`).
 After the hubs, the package proofs are independent of each other (each imports only hubs):
@@ -264,6 +311,14 @@ Perennial and `Net/` where they differ; then `lake build <targets>` and `etc/lea
 
 ## Hypotheses (missing model pieces; the coordinator's rule of 2026-11-23)
 
+**Current set (round 3):** `examples/vsrnet/Linked.lean`'s `LibHyps` bundles every library
+hypothesis the machines rest on: `log.slog.{New.spec, DiscardHandler.load_spec, Debug.spec,
+Logger.{Debug,Info,Warn,Error}.spec}`, `connReaderOk` (finding 5), `events.newDecoder.spec`,
+`events.Decoder.Decode_frame.spec`, `encoding.json.{Unmarshal.spec, NewEncoder.spec,
+Encoder.Encode_conn.spec}`, `vsrnet.codecOk`; plus the classes `encoding.json.InitHyp`,
+`log.slog.InitHyp` (Prop, section variables of the generated inits) and `encoding.json.DecoderRep`,
+`EncoderRep` (data, no instance). The list below is the older plan.
+
 Stated in Lean so far: `encoding.json.InitHyp GF` and `log.slog.InitHyp GF`
 (`Dsverify/Proof/{encoding/json,log/slog}/Init.lean`: the packages' `wp_initialize'`, a class every
 generated init theorem above them takes as an instance). The rest not stated yet; each to be a
@@ -323,6 +378,12 @@ hypothesis of the kit's theorems named after the lab's spec, until the piece lan
    dsv-bufio allowing `m = 0` (the revised dsv-bufio `75ef5881aa` still has `0 < m`; VR's Go uses no bufio, so the port does not merge it). Not decided here (a Perennial or Net/ change).
 4. `ServeClient`'s `newClient` (paxos's finding) applies here as well; the kit sidesteps it the same
    way.
+
+7. **Nothing linked `vsrwire`** in the port's kit (the lab's linked it through its generated
+   codec), so `events`' frame-decoder hook was never set: in Go `FromDecoder` fell back to
+   `fromDecoderUnnamed`, and the proof's `frameDecoderSet` premise was unsatisfiable. Fixed:
+   `kit.go` imports `vsrwire` blank (round 3). A note for the other kits: check that a package
+   whose `init` a fact relies on is linked.
 
 ## Which lab run
 

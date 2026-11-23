@@ -14,6 +14,7 @@ the extension's `AnyString` (`wp_TCPAddr_String`); `slog.Debug` is `wp_Debug`, a
 -/
 module
 
+public import Net.Proof.net.AtAddr
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.HandleConn
 public import Net.Spec.net.Listen
 public import Net.Spec.net.Listener__Accept
@@ -84,7 +85,7 @@ theorem network.TCP.serve.wp_proof
     $$ [Hlis]
   · iframe Hlis
   wp_for HI
-  wp_apply wp_Accept t l x me
+  wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l x me
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l me true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l me true ∗
         connEnd (Gg := hG.goose_globalGS) cn true (VsrWire.protoOf ns.sys)
@@ -216,7 +217,7 @@ theorem network.TCP.Run.wp_proof
       (VsrWire.protoOf ns.sys)) hme') $$ Hprotos
   ihave %Hok := addrTok_ok me $$ [Htok]
   · iexact Htok
-  wp_apply wp_Listen go!"tcp4" net.tcpNet_tcp4 me as %lv %lerr
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp4" net.tcpNet_tcp4 me as %lv %lerr
       (⟨%Hlerr, %l, #Hl, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
   · iframe %Hok
     iapply listen_au $$ Hpa

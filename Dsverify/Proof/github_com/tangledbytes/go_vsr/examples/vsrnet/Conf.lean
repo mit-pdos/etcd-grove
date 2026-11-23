@@ -19,6 +19,7 @@ over an `io.readerOk` of the connection: the hypothesis `conn_readerOk`).
 -/
 module
 
+public import Net.Proof.net.AtAddr
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Kit
 public import Perennial.Proof.github_com.goose_lang.primitive.RandomUint64
 public import Perennial.Proof.io.Link
@@ -618,7 +619,7 @@ theorem wp_awaitConf (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   ihave %Hok := addrTok_ok addr $$ [Hpr]
   · iapply addrProto_tok $$ Hpr
   wp_auto
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addr as %lv %err Hres
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp addr as %lv %err Hres
   · iframe %Hok
     iapply listen_au $$ Hpr
   ihave HL : (∃ (lv err : GoInterface), "l" ∷ l_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ err ∗
@@ -642,7 +643,7 @@ theorem wp_awaitConf (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     simp only [_root_.decide_true, ↓reduceIte]
     wp_auto
     wp_apply time.wp_Sleep
-    wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addr as %lv2 %err2 Hres
+    wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp addr as %lv2 %err2 Hres
     · iframe %Hok
       iapply listen_au $$ Hpr
     wp_for_post
@@ -667,7 +668,7 @@ theorem wp_awaitConf (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   · iexists true; iframe first; simp only [↓reduceIte]; iexact Hful
   wp_for HI
   cleanup_bool_decide
-  wp_apply wp_Accept t l x addr
+  wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l x addr
       (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l addr true)
       (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l addr true ∗
         connEnd (Gg := hG.goose_globalGS) cn true ackProto (confProto γ) [] [] ∗
