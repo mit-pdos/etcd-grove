@@ -18,7 +18,8 @@ deposits' arguments are of that type; the reader holds the request's deposit whe
 body, `req_guard`); and, from the deposit `Sm args Φ` and a decoding of `args` into `argv`
 (`Θ args true`), the call obligation `callObl`: `NewReply()` returns a `replyv`, and `Call(rcvr, argv, replyv)` returns
 `nil` with the encoding of `replyv` into the answer `Φ eb ""`, or an error with its message `msg`
-(`errMsg`) and `Φ [] msg` (the encoding again if `msg` is `""`: Go then sends the reply, `callRet`).
+(`errMsg`) and `Φ [] msg` (the encoding again if `msg` is `""`: Go then sends the reply, `callRet`),
+or an error whose message is any string (`models_lab.errAny`) with that answer for every message.
 
 **Error answers** (`errOk S`, persistent): the server answers with one of its own error messages
 (`srvErrMsg`, `Errs.lean`) a request it does not run: its body did not read or decode, or its
@@ -97,11 +98,17 @@ abbrev MSpec (GF : BundledGFunctors) := List w8 → (List w8 → GoString → IP
 
 /-- What a method's `Call` returns (`e`), for its reply `replyv` and continuation `Φ`: `nil` and
 the encoding of the reply into `Φ eb ""`; or an error with message `msg`, `Φ [] msg` (the
-encoding of the reply if `msg` is `""`, which Go sends as a success). -/
+encoding of the reply if `msg` is `""`, which Go sends as a success); or an error whose `Error()`
+is any string (`models_lab.errAny`, e.g. a net/rpc client's error the method forwards), with the
+same answer for every message it may return: the server calls `Error()` once
+(`service.call`), so the method promises only "some message" (non-empty: `Φ [] msg`; empty: Go
+sends the reply as a success). -/
 def callRet (C : CodecSpec GF) (replyv : GoInterface) (Φ : List w8 → GoString → IProp GF)
     (e : GoInterface) : IProp GF :=
   iprop((⌜e = interface.nil⌝ ∗ C.enc replyv (fun eb => Φ eb [])) ∨
     (∃ msg : GoString, errMsg e msg ∗
+      (if msg = [] then C.enc replyv (fun eb => Φ eb []) else Φ [] msg)) ∨
+    (models_lab.errAny e ∗ ∀ msg : GoString,
       (if msg = [] then C.enc replyv (fun eb => Φ eb []) else Φ [] msg)))
 
 /-- The call obligation of the method `v` of `rcvr` on the argument `argv`, for the continuation
