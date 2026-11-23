@@ -513,6 +513,24 @@ type (`Rpc/Codec.lean`, `Rpc/CodecProof.lean`); one hypothesis class `RpcHttpHyp
 codec's per-machine boot resource as a named premise (never `|==> codecFresh`); services accept
 error answers as swiftpaxos's `withErr` (to become `srvErrMsg`).
 
+**The client's update is remote's linearization point (decided, `b59df34126`):** `opAU γ i Q`
+(`Proto/InvDefs.lean`) is now `|={⊤ ∖ gryffN, ∅}=> ∃ σ, regHalf γ σ ∗ (regHalf γ (casApply σ i).1
+={∅, ⊤ ∖ gryffN}=∗ Q σ …)` (the lab's Iris atomic update at `clientN` could abort; the proof never
+aborted it). `opAU_fire`, `fire_all`/`fire_all2`/`fire_new` take `E = ⊤ ∖ gryffN`, `replica_step`
+and stage 1's `store_update` `E = ⊤` (their only caller, `critical_step_proof`, used `⊤`). The
+kit's store `casR γ` (`examples/gryffnet/Kit.lean`: `sysState := regHalf γ`, `Eop := gryffN`,
+inputs/outputs boxed `In`/`Out`, `Codec()`'s bytes) has `lin_opAU : lin (casR γ) i Φ ⊢ opAU γ
+(toRI i) (fun _ _ o => Φ (fromRO o))` (`applyG_casApply`).
+
+**Kit Go changes (`c4ecc02bb6`, kit tests pass):** (a) `Sys` has a mutex and `Op` runs under it
+(`op`): remote's `ServeClient.spec` gives the client's state only through `tok sys` from
+`{{ True }} newClient c {{ tok sys }}`, so `tok` is persistent (the lock); remote serves one request
+at a time, the lock is never contended (paxos's finding, the gryff form); (b) a client answers at
+most `K` operations (`sys.ops`), later ones unknown: the replicas' instance budget (lab D14, 4 units
+per client) needs a per-client bound and remote's spec gives none; (c) `EncIn` is 24 bytes (`Op` as
+8 bytes): with `byte(x.Op)` it was not injective on every `In` and `Check.spec`'s `codecOk` asks
+`DecIn (encIn i) = iv i` for every input.
+
 **Work split this session** (forks of the sixth agent, in this worktree; the agent commits): F1 H1;
 F2 X/Bridge, X/Final, B/Handler, B/Tables, B/BootLem, then H2..H3; F4 the Rpc layer + Server/Deploy;
 F5 N/ConnErr, N/NetSpecs, N/Serve, N/ClientConn, Replica2/SpecsN; F6 N/WaitPeers, ConnSlots,
