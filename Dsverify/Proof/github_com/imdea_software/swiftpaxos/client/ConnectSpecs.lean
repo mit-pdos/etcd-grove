@@ -177,7 +177,7 @@ abbrev client.Client.callMasterRL.specI : Prop :=
       cl ↦ v ∗ dlog.quiet v.Logger' ∗
       net.rpc.codecSet (GF := netDistGF) net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       net.rpc.isClient v.master' W masterAddr ∗
-      ⌜W.SS masterAddr go!"Master" = some (sp.masterSpec γc γm)⌝ }}
+      ⌜W.SS masterAddr go!"Master" = some (withErr (sp.masterSpec γc γm))⌝ }}
     (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"callMaster"))
       (Val #(go!"GetReplicaList")))
   {{ (res err : GoInterface), RET (PairV #res #err); cl ↦ v ∗
@@ -195,7 +195,7 @@ abbrev client.Client.callMasterL.specI : Prop :=
       cl ↦ v ∗ dlog.quiet v.Logger' ∗
       net.rpc.codecSet (GF := netDistGF) net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       net.rpc.isClient v.master' W masterAddr ∗
-      ⌜W.SS masterAddr go!"Master" = some (sp.masterSpec γc γm)⌝ }}
+      ⌜W.SS masterAddr go!"Master" = some (withErr (sp.masterSpec γc γm))⌝ }}
     (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"callMaster"))
       (Val #(go!"GetLeader")))
   {{ (res err : GoInterface), RET (PairV #res #err); cl ↦ v ∗

@@ -4,7 +4,8 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/Client__callMast
 /-
 `c.callMaster(method)` (client/client.go) for `"GetReplicaList"` and `"GetLeader"`: up to 100
 `call`s of the master's method, each with a fresh (zero) reply decoded by the kit codec; the
-master's answer is the frozen `masterSpec`'s (`masterSpec_getReplicaList`,
+master's answer is the frozen `masterSpec`'s, served as `withErr masterSpec` (an error answer
+`([], msg)` with `msg ≠ []` is the caller's `Φ`'s left disjunct), (`masterSpec_getReplicaList`,
 `masterSpec_getLeader`), and the decoded reply is that answer (`grl_inj`: the codec's encoding is
 injective).
 -/
@@ -109,7 +110,8 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
       · iapply ownSlice_nil
       · iapply ownSlice_nil
     wp_apply wp_call cl v v.master' W masterAddr _ go!"Master" go!"GetReplicaList"
-      (sp.masterSpec γc γm) _ _ (client.cn.rlPhi γc γm) iprop(True)
+      (withErr (sp.masterSpec γc γm)) _ _
+      (fun rep msg => iprop(⌜msg ≠ []⌝ ∨ (client.cn.rlPhi γc γm) rep msg)) iprop(True)
       (kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetReplicaListReply.ty) #rp)
         (DFrac.own 1) client.cn.rlX0)
       (fun rep ok => iprop((client.cn.rlPhi γc γm) rep [] ∗ client.cn.rlTheta rp rep ok))
@@ -135,16 +137,24 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
         isplitl
         rotate_left
         · itrivial
+        unfold withErr
+        isplit
+        rotate_left
+        · iintro %msg %Hmsg
+          ileft; ipureintro; exact Hmsg
         iapply (sp.masterSpec_getReplicaList (γc := γc) (γm := γm) _ _).2
         isplitr
         · ipureintro; rfl
         iintro %nodes %alive Hcfg %Hal
+        iright
         unfold client.cn.rlPhi
         iexists nodes, alive
         iframe Hcfg
         ipureintro; exact ⟨rfl, Hal⟩
       iframe HD
       iintro !> HD %rep HΦr
+      icases HΦr with (%Hne | HΦr)
+      · exfalso; exact Hne rfl
       iapply KitLike.dec_intro
       unfold decT
       iexists client.cn.rlX0
@@ -243,7 +253,8 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
       · ipureintro; rfl
       iexact Hrp
     wp_apply wp_call cl v v.master' W masterAddr _ go!"Master" go!"GetLeader"
-      (sp.masterSpec γc γm) _ _ client.cn.glPhi iprop(True)
+      (withErr (sp.masterSpec γc γm)) _ _
+      (fun rep msg => iprop(⌜msg ≠ []⌝ ∨ client.cn.glPhi rep msg)) iprop(True)
       (kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetLeaderReply.ty) #rp)
         (DFrac.own 1) client.cn.glX0)
       (fun rep ok => iprop(client.cn.glPhi rep [] ∗ client.cn.glTheta rp rep ok))
@@ -269,14 +280,22 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
         isplitl
         rotate_left
         · itrivial
+        unfold withErr
+        isplit
+        rotate_left
+        · iintro %msg %Hmsg
+          ileft; ipureintro; exact Hmsg
         iapply (sp.masterSpec_getLeader (γc := γc) (γm := γm) _ _).2
         isplitr
         · ipureintro; rfl
         iintro %id
+        iright
         unfold client.cn.glPhi
         ipureintro; exact ⟨id, rfl⟩
       iframe HD
       iintro !> HD %rep HΦr
+      icases HΦr with (%Hne | HΦr)
+      · exfalso; exact Hne rfl
       iapply KitLike.dec_intro
       unfold decT
       iexists client.cn.glX0
