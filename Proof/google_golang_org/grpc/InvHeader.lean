@@ -158,6 +158,29 @@ theorem rowFields_append : ∀ (l rest : List GoString), l.length % 2 = 0 →
     rw [rowFields_append l rest (by simp at h; omega)]
     simp
 
+/-- Go's `i%2 == 0` on a non-negative `int` (signed remainder). -/
+theorem srem2_eq_zero (n : w64) (h : 0 ≤ sint.Z n) :
+    BitVec.srem n (W64 2) = W64 0 ↔ sint.nat n % 2 = 0 := by
+  have hmsb : n.msb = false := by
+    rw [BitVec.msb_eq_false_iff_two_mul_lt]
+    have := BitVec.toInt_eq_toNat_of_lt (x := n)
+    simp only [sint.Z] at h
+    rw [BitVec.toInt_eq_toNat_cond] at h
+    split at h <;> omega
+  rw [BitVec.srem_eq]
+  simp only [hmsb, show (W64 2).msb = false by decide]
+  simp only [sint.nat]
+  rw [BitVec.toInt_eq_toNat_of_msb hmsb]
+  constructor
+  · intro h2
+    have := congrArg BitVec.toNat h2
+    simp at this
+    omega
+  · intro h2
+    apply BitVec.eq_of_toNat_eq
+    simp
+    omega
+
 end grpcHdr
 
 open Iris Iris.BI

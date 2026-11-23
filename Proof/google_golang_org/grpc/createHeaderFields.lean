@@ -65,6 +65,7 @@ local macro "append_hf" : tactic => `(tactic| (
     · iexact Hcap
     iexact Hlsl))
 
+set_option maxHeartbeats 2000000 in
 open github_com.mit_pdos.perennial.goose.model.strings in
 theorem grpc.createHeaderFields.wp_proof
     (wp_NewContextWithRequestInfo : credentials.NewContextWithRequestInfo.spec (GF := GF) (hG := hG))
@@ -879,7 +880,144 @@ theorem grpc.createHeaderFields.wp_proof
     wp_for IH
     by_cases hlt : sint.Z m < sint.Z r.added'.len
     · rw [ite_eq_left (by simp [hlt])]
-      sorry
+      have Hlt : sint.nat m < rsl.length := by obtain ⟨hl, _⟩ := Hrsl; word
+      obtain ⟨rs, Hr⟩ : ∃ rs, rsl[sint.nat m]? = some rs := ⟨_, List.getElem?_eq_getElem Hlt⟩
+      have Hbnd : 0 ≤ sint.Z m ∧ sint.Z m < sint.Z r.added'.len := ⟨Hm.1, hlt⟩
+      wp_auto
+      (try rw [ite_eq_left Hbnd])
+      wp_apply wp_load_slice_index r.added' (sint.Z m) _ DFrac.discard rs Hm.1 $$ [$Had] as -
+      · ipureintro; exact Hr
+      ihave #Hrow := (BigSepL.bigSepL_lookup
+        (Φ := fun i sl => iprop(sl ↦*□ (rows.getD i []))) Hr) $$ Hrs
+      ihave %Hrowlen := ownSlice_len _ _ _ $$ Hrow
+      have HmR : sint.nat m < rows.length := by omega
+      have hgd : rows.getD (sint.nat m) [] = rows[sint.nat m] := by
+        simp [List.getD_eq_getElem?_getD, HmR]
+      have Hrkl : grpcHdr.rowKeysLower (rows.getD (sint.nat m) []) :=
+        Hrows.2 _ (hgd ▸ List.getElem_mem HmR)
+      generalize hrow : rows.getD (sint.nat m) [] = row at Hrkl Hrowlen ⊢
+      rename_i oc gi
+      irename : (gi ↦ zero_val w64 : IProp GF) => gi
+      ihave IH2 : iprop(∃ (n : w64) (vx : GoString) (gv : w64) (kk' : GoString) (hsl'' : GoSlice)
+          (fs'' : List google_golang_org.grpc.headerField),
+          "i" ∷ i_ptr ↦ n ∗ "v" ∷ v_ptr ↦ vx ∗ "gi" ∷ gi ↦ gv ∗ "k" ∷ kout ↦ kk' ∗
+          "headerFields" ∷ headerFields_ptr ↦ hsl'' ∗ "Hhf" ∷ hsl'' ↦* fs'' ∗
+          "Hcap" ∷ ownSliceCap google_golang_org.grpc.headerField hsl'' (DFrac.own 1) ∗
+          "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ row.length ∧
+            hfPairs fs'' = hfPairs fs' ++ grpcHdr.rowFields
+              (row.take (sint.nat n - sint.nat n % 2)) ∧
+            (sint.nat n % 2 = 1 → row[sint.nat n - 1]? = some kk')⌝)
+        $$ [i v gi k headerFields Hhf Hcap]
+      · iexists W64 0, _, _, _, _, _
+        simp only [named]
+        iframe
+        ipureintro
+        rw [show sint.nat (W64 0) = 0 by decide]
+        refine ⟨by decide, by omega, by simp [grpcHdr.rowFields], by omega⟩
+      wp_for IH2
+      by_cases hlt2 : sint.Z n < sint.Z rs.len
+      · rw [ite_eq_left (by simp [hlt2])]
+        have Hlt2 : sint.nat n < row.length := by obtain ⟨hl, _⟩ := Hrowlen; word
+        obtain ⟨x, Hx⟩ : ∃ x, row[sint.nat n]? = some x := ⟨_, List.getElem?_eq_getElem Hlt2⟩
+        have Hbnd2 : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z rs.len := ⟨Hn.1, hlt2⟩
+        wp_auto
+        (try rw [ite_eq_left Hbnd2])
+        wp_apply wp_load_slice_index rs (sint.Z n) _ DFrac.discard x Hn.1 $$ [$Hrow] as -
+        · ipureintro; exact Hx
+        have hn1 : sint.nat (n + W64 1) = sint.nat n + 1 := by word
+        by_cases hev : sint.nat n % 2 = 0
+        · -- a key
+          rw [decide_eq_true ((grpcHdr.srem2_eq_zero n Hn.1).2 hev)]
+          wp_auto
+          wp_apply wp_ToLower as %kr %Hkr
+          have hxl : strings.lowerWord x := by
+            have := Hrkl (sint.nat n) Hlt2 hev
+            rw [List.getElem?_eq_getElem Hlt2, Option.some.injEq] at Hx
+            rwa [Hx] at this
+          obtain rfl : kr = x := (Hkr x hxl).2 (grpcHdr.lowersTo_self x)
+          wp_for_post
+          iframe
+          iexists n + W64 1, kr, n, kr, _, _
+          simp only [named]
+          iframe
+          ipureintro
+          rw [hn1]
+          refine ⟨by word, by omega, ?_, fun _ => ?_⟩
+          · rw [show sint.nat n + 1 - (sint.nat n + 1) % 2 = sint.nat n - sint.nat n % 2 by omega]
+            exact Hn.2.2.1
+          · rw [show sint.nat n + 1 - 1 = sint.nat n by omega]; exact Hx
+        · -- a value, after its key `kk'`
+          rw [decide_eq_false (fun h => hev ((grpcHdr.srem2_eq_zero n Hn.1).1 h))]
+          wp_auto
+          have hodd : sint.nat n % 2 = 1 := by omega
+          have hkk := Hn.2.2.2 hodd
+          have htk : row.take (sint.nat n + 1 - (sint.nat n + 1) % 2) =
+              row.take (sint.nat n - sint.nat n % 2) ++ [kk', x] := by
+            have ha : sint.nat n - 1 + 1 = sint.nat n := by omega
+            rw [show sint.nat n + 1 - (sint.nat n + 1) % 2 = (sint.nat n - 1) + 1 + 1 by omega,
+              show sint.nat n - sint.nat n % 2 = sint.nat n - 1 by omega,
+              List.take_add_one, List.take_add_one, hkk, ha, Hx]
+            simp
+          have hrf : grpcHdr.rowFields (row.take (sint.nat n + 1 - (sint.nat n + 1) % 2)) =
+              grpcHdr.rowFields (row.take (sint.nat n - sint.nat n % 2)) ++
+                (if grpcHdr.reservedHdr kk' then [] else [(kk', grpcHdr.encMdHdr kk' x)]) := by
+            rw [htk, grpcHdr.rowFields_append _ _ (by simp; omega)]
+            simp [grpcHdr.rowFields]
+          wp_apply wp_isReservedHeader
+          by_cases hres : grpcHdr.reservedHdr kk'
+          · rw [decide_eq_true hres]
+            wp_auto
+            wp_for_post
+            iframe
+            iexists n + W64 1, x, n, kk', _, _
+            simp only [named]
+            iframe
+            ipureintro
+            rw [hn1]
+            refine ⟨by word, by omega, ?_, fun h => by omega⟩
+            rw [hrf, Hn.2.2.1]; simp [hres]
+          · rw [decide_eq_false hres]
+            wp_auto
+            wp_apply wp_encodeMetadataHeader
+            append_hf
+            wp_for_post
+            iframe
+            iexists n + W64 1, x, n, kk', _, _
+            simp only [named]
+            iframe
+            ipureintro
+            rw [hn1]
+            refine ⟨by word, by omega, ?_, fun h => by omega⟩
+            rw [hrf]
+            simp only [hfPairs] at Hn ⊢
+            simp [Hn.2.2.1, hres]
+      · have hn : sint.nat n = row.length := by
+          obtain ⟨hl, _⟩ := Hrowlen; obtain ⟨_, hle, _⟩ := Hn; word
+        rw [ite_eq_right (by simp [hlt2]), ite_eq_right (by simp [hlt2])]
+        wp_for_post
+        iframe
+        iexists m + W64 1, kk', rs, _, _
+        simp only [named]
+        iframe
+        ipureintro
+        have hm1 : sint.nat (m + W64 1) = sint.nat m + 1 := by word
+        rw [hm1]
+        refine ⟨by word, by omega, ?_⟩
+        have hrow' : grpcHdr.rowFields row =
+            grpcHdr.rowFields (row.take (sint.nat n - sint.nat n % 2)) := by
+          rw [hn]
+          by_cases hev : row.length % 2 = 0
+          · rw [hev, Nat.sub_zero, List.take_length]
+          · have hsplit : row = row.take (row.length - 1) ++ [row[row.length - 1]'(by omega)] := by
+              conv_lhs => rw [← List.take_append_drop (row.length - 1) row]
+              congr 1
+              rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_nil_of_le (by omega)]
+            rw [show row.length % 2 = 1 by omega]
+            conv_lhs => rw [hsplit]
+            rw [grpcHdr.rowFields_append _ _ (by simp; omega)]
+            simp [grpcHdr.rowFields]
+        rw [Hn.2.2.1, Hm.2.2, ← hrow', List.take_add_one, List.getElem?_eq_getElem HmR, ← hgd, hrow]
+        simp
     · have hm : sint.nat m = rows.length := by
         obtain ⟨hl, _⟩ := Hrsl; obtain ⟨_, hle, _⟩ := Hm; word
       rw [ite_eq_right (by simp [hlt]), ite_eq_right (by simp [hlt])]
