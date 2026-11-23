@@ -111,7 +111,8 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
     wp_apply wp_call cl v v.master' W masterAddr _ go!"Master" go!"GetReplicaList"
       (sp.masterSpec γc γm) _ _ (client.cn.rlPhi γc γm) iprop(True)
       (kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetReplicaListReply.ty) #rp)
-        (DFrac.own 1) client.cn.rlX0) (client.cn.rlTheta rp)
+        (DFrac.own 1) client.cn.rlX0)
+      (fun rep ok => iprop((client.cn.rlPhi γc γm) rep [] ∗ client.cn.rlTheta rp rep ok))
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
       · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
@@ -143,7 +144,7 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
         iframe Hcfg
         ipureintro; exact ⟨rfl, Hal⟩
       iframe HD
-      iintro !> HD %rep
+      iintro !> HD %rep HΦr
       iapply KitLike.dec_intro
       unfold decT
       iexists client.cn.rlX0
@@ -152,9 +153,13 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
       · ipureintro; trivial
       isplit
       · iintro %y %Hy Hown
+        isplitl [HΦr]
+        · iexact HΦr
         unfold client.cn.rlTheta
         ileft; iexists y; iframe Hown; ipureintro; exact ⟨Hy.1, Hy.2.1⟩
       · iintro %Hn %ok -
+        isplitl [HΦr]
+        · iexact HΦr
         unfold client.cn.rlTheta
         iright; ipureintro; intro y hy hw; exact Hn y hy hw
     icases Hres with (⟨%Herr, -, %rep, Hphi, Hth⟩ | %Herr)
@@ -240,7 +245,8 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
     wp_apply wp_call cl v v.master' W masterAddr _ go!"Master" go!"GetLeader"
       (sp.masterSpec γc γm) _ _ client.cn.glPhi iprop(True)
       (kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.GetLeaderReply.ty) #rp)
-        (DFrac.own 1) client.cn.glX0) (client.cn.glTheta rp)
+        (DFrac.own 1) client.cn.glX0)
+      (fun rep ok => iprop(client.cn.glPhi rep [] ∗ client.cn.glTheta rp rep ok))
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
       · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
@@ -270,7 +276,7 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
         unfold client.cn.glPhi
         ipureintro; exact ⟨id, rfl⟩
       iframe HD
-      iintro !> HD %rep
+      iintro !> HD %rep HΦr
       iapply KitLike.dec_intro
       unfold decT
       iexists client.cn.glX0
@@ -279,9 +285,13 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
       · ipureintro; trivial
       isplit
       · iintro %y %Hy Hown
+        isplitl [HΦr]
+        · iexact HΦr
         unfold client.cn.glTheta
         ileft; iexists y; iframe Hown; ipureintro; exact ⟨Hy.1, Hy.2.1⟩
       · iintro %Hn %ok -
+        isplitl [HΦr]
+        · iexact HΦr
         unfold client.cn.glTheta
         iright; ipureintro; intro y hy hw; exact Hn y hy hw
     icases Hres with (⟨%Herr, -, %rep, Hphi, Hth⟩ | %Herr)

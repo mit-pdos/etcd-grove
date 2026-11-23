@@ -161,11 +161,11 @@ abbrev client.Client.call.specI : Prop :=
       net.rpc.isClient r W a ∗
       ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
       net.rpc.RpcCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
-      □ (D -∗ ∀ rep, net.rpc.RpcCodec.dec rep reply (Θ rep)) }}
+      □ (D -∗ ∀ rep, Φ rep [] -∗ net.rpc.RpcCodec.dec rep reply (Θ rep)) }}
     (App (App (App (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"call"))
       (Val #r)) (Val #sm)) (Val #args)) (Val #reply))
   {{ (err : GoInterface), RET #err; cl ↦ v ∗
-      ((⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true) ∨
+      ((⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Θ rep true) ∨
         ⌜err ≠ interface.nil⌝) }}
 
 /-- `c.callMaster("GetReplicaList")`: the membership, `Ready`, or an error. -/

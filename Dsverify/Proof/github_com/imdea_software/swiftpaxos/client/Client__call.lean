@@ -10,7 +10,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcClient
+public import Net.Proof.net.rpc.Results
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.time.Link
@@ -35,7 +35,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 /-- What the call's goroutine sends: the call's result (`Call.spec`'s postcondition, weakened). -/
 def callP (Rargs : IProp netDistGF) (Φ : List w8 → GoString → IProp netDistGF)
     (Θ : List w8 → Bool → IProp netDistGF) (err : GoInterface) : IProp netDistGF :=
-  iprop((⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true) ∨ ⌜err ≠ interface.nil⌝)
+  iprop((⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Θ rep true) ∨ ⌜err ≠ interface.nil⌝)
 
 end defs
 
@@ -71,7 +71,7 @@ theorem client.Client.call.wp_proof
   ipersist errs
   wp_apply (lc := 4) wp_fork $$ [Henc HD]
   · wp_auto
-    wp_apply net.rpc.swiftClient.Client.Call.wp r W a sm svc M S args reply Φc Rargs D Θ
+    wp_apply net.rpc.Client.Call.wp r W a sm svc M S args reply Φc Rargs D Θ
       net.rpc.RpcCodec.spec $$ [$Hcs $Hrc Henc $HD] as %err Hres
     · dsimp only [net.rpc.RpcCodec.spec]
       isplitr
@@ -81,7 +81,7 @@ theorem client.Client.call.wp_proof
       iexact HDw
     wp_apply wp_bag_send γ ch err (client.cn.callP Rargs Φc Θ) $$ [$Hbag Hres]
     · unfold client.cn.callP
-      icases Hres with (⟨%He, HR, %rep, HΦ, HΘ⟩ | ⟨%msg, ⟨%Hm, %He⟩, -, -, -, -⟩ | ⟨⟨%He, -⟩, -, -⟩)
+      icases Hres with (⟨%He, HR, %rep, HΘ⟩ | ⟨%msg, ⟨%Hm, %He⟩, -, -, -, -⟩ | ⟨⟨%He, -⟩, -, -⟩)
       · ileft; iframe; ipureintro; exact He
       · iright; ipureintro; subst He; simp [net.rpc.serverErr, interface.mkOk]
       · iright; ipureintro; exact He

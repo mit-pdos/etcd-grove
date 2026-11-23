@@ -115,7 +115,17 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, fourth session; resume here)
+## State (2026-11-23, fifth session; resume here)
+
+Merged **`origin/models-rpc-server` `2a6b4e5d12`** (Client.Call's decoding obligation is asked only of
+the method's answers: `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep))`, success post
+`∃ rep, Θ rep true`; and `Server.Accept` over `Listener.Accept.spec_addrOk`, so
+`Net/Proof/net/rpc/Results` builds again). `lib/RpcClient.lean` (the copy of `Results`' client half)
+is gone: `client/Client__call` uses `Net.Proof.net.rpc.Results`' `net.rpc.Client.Call.wp`.
+`client.Client.call.specI` (`client/ConnectSpecs`) takes the new premise and post; `callMasterRL`/
+`callMasterL` keep the master's answer inside `Θ` (`fun rep ok => rlPhi rep [] ∗ rlTheta rp rep ok`).
+
+## State (2026-11-23, fourth session)
 
 Merged **`origin/dsv-bufio` `a13fdfe356`**, then its rename **`361ca5c7b7`** (`io.writerOk` →
 `io.streamWriterOk`, `net.conn_writerOk` → `net.conn_streamWriterOk`, `Proof/io/StreamWriterOk.lean`;
