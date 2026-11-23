@@ -3750,6 +3750,24 @@ their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then
 axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY,
         # the `&T{}` allocations
         before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']} if _p in _K8S_ALLOCS else {})
+# (klog-leaves, 2026-11-23; etcd-grove#25) klog's `logging`, translated (zero: no initializer) for `V`
+SPECIAL['k8s_io.klog.v2'] = dict(doc='''Its fact (`klogInit`, `storage/etcd3/Base.lean`): of the global `logging`, `verbosity` holds
+some level, `filterLength` is 0 and `logger` is `nil`, read-only for good. Its initializer
+initializes its imports, allocates `logging` (zero: it has no initializer; the allocation gives its
+fields' points-tos) and runs its `init` functions (trusted no-ops, `TrustedCode/k8s_io/klog/v2.lean`:
+`init.1` writes 0 to `verbosity` and `filterLength`, as the zero value has them; klog-leaves,
+2026-11-23).''',
+    alloc_types={'logging': 'k8s_io.klog.v2.loggingT'},
+    finish=['iStructNamed Hlogging', 'iStructNamed settings',
+            'ipersist verbosity', 'ipersist filterLength', 'ipersist logger'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold k8s_io.apiserver.pkg.storage.etcd3.klogInit',
+            'isplitl []', '· iexists _; iexact verbosity', 'isplitl []',
+            # the zero value's fields, by `rfl`
+            "· have hz : (zero_val k8s_io.klog.v2.loggingT).settings'.filterLength' = W32 0 := rfl",
+            '  rw [← hz]', '  iexact filterLength',
+            "· have hz : (zero_val k8s_io.klog.v2.loggingT).settings'.logger' = null := rfl",
+            '  rw [← hz]', '  iexact logger'],
+)
 # (prove-k8s, 2026-11-20) more k8s lists translated (until then each package's `opaqueInitsOk`); their
 # facts are `True`.
 SPECIAL['k8s_io.utils.trace'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
