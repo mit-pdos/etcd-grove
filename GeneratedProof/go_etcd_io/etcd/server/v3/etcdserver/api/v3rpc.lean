@@ -47,7 +47,7 @@ public import Perennial.GeneratedProof.math.rand
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
-public import GeneratedProof.unicode.utf8
+public import Perennial.GeneratedProof.unicode.utf8
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 

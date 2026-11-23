@@ -4,7 +4,7 @@ module
 public import GeneratedProof.path
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.errors.Base
-public import SpecPlan.Spec.PkgInit.internal.bytealg
+public import Perennial.Proof.internal.bytealg.Base
 
 @[expose] public section
 noncomputable section

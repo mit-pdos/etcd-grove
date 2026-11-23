@@ -7,7 +7,7 @@ module
 public import GeneratedProof.path
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.errors.Base
-public import Dsverify.Proof.internal.bytealg.Base
+public import Perennial.Proof.internal.bytealg.Base
 
 @[expose] public section
 
