@@ -1,0 +1,14 @@
+# dsv-paxos (notes/dsv-paxos.md): dsverify-lab's paxos kit (paxos-net-3) ported onto the net
+# extension and examples/lib/remote, in the part Dsverify/: the paxos package's linked results
+# (Dsverify/Proof/github_com/xiang90/paxos/Link.lean), the kit's (examples/paxosnet/Linked.lean) and
+# its closed theorem `paxos_remote_robust` (examples/paxosnet/TopLevelRobustness.lean: ten machines,
+# Robust [] under DistDeploy). Its `#print axioms`: `propext`, `Classical.choice`, `Quot.sound` only.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-paxos.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-paxos.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-paxos.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline. Written by hand (2026-11-22, from `#print axioms` of the closed
+# theorem): this repository's axioms and `sorry`s the roots rest on, none.
+roots ^Dsverify/Proof/github_com/xiang90/paxos/
