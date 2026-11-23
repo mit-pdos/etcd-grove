@@ -8,6 +8,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskLaws2
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.StateLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Init0Laws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.OnDisk
 
 @[expose] public section
 
@@ -134,6 +135,55 @@ def pre0' (x : OnDisk) (msgs : List Fact) (votes : List VoteRec) : Pre :=
     msgs := lset.minus msgs x.s.msgs, votes := lset.minus votes x.s.votes }
 
 theorem pre0_eq (x : OnDisk) (ns : State) : pre0 x ns = pre0' x ns.msgs ns.votes := rfl
+
+/-- `pre`'s facts (`msgs' \\ s.msgs`, B 352): at most the vote request and the ack. -/
+theorem minus_two {α : Type} [DecidableEq α] {s0 m : List α} {el : Bool} {v : α}
+    (h : m = (if el then lset.add s0 v else s0) ∨ ∃ a, m = lset.add (if el then lset.add s0 v else s0) a) :
+    (lset.minus m s0).length ≤ 2 := by
+  have h1 : (lset.minus (if el then lset.add s0 v else s0) s0).length ≤ 1 := by
+    cases el
+    · simp [lset_minus_self]
+    · have := lset_minus_add s0 s0 v
+      simp only [ite_true, lset_minus_self, List.length_nil] at *
+      omega
+  rcases h with rfl | ⟨a, rfl⟩
+  · omega
+  · have := lset_minus_add (if el then lset.add s0 v else s0) s0 a
+    omega
+
+/-- The numbers `u7` (B 404-419) needs: of `pre` after `u4`..`u6` (built from `msgs`, `votes`) and
+of `undo[n]`: the kept prefixes within `bigOk`, the logs within `b`, the unions' sizes. -/
+theorem u7_bounds {b E : Nat} (hW : x.Within b E) (hb : ((b + 1 : Nat) : Int) < numBound)
+    {msgs : List Fact} {votes : List VoteRec} {me : Str} {t1 : Int} {pre4 pre5 pre6 : Pre}
+    (hm : (lset.minus msgs x.s.msgs).length ≤ 2) (hv : (votes.length : Int) ≤ b + 1)
+    (h4 : (x.stores = .ok false ∧ pre4 = { pre0' x msgs votes with keep := x.L0.length }) ∨
+      ∃ fi suf, x.stores = .ok true ∧ x.first = .ok fi ∧ subSeq x.L0 fi x.L0.length = .ok suf ∧
+        pre4 = { pre0' x msgs votes with keep := fi - 1, suffix := suf })
+    (h5 : (x.acks = .ok false ∧ pre5 = pre4) ∨ ∃ f a, x.acks = .ok true ∧ x.f = .ok f ∧ x.ackAt = .ok a ∧
+        pre5 = { pre4 with acks := [ackFact me f.src t1 a] })
+    (h6 : (x.stores = .ok false ∧ pre6 = pre5) ∨
+      ∃ fi, x.stores = .ok true ∧ x.first = .ok fi ∧ pre6 = { pre5 with low := fi }) :
+    bigOk pre6.keep ∧ bigOk ((x.s.undo[x.n]!).getD {}).keep ∧ (x.L0.length : Int) ≤ b ∧
+      (((x.s.undo[x.n]!).getD {}).suffix.length : Int) ≤ b ∧
+      (((x.s.undo[x.n]!).getD {}).msgs.length : Int) + pre6.msgs.length < 2 ^ 62 ∧
+      (((x.s.undo[x.n]!).getD {}).votes.length : Int) + pre6.votes.length < 2 ^ 62 ∧
+      (((x.s.undo[x.n]!).getD {}).acks.length : Int) + pre6.acks.length < 2 ^ 62 := by
+  have hu : ((x.s.undo[x.n]!).getD {}).Within b E := undo_within hW
+  have hL0 := (L0_within hW).1
+  have hb' := hb; unfold numBound at hb'
+  obtain ⟨-, -, -, huk, -, -, -, hus, -, hum, -, hua, -, huv, -⟩ := hu
+  have hvl := lset_minus_len votes x.s.votes
+  have hus' := hus.1
+  have key : bigOk pre6.keep ∧ pre6.msgs = lset.minus msgs x.s.msgs ∧
+      pre6.votes = lset.minus votes x.s.votes ∧ pre6.acks.length ≤ 1 := by
+    rcases h6 with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ <;> rcases h5 with ⟨-, rfl⟩ | ⟨-, -, -, -, -, rfl⟩ <;>
+      rcases h4 with ⟨-, rfl⟩ | ⟨fi, suf, -, hfi, -, rfl⟩ <;>
+      first
+        | exact ⟨by unfold bigOk; dsimp only; omega, rfl, rfl, by simp [pre0']⟩
+        | exact ⟨(first_bigOk hW hb hfi).2, rfl, rfl, by simp [pre0']⟩
+  obtain ⟨hk, hm6, hv6, ha6⟩ := key
+  rw [hm6, hv6]
+  refine ⟨hk, huk, by omega, by omega, by omega, by omega, by omega⟩
 
 section iris
 open Iris Iris.BI Iris.ProofMode

@@ -425,13 +425,13 @@ theorem State.OnDisk.wp_proof
   unfold g1 at Ho
   dsimp only at Ho
   rw [hXmore, hXs, hXn] at Ho
-  icases undoRO_at g.Undo' s.undo n ⟨Hn, by rw [HWf.len_undo]; exact Hlt⟩ $$ HUndo with ⟨%u0, #Hua, #Hu⟩
-  cases hc : (more && s.undo[sint.nat n]!.isNone)
+  icases undoRO_at g.Undo' s.undo n ⟨Hn, by rw [HWf.len_undo]; exact Hlt⟩ $$ HUndo with ⟨%uu0, #Hua, #Hu⟩
+  cases hcu : (more && s.undo[sint.nat n]!.isNone)
   case true =>
-    simp only [hc, ite_true, pure_ok, Except.ok.injEq] at Ho
+    simp only [hcu, ite_true, pure_ok, Except.ok.injEq] at Ho
     subst Ho
-    simp only [Bool.and_eq_true, Option.isNone_iff_eq_none] at hc
-    obtain ⟨rfl, hu⟩ := hc
+    simp only [Bool.and_eq_true, Option.isNone_iff_eq_none] at hcu
+    obtain ⟨rfl, hu⟩ := hcu
     rw [hu]
     iunfold preRO at Hu
     icases Hu with %Hnull
@@ -440,14 +440,14 @@ theorem State.OnDisk.wp_proof
     wp_apply wp_load_at _ _ _ Hn $$ [Hua] as -
     · iexact Hua
     odret
-  simp only [hc, Bool.false_eq_true, ite_false] at Ho
+  simp only [hcu, Bool.false_eq_true, ite_false] at Ho
   wp_join at next with [«$res0» «$res1»]
   · cases more
     · try wp_auto
       wp_join_done
     · have hu : ∃ pu, s.undo[sint.nat n]! = some pu := by
         cases h : s.undo[sint.nat n]! with
-        | none => rw [h] at hc; simp at hc
+        | none => rw [h] at hcu; simp at hcu
         | some pu => exact ⟨pu, rfl⟩
       obtain ⟨pu, hu⟩ := hu
       rw [hu]
@@ -2019,6 +2019,199 @@ theorem State.OnDisk.wp_proof
     refine ⟨h1, h2, h3, h4, ?_, h6, h7, h8⟩
     dsimp only
     rw [sint_sub (by rw [Hufi, sint_one]; omega) (by rw [Hufi, sint_one]; omega), Hufi, sint_one]
+  -- u5: `if x.acks() { pre.Acks = []Fact{AckFact(me, x.f().Src, x.T1(), x.ackAt())} }`
+  obtain ⟨pre5, Ho, hpre5⟩ := u5_ok Ho
+  rw [hXs, hXn] at hpre5
+  wp_join (v := executeVal) iprop(OnDiskProofLaws.preOwn «$r0_ptr» pre5) at next with [Hpo] as Hpo
+  · rcases hpre5 with ⟨hac, rfl⟩ | ⟨f, a, hac, hf, ha, rfl⟩
+    · odm acks
+      wp_apply wp_acks _ X false $$ [Hx]
+      · iframe Hx; ipureintro; exact hac
+      try wp_auto
+      wp_join_done
+    iunfold OnDiskProofLaws.preOwn at Hpo
+    icases Hpo with ⟨%gp, Hpl, %Hpr, #Hps, #Hpms, #Hpvs, #-⟩
+    odm acks
+    wp_apply wp_acks _ X true $$ [Hx]
+    · iframe Hx; ipureintro; exact hac
+    try wp_auto
+    odm f
+    wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+    · iframe Hx; ipureintro; exact hf
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    odm ackAt
+    wp_apply wp_ackAt _ X a $$ [Hx] as %ua %Hua
+    · iframe Hx; ipureintro; exact ha
+    try wp_auto
+    iunfold appendFactRO at Hf
+    icases Hf with ⟨%Hfr, #-⟩
+    rw [Hfr.1]
+    wp_apply wp_AckFact (s.cfg.server[sint.nat n]!) f.src u1 ua as %gak %Hgak
+    rw [Hu1, Hua] at Hgak
+    try wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sla ⟨Hsla, -⟩
+    imod ownSlice_persist $$ Hsla with #Hsla
+    try wp_auto
+    wp_join_done
+    iunfold OnDiskProofLaws.preOwn
+    iexists _; iframe Hpl Hps Hpms Hpvs
+    isplitr
+    · ipureintro; exact Hpr
+    iunfold factsRO
+    iexists [gak]; iframe Hsla
+    ipureintro; exact List.Forall₂.cons Hgak List.Forall₂.nil
+  -- u6: `if x.stores() { pre.Low = x.first() }`
+  obtain ⟨pre6, Ho, hpre6⟩ := u6_ok Ho
+  wp_join (v := executeVal) iprop(OnDiskProofLaws.preOwn «$r0_ptr» pre6) at next with [Hpo] as Hpo
+  · rcases hpre6 with ⟨hst, rfl⟩ | ⟨fi, hst, hfi, rfl⟩
+    · odm stores
+      wp_apply wp_stores _ X false $$ [Hx]
+      · iframe Hx; ipureintro; exact hst
+      try wp_auto
+      wp_join_done
+    iunfold OnDiskProofLaws.preOwn at Hpo
+    icases Hpo with ⟨%gp, Hpl, %Hpr, #Hps, #Hpms, #Hpvs, #Hpas⟩
+    obtain ⟨h1, h2, h3, h4, h5, h6, -, h8⟩ := Hpr
+    odm stores
+    wp_apply wp_stores _ X true $$ [Hx]
+    · iframe Hx; ipureintro; exact hst
+    try wp_auto
+    odm first
+    wp_apply wp_first _ X fi $$ [Hx] as %ufi %Hufi
+    · iframe Hx; ipureintro; exact hfi
+    try wp_auto
+    wp_join_done
+    iunfold OnDiskProofLaws.preOwn
+    iexists _; iframe Hpl Hps Hpms Hpvs Hpas
+    ipureintro
+    exact ⟨h1, h2, h3, h4, h5, h6, Hufi, h8⟩
+  -- u7: `if !more { ns.Undo = setPre(s.Undo, n, pre) } else { u := *s.Undo[n]; nu := u; … ns.Undo = setPre(s.Undo, n, &nu) }`
+  have hmm : (lset.minus S5.msgs X.s.msgs).length ≤ 2 := by
+    rw [hS5m, hXs]
+    refine OnDiskProofLaws.minus_two (el := el) (v := s.voteRequest (sint.nat n) t1) ?_
+    rcases hmsgs2 with ⟨_, h⟩ | ⟨f, a, _, _, _, h⟩
+    · exact .inl h
+    · exact .inr ⟨_, h⟩
+  have hvv : (S5.votes.length : Int) ≤ b + 1 := by
+    rw [hS5v]; unfold OnDiskProofLaws.votes3; rw [hXs]
+    split
+    · refine Int.le_trans (Int.ofNat_le.2 (lset_add_len _ _)) ?_; push_cast; omega
+    · omega
+  obtain ⟨hk6, huk, hL0b, husb, hum6, huv6, hua6⟩ := OnDiskProofLaws.u7_bounds HW hb hmm hvv hpre4 hpre5 hpre6
+  rw [hXs, hXn] at huk husb hum6 huv6 hua6
+  obtain ⟨p7, Ho, hp7⟩ := u7_ok Ho
+  rw [hXs, hXn, hXmore] at hp7
+  rw [hXs, hXn] at Ho
+  wp_join (v := executeVal) iprop(stateOwn q { S5 with undo := s.undo.set (sint.nat n) (some p7) })
+    at next with [Hq Hpo] as Hq
+  · iunfold OnDiskProofLaws.preOwn at Hpo
+    icases Hpo with ⟨%gp, Hpl, %Hpr, #Hps, #Hpms, #Hpvs, #Hpas⟩
+    rcases hp7 with ⟨hmf, rfl⟩ | ⟨suf, hmt, rfl, hsuf⟩
+    · subst hmf
+      try wp_auto
+      ipersist Hpl
+      ihave #Hpre : preRO «$r0_ptr» (some p7) $$ []
+      · iunfold preRO; iexists gp; iframe Hpl Hps Hpms Hpvs Hpas; ipureintro; exact Hpr
+      wp_apply wp_setPre g.Undo' s.undo n «$r0_ptr» (some p7) $$ [HUndo Hpre] as %ul #Hul
+      · iframe HUndo Hpre; ipureintro; exact ⟨Hn, by rw [HWf.len_undo]; exact Hlt⟩
+      try wp_auto
+      wp_apply wp_set_undo q S5 ul (s.undo.set (sint.nat n) (some p7)) (by rw [List.length_set, HWf.len_undo, hcfg5]) $$ [Hq Hul] as Hq
+      · iframe Hq Hul
+      try wp_auto
+      wp_join_done
+    subst hmt
+    have hpu : ∃ pu, s.undo[sint.nat n]! = some pu := by
+      cases h : s.undo[sint.nat n]! with
+      | none => rw [h] at hcu; simp at hcu
+      | some pu => exact ⟨pu, rfl⟩
+    obtain ⟨pu, hpu⟩ := hpu
+    rw [hpu] at hsuf huk husb hum6 huv6 hua6
+    simp only [Option.getD_some] at hsuf huk husb hum6 huv6 hua6
+    rw [hpu]
+    simp only [Option.getD_some]
+    iunfold preRO at Hu
+    icases Hu with ⟨%gu, #Hgu, %Hgur, #Hgus, #Hgum, #Hguv, #Hgua⟩
+    try wp_auto
+    wp_apply wp_load_at _ _ _ Hn $$ [Hua] as -
+    · iexact Hua
+    try wp_auto
+    have hgk : sint.Z gu.Keep' = pu.keep := Hgur.2.2.2.2.1
+    have hpk : sint.Z gp.Keep' = pre6.keep := Hpr.2.2.2.2.1
+    wp_apply wp_Min gu.Keep' gp.Keep' as %wk %Hwk
+    try wp_auto
+    wp_join (v := executeVal) iprop(∃ sl, nu_ptr ↦ ({ gu with Keep' := wk, Suffix' := sl } : G.Pre) ∗ logRO sl suf ∗ u_ptr ↦ gu ∗ «$r0_ptr» ↦ gp)
+      at next with [nu u Hpl] as ⟨%sls, nu, #Hsls, u, Hpl⟩
+    · try wp_auto
+      wp_if_destruct
+      · obtain ⟨-, rfl⟩ : pre6.keep ≥ pu.keep ∧ suf = pu.suffix := by
+          rcases hsuf with h | ⟨hlt, -⟩
+          · exact h
+          · exfalso; rw [← hgk, ← hpk] at hlt; omega
+        try wp_auto
+        wp_join_done
+        iexists _; iframe nu u Hpl; iexact Hgus
+      rcases hsuf with ⟨hge, -⟩ | ⟨hlt, l, hl, rfl⟩
+      · exfalso; rw [← hgk, ← hpk] at hge; omega
+      odm L0
+      wp_apply wp_L0 _ X $$ [Hx] as %gl0 #Hl0
+      · iexact Hx
+      try wp_auto
+      wp_apply wp_SubSeq gl0 X.L0 (gp.Keep' + W64 1) gu.Keep' l $$ [Hl0] as %gsl #Hsl
+      · iframe Hl0; ipureintro
+        unfold bigOk at hk6
+        rw [sint_add_one (by omega), hpk, hgk]; exact hl
+      try wp_auto
+      have hll := subSeq_length_le hl
+      wp_apply wp_Concat gsl l gu.Suffix' pu.suffix $$ [Hsl Hgus] as %gcat #Hcat
+      · iframe Hsl Hgus; ipureintro; omega
+      try wp_auto
+      wp_join_done
+      iexists _; iframe nu u Hpl; iexact Hcat
+    wp_apply wp_factsUnion gu.Msgs' pu.msgs gp.Msgs' pre6.msgs $$ [Hgum Hpms] as %gm7 #Hgm7
+    · iframe Hgum Hpms; ipureintro; exact hum6
+    try wp_auto
+    wp_apply wp_votesUnion gu.Votes' pu.votes gp.Votes' pre6.votes $$ [Hguv Hpvs] as %gv7 #Hgv7
+    · iframe Hguv Hpvs; ipureintro; exact huv6
+    try wp_auto
+    wp_apply wp_factsUnion gu.Acks' pu.acks gp.Acks' pre6.acks $$ [Hgua Hpas] as %ga7 #Hga7
+    · iframe Hgua Hpas; ipureintro; exact hua6
+    try wp_auto
+    wp_apply wp_Lowest gu.Low' gp.Low' as %wl %Hwl
+    try wp_auto
+    ipersist nu
+    ihave #Hnu : preRO nu_ptr (some (nuOf pu pre6 suf)) $$ []
+    · iunfold preRO
+      iexists ({ gu with Keep' := wk, Suffix' := sls, Msgs' := gm7, Votes' := gv7, Acks' := ga7, Low' := wl } : G.Pre)
+      dsimp only [nuOf]
+      isplitr
+      · iexact nu
+      isplitr
+      · ipureintro
+        refine ⟨Hgur.1, Hgur.2.1, Hgur.2.2.1, Hgur.2.2.2.1, ?_, Hgur.2.2.2.2.2.1, ?_, Hgur.2.2.2.2.2.2.2⟩
+        · rw [Hwk, hgk, hpk]
+        · rw [Hwl, Hgur.2.2.2.2.2.2.1, Hpr.2.2.2.2.2.2.1]
+      isplitr
+      · iexact Hsls
+      isplitr
+      · iexact Hgm7
+      isplitr
+      · iexact Hgv7
+      iexact Hga7
+    wp_apply wp_setPre g.Undo' s.undo n nu_ptr (some (nuOf pu pre6 suf)) $$ [HUndo Hnu] as %ul #Hul
+    · iframe HUndo Hnu; ipureintro; exact ⟨Hn, by rw [HWf.len_undo]; exact Hlt⟩
+    try wp_auto
+    wp_apply wp_set_undo q S5 ul (s.undo.set (sint.nat n) (some (nuOf pu pre6 suf)))
+      (by rw [List.length_set, HWf.len_undo, hcfg5]) $$ [Hq Hul] as Hq
+    · iframe Hq Hul
+    try wp_auto
+    wp_join_done
   done
 
 end proof
