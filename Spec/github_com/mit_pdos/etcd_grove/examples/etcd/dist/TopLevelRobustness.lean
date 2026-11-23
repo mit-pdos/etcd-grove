@@ -2,9 +2,11 @@
 
 # `etcd/dist`: the distributed etcd theorem, stated (DRAFT)
 
-**Draft for review** (`notes/etcd-dist-plan.md`): not built, not proved, nothing imports it. It is to
-replace `etcd_robust`/`etcd_safe` (`examples/etcd/all`: eleven drivers in one process, each on a
-cluster of its own) and leaseexpiryN's theorem. Placeholders are marked in `TopLevelDefs.lean`.
+**Draft for review** (`notes/etcd-dist-plan.md`): not built, not proved, nothing imports it. It takes the
+names `etcd_safe`/`etcd_robust` (2026-11-22, Upamanyu's naming on #24: the distributed theorems take the
+plain names) of the single-process theorem it replaces (`examples/etcd/all`: eleven drivers in one
+process, each on a cluster of its own; retired with leaseexpiryN's at the net swap, tag
+`single-process-final`). Placeholders are marked in `TopLevelDefs.lean`.
 
 **For every well-formed deployment** of one etcd cluster and its clients -- `k ≥ 1` members, each
 running `examples/etcd/dist/server` on a machine of its own **that may crash at any step and
@@ -24,10 +26,10 @@ addresses, distinct, the members' ids apart in their low bits, the server config
 supported set, the workloads compatible and within their bounds); the machines start as the programs
 expect (`ServerStart`: no listener, the member's data directory and WAL area empty; `ClientStart`; a
 network with no connection, `NetStart`); bootstrap's results (`BootFacts`); and, carried over from
-`etcd_safe` until discharged, the environment premises (`EtcdEnv`), the programs' prometheus names
+the single-process `etcd_safe` until discharged, the environment premises (`EtcdEnv`), the programs' prometheus names
 (`HNs`) and the trust-boundary contracts (`TrustBoundary`, a placeholder).
 
-What `etcd_safe` had and this does not: no `Hlow` (one member per process; the issue record is per
+What the single-process `etcd_safe` had and this does not: no `Hlow` (one member per process; the issue record is per
 machine), no per-cluster premises (one cluster per deployment, every deployment covered), no
 addresses or data directories claimed in one process (`addrsUnclaimed`, `dataDirsAbsent`: each
 machine's files are its own, the network is closed), no schedules (the network's faults), no
@@ -72,14 +74,14 @@ namespace etcd_dist
 
 open Robustness go_etcd_io.raft.v3
 
-/-- **`etcd_dist_safe`** (see the file header): every well-formed deployment of an etcd cluster on
+/-- **`etcd_safe`** (see the file header): every well-formed deployment of an etcd cluster on
 machines that may crash and restart, and of its checking clients on machines that never crash, is
 robust: no thread of any machine is stuck or has an unrecovered panic.
 
 PLACEHOLDER binders: the programs' package `Assumptions` (of `examples/etcd/dist/{server,client}`'s
-closures, stage D2) join the instance binders; `threads` and `bound` are `etcd_safe`'s, to be fixed
+closures, stage D2) join the instance binders; `threads` and `bound` are the single-process `etcd_safe`'s, to be fixed
 by the proofs (the bound counts the steps of all machines together). -/
-def etcd_dist_safe.spec : Prop :=
+def etcd_robust.spec : Prop :=
   ∀ [GooseExts] [GooseSemantics] [GooseInterp]
     [HasExt Net.netExt] [@HasExt _ _ _ Fs.fsExt etcdFsSem _] [HasExt idIssueExt]
     [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]

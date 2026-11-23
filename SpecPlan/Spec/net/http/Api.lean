@@ -108,7 +108,7 @@ F-server-boot F5), `handlerPool_alloc`, `reqTicket_alloc`, `reqTicket_excl`,
 -/
 module
 
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import SpecPlan.Spec.PkgInit.net.http

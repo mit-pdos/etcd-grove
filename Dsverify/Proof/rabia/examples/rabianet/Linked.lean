@@ -16,7 +16,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.ServerProof
 public import Dsverify.Proof.rabia.examples.rabianet.OrchProof
 public import Dsverify.Proof.rabia.examples.rabianet.ModelProof
 public import Dsverify.Proof.rabia.internal.config.CalcConstants
-public import Dsverify.Proof.log.Println
+public import Net.Proof.log.Println
 public import Dsverify.Proof.rabia.roles.server.Link
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Net.Proof.net.Listen
