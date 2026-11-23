@@ -144,8 +144,10 @@ protowire function of the same name, tested in `models/pbcodec/protowire_test.go
     conformant for closed enums), where a conformant parser would keep an unknown value of a
     closed enum as an unknown field.
   - an explicit default is never stored nor checked: it is the generated getter's (`GetX`
-    returns `Default_T_X` when the pointer is nil); no coder reads it (internal/impl's only use of
-    a field's Default is a map entry's key, codec_map.go:44).
+    returns `Default_T_X` when the pointer is nil); no coder reads it (internal/impl reads a
+    field's Default only in its reflection and getter paths, convert.go:95, 380,
+    message_reflect_field.go:41, 53, legacy_message.go:535, and for a map entry's key,
+    codec_map.go:44).
   - a oneof member: if the holder already holds a non-nil wrapper of this member's type, the
     value goes into it (a message merges into the one there, allocated if nil), else into a new
     wrapper, which becomes the oneof's value (initOneofFieldCoders' unmarshal,
@@ -181,7 +183,7 @@ protowire function of the same name, tested in `models/pbcodec/protowire_test.go
   - Unmarshal into a nil *T panics (protobuf-go's Reset of a nil message panics too).
 
   Where the claim stops (documented deviations, outside "behaves as protobuf-go"):
-  - unknown fields: protobuf-go keeps them in the message (decode.go:225) and Marshal writes
+  - unknown fields: protobuf-go keeps them in the message (decode.go:226-229) and Marshal writes
     them back; the emitted code checks and drops them (it cannot reach the struct's unexported
     unknownFields). A program that re-sends a message decoded from input carrying fields its
     schema does not know (a peer with a newer schema, or a corrupted input) behaves differently;
@@ -235,7 +237,7 @@ REFLECT_GO = {k: ("[]uint8" if v[0] == "[]byte" else v[0]) for k, v in SCALARS.i
 
 # The identifiers the emitted code uses for itself: no package alias may be one.
 RESERVED = {"pbcodec", "b", "m", "p", "i", "num", "typ", "n", "ok", "ok2", "k", "k2", "v", "e",
-            "sub", "j", "depth", "o", "pbMarshal", "pbUnmarshal", "interface", "nil", "uint64", "make",
+            "sub", "j", "depth", "o", "new", "pbMarshal", "pbUnmarshal", "interface", "nil", "uint64", "make",
             "append", "panic", "string", "len", "true", "false", "error", "byte", "bool", "int32",
             "int64", "uint32",
             # the packages the generated test (pb_gen_test.go) imports
@@ -416,7 +418,7 @@ class Schema:
         self.enums.sort()
 
         # required fields: the types that have one, and those that reach one (protobuf-go's
-        # needsInitCheck, internal/impl/checkinit.go:121-160)
+        # needsInitCheck, internal/impl/checkinit.go:126-170)
         self.direct_req = {n for n in self.names if any(f.req for f in self.m[n])}
         self.needs_init = set(self.direct_req)
         changed = True
@@ -429,7 +431,7 @@ class Schema:
                     changed = True
         # where protobuf-go's own required-field checks are not what the emitted code checks:
         # (a) a type that needs them only through a cycle of two or more message types: the
-        # cache of needsInitCheck (internal/impl/checkinit.go:121-160) keeps a wrong false for it,
+        # cache of needsInitCheck (internal/impl/checkinit.go:137-170) keeps a wrong false for it,
         # depending on which type the program uses first; (b) a oneof member other than the
         # oneof's first declared one, of a type that needs them: Unmarshal's fast path consults
         # the isInit of the field's own coder (internal/impl/decode.go:189), which only the first
