@@ -9,6 +9,7 @@ the node uses, on the interface value. The store's error for an absent key or ve
 module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.store.Base
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Wire
 public import Perennial.Ghost.GhostVar
 public import Perennial.Golang.Theory.Map
 public import Iris.ProgramLogic.Atomic
@@ -54,9 +55,6 @@ def maxCommitted (S : StoreS) (k : GoString) : w64 :=
   (S.items k).foldl (fun m e => if e.2.2 = true ∧ uint.Z m < uint.Z e.1 then e.1 else m) (W64 0)
 
 end StoreS
-
-/-- The request's version of `k` (0 if absent). -/
-def reqVer (req : GMap GoString w64) (k : GoString) : w64 := (req.lookup k).getD (W64 0)
 
 section store
 variable [GooseExts] [GooseSemantics] [GooseInterp]
