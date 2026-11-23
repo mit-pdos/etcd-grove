@@ -77,7 +77,7 @@ theorem etcd_auth3.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.et
 
 /-- **auth3's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/auth3/Main.lean`). -/
-theorem etcd_auth3.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
+theorem etcd_auth3.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [EtcdGrove.ErrorStringLeaf] :
     etcd_auth3.Main.spec (GF := GF) (hG := hG) :=
   etcd_auth3.Main.wp_proof zap.NewNop.wp_proof etcd_auth3.wp_startMember etcd_auth3.wp_run

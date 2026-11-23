@@ -102,7 +102,7 @@ include h_After in
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the `k`-member cluster's) and the named
 hypothesis of `clock.RealClock.After`. -/
-theorem k8s_compactor.wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem k8s_compactor.wp_MainPartition [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.MainPartition.wp_proof zap.NewNop.wp_proof k8s_compactor.wp_startCluster
