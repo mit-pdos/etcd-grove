@@ -11,10 +11,13 @@ premise every theorem using them takes and a visible premise of `swiftpaxos_remo
 `instance` of it exists.
 
 The names (see dsv-epaxos's file for each): `rpcAddrP W a hs hsAns` (address `a` serves `W`'s
-net/rpc behind the handshake `hs`/`hsAns`; raw net/rpc is `rpcAddrP W a [] []`, `rpcAddrP_raw`;
-over HTTP `connectReq path`/`connectAns`), `handlerOk`, `defaultServer`, `DialHTTPPath_spec`,
-`DialHTTP_spec`, `Server_ServeHTTP_spec`, `Server_HandleHTTP_spec`, `HandleHTTP_spec`,
-`Register_spec`, `ServeMux_ServeHTTP_spec`, `Serve_spec`.
+net/rpc behind the handshake `hs`/`hsAns`; over HTTP `connectReq path`/`connectAns`; every world
+of the stand-in is HTTP's, `worldHs_http`), `muxOwner`, `muxHas`, `defaultServer`,
+`DialHTTPPath_spec`, `DialHTTP_spec` (models-rpc-http's preconditions verbatim: `httpEnv`, net/rpc's
+`connected`; `dialEnv`), `HandleHTTP_spec` (with `muxOwner`), `Register_spec`, `Serve_spec`. Not
+stated (the kit does not call them, or only through these): `Server.ServeHTTP`,
+`Server.HandleHTTP`, `ServeMux.ServeHTTP` (reviewed against dsv-epaxos `75c9efff2f` and
+models-rpc-http `e6b232b2f6`, 2026-11-23).
 
 **Changed against dsv-epaxos's copy: wildcard listeners.** The master listens at `":7001"`, a
 wildcard, which in `Net/`'s model takes a connection dialed to *any* valid address with port 7001
@@ -39,6 +42,12 @@ public import Net.Spec.net.rpc.Dial
 public import Net.Spec.net.rpc.Server__Accept
 public import Net.Spec.net.rpc.Server__Register
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
+public import Dsverify.Proof.net.rpc.Init
+public import Dsverify.Proof.net.http.Init
+public import Proof.bufio.PkgInit
+public import Perennial.Proof.io.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strconv.Base
 
 @[expose] public section
 
@@ -63,6 +72,39 @@ def connectAns : List w8 := strBytes "HTTP/1.0 200 Connected to Go RPC\n\n"
 /-- `rpc.DefaultRPCPath`. -/
 def defaultRPCPath : GoString := strBytes "/_goRPC_"
 
+/-- `rpc.DefaultDebugPath`. -/
+def defaultDebugPath : GoString := strBytes "/debug/rpc"
+
+/-- The status `DialHTTPPath` requires (net/rpc's `connected`; models-rpc-http's
+`net.rpc.connectedStatus`). -/
+def connectedStatus : GoString := strBytes "200 Connected to Go RPC"
+
+section env
+variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- The package state `DialHTTP(Path)`'s read of the answer needs (`http.ReadResponse`):
+models-rpc-http's `net.http.httpEnv` (`Net/Proof/net/http/Defs.lean`), verbatim (dsv-epaxos's). -/
+def httpEnv : IProp GF :=
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
+    isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ isPkgInit (PROP := IProp GF) pkg_id.strconv ∗
+    ∃ nb : net.http.noBody, globalAddr net.http.NoBody ↦□ nb)
+
+/-- A dialer's package state: models-rpc-http's `DialHTTP(Path).spec` premises besides the
+address (`httpEnv`, net/rpc's `connected`). net/http and net/rpc have no initialization proof
+(their `isPkgInit` facts are `True` here), so a machine's boot gives it (the boot resource, as
+dsv-epaxos's `rpcBootRes`). -/
+def dialEnv : IProp GF :=
+  iprop(httpEnv ∗ globalAddr net.rpc.connected ↦□ connectedStatus)
+
+instance httpEnv_persistent : Persistent (httpEnv (GF := GF)) := by
+  unfold httpEnv; infer_instance
+
+instance dialEnv_persistent : Persistent (dialEnv (GF := GF)) := by
+  unfold dialEnv; infer_instance
+
+end env
+
 section hyp
 
 /-- **Hypothesis** (the file header): net/rpc over HTTP, as models-rpc-http will state it. -/
@@ -71,12 +113,14 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
     [log.Assumptions] [net.http.Assumptions] where
   rpcAddrP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcAddrP_persistent : ∀ W a hs hsAns, Persistent (rpcAddrP W a hs hsAns)
-  /-- Raw net/rpc is the empty handshake. -/
-  rpcAddrP_raw : ∀ W a, rpcAddrP W a [] [] ⊣⊢ rpcAddr (Gg := hG.goose_globalGS) W a
   /-- The world's handshake at an address, the dialer's and the acceptor's answer: models-rpc-http's
   `RpcWorld.hs`/`RpcWorld.hsAns` (fields that `lean`'s `RpcWorld` does not have yet). -/
   worldHs : RpcWorld GF → GoString → List w8
   worldHsAns : RpcWorld GF → GoString → List w8
+  /-- Every world of the stand-in is net/rpc over HTTP at `DefaultRPCPath` at every address: the
+  stand-in for the world models-rpc-http's start builds, `{ W with hs := fun _ => connectReq
+  defaultRPCPath, hsAns := fun _ => connectAns }` (the kit serves and dials only that). -/
+  worldHs_http : ∀ W a, worldHs W a = connectReq defaultRPCPath ∧ worldHsAns W a = connectAns
   /-- A listener address's rpc protocols (the file header). -/
   rpcLisP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
@@ -97,8 +141,11 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
     (∀ a, addrOk a = true ∧ lisAccepts la a → worldHs W a = hs ∧ worldHsAns W a = hsAns) →
     regCtx (Gg := hG.goose_globalGS) -∗ inv regN' (regInv (Gg := hG.goose_globalGS) W) -∗
       lisUnset (Gg := hG.goose_globalGS) la ={E}=∗ rpcLisP W la hs hsAns
-  handlerOk : RpcWorld GF → (GoString → Prop) → GoString → GoInterface → IProp GF
-  handlerOk_persistent : ∀ W A path h, Persistent (handlerOk W A path h)
+  /-- The right to register paths at `DefaultServeMux`, `R` those registered (exclusive: a
+  second registration of a path panics). A machine's comes from net/http's initialization (a
+  boot resource). -/
+  muxOwner : List GoString → IProp GF
+  /-- `DefaultServeMux` routes `path` to a handler serving `W` at every address of `A`. -/
   muxHas : RpcWorld GF → (GoString → Prop) → GoString → IProp GF
   muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
   defaultServer : GName → IProp GF
@@ -109,7 +156,8 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   /-- `rpc.DialHTTPPath(nw, a, path)`: writes `connectReq path`, reads the answer through
   `http.ReadResponse` (status `200 Connected to Go RPC`, else an error), then `NewClient`. -/
   DialHTTPPath_spec : ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),
-    {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗
+    {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ httpEnv ∗
+        globalAddr net.rpc.connected ↦□ connectedStatus ∗
         rpcAddrP W a (connectReq path) connectAns }}
       (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #nw)) (Val #a)) (Val #path))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
@@ -117,35 +165,27 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }}
   /-- `rpc.DialHTTP(nw, a)`: `DialHTTPPath` at `DefaultRPCPath`. -/
   DialHTTP_spec : ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a : GoString),
-    {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗
+    {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ httpEnv ∗
+        globalAddr net.rpc.connected ↦□ connectedStatus ∗
         rpcAddrP W a (connectReq defaultRPCPath) connectAns }}
       (App (App (Val (@! net.rpc.DialHTTP)) (Val #nw)) (Val #a))
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }}
-  /-- `(*Server).ServeHTTP` as a net/http handler: on `CONNECT` it hijacks, writes
-  `connectAns` and runs `ServeConn` on the frames (otherwise it answers 405). -/
-  Server_ServeHTTP_spec : ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF)
-      (A : GoString → Prop) (path : GoString),
-    ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServer s γs ∗ (□ ∀ a, ⌜A a⌝ → srvServes γs C W a) ∗ srvEnv ∗
-        codecSet C ⊢
-      handlerOk W A path (interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s)
-  /-- `(*Server).HandleHTTP(rpcPath, debugPath)`: registers the server at `rpcPath` on
-  `DefaultServeMux` (the debug path is never requested). -/
-  Server_HandleHTTP_spec : ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF)
-      (A : GoString → Prop) (rpcPath debugPath : GoString),
+  /-- `rpc.HandleHTTP()`: `DefaultServer.HandleHTTP(DefaultRPCPath, DefaultDebugPath)`, i.e.
+  `http.Handle` of both paths on `DefaultServeMux` (which panics on a path already registered:
+  hence `muxOwner`); the debug path is never requested (`rpcAddrP`'s handshake names the rpc
+  path). Its server serves `W` at every address of `A`. -/
+  HandleHTTP_spec : ∀ (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (A : GoString → Prop)
+      (R : List GoString),
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-        isServer s γs ∗ (□ ∀ a, ⌜A a⌝ → srvServes γs C W a) ∗ srvEnv ∗ codecSet C }}
-      (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"HandleHTTP"))
-        (Val #rpcPath)) (Val #debugPath))
-    {{ RET #(); muxHas W A rpcPath }}
-  /-- `rpc.HandleHTTP()`: `DefaultServer.HandleHTTP(DefaultRPCPath, DefaultDebugPath)`. -/
-  HandleHTTP_spec : ∀ (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (A : GoString → Prop),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+        muxOwner R ∗ ⌜defaultRPCPath ∉ R ∧ defaultDebugPath ∉ R⌝ ∗
         defaultServer γs ∗ (□ ∀ a, ⌜A a⌝ → srvServes γs C W a) ∗ srvEnv ∗ codecSet C }}
       (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
-    {{ RET #(); muxHas W A defaultRPCPath }}
-  /-- `rpc.Register(rcvr)`: `DefaultServer.Register(rcvr)` (as `Server.Register.spec`). -/
+    {{ RET #(); muxOwner (defaultDebugPath :: defaultRPCPath :: R) ∗
+        muxHas W A defaultRPCPath }}
+  /-- `rpc.Register(rcvr)`: `DefaultServer.Register(rcvr)` (as `Server.Register.spec`; a
+  second registration of a name is an error). -/
   Register_spec : ∀ (γ : GName) (C : CodecSpec GF) (rcvr : GoInterface) (S : MethodSpec GF)
       (nm : GoString) (c : w8) (rest : GoString),
     nm = c :: rest → uint.Z (W8 0x41) ≤ uint.Z c ∧ uint.Z c ≤ uint.Z (W8 0x5A) →
@@ -154,11 +194,6 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
       (App (Val (@! net.rpc.Register)) (Val #rcvr))
     {{ (err : GoInterface), RET #err;
         (⌜err = interface.nil⌝ ∗ svcReg γ C nm S) ∨ ⌜err ≠ interface.nil⌝ }}
-  /-- `(*ServeMux).ServeHTTP` on `DefaultServeMux`: a handler of every path it routes. -/
-  ServeMux_ServeHTTP_spec : ∀ (W : RpcWorld GF) (A : GoString → Prop) (path : GoString),
-    muxHas W A path ⊢
-      handlerOk W A path (interface.mkOk (go.GoType.PointerType net.http.ServeMux.ty)
-        #(globalAddr net.http.DefaultServeMux))
   /-- `http.Serve(lis, nil)`: the net/http server on `DefaultServeMux`, up to each connection's
   hijack, over the listener address's rpc protocols (it answers no non-`CONNECT` request, which
   a client of `rpcAddrP` never sends). It returns only on a listener error. -/
@@ -171,7 +206,7 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
     {{ (err : GoInterface), RET #err; True }}
 
 attribute [instance] RpcHttpHyp.rpcAddrP_persistent RpcHttpHyp.rpcLisP_persistent
-  RpcHttpHyp.handlerOk_persistent RpcHttpHyp.muxHas_persistent
+  RpcHttpHyp.muxHas_persistent
   RpcHttpHyp.defaultServer_persistent
 
 end hyp
@@ -181,10 +216,11 @@ variable [go_gctx : GoGlobalContext] {GF : BundledGFunctors} [hG : HeapGS HasLC.
 variable [sem : go.Semantics] [SwiftNetPkgState GF] [net.rpc.Assumptions] [net.FieldAssumptions]
 variable [log.Assumptions] [net.http.Assumptions] [H : RpcHttpHyp GF]
 
-/-- What `rpc.DialHTTP("tcp", a)` needs (persistent): the client's bounds and package state, and
-`a` serving `W` over HTTP at `DefaultRPCPath`. -/
+/-- What `rpc.DialHTTP("tcp", a)` needs (persistent): the client's bounds and package state
+(`dialEnv`: models-rpc-http's `httpEnv` and net/rpc's `connected`), and `a` serving `W` over HTTP
+at `DefaultRPCPath`. -/
 def rpcHttp (W : RpcWorld GF) (a : GoString) : IProp GF :=
-  iprop(⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗
+  iprop(⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ dialEnv ∗
     H.rpcAddrP W a (connectReq defaultRPCPath) connectAns)
 
 instance rpcHttp_persistent (W : RpcWorld GF) (a : GoString) :
@@ -198,9 +234,10 @@ theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
     {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
         (⌜err = interface.nil⌝ ∗ isClient c W a) ∨
         (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }} := by
-  iintro %Φ Hp HΦ
-  unfold rpcHttp
-  iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ Hp HΦ
+  iintro %Φ ⟨%Hb, #Hc, ⟨#He, #Hcon⟩, #Ha⟩ HΦ
+  iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ [] HΦ
+  iframe Hc He Hcon Ha
+  ipureintro; exact Hb
 
 /-- A method spec that also accepts error answers: `Net/`'s server answers a request whose
 arguments do not decode with an error (`srvServes` asks `errOk` of each service). A caller's `Φ`

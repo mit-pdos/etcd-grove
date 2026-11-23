@@ -54,7 +54,7 @@ abbrev master.Master.Run.spec : Prop :=
       master.created m γc γm N (W64 7001) ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
-      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗
+      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ H.muxOwner [] ∗
       H.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}

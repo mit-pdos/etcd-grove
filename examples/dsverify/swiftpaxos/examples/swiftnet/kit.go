@@ -336,6 +336,11 @@ type Sys struct {
 // remote.ServeClient's contract allows any number.
 const MaxOps uint64 = 1000
 
+// MaxVal bounds a put's value: a longer one answers unknown without sending anything (a
+// SwiftPaxos command's value travels with a 16-bit length on the client's wire, and the proof's
+// spec of BufferClient.Write takes values below 2^16; the orchestrator's are a few bytes).
+const MaxVal uint64 = 1 << 16
+
 // newClient is client c's node's side of the deployment at addrs: it waits for the
 // configuration on client node c's configuration address (node 1+c, port ConfOff above its
 // first), registers the net/rpc codec (the model's; nothing in the real build) and starts the
@@ -430,9 +435,10 @@ func op(s *Sys, c uint64, in In) Out {
 	return out
 }
 
-// op1 is op's body, run with s.opMu held: past MaxOps operations, an unknown outcome.
+// op1 is op's body, run with s.opMu held: past MaxOps operations, or for a value of MaxVal
+// bytes or more, an unknown outcome.
 func op1(s *Sys, c uint64, in In) Out {
-	if s.ops >= MaxOps {
+	if s.ops >= MaxOps || uint64(len(in.V)) >= MaxVal {
 		return Out{Unknown: true}
 	}
 	s.ops++

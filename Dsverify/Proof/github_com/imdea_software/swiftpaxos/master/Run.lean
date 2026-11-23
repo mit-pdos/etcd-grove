@@ -71,7 +71,7 @@ abbrev master.Master.Run.specFull : Prop :=
       master.createdFull m γc γm N (W64 7001) ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
-      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗
+      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ H.muxOwner [] ∗
       H.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}
@@ -94,7 +94,7 @@ theorem master.Master.Run.wp_proof_full
     (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
     (wp_run : master.Master.run.spec) (rcvr_ok : master.rcvr.spec) :
     master.Master.Run.specFull := fun m γc γm N W => by
-  wp_start as ⟨Hcr, #Hrpc, #Hhttp, %Hthr, #Henv, #Hlp, Haddrs, %HSS, #Hcs⟩
+  wp_start as ⟨Hcr, #Hrpc, #Hhttp, %Hthr, #Henv, Hmo, #Hlp, Haddrs, %HSS, #Hcs⟩
   unfold master.createdFull master.createdBody
   icases Hcr with ⟨%v, %c, %fr, Hm, #Hq, #Hc, Hauth, Hnl, Hal, Hpl, Hcnl, Hcal, Hcpl, Hnodes,
     Hleaders, Halives, Hlats, #Hplain, Hlk, #Hcd, %Hp⟩
@@ -198,9 +198,9 @@ theorem master.Master.Run.wp_proof_full
       iapply withErr_errOk
     · rw [if_neg hsvc] at HS
       cases HS
-  wp_apply H.HandleHTTP_spec γs net.rpc.RpcCodec.spec W (lisAccepts go!":7001")
-    $$ [$Hrpc $Hds $Hsrv $Henv $Hcs] as #Hmux
-  · ipureintro; exact Hthr
+  wp_apply H.HandleHTTP_spec γs net.rpc.RpcCodec.spec W (lisAccepts go!":7001") []
+    $$ [$Hrpc $Hds $Hsrv $Henv $Hcs $Hmo] as ⟨-, #Hmux⟩
+  · iframe; ipureintro; exact ⟨Hthr, by simp, by simp⟩
   have hdec : decimal 7001 = go!"7001" := by simp [decimal, decimalNat_eq, digitByte]
   have hport : go!":" ++ decimal (sint.Z (W64 7001)) = go!":7001" := by
     rw [show sint.Z (W64 7001) = (7001 : Int) from rfl, hdec]; rfl

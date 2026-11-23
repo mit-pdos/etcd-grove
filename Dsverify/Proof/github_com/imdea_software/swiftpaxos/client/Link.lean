@@ -214,7 +214,7 @@ theorem client.BufferClient.wp_ConnectG (facts : swift.handler.ClientPkgFacts (h
     (client.Client.dial.wp_proof dlog.Logger.wp_Println)
 
 theorem client.BufferClient.wp_DisconnectG : client.BufferClient.Disconnect.specG (hG := hG) :=
-  client.BufferClient.Disconnect.wp_proofG net.rpc.Client.Close.wp_proof net.TCPConn.Close.wp_proof
+  client.BufferClient.Disconnect.wp_proofG net.rpc.Client.Close.wp net.TCPConn.Close.labProof
 
 end connectC
 

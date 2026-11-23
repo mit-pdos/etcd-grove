@@ -181,6 +181,33 @@ Read with the ninth session's state below (accurate where this does not say othe
   lab's goal assembly over its `RemoteDistSpec` (`StartOk`, `OrchOk`, `ClientNodeOk`,
   `ServersOk`, `goal_spec_of`) is deleted: the top level is remote's (step 5).
 
+- **`lib/RpcHttpHyps.lean` after the EPaxos review** (coordinator, dsv-epaxos `75c9efff2f`,
+  models-rpc-http `e6b232b2f6`): `worldHs_http` added (every world of the stand-in is HTTP's at
+  `DefaultRPCPath`; **the start must discharge `rpcLisP_set`'s handshake premise with it**);
+  `DialHTTPPath_spec`/`DialHTTP_spec` take models-rpc-http's preconditions verbatim (`httpEnv ∗
+  net.rpc.connected ↦□ connectedStatus`; local `httpEnv`, `connectedStatus`, `dialEnv` as
+  EPaxos's), and `rpcHttp` carries `dialEnv` in place of `isPkgInit net.rpc` (**the boot resource
+  must give the persistent `dialEnv`**, as EPaxos's `rpcBootRes`); `HandleHTTP_spec` takes and
+  returns `muxOwner R` with the two paths not in `R` (a second `http.Handle` panics): `master.Run`'s
+  specs take `H.muxOwner []` (a boot resource too); dropped as unused or stronger than needed:
+  `rpcAddrP_raw`, `handlerOk`, `Server_ServeHTTP_spec`, `Server_HandleHTTP_spec`,
+  `ServeMux_ServeHTTP_spec`. Kept as one class `RpcHttpHyp` (EPaxos split the address part
+  `RpcHttpAddr` out, over the global ghost state: do the same when the start needs `rpcLisP_set`
+  before any heap exists).
+- **Kit Go: `MaxVal`** (`op1` answers unknown for a put value of `2^16` bytes or more):
+  `BufferClient.Write`'s spec takes values below `2^16` and remote's decoded inputs are only below
+  `2^48`. Retranslated.
+- **`examples/swiftnet/ClientLin.lean`** (new, in progress): remote's store `swRK γk = swR (sysK γk)
+  swEop`, `sysK γk σ` half of a ghost variable of the two keys' values, `linkInv γ γk` (the other
+  half with `linOwn γ.lin σ'` related, `relP`), `put_of_lin`/`get_of_lin`: `Write`'s/`Read`'s
+  logically atomic triples from remote's one-shot `lin` (the AU's abort gives `linOwn` back to the
+  invariant; `lin` fires only at the commit, at `⊤ \ swEop = (⊤ \ ↑sp.spN) \ ↑linkN`). The start
+  allocates `γk` at `swB.init`'s values (`""`, `""`), half to remote's pending library, half with
+  `linOwn γ.lin` of the empty state into `linkInv`.
+- **`AwaitConf.lean`** (the lab's, reused by the client and server machines) now gets past
+  `Interface` and fails on `errNone` and an `addrTok` frame (exact `Listen` of the configuration
+  port: needs `Net/`'s current `Listen` spec): to repair in step 2.
+
 **Next.** Unchanged from the ninth session's list (steps 2-7), with the initialization above. The
 lab-kit files that read the old `pkgStates` (`PkgState`, `Parts`, `ServersLink`, `SrvInit`,
 `ClientPkgInits`, `Orch`, `ClientNodeLink`) break; they are the lab kit's, replaced in step 5.
