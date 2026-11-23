@@ -223,6 +223,8 @@ theorem lookupH_fileAt {R : Roots} {p : GoString} {j : Ino} {b : GoString} (h : 
   obtain ⟨hR, hb, r, hr, rfl⟩ := h
   exact lookup_child (st := Hist.st R V) hR (lookupH_root hR hr V) hb
 
+instance : Inhabited NamesH := ⟨NamesH.empty⟩
+
 /-- Every crash of the claim on the name `b` of the directory `j`, of history `h`, whatever
 entries it keeps (`NamesH.valAfter`: what `RegionCrashed` concludes of a crash), leaves `b`
 naming nothing (and then `Good none`) or the file `io`, if any. -/
