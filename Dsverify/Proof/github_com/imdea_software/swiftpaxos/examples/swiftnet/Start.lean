@@ -78,8 +78,8 @@ instance start_rpcAddr_persistent (W : net.rpc.RpcWorld netDistGF) (a : GoString
 theorem start_rpcAddrs_set (W : net.rpc.RpcWorld netDistGF) :
     ∀ addrs : List GoString,
     ⊢ inv net.rpc.regN (net.rpc.regInv W) -∗
-      ([∗list] a ∈ addrs, addrTokG netDistGS a ∗ addrUnsetG netDistGS a) ==∗
-      ([∗list] a ∈ addrs, addrTokG netDistGS a) ∗
+      ([∗list] a ∈ addrs, addrTok a ∗ addrUnset a) ==∗
+      ([∗list] a ∈ addrs, addrTok a) ∗
       [∗list] a ∈ addrs, net.rpc.rpcAddr (GF := netDistGF) W a
   | [] => by
     iintro #_ -
@@ -111,9 +111,9 @@ theorem start_bigSepL_dup {A : Type _} (P : IProp netDistGF) [Persistent P] (l :
 
 /-- The client nodes' tokens, node by node. -/
 theorem start_cl_toks :
-    ([∗list] a ∈ startClAddrs, addrTokG netDistGS a) ⊢
-      [∗list] c ∈ List.range 6, addrTokG netDistGS (clientNodeAddrs.getD c go!"") ∗
-        addrTokG netDistGS (clientConfAddrs.getD c go!"") := by
+    ([∗list] a ∈ startClAddrs, addrTok a) ⊢
+      [∗list] c ∈ List.range 6, addrTok (clientNodeAddrs.getD c go!"") ∗
+        addrTok (clientConfAddrs.getD c go!"") := by
   unfold startClAddrs
   rw [BigSepL.bigSepL_flatMap]
   refine BigSepL.bigSepL_mono_of_forall ?_
@@ -161,12 +161,12 @@ theorem start_proof : StartOk := by
   · unfold common
     iframe Hpp Hpr Hinv
     ipureintro; exact HW
-  ihave Hts : [∗list] a ∈ plainAddrs ++ rpcAddrs, addrTokG netDistGS a $$ [Htp Htr]
+  ihave Hts : [∗list] a ∈ plainAddrs ++ rpcAddrs, addrTok a $$ [Htp Htr]
   · iapply BigSepL.bigSepL_append.2
     iframe Htp Htr
   ihave Hts := (BigSepL.bigSepL_perm start_nodes_perm).1 $$ Hts
   icases BigSepL.bigSepL_append.1 $$ Hts with ⟨Htc, Hts⟩
-  icases (BigSepL.bigSepL_cons (Φ := fun _ a => addrTokG netDistGS a)).1 $$ Htc with ⟨H0, Htc⟩
+  icases (BigSepL.bigSepL_cons (Φ := fun _ a => addrTok a)).1 $$ Htc with ⟨H0, Htc⟩
   ihave Htc := start_cl_toks $$ Htc
   unfold startSvAddrs
   rw [BigSepL.bigSepL_flatMap]

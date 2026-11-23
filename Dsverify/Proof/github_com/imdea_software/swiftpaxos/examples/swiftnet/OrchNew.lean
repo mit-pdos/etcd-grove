@@ -69,8 +69,8 @@ theorem protoP_clientConf (γ : SwiftNames netDistGF) (c : Nat) (a : GoString)
 
 /-- What `configure` needs of the run (persistent; from `common`). -/
 def confEnv (γ : SwiftNames netDistGF) : IProp netDistGF :=
-  iprop(([∗list] k ↦ a ∈ confAddrs, addrProtoG netDistGS a (conf.dialP γ) (srvAckQ γ k)) ∗
-    [∗list] c ↦ a ∈ clientConfAddrs, addrProtoG netDistGS a (conf.dialPC γ)
+  iprop(([∗list] k ↦ a ∈ confAddrs, addrProto a (conf.dialP γ) (srvAckQ γ k)) ∗
+    [∗list] c ↦ a ∈ clientConfAddrs, addrProto a (conf.dialPC γ)
       (conf.ackQP γ (sp.PNode.cl c)))
 
 instance confEnv_persistent (γ : SwiftNames netDistGF) : Persistent (confEnv γ) := by
@@ -175,7 +175,7 @@ theorem configure.wp_proof (γ : SwiftNames netDistGF) : configure.spec γ := by
     have hidx := atStr_conf (uint.nat id - 1) hk
     rw [show 7 + (uint.nat id - 1) = uint.nat (W64 6 + id) by word] at hidx
     ihave #Hpr := BigSepL.bigSepL_lookup
-      (Φ := fun k a => addrProtoG netDistGS a (conf.dialP γ) (srvAckQ γ k)) hidx $$ HconfP
+      (Φ := fun k a => addrProto a (conf.dialP γ) (srvAckQ γ k)) hidx $$ HconfP
     wp_apply sendConf.wp_proof (atStr (uint.nat (W64 6 + id)) (W64 2000)) bsl c.encode
       (conf.dialP γ) (srvAckQ γ (uint.nat id - 1)) $$ [Hb] as %ok Hok
     · iframe Hpr
@@ -254,7 +254,7 @@ theorem configure.wp_proof (γ : SwiftNames netDistGF) : configure.spec γ := by
       have hidx := atStr_clientConf (uint.nat cv) hcv
       rw [show 1 + uint.nat cv = uint.nat (W64 1 + cv) by word] at hidx
       ihave #Hpr := BigSepL.bigSepL_lookup
-        (Φ := fun k a => addrProtoG netDistGS a (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl k)))
+        (Φ := fun k a => addrProto a (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl k)))
         hidx $$ HclP
       wp_apply sendConf.wp_proof (atStr (uint.nat (W64 1 + cv)) (W64 2000)) bsl
         (c.encodeC ((mineL cs cv).map toChange))

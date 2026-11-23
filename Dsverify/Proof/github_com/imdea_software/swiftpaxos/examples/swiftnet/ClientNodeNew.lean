@@ -93,7 +93,7 @@ set_option goose.wp.extras true
 package's state (`client.ghostFresh_take` at the run's package states; decision D90, R-E1). -/
 abbrev freshTake.spec (c : Nat) : Prop :=
   ⊢ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client -∗
-    addrTokG netDistGS (clientNodeAddrs.getD c go!"") ={⊤}=∗ client.ghostFresh
+    addrTok (clientNodeAddrs.getD c go!"") ={⊤}=∗ client.ghostFresh
 
 theorem newClient.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     (wp_at : atConf.spec) (wp_claim : client.claimGhost.spec) (wp_fresh : freshTake.spec c)

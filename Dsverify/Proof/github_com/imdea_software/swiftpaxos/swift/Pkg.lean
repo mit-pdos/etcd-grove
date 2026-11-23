@@ -12,12 +12,15 @@ initialization establishes, and the laws the replica's and the client's proofs u
 * `errVarintOverflow` is `errors.New(...)`'s error for good (`errors.newVar`).
 * `fastAckPool` is a `sync.Pool` of owned `*MFastAck`s.
 * The mutable globals `MaxDescRoutines`, `useFastAckPool` and `cmap.SHARD_COUNT` (change log
-  C14): on a node whose IP is a replica node's (`swift.replicaNode netIp`) they are not in the
-  package state: the node's boot thread owns them (`swift.mutGlobals`, from the server-side
-  initialization `swiftnetInitSrv.spec`) and gives them to the adapter's store and to
-  `swift.New` (a Go store is not atomic in Perennial: it needs the exclusive points-to). On any
-  other node (the client node, the master) they keep their initial values, `100`, `false`, a
-  positive `SHARD_COUNT`, for good (the client's handler reads `useFastAckPool ↦□ false`, C6).
+  C14) are in no package state: every node's boot thread owns them at their initial values
+  (`swift.mutGlobalsInit`: `100`, `false`, `32`), from the initialization. A replica node gives
+  them to the adapter's store and to `swift.New` (a Go store is not atomic in Perennial: it needs
+  the exclusive points-to); the client node persists `useFastAckPool ↦□ false`
+  (`swift.mutGlobalsInit_poolOff`; the client's handler reads it, C6).
+  **Port change** (notes/dsv-swiftpaxos.md): the lab kept them in the package state off a replica
+  node, told apart by the node's IP (its harness's `netIp`); here every node is on loopback and
+  `Net/` has no node IP, so the package state is the same on every node and the boot thread
+  holds them everywhere.
 -/
 module
 
@@ -58,11 +61,18 @@ def swift.mutGlobals : IProp GF :=
     typedPointsto (globalAddr _root_.Perennial.github_com.orcaman.concurrent_map.SHARD_COUNT) n
       (DFrac.own 1))
 
-open Classical in
-/-- What the boot thread of a node gets from the server-side initialization: on a replica node,
-the mutable globals. -/
-def swift.mutGlobalsAt (ip : GoString) : IProp GF :=
-  if swift.replicaNode ip then swift.mutGlobals else iprop(True)
+/-- The mutable globals at their initial values (`MaxDescRoutines = 100`, `useFastAckPool =
+false`, `SHARD_COUNT = 32`), owned: what every node's boot thread gets from the initialization. -/
+def swift.mutGlobalsInit : IProp GF :=
+  iprop(globalAddr swift.MaxDescRoutines ↦ (W64 100) ∗ globalAddr swift.useFastAckPool ↦ false ∗
+    typedPointsto (globalAddr _root_.Perennial.github_com.orcaman.concurrent_map.SHARD_COUNT)
+      (W64 32) (DFrac.own 1))
+
+theorem swift.mutGlobalsInit_mutGlobals : swift.mutGlobalsInit (GF := GF) ⊢ swift.mutGlobals := by
+  unfold swift.mutGlobalsInit swift.mutGlobals
+  iintro ⟨H1, H2, H3⟩
+  iexists _, _, _
+  iframe
 
 open Classical in
 /-- **swift's package state** (see the file header). -/
@@ -70,26 +80,17 @@ def swift.pkgSt : IProp GF :=
   iprop(globalAddr swift.ExecHook ↦□ func.nil ∗ globalAddr swift.SyncHook ↦□ func.nil ∗
     globalAddr swift.ReplyHook ↦□ func.nil ∗
     errors.newVar swift.errVarintOverflow go!"binary: varint overflows a 64-bit integer" ∗
-    (∃ f : GoFunc, sync.isPool (globalAddr swift.fastAckPool) f iprop(True) swift.fastAckP ∗ ⌜f ≠ func.nil⌝) ∗
-    (if swift.replicaNode (netIp (L := hG.goose_localGS) (GF := GF))
-     then iprop(True)
-     else globalAddr swift.MaxDescRoutines ↦□ (W64 100) ∗
-       globalAddr swift.useFastAckPool ↦□ false))
+    (∃ f : GoFunc, sync.isPool (globalAddr swift.fastAckPool) f iprop(True) swift.fastAckP ∗ ⌜f ≠ func.nil⌝))
 
 instance swift.pkgSt_persistent : Persistent (swift.pkgSt (GF := GF)) := by
-  unfold swift.pkgSt; split <;> infer_instance
+  unfold swift.pkgSt; infer_instance
 
-open Classical in
-/-- `concurrent-map`'s package state: off a replica node, `SHARD_COUNT` is positive, for good
-(`cmap.New` needs `SHARD_COUNT ↦□ n`); on a replica node the boot thread owns it
-(`swift.mutGlobals`: `swift.New` stores `32768`, C14). -/
-def cmap.pkgSt : IProp GF :=
-  if swift.replicaNode (netIp (L := hG.goose_localGS) (GF := GF)) then iprop(True) else
-  iprop(∃ n : w64, typedPointsto (globalAddr _root_.Perennial.github_com.orcaman.concurrent_map.SHARD_COUNT) n DFrac.discard ∗
-    ⌜0 < sint.Z n⌝)
+/-- `concurrent-map`'s package state: nothing (`SHARD_COUNT` is the boot thread's,
+`swift.mutGlobalsInit`). -/
+def cmap.pkgSt : IProp GF := iprop(True)
 
 instance cmap.pkgSt_persistent : Persistent (cmap.pkgSt (GF := GF)) := by
-  unfold cmap.pkgSt; split <;> infer_instance
+  unfold cmap.pkgSt; infer_instance
 
 /-- `replica`'s package state: its two `errors.New` errors (`NewQuorumSystem` compares with
 them). -/
@@ -115,7 +116,7 @@ theorem swift.pkgSt_errVarint :
       typedPointsto (globalAddr swift.errVarintOverflow) ov DFrac.discard ∗
       ⌜ov ≠ interface.nil⌝ := by
   unfold swift.pkgSt errors.newVar
-  iintro ⟨-, -, -, ⟨%x, #Hx, -⟩, -, -⟩
+  iintro ⟨-, -, -, ⟨%x, #Hx, -⟩, -⟩
   iexists _
   iframe Hx
   ipureintro
@@ -129,20 +130,13 @@ theorem swift.pkgSt_hooks :
   iintro ⟨#H1, #H2, #H3, -⟩
   iframe H1 H2 H3
 
-/-- Off a replica node (the client node), the fast-ack pool is off for good (C6). -/
-theorem swift.pkgSt_poolOff (ip : GoString) (hip : ¬ swift.replicaNode ip) :
-    swift.pkgSt (GF := GF) ∗ nodeIp (L := hG.goose_localGS) (GF := GF) ip ⊢
-      globalAddr swift.useFastAckPool ↦□ false := by
-  unfold swift.pkgSt
-  iintro ⟨⟨-, -, -, -, -, H⟩, %Hip⟩
-  rw [Hip, if_neg hip]
-  icases H with ⟨-, #H⟩
+/-- The client node's boot thread makes the fast-ack pool off for good (C6). -/
+theorem swift.mutGlobalsInit_poolOff :
+    swift.mutGlobalsInit (GF := GF) ⊢ |==> globalAddr swift.useFastAckPool ↦□ false := by
+  unfold swift.mutGlobalsInit
+  iintro ⟨-, H, -⟩
+  ipersist H
   iexact H
-
-/-- The client node is not a replica node. -/
-theorem swift.clientIp_not_replicaNode : ¬ swift.replicaNode go!"10.77.0.10" := by
-  unfold swift.replicaNode
-  decide
 
 end defs
 

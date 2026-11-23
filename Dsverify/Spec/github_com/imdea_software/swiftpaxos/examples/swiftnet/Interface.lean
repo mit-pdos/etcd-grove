@@ -192,7 +192,7 @@ variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS
 
 /-- What every node gets: every address's protocols (persistent) and the shared invariants. -/
 def common (γ : SwiftNames netDistGF) : IProp netDistGF :=
-  iprop(([∗list] a ∈ plainAddrs, addrProtoG netDistGS a (protoP γ a) (protoQ γ a)) ∗
+  iprop(([∗list] a ∈ plainAddrs, addrProto a (protoP γ a) (protoQ γ a)) ∗
     ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
     ([∗list] a ∈ rpcAddrs, net.rpc.rpcAddr (GF := netDistGF) γ.W a) ∗
     sp.inv γ.sp γ.conf γ.mem γ.lin)
@@ -200,22 +200,22 @@ def common (γ : SwiftNames netDistGF) : IProp netDistGF :=
 /-- The orchestrator's share (node 0): its address's token, the configuration's writer token
 and the abstract state's half at the model's initial state (`New` returns it as `own_state`). -/
 def orchShare (γ : SwiftNames netDistGF) : IProp netDistGF :=
-  iprop(addrTokG netDistGS orchAddr ∗ conf.writer γ ∗ lin.own γ (kv GoString GoString).init ∗
+  iprop(addrTok orchAddr ∗ conf.writer γ ∗ lin.own γ (kv GoString GoString).init ∗
     common γ)
 
 /-- Client node `c`'s share (node `1 + c`): its own address's and configuration port's tokens,
 client `c`'s share of the protocol (`sp.clientStart`: the client id `c + 1`) and the node's
 right to register its prediction (L2). -/
 def clientNodeShare (γ : SwiftNames netDistGF) (c : Nat) : IProp netDistGF :=
-  iprop(addrTokG netDistGS (clientNodeAddrs.getD c go!"") ∗
-    addrTokG netDistGS (clientConfAddrs.getD c go!"") ∗ sp.clientStart γ.sp c ∗
+  iprop(addrTok (clientNodeAddrs.getD c go!"") ∗
+    addrTok (clientConfAddrs.getD c go!"") ∗ sp.clientStart γ.sp c ∗
     sp.predTok γ.sp (sp.PNode.cl c) ∗ common γ)
 
 /-- Server node `i + 1`'s share (node `7 + i`): its addresses' tokens (`nodeAddrs[7 + i]`), and
 the master's (server node 1) the membership's writer token; a replica node's (server node
 `k + 2`) its protocol share. -/
 def serverShare (γ : SwiftNames netDistGF) (i : Nat) : IProp netDistGF :=
-  iprop(([∗list] a ∈ nodeAddrs.getD (7 + i) [], addrTokG netDistGS a) ∗
+  iprop(([∗list] a ∈ nodeAddrs.getD (7 + i) [], addrTok a) ∗
     (if i = 0 then mem.writer γ
      else sp.replicaStart γ.sp (i - 1) ∗ sp.predTok γ.sp (sp.PNode.rep (i - 1))) ∗
     common γ)
@@ -239,7 +239,7 @@ def ownState [G : GooseGlobalGS .hasLC netDistGF] (γ : SwiftNames netDistGF)
 request addresses, the run's ghost names and the shares. -/
 def StartOk [G : GooseGlobalGS .hasLC netDistGF] : Prop :=
   ⊢ ([∗list] a ∈ swiftNetCfg.addrs.filter (fun a => a ∉ kit.reqAddrs),
-        addrTokG netDistGS a ∗ addrUnsetG netDistGS a) ={⊤}=∗
+        addrTok a ∗ addrUnset a) ={⊤}=∗
     ∃ γ : SwiftNames netDistGF, orchShare γ ∗
       ([∗list] c ↦ _nd ∈ clientNodes, clientNodeShare γ c) ∗
       [∗list] i ↦ _nd ∈ serverNodes, serverShare γ i

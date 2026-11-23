@@ -73,12 +73,12 @@ instance srv_common_persistent (γ : SwiftNames netDistGF) : Persistent (common 
 
 /-- Server node `i + 1`'s share (node `7 + i`), split. -/
 theorem serverShare_split (γ : SwiftNames netDistGF) (i : Nat) (hi : i < 6) :
-    serverShare γ i ⊢ addrTokG netDistGS (atStr (7 + i) (W64 2000)) ∗ common γ ∗
+    serverShare γ i ⊢ addrTok (atStr (7 + i) (W64 2000)) ∗ common γ ∗
       (if i = 0 then iprop(True) else sp.predTok γ.sp (sp.PNode.rep (i - 1))) ∗
-      ((⌜i = 0⌝ ∗ addrTokG netDistGS masterAddr ∗ mem.writer γ) ∨
+      ((⌜i = 0⌝ ∗ addrTok masterAddr ∗ mem.writer γ) ∨
        (⌜0 < i⌝ ∗
-          addrTokG netDistGS (sp.addrPort (nodeHost (7 + i)) (W64 (nodePort (7 + i) : Int))) ∗
-          addrTokG netDistGS (atStr (7 + i) (W64 1000)) ∗ sp.replicaStart γ.sp (i - 1))) := by
+          addrTok (sp.addrPort (nodeHost (7 + i)) (W64 (nodePort (7 + i) : Int))) ∗
+          addrTok (atStr (7 + i) (W64 1000)) ∗ sp.replicaStart γ.sp (i - 1))) := by
   unfold serverShare
   match i, hi with
   | 0, _ =>
@@ -107,16 +107,16 @@ theorem serverShare_split (γ : SwiftNames netDistGF) (i : Nat) (hi : i < 6) :
 /-- A plain address's protocols, from the shared part. -/
 theorem common_proto (γ : SwiftNames netDistGF) (a : GoString) (P Q : Proto netDistGF)
     (ha : a ∈ plainAddrs) (hP : protoP γ a = P) (hQ : protoQ γ a = Q) :
-    common γ ⊢ addrProtoG netDistGS a P Q := by
+    common γ ⊢ addrProto a P Q := by
   subst hP hQ
   unfold common
   iintro ⟨Hps, -⟩
-  iapply (BigSepL.bigSepL_mem (Φ := fun a => addrProtoG netDistGS a (protoP γ a) (protoQ γ a))
+  iapply (BigSepL.bigSepL_mem (Φ := fun a => addrProto a (protoP γ a) (protoQ γ a))
     ha) $$ Hps
 
 /-- The master's configuration port's protocols (server node 1, node 7). -/
 theorem common_confProto_master (γ : SwiftNames netDistGF) :
-    common γ ⊢ addrProtoG netDistGS (atStr 7 (W64 2000)) (conf.dialP γ) conf.ackQ := by
+    common γ ⊢ addrProto (atStr 7 (W64 2000)) (conf.dialP γ) conf.ackQ := by
   have hc := atStr_conf 0 (by omega)
   simp only [confAddrs, List.getElem?_cons_zero, Option.some.injEq] at hc
   rw [← hc]
@@ -131,7 +131,7 @@ theorem common_confProto_master (γ : SwiftNames netDistGF) :
 /-- Replica node `k`'s configuration port's protocols (server node `k + 2`, node `8 + k`): its
 acknowledgment says that replica node `k` registered its prediction. -/
 theorem common_confProto_replica (γ : SwiftNames netDistGF) (k : Nat) (hk : k < 5) :
-    common γ ⊢ addrProtoG netDistGS (atStr (8 + k) (W64 2000)) (conf.dialP γ)
+    common γ ⊢ addrProto (atStr (8 + k) (W64 2000)) (conf.dialP γ)
       (conf.ackQP γ (sp.PNode.rep k)) := by
   have hc := atStr_conf (k + 1) (by omega)
   rw [show 7 + (k + 1) = 8 + k from by omega] at hc
@@ -147,7 +147,7 @@ theorem common_confProto_replica (γ : SwiftNames netDistGF) (k : Nat) (hk : k <
 /-- Client node `c`'s configuration port's protocols (port 9000 of node `1 + c`): what group B's
 `newClient` gives `awaitConf`. -/
 theorem common_confProto_client (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
-    common γ ⊢ addrProtoG netDistGS (atStr (1 + c) (W64 2000)) (conf.dialPC γ)
+    common γ ⊢ addrProto (atStr (1 + c) (W64 2000)) (conf.dialPC γ)
       (conf.ackQP γ (sp.PNode.cl c)) := by
   have ha := atStr_cconf c hc
   match c, hc with
@@ -162,7 +162,7 @@ theorem common_confProto_client (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 
 /-- The replicas' ports' protocols, from the shared part. -/
 theorem common_replicaProtos (γ : SwiftNames netDistGF) :
     common γ ⊢ [∗list] a ∈ replicaAddrs,
-      addrProtoG netDistGS a (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem) := by
+      addrProto a (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem) := by
   unfold common
   iintro ⟨Hps, -⟩
   have hsub : plainAddrs =

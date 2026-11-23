@@ -70,7 +70,7 @@ theorem client.ghostFresh_take
       client.pkgSt)
     (hrn : ¬ swift.replicaNode (netIp (L := hG.goose_localGS) (GF := netDistGF))) :
     ⊢ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client -∗
-      addrTokG netDistGS (client.keyAddr (netIp (L := hG.goose_localGS) (GF := netDistGF)))
+      addrTok (client.keyAddr (netIp (L := hG.goose_localGS) (GF := netDistGF)))
         ={⊤}=∗ client.ghostFresh := by
   iintro #Hpkg Htok
   ihave #Hst := hpkg $$ Hpkg

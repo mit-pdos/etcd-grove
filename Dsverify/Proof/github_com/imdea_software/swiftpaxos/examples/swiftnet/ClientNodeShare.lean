@@ -66,15 +66,15 @@ theorem protos_replica (γ : SwiftNames netDistGF) :
 
 /-- Client node `c`'s share, split. -/
 theorem clientNodeShare_split (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
-    clientNodeShare γ c ⊢ addrTokG netDistGS (clientNodeAddrs.getD c go!"") ∗
-      addrTokG netDistGS (confAddrC c) ∗
-      addrProtoG netDistGS (confAddrC c) (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl c)) ∗
+    clientNodeShare γ c ⊢ addrTok (clientNodeAddrs.getD c go!"") ∗
+      addrTok (confAddrC c) ∗
+      addrProto (confAddrC c) (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl c)) ∗
       sp.clientSeq γ.sp (W32 (((c : Nat) + 1 : Nat) : Int)) 0 ∗ sp.predTok γ.sp (sp.PNode.cl c) ∗
       net.rpc.rpcAddr (GF := netDistGF) γ.W masterAddr ∗
       ([∗list] a ∈ replicaRpcAddrs, net.rpc.rpcAddr (GF := netDistGF) γ.W a) ∗
       ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
       ([∗list] a ∈ replicaAddrs,
-        addrProtoG netDistGS a (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem)) ∗
+        addrProto a (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem)) ∗
       sp.inv γ.sp γ.conf γ.mem γ.lin := by
   unfold clientNodeShare
   iintro ⟨Hkey, Hct, Hst, Hpt, Hcom⟩
@@ -84,10 +84,10 @@ theorem clientNodeShare_split (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
   have hp : confAddrC c ∈ plainAddrs := by
     unfold plainAddrs; simp only [List.cons_append, List.mem_cons, List.mem_append]
     exact Or.inr (Or.inl (Or.inl (Or.inr (confAddrC_mem c hc))))
-  ihave #Hcp : addrProtoG netDistGS (confAddrC c) (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl c))
+  ihave #Hcp : addrProto (confAddrC c) (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl c))
     $$ [Hps]
   · rw [← protoP_confAddrC γ c hc, ← protoQ_confAddrC γ c hc]
-    iapply BigSepL.bigSepL_mem (Φ := fun a => addrProtoG netDistGS a (protoP γ a) (protoQ γ a))
+    iapply BigSepL.bigSepL_mem (Φ := fun a => addrProto a (protoP γ a) (protoQ γ a))
       hp $$ Hps
   iframe Hkey Hct Hcp Hseq Hpt Hinv
   unfold rpcAddrs
