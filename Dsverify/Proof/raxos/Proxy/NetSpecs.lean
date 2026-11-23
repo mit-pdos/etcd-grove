@@ -5,16 +5,25 @@ in `Net*.lean`, and the unpacking of `proxyShared` they share.
 module
 
 public import Dsverify.Proof.raxos.Replica
-public import Dsverify.Proof.raxos.Proxy.WireProof
+public import Dsverify.Proof.raxos.Proxy.MsgBuf
 public import Dsverify.Proof.raxos.Cons.Laws
-public import Harness.Proof.bufio.Net
-public import Harness.Proof.bufio.ReadFull
-public import Harness.Proof.net.Listen
-public import Harness.Proof.net.TCPListener__Accept
-public import Harness.Proof.net.Dial
-public import Harness.Proof.net.TCPConn__Write
-public import Harness.Proof.net.TCPConn__Close
-public import Harness.Proof.fmt.Extra
+public import Dsverify.Proof.raxos.IoReadFull
+public import Net.Proof.net.ConnIo
+public import Net.Proof.net.Listen
+public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.Dial
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.Conn__Read
+public import Proof.bufio.NewReaderOk
+public import Proof.bufio.NewWriter
+public import Proof.bufio.Reader__ReadByte
+public import Proof.bufio.Reader__ReadOk
+public import Proof.bufio.ReaderLaws
+public import Proof.bufio.Writer__Write
+public import Proof.bufio.Writer__WriteByte
+public import Proof.bufio.Writer__Flush
+public import Perennial.Proof.io.Link
 public import Perennial.Proof.time
 
 @[expose] public section
@@ -25,10 +34,10 @@ set_option linter.unusedSectionVars false
 
 namespace Perennial.raxos
 
-
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 open Perennial.raxos.pure Perennial.raxos.msg
 open raxos.replica.src
+open EtcdGrove (bufio.ownBufReader bufio.ownBufWriter)
 
 section names
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -52,9 +61,7 @@ section specs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
- 
-  [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
-  [raxos.examples.quepaxanet.Assumptions]
+variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 
 /-- `pr.internalSendMessage(peer, rp)` for an answer `rp` (as `outP` gives it: client `cl`'s
 request `x`'s result `r`; whether it can be encoded is learned at its `Marshal`, P4). -/
@@ -76,13 +83,16 @@ abbrev startOutgoingLinks.spec : Prop :=
     (App (Val (pr @!! go.GoType.PointerType Proxy.ty @!! go!"startOutgoingLinks")) (Val #()))
   {{ RET #(); True }}
 
-/-- `pr.connectionListener(br, 21 + cl)`: the reader of a connection accepted on the proxy's
-port, after client `cl`'s handshake, no frame read yet. -/
+/-- `pr.connectionListener(br, 21 + cl)`: the reader of a connection `cn` accepted on the
+proxy's port (a `*bufio.Reader` over its acceptor's end, whose every non-empty read is allowed),
+after client `cl`'s handshake, no frame read yet. -/
 abbrev connectionListener.spec : Prop :=
-  ∀ (γ : QNames) (c : QConf) (k : Nat) (pr br : Loc) (cv : GoInterface) (cid : w64) (cl : Nat),
+  ∀ (γ : QNames) (c : QConf) (k : Nat) (pr br : Loc) (ri : GoInterfaceOk)
+    (Pre : List w8 → Nat → Prop) (E : List w8 → GoInterface → IProp GF) (cn : Nat) (cl : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ proxyShared γ c k pr ∗
-      net.rpc.connIface cv cid true ∗
-      bufio.ownReader br cv (recvTok cid true (proxyInProto γ k)) (hs (21 + cl)) ∗ rdCtr γ cid 0 }}
+      ⌜∀ r m, 0 < m → Pre r m⌝ ∗
+      bufio.ownBufReader br ri Pre (recvTokL cn true (proxyInProto γ k)) E (hs (21 + cl)) ∗
+      rdCtr γ cn 0 }}
     (App (App (Val (pr @!! go.GoType.PointerType Proxy.ty @!! go!"connectionListener"))
       (Val #br)) (Val #(W32 (21 + cl))))
   {{ RET #(); True }}
@@ -95,11 +105,10 @@ abbrev connectToClient.spec : Prop :=
       (Val #(W32 (21 + cl))))
   {{ RET #(); True }}
 
-/-- `pr.waitForConnections()`: the accept routine. -/
+/-- `pr.waitForConnections()`: the accept routine (its right to run once: `netTok γ k`). -/
 abbrev waitForConnections.spec : Prop :=
   ∀ (γ : QNames) (c : QConf) (k : Nat) (pr : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ proxyShared γ c k pr ∗
-      addrTok (proxyAddr k) ∗ nodeIp (ipOf k) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ proxyShared γ c k pr ∗ netTok γ k }}
     (App (Val (pr @!! go.GoType.PointerType Proxy.ty @!! go!"waitForConnections")) (Val #()))
   {{ RET #(); True }}
 

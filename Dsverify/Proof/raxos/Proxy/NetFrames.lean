@@ -134,7 +134,7 @@ theorem hs_eq_of_prefix {a b : Nat} {Z : List w8} (ha : hs a <+: Z) (hb : hs b <
   exact List.IsPrefix.eq_of_length h (by simp [hs])
 
 /-- The facts of a stream the proxy's port allows, with the frames' lengths below `2^63`. -/
-theorem proxyIn_frames (γ : QNames) (k : Nat) (cid : w64) (ext : List w8) :
+theorem proxyIn_frames (γ : QNames) (k : Nat) (cid : Nat) (ext : List w8) :
     proxyInProto (GF := GF) γ k cid ext ⊢
       ∃ (cl : Nat) (L : List Batch), ⌜cl < 6 ∧ ext <+: hs (21 + cl) ++ frs L ∧
         ∀ b ∈ L, batchOk b ∧ (encBatch b).length < 2 ^ 63⌝ ∗
@@ -146,17 +146,15 @@ theorem proxyIn_frames (γ : QNames) (k : Nat) (cid : w64) (ext : List w8) :
   ipureintro
   exact hL
 
-/-- What the proxy's reader end has read, starting with the handshake `hs n`, is a prefix of a
-stream of frames after that handshake that the port allows. -/
-theorem recv_frames (γ : QNames) (k n : Nat) (cid : w64) (W : List w8) (hW : hs n <+: W) :
-    recvTok cid true (proxyInProto (GF := GF) γ k) W ⊢
-      recvTok cid true (proxyInProto γ k) W ∗
+/-- What the proxy's reader end has read (its protocol fact, `net.connReader_proto`), starting
+with the handshake `hs n`, is a prefix of a stream of frames after that handshake that the port
+allows. -/
+theorem recv_frames (γ : QNames) (k n : Nat) (cid : Nat) (W : List w8) (hW : hs n <+: W) :
+    protoPrefix (proxyInProto (GF := GF) γ k) cid W ⊢
       (⌜W = []⌝ ∨ ∃ L : List Batch, ⌜W <+: hs n ++ frs L ∧
         ∀ b ∈ L, batchOk b ∧ (encBatch b).length < 2 ^ 63⌝ ∗
         □ [∗list] n ↦ b ∈ L, batchReg γ b.id b ∗ ∃ c j, tixAt γ ((k : Int), c, j) cid n) := by
-  iintro H
-  ihave ⟨H, Hp⟩ := recvTok_proto cid true _ _ $$ H
-  iframe H
+  iintro Hp
   unfold protoPrefix
   icases Hp with (%h | ⟨%ext, %hp, #HP⟩)
   · ileft; ipureintro; exact h
