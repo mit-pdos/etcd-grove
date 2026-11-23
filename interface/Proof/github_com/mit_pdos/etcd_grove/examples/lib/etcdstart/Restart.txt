@@ -6,7 +6,7 @@ def etcdstart.restartReqNames (ρ : ReqNames) (cursor applied committed notifier
     slot ipend : GName) (inc : Nat) : ReqNames :=
   have ids :=
     { issued := ρ.ids.issued, cnt := ρ.ids.cnt, slot := slot, pfx := ρ.ids.pfx, wn := ρ.ids.wn, inc := inc,
-      fs := ρ.ids.fs, pend := ipend };
+      fs := ρ.ids.fs, pend := ipend, gen := ρ.ids.gen };
   have kv :=
     { st := ρ.rd.kv.st, c0 := ρ.rd.kv.c0, ch0 := ρ.rd.kv.ch0, log0 := ρ.rd.kv.log0, cok := cok, hi := hi, ids := ids,
       hist := ρ.rd.kv.hist, cmp := ρ.rd.kv.cmp, rlog := ρ.rd.kv.rlog, cret := ρ.rd.kv.cret, lm := ρ.rd.kv.lm,
@@ -18,9 +18,9 @@ def etcdstart.restartReqNames (ρ : ReqNames) (cursor applied committed notifier
 
 theorem etcdstart.idKeyFact_pfxOk [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] {X : Type} [Pos.Countable X] (issued
-    cnt wn fs : GName) (Φs : X → w64 → List w8 → GName → IProp GF) (k : IdKey) (x : X) (E : CoPset)
-    (HE : ↑idClusterN ⊆ E) : ⊢ idClusterInv issued cnt wn fs Φs -∗ idKeyFactAt fs k x ={E}=∗
-    ⌜idPfxOk k.fst⌝
+    cnt wn fs gen : GName) (Φs : X → w64 → List w8 → GName → IProp GF) (k : IdKey) (x : X) (E :
+    CoPset) (HE : ↑idClusterN ⊆ E) : ⊢ idClusterInv issued cnt wn fs gen Φs -∗ idKeyFactAt fs k x
+    ={E}=∗ ⌜idPfxOk k.fst⌝
 
 theorem etcdstart.bootPremiseR_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs :
     List (List w8)) (dir : w64 → List GoString) (token name : GoString) (Uok : BootURLs → Prop) (id
@@ -54,10 +54,11 @@ def etcdstart.memberRestartFacts (γ : SrvRaft) (ρ : ReqNames) (id : w64) : IPr
                 ρ.ids.pfx = idPfxOf (W16 (uint.Z id)) ∧ ρ.rd.kv.cmp = false ∧ lease.runCfg ρ.rd.kv.lm lease.Mode.none⌝ ∗
       ⌜¬clusterNoSnap γ.cl⌝ ∗
         srvRaftLogInv ρ.rd.raft ∗
-          idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-            idNoZero ρ.ids ∗
-              srvPropMint ρ.rd.raft ρ.ids ∗
-                srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗ kvInv ρ.rd.raft ρ.rd.kv ∗ ∃ x, idKeyFactAt ρ.ids.fs ρ.ids.key x)
+          idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+            idPfxInv ρ.ids.gen ρ.ids.pfx ∗
+              idNoZero ρ.ids ∗
+                srvPropMint ρ.rd.raft ρ.ids ∗
+                  srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗ kvInv ρ.rd.raft ρ.rd.kv ∗ ∃ x, idKeyFactAt ρ.ids.fs ρ.ids.key x)
 
 theorem etcdstart.memberBoot_restartFacts [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (γ : SrvRaft) (ctxs : List (List
@@ -85,16 +86,17 @@ def etcdstart.memberRestartBoot (γ : SrvRaft) (ρ : ReqNames) (E₀ : apply.AEn
                       ρ.rd.kv.cmp = false ∧ E₀.Nx = srvApi.kvNx ρ.rd false ∧ lease.runCfg ρ.rd.kv.lm lease.Mode.none⌝ ∗
       ⌜¬clusterNoSnap γ.cl⌝ ∗
         srvRaftLogInv ρ.rd.raft ∗
-          idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs srvFloorFacts ∗
-            idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
-              idNoZero ρ.ids ∗
-                srvPropMint ρ.rd.raft ρ.ids ∗
-                  srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-                    idShare ρ.ids ∗
-                      idWaitTok ρ.ids ∗
-                        srvApi.newServerStoreFreshA E₀.γs ∗
-                          ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
-                            ghostMapAuth E₀.γrev 1 ∅ ∗ srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv)
+          idClusterInv ρ.ids.issued ρ.ids.cnt ρ.ids.wn ρ.ids.fs ρ.ids.gen srvFloorFacts ∗
+            idPfxInv ρ.ids.gen ρ.ids.pfx ∗
+              idKeyFactAt ρ.ids.fs ρ.ids.key E₀.γs.slog ∗
+                idNoZero ρ.ids ∗
+                  srvPropMint ρ.rd.raft ρ.ids ∗
+                    srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
+                      idShare ρ.ids ∗
+                        idWaitTok ρ.ids ∗
+                          srvApi.newServerStoreFreshA E₀.γs ∗
+                            ghostMapAuth ρ.rd.kv.cok 1 ∅ ∗
+                              ghostMapAuth E₀.γrev 1 ∅ ∗ srvReadNamesFreshNK ρ.rd ∗ kvInv ρ.rd.raft ρ.rd.kv)
 
 theorem etcdstart.memberRestartFacts_persistent (γ : SrvRaft) (ρ : ReqNames) (id : w64) : Persistent
     (etcdstart.memberRestartFacts γ ρ id)
