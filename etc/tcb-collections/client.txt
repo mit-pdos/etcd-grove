@@ -15,6 +15,7 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
+axiom addrClaim
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
@@ -42,7 +43,6 @@ axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom netListenerAt
 axiom os.Getenv.wp_proof
 axiom pbAuthEnableRequestT_reg
 axiom pbAuthEnableResponseT_reg

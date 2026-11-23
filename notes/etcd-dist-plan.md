@@ -1,10 +1,10 @@
-# `etcd_dist_safe`: etcd as a distributed deployment (plan, DRAFT for review)
+# `etcd_safe`: etcd as a distributed deployment (plan, DRAFT for review)
 
 2026-11-21. Branch `etcd-dist`. A draft for the user and upamanyus (etcd-grove#24): a plan, the
 statement and its definitions, no proofs. Files:
 
 - the statement: `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelRobustness.lean`
-  (`etcd_dist_safe.spec`);
+  (`etcd_robust.spec`);
 - its definitions: `Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/TopLevelDefs.lean`
   (`Deployment`, `WellFormed`, `Workload`, `Compatible`, `ServerCfg.Supported`, the start states,
   `EtcdEnv`; placeholders marked `PLACEHOLDER`);
@@ -27,7 +27,7 @@ what is not translated yet).
 client addresses, the token), its server configuration `d.cfg`, and a list of workloads, one per
 client machine. Under `d.WellFormed` (decidable), the machines' start states (each member's machine:
 no listener, files as on disk, its data directory and WAL area empty; each client's: no listener;
-the network: no connection), bootstrap's results, and the premises carried over from `etcd_safe`
+the network: no connection), bootstrap's results, and the premises carried over from the single-process `etcd_safe`
 until they are discharged (§5), the deployment is `Robust`:
 
     Robust (servers d σs) (clients d σc) g (threads := 2^28) (bound := 2^40 - 11)
@@ -35,7 +35,7 @@ until they are discharged (§5), the deployment is `Robust`:
 `servers d σs` are the members' machines, each running `server.Main(cfg_m)`, in `Robust`'s
 `crashing` list: a crash at any step, then the same boot program from what the file extension's
 crash relation keeps. `clients d σc` are the client machines, each running `client.Main(w, eps)`, in
-`stable`: never crash, so a client keeps its history. `threads`/`bound` are `etcd_safe`'s, to be fixed by
+`stable`: never crash, so a client keeps its history. `threads`/`bound` are the single-process `etcd_safe`'s, to be fixed by
 the proofs (the bound counts every machine's steps together).
 
 The extensions are any list holding the net extension, the Linux file extension and the request
@@ -491,7 +491,7 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 (Perennial). The alternative is a fork change, rafthttp's transport with `Proxy: nil`, which leaves
 `ETCD_VERIFY` a premise.
 
-## 5. What is still not decidable (carried from `etcd_safe`)
+## 5. What is still not decidable (carried from the single-process `etcd_safe`)
 
 | Premise | Now | Path to remove it |
 |---|---|---|
@@ -508,9 +508,9 @@ reads them (`clearProxyEnv`), which puts the fact in the program, where it is ve
 
 ## 6. Where today's results go
 
-| Today | In `etcd_dist_safe` | Changes | Loses | Gains |
+| Today | In the distributed `etcd_safe` | Changes | Loses | Gains |
 |---|---|---|---|---|
-| `etcd_safe` KV: txnlinfaultsN (`k₁ ≤ 1000`, schedule) | `kv` | partitions are the network's; clients dial members directly | `CutPeer`/`MendPeer` and the bridge's paths (test-only code) | every partition and fault, at any `k` the predicate admits, with crashes |
+| single-process `etcd_safe` KV: txnlinfaultsN (`k₁ ≤ 1000`, schedule) | `kv` | partitions are the network's; clients dial members directly | `CutPeer`/`MendPeer` and the bridge's paths (test-only code) | every partition and fault, at any `k` the predicate admits, with crashes |
 | partition `MainWatch` | `watch` (exclusive) | as above | — | crashes |
 | compactwatch, compacted, cache | `compact`, `putget`, `cache` (exclusive) | the compactor is `cfg.compactor` | — | any compactor setting in the supported set, multiple members |
 | authN, authlease (`k ≤ 300`) | `auth`, `authLease` (exclusive; `cfg.auth`) | — | — | no 300 bound |
@@ -566,7 +566,7 @@ leaseexpiryN in, `noExpiry` conditional; Q3 the `durable` workload under real cr
 up accepted; Q5 a trusted Lean SHA-1 tested against Go first, Perennial's `crypto/sha1` proof later; Q6 the
 carried premises accepted for the first version; Q7 the interim theorem without crashes is the first
 milestone; Q8 etcd's full peer handler; Q9 no further `ServerConfig` fields in the first version; Q10 the
-server clears the proxy variables itself. Open: the name (`etcd_dist_safe` vs. the files' `_robust`
+server clears the proxy variables itself. Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
 convention) and U1-U5 (upamanyus, etcd-grove#24).
 
 For the user:
@@ -626,17 +626,268 @@ For upamanyus:
 |---|---|---|---|
 | D0 | this draft; reviews; decisions Q1-Q10 | — | — |
 | D1 Go (**done** 2026-11-21, §2 "Stage D1") | each driver's workload without its start, in new packages (the drivers unchanged: helpers reused, the rest copied, the copies listed in §2); the two mains; a harness test with `examples/lib/robust` (namespaces, kills, power losses, partitions) over random deployments; audit every check against #24's error rules | 1-2 sessions | — |
-| D2 translation | goose projects for `server` and `client`; `Init`/`PkgTable`; the main tree's `net` becomes the part's | days | phase 7 S0, S4 |
+| D2 translation | goose projects for `server` and `client`; `Init`/`PkgTable`; the main tree's `net` becomes the part's (planned: "D2's `net` half" below) | days | phase 7 S0, S4 |
 | D3 mixed adequacy | the bridge from Perennial's `goose_dist_mixed_crash_adequacy` (exists) to `Robust crashing stable`, extending #22's `[netExt, fsExt]` bridge | smaller than ~1k lines | #22 |
 | D4 bundle | `[net, fs at etcdFsSem, idIssue]` adequacy and crash interpretation; the issue record keyed by incarnation; shared-mode generations | ~1k lines | wal-safe (b) |
 | D5 transport | phase 7 S1-S5 | 60-110k lines (option B's estimate) | upamanyus |
 | D6 server | one `NewServer` spec for both starts; `walFoRes`; C6; the backend after a crash; `TrustBoundary` discharged | weeks | D4 |
 | D7 cluster | global/local ghost split, the restart invariant | weeks | D6 |
 | D8 clients (**Go done** 2026-11-22, §2 "Stage D8"; `remote` ported: `counter_remote_robust`) | (seams: §2, "Stage D1") port dsverify's `Remote` orchestration (`RunRemote`, `ServeClient`, `remoteDistSafe`) onto the net extension in `examples/lib/remote`, over `lintest`/`kvcheck` and the verified porcupine; each workload's client operations as `Remote` calls. Left: the Lean kv instance (blocked on D2's `net` and D7's one KV state; `opMaybe`'s read form done 2026-11-22), watch/cache/auth instances (over `Report`, proved 2026-11-22: §2, "`Report`, proved") | ~2k lines + the port | D1; Lean: D2, D7 |
-| D9 assembly | the theorem; `WellFormed` consumed; retire `etcd_safe`, leaseexpiryN's | ~2k lines | all |
+| D9 assembly | the theorem; `WellFormed` consumed; (the single-process `etcd_safe` and leaseexpiryN's already retired at the net swap) | ~2k lines | all |
 
 **Interim milestone (Q7)**: D1, D2, D5 (S1-S5), D7 without crashes, D8, D9 over `goose_dist_adequacy`:
 the same deployment with no member crashing. Then D3, D4, D6 add the crashes.
+
+### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
+
+**Decided (the user, 2026-11-22, relayed by the coordinator).** (1) **Retire** the single-process `etcd_robust`/`etcd_safe`,
+`k8s_robust`/`k8s_safe` and leaseexpiryN's closed theorem at the swap, not adapt them: option (i) and steps
+3-4 below are superseded. The coordinator tags the last `lean` commit where they are proved
+`single-process-final` (for the paper). **Names** (Upamanyu, #24, 2026-11-22): the distributed theorems take
+the plain names, weaker variants the longer ones: this plan's `etcd_dist_safe` is now `etcd_safe` (its
+statement `etcd_robust.spec`), the retired single-process theorem's names. Removed: their `TopLevelRobustness` (Spec and Proof), `Results`, `Adequacy`, `TopLevelDefs`,
+`Disjoint`, `PkgTable` and their collections (`etcd-all`, `k8s-all`, `leaseexpiryN`); kept: every
+per-function proof (`Main`, `MainLinked`, `Init`, `InitLinked`, the drivers' proofs), the generic machinery,
+the Go drivers and their tests. (2) **Design D** for the address predicates; `net.Listen` a theorem from
+Net's spec. (3) **The start axiom's address part removed** if nothing left uses it (checked: only the
+retired theorems, through etcdstart's `etcd_adequate*`/`AdequacyMembers`, which go with them; `mvccfull`
+and `mvccrand` pass `As = []`), as one removal-only change with `prom-registry`'s names part (below,
+"The combined start statement"). (4) Start now; merge `lean` when #30's `step-bounds-backend` lands.
+
+**The combined start statement** (this branch's address part and `prom-registry`'s names part; removal only,
+nothing added). Before (`lean`): `startRights Ns As Ds := ([∗list] n ∈ Ns, prometheus.nameFree n) ∗
+([∗list] a ∈ As, netAddrFree a) ∗ ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
+envVerifyOff`, and `goose_adequacy_start … (Ns As Ds) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
+(hAsLit : ∀ a ∈ As, netAddrLit a = true) (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree :
+addrsUnclaimed e As) (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e) (Hwp : … -∗ startRights Ns As Ds
+={⊤}=∗ WP e …) …`. After both:
+
+```lean
+def startRights {GF : BundledGFunctors} [GooseExts] (Ds : List GoString) : IProp GF :=
+  iprop(([∗list] d ∈ Ds, dataDirFresh d) ∗ envVerifyOff)
+
+axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
+    (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
+    (Ds : List GoString) (hDs : Ds.Nodup) (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (Hwp : ∀ [hG : HeapGS .hasLC GF], receiptBound GF = N → threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗ extsLocalStart (GF := GF) σ.world -∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ds ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1) : …   -- conclusion unchanged
+```
+
+and `goose_adequacy_start_all` the same way (without `hNsIds`). Gone with the address part: `addrUnclaimed`
+(axiom), `addrsUnclaimed`, the `netAddrFree`/`httpProtoFree` hand-out, `hAsLit`. `netAddrLit` stays (a
+definition the drivers' `Dir` lemmas prove of their addresses). `httpProtoFree` stays an axiomatized
+predicate of net/http's (`http.reserve`, S5) with no source; `addrClaim` (design D) likewise, until
+`etcd_safe`'s deployment premise gives it.
+
+**Conflicts with `prom-registry`** (`/shared/etcd-grove-promreg`, at `8af09c0669`): both edit
+`Proof/runtime/Start.lean` (the two removals: whichever lands second takes the other's text above),
+etcdstart's `Adequacy.lean` (its `etcd_adequate*` take `Ns`; here they go), `mvccfull`/`mvccrand`'s `Adequacy`
+call sites of `goose_adequacy_start` (each drops its own arguments), the retired programs' `PkgTable`s and
+`etc/tcb-collections/{etcd-all,k8s-all,leaseexpiryN}.txt` (`prom-registry` edits them, this branch deletes
+them: take the deletion), `etc/tcb-baseline.txt`, `etc/tcb-collections/mvccfull.txt`, `etc/goose.py` and
+`etc/gen-init.py` (independent hunks). Its planned step-2 edits to etcd/all's, k8s/all's and leaseexpiryN's
+closed proofs (§5 of `notes/prom-registry-start-change.md`) are moot after the retirement.
+
+**Done on `net-swap` (2026-11-22, `df4369bae2`; built against a plain Perennial `74471ecd8` worktree,
+`/shared/perennial-74471ecd8`, manifest `/shared/tmp/manifest-744.json`).**
+- Translation: `net=Net` in the 35 main-tree projects (with `net/{http,url,textproto,http/httptrace}=` kept
+  main-tree); `Code/net.{toml,lean}`, `GeneratedProof/net.lean` deleted; 30 translations regenerated (their
+  import line only). gen-init: the main tree's `Proof/net/Init.lean` over Net's translation (its fact
+  `Net/Proof/net/Base.lean`'s `isInit`; `cache/v3/Base.lean`'s `True` instance for `net` removed);
+  `net.opaqueInitsOk` gone. gen-specs-pkginit: `SpecPlan.Spec.PkgInit.net` over `Net.GeneratedProof.net`.
+- Design D, with one change: the predicates carry `HasExt netExt` **inside** (`∃ _ : HasExt netExt, …`, a
+  proposition, so proof-irrelevant), so that no section needs a `[HasExt Net.netExt]` binder: no sweep, and
+  **no edit to upamanyus's grpc, v3rpc or net/http files** (their statements over `netListenerAt` keep their
+  signatures). `netListenerAt` ties `l` to a `*TCPListener` pointer but not that pointer to the extension's
+  listener id (`isListener` would need `net.Assumptions` at every use); S2 may strengthen it.
+- `EtcdGrove.net.Listen.wp_proof` a theorem from Net's `net.Listen.wp_proof` (an `=` callee in
+  `etc/link-lean-first-{common,cluster3}.txt`, `gen-link`'s `EXTRA_IMPORTS`).
+  Net's `Listen` spec takes Net's hand-stated field facts (`net.FieldAssumptions`, trusted, as
+  `os.file.FieldAssumptions`): a semantic premise (`gen-link`'s `SEM_PREMISES`) of every linked result that
+  reaches `net.Listen` (etcdstart's and cluster3's `Link`s, the Links of auth, cache, k8s/etcd3, partition,
+  txnlin, watch) and of the drivers' hand-written `MainLinked`/`Results` triples (31 theorems).
+- Built against Perennial `9c3b81f30` (`lean`'s pin at the last merge, `/shared/tmp/manifest-9c3b.json`); earlier
+  commits of the branch against a plain `74471ecd8` worktree (`/shared/perennial-74471ecd8`,
+  `/shared/tmp/manifest-744.json`).
+- Retirement and the start axiom's address part: as decided above. Not done: step 5 (Net's own copies of
+  the main tree's initializers), which kvremote needs next.
+
+Branch `net-swap`. Agreed on #24 (upamanyus, 2026-11-22 15:52Z): ours, after `phase7-dial` (on `lean`,
+`bbc60799b2`); `net/http` stays with phase 7 (S5). His constraints: project `etcd`'s `-lean-root net=`
+becomes `net=Net` (as `models-net`), so grpc's translation sees the real `net.Conn`/`net.Listener`;
+`netAddrFree`, `netListenerAt`, `httpProtoFree` and `net.Listen.wp_proof` become the net extension's
+`Listen` spec plus our deployment premise; any edit to a grpc or v3rpc file of his is listed (below).
+Measured at `lean` `fda4209706`, from the import lines (`etc/importers.py`) and `etc/goose.py`.
+
+**The swap.** The main tree stops translating `net` (project `etcd` lists and owns it, names only:
+`Code/net.{toml,lean}`, `GeneratedProof/net.lean`) and imports the part's (`Net/Code/net.lean`, its
+trusted `Net/TrustedCode/net.lean` over `netExt`, `Net/GeneratedProof/net.lean`, `Net/ManualProof/net.lean`).
+Net's translation declares every name the main tree's does (the 43 it lacks are the type-instance names of
+the types it translates or defines in its trusted code: `Conn.underlying`, `TCPConn`, ...), and covers what translated main-tree code uses: the types `Conn`, `Listener`,
+`Addr` (grpc, its `credentials`, `peer`, `stats`), `net.Listen` (etcdstart, cluster3, auth3, restart,
+restartN), `net.Dial` and the listener's and connection's methods (third_party/bridge). goose's lean roots
+are longest-prefix, and `net=` covers `net/http`, `net/url`, `net/textproto`, `net/http/httptrace`, which stay
+the main tree's: each of the **35 main-tree projects** with `net=` (etcd, common, cluster3, the etcd and k8s
+examples, bridge, etcd-all, k8s-all, ...) gets those four explicitly and `net=Net`.
+
+**What breaks.**
+- **Translations**: 11 `Code/` modules import `Code.net` directly (grpc, grpc/credentials, grpc/peer,
+  grpc/stats, rafthttp, etcdstart, cluster3, auth3, restart, restartN, bridge), 22 `GeneratedProof/`
+  modules `GeneratedProof.net`; all 65 projects regenerated (`etc/goose.py`), then `etc/gen-init.py`,
+  `gen-specs-pkginit`, `gen-raft-tla`, `copy-part`.
+- **Package init**: the main tree's `Proof/net/Init.lean` (gen-init; `net.opaqueInitsOk` over the four
+  blanks goose cannot skip) is regenerated over Net's translation (gen-init's `NET_SPECIAL['net']`: Net's
+  trusted initializers, which do nothing but allocate `errClosed`); it cannot be `Net/Proof/net/Init.lean`,
+  which imports Net's copies of `os`'s, `syscall`'s, `internal/poll`'s ... `Init` and of `PkgInitExt`, under
+  the main tree's names. Every closed program's `PkgTable` is regenerated.
+- **Specs and proofs**: 73 files mention `netAddrFree`/`netListenerAt`/`httpProtoFree` (14 `netListenerAt`),
+  17 use `net.Listen`'s spec (etcdstart, cluster3, auth3, restart, restartN and their `Link`/`MainLinked`),
+  29 `etcdFsExts`, 9 `Dir*.lean` prove `netAddrLit` of their programs' addresses. Upamanyu's: the
+  grpc server's `grpc.start` and `InvGrpcRun`, v3rpc's `etcd_noRefusal`/`etcd_noOtherRefusal`, net/http's
+  `register` and the `ListenerClose` drafts consume `netListenerAt` (edits below).
+- **The four bridge axioms** (`bridge.New`, `Blackhole`, `Unblackhole`, `DropConnections`) are over
+  translated code that will call the net extension (`net.Dial`, `Accept`, `Conn.Read`/`Write`): their
+  soundness argument changes (the clients' grpc connections are not the extension's, so the bridge's
+  `Accept` never returns in the model); to be re-reviewed (the `axiom` skill). #18 lists `bridge`: prove it
+  after the swap, over Net's proved `Dial`/`Accept`/`Conn` specs, or it is redone.
+- **SpecPlan**: `SpecPlan.Spec.PkgInit.net` (generated) and `SpecPlan/Spec/net/http/Api.lean` (imports
+  `GeneratedProof.net`, by hand).
+- **The trust base**: in `etc/tcb-baseline.txt`, `net.Listen.wp_proof`, `netAddrFree`, `netListenerAt`,
+  `httpProtoFree`, `goose_adequacy_start`, `addrUnclaimed`, `Perennial.net.opaqueInitsOk`. Collections:
+  `etcd-all`, `k8s-all`, `leaseexpiryN` hold all seven; `mvccfull` five (not `net.Listen`/`netListenerAt`:
+  its program listens nowhere, the start axiom's statement names them); `client` and `cache-client` only
+  `netListenerAt` (the vocabulary of their exported results). **Closed theorems that depend on them**:
+  `etcd_robust` (etcd/all), `k8s_robust` (k8s/all) and leaseexpiryN's, which listen; `mvccfull`'s and
+  `mvccrand`'s through `goose_adequacy_start` and `net`'s initializer only.
+- **Parts**: RaftNoAx (13 modules), RaftTla (12), RaftWitness (12) and WalTester (4) reach `Code.net`
+  through main-tree modules (cache's `Base`, etcdstart's `Adequacy`/`TopLevelDefs`/`DurableExt`, the WAL's
+  `Init`/`Link`); afterwards they reach Net's `net` and `GooseLang/Ext/Net` instead: no clash (none declares
+  `net`'s names), no axiom added. KvNet keeps its own `net` (`net=KvNet`) and never reaches the main tree's.
+  `Net/` stops being closed to the main tree: `CLAUDE.md`'s layout and `Net/Code/net.toml`'s header say so.
+- **Left after the swap, for kvremote**: (1) Net's own `net/http`, `net/textproto`, `net/rpc` (project
+  `models-net`) still declare the main tree's names-only `Code/net/{http,textproto}`'s names until S5.
+  clientv3's translation reaches neither, but txnlin's `Defs` reaches the main tree's (rafthttp, through
+  the server): a `Net/` module importing txnlin must not reach models-net's modules (remote's closure
+  reaches none today). (2) Net's copies of the main tree's initializers (gen-init's `NET_MAIN`: `os`,
+  `syscall`, `internal/poll`, `io/fs`, `internal/syscall/unix`, porcupine, lintest and its two instances,
+  and `PkgInitExt`) clash with the main tree's in a closure holding both remote's and clientv3's: they are
+  retired, `Net/` importing the main tree's (step 5); `etc/copy-part.py --check` then checks that KvNet,
+  which copies `Net/`, still gets only its own.
+
+**The main tree: what each closed statement becomes.** Keeping `net.Listen.wp_proof` an axiom is not an
+option: its body is now the trusted `Listen.impl`, `ExternalOp netExt.name "Listen"`, stuck in a program
+without the net extension, so a WP for it under `NotStuck` would be false. The programs that listen must
+run over the net extension.
+
+- **(i), recommended: single-process, the net extension present.** The three listening programs stay one
+  process (`Robust [] [(e, σ)] g`), over a new bundle `etcdNetExts := ⟨[idIssueExt, Fs.fsExt,
+  Net.netExt]⟩` (semantics `(idIssue_semantics, etcdFsSem, Net.net_semantics)`, interpretation
+  `(idIssue_interp, Fs.fs_interp, Net.net_interp)`, `HasExt netExt`; `net_init_compat` is on `lean`). The
+  start resources give `netLisTok a` for every valid address; `net.Listen` is Net's proved spec.
+  - **Predicates, design D (recommended)**: `netAddrFree a := addrClaim a ∗ netLisTok a` and
+    `netListenerAt l a := addrClaim a ∗ ∃ lv, isListener l lv ∗ netLis lv a true ∗ netLisAt lv a` (Net's
+    `Listen` post), definitions over `[HasExt netExt]`; `addrClaim a` the one axiomatized token left
+    (exclusive, consumed once by `Listen`: `grpcAddrIs_agree`'s "one server per address" rests on it):
+    `addrsUnclaimed`'s part (b), what the program's own connections to `a` carry, which the grpc and
+    net/http transport axioms need until S2/S5 prove them over the extension. Main tree's
+    `EtcdGrove.net.Listen.spec` keeps its shape (`netAddrFree` in, `netListenerAt` out, plus `addrOk a`)
+    and becomes a theorem from Net's `net.Listen.wp_proof`. Cost: `[HasExt Net.netExt]` on every section
+    that mentions the predicates or a spec over them (the 73 files and the linking modules above them);
+    S2 finds the real listener inside `netListenerAt`.
+  - **Design A (alternative)**: `netListenerAt l a := addrClaim a` keeps its signature (no `HasExt`, no
+    edit to upamanyus's files); Net's listener resources are dropped at `Listen`, and `netLisTok a` is
+    threaded beside `netAddrFree` to it (the same files carry it). S2 then redefines `netListenerAt` and
+    redoes the sweep.
+  - **Statement changes** (the user's decision): `etcd_robust.spec`, `k8s_robust.spec` and leaseexpiryN's
+    robust spec: (1) the `attribute [local instance]` line: `etcdFsExts …` → `etcdNetExts …` (the
+    semantics gains the net extension; `Robust`'s `extsInitGlobal`/`extsInitLocal` now include "no
+    connection, no listener"); (2) the header: `addrsUnclaimed`'s part (a) (no other process binds or
+    dials the addresses) is now the semantics' closed network, as in every `Net/` theorem; (3) `HAs` stays,
+    `addrUnclaimed` narrowed to part (b). No new premise: `addrOk` of every address is proved from the
+    programs' address arithmetic (ports below 32768: the largest is authN's `30000 + 300`, txnlinfaultsN's
+    bridges' `28000 + 1000`). `mvccfull`/`mvccrand`: none (they stay on `etcdFsExts`; their trust base
+    trades `net.opaqueInitsOk` for Net's trusted initializers). Exported results of `client/v3` and the
+    cache: their vocabulary's `netListenerAt` gains `[HasExt Net.netExt]` (design D; interface diffs).
+    `etcd_safe`'s draft is already over the net extension.
+  - **The trusted start model** (Upamanyu's sign-off): `goose_adequacy_start`'s `startRights` hands out
+    `addrClaim a` instead of `netAddrFree a` (the `netLisTok`s come from `extsGlobalStart`, never from the
+    axiom: S3e's rule); `hAsLit` becomes `netAddrLit a && addrOk a` (`netAddrLit`, loopback, stays: the
+    names-only `http.Transport` still reads `ProxyFromEnvironment` until S5); its satisfiability argument
+    no longer reads `Listen` as a diverging names-only function. `prom-registry`'s route (b) also restates
+    `goose_adequacy_start` (the names out): one before/after for both.
+  - **Trust base**: −3 (`net.Listen.wp_proof`, `netListenerAt`, `net.opaqueInitsOk`); `netAddrFree` →
+    `addrClaim`; `httpProtoFree` unchanged (S5's `reserve`); `goose_adequacy_start`, `addrUnclaimed`
+    restated. Trusted code added to the etcd collections: `Net/TrustedCode/net.lean` and the net
+    extension's semantics (`GooseLang/Ext/Net/Impl.lean`).
+- **(ii), considered and not recommended.** (a) Keep the main tree's names-only `net` and put kvremote in a
+  part that copies what it imports (KvNet's way): the copy is every module reaching `Code.net`, 9,900. (b)
+  Retire the three listening theorems until `etcd_safe` replaces them (D5 alone is 60-110k lines). (c)
+  Go to one machine per member now (`goose_dist_adequacy`): that is D9's interim theorem; it needs D7 and
+  phase 7's transport, which D2 is meant to unblock.
+
+**Edits to upamanyus's files (design D; none to the grpc model or its configuration).**
+1. `Proof/google_golang_org/grpc/InvGrpcServer.lean`: `[HasExt Net.netExt]` in the section of the axiom
+   `grpc.start` (l. 417: its statement gains the instance argument, nothing else); the header's lines 7 and
+   38 (`net.Listen` no longer an axiom).
+2. `Proof/google_golang_org/grpc/InvGrpcRun.lean` (l. 176, over `netListenerAt`): the same binder.
+3. `Proof/google_golang_org/grpc/InvGrpc.lean`: `grpcAddrIs_agree`'s docstring (one `Listen` per address:
+   `addrClaim`, consumed by `Listen`).
+4. `Proof/go_etcd_io/etcd/server/v3/etcdserver/api/v3rpc/NoRefusal.lean`: `etcd_noRefusal`,
+   `etcd_noOtherRefusal` (axioms over `netListenerAt`): the binder.
+5. `Proof/net/http/Axioms.lean`: `register` (over `netListenerAt`): the binder; `Boundary.lean`'s header
+   (lines 13, 26-32); `ListenerClose.lean`'s drafts: `Close` giving back `netAddrFree a` cannot hold (Net's
+   `Listen` takes `netLisTok` for good): give back `addrClaim a`, a re-`Listen` taking `netLisTok` again.
+6. `Code/google_golang_org/grpc.lean` and its `GeneratedProof`: regenerated (they import `Net.Code.net`).
+
+**Build cost.** `etc/importers.py --count Code/net.lean`: **9,900 modules, 1.47M lines** (Proof 4,685, Spec
+3,035, SpecPlan 1,946, GeneratedProof 104, Code 81, the parts 41): the main tree's whole proof. `InvNet`:
+2,441; `Spec/net/Listen`: 72; `Proof/runtime/Start`: 75; `etcdstart/FsExts`: 31. Three full rebuilds
+(steps 1, 2, 4), through the build slots.
+
+**Conflicts with work in flight** (GitHub refs, 2026-11-22 ~20:30Z; overlap with the files above):
+- #30 `step-bounds-backend`: the three statements' Spec and Proof `TopLevelRobustness`, `Adequacy`,
+  `Results` (etcd/all, leaseexpiryN, k8s/all): **land after it**.
+- ours `prom-registry`: `etc/goose.py`, `etc/gen-init.py`, the closed programs' `PkgTable`s (generated:
+  rerun), and `goose_adequacy_start` (route (b)): land it first, or one start-model change for Upamanyu.
+- #24 phase 7: the files of the list above; S2 restates `grpc.start`/`acceptRun` and redefines
+  `netListenerAt` over the model's transport after this. `net/http`'s S5 untouched but for the binders.
+- #18 (proving session 2): `bridge` (above) and v3rpc's `NoRefusal` (the binder).
+- #22 `kvnet-proof`: no file in common; `net_init_compat` and the NetFs adequacy it built are reused.
+  `crc32-hooks2`: `etc/goose.py`, `etc/gen-init.py` (textual).
+
+**Order of steps and estimate** (after the decisions, and after #30's branch lands):
+1. **Translation** (1 session, a full rebuild): `etc/goose.py` (`net=Net` and the four `net/*=` in the 35
+   projects; `net` out of project `etcd`'s packages and `owned`), `Code/net.{toml,lean}` and
+   `GeneratedProof/net.lean` deleted, every project regenerated; gen-init (`net`'s main-tree `Init` over
+   Net's translation, `PkgTable`s), gen-specs-pkginit, gen-raft-tla, copy-part; SpecPlan's import. Proofs
+   change only where they named a names-only instance; `goose --check`, tier, api checks.
+2. **Predicates and `Listen`** (1-2 sessions, a full rebuild): `InvNet` (`addrClaim`, the two
+   definitions), `Spec/net/Listen` restated and `Proof/net/Listen` a proof from Net's (passed by the
+   `Link`s), the `[HasExt Net.netExt]` sweep (the 73 files and their linking modules; upamanyus's six).
+3. **Bundle and start** (1 session): `etcdNetExts` beside `etcdFsExts`; etcdstart's `Adequacy`/
+   `AdequacyMembers` split `netLisTok` of the addresses from the start resources; `Start.lean` restated
+   (after sign-off); `addrOk` lemmas in the nine `Dir*.lean`.
+4. **Statements** (1 session, a full rebuild): the three `TopLevelRobustness` (Spec and Proof), `Results`;
+   `etc/tcb-baseline.txt` and the six collections; interfaces regenerated; the bridge axioms reviewed.
+5. **`Net/` opened to the main tree** (0.5 session): Net's initializer copies retired for the main
+   tree's; `CLAUDE.md` and `Net/Code/net.toml`'s header; then D8's kvremote (project in `Net/`, roots
+   `net=Net` with the four `net/*=`).
+
+About 4-5 sessions; the Go programs do not change.
+
+**Decisions needed.** The user: (1) option (i) for `etcd_robust`, `k8s_robust` and leaseexpiryN's statement
+(the net extension in their semantics; part (a) of `addrsUnclaimed` into the semantics); (2) design D or
+A; (3) the order against #30 and `prom-registry`. Upamanyu: (4) `goose_adequacy_start` and
+`addrUnclaimed` restated (`addrClaim` for `netAddrFree`, `addrOk` in `hAsLit`, the satisfiability
+argument), with `prom-registry`'s change if it goes first; (5) the edits to his six files (design D);
+(6) `Net/`'s `net` imported by the main tree.
 
 ## 10. Spec review
 
@@ -660,7 +911,7 @@ the model. Dispositions (fixed = in this commit):
 | F12 | low-medium | the durable check "exact" contradicts unknown outcomes; `n < 2^31` vs restartN's 256 keys; version 1 relies on at-most-once delivery | **fixed** (check and bound); at-most-once: D8 |
 | F13 | low | `workloads ≠ []` unneeded; "one of each kind" stricter than needed | **fixed** (dropped `≠ []`); one of each kind kept for now (Q1) |
 | F14 | low | cache, compact, putget proved only on one member without faults; the cache's resumption at another member unchecked | **open**: D8 risk |
-| F15 | low | name: `_robust` is the convention for `TopLevelRobustness`; `cmd/` JSON parsing is a trusted gap | gap **disclosed**; name kept as the coordinator asked (`etcd_dist_safe`), the user's call |
+| F15 | low | name: `_robust` is the convention for `TopLevelRobustness`; `cmd/` JSON parsing is a trusted gap | gap **disclosed**; name kept as the coordinator asked (`etcd_safe`), the user's call |
 
 The review also notes that F3 and F4 make two recorded nonissues reachable under real crashes
 (`nonissues/etcd-request-id-restart-reuse.md`, `nonissues/etcd-watch-lagging-member-auth-off.md`):

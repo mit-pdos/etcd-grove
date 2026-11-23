@@ -25,7 +25,7 @@ public import GeneratedProof.go_uber_org.zap
 public import GeneratedProof.golang_org.x.time.rate
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import GeneratedProof.net.http
 public import GeneratedProof.net.url
 public import GeneratedProof.path
