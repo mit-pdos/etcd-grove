@@ -117,7 +117,60 @@ theorem bufio.newVar_ptrTyped (X msg : GoString) (e : GoInterface) :
   cases h
   exact ⟨x, rfl⟩
 
+/-- `bufio` initialized `io`. -/
+theorem bufio.io_init_of_bufio :
+    isPkgInit (PROP := IProp GF) pkg_id.bufio ⊢ isPkgInit (PROP := IProp GF) pkg_id.io := by
+  refine (isPkgInit_unfold_deps (PROP := IProp GF) pkg_id.bufio).trans ?_
+  show iprop(isPkgInit pkg_id.bytes ∗ isPkgInit pkg_id.errors ∗ isPkgInit pkg_id.io ∗
+    isPkgInit pkg_id.strings ∗ True) ⊢ _
+  iintro ⟨-, -, H, -⟩
+  iexact H
+
+/-- `io.ErrNoProgress` holds a non-`nil` pointer error. -/
+theorem bufio.errNoProgress_init [_root_.Perennial.io.Assumptions] :
+    isPkgInit (PROP := IProp GF) pkg_id.io ⊢
+      ∃ e : GoInterface, globalAddr _root_.Perennial.io.ErrNoProgress ↦□ e ∗
+        ⌜_root_.Perennial.io.ptrTyped e ∧ e ≠ interface.nil⌝ := by
+  iintro #Hio
+  ihave #Hi := _root_.Perennial.io.isInit_access $$ Hio
+  icases Hi with ⟨-, -, -, -, -, -, #HNP, -⟩
+  iunfold _root_.Perennial.errors.newVar at HNP
+  icases HNP with ⟨%x, #Hx, -⟩
+  iexists _
+  iframe Hx
+  ipureintro
+  refine ⟨?_, by simp⟩
+  intro ii T h _
+  cases h
+  exact ⟨x, rfl⟩
+
+/-- An error of the underlying reader, as one of the buffered reader's. -/
+theorem bufio.errAt_errE (E : List w8 → GoInterface → IProp GF) (r : List w8) (e : GoInterface) :
+    _root_.Perennial.io.errAt E r e ⊢ _root_.Perennial.io.errAt (bufio.errE E) r e := by
+  unfold _root_.Perennial.io.errAt bufio.errE
+  iintro (%h | #H)
+  · ileft; ipureintro; exact h
+  · iright; imodintro; ileft; iexact H
+
+theorem bufio.errAt_nil' (E : List w8 → GoInterface → IProp GF) (r : List w8) :
+    ⊢ _root_.Perennial.io.errAt E r interface.nil := by
+  unfold _root_.Perennial.io.errAt
+  ileft; ipureintro; rfl
+
 end defs
+
+section pure2
+
+/-- A `w64` whose signed value is a natural number `k` is `W64 k`. -/
+theorem bufio.w64_of_sintZ {n : w64} {k : Nat} (h : sint.Z n = k) : n = W64 k := by
+  apply BitVec.eq_of_toInt_eq
+  rw [show BitVec.toInt n = sint.Z n from rfl, h]
+  have hk : k < 2 ^ 63 := by
+    have : sint.Z n < 2 ^ 63 := by word
+    omega
+  exact (bufio.sint_Z_W64_length hk).symm
+
+end pure2
 
 end EtcdGrove
 end Perennial
