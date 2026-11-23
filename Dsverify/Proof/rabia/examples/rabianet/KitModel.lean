@@ -113,7 +113,7 @@ open Classical in
 /-- `Codec()`'s bytes of a value: a bounded `Out`'s, or nothing for any other value (never
 encoded). -/
 def encOutV (v : GoInterface) : List w8 :=
-  if h : ∃ x : Out, v = interface.mkOk Out.ty #x ∧ x.V'.length < 2 ^ 40 then encOutB (Classical.choose h)
+  if h : ∃ x : Out, v = interface.mkOk Out.ty #x ∧ x.V'.length < 2 ^ 62 then encOutB (Classical.choose h)
   else []
 
 theorem encOutV_len (v : GoInterface) : (encOutV v).length < 2 ^ 63 := by
@@ -248,9 +248,11 @@ def entRep (ev : Entry) (e : EntV) : IProp GF :=
 instance entRep_persistent (ev : Entry) (e : EntV) : Persistent (entRep (GF := GF) ev e) := by
   unfold entRep; infer_instance
 
-/-- The entries `evs` (read-only) hold `es`. -/
+/-- The entries `evs` (read-only) hold `es`: the same keys and values, the slices holding the
+pending values. -/
 def entsRep (evs : List Entry) (es : List EntV) : IProp GF :=
-  iprop(⌜evs.length = es.length⌝ ∗ [∗list] p ∈ evs.zip es, entRep p.1 p.2)
+  iprop(⌜evs.map (·.K') = es.map (·.k) ∧ evs.map (·.Cur') = es.map (·.cur)⌝ ∗
+    [∗list] p ∈ evs.zip es, p.1.Old' ↦*□ p.2.old ∗ p.1.Pend' ↦*□ p.2.new)
 
 instance entsRep_persistent (evs : List Entry) (es : List EntV) :
     Persistent (entsRep (GF := GF) evs es) := by

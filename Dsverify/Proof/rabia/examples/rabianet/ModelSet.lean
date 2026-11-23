@@ -41,8 +41,8 @@ abbrev KIn := {i : KvInput GoString GoString // inB i}
 /-- `KIn`'s `BEq` is its decidable equality's (the instance linkv's pending lists erase with). -/
 @[reducible] instance (priority := high) KIn.beq : BEq KIn := instBEqOfDecidableEq
 
-/-- A bounded value: not empty (a get's answer cannot tell it from none) and below `2^40`. -/
-def valB (v : GoString) : Prop := v ≠ [] ∧ v.length < 2 ^ 40
+/-- A bounded value: not empty (a get's answer cannot tell it from none) and below `2^62`. -/
+def valB (v : GoString) : Prop := v ≠ [] ∧ v.length < 2 ^ 62
 
 /-- The outputs: a put's, a get's of no value or of a bounded value. -/
 def outB : KvOutput GoString → Prop
@@ -654,7 +654,7 @@ theorem kvSet_st {es : List EntV} (hwf : WF es) {c : Cfg} (hc : kvSet es c) (k :
     · rw [optS_ne h.1]; exact h
   · rw [h1]
     obtain ⟨⟨-, hne⟩, hlen⟩ := hv x hx
-    exact ⟨hne, hlen⟩
+    exact ⟨hne, by simp only [valLen] at hlen; omega⟩
 
 end sets
 
@@ -1223,7 +1223,7 @@ theorem WF_stepG {es : List EntV} (hwf : WF es) (i : KIn) (a : Ans KOut) :
             refine WF_setE hwf _ ⟨fun x hx => ?_, .inr ⟨h2.1, ?_⟩⟩
             · simp only [List.append_nil] at hx
               exact (hwf k).1 x ((List.erase_subperm _ _).subset hx)
-            · exact ((hwf k).1 _ h2.2).2
+            · have := ((hwf k).1 _ h2.2).2; simp only [valLen] at this; simp only; omega
           · exact hwf
       · simp only [stepG, hi, ho]; exact hwf
   · have hv : inB (.put k v) := hi ▸ i.2
@@ -1237,7 +1237,7 @@ theorem WF_stepG {es : List EntV} (hwf : WF es) (i : KIn) (a : Ans KOut) :
       · exact hv
     | ok o =>
       simp only [stepG, hi]
-      refine WF_setE hwf _ ⟨fun x hx => ?_, .inr ⟨hv.1.2, hv.2⟩⟩
+      refine WF_setE hwf _ ⟨fun x hx => ?_, .inr ⟨hv.1.2, by have := hv.2; simp only [valLen] at this; simp only; omega⟩⟩
       simp only [List.append_nil] at hx
       exact (hwf k).1 x hx
 
