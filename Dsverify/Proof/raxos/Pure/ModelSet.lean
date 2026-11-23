@@ -269,4 +269,230 @@ theorem reach_to (c : Cfg) (k : GoString) (σ : Option GoString) {P R : List GoS
     simpa [put] using this
   exact .step h1 (reach_list c k x R D σ)
 
+/-! ## The set is closed under late effects -/
+
+theorem vals_erase {p : List KIn} (hp : ∀ j ∈ p, j.put = true) {i : KIn} (hi : i.put = true)
+    (k : GoString) :
+    vals k (p.erase i) = if i.k = k then (vals k p).erase i.v else vals k p := by
+  induction p with
+  | nil => simp [vals]
+  | cons j p ih =>
+    have hj := hp j List.mem_cons_self
+    have ih := ih (fun j' hj' => hp j' (List.mem_cons_of_mem _ hj'))
+    by_cases hji : j = i
+    · subst hji
+      rw [List.erase_cons_head]
+      by_cases h : j.k = k
+      · rw [vals_cons_same h]; simp [h]
+      · rw [vals_cons_other h]; simp [h]
+    · rw [List.erase_cons_tail (by simpa using hji)]
+      by_cases h : j.k = k
+      · rw [vals_cons_same h, vals_cons_same h, ih]
+        by_cases h' : i.k = k
+        · simp only [h', ↓reduceIte]
+          rw [List.erase_cons_tail]
+          intro hv
+          apply hji
+          obtain ⟨jp, jk, jv⟩ := j
+          obtain ⟨ip, ik, iv⟩ := i
+          simp_all
+        · simp [h']
+      · rw [vals_cons_other h, vals_cons_other h, ih]
+
+theorem mSet_silent {M : GoString → Ent} {c c' : Cfg} (hs : PSilent kvB c c') (hc : mSet M c) :
+    mSet M c' := by
+  obtain ⟨hp, he⟩ := hc
+  cases hs with
+  | apply i hi =>
+    have hip := hp i hi
+    refine ⟨fun j hj => hp j (List.mem_of_mem_erase hj), fun k => ?_⟩
+    simp only [kvB, hip, ↓reduceIte]
+    rw [vals_erase hp hip k]
+    by_cases h : i.k = k
+    · subst h; simp only [↓reduceIte]
+      exact eSet_apply (he i.k) (by
+        simp only [vals, List.mem_map, List.mem_filter]; exact ⟨i, ⟨hi, by simp⟩, rfl⟩)
+    · simp only [h, ↓reduceIte, Ne.symm h]; exact he k
+  | perm p hperm =>
+    refine ⟨fun j hj => hp j (hperm.subset hj), fun k => ?_⟩
+    exact eSet_perm ((hperm.filter _).map _).symm (he k)
+
+theorem mSet_closed (M : GoString → Ent) : PSet.Closed kvB (mSet M) := by
+  intro c c' hc hr
+  induction hr with
+  | refl => exact hc
+  | step hs _ ih => exact ih (mSet_silent hs hc)
+
+/-! ## `pSeq`'s step on a closed set -/
+
+theorem pSeq_some {S T : PSet Store KIn} {i : KIn} {a : Ans KOut} (hS : PSet.Closed kvB S)
+    (hT : PSet.Closed kvB T)
+    (hsound : ∀ c c₁, S c → PStep kvB c i a c₁ → T c₁)
+    (hcomp : ∀ c', T c' → ∃ c c₁, S c ∧ PStep kvB c i a c₁ ∧ PReach kvB c₁ c')
+    (hne : ∃ c', T c') : (pSeq kvB).step S (i, a) = some T := by
+  have heq : ppost kvB S i a = T := by
+    funext c'
+    apply propext
+    constructor
+    · rintro ⟨c₀, c, c₁, h0, hr0, hst, hr1⟩
+      exact hT _ _ (hsound c c₁ (hS _ _ h0 hr0) hst) hr1
+    · intro h
+      obtain ⟨c, c₁, hc, hst, hr⟩ := hcomp c' h
+      exact ⟨c, c, c₁, hc, .refl _, hst, hr⟩
+  obtain ⟨c', hc'⟩ := hne
+  simp only [pSeq]
+  rw [if_pos ⟨c', heq ▸ hc'⟩, heq]
+
+theorem pSeq_none {S : PSet Store KIn} {i : KIn} {a : Ans KOut} (hS : PSet.Closed kvB S)
+    (h : ∀ c c₁, S c → ¬ PStep kvB c i a c₁) : (pSeq kvB).step S (i, a) = none := by
+  simp only [pSeq]
+  rw [if_neg]
+  rintro ⟨c', c₀, c, c₁, h0, hr0, hst, -⟩
+  exact h c c₁ (hS _ _ h0 hr0) hst
+
+/-! ## Key-local steps -/
+
+theorem mSet_put {M : GoString → Ent} {c : Cfg} (hc : allPuts c) {k : GoString}
+    (ho : ∀ k', k' ≠ k → eSet (M k') (c.st k') (vals k' c.pend)) {σ : Option GoString}
+    {R : List GoString} (h : eSet (M k) σ R) : mSet M (put c k σ R) := by
+  refine ⟨allPuts_put hc k σ R, fun k' => ?_⟩
+  rw [vals_put, st_put]
+  by_cases hk : k' = k
+  · subst hk; simpa using h
+  · simp only [hk, ↓reduceIte]; exact ho k' hk
+
+theorem upd_same (M : GoString → Ent) (k : GoString) (e : Ent) : upd M k e k = e := by simp [upd]
+
+theorem upd_other (M : GoString → Ent) {k k' : GoString} (e : Ent) (h : k' ≠ k) :
+    upd M k e k' = M k' := by simp [upd, h]
+
+/-- A configuration of the next set, from one of `M`'s with key `k` changed. -/
+theorem mSet_upd_of {M : GoString → Ent} {c c₁ : Cfg} (hc : mSet M c) {k : GoString} {e : Ent}
+    (hp : allPuts c₁) (hst : ∀ k', k' ≠ k → c₁.st k' = c.st k')
+    (hv : ∀ k', k' ≠ k → vals k' c₁.pend = vals k' c.pend)
+    (h : eSet e (c₁.st k) (vals k c₁.pend)) : mSet (upd M k e) c₁ := by
+  refine ⟨hp, fun k' => ?_⟩
+  by_cases hk : k' = k
+  · subst hk; rw [upd_same]; exact h
+  · rw [upd_other _ _ hk, hst k' hk, hv k' hk]; exact hc.2 k'
+
+/-- The other keys of a configuration of the next set are `M`'s. -/
+theorem others_of_upd {M : GoString → Ent} {c : Cfg} {k : GoString} {e : Ent}
+    (hc : mSet (upd M k e) c) : ∀ k', k' ≠ k → eSet (M k') (c.st k') (vals k' c.pend) := by
+  intro k' hk; have := hc.2 k'; rwa [upd_other _ _ hk] at this
+
+theorem put_err_put (c : Cfg) {i : KIn} (hp : i.put = true) (σ : Option GoString)
+    (R : List GoString) :
+    (⟨(put c i.k σ R).st, i :: (put c i.k σ R).pend⟩ : Cfg) = put c i.k σ (i.v :: R) := by
+  simp only [put, List.map_cons, List.cons_append, mk_eta hp]
+
+theorem put_ok_put (c : Cfg) {i : KIn} (hp : i.put = true) (σ : Option GoString)
+    (R : List GoString) :
+    (⟨(kvB.step i (put c i.k σ R).st).1, (put c i.k σ R).pend⟩ : Cfg) = put c i.k (some i.v) R := by
+  simp only [put, kvB, hp, ↓reduceIte, PCfg.mk.injEq, and_true]
+  funext k'; split <;> rfl
+
+theorem get_ok (c : Cfg) {i : KIn} (hp : i.put = false) :
+    (kvB.step i c.st) = (c.st, ans (c.st i.k)) := by
+  simp only [kvB, hp, Bool.false_eq_true, ↓reduceIte, Prod.mk.injEq, true_and]
+  cases c.st i.k <;> rfl
+
+theorem reach_end {c' : Cfg} (hc : allPuts c') {k x : GoString} (hx : c'.st k = some x)
+    (σ : Option GoString) {P : List GoString} (hxP : x ∈ P)
+    (hR : (vals k c'.pend).Subperm (P.erase x)) : PReach kvB (put c' k σ P) c' :=
+  (reach_to c' k σ hxP hR).trans (hx ▸ reach_put_self hc k)
+
+theorem eSet_known_all (e : Ent) : eSet e e.known e.all :=
+  .inl ⟨rfl, List.sublist_append_right _ _ |>.subperm, List.Subperm.refl _⟩
+
+theorem snoc_sub_cons {A B : List GoString} (v : GoString) (h : A.Subperm B) :
+    (A ++ [v]).Subperm (v :: B) :=
+  (List.perm_append_singleton v A).subperm_right.2 ((List.subperm_cons v).2 h)
+
+theorem cons_sub_snoc {A B : List GoString} (v : GoString) (h : A.Subperm B) :
+    (v :: A).Subperm (B ++ [v]) :=
+  (List.perm_append_singleton v B).subperm_left.2 ((List.subperm_cons v).2 h)
+
+theorem snoc_erase (A : List GoString) (v : GoString) : ((A ++ [v]).erase v).Perm A := by
+  have := (List.perm_append_singleton v A).erase v
+  rwa [List.erase_cons_head] at this
+
+/-! ## The steps, case by case -/
+
+section steps
+variable {M : GoString → Ent}
+
+/-- A put of unknown outcome: pending (`New`). -/
+theorem step_errW (hne : ∃ c, mSet M c) {i : KIn} (hp : i.put = true) :
+    (pSeq kvB).step (mSet M) (i, .err) =
+      some (mSet (upd M i.k ⟨(M i.k).f, (M i.k).v, (M i.k).old, (M i.k).new ++ [i.v]⟩)) := by
+  obtain ⟨e, he⟩ : ∃ e, M i.k = e := ⟨_, rfl⟩
+  rw [he]
+  have hall : Ent.all (⟨e.f, e.v, e.old, e.new ++ [i.v]⟩ : Ent) = e.all ++ [i.v] := by simp [Ent.all]
+  have sound : ∀ c c₁, mSet M c → PStep kvB c i .err c₁ → mSet (upd M i.k (⟨e.f, e.v, e.old, e.new ++ [i.v]⟩ : Ent)) c₁ := by
+    intro c c₁ hc hs
+    cases hs with
+    | errW _ _ =>
+      refine mSet_upd_of hc ?_ (fun _ _ => rfl) (fun k' hk => vals_cons_other (Ne.symm hk) _) ?_
+      · intro j hj; rcases List.mem_cons.1 hj with rfl | hj; exact hp; exact hc.1 j hj
+      · rw [vals_cons_same rfl]
+        rcases (he ▸ hc.2 i.k) with ⟨h1, h2, h3⟩ | ⟨x, hx, h1, h2⟩
+        · refine .inl ⟨by simp [h1, Ent.known], snoc_sub_cons _ h2, ?_⟩
+          rw [hall]; exact cons_sub_snoc _ h3
+        · refine .inr ⟨x, by rw [hall]; exact List.mem_append_left _ hx, h1, ?_⟩
+          rw [hall, List.erase_append_left _ hx]
+          exact cons_sub_snoc _ h2
+    | errR h _ => simp [kvB, hp] at h
+  refine pSeq_some (mSet_closed M) (mSet_closed _) sound ?_ ?_
+  · intro c' hc'
+    have ho := others_of_upd hc'
+    have hk := hc'.2 i.k
+    rw [upd_same] at hk
+    rcases hk with ⟨h1, h2, h3⟩ | ⟨x, hx, h1, h2⟩
+    · -- the new put still pending, the key's state the known one
+      have hv : i.v ∈ vals i.k c'.pend :=
+        h2.subset (List.mem_append_right _ (List.mem_singleton_self _))
+      refine ⟨put c' i.k (c'.st i.k) ((vals i.k c'.pend).erase i.v),
+        put c' i.k (c'.st i.k) (i.v :: (vals i.k c'.pend).erase i.v), ?_, ?_, ?_⟩
+      · refine mSet_put hc'.1 ho ?_
+        rw [he]
+        refine .inl ⟨by simpa [Ent.known] using h1, ?_, ?_⟩
+        · exact (snoc_erase _ _).subperm_right.1 (h2.erase i.v)
+        · have := h3.erase i.v
+          rw [hall] at this
+          exact (snoc_erase _ _).subperm_left.1 this
+      · rw [← put_err_put c' hp]; exact .errW _ _ hp rfl
+      · have hst : (put c' i.k (c'.st i.k) (i.v :: (vals i.k c'.pend).erase i.v)).st = c'.st := by
+          funext k'; simp only [st_put]; split <;> simp_all
+        have := PSilent.perm (P := kvB) (put c' i.k (c'.st i.k) (i.v :: (vals i.k c'.pend).erase i.v))
+          c'.pend (by
+            refine (pend_split hc'.1 i.k).trans ?_
+            exact ((List.perm_cons_erase hv).map _).append_right _)
+        rw [hst] at this
+        exact .single this
+    · -- some pending put took effect last
+      refine ⟨put c' i.k e.known e.all, put c' i.k e.known (i.v :: e.all), ?_, ?_, ?_⟩
+      · refine mSet_put hc'.1 ho ?_
+        rw [he]; exact eSet_known_all e
+      · rw [← put_err_put c' hp]; exact .errW _ _ hp rfl
+      · refine reach_end hc'.1 h1 _ ?_ ?_
+        · rw [hall] at hx; exact (List.perm_append_singleton i.v e.all).subset hx
+        · rw [hall] at h2
+          exact ((List.perm_append_singleton _ _).erase x).subperm_left.1 h2
+  · obtain ⟨c, hc⟩ := hne
+    exact ⟨_, sound c _ hc (.errW c i hp rfl)⟩
+
+/-- A get of unknown outcome: nothing changes. -/
+theorem step_errR (hne : ∃ c, mSet M c) {i : KIn} (hp : i.put = false) :
+    (pSeq kvB).step (mSet M) (i, .err) = some (mSet M) := by
+  refine pSeq_some (mSet_closed M) (mSet_closed M) ?_ ?_ hne
+  · intro c c₁ hc hs
+    cases hs with
+    | errW h _ => simp [kvB, hp] at h
+    | errR _ _ => exact hc
+  · intro c' hc'
+    exact ⟨c', c', hc', .errR c' i hp rfl, .refl _⟩
+
+end steps
+
 end Perennial.raxos.pure
