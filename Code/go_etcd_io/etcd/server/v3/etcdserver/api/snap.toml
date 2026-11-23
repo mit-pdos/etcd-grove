@@ -5,7 +5,7 @@
 # `Transport.SendSnapshot` looks up the peer it names.
 # (2026-11-19) `Message`'s `CloseNotify` and `CloseWithError` with their bodies (their specs proved
 # over `msgIs`'s definition, `Proof/.../snap/Defs.lean`).
-translate = ["!*", "Message.GetTo", "Message.CloseNotify", "Message.CloseWithError",
+translate = ["!*", "New", "Message.GetTo", "Message.CloseNotify", "Message.CloseWithError",
   # (prove-errinits, 2026-11-19) the package variables: an `errors.New` error and the metrics
   "ErrNoDBSnapshot", "snapMarshallingSec", "snapSaveSec", "snapFsyncSec", "snapDBSaveSec",
   "snapDBFsyncSec",

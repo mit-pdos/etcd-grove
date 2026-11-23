@@ -145,6 +145,32 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
   (Val #())))
 
+/-- go: snapshotter.go:34:6 -/
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "dir"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Snapshotter.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Snapshotter.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "dir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "dir"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Snapshotter.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "dir"))
+  (Let "$v2" (App (Val (GoInstruction (FuncResolve fsyncSnapDir []))) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Snapshotter.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"dir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"fsyncDir")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.string] false [go.error])) (Var "$v2")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Snapshotter.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Snapshotter.ty)))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.github_com.prometheus.client_golang.prometheus]
 
@@ -343,6 +369,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Message_instance : Message.TypeAssumptions
   Snapshotter_instance : Snapshotter.TypeAssumptions
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  New_unfold : FuncUnfold New [] New.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_raftpb_Assumption : _root_.Perennial.go_etcd_io.raft.v3.raftpb.Assumptions
@@ -351,6 +378,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 attribute [instance] Assumptions.Message_instance
   Assumptions.Snapshotter_instance
   Assumptions.«init.0_unfold»
+  Assumptions.New_unfold
   Assumptions.import_errors_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_raftpb_Assumption
