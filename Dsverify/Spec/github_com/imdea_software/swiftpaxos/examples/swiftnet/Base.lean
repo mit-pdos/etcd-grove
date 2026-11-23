@@ -100,6 +100,11 @@ def clientNodeAddrs : List GoString :=
 def clientConfAddrs : List GoString :=
   [go!"127.0.0.1:8101", go!"127.0.0.1:8102", go!"127.0.0.1:8103", go!"127.0.0.1:8104",
    go!"127.0.0.1:8105", go!"127.0.0.1:8106"]
+/-- The client nodes' start ports (`StartOff` above node `1 + c`'s first: 9101..9106): the
+orchestrator's second message, once every node acknowledged its configuration. -/
+def clientStartAddrs : List GoString :=
+  [go!"127.0.0.1:9101", go!"127.0.0.1:9102", go!"127.0.0.1:9103", go!"127.0.0.1:9104",
+   go!"127.0.0.1:9105", go!"127.0.0.1:9106"]
 /-- The master's rpc address (`Addrs()[7]`). -/
 def masterAddr : GoString := go!"127.0.0.1:7001"
 /-- The server nodes' configuration ports (`9000 + i`, server node i = 1..6). -/
@@ -120,7 +125,7 @@ def rpcAddrs : List GoString := masterAddr :: replicaRpcAddrs
 /-- The other addresses the run sets (`addrs_set_proto`): all but the rpc addresses and the
 client nodes' request addresses (`ClientAddrs()`, 7101..7106, remote's). -/
 def plainAddrs : List GoString :=
-  orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ confAddrs ++ replicaAddrs
+  orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ clientStartAddrs ++ confAddrs ++ replicaAddrs
 
 /-- The replica node (index into `replicaAddrs`) of replica id `r` in the membership `l`. -/
 def nodeOf (l : List GoString) (r : Nat) : Option Nat :=

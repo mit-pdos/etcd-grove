@@ -39,14 +39,14 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// freeBase finds a port base b such that b+i, b+i+RPCOff and b+i+ConfOff (i < n) are free on
+// freeBase finds a port base b such that b+i, b+i+RPCOff, b+i+ConfOff and b+i+StartOff (i < n) are free on
 // loopback (below Linux's ephemeral ports).
 func freeBase(t *testing.T, n int) uint64 {
-	for b := 20000 + rand.Intn(10000); b < 32768-int(ConfOff)-n; b += 97 {
+	for b := 20000 + rand.Intn(10000); b < 32768-int(StartOff)-n; b += 97 {
 		ok := true
 		var ls []net.Listener
 		for i := 0; i < n && ok; i++ {
-			for _, p := range []int{b + i, b + i + int(RPCOff), b + i + int(ConfOff)} {
+			for _, p := range []int{b + i, b + i + int(RPCOff), b + i + int(ConfOff), b + i + int(StartOff)} {
 				l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", p))
 				if err != nil {
 					ok = false

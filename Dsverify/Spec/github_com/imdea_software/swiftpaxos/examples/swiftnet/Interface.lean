@@ -77,6 +77,13 @@ encoding with leader changes `decode` accepts. -/
 def conf.dialPC (γ : SwiftNames netDistGF) : Proto netDistGF := fun _ bs =>
   iprop(⌜bs = []⌝ ∨ ∃ c cs, conf.is γ c ∗ ⌜c.changesOk cs ∧ bs <+: c.encodeC cs⌝)
 
+/-- What a dialer of a client node's start port writes (the orchestrator, once every node
+acknowledged its configuration): a prefix of the configuration's encoding, with no change, and
+the registration of every predicted node of the configuration (`sp.allPredsReg`, what the
+client's connect needs). -/
+def conf.startP (γ : SwiftNames netDistGF) : Proto netDistGF := fun _ bs =>
+  iprop(⌜bs = []⌝ ∨ ∃ c, conf.is γ c ∗ sp.allPredsReg γ.sp γ.conf ∗ ⌜bs <+: c.encode⌝)
+
 /-- What a configuration port's server writes: at most the acknowledgment byte. -/
 def conf.ackQ : Proto netDistGF := fun _ bs => iprop(⌜bs <+: [confAck]⌝)
 
@@ -155,6 +162,7 @@ variable [SwiftNetPkgState netDistGF]
 def protoP (γ : SwiftNames netDistGF) (a : GoString) : Proto netDistGF :=
   if a ∈ confAddrs then conf.dialP γ
   else if a ∈ clientConfAddrs then conf.dialPC γ
+  else if a ∈ clientStartAddrs then conf.startP γ
   else match replicaAddrs.idxOf? a with
     | some _ => sp.inP γ.sp γ.conf γ.mem
     | none => fun _ _ => iprop(True)
@@ -164,6 +172,7 @@ def protoQ (γ : SwiftNames netDistGF) (a : GoString) : Proto netDistGF :=
   match clientConfAddrs.idxOf? a with
   | some c => conf.ackQP γ (sp.PNode.cl c)
   | none =>
+  if a ∈ clientStartAddrs then conf.ackQ else
   match confAddrs.idxOf? a with
   | some 0 => conf.ackQ
   | some (k + 1) => conf.ackQP γ (sp.PNode.rep k)
@@ -209,12 +218,14 @@ def orchShare (γ : SwiftNames netDistGF) : IProp netDistGF :=
   iprop(addrTok orchAddr ∗ conf.writer γ ∗ lin.own γ (kv GoString GoString).init ∗
     common γ)
 
-/-- Client node `c`'s share (node `1 + c`): its own address's and configuration port's tokens,
+/-- Client node `c`'s share (node `1 + c`): its own address's, configuration port's and start
+port's tokens,
 client `c`'s share of the protocol (`sp.clientStart`: the client id `c + 1`) and the node's
 right to register its prediction (L2). -/
 def clientNodeShare (γ : SwiftNames netDistGF) (c : Nat) : IProp netDistGF :=
   iprop(addrTok (clientNodeAddrs.getD c go!"") ∗
-    addrTok (clientConfAddrs.getD c go!"") ∗ sp.clientStart γ.sp c ∗
+    addrTok (clientConfAddrs.getD c go!"") ∗ addrTok (clientStartAddrs.getD c go!"") ∗
+    sp.clientStart γ.sp c ∗
     sp.predTok γ.sp (sp.PNode.cl c) ∗ common γ)
 
 /-- Server node `i + 1`'s addresses (node `7 + i`): the master's rpc address and configuration

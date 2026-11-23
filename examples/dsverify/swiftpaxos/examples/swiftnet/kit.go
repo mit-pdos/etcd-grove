@@ -54,7 +54,7 @@ import (
 
 // The configuration: NC clients, K operations each, a remote call's limit CallMs, the most
 // replicas, the keys, the port offsets of a node's rpc (a replica's net/rpc, a client node's
-// request port) and configuration addresses, the clients' start-up wait and stagger, the retry
+// request port), configuration and (a client node's) start addresses, the clients' start-up wait and stagger, the retry
 // and idle waits (the lab's kit.toml).
 const (
 	NC          uint64 = 6
@@ -64,6 +64,7 @@ const (
 	NKeys       uint64 = 2
 	RPCOff      uint64 = 1000
 	ConfOff     uint64 = 2000
+	StartOff    uint64 = 3000
 	StartMs     uint64 = 15000
 	StaggerMs   uint64 = 200
 	RetryMs     uint64 = 100
@@ -245,7 +246,12 @@ func New(addrs []string) {
 // configure sends the configuration conf to the master and replicas 2..conf.N+1 (server nodes,
 // nodes NC+1..NC+1+conf.N) and to every client node, each with the leader changes of cs it makes,
 // node n at its configuration address (its port ConfOff above its first), each until it
-// acknowledges it.
+// acknowledges it; then, once every node has acknowledged its configuration, it sends the
+// configuration again to every client node's start address (its port StartOff above its first),
+// each until it acknowledges it. A client node connects its client only after the second message:
+// SwiftPaxos's client may send commands only once every node of the deployment is set up (in the
+// proof: every node registered its prediction, which the acknowledgments tell the orchestrator
+// and the start message tells the client node).
 func configure(addrs []string, conf Conf, cs []change) {
 	log.Println("swiftnet: configuration: " + conf.String())
 	for id := uint64(1); id <= conf.N+1; id++ {
@@ -255,6 +261,11 @@ func configure(addrs []string, conf Conf, cs []change) {
 	}
 	for c := uint64(0); c < NC; c++ {
 		for !sendConf(at(addrs, 1+c, ConfOff), conf.encode(mine(cs, c))) {
+			time.Sleep(time.Duration(RetryMs) * time.Millisecond)
+		}
+	}
+	for c := uint64(0); c < NC; c++ {
+		for !sendConf(at(addrs, 1+c, StartOff), conf.encode(nil)) {
 			time.Sleep(time.Duration(RetryMs) * time.Millisecond)
 		}
 	}
@@ -343,13 +354,17 @@ const MaxVal uint64 = 1 << 16
 
 // newClient is client c's node's side of the deployment at addrs: it waits for the
 // configuration on client node c's configuration address (node 1+c, port ConfOff above its
-// first), registers the net/rpc codec (the model's; nothing in the real build) and starts the
+// first), then for the start message on its start address (port StartOff above its first: every
+// node is configured), registers the net/rpc codec (the model's; nothing in the real build) and starts the
 // leader changes this node makes; client c's SwiftPaxos client connects at its first operation
 // (op).
 func newClient(addrs []string, c uint64) *Sys {
 	ch := make(chan msg, 1)
 	go awaitConf(at(addrs, 1+c, ConfOff), ch)
 	m := <-ch
+	st := make(chan msg, 1)
+	go awaitConf(at(addrs, 1+c, StartOff), st)
+	<-st
 	Register()
 	s := &Sys{addrs: addrs, conf: m.conf}
 	go s.changeLeaders(m.cs)
