@@ -38,6 +38,8 @@ public import Proof.go_uber_org.zap.PkgInit
 public import Proof.math.rand.Base
 public import Net.Proof.net.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
+-- (phase 7 S2 core) grpc imports `encoding/base64` (`encodeMetadataHeader`): its package fact
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -326,6 +328,31 @@ instance grpc_status_is_pkg_init_inst :
   define_is_pkg_init iprop(True)
 instance grpc_status_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  build_get_is_pkg_init_wf
+
+-- (phase 7 S2 core, 2026-11-23) grpc's `internal/grpcutil` and `internal/metadata` (what the client
+-- attempt's `createHeaderFields` calls), before `grpc`, which imports them
+/-- `grpcutil`'s package fact: `RegisteredCompressorNames` (`var RegisteredCompressorNames []string`,
+no initializer) holds the nil slice for good: only `encoding.RegisterCompressor` writes it, which no
+translated code calls (compression is outside the grpc model, `models/README.md`); a program that
+registers a compressor gets no proof (it would need the cell, which the generated `Init.lean` makes
+persistent). -/
+abbrev grpcutilInit : IProp GF :=
+  globalAddr _root_.Perennial.google_golang_org.grpc.internal.grpcutil.RegisteredCompressorNames ↦□
+    (zero_val GoSlice)
+
+instance grpc_grpcutil_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcutil :=
+  define_is_pkg_init grpcutilInit
+instance grpc_grpcutil_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcutil :=
+  build_get_is_pkg_init_wf
+
+instance grpc_imetadata_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.metadata :=
+  define_is_pkg_init iprop(True)
+instance grpc_imetadata_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.metadata :=
   build_get_is_pkg_init_wf
 
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the

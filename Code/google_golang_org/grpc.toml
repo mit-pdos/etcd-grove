@@ -36,7 +36,10 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "transportFailureCodes", "http2ErrConvTab",
   # (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw`, the type assertion of
   # `internal.FromOutgoingContextRaw`, which `metadata`'s translated `init` sets (`metadata`'s fact)
-  "metadataFromOutgoingContextRaw"]
+  "metadataFromOutgoingContextRaw",
+  # (phase 7 S2 core, 2026-11-23) `createHeaderFields`' helpers of the model's `model_http_util.go`
+  # (grpc-go's `http_util.go`): `isReservedHeader`, `encodeMetadataHeader` (`-bin` values in base64)
+  "isReservedHeader", "encodeMetadataHeader", "encodeBinHeader", "binHdrSuffix"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
@@ -50,7 +53,11 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   # (phase 7 S2 core, 2026-11-23) the translated initializers' `status.Error` and codes
   "google.golang.org/grpc/codes", "google.golang.org/grpc/status",
   # (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw`'s `internal.FromOutgoingContextRaw`
-  "google.golang.org/grpc/internal"]
+  "google.golang.org/grpc/internal",
+  # (phase 7 S2 core, 2026-11-23) what `createHeaderFields` and its helpers call: `strings`,
+  # `strconv`, `encoding/base64` (`RawStdEncoding`), grpc's `internal/grpcutil` and `internal/metadata`
+  "strings", "strconv", "encoding/base64", "google.golang.org/grpc/internal/grpcutil",
+  "google.golang.org/grpc/internal/metadata"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

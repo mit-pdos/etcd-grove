@@ -149,6 +149,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   WithUnaryInterceptor_unfold : FuncUnfold WithUnaryInterceptor [] WithUnaryInterceptor.impl
   WithStreamInterceptor_unfold : FuncUnfold WithStreamInterceptor [] WithStreamInterceptor.impl
   WithResolvers_unfold : FuncUnfold WithResolvers [] WithResolvers.impl
+  isReservedHeader_unfold : FuncUnfold isReservedHeader [] isReservedHeader.impl
+  encodeBinHeader_unfold : FuncUnfold encodeBinHeader [] encodeBinHeader.impl
+  encodeMetadataHeader_unfold : FuncUnfold encodeMetadataHeader [] encodeMetadataHeader.impl
   headerListTooLarge_unfold : FuncUnfold headerListTooLarge [] headerListTooLarge.impl
   appendOversizedBlock_unfold : FuncUnfold appendOversizedBlock [] appendOversizedBlock.impl
   appendHeaderBlock_unfold : FuncUnfold appendHeaderBlock [] appendHeaderBlock.impl
@@ -171,6 +174,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
   import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.internal.Assumptions
   import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
@@ -178,8 +182,12 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
   import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
-  import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import_base64_Assumption : _root_.Perennial.encoding.base64.Assumptions
+  import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  import_grpc_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
+  import_grpcutil_Assumption : _root_.Perennial.google_golang_org.grpc.internal.grpcutil.Assumptions
+  import_internal_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.internal.metadata.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
   import_grpcsync_Assumption : _root_.Perennial.google_golang_org.grpc.internal.grpcsync.Assumptions
 
@@ -312,6 +320,9 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.WithUnaryInterceptor_unfold
   Assumptions.WithStreamInterceptor_unfold
   Assumptions.WithResolvers_unfold
+  Assumptions.isReservedHeader_unfold
+  Assumptions.encodeBinHeader_unfold
+  Assumptions.encodeMetadataHeader_unfold
   Assumptions.headerListTooLarge_unfold
   Assumptions.appendOversizedBlock_unfold
   Assumptions.appendHeaderBlock_unfold
@@ -334,6 +345,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_io_Assumption
   Assumptions.import_codes_Assumption
   Assumptions.import_status_Assumption
+  Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_internal_Assumption
   Assumptions.import_keepalive_Assumption
@@ -341,8 +353,12 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_net_Assumption
   Assumptions.import_credentials_Assumption
   Assumptions.import_stats_Assumption
-  Assumptions.import_metadata_Assumption
+  Assumptions.import_base64_Assumption
+  Assumptions.import_strconv_Assumption
+  Assumptions.import_grpc_metadata_Assumption
   Assumptions.import_binary_Assumption
+  Assumptions.import_grpcutil_Assumption
+  Assumptions.import_internal_metadata_Assumption
   Assumptions.import_peer_Assumption
   Assumptions.import_grpcsync_Assumption
 

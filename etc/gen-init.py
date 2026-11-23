@@ -3431,6 +3431,16 @@ only.''',
     finish=['imod (EtcdGrove.grpcInternal.fromOutRaw_alloc (hG := hG) _) $$ HFromOutgoingContextRaw with #Hfact']
         + FIN_PRE[:6],
 )
+# (phase 7 S2 core, 2026-11-23) grpc's `internal/grpcutil`: `RegisteredCompressorNames`'s cell, nil for good
+SPECIAL['google_golang_org.grpc.internal.grpcutil'] = dict(
+    doc='''Its fact (`grpcutilInit`, `cache/v3/Base.lean`): `RegisteredCompressorNames` holds the nil slice
+for good. Its initializer allocates it (`var RegisteredCompressorNames []string`, `compressor.go`, no
+initializer: nil) and initializes its imports. Only `encoding.RegisterCompressor` writes it, which no
+translated code calls (compression is outside the grpc model); a program that does gets no proof: it
+would need the cell, which `finish` makes persistent.''',
+    alloc_types={'RegisteredCompressorNames': 'GoSlice'},
+    finish=['ipersist HRegisteredCompressorNames'] + FIN_PRE[:6],
+)
 _GM = 'google_golang_org.grpc.metadata'
 SPECIAL[_GM] = dict(
     doc='''Its fact (`metadataInit`, `cache/v3/Base.lean`; phase 7 S2 core, 2026-11-23, until then `True`):

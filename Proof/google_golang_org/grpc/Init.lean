@@ -28,12 +28,17 @@ public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
+public import Proof.encoding.base64.Init
 public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.credentials.Init
 public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.internal.grpcsync.Init
+public import Proof.google_golang_org.grpc.internal.grpcutil.Init
+public import Proof.google_golang_org.grpc.internal.metadata.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init

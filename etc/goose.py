@@ -570,6 +570,11 @@ PROJECTS = [
             # (phase 7 S2 core, 2026-11-23) names only but the variable `FromOutgoingContextRaw`,
             # which `metadata`'s `init` sets and grpc's `metadataFromOutgoingContextRaw` asserts
             "google.golang.org/grpc/internal",
+            # (phase 7 S2 core, 2026-11-23) with bodies: what the client attempt's
+            # `createHeaderFields` calls (`grpcutil`'s compressor names, content type and timeout;
+            # `internal/metadata`'s `ValidatePair`)
+            "google.golang.org/grpc/internal/grpcutil",
+            "google.golang.org/grpc/internal/metadata",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

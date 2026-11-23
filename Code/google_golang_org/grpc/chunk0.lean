@@ -6,6 +6,7 @@ public import Perennial.Code.context
 public import Perennial.Code.io
 public import Code.google_golang_org.grpc.codes
 public import Code.google_golang_org.grpc.status
+public import Perennial.Code.strings
 public import Perennial.Code.sync
 public import Code.google_golang_org.grpc.internal
 public import Code.google_golang_org.grpc.keepalive
@@ -13,8 +14,12 @@ public import Code.google_golang_org.grpc.resolver
 public import Net.Code.net
 public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
+public import Code.encoding.base64
+public import Perennial.Code.strconv
 public import Code.google_golang_org.grpc.metadata
 public import Perennial.Code.encoding.binary
+public import Code.google_golang_org.grpc.internal.grpcutil
+public import Code.google_golang_org.grpc.internal.metadata
 public import Code.google_golang_org.grpc.peer
 public import Code.google_golang_org.grpc.internal.grpcsync
 public import Perennial.Golang.Defn
@@ -701,7 +706,8 @@ opaque defaultReadBufSize [GooseExts] [GoGlobalContext] : val
 
 opaque defaultMaxCallAttempts [GooseExts] [GoGlobalContext] : val
 
-opaque binHdrSuffix [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def binHdrSuffix [GooseExts] [GoGlobalContext] : val :=
+  #(go!"-bin")
 
 opaque hour [GooseExts] [GoGlobalContext] : val
 
@@ -1674,6 +1680,86 @@ noncomputable def WithResolvers.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
 
+/-- isReservedHeader checks whether hdr belongs to HTTP2 headers
+    reserved by gRPC protocol. Any other headers are classified as the
+    user-specified metadata.
+
+    go: model_http_util.go:45:6 -/
+noncomputable def isReservedHeader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "hdr"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "hdr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "hdr"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (Var "hdr"))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"te")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"grpc-timeout")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"grpc-status")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"grpc-message")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"grpc-encoding")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"grpc-message-type")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"user-agent")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"content-type")))))))))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "hdr")) (Val #(go!""))))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "hdr")) (Val #(W64 0)))) (Val #(W8 58)))) (Val #false)))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- go: model_http_util.go:80:6 -/
+noncomputable def encodeBinHeader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "v"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "v"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.base64.Encoding.ty) go!"EncodeToString"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.encoding.base64.Encoding.ty)))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.base64.RawStdEncoding))) (Val #())))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
+
+/-- go: model_http_util.go:92:6 -/
+noncomputable def encodeMetadataHeader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "k"
+  (Lam "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
+  (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (Var "k"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "k"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val binHdrSuffix))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.HasSuffix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "v")))
+  (App (App (Val (GoInstruction (FuncResolve encodeBinHeader []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- headerListTooLarge reports whether fields' header list is over the receiver's limit (its size
     counted as HTTP/2 does, stopping once over the limit: each addition is of one length to a sum
     within the limit, so the sum cannot overflow).
@@ -2481,12 +2567,17 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.internal.grpcsync]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.strings, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.encoding.base64, pkg_id.strconv, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.internal.grpcutil, pkg_id.google_golang_org.grpc.internal.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.internal.grpcsync]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2596,6 +2687,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.internal.initialize') (Val #()))))))
@@ -2610,9 +2703,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.stats.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.encoding.base64.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.encoding.binary.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.internal.grpcutil.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.internal.metadata.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
