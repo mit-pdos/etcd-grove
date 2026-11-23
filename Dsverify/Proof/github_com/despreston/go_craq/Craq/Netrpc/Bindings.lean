@@ -280,6 +280,7 @@ theorem newArg_Update (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
     iintro _
     iapply HΦ $$ Hpost
   · iright
+    ileft
     iexists msg
     iframe Hem
     rw [if_neg Hmsg]
@@ -388,6 +389,7 @@ theorem newArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen
     iintro _
     iapply HΦ $$ Hpost
   · iright
+    ileft
     iexists msg
     iframe Hem
     rw [if_neg Hmsg]
@@ -493,6 +495,7 @@ theorem newArg_Commit (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
     iintro _
     iexact HΦ
   · iright
+    ileft
     iexists msg
     iframe Hem
     rw [if_neg Hmsg]
@@ -603,6 +606,7 @@ theorem newArg_LatestVersion (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
     · ipureintro; rfl
     unfold net.rpc.callRet
     iright
+    ileft
     iexists msg
     isplitr [HS]
     · unfold net.rpc.errMsg
@@ -723,6 +727,7 @@ theorem newArg_Read (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.
     · ipureintro; rfl
     unfold net.rpc.callRet
     iright
+    ileft
     iexists notFoundMsg
     isplitr [HS HQ]
     · unfold net.rpc.errMsg
@@ -745,6 +750,7 @@ theorem newArg_Read (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.
     · ipureintro; rfl
     unfold net.rpc.callRet
     iright
+    ileft
     iexists msg
     isplitr [HS]
     · unfold net.rpc.errMsg
@@ -871,6 +877,7 @@ theorem newArg_FwdPropagate (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen :
     · ipureintro; rfl
     unfold net.rpc.callRet
     iright
+    ileft
     iexists msg
     isplitr [HS]
     · unfold net.rpc.errMsg
@@ -998,6 +1005,7 @@ theorem newArg_BackPropagate (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
     · ipureintro; rfl
     unfold net.rpc.callRet
     iright
+    ileft
     iexists msg
     isplitr [HS]
     · unfold net.rpc.errMsg
@@ -1352,6 +1360,7 @@ theorem cnewArg_AddNode (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : dec
     · ipureintro; rfl
     unfold net.rpc.callRet
     iright
+    ileft
     iexists msg
     isplitr [HS]
     · unfold net.rpc.errMsg
@@ -1467,6 +1476,7 @@ theorem cnewArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
     iintro _
     iapply HΦ $$ Hpost
   · iright
+    ileft
     iexists msg
     iframe Hem
     rw [if_neg Hmsg]
@@ -1475,12 +1485,120 @@ theorem cnewArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
     iapply HΦ
     ipureintro; exact Hmsg
 
-theorem coordRcv (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
-    (cfg : Cfg GF) (b : Loc) (svc : GoInterface)
-    (HRN : coordB cfg b svc ⊢ newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
+/-- `RemoveNode` (finding F1, discharged): `CoordinatorBinding.RemoveNode` returns
+`coordinator.RemoveNode`'s error, which may be a net/rpc client error (`models_lab.errAny`, its
+message not fixed); `callRet`'s `errAny` branch takes it, with the spec's answer for any message
+(the empty one: the reply's encoding, `Φ encEmptyReply []`). -/
+theorem cnewArg_RemoveNode (L : SrvCodecLaws (GF := GF)) (I : ArgFacts)
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) :
+    coordB cfg b svc ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
       (coordSpec cfg.γ cfg.chain go!"RemoveNode")
       (mOf examples.craqnet.rpcNewArg_r1_RemoveNode examples.craqnet.rpcNewReply_r1_RemoveNode
-        examples.craqnet.rpcCall_r1_RemoveNode)) :
+        examples.craqnet.rpcCall_r1_RemoveNode) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold coordB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface go.string p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface go.string p) (p ↦ (go!"" : GoString))
+      (coordSpec cfg.γ cfg.chain go!"RemoveNode")
+      (fun args ok => iprop(if ok then ∃ k : GoString, ⌜args = encString k⌝ ∗ p ↦ k else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    rw [coordSpec_RemoveNode]
+    icases HS with ⟨%k, %Hargs, HS⟩
+    isplitl [HS]
+    · iexists k
+      isplitr
+      · ipureintro; exact Hargs
+      iexact HS
+    iapply L.decA_string _ _ k
+    iframe
+    isplitr
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      iexists k
+      iframe
+      ipureintro; exact Hargs
+  ihave Hp : p ↦ (go!"" : GoString) $$ [Hp]
+  · rw [show (go!"" : GoString) = zero_val GoString from rfl]; iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS Hp
+  simp only [ite_true]
+  icases Hp with ⟨%k, %Hm, Hp⟩
+  rw [coordSpec_RemoveNode]
+  icases HS with ⟨%k', %Hargs, HS⟩
+  have hk : k = k' := I.encString_inj k k' (Hm ▸ Hargs)
+  subst hk
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_method_call
+  wp_call
+  iStructNamed Hbs
+  wp_auto
+  unfold isCoordSvc
+  icases Hsvc with ⟨%e, %He, #Hm⟩
+  subst He
+  icases Hm with ⟨-, -, #HR⟩
+  (try wp_auto)
+  wp_apply HR $$ %k as %err Herr
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  icases Herr with (%Herr | #Hany)
+  · ileft
+    isplitr
+    · ipureintro; exact Herr
+    icases HS with ⟨HΦ, -⟩
+    iapply L.enc_EmptyReply
+    isplitr [HΦ]
+    · iexact «$r0»
+    iintro _
+    iexact HΦ
+  · iright
+    iright
+    isplitr
+    · iexact Hany
+    iintro %msg
+    by_cases hmsg : msg = []
+    · rw [if_pos hmsg]
+      icases HS with ⟨HΦ, -⟩
+      iapply L.enc_EmptyReply
+      isplitr [HΦ]
+      · iexact «$r0»
+      iintro _
+      iexact HΦ
+    · rw [if_neg hmsg]
+      icases HS with ⟨-, HΦ⟩
+      iapply HΦ
+
+theorem coordRcv (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) :
     coordB cfg b svc ⊢
     craqCodec.rcv (ptrIface transport.netrpc.CoordinatorBinding.ty b)
       (net.rpc.rcvrIs craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
@@ -1528,7 +1646,7 @@ theorem coordRcv (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spe
   isplitr
   · iapply methodOk_of
     iframe H1
-    iapply HRN $$ Hb
+    iapply cnewArg_RemoveNode L I $$ Hb
   iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
     (ptrIface transport.netrpc.CoordinatorBinding.ty b) (coordSpec cfg.γ cfg.chain m) mm) ?_).2
   · first | rfl | decide | simp

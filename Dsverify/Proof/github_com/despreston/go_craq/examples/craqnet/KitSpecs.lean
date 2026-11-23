@@ -197,14 +197,6 @@ abbrev Server.spec [RpcHttpServe GF] : Prop :=
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #id))
   {{ RET #(); True }}
 
-/-- RemoveNode's method obligation (finding F1: a premise until Net's `callRet` admits `errAny`). -/
-abbrev removeNodeOk.spec (cfg : Cfg GF) : Prop :=
-  ∀ (b : Loc) (svc : GoInterface), coordB cfg b svc ⊢
-    newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
-      (coordSpec cfg.γ cfg.chain go!"RemoveNode")
-      (mOf examples.craqnet.rpcNewArg_r1_RemoveNode examples.craqnet.rpcNewReply_r1_RemoveNode
-        examples.craqnet.rpcCall_r1_RemoveNode)
-
 /-- **Finding F2's premise, in the shape Net will give** (#24: net/rpc's initialization returns a
 per-machine resource once, like gryff's replicas' `wp_initialize'_own`): a machine's boot
 resources, made by its program's initialization: the codec registry at its initial state

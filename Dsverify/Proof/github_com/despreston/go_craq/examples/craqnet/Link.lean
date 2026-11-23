@@ -4,8 +4,8 @@ to its callees' results. The protocol's laws (`Protocol/`), the codec's laws (`C
 the store, node and coordinator specs, transport/netrpc's clients, the configuration messages over
 Net's `net` specs, Net's `SetCodec`, remote's `Check`/`ServeClient`; then the kit's `Client`,
 `Orch`, `Server`. What is not proved stays an argument: the hypothesis classes (instance
-arguments: `LogHyp`, `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`) and the finding F1's premise
-(`removeNodeOk.spec`), which the statement takes (F3, the nodes' `errOk`: `nodeSpec_errOk`).
+arguments: `LogHyp`, `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`), which the statement takes
+(F1, RemoveNode's obligation: `cnewArg_RemoveNode`; F3, the nodes' `errOk`: `nodeSpec_errOk`).
 -/
 module
 
@@ -91,13 +91,12 @@ theorem wp_configure [LogHyp GF] : configure.spec (GF := GF) (hG := hG) :=
   examples.craqnet.wp_configure net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Read.wp_proof
     net.Conn.Close.wp_proof
 
-/-- Every server machine (F1: its finding's premise; F3 discharged, `nodeSpec_errOk`). -/
-theorem wp_Server [LogHyp GF] [RpcHttpServe GF]
-    (HRN : ∀ cfg : Cfg GF, removeNodeOk.spec cfg) :
+/-- Every server machine (F1 discharged, `cnewArg_RemoveNode`; F3 discharged, `nodeSpec_errOk`). -/
+theorem wp_Server [LogHyp GF] [RpcHttpServe GF] :
     Server.spec (GF := GF) (hG := hG) :=
   Server.wp_proof net.rpc.SetCodec.wp coordinator.wp_New coordinator.wp_Start
     (coordinator.coord_svc assign.holds collect.holds) factory kvp.wp_New node.wp_New
-    (node.wp_Start nodeLaws) (node.node_svc nodeLaws) wp_NewCoordinatorClient wp_awaitConf HRN
+    (node.wp_Start nodeLaws) (node.node_svc nodeLaws) wp_NewCoordinatorClient wp_awaitConf
     (fun cfg a => nodeSpec_errOk cfg.γ cfg.chain a)
 
 theorem wp_Client [LogHyp GF] [ρ : RemoteGS] : Client.spec (GF := GF) (hG := hG) :=

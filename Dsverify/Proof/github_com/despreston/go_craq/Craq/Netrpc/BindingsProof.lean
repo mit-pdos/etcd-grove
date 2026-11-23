@@ -44,16 +44,12 @@ theorem nodeRcv_ok (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
         (nodeSpec cfg.γ cfg.chain a) go!"NodeBinding" false) :=
   nodeRcv craqSrvCodecLaws craqArgFacts dec_len cfg b svc a
 
-theorem coordRcv_ok (cfg : Cfg GF) (b : Loc) (svc : GoInterface)
-    (HRN : coordB cfg b svc ⊢ newArgOk craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
-      (coordSpec cfg.γ cfg.chain go!"RemoveNode")
-      (mOf examples.craqnet.rpcNewArg_r1_RemoveNode examples.craqnet.rpcNewReply_r1_RemoveNode
-        examples.craqnet.rpcCall_r1_RemoveNode)) :
+theorem coordRcv_ok (cfg : Cfg GF) (b : Loc) (svc : GoInterface) :
     coordB cfg b svc ⊢
     craqCodec.rcv (ptrIface transport.netrpc.CoordinatorBinding.ty b)
       (net.rpc.rcvrIs craqCodec (ptrIface transport.netrpc.CoordinatorBinding.ty b)
         (coordSpec cfg.γ cfg.chain) go!"CoordinatorBinding" false) :=
-  coordRcv craqSrvCodecLaws craqArgFacts dec_len cfg b svc HRN
+  coordRcv craqSrvCodecLaws craqArgFacts dec_len cfg b svc
 
 end proofs
 

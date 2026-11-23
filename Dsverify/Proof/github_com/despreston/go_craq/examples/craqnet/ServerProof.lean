@@ -194,7 +194,7 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     (wp_cStart : coordinator.wp_Start.spec (GF := GF) (hG := hG))
     (h_csvc : coordinator.coord_svc.spec (GF := GF) (hG := hG))
     (h_fact : netrpc.factory.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (HRN : removeNodeOk.spec cfg)
+    (cfg : Cfg GF)
     (hc : cfg.cAddr = go!"127.0.0.1:7501") (hlen : cfg.chain.length < 2 ^ 31 - 1) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
         net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ coordRes cfg }}
@@ -236,7 +236,7 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
   · unfold coordB
     iframe Hnr Hpkg Hcs Hsvc
     iexact «cb»
-  ihave #Hrcv := coordRcv_ok cfg cb_ptr _ (HRN _ _) $$ HcB
+  ihave #Hrcv := coordRcv_ok cfg cb_ptr _ $$ HcB
   wp_apply rs.RegisterName craqCodec go!"RPC" _ (coordSpec cfg.γ cfg.chain) go!"CoordinatorBinding" false
     γs (by decide) $$ [] as %err Herr
   · iframe Hcs Hrcv Hdsv
@@ -410,8 +410,9 @@ theorem serverAddrs_addrOk : serverAddrs.all addrOk = true := by decide
 
 /-- **A server machine**, `Server(id)`: the coordinator (`wp_Server1`), or chain machine `id`:
 its codec registered, it waits for the configuration (`awaitConf` in a goroutine), runs its node
-(`wp_runNode`) if `id ≤ N + 1`, then idles. The findings' premises: RemoveNode's method obligation
-(F1, `HRN`) and the nodes' `errOk` (F3, `HE`). -/
+(`wp_runNode`) if `id ≤ N + 1`, then idles. The finding's premise: the nodes' `errOk` (F3, `HE`;
+discharged by `nodeSpec_errOk`). F1 is discharged: RemoveNode's method obligation is proved
+(`cnewArg_RemoveNode`, over `callRet`'s `errAny` branch). -/
 theorem Server.wp_proof [rs : RpcHttpServe GF]
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_cNew : coordinator.wp_New.spec (GF := GF) (hG := hG))
@@ -424,7 +425,6 @@ theorem Server.wp_proof [rs : RpcHttpServe GF]
     (h_nsvc : node.node_svc.spec (GF := GF) (hG := hG))
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF) (hG := hG))
     (wp_awaitConf : awaitConf.spec (GF := GF) (hG := hG))
-    (HRN : ∀ cfg : Cfg GF, removeNodeOk.spec cfg)
     (HE : ∀ (cfg : Cfg GF) (a : GoString),
       ⊢ net.rpc.errOk (nodeSpec (G := hG.goose_globalGS) cfg.γ cfg.chain a)) :
     Server.spec (GF := GF) (hG := hG) := by
@@ -434,7 +434,7 @@ theorem Server.wp_proof [rs : RpcHttpServe GF]
   · subst hid
     have hres : serverRes cfg (uint.nat (W64 1)) = coordRes cfg := by simp [serverRes]
     rw [hres]
-    exact wp_Server1 wp_SetCodec wp_cNew wp_cStart h_csvc h_fact cfg (HRN cfg) hc
+    exact wp_Server1 wp_SetCodec wp_cNew wp_cStart h_csvc h_fact cfg hc
       (by rw [hcfg.2]; decide)
   have hn1 : uint.nat id ≠ 1 := fun h => hid (by word)
   obtain ⟨a, ha, hmem⟩ := serverAddrs_chain (uint.nat id - 1) (by omega) (by omega)

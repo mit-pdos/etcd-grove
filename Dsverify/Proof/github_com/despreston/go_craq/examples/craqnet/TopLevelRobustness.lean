@@ -113,7 +113,7 @@ end boot
 /-- **The craq kit, closed** (see the statement's file). -/
 theorem craq_remote_robust : craq_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hri hhi hlog ra rd rs halloc hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 hrn σ g threads
+    hri hhi hlog ra rd rs halloc hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) craqKitAddrs (system σ) g threads (2 ^ 63) ?_
   intro G π hrb
   letI := ra G
@@ -209,7 +209,6 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     letI : LogHyp remoteGF := hlog G' hG.goose_localGS
     letI : RpcHttpDial remoteGF := rd G' hG.goose_localGS π
     letI : RpcHttpServe remoteGF := rs G' hG.goose_localGS π
-    have HRN := hrn G' hG.goose_localGS π
     match i, hm with
     | 0, hm =>
       cases hm
@@ -310,7 +309,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
             icases HR with ⟨Hcf, #Hse, Hmux, #Hdsv⟩
-            iapply (cmd.server1.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
+            iapply (cmd.server1.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
             iframe Hpkg Hc Hcf Hmux Hse Hdsv
             unfold serverRes
@@ -329,7 +328,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
             icases HR with ⟨Hcf, #Hse, Hmux, #Hdsv⟩
-            iapply (cmd.server2.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
+            iapply (cmd.server2.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
             iframe Hpkg Hc Hcf Hmux Hse Hdsv
             unfold serverRes
@@ -348,7 +347,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
             icases HR with ⟨Hcf, #Hse, Hmux, #Hdsv⟩
-            iapply (cmd.server3.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
+            iapply (cmd.server3.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
             iframe Hpkg Hc Hcf Hmux Hse Hdsv
             unfold serverRes
@@ -367,7 +366,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
             icases HR with ⟨Hcf, #Hse, Hmux, #Hdsv⟩
-            iapply (cmd.server4.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
+            iapply (cmd.server4.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
             iframe Hpkg Hc Hcf Hmux Hse Hdsv
             unfold serverRes
@@ -386,7 +385,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
             icases HR with ⟨Hcf, #Hse, Hmux, #Hdsv⟩
-            iapply (cmd.server5.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
+            iapply (cmd.server5.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
             iframe Hpkg Hc Hcf Hmux Hse Hdsv
             unfold serverRes
@@ -405,7 +404,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
             icases HR with ⟨Hcf, #Hse, Hmux, #Hdsv⟩
-            iapply (cmd.server6.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
+            iapply (cmd.server6.wp_main EtcdGrove.dsvcraq.wp_Server cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
             iframe Hpkg Hc Hcf Hmux Hse Hdsv
             unfold serverRes
