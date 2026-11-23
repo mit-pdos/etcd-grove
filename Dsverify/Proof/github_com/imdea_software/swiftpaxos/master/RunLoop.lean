@@ -67,7 +67,7 @@ reply: no error and the reply's fields in `btlOk`'s range (by `replicaRpcSpec`'s
 error. -/
 theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
     (γc γm : GName) (cc : Conf) (pa btl : Loc) :
-    {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet ∗ net.rpc.kitCodecOk ∗
+    {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
         net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)⌝ ∗
         confIs γc cc ∗ pa ↦ replica.defs.BeTheLeaderArgs.mk ∗
         btl ↦ replica.defs.BeTheLeaderReply.mk (W32 (-1)) (W32 (-1)) }}
@@ -186,7 +186,7 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
 /-- `c.Call("Replica.Ping", &PingArgs{}, &PingReply{})`: returns (any error). -/
 theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
     (γc γm : GName) (pa pr : Loc) :
-    {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet ∗ net.rpc.kitCodecOk ∗
+    {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
         net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)⌝ ∗
         pa ↦ replica.defs.PingArgs.mk (W8 0) ∗ pr ↦ replica.defs.PingReply.mk }}
       (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))

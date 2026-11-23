@@ -32,7 +32,7 @@ functions, for good (each call registers them; the first registration stays). Ca
 abbrev registerRPC.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet }}
     (App (Val (@! examples.swiftnet.registerRPC)) (Val #()))
-  {{ RET #(); net.rpc.codecSet (GF := GF) ∗ encoding.gob.codecSet (GF := GF) }}
+  {{ RET #(); net.rpc.codecSet (GF := GF) net.rpc.RpcCodec.spec ∗ encoding.gob.codecSet (GF := GF) }}
 
 end spec
 

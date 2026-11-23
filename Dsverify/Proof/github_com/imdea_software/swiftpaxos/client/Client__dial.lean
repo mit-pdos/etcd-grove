@@ -41,9 +41,9 @@ theorem client.Client.dial.wp_proof
   · iexists _; iframe; ipureintro; word
   wp_for HI
   wp_if_destruct
-  · wp_apply net.DialTimeout.wp_proof a _ P Q $$ [$Ha] as %cv %err Hres
+  · wp_apply net.DialTimeout.labProof a _ P Q $$ [$Ha] as %cv %err Hres
     unfold net.newConnResult
-    icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, Hown, Hend, Hfr⟩ | ⟨%i, ⟨%Hcv, %Her⟩, -⟩)
+    icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, Hown, Hend, Hfr⟩ | ⟨%i, %Her, -⟩)
     · subst Hcv Her
       wp_auto
       wp_for_post
@@ -53,7 +53,7 @@ theorem client.Client.dial.wp_proof
       iexists c, cid
       iframe
       ipureintro; exact ⟨rfl, rfl⟩
-    · subst Hcv Her
+    · subst Her
       wp_auto
       wp_apply wp_slice_literal
       isplitr

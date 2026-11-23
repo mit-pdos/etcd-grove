@@ -78,7 +78,7 @@ def nodeEnv (γ : SwiftNames netDistGF) : IProp netDistGF :=
   iprop(net.rpc.rpcAddr γ.W masterAddr ∗
     ([∗list] a ∈ replicaRpcAddrs, net.rpc.rpcAddr γ.W a) ∗
     ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
-    net.rpc.codecSet ∗ net.rpc.kitCodecOk ∗
+    net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
     ([∗list] a ∈ replicaAddrs, addrProto a (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem)) ∗
     sp.inv γ.sp γ.conf γ.mem γ.lin)
 

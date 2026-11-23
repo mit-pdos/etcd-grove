@@ -122,7 +122,7 @@ end client.cn
 
 /-- (An unfold of the harness's `net.rpc.rpcAddr`: a missing persistence instance.) -/
 instance client.cn.rpcAddr_persistent [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-    [GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF]
+    [GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [NetProtoGS]
     (W : net.rpc.RpcWorld netDistGF) (a : GoString) :
     Persistent (net.rpc.rpcAddr (GF := netDistGF) W a) := by
   unfold net.rpc.rpcAddr; infer_instance
@@ -157,7 +157,7 @@ abbrev client.Client.call.specI : Prop :=
     (Θ : List w8 → Bool → IProp netDistGF),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       cl ↦ v ∗ dlog.quiet v.Logger' ∗
-      net.rpc.codecSet (GF := netDistGF) ∗ net.rpc.kitCodecOk ∗
+      net.rpc.codecSet (GF := netDistGF) net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       net.rpc.isClient r W a ∗ ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S⌝ ∗
       net.rpc.RpcCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, net.rpc.RpcCodec.dec rep reply (Θ rep)) }}
@@ -172,7 +172,7 @@ abbrev client.Client.callMasterRL.specI : Prop :=
   ∀ (cl : Loc) (v : client.Client) (W : net.rpc.RpcWorld netDistGF) (γc γm : GName),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       cl ↦ v ∗ dlog.quiet v.Logger' ∗
-      net.rpc.codecSet (GF := netDistGF) ∗ net.rpc.kitCodecOk ∗
+      net.rpc.codecSet (GF := netDistGF) net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       net.rpc.isClient v.master' W masterAddr ∗
       ⌜W.SS masterAddr go!"Master" = some (sp.masterSpec γc γm)⌝ }}
     (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"callMaster"))
@@ -190,7 +190,7 @@ abbrev client.Client.callMasterL.specI : Prop :=
   ∀ (cl : Loc) (v : client.Client) (W : net.rpc.RpcWorld netDistGF) (γc γm : GName),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       cl ↦ v ∗ dlog.quiet v.Logger' ∗
-      net.rpc.codecSet (GF := netDistGF) ∗ net.rpc.kitCodecOk ∗
+      net.rpc.codecSet (GF := netDistGF) net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       net.rpc.isClient v.master' W masterAddr ∗
       ⌜W.SS masterAddr go!"Master" = some (sp.masterSpec γc γm)⌝ }}
     (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"callMaster"))

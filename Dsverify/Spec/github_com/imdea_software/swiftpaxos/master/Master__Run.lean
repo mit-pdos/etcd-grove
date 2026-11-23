@@ -45,7 +45,7 @@ abbrev master.Master.Run.spec : Prop :=
       ⌜(∀ svc, W.SS masterAddr svc =
           if svc = go!"Master" then some (sp.masterSpec γc γm) else none) ∧
         ∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)⌝ ∗
-      net.rpc.codecSet ∗ net.rpc.kitCodecOk ∗ net.rpc.kitNameOk }}
+      net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗ net.rpc.kitNameOk }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
   {{ RET #(); False }}
 

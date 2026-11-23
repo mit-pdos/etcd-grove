@@ -127,7 +127,7 @@ abbrev register.spec : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF)
         pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet ∗
       conf.is γ c ∗ ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
-      net.rpc.rpcAddr γ.W masterAddr ∗ net.rpc.codecSet ∗ net.rpc.kitCodecOk }}
+      net.rpc.rpcAddr γ.W masterAddr ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk }}
     (App (App (App (Val (@! examples.swiftnet.register)) (Val #ip)) (Val #port))
       (Val #masterAddr))
   {{ (id : w64) (nl : GoSlice) (nodes : List GoString) (fr : Bool), RET (PairV #id #nl);

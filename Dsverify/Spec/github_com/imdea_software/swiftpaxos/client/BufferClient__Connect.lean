@@ -38,7 +38,7 @@ abbrev client.BufferClient.Connect.spec : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       client.bufFresh b cid maddr mport ∗ ⌜sp.addrPort maddr mport = masterAddr⌝ ∗
       net.rpc.rpcAddr W masterAddr ∗ ⌜W.SS masterAddr go!"Master" = some (sp.masterSpec γc γm)⌝ ∗
-      net.rpc.codecSet ∗ net.rpc.kitCodecOk ∗
+      net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
       ([∗list] a ∈ replicaAddrs, addrProto a (sp.inP γ γc γm) (sp.outQ γ γc γm)) ∗
       sp.inv γ γc γm γl }}
     (App (Val (b @!! go.GoType.PointerType client.BufferClient.ty @!! go!"Connect")) (Val #()))
