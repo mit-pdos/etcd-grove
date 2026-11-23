@@ -6,10 +6,11 @@ Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `le
 **`gryff-bump-1`**, the final verified run: clients on nodes of their own, Perennial `3afd77e35`;
 proof `21ef7d6` tag `final`, fork `ef17c2d`; read only, nothing in the lab changed).
 
-**State (2026-11-23, third resumed session; branch merged with `dsv-infra` `884cb306c9`,
-`models-rpc-server` `2a6b4e5d12` (Client.Call's decode guard), the revised and renamed `dsv-bufio`
-`361ca5c7b7` (`io.streamWriterOk`, ...; this branch used none of the renamed names) and `lean`
-through those merges (Perennial `7b2259a12`)):** Go and translation done. **Ported by editing and
+**State (2026-11-23, third resumed session; branch merged with `lean` `07268ddb57` (dsv-paxos,
+dsv-bufio with the `io.streamWriterOk` rename, dsv-infra, wildcard listen, Perennial `7b2259a12`;
+this branch used none of the renamed names) and `models-rpc-server` `36728bd8ed` (not landed:
+Client.Call's decode guard and the server's `argDec` guard); `gen-init --check`, `goose --check
+--project dsv-gryff` and `etc/dsv/_gryff_boot.py --check` clean after regenerating the PkgTables):** Go and translation done. **Ported by editing and
 building**: the library-free layers and the wire protocols (186 lab modules, see below), as before.
 **New this session:** the **package initializers** (gen-init, all `Init`/`PkgTable`s build; section
 "Package initializers"), the **replica boots** keeping `gryff`'s owned variables and trace
@@ -363,7 +364,9 @@ implicitly. The order (the frontier of modules whose imports are ported):
 4. **net/rpc** (`models-rpc-server` `2a6b4e5d12` merged: `Client.Call`/`Go`/`send` take
    `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep))`, decoding owed only for the method's
    answers; success post `⌜err = nil⌝ ∗ Rargs ∗ ∃ rep, Θ rep true`; no type-tag workaround is
-   to be used; the server's `methodOk` `NewArg` will get the same shape): `Rpc/Defs` -> `Net/`'s vocabulary: the lab's `RpcCodec` (`enc`, `dec`, `call`,
+   to be used; the server's `methodOk` `NewArg` gives `argDec C argv D Sm Θ := codecSet C ∗ □ (D -∗
+   ∀ args Φ, Sm args Φ -∗ Sm args Φ ∗ C.dec args argv (Θ args))` (`36728bd8ed`), and
+   `ReadRequestBody` takes a guard; target these): `Rpc/Defs` -> `Net/`'s vocabulary: the lab's `RpcCodec` (`enc`, `dec`, `call`,
    `methods`) is `Net/`'s `CodecSpec` (`enc`, `dec`, `rcv`) plus the server's method specs
    (`Net/Spec/net/rpc/Server__Register.lean`, `service__call.lean`; read how the server dispatches
    before porting `gryffCall`); the master's and replicas' addresses become the kit's
