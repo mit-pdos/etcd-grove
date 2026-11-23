@@ -10,7 +10,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
-               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, k8s-apiserver,
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -2037,6 +2037,23 @@ PROJECTS = [
         tags=["with_tla"],
     ),
     Project(
+        name="antithesis",
+        # Raft against Antithesis's TLA+ model (mit-pdos/etcd-grove#33,
+        # notes/antithesis-check-design.md): the harness of three RawNodes with Main (package
+        # antithesis) and the Go transcription of EtcdRaft.tla and EtcdBinding.tla its checker
+        # (package check; not its NDJSON reader, check/ndjson, its command, check/cmd, or the
+        # verdict wrapper, check/verdict.go, `!goose`, which only cross-check against TLC). A Go
+        # module of its own, whose go.mod replaces go.etcd.io/raft/v3 by the fork at project raft's
+        # pin (GO_MOD_PINS), in raft's main build (no tags): both packages translate into the main
+        # tree, on project raft's raft.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "raft", "antithesis"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=", "google.golang.org="],
+        packages=[".", "./check"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "antithesis")],
+    ),
+    Project(
         name="bbolt-bank",
         # (Named `bbolt` until 2026-11-05, when the main tree's bbolt (project `bbolt`, the fork's
         # goose-lean-v2) got bodies; the bank test moves onto it in the clean-up after the merge.)
@@ -2092,6 +2109,7 @@ GO_MOD_PINS = {
     os.path.join("examples", "raft", "kvdurablenoax", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "kvnet", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
+    os.path.join("examples", "raft", "antithesis", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
