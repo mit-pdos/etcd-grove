@@ -2,10 +2,11 @@
 Package initialization of `raxos.replica.src`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates and sets the translated gRPC service
-descriptor `Consensus_ServiceDesc` (a `grpc.ServiceDesc` literal), initializes its imports and runs
-the trusted initializers of protoc-gen-go's descriptor tables and `init` (models in `TrustedCode/`
-that do nothing).
+Its fact (`srcState`, `Base.lean`): `Consensus_ServiceDesc` holds, read-only for good,
+the descriptor of service `Consensus` (its three methods with their generated handlers, no
+streams). Its initializer allocates and sets the translated gRPC service descriptor (a
+`grpc.ServiceDesc` literal), initializes its imports and runs the trusted initializers of
+protoc-gen-go's descriptor tables and `init` (models in `TrustedCode/` that do nothing).
 -/
 module
 
@@ -83,6 +84,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) Consensus_ServiceDesc _ as HConsensus_ServiceDesc
   wp_apply (_root_.Perennial.raxos.proto.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd25⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
@@ -131,14 +133,35 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_call  -- file_replica_src_consensus_proto_depIdxs: its trusted initializer does nothing
   -- translated initializer of Consensus_ServiceDesc))
   try wp_auto
-  repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; try wp_auto)
+  wp_apply (wp_slice_literal (V := google_golang_org.grpc.MethodDesc) (t := google_golang_org.grpc.MethodDesc.ty) [⟨go!"ESP", functions _Consensus_ESP_Handler []⟩, ⟨go!"FetchBatches", functions _Consensus_FetchBatches_Handler []⟩, ⟨go!"InformDecision", functions _Consensus_InformDecision_Handler []⟩])
+  isplitr
+  · ipureintro; rfl
+  iintro %ml ⟨Hml, -⟩
   try wp_auto
+  wp_apply (wp_slice_literal (V := google_golang_org.grpc.StreamDesc) (t := google_golang_org.grpc.StreamDesc.ty) [])
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨-, -⟩
+  try wp_auto
+  ipersist HConsensus_ServiceDesc
+  ipersist Hml
   -- the translated init.«0»
   wp_func_call
   wp_call
   try wp_auto
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  unfold srcState
+  imodintro
+  iexists _
+  iframe HConsensus_ServiceDesc
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl⟩
+  iexact Hml
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

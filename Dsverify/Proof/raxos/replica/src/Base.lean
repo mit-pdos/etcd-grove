@@ -1,5 +1,8 @@
 /-
-The package fact of QuePaxa's replica: `True` (notes/dsv-quepaxa.md).
+The package fact of QuePaxa's replica, `srcState` (the lab's `PkgState.lean`): its
+`Consensus_ServiceDesc` variable holds, for good, the generated descriptor of service `Consensus`
+(its three methods with their generated handlers, no streams), for the recorder's
+`grpc.RegisterService` (`descOk`). Proved by the generated `Init.lean` (`etc/dsv/quepaxa.py`).
 -/
 module
 
@@ -46,8 +49,22 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
+/-- `raxos/replica/src`'s package-level state: `Consensus_ServiceDesc` (persistent): the
+descriptor of service `Consensus`, its three methods with their generated handlers, no streams. -/
+def srcState : IProp GF :=
+  iprop(∃ sd : google_golang_org.grpc.ServiceDesc,
+    globalAddr raxos.replica.src.Consensus_ServiceDesc ↦□ sd ∗
+    ⌜sd.ServiceName' = go!"Consensus" ∧ sd.Streams'.len = W64 0⌝ ∗
+    sd.Methods' ↦*□ ([⟨go!"ESP", functions raxos.replica.src._Consensus_ESP_Handler []⟩,
+      ⟨go!"FetchBatches", functions raxos.replica.src._Consensus_FetchBatches_Handler []⟩,
+      ⟨go!"InformDecision", functions raxos.replica.src._Consensus_InformDecision_Handler []⟩] :
+      List google_golang_org.grpc.MethodDesc))
+
+instance srcState_persistent : Persistent (srcState (GF := GF)) := by
+  unfold srcState; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.raxos.replica.src :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init srcState
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.raxos.replica.src :=
   build_get_is_pkg_init_wf
 

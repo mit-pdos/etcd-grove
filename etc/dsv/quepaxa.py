@@ -73,14 +73,32 @@ def special(g):
     SPECIAL = {}
     # (dsv-quepaxa) QuePaxa's replica: its translated gRPC service descriptor (the fact keeps nothing yet;
     # the lab's `srcState` is the descriptor's points-to, for the recorder's `RegisterService`)
+    # (dsv-quepaxa) QuePaxa's replica: its translated gRPC service descriptor; the fact `srcState`
+    # (`Dsverify/Proof/raxos/replica/src/Base.lean`, the lab's `PkgState.lean`) is the descriptor's
+    # points-to, for the recorder's `RegisterService` (`descOk`)
     SPECIAL['raxos.replica.src'] = dict(
-        doc='''Its fact is `True`. Its initializer allocates and sets the translated gRPC service
-descriptor `Consensus_ServiceDesc` (a `grpc.ServiceDesc` literal), initializes its imports and runs
-the trusted initializers of protoc-gen-go's descriptor tables and `init` (models in `TrustedCode/`
-that do nothing).''',
+        doc='''Its fact (`srcState`, `Base.lean`): `Consensus_ServiceDesc` holds, read-only for good,
+the descriptor of service `Consensus` (its three methods with their generated handlers, no
+streams). Its initializer allocates and sets the translated gRPC service descriptor (a
+`grpc.ServiceDesc` literal), initializes its imports and runs the trusted initializers of
+protoc-gen-go's descriptor tables and `init` (models in `TrustedCode/` that do nothing).''',
         alloc_types={'Consensus_ServiceDesc': 'google_golang_org.grpc.ServiceDesc'},
         before={'$inits': ['try wp_auto',
-                           'repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; try wp_auto)',
-                           'try wp_auto']},
+                           'wp_apply (wp_slice_literal (V := google_golang_org.grpc.MethodDesc) '
+                           '(t := google_golang_org.grpc.MethodDesc.ty) '
+                           '[⟨go!"ESP", functions _Consensus_ESP_Handler []⟩, '
+                           '⟨go!"FetchBatches", functions _Consensus_FetchBatches_Handler []⟩, '
+                           '⟨go!"InformDecision", functions _Consensus_InformDecision_Handler []⟩])',
+                           'isplitr', '· ipureintro; rfl', 'iintro %ml ⟨Hml, -⟩',
+                           'try wp_auto',
+                           'wp_apply (wp_slice_literal (V := google_golang_org.grpc.StreamDesc) '
+                           '(t := google_golang_org.grpc.StreamDesc.ty) [])',
+                           'isplitr', '· ipureintro; rfl', 'iintro %sl ⟨-, -⟩',
+                           'try wp_auto',
+                           'ipersist HConsensus_ServiceDesc', 'ipersist Hml']},
+        finish=['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+                'is_pkg_init_finish', 'unfold srcState', 'imodintro', 'iexists _',
+                'iframe HConsensus_ServiceDesc', 'isplitr', '· ipureintro; exact ⟨rfl, rfl⟩',
+                'iexact Hml'],
     )
     return SPECIAL
