@@ -95,6 +95,7 @@ theorem State.InMemory.wp_proof
   unfold State.inMemory at Ho
   replace Ho := bind_ok Ho; obtain ⟨ok, hok, Ho⟩ := Ho
   wp_auto
+  icases typedPointsto_not_null_dup _ _ _ $$ r with ⟨r, %Hrnn⟩
   iStructNamedPrefix r "R"
   rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_ok_unfold.method_unfold]
   try wp_auto
@@ -688,9 +689,45 @@ theorem State.InMemory.wp_proof
         112#8, 108#8, 101#8, 116#8, 101#8, 110#8, 101#8, 115#8, 115#8]; simp only [vLC]; omega, Hjp7⟩
   clear Hjp7
   simp -zeta only [jpU] at HjpU
+  obtain ⟨hv2, HjpU⟩ := HjpU
   replace HjpU := bind_ok HjpU; obtain ⟨rl, hrl, HjpU⟩ := HjpU
-  trace_state
-  sorry
+  ihave #HCfg' := HCfg
+  iunfold configRO at HCfg'
+  icases HCfg' with ⟨%gcfg, #Hgcfg, #Hsrv, #-, %-⟩
+  ihave #Hme := strsRO_at gcfg.Server' s.cfg.server n ⟨Hn, Hlt⟩ $$ Hsrv
+  ihave #Hroln := strsRO_at g.Role' s.role n hnr $$ HRole
+  icases confsRO_at g.Config' s.config n ⟨Hn, by rw [HWf.len_config]; exact Hlt⟩ $$ HConfig with ⟨%gcn, #Hgcn, #Hcn⟩
+  wp_join iprop(∃ (gv : GoSlice) (v : SSet),
+      viol_ptr ↦ gv ∗ strsRO gv v ∗ ⌜v.length ≤ s.viol.length + 3 ∧ jpF () v = .ok r⌝)
+    at next with [viol] as ⟨%gv3, %v3, viol, #Hv3, %HjpF⟩
+  · wp_apply wp_role e ev rl $$ [He]
+    · iframe He; ipureintro; exact hrl
+    trace_state
+    sorry
+  clear HjpU
+  simp -zeta only [jpF, pure_ok, Except.ok.injEq] at HjpF
+  obtain ⟨hv3, HjpF⟩ := HjpF
+  subst HjpF
+  ihave Hr : r_ptr ↦ (⟨ok, grole, gld, gl2, glc, gcf, gca, gla, gea, gch, gtl, gv3⟩ : G.MemResult) $$ [ROk RRole RLeaders RLedLog RLedConf RConfig RConfAt RLedAt RElAt RChain RTermLen RViol]
+  · iapply typedPointsto_combine _ _ _ Hrnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  wp_auto
+  iapply HΦ
+  iunfold memResultRO
+  simp only
+  isplitr; · ipureintro; trivial
+  isplitr; · iexact Hrole
+  isplitr; · iexact Hld
+  isplitr; · iexact Hl2
+  isplitr; · iexact Hlc
+  isplitr; · iexact Hcf
+  isplitr; · iexact Hca
+  isplitr; · iexact Hla
+  isplitr; · iexact Hea
+  isplitr; · iexact Hch
+  isplitr; · iexact Htl
+  iexact Hv3
 
 end proof
 
