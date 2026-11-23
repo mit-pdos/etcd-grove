@@ -132,6 +132,14 @@ replaces by `Net/`'s specs anyway; the rpc/http and bufio parts are items 1-3. D
   counts the main tree's packages only; the kits' files are checked too.) Other shared files the
   merge touched (`notes/*`) differ from lean only by additions.
 
+- **Link check (VR's finding 7, coordinator 2026-11-23): nothing vacuous here.** For each of the eleven
+  programs, `go list -deps ./examples/gryffnet/cmd/<n>`'s `gryff/...` packages equal the `pkg_id.gryff.*`
+  packages of its `PkgTable.lean` (all 16 fork packages, `gryffnet`, the command: every command imports
+  `gryffnet`, which imports the whole fork). Every package fact of the kit is `True` (the `Base.lean`s; the
+  hypothesis packages' too), so no fact relies on a hook another package's init sets. The only `init()` is
+  `gryff`'s (`proph.go`, the trace prophecy), linked into every program; the replicas take its resources from
+  their own boot (`Boot.lean`), not from a fact.
+
 - **rpcgen emitted an unused import** (a receiver whose package holds none of the codec's types,
   gryff's `*masterlib.Master`, `*gryff.Replica`, was imported by `rpc_gen.go`, which did not
   compile). Fixed on lean (`660918251a`); this branch merged it and its generated files pass
