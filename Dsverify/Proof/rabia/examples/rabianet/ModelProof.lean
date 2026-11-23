@@ -1129,6 +1129,223 @@ theorem wp_step (sl : GoSlice) (evs : List Entry) (es : List EntV) (n : Nat) (hn
       iframe Hsl' Hs'
       ipureintro; simp
 
+/-! ### `equal` -/
+
+theorem wp_equal (sa sb : GoSlice) (evs fvs : List Entry) (es fs : List EntV) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sa ↦*□ evs ∗ entsRep evs es ∗ sb ↦*□ fvs ∗
+        entsRep fvs fs }}
+      (App (App (Val (@! rabia.examples.rabianet.equal)) (Val #(State.mk sa)))
+        (Val #(State.mk sb)))
+    {{ (r : Bool), RET #r; ⌜r = true → es = fs⌝ }} := by
+  wp_start as ⟨#Ha, #Hea, #Hb, #Heb⟩
+  ihave %HA := ownSlice_len _ _ _ $$ Ha
+  ihave %HB := ownSlice_len _ _ _ $$ Hb
+  ihave %hla := ents_len $$ Hea
+  ihave %hlb := ents_len $$ Heb
+  wp_auto
+  wp_if_destruct
+  rotate_left
+  · have hne : es ≠ fs := fun h => Hif (by
+      have := congrArg List.length h; rw [← hla, ← hlb, HA.1, HB.1] at this; word)
+    iapply HΦ; ipureintro; intro h; cases h
+  have h3 : sa.len = sb.len := Hif
+  have hAB : evs.length = fvs.length := by rw [HA.1, HB.1, h3]
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z sa.len ∧
+        es.take (sint.nat i) = fs.take (sint.nat i)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Ht⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z sa.len := Hif
+    list_elem evs (sint.nat i) as ev
+    list_elem fvs (sint.nat i) as fv
+    have hba : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sa.len := ⟨Hi0, hlt⟩
+    have hbb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sb.len := ⟨Hi0, h3 ▸ hlt⟩
+    ihave Hev := (ownSlice_elem_acc (sint.Z i) ev sa DFrac.discard evs Hi0 Hev_lookup) $$ Ha
+    icases Hev with ⟨#Hev, -⟩
+    ihave ⟨#HK, #HC, #HO, #HP⟩ := entry_fields _ ev $$ Hev
+    ihave Hfv := (ownSlice_elem_acc (sint.Z i) fv sb DFrac.discard fvs Hi0 Hfv_lookup) $$ Hb
+    icases Hfv with ⟨#Hfv, -⟩
+    ihave ⟨#HK', #HC', #HO', #HP'⟩ := entry_fields _ fv $$ Hfv
+    ihave ⟨%e, %he, #He⟩ := ents_lookup Hev_lookup $$ Hea
+    ihave ⟨%f, %hf, #Hf⟩ := ents_lookup Hfv_lookup $$ Heb
+    unfold entRep
+    icases He with ⟨%hke, #Hoe, #Hpe⟩
+    icases Hf with ⟨%hkf, #Hof, #Hpf⟩
+    rw [ite_eq_left hba]
+    wp_auto
+    rw [ite_eq_left hbb]
+    wp_auto
+    by_cases h1 : ev.K' = fv.K'
+    rotate_left
+    · rw [decide_eq_false h1]
+      wp_auto
+      wp_for_post
+      iapply HΦ; ipureintro; intro h; cases h
+    rw [decide_eq_true h1]
+    wp_auto
+    rw [ite_eq_left hba]
+    wp_auto
+    rw [ite_eq_left hbb]
+    wp_auto
+    by_cases h2 : ev.Cur' = fv.Cur'
+    rotate_left
+    · rw [decide_eq_false h2]
+      wp_auto
+      wp_for_post
+      iapply HΦ; ipureintro; intro h; cases h
+    rw [decide_eq_true h2]
+    wp_auto
+    rw [ite_eq_left hba]
+    wp_auto
+    rw [ite_eq_left hbb]
+    wp_auto
+    wp_apply wp_equalStrs ev.Old' fv.Old' e.old f.old $$ [$Hoe $Hof]
+    by_cases h4 : e.old = f.old
+    rotate_left
+    · rw [decide_eq_false h4]
+      wp_auto
+      wp_for_post
+      iapply HΦ; ipureintro; intro h; cases h
+    rw [decide_eq_true h4]
+    wp_auto
+    rw [ite_eq_left hba]
+    wp_auto
+    rw [ite_eq_left hbb]
+    wp_auto
+    wp_apply wp_equalStrs ev.Pend' fv.Pend' e.new f.new $$ [$Hpe $Hpf]
+    by_cases h5 : e.new = f.new
+    rotate_left
+    · rw [decide_eq_false h5]
+      wp_auto
+      wp_for_post
+      iapply HΦ; ipureintro; intro h; cases h
+    rw [decide_eq_true h5]
+    wp_auto
+    wp_for_post
+    iframe
+    iexists i + W64 1
+    iframe
+    ipureintro
+    have hef : e = f := by
+      cases e; cases f
+      simp only at hke hkf h4 h5
+      rw [← hke.1, ← hkf.1, ← hke.2, ← hkf.2, h1, h2, h4, h5]
+    have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+    refine ⟨by word, by word, ?_⟩
+    rw [hs, List.take_add_one, List.take_add_one, Ht, he, hf, hef]
+  · have heq : sint.Z i = sint.Z sa.len := by omega
+    have hn : sint.nat i = es.length := by
+      rw [← hla, HA.1]; show (sint.Z i).toNat = _; rw [heq]
+    have e : es = fs := by
+      rw [hn, List.take_length, show es.length = fs.length by rw [← hla, ← hlb, hAB],
+        List.take_length] at Ht
+      exact Ht
+    iapply HΦ
+    ipureintro; intro _; exact e
+
+/-! ### `Model()` -/
+
+theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold isModel isEqHash
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · -- Init
+    unfold initSpec
+    iintro !> %Φ' _ HΦ'
+    wp_auto
+    iapply HΦ'
+    simp only [kvS, kvRep]
+    iexists slice.nil, [], []
+    isplitr
+    · ipureintro
+      exact ⟨rfl, kvSet_init.symm, WF_nil, EB_nil, kvSet_init_ne⟩
+    isplitl
+    · iapply ownSlice_nil
+    · iapply ents_nil
+  isplitr
+  · -- Step
+    iright
+    isplitr
+    · ipureintro; exact ⟨trivial, nofun⟩
+    unfold stepSpec
+    iintro %k %v %s %i %o
+    iintro !> %Φ' Hpre HΦ'
+    simp only [kvS, kvS0]
+    icases Hpre with ⟨%Hk, Hrep, %Hio⟩
+    obtain ⟨⟨x, rfl⟩, a, rfl⟩ := Hio
+    unfold kvRep
+    icases Hrep with ⟨%esl, %es, %evs, %Hr, #Hsl, #Hs⟩
+    obtain ⟨rfl, rfl, hwf, hEB, hne⟩ := Hr
+    have hpm := linkv.pM_step kvB kvDec (kvSet es) _ x a (kvDec_box x a)
+    have H := stepG_pSeq es hwf hne x a
+    rw [ansV_ansOut] at hpm ⊢
+    wp_auto
+    wp_apply wp_step esl evs es k Hk hEB x a $$ [$Hsl $Hs]
+      as %ok %s' ⟨%sl', %evs', %Hst, #Hsl', #Hs'⟩
+    obtain ⟨rfl, rfl⟩ := Hst
+    iapply HΦ'
+    isplitr
+    · iexists esl, es, evs
+      iframe Hsl Hs
+      ipureintro; exact ⟨rfl, rfl, hwf, hEB, hne⟩
+    isplitr
+    · ipureintro
+      rw [hpm, H]
+      cases (stepG es x a).1 <;> rfl
+    · unfold stepPost
+      simp only [hpm, H]
+      cases hok : (stepG es x a).1
+      · simp only [Bool.false_eq_true, ↓reduceIte]
+        itrivial
+      · simp only [↓reduceIte]
+        have hs := H
+        rw [hok, if_pos rfl] at hs
+        iexists sl', (stepG es x a).2, evs'
+        iframe Hsl' Hs'
+        ipureintro
+        exact ⟨rfl, rfl, WF_stepG hwf x a, EB_stepG hEB x a, pSeq_ne hs⟩
+  isplitr
+  · ipureintro; nofun
+  isplitr
+  · -- Equal
+    unfold equalSpec
+    iintro %k %j %v %w %s %t
+    iintro !> %Φ' Hpre HΦ'
+    simp only [kvS]
+    unfold kvRep
+    icases Hpre with ⟨⟨%esl, %es, %evs, %Hr, #Hsl, #Hs⟩, ⟨%fsl, %fs, %fvs, %Hr', #Hfsl, #Hfs⟩⟩
+    obtain ⟨rfl, rfl, hwf, hEB, hne⟩ := Hr
+    obtain ⟨rfl, rfl, hwf', hEB', hne'⟩ := Hr'
+    wp_auto
+    wp_apply wp_equal esl fsl evs fvs es fs $$ [$Hsl $Hs $Hfsl $Hfs] as %r %Hr
+    iapply HΦ'
+    isplitr
+    · iexists esl, es, evs
+      iframe Hsl Hs
+      ipureintro; exact ⟨rfl, rfl, hwf, hEB, hne⟩
+    isplitr
+    · iexists fsl, fs, fvs
+      iframe Hfsl Hfs
+      ipureintro; exact ⟨rfl, rfl, hwf', hEB', hne'⟩
+    ipureintro
+    intro h
+    rw [Hr h]
+  ileft
+  ipureintro; trivial
+
 end proof
 
 end rabia.examples.rabianet
