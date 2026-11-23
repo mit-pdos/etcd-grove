@@ -1,0 +1,14 @@
+# The encoding/json model's codec for the vr kit (models/json/jsongen.py; notes/dsv-vr.md).
+# Generate from the repository root:
+#     models/json/jsongen.py examples/dsverify/vr/examples/vsrnet/json.toml examples/dsverify/vr/examples/vsrnet --pkg vsrnet
+# The roots: what events.(*Event).ToWriter encodes (*events.Event, whose Data holds one of the
+# messages below by value), what the frame decoder decodes (vsrwire.Frame, installed by vsrwire's
+# init; the unnamed frame of events.fromDecoderUnnamed, the path without vsrwire), then each message
+# by type; log.Logs and []log.Log (Logs' JSON methods).
+[json]
+imports = { events = "github.com/tangledbytes/go-vsr/pkg/events", log = "github.com/tangledbytes/go-vsr/pkg/log", vsrwire = "github.com/tangledbytes/go-vsr/examples/vsrwire" }
+roots = ["events.Event", "events.Request", "events.Reply", "events.Prepare", "events.PrepareOK",
+         "events.Commit", "events.StartViewChange", "events.DoViewChange", "events.StartView",
+         "events.GetState", "events.NewState", "events.Heartbeat", "vsrwire.Frame",
+         "log.Logs", "[]log.Log",
+         'struct { Type events.EventType "json:\"@type\""; Data json.RawMessage "json:\"data\"" }']
