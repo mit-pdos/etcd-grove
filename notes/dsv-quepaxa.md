@@ -106,6 +106,9 @@ named after the lab's specs, until each comes as one shared change. **All are in
   give the value (`setupgRPC`'s peer names, `NewRecorder`'s address need it). Discharge: the lab's
   proof (`Harness/Proof/strconv/Atoi.lean`) redone over Perennial's translation of
   `internal/strconv.Atoi`'s fast path (it now ranges over the bytes; the lab's stepped a loop).
+- **`sort.Ints`**: `hyp.sort.Ints.spec`, `class hyp.SortHyp GF` (the lab's `wp_Ints`: a
+  permutation into ascending signed order); Perennial leaves `sort.Ints` untranslated. Discharge:
+  Perennial translates it, then the lab's proof over `slices.wp_Sort` applies.
 - **`sync.Map`**: vocabulary `hyp.sync.MapVocab GF` (`own m M`, string keys; `tp`, the points-to
   of a `sync.Map` value), `class hyp.sync.MapHyp V` (`ivt`: `tp`'s `IntoValTypedUnderlying`,
   `own_timeless`, `own_zero` from `m ↦ zero_val sync.Map`, logically atomic `Map.Load.spec`,
@@ -227,8 +230,62 @@ named after the lab's specs, until each comes as one shared change. **All are in
   proofs): the generated `raxos.replica.src.wp_initialize'` and the `InitHyp`s replace them.
   `lake build Dsverify.Proof.raxos.Replica.Results Dsverify.Proof.raxos.Replica
   Dsverify.Proof.raxos.Proxy.Slots`: OK.
-- **Next, in order** (ported ~14k of 37k lab lines; the Replica group is done):
-  2. `Proxy/*` rest (11k: `Net*` onto `Net/Spec/net/*` + `GooseLang/Ext/Net/Proto.lean`'s laws as
+- Done (2026-11-23, fifth part, the Proxy group's first half): `Proxy/{Kv,Exec,Defs,Send,SumPure,
+  SmrGhost,Usm,Issue,MabSpecs,SliceLit,MabCalc,MabLeader,RunDefs,RunClientBatch,RunClientBatch2,
+  RunFetch,RunLoop,RunNotify,RunTimer,RunSmrHelpers,RunRemove,RunDecideGhost,RunSmrCode,RunDecide,
+  RunRecorder,RunProposeLemmas,RunSummary,RunPropose,Run}` and a new `Proxy/Results.lean`
+  (`Proxy.Run.wp_proof [AtoiHyp] [SortHyp] [strconv.Assumptions] [time.Assumptions]`). With it
+  `Replica/Results`' `Server.Run.wp_proof` has no `hRun` premise any more. `#print axioms` of
+  `Proxy.Run.wp_proof`, `Server.Run.wp_proof`, `New.wp_proof`, `Server.NetworkInit.wp_proof`,
+  `wp_calculateSequence`, `wp_updateEpochTime`: Lean's three. `lake build
+  Dsverify.Proof.raxos.Replica.Results`: OK. Changes against the lab:
+  * `sort.Ints` is a hypothesis, `hyp.SortHyp` / `hyp.sort.Ints.spec` (`Hyp.lean`; the lab's
+    `wp_Ints` shape). Perennial leaves `sort.Ints` untranslated; the lab had translated it itself.
+  * `strconv.FormatInt` uses the main tree's proved `EtcdGrove.strconv.FormatInt.wp_proof`
+    (`fmtInt`). `MabCalc`'s `fmtInt_digit` and `wp_FormatInt_digit` restate it as the lab's
+    one-digit spec, so the lab's loop proof is unchanged. (Using `fmtInt` directly in the loop
+    proof made the kernel reject `wp_calculateSequence`: an auxiliary `omega` proof was
+    abstracted over a different context.)
+  * `time`: Perennial's `Proof/time/{Link,Results}` (`time.wp_Now`, `Time.wp_ptr_Sub`,
+    `Duration.wp_Microseconds`) in place of the lab's `time.Extra`.
+  * `strconv.Atoi`: `ha.Atoi` (`hyp.AtoiHyp`); `strconv.smallDigits`/`decVal` are `hyp.strconv.*`.
+  * `proxySharedDef` lost the lab's `storeAssm` existential, so its destruct patterns lose
+    `%_h`. `sharedFacts` lost the two codec conjuncts, so its 9-place patterns lose places 7-8
+    (`scratchpad sf.py`'s rule, now in `etc/dsv/tools/quepaxa-port.py` for `%_h`).
+  * `Run.lean`'s `run_proof_of` drops the lab's unused `[raxos.examples.quepaxanet.Assumptions]`.
+  * MabLeader's section `variable [ha : hyp.AtoiHyp GF]` makes every theorem there (and in the
+    Run* files that add the same variable) take `AtoiHyp`. That is harmless, since the statement
+    takes it anyway.
+- **Remaining Proxy files** (the network side and the constructor, ~3.1k lab lines; the remaining
+  premises `hNP : NewProxy.spec` of `New.wp_proof` and `hNI : Proxy.NetworkInit.spec` of
+  `Server.NetworkInit.wp_proof`): `WireProof` (298), `MsgBuf` (136), `NetSpecs` (129),
+  `NetFrames` (178), `NetUnmarshal` (179), `NetReader` (119), `NetWriter` (224), `NetDial` (171),
+  `NetSend` (263), `NetPrint` (114), `NetAcceptLib` (71), `NetAccept` (207), `NetListen` (150),
+  `NetInit` (55), `NewHelpers` (244), `NewOwn` (187), `NewShared` (96), `NewProxy` (366), then
+  `Proxy/Results`' `NewProxy.wp_proof`/`Proxy.NetworkInit.wp_proof`. Plan:
+  * The lab's net model (`NetConn`: `connIface`, the lab's `bufio.ownReader`, `net.model`) goes
+    onto Net/'s specs as in paxos's `NetProof.lean`: `net.Listen.wp_proof` with `listen_lis_au`;
+    `net.Listener.Accept.spec` with `accept_lis_au`; `net.Dial`; `net.Conn.Write`/`Close`;
+    `io.ReadFull` (`Spec/io/ReadFull.lean`) for the 4-byte handshake. The readers and writers
+    use the landed bufio specs (`bufio.NewReader`, `Reader.ReadByte`, `NewWriter`,
+    `Writer.WriteByte`/`Write`/`Flush`, `ownBufReader`/`ownBufWriter`;
+    `net.conn_streamWriterOk`/`conn_readerOk`). Never unfold the bufio predicates.
+  * Wildcard: replace `netProtos`' `addrProto (proxyAddr k) (proxyInProto γ k) silentProto` with
+    `lisProto (go!"0.0.0.0:" ++ decStr (7606 + k)) (proxyInProto γ k) silentProto`. Clients get
+    `addrProto (proxyAddr k)` by `lisProto_addr`, as `recLisP_grpcAddr` does for the recorders;
+    `Replica/Serve`'s `recLis_*` lemmas are the model.
+  * `addrTok` exclusivity: `sharedNet`'s `inv netN (netOwn pr rm ∨ addrTok (proxyAddr k))` and
+    `waitForConnections`' `addrTok (proxyAddr k)`, also in `replicaRes`, `srvRecorder` and
+    `Proxy.NetworkInit.spec`, become a ghost token. Options: a `token γn` that `NewProxy`
+    allocates and returns (a sealed slot, `proxyNetTok γn pr`, consumed by `NetworkInit`), with
+    the invariant `netOwn pr rm ∨ token γn`; or the proxy's `lisUnset`.
+  * `ClientBatch.Marshal`/`Unmarshal` (`Wire.lean`'s specs, via the `msgBuffer` writer and the
+    `bufio.Reader`) come from `PbHyp` (`proto.Marshal`/`Unmarshal` with `hyp.qpCodec`), in place
+    of the lab's generated-codec proofs (`WireProof`).
+  * Files that step through `ClientBatchStore` code (`NewHelpers`/`NewProxy` if they do)
+    must copy the `attribute [-instance]` block of `Proxy/Store.lean`; check `#print axioms`.
+- **Next, in order** (ported ~19k of 37k lab lines; Replica done, Proxy's protocol side done):
+  2. `Proxy/*` rest (the network side and the constructor, above; 3.1k: `Net*` onto `Net/Spec/net/*` + `GooseLang/Ext/Net/Proto.lean`'s laws as
      paxos's `NetProof.lean`; the writers through dsv-bufio's specs), `Codec/*` (7.3k: only the pure
      parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
      `Codec/Switch`, `Enc*`, `Dec*` mostly go; `Wire.lean`'s `ClientBatch.Marshal/Unmarshal` are

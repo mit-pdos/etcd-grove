@@ -11,6 +11,7 @@ fact is `srcState`) with the names-only libraries' `InitHyp`s; those three files
 module
 
 public import Dsverify.Proof.raxos.Replica.Server
+public import Dsverify.Proof.raxos.Proxy.Results
 
 @[expose] public section
 
@@ -48,9 +49,9 @@ theorem Server.StartProposers.wp_proof [hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.
   wp_Server_StartProposers
 
 theorem Server.Run.wp_proof [hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.grpc]
-    [hyp.RandHyp GF] [hyp.AtoiHyp GF] (hRun : Proxy.Run.spec (GF := GF) (hG := hG)) :
+    [hyp.RandHyp GF] [hyp.AtoiHyp GF] [hyp.SortHyp GF] [strconv.Assumptions] [time.Assumptions] :
     Server.Run.spec (GF := GF) (hG := hG) :=
-  wp_Server_Run hRun
+  wp_Server_Run Proxy.Run.wp_proof
 
 end results
 
