@@ -3,11 +3,11 @@
 send of a request batch (`replica.send`), over `proto.Marshal` (the hypothesis `hyp.PbHyp.marshal`)
 and the landed `bufio`'s `Writer.Write` (two writes: the 8-byte length, then the encoding).
 
-This restates `Wire.lean`'s `ClientBatch.Marshal.spec` (unused, superseded): the writer's
+This restates the lab's `ClientBatch.Marshal.spec` (it stood in `Wire.lean`, unused; deleted): the writer's
 protocol `Q` is asked of the stream after the length prefix too (`Write` asks `□ Q` of every
 write's stream, and `ownBufWriter` does not expose the prefix closure of `Q`), and the post only
 says what the client needs (on `nil`: the batch fits and its length and encoding were appended).
-`Wire.lean`'s `ClientBatch.Unmarshal.spec` is `Proxy/NetUnmarshal.lean`'s `unmarshalB.spec`
+The lab's `ClientBatch.Unmarshal.spec` is `Proxy/NetUnmarshal.lean`'s `unmarshalB.spec`
 (the stream fact `Φ` bounds the length once read), proved there (`unmarshal_bounded`).
 -/
 module

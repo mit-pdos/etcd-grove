@@ -15,7 +15,8 @@ premises, to be discharged when each piece comes as one shared change:
   vocabulary `GrpcVocab` (abstract: what the Lean half of `models/grpc` over `Net/` will define:
   the protocols of a gRPC address `reqProto`/`respProto`, a world's registry `worldOk`, a server
   `isServer`/`srvOwn`/`srvServed`, a client connection `isClientConn`, a handler's error
-  `handlerErr`) and the class `GrpcHyp V` of its laws and the specs `grpc.NewServer.spec`,
+  `handlerErr`), the class `GrpcWorldHyp V` (over the global ghost state: a world's registry
+  can be allocated) and the class `GrpcHyp V` of the specs `grpc.NewServer.spec`,
   `grpc.Server.RegisterService.spec`, `grpc.Server.Serve.spec`, `grpc.WithInsecure.spec`,
   `grpc.Dial.spec`, `grpc.ClientConn.Invoke.spec`, with the lab's statements (`UnarySpec`,
   `GrpcWorld`, `handlerOk`, `decOk`, `replyOk`, `descOk`, `grpcAddr` defined as there, over the
@@ -449,19 +450,32 @@ abbrev ClientConn.Invoke.spec : Prop :=
 
 end defs
 
-/-- **The gRPC hypotheses** (see the file header): the vocabulary's laws and the specs. -/
+/-- **The gRPC hypotheses** (see the file header): the specs (the world's registry is
+`GrpcWorldHyp`'s). -/
 class GrpcHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [NetProtoGS]
     (V : GrpcVocab GF) [cd : PbCodec GF] : Prop where
-  /-- a world's registry, for the method specs `MS` -/
-  world_alloc : ∀ (MS : GoString → GoString → Option (UnarySpec GF)) (E : CoPset),
-    ⊢ |={E}=> ∃ reg : GName, V.worldOk ⟨MS, reg⟩
   NewServer : NewServer.spec V
   RegisterService : Server.RegisterService.spec V
   Serve : Server.Serve.spec V
   WithInsecure : WithInsecure.spec V
   Dial : Dial.spec V
   Invoke : ClientConn.Invoke.spec V
+
+section world
+variable [GooseExts] [GooseInterp]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+/-- **The gRPC hypothesis on the global ghost state** (the lab's `world_alloc`): a world's
+registry exists for any method specs `MS`. Over the global ghost state, not a machine's heap: the
+deployment's start (`kit_start`) allocates the registry before any machine runs. -/
+class GrpcWorldHyp {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
+    (V : GrpcVocab GF) : Prop where
+  /-- a world's registry, for the method specs `MS` -/
+  world_alloc : ∀ (MS : GoString → GoString → Option (UnarySpec GF)) (E : CoPset),
+    ⊢ |={E}=> ∃ reg : GName, V.worldOk ⟨MS, reg⟩
+
+end world
 
 section inst
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]

@@ -8,8 +8,8 @@ invariants, the slot map and the pending library of remote, and set every addres
 server machine its share: exactly the preconditions of `Orch.spec`, `Client.spec` and
 `Server.spec` (`Kit.lean`) but the package's initialization (`kit_start`).
 
-The gRPC world's registry comes from the premise `hW`, `GrpcHyp.world_alloc` over the global ghost
-state (the hypothesis states it under a `HeapGS`, which the start does not have: see the notes).
+The gRPC world's registry comes from the hypothesis `GrpcWorldHyp` (over the global ghost state:
+the start has no machine's heap).
 -/
 module
 
@@ -181,9 +181,7 @@ theorem qR_init (γ : QNames) : (qR (Gg := Gg) γ).B.init = kvAbs [] := rfl
 
 /-- **The kit's start** (see the file header): from the registry, the listed addresses unset and
 the wildcards unset, QuePaxa's ghost state and every machine's share. -/
-theorem kit_start
-    (hW : ∀ (MS : GoString → GoString → Option (hyp.grpc.UnarySpec GF)) (E : CoPset),
-      ⊢ |={E}=> ∃ reg : GName, qv.grpc.worldOk ⟨MS, reg⟩) :
+theorem kit_start [hyp.grpc.GrpcWorldHyp qv.grpc] :
     ⊢ regCtx (Gg := Gg) -∗ ([∗list] a ∈ kitAddrs, addrUnset (Gg := Gg) a) -∗
       ([∗list] la ∈ kitLis, lisUnset (Gg := Gg) la) ={⊤}=∗
       ∃ (γ : QNames) (ρ : RemoteGS) (γp : PendNames),
@@ -206,7 +204,7 @@ theorem kit_start
   icases bigSepL_append.1 $$ Hl with ⟨Hpx, Hrc⟩
   rw [bigSepL_map, bigSepL_map]
   imod alloc_init (Gg := Gg) with ⟨%γ0, Hc, Hsm, Ho0⟩
-  imod hW (consensusMS γ0) ⊤ with ⟨%g, #Hw⟩
+  imod hyp.grpc.GrpcWorldHyp.world_alloc (V := qv.grpc) (consensusMS γ0) ⊤ with ⟨%g, #Hw⟩
   rw [show (⟨consensusMS γ0, g⟩ : hyp.grpc.GrpcWorld GF) = world { γ0 with grpc := g } from rfl]
   rw [show consRes (Gg := Gg) γ0 = consRes { γ0 with grpc := g } from rfl,
     show smrRes (Gg := Gg) γ0 = smrRes { γ0 with grpc := g } from rfl,
