@@ -23,8 +23,12 @@ reached by these).
   flag), `newServerCodec`; `NewServer`, the free lists, `register` (the codec's `Receiver`, `rcvOk`)
   with `Register`, `RegisterName`, and `go/token.IsExported` on an ASCII upper-case first byte.
 
-Not yet proved (the plan note, phase 5.2, lists what remains): the request loop (`ServeCodec`,
-`readRequest(Header)`, `sendResponse`, `service.call`), `ServeConn`, `Accept`, and the HTTP path.
+* the request loop (`ServerGhost.lean`: a request read is a client's, taken once; an answer
+  recorded at its response's write): `sendResponse`, `service.call`, `readRequestHeader`,
+  `readRequest`, `ServeCodec` (Perennial's thread-token join for its runs), `ServeConn`, `Accept`
+  (`log.Println`'s spec, `Net/Spec/log/Println.lean`).
+
+Not yet proved (the plan note, phase 5.2, lists what remains): the HTTP path.
 -/
 module
 
@@ -70,6 +74,15 @@ public import Net.Proof.net.rpc.Server__register
 public import Net.Proof.net.rpc.Server__Register
 public import Net.Proof.net.rpc.Server__RegisterName
 public import Net.Proof.go.token.IsExported
+public import Net.Proof.net.rpc.Server__sendResponse
+public import Net.Proof.net.rpc.service__call
+public import Net.Proof.net.rpc.Server__readRequestHeader
+public import Net.Proof.net.rpc.Server__readRequest
+public import Net.Proof.net.rpc.Server__ServeCodec
+public import Net.Proof.net.rpc.Server__ServeConn
+public import Net.Proof.net.rpc.Server__Accept
+public import Net.Proof.net.Listener__Accept
+public import Net.Proof.log.Println
 
 @[expose] public section
 
@@ -220,6 +233,36 @@ theorem Server.Register.wp [errors.Assumptions] [go.token.Assumptions] :
 theorem Server.RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
     Server.RegisterName.spec (GF := GF) (hG := hG) := Server.RegisterName.wp_proof Server.register.wp
 
+theorem Server.sendResponse.wp : Server.sendResponse.spec (GF := GF) (hG := hG) :=
+  Server.sendResponse.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.getResponse.wp
+    Server.freeResponse.wp serverCodec.WriteResponse.wp
+
+theorem service.call.wp : service.call.spec (GF := GF) (hG := hG) :=
+  service.call.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.sendResponse.wp
+    Server.freeRequest.wp
+
+theorem Server.readRequestHeader.wp [errors.Assumptions] :
+    Server.readRequestHeader.spec (GF := GF) (hG := hG) :=
+  Server.readRequestHeader.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.getRequest.wp
+    serverCodec.ReadRequestHeader.wp
+
+theorem Server.readRequest.wp [errors.Assumptions] : Server.readRequest.spec (GF := GF) (hG := hG) :=
+  Server.readRequest.wp_proof Server.readRequestHeader.wp serverCodec.ReadRequestBody.wp
+
+theorem Server.ServeCodec.wp [errors.Assumptions] : Server.ServeCodec.spec (GF := GF) (hG := hG) :=
+  Server.ServeCodec.wp_proof Server.readRequest.wp Server.sendResponse.wp Server.freeRequest.wp
+    service.call.wp serverCodec.Close.wp
+
+theorem Server.ServeConn.wp [errors.Assumptions] : Server.ServeConn.spec (GF := GF) (hG := hG) :=
+  Server.ServeConn.wp_proof newServerCodec.wp Server.ServeCodec.wp
+
+theorem log.Println.wp [log.Assumptions] : _root_.Perennial.log.Println.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.log.Println.wp_proof
+
+theorem Server.Accept.wp [errors.Assumptions] [log.Assumptions] :
+    Server.Accept.spec (GF := GF) (hG := hG) :=
+  Server.Accept.wp_proof net.Listener.Accept.wp_proof log.Println.wp Server.ServeConn.wp
+
 end server
 
 section results'
@@ -266,3 +309,10 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.register.wp
 #print axioms Perennial.net.rpc.Server.Register.wp
 #print axioms Perennial.net.rpc.Server.RegisterName.wp
+#print axioms Perennial.net.rpc.Server.sendResponse.wp
+#print axioms Perennial.net.rpc.service.call.wp
+#print axioms Perennial.net.rpc.Server.readRequestHeader.wp
+#print axioms Perennial.net.rpc.Server.readRequest.wp
+#print axioms Perennial.net.rpc.Server.ServeCodec.wp
+#print axioms Perennial.net.rpc.Server.ServeConn.wp
+#print axioms Perennial.net.rpc.Server.Accept.wp
