@@ -52,7 +52,74 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
-### Round 5 (2026-11-23 night; the current handoff; Round 4 and older are history)
+### Round 6: JSON on the main tree (2026-11-23 late; the current handoff)
+
+Brief: move vr onto the main tree's JSON (J1/J2/J3 landed on `lean` 69adf61913,
+`prove-ps2-jsonj2`, `ps2-jsongen`). Merged `origin/lean` 69adf61913 (Perennial pin `ccfeb3895`,
+`/shared/perennial-ccfeb3895`; fk-lean1 `/home/ubuntu/eg/perennial-ccfeb3895`).
+
+**Goal 1 (done): the main tree's `encoding/json`.** `etc/dsv/vr.py`: `"encoding/json="` (main),
+dropped from `packages`/`owned`, `MAIN = MAIN_GEN = ['encoding.json']`, `HYP_INITS = []`; goose and
+gen-init (twice) rerun. Hand-written `Base.lean`s import `Proof.encoding.json.Base`. Deleted for
+the main tree's: vr's `isSpaceB`, `DecoderRep` (`Spec/jsonlib.lean`), `EncoderRep`,
+`NewEncoder.spec` (`Proof/events/LibHyps.lean`), `Dsverify/Proof/bufio/ErrOrNil.lean` (and
+swiftpaxos' `lib/Bufio.lean`'s identical `errWf`/`errOrNil`, which now collide with
+`Proof/bufio/ErrOrNil.lean` in the gates' closure: it imports the main tree's; its statement is
+untouched). `Spec/jsonlib.lean` keeps only vr's names: `kitFn`, `kitCodecOk F := codecOkWith F
+(kitFn …)`, `codecFns c := codecFnsWith (kitFn …) c`, and `codecSet` (no mutex). vr's two
+codec-route specs collide by name with the main tree's and are not the same statement, so they are
+renamed, unchanged: `encoding.json.Unmarshal.kitSpec`, `encoding.json.Encoder.Encode_conn.kitSpec`.
+**Statement diff: only `(∀ G L, letI := heapAt G L; encoding.json.InitHyp remoteGF) →` removed.**
+
+**Goal 2 (done): jsongen's codec.** Per-type (J3): `vr.py` `jsonmodel_roots` = events' `Event`,
+`Request`, `Reply`, `Prepare`, `PrepareOK`, `Commit`, `StartViewChange`, `DoViewChange`,
+`StartView`, `GetState`, `NewState`, `Heartbeat`, `vsrwire.Frame`, `log.Logs` (whose own
+`MarshalJSON`/`UnmarshalJSON` the methods call); `"models.lab=Net"` lean root. goose.py's
+no-`go.work` route (`-modfile` in `GOFLAGS`) fails under go/packages (its `GO111MODULE=off` probe),
+so `examples/dsverify/vr/go.work` (`use .`), as quepaxa's. Registered codec
+(`examples/vsrnet/json.toml`): the unnamed roots only, `[]log.Log` (what `Logs`' methods pass) and
+`fromDecoderUnnamed`'s frame; `RegisterJSON` is jsongen's (`json_model_gen.go`:
+`SetCodec(&json.Codec{jsonMarshal, jsonUnmarshal, jsoncodec.Scan})`), `register*.go` deleted. No
+`[]events.Request` root: no code passes one to encoding/json. Checks: `jsongen.py … --check` 0;
+`goose.py --check --project dsv-vr` up to date; `go test ./examples/vsrnet/` (the codec's generated
+test against real encoding/json, and kit_test) ok; the same-package methods' generated tests
+(`go test -tags netmodel -overlay`, jsonmodel_forks.py's step 3 for vr's roots; scratchpad script
+`vr_jsonmodel_test.py`) ok for events, log, vsrwire.
+
+**Goals 3-4: what the landed J2/J3 change in vr's premises (stopped: a statement decision).**
+- `codecOk` (`⊢ kitCodecOk scanF` at `vsrnet.jsonCodec`) is now **false of the code for good**:
+  the registered codec covers only `[]log.Log` and the unnamed frame (`jsonMarshal(*Event)` reaches
+  `jencAnyExtra`, a NotModelled panic). Under J3 the named types are `typeCodecOk J F T` (their
+  `JSONModel*` methods) and the codec is `codecOkWith F fm fu` for the unnamed roots only, so the
+  premise must be restated (per type + codec) or proved (goal 4) — a restatement is a change other
+  than removal.
+- `RegisterJSON.codecSet_spec` is false (precondition `isPkgInit vsrnet` only; `SetCodec` panics if
+  a codec is set). Provable from `SetCodec.spec` given `isPkgInit sync ∗ isMutex codecMu codecInv ∗
+  codecUnset`, which encoding/json's first initialization makes (`codecMu`, `codec` allocated, the
+  mutex initialized) but the generated `Init.lean` drops. **Without a new premise:** a vr boot as
+  swiftpaxos's (`etc/dsv/_swiftpaxos_boot.py`, `BootTable`, `BootLinked`): prove json's first run
+  returns them (its body is translated) and thread them to `RegisterJSON`'s callers (`mkClient`,
+  `runReplica`); then this premise goes (removal) and `codecSetWith` replaces `codecSet` inside
+  vr's proofs. **With a premise** (as `RpcBoot`/`RpcFirstInit`): a statement change.
+- `Unmarshal.kitSpec` → the main tree's proved `Unmarshal.spec`: needs `unmarshalVia J F ptr` at
+  `FromDecoder`'s eleven calls (`*events.Request` …: per-type, `typeCodecOk`), i.e. goal 4.
+- `Encode_conn.kitSpec` → the main tree's `Encoder.Encode_conn.spec` (unproved: `EncoderRep` is a
+  class): it quantifies over every `J` and takes `marshalVia J F v`; it is not implied by vr's, so
+  the swap is a change other than removal. `NewEncoder`: already the main tree's (same statement).
+- `newDecoder`/`Decode_frame` (goal 5): the main tree has no `NewDecoder`/`Decoder.Decode` spec
+  (`Code/encoding/json.toml` translates neither); vr's premises stay (true of Go).
+- No Löb lemma (`codecOkWith_löb`) on `lean` yet (grep `Proof/encoding/json`); goal 4's `Logs`
+  recursion (`DoViewChange.JSONModelMarshal` → `Logs.MarshalJSON` → `json.Marshal([]Log)` →
+  codec) needs it or an equivalent.
+
+**Goal 4 scope** (not started): the lab's `VsrProof/Proof/vsrnetjson` (5071 lines) and `jsoncodec`
+(~6k with the stream) prove the lab's single program-wide codec; jsongen's output is now 14
+per-type method sets (`Dsverify/Code/.../pkg/events.lean` grew ~12k lines, `log` ~1.5k, `vsrwire`
+~2k) plus a small codec (`[]log.Log`, frame). Per type `T`: `typeCodecOk vsrnet.jsonCodec scanF
+T` from the generated `jenc_`/`jencA_`/`jdec_`/`jdecMember_`; `Logs` by Löb over `codecRoute`.
+Reuse `Proof/jsoncodec/{ScanDef,StrSteps,NumSteps,…}` (already ported, pure).
+
+### Round 5 (2026-11-23 night; history)
 
 Branch merged with `origin/lean` `af67426be3` (Perennial pin unchanged, `160fcf12a`).
 
