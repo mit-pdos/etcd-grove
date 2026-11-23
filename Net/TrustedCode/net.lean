@@ -599,9 +599,15 @@ noncomputable def TCPAddr.String.impl : val :=
   λ: "a" <>, ExternalOp Net.netExt.name "AnyString" #()
 
 /-- `(*OpError).Error() string` (`net.go`): Go's message names the operation, the addresses and
-the system's error, which the model does not explain: an arbitrary string. -/
+the system's error, which the model does not explain: an arbitrary string, but not empty (Go's
+starts with the operation, `e.Op`, and holds `": "` before the system error's message:
+`TestErrorsAreOpErrors`). A program may rely on it: net/rpc's server answers a request whose
+body read fails with an error response of that message, and a message `""` would make it a
+success response. -/
 noncomputable def OpError.Error.impl : val :=
-  λ: "e" <>, ExternalOp Net.netExt.name "AnyString" #()
+  λ: "e" <>,
+    let: "s" := ExternalOp Net.netExt.name "AnyString" #() in
+    if: "s" =⟨go.string⟩ #(go!"") then #(go!"error") else "s"
 
 /-- `true` for an `Err` of the dynamic type `*poll.DeadlineExceededError` or `*timeoutError`,
 `false` for `poll.errNetClosing` (their `Timeout` and `Temporary` methods, constants: `fd.go`,

@@ -168,33 +168,10 @@ theorem inErr_errorString (x : Loc) (msg : GoString) :
   ipureintro
   exact ⟨by simp [interface.mkOk], notServerErr_errorString x, _, x, rfl⟩
 
-/-- `errors.New(msg)`, its result's type made explicit (`errors.New.spec` says only that it is a
-pointer; `errAny` needs its type to implement `error`): proved from its body, as
-`errors.New.wp_proof`. -/
-theorem wp_errors_New' (msg : GoString) :
-    {{ (True : IProp GF) }}
-      (App (Val (@! errors.New)) (Val #msg))
-    {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x);
-        □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-          WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
-            (Val #())) {{ Φ }} }} := by
-  wp_start
-  wp_auto
-  wp_alloc x as Hx
-  iStructNamed Hx
-  ipersist s
-  wp_auto
-  iapply HΦ
-  imodintro
-  iintro %Φ HΦ
-  rw [method_unfold]
-  wp_auto
-  iexact HΦ
-
 /-- A decoding error is `inErr`. -/
 theorem inErr_dec (err : GoInterface) : decErr (GF := GF) err ⊢ inErr err := by
   unfold decErr
-  iintro ⟨%x, %msg, %He, #H⟩
+  iintro ⟨%x, %msg, ⟨%He, -⟩, #H⟩
   subst He
   iapply inErr_errorString x msg $$ H
 
@@ -316,7 +293,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HP]
       · rw [List.append_nil]; iexact HP
       wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
-          ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
+          ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
           (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
             (respProto (Gg := hG.goose_globalGS) W a)
             ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
@@ -550,7 +527,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
             ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HrT]
         · rw [List.append_nil]; iapply recvTok_L $$ HrT
         wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
-            ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
+            ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
             (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
               (respProto (Gg := hG.goose_globalGS) W a)
               ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))

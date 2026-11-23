@@ -55,8 +55,8 @@ caller-chosen resource, no count, no ghost registry, no saved predicate.
   type, and each of its entries is one registration axiom). `respond` works at the model the carrier
   took from `grpcAccepted`. The gate's pair entries (`etc/model-param-allow.txt`) accept exactly
   these returned atoms, each only while its depositing axiom's pre requires the same atom.
-- **Go facts, not pair facts:** `(name, mh, srv) ∈ c.regs` (Go's dispatch), `grpcSrvChain c.ics`
-  and `grpcSrvStreamChain c.sics` (Go's chains), `grpcDecOk` (grpc's codec), `grpcRunCtx` (no etcd
+- **Go facts, not pair facts:** `(name, mh, srv) ∈ c.regs` (Go's dispatch), `grpcSrvChainAll c.ics`
+  and `grpcSrvStreamChainAll c.sics` (Go's chains, at every resource), `grpcDecOk` (grpc's codec), `grpcRunCtx` (no etcd
   keys in a run's context).
 
 What the carrier (`Serve`'s proof) proves from this: `grpcSrvCfg_agree` makes the deposit's
@@ -104,21 +104,34 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The composed stream interceptor grpc calls, for the chain `sics`** (persistent; as
-`grpcSrvChain` for streams: grpc's `chainStreamServerInterceptors`, `server.go:1245-1262`: `nil` for
-no interceptor, the one interceptor, or grpc's closure). The handler `h` is a function value (a
-`StreamDesc.Handler`), as in the unary `grpcSrvChain`: a panic value there would unwind the call
-while the chain's interceptors never see it. -/
-def grpcSrvStreamChain (sics : List GoFunc) (si : GoFunc) : IProp GF :=
+/-- **The composed stream interceptor grpc calls, for the chain `sics`, with the resource `R`**
+(persistent; as `grpcSrvChain` for streams: grpc's `chainStreamServerInterceptors`,
+`server.go:1243-1276`: `nil` for no interceptor, the one interceptor, or grpc's closure, whose calls,
+given `R`, are the chain's at `R`). The handler `h` is a function value (a `StreamDesc.Handler`), as
+in the unary `grpcSrvChain`: a panic value there would unwind the call while the chain's
+interceptors never see it. -/
+def grpcSrvStreamChain (R : IProp GF) (sics : List GoFunc) (si : GoFunc) : IProp GF :=
   match sics with
   | [] => iprop(⌜si = func.nil⌝)
   | _ :: _ => iprop(⌜si ≠ func.nil⌝ ∗ □ ∀ (srv st info : val) (h : GoFunc) (Ψ : val → IProp GF),
-      srvStreamChainWP info sics #h srv st Ψ -∗
-      WP (App (App (App (App (Val #si) (Val srv)) (Val st)) (Val info)) (Val #h)) {{ Ψ }})
+      srvStreamChainWP R info sics #h srv st Ψ -∗
+      R -∗ WP (App (App (App (App (Val #si) (Val srv)) (Val st)) (Val info)) (Val #h))
+        {{ v, R ∗ Ψ v }})
 
-instance grpcSrvStreamChain_persistent (sics : List GoFunc) (si : GoFunc) :
-    Persistent (grpcSrvStreamChain (GF := GF) sics si) := by
+instance grpcSrvStreamChain_persistent (R : IProp GF) (sics : List GoFunc) (si : GoFunc) :
+    Persistent (grpcSrvStreamChain (GF := GF) R sics si) := by
   unfold grpcSrvStreamChain; cases sics <;> infer_instance
+
+/-- **grpc's composed stream interceptor at every resource** (persistent; the Go fact a stream run is
+given, `grpcAccepted`): as `grpcSrvChainAll`, true of grpc-go v1.84 because `chainStreamInterceptors`
+and `getChainStreamHandler`'s closures are grpc's code, calling the next interceptor (or the
+handler) synchronously on the run's goroutine and touching no resource of the program's. -/
+def grpcSrvStreamChainAll (sics : List GoFunc) (si : GoFunc) : IProp GF :=
+  iprop(□ ∀ R : IProp GF, grpcSrvStreamChain R sics si)
+
+instance grpcSrvStreamChainAll_persistent (sics : List GoFunc) (si : GoFunc) :
+    Persistent (grpcSrvStreamChainAll (GF := GF) sics si) := by
+  unfold grpcSrvStreamChainAll; infer_instance
 
 /-- **An accepted call** `r` of server `γ` with Go's configuration `c` (what `acceptRun` returns
 with `runOk`). Unary: the run value of Go's handler `(name, mh, srv) ∈ c.regs` for the call's path;
@@ -141,7 +154,7 @@ def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
       ⌜grpcReqModelOf GF Req.ty = some Req ∧ grpcRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcRpcAt γ name Spec ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req.toProtoMsg m ∗
-      grpcSrvChain c.ics ui ∗
+      grpcSrvChainAll c.ics ui ∗
       metadata.ctxInMD ci md ∗ ▷ Spec md m Φ Ψe ∗
       grpcReplyTo r Rep Φ Ψe) ∨
     (∃ (name : GoString) (mh : GoFunc) (srv : GoInterface) (ci : GoInterfaceOk)
@@ -153,7 +166,7 @@ def grpcAccepted (γ : GName) (c : GrpcSrvCfg GF) (r : val) : IProp GF :=
       ⌜(name, mh, srv) ∈ c.sregs⌝ ∗
       ⌜streamReqModelOf GF Req.ty = some Req ∧ streamRepModelOf GF Rep.ty = some Rep⌝ ∗
       isGrpcStreamAt γ name Up Spec ∗
-      grpcSrvStreamChain c.sics si ∗
+      grpcSrvStreamChainAll c.sics si ∗
       metadata.ctxInMD ci md ∗ □ Spec md γs Dn ∗
       srvRawStreamIs st γs Req.toStreamMsg Rep.toStreamMsg Up Dn ci cd ∗
       srvRecvTok (Req := Req.toStreamMsg) γs [] ∗ srvSendTok (Rep := Rep.toStreamMsg) γs [] ∗
@@ -273,39 +286,52 @@ theorem grpcRunOkMd_of_pools {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfa
   iframe
 
 /-- An update before a stream chain's call is absorbed (`fupd_wp` at the chain's first call). -/
-theorem srvStreamChainWP_fupd (info : val) (ics : List GoFunc) (h srv st : val)
+theorem srvStreamChainWP_fupd (R : IProp GF) (info : val) (ics : List GoFunc) (h srv st : val)
     (Ψ : val → IProp GF) :
-    (|={⊤}=> srvStreamChainWP info ics h srv st Ψ) ⊢ srvStreamChainWP info ics h srv st Ψ := by
+    (|={⊤}=> srvStreamChainWP R info ics h srv st Ψ) ⊢ srvStreamChainWP R info ics h srv st Ψ := by
   cases ics with
   | nil =>
     unfold srvStreamChainWP
-    exact fupd_wp
-  | cons ic ics =>
-    unfold srvStreamChainWP
-    iintro H %h' #Hh'
+    iintro H HR
     iapply fupd_wp
     imod H
     imodintro
-    iapply H $$ %h' Hh'
+    iapply H $$ HR
+  | cons ic ics =>
+    unfold srvStreamChainWP
+    iintro H %h' #Hh' HR
+    iapply fupd_wp
+    imod H
+    imodintro
+    iapply H $$ %h' Hh' HR
 
 /-- A stream chain's postcondition may be weakened, with an update (`Ψ` is only its first call's
 postcondition). -/
-theorem srvStreamChainWP_wand (info : val) (ics : List GoFunc) (h srv st : val)
+theorem srvStreamChainWP_wand (R : IProp GF) (info : val) (ics : List GoFunc) (h srv st : val)
     (Ψ Ψ' : val → IProp GF) :
-    srvStreamChainWP info ics h srv st Ψ ∗ (∀ v, Ψ v -∗ |={⊤}=> Ψ' v) ⊢
-      srvStreamChainWP info ics h srv st Ψ' := by
+    srvStreamChainWP R info ics h srv st Ψ ∗ (∀ v, Ψ v -∗ |={⊤}=> Ψ' v) ⊢
+      srvStreamChainWP R info ics h srv st Ψ' := by
   cases ics with
   | nil =>
     unfold srvStreamChainWP
-    iintro ⟨H, Hw⟩
+    iintro ⟨H, Hw⟩ HR
     iapply wp_fupd
-    iapply wp_wand $$ H Hw
+    iapply wp_wand $$ [H HR]
+    · iapply H $$ HR
+    iintro %v ⟨HR, HΨ⟩
+    imod Hw $$ HΨ
+    imodintro
+    iframe
   | cons ic ics =>
     unfold srvStreamChainWP
-    iintro ⟨H, Hw⟩ %h' #Hh'
+    iintro ⟨H, Hw⟩ %h' #Hh' HR
     iapply wp_fupd
-    iapply wp_wand $$ [H] Hw
-    iapply H $$ %h' Hh'
+    iapply wp_wand $$ [H HR]
+    · iapply H $$ %h' Hh' HR
+    iintro %v ⟨HR, HΨ⟩
+    imod Hw $$ HΨ
+    imodintro
+    iframe
 
 /-- **The stream adapter** (Scope r5 §3.4; B1b): a stream handler proved against
 `grpcStreamMethodOk` at a bundle `levelTok 0 ∗ levelTok 4 ∗ R₁ ∗ R₂ ∗ R₃` (the run's own level 0,

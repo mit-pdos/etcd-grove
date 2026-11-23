@@ -1902,7 +1902,7 @@ theorem etcd_watchMethodOk (p : Loc) (R : WSrv GF) (W : SrvW GF) (ics : List GoF
     iapply streamSpecOk_watchSpec R W
   iintro !> %γs %Dn %ci %cd %st %info HSpec HS #Hraw HRt HSt HAux #Hinfo
   icases h1 $$ HS with ⟨⟨Hrd, HRs⟩, HF⟩
-  iapply (srvStreamChainWP_of_okW ics Rs icW RW pbWatchRequestT pbWatchResponseT pbWatchRequestT_reg
+  iapply (srvStreamChainWP_of_okW iprop(True) ics Rs icW RW pbWatchRequestT pbWatchResponseT pbWatchRequestT_reg
     pbWatchResponseT_reg (watchUp R) Dn γs ci cd
     (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty) #p) st info
