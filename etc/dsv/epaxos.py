@@ -57,9 +57,10 @@ MAIN_GEN = ['bufio']
 # `InitHyp` class): net/rpc's and net/http's (`Net/`'s models: no initializer proof; their closure
 # reaches untranslated initializers) and the part's names-only encoding/json (dsv-vr's)
 HYP_INITS = ['encoding.json', 'net.rpc', 'net.http']
-# their imports: none (their `Init.lean`), so the programs' tables stop there (net/http's closure
-# has no facts in the part)
-HYP_IMPORTS = 'none'
+# their imports: all (the default; dsv-inithyp-fix): each `Init.lean`'s well-formedness condition
+# is `build_get_is_pkg_init_wf`, over every package its initializer reaches (net/http's closure's
+# packages without a fact elsewhere have a `True` one in the part, `Dsverify/Proof/<pkg>/Base.lean`),
+# so the programs' tables hold that closure
 
 
 def special(g):
