@@ -409,6 +409,167 @@ theorem wp_rmAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH
         · first | iapply subRes_none hn1 | (simp only [hn1]; iempintro)
         ipureintro; exact .inr hn1
 
+/-- **`os.Remove(d/b/c)`, `d/b` no directory** (a fraction of the claim on `b`): an error, no
+effect. -/
+theorem wp_rmNoDir (R : Roots) (d b c : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH) (qc : Qp)
+    (hb : NameOk b) (hc : NameOk c) (hnd : ∀ J, h.cur !! b ≠ some (.dir J)) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+        osNames j (.only [b]) dqn h }}
+      (App (Val (@! os.Remove)) (Val #(child (child d b) c)))
+    {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗
+        osNames j (.only [b]) dqn h }} := by
+  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩
+  imod osLogLb_0 with #Hlb
+  iloeb as IH generalizing Hperm Hp Hn
+  icases osPathS_callKey2 R d dq j $$ Hp with ⟨Hp, %hk⟩
+  ihave Hperm := osCallPerm_congr qc (hk b c).symm $$ Hperm
+  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iclear Hls
+  wp_apply wp_osUnlinkS_noDir R d b c j dq dqn h t s0 qc hb hc hnd CoPset.subseteq_top
+    CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
+  by_cases he4 : e = W64 4
+  · rw [decide_eq_true he4]
+    wp_auto
+    iapply IH $$ Hperm Hp Hn HΦ
+  rw [decide_eq_false he4]
+  wp_auto
+  rw [decide_eq_false (show e ≠ W64 0 from he)]
+  wp_auto
+  iclear IH
+  iloeb as IH2 generalizing Hperm Hp Hn
+  icases osPathS_callKey2 R d dq j $$ Hp with ⟨Hp, %hk⟩
+  ihave Hperm := osCallPerm_congr qc (hk b c).symm $$ Hperm
+  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
+  iclear Hls1
+  wp_apply wp_osRmdirS_noDir R d b c j dq dqn h t1 s1 qc hb hc hnd CoPset.subseteq_top
+    CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk1 as %e1 %he1 Hperm Hp Hn
+  by_cases he14 : e1 = W64 4
+  · rw [decide_eq_true he14]
+    wp_auto
+    iapply IH2 $$ Hperm Hp Hn HΦ
+  rw [decide_eq_false he14]
+  wp_auto
+  rm_err =>
+    iframe
+
+/-- **`os.Mkdir(d/b)`** with the whole claim on `b`: an error and the claim as it was, or a new,
+empty directory there with its whole claim (the error then either). -/
+theorem wp_mkAny (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (perm : w32)
+    (hb : NameOk b) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
+        osNames j (.only [b]) (DFrac.own 1) h }}
+      (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
+    {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osCallPerm (callKey R d) 1 ∗
+        ∃ h', osNames j (.only [b]) (DFrac.own 1) h' ∗
+          (⌜h' = h ∧ err ≠ interface.nil⌝ ∨ ∃ J hJ, ⌜h'.cur !! b = some (.dir J) ∧ hJ.cur = ∅⌝ ∗
+            osNames J (.except []) (DFrac.own 1) hJ) }} := by
+  have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
+  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩
+  imod osLogLb_0 with #Hlb
+  cases hcb : h.cur !! b with
+  | some n =>
+    have hsome : (h.cur !! b).isSome := by rw [hcb]; rfl
+    iloeb as IH generalizing Hperm Hp Hn
+    icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+    wp_apply wp_osCallBeginS R _ 1 0 CoPset.subseteq_top CoPset.subseteq_top
+      $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+    iclear Hls
+    wp_apply wp_osMkdirS_some R d b j (.only [b]) dq (DFrac.own 1) h t s0 1 hb hbN hsome
+      CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
+    by_cases he4 : e = W64 4
+    · rw [decide_eq_true he4]
+      wp_auto
+      iapply IH $$ Hperm Hp Hn HΦ
+    rw [decide_eq_false he4]
+    wp_auto
+    rw [decide_eq_false (show e ≠ W64 0 from he)]
+    wp_auto
+    unfold os.model.pathError
+    wp_apply wp_errno
+    iapply HΦ
+    iframe Hp Hperm
+    iexists h
+    iframe Hn
+    ileft; ipureintro; exact ⟨rfl, fun hc => by cases hc⟩
+  | none =>
+  ihave HSt : iprop(osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ∨
+      ∃ h1 J hJ, osNames (GF := GF) j (.only [b]) (DFrac.own 1) h1 ∗
+        ⌜h1.cur !! b = some (.dir J) ∧ hJ.cur = ∅⌝ ∗ osNames (GF := GF) J (.except []) (DFrac.own 1) hJ)
+    $$ [Hn]
+  · ileft; iexact Hn
+  iloeb as IH generalizing Hperm Hp HSt
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  wp_apply wp_osCallBeginS R _ 1 0 CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iclear Hls
+  icases HSt with (Hn | ⟨%h1, %J, %hJ, Hn, %hJ1, HJ⟩)
+  · wp_apply wp_osMkdirS R d b j dq h t s0 hb hcb CoPset.subseteq_top CoPset.subseteq_top
+      $$ Hos Hsi Hp Hn Hk as %e Hperm Hp Hres
+    icases Hres with (⟨%he, Hn⟩ | ⟨%x, %J, -, Hn, %hJ, HJ, %hJ'⟩)
+    · by_cases he4 : e = W64 4
+      · rw [decide_eq_true he4]
+        wp_auto
+        iapply IH $$ Hperm Hp [Hn] HΦ
+        ileft; iexact Hn
+      rw [decide_eq_false he4]
+      wp_auto
+      rw [decide_eq_false (show e ≠ W64 0 from he)]
+      wp_auto
+      unfold os.model.pathError
+      wp_apply wp_errno
+      iapply HΦ
+      iframe Hp Hperm
+      iexists h
+      iframe Hn
+      ileft; ipureintro; exact ⟨rfl, fun hc => by cases hc⟩
+    · have hd : (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)).cur !! b =
+          some (.dir J) := by simp only [NamesH.log]; rw [GMap.lookup_insert]
+      by_cases he4 : e = W64 4
+      · rw [decide_eq_true he4]
+        wp_auto
+        iapply IH $$ Hperm Hp [Hn HJ] HΦ
+        iright; iexists _, J, hJ; iframe Hn HJ; ipureintro; exact ⟨hd, hJ'.1⟩
+      rw [decide_eq_false he4]
+      wp_auto
+      by_cases he0 : e = W64 0
+      · rw [decide_eq_true he0]
+        wp_auto
+        iapply HΦ
+        iframe Hp Hperm
+        iexists _
+        iframe Hn
+        iright; iexists J, hJ; iframe HJ; ipureintro; exact ⟨hd, hJ'.1⟩
+      rw [decide_eq_false (show e ≠ W64 0 from he0)]
+      wp_auto
+      unfold os.model.pathError
+      wp_apply wp_errno
+      iapply HΦ
+      iframe Hp Hperm
+      iexists _
+      iframe Hn
+      iright; iexists J, hJ; iframe HJ; ipureintro; exact ⟨hd, hJ'.1⟩
+  · have hsome : (h1.cur !! b).isSome := by rw [hJ1.1]; rfl
+    wp_apply wp_osMkdirS_some R d b j (.only [b]) dq (DFrac.own 1) h1 t s0 1 hb hbN hsome
+      CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
+    by_cases he4 : e = W64 4
+    · rw [decide_eq_true he4]
+      wp_auto
+      iapply IH $$ Hperm Hp [Hn HJ] HΦ
+      iright; iexists h1, J, hJ; iframe Hn HJ; ipureintro; exact hJ1
+    rw [decide_eq_false he4]
+    wp_auto
+    rw [decide_eq_false (show e ≠ W64 0 from he)]
+    wp_auto
+    unfold os.model.pathError
+    wp_apply wp_errno
+    iapply HΦ
+    iframe Hp Hperm
+    iexists h1
+    iframe Hn
+    iright; iexists J, hJ; iframe HJ; ipureintro; exact hJ1
+
 end prog
 
 end DS
