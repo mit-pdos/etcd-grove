@@ -604,40 +604,51 @@ delivered or not (the token at the old or the new list); `RecvMsg(&out)` into an
 `Dn j m` for its position `j`, or returns `io.EOF` once the server's handler returned after the
 responses received (`downClosed`), or another error (`out` back owned); `CloseSend()` closes the
 up queue after the requests sent (`upClosed`); `Context()` returns the stream's context, of the
-descriptor `cd` (derived from the caller's: done when it is, or when the stream ends). -/
+descriptor `cd` (derived from the caller's: done when it is, or when the stream ends).
+
+Since 2026-11-23 (#24's S2 signatures, the resource parameter): `SendMsg`, `RecvMsg` and `CloseSend`
+are each given a resource `R` of the connection's family (`Ok R`, `grpcConn`'s) and give it back,
+because each may call the per-RPC credentials (`perRPCCredsOk pc Ok Q`): until the stream is
+committed (grpc-go v1.84, `clientStream.commitAttemptLocked`, `stream.go:778`: on the first message
+received, or when the replay buffer overflows), a failed operation is retried transparently
+(`csAttempt.shouldRetry`, `stream.go:800-819`: a first attempt the server never processed), and the
+retry (`clientStream.withRetry`, `stream.go:930`; `SendMsg`, `RecvMsg` at `stream.go:1105,1136`,
+`CloseSend` at `1167`) makes a new attempt (`newAttemptLocked`, `csAttempt.newStream`), whose
+transport stream calls the credentials (`http2Client.createHeaderFields` → `getTrAuthData`),
+synchronously, on the goroutine of the operation's caller. `Context()` makes no attempt. -/
 def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
-    □ (∀ (L : List Req.M) (l : Loc) (m : Req.M),
-      {{ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
+    □ (∀ (L : List Req.M) (l : Loc) (m : Req.M) (R : IProp GF),
+      {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
           ⌜Req.wireLen m < grpcMsgMax⌝ }}
         (App (Val #(methods ci.ty go!"SendMsg" ci.v)) (Val #(msgAny Req.ty l)))
-      {{ (err : GoInterface), RET #err; Req.send l m ∗
+      {{ (err : GoInterface), RET #err; R ∗ Req.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ cliSendTok (Req := Req) γ (L ++ [m])) ∨
           (cliStreamErr err ∗ ∃ L' : List Req.M,
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ cliSendTok (Req := Req) γ L')) }}) ∗
-    □ (∀ (L : List Rep.M) (out : Loc),
-      {{ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out }}
+    □ (∀ (L : List Rep.M) (out : Loc) (R : IProp GF),
+      {{ ⌜Ok R⌝ ∗ R ∗ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out }}
         (App (Val #(methods ci.ty go!"RecvMsg" ci.v)) (Val #(msgAny Rep.ty out)))
-      {{ (err : GoInterface), RET #err;
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : Rep.M, Rep.recv out m ∗ Dn L.length m ∗
+      {{ (err : GoInterface), RET #err; R ∗
+          ((⌜err = GoInterface.nil⌝ ∗ ∃ m : Rep.M, Rep.recv out m ∗ Dn L.length m ∗
             cliRecvTok (Rep := Rep) γ (L ++ [m])) ∨
           (eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ cliRecvTok (Rep := Rep) γ L ∗
             downClosed (Rep := Rep) γ L ∗ Rep.own out) ∨
-          (cliStreamErr err ∗ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out) }}) ∗
-    □ (∀ L : List Req.M,
-      {{ cliSendTok (Req := Req) γ L }}
+          (cliStreamErr err ∗ cliRecvTok (Rep := Rep) γ L ∗ Rep.own out)) }}) ∗
+    □ (∀ (L : List Req.M) (R : IProp GF),
+      {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L }}
         (App (Val #(methods ci.ty go!"CloseSend" ci.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; upClosed (Req := Req) γ L ∗
+      {{ (err : GoInterface), RET #err; R ∗ upClosed (Req := Req) γ L ∗
           (⌜err = GoInterface.nil⌝ ∨ cliStreamErr err) }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Context" ci.v)) (Val #()))
       {{ (cx : GoInterfaceOk), RET #(GoInterface.ok cx); context.isContext cx cd }}))
 
 instance cliStreamIs_persistent (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) :
-    Persistent (cliStreamIs cs γ Req Rep Up Dn cd) := by
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
+    Persistent (cliStreamIs cs γ Req Rep Up Dn cd Ok) := by
   unfold cliStreamIs; infer_instance
 
 /-- **The client end of a bidirectional stream, as the generated stub wraps it** (persistent):
@@ -648,37 +659,37 @@ server's content) or `nil` and the error, `CloseSend()` and `Context()` the raw 
 from the raw end (`cliBidiStreamIs_of_raw`). -/
 def cliBidiStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) : IProp GF :=
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cs = GoInterface.ok ci⌝ ∗
-    □ (∀ (L : List Req.M) (l : Loc) (m : Req.M),
-      {{ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
+    □ (∀ (L : List Req.M) (l : Loc) (m : Req.M) (R : IProp GF),
+      {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L ∗ Req.send l m ∗ Up L.length m ∗
           ⌜Req.wireLen m < grpcMsgMax⌝ }}
         (App (Val #(methods ci.ty go!"Send" ci.v)) (Val #l))
-      {{ (err : GoInterface), RET #err; Req.send l m ∗
+      {{ (err : GoInterface), RET #err; R ∗ Req.send l m ∗
           ((⌜err = GoInterface.nil⌝ ∗ cliSendTok (Req := Req) γ (L ++ [m])) ∨
           (cliStreamErr err ∗ ∃ L' : List Req.M,
             ⌜L' = L ∨ L' = L ++ [m]⌝ ∗ cliSendTok (Req := Req) γ L')) }}) ∗
-    □ (∀ L : List Rep.M,
-      {{ cliRecvTok (Rep := Rep) γ L }}
+    □ (∀ (L : List Rep.M) (R : IProp GF),
+      {{ ⌜Ok R⌝ ∗ R ∗ cliRecvTok (Rep := Rep) γ L }}
         (App (Val #(methods ci.ty go!"Recv" ci.v)) (Val #()))
-      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-          (⌜err = GoInterface.nil⌝ ∗ ∃ m : Rep.M, Rep.recv resp m ∗ Dn L.length m ∗
+      {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗
+          ((⌜err = GoInterface.nil⌝ ∗ ∃ m : Rep.M, Rep.recv resp m ∗ Dn L.length m ∗
             cliRecvTok (Rep := Rep) γ (L ++ [m])) ∨
           (⌜resp = null⌝ ∗ eofIs err ∗ ⌜err ≠ GoInterface.nil⌝ ∗ cliRecvTok (Rep := Rep) γ L ∗
             downClosed (Rep := Rep) γ L) ∨
-          (⌜resp = null⌝ ∗ cliStreamErr err ∗ cliRecvTok (Rep := Rep) γ L) }}) ∗
-    □ (∀ L : List Req.M,
-      {{ cliSendTok (Req := Req) γ L }}
+          (⌜resp = null⌝ ∗ cliStreamErr err ∗ cliRecvTok (Rep := Rep) γ L)) }}) ∗
+    □ (∀ (L : List Req.M) (R : IProp GF),
+      {{ ⌜Ok R⌝ ∗ R ∗ cliSendTok (Req := Req) γ L }}
         (App (Val #(methods ci.ty go!"CloseSend" ci.v)) (Val #()))
-      {{ (err : GoInterface), RET #err; upClosed (Req := Req) γ L ∗
+      {{ (err : GoInterface), RET #err; R ∗ upClosed (Req := Req) γ L ∗
           (⌜err = GoInterface.nil⌝ ∨ cliStreamErr err) }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Context" ci.v)) (Val #()))
       {{ (cx : GoInterfaceOk), RET #(GoInterface.ok cx); context.isContext cx cd }}))
 
 instance cliBidiStreamIs_persistent (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
-    (cd : context.ContextDesc (IProp GF)) :
-    Persistent (cliBidiStreamIs cs γ Req Rep Up Dn cd) := by
+    (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
+    Persistent (cliBidiStreamIs cs γ Req Rep Up Dn cd Ok) := by
   unfold cliBidiStreamIs; infer_instance
 
 /-! ## The generated wrappers over the raw ends -/
@@ -779,11 +790,11 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
     (wp_CloseSend : grpc.GenericClientStream.CloseSend.spec (GF := GF) (hG := hG))
     (wp_Context : grpc.GenericClientStream.Context.spec (GF := GF) (hG := hG))
     (p : Loc) (cs : GoInterface) (γ : StreamNames) (Up : Nat → Req.M → IProp GF)
-    (Dn : Nat → Rep.M → IProp GF) (cd : context.ContextDesc (IProp GF)) :
+    (Dn : Nat → Rep.M → IProp GF) (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) :
     structFieldRef (google_golang_org.grpc.GenericClientStream V W) go!"ClientStream" p ↦□ cs ∗
-      cliStreamIs cs γ Req Rep Up Dn cd ∗ (□ ∀ l : Loc, l ↦ (zero_val W) -∗ Rep.own l) ⊢
+      cliStreamIs cs γ Req Rep Up Dn cd Ok ∗ (□ ∀ l : Loc, l ↦ (zero_val W) -∗ Rep.own l) ⊢
     cliBidiStreamIs (interface.mkOk (go.GoType.PointerType
-      (google_golang_org.grpc.GenericClientStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Dn cd := by
+      (google_golang_org.grpc.GenericClientStream.ty Req.ty Rep.ty)) #p) γ Req Rep Up Dn cd Ok := by
   iintro ⟨#Hf, #Hraw, #Hown⟩
   iunfold cliStreamIs at Hraw
   icases Hraw with ⟨%ci, %Hcs, #HSend, #HRecv, #HClose, #HCtx⟩
@@ -793,12 +804,12 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %L %l %m %Φ !> ⟨Htok, Hs, HUp, #Hsz⟩ HΦ
+  · iintro !> %L %l %m %R %Φ !> ⟨%HOk, HR, Htok, Hs, HUp, #Hsz⟩ HΦ
     iapply (wp_Send Req.ty Rep.ty V W p ci l Φ)
     isplitr
     · iexact Hf
-    iapply HSend $$ %L %l %m [Htok Hs HUp]
-    · iframe; iexact Hsz
+    iapply HSend $$ %L %l %m %R [HR Htok Hs HUp]
+    · iframe; iframe #; ipureintro; exact HOk
     iintro !> %err Hres
     iexists err
     isplitr
@@ -806,15 +817,15 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
     iapply HΦ
     iexact Hres
   isplitr
-  · iintro !> %L %Φ !> Htok HΦ
+  · iintro !> %L %R %Φ !> ⟨%HOk, HR, Htok⟩ HΦ
     iapply (wp_Recv Req.ty Rep.ty V W p ci Φ)
     isplitr
     · iexact Hf
     iintro %m Hm
     ihave Hm' := Hown $$ %m Hm
-    iapply HRecv $$ %L %m [Htok Hm']
-    · iframe
-    iintro !> %err Hres
+    iapply HRecv $$ %L %m %R [HR Htok Hm']
+    · iframe; ipureintro; exact HOk
+    iintro !> %err ⟨HR, Hres⟩
     iexists err
     isplitr
     · ipureintro; rfl
@@ -823,6 +834,7 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
     · subst Herr
       simp only [↓reduceIte]
       iapply HΦ
+      iframe HR
       ileft
       isplitr
       · ipureintro; rfl
@@ -830,6 +842,7 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
       iframe
     · simp only [Hne, ↓reduceIte]
       iapply HΦ
+      iframe HR
       iright; ileft
       iframe
       iframe #
@@ -839,17 +852,18 @@ theorem cliBidiStreamIs_of_raw {Req Rep : StreamMsg GF} (V W : Type) [ZeroVal W]
       icases Hse' with ⟨%Hne, -, -⟩
       simp only [Hne.1, ↓reduceIte]
       iapply HΦ
+      iframe HR
       iright; iright
       iframe
       iframe #
       ipureintro; rfl
   isplitr
-  · iintro !> %L %Φ !> Htok HΦ
+  · iintro !> %L %R %Φ !> ⟨%HOk, HR, Htok⟩ HΦ
     iapply (wp_CloseSend Req.ty Rep.ty V W p ci Φ)
     isplitr
     · iexact Hf
-    iapply HClose $$ %L [Htok]
-    · iframe
+    iapply HClose $$ %L %R [HR Htok]
+    · iframe; ipureintro; exact HOk
     iexact HΦ
   · iintro !> %Φ !> - HΦ
     iapply (wp_Context Req.ty Rep.ty V W p ci Φ)
@@ -922,18 +936,21 @@ abbrev streamHandlerCall (h : val) (srv st : val) : Expr :=
 abbrev streamInterceptorCall (ic : GoFunc) (srv st info : val) (h : GoFunc) : Expr :=
   App (App (App (App (Val #ic) (Val srv)) (Val st)) (Val info)) (Val #h)
 
-/-- **The server's stream interceptor chain `ics` over the stream handler `h`** (grpc's
-`chainStreamServerInterceptors`, `getChainStreamHandler`; as `srvChainWP` for unary calls): with
-no interceptor, grpc calls `h(srv, ss)` itself; otherwise the first interceptor is called with a
-handler `h'` of grpc's making, whose calls are the rest of the chain's (with the same `info`). `Ψ`
-is the call's postcondition. -/
-def srvStreamChainWP (info : val) : List GoFunc → val → val → val → (val → IProp GF) → IProp GF
-  | [], h, srv, st, Ψ => WP (streamHandlerCall h srv st) {{ Ψ }}
+/-- **The server's stream interceptor chain `ics` over the stream handler `h`, with the resource
+`R`** (grpc's `chainStreamServerInterceptors`, `getChainStreamHandler`; as `srvChainWP` for unary
+calls; the resource parameter since 2026-11-23, #24's S2 signatures): each call is given `R` and
+gives it back with its result. With no interceptor, grpc calls `h(srv, ss)` itself; otherwise the
+first interceptor is called with a handler `h'` of grpc's making, whose calls are the rest of the
+chain's (with the same `info` and `R`). `Ψ` is the call's postcondition. -/
+def srvStreamChainWP (R : IProp GF) (info : val) :
+    List GoFunc → val → val → val → (val → IProp GF) → IProp GF
+  | [], h, srv, st, Ψ => iprop(R -∗ WP (streamHandlerCall h srv st) {{ v, R ∗ Ψ v }})
   | ic :: ics, h, srv, st, Ψ =>
     iprop(∀ h' : GoFunc,
       (□ ∀ (srv' st' : val) (Ψ' : val → IProp GF),
-        srvStreamChainWP info ics h srv' st' Ψ' -∗ WP (streamHandlerCall #h' srv' st') {{ Ψ' }}) -∗
-      WP (streamInterceptorCall ic srv st info h') {{ Ψ }})
+        srvStreamChainWP R info ics h srv' st' Ψ' -∗
+        R -∗ WP (streamHandlerCall #h' srv' st') {{ v, R ∗ Ψ' v }}) -∗
+      R -∗ WP (streamInterceptorCall ic srv st info h') {{ v, R ∗ Ψ v }})
 
 /-- **The stream interceptor `ic` is transparent, with its per-run resource `R`** (persistent;
 the stream analogue of `srvInterceptorOk`): called with `R`, a raw server end `st`, an `info` and
@@ -988,7 +1005,7 @@ instance srvStreamInterceptorsOk_persistent (ics : List GoFunc) (Rs : List (IPro
 server end, an `info`, and both continuations of the handler's call (on any server end of the
 same stream with the same context, its result with the resources back; or an early error with
 them back), the chain's call meets `Ψ`. -/
-theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req Rep : StreamMsgT GF)
+theorem srvStreamChainWP_of_ok (Rc : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) (Req Rep : StreamMsgT GF)
     (hreq : streamReqModelOf GF Req.ty = some Req) (hrep : streamRepModelOf GF Rep.ty = some Rep)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (γ : StreamNames)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (srv st : GoInterface)
@@ -1003,7 +1020,7 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
               (([∗list] R ∈ Rs, R) -∗ Ψ v) }}) ∧
         (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
           go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ #err)) ⊢
-    srvStreamChainWP #info ics h #srv #st Ψ := by
+    srvStreamChainWP Rc #info ics h #srv #st Ψ := by
   induction ics generalizing Rs Ψ st ci cd with
   | nil =>
     cases Rs with
@@ -1013,12 +1030,14 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
     | nil =>
       iintro ⟨-, -, #Hst, -, H⟩
       unfold srvStreamChainWP
+      iintro HRc
       icases H with ⟨H, -⟩
       ihave H := H $$ %st %cd Hst
-      iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
-        go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-        (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
+      iapply wp_wand_r
+      isplitl [H]
+      · iexact H
       iintro %v ⟨%err, %Hv, -, HΨ⟩
+      iframe HRc
       iapply HΨ
       iapply BigSepL.bigSepL_nil.2
       itrivial
@@ -1034,53 +1053,67 @@ theorem srvStreamChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (Req R
       ihave ⟨HR, HRs⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
         (xs := Rs)).1 $$ HRs
       unfold srvStreamChainWP
-      iintro %h' #Hh'
+      iintro %h' #Hh' HRc
       iunfold srvStreamInterceptorOk at Hic
-      iapply Hic $$ %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h' %Ψ HR Hst Hinfo
+      iapply Hic $$ %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h'
+        %(fun v => iprop(Rc ∗ Ψ v)) HR Hst Hinfo
       isplit
       · iintro %st' %cd' #Hst'
-        iapply Hh'
-        iapply (ih (Rs := Rs) (Ψ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
-          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v)))
-          (st := st') (ci := ci) (cd := cd'))
-        iframe #
-        iframe
-        isplit
-        · icases H with ⟨H, -⟩
-          iintro %st'' %cd'' #Hst''
-          ihave H := H $$ %st'' %cd'' Hst''
-          iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
-            go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-            (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
-          iintro %v ⟨%err, %Hv, #Hse, HΨ⟩
-          iexists err
-          isplitr
-          · ipureintro; exact Hv
-          iframe Hse
-          iintro HRs'
-          iexists err
-          isplitr
-          · ipureintro; exact Hv
-          iframe Hse
-          iintro HR'
-          iapply HΨ
-          iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
-            (xs := Rs)).2
+        iapply wp_wand_r
+        isplitl [H HRs HRc]
+        · iapply Hh' $$ %_ %_ %(fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v))) [H HRs] HRc
+          iapply (ih (Rs := Rs) (Ψ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v)))
+            (st := st') (ci := ci) (cd := cd'))
+          iframe #
           iframe
-        · icases H with ⟨-, H⟩
-          iintro HRs' %err %Herr #Hse
-          iexists err
-          isplitr
-          · ipureintro; rfl
-          iframe Hse
-          iintro HR'
-          iapply H $$ [HR' HRs'] %err %Herr Hse
-          iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
-          iframe
+          isplit
+          · icases H with ⟨H, -⟩
+            iintro %st'' %cd'' #Hst''
+            ihave H := H $$ %st'' %cd'' Hst''
+            iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+              go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+              (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
+            iintro %v ⟨%err, %Hv, #Hse, HΨ⟩
+            iexists err
+            isplitr
+            · ipureintro; exact Hv
+            iframe Hse
+            iintro HRs'
+            iexists err
+            isplitr
+            · ipureintro; exact Hv
+            iframe Hse
+            iintro HR'
+            iapply HΨ
+            iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
+              (xs := Rs)).2
+            iframe
+          · icases H with ⟨-, H⟩
+            iintro HRs' %err %Herr #Hse
+            iexists err
+            isplitr
+            · ipureintro; rfl
+            iframe Hse
+            iintro HR'
+            iapply H $$ [HR' HRs'] %err %Herr Hse
+            iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
+            iframe
+        iintro %v ⟨HRc, %err, %Hv, #Hse, HΨ⟩
+        iexists err
+        isplitr
+        · ipureintro; exact Hv
+        iframe Hse
+        iintro HR'
+        simp only []
+        iframe HRc
+        iapply HΨ $$ HR'
       · icases H with ⟨-, H⟩
         iintro HR' %err %Herr #Hse
+        simp only []
+        iframe HRc
         iapply H $$ [HR' HRs] %err %Herr Hse
-
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
         iframe
 
@@ -1120,7 +1153,7 @@ chains grpc-prometheus's and etcd's): with the interceptors' resources (`Rs`, th
 raw server end, an `info`, and both continuations of the handler's call (on a server end of the
 same stream with a weak context carrying the same incoming metadata, its result with the resources
 back; or an early error with them back), the chain's call meets `Ψ`. -/
-theorem srvStreamChainWP_of_okW (ics : List GoFunc) (Rs : List (IProp GF)) (icW : GoFunc)
+theorem srvStreamChainWP_of_okW (Rc : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) (icW : GoFunc)
     (RW : IProp GF) (Req Rep : StreamMsgT GF)
     (hreq : streamReqModelOf GF Req.ty = some Req) (hrep : streamRepModelOf GF Rep.ty = some Rep)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (γ : StreamNames)
@@ -1138,7 +1171,7 @@ theorem srvStreamChainWP_of_okW (ics : List GoFunc) (Rs : List (IProp GF)) (icW 
               (([∗list] R ∈ Rs ++ [RW], R) -∗ Ψ v) }}) ∧
         (([∗list] R ∈ Rs ++ [RW], R) -∗ ∀ err : GoInterface, ⌜err ≠ GoInterface.nil⌝ -∗
           go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ #err)) ⊢
-    srvStreamChainWP #info (ics ++ [icW]) h #srv #st Ψ := by
+    srvStreamChainWP Rc #info (ics ++ [icW]) h #srv #st Ψ := by
   induction ics generalizing Rs Ψ st cd with
   | nil =>
     cases Rs with
@@ -1151,24 +1184,35 @@ theorem srvStreamChainWP_of_okW (ics : List GoFunc) (Rs : List (IProp GF)) (icW 
       ihave ⟨HR, -⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := RW)
         (xs := [])).1 $$ HRs
       unfold srvStreamChainWP
-      iintro %h' #Hh'
+      iintro %h' #Hh' HRc
       iunfold srvStreamInterceptorWOk at HicW
-      iapply HicW $$ %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h' %Ψ HR Hst Hinfo
+      iapply HicW $$ %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h'
+        %(fun v => iprop(Rc ∗ Ψ v)) HR Hst Hinfo
       isplit
       · iintro %st' %ci' %cd' #Heq #Hst'
-        iapply Hh'
-        unfold srvStreamChainWP
-        icases H with ⟨H, -⟩
-        ihave H := H $$ %st' %ci' %cd' Heq Hst'
-        iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
-          go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-          (([∗list] R ∈ [RW], R) -∗ Ψ v)))) $$ H
-        iintro %v ⟨%err, %Hv, #Hse, HΨ⟩
+        iapply wp_wand_r
+        isplitl [H HRc]
+        · iapply Hh' $$ %_ %_ %(fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (([∗list] R ∈ [RW], R) -∗ Ψ v))) [H] HRc
+          unfold srvStreamChainWP
+          iintro HRc
+          icases H with ⟨H, -⟩
+          ihave H := H $$ %st' %ci' %cd' Heq Hst'
+          iapply wp_wand_r
+          isplitl [H]
+          · iexact H
+          iintro %v Hv
+          simp only []
+          iframe HRc
+          iexact Hv
+        iintro %v ⟨HRc, %err, %Hv, #Hse, HΨ⟩
         iexists err
         isplitr
         · ipureintro; exact Hv
         iframe Hse
         iintro HR'
+        simp only []
+        iframe HRc
         iapply HΨ
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := RW) (xs := [])).2
         iframe
@@ -1176,6 +1220,8 @@ theorem srvStreamChainWP_of_okW (ics : List GoFunc) (Rs : List (IProp GF)) (icW 
         itrivial
       · icases H with ⟨-, H⟩
         iintro HR' %err %Herr #Hse
+        simp only []
+        iframe HRc
         iapply H $$ [HR'] %err %Herr Hse
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := RW) (xs := [])).2
         iframe
@@ -1194,52 +1240,67 @@ theorem srvStreamChainWP_of_okW (ics : List GoFunc) (Rs : List (IProp GF)) (icW 
       ihave ⟨HR, HRs⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
         (xs := Rs ++ [RW])).1 $$ HRs
       unfold srvStreamChainWP
-      iintro %h' #Hh'
+      iintro %h' #Hh' HRc
       iunfold srvStreamInterceptorOk at Hic
-      iapply Hic $$ %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h' %Ψ HR Hst Hinfo
+      iapply Hic $$ %Req %Rep %hreq %hrep %Up %Dn %γ %ci %cd %srv %st %info %h'
+        %(fun v => iprop(Rc ∗ Ψ v)) HR Hst Hinfo
       isplit
       · iintro %st' %cd' #Hst'
-        iapply Hh'
-        iapply (ih (Rs := Rs) (Ψ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
-          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v)))
-          (st := st') (cd := cd'))
-        iframe #
-        iframe
-        isplit
-        · icases H with ⟨H, -⟩
-          iintro %st'' %ci'' %cd'' #Heq #Hst''
-          ihave H := H $$ %st'' %ci'' %cd'' Heq Hst''
-          iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
-            go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-            (([∗list] R ∈ R :: (Rs ++ [RW]), R) -∗ Ψ v)))) $$ H
-          iintro %v ⟨%err, %Hv, #Hse, HΨ⟩
-          iexists err
-          isplitr
-          · ipureintro; exact Hv
-          iframe Hse
-          iintro HRs'
-          iexists err
-          isplitr
-          · ipureintro; exact Hv
-          iframe Hse
-          iintro HR'
-          iapply HΨ
-          iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
-            (xs := Rs ++ [RW])).2
+        iapply wp_wand_r
+        isplitl [H HRs HRc]
+        · iapply Hh' $$ %_ %_ %(fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v))) [H HRs] HRc
+          iapply (ih (Rs := Rs) (Ψ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ (R -∗ Ψ v)))
+            (st := st') (cd := cd'))
+          iframe #
           iframe
-        · icases H with ⟨-, H⟩
-          iintro HRs' %err %Herr #Hse
-          iexists err
-          isplitr
-          · ipureintro; rfl
-          iframe Hse
-          iintro HR'
-          iapply H $$ [HR' HRs'] %err %Herr Hse
-          iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
-            (xs := Rs ++ [RW])).2
-          iframe
+          isplit
+          · icases H with ⟨H, -⟩
+            iintro %st'' %ci'' %cd'' #Heq #Hst''
+            ihave H := H $$ %st'' %ci'' %cd'' Heq Hst''
+            iapply (wp_mono (Φ := fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗
+              go_etcd_io.etcd.cache.v3.srvErrOk err ∗
+              (([∗list] R ∈ R :: (Rs ++ [RW]), R) -∗ Ψ v)))) $$ H
+            iintro %v ⟨%err, %Hv, #Hse, HΨ⟩
+            iexists err
+            isplitr
+            · ipureintro; exact Hv
+            iframe Hse
+            iintro HRs'
+            iexists err
+            isplitr
+            · ipureintro; exact Hv
+            iframe Hse
+            iintro HR'
+            iapply HΨ
+            iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
+              (xs := Rs ++ [RW])).2
+            iframe
+          · icases H with ⟨-, H⟩
+            iintro HRs' %err %Herr #Hse
+            iexists err
+            isplitr
+            · ipureintro; rfl
+            iframe Hse
+            iintro HR'
+            iapply H $$ [HR' HRs'] %err %Herr Hse
+            iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
+              (xs := Rs ++ [RW])).2
+            iframe
+        iintro %v ⟨HRc, %err, %Hv, #Hse, HΨ⟩
+        iexists err
+        isplitr
+        · ipureintro; exact Hv
+        iframe Hse
+        iintro HR'
+        simp only []
+        iframe HRc
+        iapply HΨ $$ HR'
       · icases H with ⟨-, H⟩
         iintro HR' %err %Herr #Hse
+        simp only []
+        iframe HRc
         iapply H $$ [HR' HRs] %err %Herr Hse
         iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
           (xs := Rs ++ [RW])).2
@@ -1263,7 +1324,7 @@ def grpcStreamMethodOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (
       grpcStreamSpecAt Spec ci γ Dn -∗ S -∗ srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
       srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
       srvStreamInfoIs info -∗
-      srvStreamChainWP #info ics mh #srv #st
+      srvStreamChainWP iprop(True) #info ics mh #srv #st
         (fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗ S)))
 
 instance grpcStreamMethodOk_persistent {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface)
@@ -1303,7 +1364,10 @@ fixed to the fork's thread token and later credit, and the post returning the to
 specification is satisfiable per stream (`streamSpecOk`, at every metadata), and a run, given
 `Spec md γ Dn` at its context's metadata, the token and the credit, the run's raw server end (both
 tokens at `[]`) and grpc's `info`, through the chain, terminates or not, returning an error grpc's
-`status` takes and the token. -/
+`status` takes and the token. The chain is at the trivial resource (`srvStreamChainWP iprop(True)`,
+since 2026-11-23, #24's S2 signatures): the run holds its `threadTok` throughout (grpc-go v1.84
+calls the composed stream interceptor and the handler synchronously on the stream's goroutine) and
+lends what it needs along the chain through the interceptors' own resources. -/
 def grpcStreamRunOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (sics : List GoFunc)
     (Up : Nat → Req.M → IProp GF) (Spec : GrpcMd → StreamSpec Rep) : IProp GF :=
   iprop((□ ∀ md, streamSpecOk (Spec md)) ∗
@@ -1313,7 +1377,7 @@ def grpcStreamRunOk {Req Rep : StreamMsg GF} (mh : val) (srv : GoInterface) (sic
       srvRawStreamIs st γ Req Rep Up Dn ci cd -∗
       srvRecvTok (Req := Req) γ [] -∗ srvSendTok (Rep := Rep) γ [] -∗ streamAuxTok γ -∗
       srvStreamInfoIs info -∗
-      srvStreamChainWP #info sics mh #srv #st
+      srvStreamChainWP iprop(True) #info sics mh #srv #st
         (fun v => iprop(∃ err : GoInterface, ⌜v = #err⌝ ∗ go_etcd_io.etcd.cache.v3.srvErrOk err ∗
           threadTok)))
 

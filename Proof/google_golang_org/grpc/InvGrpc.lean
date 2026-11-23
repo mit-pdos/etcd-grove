@@ -631,31 +631,63 @@ abbrev srvInterceptorCall (ic : GoFunc) (ctx req info : val) (h : GoFunc) : Expr
 abbrev methodHandlerCall (mh srv ctx : val) (dec ui : GoFunc) : Expr :=
   App (App (App (App (Val mh) (Val srv)) (Val ctx)) (Val #dec)) (Val #ui)
 
-/-- **The server's interceptor chain `ics` over the final handler `h`** (grpc's
-`chainUnaryServerInterceptors`, `getChainUnaryHandler`; as `chainWP` on the client): with no
+/-- **The server's interceptor chain `ics` over the final handler `h`, with the resource `R`**
+(grpc's `chainUnaryServerInterceptors`, `getChainUnaryHandler`; as `chainWP` on the client; the
+resource parameter since 2026-11-23, #24's S2 signatures, `R` as `rafthttp.isTransporter tr Rd`'s):
+each call is given `R` and gives it back with its result (`R -∗ WP … {{ v, R ∗ Ψ v }}`). With no
 interceptor, the call is `h`'s; otherwise the first interceptor is called with a handler `h'` of
-grpc's making, whose calls are the rest of the chain's (with the same `info`). `Ψ` is the call's
-postcondition. -/
-def srvChainWP (info : val) : List GoFunc → GoFunc → val → val → (val → IProp GF) → IProp GF
-  | [], h, ctx, req, Ψ => WP (srvHandlerCall h ctx req) {{ Ψ }}
+grpc's making, whose calls are the rest of the chain's (with the same `info` and `R`). `Ψ` is the
+call's postcondition. -/
+def srvChainWP (R : IProp GF) (info : val) :
+    List GoFunc → GoFunc → val → val → (val → IProp GF) → IProp GF
+  | [], h, ctx, req, Ψ => iprop(R -∗ WP (srvHandlerCall h ctx req) {{ v, R ∗ Ψ v }})
   | ic :: ics, h, ctx, req, Ψ =>
     iprop(∀ h' : GoFunc,
       (□ ∀ (ctx' req' : val) (Ψ' : val → IProp GF),
-        srvChainWP info ics h ctx' req' Ψ' -∗ WP (srvHandlerCall h' ctx' req') {{ Ψ' }}) -∗
-      WP (srvInterceptorCall ic ctx req info h') {{ Ψ }})
+        srvChainWP R info ics h ctx' req' Ψ' -∗
+        R -∗ WP (srvHandlerCall h' ctx' req') {{ v, R ∗ Ψ' v }}) -∗
+      R -∗ WP (srvInterceptorCall ic ctx req info h') {{ v, R ∗ Ψ v }})
 
-/-- **The interceptor grpc passes to a method handler, for the chain `ics`** (persistent): `nil`
-for no interceptor; otherwise a non-nil interceptor whose calls are the chain's (for one
-interceptor, the interceptor itself; for more, grpc's `chainUnaryInterceptors` closure). -/
-def grpcSrvChain (ics : List GoFunc) (ui : GoFunc) : IProp GF :=
+/-- A postcondition's `True ∗` is dropped (the chains' calls at the trivial resource). -/
+theorem wp_true_sep {s : Stuckness} {E : CoPset} {e : Expr} {Φ : val → IProp GF} :
+    WP e @ s; E {{ v, iprop(True) ∗ Φ v }} ⊢ WP e @ s; E {{ Φ }} :=
+  wp_mono (fun _ => by iintro ⟨-, H⟩; iexact H)
+
+/-- A postcondition gains `True ∗` (the chains' calls at the trivial resource). -/
+theorem wp_true_sep_intro {s : Stuckness} {E : CoPset} {e : Expr} {Φ : val → IProp GF} :
+    WP e @ s; E {{ Φ }} ⊢ WP e @ s; E {{ v, iprop(True) ∗ Φ v }} :=
+  wp_mono (fun _ => by iintro H; iframe)
+
+/-- **The interceptor grpc passes to a method handler, for the chain `ics`, with the resource `R`**
+(persistent): `nil` for no interceptor; otherwise a non-nil interceptor whose calls, given `R`, are
+the chain's at `R` (for one interceptor, the interceptor itself; for more, grpc's
+`chainUnaryInterceptors` closure, `server.go:1227-1240`, which calls `interceptors[0]` with
+`getChainUnaryHandler`'s closures, each calling the next interceptor or the final handler on the
+same goroutine: they touch no resource, so the fact holds at every `R`, `grpcSrvChainAll`). -/
+def grpcSrvChain (R : IProp GF) (ics : List GoFunc) (ui : GoFunc) : IProp GF :=
   match ics with
   | [] => iprop(⌜ui = func.nil⌝)
   | _ :: _ => iprop(⌜ui ≠ func.nil⌝ ∗ □ ∀ (ctx req info : val) (h : GoFunc) (Ψ : val → IProp GF),
-      srvChainWP info ics h ctx req Ψ -∗ WP (srvInterceptorCall ui ctx req info h) {{ Ψ }})
+      srvChainWP R info ics h ctx req Ψ -∗
+      R -∗ WP (srvInterceptorCall ui ctx req info h) {{ v, R ∗ Ψ v }})
 
-instance grpcSrvChain_persistent (ics : List GoFunc) (ui : GoFunc) :
-    Persistent (grpcSrvChain (GF := GF) ics ui) := by
+instance grpcSrvChain_persistent (R : IProp GF) (ics : List GoFunc) (ui : GoFunc) :
+    Persistent (grpcSrvChain (GF := GF) R ics ui) := by
   unfold grpcSrvChain; cases ics <;> infer_instance
+
+/-- **grpc's composed interceptor at every resource** (persistent; the Go fact a run is given,
+`grpcAccepted`): `grpcSrvChain R ics ui` for every `R`. True of grpc-go v1.84: the composed
+interceptor and the handlers `getChainUnaryHandler` makes are grpc's code, which allocates its
+closures and calls the next interceptor (or the final handler) synchronously on the run's goroutine,
+and touches no resource of the program's, so whatever the run holds (its `threadTok`, which the run
+contract `grpcRunOkMd` gives it and takes back, or the loans it borrows with it) is the program's
+to pass along. -/
+def grpcSrvChainAll (ics : List GoFunc) (ui : GoFunc) : IProp GF :=
+  iprop(□ ∀ R : IProp GF, grpcSrvChain R ics ui)
+
+instance grpcSrvChainAll_persistent (ics : List GoFunc) (ui : GoFunc) :
+    Persistent (grpcSrvChainAll (GF := GF) ics ui) := by
+  unfold grpcSrvChainAll; infer_instance
 
 /-- **grpc's `dec` for a call whose request is at `m`** (persistent; part of the trusted
 runtime: the codec's unmarshaling of the request's bytes): called on a zero `*T` the caller owns
@@ -698,7 +730,7 @@ def grpcMethodOk {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : L
     (S : IProp GF) (Spec : GrpcSpec Req Rep) : IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChainAll ics ui ∗
         Spec m Φ }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
@@ -719,7 +751,7 @@ def grpcMethodOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics :
     (S : IProp GF) (Spec : GrpcSpecMd Req Rep) : IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
-    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗
+    {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChainAll ics ui ∗
         grpcSpecAt Spec ci m Φ Ψe }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
@@ -812,10 +844,12 @@ instance srvInterceptorsOk_persistent (Q : GoInterface → IProp GF) (ics : List
     | cons R Rs => unfold srvInterceptorsOk; have := ih Rs; infer_instance
 
 /-- **A chain of transparent interceptors runs the handler or fails** (`srvChainWP` from the
-interceptors' contracts): with the interceptors' resources, the run's context, an `info`, and
-both continuations of the handler's call (its result, the resources lent to it and back, or an
-early `(nil, err)` with them back), the chain's call meets `Ψ`. -/
-theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInterfaceOk)
+interceptors' contracts), at any chain resource `R` (passed through: the interceptors' own
+resources are `Rs`, lent along the chain as before the resource parameter): with the interceptors'
+resources, the run's context, an `info`, and both continuations of the handler's call (its result,
+the resources lent to it and back, or an early `(nil, err)` with them back), the chain's call meets
+`Ψ`. -/
+theorem srvChainWP_of_ok (R : IProp GF) (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (req : GoInterface) (info : Loc) (h : GoFunc)
     (Ψ : val → IProp GF) (Q : GoInterface → IProp GF) :
     srvInterceptorsOk Q ics Rs ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗
@@ -826,88 +860,103 @@ theorem srvChainWP_of_ok (ics : List GoFunc) (Rs : List (IProp GF)) (ci : GoInte
         (([∗list] R ∈ Rs, R) -∗ ∀ err : GoInterface,
           notHandlerErr err -∗
           go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err))) ⊢
-    srvChainWP #info ics h #(GoInterface.ok ci) #req Ψ := by
+    srvChainWP R #info ics h #(GoInterface.ok ci) #req Ψ := by
   induction ics generalizing Rs Ψ with
   | nil =>
     cases Rs with
-    | cons R Rs =>
-      rw [show srvInterceptorsOk (GF := GF) Q [] (R :: Rs) = iprop(⌜False⌝) from rfl]
+    | cons R0 Rs =>
+      rw [show srvInterceptorsOk (GF := GF) Q [] (R0 :: Rs) = iprop(⌜False⌝) from rfl]
       iintro ⟨%H, -⟩; exact H.elim
     | nil =>
       iintro ⟨-, HRs, -, -, -, -, H⟩
       unfold srvChainWP
+      iintro HR
       icases H with ⟨H, -⟩
       ispecialize H $$ HRs
-      iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-        go_etcd_io.etcd.cache.v3.srvErrOk err ∗ ([∗list] R ∈ ([] : List (IProp GF)), R) ∗
-        (([∗list] R ∈ ([] : List (IProp GF)), R) -∗ Ψ v)))) $$ H
+      iapply wp_wand_r
+      isplitl [H]
+      · iexact H
       iintro %v ⟨%resp, %err, -, -, HRs, HΨ⟩
+      iframe HR
       iapply HΨ $$ HRs
   | cons ic ics ih =>
     cases Rs with
     | nil =>
       rw [show srvInterceptorsOk (GF := GF) Q (ic :: ics) [] = iprop(⌜False⌝) from rfl]
       iintro ⟨%H, -⟩; exact H.elim
-    | cons R Rs =>
-      rw [show srvInterceptorsOk (GF := GF) Q (ic :: ics) (R :: Rs) =
-        iprop(srvInterceptorOk ic R Q ∗ srvInterceptorsOk Q ics Rs) from rfl]
+    | cons R0 Rs =>
+      rw [show srvInterceptorsOk (GF := GF) Q (ic :: ics) (R0 :: Rs) =
+        iprop(srvInterceptorOk ic R0 Q ∗ srvInterceptorsOk Q ics Rs) from rfl]
       iintro ⟨⟨#Hic, #Hoks⟩, HRs, #Hctx, #Hrc, #Hinfo, #HQ, H⟩
-      ihave ⟨HR, HRs⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
+      ihave ⟨HR0, HRs⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R0)
         (xs := Rs)).1 $$ HRs
       unfold srvChainWP
-      iintro %h' #Hh'
+      iintro %h' #Hh' HR
       iunfold srvInterceptorOk at Hic
-      iapply Hic $$ HR Hctx Hrc Hinfo HQ
+      iapply Hic $$ HR0 Hctx Hrc Hinfo HQ
       isplit
-      · iintro HR'
-        iapply Hh'
-        iapply (ih Rs (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-          go_etcd_io.etcd.cache.v3.srvErrOk err ∗ R ∗ (R -∗ Ψ v))))
-        iframe #
-        iframe HRs
-        isplit
-        · icases H with ⟨H, -⟩
-          iintro HRs'
-          ihave HRR := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
-            (xs := Rs)).2 $$ [HR' HRs']
-          · iframe
-          ispecialize H $$ HRR
-          iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ ([∗list] R ∈ R :: Rs, R) ∗
-            (([∗list] R ∈ R :: Rs, R) -∗ Ψ v)))) $$ H
-          iintro %v ⟨%resp, %err, %Hv, #Hse, HRR, HΨ⟩
-          ihave ⟨HR2, HRs2⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R)
-            (xs := Rs)).1 $$ HRR
-          iexists resp, err
-          isplitr
-          · ipureintro; exact Hv
-          iframe Hse
-          iframe HRs2
-          iintro HRs3
-          iexists resp, err
-          isplitr
-          · ipureintro; exact Hv
-          iframe Hse
-          iframe HR2
-          iintro HR3
-          iapply HΨ
-          iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
-          iframe
-        · icases H with ⟨-, H⟩
-          iintro HRs' %err #Herr #Hse
-          iexists GoInterface.nil, err
-          isplitr
-          · ipureintro; rfl
-          iframe Hse
-          iframe HR'
-          iintro HR3
-          iapply H $$ [HR3 HRs'] %err Herr Hse
-          iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
-          iframe
+      · iintro HR0'
+        iapply wp_wand_r
+        isplitl [H HRs HR0' HR]
+        · iapply Hh' $$ %_ %_ %(fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ R0 ∗ (R0 -∗ Ψ v))) [H HRs HR0'] HR
+          iapply (ih Rs (fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ R0 ∗ (R0 -∗ Ψ v))))
+          iframe #
+          iframe HRs
+          isplit
+          · icases H with ⟨H, -⟩
+            iintro HRs'
+            ihave HRR := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R0)
+              (xs := Rs)).2 $$ [HR0' HRs']
+            · iframe
+            ispecialize H $$ HRR
+            iapply (wp_mono (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
+              go_etcd_io.etcd.cache.v3.srvErrOk err ∗ ([∗list] R ∈ R0 :: Rs, R) ∗
+              (([∗list] R ∈ R0 :: Rs, R) -∗ Ψ v)))) $$ H
+            iintro %v ⟨%resp, %err, %Hv, #Hse, HRR, HΨ⟩
+            ihave ⟨HR2, HRs2⟩ := (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R0)
+              (xs := Rs)).1 $$ HRR
+            iexists resp, err
+            isplitr
+            · ipureintro; exact Hv
+            iframe Hse
+            iframe HRs2
+            iintro HRs3
+            iexists resp, err
+            isplitr
+            · ipureintro; exact Hv
+            iframe Hse
+            iframe HR2
+            iintro HR3
+            iapply HΨ
+            iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R0) (xs := Rs)).2
+            iframe
+          · icases H with ⟨-, H⟩
+            iintro HRs' %err #Herr #Hse
+            iexists GoInterface.nil, err
+            isplitr
+            · ipureintro; rfl
+            iframe Hse
+            iframe HR0'
+            iintro HR3
+            iapply H $$ [HR3 HRs'] %err Herr Hse
+            iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R0) (xs := Rs)).2
+            iframe
+        iintro %v ⟨HR, %resp, %err, %Hv, #Hse, HR0, HΨ⟩
+        iexists resp, err
+        isplitr
+        · ipureintro; exact Hv
+        iframe Hse
+        iframe HR0
+        iintro HR0
+        iframe HR
+        iapply HΨ $$ HR0
       · icases H with ⟨-, H⟩
-        iintro HR' %err #Herr #Hse
-        iapply H $$ [HR' HRs] %err Herr Hse
-        iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R) (xs := Rs)).2
+        iintro HR0' %err #Herr #Hse
+        iframe HR
+        iapply H $$ [HR0' HRs] %err Herr Hse
+        iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ R => R) (x := R0) (xs := Rs)).2
         iframe
 
 end defs
@@ -1101,13 +1150,17 @@ the token in the post. A run, given the token and the credit, the run's context 
 `Spec md m Φ Ψe` at the context's incoming metadata, returns the token and, on success, a response
 `*T` (as `any`) at some `m'` with `Φ m'`, on a handler's error its `Ψe`, and an error grpc's
 `status.FromError` takes. Handlers are proved against `grpcMethodOkMd` at their bundle; the adapters
-(`grpcRunOkMd_of_pools`) give this contract. -/
+(`grpcRunOkMd_of_pools`) give this contract. Since 2026-11-23 (#24's S2 signatures) the chain's
+interceptor is given at every resource (`grpcSrvChainAll`): the run holds its `threadTok`
+throughout, from its fork to its return (grpc-go v1.84 runs each call's handler and its whole
+interceptor chain on the goroutine `Server.handleStream` started for it, synchronously), and passes
+what it holds, the token or the loans it borrows with it, along the chain. -/
 def grpcRunOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (Spec : GrpcSpecMd Req Rep) : IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
     {{ threadTok ∗ £ 1 ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-        grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+        grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); threadTok ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -1182,19 +1235,28 @@ instance grpcServerAt_persistent (addr : GoString) (ics : List GoFunc)
 
 end reg
 
+/-- **The family of every resource** (`IProp GF → Prop`, the resource parameter's family): a
+connection whose per-RPC credentials need no resource of their caller (none, or ones whose
+contract holds at every `R`) takes any, `True` included. -/
+abbrev anyRes {GF : BundledGFunctors} : IProp GF → Prop := fun _ => True
+
 /-- **The client's connection `conn` reaches the servers at `addrs`, with the unary interceptors
 `ics` and the default call options `dopts`** (persistent; an axiomatized predicate: a fact about
 grpc's `*ClientConn` dialed to a resolver of the addresses `addrs`; unit P3a, it was
 `isGrpcConn conn addr`, the interceptors inside the boundary; a list since 2026-10-21,
 `notes/decisions.md` D27: each attempt goes to one of them, grpc's balancer's choice). `ics` is the chain `grpc.NewClient`/`Dial` compose
 (`chainUnaryClientInterceptors`: `WithUnaryInterceptor`'s, then `WithChainUnaryInterceptor`'s, in
-order), `dopts` the `WithDefaultCallOptions`. -/
+order), `dopts` the `WithDefaultCallOptions`. `Ok` (since 2026-11-23, #24's S2 signatures) is the
+family of resources the connection's per-RPC credentials were dialed for (`perRPCCredsOk pc Ok Q`,
+`grpc.NewClient`'s premise): a call on the connection (`Invoke`, `NewStream`, a stream's
+`SendMsg`/`RecvMsg`/`CloseSend`) is given some `R` with `Ok R` by its caller, which grpc's attempts
+lend the credentials (`grpcInvokerOk`, `cliStreamIs`). -/
 axiom grpcConn {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addrs : List GoString)
-  (ics : List GoFunc) (dopts : List GoInterface) : IProp GF
+  (ics : List GoFunc) (dopts : List GoInterface) (Ok : IProp GF → Prop) : IProp GF
 
 axiom grpcConn_persistent {GF : BundledGFunctors} [GooseExts] (conn : Loc) (addrs : List GoString)
-    (ics : List GoFunc) (dopts : List GoInterface) :
-  Persistent (grpcConn (GF := GF) conn addrs ics dopts)
+    (ics : List GoFunc) (dopts : List GoInterface) (Ok : IProp GF → Prop) :
+  Persistent (grpcConn (GF := GF) conn addrs ics dopts Ok)
 
 attribute [instance] grpcConn_persistent
 
@@ -1817,22 +1879,34 @@ race with the caller's writes, reproduced by the attack's `TestTracingRace`,
 decodes a repeated message field into a fresh array, bytes fields copied out of the receive buffer);
 no stats handler or interceptor keeping the reply (`InPayload.Payload`; `dialOptsAt` admits none,
 etcd's interceptors keep nothing); reply types protobuf-go v2 generated code (no custom `Unmarshal`).
-Checked by `examples/k8s/etcd3`'s `TestDefaultNoRace` (`-race`, in the gates). -/
-def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF :=
+Checked by `examples/k8s/etcd3`'s `TestDefaultNoRace` (`-race`, in the gates).
+
+Since 2026-11-23 (#24's S2 signatures, the resource parameter) the attempt is given a resource `R`
+of the connection's family (`Ok R`, `grpcConn`'s) by its caller and gives it back: grpc lends it to
+the per-RPC credentials (`perRPCCredsOk pc Ok Q`). True of grpc-go v1.84: `invoke` runs
+`newClientStream`, `SendMsg`, `CloseSend` and `RecvMsg` on the caller's goroutine, and the
+credentials are called only from there, by `http2Client.createHeaderFields` → `getTrAuthData`
+(`internal/transport/http2_client.go:542-549,689-735`) when an attempt's transport stream is made
+(`csAttempt.newStream`, `stream.go:495-508`), again for each transparent retry, which
+`clientStream.withRetry` (`stream.go:930`) makes synchronously inside the same call; the program's
+clients make no calls of their own on the connection (D7). So the credentials run only while the
+caller holds `R`, one call at a time. -/
+def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) (inv : GoFunc) :
+    IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
       (_ : grpcReqModelOf GF Req.ty = some Req) (_ : grpcRepModelOf GF Rep.ty = some Rep)
       (Spec : GrpcSpecMd Req.toProtoMsg Rep.toProtoMsg) (m : Req.M)
       (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd)
-      (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc),
-    {{ isGrpcRpcsMd addrs method Spec ∗ metadata.outMD ctx om ∗
+      (inp out : Loc) (opts : GoSlice) (vs : List GoInterface) (ps : List Loc) (R : IProp GF),
+    {{ ⌜Ok R⌝ ∗ R ∗ isGrpcRpcsMd addrs method Spec ∗ metadata.outMD ctx om ∗
         ▷ (∀ md, ⌜grpcAttemptMd conn om md⌝ -∗ Spec md m Φ Ψe) ∗
         ctxOk ctx cd ∗ Req.send inp m ∗ ⌜Req.wireLen m < grpcMsgMax⌝ ∗
         Rep.own out ∗ opts ↦*□ vs ∗ ⌜∀ v ∈ vs, grpcOptOk ps v⌝ ∗ ([∗list] p ∈ ps, grpcPeerBuf p) }}
       (invokerCall inv #(GoInterface.ok ctx) #method
         #(interface.mkOk (go.GoType.PointerType Req.ty) #inp : GoInterface)
         #(interface.mkOk (go.GoType.PointerType Rep.ty) #out : GoInterface) #conn #opts)
-    {{ (err : GoInterface), RET #err; Req.send inp m ∗ ([∗list] p ∈ ps, grpcPeerBuf p) ∗
+    {{ (err : GoInterface), RET #err; R ∗ Req.send inp m ∗ ([∗list] p ∈ ps, grpcPeerBuf p) ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m' : Rep.M, Rep.recv out m' ∗ Rep.recvOwn out m' ∗ Φ m') ∨
           (⌜err ≠ GoInterface.nil ∧ clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
             go_etcd_io.etcd.cache.v3.errCellOk err ∗ Rep.own out ∗ notLearnerErr err ∗
@@ -1841,8 +1915,8 @@ def grpcInvokerOk (conn : Loc) (addrs : List GoString) (inv : GoFunc) : IProp GF
               d ∉ go_etcd_io.etcd.cache.v3.refusalDescs⌝ ∗
             (⌜d ∈ handlerDescs⌝ -∗ Ψe d))) }})
 
-instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (inv : GoFunc) :
-    Persistent (grpcInvokerOk (GF := GF) conn addrs inv) := by
+instance grpcInvokerOk_persistent (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop)
+    (inv : GoFunc) : Persistent (grpcInvokerOk (GF := GF) conn addrs Ok inv) := by
   unfold grpcInvokerOk; infer_instance
 
 /-- **Per-RPC credentials' metadata**: `GetRequestMetadata`'s map `mp` (a `map[string]string`;
@@ -1862,14 +1936,18 @@ handler's, but grpc-go v1.84 returns a credentials error that carries a status, 
 type: neither a leaf nor of `clientErrTys`, so `grpcInvokerOk`/`cliStreamErr` overclaimed under such
 credentials; etcd's `perRPCCredential` returns `nil`), and, a map whose metadata `cm` has `□ Q cm` (what grpc sends with an attempt, `connCredsOk`); and
 `pc.RequireTransportSecurity()` can be called (grpc calls it at the dial to refuse credentials that
-need a secure transport on an insecure one; C1's review, F4). -/
-def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
-  iprop((□ ∀ (ctx : GoInterface) (sl : GoSlice),
-    {{ True }}
+need a secure transport on an insecure one; C1's review, F4). Since 2026-11-23 (#24's S2
+signatures) `GetRequestMetadata` is called with a resource `R` of the family `Ok` fixed at the dial,
+which it gives back (a reader slot of the credentials' lock, for etcd's): grpc calls it only from a
+call on the connection, on that call's goroutine, while the call's caller holds such an `R`
+(`grpcInvokerOk`, `cliStreamIs`); `RequireTransportSecurity` is called at the dial, without one. -/
+def perRPCCredsOk (pc : GoInterface) (Ok : IProp GF → Prop) (Q : GrpcMd → IProp GF) : IProp GF :=
+  iprop((□ ∀ (ctx : GoInterface) (sl : GoSlice) (R : IProp GF),
+    {{ ⌜Ok R⌝ ∗ R }}
       (App (App (App (Val (GoInstruction (MethodResolve
           google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"GetRequestMetadata")))
         (Val #pc)) (Val #ctx)) (Val #sl))
-    {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err);
+    {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err); R ∗
         ⌜err = GoInterface.nil⌝ ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ cm, credsMapIs mp cm ∗ □ Q cm) }}) ∗
     □ {{ True }}
@@ -1878,8 +1956,8 @@ def perRPCCredsOk (pc : GoInterface) (Q : GrpcMd → IProp GF) : IProp GF :=
         (Val #pc)) (Val #()))
     {{ (b : Bool), RET #b; True }})
 
-instance perRPCCredsOk_persistent (pc : GoInterface) (Q : GrpcMd → IProp GF) :
-    Persistent (perRPCCredsOk pc Q) := by
+instance perRPCCredsOk_persistent (pc : GoInterface) (Ok : IProp GF → Prop) (Q : GrpcMd → IProp GF) :
+    Persistent (perRPCCredsOk pc Ok Q) := by
   unfold perRPCCredsOk; infer_instance
 
 /-- **What the per-RPC credentials `pcs` of the connection `conn` returned to its attempts**
@@ -1896,35 +1974,66 @@ instance connCredsOk_persistent (conn : Loc) (pcs : List GoInterface) (Q : GrpcM
     Persistent (connCredsOk conn pcs Q) := by
   unfold connCredsOk; split <;> infer_instance
 
-/-- **The interceptor chain `ics` over the final invoker `inv`** (unit P3a; grpc's
-`chainUnaryClientInterceptors`, `getChainUnaryInvoker`): with no interceptor, the call is `inv`'s;
-otherwise the first interceptor is called with an invoker `inv'` of grpc's making, whose calls
-(on the same connection) are the rest of the chain's. `Ψ` is the call's postcondition. -/
-def chainWP (conn : Loc) : List GoFunc → GoFunc → val → val → val → val → val →
+/-- **The interceptor chain `ics` over the final invoker `inv`, with the resource `R`** (unit P3a;
+grpc's `chainUnaryClientInterceptors`, `getChainUnaryInvoker`; the resource parameter since
+2026-11-23, #24's S2 signatures): each call is given `R` and gives it back with its result
+(`R -∗ WP … {{ v, R ∗ Ψ v }}`). With no interceptor, the call is `inv`'s; otherwise the first
+interceptor is called with an invoker `inv'` of grpc's making, whose calls (on the same connection,
+with the same `R`) are the rest of the chain's. `Ψ` is the call's postcondition. True of grpc-go
+v1.84: `chainUnaryInterceptors` and `getChainUnaryInvoker` (`clientconn.go`/`dialoptions.go`'s
+chaining) are closures calling the next interceptor or `invoke` synchronously on the caller's
+goroutine. -/
+def chainWP (R : IProp GF) (conn : Loc) : List GoFunc → GoFunc → val → val → val → val → val →
     (val → IProp GF) → IProp GF
   | [], inv, ctx, method, req, reply, opts, Ψ =>
-    WP (invokerCall inv ctx method req reply #conn opts) {{ Ψ }}
+    iprop(R -∗ WP (invokerCall inv ctx method req reply #conn opts) {{ v, R ∗ Ψ v }})
   | ic :: ics, inv, ctx, method, req, reply, opts, Ψ =>
     iprop(∀ inv' : GoFunc,
       (□ ∀ (ctx' method' req' reply' opts' : val) (Ψ' : val → IProp GF),
-        chainWP conn ics inv ctx' method' req' reply' opts' Ψ' -∗
-        WP (invokerCall inv' ctx' method' req' reply' #conn opts') {{ Ψ' }}) -∗
-      WP (interceptorCall ic ctx method req reply #conn inv' opts) {{ Ψ }})
+        chainWP R conn ics inv ctx' method' req' reply' opts' Ψ' -∗
+        R -∗ WP (invokerCall inv' ctx' method' req' reply' #conn opts') {{ v, R ∗ Ψ' v }}) -∗
+      R -∗ WP (interceptorCall ic ctx method req reply #conn inv' opts) {{ v, R ∗ Ψ v }})
 
 /-- An invoker that behaves as one meeting the attempt contract meets it. -/
-theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (inv inv' : GoFunc) :
-    grpcInvokerOk (GF := GF) conn addr inv ∗
+theorem grpcInvokerOk_of_wp (conn : Loc) (addr : List GoString) (Ok : IProp GF → Prop)
+    (inv inv' : GoFunc) :
+    grpcInvokerOk (GF := GF) conn addr Ok inv ∗
       (□ ∀ (ctx' method' req' reply' opts' : val) (Ψ' : val → IProp GF),
         WP (invokerCall inv ctx' method' req' reply' #conn opts') {{ Ψ' }} -∗
         WP (invokerCall inv' ctx' method' req' reply' #conn opts') {{ Ψ' }}) ⊢
-    grpcInvokerOk conn addr inv' := by
+    grpcInvokerOk conn addr Ok inv' := by
   iintro ⟨#Hinv, #Hw⟩
   unfold grpcInvokerOk
-  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps
+  iintro !> %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %R
   iintro %Ψ !> Hpre HΨ
   iapply Hw
-  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps %Ψ
-    Hpre HΨ
+  iapply Hinv $$ %method %Req %Rep %hreq %hrep %Spec %m %Φ %Ψe %ctx %cd %om %inp %out %opts %vs %ps
+    %R %Ψ Hpre HΨ
+
+/-- An invoker that behaves as one meeting the attempt contract, through a chain's invoker at the
+trivial resource (`chainWP iprop(True)`'s `inv'`), meets it. -/
+theorem grpcInvokerOk_of_chainTrue (conn : Loc) (addr : List GoString) (Ok : IProp GF → Prop)
+    (inv inv' : GoFunc) :
+    grpcInvokerOk (GF := GF) conn addr Ok inv ∗
+      (□ ∀ (ctx' method' req' reply' opts' : val) (Ψ' : val → IProp GF),
+        (iprop(True) -∗ WP (invokerCall inv ctx' method' req' reply' #conn opts')
+          {{ v, iprop(True) ∗ Ψ' v }}) -∗
+        iprop(True) -∗ WP (invokerCall inv' ctx' method' req' reply' #conn opts')
+          {{ v, iprop(True) ∗ Ψ' v }}) ⊢
+    grpcInvokerOk conn addr Ok inv' := by
+  iintro ⟨#Hinv, #Hw⟩
+  iapply grpcInvokerOk_of_wp conn addr Ok inv inv'
+  iframe Hinv
+  iintro !> %ctx' %method' %req' %reply' %opts' %Ψ' Hwp
+  iapply wp_true_sep
+  iapply Hw $$ [Hwp] []
+  · iintro -
+    iapply wp_wand_r
+    isplitl [Hwp]
+    · iexact Hwp
+    iintro %v Hv
+    iframe
+  · itrivial
 
 end client
 
