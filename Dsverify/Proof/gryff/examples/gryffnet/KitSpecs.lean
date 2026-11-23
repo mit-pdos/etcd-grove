@@ -77,7 +77,8 @@ abbrev Orch.spec : Prop :=
       ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (casR γ) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := In) ∗
       pendCtx (Gg := hG.goose_globalGS) (casR γ) (casS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (casS0 (GF := GF)) γp (casS0 (GF := GF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (casS0 (GF := GF)) γp (casS0 (GF := GF)).M.init ∗
+      [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 12 }}
     (App (Val (@! gryff.examples.gryffnet.Orch)) (Val #()))
   {{ RET #(); True }}
 

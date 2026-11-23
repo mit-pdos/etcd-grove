@@ -29,6 +29,7 @@ public import Net.Proof.net.rpc.Call__done
 public import Net.Proof.net.rpc.Client__send
 public import Net.Proof.net.rpc.Client__Go
 public import Net.Proof.net.rpc.Client__Call
+public import Net.Proof.net.rpc.Results
 public import Perennial.Proof.sync.Link
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Dial
@@ -83,9 +84,9 @@ theorem netSpecs [net.Assumptions] [net.FieldAssumptions] : netN.NetSpecs GF :=
     net.Conn.RemoteAddr.wp_proof, net.Listener.Accept.wp_proof, net.Listen.wp_proof,
     net.Dial.wp_proof, net.DialTimeout.wp_proof⟩
 
-/-! Net's net/rpc client and `SetCodec`, linked here as `Net/Proof/net/rpc/Results.lean` does
-(that module also links `DialHTTPPath`, whose proof does not compile at this branch's merge of
-models-rpc-http, `1a4d9546c9`: `DialHTTP.spec` is a premise until the next merge). -/
+/-! Net's net/rpc client and `SetCodec`, linked here as `Net/Proof/net/rpc/Results.lean` does;
+`DialHTTP` is that module's `net.rpc.DialHTTP.wp` (models-rpc-http: `DialHTTPPath` over net/http's
+`ReadResponse`, proved). -/
 
 section rpc
 variable [net.rpc.Assumptions] [sync.Assumptions]
@@ -129,14 +130,14 @@ variable [net.Assumptions] [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPow
 variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
 variable [randA : lib.RandSeedHyp GF] [mA : gryff.src.masterlib.Assumptions]
 variable [sA : gryff.src.serverlib.Assumptions] [bufio.Assumptions] [sync.Assumptions]
+variable [errors.Assumptions]
 
-/-- Every server machine (`DialHTTP.spec`: see `section rpc`). -/
-theorem wp_Server (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG)) :
-    Server.spec (GF := GF) (hG := hG) := by
+/-- Every server machine (`DialHTTP`: Net's, see `section rpc`). -/
+theorem wp_Server : Server.spec (GF := GF) (hG := hG) := by
   haveI := bufioSpecs (GF := GF) (hG := hG)
   haveI := netSpecs (GF := GF) (hG := hG)
   exact Server.wp_proof lib.io.ReadFull.wp_proofLt gryffCodecLaws gryffRcvLaws Call_wp
-    wp_DialHTTP SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt)
+    net.rpc.DialHTTP.wp SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt)
 
 end server
 

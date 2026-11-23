@@ -225,7 +225,17 @@ net/http's package variables come from a machine's boot, never from an `isPkgIni
 not initialized yet (`gNoPkg net/rpc g`), leaves `rpcInitRes`; net/http's, where net/http is not
 initialized yet, leaves `httpInitRes`. Owned, not persistent: a machine's boot proof gets them
 once, at its packages' initialization (`cmd/server*/Boot.lean`, as the replicas' prophecy). Taken
-by the deployment's boot proofs and visible in the statement; never an instance. -/
+by the deployment's boot proofs and visible in the statement; never an instance.
+
+**Every package the initializers reach is named** (dsv-inithyp-fix; as swiftpaxos's `RpcFirstInit`):
+the table before (`gNoPkg q g`) and after (`g`) agree beyond the package `q`, and the premise
+`GetIsPkgInitProp q g` is the shared `Dsverify/Proof/net/{rpc,http}/Init.lean`'s condition, which
+since dsv-inithyp-fix constrains the initializer's whole import closure (`build_get_is_pkg_init_wf`
+over the `PkgInfo` imports, models-rpc-http's
+`mime/multipart` and `net/http/internal/ascii` included). So the table holds each such package's fact before
+and after, and a table with `False` at an import (say `bufio`), which would make the post
+`ownInitializing g` need `□ False`, does not meet the premise. The programs' tables
+(`HYP_IMPORTS` default `'all'`, `etc/dsv/gryff.py`) hold that closure and prove the conditions. -/
 class RpcBootHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics]
     [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] : Prop where
   wp_init_own : ∀ (g : GoString → IProp GF), GetIsPkgInitProp pkg_id.net.rpc g →

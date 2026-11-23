@@ -118,7 +118,7 @@ end boot
 
 /-- **The gryff kit, closed** (see the statement's file). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hbv hsi hss hmp hrs RA H hboot hdial σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hbv hsi hss hmp hrs RA H hboot σ g threads
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g threads
     (2 ^ 31 - 1) gryffLas_pairwise gryffLas_disj ?_
   intro G π hrb
@@ -126,8 +126,8 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
   iintro #Hreg Hs Hl
   unfold gryffKitAddrs
   imod gryff_start (G := G) $$ Hreg Hl with ⟨%γ, Hown, Hcl, Hsv⟩
-  imod mapCtx_alloc (Gg := G) (I := In) ⊤ with ⟨%ρ, #Hmap⟩
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) (RBase.svc (casR γ.proto)))
+  imod mapCtx_alloc (Gg := G) (I := In) ⊤ clientAddrs 12 (by decide) with ⟨%ρ, -, #Hmap, Hbud⟩
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (casR γ.proto)) a)
     (fun _ => repP (Gg := G) (RBase.svc (casR γ.proto))) clientAddrs $$ Hreg Hs with #Hpc
   have hv : regHalf (GF := remoteGF) γ.proto (W64 0) ⊢
       (casR (GF := remoteGF) γ.proto).sysState (casR (GF := remoteGF) γ.proto).B.init := .rfl
@@ -151,7 +151,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
   icases Hcl with ⟨Hc0, Hc1, Hc2, Hc3, Hc4, Hc5, -⟩
   icases Hsv with ⟨Hv0, Hv1, Hv2, Hv3, -⟩
   imodintro
-  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (casR γ.proto) a) ∗ mapCtx (Gg := G) (I := In) ∗ pendCtx (Gg := G) (casR γ.proto) (casS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (casS0 (GF := remoteGF)) γp (casS0 (GF := remoteGF)).M.init)
+  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (casR γ.proto) a) ∗ mapCtx (Gg := G) (I := In) ∗ pendCtx (Gg := G) (casR γ.proto) (casS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (casS0 (GF := remoteGF)) γp (casS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G) a 12)
       else if i = 1 then iprop(clientNodeShare (G := G) γ 0 ∗ remoteAddr (Gg := G) (casR γ.proto) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G) (I := In))
       else if i = 2 then iprop(clientNodeShare (G := G) γ 1 ∗ remoteAddr (Gg := G) (casR γ.proto) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G) (I := In))
       else if i = 3 then iprop(clientNodeShare (G := G) γ 2 ∗ remoteAddr (Gg := G) (casR γ.proto) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G) (I := In))
@@ -180,7 +180,6 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
     letI : lib.RandSeedHyp remoteGF := hrs G' hG.goose_localGS
     letI : RpcHttpHyp remoteGF := H G' hG.goose_localGS π
     letI : RpcBootHyp remoteGF := hboot G' hG.goose_localGS π
-    have wdial : net.rpc.DialHTTP.spec (GF := remoteGF) (hG := hG) := hdial G' hG.goose_localGS π
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
     have hb' : threadBound remoteGF ≤ 2 ^ 31 ∧ receiptBound remoteGF ≤ 2 ^ 64 := by
       constructor <;> omega
@@ -191,12 +190,12 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
       iapply wp_bootR cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit iprop(True)
-          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (casR γ.proto) a) ∗ mapCtx (Gg := G') (I := In) ∗ pendCtx (Gg := G') (casR γ.proto) (casS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (casS0 (GF := remoteGF)) γp (casS0 (GF := remoteGF)).M.init))
+          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (casR γ.proto) a) ∗ mapCtx (Gg := G') (I := In) ∗ pendCtx (Gg := G') (casR γ.proto) (casS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (casS0 (GF := remoteGF)) γp (casS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G') a 12))
           (by
-            iintro %Φ ⟨#Hpkg, ⟨#Has, #Hm, #Hp, Hlib⟩, -⟩ HΦ
-            iapply (cmd.orch.wp_main EtcdGrove.dsvgryff.wp_Orch γ.proto γp hrb') $$ [Hlib] HΦ
+            iintro %Φ ⟨#Hpkg, ⟨#Has, #Hm, #Hp, Hlib, Hbud⟩, -⟩ HΦ
+            iapply (cmd.orch.wp_main EtcdGrove.dsvgryff.wp_Orch γ.proto γp hrb') $$ [Hlib Hbud] HΦ
             iframe #
-            iframe Hlib) $$ HP Hgs
+            iframe Hlib Hbud) $$ HP Hgs
     | 1, hm =>
       cases hm
       dsimp only
@@ -303,7 +302,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
           cmd.server1.wp_initialize'_own (P := iprop(serverShare (G := G') γ 0))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server1.wp_main (EtcdGrove.dsvgryff.wp_Server wdial) γ) $$ [Hsh Hglob Hbp Hboot] HΦ
+            iapply (cmd.server1.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
             iframe Hpkg Hboot Hsh
             isplitr
             · ipureintro; exact hb'
@@ -318,7 +317,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
           cmd.server2.wp_initialize'_own (P := iprop(serverShare (G := G') γ 1))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server2.wp_main (EtcdGrove.dsvgryff.wp_Server wdial) γ) $$ [Hsh Hglob Hbp Hboot] HΦ
+            iapply (cmd.server2.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
             iframe Hpkg Hboot Hsh
             isplitr
             · ipureintro; exact hb'
@@ -333,7 +332,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
           cmd.server3.wp_initialize'_own (P := iprop(serverShare (G := G') γ 2))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server3.wp_main (EtcdGrove.dsvgryff.wp_Server wdial) γ) $$ [Hsh Hglob Hbp Hboot] HΦ
+            iapply (cmd.server3.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
             iframe Hpkg Hboot Hsh
             isplitr
             · ipureintro; exact hb'
@@ -348,7 +347,7 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
           cmd.server4.wp_initialize'_own (P := iprop(serverShare (G := G') γ 3))
           (by
             iintro %Φ ⟨#Hpkg, Hsh, Hglob, Hbp, Hboot⟩ HΦ
-            iapply (cmd.server4.wp_main (EtcdGrove.dsvgryff.wp_Server wdial) γ) $$ [Hsh Hglob Hbp Hboot] HΦ
+            iapply (cmd.server4.wp_main EtcdGrove.dsvgryff.wp_Server γ) $$ [Hsh Hglob Hbp Hboot] HΦ
             iframe Hpkg Hboot Hsh
             isplitr
             · ipureintro; exact hb'
@@ -356,10 +355,10 @@ theorem gryff_remote_robust : gryff_remote_robust.spec := by
   -- the shares, node by node
   unfold system
   iapply BigSepL.bigSepL_cons.2
-  isplitl [Hlib]
+  isplitl [Hlib Hbud]
   · simp only [↓reduceIte]
     iframe #
-    iframe Hlib
+    iframe Hlib Hbud
   iapply BigSepL.bigSepL_cons.2
   isplitl [Hc0]
   · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]

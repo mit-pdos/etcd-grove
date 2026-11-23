@@ -444,7 +444,9 @@ theorem NewEPaxosRMWHandler_wp (k : Fin 3) (r gR : Loc) (id : w64) (nodes : List
   ihave IHb : iprop(∃ v : w32, "Hbf" ∷ globalAddr src.gryff.bf_PT ↦ v) $$ [Hbf]
   · iexists _; iframe
   wp_for IHb
-  wp_apply (lib.MathPowHyp.pow (GF := GF)) as %pw -
+  ihave #Hmath : isPkgInit (PROP := IProp GF) pkg_id.math $$ []
+  · iPkgInit
+  wp_apply (lib.MathPowHyp.pow (GF := GF)) $$ [Hmath] as %pw -
   try wp_auto
   try simp only [src.gryff.MAX_BATCH_F, src.gryff.BF_M_N]
   try wp_auto

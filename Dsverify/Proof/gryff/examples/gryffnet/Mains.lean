@@ -48,16 +48,17 @@ theorem wp_main [ρ : RemoteGS] [AllG GF] (wp_Orch : gryffnet.Orch.spec (GF := G
         ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (casR γ) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := In) ∗
         pendCtx (Gg := hG.goose_globalGS) (casR γ) (casS0 (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (casS0 (GF := GF)) γp (casS0 (GF := GF)).M.init }}
+        pendLib (Gg := hG.goose_globalGS) (casS0 (GF := GF)) γp (casS0 (GF := GF)).M.init ∗
+        [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 12 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch γ γp hrb $$ [Hlib]
+  wp_apply wp_Orch γ γp hrb $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
   iapply HΦ
   itrivial
 

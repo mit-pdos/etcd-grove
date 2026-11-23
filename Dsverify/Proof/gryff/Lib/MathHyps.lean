@@ -7,11 +7,13 @@ premise (a `Prop` class taken as a section variable up to the top-level statemen
 
 Why it is true of Go's `math.Pow` (`math/pow.go`): it is total on `float64` arguments (special
 cases return `NaN`, `±Inf`, `0` or `1`), touches no memory and does not panic; it returns some
-`float64` (here its bits, a `w64`). The spec claims nothing about the value.
+`float64` (here its bits, a `w64`). The spec claims nothing about the value. The spec is the main
+tree's `EtcdGrove.math.Pow.spec` (`Spec/math/Pow.lean`, client-go's), one spec per function; the
+main tree's `axiom math.Pow.wp_proof` is not used (the part `Dsverify/` stays on Lean's axioms).
 -/
 module
 
-public import Perennial.Proof.math
+public import Spec.math.Pow
 
 @[expose] public section
 
@@ -29,10 +31,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 
 /-- **Hypothesis** (the file header): `math.Pow(x, y)` returns some `float64`. -/
 class MathPowHyp (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics] : Prop where
-  pow : ∀ (x y : w64),
-    {{ (True : IProp GF) }}
-      (App (App (Val (@! math.Pow)) (Val #x)) (Val #y))
-    {{ (r : w64), RET #r; True }}
+  pow : _root_.Perennial.EtcdGrove.math.Pow.spec (GF := GF) (hG := hG)
 
 end
 

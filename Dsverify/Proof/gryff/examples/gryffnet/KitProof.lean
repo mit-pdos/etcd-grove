@@ -538,7 +538,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_casS, pendLib_casS]
-  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -570,9 +570,9 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
   wp_apply wp_Check (casR γ) casS γp m addrs clientAddrs cd _ (W64 4) d pendN_gryff lintestN_gryff
     (casS_pendDec γ) (casR_encOut_inj γ) (fun st => casR_timeless γ st) hrb
-    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) $$ [Hlib]
+    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) 12 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     unfold EtcdGrove.lintest.genSpec
     iintro %id
     iintro !> %Φ' %Hid HΦ'
@@ -601,7 +601,7 @@ theorem wp_Op (wp_op : op.spec (GF := GF) (hG := hG)) (γ : GryffNames GF) (c : 
         (functions gryff.examples.gryffnet.Op []) := by
   unfold opMaybe
   iintro %sys %i %Φo
-  iintro !> %Φr ⟨#Htok, HU⟩ HΦr
+  iintro !> %Φr ⟨#Htok, HU, -⟩ HΦr
   iunfold clientTok at Htok
   icases Htok with ⟨#Hst, #Hpkg, #Hinv, #Hlis⟩
   iunfold sysTok at Hst
@@ -719,7 +719,7 @@ theorem Client.wp_proof (wp_op : op.spec (GF := GF) (hG := hG))
   isplit
   · iapply opMaybe_svcOp
     iapply wp_Op wp_op γ c hc
-  · iintro !> %Φr - HΦr
+  · iintro %Φr HΦr
     wp_auto
     iapply HΦr
     iunfold clientTok

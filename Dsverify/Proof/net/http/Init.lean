@@ -18,6 +18,8 @@ public import Proof.net.url.PkgInit
 public import Dsverify.Proof.path.Base
 public import Dsverify.Proof.crypto.tls.Base
 public import Dsverify.Proof.net.textproto.Base
+public import Dsverify.Proof.mime.multipart.Base
+public import Dsverify.Proof.net.http.internal.ascii.Base
 public import Dsverify.Proof.vendor.golang_org.x.net.http.httpguts.Base
 public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.strings.Base
