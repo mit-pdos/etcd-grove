@@ -25,6 +25,17 @@ translated body (`Spec/encoding/binary/bigEndian__AppendUint32.lean`, its proof:
 four-byte slice literal, `wp_slice_append`). Proposed: the `Append*` methods of both byte orders in
 Perennial (`Perennial/Spec/encoding/binary/`), with the pointer-method lifts of `PtrMethods.lean`.
 
+### `time.Until` has no spec; `strings.LastIndex` has no model (2026-11-23, phase7-s2-core)
+
+The grpc model's `createHeaderFields` calls `time.Until` (the `grpc-timeout` field) and
+`strings.LastIndex` (the audience of per-RPC credentials). Perennial translates `Until` with its body
+but states no spec: stated and proved here as `time.Since`'s (`Spec/time/Until.lean`, its proof the
+same `repeat'` over the same callees). `LastIndex` is names-only (the entry "`strings.LastIndex` and
+`log.Print` have no model" below, net/rpc's): `createHeaderFields`' credentials branch is stuck on it
+until Perennial models it, or the model replaces it by a backwards byte loop as net/rpc's did (a
+trusted-model change, for the user). Proposed: `time.Until.spec` beside `Since`'s in Perennial;
+`LastIndex` as in that entry.
+
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's

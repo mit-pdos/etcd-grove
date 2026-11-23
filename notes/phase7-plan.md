@@ -336,6 +336,43 @@ variables' initializers translated (`errMalformedFrame`, `transportFailureCodes`
 reference to a skipped variable) and specs of `credentials`, `grpcutil`, `strings`, `strconv`,
 `time.Until` for `createHeaderFields`.
 
+**Built in the session's third part** (`phase7-s2-core`, 2026-11-23; no axiom, no `sorry`):
+- **The frame writers, proved**: `appendData` (`b ++ frameData :: hdr ++ payload`, `appendData_dataFrame`
+  makes it `dataFrame bs`), `appendHeaderBlock` (`b ++ headerBlock kind (hfPairs hs)` under `headerListOk
+  (hfPairs hs)`: the length sum `hbLenPre` and the bytes `hbBytesPre` are its loops' invariants,
+  `listOk_length`/`listOk_field` bound each `uint32`), `appendOversizedBlock` (`srvFrameBytes
+  (.oversized kind)`), `appendReset` (`srvFrameBytes (.reset code)`); `u32Le_reverse`:
+  `AppendUint32`'s bytes are `be32`. Specs `Spec/google_golang_org/grpc/append*.lean`; the pure laws in
+  `InvGrpcWire`. Not linked yet (no grpc `Link`).
+- **Six skipped variables translated with their initializers** (`grpc.toml`): `errMalformedFrame`,
+  `errStreamDone`, `errHeaderListTooLarge` (`errors.New`), `ErrClientConnClosing` (`status.Error`),
+  `transportFailureCodes`, `http2ErrConvTab` (slice literals of codes); grpc now imports `codes` and
+  `status`. `etc/gen-init.py`'s grpc entry proves them (Perennial's `errors.wp_New_errorString`, the
+  existing `status.Error.wp_proof`, `wp_slice_literal`): no new `opaqueInitsOk`; grpc's `Init` is now
+  split (`InitLinked`, since `status.Error.wp_proof` is a proof module), and so are its importers'
+  (`etcdserverpb`, `v3lockpb`, `v3electionpb`, `health`, `reflection`, the prometheus middleware). The
+  translation's `clientTransportStream` is now a translated struct (two `axiomatized type` instances
+  fewer). `cache/v3/Base`: the `codes`/`status` instances moved above grpc's. The fact `grpcInit` says
+  nothing of the new variables yet (adding to it rebuilds about 7700 modules: do it once, with what the
+  client attempt's proof needs: `errStreamDone` a non-nil error, `transportFailureCodes`' contents).
+- **Left skipped**: `metadataFromOutgoingContextRaw`. Its initializer asserts the type of
+  `internal.FromOutgoingContextRaw`, which `metadata`'s `init` sets; grpc's `internal` package is not
+  translated at all. Needed: translate `google.golang.org/grpc/internal` (names-only, its variable
+  `FromOutgoingContextRaw`), `metadata`'s `init` and `fromOutgoingContextRaw`, and a `metadata` fact
+  (`internal.FromOutgoingContextRaw ↦□ the function value`) for the assertion and the call. A `SPECIAL`
+  entry for `metadata` in `gen-init`.
+- **`createHeaderFields`' callees**: `time.Until` proved (`Spec/time/Until.lean`, as Perennial's
+  `Since`; a Perennial candidate). Still to do: `strings.LastIndex` (names-only in Perennial:
+  `notes/perennial-changes.md`), `grpcutil.{RegisteredCompressors, ContentType,
+  IsCompressorNameRegistered, EncodeDuration}`, `credentials.NewContextWithRequestInfo`,
+  `istatus.IsRestrictedControlPlaneCode`, `imetadata.ValidatePair` (all in `models/grpc/internal/...` and
+  `models/grpc/credentials`: translatable with their bodies), the model's `encodeMetadataHeader` and
+  `isReservedHeader`, `strconv.Itoa` (Perennial's), `strings.{TrimSuffix, ToLower}` (Perennial's and the
+  repository's).
+
+Next: the remaining callees above, then `createHeaderFields`, `newClientTransportStream`, the stream's
+`Write`/`reader`.
+
 ### 1. The vocabulary
 
 #### 1.1 Deposit slots (net library, neutral: `GooseLang/Ext/Net/Slot.lean`)
