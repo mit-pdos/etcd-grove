@@ -65,6 +65,21 @@ read-only slices of strings). The model's spec is split in two (`woS0`, its sequ
 for remote's pending library, which is made at the start, before any machine's heap; `woS`, with the
 state's representation over the orchestrator's heap; equal sequential models, `pendCtx_woS`).
 
+## Which lab run
+
+Ported: run **`paxos-net-3`** (dsverify-lab `master` `7a84fb35`, `examples/paxos/`, proof `dbb8647`
+tag `final` bumped to Perennial `3afd77e35`). Since then (`master` `915f964`, 2026-11-23)
+`examples/paxos/` is **`paxos-bump-1`**, the run the paper cites (proof `4b026d8`, fork `014b540`):
+13 nodes (orchestrator, four client nodes, eight server nodes), the orchestrator choosing a
+configuration at random (1..5 acceptors, 1..3 learners, 1..4 proposers; the other clients only
+`Learn`) and sending it to the nodes over a configuration port before they start; `NetCluster` per
+client (as this port independently made it) with `Learn`; the lab's own `Remote` harness and
+write-once checker; the protocol proof restructured (`Core/`, `Cluster/`, `Ghost/`, `Transport/`,
+`Kit/`; 8.3k lines) for any number of acceptors. The protocol files of the fork (`acceptor.go`,
+`proposer.go`, `leaner.go`, `tcpnet.go`, `marshal.go`) are unchanged; `netcluster.go`, the kit and its
+commands changed. Not brought over yet (a second port: the configuration protocol, the general
+quorum, `Learn`): see the report of 2026-11-23.
+
 ## Follow-ups
 
 - The per-function spec/proof file layout (`Spec/<pkg>/<fn>.lean`, `Proof/<pkg>/<fn>.lean`): the
