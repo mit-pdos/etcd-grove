@@ -38,14 +38,18 @@ theorem isTreeMap_sorted (tm : Loc) (enc : w64 → GoInterface)
     isTreeMap (GF := GF) tm enc es ⊢
       isTreeMap tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝ := by
   unfold isTreeMap github_com.emirpasic.gods.maps.treemap.isTreeMapR
-    github_com.emirpasic.gods.trees.redblacktree.isTree
-  iintro ⟨%tr, Hm, %cmp, %T, %h, %D, Hraw, #Hcmp, %Hp⟩
+  iintro ⟨%tr, Hm, Ht⟩
+  iunfold github_com.emirpasic.gods.trees.redblacktree.isTree at Ht
+  icases Ht with ⟨%cmp, %T, %h, %D, Hraw, #Hcmp, %Hp⟩
   obtain ⟨hs, hes, hrb⟩ := Hp
   isplitl
-  · iexists tr; iframe; iexists cmp, T, h, D; iframe
-    isplitr
-    · iexact Hcmp
-    ipureintro; exact ⟨hs, hes, hrb⟩
+  · iexists tr
+    iframe
+    iapply (github_com.emirpasic.gods.trees.redblacktree.isTree_of tr enc cmp T h D es
+      ⟨hs, hes, hrb⟩)
+    isplitl [Hraw]
+    · iexact Hraw
+    iexact Hcmp
   · ipureintro; rw [← hes]; exact hs
 
 end defs
