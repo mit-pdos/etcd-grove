@@ -719,18 +719,6 @@ theorem ownSlice_suffix (k : w64) (s : GoSlice) (dq : DFrac) (vs : List w8)
   rw [h0]
   iframe
 
-/-- The pure `rpcGetU64`. -/
-def getU64 (bs : List w8) : Option (w64 × List w8) :=
-  if 8 ≤ bs.length then some (leToU64 (bs.take 8), bs.drop 8) else none
-
-theorem getU64_enc (x : w64) (rest : List w8) : getU64 (u64Le x ++ rest) = some (x, rest) := by
-  unfold getU64
-  rw [ite_eq_left (by simp [u64Le_length])]
-  have h8 := u64Le_length x
-  rw [List.take_append_of_le_length (by omega), List.take_of_length_le (by omega),
-    List.drop_append_of_le_length (by omega), List.drop_of_length_le (by omega), List.nil_append,
-    u64Le_to_word]
-
 theorem wp_rpcGetU64 (b : GoSlice) (bs : List w8) (dq : DFrac) (Φ : val → IProp GF) :
     b ↦*{dq} bs -∗
     ▷ (∀ (x : w64) (r : GoSlice) (ok : Bool),
