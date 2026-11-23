@@ -5,7 +5,7 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, second agent: see P4 for the current state; the line below is the first agent's):** the Go and its translation are done and tested;
+**State in one line (2026-11-23, third agent: see P4 for the current state; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -127,26 +127,31 @@ the shared piece lands; none is an axiom.
   take it with these classes, or the abstract predicates could be `False`). When Net's piece lands:
   replace `RpcHttpAddr.rpcAddrP` by Net's `rpcAddrP`, the class fields by Net's specs, and drop the
   classes.
-- **H5. The generated codec: encoding proved; decoding as stated is FALSE (design finding, needs
-  Net).** `Craq/CodecProof.lean` (2026-11-23) proves, from `rpc_gen.go`'s translation, the seven
-  `enc_*` fields of `CodecLaws` (`enc_string`, `enc_EmptyArgs`, `enc_NodeMeta`, `enc_CommitArgs`,
-  `enc_WriteArgs`, `enc_ClientWriteArgs`, `enc_PropagateRequest`), with the helpers `wp_rpcPutU64`,
-  `wp_rpcPutTag`, `wp_rpcEnc_t{5,6,12,11,29,4,14,18,22,28,31}`, `wp_rpcSent_t{5,6,11,29}`. **The
-  `dec_*` fields cannot be proved as stated**: they quantify over every reply `rep`, because Net's
-  `net.rpc.Client.Call.spec` (`Net/Spec/net/rpc/Client__Call.lean`) asks for `□ (D -∗ ∀ rep,
-  C.dec rep reply (Θ rep))`; but rpcgen's `rpcDecode` **panics** (`rpcNotModelled`, by design:
-  rpcgen_core.py's "documented deviations", "so that a proof that the program does not panic shows
-  they do not arise") when `rep`'s type tag parses but is not the target's type (e.g. the bytes of
-  a `string` decoded into a `*transport.Item`), and `decOk`'s postcondition has no case for a
-  panic. So no rpcgen codec listing two or more types meets Net's `Call` spec, and a statement with
-  `CodecLaws` as a premise would be vacuous. Net's `Call` spec must ask for decoding only of the
-  replies the protocol allows (the server's answer for this call: `Φ rep []`, or at least its tag),
-  e.g. `□ (D -∗ ∀ rep, ⌜replyOk rep⌝ -∗ C.dec rep reply (Θ rep))` with `replyOk` derived from the
-  method spec; the client proofs (`Netrpc/`) then pass their `Φ`'s `rep = encItem k x` etc. The
-  comment on Net's `decErr` ("The generated codec's Decode fails only with rpcErrDecode()") misses
-  the panic too. Here: the decoding lemmas will be proved under the premise that `rep`'s tag, if it
-  parses, is the target's (`dec_*` restated), and the `∀ rep` gap stays open until Net changes.
-  The server side (decoding a request's arguments, encoding replies) is not in `CodecLaws` yet.
+- **H5. The generated codec and Net's `Call` spec.** `Craq/CodecProof.lean` proves the seven
+  `enc_*` of `CodecLaws` (from `rpc_gen.go`'s translation). Decoding: Net's
+  `net.rpc.Client.Call.spec` (`Net/Spec/net/rpc/Client__Call.lean`) asks for `□ (D -∗ ∀ rep, C.dec
+  rep reply (Θ rep))`, but rpcgen's `rpcDecode` **panics** (`rpcNotModelled`, by design) when the
+  reply's type tag parses but names another type, so no rpcgen codec of two or more types meets
+  it. Raised on #24 (coordinator, comment 7091832079); **Upamanyu confirmed the defect and will fix
+  it on `models-rpc-server`** (2026-11-23): Call's decode obligation will cover only replies the
+  method's reply type can produce (what the server's codec encodes from a value of that type, as
+  the protocol fixes); `decErr`'s docstring will mention the panic; a failed decode will promise
+  only "some field values". He will post the new statement on #24. Here, until then:
+  (1) `Codec.lean`'s `dec_*` are **restated** with the premise `tagOk t rep` (pure `getU64`,
+  `getTag`, `tagOk`, `getTag_encStr`, `tagOk_tagged` in `Codec.lean`) and failure branches giving
+  some field values (`∃ k v, p ↦ …`; Item `∃ k sl`; PropagateResponse `∃ mp', p ↦ mp'`; NodeMeta
+  `∃ m` as before); their proofs go in `CodecProof.lean` (`craqCodecLaws : CodecLaws`; status in
+  P4 (a)). (2) **`RpcCallReply GF`** (`Craq/HttpRpc.lean`, a `Prop` class, no instance): field
+  `Call : rpc.Client.CallR.spec`, Net's Call spec with the obligation `□ (D -∗ ∀ rep, Φ rep [] -∗
+  C.dec rep reply (Θ rep))` (decode only an answer the method gave; success post `∃ rep, Θ rep
+  true`). (3) `Netrpc/Defs.lean`'s **`wp_Call_tag`** derives from it, for `craqCodec`, the shape
+  the clients use: given `HT : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝`, the obligation is `□ (D -∗ ∀ rep, ⌜T
+  rep⌝ -∗ dec …)` and the post is Net's (with `Φ rep []`); `craqCodec_dec_frame`; `tagOk_*` per
+  reply (`tagOk_nil`: an empty reply has no tag). Every client in `Netrpc/` (NodeClient,
+  CoordClient, New) now uses `wp_Call_tag` with `T := tagOk <reply type>`; the `Φ`s that did not
+  pin the reply (`Ping`, `Commit`, `Write`, `Update`, coordinator `AddNode`/`Write`/`RemoveNode`)
+  gained `⌜msg = [] → …⌝`. When Net's fix lands: replace `RpcCallReply.Call` by Net's spec (its
+  premise is likely the `T`/protocol shape), drop the class.
 - **H6. Perennial's `log`**: `*log.Logger`'s `Printf`/`Println`, `log.Default`, `log.Fatalf`, and
   `log.Printf` with error arguments (`notes/perennial-changes.md`, 2026-11-23). The node and the
   coordinator call them.
@@ -170,35 +175,16 @@ the shared piece lands; none is an axiom.
 - **P4. Next steps** (2026-11-23, second agent; the coordinator's order: (a) H5, (b) ModelProof,
   (c) KitProof, (d) Mains/TopLevelDefs/TopLevelRobustness/`craq_remote_robust` + `etc/theorem-loc.py`,
   (e) `etc/tcb-collections/dsv-craq.txt`). State:
-  (a) `Craq/CodecProof.lean`: all seven `enc_*` proved; decoding started (`ownSlice_suffix`, the pure
-  `getU64` + `getU64_enc`, `wp_rpcGetU64`). Still to do, in this order: restate `Codec.lean`'s
-  `dec_*` (premise: `rep`'s tag, if it parses, is the target type's; failure branches `∃` field
-  values, since a failed decode leaves the fields decoded before the failure written, e.g.
-  `VersionResponse.Key`), pure decoders (`getStr` for `rpcGetTag`/`rpcDec_t5`, `getBool`, bytes,
-  the structs, `[]ValueVersion`, the response map) with round-trip lemmas against `Wire.lean`, then
-  `wp_rpcGetTag`, `wp_rpcDec_t{5,6,12,11,29,16,20,24,28,10,9,8}` (the struct ones generated like
-  the encoders: `scratchpad/genstruct.py`'s pattern, `all_goals` per field), then `rpcDecode`'s cases
-  (`wp_func_call; wp_call; wp_auto` resolves the type switch, as in `enc_EmptyArgs`). The `∀ rep`
-  gap (H5 above) needs Net. Tactics that worked: `wp_auto` errors when nothing is left (use
-  `(try wp_auto)`); `iStructNamed H` splits a struct points-to into fields; a loop's `return` is
-  `rw [forPostcondition_unseal]; unfold forPostconditionDef; iright; iright; iright; ileft`; a
-  `Hif` from `wp_if_destruct` is sometimes the Prop, sometimes `#(decide _) = #true` (`first |
-  exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)`); `isimp only [..] at H` rewrites an
-  Iris hypothesis.
-  (b) `examples/craqnet/ModelProof.lean` (built with `lake build`): `pushPend`, `copyMap`, `set`,
-  `findPend` (first index, over fields `K'`/`V'`), `erasePend` (`P.eraseIdx i`) and **`step`**
-  (`wp_step`: from `ownMap mp □ m`, `sl ↦*□ P.map pendOf`, `mrep m a`, `P` all puts, it returns
-  `stepPost`: `ok = (goStep a P i (decAns i u f w)).isSome` and, when ok, `(mp', sl')` holding
-  `goStep`'s next `(a', P')`, `P'.length ≤ P.length + 1`) proved; pure lemmas `mrep_set`,
-  `erase_first`, `map_eraseIdx'`, `pendOf_put`, `find_some`, `find_none`. `Model.spec` stated.
-  Still to do: `Model.wp_proof`, as paxos's (`origin/dsv-paxos`, `ModelProof.lean`'s last
-  theorem): Init (`State{M: make(map)}`: `ownMap_persist`, `kvRep 0` from `sim_init`, `mrep ∅
-  kvB.init`); Step (the closure's type assertions; `kvS0.ioOk` gives `i = ivK x`, `o = outV u f
-  w.1`; `wp_step` with `inOf x`; then `sim_step` and `linkv.pM_step kvB kvDec _ _ x _ (kvDec_box x
-  u f w)`, where `kvDec_box : kvDec (ivK x, outV u f w.1) = some (x, decAns x u f w)` is still to
-  prove, from the injectivity of `ivK` and `outV` (paxos's `out_intoVal_inj` pattern: `In`'s and
-  `Out`'s `TypeAssumptions.get_*` determinism), and `kvRep (k+1)` from `stepPost`); Equal (always
-  `false`: `isEqHash`'s equal spec holds trivially).
+  (a) **Decoders**: `dec_*` restated (H5); `Netrpc/` moved onto `RpcCallReply` (built: `lake build
+  ...Craq.Netrpc.New` green, 2026-11-23). The decoder proofs in `CodecProof.lean` were delegated to
+  a sub-agent (third agent's session); see the git log / the file for which `dec_*` and
+  `craqCodecLaws` are proved. Plan if unfinished: pure decoders with round-trip lemmas against
+  `Wire.lean`; `wp_rpcGetTag`, `wp_rpcDec_t{5,6,12,11,29,16,20,24,28,10,9,8}` in `wp_rpcGetU64`'s
+  style; each `dec_*` through `rpcDecode`'s type switch (`tagOk` rules out the panic).
+  (b) **Done** (`examples/craqnet/ModelProof.lean`, `lake build` green): `kvDec_box` (from
+  `out_intoVal_inj`, `in_intoVal_inj`, `outV_inj`, `ivK_inj`), `ivK_inOf`, `Model.wp_proof`
+  (Init: `sim_init`; Step: `wp_step`, `linkv.pM_step … (kvDec_box …)`, `sim_step`; Equal: always
+  false; Hash nil).
   (c)-(e) not started: `KitProof.lean` (`Codec`, `Gen`, `op`, `Client`/`ServeClient`, `Orch`/
   `remote.Check`, `Server`/`runNode` over `HttpRpc.lean`'s classes), `Mains`, `TopLevelDefs`,
   `TopLevelRobustness` as paxos's; the statement's premises: every `InitHyp` (net.rpc, net.http),
