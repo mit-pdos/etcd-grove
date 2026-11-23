@@ -243,6 +243,58 @@ macro "odAterm " hor:term:max : tactic => `(tactic| (
     odretc (by rw [← hcA]; simpa using hmt1)))
 
 set_option hygiene false in
+/-- g6's last guard (`app || snap` held, `hor`): `!(s.PrevOk(n, x.f()) && (x.stores() || s.HasFirst(n, x.f(), len(x.f().Entries))))`. -/
+macro "odM5body " hor:term:max : tactic => `(tactic| (
+  have hb5 := h5t $hor
+  simp only [ite_true] at hb5
+  obtain ⟨ok5, hok5, Ho⟩ := bind_ok hb5
+  obtain ⟨pv, hpv, h6t, h6f⟩ := andM_ok hok5
+  obtain ⟨f', hf', hpv⟩ := bind_ok hpv
+  rw [hf] at hf'; cases hf'
+  try wp_auto
+  odm f
+  wp_apply wp_f _ X f $$ [Hx] as %gf5 #Hf5
+  · iframe Hx; ipureintro; exact hf
+  try wp_auto
+  wp_apply wp_SPrevOk p s n gf5 f pv $$ [Hs Hf5]
+  · iframe Hs Hf5; ipureintro; exact ⟨Hn, Hlt, hpv⟩
+  cases pv
+  · odjno (h6f rfl)
+  have h6 := h6t rfl
+  obtain ⟨st5, hst5, h7t, h7f⟩ := orM_ok h6
+  try wp_auto
+  odm stores
+  wp_apply wp_stores _ X st5 $$ [Hx]
+  · iframe Hx; ipureintro; exact hst5
+  cases st5
+  case true =>
+    simp only [h7t rfl, Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    odjskip Ho
+  have h7 := h7f rfl
+  obtain ⟨f', hf', h7⟩ := bind_ok h7
+  rw [hf] at hf'; cases hf'
+  try wp_auto
+  odm f
+  wp_apply wp_f _ X f $$ [Hx] as %gf6 #Hf6
+  · iframe Hx; ipureintro; exact hf
+  try wp_auto
+  odm f
+  wp_apply wp_f _ X f $$ [Hx] as %gf7 #Hf7
+  · iframe Hx; ipureintro; exact hf
+  try wp_auto
+  iunfold appendFactRO at Hf7
+  icases Hf7 with ⟨%-, #Hfes7⟩
+  ihave %Hl7 := logRO_len _ _ $$ Hfes7
+  wp_apply wp_SHasFirst p s n gf6 f gf7.Entries'.len ok5 $$ [Hs Hf6]
+  · iframe Hs Hf6; ipureintro
+    refine ⟨Hn, Hlt, by rw [Hl7]; exact h7, hpli, ?_⟩
+    rw [Hl7]; unfold numOk numBound; unfold numBound at hb; omega
+  cases ok5
+  · odjno (rfl : false = false)
+  simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+  odjskip Ho))
+
+set_option hygiene false in
 macro "odjafter" : tactic => do
   let r0 := Lean.mkIdent (Lean.Name.mkSimple "$res0")
   let r1 := Lean.mkIdent (Lean.Name.mkSimple "$res1")
@@ -1380,4 +1432,65 @@ theorem State.OnDisk.wp_proof
     odjret (by subst Ho; rfl)
   odjafter
   subst hK
+  -- g6: `if x.moved() { … }`
+  unfold g6 at Ho
+  dsimp only at Ho
+  rw [hXs, hXn, hXld, hXll, hXch, hXtl] at Ho
+  obtain ⟨mv, hmv, Ho⟩ := bind_ok Ho
+  generalize hK : succ X = K at Ho
+  odjoin K
+  · odm moved
+    wp_apply wp_moved _ X mv $$ [Hx]
+    · iframe Hx; ipureintro; exact hmv
+    cases mv
+    · simp only [Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [ite_true] at Ho
+    -- M1: `!(w.commit() > s.CommitIndex[n] && w.commit() <= len(x.L1()))`
+    obtain ⟨ok1, hok1, Ho⟩ := bind_ok Ho
+    generalize hc1 : (!ok1) = c1 at Ho
+    obtain ⟨a1, ha1, h1t, h1f⟩ := andM_ok hok1
+    obtain ⟨cm, hcm, ha1⟩ := bind_ok ha1
+    simp only [pure_ok, Except.ok.injEq] at ha1
+    subst ha1
+    have hcmb : bigOk cm := commit_bigOk HW hcm
+    icases intsRO_at g.CommitIndex' s.commitIndex n ⟨Hn, by rw [HWf.len_commitIndex]; exact Hlt⟩ $$ HCommitIndex
+      with ⟨%ci, #Hcia, %Hci⟩
+    try wp_auto
+    odguard c1
+    · wp_apply wp_Event_commit pw X.w cm $$ [Hw] as %uc %Huc
+      · iframe Hw; ipureintro; exact hcm
+      try wp_auto
+      wp_apply wp_load_at _ _ ci Hn $$ [Hcia]
+      · iexact Hcia
+      try wp_auto
+      rw [Huc, Hci]
+      by_cases hgt : s.commitIndex[sint.nat n]! < cm
+      case neg =>
+        rw [decide_eq_false hgt]
+        odretc (by rw [← hc1, h1f (by simpa using hgt)]; rfl)
+      rw [decide_eq_true hgt]
+      have h1 := h1t (by simpa using hgt)
+      obtain ⟨cm', hcm', h1⟩ := bind_ok h1
+      rw [hcm] at hcm'; cases hcm'
+      obtain ⟨L1, hL1, h1⟩ := bind_ok h1
+      simp only [pure_ok, Except.ok.injEq] at h1
+      try wp_auto
+      wp_apply wp_Event_commit pw X.w cm $$ [Hw] as %uc' %Huc'
+      · iframe Hw; ipureintro; exact hcm
+      try wp_auto
+      odm L1
+      wp_apply wp_L1 _ X L1 $$ [Hx] as %l1 #Hl1
+      · iframe Hx; ipureintro; exact hL1
+      ihave %Hl1l := logRO_len _ _ $$ Hl1
+      try wp_auto
+      rw [Huc', Hl1l]
+      subst h1
+      by_cases hle : cm ≤ (L1.length : Int)
+      · rw [decide_eq_true hle]
+        odskip (by rw [← hc1]; simp [hle])
+      · rw [decide_eq_false hle]
+        odretc (by rw [← hc1]; simp [hle])
+    odafterj c1
+    done
   done
