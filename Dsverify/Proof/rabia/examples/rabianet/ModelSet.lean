@@ -41,8 +41,8 @@ abbrev KIn := {i : KvInput GoString GoString // inB i}
 /-- `KIn`'s `BEq` is its decidable equality's (the instance linkv's pending lists erase with). -/
 @[reducible] instance (priority := high) KIn.beq : BEq KIn := instBEqOfDecidableEq
 
-/-- A bounded value: not empty (a get's answer cannot tell it from none) and below `2^62`. -/
-def valB (v : GoString) : Prop := v ≠ [] ∧ v.length < 2 ^ 62
+/-- A bounded value: not empty (a get's answer cannot tell it from none), its length plus 9 below `2^63`. -/
+def valB (v : GoString) : Prop := v ≠ [] ∧ v.length + 9 < 2 ^ 63
 
 /-- The outputs: a put's, a get's of no value or of a bounded value. -/
 def outB : KvOutput GoString → Prop

@@ -113,7 +113,7 @@ open Classical in
 /-- `Codec()`'s bytes of a value: a bounded `Out`'s, or nothing for any other value (never
 encoded). -/
 def encOutV (v : GoInterface) : List w8 :=
-  if h : ∃ x : Out, v = interface.mkOk Out.ty #x ∧ x.V'.length < 2 ^ 62 then encOutB (Classical.choose h)
+  if h : ∃ x : Out, v = interface.mkOk Out.ty #x ∧ x.V'.length + 9 < 2 ^ 63 then encOutB (Classical.choose h)
   else []
 
 theorem encOutV_len (v : GoInterface) : (encOutV v).length < 2 ^ 63 := by

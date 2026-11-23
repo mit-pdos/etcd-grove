@@ -136,7 +136,7 @@ theorem kvDec_box (i : KIn) (a : linkv.Ans KOut) : kvDec (inV i.1, ansV a) = som
   · next hn => exact absurd ⟨i, a, rfl⟩ hn
 
 /-- `Out{…}`'s bytes, for a bounded value. -/
-theorem encOutV_out (x : Out) (hx : x.V'.length < 2 ^ 62) :
+theorem encOutV_out (x : Out) (hx : x.V'.length + 9 < 2 ^ 63) :
     encOutV (interface.mkOk Out.ty #x) = encOutB x := by
   unfold encOutV
   split
@@ -145,7 +145,7 @@ theorem encOutV_out (x : Out) (hx : x.V'.length < 2 ^ 62) :
   · rename_i h
     exact absurd ⟨x, rfl, hx⟩ h
 
-theorem outVal_len (o : KOut) : (outVal o.1).V'.length < 2 ^ 62 := by
+theorem outVal_len (o : KOut) : (outVal o.1).V'.length + 9 < 2 ^ 63 := by
   rcases o with ⟨o, ho⟩
   cases o with
   | done => simp [outVal]
