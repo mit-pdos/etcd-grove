@@ -46,7 +46,7 @@ abbrev Server.readRequest.spec : Prop :=
       RET (PairV (PairV (PairV (PairV (PairV (PairV #svc #mt) #req) #argv) #replyv) #keep) #err);
       ⌜keep = false ∧ err ≠ interface.nil⌝ ∨
       (⌜keep = true⌝ ∗ ∃ (k : Nat) (r : RpcReq) (Φ : List w8 → GoString → IProp GF),
-        req ↦ { (zero_val net.rpc.Request) with ServiceMethod' := r.sm, Seq' := W64 k } ∗
+        req ↦ { (_root_.Perennial.zero_val net.rpc.Request) with ServiceMethod' := r.sm, Seq' := W64 k } ∗
         ansPend W a cn k r.sm Φ ∗ rdrOwn W a cn sc ∗
         ((⌜err = interface.nil⌝ ∗ callReady C svc mt argv replyv Φ) ∨
           (⌜err ≠ interface.nil⌝ ∗ errNE err ∗ errCont Φ))) }}
