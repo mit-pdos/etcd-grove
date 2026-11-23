@@ -319,7 +319,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     Orch.spec (GF := GF) (hG := hG) := by
   intro Γ γp hrb
   rw [pendCtx_woS, pendLib_woS]
-  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -335,9 +335,9 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
   wp_apply wp_Check (woR Γ) woS γp m addrs clientAddrs cd _ (W64 1) d pendN_paxos lintestN_paxos (woS_pendDec Γ) (woR_encOut_inj Γ)
     (fun st => woR_timeless Γ st) hrb (by rw [hlen']; decide) (by decide)
-    (by rw [hlen']; decide) $$ [Hlib]
+    (by rw [hlen']; decide) 3 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)
         (functions github_com.xiang90.paxos.examples.paxosnet.Gen [])
         (fun x => iprop(∃ i, ⌜x = (woR (Gg := hG.goose_globalGS) Γ).iv i⌝)) from wp_Gen)
@@ -395,7 +395,7 @@ theorem Client.wp_proof (wp_NewNetCluster : NewNetCluster.spec (GF := GF) (hG :=
     iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Φo
-    iintro !> %Φr ⟨%Hsys, HL⟩ HΦr
+    iintro !> %Φr ⟨%Hsys, HL, -⟩ HΦr
     subst Hsys
     rw [slotUpd_write _ rfl]
     ihave HAU := lin_opAU Γ i Φo $$ HL
@@ -427,7 +427,7 @@ theorem Client.wp_proof (wp_NewNetCluster : NewNetCluster.spec (GF := GF) (hG :=
       iright
       ipureintro; rfl
   · -- the client's system: its node
-    iintro !> %Φr - HΦr
+    iintro %Φr HΦr
     wp_auto
     iapply HΦr
     ipureintro; rfl

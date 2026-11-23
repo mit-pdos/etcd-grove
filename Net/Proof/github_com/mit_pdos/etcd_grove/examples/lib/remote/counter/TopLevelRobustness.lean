@@ -1,11 +1,13 @@
 /-
 The proof of `counter_remote_robust.spec` (`Net/Spec/.../lib/remote/counter/TopLevelRobustness.lean`):
 `remote_robustRB` at the ghost bundle `remoteGF` (porcupine's non-atomic invariants), whose
-obligation gets the registry, the slot map, the addresses' protocols for a store of its choice, and
-the receipt bound. The start: a ghost variable `γs` at the counter's initial value (half to node 0's
+obligation gets the registry, the slot map, the call budgets (60 calls, `Ops` operations of
+`readTries` attempts, for each client node's address, with their units; the server's unbudgeted),
+the addresses' protocols for a store of its choice, and the receipt bound. The start: a ghost variable `γs` at the counter's initial value (half to node 0's
 invariant as the store's state, half to the server), the three addresses' protocols for `cR γs`,
 node 0's invariant (`pend_alloc`) and lintest's state at the model's start. The shares: the
-orchestrator gets the client addresses, the slot map, the invariant and lintest's state; each client
+orchestrator gets the client addresses, the slot map, the invariant, lintest's state and the client
+addresses' call units; each client
 node its address, the server's, the slot map and the read's update with no result (`readNoop`); the
 server its address and its half of `γs`. Each machine's boot program is its command's initializer
 then its `main` (`wp_boot`).
@@ -77,9 +79,11 @@ end boot
 theorem counter_remote_robust : counter_remote_robust.spec := by
   intro gctx lctx sem osem c0sem c1sem ssem fsem bvi σo σ0 σ1 σs g threads
   refine remote_robustRB (GF := remoteGF) (St := w64) (I := Bool) (O := w64) counterAddrs
-    (system σo σ0 σ1 σs) g threads (2 ^ 63) ?_
-  intro G π ρ hrb
-  iintro #Hreg #Hmap Hset
+    (system σo σ0 σ1 σs) g threads (2 ^ 63) [go!"127.0.0.1:7302", go!"127.0.0.1:7303"] 60
+    (by decide) ?_
+  intro G π ρ hrb hbud
+  have hsrv : ρ.bud go!"127.0.0.1:7301" = none := by rw [hbud]; decide
+  iintro #Hreg #Hmap Hbud Hset
   imod ghostVar_alloc (GF := remoteGF) (W64 0) with ⟨%γs, Hv⟩
   icases (ghostVar_split_half γs 1 (W64 0)).mp $$ Hv with ⟨Hv1, Hv2⟩
   imod Hset $$ %(cR (GF := remoteGF) γs) with Has
@@ -114,7 +118,8 @@ theorem counter_remote_robust : counter_remote_robust.spec := by
       pendCtx (Gg := G) (cR (GF := remoteGF) γs) (cS (GF := remoteGF)) γp ∗
       □ (∀ i : Bool, ⌜cB.isWrite i = false⌝ -∗
         lin (Gg := G) (cR (GF := remoteGF) γs) i (fun _ => iprop(True)))) ∗
-      pendLib (Gg := G) (cS (GF := remoteGF)) γp (cS (GF := remoteGF)).M.init)
+      pendLib (Gg := G) (cS (GF := remoteGF)) γp (cS (GF := remoteGF)).M.init ∗
+      budUnits (Gg := G) go!"127.0.0.1:7302" 60 ∗ budUnits (Gg := G) go!"127.0.0.1:7303" 60)
     else if i = 3 then iprop((remoteAddr (Gg := G) (cR (GF := remoteGF) γs) go!"127.0.0.1:7302" ∗
       remoteAddr (Gg := G) (cR (GF := remoteGF) γs) go!"127.0.0.1:7303" ∗
       remoteAddr (Gg := G) (cR (GF := remoteGF) γs) go!"127.0.0.1:7301" ∗
@@ -142,12 +147,12 @@ theorem counter_remote_robust : counter_remote_robust.spec := by
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro ⟨⟨#H0, #H1, #Hs, #Hm, #Hp, #Hr⟩, Hl⟩ Hgs
+      iintro ⟨⟨#H0, #H1, #Hs, #Hm, #Hp, #Hr⟩, Hl, Hb0, Hb1⟩ Hgs
       iapply wp_boot cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit
           (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf) _
-          (cmd.orch.wp_main wp_Orch γs γp hrb) $$ [Hl] Hgs
+          (cmd.orch.wp_main wp_Orch γs γp hrb) $$ [Hl Hb0 Hb1] Hgs
       iframe #
-      iframe Hl
+      iframe Hl Hb0 Hb1
     | 1, hm =>
       cases hm
       dsimp only
@@ -155,7 +160,7 @@ theorem counter_remote_robust : counter_remote_robust.spec := by
       iintro ⟨#H0, #H1, #Hs, #Hm, #Hp, #Hr⟩ Hgs
       iapply wp_boot cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit
           (cmd.client0.wp_initialize' _ cmd.client0.getIsPkgInit_wf) _
-          (cmd.client0.wp_main wp_Client γs) $$ [] Hgs
+          (cmd.client0.wp_main wp_Client γs hsrv) $$ [] Hgs
       iframe #
     | 2, hm =>
       cases hm
@@ -164,7 +169,7 @@ theorem counter_remote_robust : counter_remote_robust.spec := by
       iintro ⟨#H0, #H1, #Hs, #Hm, #Hp, #Hr⟩ Hgs
       iapply wp_boot cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit
           (cmd.client1.wp_initialize' _ cmd.client1.getIsPkgInit_wf) _
-          (cmd.client1.wp_main wp_Client γs) $$ [] Hgs
+          (cmd.client1.wp_main wp_Client γs hsrv) $$ [] Hgs
       iframe #
     | 3, hm =>
       cases hm
@@ -178,10 +183,12 @@ theorem counter_remote_robust : counter_remote_robust.spec := by
       iframe Hv
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hlib]
+    icases BigSepL.bigSepL_cons.1 $$ Hbud with ⟨Hb0, Hbud⟩
+    icases BigSepL.bigSepL_cons.1 $$ Hbud with ⟨Hb1, -⟩
+    isplitl [Hlib Hb0 Hb1]
     · simp only [↓reduceIte]
       iframe #
-      iframe Hlib
+      iframe Hlib Hb0 Hb1
     iapply BigSepL.bigSepL_cons.2
     isplitl []
     · simp only [Nat.zero_add, Nat.reduceEqDiff, ↓reduceIte]

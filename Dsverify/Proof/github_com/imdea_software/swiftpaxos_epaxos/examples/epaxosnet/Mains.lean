@@ -55,16 +55,17 @@ theorem wp_main [ρ : RemoteGS] (wp_Orch : epaxosnet.Orch.spec (GF := GF) (hG :=
         ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (epR γ) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := EIn) ∗
         pendCtx (Gg := hG.goose_globalGS) (epR γ) (epS0 (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (epS0 (GF := GF)) γp (epS0 (GF := GF)).M.init }}
+        pendLib (Gg := hG.goose_globalGS) (epS0 (GF := GF)) γp (epS0 (GF := GF)).M.init ∗
+        [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 6 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch γ γp hrb $$ [Hlib]
+  wp_apply wp_Orch γ γp hrb $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
   iapply HΦ
   itrivial
 

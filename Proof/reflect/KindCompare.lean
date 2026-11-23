@@ -1,5 +1,5 @@
 /-
-The trust boundary of `reflect.Kind`'s comparison (see its spec).
+`reflect.Kind`'s comparison is `uint`'s (see its spec): `Kind.underlying` is `go.uint`.
 -/
 module
 
@@ -22,7 +22,8 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-axiom reflect.KindCompare.wp_proof : reflect.KindCompare.spec (GF := GF) (hG := hG)
+theorem reflect.KindCompare.wp_proof : reflect.KindCompare.spec (GF := GF) (hG := hG) :=
+  inferInstanceAs (go.IsStrictlyComparable go.uint w64)
 
 end proof
 

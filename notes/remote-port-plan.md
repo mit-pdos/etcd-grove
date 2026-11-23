@@ -585,3 +585,34 @@ whose output's bytes are the answered reply's, which a second prophecy in `Do` g
 then its bytes, `ResolveU64` each). `Run`/`Check` take the premise that distinct outputs have distinct
 bytes. Decision and reasons: `notes/specs-only/ledger.md`, 2026-11-22, "`remote.opMaybe`'s read form";
 the details: `notes/etcd-dist-plan.md` §2, "Stage D8".
+
+## `ServeClient`'s one-shot `newClient` and call budgets (2026-11-23, branch `remote-serveclient`)
+
+Two changes to `ServeClient.spec` (claim #28; agreed by Upamanyu on #24, approved by the user), for kits
+whose client machine keeps exclusive per-client state (VR's request numbers and ghost state):
+
+- **`newClient` is one-shot.** `ServeClient` calls it once, so its premise is no longer a persistent
+  triple `{{ True }} newClient(c) {{ sys, tok sys }}` but the caller's WP, used once:
+  `∀ Φ, ▷ (∀ sys, tok sys -∗ Φ #sys) -∗ WP newClient(c) {{ Φ }}`. It may consume exclusive resources to
+  make `tok sys`. A kit that proved the triple discharges it the same way, without the `□`
+  (`iintro %Φ HΦ` for `iintro !> %Φ - HΦ`).
+- **Call budgets** (`Defs.lean`, "Call budgets"). `RemoteGS` gains `bud : GoString → Option Nat` (the node
+  at `a` serves at most `N` calls when `bud a = some N`; `none`, unbounded) and `budTok` (the units'
+  ghost names). A unit `budUnit a` is the token of a call number `k < N`, exclusive. The request protocol
+  carries one per call: `reqP S a` (the address is now a parameter; `svcAddr S a := addrProto a (reqP S a)
+  (repP S)`), whose slot holds the unit with the update until the acceptor claims both (`slot_register`,
+  `slot_claim`), and the far side's operation gets it with the update: `svcOp S a tok op`,
+  `opMaybe R a tok op` (precondition `tok sys ∗ upd ∗ budUnit a`). The far side counts with
+  `budUsed a n` (`budUsed_zero`, free) and `budUsed_add : budUsed a n -∗ budUnit a -∗ budUsed a (n+1) ∗
+  ⌜∀ N, bud a = some N → n + 1 ≤ N⌝`. The units are made only at the start, by `mapCtx_alloc E addrs N hnd`
+  (also `remote_start`/`remote_robust(RB)`'s new `baddrs N hnd`): `N` of them for each of the distinct
+  addresses `addrs`, none for the others. The orchestrator spends them: `attempt`/`Report` take one, `Do`
+  `readTries` (= `ReadTries`, a read's attempts), and `Run`/`Check` take `nb ≥ ops * readTries` of each
+  client address's (`∀ nb, sint.nat ops * readTries ≤ nb → … [∗list] a ∈ addrL, budUnits a nb`), handed to
+  `perclient.Run` as a per-call resource (`applySpecId … P f`: each call `apply(id, ·)` gets `P id`; each
+  client starts with `calls (P id) ops`). So a client node serves at most `ops * ReadTries` calls (a read's
+  retries are calls). No Go change: the budget is ghost state.
+- Kits: `mapCtx_alloc ⊤ clientAddrs (ops * 3) (by decide)`, the orchestrator's share and `Orch.spec` get
+  the client addresses' units, `addrs_set_proto … (fun a => reqP S a)`, `opMaybe`'s precondition gains
+  `budUnit a` (dropped by a kit that does not count). The counter's server address is unbudgeted
+  (`bud = none`), so its client nodes' `Do`s get free units (`budUnits_none`).

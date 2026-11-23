@@ -60,6 +60,16 @@ theorem writeGrantG_grant_fresh (γk : KVNames) (st₀ : auth.AuthState) (Gb : a
 theorem irrLeaseRevoke_kind (id : w64) : apply.dispatchKind (irrLeaseRevoke id) = .leaseRevoke := by
   simp [apply.dispatchKind, irrLeaseRevoke, apply.irrEmpty]
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **What `LeaseGrant` of TTL `ttl` needs, in the auth mode `on`**: off nothing (the off `kvInv`
 holds the whole state where the cluster grants, no client); on, its client's update at whichever id
 the member fixes (`∀ id`: the generated id is not known to the caller), told its grant at the
@@ -78,6 +88,16 @@ def leaseRevokePermitM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : 
   | false => iprop(True)
   | true => iprop(∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.leaseRevoke id)) (writeGrantG γk srvAuthSt0 Gb (irrLeaseRevoke id) L₀) Q)
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 theorem leaseGrantPermitM_false (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (ttl : w64) (Q : w64 → KVState → IProp GF) : ⊢ leaseGrantPermitM (GF := GF) false γ γk Gb ttl Q := by
@@ -128,6 +148,39 @@ theorem leaseRevokePermitM_mono (on : Bool) (γ : ServerRaftNames) (γk : KVName
   iframe HL₀
   iapply kvAu1G_mono γk _ _ (writeGrantG γk srvAuthSt0 Gb' (irrLeaseRevoke id) L₀) Q
     (fun σ => writeGrantG_mono γk srvAuthSt0 Gb Gb' _ L₀ σ hb) $$ Hau
+
+open Iris.ProofMode in
+/-- `leaseGrantPermitM_mono` under a persistent hypothesis `P` (O2's monotonicity laws, 2026-11-23). -/
+theorem leaseGrantPermitM_mono_with (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
+    (Gb Gb' : apply.HeaderModel → IProp GF) (ttl : w64) (Q : w64 → KVState → IProp GF)
+    (P : IProp GF) [Persistent P] (hb : ∀ hm, P ∗ Gb' hm ⊢ Gb hm) :
+    P ∗ leaseGrantPermitM (GF := GF) on γ γk Gb ttl Q ⊢ leaseGrantPermitM on γ γk Gb' ttl Q := by
+  cases on
+  · unfold leaseGrantPermitM; iintro -; itrivial
+  unfold leaseGrantPermitM
+  iintro ⟨#HP, H⟩ %id
+  icases H $$ %id with ⟨%L₀, #HL₀, Hau⟩
+  iexists L₀
+  iframe HL₀
+  iapply kvAu1G_mono_with γk _ _ (writeGrantG γk srvAuthSt0 Gb' (irrLeaseGrant id ttl) L₀) (Q id) P
+    (fun σ => writeGrantG_mono_with γk srvAuthSt0 Gb Gb' _ L₀ σ P hb) $$ [Hau]
+  iframe HP Hau
+
+open Iris.ProofMode in
+/-- `leaseRevokePermitM_mono` under a persistent hypothesis `P`. -/
+theorem leaseRevokePermitM_mono_with (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
+    (Gb Gb' : apply.HeaderModel → IProp GF) (id : w64) (Q : KVState → IProp GF)
+    (P : IProp GF) [Persistent P] (hb : ∀ hm, P ∗ Gb' hm ⊢ Gb hm) :
+    P ∗ leaseRevokePermitM (GF := GF) on γ γk Gb id Q ⊢ leaseRevokePermitM on γ γk Gb' id Q := by
+  cases on
+  · unfold leaseRevokePermitM; iintro -; itrivial
+  unfold leaseRevokePermitM
+  iintro ⟨#HP, %L₀, #HL₀, Hau⟩
+  iexists L₀
+  iframe HL₀
+  iapply kvAu1G_mono_with γk _ _ (writeGrantG γk srvAuthSt0 Gb' (irrLeaseRevoke id) L₀) Q P
+    (fun σ => writeGrantG_mono_with γk srvAuthSt0 Gb Gb' _ L₀ σ P hb) $$ [Hau]
+  iframe HP Hau
 
 /-- **A grant's result in the mode `on`** at the header `hm` the server stamps and the committed
 log `L` before its entry: `grantedRes` of the stamped request (always granted, `grantedAt_grant`). -/

@@ -394,6 +394,10 @@ PROJECTS = [
                     # `bufio`'s Reader and `path/filepath`'s lexical functions (over
                     # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
                     "bufio=", "path/filepath=", "internal/filepathlite=",
+                    # (crc32-hooks2, 2026-11-22) `hash/crc32`'s `slicingUpdate` calls
+                    # `byteorder.LEUint32` (project k8s-apiserver's translation,
+                    # Code/internal/byteorder.toml)
+                    "internal/byteorder=",
                     # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
                     # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
                     "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall="],
@@ -525,6 +529,11 @@ PROJECTS = [
             "go.uber.org/zap/internal/color",
             # (prove-initleft, 2026-11-21) types only: `LeveledEnabler`, which zap's `var _` asserts
             "go.uber.org/zap/internal",
+            # (zap-z1, 2026-11-23) what `Logger.check` names on paths no proof takes (stack traces,
+            # buffers): names only but the package variables of `bufferpool` (`check` reads `Get`)
+            # and the `buffer.NewPool` they call
+            "go.uber.org/zap/internal/stacktrace", "go.uber.org/zap/internal/bufferpool",
+            "go.uber.org/zap/buffer",
             # names only: the auto-compactor's clock (the spec-first pilot)
             "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
@@ -1578,16 +1587,15 @@ PROJECTS = [
                     # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
                     # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
                     "runtime/trace=",
-                    # (k8s 7g) go-cmp and the standard library's `maps`, names only, which the
-                    # driver's copy of Kubernetes' checker calls (their .toml)
-                    "github.com/google=", "maps="],
+                    # (k8s 7g) go-cmp, names only, which the driver's copy of Kubernetes'
+                    # checker calls (its .toml); `maps` is Perennial's (2026-11-23)
+                    "github.com/google="],
         packages=[
             ".",
             # (k8s 7g, notes/k8s-7g-scope.md §1.1) the driver's copy of Kubernetes' checker
             # (upstream plus etc/k8s-correctness/d30g.patch), with bodies (correctness.toml)
             "./correctness",
             "github.com/google/go-cmp/cmp",
-            "maps",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
             # the watch cache's store, with bodies (notes/kep-6404-plan.md)
@@ -1721,6 +1729,8 @@ PROJECTS = [
             # (pflag, names only: what featuregate's interfaces name, Code/github_com/spf13/pflag.toml)
             "github.com/spf13/pflag",
             "k8s.io/klog/v2",
+            # (klog-leaves, 2026-11-23) types and constants only: what klog's `loggingT` names
+            "k8s.io/klog/v2/internal/severity",
             # (logr: the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
             "github.com/go-logr/logr",
             "k8s.io/utils/clock",
@@ -1784,7 +1794,7 @@ PROJECTS = [
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
                os.path.join("runtime", "trace"),
-               os.path.join("github_com", "google"), "maps",
+               os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

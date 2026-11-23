@@ -46,16 +46,17 @@ theorem wp_main (wp_Orch : quepaxanet.Orch.spec (GF := GF) (hG := hG)) (γ : QNa
         ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (qR γ) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := QIn) ∗
         pendCtx (Gg := hG.goose_globalGS) (qR γ) (qS0 (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (qS0 (GF := GF)) γp (qS0 (GF := GF)).M.init }}
+        pendLib (Gg := hG.goose_globalGS) (qS0 (GF := GF)) γp (qS0 (GF := GF)).M.init ∗
+        [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 60 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Ho, #Has, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨Ho, #Has, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.raxos.examples.quepaxanet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch γ γp hrb $$ [Ho Hlib]
+  wp_apply wp_Orch γ γp hrb $$ [Ho Hlib Hbud]
   · iframe #
-    iframe Ho Hlib
+    iframe Ho Hlib Hbud
   iapply HΦ
   itrivial
 

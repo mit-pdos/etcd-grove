@@ -106,7 +106,7 @@ theorem replica.Replica.waitForPeerConnections.wp_proof :
 /-! ## The frozen specs (`Interface/ReplicaSpec.lean`), closed -/
 
 theorem replica.New.wp_proof [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-    [TreemapHyp GF] : replica.New.spec (GF := GF) :=
+    [StateTreemap GF] : replica.New.spec (GF := GF) :=
   replica.New.spec_holds state.InitState.wp_proof
 
 theorem replica.Replica.ConnectToPeers.wp_proof : replica.Replica.ConnectToPeers.spec (GF := GF) :=

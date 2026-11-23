@@ -80,7 +80,7 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
     (wp_ResolveU64 : github_com.goose_lang.primitive.ProphId.ResolveU64.spec (GF := GF) (hG := hG)) :
     Do.spec (GF := GF) (hG := hG) (St := St) (I := I) (O := O) := by
   intro R a i Φo Ψ cd d
-  wp_start as ⟨#Hm, #Ha, #Hcd, Hrd, Hch⟩
+  wp_start as ⟨#Hm, #Ha, #Hcd, Hbu, Hrd, Hch⟩
   iunfold codecOk at Hcd
   icases Hcd with ⟨#HEncIn, #HDecIn, #HEncOut, #HDecOut, #HIsRead, #HUnk, #HIsUnkO, #HIsUnkU⟩
   wp_auto
@@ -162,14 +162,20 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
       iframe HL
       iintro -
       iexact Hf
+  ihave Hbu := budUnits_le (Gg := hG.goose_globalGS) a (m := T) (n := readTries)
+    (by simp only [readTries]; omega) $$ Hbu
   ihave HI : iprop(∃ kv : w64, "k" ∷ k_ptr ↦ kv ∗ "%Hkv" ∷ ⌜0 ≤ sint.Z kv ∧ sint.Z kv ≤ T⌝ ∗
+      "Hbu" ∷ budUnits (Gg := hG.goose_globalGS) a (T - uint.nat kv) ∗
       "HL" ∷ ((⌜uint.nat kv ≤ kt⌝ ∗
         slotUpd (Gg := hG.goose_globalGS) R i Φb) ∨
-        ⌜kt < uint.nat kv⌝)) $$ [k HL]
+        ⌜kt < uint.nat kv⌝)) $$ [k HL Hbu]
   · iexists W64 0
     iframe k
     isplit
     · ipureintro; constructor <;> word
+    isplitl [Hbu]
+    · rw [show T - uint.nat (W64 0) = T by simp]
+      iexact Hbu
     ileft
     iframe HL
     ipureintro; word
@@ -205,9 +211,15 @@ theorem Do.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I) (O
         icases HL with (⟨%h, HL⟩ | %h)
         · ileft; iframe HL; ipureintro; word
         · iright; ipureintro; word
+    have hkv1 : uint.nat (kv + W64 1) = uint.nat kv + 1 := by
+      have : uint.nat kv < 3 := by omega
+      word
+    rw [show T - uint.nat kv = (T - uint.nat (kv + W64 1)) + 1 by omega]
+    rw [budUnits_succ]
+    icases Hbu with ⟨Hu, Hbu⟩
     wp_apply wp_attempt (RBase.svc (Gg := hG.goose_globalGS) R) a i Φa req (DFrac.own 1) d Hlen
-      $$ [Hreq HLa] as %rep %ok ⟨Hreq, Hres⟩
-    · iframe Hm Ha Hreq HLa
+      $$ [Hreq HLa Hu] as %rep %ok ⟨Hreq, Hres⟩
+    · iframe Hm Ha Hreq HLa Hu
     icases Hres with (%Hf | ⟨%v, %Hok, Hrep, Hv⟩)
     · subst Hf
       wp_auto

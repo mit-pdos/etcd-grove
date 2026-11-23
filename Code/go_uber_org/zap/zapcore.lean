@@ -615,6 +615,20 @@ noncomputable def Lock [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewMultiWriteSyncer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.NewMultiWriteSyncer"
 
+/-- go: clock.go:42:20 -/
+noncomputable def systemClock.Now.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "$res0"))))))
+
 /-- NewNopCore returns a no-op Core.
 
     go: core.go:50:6 -/
@@ -629,6 +643,80 @@ noncomputable def NewNopCore.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Core.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Core.ty))) (Var "$res0")))))
+
+/-- go: core.go:51:16 -/
+noncomputable def nopCore.Enabled.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: core.go:52:18 -/
+noncomputable def nopCore.With.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Core.ty))) (App (Val (GoInstruction (GoZeroVal Core.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc nopCore.ty))) (Var "n"))
+  (Let "$r0" (App (Val (GoInstruction (Convert nopCore.ty Core.ty))) (App (Val (GoInstruction (GoLoad nopCore.ty))) (Var "n")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Core.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Core.ty))) (Var "$res0"))))))
+
+/-- go: core.go:53:16 -/
+noncomputable def nopCore.Check.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Lam "ce"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType CheckedEntry.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ce" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "ce"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType CheckedEntry.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CheckedEntry.ty)))) (Var "$res0")))))))
+
+/-- go: core.go:54:16 -/
+noncomputable def nopCore.Write.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- go: core.go:55:16 -/
+noncomputable def nopCore.Sync.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
 /-- String returns a lower-case ASCII representation of the log level.
 
@@ -769,6 +857,24 @@ noncomputable def Level.CapitalString.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- Enabled returns true if the given level is at or above this level.
+
+    go: level.go:213:16 -/
+noncomputable def Level.Enabled.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "l"
+  (Lam "lvl"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "l" (App (Val (GoInstruction (GoAlloc Level.ty))) (Var "l"))
+  (Let "lvl" (App (Val (GoInstruction (GoAlloc Level.ty))) (Var "lvl"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGe Level.ty))) (Pair (App (Val (GoInstruction (GoLoad Level.ty))) (Var "lvl")) (App (Val (GoInstruction (GoLoad Level.ty))) (Var "l"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: level_strings.go:41:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
@@ -1063,11 +1169,16 @@ class systemClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq systemClock.ty systemClock.underlying
   method_set : go.MethodSetIs systemClock.ty [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType systemClock.ty) [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
+  Now_unfold : MethodUnfold systemClock.ty go!"Now" systemClock.Now.impl
+  ptr_Now_unfold : MethodUnfold (go.GoType.PointerType systemClock.ty) go!"Now" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve systemClock.ty go!"Now"))) (App (Val (GoInstruction (GoLoad systemClock.ty))) (Var "$r"))))
 
 attribute [instance] systemClock.TypeAssumptions.type_repr
   systemClock.TypeAssumptions.underlying
   systemClock.TypeAssumptions.method_set
   systemClock.TypeAssumptions.ptr_method_set
+  systemClock.TypeAssumptions.Now_unfold
+  systemClock.TypeAssumptions.ptr_Now_unfold
 
 structure consoleEncoder [GooseExts] where
   mk ::
@@ -1142,11 +1253,36 @@ class nopCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq nopCore.ty nopCore.underlying
   method_set : go.MethodSetIs nopCore.ty [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType nopCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  Check_unfold : MethodUnfold nopCore.ty go!"Check" nopCore.Check.impl
+  Enabled_unfold : MethodUnfold nopCore.ty go!"Enabled" nopCore.Enabled.impl
+  Sync_unfold : MethodUnfold nopCore.ty go!"Sync" nopCore.Sync.impl
+  With_unfold : MethodUnfold nopCore.ty go!"With" nopCore.With.impl
+  Write_unfold : MethodUnfold nopCore.ty go!"Write" nopCore.Write.impl
+  ptr_Check_unfold : MethodUnfold (go.GoType.PointerType nopCore.ty) go!"Check" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve nopCore.ty go!"Check"))) (App (Val (GoInstruction (GoLoad nopCore.ty))) (Var "$r"))))
+  ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType nopCore.ty) go!"Enabled" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve nopCore.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad nopCore.ty))) (Var "$r"))))
+  ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType nopCore.ty) go!"Sync" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve nopCore.ty go!"Sync"))) (App (Val (GoInstruction (GoLoad nopCore.ty))) (Var "$r"))))
+  ptr_With_unfold : MethodUnfold (go.GoType.PointerType nopCore.ty) go!"With" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve nopCore.ty go!"With"))) (App (Val (GoInstruction (GoLoad nopCore.ty))) (Var "$r"))))
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType nopCore.ty) go!"Write" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve nopCore.ty go!"Write"))) (App (Val (GoInstruction (GoLoad nopCore.ty))) (Var "$r"))))
 
 attribute [instance] nopCore.TypeAssumptions.type_repr
   nopCore.TypeAssumptions.underlying
   nopCore.TypeAssumptions.method_set
   nopCore.TypeAssumptions.ptr_method_set
+  nopCore.TypeAssumptions.Check_unfold
+  nopCore.TypeAssumptions.Enabled_unfold
+  nopCore.TypeAssumptions.Sync_unfold
+  nopCore.TypeAssumptions.With_unfold
+  nopCore.TypeAssumptions.Write_unfold
+  nopCore.TypeAssumptions.ptr_Check_unfold
+  nopCore.TypeAssumptions.ptr_Enabled_unfold
+  nopCore.TypeAssumptions.ptr_Sync_unfold
+  nopCore.TypeAssumptions.ptr_With_unfold
+  nopCore.TypeAssumptions.ptr_Write_unfold
 
 abbrev LevelEnabler [GooseExts] : Type := GoInterface
 
@@ -1548,9 +1684,12 @@ class Level.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   method_set : go.MethodSetIs Level.ty [(go!"CapitalString", (some (go.signature.Signature [] false [go.string]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Level.ty) [(go!"CapitalString", (some (go.signature.Signature [] false [go.string]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Get", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.uber.org/zap/zapcore.unmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
   CapitalString_unfold : MethodUnfold Level.ty go!"CapitalString" Level.CapitalString.impl
+  Enabled_unfold : MethodUnfold Level.ty go!"Enabled" Level.Enabled.impl
   String_unfold : MethodUnfold Level.ty go!"String" Level.String.impl
   ptr_CapitalString_unfold : MethodUnfold (go.GoType.PointerType Level.ty) go!"CapitalString" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Level.ty go!"CapitalString"))) (App (Val (GoInstruction (GoLoad Level.ty))) (Var "$r"))))
+  ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType Level.ty) go!"Enabled" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve Level.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad Level.ty))) (Var "$r"))))
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType Level.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Level.ty go!"String"))) (App (Val (GoInstruction (GoLoad Level.ty))) (Var "$r"))))
 
@@ -1558,8 +1697,10 @@ attribute [instance] Level.TypeAssumptions.underlying
   Level.TypeAssumptions.method_set
   Level.TypeAssumptions.ptr_method_set
   Level.TypeAssumptions.CapitalString_unfold
+  Level.TypeAssumptions.Enabled_unfold
   Level.TypeAssumptions.String_unfold
   Level.TypeAssumptions.ptr_CapitalString_unfold
+  Level.TypeAssumptions.ptr_Enabled_unfold
   Level.TypeAssumptions.ptr_String_unfold
 
 structure Entry [GooseExts] where
