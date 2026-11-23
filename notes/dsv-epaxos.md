@@ -6,7 +6,17 @@ Source: dsverify-lab `master` `915f964`, `examples/epaxos/` (run **`epaxos-e1nog
 verified run of EPaxos: clients on nodes of their own, Perennial `3afd77e35`, the E1-opt1/opt2 perf
 fixes; proof `c276a91` tag `final`; fork `71d99d4`). Read only: nothing in the lab changed.
 
-**Merges (2026-11-23):** `origin/dsv-infra` (`a1046d9c4f`, then `884cb306c9`): the kit's goose
+**Merges (2026-11-23, later):** `origin/lean` (`07268ddb57`: dsv-paxos, dsv-bufio (with the
+rename `io.writerOk` → `io.streamWriterOk`, `net.conn_writerOk` → `net.conn_streamWriterOk`; this
+kit used them only in comments), dsv-infra, the wildcard listen, **Perennial `7b2259a12`**:
+`.lake/package-overrides.json` and `PERENNIAL_DIR` now `/shared/perennial-7b2259a12`; the build
+was seeded from `/shared/etcd-grove-dsvbufio/.lake/build` (everything but `Dsverify/`); the 17
+`PkgTable.lean`s (and paxos's) regenerated; `gen-init.py --check` and `goose.py --check --project
+dsv-epaxos` pass) and `origin/models-rpc-server` (`36728bd8ed`, not landed: Client.Call's decode
+obligation only for the method's answers, methodOk's `argDec` guard on the server; nothing here
+used the old shapes yet).
+
+**Earlier merges (2026-11-23):** `origin/dsv-infra` (`a1046d9c4f`, then `884cb306c9`): the kit's goose
 project and gen-init configuration are now `etc/dsv/epaxos.py` only (no shared lines of
 `etc/goose.py`/`etc/gen-init.py` are this kit's; `gen-init.py --check`, `goose.py --check --project
 dsv-epaxos` up to date). `origin/models-rpc-server` (`040ef5e808`, not landed: waits for the human
@@ -205,17 +215,35 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `io.EOF`'s values; peer and client writers `wrOwn w (connWr … 4096)` (all the replica's writers
    are `bufio.NewWriter`), the peer reader `rdOwn rd (connRd …)`; FIXUPS).
    `BufWr.Q_pre` is now `□ Q (x ++ y) ⊢ □ Q x` (`ProtoPrefixClosed.pre`'s form).
-   **Next: `Interface/Replica.lean`** (`port.py Epaxos/Interface/Replica.lean`, then by hand; it
-   had 30 errors, removed from the tree): `cid` facts at `w64` (now `Nat`), the lab's
-   `connFreshG_excl` (Net's `connFresh` exclusivity: find its name in `GooseLang/Ext/Net/Proto.lean`),
-   `bufio.prefixClosed` (use `repDialP_ppc`/`repAccP_ppc`), `net.model.Assumptions` (→
-   `[HasExt netExt] [π : NetProtoGS]`, the `Ghost` FIXUP's pattern), `net.rpc.connIface`/
-   `bufio.ownWriter` (→ `connIn`/`wrOwn … connWr`, as `replica/Ghost`), section instances; then
-   `ReplicaSpec`, `Proof/replica/*` (6k lines: `PrefixReader` needs a `BufRd` over the
-   `prefixReader` (`replica.go:523`), its `readerOk` from the connection's), `Interface/{RpcPure,
-   Rpc,MasterSpec,Servers}` over `Net/`'s net/rpc (models-rpc-server) and `RpcHttpHyp`.
+   **`Interface/{Replica,ReplicaSpec}` (2026-11-23, hand-maintained after the port; 0 errors):**
+   cids `Nat`; `opTok_excl`/`peerRole_register` by `Net/`'s `connFresh_excl`; the lab's
+   `repDialP_prefixClosed`/`repAccP_prefixClosed` and the documentation copies `peerP`,
+   `peerSlot`, `clientSlot` dropped (ConnBuf's `repDialP_ppc`/`repAccP_ppc`, replica/Ghost's
+   `peerSlotX`/`clientSlotX`); **the lab's `addrTok` is gone** (in `Net/` the right to listen at a
+   replica address is its `addrProto`'s, in `clientInvs`, through `listen_au`; `fwStart` and
+   `replica.New.spec` no longer carry a token); `fwListening` is `net.isListener li l ∗ netLis l a
+   true ∗ netLisAt l a` at `a = L[id]`; `fld`/`fwMethod` are stated over `[GoLocalContext]` only
+   (with `HeapGS`'s `GF` in them nothing determined `GF` at a use: "stuck go.Semantics");
+   `fwFresh`/`replica.New.spec` take `[state.Assumptions] [treemap.Assumptions] [TreemapHyp GF]`
+   as binders (a section instance whose dependencies are included is included in every
+   declaration mentioning `GF`, and is then stuck at uses).
+   **`replica/{Core,Specs,Quorum,Defs,Log,DelayChan,Stream}`: ported, 0 errors.** `connIf c cn s`
+   (`Interface/ConnBuf`: `∃ a, net.isConn c cn s a`) replaces the lab's `net.rpc.connIface`;
+   `accEnd` is `connIf ∗ sendTok … [] ∗ recvTok … [] ∗ connFresh`, exactly `accept_au`'s
+   `connEnd cn true Q P [] [] ∗ connFresh cn true`; `Stream`'s `ownReader_proto` is dropped
+   (bufio's `ownBufReader_fact`), `listener_nextIs` is over `connRd t cid side eof la ra ed (peerPin …)`
+   (its stream fact `▷ protoPrefix`, stripped with `inext`).
+   **Next: `replica/PrefixReader`** (the lab's `prI` and `prefixReader_readerOk` restated over
+   Perennial's `io.readerOk ri Pre S E` (`Perennial/Proof/io/Reader.lean`: `Pre r n`, results
+   `errAt E`, `ptrTyped err`) and `net.conn_readerOk` (`recvTokL`, `connReadE`), then a `BufRd`
+   over it for `clientListener`'s `bufio.NewReader`), then `SendMsg`, `ReplyPropose`,
+   `ClientWire`, `ReplicaListener`, `ClientListener`, `Dial`, `Connect*`, `ServeConn`,
+   `WaitPeers`, `WaitClients`, `Beacon`, `ClosestPeers`, `New`, `Link` (lab sizes: 6k lines).
    - **port.py** has three layers: `conv` (renames), `generic_conv` (every port: section headers,
-     `(GF := GF)` on spec statements, `Dsv.` names, unseal equations, `clientN` → `epEop` masks),
+     `(GF := GF)` on spec statements, spec hypotheses `(hP : X.spec)` and `have h := thm γ …`,
+     `Dsv.` names, unseal equations, `clientN` → `epEop` masks, `[net.model.Assumptions]` →
+     `[HasExt netExt] [π : NetProtoGS]` (plus the store's assumptions where `isState` occurs),
+     `Epaxos.GeneratedProof` → `Dsverify.GeneratedProof`), after FIXUPS `net.rpc.connIface` → `connIf`,
      `bufio_conv` (`--bufio`: the marshal layer's call sites only; it drops `iframe He…` lines,
      so never use it outside `wire/`), then `gf_annotate` and `FIXUPS`. Re-running it on every
      file ported this session reproduces the tree (checked 2026-11-23), except the hand-maintained
@@ -348,4 +376,4 @@ TCB baseline `etc/tcb-collections/dsv-epaxos.txt` (still the roots and an empty 
 
 Edit loop: `export PATH=$HOME/.elan/bin:$PATH` (lake is not on the default PATH here), then
 `etc/lean-check.py -a -q FILE`; `etc/gen-init.py --check` needs
-`PERENNIAL_DIR=/shared/perennial-9c3b81f30` (the worktree has no `.lake/packages`).
+`PERENNIAL_DIR=/shared/perennial-7b2259a12` (the worktree has no `.lake/packages`).
