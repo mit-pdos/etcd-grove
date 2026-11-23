@@ -8,7 +8,7 @@ public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.network
 public import Perennial.Proof.io.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.events.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Base
-public import Dsverify.Proof.encoding.json.Base
+public import Proof.encoding.json.Base
 public import Perennial.Proof.errors.Base
 public import Dsverify.Proof.log.slog.Base
 public import Net.Proof.net.Base

@@ -50,7 +50,7 @@ noncomputable instance IPv4Port_access_load_First (l : Loc) (v : github_com.tang
  by
   solve_pointsto_access_struct
 
-noncomputable instance IPv4Port_access_store_First (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) (First' : net.IP) :
+noncomputable instance IPv4Port_access_store_First (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) (First' : _root_.Perennial.net.IP) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port go!"First" l) v.First' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port go!"First" l) First' (DFrac.own 1))

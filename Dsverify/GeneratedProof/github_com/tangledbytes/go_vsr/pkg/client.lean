@@ -288,7 +288,7 @@ noncomputable instance Client_access_load_net (l : Loc) (v : github_com.tangledb
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_net (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Client) (net' : github_com.tangledbytes.go_vsr.pkg.network.Network) :
+noncomputable instance Client_access_store_net (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Client) (net' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.network.Network) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Client go!"net" l) v.net' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Client go!"net" l) net' (DFrac.own 1))
@@ -304,7 +304,7 @@ noncomputable instance Client_access_load_time (l : Loc) (v : github_com.tangled
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Client) (time' : github_com.tangledbytes.go_vsr.pkg.time.Time) :
+noncomputable instance Client_access_store_time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Client) (time' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Client go!"time" l) v.time' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Client go!"time" l) time' (DFrac.own 1))
@@ -397,7 +397,7 @@ noncomputable instance Config_access_load_Network (l : Loc) (v : github_com.tang
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Network (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Config) (Network' : github_com.tangledbytes.go_vsr.pkg.network.Network) :
+noncomputable instance Config_access_store_Network (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Config) (Network' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.network.Network) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Config go!"Network" l) v.Network' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Config go!"Network" l) Network' (DFrac.own 1))
@@ -413,7 +413,7 @@ noncomputable instance Config_access_load_Time (l : Loc) (v : github_com.tangled
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Config) (Time' : github_com.tangledbytes.go_vsr.pkg.time.Time) :
+noncomputable instance Config_access_store_Time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.client.Config) (Time' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Config go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.client.Config go!"Time" l) Time' (DFrac.own 1))

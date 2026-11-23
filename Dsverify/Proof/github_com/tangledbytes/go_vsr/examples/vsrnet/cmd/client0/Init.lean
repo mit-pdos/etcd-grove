@@ -10,7 +10,6 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client0.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Init
 public import Net.Proof.runtime.PkgInitExt
-public import Dsverify.Proof.encoding.json.Init
 
 @[expose] public section
 
@@ -33,7 +32,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.encoding.json.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client0.Assumptions]
 
 namespace github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.client0

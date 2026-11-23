@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.GeneratedProof.encoding.json
+public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.errors
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.ipv4port
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.log
@@ -52,7 +52,7 @@ noncomputable instance NetworkEvent_access_load_Src (l : Loc) (v : github_com.ta
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetworkEvent_access_store_Src (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.NetworkEvent) (Src' : github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
+noncomputable instance NetworkEvent_access_store_Src (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.NetworkEvent) (Src' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.NetworkEvent go!"Src" l) v.Src' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.NetworkEvent go!"Src" l) Src' (DFrac.own 1))
@@ -664,7 +664,7 @@ noncomputable instance DoViewChange_access_load_Logs (l : Loc) (v : github_com.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance DoViewChange_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.DoViewChange) (Logs' : github_com.tangledbytes.go_vsr.pkg.log.Logs) :
+noncomputable instance DoViewChange_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.DoViewChange) (Logs' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.log.Logs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.DoViewChange go!"Logs" l) v.Logs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.DoViewChange go!"Logs" l) Logs' (DFrac.own 1))
@@ -820,7 +820,7 @@ noncomputable instance StartView_access_load_Logs (l : Loc) (v : github_com.tang
  by
   solve_pointsto_access_struct
 
-noncomputable instance StartView_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.StartView) (Logs' : github_com.tangledbytes.go_vsr.pkg.log.Logs) :
+noncomputable instance StartView_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.StartView) (Logs' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.log.Logs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.StartView go!"Logs" l) v.Logs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.StartView go!"Logs" l) Logs' (DFrac.own 1))
@@ -970,7 +970,7 @@ noncomputable instance NewState_access_load_Logs (l : Loc) (v : github_com.tangl
  by
   solve_pointsto_access_struct
 
-noncomputable instance NewState_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.NewState) (Logs' : github_com.tangledbytes.go_vsr.pkg.log.Logs) :
+noncomputable instance NewState_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.NewState) (Logs' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.log.Logs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.NewState go!"Logs" l) v.Logs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.NewState go!"Logs" l) Logs' (DFrac.own 1))
@@ -1098,7 +1098,7 @@ noncomputable instance «struct#bb76fad1_access_load_Data» (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#bb76fad1_access_store_Data» (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.«struct#bb76fad1») (Data' : encoding.json.RawMessage) :
+noncomputable instance «struct#bb76fad1_access_store_Data» (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.events.«struct#bb76fad1») (Data' : _root_.Perennial.encoding.json.RawMessage) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.«struct#bb76fad1» go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.events.«struct#bb76fad1» go!"Data" l) Data' (DFrac.own 1))

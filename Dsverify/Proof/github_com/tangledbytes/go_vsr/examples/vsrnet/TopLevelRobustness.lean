@@ -4,7 +4,7 @@ proved as paxos's: from the deployment's start (the registry, the addresses unse
 `robust_of_distProtoRB`), the kit's start (`vr_start`: the ghost layer, the addresses' protocols,
 remote's slot map with the client addresses' call budgets, its pending library over the abstract
 state, every machine's share), and each machine's boot from its share: its generated initializer's
-spec (over the `InitHyp` premises) and its `main`'s (`Mains.lean`) over the links (`Link.lean`)
+spec and its `main`'s (`Mains.lean`) over the links (`Link.lean`)
 at the premises `LibHyps` and `JsonHyps` of its heap.
 -/
 module
@@ -96,7 +96,7 @@ theorem range5 : List.range 5 = [0, 1, 2, 3, 4] := rfl
 
 /-- **The vr kit** (see the statement's file). -/
 theorem vr_remote_robust : vr_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi hji dr er hl hj σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi dr er hl hj σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) vrKitAddrs (system σ) g threads (2 ^ 63) ?_
   intro G π hrb
   iintro #Hreg Hs
@@ -135,7 +135,6 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
-    letI : encoding.json.InitHyp remoteGF := hji G' hG.goose_localGS
     have hL := hl G' hG.goose_localGS π
     have hJ := hj G' hG.goose_localGS π
     match i, hm with

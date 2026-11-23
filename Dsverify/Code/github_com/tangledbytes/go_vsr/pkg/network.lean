@@ -4,7 +4,7 @@ module
 public import Perennial.Code.io
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.pkg.events
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.pkg.ipv4port
-public import Dsverify.Code.encoding.json
+public import Code.encoding.json
 public import Perennial.Code.errors
 public import Dsverify.Code.log.slog
 public import Net.Code.net

@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/events/FromDecoder.lean (lab master
 915f964; notes/dsv-vr.md): over any `GF`, on the net extension; the hook's lock is the hub's
-`hookLockInvFull`. What changed: `Unmarshal` is the hypothesis `encoding.json.Unmarshal.spec`
+`hookLockInvFull`. What changed: `Unmarshal` is the hypothesis `encoding.json.Unmarshal.kitSpec`
 (`Proof/events/LibHyps.lean`; the lab proved it of its model) and the kit's codec the hypothesis
 `vsrnet.codecOk` (`Spec/json.lean`; the lab's theorem `codec_ok`), both at the kit's codec
 `vsrnet.jsonCodec`; the frame decoder's own codec is the spec's (any instance `C`). It proves the
@@ -72,11 +72,11 @@ theorem events.wp_getFrameDecoder :
   iapply HΦ
   ipureintro; exact Hk
 
-/-- `events.Event.FromDecoder.spec`, over the hypotheses `Unmarshal.spec` (at the kit's codec),
+/-- `events.Event.FromDecoder.spec`, over the hypotheses `Unmarshal.kitSpec` (at the kit's codec),
 `vsrnet.codecOk` and `Decoder.Decode_frame.spec` (what the hook's `decodeFrame` calls). -/
 theorem events.Event.FromDecoder.wp'
     (wp_Decode_frame : events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
+    (wp_Unmarshal : encoding.json.Unmarshal.kitSpec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.FromDecoder.spec (GF := GF) (hG := hG) := by

@@ -19,7 +19,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Net.Proof.models_lab.Errors
-public import Dsverify.Proof.bufio.ErrOrNil
+public import Proof.bufio.ErrOrNil
 public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 public import Proof.bufio.ReaderLaws

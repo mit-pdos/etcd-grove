@@ -9,9 +9,9 @@ GOOSE = dict(
     # lab's vsr-bump-1 fork of tangledbytes/go-vsr (examples/vr/fork/go-vsr at lab master
     # 915f964) with its kit ported onto examples/lib/remote, `examples/dsverify/vr` (a Go module
     # of its own, module path the fork's). Into the part `Dsverify/`, with remote and `net` the
-    # part `Net/`'s, lintest and porcupine the main tree's; `encoding/json` (the model,
-    # `models/encoding/json`) and `log/slog` names-only into the part (`Dsverify/Code/{encoding/json,log/slog}.toml`):
-    # their specs are the proof's hypotheses until their models' Lean halves exist.
+    # part `Net/`'s, lintest, porcupine and `encoding/json` (the model, `models/encoding/json`: the
+    # main tree's, J1/J2 of mit-pdos/etcd-grove#24) the main tree's; `log/slog` (the model, with its
+    # bodies) into the part (`Dsverify/Code/log/slog.toml`).
     repo=None,
     rev=None,
     local=os.path.join("examples", "dsverify", "vr"),
@@ -19,24 +19,21 @@ GOOSE = dict(
     lean_roots=["github.com/tangledbytes/go-vsr=Dsverify", "log/slog=Dsverify",
                 "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
                 "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
-                "encoding/json=Dsverify",
+                "encoding/json=",
                 "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
     packages=["./pkg/assert", "./pkg/log", "./pkg/ipv4port", "./pkg/events", "./pkg/queue",
               "./pkg/time", "./pkg/network", "./pkg/client", "./pkg/replica",
               "./examples/vsrwire", "./examples/vsrkv", "./examples/vsrnet",
-              "./examples/vsrnet/cmd/orch", "log/slog", "encoding/json"]
+              "./examples/vsrnet/cmd/orch", "log/slog"]
              + ["./examples/vsrnet/cmd/client%d" % c for c in range(6)]
              + ["./examples/vsrnet/cmd/server%d" % s for s in range(1, 6)],
-    owned=[os.path.join("github_com", "tangledbytes"), os.path.join("log", "slog"),
-           os.path.join("encoding", "json")],
+    owned=[os.path.join("github_com", "tangledbytes"), os.path.join("log", "slog")],
     std_models=["encoding/json", "log/slog"],
 )
 
-# etc/gen-init.py: go-vsr's packages, the kit and its twelve machines' commands. The names-only
-# `encoding.json` (the model) and `log.slog` are external here: their `wp_initialize'` is a
-# hypothesis (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which every generated theorem
-# initializing them takes as an instance (`HYP_INITS`: a section variable added to the files that
-# name it).
+# etc/gen-init.py: go-vsr's packages, the kit and its twelve machines' commands, and `log/slog`
+# (the model). `encoding/json` is the main tree's (`MAIN`); its `wp_initialize'` is proved (J1,
+# mit-pdos/etcd-grove#24), its `Init.lean` generated into the part (`MAIN_GEN`), as epaxos's.
 VR = 'github_com.tangledbytes.go_vsr'
 NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
 PKGS = [f'{VR}.pkg.{p}' for p in ['assert', 'log', 'ipv4port', 'events', 'queue', 'time',
@@ -45,7 +42,10 @@ PKGS = [f'{VR}.pkg.{p}' for p in ['assert', 'log', 'ipv4port', 'events', 'queue'
     [f'{VR}.examples.vsrnet.cmd.{n}' for n in NODES] + ['log.slog']
 PROGRAMS = {f'{VR}.examples.vsrnet.cmd.{n}':
             f'Proof/{VR.replace(".", "/")}/examples/vsrnet/cmd/{n}/PkgTable.lean' for n in NODES}
-HYP_INITS = ['encoding.json']
+# the main tree's packages the part's closure adds to `NET_MAIN`
+MAIN = ['encoding.json']
+MAIN_GEN = ['encoding.json']
+HYP_INITS = []
 
 
 def special(g):

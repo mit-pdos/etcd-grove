@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.GeneratedProof.encoding.json
+public import GeneratedProof.encoding.json
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.events
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.tangledbytes.go_vsr.examples.vsrwire
@@ -64,7 +64,7 @@ noncomputable instance Frame_access_load_Data (l : Loc) (v : github_com.tangledb
  by
   solve_pointsto_access_struct
 
-noncomputable instance Frame_access_store_Data (l : Loc) (v : github_com.tangledbytes.go_vsr.examples.vsrwire.Frame) (Data' : encoding.json.RawMessage) :
+noncomputable instance Frame_access_store_Data (l : Loc) (v : github_com.tangledbytes.go_vsr.examples.vsrwire.Frame) (Data' : _root_.Perennial.encoding.json.RawMessage) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrwire.Frame go!"Data" l) v.Data' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.examples.vsrwire.Frame go!"Data" l) Data' (DFrac.own 1))

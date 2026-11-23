@@ -132,7 +132,7 @@ noncomputable instance PendingPrepareOK_access_load_ClientAddr (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance PendingPrepareOK_access_store_ClientAddr (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK) (ClientAddr' : github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
+noncomputable instance PendingPrepareOK_access_store_ClientAddr (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK) (ClientAddr' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK go!"ClientAddr" l) v.ClientAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK go!"ClientAddr" l) ClientAddr' (DFrac.own 1))
@@ -148,7 +148,7 @@ noncomputable instance PendingPrepareOK_access_load_Request (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance PendingPrepareOK_access_store_Request (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK) (Request' : github_com.tangledbytes.go_vsr.pkg.events.Request) :
+noncomputable instance PendingPrepareOK_access_store_Request (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK) (Request' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.Request) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK go!"Request" l) v.Request' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.PendingPrepareOK go!"Request" l) Request' (DFrac.own 1))
@@ -286,7 +286,7 @@ noncomputable instance InternalPrepareOKData_access_load_pok (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalPrepareOKData_access_store_pok (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData) (pok' : github_com.tangledbytes.go_vsr.pkg.events.PrepareOK) :
+noncomputable instance InternalPrepareOKData_access_store_pok (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData) (pok' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.PrepareOK) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData go!"pok" l) v.pok' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData go!"pok" l) pok' (DFrac.own 1))
@@ -302,7 +302,7 @@ noncomputable instance InternalPrepareOKData_access_load_req (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalPrepareOKData_access_store_req (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData) (req' : github_com.tangledbytes.go_vsr.pkg.events.Request) :
+noncomputable instance InternalPrepareOKData_access_store_req (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData) (req' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.Request) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData go!"req" l) v.req' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData go!"req" l) req' (DFrac.own 1))
@@ -318,7 +318,7 @@ noncomputable instance InternalPrepareOKData_access_load_clientaddr (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance InternalPrepareOKData_access_store_clientaddr (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData) (clientaddr' : github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
+noncomputable instance InternalPrepareOKData_access_store_clientaddr (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData) (clientaddr' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData go!"clientaddr" l) v.clientaddr' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.InternalPrepareOKData go!"clientaddr" l) clientaddr' (DFrac.own 1))
@@ -461,7 +461,7 @@ noncomputable instance VSRState_access_load_Logs (l : Loc) (v : github_com.tangl
  by
   solve_pointsto_access_struct
 
-noncomputable instance VSRState_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.VSRState) (Logs' : github_com.tangledbytes.go_vsr.pkg.log.Logs) :
+noncomputable instance VSRState_access_store_Logs (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.VSRState) (Logs' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.log.Logs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.VSRState go!"Logs" l) v.Logs' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.VSRState go!"Logs" l) Logs' (DFrac.own 1))
@@ -732,7 +732,7 @@ noncomputable instance Replica_access_load_network (l : Loc) (v : github_com.tan
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_network (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Replica) (network' : github_com.tangledbytes.go_vsr.pkg.network.Network) :
+noncomputable instance Replica_access_store_network (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Replica) (network' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.network.Network) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Replica go!"network" l) v.network' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Replica go!"network" l) network' (DFrac.own 1))
@@ -748,7 +748,7 @@ noncomputable instance Replica_access_load_time (l : Loc) (v : github_com.tangle
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Replica) (time' : github_com.tangledbytes.go_vsr.pkg.time.Time) :
+noncomputable instance Replica_access_store_time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Replica) (time' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Replica go!"time" l) v.time' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Replica go!"time" l) time' (DFrac.own 1))
@@ -890,7 +890,7 @@ noncomputable instance Config_access_load_Network (l : Loc) (v : github_com.tang
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Network (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Config) (Network' : github_com.tangledbytes.go_vsr.pkg.network.Network) :
+noncomputable instance Config_access_store_Network (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Config) (Network' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.network.Network) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Config go!"Network" l) v.Network' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Config go!"Network" l) Network' (DFrac.own 1))
@@ -906,7 +906,7 @@ noncomputable instance Config_access_load_Time (l : Loc) (v : github_com.tangled
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Config) (Time' : github_com.tangledbytes.go_vsr.pkg.time.Time) :
+noncomputable instance Config_access_store_Time (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.replica.Config) (Time' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Config go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.replica.Config go!"Time" l) Time' (DFrac.own 1))

@@ -12,9 +12,8 @@ number of threads, no thread of any machine is stuck and none has a top-level pa
 this says porcupine accepts every history, under every fault the net extension allows.
 
 **Premises** (visible, each at the bundle `remoteGF`, for every machine's heap `heapAt G L` and the
-start's `NetProtoGS`):
-* the package initializer the part has no proof of: `encoding/json`'s (`InitHyp`,
-  `etc/dsv/README.md`; `log/slog`'s is proved, from the model's code);
+start's `NetProtoGS`; every package initializer is proved: `encoding/json`'s the main tree's, J1 of
+mit-pdos/etcd-grove#24, `log/slog`'s from the model's code):
 * the model's `*Decoder` and `*Encoder` representations, any (`encoding.json.DecoderRep`,
   `EncoderRep`: data classes, no instance anywhere);
 * `LibHyps` (`examples/vsrnet/LibHyps.lean`): `connReaderOk` (a connection is an `io.Reader` for
@@ -33,7 +32,6 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.TopLevelDefs
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.JsonHyps
-public import Dsverify.Proof.encoding.json.Init
 
 @[expose] public section
 
@@ -67,7 +65,6 @@ def vr_remote_robust.spec : Prop :=
     [server4_sem : cmd.server4.Assumptions]
     [server5_sem : cmd.server5.Assumptions]
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
-    (∀ G L, letI := heapAt G L; encoding.json.InitHyp remoteGF) →
     ∀ [encoding.json.DecoderRep remoteGF] [encoding.json.EncoderRep remoteGF],
     (∀ G L (π : NetProtoGS), letI := heapAt G L; LibHyps (GF := remoteGF)) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L; JsonHyps (GF := remoteGF)) →

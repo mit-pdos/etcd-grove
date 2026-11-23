@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/events/ToWriter.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension. What changed: `NewEncoder` and `Encode` are
-the hypotheses `encoding.json.NewEncoder.spec`, `encoding.json.Encoder.Encode_conn.spec`
+the hypotheses `encoding.json.NewEncoder.spec`, `encoding.json.Encoder.Encode_conn.kitSpec`
 (`Proof/events/LibHyps.lean`; the lab proved them of its model), and the kit's codec is the
 hypothesis `vsrnet.codecOk` (`Spec/json.lean`; the lab's theorem `codec_ok`), all at the kit's
 codec `vsrnet.jsonCodec`.
@@ -43,11 +43,11 @@ variable [encoding.json.EncoderRep GF]
 set_option goose.wp.extras true
 
 /-- `events.Event.ToWriter.spec`, for any codec instance `C` (unused: the kit's is used), over
-the hypotheses `NewEncoder.spec`, `Encoder.Encode_conn.spec` (at the kit's codec) and
+the hypotheses `NewEncoder.spec`, `Encoder.Encode_conn.kitSpec` (at the kit's codec) and
 `vsrnet.codecOk`. -/
 theorem events.Event.ToWriter.wp'
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
-    (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
+    (wp_Encode : encoding.json.Encoder.Encode_conn.kitSpec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.ToWriter.spec (GF := GF) (hG := hG) := by

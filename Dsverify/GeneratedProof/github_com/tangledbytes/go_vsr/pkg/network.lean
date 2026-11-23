@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.GeneratedProof.encoding.json
+public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.errors
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.assert
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.events
@@ -59,7 +59,7 @@ noncomputable instance TCP_access_load_ip (l : Loc) (v : github_com.tangledbytes
  by
   solve_pointsto_access_struct
 
-noncomputable instance TCP_access_store_ip (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.network.TCP) (ip' : github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
+noncomputable instance TCP_access_store_ip (l : Loc) (v : github_com.tangledbytes.go_vsr.pkg.network.TCP) (ip' : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.ipv4port.IPv4Port) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.network.TCP go!"ip" l) v.ip' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.tangledbytes.go_vsr.pkg.network.TCP go!"ip" l) ip' (DFrac.own 1))

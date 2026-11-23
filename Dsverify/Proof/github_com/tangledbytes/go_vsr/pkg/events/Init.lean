@@ -10,15 +10,15 @@ initializes its imports.
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.events.Base
-public import Dsverify.Proof.encoding.json.Init
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
+public import Dsverify.Proof.encoding.json.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.log.Init
 public import Perennial.Ghost.MonoList
 public import Perennial.Proof.errors.NewVar
-public import Dsverify.Proof.runtime.PkgInitDsv
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -41,7 +41,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.encoding.json.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.Assumptions]
 
 namespace github_com.tangledbytes.go_vsr.pkg.events
@@ -69,8 +68,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.encoding.json _root_.Perennial.encoding.json.initialize'
-      _root_.Perennial.encoding.json.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrInvalidEventType))
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidEventType ⟨#_, #MErrInvalidEventType⟩

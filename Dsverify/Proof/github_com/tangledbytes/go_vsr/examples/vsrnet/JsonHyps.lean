@@ -1,36 +1,33 @@
 /-
-**The vr kit's `encoding/json` interface** (notes/dsv-vr.md, "The JSON interface"): every premise
-the kit's proof takes about `encoding/json` and the kit's (not yet generated) JSON codec, in one
-place, so that it can be swapped for the main tree's specs when they land (zeldovich's J1,
-`prove-ps2-jsonlean`, and the codec jsongen will write, `ps2-jsongen`). Nothing else in the kit's
-proof states a JSON premise; the machines' proofs take these as arguments and `Link.lean` passes
-`JsonHyps`' fields.
+**The vr kit's `encoding/json` interface** (notes/dsv-vr.md, "The JSON interface", "JSON on the
+main tree"): every premise the kit's proof takes about `encoding/json` and the kit's JSON codec, in
+one place. Nothing else in the kit's proof states a JSON premise; the machines' proofs take these as
+arguments and `Link.lean` passes `JsonHyps`' fields. The package `encoding/json` is the main tree's
+(the model, J1/J2 of mit-pdos/etcd-grove#24; its initializer is proved).
 
 * Data (no instance anywhere; universally quantified at the statement): the model's `*Decoder`
-  and `*Encoder` representations, `encoding.json.DecoderRep GF` (`Spec/jsonlib.lean`) and
-  `encoding.json.EncoderRep GF` (`Proof/events/LibHyps.lean`). J1: the same two classes,
-  `Proof/encoding/json/Registry.lean`.
+  and `*Encoder` representations, the main tree's `encoding.json.DecoderRep GF` and
+  `encoding.json.EncoderRep GF` (`Proof/encoding/json/Registry.lean`).
 * `JsonHyps` (a `Prop`), its fields:
-  - `Unmarshal`, `NewEncoder`, `Encode_conn`: `encoding.json.{Unmarshal, NewEncoder,
-    Encoder.Encode_conn}.spec` (`Proof/events/LibHyps.lean`). J1 states these three
-    (`Spec/encoding/json/Codec/*`), with `codecSet ∗ kitCodecOk F` generalized to
-    `codecSetWith fm fu ∗ codecOkWith F fm fu`, at `fm`/`fu` = our `kitFn`s.
+  - `Unmarshal`, `Encode_conn`: `encoding.json.{Unmarshal, Encoder.Encode_conn}.kitSpec`
+    (`Proof/events/LibHyps.lean`): the lab's, at the kit's registered codec (`codecSet ∗
+    kitCodecOk F`). The main tree's `Unmarshal.spec` (proved, J2) and `Encoder.Encode_conn.spec`
+    take `unmarshalVia`/`marshalVia` instead, whose codec route is `codecSetWith` (with the
+    registry's mutex) and whose per-type route is the type's own methods, for every contract `J`;
+    moving onto them changes these premises other than by removal (notes/dsv-vr.md).
+  - `NewEncoder`: the main tree's `encoding.json.NewEncoder.spec`
+    (`Spec/encoding/json/Codec/NewEncoder.lean`), the same statement as vr's was.
   - `newDecoder`, `Decode_frame`: `pkg.events.{newDecoder, Decoder.Decode_frame}.spec`
     (`Spec/events.lean`): `json.NewDecoder` over a connection and `Decoder.Decode` of a
-    `vsrwire.Frame`, stated at go-vsr's stream (`events.rstream` over `DecoderRep`). J1 has no
-    `NewDecoder`/`Decode` spec yet.
+    `vsrwire.Frame`, stated at go-vsr's stream (`events.rstream` over `DecoderRep`). The main tree
+    has no `NewDecoder`/`Decode` spec yet.
   - `codecOk`: `vsrnet.codecOk` (`Spec/json.lean`): the kit's generated codec functions
     (`jsonMarshal`, `jsonUnmarshal`, jsongen's) meet the kit's `JsonCodec`, `jsoncodec.Scan`
-    computes `scanF`. Neither branch gives it: it is the proof of jsongen's output for the kit's
-    types (the lab's ~8k lines, `VsrProof/Proof/vsrnetjson`), which needs `log.Logs`'
-    `MarshalJSON`/`UnmarshalJSON` specs (jsongen's `jenc_`/`jdec_` call them).
+    computes `scanF`: the proof of jsongen's output for the kit's types (the lab's ~8k lines).
   - `RegisterJSON`: `vsrnet.RegisterJSON.codecSet_spec` (below): the kit's `RegisterJSON()` leaves
-    the codec registered (`codecSet`). **Not true of today's placeholder** (`register_goose.go`:
-    an empty body, since jsongen refused `log.Logs`); it is the spec of jsongen's
-    `RegisterJSON` (`SetCodec(&json.Codec{jsonMarshal, jsonUnmarshal, jsoncodec.Scan})`), which
-    needs `SetCodec`'s spec (J2's bodies; J1 keeps the model's bodies opaque).
-* Not here (a separate premise of the statement): `encoding.json.InitHyp` (the names-only
-  package's initializer; J1 proves `wp_initialize'` with no axiom, so it goes away with J1).
+    the codec registered (`codecSet`). **Not true of today's code**: its precondition does not
+    exclude a codec already registered (then `SetCodec` panics); the main tree's `SetCodec.spec`
+    needs `codecUnset` and the registry's mutex from the deployment's boot.
 -/
 module
 
@@ -71,10 +68,10 @@ abbrev RegisterJSON.codecSet_spec : Prop :=
 
 /-- **The kit's JSON premises**, one `Prop` (see the file header). -/
 structure JsonHyps : Prop where
-  Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
+  Unmarshal : encoding.json.Unmarshal.kitSpec (GF := GF) (hG := hG)
     (jc := examples.vsrnet.jsonCodec)
   NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG)
-  Encode_conn : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
+  Encode_conn : encoding.json.Encoder.Encode_conn.kitSpec (GF := GF) (hG := hG)
     (jc := examples.vsrnet.jsonCodec)
   newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG)
   Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG)

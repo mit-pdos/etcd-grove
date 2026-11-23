@@ -6,7 +6,7 @@ module
 
 public import Net.Proof.net.Base
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.log
-public import Dsverify.Proof.encoding.json.Base
+public import Proof.encoding.json.Base
 
 @[expose] public section
 

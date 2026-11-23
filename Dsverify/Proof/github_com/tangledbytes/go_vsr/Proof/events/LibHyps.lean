@@ -1,27 +1,27 @@
 /-
-The `encoding/json` library specs the `events` proofs take as **hypotheses** (notes/dsv-vr.md,
-"Hypotheses": the model's `encoding/json` is translated names only here, so its functions have no
-bodies to prove them from). Each is a `Prop`, taken as a theorem argument named after the lab's
-spec (lab master 915f964, `Harness/Proof/encoding/json/{Valid,Stream}.lean`,
-`VsrProof/Proof/jsonstream/Encode.lean`); none is assumed (no axiom, no instance). The vocabulary is
-`Spec/jsonlib.lean`'s, plus `EncoderRep` (below).
+The `encoding/json` library specs the `events` proofs take as **hypotheses** at the kit's
+registered codec (notes/dsv-vr.md, "Hypotheses", "JSON on the main tree"). Each is a `Prop`, taken
+as a theorem argument named after the lab's spec (lab master 915f964,
+`Harness/Proof/encoding/json/{Valid,Stream}.lean`, `VsrProof/Proof/jsonstream/Encode.lean`); none
+is assumed (no axiom, no instance). `NewEncoder.spec`, `EncoderRep` and `DecoderRep` are the main
+tree's (`Spec/encoding/json/Codec/NewEncoder.lean`, `Proof/encoding/json/Registry.lean`), moved
+there from here (J1).
 
-* `encoding.json.Unmarshal.spec`: the lab's, unchanged (`Valid.lean`).
-* `encoding.json.NewEncoder.spec`: the lab's (`Stream.lean`), the encoder's representation a class
-  (`EncoderRep.encOk`, as `DecoderRep` for the decoder: the model's `Encoder` is opaque here) in
-  place of the lab model's fields (`ownEncoder enc w nil`).
-* `encoding.json.Encoder.Encode_conn.spec`: `enc.Encode(v)` on a fresh encoder writing to a
-  connection end (`net.isConn`, `sendTok`), the lab's `jsonstream.wp_Encode_conn` (which the lab
-  proved from its model's `Encode` and `TCPConn.Write`): the encoding and a newline are written in
-  one `Write` (`k` bytes of them; all when the error is `nil`), or `Marshal` failed (nothing
-  written). Stated over the connection, as the hub's decoder hypotheses (`events.newDecoder.spec`,
-  `events.Decoder.Decode_frame.spec`) are, rather than over a generic writer contract: the lab's
-  generic `Encoder.Encode.spec` asks the writer for `errOrNil` errors, which a connection's write
-  `*OpError` does not have a spec for here (no `OpError.Error` spec in `Net/`).
+* `encoding.json.Unmarshal.kitSpec`: the lab's `Unmarshal.spec`, at the kit's codec (`codecSet ∗
+  kitCodecOk F`, contract the instance `jc`). The main tree's `Unmarshal.spec` (proved, J2) takes
+  `unmarshalVia J F ptr` instead, whose codec route needs `codecSetWith` (the registry's mutex):
+  moving onto it changes vr's statement other than by removal (notes/dsv-vr.md).
+* `encoding.json.Encoder.Encode_conn.kitSpec`: `enc.Encode(v)` on a healthy encoder writing to a
+  connection end (`net.isConn`, `sendTok`), the lab's `jsonstream.wp_Encode_conn`, at the kit's
+  codec: the encoding and a newline are written in one `Write` (`k` bytes of them; all when the
+  error is `nil`), or `Marshal` failed (nothing written). The main tree's
+  `Encoder.Encode_conn.spec` (a statement, unproved) takes `marshalVia J F v` for every `J`
+  instead (same change as above).
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.events
+public import Spec.encoding.json.Codec.NewEncoder
 
 @[expose] public section
 
@@ -37,11 +37,6 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 namespace encoding.json
 
-/-- The representation of the model's `*Encoder` (opaque here; no instance is given):
-`encOk enc w`, a healthy encoder (no sticky error) writing to `w`. -/
-class EncoderRep [GooseExts] (GF : BundledGFunctors) where
-  encOk : Loc → GoInterface → IProp GF
-
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -50,10 +45,10 @@ variable [encoding.json.Assumptions] [jc : models_lab.jsoncodec.JsonCodec GF]
 
 set_option goose.wp.extras true
 
-/-- **Hypothesis** (the lab's `Unmarshal.spec`): `Unmarshal(data, ptr)`: on valid JSON
+/-- **Hypothesis** (the lab's `Unmarshal.spec`, at the kit's registered codec): `Unmarshal(data, ptr)`: on valid JSON
 (`jsonValid F`), the kit's `jsonUnmarshal` (`JsonCodec.dec`; `err` is nil exactly when it
 decoded); else a syntax error (non-nil), with nothing decoded. -/
-abbrev Unmarshal.spec : Prop :=
+abbrev Unmarshal.kitSpec : Prop :=
   ∀ (F : List w8 → Bool → w64 × w64) (data : GoSlice) (dq : DFrac) (bs : List w8)
     (ptr : GoInterface) (Ψ : Bool → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗ codecSet (GF := GF) ∗
@@ -66,14 +61,6 @@ abbrev Unmarshal.spec : Prop :=
 
 variable [EncoderRep GF]
 
-/-- **Hypothesis** (the lab's `NewEncoder.spec`): `NewEncoder(w)`: an encoder writing to `w`,
-with no error. -/
-abbrev NewEncoder.spec : Prop :=
-  ∀ (w : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json }}
-    (App (Val (@! encoding.json.NewEncoder)) (Val #w))
-  {{ (enc : Loc), RET #enc; EncoderRep.encOk (GF := GF) enc w }}
-
 variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- **Hypothesis** (the lab's `jsonstream.wp_Encode_conn`): `enc.Encode(v)`, `enc` a healthy
@@ -81,7 +68,7 @@ encoder writing to the end `s` of a connection `cn` (`net.isConn`) whose written
 `P`) is `W`, the encoding allowed after `W`: `Marshal` failed (`err` non-nil, `Ψ none`, nothing
 written); or the encoding `bs` and a newline were written in one `Write`, `k` bytes of them (all of
 them when `err` is nil), `err` some error or nil. -/
-abbrev Encoder.Encode_conn.spec : Prop :=
+abbrev Encoder.Encode_conn.kitSpec : Prop :=
   ∀ (F : List w8 → Bool → w64 × w64) (enc : Loc) (v w : GoInterface) (cn : Nat) (s : Bool)
     (a : GoString) (P : Proto GF) (W : List w8) (Ψ : Option (List w8) → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗

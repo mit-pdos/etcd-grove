@@ -58,7 +58,7 @@ variable [encoding.json.EncoderRep GF]
 
 theorem events.Event.ToWriter.wp
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
-    (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
+    (wp_Encode : encoding.json.Encoder.Encode_conn.kitSpec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.ToWriter.spec (GF := GF) (hG := hG) :=
@@ -66,7 +66,7 @@ theorem events.Event.ToWriter.wp
 
 theorem events.Event.FromDecoder.wp
     (wp_Decode_frame : events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
+    (wp_Unmarshal : encoding.json.Unmarshal.kitSpec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.FromDecoder.spec (GF := GF) (hG := hG) :=
