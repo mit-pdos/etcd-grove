@@ -6611,6 +6611,45 @@ noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [GooseExts] [GoGl
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false []))))) (Var "$res0"))))))
 
+/-- go: server.go:2494:6 -/
+noncomputable def addFeatureGateMetrics.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fg"
+  (Lam "guageVec"
+  (Seq (App (Val exceptionDo)
+  (Let "guageVec" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Var "guageVec"))
+  (Let "fg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty))) (Var "fg"))
+  (Let "$range" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.MutableFeatureGate.ty go!"GetAll"))) (App (Val (GoInstruction (TypeAssert _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.MutableFeatureGate.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty))) (Var "fg")))) (Val #()))
+  (Let "featureSpec" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty))) (Val #())))
+  (Let "feature" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty))) (Val #())))
+  (App (App (Val (map.forRange _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "metricVal" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "metricVal"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Set"))) (Let "$a0" (Let "$k0" (Val #(go!"name"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty))) (Var "feature"))
+  (Let "$k2" (Val #(go!"stage"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.prerelease.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty go!"PreRelease"))) (Var "featureSpec")))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.Labels.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty) go!"With"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeVec.ty)))) (Var "guageVec"))) (Var "$a0")))) (Var "$a0"))))))
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty))) (Var "feature"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty go!"Enabled"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty))) (Var "fg"))) (Var "$a0")))
+  (Let "$r0" (Val #(W64 4607182418800017408))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "metricVal") (Var "$r0")))))
+  (Let "$r0" (Val #(W64 0))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "metricVal") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Feature.ty))) (Pair (Var "feature") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec.ty))) (Pair (Var "featureSpec") (Var "$value"))))))))))))))
+  (Val #()))))
+
 /-- createMergedSnapshotMessage creates a snapshot message that contains: raft status (term, conf),
     a snapshot of v2 store inside raft.Snapshot as []byte, a snapshot of v3 KV in the top level message
     as ReadCloser.
@@ -14551,6 +14590,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
   tickToDur_unfold : FuncUnfold tickToDur [] tickToDur.impl
   verifyConsistentIndexIsLatest_unfold : FuncUnfold verifyConsistentIndexIsLatest [] verifyConsistentIndexIsLatest.impl
+  addFeatureGateMetrics_unfold : FuncUnfold addFeatureGateMetrics [] addFeatureGateMetrics.impl
   newSnapshotReaderCloser_unfold : FuncUnfold newSnapshotReaderCloser [] newSnapshotReaderCloser.impl
   replayTermsFromStorage_unfold : FuncUnfold replayTermsFromStorage [] replayTermsFromStorage.impl
   firstCompareKey_unfold : FuncUnfold firstCompareKey [] firstCompareKey.impl
@@ -14672,6 +14712,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.NewServer_unfold
   Assumptions.tickToDur_unfold
   Assumptions.verifyConsistentIndexIsLatest_unfold
+  Assumptions.addFeatureGateMetrics_unfold
   Assumptions.newSnapshotReaderCloser_unfold
   Assumptions.replayTermsFromStorage_unfold
   Assumptions.firstCompareKey_unfold

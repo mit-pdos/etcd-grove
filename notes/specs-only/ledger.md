@@ -25,6 +25,24 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `idClusterInv` / `NewGenerator.spec` -- the cluster's claims hold every machine's generator facts (etcd-dist D7)
+
+- **Spec.** `Spec/go_etcd_io/etcd/pkg/v3/idutil/NewGenerator.lean` (`idutil.NewGenerator.spec`), its vocabulary
+  `idClusterInv`/`idKeyGenFacts`/`idGen` (`Proof/go_etcd_io/etcd/pkg/v3/idutil/Defs.lean`), and its users
+  `Spec/go_etcd_io/etcd/server/v3/etcdserver/NewServer.lean`, `NewServerR.lean`. SpecPlan: the idutil and server
+  specs of `SpecPlan/Spec/` that take the cluster's claims (to check when implemented).
+- **Defect.** Not local: the cluster-wide invariant `idClusterInv` holds, per key, its generator's `prefix` points-to
+  and the issue record's facts (`idIssueFragD`, the machine-local extension state), and compares generators' `Loc`s
+  across keys. Sound in one process; it cannot be allocated once for a deployment of machines (D7: the start has no
+  heap), nor hold facts of several heaps.
+- **Evidence.** D7's re-sectioning (`d7-resection`): `idClusterInv` is the one cluster definition that does not
+  move to a global section (it reaches `HeapGS`/`GooseLocalGS`); `notes/etcd-dist-plan.md`, "The idutil split".
+- **Proposed change.** The plan's "The idutil split": `idClusterInv` without the generator facts (type unchanged);
+  a per-prefix heap-level `idPfxInv` holding them (both arguments that use them are per prefix, and a prefix is one
+  machine's); `IdNames.gen`; `NewGenerator.spec`'s pre gains `idPfxInv γi.gen γi.pfx`; `NewServer.spec`/`NewServerR.spec`
+  gain it; `idGen`'s body. No top-level theorem's statement changes (checked; the plan lists the files).
+- **Decision.** Pending (the coordinator posts it on #28 before implementation; idutil's specs are shared).
+
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
 - **Spec.** `Spec/go_uber_org/zap/Defs.lean`: `zapLoggerOk` (until now `⌜l ≠ null⌝ ∗ □ zap.loggerRaw l`,
@@ -173,8 +191,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   predicate (`EtcdServer__{FeatureEnabled,NewUberApplier,Txn}`, `NewServer`, `NewServerR`) take one more
   component. Made after `NewDefaultServerFeatureGate` is proved (until then the change strengthens that
   axiom's post, a trust-boundary spec).
-- **Decision.** Pending: waits for `NewDefaultServerFeatureGate`'s proof (blocked on `maps.Clone`,
-  `notes/perennial-changes.md`).
+- **Decision.** Accepted by the coordinator; review requested on #36. Made on `featuregate-4`
+  (2026-11-23), after featuregate-3 proved `NewDefaultServerFeatureGate`: `isFeatureGate fg` is now
+  `∃ fi K, fg = ok fi ∗ ⌜serverFeatures ⊆ dom K ∧ featureLabelsOk K⌝ ∗ □ Enabled(f) for f ∈ dom K ∗
+  □ GetAll() returns a fresh m ↦$ K` (`featureLabelsOk K`: each name and `PreRelease` valid UTF-8).
+  `featuregate.featureGate.GetAll` translated and proved (over `maps.Copy`); `NewDefaultServerFeatureGate`
+  gives the new components (`K = serverFeatureSpecs ∪ defaultKnown`, ASCII literals);
+  `addFeatureGateMetrics.spec` unchanged, now proved (the axiom retired); the five proofs take the
+  extra components.
 
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 

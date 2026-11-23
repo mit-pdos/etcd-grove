@@ -32,6 +32,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newSer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Add
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Enabled
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__GetAll
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.New
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
@@ -129,9 +130,13 @@ theorem featuregate.featureGate.wp_Add :
     EtcdGrove.featuregate.featureGate.Add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.featuregate.featureGate.Add.wp_proof maps.wp_Copy
 
+theorem featuregate.featureGate.wp_GetAll :
+    EtcdGrove.featuregate.featureGate.GetAll.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.featuregate.featureGate.GetAll.wp_proof maps.wp_Copy
+
 theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof featuregate.wp_New featuregate.featureGate.wp_Add featuregate.featureGate.wp_Enabled
+  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof featuregate.wp_New featuregate.featureGate.wp_Add featuregate.featureGate.wp_Enabled featuregate.featureGate.wp_GetAll
 
 theorem wp_newServerMode [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.newServerMode.spec (GF := GF) (hG := hG) :=

@@ -96,6 +96,9 @@ translate = ["!*",
   "NewServer", "bootstrappedServer", "bootstrappedStorage", "bootstrappedBackend",
   "bootstrappedCluster", "bootstrappedWAL", "AccessController",
   "EtcdServer.restoreAlarms", "EtcdServer.NewUberApplier",
+  # (featuregate-4, 2026-11-23) the feature gauges `NewServer` sets, over featuregate's `GetAll`
+  # and `Enabled` and prometheus's `GaugeVec.With`; until then names-only, a trusted triple
+  "addFeatureGateMetrics",
   # (R-D1, 2026-11-04) the record's close on `NewServer`'s error paths (bootstrap.go): until then
   # a trusted triple of `bootOk` (`#Hclose`), false (a second `Close` panics)
   "bootstrappedServer.Close", "bootstrappedStorage.Close", "bootstrappedBackend.Close",
