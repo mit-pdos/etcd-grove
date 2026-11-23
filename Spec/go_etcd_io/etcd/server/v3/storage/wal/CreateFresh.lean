@@ -42,6 +42,7 @@ abbrev wal.Create.specFresh (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
     (Q : IProp GF),
   InArea r dir nm → NameOk nm → dir.length < 2 ^ 59 → cleanAbsPath r → mp ≠ slice.nil →
   md.length < 2 ^ 41 → md ≠ [] → WalMarshalCreateOk Mr →
+  FsNoErrOn (fun p => p = dir ∨ p = dir ++ go!".tmp" ∨ p = r) ∧ PathFits (dir ++ go!".tmp") ∧ PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       mp ↦*□ md ∗ WalFs.walAreaOk walCodec Mr R jr r ∗ WalFs.dirDurable r ∗ osPathS R r (DFrac.own qp) jr ∗
       walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗

@@ -6,18 +6,21 @@ trust-boundary specs (copies of the main tree's axioms, `proto.MarshalPb.wp_proo
 `proto.UnmarshalPb.wp_proof`, and since fix 0009 `proto.SizePb.wp_proof`):
 
 - `walPb_laws : WalPbLaws walRaftP walRaftMr walRaftU`, every law but four;
-- `walRaftHsO_own`: `WalHsOwn` from its two fields that need `raftpb.HardState`'s trusted model
-  (`unmarshal`, `reset`).
+- `walRaftHsO_own`: `WalHsOwn`, its `unmarshal` over `proto.Unmarshal`'s spec at the registered
+  `raftpb.HardState` (`LawsHsPb.lean`), its `reset` over the trusted model `HardState.Reset.impl`
+  (`LawsHs.lean`, 2026-11-22).
 
-`WalPbIn.CloneHsLaw`, `WalHsOwn.unmarshal` and `WalHsOwn.reset` stay hypotheses
-of the closed result (`WalPbIn.MarshalHsLaw` is proved since wal-item3, 2026-11-21, `LawsHsMarshal.lean`, over the
-registered `raftpb.HardState`, `PbHardState.lean`) (`notes/wal-fsext-plan.md`, §10, "The raftpb instance's laws pending the user").
+Every raftpb law is proved (`WalPbIn.MarshalHsLaw` since wal-item3, 2026-11-21, `LawsHsMarshal.lean`;
+`WalPbIn.CloneHsLaw` and `WalHsOwn.unmarshal` since 2026-11-22, `LawsHsPb.lean`, over the registered
+`raftpb.HardState`, `PbHardState.lean`; `WalHsOwn.reset` since 2026-11-22, over `TrustedCode/go_etcd_io/raft/v3/
+raftpb.lean`'s `HardState.Reset.impl`) (`notes/wal-fsext-plan.md`, §10).
 Lean-first.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHs
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsEnt
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHsPb
 public import Proof.google_golang_org.protobuf.proto.MarshalPb
 public import Proof.google_golang_org.protobuf.proto.UnmarshalPb
 public import Proof.google_golang_org.protobuf.proto.SizePb
@@ -73,24 +76,16 @@ theorem walPb_laws : WalPbLaws (walRaftP (GF := GF)) walRaftMr walRaftU where
   createOk := walRaftMr_createOk
   encState := walRaftMr_encState_lt
 
-/-- **The hard states `ReadAll` owns**, from the two laws that need `raftpb.HardState`'s trusted model. -/
-theorem walRaftHsO_own
-    (h_unmarshal : ∀ (d : GoSlice) (dq : DFrac) (bs : List w8) (h : HardStateM),
-      walRaftU.decState bs = some h →
-      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ d ↦*{dq} bs }}
-        (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.MustUnmarshalState)) (Val #d))
-      {{ (p : Loc), RET #p; d ↦*{dq} bs ∗ walRaftHsO p h }})
-    (h_reset : ∀ (p : Loc) (h : HardStateM),
-      {{ walRaftHsO (GF := GF) p h }}
-        (App (Val (p @!! go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty @!! go!"Reset"))
-          (Val #()))
-      {{ RET #(); walRaftHsO p hsZero }}) :
+/-- **The hard states `ReadAll` owns**, over `proto.Unmarshal`'s spec (and, for `reset`, the trusted model
+`HardState.Reset.impl`: `walRaftHsO_reset`). -/
+theorem walRaftHsO_own (wp_Unmarshal : proto.UnmarshalPb.spec (GF := GF) (hG := hG)) :
     WalHsOwn (walRaftP (GF := GF)) walRaftU walRaftHsO where
   zero := walRaftHsO_zero
-  unmarshal := h_unmarshal
+  unmarshal := walRaftHsO_unmarshal wp_Unmarshal
   getCommit := walRaftHsO_getCommit
-  reset := h_reset
+  reset := walRaftHsO_reset
   freeze := walRaftHsO_freeze
+  notNull := walRaftHsO_notNull
 
 end laws
 

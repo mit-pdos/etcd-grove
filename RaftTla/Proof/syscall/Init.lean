@@ -12,6 +12,8 @@ the RLIMIT_NOFILE raise, unobservable to what Perennial models).
 module
 
 public import Proof.syscall.PkgInit
+public import Perennial.Proof.errors.Link
+public import Perennial.Proof.internal.oserror.Link
 public import Perennial.Proof.sync.Link
 public import Proof.syscall.Models
 public import Perennial.Proof.sync.Link
@@ -70,6 +72,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) copyenv _ as Hcopyenv
   wp_apply wp_GlobalAlloc (V := _) envs _ as Henvs
   wp_apply wp_GlobalAlloc (V := _) env _ as Henv
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
+      EtcdGrove.ExternalInit.internal_oserror _root_.Perennial.internal.oserror.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of envs))

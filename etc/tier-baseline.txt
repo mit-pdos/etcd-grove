@@ -180,8 +180,6 @@ Proof.go_etcd_io.bbolt.internal.freelist.Interface__Rollback Proof.go_etcd_io.bb
 Proof.go_etcd_io.bbolt.internal.freelist.Interface__Write Proof.go_etcd_io.bbolt.internal.freelist.Impl.shared__Write  # proof->proof
 Proof.go_etcd_io.bbolt.newFreelist Proof.go_etcd_io.bbolt.internal.freelist.Impl.NewArrayFreelist  # proof->proof
 Proof.go_etcd_io.bbolt.newFreelist Proof.go_etcd_io.bbolt.internal.freelist.Impl.NewHashMapFreelist  # proof->proof
-Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.CreateDirAllTmp Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllDir  # proof->proof
-Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllDir Proof.os.MkdirAllDir  # proof->proof
 Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TryLockFile Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile  # proof->proof
 Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error  # proof->proof
 Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple  # defs->proof
