@@ -27,7 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
+variable [ra : RpcHttpAddr GF] [rc : RpcCallReply GF]
 
 
 theorem wp_AddNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_NodeMeta.spec (GF := GF))
@@ -47,8 +47,9 @@ theorem wp_AddNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_NodeMeta.spec
   wp_call
   wp_auto
   rw [show zero_val transport.NodeMeta = transport.NodeMeta.mk false false go!"" go!"" go!"" from rfl]
-  wp_apply (net.rpc.Client.Call.wp (C := craqCodec) r cfg.W cfg.cAddr go!"RPC.AddNode" go!"RPC" go!"AddNode"
-    (coordSpec cfg.γ cfg.chain) _ _ (fun _ _ => iprop(True)) iprop(True)
+  wp_apply (wp_Call_tag (HT := fun rep => BI.pure_mono (fun h => h rfl)) (tagOk go!"github.com/despreston/go-craq/transport.NodeMeta")
+    r cfg.W cfg.cAddr go!"RPC.AddNode" go!"RPC" go!"AddNode"
+    (coordSpec cfg.γ cfg.chain) _ _ (fun rep msg => iprop(⌜msg = [] → tagOk go!"github.com/despreston/go-craq/transport.NodeMeta" rep⌝)) iprop(True)
     (metaPtr «$r0_ptr» (DFrac.own 1) ⟨false, false, go!"", go!"", go!""⟩)
     (fun _ _ => iprop(∃ m : MetaV, metaPtr «$r0_ptr» (DFrac.own 1) m))) $$ [Htk «$r0»]
   · isplitr
@@ -66,14 +67,16 @@ theorem wp_AddNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_NodeMeta.spec
         isplitr
         · ipureintro; exact ⟨rfl, ha⟩
         isplit
-        · iintro %_; ipureintro; trivial
-        · unfold errOk; iintro %_ %_; ipureintro; trivial
+        · iintro %md; ipureintro; intro _; exact tagOk_Meta md
+        · unfold errOk; iintro %_ %_; ipureintro; intro _; exact tagOk_nil _
       · ipureintro; trivial
     isplitl [«$r0»]
     · unfold metaPtr; iexact «$r0»
     · imodintro
-      iintro Hrp %rep
+      iintro Hrp %rep %HT
       iapply Hdec
+      isplitr
+      · ipureintro; exact HT
       iframe
       iintro %ok Hok
       iexact Hok
@@ -108,8 +111,10 @@ theorem wp_CWrite_fixed (Henc : enc_ClientWriteArgs.spec (GF := GF))
   wp_auto
   wp_alloc pr as Hpr
   wp_auto
-  wp_apply (net.rpc.Client.Call.wp (C := craqCodec) r cfg.W cfg.cAddr go!"RPC.Write" go!"RPC" go!"Write"
-    (coordSpec cfg.γ cfg.chain) _ _ (fun _ msg => iprop(⌜msg = []⌝ -∗ putReceipt k x Q))
+  wp_apply (wp_Call_tag (HT := fun rep => by iintro ⟨%h, -⟩; ipureintro; exact h rfl) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply")
+    r cfg.W cfg.cAddr go!"RPC.Write" go!"RPC" go!"Write"
+    (coordSpec cfg.γ cfg.chain) _ _
+    (fun rep msg => iprop(⌜msg = [] → tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply" rep⌝ ∗ (⌜msg = []⌝ -∗ putReceipt k x Q)))
     (sl ↦*{dq} x)
     (pr ↦ transport.netrpc.EmptyReply.mk) (fun _ _ => pr ↦ transport.netrpc.EmptyReply.mk))
     $$ [args Hsl HAU Hpr]
@@ -130,18 +135,26 @@ theorem wp_CWrite_fixed (Henc : enc_ClientWriteArgs.spec (GF := GF))
       isplitr
       · ipureintro; rfl
       isplit
-      · iintro Hrc %_; iexact Hrc
-      · unfold errOk; iintro %_ %Hne %Heq; exact absurd Heq Hne
+      · iintro Hrc
+        isplitr
+        · ipureintro; intro _; exact tagOk_EmptyReply
+        iintro %_; iexact Hrc
+      · unfold errOk; iintro %_ %Hne
+        isplitr
+        · ipureintro; intro _; exact tagOk_nil _
+        iintro %Heq; exact absurd Heq Hne
     isplitl [Hpr]
     · iexact Hpr
     · imodintro
-      iintro Hpr %rep
+      iintro Hpr %rep %HT
       iapply Hdec
+      isplitr
+      · ipureintro; exact HT
       iframe
       iintro %ok Hpr
       iexact Hpr
   iintro %err Hpost
-  icases Hpost with (⟨%Herr, Hsl, %rep, Hrc, -⟩ | ⟨%msg, ⟨%Hne, %Herr⟩, #Hmsg, -⟩ | ⟨%Herr, #Hany, -⟩)
+  icases Hpost with (⟨%Herr, Hsl, %rep, ⟨-, Hrc⟩, -⟩ | ⟨%msg, ⟨%Hne, %Herr⟩, #Hmsg, -⟩ | ⟨%Herr, #Hany, -⟩)
   · wp_auto
     iapply HΦ; ileft
     isplitr
@@ -171,8 +184,9 @@ theorem wp_CRemoveNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_EmptyRepl
   wp_auto
   wp_alloc pr as Hpr
   wp_auto
-  wp_apply (net.rpc.Client.Call.wp (C := craqCodec) r cfg.W cfg.cAddr go!"RPC.RemoveNode" go!"RPC" go!"RemoveNode"
-    (coordSpec cfg.γ cfg.chain) _ _ (fun _ _ => iprop(True)) iprop(True)
+  wp_apply (wp_Call_tag (HT := fun rep => BI.pure_mono (fun h => h rfl)) (tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply")
+    r cfg.W cfg.cAddr go!"RPC.RemoveNode" go!"RPC" go!"RemoveNode"
+    (coordSpec cfg.γ cfg.chain) _ _ (fun rep msg => iprop(⌜msg = [] → tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply" rep⌝)) iprop(True)
     (pr ↦ transport.netrpc.EmptyReply.mk) (fun _ _ => pr ↦ transport.netrpc.EmptyReply.mk))
     $$ [Hpr]
   · isplitr
@@ -189,14 +203,16 @@ theorem wp_CRemoveNode (Henc : enc_string.spec (GF := GF)) (Hdec : dec_EmptyRepl
         isplitr
         · ipureintro; rfl
         isplit
-        · ipureintro; trivial
-        · iintro %_; ipureintro; trivial
+        · ipureintro; intro _; exact tagOk_EmptyReply
+        · iintro %_; ipureintro; intro _; exact tagOk_nil _
       · ipureintro; trivial
     isplitl [Hpr]
     · iexact Hpr
     · imodintro
-      iintro Hpr %rep
+      iintro Hpr %rep %HT
       iapply Hdec
+      isplitr
+      · ipureintro; exact HT
       iframe
       iintro %ok Hpr
       iexact Hpr

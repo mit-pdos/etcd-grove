@@ -67,6 +67,148 @@ theorem serverErr_inj [go.IntoValInj GoString] {m1 m2 : GoString} (h : net.rpc.s
 
 end defs
 
+/-! ## The call, over `RpcCallReply` (H5)
+
+`wp_Call_tag`: `RpcCallReply.Call` for the kit's codec, where the method's answers (`msg = []`)
+are the replies with property `T` (the client shows it of each answer it asks for, along with
+`Φ`), so the decoding is asked for only of replies with `T` (`T rep := tagOk t rep`: the reply's
+type tag is the target's). -/
+
+section call
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [ra : RpcHttpAddr GF]
+
+/-- The codec's decoding keeps a frame on success. -/
+theorem craqCodec_dec_frame (bs : List w8) (ptr : GoInterface) (Ψ : Bool → IProp GF) (R : IProp GF) :
+    craqCodec.dec bs ptr Ψ ∗ R ⊢ craqCodec.dec bs ptr (fun ok => if ok then iprop(R ∗ Ψ true) else Ψ false) := by
+  unfold craqCodec
+  iintro ⟨Hd, HR⟩ %data %dq %Φ Hdata HΦ
+  ispecialize Hd $$ %data %dq %Φ Hdata
+  iapply Hd
+  inext
+  iintro %err %ok Hdata %Hok HΨ Herr
+  cases ok
+  · ispecialize HΦ $$ %err %false Hdata %Hok
+    isimp only [Bool.false_eq_true, ite_false] at HΦ Herr
+    ispecialize HΦ $$ HΨ Herr
+    iexact HΦ
+  · ihave HΨ' : iprop(R ∗ Ψ true) $$ [HR HΨ]
+    · iframe
+    ispecialize HΦ $$ %err %true Hdata %Hok
+    isimp only [ite_true] at HΦ Herr
+    ispecialize HΦ $$ HΨ' Herr
+    iexact HΦ
+
+theorem wp_Call_tag [rc : RpcCallReply GF] (T : List w8 → Prop) (c : Loc) (W : net.rpc.RpcWorld GF)
+    (a sm svc M : GoString) (S : net.rpc.MethodSpec GF) (args reply : GoInterface)
+    (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF) (Θ : List w8 → Bool → IProp GF)
+    (HT : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝) :
+  {{ net.rpc.isClient c W a ∗ ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧
+        reply ≠ interface.nil⌝ ∗
+      net.rpc.codecSet craqCodec ∗
+      craqCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
+      □ (D -∗ ∀ rep, ⌜T rep⌝ -∗ craqCodec.dec rep reply (Θ rep)) }}
+    (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Call"))
+      (Val #sm)) (Val #args)) (Val #reply))
+  {{ (err : GoInterface), RET #err;
+      (⌜err = interface.nil⌝ ∗ Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true) ∨
+      (∃ msg : GoString, ⌜msg ≠ [] ∧ err = net.rpc.serverErr msg⌝ ∗ net.rpc.errMsg err msg ∗ Rargs ∗
+        (∃ rep, Φ rep msg) ∗ D) ∨
+      (⌜err ≠ interface.nil ∧ net.rpc.notServerErr err⌝ ∗ models_lab.errAny err ∗
+        ((Rargs ∗ (D ∨ ∃ rep, Θ rep false)) ∨
+          (craqCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D))) }} := by
+  have HT2 : ∀ rep, Φ rep [] ⊢ ⌜T rep⌝ ∗ Φ rep [] := fun rep =>
+    (BI.and_intro (HT rep) .rfl).trans BI.persistent_and_sep_mp
+  iintro %Ψ ⟨#Hc, %Hs, #Hcs, Henc, HD, #Hdec⟩ HΨ
+  wp_apply (rc.Call c W a sm svc M S args reply Φ
+    Rargs D (fun rep ok => if ok then iprop(Φ rep [] ∗ Θ rep true) else Θ rep false) craqCodec)
+    $$ [Henc HD]
+  · isplitr
+    · iexact Hc
+    isplitr
+    · ipureintro; exact Hs
+    isplitr
+    · iexact Hcs
+    isplitl [Henc]
+    · iexact Henc
+    isplitl [HD]
+    · iexact HD
+    imodintro
+    iintro HD %rep HΦ
+    ihave HΦ := (HT2 rep) $$ HΦ
+    icases HΦ with ⟨%Hrep, HΦ⟩
+    iapply craqCodec_dec_frame
+    isplitr [HΦ]
+    · iapply Hdec $$ HD
+      ipureintro; exact Hrep
+    · iexact HΦ
+  iintro %err Hpost
+  iapply HΨ
+  icases Hpost with (⟨%Herr, HR, %rep, Hok⟩ | ⟨%msg, %Hm, #Hmsg, HR, ⟨%rep, HΦ⟩, HD⟩ |
+    ⟨%Herr, #Hany, (⟨HR, (HD | ⟨%rep, Hf⟩)⟩ | Hrest)⟩)
+  · ileft
+    simp only [ite_true]
+    isplitr
+    · ipureintro; exact Herr
+    iframe
+  · iright; ileft
+    iexists msg
+    isplitr
+    · ipureintro; exact Hm
+    isplitr
+    · iexact Hmsg
+    iframe
+  · iright; iright
+    isplitr
+    · ipureintro; exact Herr
+    isplitr
+    · iexact Hany
+    ileft; iframe
+  · iright; iright
+    simp only [Bool.false_eq_true, ite_false]
+    isplitr
+    · ipureintro; exact Herr
+    isplitr
+    · iexact Hany
+    ileft; iframe
+  · iright; iright
+    isplitr
+    · ipureintro; exact Herr
+    isplitr
+    · iexact Hany
+    iright; iexact Hrest
+
+/-- The replies' type tags (an empty reply has none). -/
+theorem tagOk_nil (t : GoString) : tagOk t [] := by
+  intro _ _ h; simp [getTag, getU64] at h
+
+theorem tagOk_EmptyReply :
+    tagOk go!"github.com/despreston/go-craq/transport/netrpc.EmptyReply" encEmptyReply :=
+  tagOk_tagged _ _ (by decide)
+
+theorem tagOk_VersionResp (k : GoString) (v : w64) :
+    tagOk go!"github.com/despreston/go-craq/transport/netrpc.VersionResponse" (encVersionResp k v) :=
+  tagOk_tagged _ _ (by decide)
+
+theorem tagOk_Item (k x : GoString) :
+    tagOk go!"github.com/despreston/go-craq/transport.Item" (encItem k x) :=
+  tagOk_tagged _ _ (by decide)
+
+theorem tagOk_Meta (m : MetaV) :
+    tagOk go!"github.com/despreston/go-craq/transport.NodeMeta" (encMeta m) :=
+  tagOk_tagged _ _ (by decide)
+
+theorem tagOk_PropResp (r : GMap GoString (List (GoString × w64))) (bs : List w8)
+    (h : encPropResp r bs) :
+    tagOk go!"github.com/despreston/go-craq/transport.PropagateResponse" bs := by
+  obtain ⟨es, -, rfl⟩ := h
+  exact tagOk_tagged _ _ (by decide)
+
+end call
+
 section specs
 variable {GF : BundledGFunctors} [GooseExts] [GooseSemantics] [GooseInterp]
   [G : GooseGlobalGS HasLC.hasLC GF]
