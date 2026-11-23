@@ -25,10 +25,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
 
 /-- The acceptor's end of a new connection `cid` (as the `net.Conn` `conn`) to replica `id`'s
-address, as `Accept` returns it. -/
+address, as `Accept` returns it (with `io.EOF`'s and `ErrDeadlineExceeded`'s values, the
+connection's read and write contracts name). -/
 def accEnd (γ : EpNames) (id : Nat) (L : List GoString) (conn : GoInterface) (cid : Nat) :
     IProp GF :=
-  iprop(connIf conn cid true ∗ sendTok cid true (repAccP γ (L.getD id [])) [] ∗
+  iprop((∃ (t : Loc) (la ra ed eof : GoInterface), connIn conn cid true t la ra ed eof) ∗
+    sendTok cid true (repAccP γ (L.getD id [])) [] ∗
     recvTok cid true (repDialP γ (L.getD id [])) [] ∗ connFresh cid true)
 
 /-- What every goroutine of the framework holds: the read-only fields and the lock. -/
