@@ -59,7 +59,7 @@ directory, which `os.Rename` needs. (bkarea, 2026-11-22) For a data directory sh
 bytes, which `cfg.BackendPath()`'s proof needs (`filepath.Join`'s premise; `applySnapshot`'s callers
 have it from the data directory that fits, `srvSnapRO`). -/
 abbrev storage.OpenSnapshotBackend.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)]
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)]
     (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss sn mp hk : Loc) (dq dq' : DFrac)
     (md : SnapshotMetadataM) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF) (γo : DBNames)
     (R' : IProp GF),

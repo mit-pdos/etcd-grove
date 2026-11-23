@@ -98,11 +98,12 @@ macro "create_seg_exit" : tactic => `(tactic| (
       isplitr
       · ipureintro; exact hJf.1
       unfold tmpEnt; iempintro
+    ihave Ht := tmpDirH_any jr (tmpName nm) hT3 $$ Ht
     try wp_auto
-    wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT3
+    wp_apply +noauto wp_removeAllTmp wp_RmSub r (tmpName nm) R jr (e + a') hT3
       (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
     · iframe; iframe #
-    icases Ht with ⟨%hT4, Ht⟩
+    icases Ht with ⟨%hT4, Ht, -⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod create_abortTmp walCodec Mr R jr r N h cl nm hT4 Wn hok hnm hNnm hself
@@ -467,8 +468,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_FExist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
     (wp_Clean : filepath.Clean.spec (GF := GF) (hG := hG))
     (wp_RmAbs : os.RemoveAll.specAbsentS (GF := GF) (hG := hG))
-    (wp_RmDir : os.RemoveAll.specDirS (GF := GF) (hG := hG))
-    (wp_CDA : fileutil.CreateDirAll.specTmp (GF := GF) (hG := hG))
+    (wp_RmSub : os.RemoveAll.specSubS (GF := GF) (hG := hG))
+    (wp_CDA : fileutil.CreateDirAll.spec (GF := GF) (hG := hG))
     (wp_String : zap.String.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Int64 : zap.Int64.spec (GF := GF) (hG := hG))
@@ -499,7 +500,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_cleanupWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (W := W) P Mr)
     (wp_ErrorfErrs : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) P Mr := by
-  intro lg R jr r dir nm mp md qp Q Pv hin hnmO hdl hr hmp hmd hmdne hMr
+  intro lg R jr r dir nm mp md qp Q Pv hin hnmO hdl hr hmp hmd hmdne hMr hnoerr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -559,25 +560,31 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
   have hTt : (h.restrict jr (N.inter [tmpName nm])).cur !! tmpName nm = h.cur !! tmpName nm := by
     simp only [NamesH.restrict]
     rw [restrictN_lookup _ _ _ ((NameSet.mem_inter _ _ _).2 ⟨hNt, List.mem_singleton_self _⟩)]
-  ihave Ht : tmpDirH jr (tmpName nm) (h.restrict jr (N.inter [tmpName nm])) $$ [HT Hts]
-  · unfold tmpDirH; rw [hTt]; iframe
-  wp_apply wp_existTmp wp_FExist r (tmpName nm) R jr qp _ 1 (tmpName_nameOk hnmO) $$ [Hp Ht Hperm]
-    as %bt ⟨Hp, Ht, Hperm⟩
+  -- the file system does not fail on `nm.tmp` and the area: `Exist`/`RemoveAll` of `nm.tmp` exact
+  have hFt : FsNoErrAt (child r (tmpName nm)) :=
+    ⟨hnoerr.1.mono (fun p hp => .inr (.inl (by rw [hp, tmp_path]))), by rw [← tmp_path]; exact hnoerr.2.1⟩
+  have hFr : FsNoErrAt r :=
+    ⟨hnoerr.1.mono (fun p hp => .inr (.inr hp)), pathFits_area hnoerr.2.2⟩
+  ihave Ht : tmpAny jr (tmpName nm) (h.restrict jr (N.inter [tmpName nm])) $$ [HT Hts]
+  · unfold tmpAny; rw [hTt]; iframe
+  wp_apply wp_existTmpNE wp_FExist r (tmpName nm) R jr qp _ 1 (tmpName_nameOk hnmO) $$ [Hp Ht Hperm]
+    as %bt ⟨Hp, Ht, Hperm, %hbt⟩
   · iframe; iframe #
   -- a leftover `nm.tmp`: `RemoveAll`
-  ihave Ht : (∃ hT', tmpDirH jr (tmpName nm) hT') $$ [Ht]
-  · iexists _; iexact Ht
+  ihave Ht : (∃ hT', tmpAny jr (tmpName nm) hT' ∗
+      ⌜bt = false → FsNoErrAt (child r (tmpName nm)) → hT'.cur !! tmpName nm = none⌝) $$ [Ht]
+  · iexists _; iframe Ht; ipureintro; exact hbt
   cases bt
   rotate_left
   try wp_auto
-  icases Ht with ⟨%hT0, Ht⟩
-  wp_apply wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr qp hT0 (tmpName_nameOk hnmO)
+  icases Ht with ⟨%hT0, Ht, -⟩
+  wp_apply wp_removeAllTmp wp_RmSub r (tmpName nm) R jr qp hT0 (tmpName_nameOk hnmO)
     $$ [Hp Ht Hperm] as %err ⟨Hp, Hperm, Ht, -⟩
   · iframe; iframe #
   cases err
   case ok ei =>
     -- `RemoveAll` failed: nothing done, `nm.tmp` merged back
-    icases Ht with ⟨%hT1, Ht⟩
+    icases Ht with ⟨%hT1, Ht, -⟩
     iapply wp_notCrashed_acc _ _ rfl
     iintro Hnc
     imod create_abortTmp walCodec Mr R jr r N h cl nm hT1 Wn hok hnm hNnm hself
@@ -593,13 +600,17 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     ipureintro; intro hc; cases hc
   all_goals (
     try wp_auto
-    icases Ht with ⟨%hT1, Ht⟩
+    icases Ht with ⟨%hT1, Ht, %hT1n⟩
+    have hT1a : hT1.cur !! tmpName nm = none := by
+      first | exact hT1n rfl hFt | exact hT1n rfl hFt hFr
+    iunfold tmpAny at Ht
+    icases Ht with ⟨Ht, -⟩
     have htl : (child r (tmpName nm)).length < 2 ^ 60 := by
       simp [child, tmpName] at hdl ⊢; omega
     wp_apply wp_CDA lg R jr (child r (tmpName nm)) r (tmpName nm) qp hT1 rfl (tmpName_nameOk hnmO) htl
-      $$ [Hp Hperm Ht] as %err ⟨Hp, Hperm, Hcda⟩
+      hT1a $$ [Hp Hperm Ht] as %err ⟨Hp, Hperm, Hcda⟩
     · iframe; iframe #
-    icases Hcda with (⟨%herr, %hT2, Ht⟩ | ⟨%herr, %hT2, %hJ, %J, %hJs, HT, HJ⟩)
+    icases Hcda with (⟨%herr, %hT2, Ht⟩ | ⟨%herr, %hT2, %hJ, %J, %nC, %hJs0, HT, HJ, -⟩)
     · -- `CreateDirAll` failed: the deferred `RemoveAll(nm.tmp)`, then the abort
       cases err
       case nil => exact absurd rfl herr
@@ -615,10 +626,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       wp_apply wp_Warn lg _ _ $$ []
       · iframe #
       try wp_auto
-      wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr qp hT2 (tmpName_nameOk hnmO)
+      ihave Ht := tmpDirH_any jr (tmpName nm) hT2 $$ Ht
+      wp_apply +noauto wp_removeAllTmp wp_RmSub r (tmpName nm) R jr qp hT2 (tmpName_nameOk hnmO)
         $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
       · iframe; iframe #
-      icases Ht with ⟨%hT3, Ht⟩
+      icases Ht with ⟨%hT3, Ht, -⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod create_abortTmp walCodec Mr R jr r N h cl nm hT3 Wn hok hnm hNnm hself
@@ -633,6 +645,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       iframe
       ipureintro; intro hc; cases hc
     subst herr
+    have hJs : hT2.cur !! tmpName nm = some (.dir J) ∧ hJ.cur = ∅ := ⟨hJs0.1, hJs0.2.2⟩
     try wp_auto
     -- `p := filepath.Join(tmpdirpath, walName(0, 0))`
     wp_func_call
@@ -712,6 +725,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
         isplitr
         · ipureintro; exact hJf.1
         unfold tmpEnt; iempintro
+      ihave Ht := tmpDirH_any jr (tmpName nm) hT3 $$ Ht
       try wp_auto
       wp_apply wp_String as %f1 -
       wp_apply wp_Error as %f3 -
@@ -723,10 +737,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       wp_apply wp_Warn lg _ _ $$ []
       · iframe #
       try wp_auto
-      wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT3
+      wp_apply +noauto wp_removeAllTmp wp_RmSub r (tmpName nm) R jr (e + a') hT3
         (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
       · iframe; iframe #
-      icases Ht with ⟨%hT4, Ht⟩
+      icases Ht with ⟨%hT4, Ht, -⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod create_abortTmp walCodec Mr R jr r N h cl nm hT4 Wn hok hnm hNnm hself
@@ -1058,7 +1072,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     try wp_auto
     -- `J`'s claims: merged after the segment's create, split off the pipeline's names
     imod createJ_claims R J (walFileName 0 0) hJ x0 s0 i hJs.2 (walNameP_walFileName 0 0)
-      CoPset.subseteq_top $$ Hsi HJr Ho with ⟨%hJ', HJx, HTmps, %hJf⟩
+      CoPset.subseteq_top $$ Hsi HJr Ho Hcm1 with ⟨%hJ', HJx, HTmps, HThv, %hJf⟩
     obtain ⟨hJlt, hJcur⟩ := hJf
     imod osNames_coh R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, %hJcoh⟩
     imod osNames_next R J _ _ _ CoPset.subseteq_top $$ Hsi HJx with ⟨HJx, #HlbJ⟩
@@ -1121,7 +1135,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     · rw [Qp.half_add_half]; iexact HJx
     -- the update (`createFresh_osAUnc`), its result with the invariant (`createU`)
     ihave HP : walCreateP (child r nm) (.only [nm, tmpName nm]) hC md Q Pv Wn J walTmps
-        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau Hsf HJh HmS HbS]
+        (hJ'.restrict J ((NameSet.except []).diff walTmps)) (createSeg i mS ysS) $$ [Hcr Hau Hsf HJh HmS HbS HThv]
     · unfold walCreateP createSeg
       rw [show i = (⟨i, false, true, lo, lk⟩ : OsFd).ino from rfl]
       iframe
@@ -1173,7 +1187,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           (Nat.le_max_left _ _) (Nat.le_max_right _ _) hJcoh hJcur hokS' hm2s hm2c hmaps2⟩
     wp_apply _wp_renameWAL R jr J r (child r nm) nm (tmpName nm) (.only [nm, tmpName nm]) hC _
       (e + a') (DFrac.own d) wl lg mp md enc lf f snapi' enti' fd _ _ _ _ _ _ _
-      (createUH jr J r nm md Q Wn d) hOk
+      (createUH jr J r nm md Q Wn d) hOk ⟨hnoerr.1.mono (fun _ hp => .inl hp), by rw [← tmp_path]; exact hnoerr.2.1, hnoerr.2.2⟩
       $$ [Hp Hperm HC Hau HSp HTmps Hpre fp dirFile Henc Hf Hfd Hlks Hoff] as %w' %err Hpost
     · iframe; iframe #
       iunfold walLockIn
@@ -1276,7 +1290,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       icases HU with ⟨-, -, HP⟩
       simp only [walCreateQ]
       unfold walCreateP
-      icases HP with ⟨Hcr, Hau, Hsf, HJh, -, -⟩
+      icases HP with ⟨Hcr, Hau, Hsf, HJh, -, -, HThv⟩
       have hfoJ : FilesOnly (hJ'.restrict J ((NameSet.except []).diff walTmps)).cur :=
         filesOnly_restrictN _ _ (fun c n hc => by
           rw [hJcur] at hc
@@ -1292,7 +1306,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           by_cases hm : ((NameSet.except []).diff walTmps).Mem go!".touch"
           · rw [restrictN_lookup _ _ _ hm, hJcur, if_neg touch_ne_walFileName]
           · exact restrictN_lookup_not _ _ _ hm)
-        $$ Hinv Hsi Hnc Hcr HNr HC HJh HJx HTmps with ⟨Hnc, Hu, %hN, %hT', %hNcur, HN, Ht⟩
+        $$ Hinv Hsi Hnc Hcr HNr HC HJh HJx HTmps HThv with ⟨Hnc, Hu, %hN, %hT', %hNcur, HN, Ht⟩
       iframe Hnc
       imodintro
       try wp_auto
@@ -1310,10 +1324,11 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       wp_apply wp_lockedCloseLeft wp_Close wp_CloseC lf f fd _ _ $$ [Hll] as %cerr -
       · iframe; iframe #
       try wp_auto
-      wp_apply +noauto wp_removeAllTmp wp_RmAbs wp_RmDir r (tmpName nm) R jr (e + a') hT'
+      ihave Ht := tmpDirH_any jr (tmpName nm) hT' $$ Ht
+      wp_apply +noauto wp_removeAllTmp wp_RmSub r (tmpName nm) R jr (e + a') hT'
         (tmpName_nameOk hnmO) $$ [Hp Ht Hperm] as %err' ⟨Hp, Hperm, Ht, -⟩
       · iframe; iframe #
-      icases Ht with ⟨%hT4, Ht⟩
+      icases Ht with ⟨%hT4, Ht, -⟩
       iapply wp_notCrashed_acc _ _ rfl
       iintro Hnc
       imod create_abortTmpH walCodec Mr R jr r N h cl nm hT4 Wn hok hnm hNnm hself hN hNcur

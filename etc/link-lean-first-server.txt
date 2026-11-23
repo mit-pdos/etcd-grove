@@ -314,14 +314,14 @@ etcdserver_isConnectedToQuorumSince: numConnectedSince quorum
 config_ServerConfig__ReqTimeout:
 membership_RaftCluster__ID:
 proto_MarshalIRR:
-# Two more trust-boundary axioms of the request path (unit 2, 2026-10-12): a context's
-# `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
-# `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
-# `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# A trust-boundary axiom of the request path (unit 2, 2026-10-12): a context's `Value` at
+# `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at `&cancelCtxKey`).
+# `errors.Is` of a context's error against `context.Canceled` / `DeadlineExceeded` was another until
+# errors-is-axioms (2026-11-22): now proved over Perennial's `errors.Is` at comparable targets.
 # And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
 # `Context.Err`; Perennial's `isContext` says only "a typed error").
 context_ValueStartTime:
-errors_IsCtxErr:
+errors_IsCtxErr: =_root_.Perennial.errors.wp_Is
 context_ErrDone:
 # (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
 trace_SpanFromContext:
@@ -1050,14 +1050,15 @@ v3_Version__Minor:
 # (prove-ps2-client, 2026-11-22) `MustParse` proved over `NewVersion` (the trust boundary)
 v3_MustParse: v3_NewVersion
 v3_NewVersion:
-# (prove-ps2-semver, 2026-11-22) `LessThan` proved over the real code
+# (prove-ps2-semver, 2026-11-22) `Compare` proved over the real code (`LessThan`, over it, back to
+# the trust boundary 2026-11-23: prove-ps2-version)
 v3_Version__Patch:
 v3_Version__Prerelease:
 v3_compareSegment:
 v3_comparePrePart: =_root_.Perennial.strconv.wp_ParseUint
 v3_comparePrerelease: =_root_.Perennial.strings.wp_Split v3_comparePrePart
 v3_Version__Compare: v3_Version__Major v3_Version__Minor v3_Version__Patch v3_Version__Prerelease v3_compareSegment v3_comparePrerelease
-v3_Version__LessThan: v3_Version__Compare
+v3_Version__LessThan:
 binary_ReadUint64: =_root_.Perennial.encoding.binary.bigEndian.wp_Uint64
 proto_UnmarshalPb:
 proto_SizePb: @
@@ -1087,7 +1088,7 @@ v2stats_FollowerStats__Fail:
 context_WithCancelBackground:
 rate_NewLimiter:
 path_Dir: path_Split path_Clean
-path_Base: bytealg_LastIndexByteString
+path_Base: =_root_.Perennial.internal.bytealg.wp_LastIndexByteString
 path_Join: path_Clean
 httputil_GracefulClose:
 transport_IsClosedConnError: strings_Contains
@@ -1095,9 +1096,8 @@ strings_Contains:
 transport_NewTimeoutTransport:
 rate_Limiter__Wait:
 proto_MarshalPb:
-path_Split: bytealg_LastIndexByteString
+path_Split: =_root_.Perennial.internal.bytealg.wp_LastIndexByteString
 path_Clean: path_lazybuf__index path_lazybuf__append path_lazybuf__string
-bytealg_LastIndexByteString:
 path_lazybuf__index:
 path_lazybuf__append:
 path_lazybuf__string:

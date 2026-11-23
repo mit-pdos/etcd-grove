@@ -240,6 +240,14 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# protobuf stage S1 (#37): the wire codecs' vectors module EntryWireVectors.lean (whose #guards the
+# build checks against the Lean codecs) is what examples/pbschema/wirevectors_test.go generates from
+# protobuf-go (examples/go.mod's pin)
+if (cd examples && GOWORK=off gotest -run '^TestWireVectors$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
+  echo "wirevectors: ok"
+else
+  echo "wirevectors: FAILED"; tail -10 "$tmp/wirevec.log"; fail=1
+fi
 # the library models (models/, models/README.md; notes/dsverify-net-port-plan.md phase 5): every
 # generated codec is exactly its generator's output for its derived input (pbgen: the roots'
 # descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers
@@ -283,6 +291,13 @@ models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 # the encoding/json model (models/encoding/json): its stream tests against the real encoding/json's
 # golden transcripts, in the real build and in the model build (an overlay: goroot.py)
 models/internal/jsonstreamtest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
+# the third-party library models (models/{gods,uuid,concurrent-map}, the dsverify kits'): the same
+# tests against gods v1.18.1, uuid v1.3.1, concurrent-map v1.0.0 and against the models, with equal
+# transcripts
+models/internal/tpdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
+# the log/slog model (models/log/slog): the same tests against Go's log/slog and the model (an
+# overlay: goroot.py), with equal transcripts
+models/internal/slogdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # clients on machines of their own (examples/lib/remote, notes/remote-port-plan.md): the library's and
 # its counter instance's tests over real sockets (fault proxy, the four commands as processes, a

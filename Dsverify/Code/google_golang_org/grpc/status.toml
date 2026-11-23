@@ -1,0 +1,3 @@
+# Names only (notes/dsv-quepaxa.md): the generated service's `status.Errorf`.
+translate = ["!*"]
+imports = ["!*"]

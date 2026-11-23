@@ -121,7 +121,8 @@
 // Error values (errors_test.go, v3_test.go):
 //
 //	TestErrorsAreOpErrors        D14  every failure an *OpError, Net "tcp", Op read/write/close/          measured   model.opError
-//	                                  set/dial/listen/accept; EOF is io.EOF itself
+//	                                  set/dial/listen/accept; EOF is io.EOF itself; Error()             measured   OpError.Error.impl
+//	                                  never empty (it starts with Op)
 //	TestErrClosed                D14  own closed end or listener (also a blocked Read, Accept): Err is     measured   NetErr.closed, model.closedErr
 //	                                  net.ErrClosed, Timeout/Temporary false; no other failure Is it
 //	TestDeadlineErrors           D14  a Read or Write deadline: Err is os.ErrDeadlineExceeded itself,     measured   NetErr.timeout, model.deadlineErr

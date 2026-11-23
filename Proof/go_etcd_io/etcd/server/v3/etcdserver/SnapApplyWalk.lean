@@ -104,7 +104,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hGTP : EtcdServer.getTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
+    (γp : WTNames) (hrbw : receiptBound GF ≤ 2 ^ 60)
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
     (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
     (hNAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
@@ -338,6 +338,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     icases Hsrv with ⟨-, -, -, -, -, -, %h⟩
     ipureintro; exact h
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb0; omega⟩
+  -- (#30, 2026-11-22) and its receipt bound, `backend.New`'s
+  haveI : ReceiptBoundLe GF (2 ^ 60) := ⟨hrbw⟩
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
       (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
       (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) hdd $$ [Hfile Hpath Hcreate]
@@ -417,7 +419,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases toks_take d'.γB.wb _ 2 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hwb2'⟩
   icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws1⟩
   icases toks_take d'.γB.wb _ 1 (by unfold backend.wbInit; omega) $$ Hnwb with ⟨Hnwb, Hws2⟩
-  imod srvWTStock_alloc γp.cnt d' (backend.wbInit - 2 - 1 - 2 - 1 - 1) (by unfold backend.wbInit at hrbw ⊢; omega) ⊤ $$ [Hnwb] with #HnS
+  imod srvWTStock_alloc γp.cnt d' (backend.wbInit - 2 - 1 - 2 - 1 - 1) (by unfold backend.wbInit; omega) ⊤ $$ [Hnwb] with #HnS
   · iexact Hnwb
   ihave #HnSup := wbSupply_of_stock E γp d' $$ [$HWP $HnS]
   -- (strict M1) the store's resources over the new backend (`etcdStorage_open.law`), at the

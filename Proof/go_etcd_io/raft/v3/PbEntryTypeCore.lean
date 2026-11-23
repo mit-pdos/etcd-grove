@@ -15,6 +15,7 @@ module
 public import Proof.go_etcd_io.raft.v3.PbContentOwnCore
 public import Proof.google_golang_org.protobuf.proto.PbSchema
 public import Proof.google_golang_org.protobuf.proto.InvProto
+public import Proof.go_etcd_io.raft.v3.PbWireRaft
 
 @[expose] public section
 
@@ -33,8 +34,11 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **Decoding a `raftpb.Entry`'s bytes** (opaque): the entry, or `none`. -/
-opaque entDecode (bs : List w8) : Option EntryM
+/-- **Decoding a `raftpb.Entry`'s bytes**: the entry, or `none` (`proto.Unmarshal`'s error).
+`entDecodeRaw` (`PbWireRaft.lean`, protobuf stage S1: until 2026-11-23 opaque), checked against
+protobuf-go by `EntryWireVectors.lean`. -/
+def entDecode (bs : List w8) : Option EntryM :=
+  (entDecodeRaw bs).map fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2⟩
 
 /-- **`bs` is an encoding of the entry `e`**: `bs` decodes to it (every entry marshals, of any
 `EntryType` value: the file header). -/
@@ -43,14 +47,31 @@ def EntWireOk (e : EntryM) (bs : List w8) : Prop :=
 
 end extract
 
-/-- **The encoding of an `Entry`'s wire content** (opaque: protobuf-go's `Marshal`). -/
-opaque entryEncC [GooseExts] (c : EntryC) : List w8
+/-- **The encoding of an `Entry`'s wire content**: protobuf-go's `Marshal`, `entryEncRaw`
+(`PbWireRaft.lean`, protobuf stage S1: until 2026-11-23 opaque), checked against protobuf-go by
+`EntryWireVectors.lean`. -/
+def entryEncC [GooseExts] (c : EntryC) : List w8 := entryEncRaw c.type c.term c.index c.data c.uf
 
-/-- **The trust boundary: `Entry`'s encoding** (the type's one trusted fact). Tested in Go: the
-round trip `Unmarshal(Marshal(e))` gives the getters' view, and `proto.Size(e)` is `entrySize`,
-for every presence combination and for unknown fields routed as `ufWire` says. -/
-axiom entryEncC_ok [GooseExts] (c : EntryC) : ufWire entrySchema c.uf → entrySize c < 2 ^ 63 →
-    EntWireOk c.model (entryEncC c) ∧ (entryEncC c).length = entrySize c
+/-- **`Entry`'s encoding round-trips and has `proto.Size`'s length** (until 2026-11-23 the axiom
+at the trust boundary, the type's one trusted fact; now a theorem, from `Wire.decode_encode`). -/
+theorem entryEncC_ok [GooseExts] (c : EntryC) : ufWire entrySchema c.uf → entrySize c < 2 ^ 63 →
+    EntWireOk c.model (entryEncC c) ∧ (entryEncC c).length = entrySize c := by
+  intro hu hs
+  have hd : ∀ d, c.data = some d → d.length < 2 ^ 64 := by
+    intro d hd
+    simp only [entrySize, hd] at hs
+    omega
+  refine ⟨?_, ?_⟩
+  · unfold EntWireOk entDecode entryEncC
+    rw [entDecodeRaw_enc _ _ _ _ _ hu hd]
+    rfl
+  · unfold entryEncC entryEncRaw
+    rw [Wire.encode_length, entryRecs_length]
+    have he : ∀ t : w32, (uint.Z (W64 (sint.Z t))).toNat = enumVarint t := fun t => by
+      simp [enumVarint]
+    rcases c with ⟨tm, ix, ty, d, uf⟩
+    simp only [entrySize, optVarintSize, he]
+    cases ty <;> cases tm <;> cases ix <;> cases d <;> simp
 
 section extract
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -103,7 +124,7 @@ def pbEntryM : PbModelC GF where
     ipureintro; rfl
 
 /-- **`raftpb.Entry` at its wire content** (the registered instance): the data and the encoder,
-whose `enc_ok` is the type's one trusted fact `entryEncC_ok`. -/
+whose `enc_ok` is `entryEncC_ok` (a theorem since 2026-11-23). -/
 def pbEntryC : PbTypeC GF where
   data := pbEntryM
   encd := { enc := entryEncC

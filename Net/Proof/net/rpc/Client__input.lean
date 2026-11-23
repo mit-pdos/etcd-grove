@@ -11,9 +11,12 @@ quarter agrees), then
 * an error response: the answer the header heads (`resp_hdr`, `hdr_match`), the call's collection
   token traded for the method's answer and `reqSent` (`ans_trade`), the body discarded, the call
   done with `ServerError(msg)`;
-* otherwise: the body decoded into the reply (`ReadResponseBody` with the call's `D` and
-  `bodyDec`), the answer it is (`resp_body`), the trade, the call done with `nil` (decoded) or a new
-  `errors.New` error (a decoding error, or a read error with `D` back).
+* otherwise: the answer the header heads and the trade first (as for an error response), then the
+  body decoded into the reply (`ReadResponseBody` with the call's `D` and the method's answer
+  `Φ reply ""`, guarded by `body_guard`: the frame read is that answer's reply, so the call's
+  decoding obligation, asked only of the method's answers, applies), the answer it is
+  (`resp_body`), the call done with `nil` (decoded) or a new `errors.New` error (a decoding error,
+  or a read error with `D` back).
 A body read that succeeded extends `C` by the answer (`framesOf_snoc`); a failure leaves `err` an
 `inErr` error (`inErr_read`, `inErr_dec`, `inErr_errorString`; `errors.New` through
 `wp_errors_New'`, which names its result's type). Each iteration takes four later credits: the
@@ -168,33 +171,10 @@ theorem inErr_errorString (x : Loc) (msg : GoString) :
   ipureintro
   exact ⟨by simp [interface.mkOk], notServerErr_errorString x, _, x, rfl⟩
 
-/-- `errors.New(msg)`, its result's type made explicit (`errors.New.spec` says only that it is a
-pointer; `errAny` needs its type to implement `error`): proved from its body, as
-`errors.New.wp_proof`. -/
-theorem wp_errors_New' (msg : GoString) :
-    {{ (True : IProp GF) }}
-      (App (Val (@! errors.New)) (Val #msg))
-    {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x);
-        □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-          WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
-            (Val #())) {{ Φ }} }} := by
-  wp_start
-  wp_auto
-  wp_alloc x as Hx
-  iStructNamed Hx
-  ipersist s
-  wp_auto
-  iapply HΦ
-  imodintro
-  iintro %Φ HΦ
-  rw [method_unfold]
-  wp_auto
-  iexact HΦ
-
 /-- A decoding error is `inErr`. -/
 theorem inErr_dec (err : GoInterface) : decErr (GF := GF) err ⊢ inErr err := by
   unfold decErr
-  iintro ⟨%x, %msg, %He, #H⟩
+  iintro ⟨%x, %msg, ⟨%He, -⟩, #H⟩
   subst He
   iapply inErr_errorString x msg $$ H
 
@@ -237,6 +217,43 @@ theorem rd_acc (W : RpcWorld GF) (a : GoString) (cn : Nat) (R0 : List w8) :
   imodintro
   rw [← List.append_assoc]
   iexact HP
+
+/-- The guard of a reply's body read (`ReadResponseBody`'s): after a success header naming request
+`seq`, answered with the reply `r` (its `ans` element), the body frame read is that reply's, one
+step later. -/
+theorem body_guard (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (C : List Ans)
+    (seq : w64) (sm : GoString) (r : List w8) (hC : ∀ x ∈ C, ansOk x)
+    (hl : (respHdr seq sm []).length ≤ maxFrameN) :
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
+      ghostMapElem γ.ans (uint.nat seq) .discard (some (([] : GoString), r)) ⊢
+    □ (∀ pl : List w8, ⌜pl.length ≤ maxFrameN⌝ -∗
+      recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
+        ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ frameOf pl) -∗
+      ▷ (recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
+          ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ frameOf pl) ∗
+        ⌜pl = r⌝)) := by
+  iintro ⟨#Hrpc, #Hans⟩
+  imodintro
+  iintro %pl %Hpl HP
+  ihave HrL := recvTokL_later (Gg := hG.goose_globalGS) cn false _ _ $$ HP
+  inext
+  icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrL with ⟨HrT, #Hpp⟩
+  icases resp_body W a cn γ C (respHdr seq sm []) pl hC
+    (by unfold maxFrameN at hl; omega) (by unfold maxFrameN at Hpl; omega) $$ [$Hrpc $Hpp]
+    with ⟨%y, ⟨%Hy, %Hyok⟩, #Hye⟩
+  have hy0 : respHdr (W64 y.idx) y.sm y.msg = respHdr seq sm [] := by
+    simp only [ansPls, List.cons.injEq] at Hy; exact Hy.1
+  obtain ⟨hyi, hym⟩ := hdr_match y seq sm [] hy0 hl Hyok
+  have hyr : y.reply = pl := by
+    simp only [ansPls, List.cons.injEq, hym, ite_true] at Hy; exact Hy.2.1
+  ihave #Hy3 : ghostMapElem γ.ans (uint.nat seq) .discard (some (y.msg, y.reply)) $$ []
+  · rw [← hyi]; iexact Hye
+  ihave %Hag := ghostMapElem_agree _ _ _ _ _ _ $$ Hans Hy3
+  isplitl [HrT]
+  · iapply recvTok_L $$ HrT
+  ipureintro
+  simp only [Option.some.injEq, Prod.mk.injEq] at Hag
+  rw [← hyr, Hag.2]
 
 theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
@@ -316,13 +333,19 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HP]
       · rw [List.append_nil]; iexact HP
       wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
-          ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
+          ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True)
+          (fun _ => iprop(True)) (fun _ _ => iprop(True))
           (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
             (respProto (Gg := hG.goose_globalGS) W a)
             ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
           eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HP1 $Hacc1]
         as %err1 ⟨%got1, HP, Hres⟩
-      · simp only [bodyDec]; itrivial
+      · simp only [bodyDecG]
+        isplitl []
+        · itrivial
+        iapply guard_true (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
+            (respProto (Gg := hG.goose_globalGS) W a)
+            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
       icases Hres with (⟨%pl, ⟨%Hgot1, %Hpl⟩, Hbr⟩ | ⟨%Hne1, -, #HE1⟩)
       · unfold bodyRes
         icases Hbr with ⟨%He1, -⟩
@@ -399,39 +422,55 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
         iunfold callFields at Hf2'
         icases Hf2' with ⟨#Hfsm, #Hfargs, #Hfrep, #Hfch⟩
         wp_auto
+        -- the answer the header heads, and the call's continuation for it, before the body
+        ihave HrL := recvTokL_later (Gg := hG.goose_globalGS) cn false _ _ $$ HP
+        iapply fupd_wp
+        imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrL with HrT
+        icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp⟩
+        icases resp_hdr W a cn γ.conn C (respHdr seq sm []) HC
+          (by unfold maxFrameN at Hlen; omega) $$ [$Hrpc $Hpp] with ⟨%x, ⟨%Hx0, %Hxok⟩, #Hans⟩
+        obtain ⟨hxi, hxm⟩ := hdr_match x seq sm [] (by simpa [ansPls] using Hx0) Hlen Hxok
+        ihave #Hans3 : ghostMapElem γ.conn.ans (uint.nat seq) .discard (some ([], x.reply)) $$ []
+        · rw [← hxi, ← hxm]; iexact Hans
+        imod ans_trade W a cn γ.conn (uint.nat seq) [] x.reply post' col' ap' Φ'
+          $$ [$Hrpc $Hlc2 $Hlc3 $Hans3 $Hcol2 $Hnm2 $Hpost2] with ⟨HΦr, #Hsent⟩
+        imodintro
         ihave #Hacc1 := rd_acc W a cn (framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm []))
         ihave HP1 : recvTokL (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
-            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ []) $$ [HP]
-        · rw [List.append_nil]; iexact HP
-        wp_apply wp_ReadResponseBody cc t cn false a la ra reply' C' D' Θ'
+            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ []) $$ [HrT]
+        · rw [List.append_nil]; iapply recvTok_L $$ HrT
+        ihave #Hguard := body_guard W a cn γ.conn C seq sm x.reply HC Hlen $$ [$Hrpc $Hans3]
+        cases reply' with
+        | nil => exact absurd rfl Hrep'
+        | ok r' =>
+        ihave #Hdec3 : bodyDecG C' (interface.ok r') (iprop(D' ∗ Φ' x.reply []))
+            (fun pl => iprop(⌜pl = x.reply⌝)) Θ' $$ []
+        · simp only [bodyDecG]
+          icases Hdec2 with ⟨#Hset2, #Hd2⟩
+          iframe Hset2
+          imodintro
+          iintro ⟨HD, HΦ⟩ %pl %Hplr
+          subst Hplr
+          iapply Hd2 $$ HD HΦ
+        wp_apply wp_ReadResponseBody cc t cn false a la ra (interface.ok r') C'
+            (iprop(D' ∗ Φ' x.reply [])) (fun pl => iprop(⌜pl = x.reply⌝)) Θ'
             (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
               (respProto (Gg := hG.goose_globalGS) W a)
               ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm [])) ++ got))
-            eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec2 $HD2 $HP1 $Hacc1]
+            eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $Hdec3 $HD2 $HΦr $HP1
+              $Hguard $Hacc1]
           as %err1 ⟨%got1, HP, Hres⟩
-        icases Hres with (⟨%pl, ⟨%Hgot1, %Hpl⟩, Hbr⟩ | ⟨%Hne1, HD2, #HE1⟩)
+        icases Hres with (⟨%pl, ⟨%Hgot1, %Hpl⟩, Hbr⟩ | ⟨%Hne1, ⟨HD2, -⟩, #HE1⟩)
         · subst Hgot1
-          cases reply' with
-          | nil => exact absurd rfl Hrep'
-          | ok r' =>
           simp only [bodyRes]
           icases Hbr with ⟨%ok, %Hok, HΘ, Hdc⟩
           ihave HrL := recvTokL_later (Gg := hG.goose_globalGS) cn false _ _ $$ HP
           iapply fupd_wp
-          imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrL with HrT
-          icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp⟩
+          imod lc_fupd_elim_later (E := ⊤) $$ Hlc4 HrL with HrT
+          icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp'⟩
           icases resp_body W a cn γ.conn C (respHdr seq sm []) pl HC
-            (by unfold maxFrameN at Hlen; omega) (by unfold maxFrameN at Hpl; omega) $$ [$Hrpc $Hpp]
-            with ⟨%y, ⟨%Hy, %Hyok⟩, #Hans⟩
-          have hy0 : respHdr (W64 y.idx) y.sm y.msg = respHdr seq sm [] := by
-            simp only [ansPls, List.cons.injEq] at Hy; exact Hy.1
-          obtain ⟨hyi, hym⟩ := hdr_match y seq sm [] hy0 Hlen Hyok
-          have hyr : y.reply = pl := by
-            simp only [ansPls, List.cons.injEq, hym, ite_true] at Hy; exact Hy.2.1
-          ihave #Hans3 : ghostMapElem γ.conn.ans (uint.nat seq) .discard (some ([], pl)) $$ []
-          · rw [← hyi, ← hym, ← hyr]; iexact Hans
-          imod ans_trade W a cn γ.conn (uint.nat seq) [] pl post' col' ap' Φ'
-            $$ [$Hrpc $Hlc2 $Hlc3 $Hans3 $Hcol2 $Hnm2 $Hpost2] with ⟨HΦr, #Hsent⟩
+            (by unfold maxFrameN at Hlen; omega) (by unfold maxFrameN at Hpl; omega) $$ [$Hrpc $Hpp']
+            with ⟨%y, ⟨%Hy, %Hyok⟩, -⟩
           imodintro
           cases ok
           · simp only [Bool.false_eq_true, ite_false]
@@ -472,14 +511,14 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           · have He1 : err1 = interface.nil := Hok.2 rfl
             subst He1
             wp_auto
-            ihave Hpost : callPost γ.conn (some (uint.nat seq)) Φ' Θ' D' interface.nil $$ [HΘ HΦr]
+            ihave Hpost : callPost γ.conn (some (uint.nat seq)) Φ' Θ' D' interface.nil $$ [HΘ]
             · iunfold callPost
               ileft
               iframe Hsent
               isplitr
               · ipureintro; rfl
               iexists pl
-              iframe HΘ HΦr
+              iexact HΘ
             wp_apply wp_done pc sm' args' (interface.ok r') ch' γ.conn γt' γf' K' Φ' Θ' D' _ _
                 $$ [$Hdbg $Hf2 $Htk2 $Hdone2 $Hpost $Herr2]
             wp_for_post
@@ -522,7 +561,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
             · ipureintro; exact ⟨Hi2p.1, Hi2p.2.1⟩
             ileft
             iexact HD2
-          wp_apply wp_done pc sm' args' reply' ch' γ.conn γt' γf' K' Φ' Θ' D' _ _
+          wp_apply wp_done pc sm' args' (interface.ok r') ch' γ.conn γt' γf' K' Φ' Θ' D' _ _
               $$ [$Hdbg $Hf2 $Htk2 $Hdone2 $Hpost $Herr2]
           wp_for_post
           iframe
@@ -550,13 +589,19 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
             ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HrT]
         · rw [List.append_nil]; iapply recvTok_L $$ HrT
         wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
-            ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
+            ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True)
+          (fun _ => iprop(True)) (fun _ _ => iprop(True))
             (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
               (respProto (Gg := hG.goose_globalGS) W a)
               ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
             eof ueof ed _ $$ [$Hrwc $Hconn $Hio $Heof $Hueof $Hed $Hef $HefV $HP1 $Hacc1]
           as %err1 ⟨%got1, HP, Hres⟩
-        · simp only [bodyDec]; itrivial
+        · simp only [bodyDecG]
+          isplitl []
+          · itrivial
+          iapply guard_true (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
+            (respProto (Gg := hG.goose_globalGS) W a)
+            ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
         ihave Hpost : callPost γ.conn (some (uint.nat seq)) Φ' Θ' D' (serverErr e) $$ [HΦr HD2]
         · iunfold callPost
           iright; ileft

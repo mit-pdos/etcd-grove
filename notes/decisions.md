@@ -41936,3 +41936,82 @@ contract chooses the ghost table, so naming three more buckets in it constrains 
 **Why not** derive `P.has` from the data (`D.lookup n = some _`): the table is a free parameter of `KBReal`, and
 the backend's invariants do not tie it to the data's buckets; adding that tie is a backend-internal change (claimed
 by #30 at the time).
+
+## pbgen's subset extended to proto2 and oneofs (2026-11-23 · proving session 2, #18, offered by #24 · branch `ps2-pbgen-proto2/2026-11-23`, not landed: for the user's review)
+
+**Context.** pbgen (`models/protobuf/`, "Trusted generated code: the generator is the trusted
+artifact", above) accepted proto3 messages only. Every raftpb and walpb type (proto2: explicit
+presence, closed enums, unpacked repeated fields) and etcd's transaction and raft-entry requests
+(oneofs: `Compare.target_union`, `RequestOp.request`, `ResponseOp.response`) were refused, which
+blocks replacing the per-type protobuf axioms of raft, the WAL and the apply path by generated
+codecs (`/shared/tmp/ps2/pbgen/triage.md`, item E2 (b) of `notes/dsverify-net-port-plan.md` phase 5).
+
+**Decision.** The trusted core now accepts proto2 and proto3 files with explicit presence
+(proto2 `optional`/`required`, proto3 `optional`), required fields (Marshal and Unmarshal check
+initialization as protobuf-go's `checkInitialized`), explicit defaults (wire-irrelevant: only the
+getters read them), closed enums (decoded as open, as protobuf-go does), packed and unpacked
+repeated scalars per the descriptor, and oneofs (marshaled after the other fields, in declaration
+order, as protobuf-go's `LegacyFieldOrder`; the last member decoded wins; a member decoded again
+goes into the wrapper already there, a message merging into its message). Each rule is cited to protobuf-go v1.36.12 in `pbgen_core.py`'s doc. `pbdesc`
+(trusted with the core) dumps three new facts: each oneof's holder field, each member's wrapper
+type (from the registered `MessageInfo.OneofWrappers`, as protobuf-go's `structInfo`), and the
+presence or lazy state fields of the opaque and hybrid APIs (refused). Still refused: editions,
+maps, groups, float/double, extensions, MessageSet, weak and lazy fields.
+
+**Two new refusals where protobuf-go is not what its descriptors say** (both found while testing,
+shown on protobuf-go by `models/internal/pbgenrand`'s `TestProtobufQuirks`): a message type that
+has no required field of its own, reaches one and lies on a cycle of two or more message types
+(conservatively also when it reaches one outside the cycle; `needsInitCheck`'s cache
+keeps a false for it, depending on which type the program uses first, so its checks are skipped
+nondeterministically); a oneof member other than the oneof's first declared one, of a type with
+required fields (Unmarshal's fast path never consults it: a missing required field there passes
+Unmarshal and fails Marshal). The emitted code could reproduce the second, not the first (it
+depends on the program's history); refusing both keeps the core's required-field check one rule.
+Neither arises in etcd (no etcd message has a required field).
+
+**Evidence.** `pbgenrand`'s random schemas now mix proto2 and proto3 files with all of the above
+(their constructs counted in the test's log), `TestOrders` runs a hand-built schema of required fields in and near cycles, a oneof whose first
+member needs the check and a message of 70 required fields against protobuf-go in 13 orders of its
+lazy type setup (each in a fresh process), `TestRefusals` has one schema per remaining refusal
+and checks the newly accepted constructs are not refused, `examples/models/pbetcd` covers raftpb,
+walpb and the oneof requests (its generated regression test), and the new section of
+`notes/axiom-review/pbgen.md` is the review.
+
+## The protobuf boundary's stage S1: `entryEncC`, `entDecode`, `ccDecodeV2` are concrete; `entryEncC_ok`, `ccDecodeV2_nil` theorems (2026-11-23 · #37 · branch `proto-s1`)
+
+**2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37)**
+
+Until now `entDecode` (an `Entry`'s decoding), `entryEncC` (its encoding) and `ccDecodeV2` (a
+`ConfChangeV2`'s decoding) were `opaque`, and what was known of them were two axioms,
+`entryEncC_ok` (the round trip and the length of an `Entry`'s encoding) and `ccDecodeV2_nil` (the
+empty bytes decode to the empty `ConfChangeV2`), and the trusted specs of `proto.Marshal`/
+`proto.Unmarshal` that name them.
+
+**Decision:** they are definitions, over a generic wire format:
+`Proof/google_golang_org/protobuf/proto/Wire.lean` (varints, tags, length-delimited and fixed
+values, proto2 explicit presence `opt`, unknown fields appended after the known fields; a
+decoder for flat schemas, its tags and values read as protobuf-go reads them: non-minimal
+varints, the 10-byte limit, number ranges, wire types 4, 6, 7 refused, groups skipped up to 10001
+deep, a known field's records in input order and the last scalar winning, the rest kept in the
+unknown fields with its tag re-encoded minimally), and the per-type codecs
+`Proof/go_etcd_io/raft/v3/PbWireRaft.lean` (`entryEncRaw`, `entDecodeRaw`, `cc2DecodeRaw`; an enum
+written sign-extended and read as its low 32 bits). `decode_encode` (records the decoder reads
+back and unknown fields as `ufWire` says decode to themselves) gives `entryEncC_ok` (now a
+theorem, its statement unchanged); `ccDecodeV2_nil` is `simp`. Both axioms left the trust base.
+
+**What it changes in the trust base.** Nothing is weaker, and two trusted specs say more:
+`proto.MarshalPb`/`UnmarshalPb` (at `Entry`) and `proto.MarshalConfChangeV2`/
+`UnmarshalConfChangeV2` now claim byte-exact agreement of protobuf-go with these Lean functions
+(Unmarshal fails exactly where the decoder says `none`, and otherwise gives its result; Marshal's
+bytes, at `Entry`, are `entryEncRaw`'s). That is true, and its evidence is
+`examples/pbschema/wirevectors_test.go`: protobuf-go v1.36.12's `Marshal` of random `Entry`s
+(presence, extreme values, unknown fields) and `Unmarshal`'s outcome on their encodings, on
+encodings with interleaved and adversarial records, on byte mutations of all of them and on edge
+cases (varint limits, number limits, wire types, groups 10001 and 10002 deep), and on
+`ConfChangeV2`s and their mutations: 962 vectors, written as the `#guard`s of
+`Proof/google_golang_org/protobuf/proto/EntryWireVectors.lean` (checked when it builds; the test
+fails if the module is not what it generates; gated in `etc/gates.sh`'s models section). Until stage
+S3 proves the Go model of `proto` against these functions, the vectors are what backs them.
+
+*Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
+`ccDecodeV1` (still opaque: nothing needed it).

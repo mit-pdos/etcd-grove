@@ -14,7 +14,7 @@
 # `etcd_watch_served_etcd_chain` (etcd's `newStreamInterceptor` discharging the served chain's
 # second premise, under the premise `runsNoRequireLeader`); its boundary is `newUnaryInterceptor`'s
 # (the server's names-only `IsMemberExist`/`IsLearner` with `membership.localKept`,
-# `api.IsCapabilityEnabled`, grpc's `MD.Get`, `utf8.ValidString`, prometheus's
+# grpc's `MD.Get`, `utf8.ValidString`, prometheus's
 # `CounterVec.WithLabelValues`); the leader monitor (`monitorLeader`) adds none.
 # Unit W-C (2026-10-16): the client's watcher (`client_watcher_rangeWatcher`,
 # `client_newWatcher_rangeWatcher`, client/v3/Results.lean: client/v3/watch.go over the stub); new
@@ -30,10 +30,8 @@ roots \bv3rpc\.(watch_handler|watch_streamHandlerOk|etcd_watchMethodOk|etcd_watc
 roots \bclient\.watchClient_Watch$
 roots \bv3rpc\.(new_stream_interceptor|etcd_watch_served_etcd_chain)$
 roots \bclient\.(client_watcher_rangeWatcher|client_newWatcher_rangeWatcher|client_watcher_etcdWatcher|client_watcher_progressNotifier)$
-axiom api.IsCapabilityEnabled.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom envVerifyOffTok
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.NewStream.wp_proof

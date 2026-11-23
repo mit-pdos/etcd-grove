@@ -127,12 +127,39 @@ def raftpb.msgTypeNames : GMap w32 GoString :=
   <[W32 1 := go!"MsgBeat"]> (
   <[W32 0 := go!"MsgHup"]> ∅)))))))))))))))))))))))
 
+/-- `ConfChangeType_name` (`raft.pb.go`): the names of the conf-change types, the literal's keys
+inserted in its order (#25, 2026-11-23: `ConfChangeType.String`'s trusted model reads it). -/
+def raftpb.ccTypeNames : GMap w32 GoString :=
+  <[W32 3 := go!"ConfChangeAddLearnerNode"]> (
+  <[W32 2 := go!"ConfChangeUpdateNode"]> (
+  <[W32 1 := go!"ConfChangeRemoveNode"]> (
+  <[W32 0 := go!"ConfChangeAddNode"]> ∅)))
+
+/-- `ConfChangeTransition_name` (`raft.pb.go`): the names of the transitions, the literal's keys
+inserted in its order (#25, 2026-11-23: `ConfChangeTransition.String`'s trusted model reads it). -/
+def raftpb.ccTransitionNames : GMap w32 GoString :=
+  <[W32 2 := go!"ConfChangeTransitionJointExplicit"]> (
+  <[W32 1 := go!"ConfChangeTransitionJointImplicit"]> (
+  <[W32 0 := go!"ConfChangeTransitionAuto"]> ∅))
+
+/-- The package variable `name` (a `map[int32]string` of `raft.pb.go`) holds a map with the entries
+`M`, both read-only. -/
+def raftpb.nameTableOk (name : GoString) (M : GMap w32 GoString) : IProp GF :=
+  iprop(∃ m : Loc, (globalAddr name ↦□ m : IProp GF) ∗ m ↦$□ M)
+
+instance raftpb.nameTableOk_persistent (name : GoString) (M : GMap w32 GoString) :
+    Persistent (raftpb.nameTableOk (GF := GF) name M) := by
+  unfold raftpb.nameTableOk; infer_instance
+
 /-- `raftpb`'s package fact (Q9, 2026-11-09; `True` until then): `MessageType_name` holds a map
-with `raftpb.msgTypeNames`, both read-only (nothing but the initializer writes the table). -/
+with `raftpb.msgTypeNames`, both read-only (nothing but the initializer writes the table); since
+2026-11-23 (#25) `ConfChangeType_name` and `ConfChangeTransition_name` the same, read by their
+`String`s' trusted models. -/
 instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  define_is_pkg_init iprop(∃ m : Loc,
-    (globalAddr go_etcd_io.raft.v3.raftpb.MessageType_name ↦□ m : IProp GF) ∗
-    m ↦$□ raftpb.msgTypeNames)
+  define_is_pkg_init iprop(
+    raftpb.nameTableOk go_etcd_io.raft.v3.raftpb.MessageType_name raftpb.msgTypeNames ∗
+    raftpb.nameTableOk go_etcd_io.raft.v3.raftpb.ConfChangeType_name raftpb.ccTypeNames ∗
+    raftpb.nameTableOk go_etcd_io.raft.v3.raftpb.ConfChangeTransition_name raftpb.ccTransitionNames)
 instance raftpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
   build_get_is_pkg_init_wf

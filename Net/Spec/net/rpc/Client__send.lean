@@ -38,7 +38,7 @@ abbrev Client.send.spec : Prop :=
   {{ isClientN c W a γ ∗
       ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil ∧ pc ≠ null⌝ ∗
       codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
-      □ (D -∗ ∀ rep, C.dec rep reply (Θ rep)) ∗
+      □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) ∗
       ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
       callFields pc sm args reply ch ∗ structFieldRef net.rpc.Call go!"Error" pc ↦ interface.nil ∗
       callDone γ.conn γt sm args reply ch γf K Φ Θ D }}

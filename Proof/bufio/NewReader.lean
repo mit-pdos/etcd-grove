@@ -1,9 +1,14 @@
 /-
-`bufio.NewReader` (see `Spec/bufio/NewReader.lean`).
+`bufio.NewReader` for the WAL (see `Spec/bufio/NewReader.lean`): the generic `bufio.NewReader.specE`
+at the WAL's stream reader (`Proof/bufio/OwnReaderE.lean`). Until 2026-11-23 a proof of its own;
+review R1 on #24 (one proof per function); an instance of `NewReader.specE` since round 2 (N4).
 -/
 module
 
 public import Spec.bufio.NewReader
+public import Spec.bufio.NewReaderOk
+public import Proof.bufio.OwnReaderE
+public import Proof.bufio.Base
 
 @[expose] public section
 
@@ -21,53 +26,29 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.bufio.Assumptions]
 
-/-- The builtin `max` of two `int`s: the larger. -/
-theorem bufio.wp_max_int (x y : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.max [go.int, go.int])) (Val #x)) (Val #y))
-    {{ (m : w64), RET #m; ⌜(m = x ∨ m = y) ∧ sint.Z x ≤ sint.Z m ∧ sint.Z y ≤ sint.Z m⌝ }} := by
-  wp_start
-  wp_if_destruct
-  · iapply HΦ; ipureintro; refine ⟨Or.inl rfl, Int.le_refl _, ?_⟩; word
-  · iapply HΦ; ipureintro; refine ⟨Or.inr rfl, ?_, Int.le_refl _⟩; word
-
-theorem bufio.NewReader.wp_proof : bufio.NewReader.spec (GF := GF) (hG := hG) := by
+theorem bufio.NewReader.wp_proof
+    (wp_NewReaderE : bufio.NewReader.specE (GF := GF) (hG := hG)) :
+    bufio.NewReader.spec (GF := GF) (hG := hG) := by
   intro ri S E r hty
-  wp_start as HS
-  try wp_auto
-  wp_func_call
-  wp_call
-  try wp_auto
-  simp only [ite_eq_right_of_eq_false _ _ (eq_false hty), decide_eq_false hty]
-  try wp_auto
-  wp_apply bufio.wp_max_int as %m %Hm
-  have hm : m = W64 4096 := by
-    rcases Hm with ⟨rfl | rfl, h1, h2⟩
-    · rfl
-    · revert h1; word
-  subst hm
-  wp_apply (wp_slice_make2 (V := w8) (W64 4096)) as %sl ⟨Hsl, -⟩
-  · ipureintro; word
-  wp_method_call
-  wp_call
-  try wp_auto
+  iintro %Φ ⟨#Hpkg, #Hrs, #Hbd, HS⟩ HΦ
+  ihave #Hrd := io.readerStream_readerOk ri S E $$ Hrs
+  iapply wp_NewReaderE ri bufio.walPre S E E (· ≤ 2 ^ 12) r $$ [HS]
+  · iframe Hpkg HS
+    isplitr
+    · ipureintro; exact hty
+    isplitr
+    · ipureintro; decide
+    isplitr
+    · unfold bufio.walPre; iexact Hrd
+    unfold bufio.preUpTo bufio.walPre
+    iintro !> %r' HS'
+    ihave %h := Hbd $$ HS'
+    ipureintro
+    intro m _ hm
+    omega
+  iintro !> %br Hbr
   iapply HΦ
-  iunfold bufio.ownReader
-  isplitr
-  · iexact Hpkg
-  iexists _, _
-  iframe «$r0» Hsl
-  have hz : ∀ l : List w8, r ++ subslice (sint.nat (0 : w64)) (sint.nat (0 : w64)) l = r := fun l => by
-    simp only [subslice, show sint.nat (0 : w64) = 0 from rfl, List.take_zero, List.drop_nil,
-      List.append_nil]
-  simp only []
-  rw [hz]
-  iframe HS
-  isplitl []
-  · ipureintro
-    rw [List.length_replicate]
-    exact ⟨trivial, by word, by word, by word, by omega, by omega⟩
-  iapply io.errAt_nil
+  iapply bufio.ownReader_ofE $$ Hbr
 
 end proof
 

@@ -21,6 +21,8 @@ fraction keeps it so) and fails: the error is non-nil, the outcome the logged on
   claim, with the whole call permission (no other call in flight; the WAL's `Create` and
   `cleanupWAL`); the call begins after any log lower bound `lb` the caller holds (`Create`'s commit
   needs it of the claims it does not pass, the new directory's). `os.Rename.specDirSnc`: the same with `osAUnc` (it gives `specDirS`).
+  Their error only when the file system can fail on the target's path or a path does not fit, as
+  `specFileS`'s (wal-safe, 2026-11-21: `renameWAL`'s retry made unreachable, ledger).
 
 Each returns the caller's fractions as the outcome left them. Proved in `Proof/os/Rename.lean`.
 Lean-first (no Rocq counterpart).
@@ -126,7 +128,9 @@ abbrev os.Rename.specDirS : Prop :=
       osAU (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
-      ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗
+      ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err ∧
+          (err ≠ interface.nil → ¬ (FsNoErrOn (· = child d bt) ∧ PathFits (child d bs) ∧
+            PathFits (child d bt)))⌝ ∗ Q o ∗
         renDirOut j J N bs bt h (DFrac.own q) lb o }}
 
 /-- `specDirS` with `osAUnc` (`Proof/os/SharedAu.lean`): its opening gets the generation's
@@ -142,7 +146,9 @@ abbrev os.Rename.specDirSnc : Prop :=
       osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
-      ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗
+      ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err ∧
+          (err ≠ interface.nil → ¬ (FsNoErrOn (· = child d bt) ∧ PathFits (child d bs) ∧
+            PathFits (child d bt)))⌝ ∗ Q o ∗
         renDirOut j J N bs bt h (DFrac.own q) lb o }}
 
 end spec

@@ -42,9 +42,9 @@ the backend's `Open_kv`/`DB.Close_kv` are theorems with no error case; the two a
   of the run registers the metric names mvcc's, the lessor's, the backend's and auth's `init()`
   register: the etcd examples' premise, now that those `init()`s are translated), and the
   execution's length
-  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`;
+  (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 48`;
   `mvccrand_adequate_below` takes the thread bound `T ≤ 2 ^ 28` along the execution instead, and
-  only `n + 1 ≤ 2 ^ 38`);
+  only `n + 1 ≤ 2 ^ 48`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccrand`'s, mvcc's, the server's,
   the cache's) and (S3e) the `os` structs' field facts (`TrustedCode/os.lean`); the file extension's
   steps restricted by `etcdSQ` (no I/O error, no `flock`/`mmap`/`munmap` error, on any file);
@@ -103,7 +103,7 @@ section adequacy
 variable [go_gctx : GoGlobalContext]
 
 /-- **`mvccrand_adequate` along executions with fewer than `T ≤ 2 ^ 28` live threads**: the
-same conclusion for every execution of `n` steps, `n + 1 ≤ 2 ^ 38` (the receipt bound the
+same conclusion for every execution of `n` steps, `n + 1 ≤ 2 ^ 48` (the receipt bound the
 proof needs), along which fewer than `T` threads are ever live at once (`RealNstepsBelow`): the
 thread bound is a premise on the execution, not a consequence of its length
 (`goose_adequacy_start`). -/
@@ -127,7 +127,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (T : Nat) (HT28 : T ≤ 2 ^ 28)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNstepsBelow T n ([mvccrandProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hn : n + 1 ≤ 2 ^ 38) :
+    (Hn : n + 1 ≤ 2 ^ 48) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
@@ -147,7 +147,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   unfold IsInit at Hinit
   rw [Hinit]
   haveI : ThreadBoundLe mvccrandGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
-  haveI : ReceiptBoundLe mvccrandGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
+  haveI : ReceiptBoundLe mvccrandGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
   icases Hrights with ⟨Hns, -, #Hvoff⟩

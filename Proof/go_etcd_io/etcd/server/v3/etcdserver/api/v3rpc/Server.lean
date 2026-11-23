@@ -193,6 +193,7 @@ theorem v3rpc.Server.wp_proof
   wp_apply (hPromU pm) as %im #Him
   · iframe #
   (try wp_auto)
+  haveI : ThreadBoundLe GF (2 ^ 30) := ⟨Htb30⟩
   wp_apply (hUIc s C.c C.mid) as %iu #Hiu
   · iframe #
   (try wp_auto)

@@ -255,27 +255,27 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 | the lab's | here |
 |---|---|
 | `addrProto a P Q`, `addrProtoG` | `addrProto a P Q` (same shape; `cn : Nat`, not `cid : w64`) |
-| `addrTok a`, `addrTokG` (exclusive; `Listen` needs it) | `addrTok a` (persistent); `Listen.spec` needs `ListenAt`: `addrTok_listenAt` with the node's host |
-| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (the kits' bridge, `robust_of_distBoot`) |
-| `addr_set_proto` (`==∗`), `addrs_set_proto` | `addr_set_proto`, `addrs_set_proto` (`={E}=∗`, with `regCtx`) |
+| `addrTok a`, `addrTokG` (exclusive; `Listen` needs it) | `addrTok a` (persistent); `Listen.spec` needs `listenOk a` (`addrTok_ok`) and the listening token(s) (`listen_au`, `listen_lis_au`) |
+| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (the kits' bridge, `robust_of_distBoot`); for a wildcard port, `lisUnset la` (`addrs_lis_start`) |
+| `addr_set_proto` (`==∗`), `addrs_set_proto` | `addr_set_proto`, `addrs_set_proto` (`={E}=∗`, with `regCtx`); `lis_set_proto` (every address of a wildcard's port: `lisProto la P Q`, `lisProto_addr`) |
 | `sendTok`, `recvTok`, `connEnd` | the same; a `Read` gives `recvTokL` (`recvTokL_later`, or a credit) |
 | `connFresh`, `connFresh_excl` | the same (timeless, `⊢ False`) |
 | `sentLb`, `sendTok_sentLb` (no visible use) | `sentLb`, `sendTok_sentLb`, `recvTok_sentLb`, `sendTok_sentLb_prefix` |
 | `recvTok_proto`, `protoPrefix`, `ProtoPrefixClosed`, `protoPrefix_closed`, `recvTok_proto_closed` | the same |
-| `newConnResult` (`Dial`/`Accept`'s post) | `Dial.spec`/`Listener.Accept.spec`'s post (`isConn c cn s a ∗ Qok cn`) with `Qok` from `dial_au`/`accept_au`/`accept_shared_au` (`connEnd ∗ connFresh`) |
+| `newConnResult` (`Dial`/`Accept`'s post) | `Dial.spec`/`Listener.Accept.spec`'s post (`isConn c cn s a ∗ Qok cn`; `Accept`'s `Qok a cn`, `a` the address dialed) with `Qok` from `dial_au`/`accept_au`/`accept_shared_au`/`accept_lis_au`/`accept_lis_shared_au` (`connEnd ∗ connFresh`) |
 | `connErr`, `opErr`, `opResult` (codes) | the specs' `resErr`/`ReadErr` (kinds `closed`, `timeout`, `sys`; EOF a `ReadRes`) |
 | `ownTCPConn c cid side` | `connAt t cn s a la ra`/`isConn c cn s a` (`Net/Proof/net/Base.lean`) with `connIs cn` |
-| `ownListener l lid a`, `listening` | `isListener`/`lisAt` with `netLisAt`, and `netLis` (owned) or `lisInv` (shared) |
+| `ownListener l lid a`, `listening` | `isListener`/`lisAt` with `netLisOn` (`netLisAt` at a valid address), and `netLis` (owned) or `lisInv` (shared) |
 | `nodeIp ip` | the machine's host in `DistBootWp` (`Net/Statement/DistBridge.lean`) |
 | `net.TCPConn.Read.wp_proof` | `net.Conn.Read.wp_proof` + `read_au` |
 | `net.TCPConn.Write.wp_proof` | `net.Conn.Write.wp_proof` + `writeP`, `writeP_init`, `write_acc` |
 | `net.TCPConn.Close.wp_proof` | `net.Conn.Close.wp_proof` + `close_au` |
 | `net.TCPConn.Set{,Read,Write}Deadline.wp_proof` | `net.Conn.Set{,Read,Write}Deadline.wp_proof` + `deadline_au` |
 | `net.TCPConn.Set{ReadBuffer,WriteBuffer,KeepAlive,KeepAlivePeriod}.wp_proof` | `net.TCPConn.Set*.wp_proof` + `sockopt_au` |
-| `net.TCPListener.Accept.wp_proof` | `net.Listener.Accept.wp_proof` + `accept_au`/`accept_shared_au` |
+| `net.TCPListener.Accept.wp_proof` | `net.Listener.Accept.wp_proof` + `accept_lis_au`/`accept_lis_shared_au` (any listener, a wildcard's included); at a valid address `Listener.Accept.spec_addrOk` + `accept_au`/`accept_shared_au` |
 | `net.TCPListener.Close.wp_proof` | `net.Listener.Close.wp_proof` + `lisClose_au` (shared) |
 | `net.Dial.wp_proof`, `net.DialTimeout.wp_proof`, `DialNet` | `net.Dial.wp_proof`/`DialTimeout.wp_proof` (`tcpNet nw`) + `dial_au`, `addrProto_tok` |
-| `net.Listen.wp_proof`, `ListenWild`, `ListenNet` | `net.Listen.wp_proof` (`ListenAt`: an address itself or a wildcard, D21) + `addrTok_listenAt` |
+| `net.Listen.wp_proof`, `ListenWild`, `ListenNet` | `net.Listen.wp_proof` (`listenOk`: a valid address or a wildcard, D21; `tcpNet nw`) + `listen_lis_au` (a wildcard's port, from `lisProto`); at a valid address `Listen.spec_addrOk` + `listen_au` (2026-11-23). Not `ListenWild`'s shape: the model has no node IP, so a wildcard listener is not "the listener at this node's `ip:port`"; the kits' distinct port per node makes `lisProto` per port do |
 | `isConnP`, `isListener`, `connEnd_isConnP`, `listening` (no visible use) | `connIs`, `sendTok_connIs` |
 | `ownSlice_take_acc` (`NetLib.lean`, netprobe) | not ported (a slice lemma: Perennial's, or the kit's) |
 | `safeDist_of_wp`, `safeDist_of_bootAt`, `NodeBootWpAt`, `addrs_set_proto` (`SafeDist.lean`) | `Net/Statement/DistBridge.lean`: `robust_of_distBoot`, `robust_of_distProto`, `DistBootWp` (the statement `Robust`, below) |
@@ -809,6 +809,88 @@ tests kept as differential tests against the real library, a "not modelled" pani
    consuming `recvTok`. Worked around locally: `errors.New.spec` says its result is a pointer error but
    not that its type implements `error` (`errAny` needs it), so `input` uses `wp_errors_New'`, proved
    from `errors.New`'s body in the proof file (a Perennial strengthening: `notes/perennial-changes.md`).
+   **The Lean half, third part: the server (2026-11-23, branch `models-rpc-server`, stacked on
+   `models-rpc-client`).** *Proved and linked* (`Results.lean`, `#print axioms` Lean's three; `lake build
+   Net.Proof.net.rpc.Results` green): the server codec's `ReadRequestHeader` (a frame of `reqHdr seq sm`),
+   `ReadRequestBody` (as the client's, `bodyDec`/`bodyRes` moved to `Codec.lean`), `WriteResponse` (the sticky
+   `werr`; `respWire seq sm e eb` by one `Write`, the body encoded only for a success, `respEnc`; the caller's
+   `respUpd`), `Close` (the `closed` flag), `newServerCodec`; `NewServer`, the free lists
+   (`get`/`freeRequest`, `get`/`freeResponse`: `reqChain`/`respChain` under `reqLock`/`respLock`); `register` (the
+   codec's `Receiver`, its methods copied into `*methodType`s with their mutexes by `wp_map_for_range`, the
+   services map and the registry's ghost map under `mapLock`), `Register`, `RegisterName`; `go/token.IsExported`
+   on an upper-case ASCII first byte (the trusted model's exact branch).
+   *The vocabulary* (`ServerDefs.lean`): a method's obligation `methodOk C rcvr (S m) mm` (`NewArg` gives a
+   non-`nil` argument with its decoding `bodyDec`, `argDec` since 2026-11-23 (below); from the deposit and a decoding, `NewReply` then `Call`,
+   `callRet`: `nil` with the reply's encoding into `Φ eb ""`, or an error with its message and `Φ [] msg`), a
+   receiver's `rcvrIs` (what `C.rcv` promises of `Receiver(rcvr)`: name, nil pointer, methods meeting `S`), a
+   service spec's `errOk` (an error answer from the deposit: Go answers with errors requests it does not run),
+   `isServer`, `svcReg` (the registry's persistent element and the `*service`), `srvServes γ C W a`; for a
+   connection served, `srvSendInv` (`sending`'s invariant: the written bytes a prefix of `respsWire Rs`, all of
+   it while no write failed), `ansPend` (the right to answer request `k` once), `readerSt` (the frames of the
+   first `k` requests read, `ctr` claimed with the acceptor's fresh token), `rpcAccepted`.
+   *Statement changes* (ledger 2026-11-23): `decErr`'s message is not empty and the net model's
+   `OpError.Error` returns a non-empty string (trusted, `Net/TrustedCode/net.lean`, measured in
+   `examples/net/semantics`' `TestErrorsAreOpErrors`): `ServeCodec` answers a request whose body does not read
+   or decode with `err.Error()`, and `""` would send a success response encoding `invalidRequest`, which no
+   generated codec lists; `CodecSpec` gains `rcv` (`codecIs` holds `rcvOk`); `register`'s three logging errors
+   are excluded by premises (`regNameOk`, at least one method), since Perennial has no model of `log.Print`.
+   *The blocker removed in the model* (commit `e84c1d63c9`): `readRequestHeader`'s `strings.LastIndex` is a
+   backwards byte loop and `log.Print` is `log.Println` (Perennial models `Println`; its spec is stated and
+   proved here, `Net/Spec/log/Println.lean`, as `log.Printf.spec`).
+   **The request loop and `Accept` proved and linked (2026-11-23, same branch):** `Results.lean`, `#print axioms`
+   of every result Lean's three; `lake build Net.Proof.net.rpc.Results` green, `etc/tier-check.py --check`,
+   `etc/copy-part.py --check`, `etc/gen-init.py --check`, `goose.py --check --project models-net` clean,
+   `models/internal/rpcdifftest/run.sh` passes. *The ghost lemmas* (`ServerGhost.lean`): `req_hdr` (after the
+   frames of the first `k` requests, a header frame is request `k`'s: `req_next` over `reqPls`, the role
+   claimed with the acceptor's fresh token at the first, the request taken once: its deposit and
+   `ans k ↦ none`), `req_body` (its body frame is the request's argument bytes: the two lower bounds agree),
+   `answer` (the answer recorded, the continuation's `Φ reply msg` escrowed for the client), `resp_step`
+   (the response written extends `respsWire` of the answers recorded, `ansRec`, and gives `respProto`'s fact),
+   `lastDotIdx_of`/`lastDotIdx_some` (the loop's dot). *The specs*: `sendResponse` (answers request `k`
+   once, `ansPend`, with `ansRes`: the reply's encoding or `Φ [] msg`; under `sending`'s `srvSendInv`, its
+   `respUpd` makes the answer at write time), `service.call` (`callReady`: the method's call obligation, run;
+   `wg.Done()` deferred, by Perennial's thread-token join at `srvWgN`, returns the slot's thread token),
+   `readRequestHeader`/`readRequest` (over the reader's `rdrOwn`: a failed header read ends the loop; else
+   request `k` taken, with `ansPend` and either the request ready to run or an error, message not empty,
+   with the deposit spent on the service's `errOk`, `errCont`), `ServeCodec` (`srvCodecOwn`: a connection
+   just accepted; the loop invariant `rdrOwn`, the join's adder, the reader's thread token; a run forked
+   with `wp_fork_tok_self` after `Add(1)` with that token; after the loop `Wait` and `Close` by
+   `close_au`), `ServeConn`, `Accept` (`accept_shared_au` over the shared listener `lisInv`; each
+   connection served by `ServeConn` in a goroutine with its `go` statement's fresh token,
+   `wp_fork_tok_body`; a failure logged). So the server's guarantee: every method run is on a request
+   a client deposited, at most once per request (`take_req`), under the method's registered spec, and
+   every response is in the protocol's wire order (`srvSendInv`).
+   **Found, and settled in the model (ledger, 2026-11-23):** after a request's body read fails, Go's
+   `ServeCodec` answers it and reads on, from the middle of that request (gob keeps no read error), so a
+   later read that returns bytes would be decoded as new requests, and a method could run on arguments no
+   client sent. The net extension's semantics allows bytes after a read error (a `sys` error on a cut
+   direction with unread bytes kept); Linux does not, but for a read deadline's timeout (measured:
+   `examples/net/semantics`). The model's server codec now makes a frame read's error sticky
+   (`serverCodec.rerr`, `codec.go`'s doc: Go's behavior over Linux without read deadlines; a program that
+   sets a read deadline on a served connection is outside the model's claim), and the server codec's
+   read specs take `rerr` (`nonissues/go-netrpc-server-reads-on-after-body-read-error.md`).
+   **`Client.Call`'s decoding obligation restricted to the method's answers (2026-11-23, same branch;
+   found by kaashoek's craq port, #24; ledger 2026-11-23).** `Call` (and `Go`, `send`, `callRes`) asked the
+   program's codec to decode every reply, `□ (D -∗ ∀ rep, C.dec rep reply (Θ rep))`, which no rpcgen codec
+   with two types or more meets: its `Decode` panics `rpcNotModelled` on a well-formed value of another listed
+   type (a documented deviation from gob). Now `□ (D -∗ ∀ rep, Φ rep "" -∗ C.dec rep reply (Θ rep))`: only of
+   the replies the method answers with, its answer in hand (it goes into the decoding; the success post is
+   `∃ rep, Θ rep true`, so `Θ` keeps of `Φ rep ""` what the caller needs). The method's spec is what says a
+   reply is of its type (the server encodes the handler's reply into `Φ eb ""`, `callRet`; only the run's
+   answer gives `Φ`). `input` now trades the call's collection token for the answer at the header (as for an
+   error response), before the body, and `ReadResponseBody` takes a guard (`bodyDecG C body D G Θ`, and a
+   premise turning the reader predicate after the frame into `G pl` a step later: `body_guard`, the frame is
+   that answer's reply). At-most-once and the other cases unchanged. `decErr`'s docstring names the panics.
+   **The server's request decoding restricted the same way (2026-11-23, same branch; ledger 2026-11-23).**
+   `methodOk`'s `NewArg` gave `bodyDec`, a decoding of every request body; it now gives `argDec C argv D Sm Θ`,
+   `codecSet C ∗ □ (D -∗ ∀ args Φ, Sm args Φ -∗ Sm args Φ ∗ C.dec args argv (Θ args))`: only of the argument
+   bytes of a deposit, which it keeps (the call and the error answers still need it). `readRequest` applies it
+   to the request's deposit before the body read; `ReadRequestBody` takes the client's guard shape
+   (`bodyDecG`, guard `pl = r.body` by `req_guard`). `bodyDec` gone.
+   *Left*: the HTTP path (`ServeHTTP`, `HandleHTTP`, `DialHTTP`); `ServeRequest`; `register`'s logging
+   premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
+   not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
+   `invalidRequest` at `()`) and `isPkgInit log` (item 5).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
@@ -931,6 +1013,16 @@ ported onto it.)*
   `#print axioms` checked, a TCB collection per kit.
 - The lab's rig traces of the kits checked with this repository's certified conformance checker
   (`examples/net/conform`).
+
+**Phase 6's state (2026-11-22, branch `dsv-paxos`; `notes/dsv-paxos.md`):** paxos ported. The part
+`Dsverify/` (lean_lib `Dsverify`, goose project `dsv-paxos`, Go in `examples/dsverify/paxos`), the
+kit moved onto `examples/lib/remote` (ten machines: orchestrator, four client machines, five
+servers; a write-once register with pending proposals as porcupine's model). The protocol's proof
+(invariant, agents, transport over `Net/Spec/net` and `Proto.lean`, deployment) compiles; the
+statement `paxos_remote_robust` (`DistDeploy … → Robust [] …`) is proved, `#print axioms` Lean's three
+(no axiom, no `sorry`). Found: remote's
+`ServeClient.spec` takes `newClient` as a persistent triple, so a client that needs exclusive
+resources (paxos's one-shot proposer tokens) must be made before `ServeClient` (the kit does).
 
 ### Phase 7: etcd onto the same models (option B, its own stage)
 

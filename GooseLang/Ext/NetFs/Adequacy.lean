@@ -161,7 +161,17 @@ theorem kvnet_dist_crash_adequacy (N T : Nat)
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
       (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
   goose_dist_crash_adequacy (GF := kvnetGF) N T es g φ hφ ⟨Hconns, trivial, trivial⟩
-    (fun m hm => ⟨trivial, Hfs m hm, trivial⟩) P Hstart Hwp n κs c Hsteps Hbound Hthreads Hlive
+    (fun m hm => ⟨trivial, Hfs m hm, trivial⟩) P Hstart
+    (by
+      -- the crash obligation's later credit is not needed
+      intro hG HN HT i e σ Hes Hlctx
+      iintro HP Htok
+      imod Hwp HN HT i e σ Hes Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
+      imodintro
+      iframe Hwp
+      iintro %L' Hcr Hcs Hgs _
+      iapply Hcrash $$ %L' Hcr Hcs Hgs)
+    n κs c Hsteps Hbound Hthreads Hlive
 
 end adequacy
 

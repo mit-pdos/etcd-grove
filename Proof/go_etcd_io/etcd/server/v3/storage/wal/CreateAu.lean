@@ -107,7 +107,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS G
 /-- **What `Create` holds for the rename's update**: the creating token, the client's update (from any
 view `o` of `dir` with `Pv o`: the real state has no WAL there, `walCreating_absent`), the registration
 half `walSplitFrag Wn` (`nm ∉ Wn`: the commit's absence), and
-what the invariant takes at the commit: half of `J`'s claim, the segment `g` whole (its `OsMeta`, its
+what the invariant takes at the commit: half of `J`'s claim, its pipeline names' quarters (`walTmpsHalf J`),
+the segment `g` whole (its `OsMeta`, its
 bytes). The lock token (its parking flag `false`: the new WAL's segment and directory claim stay out,
 the handle's) is the invariant's while the creating entry exists (`walCreatingAuth`); the commit
 gives it back. -/
@@ -119,7 +120,8 @@ def walCreateP (dir : GoString) (N : NameSet) (h : NamesH) (md : List w8) (Q : I
       <{ walDiskAt (W := W) dir (walDurFresh md), COMM Q }>) ∗
     walSplitFrag (W := W) Wn ∗
     osNames J (.except X) (DFrac.own (1 : Qp).half) hJ ∗
-    osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs)
+    osMeta g.ino (DFrac.own 1) g.om ∗ osBytes g.ino 0 (DFrac.own 1) g.bs ∗
+    walTmpsHalf (hG := hG) J)
 
 /-- **The new WAL's tail registered** (`Create`'s commit, W4 log, twenty-third session): the program's
 half of the tails' authority with `dir ↦ γ`, the tail's key, and the program's half of its tail record
@@ -241,7 +243,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
   rw [show osAuMask \ (↑walN : CoPset) = walAuMask from rfl]
   icases Hb with ⟨%s, Hb⟩
   unfold walCreateP
-  icases HP with ⟨Htok, Hau, Hsf, HJ, Hm, Hbs⟩
+  icases HP with ⟨Htok, Hau, Hsf, HJ, Hm, Hbs, Hth⟩
   unfold walInvBody
   icases Hb with ⟨%Ls, %cl, %n, %F, Hg, %Har, Hcl0, #Hcm, Hlays, %Hok, %Hco, ⟨%CR, Hcra, %Hcro⟩,
     Htl, %Han, %Hnm, Hpk, ⟨%K, %cp, Hdk, Hcp, %Hdko⟩, %HAt, Hnms, %Hbd⟩
@@ -295,7 +297,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
     imodintro
     dsimp only
-    iframe Htok Hau Hsf HJ Hm Hbs
+    iframe Htok Hau Hsf HJ Hm Hbs Hth
   · -- commit
     iintro %o Hβ
     rcases o with _ | ⟨x, s0⟩
@@ -333,7 +335,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         iframe Hnms; ipureintro; exact ⟨HAt, Hbd⟩
       imodintro
       dsimp only [walCreateQ, walCreateP]
-      iframe Htok Hau Hsf HJ Hm Hbs
+      iframe Htok Hau Hsf HJ Hm Hbs Hth
     · -- the commit, at the commit bound raised to `m`
       have Hok := walsOk_mono (Nat.le_max_left n m) Hok
       have Han := And.intro (absentNone_mono (Nat.le_max_left n m) Han.1) Han.2
@@ -438,7 +440,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
       imod walDirKey_insert K dir J X hKd hXt $$ Hdk with ⟨Hdk, #Hkey⟩
       imod walParked_create (W := W) Ls (l1 ++ (jr, N, h) :: l2) F WalOut.empty CR jr dir N h
         (h.log x (renDirEnt jr tmp nm J s0) (renCur N h tmp nm J)) J X hJ lay g hnew hlay.2.2 hLd hX
-        hsegs hpg hino hJo $$ Hpk Ho with ⟨Hpk, Ho⟩
+        hsegs hpg hino hJo $$ Hpk Ho Hth with ⟨Hpk, Ho⟩
       have hnw : walNameP nm = false := walNameP_false_of_ok hin.1
       have hcnm : h.cur !! nm = none := (Han.1 dir nm hin' hsd).1 N h hc hnmN
       -- the new WAL's tail registered (`walTailsRes_register`, the fresh layout's F-Z and boundary)
@@ -502,7 +504,7 @@ theorem walCreate_osAUnc (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
         · ipureintro
           exact walsNamed_create (x := x) (st := s0) Hok Hnm hnew hc hcoh (Nat.le_trans hlb hls) hne
             hnmN htmpN hcnm hctmp hothers htw hnw hlay.2.2 hX hsn hJC hJcoh
-            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _)) hpg
+            (fun xe hxe => Nat.lt_of_lt_of_le (hJm xe hxe) (Nat.le_max_right _ _)) hpg HAt hJo
         isplitl [Hpk]
         · unfold createClaims; iexact Hpk
         isplitl [Hdk Hcp]

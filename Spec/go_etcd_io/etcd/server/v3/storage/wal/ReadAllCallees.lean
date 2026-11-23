@@ -53,7 +53,8 @@ abbrev WalPbIn.GetTermLaw (P : WalPbIn GF) : Prop :=
 /-- **The hard states `ReadAll` owns** (see the file header): `HsO p h`, the `*raftpb.HardState` `p`
 holds `h`, owned. A fresh zero one is owned (`zero`); `MustUnmarshalState` of bytes `U` decodes returns
 one (`unmarshal`, S/wal.go:546); `GetCommit` reads it (:579); `Reset` writes it (the error arms);
-it freezes into `P.hsIn` (`freeze`). -/
+it freezes into `P.hsIn` (`freeze`); it is never nil (`notNull`: `ReadAll`'s `state` is `&raftpb.HardState{}`
+or `MustUnmarshalState`'s `&s`). -/
 structure WalHsOwn (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM → IProp GF) : Prop where
   zero : ∀ p : Loc, p ↦ (zero_val go_etcd_io.raft.v3.raftpb.HardState) ⊢ HsO p hsZero
   unmarshal : ∀ (d : GoSlice) (dq : DFrac) (bs : List w8) (h : HardStateM), U.decState bs = some h →
@@ -71,11 +72,14 @@ structure WalHsOwn (P : WalPbIn GF) (U : WalUnmarshal) (HsO : Loc → HardStateM
         (Val #()))
     {{ RET #(); HsO p hsZero }}
   freeze : ∀ (p : Loc) (h : HardStateM) (E : CoPset), HsO p h ⊢ |={E}=> P.hsIn p h
+  notNull : ∀ (p : Loc) (h : HardStateM), HsO p h ⊢ ⌜p ≠ null⌝
 
-/-- **`proto.Clone(state).(*raftpb.HardState)`** (S/wal.go:648): a fresh hard state holding the same.
-The package initializations in the laws' pres: ledger 2026-11-14, "the WAL's raftpb laws", item 1. -/
+/-- **`proto.Clone(state).(*raftpb.HardState)`** (S/wal.go:648) of a non-nil hard state (`ReadAll`'s `state`
+never is: `WalHsOwn.notNull`): a fresh hard state holding the same.
+The package initializations in the laws' pres: ledger 2026-11-14, "the WAL's raftpb laws", item 1; the
+non-nil premise: ledger 2026-11-22, "`WalPbIn.CloneHsLaw` narrowed to a non-nil source". -/
 abbrev WalPbIn.CloneHsLaw (P : WalPbIn GF) : Prop :=
-  ∀ (p : Loc) (h : HardStateM),
+  ∀ (p : Loc) (h : HardStateM), p ≠ null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ P.hsIn p h }}
     (App (Val (@! google_golang_org.protobuf.proto.Clone))
       (Val #(interface.mkOk (go.GoType.PointerType go_etcd_io.raft.v3.raftpb.HardState.ty) #p)))

@@ -17,6 +17,65 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
+
+- **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
+  `threadBound` is what its steps could have forked. Net's net/rpc server (`ServeCodec`,
+  `ServeConn`, `Accept`; hence `HandleHTTP`/`Serve`) needs `threadBound GF ≤ 2^31`, so a kit using
+  it is covered only for executions of fewer than `2^31 - 1` steps, not `2^63`.
+- **Who needs it.** dsv-epaxos (`notes/dsv-epaxos.md`, "Findings / open points" 1:
+  `epaxos_remote_robust`'s step bound `2^31 - 1`); any kit serving net/rpc.
+- **Workaround.** The statement's step bound is `2^31 - 1` (stated, honest; review of #24).
+- **Proposed change.** A dist adequacy that bounds live threads (`threads ≤ 2^31`, a premise on the
+  run) while allowing `2^63` steps would restore the `2^63` bound.
+- **Status.** Not proposed yet.
+
+### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
+
+- **Limitation.** `glang/lean.go`'s `leanComment` keeps a Go doc comment's tabs; a doc comment
+  whose lines start with a tab (Rabia's, indented with tabs throughout) fails to parse ("tabs are not
+  allowed").
+- **Who needs it.** dsv-rabia (`notes/dsv-rabia.md`): every package of the fork.
+- **Workaround.** `etc/goose.py`'s `Project.expand_comment_tabs` (set for `dsv-rabia`): the tabs in
+  the translation's comments become four spaces (the lab's `goose.sh` did the same); the Go source
+  stays the fork's.
+- **Proposed change.** `leanComment` expands tabs.
+- **Status.** Not proposed yet.
+
+### Goose converts to another package's constant type without importing its module (2026-11-23, dsv-rabia)
+
+- **Limitation.** `err == redis.Nil` (go-redis v8: `const Nil = proto.Nil`, of type
+  `internal/proto.RedisError`) is translated as a `Convert` to
+  `github_com.go_redis.redis.v8.internal.proto.RedisError.ty`, but the translation of the calling
+  package (`rabia/roles/server/layers/proxy`) does not import that package's module: "Unknown
+  identifier".
+- **Who needs it.** `Proxy.redisExecuteCmd` (dsv-rabia, `notes/dsv-rabia.md`).
+- **Workaround.** `Dsverify/Code/rabia/roles/server/layers/proxy.toml` leaves `Proxy.redisExecuteCmd`
+  names only (the kit never uses Redis: `Conf.StorageMode` 0).
+- **Proposed change.** goose imports the package of every named type it emits, a constant's type
+  included.
+- **Status.** Not proposed yet.
+### `atomic.Value.Store` into a non-empty cell may panic in the model: the feature gates' `Add` (2026-11-23, featuregate, claim #36)
+
+- **Limitation.** Perennial's trusted `Value.Store`/`Swap` (`TrustedCode/sync/atomic.lean`) may `Panic` (`ArbitraryInt`)
+  whenever the cell is non-empty, because the model cannot compare the stored and new values' dynamic types (Go panics
+  only when they differ); `Value.Store.spec` requires the cell to hold `nil`. Both feature gates store again into a
+  filled cell: etcd's `featureGate.Add` (`pkg/featuregate/feature_gate.go`, `f.known.Store(known)` after `New` stored
+  one) and Kubernetes' `AddVersioned`/`SetFromMap` (`component-base/featuregate`). So neither gate's registration
+  can be proved over the model.
+- **Who needs it.** `features.NewDefaultServerFeatureGate.wp_proof` (etcd), `k8s_io.apiserver.pkg.features.init_0_ok`
+  (k8s), and through the gate `addFeatureGateMetrics.wp_proof`.
+- **Work-around here.** None: the three stay trust-boundary axioms.
+- **Proposed (general).** Model the type check: `GoInterfaceOk` carries its dynamic type (`fi.ty`), so `Store`/`Swap`/
+  `CompareAndSwap` can compare the old and new values' types (panic only when they differ, as Go), and their specs
+  take `ownValue u 1 x` with `x = nil ∨ x.ty = v.ty` instead of `x = nil`. **Status.** Done in Perennial
+  `87ffd73b7` (a pure `TypeOfEq` instruction; specs over any `x` with `sameTypeOrNil x v`), in the pin since
+  `71de6f043` (2026-11-23). The three axioms above are not yet proved over it: the second increment
+  (2026-11-23, branch `featuregate-2`) found each blocked elsewhere. `featuregate.New` calls `maps.Clone`
+  (below, "Generic maps and slices iterators"); `init_0_ok`'s input map is built by `version.MustParse`
+  (`regexp`) and `DefaultMutableFeatureGate_init` states nothing of the gate's state; `addFeatureGateMetrics`'s
+  spec is unprovable as stated (ledger, 2026-11-23).
+
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
 - **Limitation.** goose emits `Convert go.untypedInt go.float64` for a unary untyped-integer constant in a
@@ -174,7 +233,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `Modf` and model `archCeil` (or `haveArchCeil = false` with a trusted equivalence: `ceil`'s Go body is exact),
   with a spec (the least integral float `≥ x`; NaN, `±Inf`, `±0` unchanged). Until then `math.Ceil.wp_proof` stays
   an axiom (its spec, some `float64`, is true: `Ceil` never panics).
-- **Status.** Not started (to be filed by the claim's coordinator).
+- **Status.** Not started (to be filed by the claim's coordinator). `ExponentialBuckets`: worked around locally
+  (small-leaves-2, 2026-11-23, claim #35): the doubling law and what it rests on (`pow2_add`, `pow2_lt`,
+  `floorLog2_eq`: `pow2 e ≤ a < pow2 (e + 1) → floorLog2 a = e`, `roundHalfEven_nat`, the bits of `pack`) are
+  private lemmas of `Proof/github_com/prometheus/client_golang/prometheus/ExponentialBuckets.lean`, whose
+  `wp_proof` is now a theorem over the translated body. They are proved from Perennial's definitions (no
+  assumption), so moving them to Perennial's `Theory/Float.lean` is still the proposal; the proof file then
+  drops its copies.
 
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
@@ -342,7 +407,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Who needs it.** The maintainers' checker in the k8s etcd3 driver (k8s 7g,
   `notes/k8s-7g-scope.md` Q8): `slices.Sorted(maps.Keys(s.Items))` in `Model.list`/`listItems`, and
   the D30g patch's `maps.Clone`/`maps.Equal` of `NeedsRewrite`. Any later Go code ranging over
-  sorted map keys (a common idiom since Go 1.23) needs the same.
+  sorted map keys (a common idiom since Go 1.23) needs the same. (2026-11-23, claim #36) etcd's
+  `featuregate.New` (`known := maps.Clone(defaultFeatures)`, a `map[Feature]FeatureSpec`), and its `Add`/
+  `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
+  axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
+  only; a second local instance would be a new trust-boundary axiom, for approval).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
@@ -500,6 +569,13 @@ rebuilds everything; no bump of its own).
 - **Status.** `HasSuffix` done (2026-11-20, Perennial `e9988b5cd`): `stringslite.HasSuffix`/`TrimSuffix`
   and `strings.HasSuffix`/`TrimSuffix` translated and proved, the axiom here a theorem.
   `stringslite.HasPrefix` (and `IsAbs`) still open.
+  (2026-11-22, wal-safe session 8) `stringslite.HasPrefix`: drafted on Perennial branch `stringslite-hasprefix`
+  (`d508df6ff`, off `lean` at `04ed1c622`, worktree `/shared/perennial-stringslite-hasprefix`, **not pushed**: the
+  user pushes Perennial): `HasPrefix` translated with its body (from go1.26.3's source, as the committed
+  `HasSuffix`), `internal.stringslite.HasPrefix.spec`/`wp_proof`, linked; its modules build. Here
+  `filepathlite.IsAbs.spec` is proved (`Proof/internal/filepathlite/IsAbs.lean`) over the callee spec
+  `stringslite.HasPrefix.spec` (`Spec/internal/stringslite/HasPrefix.lean`, a hypothesis with Perennial's
+  statement), which goes once the pin reaches the branch.
 
 ### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
 
@@ -3723,6 +3799,43 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Proposed (general).** Map the predeclared alias `rune` to `int32` (and `byte` to `uint8`, if not already)
   in `basicLeanType`. **Status.** Recorded only.
 
+## 2026-11-21: extension state access at generation start (`goose_crash_adequacy`; the WAL tester, branch `wal-safe`)
+
+- **Missing.** `goose_crash_adequacy`'s `Hwp` (`Perennial/GooseLang/CrashAdequacy.lean`) makes each
+  generation's WP and crash frame from `P` and `threadTok` alone. It cannot touch the extensions' local
+  interpretation before the WP, though the adequacy proof holds the state interpretation there (after
+  `goose_init`, and after `goose_crash_step`). The Linux file extension's switch to its shared mode
+  (`wp_osShareE`) needs that interpretation, so a program switches at its first step. Its crash frame
+  is fixed before that, gets no later (crashes need not be separated by steps), and so can take nothing
+  the switch made: not the invariants a client allocates in the shared mode (the WAL tester's `TInv`,
+  `walInv`, `durInv`). A crash between generation start and the switch is unprovable for such a client.
+- **Worked around locally.** `GooseLang/Ext/Fs/CrashAdequacyAcc.lean`: a copy of `goose_crash_adequacy`
+  (with `_blang` and `goose_crash_preservation`, at Perennial `d648cfe22`) whose `Hwp` is given
+  `∀ w, extsLocalCtx w ={⊤}=∗ extsLocalCtx w ∗ (WP ∗ crash frame)`, one update of the extensions' local
+  interpretation (`bstate_extsLocal_acc`). Over it, `GooseLang/Ext/Fs/AdequacyShared.lean`'s
+  `fsSQ_crash_adequacyShared` switches every generation before its WP. Untrusted, and `#print axioms` is
+  standard. No statement of any closed theorem changes.
+- **Proposed (general).** The same change in Perennial's `goose_crash_adequacy`, and likewise
+  `goose_adequacy`: `Hwp` takes the extensions' local interpretation for one update. Existing callers
+  adapt by ignoring it (`Hwp … $$ HP Htok` under an `iintro %w Hext; iframe Hext`). The repository's copy
+  then goes.
+- **Status.** Worked around locally (2026-11-21); proposed only. The Perennial branch is for later (the
+  coordinator's (b3)).
+
+## 2026-11-22: `errors-facts` re-cut as `errors-facts-2` (wal-safe session 11)
+
+- **What.** The two `errors` commits of the 2026-11-14 entries above (`58e04c5c0`: `newVar` keeps the `errorString`'s
+  field, `errors` records `ErrUnsupported`; `601b7fb5d`: `errors.Is`/`is` at comparable targets), cherry-picked onto
+  Perennial `lean` `0e10295a1` as branch `errors-facts-2` (`94d5c61e5`, `98a9ca318`; worktree
+  `/shared/perennial-errors-facts-2`), without the `errors.As` commit `7533cf64a` (#26/#29's area: the conflicts in
+  `Proof/errors/Base.lean`/`Results.lean` were resolved by dropping its `AsFirst`/`wp_As_first`). The touched modules
+  and the ten package Links that import them build (2107 jobs). **Not pushed** (the user pushes Perennial).
+- **What it costs here.** Against a d648-based copy of the same two commits (`errors-facts-2-d648`, local only,
+  manifest `/shared/tmp/manifest-ef2d.json`) the WAL cone breaks in three places, all `newVar`'s/`wp_New_errorString`'s
+  extra conjunct (`x.[errorString, "s"] ↦□ msg`): `etc/gen-init.py`'s io/fs initializer, `errOk_newVar`, `closeAll`.
+  Fixed on the local branch `wal-safe-errors`; the pin move must do the same across the tree (every `newVar`
+  destructuring and every `as %x #M` of `wp_New_errorString` that uses `#M` as the `Error()` WP).
+- **Status.** Branch ready for the user's push and Perennial's landing workflow; the pin move then goes through #9.
 ## 2026-11-21: no `Timeless` instance of `ownSliceCap` (the lessor's expiry notifier cell)
 
 - **The gap.** `Perennial/Golang/Theory/Slice.lean` has `ownSlice_timeless` but no instance for
@@ -3830,7 +3943,7 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `IsPointerError err` (a pointer type, any `T`) and its `Error()`. A caller that passes the error on as
   `errAny` (`models_lab/Errors.lean`: its dynamic type in `error`'s type set,
   `go.typeSetContains err.ty go.error`) cannot show it: the spec leaves the type open.
-- **Workaround here.** `wp_errors_New'` (`Net/Proof/net/rpc/Client__input.lean`): the same triple with the
+- **Workaround here.** `wp_errors_New'` (`Net/Proof/net/rpc/Errs.lean`, since 2026-11-23 shared with the server; first in `Client__input.lean`): the same triple with the
   result `interface.mkOk (*errorString) #x`, proved from `errors.New`'s body as `errors.New.wp_proof` is (no
   axiom); `Client.input.wp_proof` uses it instead of taking `errors.New.spec`.
 - **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
@@ -3858,3 +3971,137 @@ fix is the distributed analogue of `goose_adequacy_below` (`AdequacyAlong.lean`)
 execution. Also local, for Perennial: `Exts.globalStart`'s projection at an extension's position
 (`extIn_globalStart_get`, `hasExt_globalStart`, proved in `DistBridgeExts.lean`), beside
 `ExtIn.globalCtx_acc`.
+## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
+
+- **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body
+  is Rabin-Karp over `internal/bytealg`), and `log.toml` trusts `Printf` and `Println` but not `Print`. A call
+  of either is stuck. The net/rpc model's server calls both: `readRequestHeader` splits every request's
+  `"Service.Method"` with `strings.LastIndex(sm, ".")`, and `register` and `Accept` log with `log.Print` before
+  returning an error (`register`: no name, not exported, no methods; `Accept`: the listener's error).
+- **Workaround here.** `register`'s logging paths are excluded by its premises (`regNameOk`, `rcvrIs`'s
+  methods; ledger 2026-11-23); `Register`, `RegisterName` are proved and linked. The request loop
+  (`readRequestHeader`, hence `ServeCodec`, `ServeConn`) and `Accept` are not proved: no axiom is stated for the
+  two functions (the branch adds none).
+- **Proposed.** In Perennial: `LastIndex` trusted with a GooseLang model (a loop from the end comparing the
+  substring, `Index`-style; or `LastIndexByte` translated and `LastIndex` of a one-byte `substr` modelled on it)
+  and a spec (`strings.LastIndex.spec`: the largest `i` with `substr` at `i`, or `-1`); `Print` trusted as
+  `Println` is (`λ: "vs", #()`), with a spec like `log.Printf.spec`'s (`fmt.ArgsWf` arguments).
+- **Status.** Not needed by this repository any more (2026-11-23): the net/rpc model replaced both by code
+  Perennial models (commit `e84c1d63c9`: `strings.LastIndex(sm, ".")` as a backwards byte loop, the same
+  index; `log.Print` of one string as `log.Println`, the same output), and the request loop and `Accept` are
+  proved over them. The general change (models of `LastIndex` and `Print`) stays proposed for other users.
+  Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
+  (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
+  beside `Printf`'s. Not filed yet.
+## 2026-11-23: bufio's generic specs over an `io.Writer` contract and slice helpers kept locally (dsv-bufio, #24, branch `dsv-bufio`)
+
+- **Limitation.** Perennial has an `io.Reader` contract (`io.readerOk`, `Perennial/Proof/io/Reader.lean`)
+  but no `io.Writer` counterpart with short writes; and a few slice facts `*bufio.Reader`/`*bufio.Writer`
+  need (a sub-slice accessor `[r, w)`, the suffix accessor `b[n:]`, advancing a slice `p = p[k:]`,
+  `copy` within one slice) are not in its slice library.
+- **Workaround here.** `io.streamWriterOk wi J Q Ew` (`Proof/io/StreamWriterOk.lean`: `Write` accepts a prefix of the
+  bytes, `nil` only for all of them; `Q` closed under prefixes, `io.prefixClosed`) with `io.wp_streamWriter_Write`;
+  the slice facts in `Proof/bufio/Base.lean` (`bufio.ownSlice_sub_acc`, `bufio.suffix_acc`,
+  `bufio.slice_advance`, `bufio.flush_shift`, ...).
+- **`io.ReadFull`/`io.ReadAtLeast`** are translated and proved in Perennial at the pin (`io.wp_ReadFull`,
+  `io.wp_ReadAtLeast`, over `io.readerOk`). Through a `*bufio.Reader` they apply unchanged
+  (`bufio.ownBufReader_readerOk`, `Proof/bufio/ReaderLaws.lean`: its condition `0 < m → Pre R m` is
+  vacuous at `m = 0`). Directly over a connection they do **not** (corrected 2026-11-23 after the review
+  on #24, C1; this entry said they did): `net.conn_readerOk`'s condition is `0 < len(p)`, and their
+  premise asks `Pre` at `ys.length = len(buf)` too, an empty read. See the next entry. The `copy` count
+  trap (#24 item 4) is gone at the pin (`wp_slice_copy_int` states `sint.Z n = min ...`); it remains in
+  the net model's `Conn.Read` spec (`ReadOut`: `sint.nat k = min ...`), the reason for `0 < len(p)`.
+- **Proposed.** `io.streamWriterOk` next to `io.readerOk` in `Perennial/Proof/io/`; the slice facts in
+  `Perennial/Proof/` slice library; `bufio.wand_pure_persistent` (`Proof/bufio/Own.lean`: `□ (∀ _ : φ, P)`
+  from `⌜φ⌝ -∗ □ P`, a general Iris fact, review round 2 on #24, N6) in Perennial's (or iris-lean's)
+  BI lemmas.
+- **Status.** Not filed yet.
+
+## 2026-11-23: `io.ReadAtLeast`/`io.ReadFull` ask `Pre` of a read they never make (dsv-bufio, #24 review C1)
+
+- **Limitation.** `io.ReadAtLeast.spec`'s premise is `∀ ys, ys.length ≤ len(buf) → Pre (r0 ++ ys)
+  (len(buf) - ys.length)` (`io.ReadFull.spec`'s the same), so at `ys.length = len(buf)` it asks `Pre` of an
+  empty read. The code reads only while `n < min` (`io.go`), so no such read happens when
+  `min ≤ len(buf)`. A reader whose condition refuses `len(p) = 0` (a `net.Conn`, `net.conn_readerOk`'s
+  `0 < m`) cannot be read with `io.ReadFull` directly.
+- **Who needs it.** The dsverify kits' `io.ReadFull(conn, …)` without a `*bufio.Reader` in between.
+- **Workaround here.** Read through a `*bufio.Reader` (`bufio.ownBufReader_readerOk`); the claim that it
+  works directly was removed from `Net/Proof/net/ConnIo.lean`'s header.
+- **Proposed change.** Ask `Pre` only at `(ys.length : Int) < sint.Z min ∧ ys.length < len(buf)`
+  (`ReadFull`: `ys.length < len(buf)`); both proofs change by one line. (The first version asked it at
+  `ys.length < min` alone: with `min > len(buf)`, the `ErrShortBuffer` path, which reads nothing,
+  Nat subtraction then asked `Pre _ 0`; round 2 of the review on #24, N3.) Alternative (not taken: Upamanyu's `Net/` spec, 64 importers
+  and the `KvNet/` copies): make `net.Conn.Read`'s `ReadOut` exact (`sint.Z k = min …`), so a connection's
+  condition can be `True`.
+- **Status.** On Perennial branch `readatleast-prefix` (`af905abba`, after `d5cdfc558`, off `lean`
+  `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
+  callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
+  WAL uses its own `Spec/io/ReadFull.lean`.
+- **dsv-epaxos (2026-11-23).** `replica.serveConn` calls `io.ReadFull(conn, b[n:n+1])` on the
+  `net.Conn` itself. Workaround: `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/replica/IoReadFull.lean`
+  copies `readatleast-prefix`'s two specs and proofs verbatim under the names `ioReadAtLeastPre`,
+  `ioReadFullPre` (over the same translated `io` code, proved, no axiom); drop it for Perennial's on the
+  pin bump that has the change.
+
+## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia)
+
+- **Problem.** The rabia kit's `sendConf`/`awaitConf` call `io.ReadFull(conn, buf)` on a `net.Conn`
+  (no `bufio`). Perennial's `io.ReadFull.spec` asks the reader's condition `Pre` at every
+  `ys.length ≤ len(buf)`, the full buffer included (`m = 0`), which a connection's contract
+  (`net.conn_readerOk`, `0 < m`) does not give: the entry above (`readatleast-prefix`).
+- **Workaround (local).** `Dsverify/Proof/rabia/examples/rabianet/ConnReadFull.lean`: a copy of
+  Perennial's `ReadAtLeast`/`ReadFull` proof with the premise asked only below the buffer's length,
+  as the `readatleast-prefix` branch states it. To delete when that branch lands (then use Perennial's).
+
+## 2026-11-23: `make([]byte, size)` at sizes Go refuses (dsv-bufio, #24 review W6; a question)
+
+- **Question.** Real Go panics in `make` for a size too large to allocate (`bufio.NewWriterSize` and
+  `NewReaderSize` pass the caller's `size`). If Perennial's `wp_slice_make2` does not model that panic,
+  every spec built on it (bufio's constructors' `size` premise-free statements among them) inherits the
+  gap: a Perennial-wide question about `make`'s model, not one for the bufio specs.
+- **Status.** Unchecked; recorded for Perennial's `make` model.
+
+## 2026-11-23: `sync.Map`'s typed points-to is `sorry` (dsv-quepaxa, #24, branch `dsv-quepaxa`)
+
+- **Limitation.** `Perennial/GeneratedProof/internal/sync.lean` (pin `7b2259a12`):
+  `HashTrieMap_typed_pointsto` and `HashTrieMap_into_val_typed` are `sorry -- axiomatized type`.
+  `sync.Map` has a `HashTrieMap` field, so its generated `Map_typed_pointsto`/`Map_into_val_typed`,
+  and those of any struct with a `sync.Map` field (QuePaxa's `ClientBatchStore`), depend on
+  `sorryAx`. A proof that merely steps through such a struct's methods with `wp_auto` picks these
+  instances up (opportunistically: with them erased, the same proofs go through) and its `#print
+  axioms` shows `sorryAx`.
+- **Work-around here.** `Dsverify/Proof/raxos/StoreInst.lean`: high-priority instances of
+  `sync.Map` from the deployment's hypothesis vocabulary (`QpVocab.map.tp`, the points-to, and
+  `MapHyp.ivt`, its `IntoValTypedUnderlying`; `Hyp.lean`) and `ClientBatchStore`'s restated over
+  them; `Proxy/Store.lean` erases the generated (`sorry`) instances of `sync.Map`,
+  `HashTrieMap` and `ClientBatchStore` (`attribute [-instance]`). `store_add_proof`,
+  `esp_handlerOk`, `fetch_handlerOk`: Lean's three axioms. (The lab's `StoreInst.lean` did the
+  same over its own `sync.Map` model.) So `MapHyp.ivt` is a hypothesis about Perennial's model
+  (it stands in for the `sorry` instances), not about Go's `sync.Map`; it is a premise of the
+  results until Perennial gives the instances (audit, 2026-11-23; `Hyp.lean`'s `MapHyp` says so).
+- **Proposed (general).** Perennial gives `internal/sync.HashTrieMap` (or `sync.Map` directly) a
+  model: a translated or hand-written `HashTrieMap`, or `sync.Map` as an opaque handle with a
+  heap-cell points-to and specs of `Load`/`Store`/`Delete`/`Range` (the shapes of `MapHyp`).
+  **Status.** Not proposed yet.
+## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
+
+- **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body
+  is Rabin-Karp over `internal/bytealg`), and `log.toml` trusts `Printf` and `Println` but not `Print`. A call
+  of either is stuck. The net/rpc model's server calls both: `readRequestHeader` splits every request's
+  `"Service.Method"` with `strings.LastIndex(sm, ".")`, and `register` and `Accept` log with `log.Print` before
+  returning an error (`register`: no name, not exported, no methods; `Accept`: the listener's error).
+- **Workaround here.** `register`'s logging paths are excluded by its premises (`regNameOk`, `rcvrIs`'s
+  methods; ledger 2026-11-23); `Register`, `RegisterName` are proved and linked. The request loop
+  (`readRequestHeader`, hence `ServeCodec`, `ServeConn`) and `Accept` are not proved: no axiom is stated for the
+  two functions (the branch adds none).
+- **Proposed.** In Perennial: `LastIndex` trusted with a GooseLang model (a loop from the end comparing the
+  substring, `Index`-style; or `LastIndexByte` translated and `LastIndex` of a one-byte `substr` modelled on it)
+  and a spec (`strings.LastIndex.spec`: the largest `i` with `substr` at `i`, or `-1`); `Print` trusted as
+  `Println` is (`λ: "vs", #()`), with a spec like `log.Printf.spec`'s (`fmt.ArgsWf` arguments).
+- **Status.** Not needed by this repository any more (2026-11-23): the net/rpc model replaced both by code
+  Perennial models (commit `e84c1d63c9`: `strings.LastIndex(sm, ".")` as a backwards byte loop, the same
+  index; `log.Print` of one string as `log.Println`, the same output), and the request loop and `Accept` are
+  proved over them. The general change (models of `LastIndex` and `Print`) stays proposed for other users.
+  Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
+  (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
+  beside `Printf`'s. Not filed yet.

@@ -37,6 +37,7 @@ public import Net.Spec.net.Listen
 public import Net.Spec.net.Listener__Accept
 public import Net.Spec.net.Listener__Close
 public import Perennial.Proof.io
+public import Net.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -88,7 +89,7 @@ theorem wp_acceptLoop
   subst Ht
   wp_auto
   wp_for
-  wp_apply wp_Accept t l x addr (fun _ => iprop(True)) (fun cn => connProto γm cn) $$ []
+  wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l x addr (fun _ => iprop(True)) (fun cn => connProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hproto⟩ | ⟨%k, -, #Herr⟩)
   · iframe Hlt Hla
     iapply loop_accept_au γm _ l γo $$ Ha Hl
@@ -241,7 +242,7 @@ theorem wp_Run
     {{ RET #(); True }} := by
   wp_start as ⟨#Ha, #Hdown, %Hpl, #Heof, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addr $$ []
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp addr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
   · iframe %Hpl
     iapply wire.listen_au addrN addr _ $$ Ha
@@ -283,10 +284,12 @@ theorem wp_Run
       · iframe Hc Hdown Hreg He Hh Heof Hed
       (try wp_auto)
       wp_apply wp_LClose t l x addr (fun _ => half G γo false) $$ [Ho] as %e1 ⟨%res1, Ho, -⟩
-      · iframe Hlt Hla
+      · iframe Hlt
+        isplitr
+        · iapply netLisAt_on _ l addr $$ Hla
         iapply lis_close_au _ l γo $$ Hl Ho
       (try wp_auto)
-      wp_apply wp_Accept t l x addr (fun _ => iprop(True)) (fun _ => iprop(False)) $$ [Ho]
+      wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l x addr (fun _ => iprop(True)) (fun _ => iprop(False)) $$ [Ho]
         as %c2 %e2 (⟨%He2, %cn2, -, Hf⟩ | ⟨%k2, -, #He2⟩)
       · iframe Hlt Hla
         iapply closed_accept_au γm _ l γo $$ Ha Hl Ho
@@ -301,10 +304,12 @@ theorem wp_Run
       obtain ⟨pe, rfl⟩ := Hn.2 (by simp)
       wp_auto
       wp_apply wp_LClose t l x addr (fun _ => half G γo false) $$ [Ho] as %e1 ⟨%res1, Ho, -⟩
-      · iframe Hlt Hla
+      · iframe Hlt
+        isplitr
+        · iapply netLisAt_on _ l addr $$ Hla
         iapply lis_close_au _ l γo $$ Hl Ho
       (try wp_auto)
-      wp_apply wp_Accept t l x addr (fun _ => iprop(True)) (fun _ => iprop(False)) $$ [Ho]
+      wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l x addr (fun _ => iprop(True)) (fun _ => iprop(False)) $$ [Ho]
         as %c2 %e2 (⟨%He2, %cn2, -, Hf⟩ | ⟨%k2, -, #He2⟩)
       · iframe Hlt Hla
         iapply closed_accept_au γm _ l γo $$ Ha Hl Ho
