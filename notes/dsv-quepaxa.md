@@ -443,6 +443,78 @@ named after the lab's specs, until each comes as one shared change. **All are in
     re-based: the lock invariant of `s.mu` holds `waiting` and `next` with the client's quarter of
     `γ.cnt` and the unused tickets; `ClientBatch.Marshal/Unmarshal` from `PbHyp` over dsv-bufio);
     (v) the start; (vi) `TopLevelRobustness.lean`.
+- **The kit, session of 2026-11-23 (kit fork 3: steps 1, 2, 3 of the kit plan)**. Done, each
+  `lean-check -a` clean, `lake build Dsverify.Proof.raxos.examples.quepaxanet.Linked` OK (2772
+  jobs), `#print axioms` of `wp_Codec`, `wp_Gens`, `wp_Orch`, `wp_Server`: Lean's three; tiers: 19
+  raxos non-scratch violations (none added); no sorry, no axiom, no new hypothesis:
+  * **Design finding, fixed: the kit's outputs must be bounded.** `remote.Check` asks
+    `∀ o o', R.encOut (R.ov o) = R.encOut (R.ov o') → o = o'`, and `RBase.encOut_len` bounds every
+    encoding by `2^63`: no codec of the unbounded `KOut` is both (the previous `encOutV` sent every
+    output too long to encode to `[]`). Now remote's `O` is **`QOut := {o : KOut // qOutOk o}`**
+    (`qOutOk o := |o.v| + 2 < 2^63`, `Pure/QIn.lean`) and **`qB := outB (subB kvB qInOk) qOutOk
+    qOut0`**: `outB` clamps a store's answers into an output subtype (`clampO`); on states of an
+    invariant `g` whose outputs are in `q` (`OutInv`; `qB_outInv` with `shortSt`: every stored
+    value below `2^48`, kept by the kit's inputs) it is the store itself (`ppost_out`,
+    `pSeq_out_step`, `AllG_step`). `Model.lean`: `qDecQ` decodes to `Ans QOut` (`kansQ`,
+    `ansVal_kansQ`), `ioOk` asks the output `qOutOk`, `qRep` keeps `AllG shortSt (pre (mSet (lk
+    E)))` (`allG_pInit`); `ModelProof` re-proved (three small edits). `Kit.lean`: `qR γ : RBase GF
+    Store QIn QOut`, `qov (o : QOut)`, **`lin_opAU : lin (qR γ) i Φ ⊣⊢ opAU γ i.1 (fun o => Φ
+    (clampO qOut0 o))`** (still `.rfl`). For `Client.spec` (step 4): the client returns
+    `outV ⟨false, f, v⟩` from the answer's result string, so it must show `clampO qOut0 o` is `o`,
+    i.e. `qOutOk o`: `|v| ≤ |r|` and the answer batch is `batchFit` (`encBatch` below `2^63`).
+  * `KitGen.lean` (defs): `wp_digit`, `wp_digits` (`opid.bstr (toString n)` = `decStr`),
+    `wp_mix`, `wp_Gen` (`qInOk (kin x)`), **`gens_proof : Gens.spec`** (the lock invariant
+    `gensInv sl`: `next ↦* l`, `|l| = 6`; `next` persisted after its store: `wp_alloc_auto`,
+    `wp_store`, `ipersist`). Index arithmetic in `gens_idx` (an `omega` inside the Iris proof made
+    the kernel reject it: keep such facts in separate lemmas, also `KitServer`'s `cv_*`, `srv_idx`).
+  * `KitConf.lean` (defs): `decStr_76`, `cfgAddrsL`/`addrsL`/`recAddrsL` (`portAddr (76xx)`, their
+    literals), `split_portAddr` (Perennial's `strings.split` of `127.0.0.1:76xx` at `":"`),
+    `goConf`, `wp_CfgAddrs`, `wp_ClientAddrs`, `wp_attempt`, `wp_choose` (over `RandHyp.Intn`),
+    `wp_encode`, `wp_String`, `wp_decode`, `wp_log_Println` (Perennial's trusted model of
+    `log.Println` is `λ vs, #()`: proved, no hypothesis).
+  * `KitAwait.lean` (defs): `confProto_of_shared` (node `n`'s configuration address's
+    `addrProto … (confInProto γ) ackProto` from `sharedRes`), `confP γ` (the configuration channel's
+    contract), **`wp_awaitConf_of`** (library specs as parameters: `Listen.spec_addrOk` with
+    `listen_au`, `Accept.spec_addrOk` with `accept_au`, `ioLt.ReadFull` over `conn_readerOk`, the
+    configuration from `recvTokL_proto`, `wp_decode`, `wp_bag_send` once, the ack under `ackProto`
+    with `writeP`/`write_acc`, `close_au`).
+  * `KitOrch.lean` (proof): `wp_closeConn`, `wp_sendConf_of` (`net.Dial` with `dial_au`, `Write`
+    of `encConf c` under `confInProto` (`confIs γ c`), `ioLt.ReadFull` of the ack, `Close`),
+    `wp_send_of`, `wp_New_of` (`confTok γ ==∗ confIs γ c`, `conf_choose`), `pendN_raxos`,
+    `lintestN_raxos`, `qR_encOut_inj`, **`qS_pendDec : PendDec (qR γ) qS`** (stated in the
+    `HeapGS` section: fine here), `pendCtx_qS`/`pendLib_qS` (`rfl`), **`Orch.wp_proof`** (premises
+    `Model.spec`, remote's `Check.spec`, `net.Conn.Read/Write/Close`, `ioLt.ReadFull`, `net.Dial`
+    specs; `[RandHyp]`, `[log.Assumptions]`).
+  * `KitServer.lean` (proof): `peer_fields`, `client_fields`, `wp_Addrs`, `wp_RecAddrs`,
+    **`wp_config`** (`cfg ↦□ cv ∗ cfgVal n cv`, over `strings.Split.spec`: Perennial's, no
+    hypothesis), `wp_registerProto`, `wp_make_bag1`, `replicaRes_of` (`serverRes γ k ∗ confIs γ c ⊢
+    replicaRes γ c k`), **`Server.wp_proof`** (awaitConf forked at `confAddr k`, the first
+    configuration from the bag, `k ≤ c.n` → `raxos.New`/`NetworkInit`/`StartProposers`/`Run`; both
+    branches end in the sleep loop).
+  * `Linked.lean` (linking): `wp_Codec`, `wp_Gens`, `wp_Orch [RandHyp]`, `wp_Server [MapHyp]
+    [GrpcHyp] [RandHyp] [UtcHyp] [PrintlnHyp] [PbHyp] [SortHyp]` (callees: `Model.wp_proof`,
+    `EtcdGrove.remote.wp_Check`, `net.*.wp_proof`, `ioLt.ReadFull.wp_proof ReadAtLeast.wp_proof`,
+    `strings.wp_Split`, `Replica/Results`).
+  * **Next, precisely**: (5) **the start**. Two pieces. (a) **A bridge with wildcards is
+    missing**: `Net/Statement/DistBridge.lean`'s `robust_of_distProtoRB` gives `regCtx` and the
+    listed addresses' `addrUnset` only (`addrs_start`); QuePaxa's proxies and recorders listen on
+    `0.0.0.0:76xx`, whose protocols need `lisUnset la` from `addrs_lis_start` (`las` = the five
+    `proxyLis k` and five `recLis r`; pairwise disjoint: distinct ports; `hdisj`: the listed
+    addresses must leave out `127.0.0.1:7607..7611` and `7627..7631`). Not in `Net/` (which this
+    branch must not change): either Net/ gains `robust_of_distProtoLisRB` (the proof of
+    `robust_of_distBootRB` with `addrs_lis_start` in place of `addrs_start`, `netProto_alloc`
+    then), or the kit's `TopLevelRobustness` proves that copy itself from Net's public lemmas
+    (`net_globalStart`, `goose_dist_adequacy`, `nodeWp_of_distBootG`). (b) **The ghost start**
+    (the lab's `Kit/{StartGhost,Start,Shares}.lean`, ~600 lines, to re-base): allocate every
+    `QNames` name (now also `γ.net` with `netTok γ k` for `k ∈ 1..5`, `γ.tick` with the clients'
+    tickets `ticketsOf c`, `γ.grpc` from `GrpcHyp.world_alloc`), `consInv`/`smrInv` at their
+    initial states (this branch's `Ghost.lean` definitions), `pend_alloc (qR γ) ⊤ qS0` from
+    `ownState γ init` (`sysState := ownState γ`), `mapCtx_alloc (I := QIn)`, the protocols:
+    `addrs_set_proto` for the listed ones (`orchAddr`, `unusedAddrs`, `clientAddr c`, `cconfAddr c`,
+    `confAddr k`, remote's `reqP`/`repP` on `clientAddrs`) and `lis_set_proto` for each wildcard
+    (`proxyInProto γ k`/`silentProto`; `recLisP`'s gRPC `reqProto`/`respProto` of `recAddr r`),
+    giving `orchRes`, `clientRes γ c`, `serverRes γ k` (`Kit.lean`). Then (4) `Client.spec` and
+    (6) `TopLevelRobustness.lean` as paxos's.
 - **Hypothesis audit (2026-11-23, after the kit's codec session)**: the reviewer's rule (a
   hypothesis no stronger than the real Go library: real preconditions, no spec where Go panics or
   races; nothing Perennial gives a body for) applied to `Hyp.lean`; the changes are in
