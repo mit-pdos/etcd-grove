@@ -806,4 +806,154 @@ theorem State.OnDisk.wp_proof
     odjskip Ho
   odjafter
   subst hK
+  -- g4: `if x.snaps() { if !(!x.leads() && x.hasM() && … && w.commit() == x.m().index()) { return } }`
+  unfold g4 at Ho
+  dsimp only at Ho
+  generalize hK : g5 X (g6 X (succ X)) = K at Ho
+  odjoin K
+  · odm snaps
+    wp_apply wp_snaps _ X $$ [Hx]
+    · iexact Hx
+    cases hsn : X.snaps
+    · simp only [hsn, Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [hsn, ite_true] at Ho
+    obtain ⟨ok, hok, Ho⟩ := bind_ok Ho
+    -- `!x.leads()`
+    obtain ⟨a1, ha1, h1t, h1f⟩ := andM_ok hok
+    unfold notM at ha1
+    obtain ⟨ld1, hld1, ha1⟩ := bind_ok ha1
+    simp only [pure_ok, Except.ok.injEq] at ha1
+    subst ha1
+    try wp_auto
+    odm leads
+    wp_apply wp_leads _ X ld1 $$ [Hx]
+    · iframe Hx; ipureintro; exact hld1
+    cases ld1
+    case true =>
+      try wp_auto
+      odjno (h1f rfl)
+    have h1 := h1t rfl
+    -- `x.hasM()`
+    obtain ⟨a2, ha2, h2t, h2f⟩ := andM_ok h1
+    simp only [pure_ok, Except.ok.injEq] at ha2
+    try wp_auto
+    odm hasM
+    wp_apply wp_hasM _ X $$ [Hx]
+    · iexact Hx
+    rw [ha2]
+    cases a2
+    · odjno (h2f rfl)
+    have h2 := h2t rfl
+    -- `x.m().typ() == "snap"`
+    obtain ⟨a3, ha3, h3t, h3f⟩ := andM_ok h2
+    obtain ⟨m, hm, ha3⟩ := bind_ok ha3
+    obtain ⟨ty, hty, ha3⟩ := bind_ok ha3
+    simp only [pure_ok, Except.ok.injEq] at ha3
+    subst ha3
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_typ gm m ty $$ [Hm]
+    · iframe Hm; ipureintro; exact hty
+    by_cases hts : ty = go!"snap"
+    case neg =>
+      rw [decide_eq_false hts]
+      odjno (h3f (by simpa using hts))
+    rw [decide_eq_true hts]
+    have h3 := h3t (by simp [hts])
+    -- `x.stores()`
+    obtain ⟨st, hst, h4t, h4f⟩ := andM_ok h3
+    try wp_auto
+    odm stores
+    wp_apply wp_stores _ X st $$ [Hx]
+    · iframe Hx; ipureintro; exact hst
+    cases st
+    · try wp_auto
+      odjno (h4f rfl)
+    have h4 := h4t rfl
+    -- `w.snap().Index == x.m().index()`
+    obtain ⟨a5, ha5, h5t, h5f⟩ := andM_ok h4
+    obtain ⟨sn, hsn', ha5⟩ := bind_ok ha5
+    obtain ⟨m', hm', ha5⟩ := bind_ok ha5
+    rw [hm] at hm'; cases hm'
+    obtain ⟨mi, hmi, ha5⟩ := bind_ok ha5
+    simp only [pure_ok, Except.ok.injEq] at ha5
+    subst ha5
+    try wp_auto
+    wp_apply wp_Event_snap pw X.w sn $$ [Hw] as %gsn %Hgsn
+    · iframe Hw; ipureintro; exact hsn'
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm2 #Hm2
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_index gm2 m mi $$ [Hm2] as %ui %Hui
+    · iframe Hm2; ipureintro; exact hmi
+    try wp_auto
+    rw [decide_w64_eq, Hgsn.1, Hui]
+    by_cases hsi : sn.index = mi
+    case neg =>
+      rw [decide_eq_false hsi]
+      odjno (h5f (by simpa using hsi))
+    rw [decide_eq_true hsi]
+    have h5 := h5t (by simp [hsi])
+    -- `w.snap().Term == x.m().logTerm()`
+    obtain ⟨a6, ha6, h6t, h6f⟩ := andM_ok h5
+    obtain ⟨sn', hsn'', ha6⟩ := bind_ok ha6
+    rw [hsn'] at hsn''; cases hsn''
+    obtain ⟨m', hm', ha6⟩ := bind_ok ha6
+    rw [hm] at hm'; cases hm'
+    obtain ⟨mlt, hmlt, ha6⟩ := bind_ok ha6
+    simp only [pure_ok, Except.ok.injEq] at ha6
+    subst ha6
+    try wp_auto
+    wp_apply wp_Event_snap pw X.w sn $$ [Hw] as %gsn2 %Hgsn2
+    · iframe Hw; ipureintro; exact hsn'
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm3 #Hm3
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_logTerm gm3 m mlt $$ [Hm3] as %ult %Hult
+    · iframe Hm3; ipureintro; exact hmlt
+    try wp_auto
+    rw [decide_w64_eq, Hgsn2.2, Hult]
+    by_cases hst' : sn.term = mlt
+    case neg =>
+      rw [decide_eq_false hst']
+      odjno (h6f (by simpa using hst'))
+    rw [decide_eq_true hst']
+    have h6 := h6t (by simp [hst'])
+    -- `w.commit() == x.m().index()`
+    obtain ⟨cm, hcm, h6⟩ := bind_ok h6
+    obtain ⟨m', hm', h6⟩ := bind_ok h6
+    rw [hm] at hm'; cases hm'
+    obtain ⟨mi', hmi', h6⟩ := bind_ok h6
+    rw [hmi] at hmi'; cases hmi'
+    simp only [pure_ok, Except.ok.injEq] at h6
+    subst h6
+    try wp_auto
+    wp_apply wp_Event_commit pw X.w cm $$ [Hw] as %uc %Huc
+    · iframe Hw; ipureintro; exact hcm
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm4 #Hm4
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_index gm4 m mi $$ [Hm4] as %ui2 %Hui2
+    · iframe Hm4; ipureintro; exact hmi
+    try wp_auto
+    rw [decide_w64_eq, Huc, Hui2]
+    by_cases hci : cm = mi
+    case neg =>
+      rw [decide_eq_false hci]
+      odjno (show (cm == mi) = false by simpa using hci)
+    rw [decide_eq_true hci]
+    simp only [hci, beq_self_eq_true, Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    odjskip Ho
+  odjafter
+  subst hK
   done
