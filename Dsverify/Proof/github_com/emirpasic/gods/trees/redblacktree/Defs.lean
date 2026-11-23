@@ -193,6 +193,52 @@ theorem replaceRes_right {rt : Loc} {h : Loc → Node} {old new : Loc} (hp : (h 
   simp only [replaceRes]
   rw [if_neg hp, if_neg hL]
 
+theorem upd_apply (h : Loc → Node) (l : Loc) (x : Node) (l' : Loc) :
+    upd h l x l' = if l' = l then x else h l' := rfl
+
+/-- What `replaceNode(old, new)` leaves at the nodes (`new` a node, not `old`'s parent). -/
+theorem replaceRes_facts {rt : Loc} {h : Loc → Node} {old new : Loc}
+    (hon : old ≠ new) (hpo : (h old).Parent' ≠ old) (hnp : new ≠ (h old).Parent')
+    (hnn : new ≠ null) :
+    (replaceRes rt h old new).2 old = h old ∧
+    (replaceRes rt h old new).2 new = { h new with Parent' := (h old).Parent' } ∧
+    (∀ l, (l ≠ (h old).Parent' ∨ (h old).Parent' = null) → l ≠ new →
+      (replaceRes rt h old new).2 l = h l) ∧
+    ((h old).Parent' ≠ null → (replaceRes rt h old new).2 (h old).Parent' =
+      if (h (h old).Parent').Left' = old then { h (h old).Parent' with Left' := new }
+      else { h (h old).Parent' with Right' := new }) ∧
+    (replaceRes rt h old new).1 = (if (h old).Parent' = null then new else rt) := by
+  have hon' := Ne.symm hon
+  have hpo' := Ne.symm hpo
+  have hnp' := Ne.symm hnp
+  by_cases hp : (h old).Parent' = null
+  · rw [replaceRes_root hp, if_neg hnn]
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+    · simp [upd_apply, hon]
+    · simp [upd_apply]
+    · intro l _ hl; simp [upd_apply, hl]
+    · intro h0; exact absurd hp h0
+    · simp [hp]
+  · by_cases hL : (h (h old).Parent').Left' = old
+    · rw [replaceRes_left hp hL, if_neg hnn]
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · simp [upd_apply, hon, hpo']
+      · simp [upd_apply, hnp]
+      · intro l hl1 hl2
+        have hl1' : l ≠ (h old).Parent' := hl1.resolve_right hp
+        simp [upd_apply, hl1', hl2]
+      · intro _; simp [upd_apply, hnp', hL]
+      · simp [hp]
+    · rw [replaceRes_right hp hL, if_neg hnn]
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · simp [upd_apply, hon, hpo']
+      · simp [upd_apply, hnp]
+      · intro l hl1 hl2
+        have hl1' : l ≠ (h old).Parent' := hl1.resolve_right hp
+        simp [upd_apply, hl1', hl2]
+      · intro _; simp [upd_apply, hnp', hL]
+      · simp [hp]
+
 /-- The leftmost node of `T` (`tree.Left()`): `nil` for an empty tree. -/
 def leftmost (T : RB GoInterface) (m : Loc) : Prop :=
   (T = .leaf ∧ m = null) ∨
@@ -463,6 +509,32 @@ theorem Rep_rotR {C : Ctx GoInterface} {n : Loc} {k : w64} {v : GoInterface} {l 
       rw [hb, hhb]
   · exact Rep_congr h' E n (fun x hx => hun x (Or.inr (Or.inl hx))) hE
 
+/-- The innermost frame's node points to the hole by its left child exactly for an `L`
+frame, and `holeSet` is the store `replaceNode` makes. -/
+theorem holeSet_eq {f : Frame GoInterface} {hole q : Loc} (hf : RepF enc h f hole q)
+    (hn : hole ≠ null) (hnf : hole ∉ f.locs) (r : Loc) :
+    ((h f.loc).Left' = hole ∨ (h f.loc).Right' = hole) ∧
+    holeSet f (h f.loc) r =
+      if (h f.loc).Left' = hole then { h f.loc with Left' := r }
+      else { h f.loc with Right' := r } := by
+  cases f with
+  | L fn fk fv fr =>
+    obtain ⟨-, hhf, -⟩ := hf
+    have hl : (h fn).Left' = hole := by rw [hhf]
+    simp only [Frame.loc, holeSet, hl, if_true]
+    exact ⟨Or.inl trivial, trivial⟩
+  | R fn fk fv fl =>
+    obtain ⟨-, hhf, -⟩ := hf
+    have hne : fl.loc ≠ hole := by
+      intro e
+      rcases loc_null_or_mem fl with h0 | h0
+      · exact hn (e ▸ h0)
+      · exact hnf (by simp [Frame.locs, ← e, h0])
+    have hl : (h fn).Left' ≠ hole := by rw [hhf]; exact hne
+    have hr : (h fn).Right' = hole := by rw [hhf]
+    simp only [Frame.loc, holeSet, hl, hr, if_false]
+    exact ⟨Or.inr trivial, trivial⟩
+
 end heapfn
 
 /-! ## The points-tos -/
@@ -570,6 +642,12 @@ theorem ownNodes_acc (h : Loc → Node) (D : List Loc) (l : Loc) (hl : l ∈ D) 
       iintro %x Hx
       rw [upd_ne h l y x (Ne.symm hy)]
       iframe Hy; iapply Hback; iexact Hx
+
+/-- Take a node whose value is known out to write it. -/
+theorem ownNodes_acc' (h : Loc → Node) (D : List Loc) (l : Loc) (x : Node) (hl : l ∈ D)
+    (hnd : D.Nodup) (hx : h l = x) :
+    ownNodes (GF := GF) h D ⊢ l ↦ x ∗ ∀ y, l ↦ y -∗ ownNodes (upd h l y) D := by
+  rw [← hx]; exact ownNodes_acc h D l hl hnd
 
 /-- Two full points-tos of one interface-typed location exclude each other (as
 `bufio.iface_pointsto_excl`, the main tree's). -/

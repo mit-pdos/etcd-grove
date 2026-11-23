@@ -202,6 +202,32 @@ theorem locs_rotR_facts {α : Type u} {n : Loc} {k : w64} {v : α} {l : Loc} {k'
     not_or] at h
   grind
 
+theorem Ctx.plug_loc_cons {α : Type u} (f : Frame α) (C : Ctx α) (t t' : RB α) :
+    (Ctx.plug (f :: C) t).loc = (Ctx.plug (f :: C) t').loc := by
+  induction C generalizing f t t' with
+  | nil => simp [Ctx.plug]
+  | cons g C ih => simp only [Ctx.plug_cons] at ih ⊢; exact ih g _ _
+
+theorem Ctx.plug_locs_congr {α : Type u} (C : Ctx α) {t t' : RB α} (h : t.locs.Perm t'.locs) :
+    (Ctx.plug C t).locs.Perm (Ctx.plug C t').locs :=
+  (Ctx.plug_locs_perm C t).trans ((h.append_right _).trans (Ctx.plug_locs_perm C t').symm)
+
+theorem rotL_locs_perm {α : Type u} (n : Loc) (k : w64) (v : α) (A : RB α) (r : Loc) (k' : w64)
+    (v' : α) (B E : RB α) :
+    (RB.node n k v A (.node r k' v' B E)).locs.Perm (RB.node r k' v' (.node n k v A B) E).locs := by
+  rw [List.perm_iff_count]
+  intro a
+  simp only [RB.locs_node, List.count_cons, List.count_append]
+  omega
+
+theorem rotR_locs_perm {α : Type u} (n : Loc) (k : w64) (v : α) (l : Loc) (k' : w64) (v' : α)
+    (A B E : RB α) :
+    (RB.node n k v (.node l k' v' A B) E).locs.Perm (RB.node l k' v' A (.node n k v B E)).locs := by
+  rw [List.perm_iff_count]
+  intro a
+  simp only [RB.locs_node, List.count_cons, List.count_append]
+  omega
+
 /-! ## Search: the keys around a subtree -/
 
 section search
