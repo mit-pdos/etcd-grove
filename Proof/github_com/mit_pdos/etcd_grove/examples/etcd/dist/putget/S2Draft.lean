@@ -79,6 +79,9 @@ structure S2Draft (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInt
   etcdEnvOf : EnvView → apply.AEnv GF
   /-- §1.3 (named in `etcdSvc`): the read names of a view. -/
   viewRd : EnvView → ReadNames
+  /-- The cluster id of a view (upamanyus, #24 05:09Z: `cid` moves into the view, since the table is fixed
+  at the start and the cluster id is bootstrap's). -/
+  viewCid : EnvView → w64
   /-- §1.3: not published yet (exclusive). -/
   envPubTok : GName → IProp GF
   /-- §1.3: published: the member's view is `ν` (persistent, one-shot). -/
@@ -94,20 +97,20 @@ structure S2Draft (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInt
   /-- (This skeleton's reading of §1.3's start, steps 1-2.) The token split, the invariant allocated. -/
   envPubInv_alloc : ∀ (γE : GName) (Pub : EnvView → IProp GF),
     envPubTok γE ={⊤}=∗ envPubInv γE Pub ∗ envPubHalf γE
-  /-- §1.3: etcd's service, as a table. -/
-  etcdSvc : GName → w64 → w64 → GrpcSvc GF
+  /-- §1.3: etcd's service, as a table, at the member id `mid` (the cluster id is the view's). -/
+  etcdSvc : GName → w64 → GrpcSvc GF
   /-- §1.3: the client's registrations before it knows the view. -/
-  kvRegsPub : GoString → GName → w64 → w64 → IProp GF
-  kvRegsPub_persistent : ∀ a γE cid mid, Persistent (kvRegsPub a γE cid mid)
+  kvRegsPub : GoString → GName → w64 → IProp GF
+  kvRegsPub_persistent : ∀ a γE mid, Persistent (kvRegsPub a γE mid)
   /-- (This skeleton's reading of §1.3's start, step 4.) -/
-  kvRegsPub_of_addr : ∀ (a : GoString) (γE : GName) (cid mid : w64),
-    grpcAddrAt a (etcdSvc γE cid mid) ⊢ kvRegsPub a γE cid mid
+  kvRegsPub_of_addr : ∀ (a : GoString) (γE : GName) (mid : w64),
+    grpcAddrAt a (etcdSvc γE mid) ⊢ kvRegsPub a γE mid
   /-- §1.3 `kvRegsPub_at`: with the view, clientv3's registrations, at the client's own heap. -/
   kvRegsPub_at : ∀ (hG : HeapGS .hasLC GF), hG.goose_globalGS = G →
     letI : HeapGS .hasLC GF := hG
-    ∀ [sem : go.Semantics] [client_sem : go_etcd_io.etcd.client.v3.Assumptions] (a : GoString) (γE : GName) (ν : EnvView) (cid mid : w64),
-    kvRegsPub a γE cid mid ∗ envAt γE ν ⊢
-      client.kvRegsAt (⟨a, etcdEnvOf ν, viewRd ν, cid, mid⟩ : client.SrvAt GF)
+    ∀ [sem : go.Semantics] [client_sem : go_etcd_io.etcd.client.v3.Assumptions] (a : GoString) (γE : GName) (ν : EnvView) (mid : w64),
+    kvRegsPub a γE mid ∗ envAt γE ν ⊢
+      client.kvRegsAt (⟨a, etcdEnvOf ν, viewRd ν, viewCid ν, mid⟩ : client.SrvAt GF)
 
 attribute [instance] S2Draft.depSlotsCtx_persistent S2Draft.grpcAddrAt_persistent
   S2Draft.envAt_persistent S2Draft.envPubInv_persistent S2Draft.kvRegsPub_persistent

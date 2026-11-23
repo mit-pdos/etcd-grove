@@ -349,3 +349,35 @@ member id, not the cluster id).
   table's entry can be stated at any heap; if not, that conjunct moves to the server's run contract.
 - **O3** (`tree` into `ProtoMsg`): nothing on putget's side (its messages are `pbPutRequest`/`Response`,
   `pbRangeRequest`/`Response`).
+
+### 8b. After upamanyus's reply (#24, 05:09Z): `cid`, O1, O2
+
+- **`cid` is in the view.** `S2Draft.viewCid : EnvView → w64`; `etcdSvc γE mid` and `kvRegsPub a γE mid` no
+  longer take it, and `kvRegsPub_at` gives `client.kvRegsAt ⟨a, etcdEnvOf ν, viewRd ν, viewCid ν, mid⟩`.
+  `BootsS2` lost its `∃ cid`.
+- **O1: `Nx` and `Cp` are determined by names.** The started member's environment (`NewServerR.lean:1514`,
+  the record every server proof builds) has
+  - `Nx := srvApi.kvNx ρ.rd false`, where `kvNx γr on log := ∃ A, srvRLogLb γr.raft A ∗ ⌜kvModelM on γr.kv A =
+    log ∧ mvcc.LogPutsLe etcdKeyMax log⌝` (`KVStoreApi.lean:62`), and `srvRLogLb γ L := isCommittedLogLb
+    γ.raft.cl (srvLE γ L) ∗ ⌜srvIdxOkW γ.ai0 L⌝` (`SrvRaftLog.lean:395`): ghost lower bounds at the read names
+    `ρ.rd` (`raft`, `kv`) and the auth flag;
+  - `Cp := kvCpOk ρ.rd.kv`, where `kvCpOk γk c := (⌜c = -1⌝ ∨ kvCmpPermit γk c) ∗ ⌜γk.cmp = false → c = -1⌝`
+    (`InvRequest.lean:1267`) and `kvCmpPermit γk c := ⌜0 < c⌝ ∗ kvRevLbZ γk (c + γk.cret)` (`:1261`): ghost, at
+    the KV names `ρ.rd.kv`.
+
+  So both are Lean functions of `ρ.rd` (and a boolean): `etcdEnvOf ν` can set `Nx := srvApi.kvNx (viewRd ν)
+  false`, `Cp := kvCpOk (viewRd ν).kv`; no saved predicate is needed for them. (The pre-start record
+  `etcdstart.env₀`, `Defs.lean:212`, has `Nx` a parameter and `Cp := True`; the client-facing specs see the
+  started one.)
+- **O2: where `HeapGS` comes from.** `#check` shows `[hG : HeapGS]` on `etcdPutSpec`, `etcdRangeSpecE` and every
+  conjunct they use (`putReplied`, `srvLogCert`, `rangeReplyOk`, `rangeErrReply`, `srvApi.kvLogLb`, `kvOpAu1`,
+  `kvReadAu`, `kvRevLb`, `revMinted`, `revTok`, `appliedWit`, `committedAtLeast`). `#print` with explicit
+  arguments shows the bodies reach it only as `hG.goose_globalGS.gooseAllG` (the universal camera, in the
+  global ghost state: `srvApi.kvLogLb` is `monoListLbOwn (GooseGlobalGS.gooseAllG hG.goose_globalGS) …`), plus,
+  for the specs, through `[go.Semantics]` (an instance over the heap's Go local context). Checked by `rfl`:
+  at any two `HeapGS` with the same global part and the same Go local context, `etcdPutSpec … o Φ` and
+  `etcdRangeSpecE … md o Φ Ψe` are definitionally equal (scratch file, 2026-11-23). So beside the message
+  models in the types (`pbPutRequest` etc., his O3), the specs depend on a machine only through its Go local
+  context, which `Robust`'s `Fresh` makes the same `lctx` on every machine: they can be stated at `⟨G, L⟩` for
+  any `L` with `goose_go_local_context = lctx` (as `putgetHeapAt`), or re-sectioned over `[GooseGlobalGS]` and
+  `[GoLocalContext]`.
