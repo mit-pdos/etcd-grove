@@ -10,7 +10,7 @@ have): an error with a known message is an error with some message.
 -/
 module
 
-public import Net.Proof.net.rpc.ClientDefs
+public import Net.Proof.net.rpc.Results
 public import Net.Proof.models_lab.Errors
 public import Dsverify.Proof.net.rpc.Base
 
