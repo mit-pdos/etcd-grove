@@ -127,12 +127,12 @@ on, a type argument, `unsafe.Sizeof`.
 `traceProph` with its ghost initializer, 24 event helpers and 5 field helpers (methods of
 `*Replica`, resolving `traceProph`; the lab's 24 `ev*` constants inlined as literals with the
 name in a comment) at the end of `src/gryff/epaxosrmwhandler.go` (it has every import they need;
-`proph.go` was a new file), and the 27 calls (26 in `epaxosrmwhandler.go`'s run loop, 1 in
+`proph.go` was a new file), and the 24 calls, one per event kind (23 in `epaxosrmwhandler.go`'s run loop, 1 in
 `epaxos-exec.go`). What changed from the fork's ghost code to fit: no `Replica.proph` field (it
 was a copy of `traceProph`, not initialized by `NewProph`: the resolutions read `traceProph`
 directly; the proofs' `r.proph ↦□ p` became `globalAddr traceProph ↦□ p`), no constants, no new
 file. The fork is the lab's minus the ghost code (`proph.go` deleted, 4 lines of `tupaq.go` and
-the 27 call lines removed).
+the 24 call lines removed).
 
 **swiftpaxos** (landed): its ghost code does not fit the widened rule, and stays in the fork
 (`examples/dsverify/swiftpaxos/client/ghost.go`, `swift/ghost.go` and their 15 call lines):
