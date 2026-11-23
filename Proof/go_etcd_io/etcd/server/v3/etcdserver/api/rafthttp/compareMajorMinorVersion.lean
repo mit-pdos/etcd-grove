@@ -41,22 +41,25 @@ theorem rafthttp.compareMajorMinorVersion.wp_proof
   · iframe #
   wp_apply hMinor a DFrac.discard x $$ [] as -
   · iframe #
-  wp_apply hNew as %na ⟨%Hna, %oa, #Hna'⟩
+  wp_apply hNew as %na ⟨%Hna, %oa, -⟩
   (try wp_auto)
   wp_apply hMajor b DFrac.discard y $$ [] as -
   · iframe #
   wp_apply hMinor b DFrac.discard y $$ [] as -
   · iframe #
-  wp_apply hNew as %nb ⟨%Hnb, %ob, #Hnb'⟩
+  wp_apply hNew as %nb ⟨%Hnb, %ob, -⟩
   (try wp_auto)
-  wp_apply hLT na nb DFrac.discard DFrac.discard _ _ $$ [] as -
-  · iframe #
-  wp_if_destruct
-  all_goals try (iapply HΦ; itrivial; done)
-  wp_apply hLT nb na DFrac.discard DFrac.discard _ _ $$ [] as -
-  · iframe #
-  wp_if_destruct
-  all_goals (iapply HΦ; itrivial)
+  wp_apply hLT na nb $$ [] as %b1 -
+  · iframe #; ipureintro; exact ⟨Hna, Hnb⟩
+  (try wp_auto)
+  cases b1
+  · (try wp_auto)
+    wp_apply hLT nb na $$ [] as %b2 -
+    · iframe #; ipureintro; exact ⟨Hnb, Hna⟩
+    (try wp_auto)
+    cases b2 <;> (try wp_auto) <;> (iapply HΦ; itrivial)
+  · (try wp_auto)
+    iapply HΦ; itrivial
 
 end proof
 

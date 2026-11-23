@@ -59,7 +59,7 @@ theorem getNewItemFunc.wp_proof
   iunfold newItemOk
   iintro !> %Ψ HΨ
   wp_auto
-  wp_apply (wp_New et S.objTy) as %w %q ⟨%hwq, Hn⟩
+  wp_apply +noauto (wp_New et S.objTy) as %w %q ⟨%hwq, Hn⟩
   · ipureintro; exact het
   wp_apply (wp_Interface w S.objTy q)
   · ipureintro; exact hwq.1

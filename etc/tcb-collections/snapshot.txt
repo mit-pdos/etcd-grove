@@ -21,11 +21,8 @@ roots ^EtcdServer\.wp_createMergedSnapshotMessage$
 roots ^wp_newSnapshotReaderCloser$
 roots ^EtcdServer\.wp_sendMergedSnap$
 axiom DescribeConfChange.wp_proof
-axiom apply.irrDecode_utf8
 axiom binary.WriteUint8.wp_proof
-axiom ccDecodeV2_nil
 axiom context.WithValue.wp_proof
-axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom etcdserverpb.AlarmType.String.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -45,7 +42,6 @@ axiom httputil.GracefulClose.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
-axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
@@ -77,6 +73,7 @@ axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
+axiom semver.Version.LessThan.wp_proof
 axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
@@ -90,6 +87,5 @@ axiom types.NewURLs.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

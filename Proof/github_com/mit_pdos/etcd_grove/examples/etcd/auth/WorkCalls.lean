@@ -743,10 +743,10 @@ theorem akWriteAu (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ : Req
     (hop : akOpGranted who op → opHistOk op) :
     akHistInv (GF := GF) ρ.kv ∗ akAuthFixed γa ρ Lset n ∗ attemptTokOk conn (akTokP γa who) ∗
       □ (srvTLSId s -∗ False) ⊢
-      □ clientOpAuOn s E ρ conn (akOut who) op (fun _ => iprop(⌜akOpGranted who op⌝)) := by
+      □ clientOpAuOn (srvTLSId s) E ρ conn (akOut who) op (fun _ => iprop(⌜akOpGranted who op⌝)) := by
   iintro ⟨#Hinv, #Hf, #Hat, #Htls⟩
   ihave #HL := akAuthFixed_lb γa ρ Lset n $$ Hf
-  ihave #Hw := akHist_writeAu ρ.kv op (clientGrant s E ρ conn (akOut who) op Lset)
+  ihave #Hw := akHist_writeAu ρ.kv op (clientGrant (srvTLSId s) E ρ conn (akOut who) op Lset)
     (fun _ => iprop(⌜akOpGranted who op⌝)) $$ [Hinv]
   · iframe Hinv
     iintro !> %σ Hg

@@ -63,18 +63,40 @@ def srvTLSId (s : Loc) : IProp GF := iprop(srvCfgFieldAddr s go!"ClientCertAuthE
 instance srvTLSId_persistent (s : Loc) : Persistent (srvTLSId (GF := GF) s) := by
   unfold srvTLSId; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **An auth info is the caller's** (persistent; `infoBoundM`'s over the token: E3zb): its user
-the empty one or the one the caller's token `tok` was issued to, or the server's TLS fallback is
-on. (Moved from `v3rpc/ServerKVOn.lean` in G2, 2026-10-30, for the watch stream's vocabulary.) -/
-def v3rpc.infoBoundT (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+the empty one or the one the caller's token `tok` was issued to, or the TLS fact `T` (the server's
+`srvTLSId s`: its TLS fallback is on; a parameter since O2, 2026-11-23, so that a service table can
+state it without the server's heap). (Moved from `v3rpc/ServerKVOn.lean` in G2, 2026-10-30, for the
+watch stream's vocabulary.) -/
+def v3rpc.infoBoundT (T : IProp GF) (M : auth.AuthMode) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) : IProp GF :=
   iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
-    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ srvTLSId s))
+    ((∃ token : GoString, ⌜tok = some token⌝ ∗ auth.tokOk M token info.Username') ∨ T))
 
-instance v3rpc.infoBoundT_persistent (s : Loc) (M : auth.AuthMode) (tok : Option GoString)
+instance v3rpc.infoBoundT_persistent (T : IProp GF) [Persistent T] (M : auth.AuthMode) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    Persistent (v3rpc.infoBoundT (GF := GF) s M tok info) := by
+    Persistent (v3rpc.infoBoundT (GF := GF) T M tok info) := by
   unfold v3rpc.infoBoundT; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 open Iris.ProofMode in
 /-- The TLS fallback is off at a server whose config says so (a law for clients of `hdrBoundM`). -/
@@ -388,6 +410,53 @@ theorem authnStoreOk_of_authInv
     · iframe #; simp only [auth.authOwnOpt_none]; itrivial
     iintro !> %x -
     iapply HΦ; itrivial
+
+section monoT
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-! ### O2: the TLS fact as a parameter (2026-11-23)
+
+The client-facing auth vocabulary takes the TLS fallback as a parameter `T : IProp GF` (the server
+passes `srvTLSId s`, a service table `⌜tls = true⌝`); `srvTLSId_iff` bridges the two at the server's
+config, and each definition has a one-way monotonicity law in `T` (`…_mono`). -/
+
+open Iris.ProofMode in
+/-- **The TLS fallback is the config's flag** (O2's bridge): at a server whose config's
+`ClientCertAuthEnabled` is `tls`, `srvTLSId s` holds exactly when `tls` is `true`. -/
+theorem srvTLSId_iff (s : Loc) (tls : Bool) :
+    srvCfgFieldAddr s go!"ClientCertAuthEnabled" ↦□ tls ⊢
+      (srvTLSId (GF := GF) s ∗-∗ ⌜tls = true⌝) := by
+  iintro #Hc
+  isplit
+  · iintro #H
+    iunfold srvTLSId at H
+    icombine H Hc gives %h
+    ipureintro
+    cases tls
+    · cases h
+    · rfl
+  · iintro %h
+    subst h
+    unfold srvTLSId
+    iexact Hc
+
+open Iris.ProofMode in
+/-- `infoBoundT` is monotone in the TLS fact. -/
+theorem v3rpc.infoBoundT_mono (T1 T2 : IProp GF) (M : auth.AuthMode) (tok : Option GoString)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
+    iprop(□ (T1 -∗ T2)) ∗ v3rpc.infoBoundT T1 M tok info ⊢ v3rpc.infoBoundT T2 M tok info := by
+  unfold v3rpc.infoBoundT
+  iintro ⟨#HT, H⟩
+  icases H with (H | (H | H))
+  · ileft; iexact H
+  · iright; ileft; iexact H
+  · iright; iright; iapply HT $$ H
+
+end monoT
 
 end proof
 

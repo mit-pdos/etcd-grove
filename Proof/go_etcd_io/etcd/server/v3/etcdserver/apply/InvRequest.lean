@@ -12,7 +12,8 @@ apply package's statements are in the client model's terms; the others record th
 package reads (`dispatch`, the backend's methods, `needAdminPermission`, `noSideEffect`), or only
 whether they are set (`Bool`) when the package passes them on unread (to the auth store).
 
-**Decoding** (`irrDecode`, opaque): the request protobuf's decoding of an entry's bytes, as the
+**Decoding** (`irrDecode`: opaque until 2026-11-23, now its `AuthUserGrantRole` field the Lean
+reader `IrrWire.irrUgrDecodeRaw` and the rest the opaque `irrDecodeRest`): the request protobuf's decoding of an entry's bytes, as the
 names-only `pbutil.MustUnmarshalMessage` computes it, modulo what the model leaves out; `none` for
 bytes that do not decode (`MustUnmarshalMessage` panics on them). A decoder, not an encoder (the
 plan's `irrEncode`): protobuf encodings are not canonical, and the model forgets the unread
@@ -29,6 +30,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
 public import Proof.go_etcd_io.etcd.server.v3.auth.Requests
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.IrrWire
 
 @[expose] public section
 
@@ -171,11 +173,26 @@ theorem irrPutsLe.mono {n m : Nat} (h : n ≤ m) {rq : IRRModel} (hk : irrPutsLe
 @[simp] theorem IRRModel.txn_mk {a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 a25 a26 a27 a28 a29 a30 a31 a32} :
     (IRRModel.mk a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12 a13 a14 a15 a16 a17 a18 a19 a20 a21 a22 a23 a24 a25 a26 a27 a28 a29 a30 a31 a32).txn = a6.map txn.TxnModelW.toModel := rfl
 
-/-- **Trust boundary (the encoding).** The request a committed normal entry's bytes decode to
-(`pbutil.MustUnmarshalMessage` into an `InternalRaftRequest`, read as `IRRModel`); `none`: they
-do not decode (it panics). Opaque, as mvcc's `kvEncode`: only the decoder's axiom
-(`Spec/go_etcd_io/etcd/pkg/v3/pbutil/MustUnmarshalMessage.lean`) says anything of it. -/
-opaque irrDecode : List w8 → Option IRRModel
+/-- **Trust boundary (the encoding), the fields but `AuthUserGrantRole`.** What
+`pbutil.MustUnmarshalMessage` into an `InternalRaftRequest` makes of a committed normal entry's
+bytes, read as `IRRModel`, but its `authUserGrantRole` (which `irrDecode` replaces by
+`IrrWire.irrUgrDecodeRaw`'s); `none`: they do not decode (it panics). Opaque, as mvcc's
+`kvEncode`: only the encoding's axioms (`proto.MarshalIRR`, through `irrDecode`) say anything of
+it. (Protobuf stage S2, 2026-11-23: until then all of `irrDecode`.) -/
+opaque irrDecodeRest : List w8 → Option IRRModel
+
+/-- **The request a committed normal entry's bytes decode to** (`pbutil.MustUnmarshalMessage` into
+an `InternalRaftRequest`, read as `IRRModel`); `none`: they do not decode (it panics). The
+`AuthUserGrantRole` request is `IrrWire.irrUgrDecodeRaw`'s, protobuf-go's reading of that field as
+a Lean function (checked against protobuf-go by `IrrWireVectors.lean`), the other fields the opaque
+`irrDecodeRest`'s, and the bytes decode iff both readers succeed: true of protobuf-go, whose
+`Unmarshal` succeeds only where the field reader does and then reads the same field
+(`IrrWire.lean`'s header). (Protobuf stage S2, 2026-11-23: until then opaque, and
+`irrDecode_utf8` an axiom.) -/
+def irrDecode (bs : List w8) : Option IRRModel :=
+  match irrDecodeRest bs, IrrWire.irrUgrDecodeRaw bs with
+  | some rq, some ugr => some { rq with authUserGrantRole := ugr }
+  | _, _ => none
 
 /-- The decoded request's strings that the auth store writes into a proto3 `string` field are
 valid UTF-8 (S0's F4, 2026-11-12): a `UserGrantRole`'s role, which `UserGrantRole` appends to the
@@ -184,15 +201,25 @@ refuses otherwise). -/
 def irrUtf8 (rq : IRRModel) : Prop :=
   ∀ ur, rq.authUserGrantRole = some ur → utf8Valid ur.2
 
-/-- **Trust boundary (the encoding): a decoded request's `UserGrantRole` role is valid UTF-8.**
+/-- **A decoded request's `UserGrantRole` role is valid UTF-8** (until 2026-11-23, protobuf stage
+S2, an axiom at the trust boundary; now a theorem of `irrDecode`'s definition):
 `AuthUserGrantRoleRequest.role` is a proto3 `string` field (`api/etcdserverpb/rpc.proto`), and
 protobuf-go (v2, the server pin's `etcdserverpb`) rejects on unmarshal a proto3 `string` that is
-not valid UTF-8, and `pbutil.MustUnmarshalMessage` then panics ("unmarshal should never fail"), so
-bytes `irrDecode` decodes (`some rq`: the decoder's axiom returns without panicking) hold only
-valid UTF-8 there. Go evidence: `TestAuthFixIrrDecodeRejectsInvalidUTF8` (the Freeze package of
+not valid UTF-8, which `IrrWire.irrUgrDecodeRaw` does too. Go evidence for the reader:
+`IrrWireVectors.lean`; and `TestAuthFixIrrDecodeRejectsInvalidUTF8` (the Freeze package of
 auth-schema-fix; `MustUnmarshalMessage` panics on an `InternalRaftRequest` whose
 `AuthUserGrantRole.role` is `"\xff"`, at the server pin). -/
-axiom irrDecode_utf8 (bs : List w8) (rq : IRRModel) (h : irrDecode bs = some rq) : irrUtf8 rq
+theorem irrDecode_utf8 (bs : List w8) (rq : IRRModel) (h : irrDecode bs = some rq) : irrUtf8 rq := by
+  unfold irrDecode at h
+  split at h
+  · rename_i rq0 ugr _ hu
+    simp only [Option.some.injEq] at h
+    subst h
+    intro ur hur
+    simp only at hur
+    subst hur
+    exact IrrWire.irrUgrDecodeRaw_utf8 hu
+  · simp at h
 
 /-- **Trust boundary (semver).** Whether a version string parses (`semver.NewVersion` accepts
 it): `semver.MustParse` returns a version for it, and panics otherwise (its axiom,

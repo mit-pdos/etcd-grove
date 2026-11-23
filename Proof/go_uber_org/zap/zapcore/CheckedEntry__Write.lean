@@ -1,5 +1,9 @@
 /-
-The trust boundary: `zapcore.CheckedEntry.Write` (`go.uber.org/zap/zapcore` is names-only).
+The trust boundary: `zapcore.CheckedEntry.Write` (names only). zap-z1 (2026-11-23) defined its entry
+(`zapcore.zapEntry`: not dirty, no hooks, no cores) but could not prove it over zap's code: its last step,
+`putCheckedEntry`, calls zap's generic `pool.Pool[T].Put(x)`, whose Goose translation passes `x : T` to
+`sync.Pool.Put(any)` without converting it to an interface (`notes/perennial-changes.md`), so the model
+gets stuck where Go runs. It goes when the translator converts.
 -/
 module
 

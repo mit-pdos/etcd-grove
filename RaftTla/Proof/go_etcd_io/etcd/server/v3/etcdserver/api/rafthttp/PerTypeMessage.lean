@@ -20,7 +20,8 @@
   `msgRoC_msgOwn` to today's `msgOwn l □` (what `pbMessage.ro` is), **under the premise that the
   snapshot's `ConfState` has no unknown fields** (`MsgC.csUfNil`): today's `csPts` fixes the
   `ConfState`'s `pbMsg` index to `[]` (`InvPb.lean`, `csPts`), so the bridge is false without it.
-- `msgEncC` (opaque) and its one trusted fact `msgEncC_ok`; `msgSize`, protobuf's size formula.
+- `msgEncC` and `msgEncC_ok` (until 2026-11-23, protobuf stage S2, opaque and the type's one trusted
+  fact; now the wire codec of `PbWireRaft.lean` and a theorem); `msgSize`, protobuf's size formula.
 - `pbMessageM` (the data, no axiom), `pbMessageC` (with the encoder), the registration
   `pbMessageC_reg`, and `pbMessageC_sat : pbMessageM.Sat`, whose `dec` is today's
   (`msgPtsC l 1 1 true`, what `netRecv` hands `Process`).
@@ -54,20 +55,330 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI go_etcd_io.raft.v3 Wire
 
 
-/-- **The encoding of a `Message`'s wire content** (opaque: protobuf-go's `Marshal`). -/
-opaque msgEncC [GooseExts] (c : MsgC) : List w8
+/-! ## The encoding (protobuf stage S2, 2026-11-23: until then `msgEncC` was opaque and
+`msgEncC_ok` an axiom) -/
 
-/-- **The trust boundary: `Message`'s encoding** (the type's one trusted fact, the shape of
-`entryEncC_ok`): `Unmarshal(Marshal(m))` gives the wire view, and `proto.Size(m)` is `msgSize`, for
-every presence combination and unknown fields routed as `ufWire` says, at every level. Backed by Go
-round-trip tests (`TestC9P2MessageEncoder`, 200,000 contents, passing; the harness's home is
-`examples/pbschema`). Only claimed of messages that marshal (no responses). -/
-axiom msgEncC_ok [GooseExts] (c : MsgC) : MsgMarshals c.model → (∀ p ∈ c.levels, ufWire p.1 p.2) →
-    msgSize c < 2 ^ 63 → MsgWireOk c.model (msgEncC c) ∧ (msgEncC c).length = msgSize c
+/-- **The encoding of a `ConfState`'s wire content** (`csEncRaw`, `PbWireRaft.lean`). -/
+def csEncC (c : CSC) : List w8 :=
+  csEncRaw c.voters c.learners c.votersOutgoing c.learnersNext c.autoLeave c.uf
 
+/-- **The encoding of a `SnapshotMetadata`'s wire content.** -/
+def metaEncC [GooseExts] (m : SnapMetaC) : List w8 :=
+  metaEncRaw (m.confState.map csEncC) m.index m.term m.uf
+
+/-- **The encoding of a `Snapshot`'s wire content.** -/
+def snapEncC [GooseExts] (s : SnapC) : List w8 :=
+  snapEncRaw s.data (s.metadata.map metaEncC) s.uf
+
+mutual
+/-- **The encoding of a `Message`'s wire content**: protobuf-go's `Marshal`, `msgEncRaw`
+(`PbWireRaft.lean`) at each level, checked against protobuf-go by `MessageWireVectors.lean`. -/
+def msgEncC [GooseExts] : MsgC → List w8
+  | .mk f rs =>
+    msgEncRaw f.type f.to f.frm f.term f.logTerm f.index (f.entries.map entryEncC) f.commit
+      (f.snapshot.map snapEncC) f.reject f.rejectHint f.context f.vote (respsEncC rs) f.uf
+/-- The responses' encodings. -/
+def respsEncC [GooseExts] : List (Loc × MsgC) → List (List w8)
+  | [] => []
+  | (_, c) :: rs => msgEncC c :: respsEncC rs
+end
+
+theorem nat_le_sum_of_mem {l : List Nat} {a : Nat} (h : a ∈ l) : a ≤ l.sum := by
+  induction l with
+  | nil => simp at h
+  | cons x xs ih =>
+    simp only [List.sum_cons]
+    rcases List.mem_cons.1 h with rfl | h
+    · omega
+    · have := ih h; omega
+
+/-- **Each entry's size is at most its message's.** -/
+theorem entrySize_le_msgSize [GooseExts] (c : MsgC) (e : EntryC) (he : e ∈ c.f.entries) :
+    entrySize e ≤ msgSize c := by
+  cases c with
+  | mk f rs =>
+  simp only [MsgC.f] at he
+  have h1 : lenSize (entrySize e) ≤ (f.entries.map fun e => lenSize (entrySize e)).sum :=
+    nat_le_sum_of_mem (List.mem_map.2 ⟨e, he, rfl⟩)
+  simp only [msgSize, MsgFC.size, lenSize] at *
+  omega
+
+theorem encFields_map_length {α : Type} (xs : List α) (f : α → Nat × FVal) :
+    (Wire.encFields (xs.map f)).length = (xs.map fun x => (Wire.record (f x).1 (f x).2).length).sum := by
+  induction xs with
+  | nil => rfl
+  | cons x xs ih => simp [Wire.encFields, ih]
+
+theorem encFields_optF_length {α : Type} (num : Nat) (f : α → FVal) (o : Option α) :
+    (Wire.encFields (optF num f o)).length =
+      (match o with | none => 0 | some a => (Wire.record num (f a)).length) := by
+  cases o <;> simp [optF, Wire.encFields]
+
+/-- A record numbered below 16: a one-byte tag, then the value. -/
+theorem record_length_small (num : Nat) (v : FVal) (h : num < 16) :
+    (Wire.record num v).length = 1 + v.payload.length := by
+  have hw : v.wt < 8 := (val_wt_lt v).1
+  rw [Wire.record_length, Wire.tag_length_small _ _ (by omega)]
+
+theorem payload_varint (n : Nat) : (FVal.varint n).payload.length = varintSize n := rfl
+
+theorem payload_len (bs : List w8) : (FVal.len bs).payload.length = varintSize bs.length + bs.length := by
+  simp [FVal.payload, varintSize]
+
+theorem uintZ_toNat (v : w64) : (uint.Z v).toNat = v.toNat := by simp
+
+theorem repW64_length (xs : List w64) (num : Nat) (h : num < 16) :
+    (Wire.encFields (xs.map fun v => (num, FVal.varint v.toNat))).length = repW64Size xs := by
+  rw [encFields_map_length]
+  unfold repW64Size
+  congr 1
+  apply List.map_congr_left
+  intro v _
+  rw [record_length_small _ _ h, payload_varint, uintZ_toNat]
+
+theorem optW64_length (o : Option w64) (num : Nat) (h : num < 16) :
+    (Wire.encFields (optF num (fun v => FVal.varint v.toNat) o)).length = optW64Size o := by
+  rw [encFields_optF_length]
+  cases o <;> simp [optW64Size, optVarintSize, record_length_small _ _ h, payload_varint]
+
+theorem optBool_length (o : Option Bool) (num : Nat) (h : num < 16) :
+    (Wire.encFields (optF num (fun b => FVal.varint (boolVarint b)) o)).length = optBoolSize o := by
+  rw [encFields_optF_length]
+  cases o with
+  | none => rfl
+  | some b =>
+    simp only [record_length_small _ _ h, payload_varint, optBoolSize]
+    cases b <;> simp [boolVarint, varintSize, varintEnc_lt128]
+
+theorem optLen_length (o : Option (List w8)) (num : Nat) (h : num < 16) :
+    (Wire.encFields (optF num FVal.len o)).length = optBytesSize o := by
+  rw [encFields_optF_length]
+  cases o <;> simp [optBytesSize, lenSize, record_length_small _ _ h, payload_len] <;> omega
+
+theorem optSub_length {α : Type} (o : Option α) (enc : α → List w8) (sz : α → Nat)
+    (he : ∀ a, (enc a).length = sz a) (num : Nat) (h : num < 16) :
+    (Wire.encFields (optF num FVal.len (o.map enc))).length =
+      (match o with | none => 0 | some a => lenSize (sz a)) := by
+  rw [encFields_optF_length]
+  cases o <;> simp [lenSize, record_length_small _ _ h, payload_len, he] <;> omega
+
+theorem csEncC_length (c : CSC) : (csEncC c).length = csSize c := by
+  simp only [csEncC, csEncRaw, Wire.encode_length, csRecs, Wire.encFields_append, List.length_append,
+    repW64_length _ _ (by decide : 1 < 16), repW64_length _ _ (by decide : 2 < 16),
+    repW64_length _ _ (by decide : 3 < 16), repW64_length _ _ (by decide : 4 < 16),
+    optBool_length _ _ (by decide : 5 < 16), csSize]
+
+theorem metaEncC_length [GooseExts] (m : SnapMetaC) : (metaEncC m).length = metaSize m := by
+  simp only [metaEncC, metaEncRaw, Wire.encode_length, metaRecs, Wire.encFields_append,
+    List.length_append, optSub_length _ _ _ csEncC_length _ (by decide : 1 < 16),
+    optW64_length _ _ (by decide : 2 < 16), optW64_length _ _ (by decide : 3 < 16), metaSize]
+  cases m.confState <;> rfl
+
+theorem snapEncC_length [GooseExts] (s : SnapC) : (snapEncC s).length = snapSize s := by
+  simp only [snapEncC, snapEncRaw, Wire.encode_length, snapRecs, Wire.encFields_append,
+    List.length_append, optLen_length _ _ (by decide : 1 < 16),
+    optSub_length _ _ _ metaEncC_length _ (by decide : 2 < 16), snapSize]
+  cases s.metadata <;> rfl
+
+theorem enumVarint_eq [GooseExts] (t : raftpb.MessageType) :
+    (uint.Z (W64 (sint.Z t))).toNat = enumVarint t := by
+  simp [enumVarint]
+
+/-- The length of a message without responses, given its entries' encodings' lengths. -/
+theorem msgEncC_length_nil [GooseExts] (f : MsgFC)
+    (he : ∀ e ∈ f.entries, (entryEncC e).length = entrySize e) :
+    (msgEncC (.mk f [])).length = msgSize (.mk f []) := by
+  have hents : (Wire.encFields ((f.entries.map entryEncC).map fun e => (7, FVal.len e))).length =
+      (f.entries.map fun e => lenSize (entrySize e)).sum := by
+    rw [encFields_map_length, List.map_map]
+    congr 1
+    apply List.map_congr_left
+    intro e he'
+    simp only [Function.comp, record_length_small _ _ (by decide : 7 < 16), payload_len, he e he',
+      lenSize]
+    omega
+  have htype : (Wire.encFields (optF 1 (fun t => FVal.varint (enumVarint t)) f.type)).length =
+      optVarintSize (f.type.map fun t => (uint.Z (W64 (sint.Z t))).toNat) := by
+    simp only [enumVarint_eq]
+    rw [encFields_optF_length]
+    cases f.type <;> simp [optVarintSize, record_length_small _ _ (by decide : 1 < 16), payload_varint]
+  simp only [msgEncC, respsEncC, msgEncRaw, Wire.encode_length, msgRecs, Wire.encFields_append,
+    List.length_append, List.map_nil, Wire.encFields, List.length_nil, htype, hents,
+    optW64_length _ _ (by decide : 2 < 16), optW64_length _ _ (by decide : 3 < 16),
+    optW64_length _ _ (by decide : 4 < 16), optW64_length _ _ (by decide : 5 < 16),
+    optW64_length _ _ (by decide : 6 < 16), optW64_length _ _ (by decide : 8 < 16),
+    optSub_length _ _ _ snapEncC_length _ (by decide : 9 < 16),
+    optBool_length _ _ (by decide : 10 < 16), optW64_length _ _ (by decide : 11 < 16),
+    optLen_length _ _ (by decide : 12 < 16), optW64_length _ _ (by decide : 13 < 16),
+    msgSize, respsSize, MsgFC.size]
+  cases f.snapshot <;> simp only <;> omega
+
+/-! ### The round trip -/
+
+theorem csEncC_dec (d : Nat) (hd : d ≠ 0) (c : CSC) (hu : ufWire csSchema c.uf) :
+    csDecodeD d [csEncC c] = some ⟨c.voters, c.learners, c.votersOutgoing, c.learnersNext,
+      c.autoLeave.getD false⟩ :=
+  csDecodeD_enc d hd _ _ _ _ _ _ hu
+
+/-- The decoded view of an optional conf state. -/
+def csDecOf (o : Option CSC) : CSDec :=
+  match o with
+  | none => csDecZero
+  | some c => ⟨c.voters, c.learners, c.votersOutgoing, c.learnersNext, c.autoLeave.getD false⟩
+
+def metaDecOf [GooseExts] (o : Option SnapMetaC) : MetaDec :=
+  match o with
+  | none => metaDecZero
+  | some m => ⟨csDecOf m.confState, m.index.getD 0, m.term.getD 0⟩
+
+def snapDecOf [GooseExts] (s : SnapC) : SnapDec := ⟨s.data.getD [], metaDecOf s.metadata⟩
+
+theorem lt_of_size {a b : Nat} (h1 : a ≤ b) (h2 : b < 2 ^ 63) : a < 2 ^ 64 := by omega
+
+theorem csOpt_dec (d : Nat) (hd : d ≠ 0) (o : Option CSC) (hu : ∀ q ∈ csLevels o, ufWire q.1 q.2) :
+    csDecodeD d (o.map csEncC).toList = some (csDecOf o) := by
+  cases o with
+  | none => simp [csDecodeD, csDecOf]
+  | some c =>
+    simp only [Option.map_some, Option.toList_some, csDecOf]
+    exact csEncC_dec d hd c (hu (csSchema, c.uf) (by simp [csLevels]))
+
+theorem metaOpt_dec [GooseExts] (d : Nat) (hd : 2 ≤ d) (o : Option SnapMetaC)
+    (hu : ∀ q ∈ metaLevels o, ufWire q.1 q.2) (hs : (match o with | none => 0 | some m => metaSize m) < 2 ^ 63) :
+    metaDecodeD d (o.map metaEncC).toList = some (metaDecOf o) := by
+  cases o with
+  | none => simp [metaDecodeD, metaDecOf]
+  | some m =>
+    simp only [Option.map_some, Option.toList_some, metaDecOf]
+    simp only [metaSize] at hs
+    refine metaDecodeD_enc d (by omega) _ _ _ _ (hu (metaSchema, m.uf) (by simp [metaLevels])) ?_ _
+      (csOpt_dec (d - 1) (by omega) _ (fun q hq => hu q (by simp [metaLevels, hq])))
+    intro b hb
+    cases h : m.confState with
+    | none => simp [h] at hb
+    | some c =>
+      simp only [h, Option.map_some, Option.some.injEq] at hb
+      subst hb
+      rw [csEncC_length]
+      simp only [h, lenSize] at hs
+      omega
+
+theorem snapOpt_dec [GooseExts] (d : Nat) (hd : 3 ≤ d) (o : Option SnapC)
+    (hu : ∀ q ∈ snapLevels o, ufWire q.1 q.2) (hs : (match o with | none => 0 | some s => snapSize s) < 2 ^ 63) :
+    snapDecodeD d (o.map snapEncC).toList = some (o.map snapDecOf) := by
+  cases o with
+  | none => simp [snapDecodeD]
+  | some s =>
+    simp only [Option.map_some, Option.toList_some, snapDecOf]
+    simp only [snapSize] at hs
+    refine snapDecodeD_enc d (by omega) _ _ _ (hu (snapSchema, s.uf) (by simp [snapLevels])) ?_ ?_ _
+      (metaOpt_dec (d - 1) (by omega) _ (fun q hq => hu q (by simp [snapLevels, hq])) ?_)
+    · intro b hb
+      rw [hb] at hs
+      simp only [optBytesSize, lenSize] at hs
+      omega
+    · intro b hb
+      cases h : s.metadata with
+      | none => simp [h] at hb
+      | some m =>
+        simp only [h, Option.map_some, Option.some.injEq] at hb
+        subst hb
+        rw [metaEncC_length]
+        simp only [h, lenSize] at hs
+        omega
+    · cases h : s.metadata with
+      | none => simp
+      | some m => simp only [h, lenSize] at hs ⊢; omega
+
+theorem csDecOf_model (o : Option CSC) : (csDecOf o).model = (o.map CSC.model).getD csZero := by
+  cases o <;> rfl
+
+theorem metaDecOf_model [GooseExts] (o : Option SnapMetaC) :
+    (metaDecOf o).model = (o.map SnapMetaC.model).getD metaZero := by
+  cases o with
+  | none => rfl
+  | some m => simp only [metaDecOf, MetaDec.model, csDecOf_model]; rfl
+
+theorem snapDecOf_model [GooseExts] (s : SnapC) : (snapDecOf s).model = s.model := by
+  simp [snapDecOf, SnapDec.model, SnapC.model, metaDecOf_model]
+
+/-- **`Message`'s encoding round-trips and has `proto.Size`'s length** (until 2026-11-23 the axiom at
+the trust boundary, the type's one trusted fact; now a theorem, from `msgDecodeD_enc`). Only
+claimed of messages that marshal (no responses). -/
+theorem msgEncC_ok [GooseExts] (c : MsgC) : MsgMarshals c.model → (∀ p ∈ c.levels, ufWire p.1 p.2) →
+    msgSize c < 2 ^ 63 → MsgWireOk c.model (msgEncC c) ∧ (msgEncC c).length = msgSize c := by
+  intro hm hu hs
+  rcases c with ⟨f, rs⟩
+  have hrs : rs = [] := by
+    simpa [MsgMarshals, MsgC.model, MsgC.resps] using hm
+  subst hrs
+  have huf : ∀ q ∈ f.levels, ufWire q.1 q.2 := fun q hq => hu q (by simp [MsgC.levels, hq])
+  have hent : ∀ e ∈ f.entries, ufWire entrySchema e.uf ∧ entrySize e < 2 ^ 63 := fun e he =>
+    ⟨huf (entrySchema, e.uf) (by
+      apply List.mem_cons_of_mem; apply List.mem_append_left
+      exact List.mem_map_of_mem (f := fun e : EntryC => (entrySchema, e.uf)) he),
+      Nat.lt_of_le_of_lt (entrySize_le_msgSize (.mk f []) e he) hs⟩
+  have hentlen : ∀ e ∈ f.entries, (entryEncC e).length = entrySize e := fun e he =>
+    (entryEncC_ok e (hent e he).1 (hent e he).2).2
+  have hlen := msgEncC_length_nil f hentlen
+  refine ⟨⟨hm, ?_⟩, hlen⟩
+  have hsz : f.size < 2 ^ 63 := by simpa [msgSize, respsSize] using hs
+  unfold msgDecode msgDecodeRaw msgEncC
+  simp only [respsEncC]
+  have hes : (f.entries.map entryEncC).mapM (entDecodeD 9999) =
+      some (f.entries.map fun e => (e.term.getD 0, e.index.getD 0, e.type.getD 0, e.data.getD [])) := by
+    have : ∀ es : List EntryC, (∀ e ∈ es, e ∈ f.entries) → (es.map entryEncC).mapM (entDecodeD 9999) =
+        some (es.map fun e => (e.term.getD 0, e.index.getD 0, e.type.getD 0, e.data.getD [])) := by
+      intro es
+      induction es with
+      | nil => intro _; rfl
+      | cons e es ih =>
+        intro hsub
+        have he := hsub e (by simp)
+        have hd : ∀ d, e.data = some d → d.length < 2 ^ 64 := by
+          intro d hd
+          have := (hent e he).2
+          simp only [entrySize, hd] at this
+          omega
+        simp only [List.map_cons, List.mapM_cons, entDecodeD, show (9999 : Nat) ≠ 0 by decide,
+          ite_false, entryEncC, entDecodeRaw_enc _ _ _ _ _ (hent e he).1 hd,
+          ih (fun x hx => hsub x (by simp [hx]))]
+        rfl
+    exact this _ (fun _ h => h)
+  have hsnapsz : (match f.snapshot with | none => 0 | some s => snapSize s) < 2 ^ 63 := by
+    cases h : f.snapshot with
+    | none => simp
+    | some s => simp only [MsgFC.size, h, lenSize] at hsz ⊢; omega
+  have hsn := snapOpt_dec 9999 (by decide) f.snapshot
+    (fun q hq => huf q (by simp [MsgFC.levels, hq])) hsnapsz
+  rw [show (10000 : Nat) = 9999 + 1 from rfl,
+    msgDecodeD_enc 9999 _ _ _ _ _ _ _ _ _ _ _ _ _ [] _ (huf (msgSchema, f.uf) (by simp [MsgFC.levels])) ?_ ?_ ?_
+      (by simp) _ hes _ hsn [] rfl]
+  · simp only [Option.map_some, MsgDec.wire, wireOf, MsgC.model, MsgC.f, MsgFC.msgM,
+      List.map_map, Option.map_map, Option.some.injEq, MsgWire.mk.injEq]
+    refine ⟨rfl, ?_, ?_, trivial⟩
+    · apply List.map_congr_left; intro e _; rfl
+    · cases f.snapshot <;> simp [snapDecOf_model]
+  · intro b hb
+    obtain ⟨e, he, rfl⟩ := List.mem_map.1 hb
+    rw [hentlen e he]
+    have := (hent e he).2
+    omega
+  · intro b hb
+    cases h : f.snapshot with
+    | none => simp [h] at hb
+    | some s =>
+      simp only [h, Option.map_some, Option.some.injEq] at hb
+      subst hb
+      rw [snapEncC_length]
+      simp only [h] at hsnapsz
+      omega
+  · intro b hb
+    simp only [MsgFC.size, optBytesSize, hb, lenSize] at hsz
+    omega
 
 /-! ## The frozen message at its wire content -/
 
@@ -164,7 +475,7 @@ def pbMessageM : PbModelC GF where
   decC_dec l c h := msgPtsCC_msgPtsC l (DFrac.own 1) (DFrac.own 1) true c h
 
 /-- **`raftpb.Message` at its wire content** (the registered instance): the data and the encoder,
-whose `enc_ok` is the type's one trusted fact `msgEncC_ok`. -/
+whose `enc_ok` is `msgEncC_ok` (a theorem since 2026-11-23). -/
 def pbMessageC : PbTypeC GF where
   data := pbMessageM
   encd := { enc := msgEncC
@@ -513,15 +824,6 @@ theorem msgRoC_enc (l : Loc) (c : MsgC) :
 
 end fromOwn
 
-theorem nat_le_sum_of_mem {l : List Nat} {a : Nat} (h : a ∈ l) : a ≤ l.sum := by
-  induction l with
-  | nil => simp at h
-  | cons x xs ih =>
-    simp only [List.sum_cons]
-    rcases List.mem_cons.1 h with rfl | h
-    · omega
-    · have := ih h; omega
-
 /-- **A message's encoding is the encoding of a wire content of the message whose unknown fields
 are valid at every level** (stage A of the per-type models: the frames and request bodies carry the
 sender's content, so that the receiver's `proto.Unmarshal` succeeds and gives it back, D2), whose
@@ -529,17 +831,6 @@ snapshot `ConfState` has no unknown fields (`MsgC.csUfNil`, what the receiver's 
 sender's content is raft's, whose `csPts` fixes them to none). -/
 def MsgEnc [GooseExts] (st : MsgSt) (mbs : List w8) : Prop :=
   ∃ c : MsgC, c.model = st ∧ (∀ q ∈ c.levels, ufWire q.1 q.2) ∧ c.csUfNil ∧ mbs = msgEncC c
-
-/-- **Each entry's size is at most its message's.** -/
-theorem entrySize_le_msgSize [GooseExts] (c : MsgC) (e : EntryC) (he : e ∈ c.f.entries) :
-    entrySize e ≤ msgSize c := by
-  cases c with
-  | mk f rs =>
-  simp only [MsgC.f] at he
-  have h1 : lenSize (entrySize e) ≤ (f.entries.map fun e => lenSize (entrySize e)).sum :=
-    nat_le_sum_of_mem (List.mem_map.2 ⟨e, he, rfl⟩)
-  simp only [msgSize, MsgFC.size, lenSize] at *
-  omega
 
 end EtcdGrove
 end Perennial

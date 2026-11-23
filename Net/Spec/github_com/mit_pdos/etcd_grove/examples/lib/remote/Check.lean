@@ -1,6 +1,7 @@
 /-
 `Check(model, addrs, codec, gen, ops, d)`: `Run` with no timeout, panicking unless porcupine
-answers `Ok`: under `Run`'s premises it returns (it never panics). Proved in
+answers `Ok`: under `Run`'s premises (the call budget among them: `nb ≥ ops * readTries` of
+each address's call units) it returns (it never panics). Proved in
 `Net/Proof/.../lib/remote/Check.lean`.
 -/
 module
@@ -36,10 +37,12 @@ abbrev Check.spec : Prop :=
   PendDec R S → (∀ o o', R.encOut (R.ov o) = R.encOut (R.ov o') → o = o') →
   (∀ st, Timeless (R.sysState st)) → receiptBound GF ≤ 2 ^ 63 →
   sint.Z addrs.len < 2 ^ 31 → 0 ≤ sint.Z ops → sint.Z addrs.len * sint.Z ops < 2 ^ 60 →
+  ∀ nb : Nat, sint.nat ops * readTries ≤ nb →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ context.isClosedchanInit ∗ isModel S m ∗
       genSpec gen (fun x => iprop(∃ i, ⌜x = R.iv i⌝)) ∗ addrs ↦*□ addrL ∗
       ([∗list] a ∈ addrL, remoteAddr (Gg := hG.goose_globalGS) R a) ∗ mapCtx (Gg := hG.goose_globalGS) (I := I) ∗ codecOk R cd ∗
-      pendCtx (Gg := hG.goose_globalGS) R S γ ∗ pendLib (Gg := hG.goose_globalGS) S γ S.M.init }}
+      pendCtx (Gg := hG.goose_globalGS) R S γ ∗ pendLib (Gg := hG.goose_globalGS) S γ S.M.init ∗
+      [∗list] a ∈ addrL, budUnits (Gg := hG.goose_globalGS) a nb }}
     (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.Check)) (Val #m)) (Val #addrs)) (Val #cd))
       (Val #gen)) (Val #ops)) (Val #d))
   {{ RET #(); True }}

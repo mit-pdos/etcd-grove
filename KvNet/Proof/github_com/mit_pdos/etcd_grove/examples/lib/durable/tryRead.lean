@@ -2,8 +2,8 @@
 /-
 The proof of `Spec/.../examples/lib/durable/tryRead.lean`: by what the name holds under the
 handle's physical state. Nothing: `os.Open` fails (`Open.wp_absentErrS`), and `errors.Is(err,
-os.ErrNotExist)` answers whether the errno is `ENOENT` (`errors.IsPathErrnoNotExist.spec`, a
-hypothesis). A candidate's file: `os.Open` opens it or fails with an errno other than `ENOENT`
+os.ErrNotExist)` answers whether the errno is `ENOENT` (`errors.IsPathErrnoNotExist.spec`, a callee
+spec: proved, and passed by the Link). A candidate's file: `os.Open` opens it or fails with an errno other than `ENOENT`
 (`Open.wp_fileSN`), so `done` is false; `Stat` gives its size (the candidate's half of its `OsMeta`, in
 the handle), one `ReadAt` its contents (the candidate's half of its bytes), and the deferred `Close`
 closes it. Lean-first (no Rocq counterpart).

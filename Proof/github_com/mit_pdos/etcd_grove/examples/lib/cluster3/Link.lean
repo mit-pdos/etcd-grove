@@ -29,6 +29,7 @@ public import Proof.google_golang_org.grpc.model.finishStream
 public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Net.Proof.net.Listen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
@@ -93,11 +94,11 @@ theorem wp_Partitioner :
     EtcdGrove.cluster3.Partitioner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.Partitioner.wp_proof wp_PeerStep wp_ClientStep
 
-theorem net.wp_Listen :
+theorem net.wp_Listen [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
+  EtcdGrove.net.Listen.wp_proof _root_.Perennial.net.Listen.wp_proof
 
-theorem wp_StartBridge :
+theorem wp_StartBridge [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.cluster3.StartBridge.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.StartBridge.wp_proof net.wp_Listen bridge.wp_New
 
@@ -133,11 +134,11 @@ theorem wp_holdToken :
     EtcdGrove.cluster3.holdToken.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.holdToken.wp_proof
 
-theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.cluster3.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.StartMember.wp_proof etcdstart.wp_NewMember EtcdServer.wp_Start net.wp_Listen grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server grpc.Server.wp_Serve wp_holdToken mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
-theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartCluster [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.cluster3.StartCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cluster3.StartCluster.wp_proof wp_StartMember wp_StartBridge mvcc.api.mvccApi_names_nonempty_law_holds
 

@@ -1,4 +1,4 @@
-// Package server is the program of an etcd member machine of etcd_dist_safe
+// Package server is the program of an etcd member machine of etcd_safe
 // (notes/etcd-dist-plan.md, §2). One process runs one member: Main builds the member from its
 // configuration (etcdstart's newServerMode, with the server configuration a parameter), serves
 // etcd's peer handler on its peer address, starts it, waits until it is ready, serves etcd's gRPC

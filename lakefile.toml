@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineD
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "7b2259a12e2f8f46440009c93d7bd57a7a766fd3"
+rev = "160fcf12aaf0926ca6f333724505f0fe8da4c799"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -111,8 +111,9 @@ globs = ["Robustness.+"]
 # The net extension's `net` (`GooseLang/Ext/Net`, notes/net-tcp.md) with the programs proved over
 # it (examples/net/), in a parallel tree with the same layout
 # (Net/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; etc/goose.py's project
-# net): the main tree's `net` is names only, with the axioms etcd's server proofs use, so the
-# two declare the same names; nothing outside Net imports it.
+# net). Since the net swap (etcd-dist D2, 2026-11-22) the main tree's `net` is this one (`net=Net`):
+# the main tree imports Net's `net` modules (`Net/{Code,TrustedCode,GeneratedProof,ManualProof}/net`,
+# `Net/{Spec,Proof}/net/`), not the rest of the part (its copies of the main tree's initializers).
 [[lean_lib]]
 name = "Net"
 globs = ["Net.+"]

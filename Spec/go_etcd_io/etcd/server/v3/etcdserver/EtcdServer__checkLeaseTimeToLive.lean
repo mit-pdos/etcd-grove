@@ -55,7 +55,7 @@ abbrev EtcdServer.checkLeaseTimeToLive.spec : Prop :=
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); E.RD ∗ levelTok lease.lessorLvl ∗
       authApplyErrIs err ∗
       (∀ _ : err = GoInterface.nil, auth.revisionVerdictFrom E.authMode n rev ∗
-        leaseCheckFrom s E tok n
+        leaseCheckFrom (srvTLSId s) E tok n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read)) }}
 
 end spec

@@ -3,17 +3,24 @@
 # examples' etcd pin). Only the roots are named here: the codec covers them and every message
 # and enum they reach (ResponseHeader, mvccpb.KeyValue and Event, Member, the enums), with
 # fields derived from the registered descriptors (models.lab/pbdesc). The generated test
-# (pb_gen_test.go) checks the codec against the real google.golang.org/protobuf. What the
-# generator refuses of etcd's .proto files (raftpb's proto2 fields, the oneofs of RequestOp,
-# ResponseOp, Compare and WatchRequest) is listed in the plan note. Generate from the repository
-# root:
+# (pb_gen_test.go) checks the codec against the real google.golang.org/protobuf. Since the
+# proto2 and oneof extension (2026-11-23) also raft's raftpb (proto2: explicit presence, closed
+# enums, unpacked repeated fields; at the examples' raft pin), the WAL's walpb (proto2), and the
+# oneofs of the transaction and raft-entry requests (TxnRequest, Compare, RequestOp, ResponseOp,
+# InternalRaftRequest, WatchRequest). Generate from the repository root:
 #     models/protobuf/pbgen.py examples/models/pbetcd/protobuf.toml examples/models/pbetcd --pkg pbetcd
 [protobuf]
-imports = { etcdserverpb = "go.etcd.io/etcd/api/v3/etcdserverpb", mvccpb = "go.etcd.io/etcd/api/v3/mvccpb" }
+imports = { etcdserverpb = "go.etcd.io/etcd/api/v3/etcdserverpb", mvccpb = "go.etcd.io/etcd/api/v3/mvccpb", raftpb = "go.etcd.io/raft/v3/raftpb", walpb = "go.etcd.io/etcd/server/v3/storage/wal/walpb" }
 roots = ["etcdserverpb.RangeRequest", "etcdserverpb.RangeResponse",
          "etcdserverpb.PutRequest", "etcdserverpb.PutResponse",
          "etcdserverpb.DeleteRangeRequest", "etcdserverpb.DeleteRangeResponse",
          "etcdserverpb.LeaseGrantRequest", "etcdserverpb.LeaseGrantResponse",
          "etcdserverpb.LeaseTimeToLiveResponse",
          "etcdserverpb.WatchCreateRequest", "etcdserverpb.WatchResponse",
-         "etcdserverpb.MemberListResponse"]
+         "etcdserverpb.MemberListResponse",
+         "etcdserverpb.TxnRequest", "etcdserverpb.TxnResponse", "etcdserverpb.Compare",
+         "etcdserverpb.RequestOp", "etcdserverpb.ResponseOp", "etcdserverpb.InternalRaftRequest",
+         "etcdserverpb.WatchRequest",
+         "raftpb.Entry", "raftpb.Message", "raftpb.HardState", "raftpb.ConfState", "raftpb.Snapshot",
+         "raftpb.SnapshotMetadata", "raftpb.ConfChange", "raftpb.ConfChangeSingle", "raftpb.ConfChangeV2",
+         "walpb.Record", "walpb.Snapshot"]

@@ -324,6 +324,16 @@ def adminPropRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) 
   iprop(⌜rolesSorted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).1 ∧
     authDet rq (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0, []) L).1⌝)
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A write's grant, as the server tells its client's update at the commit** (persistent; the
 auth-mode merge's step 5, 2026-10-29): for some header `hm` the server stamped on the request
 `rq₀`, one the caller's binding admits (`Gb hm`: with the server's, `hdrBoundM true`), the
@@ -351,6 +361,16 @@ def writeGrantG (γk : KVNames) (st₀ : auth.AuthState) (Gb : apply.HeaderModel
       ∀ g, rqRevGrantId γk.lm rq₀ = some g →
         ∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ g⌝)
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- A grant at a binding `Gb'` that gives `Gb` is one at `Gb` (the contexts a server derives from
 a request's bind the same headers, `hdrBoundM_ctx`). -/
 theorem writeGrantG_mono (γk : KVNames) (st₀ : auth.AuthState) (Gb Gb' : apply.HeaderModel → IProp GF)
@@ -361,6 +381,21 @@ theorem writeGrantG_mono (γk : KVNames) (st₀ : auth.AuthState) (Gb Gb' : appl
   iexists hm, L
   isplitl
   · iapply h $$ Hb
+  iframe Hh
+  ipureintro; exact Hp
+
+open Iris.ProofMode in
+/-- `writeGrantG_mono` under a persistent hypothesis `P` (O2's monotonicity laws, 2026-11-23). -/
+theorem writeGrantG_mono_with (γk : KVNames) (st₀ : auth.AuthState) (Gb Gb' : apply.HeaderModel → IProp GF)
+    (rq₀ : apply.IRRModel) (L₀ : List EntryModel) (σ : KVState) (P : IProp GF) [Persistent P]
+    (h : ∀ hm, P ∗ Gb' hm ⊢ Gb hm) :
+    P ∗ writeGrantG γk st₀ Gb' rq₀ L₀ σ ⊢ writeGrantG γk st₀ Gb rq₀ L₀ σ := by
+  unfold writeGrantG
+  iintro ⟨#HP, %hm, %L, Hb, #Hh, %Hp⟩
+  iexists hm, L
+  isplitl [Hb]
+  · iapply h $$ [Hb]
+    iframe HP Hb
   iframe Hh
   ipureintro; exact Hp
 
@@ -380,6 +415,16 @@ theorem writeGrantG_granted (γk : KVNames) (st₀ : auth.AuthState) (Gb : apply
   refine ⟨h1, ?_⟩
   rw [← h3, kvStateOf_kvs]
   exact h2
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **A client's update of the auth history by the admin request `rq₀`** (persistent; the
 auth-mode merge's 5b): fired at the commit of each entry of `rq₀` the model records in the history
@@ -407,6 +452,16 @@ instance histAu_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
     (Q : List auth.AuthState → IProp GF) : Persistent (histAu (GF := GF) γ γk st₀ Gb rq₀ Q) := by
   unfold histAu; infer_instance
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+
 /-- An update told a weaker header bound (`Gb ⊢ Gb'`) is one told the stronger. -/
 theorem histAu_mono (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (Gb Gb' : apply.HeaderModel → IProp GF) (rq₀ : apply.IRRModel)
@@ -421,6 +476,37 @@ theorem histAu_mono (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthSta
   iframe Hr
   iapply h $$ Hb
 
+open Iris.ProofMode in
+/-- `histAu_mono` under a persistent hypothesis `P` (O2's monotonicity laws, 2026-11-23). -/
+theorem histAu_mono_with (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (Gb Gb' : apply.HeaderModel → IProp GF) (rq₀ : apply.IRRModel)
+    (Q : List auth.AuthState → IProp GF) (P : IProp GF) [Persistent P] (h : ∀ hm, P ∗ Gb hm ⊢ Gb' hm) :
+    P ∗ histAu (GF := GF) γ γk st₀ Gb' rq₀ Q ⊢ histAu γ γk st₀ Gb rq₀ Q := by
+  unfold histAu
+  iintro ⟨#HP, #H⟩
+  imodintro
+  iapply aupd_post_mono_with P
+  rotate_left
+  · iframe HP H
+  intro x y
+  rcases x with ⟨hs, ⟨⟩⟩
+  simp only [Std.Tele.app]
+  iintro ⟨#HP, %hm, %L, %e, Hb, Hr⟩
+  iexists hm, L, e
+  iframe Hr
+  iapply h $$ [Hb]
+  iframe HP Hb
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **An admin request's result for its client's history update** at the log `L` before its
 entry (persistent; 5b): a lower bound of the history along `L` (`authHistLb`: what ties a reply's
 state to its client's view), and recorded (`admRec`) with the update's result at the history along
@@ -434,6 +520,16 @@ instance adminRecRes_persistent (γk : KVNames) (st₀ : auth.AuthState) (rq : a
     (Q : List auth.AuthState → IProp GF) (L : List EntryModel) :
     Persistent (adminRecRes (GF := GF) γk st₀ rq Q L) := by
   unfold adminRecRes; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **What a proposal of `rq₀` stamped with the header `hm` needs in the mode `on`**
 (`reqPropOk`'s, see the header): a plain request with no KV write (`Qr` trivial); or a request of

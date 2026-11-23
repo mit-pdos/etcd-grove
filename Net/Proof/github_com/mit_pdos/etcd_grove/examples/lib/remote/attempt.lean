@@ -48,7 +48,7 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     (wp_readFrame : readFrame.spec (GF := GF) (hG := hG)) :
     attempt.spec (GF := GF) (hG := hG) (I := I) (O := O) := by
   intro S a i Φo req dq d Hlen
-  wp_start as ⟨#Hm, #Ha, Hreq, HL⟩
+  wp_start as ⟨#Hm, #Ha, Hreq, HL, Hu⟩
   ihave ⟨%et, #Het⟩ := et_init $$ Hpkg
   ihave ⟨%ed, #Hed⟩ := ed_init $$ Hpkg
   ihave ⟨%eof, #Heof⟩ := eof_init $$ Hpkg
@@ -56,7 +56,7 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
   · unfold svcAddr; iapply addrProto_tok $$ Ha
   wp_auto_lc 2
   wp_apply wp_DialTimeout go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
-      (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqP S) (repP S) [] [] ∗
+      (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (reqP S a) (repP S) [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, ⟨Hend, Hfresh⟩⟩ | ⟨-, %x, %e, -, #Herr, -⟩)
   · iframe Het Hed
@@ -65,19 +65,19 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
     isplit
     · itrivial
     · unfold svcAddr
-      iapply dial_au a (reqP S) (repP S) $$ Ha
+      iapply dial_au a (reqP S a) (repP S) $$ Ha
   · subst Herr
     unfold net.isConn
     icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
     subst Hct
     wp_auto
     iapply fupd_wp
-    imod slot_register S ⊤ (fun _ _ => CoPset.mem_full) cn i Φo $$ Hm Hfresh HL
+    imod slot_register S ⊤ (fun _ _ => CoPset.mem_full) a cn i Φo $$ Hm Hfresh HL Hu
       with ⟨%γ, #Hso, #Hsi, Htk⟩
     imodintro
     unfold connEnd
     icases Hend with ⟨Hsend, Hrecv⟩
-    ihave #Hconn := sendTok_connIs cn false (reqP S) [] $$ Hsend
+    ihave #Hconn := sendTok_connIs cn false (reqP S a) [] $$ Hsend
     wp_apply wp_deadline as %tm -
     wp_apply wp_SetDeadline t cn false a la ra tm (fun _ => iprop(True)) $$ [] as %err' -
     · iframe Hca
@@ -95,7 +95,7 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
       iexists t, la, ra
       iframe Hca
       ipureintro; rfl
-    wp_apply wp_writeFrame _ cn false a (reqP S) [] req (S.encIn i) dq ed Hlen $$ [Hreq Hsend]
+    wp_apply wp_writeFrame _ cn false a (reqP S a) [] req (S.encIn i) dq ed Hlen $$ [Hreq Hsend]
       as %ok ⟨%w, Hreq, -, -⟩
     · iframe Hc Hreq Hsend Hed
       imodintro
@@ -151,7 +151,7 @@ theorem attempt.wp_proof (wp_DialTimeout : net.DialTimeout.spec (GF := GF) (hG :
       · imodintro
         iright
         ipureintro; exact Hu
-      · imod slot_take S ⊤ (fun _ _ => CoPset.mem_full) γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
+      · imod slot_take S ⊤ (fun _ _ => CoPset.mem_full) a γ i Φo o $$ Hsi Htk Hlb Hlc2 with HΦo
         imodintro
         ileft
         iexists o

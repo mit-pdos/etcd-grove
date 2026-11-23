@@ -79,7 +79,7 @@ theorem serialWhy_of_oldRev (s : Loc) (M : auth.AuthMode) (n : Nat) (tok : Optio
     (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (x : w64) (h0 : info.Revision' ≠ W64 0)
     (hx : info.Revision' ≠ x) :
-    □ (⌜M.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ → principalBound s M tok (some info) ∗
+    □ (⌜M.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ → principalBound (srvTLSId s) M tok (some info) ∗
         (auth.enabledVerdictFrom M n true ∨ srvTLSId s)) ∗
       auth.revisionVerdictFrom M n x ∗ auth.authErrOf .authOldRevision err ⊢
       serialWhy (GF := GF) s M n tok err R := by
@@ -146,7 +146,7 @@ theorem EtcdServer.doSerialize.wp_proof
         ai_ptr ↦ a' ∗ a' ↦{dq} info ∗ infoBoundM E.authOn s E tok info ∗
         □ (⌜E.authMode.isOn = true⌝ → infoWhy s E.authMode n tok info) ∗
         □ (⌜E.authMode.isOn = true⌝ → ⌜info.Revision' ≠ W64 0⌝ →
-          principalBound s E.authMode tok (some info) ∗
+          principalBound (srvTLSId s) E.authMode tok (some info) ∗
           (auth.enabledVerdictFrom E.authMode n true ∨ srvTLSId s)))
       with [ai Ha] as ⟨%a', %info, %dq, ai, Hai, #Hib, #Hiw, #Hio⟩
     · iexists «$r0_ptr», _, DFrac.own 1
