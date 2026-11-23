@@ -255,27 +255,27 @@ counted by grep over `old/dsverify/harness/lean/Harness/Proof/`):
 | the lab's | here |
 |---|---|
 | `addrProto a P Q`, `addrProtoG` | `addrProto a P Q` (same shape; `cn : Nat`, not `cid : w64`) |
-| `addrTok a`, `addrTokG` (exclusive; `Listen` needs it) | `addrTok a` (persistent); `Listen.spec` needs `ListenAt`: `addrTok_listenAt` with the node's host |
-| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (the kits' bridge, `robust_of_distBoot`) |
-| `addr_set_proto` (`==∗`), `addrs_set_proto` | `addr_set_proto`, `addrs_set_proto` (`={E}=∗`, with `regCtx`) |
+| `addrTok a`, `addrTokG` (exclusive; `Listen` needs it) | `addrTok a` (persistent); `Listen.spec` needs `listenOk a` (`addrTok_ok`) and the listening token(s) (`listen_au`, `listen_lis_au`) |
+| `addrUnset a`, `addrUnsetG` | `addrUnset a`, from the start: `addrs_start` (the kits' bridge, `robust_of_distBoot`); for a wildcard port, `lisUnset la` (`addrs_lis_start`) |
+| `addr_set_proto` (`==∗`), `addrs_set_proto` | `addr_set_proto`, `addrs_set_proto` (`={E}=∗`, with `regCtx`); `lis_set_proto` (every address of a wildcard's port: `lisProto la P Q`, `lisProto_addr`) |
 | `sendTok`, `recvTok`, `connEnd` | the same; a `Read` gives `recvTokL` (`recvTokL_later`, or a credit) |
 | `connFresh`, `connFresh_excl` | the same (timeless, `⊢ False`) |
 | `sentLb`, `sendTok_sentLb` (no visible use) | `sentLb`, `sendTok_sentLb`, `recvTok_sentLb`, `sendTok_sentLb_prefix` |
 | `recvTok_proto`, `protoPrefix`, `ProtoPrefixClosed`, `protoPrefix_closed`, `recvTok_proto_closed` | the same |
-| `newConnResult` (`Dial`/`Accept`'s post) | `Dial.spec`/`Listener.Accept.spec`'s post (`isConn c cn s a ∗ Qok cn`) with `Qok` from `dial_au`/`accept_au`/`accept_shared_au` (`connEnd ∗ connFresh`) |
+| `newConnResult` (`Dial`/`Accept`'s post) | `Dial.spec`/`Listener.Accept.spec`'s post (`isConn c cn s a ∗ Qok cn`; `Accept`'s `Qok a cn`, `a` the address dialed) with `Qok` from `dial_au`/`accept_au`/`accept_shared_au`/`accept_lis_au`/`accept_lis_shared_au` (`connEnd ∗ connFresh`) |
 | `connErr`, `opErr`, `opResult` (codes) | the specs' `resErr`/`ReadErr` (kinds `closed`, `timeout`, `sys`; EOF a `ReadRes`) |
 | `ownTCPConn c cid side` | `connAt t cn s a la ra`/`isConn c cn s a` (`Net/Proof/net/Base.lean`) with `connIs cn` |
-| `ownListener l lid a`, `listening` | `isListener`/`lisAt` with `netLisAt`, and `netLis` (owned) or `lisInv` (shared) |
+| `ownListener l lid a`, `listening` | `isListener`/`lisAt` with `netLisOn` (`netLisAt` at a valid address), and `netLis` (owned) or `lisInv` (shared) |
 | `nodeIp ip` | the machine's host in `DistBootWp` (`Net/Statement/DistBridge.lean`) |
 | `net.TCPConn.Read.wp_proof` | `net.Conn.Read.wp_proof` + `read_au` |
 | `net.TCPConn.Write.wp_proof` | `net.Conn.Write.wp_proof` + `writeP`, `writeP_init`, `write_acc` |
 | `net.TCPConn.Close.wp_proof` | `net.Conn.Close.wp_proof` + `close_au` |
 | `net.TCPConn.Set{,Read,Write}Deadline.wp_proof` | `net.Conn.Set{,Read,Write}Deadline.wp_proof` + `deadline_au` |
 | `net.TCPConn.Set{ReadBuffer,WriteBuffer,KeepAlive,KeepAlivePeriod}.wp_proof` | `net.TCPConn.Set*.wp_proof` + `sockopt_au` |
-| `net.TCPListener.Accept.wp_proof` | `net.Listener.Accept.wp_proof` + `accept_au`/`accept_shared_au` |
+| `net.TCPListener.Accept.wp_proof` | `net.Listener.Accept.wp_proof` + `accept_lis_au`/`accept_lis_shared_au` (any listener, a wildcard's included); at a valid address `Listener.Accept.spec_addrOk` + `accept_au`/`accept_shared_au` |
 | `net.TCPListener.Close.wp_proof` | `net.Listener.Close.wp_proof` + `lisClose_au` (shared) |
 | `net.Dial.wp_proof`, `net.DialTimeout.wp_proof`, `DialNet` | `net.Dial.wp_proof`/`DialTimeout.wp_proof` (`tcpNet nw`) + `dial_au`, `addrProto_tok` |
-| `net.Listen.wp_proof`, `ListenWild`, `ListenNet` | `net.Listen.wp_proof` (`ListenAt`: an address itself or a wildcard, D21) + `addrTok_listenAt` |
+| `net.Listen.wp_proof`, `ListenWild`, `ListenNet` | `net.Listen.wp_proof` (`listenOk`: a valid address or a wildcard, D21; `tcpNet nw`) + `listen_lis_au` (a wildcard's port, from `lisProto`); at a valid address `Listen.spec_addrOk` + `listen_au` (2026-11-23). Not `ListenWild`'s shape: the model has no node IP, so a wildcard listener is not "the listener at this node's `ip:port`"; the kits' distinct port per node makes `lisProto` per port do |
 | `isConnP`, `isListener`, `connEnd_isConnP`, `listening` (no visible use) | `connIs`, `sendTok_connIs` |
 | `ownSlice_take_acc` (`NetLib.lean`, netprobe) | not ported (a slice lemma: Perennial's, or the kit's) |
 | `safeDist_of_wp`, `safeDist_of_bootAt`, `NodeBootWpAt`, `addrs_set_proto` (`SafeDist.lean`) | `Net/Statement/DistBridge.lean`: `robust_of_distBoot`, `robust_of_distProto`, `DistBootWp` (the statement `Robust`, below) |

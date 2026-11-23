@@ -37,7 +37,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev runner.apply.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)] (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames)
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64) (h : Loc) (γh : HistNames)
     (ops : List OpM) (i : Nat) (mp : Loc) (m : MemberNames) (f : GoFunc) (v : MemS)
     (qw : Qp) (nw k : Nat) (p : Loc) (o : OpM) (lead : Bool),
   ops[v.ops]? = some o → logOk ks ops → 1 ≤ nw → (o.kind = kGrant → 1 ≤ k) → ops.length < 2 ^ 38 →
