@@ -127,11 +127,26 @@ the shared piece lands; none is an axiom.
   take it with these classes, or the abstract predicates could be `False`). When Net's piece lands:
   replace `RpcHttpAddr.rpcAddrP` by Net's `rpcAddrP`, the class fields by Net's specs, and drop the
   classes.
-- **H5. The generated codec**: the kit's `rpcEncode`/`rpcDecode` meet a `CodecSpec` (`encOk`/`decOk`,
-  `decErr`), and `rpcReceiver`'s methods (`NewArg`, `NewReply`, `Call` through the bindings) meet
-  `methodOk` for `nodeSpec`/`coordSpec` (the lab's `Methods.lean`). Per-kit proofs of rpcgen output
-  exist nowhere yet (plan 5.2: "no kit's codec is proved"); the lab's `Codec/`, `Dispatch/` are for its
-  own codec and are rewritten, not edited.
+- **H5. The generated codec: encoding proved; decoding as stated is FALSE (design finding, needs
+  Net).** `Craq/CodecProof.lean` (2026-11-23) proves, from `rpc_gen.go`'s translation, the seven
+  `enc_*` fields of `CodecLaws` (`enc_string`, `enc_EmptyArgs`, `enc_NodeMeta`, `enc_CommitArgs`,
+  `enc_WriteArgs`, `enc_ClientWriteArgs`, `enc_PropagateRequest`), with the helpers `wp_rpcPutU64`,
+  `wp_rpcPutTag`, `wp_rpcEnc_t{5,6,12,11,29,4,14,18,22,28,31}`, `wp_rpcSent_t{5,6,11,29}`. **The
+  `dec_*` fields cannot be proved as stated**: they quantify over every reply `rep`, because Net's
+  `net.rpc.Client.Call.spec` (`Net/Spec/net/rpc/Client__Call.lean`) asks for `□ (D -∗ ∀ rep,
+  C.dec rep reply (Θ rep))`; but rpcgen's `rpcDecode` **panics** (`rpcNotModelled`, by design:
+  rpcgen_core.py's "documented deviations", "so that a proof that the program does not panic shows
+  they do not arise") when `rep`'s type tag parses but is not the target's type (e.g. the bytes of
+  a `string` decoded into a `*transport.Item`), and `decOk`'s postcondition has no case for a
+  panic. So no rpcgen codec listing two or more types meets Net's `Call` spec, and a statement with
+  `CodecLaws` as a premise would be vacuous. Net's `Call` spec must ask for decoding only of the
+  replies the protocol allows (the server's answer for this call: `Φ rep []`, or at least its tag),
+  e.g. `□ (D -∗ ∀ rep, ⌜replyOk rep⌝ -∗ C.dec rep reply (Θ rep))` with `replyOk` derived from the
+  method spec; the client proofs (`Netrpc/`) then pass their `Φ`'s `rep = encItem k x` etc. The
+  comment on Net's `decErr` ("The generated codec's Decode fails only with rpcErrDecode()") misses
+  the panic too. Here: the decoding lemmas will be proved under the premise that `rep`'s tag, if it
+  parses, is the target's (`dec_*` restated), and the `∀ rep` gap stays open until Net changes.
+  The server side (decoding a request's arguments, encoding replies) is not in `CodecLaws` yet.
 - **H6. Perennial's `log`**: `*log.Logger`'s `Printf`/`Println`, `log.Default`, `log.Fatalf`, and
   `log.Printf` with error arguments (`notes/perennial-changes.md`, 2026-11-23). The node and the
   coordinator call them.
