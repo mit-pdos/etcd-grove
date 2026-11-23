@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,
+  `rafthttp.NewRoundTripper.spec` (plan: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`).
+- **Defect.** Too weak for a user: on success the post gives only `http.roundTripperOk H rt`, not the
+  round tripper's dynamic type, so `bootstrap`'s proof cannot establish `bootOk`'s
+  `"%Hprt" ∷ ⌜∃ t : Loc, bs.prt' = GoInterface.ok ⟨PointerType http.Transport.ty, #t⟩⌝`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), which `NewServer`/`LeaseRenew` use.
+- **Evidence.** `server/etcdserver/api/rafthttp/util.go:47-51` (pin `edc800c6f`):
+  `func NewRoundTripper(...) (http.RoundTripper, error) { return transport.NewTimeoutTransport(tlsInfo, dialTimeout, 0, 0) }`;
+  `client/pkg/transport/timeout_transport.go:27`: `func NewTimeoutTransport(...) (*http.Transport, error)`.
+  `bootstrap.go:72` sets `prt` from it. `transport.NewTimeoutTransport.spec` already returns `tr : Loc`
+  with `roundTripperOk H (interface.mkOk (PointerType http.Transport.ty) #tr)`, so no callee spec moves.
+- **Proposed change.** The success disjunct becomes `⌜err = GoInterface.nil⌝ ∗ http.roundTripperOk H rt ∗
+  ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType http.Transport.ty, #t⟩⌝` (everything it gave
+  kept). Re-proved in `Proof/.../rafthttp/NewRoundTripper.lean` over `NewTimeoutTransport`'s unchanged
+  spec (no new axiom, no trusted file). Consumer updated: `Proof/.../rafthttp/TransportStart.lean`
+  (drops the new conjunct); `TransportState`, `TransportSpecs`, `Transport__Start`, `Link` pass the spec
+  through unchanged.
+- **Decision.** Approved for claim #34 by the coordinator (2026-11-23); applied on branch
+  `bootstrap-proof/2026-11-23`.
+
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
 - **Spec.** `models/net/rpc/codec.go` (the model, trusted): `serverCodec` gains `rerr`, the first frame read
