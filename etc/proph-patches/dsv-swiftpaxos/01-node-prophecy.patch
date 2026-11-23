@@ -1,0 +1,354 @@
+diff --git a/client/buffer.go b/client/buffer.go
+index 6b9ffd4..bd9d38a 100644
+--- a/client/buffer.go
++++ b/client/buffer.go
+@@ -8,6 +8,7 @@ import (
+ 	"time"
+ 
+ 	"github.com/google/uuid"
++	"github.com/goose-lang/primitive"
+ 	"github.com/imdea-software/swiftpaxos/replica/defs"
+ 	"github.com/imdea-software/swiftpaxos/state"
+ )
+@@ -75,14 +76,18 @@ func (c *BufferClient) RegisterReply(val state.Value, seqnum int32) {
+ }
+ 
+ func (c *BufferClient) Write(key int64, val []byte) {
++	resolveInvoke(uint8(state.PUT), c.ClientId, c.seqnum+1, key, val)
+ 	c.SendWrite(key, val)
+ 	<-c.Reply
++	resolveAccept(c.ClientId, c.seqnum, nil)
+ 	return
+ }
+ 
+ func (c *BufferClient) Read(key int64) []byte {
++	resolveInvoke(uint8(state.GET), c.ClientId, c.seqnum+1, key, nil)
+ 	c.SendRead(key)
+ 	r := <-c.Reply
++	resolveAccept(c.ClientId, c.seqnum, r.Val)
+ 	return r.Val
+ }
+ 
+@@ -219,3 +224,55 @@ func (c *BufferClient) randomTrue(prob int) bool {
+ 	}
+ 	return false
+ }
++
++// The node's prophecy (prophecy-only code: etc/proph-patches/dsv-swiftpaxos). It predicts the
++// node's protocol events; each event resolves it once, with one value: the string of the event's
++// words (the Lean project's Spec/swift/L2Words.lean, `encE`), each word as ten one-byte strings,
++// its 7-bit chunks from the lowest. A client node's events are its
++// invocations and acceptances; a replica node's are swift's (its own `nodeProph`).
++var nodeProph primitive.ProphId
++
++func init() {
++	p := primitive.NewProph()
++	nodeProph = p
++}
++
++// resolveInvoke: client cl invokes command seq, (op, key, val) (prophecy-only). The words: op, cl,
++// seq, key, len(val), val's bytes.
++func resolveInvoke(op uint8, cl int32, seq int32, key int64, val []byte) {
++	s := ""
++	w := uint64(op)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(cl))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(seq))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(key)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(len(val))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	for i := 0; i < len(val); i++ {
++		w = uint64(val[i])
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	}
++	nodeProph.Resolve(s)
++}
++
++// resolveAccept: client cl accepts command seq's result val (prophecy-only). The words: 3, cl,
++// seq, len(val), val's bytes.
++func resolveAccept(cl int32, seq int32, val []byte) {
++	s := ""
++	w := uint64(3)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(cl))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(seq))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(len(val))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	for i := 0; i < len(val); i++ {
++		w = uint64(val[i])
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	}
++	nodeProph.Resolve(s)
++}
+diff --git a/swift/recovery.go b/swift/recovery.go
+index df5babb..a54a384 100644
+--- a/swift/recovery.go
++++ b/swift/recovery.go
+@@ -6,6 +6,7 @@ import (
+ 	"sync"
+ 	"time"
+ 
++	"github.com/goose-lang/primitive"
+ 	"github.com/imdea-software/swiftpaxos/replica"
+ 	"github.com/imdea-software/swiftpaxos/replica/defs"
+ 	"github.com/imdea-software/swiftpaxos/state"
+@@ -31,6 +32,7 @@ func (r *Replica) handleNewLeader(msg *MNewLeader) {
+ 	r.ballotL.Lock()
+ 	r.ballot = msg.Ballot
+ 	r.ballotL.Unlock()
++	resolveNewBallot(msg.Ballot)
+ 	r.recStart = time.Now()
+ 
+ 	newLeaderAckN := &MNewLeaderAckN{
+@@ -93,6 +95,7 @@ type recEntry struct {
+ 
+ func (r *Replica) handleNewLeaderAckNs(_ interface{}, msgs []interface{}) {
+ 	sync := r.recoveredSync(msgs)
++	resolveComputeSync(r.ballot, msgs)
+ 	r.sender.SendToAll(sync, r.cs.syncRPC)
+ 	r.handleSync(sync)
+ }
+@@ -536,6 +539,7 @@ func (r *Replica) fillNewLeaderAckN(newLeaderAckN *MNewLeaderAckN) {
+ 		newLeaderAckN.Cmds = append(newLeaderAckN.Cmds, cmd)
+ 		newLeaderAckN.Deps = append(newLeaderAckN.Deps, dep)
+ 	}
++	resolveReport(newLeaderAckN)
+ }
+ 
+ // syncEntry gives a descriptor its command as an MSync has it; the
+@@ -613,6 +617,7 @@ func (r *Replica) handleSync(msg *MSync) {
+ 	}
+ 	r.repchan = NewReplyChan(r)
+ 	r.historySize = 0
++	resolveTakeSync(msg.Ballot)
+ 
+ 	// the new ballot's acceptances: the MSync's commands (N2)
+ 	r.acceptL.Lock()
+@@ -711,6 +716,7 @@ func (r *Replica) handleSyncEntry(e *syncEntry, desc *commandDesc, cmdId Command
+ 	desc.dep = e.dep
+ 	desc.proposeDep = e.dep
+ 	desc.phase = COMMIT
++	resolveCommit(r.ballot, cmdId)
+ 	for _, d := range e.dep {
+ 		depDesc := r.getCmdDesc(d, nil, nil)
+ 		if depDesc == nil {
+@@ -795,3 +801,163 @@ func (r *Replica) reinitNewLeaderAckNs(b int32) {
+ 	Q := replica.NewMajorityOf(r.N)
+ 	r.newLeaderAckNs = r.newLeaderAckNs.ReinitMsgSet(Q, accept, free, r.handleNewLeaderAckNs)
+ }
++
++// The node's prophecy (prophecy-only code: etc/proph-patches/dsv-swiftpaxos). It predicts the
++// node's protocol events; each event resolves it once, with one value: the string of the event's
++// words (the Lean project's Spec/swift/L2Words.lean, `encE`), each word as ten one-byte strings,
++// its 7-bit chunks from the lowest. A replica node's events are
++// these; a client node's are the client package's (its own `nodeProph`).
++var nodeProph primitive.ProphId
++
++func init() {
++	p := primitive.NewProph()
++	nodeProph = p
++}
++
++// resolveHandle: replica handles command id (c) in ballot b (prophecy-only).
++func resolveHandle(b int32, id CommandId, c state.Command) {
++	s := ""
++	w := uint64(4)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(b)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.ClientId))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.SeqNum))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(c.Op)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(c.K)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(len(c.V))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	for k := 0; k < len(c.V); k++ {
++		w = uint64(c.V[k])
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	}
++	nodeProph.Resolve(s)
++}
++
++// resolvePreaccept: replica pre-accepts id in ballot b with dependencies dep (prophecy-only).
++func resolvePreaccept(b int32, id CommandId, dep []CommandId) {
++	s := ""
++	w := uint64(5)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(b)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.ClientId))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.SeqNum))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(len(dep))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	for j := 0; j < len(dep); j++ {
++		w = uint64(uint32(dep[j].ClientId))
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		w = uint64(uint32(dep[j].SeqNum))
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	}
++	nodeProph.Resolve(s)
++}
++
++// resolveAccept: replica accepts id in ballot b (prophecy-only).
++func resolveAccept(b int32, id CommandId) {
++	s := ""
++	w := uint64(6)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(b)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.ClientId))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.SeqNum))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	nodeProph.Resolve(s)
++}
++
++// resolveCommit: replica commits id in ballot b (prophecy-only).
++func resolveCommit(b int32, id CommandId) {
++	s := ""
++	w := uint64(7)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(b)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.ClientId))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(uint32(id.SeqNum))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	nodeProph.Resolve(s)
++}
++
++// resolveNewBallot: replica moves to ballot b (prophecy-only).
++func resolveNewBallot(b int32) {
++	s := ""
++	w := uint64(8)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(b)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	nodeProph.Resolve(s)
++}
++
++// resolveReport: replica reports m for m's ballot (prophecy-only).
++func resolveReport(m *MNewLeaderAckN) {
++	s := ""
++	w := uint64(9)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(m.Ballot)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(m.Cballot)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(len(m.CmdIds))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	for i := 0; i < len(m.CmdIds); i++ {
++		w = uint64(uint32(m.CmdIds[i].ClientId))
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		w = uint64(uint32(m.CmdIds[i].SeqNum))
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		w = uint64(m.Phases[i])
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		w = uint64(m.Cmds[i].Op)
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		w = uint64(m.Cmds[i].K)
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		w = uint64(len(m.Cmds[i].V))
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		for k := 0; k < len(m.Cmds[i].V); k++ {
++			w = uint64(m.Cmds[i].V[k])
++			s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		}
++		w = uint64(len(m.Deps[i].Dep))
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		for j := 0; j < len(m.Deps[i].Dep); j++ {
++			w = uint64(uint32(m.Deps[i].Dep[j].ClientId))
++			s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++			w = uint64(uint32(m.Deps[i].Dep[j].SeqNum))
++			s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++		}
++	}
++	nodeProph.Resolve(s)
++}
++
++// resolveComputeSync: ballot b's leader computes its MSync from the reports msgs (prophecy-only).
++func resolveComputeSync(b int32, msgs []interface{}) {
++	s := ""
++	w := uint64(10)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(b)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(len(msgs))
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	for i := 0; i < len(msgs); i++ {
++		w = uint64(msgs[i].(*MNewLeaderAckN).Replica)
++		s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	}
++	nodeProph.Resolve(s)
++}
++
++// resolveTakeSync: replica takes ballot b's MSync (prophecy-only).
++func resolveTakeSync(b int32) {
++	s := ""
++	w := uint64(11)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	nodeProph.Resolve(s)
++}
+diff --git a/swift/swift.go b/swift/swift.go
+index 452a2a6..99eaf92 100644
+--- a/swift/swift.go
++++ b/swift/swift.go
+@@ -451,6 +451,7 @@ func (r *Replica) handleProposal(propose *defs.GPropose) {
+ 		delete(r.pendingHashUpds, cmdId)
+ 		r.recordLeaderHash(cmdId, upd.seqnum, upd.hash)
+ 	}
++	resolveHandle(r.ballot, cmdId, propose.Command)
+ 	// FIXME: leader can receive fastAck before Propose,
+ 	//        in this case desc is not seq
+ 	// SWB-11: the dependencies, hashes and number go with the proposal to
+@@ -533,6 +534,9 @@ func (r *Replica) handlePropose(pm *proposeMsg, desc *commandDesc, cmdId Command
+ 
+ 	desc.propose = msg
+ 	desc.cmd = msg.Command
++	if desc.phase == COMMIT { // prophecy-only: unreachable (nonissues/e1), the deferred commit
++		resolveCommit(r.ballot, cmdId)
++	}
+ 
+ 	if !r.FQ.Contains(r.Id) {
+ 		desc.afterPropagate.Recall()
+@@ -541,6 +545,7 @@ func (r *Replica) handlePropose(pm *proposeMsg, desc *commandDesc, cmdId Command
+ 
+ 	desc.dep = desc.proposeDep
+ 	desc.phase = PRE_ACCEPT
++	resolvePreaccept(r.ballot, cmdId, desc.dep)
+ 	// Verification workaround (P5, no reachable behaviour change): the fast ack's fields are
+ 	// read before Recall. Recall's stored closures change desc.dep only together with
+ 	// desc.slowPath = true (a follower adopting the leader's dependencies), and then the
+@@ -642,6 +647,7 @@ func (r *Replica) fastAckFromLeader(msg *MFastAck, desc *commandDesc) {
+ 		defer r.markAccepted(msg.CmdId, desc.seq)
+ 
+ 		desc.phase = ACCEPT
++		resolveAccept(msg.Ballot, msg.CmdId)
+ 		dep := Dep(msg.Dep)
+ 		hs := desc.hs
+ 		neq := !desc.dep.Equals(dep)
+@@ -769,6 +775,12 @@ func getFastAndSlowAcksHandler(r *Replica, desc *commandDesc) replica.MsgSetHand
+ 		leaderFastAck := leaderMsg.(*MFastAck)
+ 
+ 		desc.phase = COMMIT
++		// prophecy-only (D92): resolved only once the proposal is installed; otherwise
++		// handlePropose's deferred resolveCommit resolves it (unreachable in Go:
++		// nonissues/e1 in the Lean project).
++		if desc.propose != nil {
++			resolveCommit(leaderFastAck.Ballot, leaderFastAck.CmdId)
++		}
+ 
+ 		for _, depCmdId := range desc.dep {
+ 			depDesc := r.getCmdDesc(depCmdId, nil, nil)
