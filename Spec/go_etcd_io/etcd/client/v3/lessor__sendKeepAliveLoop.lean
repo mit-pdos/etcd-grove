@@ -31,7 +31,7 @@ abbrev lessor.sendKeepAliveLoop.spec : Prop :=
     (cd : context.ContextDesc (IProp GF)) (L : List KaReqM),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorAt l [addr] ∗
       cliBidiStreamIs st γ pbLeaseKeepAliveRequest pbLeaseKeepAliveResponse
-        Up Dn cd ∗ kaUpZero Up ∗
+        Up Dn cd anyRes ∗ kaUpZero Up ∗
       cliSendTok (Req := pbLeaseKeepAliveRequest) γ L }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"sendKeepAliveLoop")) (Val #st))
   {{ RET #(); True }}

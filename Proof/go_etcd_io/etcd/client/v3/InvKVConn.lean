@@ -1441,7 +1441,7 @@ def etcdInterceptorOk (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         □ ▷ attemptPre conn om Spec m Φ Ψe ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗ Req.send inp m ∗ Rep.blank out ∗
         opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
       (interceptorCall ic #(GoInterface.ok ctx) #method
@@ -1486,7 +1486,7 @@ def etcdInterceptorOkM (md : AttemptMode) (ic : GoFunc) : IProp GF :=
       (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (inp out : Loc) (opts : GoSlice)
       (vs : List GoInterface),
-    {{ grpcConn conn addr ics dopts ∗ grpcInvokerOk conn addr inv ∗ isGrpcRpcsMd addr method Spec ∗
+    {{ grpcConn conn addr ics dopts anyRes ∗ grpcInvokerOk conn addr anyRes inv ∗ isGrpcRpcsMd addr method Spec ∗
         modePre md method addr vs (attemptPre conn om Spec m Φ Ψe) ∗ ctxOk ctx cd ∗
         metadata.outMD ctx om ∗
         Req.send inp m ∗ Rep.blank out ∗ opts ↦*□ vs ∗ callOptsOk vs ∗ ⌜Req.wireLen m < grpcMsgMax⌝ }}
@@ -1536,7 +1536,7 @@ theorem etcdInterceptorOkM_split (ic : GoFunc) :
 file header): grpc's connection with one unary interceptor, the client's retry interceptor
 (`etcdInterceptorOk`), and no default call options. -/
 def isEtcdConn (conn : Loc) (addr : List GoString) : IProp GF :=
-  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] ∗ etcdInterceptorOk ic ∗
+  iprop(∃ ic : GoFunc, grpcConn conn addr [ic] [] anyRes ∗ etcdInterceptorOk ic ∗
     -- (2026-10-21, D29) a write on a refusal-free connection: ordinary, whatever the bound
     etcdInterceptorOkW ic)
 

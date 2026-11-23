@@ -4,7 +4,8 @@ Package initialization of `go_etcd_io.etcd.server.v3.storage.wal.walpb`
 
 Its fact (`walpbInit`, `PkgInit.lean`): `ErrCRCMismatch` holds for good an error whose `Error()`
 returns (`errOk`) and on which `errors.Is` returns for every pointer target (`errIsTerm`: an `*errorString`
-leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated `errors.New` call, record.go;
+leaf, `errIsTerm_errorString`), an `*errorString` whose field holds its message (2026-11-22, `WalDecEnvSupply`'s
+proof: it differs from `io.EOF`). Its initializer stores that error (a translated `errors.New` call, record.go;
 Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
 initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.
@@ -72,7 +73,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrCRCMismatch))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xC ⟨#_, #EC⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xC ⟨#ECc, #EC⟩
   try wp_auto
   -- the translated init.«0»
   wp_func_call
@@ -90,8 +91,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   unfold EtcdGrove.walpb.walpbInit
   iexists _
   iframe HErrCRCMismatch TC
-  iapply EtcdGrove.errorString_errOk
-  iexact EC
+  isplitl
+  · iapply EtcdGrove.errorString_errOk
+    iexact EC
+  iexists xC
+  iframe ECc
+  ipureintro
+  rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

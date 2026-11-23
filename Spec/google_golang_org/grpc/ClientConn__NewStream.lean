@@ -61,30 +61,38 @@ stream interceptor is etcd's (`dialOk`). Since stage A of the per-type models (2
 request's and the reply's models are the ones registered for their Go types (`streamReqModelOf`,
 `streamRepModelOf`). (errdesc stage 1, 2026-11-20) The attempt's metadata is over the context's outgoing
 metadata `om`, which the precondition relates to `ctx` (`metadata.outMD ctx om`); until then over the
-pure `metadata.outgoingOf ctx`. -/
+pure `metadata.outgoingOf ctx`. Since 2026-11-23 (#24's S2 signatures, the resource parameter): the
+caller gives a resource `R` of the connection's family (`Ok R`, `grpcConn`'s), which comes back with
+the result; grpc-go v1.84 lends it to the per-RPC credentials, which `newClientStream` calls on the
+caller's goroutine for the stream's first attempt and for each transparent retry of its creation
+(`stream.go:495-508`, `clientStream.withRetry`); etcd's stream interceptor (inside the boundary)
+reaches them only on that goroutine too, through grpc's streamer and through its `getToken`'s
+`Authenticate` call (a unary call on the same connection). The stream's later operations take their
+own (`cliStreamIs … Ok`). -/
 abbrev grpc.ClientConn.NewStream.spec : Prop :=
-  ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (method : GoString)
-    (Req Rep : StreamMsgT GF),
+  ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (Ok : IProp GF → Prop)
+    (method : GoString) (Req Rep : StreamMsgT GF),
     streamReqModelOf GF Req.ty = some Req → streamRepModelOf GF Rep.ty = some Rep →
   ∀ (Up : GoString → Nat → Req.M → IProp GF)
     (Spec : GoString → GrpcMd → StreamSpec Rep.toStreamMsg) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (om : GrpcMd) (desc : Loc) (opts : GoSlice)
-    (vs : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics [] ∗
+    (vs : List GoInterface) (R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics [] Ok ∗
+      ⌜Ok R⌝ ∗ R ∗
       isGrpcStreamsMd addrs method Up Spec ∗ ctxOk ctx cd ∗ metadata.outMD ctx om ∗
       (∃ d : google_golang_org.grpc.StreamDesc, desc ↦□ d ∗ ⌜d.ClientStreams' = true⌝) ∗
       opts ↦*□ vs ∗ streamCallOptsOk vs }}
     (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"NewStream"))
       (Val #(GoInterface.ok ctx))) (Val #desc)) (Val #method)) (Val #opts))
-  {{ (cs err : GoInterface), RET (PairV #cs #err);
-      (⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
+  {{ (cs err : GoInterface), RET (PairV #cs #err); R ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ∃ (a : GoString) (γ : StreamNames) (Dn : Nat → Rep.M → IProp GF)
           (cd' : context.ContextDesc (IProp GF)) (md : GrpcMd),
         ⌜a ∈ addrs ∧ clientAttemptMd conn om md⌝ ∗
-        cliStreamIs cs γ Req.toStreamMsg Rep.toStreamMsg (Up a) Dn cd' ∗
+        cliStreamIs cs γ Req.toStreamMsg Rep.toStreamMsg (Up a) Dn cd' Ok ∗
         cliSendTok (Req := Req.toStreamMsg) γ [] ∗ cliRecvTok (Rep := Rep.toStreamMsg) γ [] ∗
         Spec a md γ Dn) ∨
-      (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err) }}
+      (⌜cs = GoInterface.nil⌝ ∗ cliStreamErr err)) }}
 
 end spec
 

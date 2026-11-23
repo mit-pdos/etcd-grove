@@ -207,7 +207,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   ihave #Hpb : (EtcdGrove.walpb.walpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd11
-  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT⟩
+  icases Hpb with ⟨%eC, #HpbC, #HpbOk, #HpbT, -⟩
   try wp_auto
   -- translated initializer of ErrSnapshotMismatch))
   try wp_auto

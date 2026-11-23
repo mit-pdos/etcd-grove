@@ -244,7 +244,8 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     (htw : walNameP tmp = false) (hnw : walNameP nm = false)
     (hlj : lay.j = J) (hX : ∀ b ∈ X, walNameP b = false)
     (hsn : SegsNamed lay.segs hJ.cur) (hJC : SegsNamedC lay.segs hJ.cur)
-    (hJcoh : ClaimCoh hJ J (.except X)) (hJn : ∀ xe ∈ hJ.ents, xe.1 < n) (hpg : lay.pg = []) :
+    (hJcoh : ClaimCoh hJ J (.except X)) (hJn : ∀ xe ∈ hJ.ents, xe.1 < n) (hpg : lay.pg = [])
+    (hA : WalsAt jr Ls cl) (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
     WalsNamed (<[dir := lay]> Ls)
       (createClaims cl jr N h x (renDirEnt jr tmp nm J st) (renCur N h tmp nm J) J X hJ) n := by
   classical
@@ -257,7 +258,19 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     rw [GMap.lookup_insert_eq] at hl'
     simp only [Option.some.injEq] at hl'
     subst hl'
-    refine ⟨fun hj' hWc => ?_, fun m' hr => ?_⟩
+    refine ⟨fun hj' hWc => ?_, fun m' hr => ?_, fun N' hj' hm => ?_⟩
+    rotate_left 2
+    · rcases mem_createClaims_cases hm with he | he | ⟨hm', -⟩
+      · rw [Prod.mk.injEq, Prod.mk.injEq] at he
+        obtain ⟨-, rfl, rfl⟩ := he
+        rw [hlj]
+        refine HistFoP.of_coh hJcoh hJn (fun b _ _ J' hd => ?_)
+        cases hb : walNameP b
+        · rw [hJo b hb] at hd; cases hd
+        · obtain ⟨i, hi⟩ := hsn.2 b _ hb hd; cases hi
+      · rw [Prod.mk.injEq] at he; exact absurd (hlj.symm.trans he.1) hJjr
+      · intro K _ b hb hP J'
+        exact absurd hb (hJc _ hm' hlj b hP)
     · obtain ⟨X', hX', hm, -⟩ := hWc
       rcases mem_createClaims_cases hm with he | he | ⟨hm', -⟩
       · simp only [Prod.mk.injEq] at he; rw [he.2.2]; exact hsn
@@ -281,8 +294,13 @@ theorem walsNamed_create {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino}
     obtain ⟨lay1, -, hj0, hl1, -, -, -, ⟨X0, hX0, hm0, -⟩, -, -⟩ := hok.1 dir' d' hd'
     rw [hl'] at hl1; simp only [Option.some.injEq] at hl1; subst hl1
     have hjJ : lay'.j ≠ J := fun e => hJc _ hm0 e b0 (not_walTmps_of_wal hb0) (hexc X0 hX0)
-    obtain ⟨h1, h2⟩ := hW dir' lay' hl'
-    refine ⟨fun hj' hWc => ?_, fun m' hr => ?_⟩
+    obtain ⟨h1, h2, h3⟩ := hW dir' lay' hl'
+    refine ⟨fun hj' hWc => ?_, fun m' hr => ?_, fun N' hj' hm => ?_⟩
+    rotate_left 2
+    · rcases mem_createClaims_cases hm with he | he | ⟨hm', -⟩
+      · rw [Prod.mk.injEq] at he; exact absurd he.1 hjJ
+      · rw [Prod.mk.injEq] at he; exact absurd he.1 (hA.ne hl')
+      · exact h3 N' hj' hm'
     · obtain ⟨X', hX', hm, hcoh'⟩ := hWc
       rcases mem_createClaims_cases hm with he | he | ⟨hm', -⟩
       · simp only [Prod.mk.injEq] at he; exact absurd he.1 hjJ
@@ -502,14 +520,15 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
     (hX : ∀ b ∈ X, walNameP b = false) (hsegs : lay.segs = [g]) (hpg : lay.pg = [])
     (hino : ∀ g' ∈ segsAll Ls, g'.ino ≠ g.ino)
     (hJo : ∀ b, walNameP b = false → hJ.cur !! b = none) :
-    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o ==∗
+    ⊢ walParked (L := L) (W := W) Ls cl F -∗ walOutFrag (W := W) o -∗
+      walTmpsHalf (hG := ⟨G, L⟩) J ==∗
       walParked (L := L) (W := W) (<[dir := lay]> Ls)
         (replClaim (jr, N, h) (jr, N, h') cl ++ [(J, NameSet.except X, hJ)]) (GMap.delete g.ino F) ∗
       walOutFrag (W := W) (o.create g.ino J X dir) := by
   classical
   have ⟨_, _, _, b0, hb0, hNb0⟩ := hnew
   unfold walParked
-  iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho
+  iintro ⟨%b, %o', Ha, Hoa, %hp, Hs, Hc, Ht, Hw⟩ Ho Hth
   icases walOut_agree (W := W) o' o $$ Hoa Ho with %ho
   subst ho
   imod walOut_set (W := W) o' o' (o'.create g.ino J X dir) $$ Hoa Ho with ⟨Hoa, Ho⟩
@@ -571,8 +590,9 @@ theorem walParked_create (Ls : GMap GoString WalLay) (cl : List Claim) (F : GMap
           osNames (L := L) c.1 c.2.1 (DFrac.own (1 : Qp).half) c.2.2 else emp))).2
       rw [if_neg (fun hp => hp.2 (List.mem_cons_self ..))]
       iempintro
-  isplitl [Ht]
-  · iapply walTmpParked_create Ls o'.T dir lay $$ Ht
+  isplitl [Ht Hth]
+  · iapply walTmpParked_create Ls o'.T dir lay $$ [$Ht Hth]
+    rw [hlj]; iexact Hth
   · iapply walOthersL_create (L := L) Ls cl o'.D CR jr dir N h h' J X hJ lay hnew hlj hJo $$ Hw
 
 end iris

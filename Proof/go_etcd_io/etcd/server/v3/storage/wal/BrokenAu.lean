@@ -100,6 +100,7 @@ theorem brokenCommit_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino
       rw [hbtw] at hb; cases hb)
     hs (fun b _ hw => (crEnt_writes hw).2) hcur
     (fun c' hc' hne hcj => hx2.2 c' hc' hne hcj bt hbX) hbtw
+    (fun J => by rw [GMap.lookup_insert]; simp)
 
 end pure
 

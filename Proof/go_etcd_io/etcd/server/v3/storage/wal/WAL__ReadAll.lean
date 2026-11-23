@@ -56,6 +56,7 @@ public import Proof.os.Off
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreatePure
 public import Perennial.Proof.sync.Results
 public import Perennial.Proof.bytes.Equal
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecTerm
 import all Proof.go_etcd_io.etcd.server.v3.storage.wal.ReadDefs
 
 @[expose] public section
@@ -829,8 +830,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             icases HeX with ⟨%eX, #HeX, -⟩
             (try wp_auto)
             -- `w.state = proto.Clone(state)`
+            ihave %Hstpn := hHs.notNull stp st.hs $$ Hhs
             imod hHs.freeze stp st.hs ⊤ $$ Hhs with Hhs
-            wp_apply wp_CloneHs stp st.hs $$ [Hhs] as %m ⟨%p', %hm', Hhs⟩
+            wp_apply wp_CloneHs stp st.hs Hstpn $$ [Hhs] as %m ⟨%p', %hm', Hhs⟩
             · iexact Hhs
             subst hm'
             (try wp_auto)
@@ -900,8 +902,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             obtain ⟨hmdσ, hhsσ, hentsσ⟩ := hrσ
             (try wp_auto)
             -- `w.state = proto.Clone(state)`
+            ihave %Hstpn := hHs.notNull stp st.hs $$ Hhs
             imod hHs.freeze stp st.hs ⊤ $$ Hhs with #Hhs
-            wp_apply wp_CloneHs stp st.hs $$ [Hhs] as %m ⟨%p', %hm', #Hhs'⟩
+            wp_apply wp_CloneHs stp st.hs Hstpn $$ [Hhs] as %m ⟨%p', %hm', #Hhs'⟩
             · iexact Hhs
             subst hm'
             (try wp_auto)
@@ -1644,7 +1647,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             ihave #Hde := Hdenv
             iunfold decEnv at Hde
             icases Hde with ⟨-, -, #Hfmt, -, -, #Heof, -, -, -, ⟨%ecm, #Hcm, #Hcmok, #Hcmnot⟩, -⟩
-            wp_apply wp_Validate «$r0_ptr» r c' ecm _ eof $$ [Hr] as %verr ⟨Hr, Hv⟩
+            ihave %heofT := decEnv_eof_target _ _ _ $$ Hdenv
+            wp_apply wp_Validate «$r0_ptr» r c' ecm eof heofT $$ [Hr] as %verr ⟨Hr, Hv⟩
             · iframe Hr; iframe #
             icases Hv with (⟨%hv1, %hv2⟩ | ⟨%hne, %ei, %hei, -, -⟩)
             · subst hv1

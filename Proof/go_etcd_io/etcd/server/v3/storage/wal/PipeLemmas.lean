@@ -18,6 +18,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Pipe
 public import Proof.os.OpenFileTruncLemmas
 public import Proof.path.filepath.Names
 public import Spec.os.Remove
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TmpAu
 
 @[expose] public section
 
@@ -27,7 +28,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace WalFs
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Fs
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Fs WalEnc
 
 /-! ## Pure -/
 
@@ -169,14 +170,180 @@ theorem walOpenFlag_ok :
   unfold OpenFlagsOk O_CREAT O_TRUNC O_CLOEXEC wal.walOpenFlag
   decide
 
+/-- A file's `OsMeta` and zero bytes (no mappings): the file whole, any size (`trFile i False`). -/
+theorem zerosA_trFile (i : Ino) (m : OsMeta) (hm : m.maps = ∅) (hcut : m.cut = none)
+    (hlo : m.lo ≤ m.size) (hzf : m.ZfGe) :
+    osMeta (GF := GF) i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ⊢ trFile i False := by
+  iintro ⟨Hm, Hz⟩
+  icases (osZerosA_unfold i 0 m.size (DFrac.own 1)).1 $$ Hz with ⟨%zs, %hzs, Hz⟩
+  iunfold trFile
+  iexists m, zs.map (fun c => ((0 : w8), c))
+  iframe Hm Hz
+  isplitl []
+  · iapply mcellsAny_empty m.maps hm
+  ipureintro
+  exact ⟨by simp [hzs], fun h => h.elim, hm, hcut, hlo, hzf, fun h => h.elim⟩
+
+/-! ## The pipeline names' steps under the WAL invariant (step 2 (B)) -/
+
+/-- The program's three quarters of a pipeline name's claim: half for the call, a quarter for the
+update. -/
+theorem osNames_quarters (j : Ino) (N : NameSet) (h : NamesH) :
+    osNames (GF := GF) j N (DFrac.own qTmp) h ⊢
+      osNames j N (DFrac.own (1 : Qp).half) h ∗ osNames j N (DFrac.own (1 : Qp).half.half) h :=
+  (osNames_frac (L := hG.goose_localGS) j N (1 : Qp).half (1 : Qp).half.half h).1
+
+/-- A create's history after its outcome. -/
+def crHist (j : Ino) (b : GoString) (h : NamesH) : Option (Nat × Nat × Ino) → NamesH
+  | none => h
+  | some (x, s, i) => h.log x (crEnt j b i s) (<[b := .file i]> h.cur)
+
+theorem crOut_frac (j : Ino) (b : GoString) (h : NamesH) (q1 q2 : Qp) (o : Option (Nat × Nat × Ino)) :
+    crOut (GF := GF) j b h (DFrac.own (q1 + q2)) o ⊣⊢
+      crOut j b h (DFrac.own q1) o ∗ crOut j b h (DFrac.own q2) o := by
+  cases o with
+  | none => simp only [crOut]; exact osNames_frac j _ q1 q2 h
+  | some xsi =>
+    obtain ⟨x, s, i⟩ := xsi
+    haveI : Persistent (osLogged (L := hG.goose_localGS) x (crEnt j b i s)) := by
+      unfold osLogged; infer_instance
+    simp only [crOut]
+    constructor
+    · iintro ⟨%hh, #Hl, Hn⟩
+      icases (osNames_frac j _ q1 q2 _).1 $$ Hn with ⟨H1, H2⟩
+      isplitl [H1]
+      · iframe H1 Hl; ipureintro; exact hh
+      · iframe H2 Hl; ipureintro; exact hh
+    · iintro ⟨⟨%hh, #Hl, H1⟩, ⟨-, -, H2⟩⟩
+      iframe Hl
+      isplitr
+      · ipureintro; exact hh
+      iapply (osNames_frac j _ q1 q2 _).2 $$ [$H1 $H2]
+
+theorem crOut_joinQ (j : Ino) (b : GoString) (h : NamesH) (o : Option (Nat × Nat × Ino)) :
+    crOut (GF := GF) j b h (DFrac.own (1 : Qp).half.half) o ∗
+      crOut j b h (DFrac.own (1 : Qp).half) o ⊢ crOut j b h (DFrac.own qTmp) o := by
+  iintro ⟨H1, H2⟩
+  iapply (crOut_frac (GF := GF) j b h (1 : Qp).half (1 : Qp).half.half o).2 $$ [$H1 $H2]
+
+theorem crOut_tmpSplit (j : Ino) (b : GoString) (h : NamesH) (o : Option (Nat × Nat × Ino)) :
+    crOut (GF := GF) j b h (DFrac.own (1 : Qp).half) o ⊢
+      osNames j (.only [b]) (DFrac.own qTmpI) (crHist j b h o) ∗
+        crOut j b h (DFrac.own (1 : Qp).half.half) o := by
+  have e := (crOut_frac (GF := GF) j b h (1 : Qp).half.half (1 : Qp).half.half o).1
+  rw [Qp.half_add_half] at e
+  refine e.trans ?_
+  cases o with
+  | none => exact .rfl
+  | some xsi =>
+    obtain ⟨x, s, i⟩ := xsi
+    simp only [crOut, crHist]
+    iintro ⟨⟨-, -, H1⟩, H2⟩
+    iframe H1 H2
+
+theorem crHist_fo (j : Ino) (b : GoString) (h : NamesH) (o : Option (Nat × Nat × Ino)) (n0 : Nat)
+    (hf : HistFoP (fun _ => True) n0 j (.only [b]) h) :
+    HistFoP (fun _ => True) n0 j (.only [b]) (crHist j b h o) := by
+  cases o with
+  | none => exact hf
+  | some xsi =>
+    obtain ⟨x, s, i⟩ := xsi
+    refine HistFoP.log hf x _ _ (fun b' hb' _ _ J => ?_)
+    have e : b' = b := List.mem_singleton.1 hb'
+    subst e
+    rw [GMap.lookup_insert_eq]
+    nofun
+
+/-- An unlink's history after its outcome. -/
+def rmHist (j : Ino) (b : GoString) (i : Ino) (h : NamesH) : Option (Nat × Nat) → NamesH
+  | none => h
+  | some (x, s) => h.log x (rmFileEnt j b i s) (restrictN (.only [b]) (GMap.delete b h.cur))
+
+theorem rmFileOut_frac (j : Ino) (b : GoString) (i : Ino) (h : NamesH) (q1 q2 : Qp)
+    (o : Option (Nat × Nat)) :
+    rmFileOut (GF := GF) j b i h (DFrac.own (q1 + q2)) o ⊣⊢
+      rmFileOut j b i h (DFrac.own q1) o ∗ rmFileOut j b i h (DFrac.own q2) o := by
+  unfold rmFileOut
+  cases o with
+  | none =>
+    simp only [claimOut]
+    constructor
+    · iintro ⟨#Hl, Hn⟩
+      icases (osNames_frac j _ q1 q2 _).1 $$ Hn with ⟨H1, H2⟩
+      iframe Hl H1 H2
+    · iintro ⟨⟨#Hl, H1⟩, ⟨-, H2⟩⟩
+      iframe Hl
+      iapply (osNames_frac j _ q1 q2 _).2 $$ [$H1 $H2]
+  | some xs =>
+    obtain ⟨x, s⟩ := xs
+    simp only [claimOut]
+    constructor
+    · iintro ⟨#Hl, Hn⟩
+      icases (osNames_frac j _ q1 q2 _).1 $$ Hn with ⟨H1, H2⟩
+      iframe Hl H1 H2
+    · iintro ⟨⟨#Hl, H1⟩, ⟨-, H2⟩⟩
+      iframe Hl
+      iapply (osNames_frac j _ q1 q2 _).2 $$ [$H1 $H2]
+
+theorem rmFileOut_joinQ (j : Ino) (b : GoString) (i : Ino) (h : NamesH) (o : Option (Nat × Nat)) :
+    rmFileOut (GF := GF) j b i h (DFrac.own (1 : Qp).half.half) o ∗
+      rmFileOut j b i h (DFrac.own (1 : Qp).half) o ⊢ rmFileOut j b i h (DFrac.own qTmp) o := by
+  iintro ⟨H1, H2⟩
+  iapply (rmFileOut_frac (GF := GF) j b i h (1 : Qp).half (1 : Qp).half.half o).2 $$ [$H1 $H2]
+
+theorem rmFileOut_tmpSplit (j : Ino) (b : GoString) (i : Ino) (h : NamesH) (o : Option (Nat × Nat)) :
+    rmFileOut (GF := GF) j b i h (DFrac.own (1 : Qp).half) o ⊢
+      osNames j (.only [b]) (DFrac.own qTmpI) (rmHist j b i h o) ∗
+        rmFileOut j b i h (DFrac.own (1 : Qp).half.half) o := by
+  have e := (rmFileOut_frac (GF := GF) j b i h (1 : Qp).half.half (1 : Qp).half.half o).1
+  rw [Qp.half_add_half] at e
+  refine e.trans ?_
+  unfold rmFileOut
+  cases o with
+  | none =>
+    simp only [claimOut, rmHist]
+    iintro ⟨⟨-, H1⟩, H2⟩
+    iframe H1 H2
+  | some xs =>
+    obtain ⟨x, s⟩ := xs
+    simp only [claimOut, rmHist]
+    iintro ⟨⟨-, H1⟩, H2⟩
+    iframe H1 H2
+
+theorem rmHist_fo (j : Ino) (b : GoString) (i : Ino) (h : NamesH) (o : Option (Nat × Nat)) (n0 : Nat)
+    (hf : HistFoP (fun _ => True) n0 j (.only [b]) h) :
+    HistFoP (fun _ => True) n0 j (.only [b]) (rmHist j b i h o) := by
+  cases o with
+  | none => exact hf
+  | some xs =>
+    obtain ⟨x, s⟩ := xs
+    refine HistFoP.log hf x _ _ (fun b' hb' _ _ J => ?_)
+    have e : b' = b := List.mem_singleton.1 hb'
+    subst e
+    rw [restrictN_lookup _ _ _ hb', GMap.lookup_delete]
+    nofun
+
+end iris
+
+section irisW
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+variable [os_sem : os.Assumptions]
+
 /-- **`createNewWALFile(dir/b, true)` of a pipeline name.** -/
 theorem wp_createTmp [os.file.FieldAssumptions]
     (wp_create : go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile.specLocked (GF := GF)
       (hG := hG))
     (wp_open : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))
-    (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (hb : NameOk b) :
+    (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString) (X : List GoString)
+    (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (hb : NameOk b)
+    (hbt : b ∈ walTmps) :
     {{ osInv (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-        osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ tmpClaim j b }}
+        osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
+        osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ tmpClaim j b }}
       (App (App (Val #(functions go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
           [go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty]))
           (Val #(child dir b))) (Val #true))
@@ -186,38 +353,41 @@ theorem wp_createTmp [os.file.FieldAssumptions]
             fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) ⟨i, false, true, lo, lk⟩ ∗ fdLocks fd ⟨i, false, true, lo, lk⟩ ∗
-            trFile i True ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
+            trFile i True ∗ osNames j (.only [b]) (DFrac.own qTmp) h ∗
             ⌜0 ≤ fd.toInt ∧ h.cur !! b = some (.file i)⌝) ∨
          (⌜err ≠ interface.nil⌝ ∗ tmpClaim j b ∗ ⌜¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)) }} := by
-  iintro %Φ ⟨#Hos, #Hpkg, #Hsi, Hp, Hperm, Hc⟩ HΦ
+  iintro %Φ ⟨#Hos, #Hpkg, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hc⟩ HΦ
   unfold tmpClaim
   icases Hc with ⟨%h, Hn, Hent⟩
   obtain ⟨hfl, hcr, htr⟩ := walOpenFlag_ok
   cases hcur : h.cur !! b with
   | none =>
-    -- the name absent: a create, with the trivial update
+    -- the name absent: a create, under the WAL invariant (its half of the claim, `walTmp_osAUnc`)
     let A : Option (Nat × Nat × Ino) → Bool → IProp GF := fun o ok =>
-      iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ crOut j b h (DFrac.own 1) o ∗
+      iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
+        crOut j b h (DFrac.own qTmp) o ∗
         crTr (ok = true) o ∗ ⌜ok = false → ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)
     have hT : fileutil.OpenTriple
         iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
-          osNames j (.only [b]) (DFrac.own 1) h)
+          osNames j (.only [b]) (DFrac.own qTmp) h ∗ walInv (W := W) C Mr R jr r ∗
+          walDirKey (W := W) dir j X)
         (child dir b) (wal.walOpenFlag true) (W32 384) A (crIno b h) := by
       unfold fileutil.OpenTriple
-      iintro %Ψ ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩ HΨ
-      icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
-      ihave Hau := osAUnc_triv (A := Option (Nat × Nat × Ino))
-        (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
-        (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
-      iapply wp_open dir b (wal.walOpenFlag true) (W32 384) R j dq h (1 : Qp).half (1 : Qp).half
-        (1 : Qp).half.half (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hcur
+      iintro %Ψ ⟨#Hos, #Hsi, Hp, Hperm, Hn, #Hwi, #Hkey⟩ HΨ
+      icases osNames_quarters j (.only [b]) h $$ Hn with ⟨Hn, Hr⟩
+      ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat × Ino)) C Mr R jr r dir j X b hbt h
+        (crOut j b h) (crHist j b h) (crOut_tmpSplit j b h) (crHist_fo j b h) $$ Hwi [Hr]
+      · iunfold walTmpP; iframe Hr; iexact Hkey
+      iapply wp_open dir b (wal.walOpenFlag true) (W32 384) R j dq h (1 : Qp).half
+        (1 : Qp).half (1 : Qp).half.half
+        (crOut j b h (DFrac.own (1 : Qp).half.half)) hfl hcr htr hb hcur
         (Qp.half_add_half 1) $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
       inext
       iintro %f %err ⟨Hp, Hperm, %o, Ho1, Ho2, Htr, Hr⟩
       iapply HΨ
       unfold fileutil.openPost
       iexists o
-      ihave Ho := crOut_join j b h o $$ [$Ho1 $Ho2]
+      ihave Ho := crOut_joinQ j b h o $$ [$Ho1 $Ho2]
       icases Hr with (⟨%fd, %i, %hres, Hf, Hoff, Hfd⟩ | ⟨%herr, Hok, %hWo⟩)
       · obtain ⟨rfl, hfd, hi⟩ := hres
         ileft
@@ -241,7 +411,7 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         rw [this]
         iframe Htr
         ipureintro; exact fun _ => hWo
-    wp_apply wp_create (child dir b) true _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn]
+    wp_apply wp_create (child dir b) true _ _ A (crIno b h) hT $$ [$Hos $Hpkg $Hsi $Hp $Hperm $Hn $Hwi $Hkey]
       as %lf %err Hpost
     unfold fileutil.lockPostW
     icases Hpost with ⟨%o, (⟨%he, HA, %f, %fd, %i, %k, %hc, Hlf, Hf, Hoff, Hfd, Hlk, #Hkind⟩ | ⟨%he, %ok, HA, %hWk⟩)⟩
@@ -306,16 +476,16 @@ theorem wp_createTmp [os.file.FieldAssumptions]
       simp only [tmpEnt]
       -- a leftover file: truncated
       let A : Unit → Bool → IProp GF := fun _ ok =>
-        iprop(osPathS R dir dq j ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
+        iprop(osPathS R dir dq j ∗ osNames j (.only [b]) (DFrac.own qTmp) h ∗
           osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i (ok = true) ∗ ⌜ok = false → ¬ (FsNoErrOn (· = child dir b) ∧ PathFits (child dir b))⌝)
       have hT : fileutil.OpenTriple
           iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗
-            osNames j (.only [b]) (DFrac.own 1) h ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i False)
+            osNames j (.only [b]) (DFrac.own qTmp) h ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i False)
           (child dir b) (wal.walOpenFlag true) (W32 384) A (fun _ i' => i' = i) := by
         unfold fileutil.OpenTriple
         iintro %Ψ ⟨#Hos, #Hsi, Hp, Hn, Hperm, Htr⟩ HΨ
         iapply os.OpenFile.wp_truncS dir b (wal.walOpenFlag true) (W32 384) R j i (.only [b]) dq
-          (DFrac.own 1) h (1 : Qp).half.half hfl htr hb (by simp [NameSet.Mem]) hcur
+          (DFrac.own qTmp) h (1 : Qp).half.half hfl htr hb (by simp [NameSet.Mem]) hcur
           $$ [$Hos $Hsi $Hp $Hn $Hperm $Htr]
         inext
         iintro %f %err ⟨Hp, Hn, Hperm, Htr, Hr⟩
@@ -381,64 +551,52 @@ theorem wp_createTmp [os.file.FieldAssumptions]
         iapply trFile_mono i _ _ (fun h => h.elim) $$ Htr
 
 
-/-- A file's `OsMeta` and zero bytes (no mappings): the file whole, any size (`trFile i False`). -/
-theorem zerosA_trFile (i : Ino) (m : OsMeta) (hm : m.maps = ∅) (hcut : m.cut = none)
-    (hlo : m.lo ≤ m.size) (hzf : m.ZfGe) :
-    osMeta (GF := GF) i (DFrac.own 1) m ∗ osZerosA i 0 m.size (DFrac.own 1) ⊢ trFile i False := by
-  iintro ⟨Hm, Hz⟩
-  icases (osZerosA_unfold i 0 m.size (DFrac.own 1)).1 $$ Hz with ⟨%zs, %hzs, Hz⟩
-  iunfold trFile
-  iexists m, zs.map (fun c => ((0 : w8), c))
-  iframe Hm Hz
-  isplitl []
-  · iapply mcellsAny_empty m.maps hm
-  ipureintro
-  exact ⟨by simp [hzs], fun h => h.elim, hm, hcut, hlo, hzf, fun h => h.elim⟩
-
-/-- **After an unlink of the pipeline's file** (both halves of the outcome), with the file: the
-claim, the name absent (the file dropped), or still the file. -/
+/-- **After an unlink of the pipeline's file** (the program's three quarters of the outcome), with the file: the claim, the name absent (the file dropped), or still the file. -/
 theorem rmFile_tmpClaim (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
     (o : Option (Nat × Nat)) (hcur : h.cur !! b = some (.file i)) :
-    rmFileOut (GF := GF) j b i h (DFrac.own (1 : Qp).half) o ∗
+    rmFileOut (GF := GF) j b i h (DFrac.own (1 : Qp).half.half) o ∗
       rmFileOut j b i h (DFrac.own (1 : Qp).half) o ∗ trFile i False ⊢ tmpClaim j b := by
+  iintro ⟨H1, H2, Ht⟩
+  ihave H := rmFileOut_joinQ j b i h o $$ [$H1 $H2]
   unfold rmFileOut tmpClaim
   cases o with
   | none =>
     simp only [claimOut]
-    iintro ⟨⟨-, H1⟩, ⟨-, H2⟩, Ht⟩
+    icases H with ⟨-, H⟩
     iexists h
-    isplitl [H1 H2]
-    · iapply (osNames_join j _ _ _ h (Qp.half_add_half 1)).1 $$ [$H1 $H2]
+    iframe H
     rw [hcur]
     simp only [tmpEnt]
     iexact Ht
   | some xs =>
     obtain ⟨x, s⟩ := xs
     simp only [claimOut]
-    iintro ⟨⟨-, H1⟩, ⟨-, H2⟩, -⟩
+    icases H with ⟨-, H⟩
     iexists _
-    isplitl [H1 H2]
-    · iapply (osNames_join j _ _ _ _ (Qp.half_add_half 1)).1 $$ [$H1 $H2]
+    iframe H
     simp only [NamesH.log]
     rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem]), GMap.lookup_delete]
     simp only [tmpEnt]
     iempintro
 
-/-- **`walInv`-free unlink of the pipeline's file**, by a caller holding the whole claim. -/
+/-- **The unlink of the pipeline's file** `b` (`run`'s on `donec`, `Close`'s leftover), by the holder
+of the program's three quarters of its claim, under the WAL invariant (its half, `walTmp_osAUnc`). -/
 theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
+    (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (r : GoString) (X : List GoString)
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
-    (qc : Qp) (hb : NameOk b) (hcur : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
-        osNames j (.only [b]) (DFrac.own 1) h ∗ trFile i False }}
+    (qc : Qp) (hb : NameOk b) (hbt : b ∈ walTmps) (hcur : h.cur !! b = some (.file i)) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ walInv (W := W) C Mr R jr r ∗ walDirKey (W := W) dir j X ∗
+        osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
+        osNames j (.only [b]) (DFrac.own qTmp) h ∗ trFile i False }}
       (App (Val (@! os.Remove)) (Val #(child dir b)))
     {{ (err : GoInterface), RET #err; osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ tmpClaim j b }} := by
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Ht⟩ HΦ
-  icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
-  ihave Hau := osAUnc_triv (A := Option (Nat × Nat))
-    (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
-    (rmFileOut j b i h (DFrac.own (1 : Qp).half)) $$ Hr
+  iintro %Φ ⟨#Hos, #Hsi, #Hwi, #Hkey, Hp, Hperm, Hn, Ht⟩ HΦ
+  icases osNames_quarters j (.only [b]) h $$ Hn with ⟨Hn, Hr⟩
+  ihave Hau := walTmp_osAUnc (W := W) (A := Option (Nat × Nat)) C Mr R jr r dir j X b hbt h
+    (rmFileOut j b i h) (rmHist j b i h) (rmFileOut_tmpSplit j b i h) (rmHist_fo j b i h) $$ Hwi [Hr]
+  · iunfold walTmpP; iframe Hr; iexact Hkey
   iapply wp_Remove dir b j i R dq h (1 : Qp).half (1 : Qp).half qc
-    (rmFileOut j b i h (DFrac.own (1 : Qp).half)) hb hcur (Qp.half_add_half 1)
+    (rmFileOut j b i h (DFrac.own (1 : Qp).half.half)) hb hcur (Qp.half_add_half 1)
     $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
   inext
   iintro %err ⟨Hp, Hperm, %o, -, Ho1, Ho2⟩
@@ -446,7 +604,8 @@ theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
   iframe Hp Hperm
   iapply rmFile_tmpClaim j b i h o hcur $$ [$Ho1 $Ho2 $Ht]
 
-end iris
+end irisW
+
 
 end WalFs
 end EtcdGrove
