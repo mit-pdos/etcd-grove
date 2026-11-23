@@ -21,7 +21,7 @@ neutral module path"). Translated by goose project `models` (`etc/goose.py`, lea
 | `json/`: the JSON codec generator `jsongen.py`, a per-type replacement of encoding/json's reflection | as for pbgen: plain Go over `jsoncodec` (Goose-translatable but for unnamed root struct types, built outside Goose) | **the generator** (as pbgen): for every set of types it accepts, the emitted code behaves as Go 1.27.3's encoding/json (the default build: the v1 API over encoding/json/v2). The trusted core is `json/jsongen_core.py` (its doc: the claim, the subset, the refusals, the encoding and decoding per kind with citations to Go's source, the deviations: error values, what comes with an error, slice capacities); its inputs are derived by reflection (`jsondesc/`) from the roots the `[json]` table names | `internal/jsongenrand` (random Go types of the subset against the real encoding/json: encodings of random values, decodings of encodings and their mutations into every type; one refused input per construct); the regression tests generated beside each codec (`internal/jsondifftest`, `internal/jsonvsr`: go-vsr's messages); `--check` of every input in the gates |
 | `encoding/json/`: Go 1.27.3's `encoding/json` as a model (a standard-library model: `goroot.py`) | Go's code (the default build's `v2_*.go`: the API, the error types, `Number`, `HTMLEscape`) but for reflection and encoding/json/v2, replaced by the program's generated codec (`model.go`), and the Decoder over jsontext (`v2_stream.go`: jsontext's buffer and top-level framing, the scanner `jsoncodec.Scan`); Goose translates it (checked by hand: a GOROOT of links, `goroot.py farm`); specs: the Lean half | that every behavior of Go's encoding/json the program observes is one of the model's (`model.go`'s doc: values, error-or-not and io.EOF/ErrUnexpectedEOF, bytes and Write calls, Read calls with their lengths); not modelled, a panic: MarshalIndent, Indent, Compact, SetIndent, Token, More, DisallowUnknownFields, v2's options | `internal/jsonstreamtest` (`run.sh`: the same stream tests against the real encoding/json and the model, both reproducing the real build's golden transcripts: vsr's wire format over net.Pipe and over scripted readers, chunk sizes, streams cut at every byte, read errors, malformed streams, 3000 random streams) |
 | `grpc/`: grpc-go v1.84.0 as a model (a module model: Go module `google.golang.org/grpc`, put in place by a `replace`, `grpc/gomodel.py`) | grpc-go's code (status, codes, metadata, peer, credentials, resolver, encoding, the options, `invoke`, the interceptor chains, the client stream's attempts and replay, the server stream, `processRPC`, `Serve`, `GracefulStop`, `Stop`) but for its transport and connection management, replaced by the model's (`model_*.go`: one stream per connection; see below); Lean: specs to come (phase 5.4's Lean half) | that every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it, is one of the model's (`model_transport.go`'s and `model_clientconn.go`'s docs; below) | `internal/grpcdifftest` (`run.sh`: the same tests against grpc-go and the model, faults included; the invariants with the model's choices random; `examples/` built against the model; `--etcd`: etcd's examples over the model) |
-| `gods/`: gods v1.18.1's `maps/treemap` and `utils` as a model (a module model: Go module `github.com/emirpasic/gods`, put in place by a `replace`) | the API the kits call (`NewWith`, `Put`, `Get`, `Select`, `Iterator`, `Next`, `Value`) and what Go reaches through an interface (`String`: gods' code; `MarshalJSON`/`UnmarshalJSON`: `NotModelled`); the red-black tree replaced by a sorted slice behind a pointer, as gods' tree (`MODEL:`); no `goto`; Goose takes it (tried 2026-11-23, no project yet); no spec yet | for a comparator that is a total preorder (transitive), sign-consistent, effect- and panic-free on every pair of the program's keys (a key with itself included), every behavior of gods' treemap through that API is one of the model's; `NotModelled`: a change to a map while an iterator over it is in use, JSON (`maps/treemap/treemap.go`'s doc) | `internal/tpdifftest` (`run.sh`: random operation sequences, zero, nil and copied maps, formatting and the panics' texts, against gods v1.18.1 and the model, equal transcripts; the `NotModelled` cases in the model) |
+| `gods/`: gods v1.18.1 as a model (a module model: Go module `github.com/emirpasic/gods`, put in place by a `replace`): the packages the kits reach (`utils`, `containers`, `maps`, `trees`, `trees/redblacktree`, `maps/treemap`) | gods' code verbatim but the red-black tree iterator's `Next` and `Prev`, rewritten without `goto` (`MODEL:`, `trees/redblacktree/iterator.go`; goose takes no `goto`, mit-pdos/perennial#691); translated by the dsv-epaxos and dsv-swiftpaxos projects (`module_models`); proved: the treemap specs the kits use (`NewWith`, `Put`, `Get`, `Select`, `Iterator`, `Next`, `Value`: `treemap.hyps_true`, `Dsverify/Proof/github_com/emirpasic/gods/maps/treemap/`; `notes/gods-verified.md`) | that the rewritten `Next`/`Prev` behave as gods' (the same conditions, field reads and writes, in the same order) | `internal/tpdifftest` (`run.sh`: `rbt_test.go`, random red-black trees and iterator walks step by step against gods v1.18.1, and the treemap tests, equal transcripts) |
 | `uuid/`: google/uuid v1.3.1 as a model (module `github.com/google/uuid`) | v1.3.1's code for `Must`, `New`, `UUID.{ID,Time}` and what Go reaches through an interface (`String`, `MarshalText`/`UnmarshalText`, `MarshalBinary`/`UnmarshalBinary`, `Value`/`Scan`, with `Parse`/`ParseBytes`); `NewRandom`'s 16 bytes from goose's `primitive.RandomUint64` (`MODEL:`); Goose takes it (tried); no spec yet | every behavior of v1.3.1 through that API is one of the model's, provided the program never assigns `crypto/rand.Reader` and is not built with boringcrypto (`doc.go`); v4 coverage structural (`ArbitraryInt`) | `internal/tpdifftest` (`ID`/`Time`, formatting, text/binary/JSON/gob/SQL and parsing on random, edge and malformed inputs against v1.3.1; a replaced `crypto/rand.Reader`, and `testdata/randprobe`: outside the premise, v1.3.1 fails) |
 | `concurrent-map/`: orcaman/concurrent-map v1.0.0 as a model (module `github.com/orcaman/concurrent-map`) | v1.0.0's code unchanged for what the kits call (`New`, `GetShard`, `Set`, `Upsert`, `Get`, `Has`, `Remove`, `IterCb`; `Count`, `IsEmpty` for the fork's tests); `MarshalJSON` (encoding/json's interface) `NotModelled`; the rest removed; Goose takes it (tried); no spec yet | every behavior of v1.0.0 through that API is one of the model's (the same code and types), but JSON (`concurrent_map.go`'s doc) | `internal/tpdifftest` (random sequences under several `SHARD_COUNT`s, concurrent runs, formatting, against v1.0.0 and the model; JSON `NotModelled` in the model) |
 | `log/slog/`: Go 1.27.3's `log/slog` as a model (a standard-library model: `goroot.py`) | the API the vr kit calls (`New`, `DiscardHandler`, `Logger.{Debug,Info,Warn,Error,Handler}`, `Debug`, `Handler`; `Record`, `Attr` opaque) and `Level` with its methods (Go's code, reached by fmt and the encoders); `New` refuses any handler but `DiscardHandler` (`MODEL:`); Goose takes it (tried, with its bodies); no spec yet | **no effect the program observes**: every behavior of Go's log/slog through that API is one of the model's, no record being ever enabled through it (DiscardHandler; the default handler, level Info, behind `Debug`); `NotModelled`: a program-supplied Handler (`doc.go`) | `internal/slogdifftest` (`run.sh`: the same tests against Go's log/slog and the model, an overlay: returns and panics, a nil and a zero Logger, `New(nil)`, `Handler()`'s identity, `Level`'s formatting and parsing, no argument method called, nothing written to stdout/stderr) |
@@ -117,21 +117,18 @@ marshalers, encoding/json's `MarshalJSON`/`UnmarshalJSON`, database/sql's `Value
 the library's code, or as a `NotModelled` panic where the library's code is not modelled. (Cutting
 such a method would not break the program's build but change what it prints or encodes: a cut is
 sound only for a name a program must call by name.) The places a model changes are marked `MODEL:`,
-and `diff.py gods|uuid|concurrent-map [--stat]` computes the difference (2026-11-23: gods +165
--572 lines, uuid +60 -710, concurrent-map +31 -182; log/slog +94 -2704). Each model's package doc states its trusted
+and `diff.py gods|uuid|concurrent-map [--stat]` computes the difference (2026-11-23: gods +57
+-58 lines, uuid +60 -710, concurrent-map +31 -182; log/slog +94 -2704). Each model's package doc states its trusted
 claim, its premises, and what is not claimed:
 
-- **gods** (`maps/treemap/treemap.go`): the red-black tree is replaced by a slice sorted by the
-  comparator, behind a pointer as gods' tree is (a copy of a `Map` shares it; a zero or nil `Map`
-  panics with gods' nil dereference). Premise: the comparator, on every pair of keys the program
-  passes (a key with itself included), returns without an effect the program observes and without
-  panicking, the same result each time, sign-consistent (`sign(c(a,b)) = -sign(c(b,a))`) and
-  transitive. Claimed: the entries, `Get`'s results, `Put`'s replacement of an equal key's key and
-  value, `Select`'s calls of its predicate (once per entry, in key order) and result, the iterator's
-  order, `Next` false past the end, `Value` panicking with gods' nil dereference with no current
-  entry, `Put` on an empty map calling `comparator(k, k)`, `String`'s text. `NotModelled`: a change
-  to a map while an iterator over it is in use (`Select`'s predicate included; the model counts the
-  changes), JSON. Not claimed: which pairs the comparator is called on.
+- **gods** (`trees/redblacktree/iterator.go`): gods' own code, but the red-black tree iterator's
+  `Next` and `Prev`, whose bodies jump to their `between`/`end` (`begin`) labels with `goto`, which
+  goose does not translate (mit-pdos/perennial#691): the model writes the same steps as structured
+  branches (each `goto between` the label's statements in place, each `goto end` and the fall-through
+  reaching the label's statements after the outer `if`). Claimed: every behavior of v1.18.1 is the
+  model's (the rest of the module's packages the kits reach are its code, unchanged). Until
+  2026-11-23 the model was a sorted slice in place of the tree (`git log`), with `NotModelled`
+  panics; gods' own code needs neither premise nor exclusion.
 - **uuid** (`doc.go`): `NewRandom`'s bytes come from two `primitive.RandomUint64()` (`ArbitraryInt`
   in Goose's semantics: every 16 bytes with the version-4 and variant bits set is a result, so the
   coverage of v1.3.1's results is structural; the test only illustrates it) where v1.3.1 reads
@@ -153,17 +150,22 @@ against the models (a temporary -modfile replacing the three, tag `tpmodel`); ea
 library against the tests' own references and writes transcripts of everything it observed (a
 panic's text included), and the two builds' transcripts must be equal byte for byte (2026-11-23:
 treemap 4000 random sequences, 157622 operations, 313521 transcript lines, and the zero, `new`, nil,
-empty, full and copied maps with every operation and fmt verb; uuid `ID`/`Time` on 20258 UUIDs,
+empty, full and copied maps with every operation and fmt verb, changes during iteration, JSON; the
+red-black tree iterator 3000 random trees (118971 Puts, 59264 Removes of random int keys, under
+`utils.IntComparator` and the kits' `state.KeyComparator`), 112138 iterator steps (`Next`, `Prev`,
+`Begin`, `End`, `First`, `Last`, `NextTo`, `PrevTo`, from `Iterator`, treemap's iterator and
+`IteratorAt`, `Key` and `Value` after each, against a reference), 743 walks while the tree changes,
+126657 transcript lines; `Next` and `Prev` fully covered; uuid `ID`/`Time` on 20258 UUIDs,
 fmt, text, binary, JSON, gob and SQL of 240 UUIDs, `Parse`/`ParseBytes`/`UnmarshalText`/`Scan` of
 381 valid, cut, mutated and random texts, 20000 `New`/`NewRandom`/`Must` samples, a replaced
 `crypto/rand.Reader`; concurrent-map 1510 random sequences, 92518 operations, SHARD_COUNT 1 to
 32768, 60 concurrent runs of 8 goroutines, fmt of a shard). Each build also checks the `NotModelled`
-cases: a panic in the model, the library's behavior otherwise. Beside it, SwiftPaxos's own tests
+cases (uuid's, concurrent-map's): a panic in the model, the library's behavior otherwise. Beside it, SwiftPaxos's own tests
 (`state`, `swift`, `client` of the fork's packages under `examples/dsverify/swiftpaxos`, branch
 `dsv-swiftpaxos`) pass built against the three models, and so do epaxos's (`epaxos`,
 `examples/epaxosnet`, `master`, `replica`, `state` under `examples/dsverify/epaxos`, branch
-`dsv-epaxos`) against the gods model (2026-11-23, by hand: a -modfile with the replaces). The gods
-model has no `goto` (gods' red-black tree iterator has, which goose refuses).
+`dsv-epaxos`) against the gods model (2026-11-23, by hand: a -modfile with the replaces; then the
+sorted-slice model).
 
 ## The log/slog model (`log/slog/`)
 
