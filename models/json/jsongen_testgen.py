@@ -9,7 +9,8 @@ mostly in the codec's plain subset, sometimes not):
 
   - TestJSONEncode: jsonMarshal(v) for v, &v and nil is json.Marshal's, bytes and error-or-not; a
     NotModelled panic only where the real encoding has an escape or a non-ASCII byte (a string the
-    codec does not write) or the real Marshal fails.
+    codec does not write), nests 1000 deep (the codec's stand-in for the real cycle detection), or
+    the real Marshal fails.
   - TestJSONDecode: on the real encodings of random values of every type, their mutations (keys in
     other cases or without their delimiters, values of other kinds, numbers out of range, signs,
     quoted numbers, escapes, unknown and repeated members, whitespace, cuts) and fixed literals, the
@@ -266,7 +267,7 @@ func jtCheckEncode(t *testing.T, st *jtStats, v any) {
 		if _, ok := p.(jsoncodec.NotModelled); !ok {
 			t.Fatalf("Marshal(%#v): the codec panicked: %v", v, p)
 		}
-		if werr == nil && !jtEscaped(want) {
+		if werr == nil && !jtEscaped(want) && jsoncodec.Nesting(want) < 1000 {
 			t.Fatalf("Marshal(%#v): the codec panicked (%v) where the real output %s has no escape", v, p, want)
 		}
 		st.encPanic++

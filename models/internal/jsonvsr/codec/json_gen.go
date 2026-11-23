@@ -456,6 +456,11 @@ func jsonSetErr(e *error) {
 	}
 }
 
+// jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it
+// encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that
+// and panics (NotModelled) on a pointer or slice nested that deep.
+const jsonCycleDepth uint64 = 1000
+
 // jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.
 func jsonDepthErr() error {
 	return &jsoncodec.Error{Msg: "exceeded the maximum nesting depth"}
@@ -2179,8 +2184,8 @@ func jenc_S_log_Log(b []byte, v []log.Log, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err
@@ -2219,10 +2224,11 @@ func jdec_S_log_Log(b []byte, i uint64, p *[]log.Log, e *error) uint64 {
 	}
 	s := make([]log.Log, 0)
 	for {
-		var x log.Log
+		var z log.Log
+		s = append(s, z)
+		n := len(s) - 1
 		i := k
-		k = jdec_log_Log(b, i, &x, e)
-		s = append(s, x)
+		k = jdec_log_Log(b, i, &s[n], e)
 		more, k2 := jsoncodec.Next(b, k)
 		k = k2
 		if !more {

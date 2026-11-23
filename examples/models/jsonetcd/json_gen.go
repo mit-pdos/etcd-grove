@@ -471,6 +471,11 @@ func jsonSetErr(e *error) {
 	}
 }
 
+// jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it
+// encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that
+// and panics (NotModelled) on a pointer or slice nested that deep.
+const jsonCycleDepth uint64 = 1000
+
 // jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.
 func jsonDepthErr() error {
 	return &jsoncodec.Error{Msg: "exceeded the maximum nesting depth"}
@@ -521,8 +526,8 @@ func jenc_S_string(b []byte, v []string, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err
@@ -558,16 +563,17 @@ func jdec_S_string(b []byte, i uint64, p *[]string, e *error) uint64 {
 	}
 	s := make([]string, 0)
 	for {
-		var x string
+		var z string
+		s = append(s, z)
+		n := len(s) - 1
 		i := k
 		y, st, k1 := jsoncodec.String(b, i)
 		k = k1
 		if st == jsoncodec.Set {
-			x = string(y)
+			s[n] = string(y)
 		} else if st == jsoncodec.TypeErr {
 			jsonSetErr(e)
 		}
-		s = append(s, x)
 		more, k2 := jsoncodec.Next(b, k)
 		k = k2
 		if !more {
@@ -1174,6 +1180,9 @@ func jenc_P_membership_Member(b []byte, v *membership.Member, d uint64) ([]byte,
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a pointer nested 1000 deep (encoding/json's cycle detection)"))
+	}
 	var err error
 	_ = err
 	b, err = jenc_membership_Member(b, *v, d)
@@ -1205,8 +1214,8 @@ func jenc_S_P_membership_Member(b []byte, v []*membership.Member, d uint64) ([]b
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err
@@ -1245,10 +1254,11 @@ func jdec_S_P_membership_Member(b []byte, i uint64, p *[]*membership.Member, e *
 	}
 	s := make([]*membership.Member, 0)
 	for {
-		var x *membership.Member
+		var z *membership.Member
+		s = append(s, z)
+		n := len(s) - 1
 		i := k
-		k = jdec_P_membership_Member(b, i, &x, e)
-		s = append(s, x)
+		k = jdec_P_membership_Member(b, i, &s[n], e)
 		more, k2 := jsoncodec.Next(b, k)
 		k = k2
 		if !more {
@@ -1493,8 +1503,8 @@ func jenc_S_uint64(b []byte, v []uint64, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err
@@ -1530,16 +1540,17 @@ func jdec_S_uint64(b []byte, i uint64, p *[]uint64, e *error) uint64 {
 	}
 	s := make([]uint64, 0)
 	for {
-		var x uint64
+		var z uint64
+		s = append(s, z)
+		n := len(s) - 1
 		i := k
 		y, st, k1 := jsoncodec.Uint(b, i, 18446744073709551615)
 		k = k1
 		if st == jsoncodec.Set {
-			x = uint64(y)
+			s[n] = uint64(y)
 		} else if st == jsoncodec.TypeErr {
 			jsonSetErr(e)
 		}
-		s = append(s, x)
 		more, k2 := jsoncodec.Next(b, k)
 		k = k2
 		if !more {
@@ -1553,6 +1564,9 @@ func jdec_S_uint64(b []byte, i uint64, p *[]uint64, e *error) uint64 {
 func jenc_P_bool(b []byte, v *bool, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
+	}
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a pointer nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err
@@ -2033,6 +2047,9 @@ func jdecMember_etcdserverpb_ResponseHeader(b []byte, i uint64, key string, p *e
 func jenc_P_etcdserverpb_ResponseHeader(b []byte, v *etcdserverpb.ResponseHeader, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
+	}
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a pointer nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err

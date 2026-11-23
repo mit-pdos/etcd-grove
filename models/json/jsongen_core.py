@@ -78,7 +78,11 @@ emitted code names a promoted field by its path (`v.E.X`); through an unexported
 promotion (`v.X`), after checking (`Schema.selector_ok`) that the selector denotes that field.
 
 POINTERS (`v2/arshal_default.go`:1718-1795 makePointerArshaler). Encoding: nil is null, else the
-pointee's encoding, the pointee addressable (line 1752). Decoding: null sets the pointer to nil
+pointee's encoding, the pointee addressable (line 1752). From depth 1000 the real encoder records
+the pointers and slices it is inside and fails on a cycle (lines 1729-1735, 1479-1485, 62-83
+visitPointer, startDetectingCyclesAfter = 1000 at line 50): not reproduced, the codec panics
+(NotModelled) on a pointer or slice nested 1000 deep (at or before where the real one starts
+tracking), so a cyclic value never reaches the 10000 nesting limit in the codec. Decoding: null sets the pointer to nil
 (1757-1763, also under v1's merge semantics); any other value allocates a pointee if the pointer is
 nil (1775-1777, before decoding: a value that fails leaves the new pointee) and decodes into it
 (merging into an existing one). omitempty: omitted iff nil (isLegacyEmpty, 1449-1466).
@@ -103,7 +107,11 @@ type, lines 171-175; CallMethodsWithLegacySemantics, `v2_options.go`:237-255):
     `d.buf[pos-n:pos:pos]`: no whitespace around it, capacity cut at its end, in the input's
     storage, `jsontext/pools.go`:132-135), null included (but a `*T`'s null is the pointer's,
     above); its error is recorded, the first error returned, and decoding goes on (line 350;
-    `v2/errors.go`:62-65 isFatalError).
+    `v2/errors.go`:53-65 isFatalError), PROVIDED the error is not a *jsontext.SyntacticError nor
+    jsontext's I/O-error wrapper, which stop the real decoding: values only encoding/json/jsontext
+    and encoding/json/v2 make (the v1 API turns them into *SyntaxError and unwraps I/O errors,
+    `v2_scanner.go`:56-70, `internal.TransformUnmarshalError`), packages outside the model; a
+    program whose methods return one is outside the claim.
   - omitempty on such a type goes by its kind (isLegacyEmpty), never by the method.
   - A type's default structure is used, so checked, only for encoding without a value-receiver
     MarshalJSON and for decoding without an UnmarshalJSON: a type with both may be of any kind.
@@ -177,8 +185,10 @@ error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else panics,
   - strings: a JSON string without escape sequences or non-ASCII bytes (else a panic, NotModelled:
     unescaping and invalid UTF-8 replacement are not reproduced);
   - slices: a JSON array; `[]` gives a new empty slice (v2_decode.go:75-76); a non-empty array into
-    a nil slice gives a new slice of the decoded elements (an element of the wrong kind is
-    appended as its zero value); a non-empty array into a non-nil slice panics (NotModelled: the
+    a nil slice gives a new slice of the decoded elements (an element of the wrong kind is left
+    its zero value), each decoded in place in a slice grown one element at a time from capacity 0
+    as reflect.Value.Grow(1) grows the real one (`v2/arshal_default.go`:1565-1588: the same
+    capacities, and an element's address while it is decoded is the real one's); a non-empty array into a non-nil slice panics (NotModelled: the
     real one decodes into the existing elements in place, v2_decode.go:71-74);
   - structs: a JSON object; each member's key matched to the field of that JSON name, else to the
     one equal to it ignoring ASCII case (v2_decode.go:55-59; `v2/fields.go`:367-386 with
@@ -200,8 +210,8 @@ WHERE THE CLAIM STOPS (documented deviations, outside "behaves as encoding/json"
     left (the real one says the fields after the problematic one are not guaranteed to be
     decoded, v2_decode.go:97-99); the differential tests compare them too, but the claim does not
     rely on it.
-  - slice capacities and aliasing: decoded slices are built by append; the real one sizes them
-    otherwise; lengths and contents agree. (The bytes an UnmarshalJSON method gets are a slice of
+  - slice capacities and aliasing: decoded slices' lengths and contents agree; their growth too
+    (above), but RawMessage copies and the slices a method builds are the method's or append's. (The bytes an UnmarshalJSON method gets are a slice of
     the input with capacity cut at the value's end, as the real one's for Unmarshal; for a Decoder,
     of the model's buffer, which the method must not retain, as encoding/json documents.)
   - only the API the encoding/json model covers (`models/encoding/json`, its doc): Marshal,
@@ -856,7 +866,7 @@ def default_enc_body(S, i):
     if k == "slice":
         et = S.t[i]["elem"]
         body = ["if v == nil {", "\treturn jsoncodec.AppendRaw(b, \"null\"), nil", "}",
-                "if d >= jsoncodec.MaxDepth {", "\treturn b, jsonDepthErr()", "}",
+                "if d >= jsonCycleDepth {", "\t" + nm("a slice nested 1000 deep (encoding/json's cycle detection)"), "}",
                 "var err error", "_ = err", "b = append(b, '[')"]
         if S.sensitive(et):
             # a slice element is addressable (`v2/arshal_default.go` makeSliceArshaler)
@@ -871,6 +881,7 @@ def default_enc_body(S, i):
         et = S.t[i]["elem"]
         # nil: null; else the pointee, addressable (`v2/arshal_default.go` makePointerArshaler)
         body = ["if v == nil {", "\treturn jsoncodec.AppendRaw(b, \"null\"), nil", "}",
+                "if d >= jsonCycleDepth {", "\t" + nm("a pointer nested 1000 deep (encoding/json's cycle detection)"), "}",
                 "var err error", "_ = err"]
         body += enc_value(S, et, "*v", False, "d", ptr="v")
         return body + ["return b, nil"]
@@ -963,9 +974,13 @@ def gen_decoder(S, i):
         if S.kind(et) == "interface":
             body += [nm("decoding into an interface (any)")]
         else:
-            body += [f"s := make({g}, 0)", "for {", f"\tvar x {S.go(et)}", "\ti := k"]
-            body += ["\t" + l for l in dec_value(S, et, False, "x")]
-            body += ["\ts = append(s, x)", "\tmore, k2 := jsoncodec.Next(b, k)", "\tk = k2",
+            # each element decoded in place, the slice grown by one zero element at a time as
+            # reflect.Value.Grow(1) grows it (`v2/arshal_default.go`:1577-1588): the same backing
+            # arrays, so an element's address is the real one's (an UnmarshalJSON receiver)
+            body += [f"s := make({g}, 0)", "for {", f"\tvar z {S.go(et)}", "\ts = append(s, z)",
+                     "\tn := len(s) - 1", "\ti := k"]
+            body += ["\t" + l for l in dec_value(S, et, False, "s[n]")]
+            body += ["\tmore, k2 := jsoncodec.Next(b, k)", "\tk = k2",
                      "\tif !more {", "\t\t*p = s", "\t\treturn k", "\t}", "}"]
     else:
         body = ["j, c := jsoncodec.At(b, i)", "if c == 'n' {", "\treturn j + 4", "}",
@@ -1107,6 +1122,11 @@ def codec_go(S, header, pkg):
         "\t\t*e = &jsoncodec.Error{Msg: \"a value of the wrong kind or out of range\"}",
         "\t}",
         "}",
+        "",
+        "// jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it",
+        "// encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that",
+        "// and panics (NotModelled) on a pointer or slice nested that deep.",
+        "const jsonCycleDepth uint64 = 1000",
         "",
         "// jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.",
         "func jsonDepthErr() error {",

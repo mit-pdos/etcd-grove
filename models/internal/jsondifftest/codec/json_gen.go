@@ -445,6 +445,11 @@ func jsonSetErr(e *error) {
 	}
 }
 
+// jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it
+// encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that
+// and panics (NotModelled) on a pointer or slice nested that deep.
+const jsonCycleDepth uint64 = 1000
+
 // jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.
 func jsonDepthErr() error {
 	return &jsoncodec.Error{Msg: "exceeded the maximum nesting depth"}
@@ -751,8 +756,8 @@ func jenc_S_p_jsondifftest_Item(b []byte, v []p_jsondifftest.Item, d uint64) ([]
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err
@@ -791,10 +796,11 @@ func jdec_S_p_jsondifftest_Item(b []byte, i uint64, p *[]p_jsondifftest.Item, e 
 	}
 	s := make([]p_jsondifftest.Item, 0)
 	for {
-		var x p_jsondifftest.Item
+		var z p_jsondifftest.Item
+		s = append(s, z)
+		n := len(s) - 1
 		i := k
-		k = jdec_p_jsondifftest_Item(b, i, &x, e)
-		s = append(s, x)
+		k = jdec_p_jsondifftest_Item(b, i, &s[n], e)
 		more, k2 := jsoncodec.Next(b, k)
 		k = k2
 		if !more {
@@ -1269,8 +1275,8 @@ func jenc_p_jsondifftest_Tree(b []byte, v p_jsondifftest.Tree, d uint64) ([]byte
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
+	if d >= jsonCycleDepth {
+		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
 	}
 	var err error
 	_ = err
@@ -1309,10 +1315,11 @@ func jdec_p_jsondifftest_Tree(b []byte, i uint64, p *p_jsondifftest.Tree, e *err
 	}
 	s := make(p_jsondifftest.Tree, 0)
 	for {
-		var x p_jsondifftest.Tree
+		var z p_jsondifftest.Tree
+		s = append(s, z)
+		n := len(s) - 1
 		i := k
-		k = jdec_p_jsondifftest_Tree(b, i, &x, e)
-		s = append(s, x)
+		k = jdec_p_jsondifftest_Tree(b, i, &s[n], e)
 		more, k2 := jsoncodec.Next(b, k)
 		k = k2
 		if !more {

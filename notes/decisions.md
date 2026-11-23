@@ -42059,4 +42059,8 @@ RaftAttributes, Attributes, ConfigChangeContext, `[]*Member`, DowngradeInfo, Ver
 HashKVRequest/Response) and `models/internal/jsonvsr` (go-vsr's current `log.go`, Logs' methods); the
 dsv-vr kit's own `json.toml` generates (checked in a scratch copy), and so do k8s's `v1.AvoidPods` and
 `metav1.OwnerReference` (`metav1.Time`: both methods, opaque). Goose translates the generated codecs
-(tried on jsonvsr and jsonetcd). The independent review: `notes/axiom-review/jsongen.md`.
+(tried on jsonvsr and jsonetcd). The independent review (`notes/axiom-review/jsongen.md`) found three
+divergences: an `UnmarshalJSON` on a slice element ran on a temporary (fixed: decoded in place, the
+slice grown as `reflect.Value.Grow(1)` grows it), pointer cycles (fixed: `NotModelled` from depth 1000,
+where the real encoder's cycle detection starts), and a method's `*jsontext.SyntacticError` stopping the
+real decoding (a stated precondition: only jsontext/v2, outside the model, make one).

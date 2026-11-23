@@ -7,8 +7,11 @@
 // it (its dump by reflection included) with some of the types as roots (an unnamed struct among
 // them), and runs the generated regression test, which checks the codec against the real
 // encoding/json (encodings of random values; decodings of encodings and their mutations into every
-// type, fresh and pre-filled). TestRefusals checks one input per construct outside the subset is
-// refused, naming it.
+// type, fresh and pre-filled). Since 2026-11-23 also embedded structs (exported, unexported, by
+// pointer, repeated, self-embedded, with colliding names), pointers, and types with their own
+// MarshalJSON/UnmarshalJSON in every context, whose calls are logged and compared in order.
+// TestRefusals checks one input per construct outside the subset is refused, naming it;
+// TestAccepted the formerly refused constructs; TestReceiversAndCycles the review's cases.
 //
 // JSONGEN_RAND_TYPES (default 6) modules per run, JSONGEN_RAND_SEED (default 1) the first seed,
 // JSONGEN_TEST_SCALE the generated tests' scale.
@@ -658,5 +661,94 @@ func TestAccepted(t *testing.T) {
 		if out, code := runCode(dir, nil, "go", "test", "-count=1", "./codec"); code != 0 {
 			t.Errorf("%s: the generated test failed:\n%s", c.name, out)
 		}
+	}
+}
+
+// Receivers and cycles (the independent review's findings, notes/axiom-review/jsongen.md): an
+// UnmarshalJSON method runs on the slice element itself (its address, kept by the method, is the
+// element's after decoding, as the real one's), and a cyclic value is a NotModelled panic in the
+// codec where the real one reports a cycle.
+func TestReceiversAndCycles(t *testing.T) {
+	s := newSetup(t)
+	dir := t.TempDir()
+	src := "package t\n\n" + refusalImports + `
+type SP struct {
+	N    int
+	self *SP
+}
+
+func (p *SP) UnmarshalJSON(b []byte) error { p.self = p; p.N = len(b); return nil }
+
+// Self is the receiver the last UnmarshalJSON ran on.
+func (p *SP) Self() *SP { return p.self }
+
+type Holder struct {
+	S []SP
+	F SP
+	P *SP
+}
+
+type ML int
+
+func (m ML) MarshalJSON() ([]byte, error) { return []byte("1"), nil }
+
+type Cyc struct {
+	M    ML
+	Next *Cyc
+}
+`
+	s.module(t, dir, src, []string{"t.Holder", "t.Cyc"})
+	out, code := runCode(dir, nil, "python3", s.jsongen, "json.toml", "codec", "--pkg", "codec")
+	if code != 0 {
+		t.Fatalf("jsongen: exit %d\n%s", code, out)
+	}
+	test := `package codec
+
+import (
+	"encoding/json"
+	"testing"
+
+	"models.lab/jsoncodec"
+	tt "jsongenrand.tmp/t"
+)
+
+func TestReceivers(t *testing.T) {
+	for _, in := range []string{` + "`" + `{"S":[1],"F":2,"P":3}` + "`" + `, ` + "`" + `{"S":[1, 22, 333, 4444, 5, 6, 7, 8, 9]}` + "`" + `} {
+		var a, b tt.Holder
+		if err := json.Unmarshal([]byte(in), &a); err != nil {
+			t.Fatal(err)
+		}
+		if err := jsonUnmarshal([]byte(in), &b); err != nil {
+			t.Fatal(err)
+		}
+		if len(a.S) != len(b.S) || cap(a.S) != cap(b.S) {
+			t.Fatalf("%s: lengths or capacities differ: real %d/%d, codec %d/%d", in, len(a.S), cap(a.S), len(b.S), cap(b.S))
+		}
+		for i := range a.S {
+			ra, rb := a.S[i].Self() == &a.S[i], b.S[i].Self() == &b.S[i]
+			if ra != rb {
+				t.Fatalf("%s: element %d: the receiver is the element: real %v, codec %v", in, i, ra, rb)
+			}
+		}
+	}
+}
+
+func TestCycle(t *testing.T) {
+	c := &tt.Cyc{}
+	c.Next = c
+	if _, err := json.Marshal(c); err == nil {
+		t.Fatal("real: no error on a cycle")
+	}
+	defer func() {
+		if _, ok := recover().(jsoncodec.NotModelled); !ok {
+			t.Fatal("codec: no NotModelled panic on a cycle")
+		}
+	}()
+	jsonMarshal(c)
+}
+`
+	must(t, os.WriteFile(filepath.Join(dir, "codec", "receivers_test.go"), []byte(test), 0o644))
+	if out, code := runCode(dir, nil, "go", "test", "-count=1", "./codec"); code != 0 {
+		t.Fatalf("the tests failed:\n%s", out)
 	}
 }
