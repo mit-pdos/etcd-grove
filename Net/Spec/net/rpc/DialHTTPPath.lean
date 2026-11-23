@@ -37,6 +37,7 @@ variable [π : NetProtoGS]
 abbrev DialHTTPPath.spec : Prop :=
   ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),
   {{ ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ cliEnv ∗ net.http.httpEnv ∗
+      globalAddr net.rpc.connected ↦□ connectedStatus ∗
       rpcAddrP (Gg := hG.goose_globalGS) W a (connectReq path) connectAns }}
     (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #nw)) (Val #a)) (Val #path))
   {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);

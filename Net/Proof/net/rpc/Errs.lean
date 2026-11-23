@@ -175,6 +175,32 @@ theorem errAny_opErr (op : GoString) (src addr e err : GoInterface) :
   iapply errNE_errAny
   iapply errNE_opErr $$ H
 
+/-- Any `*OpError` is `errAny`: its `Error()` (the net model's) reads none of its fields and
+returns an arbitrary string (`DialHTTPPath`'s `"dial-http"` error, whose `Net` is not a TCP
+network's name). -/
+theorem errAny_opErrPtr (pe : Loc) :
+    ⊢ models_lab.errAny (GF := GF) (interface.mkOk (go.GoType.PointerType net.OpError.ty) #pe) := by
+  iapply errNE_errAny
+  unfold errNE
+  iexists ⟨go.GoType.PointerType net.OpError.ty, #pe⟩
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; exact opError_ptr_isError
+  imodintro
+  iintro %Φ HΦ
+  wp_method_call
+  wp_call
+  unfold net.OpError.Error.impl
+  wp_auto
+  wp_bind (ExternalOp _ _ _)
+  iapply wp_net_AnyString
+  iintro %str
+  wp_auto
+  wp_if_destruct
+  · iapply HΦ; ipureintro; simp
+  · iapply HΦ; ipureintro; exact Hif
+
 /-- A failure's error (`resErr (some k)`, an `*OpError`) is `errNE`. -/
 theorem errNE_resErr (k : NetErr) (op : GoString) (src addr : GoInterface)
     (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
