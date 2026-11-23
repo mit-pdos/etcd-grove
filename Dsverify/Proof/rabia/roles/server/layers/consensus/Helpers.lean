@@ -213,9 +213,11 @@ theorem wp_toNet (γ : Names) (k : Nat) (γl : SrvNames) (γc : ConsNames)
     as Hp
   iapply HΦ $$ Hp
 
-/-- The `Coin` field holds a usable `*rand.Rand` (owned by the executor). -/
+/-- The `Coin` field holds a usable `*rand.Rand` (owned by the executor): one with a token `R` of
+`math.rand.Hyps`' specs, for which `Intn`'s spec holds. -/
 def coinOk (c : Loc) : IProp GF :=
-  iprop(∃ (r : Loc) (v : math.rand.Rand), structFieldRef Consensus go!"Coin" c ↦ r ∗ r ↦ v)
+  iprop(∃ (r : Loc) (R : Loc → IProp GF), structFieldRef Consensus go!"Coin" c ↦ r ∗ R r ∗
+    ⌜math.rand.Rand.Intn.spec (GF := GF) R⌝)
 
 /-- `c.ResetCommonCoin()`: a fresh `Rand` in `Coin`. -/
 theorem wp_ResetCommonCoin [math.rand.Hyps GF] (c : Loc) :
@@ -227,12 +229,14 @@ theorem wp_ResetCommonCoin [math.rand.Hyps GF] (c : Loc) :
   ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ [Hpkg]
   · iPkgInit
   wp_auto
-  wp_apply (math.rand.Hyps.NewSource (GF := GF)) $$ [$Hrpkg] as %src -
-  wp_apply (math.rand.Hyps.New (GF := GF)) $$ [$Hrpkg] as %r ⟨%v, Hr⟩
+  obtain ⟨S, R, hR⟩ := math.rand.Hyps.rands (GF := GF)
+  wp_apply hR.NewSource $$ [$Hrpkg] as %src Hsrc
+  wp_apply hR.New $$ [$Hrpkg $Hsrc] as %r Hr
   iapply HΦ
   unfold coinOk
-  iexists r, v
+  iexists r, R
   iframe
+  ipureintro; exact hR.Rand_Intn
 
 /-- `c.CommonCoinFlip()`: some bit. -/
 theorem wp_CommonCoinFlip [math.rand.Hyps GF] (c : Loc) :
@@ -241,12 +245,12 @@ theorem wp_CommonCoinFlip [math.rand.Hyps GF] (c : Loc) :
     {{ (x : w32), RET #x; coinOk c ∗ ⌜x.toNat ≤ 1⌝ }} := by
   wp_start as H
   unfold coinOk
-  icases H with ⟨%r, %v, Hc, Hr⟩
+  icases H with ⟨%r, %R, Hc, Hr, %hR⟩
   wp_auto
-  wp_apply (math.rand.Hyps.Rand_Intn (GF := GF)) r v (W64 2) (by decide) $$ [$Hr] as %x ⟨Hr, %hx⟩
+  wp_apply hR r (W64 2) (by decide) $$ [$Hr] as %x ⟨Hr, %hx⟩
   iapply HΦ
   isplitl
-  · iexists r, v; iframe
+  · iexists r, R; iframe; ipureintro; exact hR
   · ipureintro; word
 
 end spec

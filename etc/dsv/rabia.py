@@ -72,10 +72,11 @@ allocates `Conf` and initializes its imports.''',
                FIN_PRE[:6])
     # rabia's `message` (message.pb.go's variables and two `init`s): the errors (`errors.New`, verb-less
     # `fmt.Errorf`), the `MsgType` maps, the file descriptor's slice, and gogo proto's `Register*` calls,
-    # whose specs are fields of the hypothesis `proto.InitHyp` (names only here: notes/dsv-rabia.md),
-    # carried by every package above (`DSV_HYP_INITS`)
+    # whose specs are the fields of the hypothesis `proto.Hyps` (names only here: notes/dsv-rabia.md),
+    # carried by every package above (`vars`)
     _DSV_MSG = 'rabia.internal.message'
     _DSV_IMI = '_root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo'
+    _DSV_PH = '_root_.Perennial.github_com.gogo.protobuf.proto.Hyps'
     SPECIAL[_DSV_MSG] = newvars_cfg({
         'alloc_types': {'MsgType_name': 'Loc', 'MsgType_value': 'Loc',
                         'fileDescriptor_33c57e4bae7b9afd': 'GoSlice', 'xxx_messageInfo_Msg': _DSV_IMI,
@@ -93,17 +94,26 @@ allocates `Conf` and initializes its imports.''',
                 'iintro %fdp ⟨Hfds, _⟩'],
         },
         'after': {
-            'init.«0»': ['wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterEnum',
+            # (#24) the package state out of `Hown` for the `Register*` calls (`proto.Hyps`), and
+            # `MsgType_value`'s points-to for `RegisterEnum` (consumed: called once, here)
+            'init.«0»': ['iunfold EtcdGrove.ownInitLb at Hown',
+                         'icases Hown with ⟨%σg, Hg, #Hok, %Hle⟩',
+                         f'wp_apply ({_DSV_PH}.RegisterEnum (GF := GF)) $$ [$Hg $HMsgType_value] as Hg',
                          'try wp_auto',
-                         'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
+                         f'wp_apply ({_DSV_PH}.RegisterType (GF := GF)) $$ [$Hg] as Hg',
                          'try wp_auto',
-                         'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
+                         f'wp_apply ({_DSV_PH}.RegisterType (GF := GF)) $$ [$Hg] as Hg',
                          'try wp_auto',
-                         'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
+                         f'wp_apply ({_DSV_PH}.RegisterType (GF := GF)) $$ [$Hg] as Hg',
                          'try wp_auto'],
-            'init.«1»': ['wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterFile',
-                         'try wp_auto'],
+            'init.«1»': [f'wp_apply ({_DSV_PH}.RegisterFile (GF := GF)) $$ [$Hg] as Hg',
+                         'try wp_auto',
+                         'ihave Hown : EtcdGrove.ownInitLb get_is_pkg_init σ0 $$ [Hg]',
+                         '· iunfold EtcdGrove.ownInitLb; iexists σg; iframe Hg Hok; ipureintro; exact Hle'],
         },
+        # (#24) gogo proto's `Register*` specs (`proto/Spec.lean`), a premise of their own
+        'imports': ['Dsverify.Proof.github_com.gogo.protobuf.proto.Spec'],
+        'vars': [f'[{_DSV_PH} GF]'],
         'rec_depth': 100000,
         'heavy': True,
         # its fact (`message/Base.lean`'s `msgFact`): the framing's two errors, non-`nil`

@@ -41,11 +41,12 @@ theorem Server.TerminalLogger.wp_proof
     (hIL : rabia.internal.logger.InitLogger.spec (GF := GF))
     (hNC : ProxyTCP.NumConns.spec (GF := GF)) (hSS : Consensus.SlotStats.spec (GF := GF)) :
     Server.TerminalLogger.spec (GF := GF) := by
-  have hW := github_com.rs.zerolog.Hyps.level (GF := GF) go!"Warn" (by simp)
-  have hU := github_com.rs.zerolog.Hyps.Event_Uint32 (GF := GF)
-  have hI := github_com.rs.zerolog.Hyps.Event_Int (GF := GF)
-  have hFl := github_com.rs.zerolog.Hyps.Event_Float64 (GF := GF)
-  have hM := github_com.rs.zerolog.Hyps.Event_Msg (GF := GF)
+  have hE := github_com.rs.zerolog.eventSpecs (GF := GF)
+  have hW := hE.level go!"Warn" (by simp)
+  have hU := hE.Event_Uint32
+  have hI := hE.Event_Int
+  have hFl := hE.Event_Float64
+  have hM := hE.Event_Msg
   intro γ cf k s
   wp_start as ⟨#Hconf, Hr⟩
   unfold serverLogRes
@@ -63,6 +64,7 @@ theorem Server.TerminalLogger.wp_proof
   · ipureintro; decide
   unfold time.isTicker
   icases Htk with ⟨#HC, -, -, #Htbag⟩
+  ihave %HtlNN := typedPointsto_not_null _ _ _ $$ tLogger
   ihave HI : (∃ (a b : w64), "lastNotNulls" ∷ lastNotNulls_ptr ↦ a ∗
       "lastCBProcessed" ∷ lastCBProcessed_ptr ↦ b) $$ [lastNotNulls lastCBProcessed]
   · iexists W64 0, W64 0; iframe
@@ -104,15 +106,15 @@ theorem Server.TerminalLogger.wp_proof
     · iexact Htro
     wp_apply hSS c $$ [] as %a1 %a2 %a3 %a4 -
     · iexact Hstro
-    wp_apply hW tLogger_ptr as %e -
-    wp_apply hU
-    wp_apply hI
-    wp_apply hI
-    wp_apply hI
-    wp_apply hI
-    wp_apply hI
-    wp_apply hFl
-    wp_apply hM
+    wp_apply hW tLogger_ptr HtlNN as %e He
+    wp_apply hU $$ [$He] as He
+    wp_apply hI $$ [$He] as He
+    wp_apply hI $$ [$He] as He
+    wp_apply hI $$ [$He] as He
+    wp_apply hI $$ [$He] as He
+    wp_apply hI $$ [$He] as He
+    wp_apply hFl $$ [$He] as He
+    wp_apply hM $$ [$He]
     wp_for_post
     iframe
     iexists _, _

@@ -74,6 +74,7 @@ theorem ProxyInit.wp_proof (hLog : rabia.internal.logger.InitLogger.spec (GF := 
   ipersist executeCmdFunc
   ipersist executeAndReplyFunc
   ipersist Ledger
+  ihave %HLogNN := typedPointsto_not_null _ _ _ $$ Logger
   imodintro
   iapply HΦ
   isplitl
@@ -85,7 +86,7 @@ theorem ProxyInit.wp_proof (hLog : rabia.internal.logger.InitLogger.spec (GF := 
     · unfold proxyFields
       iexists id
       iframe SvrId Wg Done ClientsIn ToNet NetIn TCP KVStore executeCmdFunc executeAndReplyFunc Ledger
-      ipureintro; exact hid
+      ipureintro; exact ⟨hid, HLogNN⟩
     isplitl [CurrSeq]
     · first
         | (rw [show (W32 0 : w32) = zeroValDef from rfl]; iexact CurrSeq)

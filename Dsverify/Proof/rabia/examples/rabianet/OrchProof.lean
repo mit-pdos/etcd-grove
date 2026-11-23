@@ -28,7 +28,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
-variable [math.rand.Hyps GF] [log.Hyps GF]
+variable [math.rand.Hyps GF]
 variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 variable [ρ : RemoteGS]
 

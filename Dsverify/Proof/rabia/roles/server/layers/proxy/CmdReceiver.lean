@@ -303,7 +303,7 @@ theorem Proxy.CmdReceiver.wp_proof : Proxy.CmdReceiver.spec (GF := GF) := by
   icases Hres with ⟨%wg, %t, %kv, %ledger, %hk, #Hf, #Hchans, #Hkeys, Hkp, Hcr⟩
   unfold proxyFields
   icases Hf with ⟨%id, %hid, #HSvrId, #HWg, #HDone, #HCin, #HToNet, #HNetIn, #HTCP, #HKV, #HExec,
-    #HExecR, #HLedger⟩
+    #HExecR, #HLedger, -⟩
   icases confRO_val $$ Hconf with ⟨%ps, #Hc⟩
   iStructNamed Hc
   wp_auto

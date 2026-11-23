@@ -1,8 +1,8 @@
 /-
 (Ported from dsverify-lab `examples/rabia/proof/Proof/rabia/internal/system/SigListen.lean`, run `rabia-r1wake-1`.)
 
-The proof of `SigListen` (`SigListen.spec`): `sigIn` is a fresh channel that `signal.Notify` (the
-environment assumption `os.signal.NoSignals`: nobody sends signals) never sends on, a bag of `False`; `done` a bag of `False` (the premise): the `select` never
+The proof of `SigListen` (`SigListen.spec`): `sigIn` is a fresh channel that `signal.Notify(sigIn,
+SIGINT, SIGTERM)` (the environment assumption `os.signal.NoSignals`: nobody sends those two) never sends on, a bag of `False`; `done` a bag of `False` (the premise): the `select` never
 fires.
 -/
 module
@@ -42,13 +42,13 @@ theorem SigListen.wp_proof : SigListen.spec (GF := GF) := by
   wp_apply chan.wp_make2 (V := os.Signal) as %ch %γs ⟨#Hch, %Hcap, Hown⟩
   · ipureintro; decide
   imod start_bag (V := os.Signal) (fun _ => iprop(False)) _ ch γs (by simp) $$ Hch Hown with #Hsig
-  wp_apply wp_slice_literal (V := os.Signal) _
+  wp_apply wp_slice_literal (V := os.Signal) (l := os.signal.quietSigs) _
   isplitr
   · ipureintro; rfl
-  iintro %sl ⟨_, _⟩
+  iintro %sl ⟨Hsl, _⟩
   wp_auto_lc 2
   ihave %Hnn := isChan_ne_nil_signal _ _ $$ Hch
-  wp_apply (os.signal.NoSignals.notifyQuiet (GF := GF)) _ _ Hnn
+  wp_apply (os.signal.NoSignals.notifyQuiet (GF := GF)) _ _ _ Hnn $$ [$Hsl] as -
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
   isplit

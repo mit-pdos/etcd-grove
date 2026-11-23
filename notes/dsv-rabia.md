@@ -18,7 +18,7 @@ every Go semantics with the twelve programs' `Assumptions`, `net.FieldAssumption
 `heapAt G L`): the `InitHyp`s of zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`,
 `math/rand` (go-redis' `internal/proto` `InitHyp` is not needed: no initializer reaches it),
 `github_com.rs.zerolog.Hyps`, `math.rand.Hyps`, `log.Hyps` (`log.Println`), and the environment
-assumption `os.signal.NoSignals`. `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
+assumption `os.signal.NoSignals` (revised after review #24, below: `proto.Hyps` added, `log.Hyps` gone). `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
 `lake build` of the top module (2937 jobs): ok. `etc/theorem-loc.py --file … rabia_remote_robust`
 counts every one of these classes as a statement premise (`--list-tcb`: `stmt class …InitHyp`, …,
 `os.signal.NoSignals`, `NotifyQuiet.spec`). Not run: `etc/tcb-report.py --check` of the collection
@@ -67,6 +67,41 @@ queue and the ledger, the three layers, `wp_ServerInit`/`wp_Prologue`/`wp_Server
 it; all 230 modules under `Dsverify/{Proof,Spec}/rabia` and the libraries' build; `gen-init.py
 --check` and `goose.py --check --project dsv-rabia` pass.
 
+**Review #24 (2026-11-23, sixth agent):** upamanyus's review of `1a7990d86b` ("close; fix 1-3,
+4-6 if cheap"): the premises claimed more than the real libraries do. Now:
+1. `os.signal.NotifyQuiet.spec` requires `sig ↦*{dq} quietSigs` (`[SIGINT, SIGTERM]` as the
+   `os.Signal` values `SigListen`'s literal makes) and gives it back: Go's `Notify(c)` with no
+   signals relays every signal, the runtime's `SIGURG` included. `NoSignals` stays the environment
+   assumption, over exactly those two. `os.signal.Hyps` (`Notify`, `Stop`) was unused: removed.
+2. gogo `proto`'s `InitHyp` holds only its `wp_initialize'` (`etc/dsv/README.md`'s rule); the three
+   `Register*` specs are a premise of their own, `github_com.gogo.protobuf.proto.Hyps`
+   (`proto/Spec.lean`): each holds the package state `ownGoState σ` (registrations are made by
+   initializers, one at a time; with `True` they claimed concurrent calls safe), and `RegisterEnum`
+   is required to be called inside `message`'s initialization, once: stated for `"message.MsgType"`
+   only, it consumes the points-to of `message`'s `MsgType_value`, which only `message`'s
+   initializer holds (it allocates it). `message`'s generated `Init` unpacks `Hown`
+   (`EtcdGrove.ownInitLb`) for the calls and repacks it (`etc/dsv/rabia.py`'s `after`; its
+   `vars`/`imports` give every package above `message` the instance).
+3. zerolog: `Logger.level.spec ownEvent m` requires `l ≠ null` and returns the event's token
+   `ownEvent e`, only for the five levels whose `Msg` neither panics nor exits; the field methods
+   take and return the token, `Msg` consumes it (an event is not safe for concurrent use). The token
+   is abstract: `Hyps.events : ∃ ownEvent, EventSpecs GF ownEvent`; the proofs use the chosen
+   `zerolog.ownEvent`/`eventSpecs` (`Classical.choose`: with an `obtain`ed predicate, `wp_apply` of
+   `TerminalLogger`'s event calls aborted silently, leaving a `sorry` the build only warned about). The proxy's `proxyFields`
+   carries `⌜structFieldRef Proxy "Logger" p ≠ null⌝` (from `ProxyInit`'s field points-to) for
+   `KVSExecutor`'s `p.Logger.Debug()`; `TerminalLogger` has its local's points-to.
+4. math/rand: `NewSource` gives a source token `isSource src`, `New` takes it and gives a `Rand`
+   token `ownRand r`, `Rand.Intn` takes the latter (`Hyps.rands : ∃ isSource ownRand, RandSpecs`):
+   a zero `Rand` (nil source) is not covered. The consensus's `coinOk`/`exCoinOk` hold `∃ R, R r ∗
+   ⌜Rand.Intn.spec R⌝` instead of `r ↦ v`.
+5. `log.Hyps` is gone: `log.Println.wp_proof` (`Dsverify/Proof/log/Println.lean`) is proved from
+   Perennial's trusted `log.Println.impl` (it does nothing), its spec requiring `fmt.ArgsWf` of the
+   arguments as Perennial's `log.Printf.spec` does (`send` passes one string); `KitNetDeps.println`.
+The statement's premises are now: the six `InitHyp`s, `proto.Hyps`, `zerolog.Hyps`, `math.rand.Hyps`,
+`os.signal.NoSignals`. Not done (optional in the review): moving `sentLb_prefix`, `sentLb_agree`,
+`recvTokL_sentLb` into `GooseLang/Ext/Net/Proto.lean` (a base-tier change that rebuilds every
+module over `Proto.lean`; a follow-up).
+
 **Kit Go changes (third agent and its agents):** `Sys` has a mutex, `Op` locks it (`op1` the body);
 `op1` answers unknown once the sequence numbers reach `SeqBudget = 2^29` (`proxyP`'s budget;
 remote serves unboundedly many operations); the model's `Entry` has `Old` (puts overwritten while
@@ -82,7 +117,7 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
 | translation | `etc/goose.py` project `dsv-rabia` into the part `Dsverify/` (`Dsverify/{Code,GeneratedProof}/rabia/...`): rabia's packages with bodies; zerolog, gogo `proto`/`gogoproto`, go-redis (and its `internal/proto`) and `os/signal` **names only** with their types (`Dsverify/Code/**.toml`); remote and `net` the part `Net/`'s; lintest, porcupine, `bufio`, `container/heap`, `path`, `os`, `syscall` the main tree's; the rest Perennial's. Identical to the lab's translation but for the imports' module roots (checked file by file). Builds (`lake build Dsverify.GeneratedProof.rabia.examples.rabianet` and the twelve commands) |
 | initializers | `etc/gen-init.py` `dsv_inits`: `DSV_PKGS`/`DSV_PROGRAMS` extended with rabia's packages and programs; `DSV_MAIN` (`bufio`, `container.heap`, `path`, `internal.bytealg`: their `Init.lean` generated into the part over `Net/`'s `PkgInitExt`, the last three with instances of the part's own, `Dsverify/Proof/{container/heap,path,internal/bytealg}/Base.lean`, since the main tree declares them in etcd's packages); `DSV_HYP_INITS` (dsv-vr's mechanism, `dsv_hyp_fix`, copied verbatim; math/rand as dsv-quepaxa: the names-only libraries' and math/rand's `wp_initialize'` are hypotheses, below); `SPECIAL['rabia.internal.config']` (`Conf`'s invariant) and `SPECIAL['rabia.internal.message']` (its errors, maps, descriptor and the `Register*` calls). Package facts: `Dsverify/Proof/**/Base.lean`, `True` but `config`'s |
 | proofs | `Dsverify/Proof/rabia/Lib/OrdChan.lean` (the lab's ordered multi-producer channel); `Dsverify/Proof/rabia/Core/`: `Model` (pure: values, wire format, the key-value map `kv` restated from the lab's `Harness.Model`), `Protocol` (pure, unchanged), `Ghost` (the record of facts and `rabiaInv`; the client's update is remote's, below), `Proto` (the protocols onto `GooseLang/Ext/Net/Proto.lean`), `PkgState` (`confClaim`) |
-| statement | not yet (`rabia_remote_robust`, `DistDeploy … → Robust [] …`, as `paxos_remote_robust`) |
+| statement | `rabia_remote_robust` (`Dsverify/Spec/rabia/examples/rabianet/TopLevelRobustness.lean`, `DistDeploy … → Robust [] …`, as `paxos_remote_robust`), proved in `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean` |
 | trust base | `etc/tcb-collections/dsv-rabia.txt` (roots `Dsverify/Proof/rabia/`, empty baseline) |
 
 ## What changed against the lab
@@ -153,9 +188,10 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
   for `github_com/rs/zerolog`, `github_com/gogo/protobuf/{proto,gogoproto}`,
   `github_com/go_redis/redis/v8` (and `internal/proto`), `os/signal`, `math/rand` is a class
   `InitHyp GF : Prop` holding the package's `wp_initialize'`; every generated theorem above takes it
-  as an instance (`variable [<pkg>.InitHyp GF]`). gogo `proto`'s class also holds the specs of
-  `RegisterEnum`/`RegisterType`/`RegisterFile` (the coordinator's decision: `message`'s init calls
-  them; `RegisterEnum`'s spec is true of a name's first registration, the only one per program).
+  as an instance (`variable [<pkg>.InitHyp GF]`). Each asserts only that the initializer runs
+  without panicking; the specs of gogo `proto`'s `RegisterEnum`/`RegisterType`/`RegisterFile`, which
+  `message`'s init calls, are the separate premise `proto.Hyps` (review #24, above; until then fields
+  of `proto.InitHyp` with precondition `True`).
   The generated `os/signal`/library initializers with `initFuncsOk` axioms are gone: no axiom under
   `Dsverify/` (`path/Init.lean` mentions `opaqueInitsOk` in its doc only).
 - **OrdChan:** the channel idioms' atomic updates are crash-aware at Perennial `9c3b81f3`
@@ -175,11 +211,15 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
   (`net.connReader_proto`): each frame's fact costs a later credit (`wp_auto_lc`).
 - **Missing laws of `GooseLang/Ext/Net/Proto.lean`** (proved here from its definitions, in
   `tcp/ProtoLemmas.lean`): `sentLb_prefix`, `sentLb_agree`, `recvTokL_sentLb`.
-- **`os/signal`**: the coordinator's decision, implemented by the third agent's fork:
-  `os.signal.Hyps` holds the library's behaviour (`Notify` registers a channel on which the
-  runtime may deliver any signal; `Stop`), and the **environment assumption** `os.signal.NoSignals`
-  (nobody sends SIGINT/SIGTERM to the deployment's processes; `NotifyQuiet`) is a class of its own,
-  which `SigListen` takes. **For the user:** the honest alternative (only `Hyps.Notify`) costs a
+- **`os/signal`**: the coordinator's decision: the **environment assumption**
+  `os.signal.NoSignals` (nobody sends SIGINT or SIGTERM to the deployment's processes), a class of
+  its own, which `SigListen` takes: `NotifyQuiet.spec`, `Notify(c, SIGINT, SIGTERM)` (its signal
+  slice `↦*{dq} quietSigs`, review #24) on a non-`nil` channel, with no requirement on the channel's
+  protocol, so `SigListen`'s signal branch is unreachable. Go's `Notify` relays the listed signals
+  only (with none listed, every signal, the runtime's own `SIGURG` included), so the assumption
+  is about those two. No library spec of `os/signal` is used (the earlier `os.signal.Hyps`,
+  `Notify` with `□ ∀ s, P s` and `Stop`, was unused and is gone). **For the user:** the honest
+  alternative (no environment assumption) costs a
   proof that every routine selecting on a server's `Done` channel is safe once `Done` is closed
   (SigListen closes it on a signal): the tcp endpoints' loops, the layers' routines, `ServerMain`,
   `TerminalLogger`, which today treat `Done` as never closed (safety only, not liveness).
@@ -194,34 +234,26 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
 
 ## The hypotheses (missing model pieces; named after the lab's specs)
 
-**Stated** (classes, instance arguments of every theorem above them, up to the closed statement):
-- `github_com.rs.zerolog.InitHyp`, `github_com.gogo.protobuf.gogoproto.InitHyp`,
-  `github_com.go_redis.redis.v8.InitHyp`, `github_com.go_redis.redis.v8.internal.proto.InitHyp`,
+**Stated** (classes, instance arguments of every theorem above them, each a premise of the closed
+statement; no instance anywhere):
+- `github_com.rs.zerolog.InitHyp`, `github_com.gogo.protobuf.proto.InitHyp`,
+  `github_com.gogo.protobuf.gogoproto.InitHyp`, `github_com.go_redis.redis.v8.InitHyp`,
   `os.signal.InitHyp`, `math.rand.InitHyp` (each the package's `wp_initialize'`, the lab's
-  `<pkg>.init.spec`);
-- `github_com.gogo.protobuf.proto.InitHyp` (`proto.init.spec`, and `RegisterEnum`, `RegisterType`,
-  `RegisterFile`).
+  `<pkg>.init.spec`: the initializer runs without panicking); go-redis' `internal/proto.InitHyp` is
+  declared but no initializer of the programs reaches it;
+- `github_com.gogo.protobuf.proto.Hyps` (`proto/Spec.lean`): `RegisterEnum` (`"message.MsgType"`,
+  once, inside `message`'s initialization), `RegisterType`, `RegisterFile`, each with the package
+  state;
+- `github_com.rs.zerolog.Hyps` (`zerolog/Spec.lean`): `New`, `SetGlobalLevel`, `ParseLevel("warn")`,
+  and `∃ ownEvent, EventSpecs`: the five levels on a non-`nil` logger, `Event.{Str,Int,Ints,Int64,
+  Uint32,Bool,Float64}`, `Event.Msg`, with an exclusive event token;
+- `math.rand.Hyps` (`math/rand/Spec.lean`): the package-level `Intn`, and `∃ isSource ownRand,
+  RandSpecs`: `NewSource`, `New`, `Rand.Intn` with exclusive tokens;
+- `os.signal.NoSignals` (`os/signal/Spec.lean`): the environment assumption.
 
-**To state** when a ported proof needs them (a section variable or a premise with this name, never
-an axiom; the closed statement carries it until the shared change (bufio, #24) or a model lands):
-
-- **bufio** (one shared change on #24; the main tree translates only `NewReader(Size)`,
-  `Reader.Read` and helpers): the lab's `Harness/Proof/bufio/` — `bufio.wp_NewReaderSize`,
-  `bufio.wp_NewWriterSize`, `bufio.wp_Write` (`(*Writer).Write`), `bufio.wp_Flush`, `bufio.wp_ReadFull`
-  (`io.ReadFull` over a `*bufio.Reader`), and its connection laws `readerOk_conn`, `writerOk_conn`,
-  `readsOk_conn`, `bufioReadsOk` (a `bufio.Reader`/`Writer` over a `net.Conn` with `recvTok`/`sendTok`).
-  Used by `internal/message` (`BufWrite`, `BufRead`, `WriteFlush`, `MarshalWriteFlush`,
-  `ReadUnmarshal`) and `internal/tcp` (`GetReaderWriter`, the send and receive loops).
-- **zerolog** (real v1.23.0 names only; the lab's `rpcmodel/zerolog`): `github_com.rs.zerolog.New`,
-  `SetGlobalLevel`, `ParseLevel` (the lab's `ParseLevel.warn`), `Logger.Warn`, `Logger.Debug`,
-  `Event.Msg`, `Event.Int`, `Event.Uint`, `Event.Bool`, `Event.Float`.
-- **gogo/protobuf**: nothing more (the generated `Marshal`/`Unmarshal` code is rabia's own).
-- **os/signal** (names only here; the lab's `Harness/Proof/os/signal.lean`): `os.signal.Notify`,
-  `signal.Stop` (`internal/system.SigListen`).
-- **math/rand** (Perennial's, names only; the main tree proves `Float64`/`Int63n` only):
-  `math.rand.New`, `math.rand.NewSource`, `math.rand.Rand.Intn` (the consensus coin),
-  `math.rand.Intn` (the kit's `choose`).
-- **log** (Perennial's model has `Println`, no spec): `log.wp_Println` (the kit's `send`).
+**Proved** from a model: `log.Println` (Perennial's trusted `log` model, `Dsverify/Proof/log/
+Println.lean`; until review #24 the premise `log.Hyps`); bufio (the shared change on #24: the
+main tree's `Spec/bufio/`, `Proof/bufio/`).
 
 ## State, in detail
 
@@ -241,11 +273,8 @@ an axiom; the closed statement carries it until the shared change (bufio, #24) o
   `nonblockingRecvAuAlt`/`nonblockingRecvAuInner` are `|NC={⊤,∅}=>`: `iapply ncfupd_of_fupd` before
   `iinv`; proxy's `StoreRel` takes `(kv GoString GoString).State` (with `KStore` a later goal was
   ill-typed at `implicit` transparency).
-- Hypothesis classes (no instance anywhere): `github_com.rs.zerolog.Hyps`, `os.signal.Hyps`
-  (`Notify` says **no signal is delivered**: an assumption on the environment, the lab's model's;
-  `Stop`), `math.rand.Hyps` (`NewSource`, `New`, `Rand.Intn`, the package-level `Intn` for the kit's
-  `choose`; taken by the coin's theorems and the executor's proof sections). With the `InitHyp`s,
-  each must be a premise of `rabia_remote_robust`.
+- Hypothesis classes (no instance anywhere): "The hypotheses" above; each is a premise of
+  `rabia_remote_robust`.
 - tcp's `Spec`: the lab's `net.ownListener l lid a` is `ownListener li l a` = `net.isListener li l ∗
   netLis NL l a true ∗ netLisAt NL l a` (`net.Listen`'s post); `ProxyTcpInit`/`NetTCPInit` take
   `shared γ` (it holds the address's `addrProto`, which `listen_au` needs) instead of the lab's
@@ -254,26 +283,9 @@ an axiom; the closed statement carries it until the shared change (bufio, #24) o
 
 ## Next steps
 
-1. (done) message's bufio half. Design: the read specs fix the reader's condition to a connection's
-   (`connPre`, a non-empty buffer); `BufRead` is generic in the stream `S`, the `ReadUnmarshal`s are
-   over a connection end (`S = recvTokL cn s P`), their payload premise `frameIs P cn R D` is over the
-   protocol (`protoPrefix P cn (R ++ frame bs) -∗ ⌜D bs⌝`), reached through the reader by
-   `net.connReader_proto` with a later credit; the write specs take `io.writerOk wi J Q Ew` (its
-   prefix closure: the header's write). `message`'s fact is `msgFact` (`errFrameTooLarge`,
-   `errFrameTooLong` non-`nil`; `etc/dsv/rabia.py`'s `finish`).
-2. tcp's transport: base done (`Basics.lean`: a connection end's reader/writer `rdOwn br cn s P R`,
-   `wrOwn bw cn s P W pend err` (existentials over the bufio predicates' contract parameters),
-   `wp_GetReaderWriter` (socket options through `sockopt_au`, readers/writers from
-   `net.conn_readerOk`/`conn_writerOk`), message's specs over them; `ProtoLemmas.lean`
-   (`ProtoPrefixClosed` of the protocols, `sentLb_prefix`/`sentLb_agree`/`recvTokL_sentLb`: missing
-   laws of `Proto.lean`, proved from its definitions); `Hub.lean`). **The framed protocols `proxyP`,
-   `proxyQ`, `netP` allow the empty stream outright** (`⌜W = []⌝ ∨ …`, `Core/Proto.lean`): the
-   revised `bufio.NewWriterSize` asks `□ Q W` when the writer is made, and the proxy makes its writer
-   before it reads the client's handshake (the lab made `ownWriter` later). The endpoints: in
-   progress (above).
-3. network `Prologue`, proxy `ProxyInit`/`Prologue`, server: in progress (above).
-4. The kit (`Configure` with `confClaim`, `NewClient`, `Op` with `opAU`/`lin_opAU`, `Server`, the
-   porcupine model's proof as paxos's `ModelSet`/`ModelProof`, `gens()`'s `genSpec`), mains, a
-   `Link`, `TopLevelDefs`, `TopLevelRobustness` (`rabia_remote_robust`; every `InitHyp` and `Hyps`
-   class and `os.signal.NoSignals` a visible premise; confirm `etc/theorem-loc.py` counts them),
-   `#print axioms`, the collection's baseline, `lake build` of everything new.
+1. Landing: `etc/land.sh` from the worktree (not done by the review's fix; the coordinator queues it).
+2. Optional (review #24): move `sentLb_prefix`, `sentLb_agree`, `recvTokL_sentLb` from
+   `tcp/ProtoLemmas.lean` into `GooseLang/Ext/Net/Proto.lean` (a follow-up: it rebuilds every module
+   over `Proto.lean`).
+3. Models of the names-only libraries (zerolog, gogo `proto`, math/rand's `Rand`) would turn the
+   remaining premises into proofs.

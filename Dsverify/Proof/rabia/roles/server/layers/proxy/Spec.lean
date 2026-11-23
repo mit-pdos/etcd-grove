@@ -64,7 +64,8 @@ def proxyFields (k : Nat) (ch : SrvChans) (p : Loc) (wg t : Loc) (kv : GoMap)
       methods (go.GoType.PointerType Proxy.ty) go!"naiveExecuteCmd" #p ∗
     structFieldRef Proxy go!"executeAndReplyFunc" p ↦□
       methods (go.GoType.PointerType Proxy.ty) go!"singleExecuteAndReply" #p ∗
-    structFieldRef Proxy go!"Ledger" p ↦□ ledger)
+    structFieldRef Proxy go!"Ledger" p ↦□ ledger ∗
+    ⌜structFieldRef Proxy go!"Logger" p ≠ null⌝)
 
 /-- The proxy `p` after `ProxyInit`. -/
 def proxyInitOk (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (γc : ConsNames) (ch : SrvChans) (p : Loc) :

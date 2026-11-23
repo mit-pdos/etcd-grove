@@ -43,6 +43,7 @@ variable [sem : go.Semantics]
 variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
 variable [_root_.Perennial.github_com.gogo.protobuf.proto.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.internal.tcp.Assumptions]
+variable [_root_.Perennial.github_com.gogo.protobuf.proto.Hyps GF]
 
 namespace rabia.internal.tcp
 

@@ -41,6 +41,7 @@ variable [sem : go.Semantics]
 variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
 variable [_root_.Perennial.github_com.gogo.protobuf.proto.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.roles.server.layers.network.Assumptions]
+variable [_root_.Perennial.github_com.gogo.protobuf.proto.Hyps GF]
 
 namespace rabia.roles.server.layers.network
 

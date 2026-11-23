@@ -3,8 +3,8 @@ The rabia kit's links (as paxos's `Linked.lean`): the configuration protocol's p
 (`ConfProof.lean`, over `net`'s proofs, `KitNetDeps`) and the machines' (`OrchProof.lean`,
 `ClientProof.lean`, `ServerProof.lean`) applied to their callees' linked results (the server
 package's `roles/server/Link.lean`, remote's `Link.lean`, `Model()`'s proof). The library
-hypotheses stay instance arguments (`zerolog.Hyps`, `os.signal.NoSignals`, `math.rand.Hyps`,
-`log.Hyps`): the closed statement carries them.
+hypotheses stay instance arguments (`zerolog.Hyps`, `os.signal.NoSignals`, `math.rand.Hyps`): the
+closed statement carries them; `log.Println`'s proof (from Perennial's model) is `kitNetDeps`'.
 -/
 module
 
@@ -16,6 +16,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.ServerProof
 public import Dsverify.Proof.rabia.examples.rabianet.OrchProof
 public import Dsverify.Proof.rabia.examples.rabianet.ModelProof
 public import Dsverify.Proof.rabia.internal.config.CalcConstants
+public import Dsverify.Proof.log.Println
 public import Dsverify.Proof.rabia.roles.server.Link
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Net.Proof.net.Listen
@@ -45,7 +46,7 @@ variable [srv_sem : rabia.roles.server.Assumptions]
 variable [tcp_sem : rabia.internal.tcp.Assumptions] [msg_sem : rabia.internal.message.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj] [sync.Assumptions]
-variable [math.rand.Hyps GF] [log.Hyps GF]
+variable [math.rand.Hyps GF]
 
 -- the configuration protocol
 theorem kitNetDeps : KitNetDeps (GF := GF) where
@@ -57,6 +58,7 @@ theorem kitNetDeps : KitNetDeps (GF := GF) where
   close := net.Conn.Close.wp_proof
   readFullLt := io.ReadFull.wp_proofLt
   calcConstants := rabia.internal.config.Config.CalcConstants.wp_proof
+  println := log.Println.wp_proof
 theorem wp_configure_linked : configure.spec (GF := GF) := configure.wp_proof kitNetDeps
 theorem wp_waitConf : waitConf.spec (GF := GF) := waitConf.wp_proof kitNetDeps
 theorem wp_New : New.spec (GF := GF) := New.wp_proof kitNetDeps

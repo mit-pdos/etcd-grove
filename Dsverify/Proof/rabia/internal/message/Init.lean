@@ -20,6 +20,7 @@ public import Perennial.Proof.reflect.Link
 public import Perennial.Proof.strconv.Link
 public import Perennial.Proof.strings.Link
 public import Dsverify.Proof.bufio.Init
+public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec
 public import Perennial.Proof.errors.NewVar
 public import Proof.fmt.OutLemmas
 public import Dsverify.Proof.runtime.PkgInitDsv
@@ -48,6 +49,7 @@ variable [sem : go.Semantics]
 variable [_root_.Perennial.github_com.gogo.protobuf.gogoproto.InitHyp GF]
 variable [_root_.Perennial.github_com.gogo.protobuf.proto.InitHyp GF]
 variable [package_sem : _root_.Perennial.rabia.internal.message.Assumptions]
+variable [_root_.Perennial.github_com.gogo.protobuf.proto.Hyps GF]
 
 namespace rabia.internal.message
 
@@ -138,20 +140,24 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_func_call
   wp_call
   try wp_auto
-  wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterEnum
+  iunfold EtcdGrove.ownInitLb at Hown
+  icases Hown with ⟨%σg, Hg, #Hok, %Hle⟩
+  wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterEnum (GF := GF)) $$ [$Hg $HMsgType_value] as Hg
   try wp_auto
-  wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType
+  wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
   try wp_auto
-  wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType
+  wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
   try wp_auto
-  wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType
+  wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterType (GF := GF)) $$ [$Hg] as Hg
   try wp_auto
   -- the translated init.«1»
   wp_func_call
   wp_call
   try wp_auto
-  wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterFile
+  wp_apply (_root_.Perennial.github_com.gogo.protobuf.proto.Hyps.RegisterFile (GF := GF)) $$ [$Hg] as Hg
   try wp_auto
+  ihave Hown : EtcdGrove.ownInitLb get_is_pkg_init σ0 $$ [Hg]
+  · iunfold EtcdGrove.ownInitLb; iexists σg; iframe Hg Hok; ipureintro; exact Hle
   ipersist HerrFrameTooLarge
   ipersist HerrFrameTooLong
   iframe Hown

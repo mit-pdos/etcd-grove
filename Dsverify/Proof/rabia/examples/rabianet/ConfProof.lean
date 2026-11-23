@@ -32,7 +32,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
-variable [math.rand.Hyps GF] [log.Hyps GF]
+variable [math.rand.Hyps GF]
 variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 
 def confPre (cf : RCfg) (ps : GoSlice) : Config :=
@@ -625,7 +625,7 @@ theorem send.wp_proof (D : KitNetDeps (GF := GF)) (γ : Names) (cf : RCfg) (hc :
   isplitr
   · ipureintro; rfl
   iintro %ls ⟨Hls, -⟩
-  wp_apply (log.Hyps.Println (GF := GF)) $$ [$Hlog $Hls] as -
+  wp_apply D.println _ _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil) $$ [$Hlog $Hls] as -
   have hn5 : cf.n ≤ 5 := by have := hc; unfold RCfg.Ok at this; omega
   have hn1 : 1 ≤ cf.n := by have := hc; unfold RCfg.Ok at this; omega
   ihave HI : (∃ j : w64, "c" ∷ c_ptr ↦ j ∗ "conf" ∷ conf_ptr ↦ confV cf ∗

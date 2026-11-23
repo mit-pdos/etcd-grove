@@ -1,7 +1,8 @@
 /-
-`os/signal`'s hypotheses as its functions' proofs (the linking tier, CLAUDE.md "Import tiers"): each
-`<F>.wp_proof` is the field of the hypothesis class (`Spec.lean`) that states `<F>.spec`. A proof
-file takes the class as an instance argument and uses its fields; only linking modules see these.
+`os/signal`'s environment assumption as `Notify`'s proof (the linking tier, CLAUDE.md "Import
+tiers"): `NotifyQuiet.wp_proof` is the field of the class `NoSignals` (`Spec.lean`) that states
+`NotifyQuiet.spec`. A proof file takes the class as an instance argument and uses its field; only
+linking modules see this.
 -/
 module
 
@@ -19,9 +20,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
-theorem Notify.wp_proof [h : Hyps GF] : Notify.spec (GF := GF) := h.Notify
 theorem NotifyQuiet.wp_proof [h : NoSignals GF] : NotifyQuiet.spec (GF := GF) := h.notifyQuiet
-theorem Stop.wp_proof [h : Hyps GF] : Stop.spec (GF := GF) := h.Stop
 
 end proof
 

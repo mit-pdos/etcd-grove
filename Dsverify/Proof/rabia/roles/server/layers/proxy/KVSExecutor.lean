@@ -101,10 +101,11 @@ theorem wp_GetDecisionOrWake_slot (wp_GDW : Slot.GetDecisionOrWake.spec (GF := G
 theorem Proxy.KVSExecutor.wp_proof
     (wp_GDW : Slot.GetDecisionOrWake.spec (GF := GF)) (hCSC : ProxyTCP.ClientSendChan.spec (GF := GF)) :
     Proxy.KVSExecutor.spec (GF := GF) := by
-  have hDebug := github_com.rs.zerolog.Hyps.level (GF := GF) go!"Debug" (by simp)
-  have hUint32 := github_com.rs.zerolog.Hyps.Event_Uint32 (GF := GF)
-  have hBool := github_com.rs.zerolog.Hyps.Event_Bool (GF := GF)
-  have hMsg := github_com.rs.zerolog.Hyps.Event_Msg (GF := GF)
+  have hE := github_com.rs.zerolog.eventSpecs (GF := GF)
+  have hDebug := hE.level go!"Debug" (by simp)
+  have hUint32 := hE.Event_Uint32
+  have hBool := hE.Event_Bool
+  have hMsg := hE.Event_Msg
   intro γ cf k γl γc p
   wp_start as ⟨#Hconf, #Hsh, #Hcfg, Hres⟩
   wp_apply wp_with_defer as %dfr Hdfr
@@ -112,7 +113,7 @@ theorem Proxy.KVSExecutor.wp_proof
   icases Hres with ⟨%ch, %wg, %t, %kv, %ledger, %cd, #Hf, Hseq, Hcd, Hkv, #Hdone, #Hled, #Hslots, #Htcp⟩
   unfold proxyFields
   icases Hf with ⟨%id, %hid, #HSvrId, #HWg, #HDone, #HCin, #HToNet, #HNetIn, #HTCP, #HKV, #HExec,
-    #HExecR, #HLedger⟩
+    #HExecR, #HLedger, %HLogNN⟩
   icases confRO_val $$ Hconf with ⟨%ps, #Hc⟩
   iStructNamed Hc
   unfold ledgerRO
@@ -195,10 +196,10 @@ theorem Proxy.KVSExecutor.wp_proof
         icases Hdobj with %hnull
         rw [hv.2.2.2, hnull.1]
         wp_auto
-        wp_apply hDebug as %ev -
-        wp_apply hUint32
-        wp_apply hBool
-        wp_apply hMsg
+        wp_apply hDebug _ HLogNN as %ev He
+        wp_apply hUint32 $$ [$He] as He
+        wp_apply hBool $$ [$He] as He
+        wp_apply hMsg $$ [$He]
         wp_for_post
         iframe
         iexists seq + W32 1, cmds, m, dec_ptr
@@ -224,12 +225,12 @@ theorem Proxy.KVSExecutor.wp_proof
           rw [hci]; exact cmdOf_length hi
         rw [hv.2.2.2, hnull]
         wp_auto
-        wp_apply hDebug as %ev -
-        wp_apply hUint32
-        wp_apply hBool
-        wp_apply hUint32
-        wp_apply hUint32
-        wp_apply hMsg
+        wp_apply hDebug _ HLogNN as %ev He
+        wp_apply hUint32 $$ [$He] as He
+        wp_apply hBool $$ [$He] as He
+        wp_apply hUint32 $$ [$He] as He
+        wp_apply hUint32 $$ [$He] as He
+        wp_apply hMsg $$ [$He]
         wp_apply Proxy.wp_singleExecuteAndReply hCSC γ cf k p t kv m cmds dec_ptr v st.decision
           seq.toNat id rs st.decision.commands ⟨hcids, hcseqs, rfl⟩ hrs hlen $$ [$Hcd $dec $Hkv]
           as %m2 ⟨Hcd, Hdecp, Hkv, %Hrel2⟩

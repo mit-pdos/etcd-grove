@@ -109,7 +109,8 @@ def matchedToks (γ : Names) (cf : RCfg) (γl : SrvNames) (H : List (ObjV × DVa
 
 /-- The `Coin` field holds a usable `rand.Rand` (as `Helpers.coinOk`, stated generically). -/
 def exCoinOk (c : Loc) : IProp GF :=
-  iprop(∃ (r : Loc) (v : math.rand.Rand), structFieldRef Consensus go!"Coin" c ↦ r ∗ r ↦ v)
+  iprop(∃ (r : Loc) (R : Loc → IProp GF), structFieldRef Consensus go!"Coin" c ↦ r ∗ R r ∗
+    ⌜math.rand.Rand.Intn.spec (GF := GF) R⌝)
 
 /-- The messages the executor builds. -/
 def propMsg (o : ObjV) (s : Nat) : MsgV :=

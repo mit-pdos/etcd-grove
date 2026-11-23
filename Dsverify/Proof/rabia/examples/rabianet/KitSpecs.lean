@@ -47,7 +47,7 @@ section conf
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
-variable [math.rand.Hyps GF] [log.Hyps GF]
+variable [math.rand.Hyps GF]
 variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 
 /-- `ProxyAddrs()`. -/
@@ -97,6 +97,7 @@ structure KitNetDeps : Prop where
   close : net.Conn.Close.spec (GF := GF) (hG := hG)
   readFullLt : io.ReadFull.specLt (GF := GF) (hG := hG)
   calcConstants : Config.CalcConstants.spec (GF := GF)
+  println : log.Println.spec (GF := GF) (hG := hG)
 
 theorem cfgIs_ok' (γ : RabiaNames) (cf : RCfg) : cfgIs (GF := GF) γ cf ⊢ ⌜cf.Ok⌝ := by
   unfold cfgIs; iintro ⟨-, %h⟩; ipureintro; exact h
@@ -107,7 +108,7 @@ section client
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
-variable [math.rand.Hyps GF] [log.Hyps GF]
+variable [math.rand.Hyps GF]
 variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 variable [sync.Assumptions] [_root_.Perennial.bufio.Assumptions]
 variable [tcp_sem : rabia.internal.tcp.Assumptions] [msg_sem : rabia.internal.message.Assumptions]
@@ -150,7 +151,7 @@ open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
-variable [math.rand.Hyps GF] [log.Hyps GF]
+variable [math.rand.Hyps GF]
 variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 variable [ρ : RemoteGS]
 
@@ -176,7 +177,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [srv_sem : rabia.roles.server.Assumptions]
-variable [math.rand.Hyps GF] [log.Hyps GF]
+variable [math.rand.Hyps GF]
 variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 
 /-- `Server(id)`: server machine `id = k + 1` (`k < maxS`), from its share and its package state

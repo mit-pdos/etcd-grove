@@ -14,10 +14,15 @@ net extension allows.
 
 **Premises** (visible, each a hypothesis class of the proof, at the bundle `remoteGF` the proof
 uses, for every machine's heap): the libraries translated with names only, whose initializers
-(`InitHyp`: zerolog, gogo `proto` with its `Register*` calls, `gogoproto`, go-redis v8, `os/signal`,
-`math/rand`) and functions (`zerolog.Hyps`, `math.rand.Hyps`, `log.Hyps`) have no model here, and the
-environment assumption `os.signal.NoSignals` (nobody sends SIGINT/SIGTERM to the deployment's
-processes). Proved in `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.
+(`InitHyp`: zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`, `math/rand`: each runs
+without panicking) and functions (`zerolog.Hyps`: a logger's five non-panicking levels on a
+non-`nil` logger, an exclusive event token through the field methods and `Msg`; gogo `proto.Hyps`:
+`message`'s `Register*` calls during initialization, `RegisterEnum` once; `math.rand.Hyps`:
+`NewSource`/`New`/`Rand.Intn` with exclusive tokens, the package-level `Intn`) have no model here,
+and the environment assumption `os.signal.NoSignals` (nobody sends SIGINT or SIGTERM to the
+deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
+`log.Println` is proved from Perennial's trusted model of `log`. Proved in
+`Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.
 -/
 module
 
@@ -28,13 +33,13 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.count
 public import Dsverify.Proof.github_com.rs.zerolog.Init
 public import Dsverify.Proof.github_com.rs.zerolog.Spec
 public import Dsverify.Proof.github_com.gogo.protobuf.proto.Init
+public import Dsverify.Proof.github_com.gogo.protobuf.proto.Spec
 public import Dsverify.Proof.github_com.gogo.protobuf.gogoproto.Init
 public import Dsverify.Proof.github_com.go_redis.redis.v8.Init
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.os.signal.Spec
 public import Dsverify.Proof.math.rand.Init
 public import Dsverify.Proof.math.rand.Spec
-public import Dsverify.Proof.log.Spec
 
 @[expose] public section
 
@@ -77,13 +82,13 @@ def rabia_remote_robust.spec : Prop :=
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.InitHyp remoteGF) →
+    (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.proto.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.gogo.protobuf.gogoproto.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.go_redis.redis.v8.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; os.signal.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; math.rand.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; math.rand.Hyps remoteGF) →
-    (∀ G L, letI := heapAt G L; log.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; os.signal.NoSignals remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy rabiaKitAddrs (system σ) g →
