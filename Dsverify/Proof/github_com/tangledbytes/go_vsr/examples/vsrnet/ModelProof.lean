@@ -771,6 +771,198 @@ theorem wp_stepGo (cur pend : GoSlice) (Cur : List (GoString × GoString)) (Pend
                 iframe Hr Hq
                 ipureintro; simp
 
+theorem allPut_stepG {Pend : List KIn} (hP : AllPut Pend) (Cur : List (GoString × GoString))
+    (i : KIn) (a : Ans KOut) : AllPut (stepG Cur Pend i a).2.2 := by
+  intro x hx
+  unfold stepG at hx
+  repeat' split at hx
+  all_goals first
+    | exact hP x hx
+    | (simp only [List.mem_append, List.mem_singleton] at hx
+       rcases hx with hx | hx
+       · exact hP x hx
+       · subst hx; assumption)
+    | exact hP x (List.mem_of_mem_erase hx)
+
+theorem pairsOf_inj {A B : List (GoString × GoString)} (h : pairsOf A = pairsOf B) : A = B := by
+  induction A generalizing B with
+  | nil => cases B with
+    | nil => rfl
+    | cons _ _ => cases h
+  | cons x t ih =>
+    cases B with
+    | nil => cases h
+    | cons y u =>
+      simp only [pairsOf, List.map_cons, List.cons.injEq, Pair'.mk.injEq] at h
+      obtain ⟨⟨h1, h2⟩, h3⟩ := h
+      rw [Prod.ext h1 h2, ih h3]
+
+/-- A model value: the boxed `State{cur, pend}`, both slices read-only, holding `Cur`'s pairs and
+`Pend`'s puts; its set is one `Rep` relates to `(Cur, Pend)`; both lists have at most `k` entries
+(a step adds at most one to each). -/
+def kvRep (k : Nat) (v : GoInterface) (s : PSet VsrModel.Store KIn) : IProp GF :=
+  iprop(∃ (cur pend : GoSlice) (Cur : List (GoString × GoString)) (Pend : List KIn),
+    ⌜v = interface.mkOk State.ty #(State.mk cur pend) ∧ Rep s Cur Pend ∧ AllPut Pend ∧
+      Cur.length ≤ k ∧ Pend.length ≤ k⌝ ∗
+    cur ↦*□ pairsOf Cur ∗ pend ↦*□ Pend.map pairK)
+
+/-- **The map's porcupine model** (pending puts): `pSeq kvB` through `kvDec`. -/
+def kvS : ModelSpec GF (PSet VsrModel.Store KIn) where
+  M := (kvS0 (GF := GF)).M
+  rep k v s := kvRep k v s
+  ioOk := (kvS0 (GF := GF)).ioOk
+  ioOk_pers := (kvS0 (GF := GF)).ioOk_pers
+
+/-- `Model()`: the map's porcupine model. -/
+abbrev Model.spec : Prop :=
+  {{ isPkgInit (PROP := IProp GF) kpkg }}
+    (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Model)) (Val #()))
+  {{ (m : github_com.anishathalye.porcupine.Model), RET #m; isModel (kvS (GF := GF)) m }}
+
+theorem inV_eq (i : KIn) :
+    inV i.1 = interface.mkOk In.ty #(In.mk (inFields i.1).1 (inFields i.1).2.1 (inFields i.1).2.2) :=
+  rfl
+
+theorem ansV_eq (a : Ans KOut) :
+    ansV a = interface.mkOk Out.ty
+      #(Out.mk (ansFields a).1 (ansFields a).2.1 (ansFields a).2.2.1 (ansFields a).2.2.2) := by
+  rw [ansV_fields]; rfl
+
+theorem Model.wp_proof : Model.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold isModel isEqHash
+  simp only
+  isplitr
+  · ipureintro; trivial
+  isplitr
+  · -- Init
+    unfold initSpec
+    iintro !> %Φ' _ HΦ'
+    wp_auto
+    iapply HΦ'
+    simp only [kvS, kvS0, kvRep]
+    iexists slice.nil, slice.nil, [], []
+    isplitr
+    · ipureintro
+      refine ⟨rfl, rep_init, ?_, ?_, ?_⟩
+      · intro _ h; cases h
+      · simp
+      · simp
+    simp only [pairsOf, List.map_nil]
+    isplitr
+    · iapply ownSlice_nil
+    · iapply ownSlice_nil
+  isplitr
+  · -- Step
+    iright
+    isplitr
+    · ipureintro; exact ⟨trivial, nofun⟩
+    unfold stepSpec
+    iintro %k %v %s %i %o
+    iintro !> %Φ' Hpre HΦ'
+    simp only [kvS, kvS0]
+    icases Hpre with ⟨%Hk, Hrep, %Hio⟩
+    obtain ⟨⟨x, rfl⟩, a, rfl⟩ := Hio
+    unfold kvRep
+    icases Hrep with ⟨%cur, %pend, %Cur, %Pend, %Hr, #Hc, #Hp⟩
+    obtain ⟨rfl, hR, hP, hl1, hl2⟩ := Hr
+    rw [inV_eq x, ansV_eq]
+    wp_auto
+    wp_apply wp_stepGo cur pend Cur Pend (by omega) (by omega) hP x a $$ [$Hc $Hp]
+      as %ok %s' ⟨%cur', %pend', %Hst, #Hc', #Hp'⟩
+    obtain ⟨rfl, rfl⟩ := Hst
+    have H := stepG_pSeq hR x a
+    have hpm := linkv.pM_step kvB kvDec s _ x a (kvDec_box x a)
+    obtain ⟨hb1, hb2⟩ := stepG_bounds Cur Pend x a
+    rw [← inV_eq x, ← ansV_eq]
+    iapply HΦ'
+    isplitr
+    · iexists cur, pend, Cur, Pend
+      iframe Hc Hp
+      ipureintro; exact ⟨rfl, hR, hP, hl1, hl2⟩
+    isplitr
+    · ipureintro
+      rw [hpm, H.1]
+    · unfold stepPost
+      simp only [hpm]
+      cases hs : (pSeq kvB).step s (x, a) with
+      | none => itrivial
+      | some s' =>
+        simp only
+        iexists cur', pend', (stepG Cur Pend x a).2.1, (stepG Cur Pend x a).2.2
+        iframe Hc' Hp'
+        ipureintro
+        exact ⟨rfl, H.2 s' hs, allPut_stepG hP Cur x a, by omega, by omega⟩
+  isplitr
+  · ipureintro; nofun
+  isplitr
+  · -- Equal
+    unfold equalSpec
+    iintro %k %j %v %w %s %t
+    iintro !> %Φ' Hpre HΦ'
+    simp only [kvS]
+    unfold kvRep
+    icases Hpre with ⟨⟨%cur, %pend, %Cur, %Pend, %Hr, #Hc, #Hp⟩,
+      ⟨%cur', %pend', %Cur', %Pend', %Hr', #Hc', #Hp'⟩⟩
+    obtain ⟨rfl, hR, hP, hl1, hl2⟩ := Hr
+    obtain ⟨rfl, hR', hP', hl1', hl2'⟩ := Hr'
+    ihave %HpL := ownSlice_len _ _ _ $$ Hp
+    ihave %HpL' := ownSlice_len _ _ _ $$ Hp'
+    wp_auto
+    have back : ∀ b : Bool, (b = true → s = t) →
+        ⊢ cur ↦*□ pairsOf Cur -∗ pend ↦*□ Pend.map pairK -∗ cur' ↦*□ pairsOf Cur' -∗
+          pend' ↦*□ Pend'.map pairK -∗
+          ((∃ (c p : GoSlice) (C : List (GoString × GoString)) (P : List KIn),
+            ⌜interface.mkOk State.ty #(State.mk cur pend) = interface.mkOk State.ty #(State.mk c p) ∧
+              Rep s C P ∧ AllPut P ∧ C.length ≤ k ∧ P.length ≤ k⌝ ∗
+            c ↦*□ pairsOf C ∗ p ↦*□ P.map pairK) ∗
+          (∃ (c p : GoSlice) (C : List (GoString × GoString)) (P : List KIn),
+            ⌜interface.mkOk State.ty #(State.mk cur' pend') = interface.mkOk State.ty #(State.mk c p) ∧
+              Rep t C P ∧ AllPut P ∧ C.length ≤ j ∧ P.length ≤ j⌝ ∗
+            c ↦*□ pairsOf C ∗ p ↦*□ P.map pairK) ∗ ⌜b = true → s = t⌝ : IProp GF) := by
+      intro b hb
+      iintro #Hc #Hp #Hc' #Hp'
+      isplitl
+      · iexists cur, pend, Cur, Pend
+        iframe Hc Hp
+        ipureintro; exact ⟨rfl, hR, hP, hl1, hl2⟩
+      isplitl
+      · iexists cur', pend', Cur', Pend'
+        iframe Hc' Hp'
+        ipureintro; exact ⟨rfl, hR', hP', hl1', hl2'⟩
+      ipureintro; exact hb
+    by_cases h1 : pend.len = W64 0
+    · rw [decide_eq_true h1]
+      wp_auto
+      by_cases h2 : pend'.len = W64 0
+      · rw [decide_eq_true h2]
+        wp_auto
+        wp_apply wp_equalPairs cur cur' (pairsOf Cur) (pairsOf Cur') $$ [$Hc $Hc'] as %r %Hr
+        iapply HΦ'
+        iapply (back r ?_) $$ Hc Hp Hc' Hp'
+        intro hr
+        have e1 : Pend = [] := by
+          have := HpL.1; rw [h1] at this; simp only [List.length_map] at this; exact List.eq_nil_of_length_eq_zero (this.trans rfl)
+        have e2 : Pend' = [] := by
+          have := HpL'.1; rw [h2] at this; simp only [List.length_map] at this; exact List.eq_nil_of_length_eq_zero (this.trans rfl)
+        subst e1 e2
+        rw [pairsOf_inj (Hr hr)] at hR
+        exact rep_eq hR hR'
+      · rw [decide_eq_false h2]
+        wp_auto
+        iapply HΦ'
+        iapply (back false nofun) $$ Hc Hp Hc' Hp'
+    · rw [decide_eq_false h1]
+      wp_auto
+      iapply HΦ'
+      iapply (back false nofun) $$ Hc Hp Hc' Hp'
+  ileft
+  ipureintro; trivial
+
 end proof
 
 end github_com.tangledbytes.go_vsr.examples.vsrnet
