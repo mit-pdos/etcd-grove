@@ -68,6 +68,11 @@ def replica.pendingOk (γ : sp.Names) (γc γm : GName) (p : replica.pendingClie
     bufio.ownReader p.reader' p.conn' (recvTokL cid true (sp.inP γ γc γm)) [p.first'] ∗
     protoPrefix (sp.inP γ γc γm) cid [p.first'] ∗ ⌜p.first' ≠ W8 0xFF⌝ ∗ sendTok cid true (sp.outQ γ γc γm) [])
 
+/-- The address the replica listens at for its own address `a`: `"0.0.0.0:" + strings.Split(a,
+":")[1]` (`waitForPeerConnections`), a wildcard with `a`'s port (D21). -/
+def replica.wildOf (a : GoString) : GoString :=
+  go!"0.0.0.0:" ++ (strings.split a [W8 58]).getD 1 []
+
 /-- The replica's listener `lv`: a TCP listener bound to `a` (persistent). -/
 def replica.listenerOk (lv : GoInterface) (a : GoString) : IProp netDistGF :=
   iprop(∃ (ll : Loc) (lid : w64),
@@ -82,14 +87,14 @@ instance replica.listenerOk_persistent (lv : GoInterface) (a : GoString) :
 def replica.acceptSt (r : Loc) (γ : sp.Names) (γc γm : GName) (N : Nat) (me : w32) (a : GoString)
     (pssl prsl pwsl alsl : GoSlice) : IProp netDistGF :=
   iprop(∃ (lv : GoInterface) (pcsl : GoSlice) (pcs : List replica.pendingClient),
-    replica.fld r go!"Listener" ↦ lv ∗ replica.listenerOk lv a ∗
+    replica.fld r go!"Listener" ↦ lv ∗ replica.listenerOk lv (replica.wildOf a) ∗
     replica.fld r go!"pendingClients" ↦ pcsl ∗
     pcsl ↦* pcs ∗ ([∗list] p ∈ pcs, replica.pendingOk γ γc γm p) ∗
     [∗list] i ∈ List.range' (me.toInt.toNat + 1) (N - (me.toInt.toNat + 1)),
       replica.peerSlot γ γc γm me pssl prsl pwsl alsl i)
 
-/-- `r.waitForPeerConnections(done)`: listens on this replica's port (`a`, at the node's IP
-`ip`) and accepts a connection per peer above `me` (P1: a client's is kept aside), then sends
+/-- `r.waitForPeerConnections(done)`: listens on this replica's port (at `replica.wildOf a`, whose
+protocols `lisProto` gives; `a` at the node's IP `ip`) and accepts a connection per peer above `me` (P1: a client's is kept aside), then sends
 the slots on `done`. -/
 abbrev replica.Replica.waitForPeerConnections.spec : Prop :=
   ∀ (r : Loc) (γ : sp.Names) (γc γm : GName) (N : Nat) (me : w32) (asl : GoSlice)
@@ -109,7 +114,7 @@ abbrev replica.Replica.waitForPeerConnections.spec : Prop :=
       ⌜pcsl0 = slice.nil ∧ l[me.toInt.toNat]? = some a ∧ replicaAddrs.contains a ∧
         ip ++ [W8 58] <+: a ∧ 0 ≤ me.toInt ∧ me.toInt < N ∧ N ≤ 7 ∧ l.length = N ∧
         sint.Z pssl.len = N ∧ sint.Z prsl.len = N ∧ sint.Z pwsl.len = N ∧ sint.Z alsl.len = N⌝ ∗
-      addrTok a ∗ nodeIp ip ∗ addrProto a (sp.inP γ γc γm) (sp.outQ γ γc γm) ∗
+      lisProto (replica.wildOf a) (sp.inP γ γc γm) (sp.outQ γ γc γm) ∗
       ([∗list] i ∈ List.range' (me.toInt.toNat + 1) (N - (me.toInt.toNat + 1)),
         ∃ (cv : GoInterface) (rd w : Loc) (al : Bool), replica.elem pssl i cv ∗
           replica.elem prsl i rd ∗ replica.elem pwsl i w ∗ replica.elem alsl i al ∗
@@ -152,7 +157,7 @@ def replica.connPre (r : Loc) (γ : sp.Names) (γc γm γl : GName) (N : Nat) (m
     ⌜l[me.toInt.toNat]? = some a ∧ replicaAddrs.contains a ∧ ip ++ [W8 58] <+: a ∧
       0 ≤ me.toInt ∧ me.toInt < N ∧ N ≤ 7 ∧ l.length = N ∧ (∀ a' ∈ l, a' ∈ replicaAddrs) ∧
       lats.length = N ∧ ews.length = N⌝ ∗
-    addrTok a ∗ nodeIp ip ∗
+    lisProto (replica.wildOf a) (sp.inP γ γc γm) (sp.outQ γ γc γm) ∗
     [∗list] a' ∈ replicaAddrs, addrProto a' (sp.inP γ γc γm) (sp.outQ γ γc γm))
 
 /-- What serving the clients needs (`ConnectToPeers`' post besides `isReplica`; the pre of
@@ -160,8 +165,8 @@ def replica.connPre (r : Loc) (γ : sp.Names) (γc γm γl : GName) (N : Nat) (m
 while waiting for the peers, the alias. -/
 def replica.serveSt (r : Loc) (γ : sp.Names) (γc γm : GName) (a : GoString) : IProp netDistGF :=
   iprop(∃ (lv : GoInterface) (pcsl : GoSlice) (pcs : List replica.pendingClient) (al : GoString),
-    replica.fld r go!"Listener" ↦ lv ∗ replica.listenerOk lv a ∗
-    addrProto a (sp.inP γ γc γm) (sp.outQ γ γc γm) ∗
+    replica.fld r go!"Listener" ↦ lv ∗ replica.listenerOk lv (replica.wildOf a) ∗
+    lisProto (replica.wildOf a) (sp.inP γ γc γm) (sp.outQ γ γc γm) ∗
     replica.fld r go!"pendingClients" ↦ pcsl ∗ pcsl ↦* pcs ∗
     ([∗list] p ∈ pcs, replica.pendingOk γ γc γm p) ∗
     replica.fld r go!"Alias" ↦□ al)

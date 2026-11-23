@@ -26,7 +26,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [net.rpc.Assumptions]
   [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [strings.Assumptions] [encoding.binary.Assumptions]
 
@@ -113,15 +113,20 @@ theorem replica.Replica.WaitForClientConnections.wp_proof
     wp_for HL2
     try rw [if_pos (decide_eq_true rfl)]
     try wp_auto
-    wp_apply net.TCPListener.Accept.wp_proof ll lid a (sp.inP γ γc γm) (sp.outQ γ γc γm)
-      $$ [$Hlis $Hap] as %cv %er Hres
+    wp_apply net.TCPListener.Accept.labProof ll lid (replica.wildOf a) (sp.inP γ γc γm)
+      (sp.outQ γ γc γm) $$ [$Hlis $Hap] as %cv %er Hres
     unfold net.newConnResult
-    icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, #Hown, ⟨Hsend, Hrecv⟩, -⟩ | ⟨%i, ⟨%Hcv, %Her⟩, Herr⟩)
+    icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, #Hown, Hend, -⟩ | ⟨%i, %Her, %Herr⟩)
     · subst Hcv Her
+      iunfold connEnd at Hend
+      icases Hend with ⟨Hsend, Hrecv⟩
       wp_auto
       ihave #Hci : net.rpc.connIface (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c)
         cid true $$ []
-      · unfold net.rpc.connIface; iexists c; iframe Hown; ipureintro; rfl
+      · ihave #Hown' := Hown
+        iunfold net.ownTCPConn at Hown'
+        icases Hown' with ⟨%a0, %la0, %ra0, #Hat0, #Hcs0⟩
+        unfold net.rpc.connIface; iexists c, a0, la0, ra0; iframe Hat0 Hcs0; ipureintro; rfl
       ihave #Hrdok := bufio.readerOk_conn _ cid true (sp.inP γ γc γm) $$ [$Hpkg3 $Hci]
       ihave Hrecv := recvTok_L _ _ _ _ $$ Hrecv
       wp_apply bufio.wp_NewReader _ _ [] $$ [$Hrdok $Hrecv] as %br Hrd
@@ -141,7 +146,7 @@ theorem replica.Replica.WaitForClientConnections.wp_proof
       wp_for_post
       iframe
       iexists (); iframe
-    · subst Hcv Her
+    · subst Her
       wp_auto
       wp_apply wp_slice_literal (V := GoInterface)
       isplitr

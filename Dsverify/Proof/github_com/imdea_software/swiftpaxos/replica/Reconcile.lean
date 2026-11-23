@@ -128,10 +128,10 @@ theorem replica.connPre_intro (r : Loc) (γ : sp.Names) (γc γm γl : GName) (l
       0 ≤ me.toInt ∧ me.toInt < N ∧ N ≤ 7 ∧ l.length = N ∧ (∀ a' ∈ l, a' ∈ replicaAddrs)) :
     replica.preConn r γ lg cfgp N me al asl tbl ∗ rpc.isTable tbl DFrac.discard nid ents ∗
       sp.tableOk γ γc γm ents ∗ sp.inv γ γc γm γl ∗ dlog.quiet lg ∗ config.plain cfgp fr ∗
-      asl ↦*□ l ∗ addrTok a ∗ nodeIp ip ∗
+      asl ↦*□ l ∗ lisProto (replica.wildOf a) (sp.inP γ γc γm) (sp.outQ γ γc γm) ∗
       ([∗list] a' ∈ replicaAddrs, addrProto a' (sp.inP γ γc γm) (sp.outQ γ γc γm)) ⊢
     replica.connPre r γ γc γm γl N me a ip := by
-  iintro ⟨Hpre, #Htbl, #HtOk, #Hinv, #Hq, #Hplain, #Hl, Htok, #Hip, #Haps⟩
+  iintro ⟨Hpre, #Htbl, #HtOk, #Hinv, #Hq, #Hplain, #Hl, #Hlp, #Haps⟩
   unfold replica.preConn
   icases Hpre with ⟨%pc, %γpc, %pssl, %prsl, %pwsl, %alsl, %latsl, %ewsl, %cwm, #HLg, #HN, #HId,
     #HCfg, #HRPC, #HPC, #Hbag, #HSd, #HLR, #HDt, #HAlias, #HAL, #HPs, Hps, #HPR, Hpr, #HPW, Hpw,
@@ -140,7 +140,7 @@ theorem replica.connPre_intro (r : Loc) (γ : sp.Names) (γc γm γl : GName) (l
   iexists lg, cfgp, tbl, pc, fr, nid, ents, γpc, asl, pssl, prsl, pwsl, alsl, latsl, ewsl, l, cwm,
     (List.replicate N (W64 0)), (List.replicate N (W64 0)), al
   iframe Hinv HLg Hq HN HId HCfg Hplain HRPC Htbl HtOk HPC Hbag HSd HLR HDt HAlias HAL Hl HPs Hps
-    HPR Hpr HPW Hpw HAl Hal HLat Hlat HEw Hew HCW Hcw HM HLis Hpc Htok Hip Haps
+    HPR Hpr HPW Hpw HAl Hal HLat Hlat HEw Hew HCW Hcw HM HLis Hpc Hlp Haps
   ipureintro
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := hpure
   exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, by simp, by simp⟩

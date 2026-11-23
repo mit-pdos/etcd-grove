@@ -9,6 +9,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnAddr
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetConn
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Fatal
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Printf
@@ -33,7 +34,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [net.rpc.Assumptions]
   [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [strings.Assumptions] [encoding.binary.Assumptions]
 
@@ -51,7 +52,7 @@ local macro "reject" : tactic => `(tactic| (
   wp_apply replica.wp_Println wp_Println $$ [Hlg Hq]
   · iframe Hlg Hq
   try wp_auto
-  wp_apply net.TCPConn.Close.wp_proof c cid true $$ [Hown] as %e3 -
+  wp_apply net.TCPConn.Close.labProof c cid true $$ [Hown] as %e3 -
   · iframe Hown
   wp_for_post
   iframe
@@ -122,7 +123,7 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
     replica.Replica.waitForPeerConnections.spec (hG := hG) := by
   intro r γ γc γm N me asl l a ip lg pssl prsl pwsl alsl lv0 pcsl0 done γd
   wp_start as ⟨#Hlg, #Hq, #HN, #HId, #HAL, #Hl, #HPs, #HPR, #HPW, #HAl, HLis, Hpc, %Hpure,
-    Htok, %Hip, #Hap, Hslots, #Hdone⟩
+    #Hlp, Hslots, #Hdone⟩
   obtain ⟨hpc0, hla, hmem, hpre, hme0, hmeN, hN7, hlN, hpsl, hprl, hpwl, hall⟩ := Hpure
   ihave %Hll := ownSlice_len _ _ _ $$ Hl
   have hmez : sint.Z (W64 (sint.Z me)) = me.toInt := by
@@ -151,26 +152,27 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
   try wp_auto
   have hwild : ([48#8, 46#8, 48#8, 46#8, 48#8, 46#8, 48#8, W8 58] ++ port : GoString) =
       go!"0.0.0.0" ++ [W8 58] ++ port := by rfl
-  have hL := net.ListenWild.wp_proof (hG := hG) ip go!"0.0.0.0" port (by decide)
-  rw [hcolon, haddr] at hL
-  rw [hwild]
-  wp_apply hL $$ [$Htok] as %lv %er ⟨Htok, Hres⟩
-  · ipureintro; exact Hip
+  have hwa : replica.wildOf a = go!"0.0.0.0" ++ [W8 58] ++ port := by
+    unfold replica.wildOf; rw [hsplit]; rfl
+  rw [hwild, ← hwa]
+  wp_apply net.Listen.labProof (replica.wildOf a) (sp.inP γ γc γm) (sp.outQ γ γc γm) $$ [$Hlp]
+    as %lv %er Hres
   try wp_auto
   ihave HL : (∃ (lv : GoInterface) (er : GoInterface),
-      "l" ∷ l_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ er ∗ "Htok" ∷ addrTok a ∗
+      "l" ∷ l_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ er ∗
       "Hres" ∷ ((∃ (ll : Loc) (lid : w64),
           ⌜lv = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #ll ∧
-            er = interface.nil⌝ ∗ net.ownListener ll lid a) ∨
-        (∃ i, ⌜lv = interface.nil ∧ er = interface.ok i⌝ ∗
-          ∃ code : w64, ⌜code ≠ errNone⌝ ∗ net.opErr go!"listen" code er)) : IProp netDistGF)
-    $$ [l err Htok Hres]
+            er = interface.nil⌝ ∗ net.ownListener ll lid (replica.wildOf a)) ∨
+        (∃ i, ⌜er = interface.ok i⌝)) : IProp netDistGF)
+    $$ [l err Hres]
   · iexists lv, er; iframe
   wp_for HL
-  icases Hres with (⟨%ll, %lid, ⟨%Hlv, %Her⟩, #Hlis⟩ | ⟨%i, ⟨%Hlv, %Her⟩, Herr⟩)
+  icases Hres with (⟨%ll, %lid, ⟨%Hlv, %Her⟩, #Hlis⟩ | ⟨%i, %Her⟩)
   · subst Hlv Her
     wp_auto
     cleanup_bool_decide
+    try rw [if_neg (show ¬ (decide (#false = #true) = true) by
+      simp only [decide_eq_true_eq]; exact fun h => absurd (go.intoVal_inj h) (by decide))]
     wp_pures
     wp_auto
     ihave Hsl := slice_array b_ptr 5 (Perennial.zero_val (GoArray w8 5)) (by decide) $$ b
@@ -205,24 +207,34 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
       ipureintro; rfl
     wp_for HL2
     wp_if_destruct
-    · wp_apply net.TCPListener.Accept.wp_proof ll lid a (sp.inP γ γc γm) (sp.outQ γ γc γm)
-        $$ [$Hlis $Hap] as %cv %er Hres
+    · wp_apply net.TCPListener.Accept.labProof ll lid (replica.wildOf a) (sp.inP γ γc γm)
+        (sp.outQ γ γc γm) $$ [$Hlis $Hlp] as %cv %er Hres
       unfold net.newConnResult
-      icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, #Hown, ⟨Hsend, Hrecv⟩, -⟩ | ⟨%i, ⟨%Hcv, %Her⟩, Herr⟩)
+      icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, #Hown, Hend, -⟩ | ⟨%i, %Her, %Herr⟩)
       · subst Hcv Her
+        iunfold connEnd at Hend
+        icases Hend with ⟨Hsend, Hrecv⟩
         wp_auto
         ihave #Hci : net.rpc.connIface (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c)
           cid true $$ []
-        · unfold net.rpc.connIface; iexists c; iframe Hown; ipureintro; rfl
+        · ihave #Hown' := Hown
+          iunfold net.ownTCPConn at Hown'
+          icases Hown' with ⟨%a0, %la0, %ra0, #Hat0, #Hcs0⟩
+          unfold net.rpc.connIface; iexists c, a0, la0, ra0; iframe Hat0 Hcs0; ipureintro; rfl
         ihave #Hrdok := bufio.readerOk_conn _ cid true (sp.inP γ γc γm) $$ [$Hpkg3 $Hci]
         ihave Hrecv := recvTok_L _ _ _ _ $$ Hrecv
         wp_apply bufio.wp_NewReader _ _ [] $$ [$Hrdok $Hrecv] as %br Hrd
         try wp_auto
-        wp_apply bufio.wp_ReadByte br _ _ [] $$ [$Hpkg2 $Hrdok $Hrd] as %c0 %er Hres
+        wp_apply (lc := 1) bufio.wp_ReadByte br _ _ [] $$ [$Hpkg2 $Hrdok $Hrd] as %c0 %er Hres
         icases Hres with (⟨%Hen, Hrd⟩ | ⟨%Hen, #Hea, Hrd⟩)
         · subst Hen
-          icases sp.ownReader_proto br _ cid true _ ([] ++ [c0]) $$ Hrd with
-            ⟨Hrd, (%Hn | ⟨%ext, %He, #HP⟩)⟩
+          icases sp.ownReader_proto br _ cid true _ ([] ++ [c0]) $$ Hrd with ⟨Hrd, HpL⟩
+          iapply fupd_wp
+          imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with #HppU
+          imodintro
+          ihave #Hpp1 : protoPrefix (sp.inP γ γc γm) cid ([] ++ [c0]) $$ []
+          · unfold protoPrefix; iexact HppU
+          icases HppU with (%Hn | ⟨%ext, %He, #HP⟩)
           · simp at Hn
           try wp_auto
           wp_if_destruct
@@ -235,7 +247,7 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
             have hbb0 : (bb.set 0 (W8 255)).length = 5 := by simp [Hbb]
             icases replica.bs5_acc b_ptr _ hbb0 $$ Hsl with ⟨Hs1, Hback⟩
             try wp_auto
-            wp_apply bufio.wp_ReadFull _ _ ([] ++ [W8 255]) _ _ $$ [$Hpkg4 $Hrs $Hrd $Hs1]
+            wp_apply (lc := 1) bufio.wp_ReadFull _ _ ([] ++ [W8 255]) _ _ $$ [$Hpkg4 $Hrs $Hrd $Hs1]
               as %n %er2 ⟨%data, %Hd, Hs1, Hrd, #He2⟩
             obtain ⟨hn, hdl, herr⟩ := Hd
             have hsub4' : (subslice 1 5 (bb.set 0 (W8 255))).length = 4 := by
@@ -267,8 +279,13 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
                 simp only [show sint.nat (5#64 : w64) = 5 from rfl,
                   show sint.nat (1#64 : w64) = 1 from rfl] at this
                 omega
-              icases sp.ownReader_proto br _ cid true _ ([] ++ [W8 255] ++ data) $$ Hrd with
-                ⟨Hrd, (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)⟩
+              icases sp.ownReader_proto br _ cid true _ ([] ++ [W8 255] ++ data) $$ Hrd with ⟨Hrd, HpL⟩
+              iapply fupd_wp
+              imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with #HppU
+              imodintro
+              ihave #Hpp2 : protoPrefix (sp.inP γ γc γm) cid ([] ++ [W8 255] ++ data) $$ []
+              · unfold protoPrefix; iexact HppU
+              icases HppU with (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)
               · simp at Hnil
               ihave %Hhello := sp.hello_read cid ext2 ([] ++ [W8 255] ++ data) Hext2
                 (by simp [h4]) $$ [$Hkind $HP2]
@@ -427,6 +444,8 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
               iframe Hci Hsend
               simp only [List.nil_append]
               iframe Hrd
+              isplitr
+              · iExactEq Hpp1; simp
               ipureintro; exact Hif
             ipureintro; exact Hbb
         · rcases er with eo | _
@@ -443,7 +462,7 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
             iframe
             ipureintro; exact Hbb
           · exact absurd rfl Hen
-      · subst Hcv Her
+      · subst Her
         wp_auto
         wp_apply wp_slice_literal (V := GoInterface)
         isplitr
@@ -470,7 +489,7 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
         ipureintro; rfl
       try wp_auto
       iapply HΦ; itrivial
-  · subst Hlv Her
+  · subst Her
     wp_auto
     rw [if_pos (by simp)]
     wp_auto
@@ -486,9 +505,9 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
     wp_apply replica.wp_Fatal wp_Fatal $$ [$Hlg $Hq]
     wp_apply time.wp_Sleep
     try wp_auto
-    rw [hwild]
-    wp_apply hL $$ [$Htok] as %lv' %er' ⟨Htok, Hres⟩
-    · ipureintro; exact Hip
+    rw [hwild, ← hwa]
+    wp_apply net.Listen.labProof (replica.wildOf a) (sp.inP γ γc γm) (sp.outQ γ γc γm) $$ [$Hlp]
+      as %lv' %er' Hres
     try wp_auto
     wp_for_post
     iframe
