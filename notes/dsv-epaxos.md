@@ -521,6 +521,38 @@ persistent; `first` in an invariant), `Orch` (`remote.Check`), the `Mains`, the 
 `Top/Start.lean`: `registry_alloc`, `regXInv_alloc`, the protocol invariant, `clientInvs`, the rpc
 world `W` with `W.SS = rpcSS γ` and `rpcLisP_set` at `":7501"` and each `rpcAddrOf k`), the local
 bridge `robust_of_distProtoLisRB`, `TopLevelDefs`, `TopLevelRobustness`, the statement, TCB.
+**Done and built (2026-11-23, agent 3 and its subagents; `lake build` green on each, Lean's
+three axioms where printed):** `NetRpc/CodecProof` (`epCodecLaws`), `NetRpc/CodecSrvProof`
+(`epSrvCodecLaws`, `epArgFacts`, `epDecLen`), `NetRpc/Calls` (`btlCall_holds`, `pingCall_holds`,
+`registerCall_holds` from Net's `Client.Call.spec` + `CodecLaws`), `NetRpc/Bindings`
+(`masterRcv_holds`, `replicaRcv_holds`), `epaxos/Rpc` (`replicaBtl_holds` (dlog Println premise),
+`replicaPing_holds`), `master/{Defs,New,Register,GetLeader,GetReplicaList,BtlReply,RunLoop,Run,Link}`
+(`master.wp_Run hBtl hPing γ W hRcv : Master.Run.specM γ W`; pre: `isPkgInit master ∗ isPkgInit
+net.http ∗ masterFresh ∗ listUnset γ ∗ ⌜W.SS = rpcSS γ⌝ ∗ rpcLisP W ":7501" … ∗ replicaRpcs W ∗
+muxOwner [] ∗ rpcReady ∗ srvEnv ∗ bounds`), `examples/epaxosnet/{OpDefs,OpProof}` (`Op.wp_proof`;
+11 callee-spec premises: NIL, Marshal, Unmarshal, DialTimeout, Conn.Read/Write/Close, bufio
+NewWriter/NewReader/WriteByte/Flush), `ServerDefs`/`Register` (`register.wp_proof`),
+`ServeDefs`/`ServeHelpers`/`ServeReplica` (`serveReplica.wp_proof`; `epaxosNew.spec` is a copy of
+`EpaxosNewSpecEp`, which lives in the linking module `epaxos/Link`: move it to `epaxos/New` to
+drop the copy), `Bridge` (`robust_of_distProtoLisRB`), `Start` (`ep_ghost_start`, `ep_start` over
+`GooseGlobalGS` + `RpcHttpAddr`: `∃ γ W, ⌜W.SS = rpcSS γ⌝ ∗ own_state γ init ∗ masterRes γ W ∗
+[∗list] k, replicaRes γ W k ∗ □ clientInvs γ`, addresses `epStartAddrs` (replica peer + rpc),
+`epLas = [":7501"]`, `addrUnset_lisUnset`). Statement changes on the way: `masterRcv`/`replicaRcv`
+take `codecSet epCodec`; `GetLeader`/`GetReplicaList`'s specs pin their argument bytes;
+`btlCall`'s error branch keeps the reply (`dec_BtlReply` fails only on non-encodings);
+`epaxos.New` returns `r ≠ null`. **`RpcHttpHyp` split** (`6cc1565d9a`): `RpcHttpAddr GF` over
+`GooseGlobalGS` (`rpcAddrP`, `rpcLisP` + laws: the same at every machine) and `RpcHttpHyp GF`
+(per heap, `[RpcHttpAddr GF]`). (C) `examples/epaxosnet/Kit.lean` (`epR γ : RBase GF KvS EIn
+BStr`, `EIn = {i // inPre i}`, `BStr` bounded strings, `lin_opU : lin (epR γ) i Φ ⊢ opU γ i.1
+(fun o => Φ (bnd (outBytes o)))`), `ModelSet`: in progress (uncommitted while C runs).
+**Remaining:** C's ModelDefs/ModelProof/KitProof; `Server` (master branch: `wp_Register`,
+`nodeConfig`, `master.New`, `Run`; replica branch: `serveReplica`), `Client`
+(`remote.ServeClient`; `newClient` returns the address slice; `Op`'s outputs need
+`(outBytes r).length < 2^63 - 1` for `epR_ov`), `Orch` (`remote.Check`), `Mains`, `TopLevelDefs`,
+`TopLevelRobustness` (bridge `robust_of_distProtoLisRB epAddrs epLas`, `ep_start`, remote's
+client-address protocols and `pend_alloc`/`mapCtx_alloc` as paxos; per-machine boot `RpcBoot`
+giving `codecFresh ∗ invalidRequest ↦□ () ∗ muxOwner []` as craq's), the statement with every
+premise visible, `etc/theorem-loc.py`, TCB, tier-check.
 If a subagent's files are present but uncommitted, check them (`etc/lean-check.py -a -q`) and
 commit what checks.
 
