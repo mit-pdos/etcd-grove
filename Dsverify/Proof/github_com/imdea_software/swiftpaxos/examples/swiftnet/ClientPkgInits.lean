@@ -12,6 +12,7 @@ allocates and sets its globals and keeps nothing; except the gob model's, `encod
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientInit
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.PkgState
 public import Perennial.Proof.crypto.sha256
 public import Perennial.Proof.strconv

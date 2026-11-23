@@ -16,14 +16,17 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 namespace github_com.xiang90.paxos
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]
@@ -43,7 +46,7 @@ def accCore (Γ : Names) (ap : Loc) (id : w64) : IProp GF :=
 end defs
 
 section proofs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]

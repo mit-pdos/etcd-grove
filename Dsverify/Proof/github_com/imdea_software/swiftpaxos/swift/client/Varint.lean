@@ -9,6 +9,7 @@ an error, `data` is an accepted varint (`uvTerm`) and the result its value.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.VarintPure
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.swift
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.ReadFull
@@ -21,13 +22,17 @@ set_option linter.unusedSectionVars false
 
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 section proofs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
 variable [swift.Assumptions] [bufio.Assumptions] [io.Assumptions] [errors.Assumptions]
 
 set_option goose.wp.extras true

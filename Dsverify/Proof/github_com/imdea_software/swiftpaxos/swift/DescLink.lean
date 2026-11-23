@@ -59,7 +59,7 @@ variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [r
 variable [sync.Assumptions] [hook.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
 variable [sync.atomic.Assumptions] [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
 variable [bytes.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions] [time.Assumptions]
-  [config.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions]
+  [config.Assumptions] [io.Assumptions] [errors.Assumptions] [bufio.Assumptions]
   [net.Assumptions] [net.FieldAssumptions]
 
 /-- The callees of the case specs that are linked in ServersLink (round 44): the fast-ack pool's

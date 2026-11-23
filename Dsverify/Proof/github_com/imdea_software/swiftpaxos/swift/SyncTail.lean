@@ -11,6 +11,7 @@ calls none) and the recovery's duration as an `int64` (fork c1ecf8e: no `Duratio
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ProposeHalves
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSetQ
 
 -- PORT: lab imports dropped: Harness.Proof.log

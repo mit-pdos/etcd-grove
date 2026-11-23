@@ -320,12 +320,12 @@ end zip
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] in
 /-- The first `b` bytes of the slice `p[:a]` (capacity `c`) as `p[:b]`, and back. -/
 theorem slice_shrink (p : Loc) (a b c : Nat) (xs : List w8) (hl : xs.length = a)
@@ -361,7 +361,7 @@ theorem slice_shrink (p : Loc) (a b c : Nat) (xs : List w8) (hl : xs.length = a)
     · iExactEq H2; simp only [hbn]; congr 2; simp [hys]
   · ipureintro; rw [ha', hc']; omega
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] in
 theorem slice_shrink12 (p : Loc) (b : Nat) (xs : List w8) (hl : xs.length = 12)
     (hb : 0 < b) (hba : b ≤ 12) :
@@ -579,7 +579,7 @@ end proofs
 section proofs2
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] [replica.defs.Assumptions] [state.Assumptions]
 
 set_option goose.wp.extras true
@@ -1198,7 +1198,7 @@ theorem unmarshalOk_newLeaderAckN (wp_SDep : SDep.Unmarshal.specS (hG := hG))
     iright
     ipureintro; exact He
 
-omit [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions]
+omit [io.Assumptions] [errors.Assumptions] [bufio.Assumptions]
   [replica.defs.Assumptions] [state.Assumptions] in
 theorem wp_New_MNewLeaderAckN (o : Loc) :
     {{ (True : IProp netDistGF) }}

@@ -49,12 +49,12 @@ end specs
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] in
 /-- The first 8 bytes of a 10-byte buffer, as the slice `b[:8]`. -/
 theorem slice_take8 (p : Loc) (xs : List w8) (hl : xs.length = 10) :
@@ -71,7 +71,7 @@ theorem slice_take8 (p : Loc) (xs : List w8) (hl : xs.length = 10) :
   · iExactEq H; rfl
   · ipureintro; simp [hl]; decide
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] go_gctx hG sem in
 theorem optAcks_body (r b : w32) (al : List sp.Ack) :
     (sp.Msg.optAcks r b al).body = (sp.le32 r ++ sp.le32 b) ++ sp.varintLen al.length ++
@@ -294,7 +294,7 @@ namespace swift.tbl
 section entries
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true
@@ -328,7 +328,7 @@ theorem unmarshalOk_optAcks (wp_Ack : Ack.Unmarshal.specS (hG := hG)) (l : Loc)
     iright
     ipureintro; exact He
 
-omit [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions] in
+omit [io.Assumptions] [errors.Assumptions] [bufio.Assumptions] in
 theorem wp_New_MOptAcks (o : Loc) :
     {{ (True : IProp netDistGF) }}
       (App (Val (o @!! go.GoType.PointerType swift.MOptAcks.ty @!! go!"New")) (Val #()))

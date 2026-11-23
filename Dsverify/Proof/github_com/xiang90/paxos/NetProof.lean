@@ -28,7 +28,10 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 namespace github_com.xiang90.paxos
 
@@ -39,7 +42,7 @@ namespace Transport
 /-! ### Nonblocking operations on a bag channel -/
 
 section bag
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V] {t : go.GoType}
@@ -124,7 +127,7 @@ theorem bag_nonblocking_recv_au (γ : ChanNames) (ch : Loc) (P : V → IProp GF)
 end bag
 
 section specs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
@@ -751,7 +754,7 @@ end Transport
 open Transport
 
 section proofs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]

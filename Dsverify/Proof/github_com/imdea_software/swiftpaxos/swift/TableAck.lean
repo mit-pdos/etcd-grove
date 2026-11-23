@@ -129,7 +129,7 @@ open swift.rd (wp_store_Hacc data_one set_slot)
 open ackAux
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true

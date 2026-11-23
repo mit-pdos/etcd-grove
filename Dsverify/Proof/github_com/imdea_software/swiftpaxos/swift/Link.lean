@@ -76,7 +76,7 @@ variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurren
   [sync.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions] [hook.Assumptions]
   [time.Assumptions] [config.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
   [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-  [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions]
+  [io.Assumptions] [errors.Assumptions] [bufio.Assumptions]
   [net.Assumptions] [net.FieldAssumptions]
 
 /-- `swift.New`, linked to its proved callees; the hypotheses still open: the package states'

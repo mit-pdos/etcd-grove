@@ -111,7 +111,7 @@ theorem ackQP_reg [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF] (γ : Swift
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 set_option goose.wp.extras true
 

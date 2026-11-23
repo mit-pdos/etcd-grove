@@ -17,7 +17,10 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 namespace github_com.xiang90.paxos
 
@@ -38,7 +41,7 @@ theorem lrn_not_prop {x : w64} (h : x ∈ lrnIds) : x ∉ propIds := by
   rcases h with rfl | rfl <;> decide
 
 section msgok
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] 
+
 variable {GF : BundledGFunctors} [GooseGlobalGS HasLC.hasLC GF]
 
 /-- What a message to an acceptor means (unfolds `msgOK`). -/
@@ -63,7 +66,7 @@ end msgok
 
 
 section specs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]

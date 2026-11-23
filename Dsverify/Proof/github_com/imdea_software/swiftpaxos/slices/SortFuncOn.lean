@@ -29,7 +29,7 @@ namespace Perennial
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -56,7 +56,7 @@ abbrev slices.SortFunc.specPhi : Prop :=
 end spec
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -90,7 +90,7 @@ theorem slices.SortFunc.wp_proofPhi
 end proof
 
 section link
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

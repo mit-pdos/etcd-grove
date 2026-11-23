@@ -20,7 +20,10 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 namespace slices
 
@@ -49,7 +52,7 @@ macro "part_loop2_on" : tactic => `(tactic| (
   wp_auto))
 
 section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

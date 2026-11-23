@@ -164,7 +164,7 @@ end specs
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true
@@ -682,7 +682,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specS (hG := hG) := by
 
 /-! ## The entries -/
 
-omit [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions] in
+omit [io.Assumptions] [errors.Assumptions] [bufio.Assumptions] in
 theorem wp_New_MFastAckClient' (o : Loc) :
     {{ (True : IProp netDistGF) }}
       (App (Val (o @!! go.GoType.PointerType swift.MFastAckClient.ty @!! go!"New")) (Val #()))
@@ -694,7 +694,7 @@ theorem wp_New_MFastAckClient' (o : Loc) :
   wp_auto
   iapply HΦ; iframe
 
-omit [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions] in
+omit [io.Assumptions] [errors.Assumptions] [bufio.Assumptions] in
 theorem wp_New_MReply' (o : Loc) :
     {{ (True : IProp netDistGF) }}
       (App (Val (o @!! go.GoType.PointerType swift.MReply.ty @!! go!"New")) (Val #()))

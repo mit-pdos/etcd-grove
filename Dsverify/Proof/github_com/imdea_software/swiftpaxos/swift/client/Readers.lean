@@ -118,13 +118,13 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
-  [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
+  [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions]
 
 set_option goose.wp.extras true
 
 omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
+  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 /-- A buffered reader is not nil (unfolds the harness's `ownReader`: a missing law). -/
 theorem ownReader_not_null (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
@@ -134,7 +134,7 @@ theorem ownReader_not_null (br : Loc) (rd : GoInterface) (I : List w8 → IProp 
   iapply typedPointsto_not_null $$ Hb
 
 omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
+  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 theorem wp_New_MFastAckClient (o : Loc) :
     {{ (True : IProp netDistGF) }}
@@ -148,7 +148,7 @@ theorem wp_New_MFastAckClient (o : Loc) :
   iapply HΦ; iframe
 
 omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
+  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 theorem wp_New_MLightSlowAck (o : Loc) :
     {{ (True : IProp netDistGF) }}
@@ -162,7 +162,7 @@ theorem wp_New_MLightSlowAck (o : Loc) :
   iapply HΦ; iframe
 
 omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
+  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
   [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 theorem wp_New_MReply (o : Loc) :
     {{ (True : IProp netDistGF) }}

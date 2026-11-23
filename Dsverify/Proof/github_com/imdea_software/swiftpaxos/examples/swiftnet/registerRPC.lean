@@ -8,6 +8,7 @@ the net/rpc model and the gob model (over their `SetCodec`'s specs).
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.registerRPC
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.encoding.gob.SetCodec
 
 -- PORT: lab imports dropped: Harness.Proof.net.rpc.Codec

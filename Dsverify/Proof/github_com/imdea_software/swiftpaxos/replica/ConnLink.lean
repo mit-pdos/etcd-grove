@@ -37,7 +37,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [state.Assumptions]
 variable [github_com.emirpasic.gods.maps.treemap.Assumptions] [sync.Assumptions]
-variable [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [io.Assumptions] [errors.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [dlog.Assumptions]
   [time.Assumptions] [strings.Assumptions] [encoding.binary.Assumptions] [config.Assumptions]
 

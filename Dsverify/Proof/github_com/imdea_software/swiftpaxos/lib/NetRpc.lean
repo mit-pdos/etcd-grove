@@ -138,4 +138,38 @@ end http
 
 end net.rpc
 
+namespace bufio
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics] [errors.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
+variable [net.Assumptions]
+
+/-- A variable made by `errors.New` holds an error with some message (the lab's
+`bufio.newVar_errOrNil`, over `Net/`'s `errAny_newVar`). -/
+theorem newVar_errOrNil (X msg : GoString) :
+    errors.newVar (GF := GF) X msg ⊢
+      ∃ e : GoInterface, globalAddr X ↦□ e ∗ errOrNil e ∗ ⌜e ≠ interface.nil⌝ := by
+  iintro #HNP
+  ihave #HNP' := HNP
+  iunfold errors.newVar at HNP'
+  icases HNP' with ⟨%x, #Hx, -⟩
+  ihave #Ha := net.rpc.errAny_newVar _ _ _ $$ HNP Hx
+  iexists _
+  iframe Hx
+  isplitl
+  · iunfold errOrNil; iright
+    isplitl
+    · iexact Ha
+    ipureintro
+    intro e' h T _
+    cases h
+    exact ⟨x, rfl⟩
+  ipureintro; simp [interface.mkOk]
+
+end lemmas
+
+end bufio
+
 end Perennial

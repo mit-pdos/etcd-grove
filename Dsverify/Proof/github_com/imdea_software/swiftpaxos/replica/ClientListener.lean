@@ -32,7 +32,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [config.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
-  [io.ExtraAssumptions] [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
+  [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [state.Assumptions] [strings.Assumptions] [sync.Assumptions]
 
 set_option goose.wp.extras true

@@ -41,7 +41,10 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 namespace github_com.xiang90.paxos
 
@@ -406,7 +409,7 @@ def woStep (v : GoString) (σ : Option GoString) : Option GoString × GoString :
   | some x => (some x, x)
 
 section ghost
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] 
+
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 
 /-- The register's abstract state, the half outside the invariant (`remote`'s `RBase.sysState` of
@@ -527,7 +530,7 @@ end ghost
 /-! ## The laws -/
 
 section laws
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] 
+
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 
 /-! ### Helpers: ghost-map access through the witnesses -/

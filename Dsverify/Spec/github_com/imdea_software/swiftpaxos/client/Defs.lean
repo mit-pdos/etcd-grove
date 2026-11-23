@@ -28,6 +28,7 @@ an unfolding law (`_unfold`) for the client group's proofs. The adapter only pas
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Defs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Ghost

@@ -29,7 +29,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [dlog.Assumptions] [time.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
-  [io.ExtraAssumptions] [errors.Assumptions] [strings.Assumptions] [encoding.binary.Assumptions]
+  [errors.Assumptions] [strings.Assumptions] [encoding.binary.Assumptions]
 
 set_option goose.wp.extras true
 

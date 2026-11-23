@@ -17,7 +17,7 @@ namespace Perennial.github_com.imdea_software.swiftpaxos
 
 open Iris
 
-open NetConn Dsv
+open Net Dsv
 
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256

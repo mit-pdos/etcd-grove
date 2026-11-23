@@ -20,10 +20,13 @@ public import Perennial.Golang.Theory.Pkg
 
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 noncomputable section
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 

@@ -19,14 +19,18 @@ set_option linter.unusedSectionVars false
 
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 section proofs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [replica.defs.Assumptions] [state.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
+variable [replica.defs.Assumptions] [state.Assumptions] [io.Assumptions]
   [errors.Assumptions] [encoding.binary.Assumptions]
 
 set_option goose.wp.extras true

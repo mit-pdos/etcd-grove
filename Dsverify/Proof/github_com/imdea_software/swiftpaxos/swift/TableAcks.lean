@@ -55,12 +55,12 @@ end specs
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] in
 /-- The first 4 bytes of a 10-byte buffer, as the slice `b[:4]`. -/
 theorem slice_take4 (p : Loc) (xs : List w8) (hl : xs.length = 10) :
@@ -77,7 +77,7 @@ theorem slice_take4 (p : Loc) (xs : List w8) (hl : xs.length = 10) :
   · iExactEq H; rfl
   · ipureintro; simp [hl]; decide
 
-omit go_gctx hG sem [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+omit go_gctx hG sem [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] in
 theorem acks_body (fs : List sp.FastAck) (ss : List sp.SlowAck) :
     (sp.Msg.acks fs ss).body = sp.varintLen fs.length ++ (fs.map sp.FastAck.enc).flatten ++
@@ -438,7 +438,7 @@ theorem fastAck_of_next {d : List w8} (h : sp.nextOk (W8 9) d) : fastAckNext d :
 section entries
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true

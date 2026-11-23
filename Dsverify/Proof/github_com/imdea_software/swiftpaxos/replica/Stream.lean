@@ -25,6 +25,7 @@ HUB-REQUEST R1), without which frames do not decode uniquely.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WireWf
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.Net

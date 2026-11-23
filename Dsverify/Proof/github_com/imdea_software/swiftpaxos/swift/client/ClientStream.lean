@@ -15,6 +15,7 @@ part of the protocol (`sp.cw.stOk`) and the witness of the message just decoded.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.ClientWire
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.Net
 

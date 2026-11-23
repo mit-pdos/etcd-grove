@@ -40,11 +40,12 @@ open swift.handler (shashOf)
 def cmdIdV [GooseExts] (x : sp.CmdId) : swift.CommandId := ⟨x.cl, x.seq⟩
 
 section specs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
 
 /-- `(*MLightSlowAck).Unmarshal(rd)`: the next 16 bytes. -/
 abbrev MLightSlowAck.Unmarshal.specI : Prop :=
@@ -60,11 +61,12 @@ abbrev MLightSlowAck.Unmarshal.specI : Prop :=
 end specs
 
 section proofs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
 
 set_option goose.wp.extras true
 
@@ -238,12 +240,12 @@ end specs2
 section proofs2
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
+variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions] in
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions] [bufio.Assumptions] in
 /-- The first byte of a 16-byte buffer, as the slice `b[:1]`. -/
 theorem slice_take1 (p : Loc) (x : w8) (rest : List w8) (hl : rest.length = 15) :
     (slice.mk p (W64 16) (W64 16) ↦* (x :: rest) : IProp netDistGF) ⊢
@@ -275,7 +277,7 @@ theorem varint_count (n : Nat) {x : w64} (hb : sp.uvDec (sp.varintLen n) < 2 ^ 6
   simp [W64, BitVec.toNat_ushiftRight]
   omega
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions] in
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions] [bufio.Assumptions] in
 /-- Storing byte `j` of an `SHash`'s array. -/
 theorem wp_store_H (e : Loc) (arr : List w8) (j : Int) (hj : 0 ≤ j ∧ j < arr.length) (x : w8) :
     {{ (e ↦ (swift.SHash.mk ⟨arr⟩) : IProp netDistGF) }}
@@ -296,7 +298,7 @@ theorem wp_store_H (e : Loc) (arr : List w8) (j : Int) (hj : 0 ≤ j ∧ j < arr
   simp only [TypedPointsto.typedPointstoDef]
   iframe H
 
-omit [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions] in
+omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions] [bufio.Assumptions] in
 /-- Storing the next byte of a hash being read (`acc` read so far, `m` zeros after). -/
 theorem wp_store_Hacc (e : Loc) (acc : List w8) (m : Nat) (j : w64) (x : w8) :
     {{ (e ↦ (swift.SHash.mk ⟨acc ++ List.replicate m (W8 0)⟩) : IProp netDistGF) ∗

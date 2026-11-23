@@ -15,6 +15,7 @@ Stage 1's node-wide history ghost (`lockR`, `LockOk`, `ghostR`, `ghostOk`) is go
 module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Defs
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 public import Perennial.Proof.github_com.goose_lang.primitive.Link

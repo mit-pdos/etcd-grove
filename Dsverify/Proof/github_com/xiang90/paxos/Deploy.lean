@@ -29,7 +29,10 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 namespace github_com.xiang90.paxos
 
@@ -55,7 +58,7 @@ def agentMap : GMap w64 GoString :=
   (<[W64 1004 := addrs.getD 8 []]> (<[W64 3004 := addrs.getD 8 []]> ∅))))))))))))
 
 section gdefs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] 
+
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
 
 /-- Every configured address's protocols (persistent). -/
@@ -72,7 +75,7 @@ instance allProtos_persistent (Γ : Names) : Persistent (allProtos (GF := GF) Γ
 end gdefs
 
 section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]
@@ -97,7 +100,7 @@ instance is_cluster_persistent (Γ : Names) (c : w64) (cl : Loc) :
 end defs
 
 section specs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]

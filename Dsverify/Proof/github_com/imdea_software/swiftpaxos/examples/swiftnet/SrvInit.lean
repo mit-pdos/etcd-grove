@@ -421,7 +421,7 @@ theorem init_swift_first (Hinit : GetIsPkgInitProp swiftPkg (gBoot (hG := hG) (s
 set_option maxHeartbeats 4000000 in
 /-- **The server-side initialization** (`swiftnetInitSrv.spec`, decision D9): the test package's
 first initialization, through `swift`'s and `concurrent-map`'s first ones. -/
-theorem swiftnetInitSrv_first [io.ExtraAssumptions] :
+theorem swiftnetInitSrv_first :
     letI := @pkgStates _ netDistGF hG sem
     swiftnetInitSrv.spec := by
   have Hinit : GetIsPkgInitProp swiftnetPkg (gBoot (hG := hG) (sem := sem)) := by

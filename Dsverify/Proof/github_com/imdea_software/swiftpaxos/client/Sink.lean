@@ -13,6 +13,8 @@ Writing a message through an `io.Writer` (the generated `Marshal` methods' view 
 -/
 module
 
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+
 
 @[expose] public section
 
@@ -22,15 +24,19 @@ set_option linter.unusedSectionVars false
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 namespace wire
 
 section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
 
 /-- `wire`'s `Write` appends to the intended stream (see the file header). -/
 def sinkOk (wire : GoInterface) (S Q : List w8 → IProp GF) : IProp GF :=
@@ -54,10 +60,11 @@ def wsink (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF) (W : List w
 end defs
 
 section proofs
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
 variable [bufio.Assumptions]
 
 theorem bufio_sinkOk (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF) :

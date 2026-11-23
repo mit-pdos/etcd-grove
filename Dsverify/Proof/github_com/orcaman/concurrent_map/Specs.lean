@@ -32,10 +32,13 @@ noncomputable section
 
 namespace Perennial.github_com.orcaman.concurrent_map
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Dsv
+
+attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
+  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [concurrent_map.Assumptions] [sync.Assumptions]
 variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
