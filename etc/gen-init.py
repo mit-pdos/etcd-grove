@@ -5275,17 +5275,81 @@ DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
 # packages, the part's own `Base.lean`)
 DSV_MAIN = ['bufio', 'container.heap', 'path', 'internal.bytealg']
 DSV_RABIA_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
-DSV_PKGS += ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
-             'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
-             'github_com.go_redis.redis.v8.internal.proto', 'os.signal'] + \
-    [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
+DSV_PKGS += [f'rabia.{p}' for p in ['internal.config', 'internal.message', 'internal.queue',
                             'internal.ledger', 'internal.tcp', 'internal.logger', 'internal.system',
                             'roles.server.layers.network', 'roles.server.layers.consensus',
                             'roles.server.layers.proxy', 'roles.server', 'examples.rabianet']] + \
     [f'rabia.examples.rabianet.cmd.{n}' for n in DSV_RABIA_NODES]
+# the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a hypothesis
+# (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which every generated theorem initializing
+# them takes as an instance (`dsv_hyp_fix`). (Merging with dsv-vr: the two lists concatenate.)
+DSV_HYP_INITS = ['github_com.rs.zerolog', 'github_com.gogo.protobuf.proto',
+                 'github_com.gogo.protobuf.gogoproto', 'github_com.go_redis.redis.v8',
+                 'github_com.go_redis.redis.v8.internal.proto', 'os.signal', 'math.rand']
 SPECIAL['rabia.internal.config'] = {'alloc_types': {'Conf': 'rabia.internal.config.Config'}}
+# rabia's `message` (message.pb.go's variables and two `init`s): the errors (`errors.New`, verb-less
+# `fmt.Errorf`), the `MsgType` maps, the file descriptor's slice, and gogo proto's `Register*` calls,
+# whose specs are fields of the hypothesis `proto.InitHyp` (names only here: notes/dsv-rabia.md),
+# carried by every package above (`DSV_HYP_INITS`)
+_DSV_MSG = 'rabia.internal.message'
+_DSV_IMI = '_root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo'
+SPECIAL[_DSV_MSG] = newvars_cfg({
+    'alloc_types': {'MsgType_name': 'Loc', 'MsgType_value': 'Loc',
+                    'fileDescriptor_33c57e4bae7b9afd': 'GoSlice', 'xxx_messageInfo_Msg': _DSV_IMI,
+                    'xxx_messageInfo_ConsensusObj': _DSV_IMI, 'xxx_messageInfo_Command': _DSV_IMI},
+    'before': {
+        'MsgType_name': ['try wp_auto',
+                         'wp_apply (wp_map_make1 (K := w32) (V := GoString)) as %mName Hm',
+                         'repeat (wp_apply wp_mapInsert $$ Hm as Hm)'],
+        'MsgType_value': ['try wp_auto',
+                          'wp_apply (wp_map_make1 (K := GoString) (V := w32)) as %mVal Hm2',
+                          'repeat (wp_apply wp_mapInsert $$ Hm2 as Hm2)'],
+        'fileDescriptor_33c57e4bae7b9afd': [
+            'try wp_auto', 'wp_apply wp_slice_literal (V := w8) _', 'isplitr',
+            '· ipureintro; first | rfl | (with_unfolding_all rfl) | simp | decide',
+            'iintro %fdp ⟨Hfds, _⟩'],
+    },
+    'after': {
+        'init.«0»': ['wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterEnum',
+                     'try wp_auto',
+                     'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
+                     'try wp_auto',
+                     'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
+                     'try wp_auto',
+                     'wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterType',
+                     'try wp_auto'],
+        'init.«1»': ['wp_apply _root_.Perennial.github_com.gogo.protobuf.proto.InitHyp.RegisterFile',
+                     'try wp_auto'],
+    },
+    'rec_depth': 100000,
+    'heavy': True,
+}, ['errFrameTooLong', 'errFrameTooLarge', 'ErrInvalidLengthMessage', 'ErrIntOverflowMessage',
+    'ErrUnexpectedEndOfGroupMessage'],
+   errorf={'ErrInvalidLengthMessage': 'proto: negative length found during unmarshaling',
+           'ErrIntOverflowMessage': 'proto: integer overflow',
+           'ErrUnexpectedEndOfGroupMessage': 'proto: unexpected end of group'})
 DSV_PROGRAMS.update({f'rabia.examples.rabianet.cmd.{n}':
                      f'Proof/rabia/examples/rabianet/cmd/{n}/PkgTable.lean' for n in DSV_RABIA_NODES})
+
+
+DSV_HYP_NEED = {}
+
+
+def dsv_hyp_fix(path, txt):
+    """A generated file of the part whose package's closure holds a hypothesis package: its import
+    of that package's initialization is the part's `Init.lean`, and its sections take the
+    hypothesis (`InitHyp`) as an instance."""
+    d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
+    for q in DSV_HYP_NEED.get(d, []):
+        txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                          f'public import {DSV_ROOT}.Proof.{q}.Init\n')
+        if f'public import {DSV_ROOT}.Proof.{q}.Init\n' not in txt:
+            txt = re.sub(r'(?m)^(public import .*\n)(?!public import)',
+                         lambda m: m.group(1) + f'public import {DSV_ROOT}.Proof.{q}.Init\n', txt,
+                         count=1)
+        txt = re.sub(r'(?m)^(variable \[sem : go\.Semantics\].*)$',
+                     lambda m: m.group(1) + f'\nvariable [_root_.Perennial.{q}.InitHyp GF]', txt)
+    return txt
 
 
 def dsv_inits():
@@ -5302,7 +5366,7 @@ def dsv_inits():
         st = list(DSV_MAIN)
         while st:
             p = st.pop()
-            if p in inv or p not in saved[0]:
+            if (p in inv and p not in DSV_MAIN) or p not in saved[0] or p in inst:
                 continue
             inv[p] = saved[0][p]
             if p in saved[1]:
@@ -5311,6 +5375,12 @@ def dsv_inits():
         for q, d in inventory(f'{DSV_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
+        for q in DSV_HYP_INITS:
+            inv[q] = dict(inv[q], perennial=True)
+        PERENNIAL_HERE.difference_update(DSV_HYP_INITS)
+        for p in DSV_PKGS:
+            if p in inv:
+                DSV_HYP_NEED[dirof(p)] = [q for q in DSV_HYP_INITS if q in closure(p)]
         inst.update(instances(f'{DSV_ROOT}/Proof/'))
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
                if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
@@ -5322,6 +5392,7 @@ def dsv_inits():
             raw.append((f'{DSV_ROOT}/{path}', txt))
     finally:
         inv, inst, CFG_OVERRIDE = saved
+        PERENNIAL_HERE.add('math.rand')
     made = {path for path, _ in raw}
 
     def imp(m):
@@ -5352,7 +5423,7 @@ def dsv_inits():
             new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
                               'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
         return new
-    return [(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))) for path, txt in raw]
+    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt)))) for path, txt in raw]
 
 
 def main(argv):
