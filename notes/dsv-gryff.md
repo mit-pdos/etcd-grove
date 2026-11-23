@@ -768,6 +768,28 @@ Goal: the branch lands right after `models-rpc-http`, with only a final merge an
 - **Statement header:** the step bound (`2^31-1`: net/rpc's int32 WaitGroup, prefixes only) and the
   deployment (no narrowing beyond `DistDeploy`; the kit's `K` = 4 cap and `Sys` lock).
 
+- **Landed kits, proofs only** (needed for the five landed statements to build on this merge; no
+  statement text changed): swiftpaxos `examples/swiftnet/Start.lean` builds `RpcWorld` by field
+  names (models-rpc-http added `hs`/`hsAns`; `httpW` sets them, as before), its `BootTable.lean` was
+  regenerated (`etc/dsv/_swiftpaxos_boot.py`, net/http's larger closure), and `lib/LibDepsLinked.lean`
+  links `NewWriterSize` over `wp_proofRep`. models-rpc-http meets all three when it merges lean.
+- **Checks (head after this section):** on fk-lean1 (commit `bb8e39f9c3`, plus the scratch
+  `Dsverify/Scratch/Axioms.lean`, since deleted): the six `TopLevelRobustness` (gryff, swiftnet,
+  rabianet, epaxosnet, quepaxanet, paxosnet) and the scratch module importing all six together
+  build (5397 jobs); `#print axioms` of each of the six = `[propext, Classical.choice, Quot.sound]`.
+  Here: `tier-check --check` ok (227 known, no new); `gen-init --check` (271 up to date);
+  `_gryff_boot.py --check`, `_swiftpaxos_boot.py --check` clean; `goose --check` for dsv-gryff and
+  models-net up to date; `proof_roots.namespace()` = `Perennial.EtcdGrove.`; errorf-wrap
+  `init_errors()` = `[]` (the full check needs a built tree); `git diff origin/lean -- etc/goose.py
+  etc/gen-init.py`: goose.py only, models-rpc-http's hunk. `theorem-loc --no-go --list-tcb
+  gryff_remote_robust`: TCB 617 lines, all premises (`tcb_axioms 0`; it was 689 before
+  `DialHTTP.spec` dropped); the three `InitHyp`s are counted.
+- **After models-rpc-http lands:** merge `origin/lean`. If models-rpc-http adopted the files above
+  (net/http Init imports, the two Base files, swiftpaxos's three proof fixes), the merge is
+  trivial; otherwise keep this branch's versions. Then gen-init (twice) + `_gryff_boot.py` +
+  `_swiftpaxos_boot.py`, an fk-lean1 build of the six with `#print axioms`, `etc/tcb-report.py
+  --collection etc/tcb-collections/dsv-gryff.txt --check` (needs a full build) and the land gates.
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
