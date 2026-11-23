@@ -769,6 +769,11 @@ record (`idIssueExt`) keyed by incarnation is D4's. The start resources that are
 a 2639-module rebuild); (d) the server re-sectioning (935 modules) and `clusterAllocN` at the global classes;
 (e) `etcdClusterStart` = (d) + (a), and a `k`-member boot skeleton `EtcdBootsS2` as putget's `BootsS2`. (c)
 and (d) are mechanical but rebuild most of the tree: to schedule with the coordinator (build slots).
+(d) is checked by the heap-free gate (`etc/heapfree-check.py`, phase 7 S2's): `clusterFacts`, `memberSliceG`
+and the start's other outputs become roots, so no `HeapGS` is reachable from what the start hands out. The auth-on
+allocation (`allocNOnM`, `srvClusterBootOn_alloc`, `kvInvOn`) has the same cut (`clusterFactsOn`), after the
+auth-off one. **(c) and (d) held** (the coordinator, 2026-11-23: they touch files other sessions are editing;
+sequenced on #28).
 
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
