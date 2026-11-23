@@ -13,7 +13,7 @@ public import Perennial.Proof.time.Link
 public import Proof.github_com.anishathalye.porcupine.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Init
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.InitLinked
 public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Init
 public import Proof.go_etcd_io.etcd.client.v3.InitLinked
 public import Proof.go_uber_org.zap.InitLinked

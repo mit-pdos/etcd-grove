@@ -1,11 +1,17 @@
 /-
 Package initialization of `google_golang_org.grpc`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`grpcInit`, `cache/v3/Base.lean`): `EnableTracing` holds `false` for good. Its
 initializer initializes its imports, allocates `EnableTracing` (`var EnableTracing bool`,
 `trace.go:33` at v1.84.0: translated, no initializer, so its cell holds `false`), runs the
-untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderListTooLarge`
+(`errors.New` of a constant: Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing`
+(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_proof`) and the slice literals of
+codes `transportFailureCodes` and `http2ErrConvTab` (phase 7 S2 core, 2026-11-23: until then not
+translated, goose `[[skip]]`), runs the untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated `init`
 functions, which the trust-boundary axiom `initFuncsOk` says return. (Until 2026-11-19 the cell
 came from the trust-boundary axiom `DefaultBackoffConfig_init`.) No translated code writes
@@ -20,6 +26,7 @@ public import Perennial.Proof.encoding.binary.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
+public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.credentials.Init
 public import Proof.google_golang_org.grpc.internal.grpcsync.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
@@ -27,8 +34,9 @@ public import Proof.google_golang_org.grpc.metadata.Init
 public import Proof.google_golang_org.grpc.peer.Init
 public import Proof.google_golang_org.grpc.resolver.Init
 public import Proof.google_golang_org.grpc.stats.Init
+public import Proof.google_golang_org.grpc.status.Init
 public import Proof.net.Init
-public import Proof.runtime.PkgInitExt
+public import Perennial.Proof.errors.NewVar
 
 @[expose] public section
 
@@ -73,71 +81,5 @@ axiom initFuncsOk :
 
 end google_golang_org.grpc
 end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.google_golang_org.grpc.Assumptions]
-
-namespace google_golang_org.grpc
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.grpc get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := Bool) EnableTracing _ as HEnableTracing
-  wp_apply (_root_.Perennial.google_golang_org.grpc.internal.grpcsync.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
-      EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.resolver.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.keepalive.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
-      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk logger.init (by mem_tac))
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  wp_apply (initFuncsOk init.«1» (by mem_tac))
-  wp_apply (initFuncsOk init.«2» (by mem_tac))
-  ipersist HEnableTracing
-  iframe Hown
-  imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
-  is_pkg_init_finish
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.google_golang_org.grpc get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end google_golang_org.grpc
-
-end init
 
 end Perennial

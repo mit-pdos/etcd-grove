@@ -246,6 +246,29 @@ instance get_isPkgInit_wf_inst :
 
 end google_golang_org.grpc.internal.grpcsync
 
+-- grpc's `codes` and `status` (before `grpc`, which imports them since phase 7 S2 core)
+instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  define_is_pkg_init iprop(True)
+instance grpc_codes_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
+  build_get_is_pkg_init_wf
+
+-- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
+-- `client/v3/leasing` names it).
+instance grpc_internal_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
+  define_is_pkg_init iprop(True)
+instance grpc_internal_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
+  build_get_is_pkg_init_wf
+
+instance grpc_status_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  define_is_pkg_init iprop(True)
+instance grpc_status_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
+  build_get_is_pkg_init_wf
+
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
 /-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`
@@ -395,12 +418,6 @@ instance etcdserverpb_is_pkg_init_inst :
   define_is_pkg_init etcdserverpbInit
 instance etcdserverpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb :=
-  build_get_is_pkg_init_wf
-
-instance grpc_codes_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.codes :=
-  define_is_pkg_init iprop(True)
-instance grpc_codes_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.codes :=
   build_get_is_pkg_init_wf
 
 /-- The error value `e`'s `Error()` returns some string (and does not panic). -/
@@ -706,22 +723,6 @@ theorem notDescIn_ne (ds : List GoString) (err : GoInterface) :
   unfold notDescIn
   iintro ⟨%h, -⟩
   ipureintro; exact h
-
--- The names-only target of the alias `grpc/status.Status` (imported by `grpc/status` since
--- `client/v3/leasing` names it).
-instance grpc_internal_status_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
-  define_is_pkg_init iprop(True)
-instance grpc_internal_status_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.status :=
-  build_get_is_pkg_init_wf
-
-instance grpc_status_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.status :=
-  define_is_pkg_init iprop(True)
-instance grpc_status_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
-  build_get_is_pkg_init_wf
 
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`), as far as
 grpc's and Go's `errors` functions look (Go's typing, which the model lacks: method sets are

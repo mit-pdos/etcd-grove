@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import ManualProof.google_golang_org.grpc
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.encoding.binary
+public import GeneratedProof.google_golang_org.grpc.codes
 public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
 public import GeneratedProof.google_golang_org.grpc.keepalive
@@ -12,6 +13,7 @@ public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
 public import GeneratedProof.google_golang_org.grpc.stats
+public import GeneratedProof.google_golang_org.grpc.status
 public import Perennial.GeneratedProof.io
 public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.sync

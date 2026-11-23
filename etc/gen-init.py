@@ -1379,6 +1379,38 @@ gets no proof: it would need the cell, which `finish` makes persistent.''',
     alloc_types={'EnableTracing': 'Bool'},
     finish=['ipersist HEnableTracing'] + FIN_PRE[:6],
 )
+# (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) the variables the client attempt's code
+# reads, translated with their initializers (until then goose `[[skip]]`s): `errors.New` of
+# constants (Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing = status.Error(...)` of
+# a constant code other than `OK` (`status.Error.wp_proof`, the existing trust-boundary axiom of
+# grpc's `status`), and the slice literals of codes `transportFailureCodes` and `http2ErrConvTab`.
+# The fact says nothing of them yet (`grpcInit`: a reader's proof adds what it needs).
+_G = SPECIAL['google_golang_org.grpc']
+_G['doc'] = _G['doc'].replace('''runs the
+untranslated initializers of its other variables''', '''runs the
+translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderListTooLarge`
+(`errors.New` of a constant: Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing`
+(`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_proof`) and the slice literals of
+codes `transportFailureCodes` and `http2ErrConvTab` (phase 7 S2 core, 2026-11-23: until then not
+translated, goose `[[skip]]`), runs the untranslated initializers of its other variables''')
+newvars_cfg(_G, ['errMalformedFrame', 'errStreamDone', 'errHeaderListTooLarge'])
+_G['alloc_types'].update({'ErrClientConnClosing': 'GoInterface', 'transportFailureCodes': 'GoSlice',
+                          'http2ErrConvTab': 'GoSlice'})
+_G['before'].update({
+    'ErrClientConnClosing': [
+        'try wp_auto',
+        'wp_apply _root_.Perennial.EtcdGrove.status.Error.wp_proof as %rErrClientConnClosing -',
+        '· ipureintro; simp only [google_golang_org.grpc.codes.OK]; exact fun h => absurd (go.intoVal_inj h) (by decide)'],
+    'transportFailureCodes': [
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %stransportFailureCodes ⟨StransportFailureCodes, -⟩',
+        'try wp_auto'],
+    'http2ErrConvTab': [
+        'try wp_auto',
+        'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %shttp2ErrConvTab ⟨Shttp2ErrConvTab, -⟩',
+        'try wp_auto'],
+})
+_G['imports'].append('Proof.google_golang_org.grpc.status.Error')
 
 # (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(

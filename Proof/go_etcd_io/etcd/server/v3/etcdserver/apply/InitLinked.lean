@@ -13,7 +13,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.github_com.prometheus.client_golang.prometheus.Init
-public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.Init
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.InitLinked
 public import Proof.go_etcd_io.etcd.api.v3.membershippb.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init

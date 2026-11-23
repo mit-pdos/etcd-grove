@@ -6,6 +6,8 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.io.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.codes
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.status
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.keepalive
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.resolver

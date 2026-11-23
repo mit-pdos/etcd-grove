@@ -28,7 +28,12 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # the model's frame writers (`model_wire.go`) and the header list's limit (F1)
   "headerListTooLarge", "appendHeaderBlock", "appendOversizedBlock", "appendData", "appendReset",
   "maxHeaderBlock", "frameHead", "frameData", "frameClose", "frameCancel", "frameHeader",
-  "frameTrailer", "frameReset", "frameSettings", "clientPreface", "errCodeRefusedStream"]
+  "frameTrailer", "frameReset", "frameSettings", "clientPreface", "errCodeRefusedStream",
+  # (phase 7 S2 core, 2026-11-23) the package variables the client attempt's code reads, with their
+  # initializers (until then `[[skip]]`): `errors.New` of constants, `status.Error` of a constant
+  # code and message, slice literals of the codes
+  "errMalformedFrame", "errStreamDone", "errHeaderListTooLarge", "ErrClientConnClosing",
+  "transportFailureCodes", "http2ErrConvTab"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
@@ -38,7 +43,9 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   # is a translated struct
   "sync", "google.golang.org/grpc/internal/grpcsync",
   # (phase 7 S2 core, 2026-11-23) the frame writers' `binary.BigEndian.AppendUint32`
-  "encoding/binary"]
+  "encoding/binary",
+  # (phase 7 S2 core, 2026-11-23) the translated initializers' `status.Error` and codes
+  "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -53,7 +60,7 @@ trusted = ["Server.Serve"]
 [[skip]]
 names = ["DefaultBackoffConfig", "unaryStreamDesc", "invalidDefaultServiceConfigErrPrefix",
   "PickFirstBalancerName", "grpcStatusDetailsBinHeader", "errTransportClosing",
-  "transportFailureCodes", "http2ErrCodeNames", "http2ErrConvTab", "defaultServerOptions",
+  "http2ErrCodeNames", "defaultServerOptions",
   "emptyMethodConfig"]
 reason = """
 Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
@@ -70,7 +77,7 @@ has set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no p
 beyond the variable."""
 
 [[skip]]
-names = ["ErrClientConnClosing", "errIllegalHeaderWrite", "statusOK"]
+names = ["errIllegalHeaderWrite", "statusOK"]
 reason = """
 Their initializers call, besides literals of constants and other variables' values:
 `status.New`/`status.Error` of a constant code and message allocate a status (and its error). So
@@ -79,8 +86,7 @@ each terminates, cannot panic and has no effect beyond its variable."""
 [[skip]]
 names = ["errConnDrain", "errConnClosing", "errConnIdling", "errNoTransportSecurity",
   "errTransportCredsAndBundle", "errNoTransportCredsInBundle", "errTransportCredentialsMissing",
-  "ErrClientConnTimeout", "errStreamDone", "errMalformedFrame", "ErrServerStopped",
-  "errHeaderListTooLarge"]
+  "ErrClientConnTimeout", "ErrServerStopped"]
 reason = """
 Their initializers call, besides literals of constants and other variables' values: `errors.New` of
 a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond

@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import ManualProof.google_golang_org.grpc
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.encoding.binary
+public import GeneratedProof.google_golang_org.grpc.codes
 public import GeneratedProof.google_golang_org.grpc.credentials
 public import GeneratedProof.google_golang_org.grpc.internal.grpcsync
 public import GeneratedProof.google_golang_org.grpc.keepalive
@@ -12,6 +13,7 @@ public import GeneratedProof.google_golang_org.grpc.metadata
 public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
 public import GeneratedProof.google_golang_org.grpc.stats
+public import GeneratedProof.google_golang_org.grpc.status
 public import Perennial.GeneratedProof.io
 public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.sync
@@ -104,7 +106,7 @@ noncomputable instance recvQueue_access_store_signal (l : Loc) (v : google_golan
 end def_
 end recvQueue
 
-namespace clientTransportStream
+namespace recvMsg
 section def_
 
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -112,16 +114,71 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.Assumptions]
 
-noncomputable instance clientTransportStream_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.clientTransportStream :=
-  sorry -- axiomatized type
+noncomputable instance recvMsg_typed_pointsto :
+    TypedPointsto (GF := GF) google_golang_org.grpc.recvMsg where
+  typedPointstoDef l v dq := iprop(
+    "hdr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' dq ∗
+    "data" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' dq ∗
+    "err" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
-noncomputable instance clientTransportStream_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.clientTransportStream google_golang_org.grpc.clientTransportStream.underlying :=
-  sorry -- axiomatized type
+noncomputable instance recvMsg_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.recvMsg google_golang_org.grpc.recvMsg.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance recvMsg_access_load_hdr (l : Loc) (v : google_golang_org.grpc.recvMsg) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvMsg_access_store_hdr (l : Loc) (v : google_golang_org.grpc.recvMsg) (hdr' : (GoArray w8 5)) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) hdr' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := hdr' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvMsg_access_load_data (l : Loc) (v : google_golang_org.grpc.recvMsg) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvMsg_access_store_data (l : Loc) (v : google_golang_org.grpc.recvMsg) (data' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) data' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := data' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvMsg_access_load_err (l : Loc) (v : google_golang_org.grpc.recvMsg) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance recvMsg_access_store_err (l : Loc) (v : google_golang_org.grpc.recvMsg) (err' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) err' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
-end clientTransportStream
+end recvMsg
 
 namespace serverTransport
 section def_
@@ -315,80 +372,6 @@ noncomputable instance serverTransport_access_store_stream (l : Loc) (v : google
 
 end def_
 end serverTransport
-
-namespace recvMsg
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
-
-noncomputable instance recvMsg_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.recvMsg where
-  typedPointstoDef l v dq := iprop(
-    "hdr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' dq ∗
-    "data" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' dq ∗
-    "err" ∷ typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance recvMsg_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.recvMsg google_golang_org.grpc.recvMsg.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance recvMsg_access_load_hdr (l : Loc) (v : google_golang_org.grpc.recvMsg) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance recvMsg_access_store_hdr (l : Loc) (v : google_golang_org.grpc.recvMsg) (hdr' : (GoArray w8 5)) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) hdr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := hdr' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance recvMsg_access_load_data (l : Loc) (v : google_golang_org.grpc.recvMsg) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance recvMsg_access_store_data (l : Loc) (v : google_golang_org.grpc.recvMsg) (data' : GoSlice) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := data' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance recvMsg_access_load_err (l : Loc) (v : google_golang_org.grpc.recvMsg) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance recvMsg_access_store_err (l : Loc) (v : google_golang_org.grpc.recvMsg) (err' : GoError) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end recvMsg
 
 namespace headerField
 section def_
