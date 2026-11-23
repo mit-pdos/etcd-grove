@@ -23,6 +23,10 @@ for rel in sys.argv[1:]:
     s=re.sub(r"\nvariable \[sem : go.Semantics\]\n", "\nvariable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]\n", s)
     s=s.replace("Iris.ProofMode Net Net\n", "Iris.ProofMode Net\n")
     s=s.replace(" [net.model.Assumptions]", "")
+    s=s.replace("ClientBatchStore.Get.wp_proof", "store_get_proof").replace("ClientBatchStore.Add.wp_proof", "store_add_proof")
+    s=s.replace("open google_golang_org.grpc (handlerOk replyOk decOk)\n", "open hyp.grpc (handlerOk replyOk decOk)\nopen models_lab.pbcodec (PbCodec)\n")
+    s=s.replace("simp only [google_golang_org.protobuf.proto.PbCodec.unmarshal]", "rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]")
+    s=s.replace("simp only [google_golang_org.protobuf.proto.PbCodec.marshal]", "rw [show (PbCodec.marshal (GF := GF)) = marshalPre from rfl]")
     s=re.sub(r"\s\[(io|sync|time|strconv|fmt|sort)\.ExtraAssumptions\]", "", s)
     s=s.replace("KvInput GoString GoString","KIn").replace("KvOutput GoString","KOut")
     import os
