@@ -355,6 +355,87 @@ theorem State.InMemory.wp_proof
   simp -zeta only [jp4] at Hjp4
   replace Hjp4 := bind_ok Hjp4; obtain ⟨d1, hd1, Hjp4⟩ := Hjp4
   extract_lets jpF jpU jp5 at Hjp4
+  have hvl := HW.viol
+  wp_join iprop(∃ (gv : GoSlice) (v : SSet),
+      x_ptr ↦ ({ s' := p, n' := n, ev' := e } : G.inMem) ∗ s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      viol_ptr ↦ gv ∗ strsRO gv v ∗ ⌜v.length ≤ s.viol.length + 1 ∧ jp5 () v = .ok r⌝)
+    at next with [x s ev n viol] as ⟨%gv, %v1, x, s, ev, n, viol, #Hv1, %Hjp5⟩
+  · obtain ⟨cm, hcm, hct, hcf⟩ := andM_ok hd1
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_cmt_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_cmt _ _ cm $$ [Hx]
+    · iframe Hx; ipureintro; exact hcm
+    cases cm
+    · rw [hcf rfl] at Hjp4
+      simp only [Bool.false_eq_true, ite_false] at Hjp4
+      wp_auto
+      wp_join_done
+      iexists g.Viol', viol0
+      iframe
+      isplitr; · iexact HViol
+      ipureintro; exact ⟨by simp [viol0], Hjp4⟩
+    · replace hct := bind_ok (hct rfl); obtain ⟨cmp, hcmp, hct⟩ := hct
+      simp only [pure_ok, Except.ok.injEq] at hct
+      wp_auto
+      replace hcmp := bind_ok hcmp; obtain ⟨nc, hnc, hcmp⟩ := hcmp
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_newC_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_newC _ _ nc $$ [Hx] as %gnc #Hgnc
+      · iframe Hx; ipureintro; exact hnc
+      wp_apply wp_Comparable _ _ _ _ cmp $$ [HChain Hgnc]
+      · iframe HChain Hgnc; ipureintro; exact hcmp
+      subst hct
+      cases cmp
+      · simp only [Bool.not_false, ite_true] at Hjp4
+        wp_auto
+        wp_apply wp_violAdd _ _ _ $$ [HViol] as %gv #Hgv
+        · iframe HViol; ipureintro; omega
+        wp_join_done
+        iexists gv, vCS
+        iframe
+        isplitr; · iexact Hgv
+        ipureintro; exact ⟨setAdd_length_le _ _, Hjp4⟩
+      · simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Hjp4
+        wp_auto
+        wp_join_done
+        iexists g.Viol', viol0
+        iframe
+        isplitr; · iexact HViol
+        ipureintro; exact ⟨by simp [viol0], Hjp4⟩
+  clear Hjp4
+  simp -zeta only [jp5] at Hjp5
+  obtain ⟨hv1, Hjp5⟩ := Hjp5
+  replace Hjp5 := bind_ok Hjp5; obtain ⟨d2, hd2, Hjp5⟩ := Hjp5
+  extract_lets vLC jp7 jp6 at Hjp5
+  wp_join iprop(∃ (lcv : Bool),
+      x_ptr ↦ ({ s' := p, n' := n, ev' := e } : G.inMem) ∗ s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      lc_ptr ↦ lcv ∗ ⌜jp6 () lcv = .ok r⌝)
+    at next with [x s ev n lc] as ⟨%lcv, x, s, ev, n, lc, %Hjp6⟩
+  · rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_cmt_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_cmt _ _ d2 $$ [Hx]
+    · iframe Hx; ipureintro; exact hd2
+    cases d2
+    · simp only [Bool.false_eq_true, ite_false] at Hjp5
+      wp_auto
+      wp_join_done
+      iexists false
+      iframe
+      ipureintro; exact Hjp5
+    simp only [ite_true] at Hjp5
+    replace Hjp5 := bind_ok Hjp5; obtain ⟨l, hl, Hjp5⟩ := Hjp5
+    replace Hjp5 := bind_ok Hjp5; obtain ⟨lcv, hany, Hjp5⟩ := Hjp5
+    wp_auto
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_ll2_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_ll2 _ _ l $$ [Hx] as %gl #Hgl
+    · iframe Hx; ipureintro; exact hl
+    iunfold termLogsRO at Hgl
+    icases Hgl with ⟨%gs, #Hgs, #Hgb⟩
+    ihave %Hgsl := ownSlice_len _ _ _ $$ Hgs
+    ihave %Hgbl := BigSepL2.bigSepL2_length $$ Hgb
+    trace_state
+    sorry
   trace_state
   sorry
 
