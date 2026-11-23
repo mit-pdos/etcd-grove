@@ -195,9 +195,6 @@ noncomputable def stepConfig [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def step [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos-epaxos/examples/epaxosnet.step"
 
-noncomputable def equal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/imdea-software/swiftpaxos-epaxos/examples/epaxosnet.equal"
-
 noncomputable def Model [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos-epaxos/examples/epaxosnet.Model"
 
@@ -1880,74 +1877,10 @@ noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad State.ty))) (Var "$res1")))))))))
 
-/-- equal reports whether a and b are the same set of configurations.
-
-    go: model.go:219:6 -/
-noncomputable def equal.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "a"
-  (Lam "b"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc State.ty))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc State.ty))) (Var "a"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad State.ty))) (Var "b"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [State.ty]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad State.ty))) (Var "a"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Config.ty))) (App (Val (GoInstruction (IndexRef State.ty))) (Pair (App (Val (GoInstruction (GoLoad State.ty))) (Var "b")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (App (App (App (Val (GoInstruction (FuncResolve member []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad State.ty))) (Var "a"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [State.ty]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad State.ty))) (Var "b"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad Config.ty))) (App (Val (GoInstruction (IndexRef State.ty))) (Pair (App (Val (GoInstruction (GoLoad State.ty))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (App (App (App (Val (GoInstruction (FuncResolve member []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-
 /-- Model is the key-value store with scans and pending writes, as a porcupine model. Inputs are
     Ins, outputs Outs.
 
-    go: model.go:235:6 -/
+    go: model.go:220:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -2005,9 +1938,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.any))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc go.any))) (Var "a"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert State.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "a")))
-  (Let "$a1" (App (Val (GoInstruction (TypeAssert State.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "b")))
-  (App (App (App (Val (GoInstruction (FuncResolve equal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2022,7 +1953,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Var "$res0")))))
 
-/-- go: model.go:246:6 -/
+/-- go: model.go:236:6 -/
 noncomputable def putU64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -2044,7 +1975,7 @@ noncomputable def putU64.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "i") (Var "$r0"))))))))))
   (Val #()))))
 
-/-- go: model.go:252:6 -/
+/-- go: model.go:242:6 -/
 noncomputable def getU64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -2081,7 +2012,7 @@ noncomputable def getU64.impl [GooseExts] [GoGlobalContext] : val :=
     each) and V's bytes; an output as one byte (1: unknown) and V's bytes. A get and a scan are
     reads (remote may retry them).
 
-    go: model.go:263:6 -/
+    go: model.go:253:6 -/
 noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (Val #())))
@@ -6452,7 +6383,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   addAll_unfold : FuncUnfold addAll [] addAll.impl
   stepConfig_unfold : FuncUnfold stepConfig [] stepConfig.impl
   step_unfold : FuncUnfold step [] step.impl
-  equal_unfold : FuncUnfold equal [] equal.impl
   Model_unfold : FuncUnfold Model [] Model.impl
   putU64_unfold : FuncUnfold putU64 [] putU64.impl
   getU64_unfold : FuncUnfold getU64 [] getU64.impl
@@ -6574,7 +6504,6 @@ attribute [instance] Assumptions.In_instance
   Assumptions.addAll_unfold
   Assumptions.stepConfig_unfold
   Assumptions.step_unfold
-  Assumptions.equal_unfold
   Assumptions.Model_unfold
   Assumptions.putU64_unfold
   Assumptions.getU64_unfold

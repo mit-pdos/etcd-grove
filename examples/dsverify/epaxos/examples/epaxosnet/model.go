@@ -215,21 +215,6 @@ func step(s State, in In, o Out) (bool, State) {
 	return len(r) > 0, r
 }
 
-// equal reports whether a and b are the same set of configurations.
-func equal(a State, b State) bool {
-	for i := 0; i < len(a); i++ {
-		if !member(b, a[i]) {
-			return false
-		}
-	}
-	for i := 0; i < len(b); i++ {
-		if !member(a, b[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 // Model is the key-value store with scans and pending writes, as a porcupine model. Inputs are
 // Ins, outputs Outs.
 func Model() porcupine.Model {
@@ -239,7 +224,12 @@ func Model() porcupine.Model {
 			ok, s := step(state.(State), input.(In), output.(Out))
 			return ok, s
 		},
-		Equal: func(a, b any) bool { return equal(a.(State), b.(State)) },
+		// Equal is always false (porcupine then only caches fewer states): two histories can
+		// reach the same State whose exact sets of configurations differ (put a unknown, put b
+		// ok vs. put b ok, put a unknown: only the first allows "a took effect before b"), so
+		// the verification relates a State to its set only up to pending puts that never take
+		// effect (notes/dsv-epaxos.md, the model), and equal States need not be equal sets.
+		Equal: func(a, b any) bool { return false },
 	}
 }
 
