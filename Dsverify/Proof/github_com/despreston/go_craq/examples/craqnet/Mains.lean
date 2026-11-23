@@ -38,7 +38,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.orch.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Orch : craqnet.Orch.spec (GF := GF) (hG := hG)) (γ : CraqNames)
     (γp : PendNames) (hrb : receiptBound GF ≤ 2 ^ 63) :
@@ -72,17 +72,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.client0.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : craqnet.Client.spec (GF := GF) (hG := hG)) (cfg : Cfg GF)
     (hcfg : cfgKit cfg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client0 ∗ craqCtx cfg ∗ codecFresh ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client0 ∗ craqCtx cfg ∗ codecFresh ∗ rpcEnv ∗
         addrProto (Gg := hG.goose_globalGS) (confAddrs.getD 0 []) confProto confProto ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR cfg.γ) (clientAddrs.getD 0 []) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hctx, Hcf, #Hca, #Hra, #Hmap⟩
+  wp_start as ⟨#Hctx, Hcf, #Hre, #Hca, #Hra, #Hmap⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -103,17 +103,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.client1.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : craqnet.Client.spec (GF := GF) (hG := hG)) (cfg : Cfg GF)
     (hcfg : cfgKit cfg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client1 ∗ craqCtx cfg ∗ codecFresh ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client1 ∗ craqCtx cfg ∗ codecFresh ∗ rpcEnv ∗
         addrProto (Gg := hG.goose_globalGS) (confAddrs.getD 1 []) confProto confProto ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR cfg.γ) (clientAddrs.getD 1 []) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hctx, Hcf, #Hca, #Hra, #Hmap⟩
+  wp_start as ⟨#Hctx, Hcf, #Hre, #Hca, #Hra, #Hmap⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -134,17 +134,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.client2.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : craqnet.Client.spec (GF := GF) (hG := hG)) (cfg : Cfg GF)
     (hcfg : cfgKit cfg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client2 ∗ craqCtx cfg ∗ codecFresh ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client2 ∗ craqCtx cfg ∗ codecFresh ∗ rpcEnv ∗
         addrProto (Gg := hG.goose_globalGS) (confAddrs.getD 2 []) confProto confProto ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR cfg.γ) (clientAddrs.getD 2 []) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hctx, Hcf, #Hca, #Hra, #Hmap⟩
+  wp_start as ⟨#Hctx, Hcf, #Hre, #Hca, #Hra, #Hmap⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -165,17 +165,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.client3.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : craqnet.Client.spec (GF := GF) (hG := hG)) (cfg : Cfg GF)
     (hcfg : cfgKit cfg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client3 ∗ craqCtx cfg ∗ codecFresh ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client3 ∗ craqCtx cfg ∗ codecFresh ∗ rpcEnv ∗
         addrProto (Gg := hG.goose_globalGS) (confAddrs.getD 3 []) confProto confProto ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR cfg.γ) (clientAddrs.getD 3 []) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hctx, Hcf, #Hca, #Hra, #Hmap⟩
+  wp_start as ⟨#Hctx, Hcf, #Hre, #Hca, #Hra, #Hmap⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -196,17 +196,17 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.client4.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main (wp_Client : craqnet.Client.spec (GF := GF) (hG := hG)) (cfg : Cfg GF)
     (hcfg : cfgKit cfg) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client4 ∗ craqCtx cfg ∗ codecFresh ∗
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client4 ∗ craqCtx cfg ∗ codecFresh ∗ rpcEnv ∗
         addrProto (Gg := hG.goose_globalGS) (confAddrs.getD 4 []) confProto confProto ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR cfg.γ) (clientAddrs.getD 4 []) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hctx, Hcf, #Hca, #Hra, #Hmap⟩
+  wp_start as ⟨#Hctx, Hcf, #Hre, #Hca, #Hra, #Hmap⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -227,19 +227,19 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.server1.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (hcfg : cfgKit cfg) :
+    (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server1 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 1 }}
+        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 1 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 1) hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 1) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
   · rw [show uint.nat (W64 1) = 1 from rfl]
     iframe #
     iframe
@@ -257,19 +257,19 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.server2.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (hcfg : cfgKit cfg) :
+    (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server2 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 2 }}
+        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 2 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 2) hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 2) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
   · rw [show uint.nat (W64 2) = 2 from rfl]
     iframe #
     iframe
@@ -287,19 +287,19 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.server3.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (hcfg : cfgKit cfg) :
+    (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server3 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 3 }}
+        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 3 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 3) hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 3) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
   · rw [show uint.nat (W64 3) = 3 from rfl]
     iframe #
     iframe
@@ -317,19 +317,19 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.server4.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (hcfg : cfgKit cfg) :
+    (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server4 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 4 }}
+        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 4 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 4) hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 4) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
   · rw [show uint.nat (W64 4) = 4 from rfl]
     iframe #
     iframe
@@ -347,19 +347,19 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.server5.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (hcfg : cfgKit cfg) :
+    (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server5 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 5 }}
+        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 5 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 5) hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 5) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
   · rw [show uint.nat (W64 5) = 5 from rfl]
     iframe #
     iframe
@@ -377,19 +377,19 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : cmd.server6.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ρ : RemoteGS] [ra : RpcHttpAddr GF]
+variable [π : NetProtoGS] [ρ : RemoteGS]
 
 theorem wp_main [RpcHttpServe GF] (wp_Server : craqnet.Server.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (hcfg : cfgKit cfg) :
+    (cfg : Cfg GF) (hcfg : cfgKit cfg) (htb : threadBound GF ≤ 2 ^ 31) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server6 ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 6 }}
+        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ serverRes cfg 6 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
   wp_start as ⟨Hcf, Hmux, #Henv, #Hdsv, #Hctx, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server cfg (W64 6) hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
+  wp_apply wp_Server cfg (W64 6) htb hcfg (by decide) (by decide) $$ [Hcf Hmux Hres]
   · rw [show uint.nat (W64 6) = 6 from rfl]
     iframe #
     iframe

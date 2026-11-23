@@ -12,7 +12,8 @@ applied to the net specs).
   `readAt(c)` (2..6, an address of the chain: `cfgKit`), whose `notFoundMsg` ServerError is a
   not-found; any other error is `Out{Unknown: true}`. Linearization: `lin_opAU`.
 * `newSys`: `awaitConf` in a goroutine, `<-ch` (`msgOk`), `Register()` (ServerProof.lean's
-  `wp_Register` over the machine's fresh codec registry `codecFresh`, which gives `rpcReady`),
+  `wp_Register` over the machine's fresh codec registry `codecFresh`, which with the machine's
+  `rpcEnv` gives `rpcReady`),
   `go s.remove(rs)`.
 * `Orch`: remote's `Check`, whose premises on the store (`PendDec (kvR γ) kvS`, the outputs'
   bytes injective) are `ModelDefs.lean`'s `kvS_pendDec`, `kvR_encOut_inj` (finding F4: a put's
@@ -58,7 +59,7 @@ variable [package_sem' : github_com.despreston.go_craq.examples.craqnet.Assumpti
 variable [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions]
 variable [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF] [bvi : go.BasicIntoValInj] [ρ : RemoteGS]
+variable [bvi : go.BasicIntoValInj] [ρ : RemoteGS]
 
 local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet
 
@@ -477,11 +478,11 @@ theorem wp_newSys [LogHyp GF]
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF))
     (cfg : Cfg GF) (hcfg : cfgKit cfg) (c : w64) (hc : uint.nat c < 5) :
-    {{ isPkgInit (PROP := IProp GF) kpkg ∗ craqCtx cfg ∗ codecFresh ∗
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ craqCtx cfg ∗ codecFresh ∗ rpcEnv ∗
         addrProto (Gg := hG.goose_globalGS) (confAddrs.getD (uint.nat c) []) confProto confProto }}
       (App (Val (@! github_com.despreston.go_craq.examples.craqnet.newSys)) (Val #c))
     {{ (s : Loc), RET #s; ∃ conf, sysOk s conf ∗ rpcReady }} := by
-  wp_start as ⟨#Hctx, Hcf, #Ha⟩
+  wp_start as ⟨#Hctx, Hcf, #Hre, #Ha⟩
   wp_auto
   wp_apply wp_make_conf_chan as %ch ⟨%γch, #Hbag⟩
   wp_apply wp_ConfAddrs as %cfgs Hcfgs
@@ -525,7 +526,7 @@ theorem wp_newSys [LogHyp GF]
   · unfold rpcReady
     isplitr
     · iPkgInit
-    · iexact Hcs
+    iframe Hcs Hre
   wp_apply wp_fork $$ [Hrl]
   · wp_apply wp_Sys_remove wp_NewCC cfg hcfg «$r0_ptr» m.conf' m.rs' rl $$ [Hrl]
     · iframe #
@@ -546,7 +547,7 @@ theorem Client.wp_proof [LogHyp GF]
       (GF := GF) (hG := hG) (I := KIn) (O := KOut)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro cfg c hcfg hc
-  wp_start as ⟨#Hctx, Hcf, #Hca, #Hra, #Hmap⟩
+  wp_start as ⟨#Hctx, Hcf, #Hre, #Hca, #Hra, #Hmap⟩
   ihave #Hrp : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
   · iPkgInit

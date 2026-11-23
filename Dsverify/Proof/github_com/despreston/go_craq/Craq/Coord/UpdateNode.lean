@@ -53,7 +53,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
 
 theorem nodeFacts_at (cfg : Cfg GF) (rs : List Rep) (j : Nat) (r : Rep) (h : rs[j]? = some r) :
     ([∗list] r ∈ rs, nodeFacts cfg r.loc r.addr) ⊢ nodeFacts cfg r.loc r.addr :=
@@ -80,7 +79,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [log.Assumptions] [LogHyp GF] [examples.craqnet.Assumptions] [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
 
 theorem wp_updateNode (cfg : Cfg GF) (c : Loc) (sl : GoSlice) (rs : List Rep) (dq : DFrac)
     (i : w64) (ri : Rep) (b : Bool) (r : Role)

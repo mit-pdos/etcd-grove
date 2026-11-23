@@ -1,32 +1,37 @@
 /-
-**Hypothesis H4 (net/rpc over HTTP, client side)**, stated so that it is true of the models and
-named after the shapes Net's piece will have (upamanyus, #24, 2026-11-23: branch
-`models-rpc-http`, stacked on `models-rpc-server`; notes/dsv-craq.md, H4). It awaits that piece.
+**net/rpc over HTTP** (notes/dsv-craq.md, H2-H4), over `Net/`'s `models-rpc-http` shapes verbatim:
+the world `net.rpc.RpcWorld` (its fields `hs`/`hsAns`: the handshake a dialer of an address writes
+and the acceptor's answer), `net.rpc.rpcAddrP W a hs hsAns` (address `a` serves `W` behind that
+handshake: `Net/Proof/net/rpc/Proto.lean`), `net.rpc.connectReq`, `net.rpc.connectAns`,
+`net.rpc.defaultRPCPath`, `net.rpc.connectedStatus`, Net's `net.rpc.isClient` (whose invariant is
+over `W.hs a ++ reqsWire _`) and Net's `net.rpc.DialHTTP.spec`.
 
-go-craq's clients dial with `rpc.DialHTTP`: `DialHTTPPath` (models/net/rpc/client.go) writes the
-CONNECT request `connectReq path` (`CONNECT <path> HTTP/1.0\n\n`), reads the server's answer
-(`connectedAns`, `HTTP/1.0 200 Connected to Go RPC\n\n`) through `http.ReadResponse`, then runs
-`NewClient(conn)` on the same connection. Net's piece will have **`rpcAddrP W a hs hsAns`**: an
-address whose connections carry `hs ++ reqsWire` from client to server and `hsAns ++ ansWire`
-back (raw net/rpc is `rpcAddr W a = rpcAddrP W a [] []`), with Net's `isClient` stated over the
-connection's frame part, unchanged in name and use. Until it lands:
+**The client side is proved** (models-rpc-http's `net.rpc.DialHTTP.wp`, over `DialHTTPPath.wp` and
+net/http's `ReadResponse.wp`): go-craq's clients dial with `rpc.DialHTTP("tcp", a)`, through
+`Craq/Hyps.lean`'s `RpcClientSpecs.dialHTTP`, whose instance `examples/craqnet/Link.lean` makes
+from Net's proof. Its precondition, besides `httpRpcAddr W a`, is a machine's environment
+(`rpcEnv`, `Craq/Codec.lean`: `receiptBound ≤ 2 ^ 64`, net/rpc's `srvEnv` (so `cliEnv`), net/http's
+`httpEnv`, `connected ↦□ connectedStatus`), which each machine's boot supplies (`rpcBootRes`).
 
-* `RpcHttpAddr GF`: the predicate `rpcAddrP` (persistent), abstract.
-* `RpcHttpDial GF`: `rpc.DialHTTPPath.spec` over `rpcAddrP W a (connectReq path) connectedAns`
-  (Net's `isClient`, or the dial's error), and `rpc.DialHTTP.spec`, its instance at
-  `DefaultRPCPath` (`/_goRPC_`).
-
-They are classes in `Type` (the predicate is data), taken as instance variables; no instance of
-them exists. With `rpcAddrP` abstract they say something only together with the server side and
-the addresses' allocation (notes/dsv-craq.md, H2-H4), which the kit's statement will take as
-premises with them.
+**The server side** (`RpcHttpServe`, a premise of `craq_remote_robust`, never an instance) is what
+Net does not prove yet: net/http's server (`http.ListenAndServe` up to the hijack, `DefaultServeMux`),
+`rpc.HandleHTTP` and the package-level `rpc.RegisterName` on `DefaultServer`, in the shapes of the
+other kits' (dsv-epaxos's `RpcHttpHyp`, dsv-gryff's): `muxOwner R` (exclusive: the right to register
+paths at `DefaultServeMux`, `R` those registered; `http.Handle` panics on a path registered twice),
+`muxHas W A path` (persistent: the mux routes `path` to a handler serving `W` at the addresses `A`),
+`defaultServer γ` (persistent: `rpc.DefaultServer` is a server with registry `γ`). A machine's
+`muxOwner []` and `∃ γ, defaultServer γ` come from its initialization (`rpcBootRes`). Net's net/rpc
+server (`Server.ServeHTTP.spec`, `ServeCodec`) needs the machine's thread bound
+`threadBound ≤ 2 ^ 31` (its `sync.WaitGroup`'s counter is an `int32`), so `HandleHTTP` and
+`ListenAndServe` ask for it too.
 -/
 module
 
 public import Net.Proof.net.rpc.ClientDefs
+public import Net.Proof.net.rpc.ServerDefs
+public import Net.Proof.net.http.Defs
 public import Net.Proof.models_lab.Errors
 public import Dsverify.Proof.net.rpc.Init
-public import Net.Proof.net.rpc.ServerDefs
 public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
@@ -39,108 +44,30 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 
 namespace github_com.despreston.go_craq
 
-/-- `CONNECT <path> HTTP/1.0\n\n`: the client's handshake. -/
-def connectReq (path : GoString) : List w8 := go!"CONNECT " ++ path ++ go!" HTTP/1.0\n\n"
-
-/-- `HTTP/1.0 200 Connected to Go RPC\n\n`: the server's answer to it. -/
-def connectedAns : List w8 := go!"HTTP/1.0 200 Connected to Go RPC\n\n"
-
-/-- net/rpc's `DefaultRPCPath`. -/
-def defaultRPCPath : GoString := go!"/_goRPC_"
-
-/-- **H4, the addresses** (see the file header). -/
-class RpcHttpAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-    (GF : BundledGFunctors) [GooseGlobalGS HasLC.hasLC GF] where
-  /-- Address `a` serves world `W`'s net/rpc after the handshake `hs`, answered by `hsAns`. -/
-  rpcAddrP : net.rpc.RpcWorld GF → GoString → List w8 → List w8 → IProp GF
-  rpcAddrP_pers : ∀ W a hs hsAns, Persistent (rpcAddrP W a hs hsAns)
-
-instance rpcAddrP_persistent [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-    {GF : BundledGFunctors} [GooseGlobalGS HasLC.hasLC GF] [ra : RpcHttpAddr GF]
-    (W : net.rpc.RpcWorld GF) (a : GoString) (hs hsAns : List w8) :
-    Persistent (RpcHttpAddr.rpcAddrP W a hs hsAns) :=
-  ra.rpcAddrP_pers W a hs hsAns
-
-/-- An address serving net/rpc over HTTP at `DefaultRPCPath`, as go-craq's servers do. -/
-abbrev httpRpcAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-    {GF : BundledGFunctors} [GooseGlobalGS HasLC.hasLC GF] [RpcHttpAddr GF]
+/-- An address serving net/rpc over HTTP at `DefaultRPCPath`, as go-craq's servers do: Net's
+`rpcAddrP` behind the CONNECT handshake (`connectReq defaultRPCPath`, answered `connectAns`). -/
+abbrev httpRpcAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+    {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [NetProtoGS]
     (W : net.rpc.RpcWorld GF) (a : GoString) : IProp GF :=
-  RpcHttpAddr.rpcAddrP W a (connectReq defaultRPCPath) connectedAns
+  net.rpc.rpcAddrP (Gg := Gg) W a (net.rpc.connectReq net.rpc.defaultRPCPath) net.rpc.connectAns
 
-section specs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [ra : RpcHttpAddr (GF := GF)]
-
-/-- `DialHTTPPath(network, a, path)`: Net's `rpc.DialHTTPPath.spec` (expected). -/
-abbrev rpc.DialHTTPPath.spec : Prop :=
-  ∀ (W : net.rpc.RpcWorld GF) (network a path : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗
-      RpcHttpAddr.rpcAddrP (GF := GF) W a (connectReq path) connectedAns }}
-    (App (App (App (Val (@! net.rpc.DialHTTPPath)) (Val #network)) (Val #a)) (Val #path))
-  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
-      (⌜err = interface.nil⌝ ∗ net.rpc.isClient c W a) ∨
-      (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }}
-
-/-- `DialHTTP("tcp", a)`: Net's `rpc.DialHTTP.spec` (expected), `DialHTTPPath`'s instance at
-`DefaultRPCPath`. -/
-abbrev rpc.DialHTTP.spec : Prop :=
-  ∀ (W : net.rpc.RpcWorld GF) (a : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ httpRpcAddr (GF := GF) W a }}
-    (App (App (Val (@! net.rpc.DialHTTP)) (Val #go!"tcp")) (Val #a))
-  {{ (c : Loc) (err : GoInterface), RET (PairV #c #err);
-      (⌜err = interface.nil⌝ ∗ net.rpc.isClient c W a) ∨
-      (⌜err ≠ interface.nil⌝ ∗ models_lab.errAny err) }}
-
-/-- net/rpc's `DefaultServer` (persistent): the `*Server` `s` that the package's initialization made
-(`DefaultServer = NewServer()`, Net's `NewServer.spec`: `isServer s γ`), with its registry `γ`. A
-machine's boot gives it (`rpcBootRes`), not net/rpc's package fact (`True` here). -/
-def defaultServer (γ : GName) : IProp GF :=
-  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ net.rpc.isServer s γ)
-
-instance defaultServer_persistent (γ : GName) : Persistent (defaultServer (GF := GF) γ) := by
-  unfold defaultServer; infer_instance
-
-end specs
-
-/-- **H4, the dial** (see the file header). -/
-class RpcHttpDial [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
-    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.rpc.Assumptions]
-    [net.FieldAssumptions] [NetProtoGS] [ra : RpcHttpAddr GF] where
-  DialHTTPPath : rpc.DialHTTPPath.spec (GF := GF)
-  DialHTTP : rpc.DialHTTP.spec (GF := GF)
-
-/-! ## The server side (H2, H3)
-
-Net's expected `rpc.Server.ServeHTTP.spec` (as a handler of net/http's: on `CONNECT` it hijacks,
-writes `connectedAns` and runs `ServeConn` on the frame part), `rpc.HandleHTTP.spec` (the
-`DefaultServer` at `DefaultRPCPath` on `DefaultServeMux`; the debug path is never requested) and
-`http.ListenAndServe.spec` (the net/http server up to the hijack, over `rpcAddrP`, the handlers
-given as `handlerOk` per path); and the package-level `rpc.RegisterName` (the `DefaultServer`'s
-`Server.RegisterName`, proved on models-rpc-server, with net/rpc's package variable). The mux's
-vocabulary (`muxOwner R`: the right to register paths at `DefaultServeMux`, `R` those registered,
-exclusive; `muxRoute p h`: it routes `p` to `h`, persistent) and `handlerOk h p W a` are abstract
-here, as the lab's `Harness/Proof/net/{http,rpc}`. **Open**: where a machine's `muxOwner []`
-comes from (net/http's initialization, H1: Net's piece decides); without it, and without the
-allocation of `rpcAddrP`, these say nothing. -/
-
-/-- The `*Server` `s` as an `http.Handler`. -/
-abbrev serverHandler [GooseExts] [GoGlobalContext] (s : Loc) : GoInterface :=
-  interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s
-
-/-- **H2, H3** (the section header). -/
+/-- **H2, H3** (the file header): net/rpc's server over HTTP on `DefaultServer` and
+`DefaultServeMux`. -/
 class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.rpc.Assumptions]
-    [net.FieldAssumptions] [NetProtoGS] [ra : RpcHttpAddr GF] where
+    [net.FieldAssumptions] [NetProtoGS] where
+  /-- The right to register paths at `DefaultServeMux`, `R` those registered (exclusive). A
+  machine's `muxOwner []` comes from net/http's initialization (`rpcBootRes`). -/
   muxOwner : List GoString → IProp GF
-  muxRoute : GoString → GoInterface → IProp GF
-  muxRoute_pers : ∀ p h, Persistent (muxRoute p h)
-  handlerOk : GoInterface → GoString → net.rpc.RpcWorld GF → GoString → IProp GF
-  handlerOk_pers : ∀ h p W a, Persistent (handlerOk h p W a)
-  /-- `rpc.RegisterName(name, rcvr)`: `Server.RegisterName.spec` on the `DefaultServer` (its
-  registry `γ`, from the machine's boot: `defaultServer`). -/
+  /-- `DefaultServeMux` routes `path` to a handler serving `W` at every address of `A`. -/
+  muxHas : net.rpc.RpcWorld GF → (GoString → Prop) → GoString → IProp GF
+  muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
+  /-- `rpc.DefaultServer` is a server with registry `γ`; a machine's comes from net/rpc's
+  initialization, `DefaultServer = NewServer()` (`rpcBootRes`). -/
+  defaultServer : GName → IProp GF
+  defaultServer_persistent : ∀ γ, Persistent (defaultServer γ)
+  /-- `rpc.RegisterName(name, rcvr)`: `DefaultServer.RegisterName(name, rcvr)` (Net's
+  `Server.RegisterName.spec`; a second registration of a name is an error). -/
   RegisterName : ∀ (C : net.rpc.CodecSpec GF) (name : GoString) (rcvr : GoInterface)
       (S : net.rpc.MethodSpec GF) (nm : GoString) (np : Bool) (γ : GName),
     name ≠ [] →
@@ -148,30 +75,31 @@ class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [G
         C.rcv rcvr (net.rpc.rcvrIs C rcvr S nm np) }}
       (App (App (Val (@! net.rpc.RegisterName)) (Val #name)) (Val #rcvr))
     {{ (err : GoInterface), RET #err;
-        (⌜err = interface.nil⌝ ∗ ∃ s : Loc,
-          globalAddr net.rpc.DefaultServer ↦□ s ∗ net.rpc.isServer s γ ∗
-          net.rpc.svcReg γ C name S) ∨ ⌜err ≠ interface.nil⌝ }}
-  /-- `rpc.HandleHTTP()`: Net's `rpc.HandleHTTP.spec` (expected). -/
-  HandleHTTP : ∀ (R : List GoString),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ muxOwner R ∗
-        ⌜defaultRPCPath ∉ R ∧ go!"/debug/rpc" ∉ R⌝ }}
+        (⌜err = interface.nil⌝ ∗ net.rpc.svcReg γ C name S) ∨ ⌜err ≠ interface.nil⌝ }}
+  /-- `rpc.HandleHTTP()`: `DefaultServer.HandleHTTP(DefaultRPCPath, DefaultDebugPath)`, i.e.
+  `http.Handle` of both paths on `DefaultServeMux` (hence `muxOwner`); the debug path is never
+  requested (`rpcAddrP`'s handshake names the rpc path). Its server (registry `γs`) serves `W` at
+  every address of `A`; on a connection it hijacks, writes `connectAns` (`connected`) and runs
+  `ServeConn` (Net's `Server.ServeHTTP.spec`, which needs `threadBound ≤ 2 ^ 31`). -/
+  HandleHTTP : ∀ (γs : GName) (C : net.rpc.CodecSpec GF) (W : net.rpc.RpcWorld GF)
+      (A : GoString → Prop) (R : List GoString),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+        muxOwner R ∗ ⌜net.rpc.defaultRPCPath ∉ R ∧ go!"/debug/rpc" ∉ R⌝ ∗
+        defaultServer γs ∗ (□ ∀ a, ⌜A a⌝ → net.rpc.srvServes γs C W a) ∗ net.rpc.srvEnv ∗
+        net.rpc.codecSet C ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus }}
       (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
-    {{ RET #(); muxOwner (go!"/debug/rpc" :: defaultRPCPath :: R) ∗
-        ∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗
-          muxRoute defaultRPCPath (serverHandler s) }}
-  /-- The `*Server` handles `DefaultRPCPath` of `a` (Net's `rpc.Server.ServeHTTP.spec`, as a
-  handler), given its registrations serve `a`. -/
-  ServeHTTP : ∀ (s : Loc) (γ : GName) (C : net.rpc.CodecSpec GF) (W : net.rpc.RpcWorld GF)
-      (a : GoString),
-    net.rpc.isServer s γ ∗ net.rpc.srvServes γ C W a ∗ net.rpc.srvEnv ∗ net.rpc.codecSet C ⊢
-      handlerOk (serverHandler s) defaultRPCPath W a
-  /-- `http.ListenAndServe(a, nil)`: Net's `http.ListenAndServe.spec` (expected): it serves `a`'s
-  connections, routing `p` to `h`, and returns only with `Listen`'s error. -/
-  ListenAndServe : ∀ (W : net.rpc.RpcWorld GF) (a p : GoString) (h : GoInterface),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ ⌜addrOk a = true⌝ ∗
-        httpRpcAddr W a ∗ muxRoute p h ∗ handlerOk h p W a }}
+    {{ RET #(); muxOwner (go!"/debug/rpc" :: net.rpc.defaultRPCPath :: R) ∗
+        muxHas W A net.rpc.defaultRPCPath }}
+  /-- `http.ListenAndServe(a, nil)`: listens at the valid address `a` and serves its connections
+  with `DefaultServeMux`, up to each connection's hijack (it answers no non-`CONNECT` request,
+  which a dialer of `rpcAddrP` never sends). -/
+  ListenAndServe : ∀ (W : net.rpc.RpcWorld GF) (A : GoString → Prop) (a : GoString),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
+        ⌜addrOk a = true ∧ A a⌝ ∗ httpRpcAddr W a ∗ muxHas W A net.rpc.defaultRPCPath }}
       (App (App (Val (@! net.http.ListenAndServe)) (Val #a)) (Val #interface.nil))
-    {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ }}
+    {{ (err : GoInterface), RET #err; True }}
+
+attribute [instance] RpcHttpServe.muxHas_persistent RpcHttpServe.defaultServer_persistent
 
 end github_com.despreston.go_craq
 

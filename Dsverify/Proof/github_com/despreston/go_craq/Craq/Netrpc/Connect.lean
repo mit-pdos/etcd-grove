@@ -1,5 +1,6 @@
 /-
-transport/netrpc: `(*Client).Connect` (`rpc.DialHTTP`) as promoted to `*NodeClient` and
+transport/netrpc: `(*Client).Connect` (`rpc.DialHTTP("tcp", a)`, Net's `net.rpc.DialHTTP.spec`
+through `RpcClientSpecs.dialHTTP`, over the machine's `rpcEnv`) as promoted to `*NodeClient` and
 `*CoordinatorClient`.
 -/
 module
@@ -27,9 +28,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
-variable [rd : RpcHttpDial GF]
-
+variable [rcs : RpcClientSpecs GF]
 
 /-- `cl.Connect(a)` on an unconnected `*Client`: connected to `a`, or an error. -/
 theorem wp_Client_Connect (cfg : Cfg GF) (cl : Loc) (a : GoString) (ha : a ∈ cfg.cAddr :: cfg.chain) :
@@ -42,13 +41,16 @@ theorem wp_Client_Connect (cfg : Cfg GF) (cl : Loc) (a : GoString) (ha : a ∈ c
   iintro ⟨#Henv, Hcl⟩ %Φ HΦ
   iStructNamed Hcl
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, #Hre⟩, #Hcraq, %Hss, #Haddrs⟩
   ihave #Ha := BigSepL.bigSepL_mem ha $$ Haddrs
+  unfold rpcEnv net.rpc.srvEnv
+  icases Hre with ⟨%Hrb, ⟨#Hcli, -⟩, #Hhttp, #Hcon⟩
   wp_method_call
   wp_call
   wp_auto
-  wp_apply RpcHttpDial.DialHTTP cfg.W a $$ [Hrpkg Ha] as %r %err Hpost
-  · iexact Ha
+  wp_apply rcs.dialHTTP go!"tcp" net.tcpNet_tcp cfg.W a $$ [] as %r %err Hpost
+  · iframe #
+    all_goals (ipureintro; exact Hrb)
   icases Hpost with (⟨%He, #Hr⟩ | ⟨%He, #Hany⟩)
   · subst He
     iapply wp_fupd

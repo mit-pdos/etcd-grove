@@ -8,7 +8,8 @@ implementing package proves its values meet it; the calling package uses only th
 
 * `Cfg`: the run's configuration seen by the code: ghost names `γ`, the rpc world `W`, the
   coordinator's address `cAddr`, the chain's addresses `chain`; `craqCtx` (persistent): the
-  protocol's invariant, `W`'s services are the run's (`craqSS`), every address serves net/rpc over HTTP (`httpRpcAddr`, H4).
+  protocol's invariant, `W`'s services are the run's (`craqSS`), every address serves net/rpc over HTTP (`httpRpcAddr`: Net's `rpcAddrP`
+  behind HTTP's handshake, models-rpc-http).
 * The store (`isStore`, `storeOwn`): logically atomic specs over the abstract contents, a map
   from keys to their items `(version, value, committed)` in arrival order (`StoreS`).
 * The clients (`isNodeClient`, `isCoordClient`, `freshNodeClient`, `freshCoordClient`): their
@@ -39,9 +40,8 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 namespace github_com.despreston.go_craq
 
 section global
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

@@ -3,8 +3,9 @@ The craq kit's links (the lab's `Craq/Proof/Link.lean`, onto remote and Net): ev
 to its callees' results. The protocol's laws (`Protocol/`), the codec's laws (`CodecProof.lean`),
 the store, node and coordinator specs, transport/netrpc's clients, the configuration messages over
 Net's `net` specs, Net's `SetCodec`, remote's `Check`/`ServeClient`; then the kit's `Client`,
-`Orch`, `Server`. What is not proved stays an argument: the hypothesis classes (instance
-arguments: `LogHyp`, `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`), which the statement takes
+`Orch`, `Server`; net/rpc's client over HTTP (`DialHTTP`) is Net's (models-rpc-http's
+`net.rpc.DialHTTP.wp`, in `RpcClientSpecs`). What is not proved stays an argument: the hypothesis
+classes (instance arguments: `LogHyp`, `RpcHttpServe`, the server side), which the statement takes
 (F1, RemoveNode's obligation: `cnewArg_RemoveNode`; F3, the nodes' `errOk`: `nodeSpec_errOk`).
 -/
 module
@@ -54,10 +55,13 @@ variable [package_sem' : Perennial.github_com.despreston.go_craq.examples.craqne
 variable [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions]
 variable [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF] [rd : RpcHttpDial GF] [bvi : go.BasicIntoValInj] [NaInvG GF]
+variable [bvi : go.BasicIntoValInj] [NaInvG GF]
 
-/-- Net's net/rpc client specs, for the kit's rpc clients (`Craq/Hyps.lean`'s `RpcClientSpecs`). -/
-instance rpcClientSpecs : RpcClientSpecs GF := ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp⟩
+/-- Net's net/rpc client specs, for the kit's rpc clients (`Craq/Hyps.lean`'s `RpcClientSpecs`):
+`Client.Call`, `Client.Close`, and models-rpc-http's `DialHTTP` (over `DialHTTPPath` and net/http's
+`ReadResponse`). -/
+instance rpcClientSpecs : RpcClientSpecs GF :=
+  ⟨net.rpc.Client.Call.wp, net.rpc.Client.Close.wp, net.rpc.DialHTTP.wp⟩
 
 /-- The protocol's laws the node's proofs use. -/
 theorem nodeLaws : NodeP.Laws (GF := GF) :=

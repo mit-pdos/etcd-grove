@@ -30,8 +30,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
-variable [rd : RpcHttpDial GF]
 variable [rcs : RpcClientSpecs GF]
 
 
@@ -65,9 +63,7 @@ theorem wp_NewNodeClient (HencE : enc_EmptyArgs.spec (GF := GF)) (HencW : enc_Wr
     (HdecI : dec_Item.spec (GF := GF)) (HdecP : dec_PropagateResponse.spec (GF := GF)) :
     netrpc.wp_NewNodeClient.spec (GF := GF) := by
   intro cfg
-  wp_start as ⟨Hready, #Hctx⟩
-  unfold rpcReady
-  icases Hready with ⟨#Hrpkg, #Hcs⟩
+  wp_start as ⟨#Hready, #Hctx⟩
   iapply wp_fupd
   wp_auto
   wp_alloc c as Hc
@@ -82,13 +78,11 @@ theorem wp_NewNodeClient (HencE : enc_EmptyArgs.spec (GF := GF)) (HencW : enc_Wr
   iintro %a %Φ' %ha HΦ'
   rw [show (zero_val transport.netrpc.Client) = transport.netrpc.Client.mk null from rfl]
   ihave #Henv : env cfg $$ []
-  · unfold env rpcReady
+  · unfold env
     isplitr
     · iexact Hpkg
     isplitr
-    · isplitr
-      · iexact Hrpkg
-      · iexact Hcs
+    · iexact Hready
     · iexact Hctx
   ihave Hw := wp_NodeClient_Connect cfg c «$v0_ptr» a (List.mem_cons_of_mem _ ha) $$ [«$v0»]
   · isplitr
@@ -120,19 +114,14 @@ theorem factory (HencE : enc_EmptyArgs.spec (GF := GF)) (HencW : enc_WriteArgs.s
     (HdecI : dec_Item.spec (GF := GF)) (HdecP : dec_PropagateResponse.spec (GF := GF)) :
     netrpc.factory.spec (GF := GF) := by
   intro cfg
-  iintro ⟨#Hpkg, Hready, #Hctx⟩
-  unfold rpcReady
-  icases Hready with ⟨#Hrpkg, #Hcs⟩
+  iintro ⟨#Hpkg, #Hready, #Hctx⟩
   unfold isFactory
   imodintro
   iintro %Φ HΦ
   wp_apply (wp_NewNodeClient HencE HencW HencC HencS HencM HencP HdecE HdecV HdecI HdecP cfg)
     as %c Hc
-  · unfold rpcReady
-    isplitr
-    · isplitr
-      · iexact Hrpkg
-      · iexact Hcs
+  · isplitr
+    · iexact Hready
     · iexact Hctx
   iapply HΦ $$ Hc
 
@@ -165,9 +154,7 @@ theorem wp_NewCoordinatorClient (HencS : enc_string.spec (GF := GF))
     (HdecE : dec_EmptyReply.spec (GF := GF)) :
     netrpc.wp_NewCoordinatorClient.spec (GF := GF) := by
   intro cfg
-  wp_start as ⟨Hready, #Hctx⟩
-  unfold rpcReady
-  icases Hready with ⟨#Hrpkg, #Hcs⟩
+  wp_start as ⟨#Hready, #Hctx⟩
   iapply wp_fupd
   wp_auto
   wp_alloc c as Hc
@@ -182,13 +169,11 @@ theorem wp_NewCoordinatorClient (HencS : enc_string.spec (GF := GF))
   iintro %Φ' HΦ'
   rw [show (zero_val transport.netrpc.Client) = transport.netrpc.Client.mk null from rfl]
   ihave #Henv : env cfg $$ []
-  · unfold env rpcReady
+  · unfold env
     isplitr
     · iexact Hpkg
     isplitr
-    · isplitr
-      · iexact Hrpkg
-      · iexact Hcs
+    · iexact Hready
     · iexact Hctx
   ihave Hw := wp_CoordClient_Connect cfg c «$v0_ptr» cfg.cAddr List.mem_cons_self $$ [«$v0»]
   · isplitr

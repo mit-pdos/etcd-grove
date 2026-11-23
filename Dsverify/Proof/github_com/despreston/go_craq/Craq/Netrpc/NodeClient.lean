@@ -31,7 +31,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
 variable [rcs : RpcClientSpecs GF]
 
 
@@ -46,7 +45,7 @@ theorem wp_Ping (Henc : enc_EmptyArgs.spec (GF := GF)) (Hdec : dec_EmptyReply.sp
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_method_call
   wp_call
   wp_auto
@@ -107,7 +106,7 @@ theorem wp_Write (Henc : enc_WriteArgs.spec (GF := GF)) (Hdec : dec_EmptyReply.s
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_method_call
   wp_call
   wp_auto
@@ -181,7 +180,7 @@ theorem wp_Commit (Henc : enc_CommitArgs.spec (GF := GF)) (Hdec : dec_EmptyReply
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_method_call
   wp_call
   wp_auto
@@ -249,7 +248,7 @@ theorem wp_LatestVersion_fixed (Henc : enc_string.spec (GF := GF))
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_method_call
   wp_call
   wp_auto
@@ -345,7 +344,7 @@ theorem wp_Update_fixed (Henc : enc_NodeMeta.spec (GF := GF)) (Hdec : dec_EmptyR
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_method_call
   wp_call
   wp_auto
@@ -425,7 +424,7 @@ theorem wp_Read (Henc : enc_string.spec (GF := GF)) (Hdec : dec_Item.spec (GF :=
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_method_call
   wp_call
   wp_auto
@@ -558,7 +557,7 @@ theorem wp_FwdPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hde
   wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) _ _) as %mp Hmp
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_apply (wp_Call_tag (HT := fun rep => by
       iintro H; ispecialize H $$ %rfl; icases H with ⟨%resp, %Hresp, -⟩
       ipureintro; exact tagOk_PropResp resp rep Hresp)
@@ -647,7 +646,7 @@ theorem wp_BackPropagate_fixed (Henc : enc_PropagateRequest.spec (GF := GF)) (Hd
   wp_auto
   wp_apply (wp_map_make1 (K := GoString) (V := GoSlice) _ _) as %mp Hmp
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_apply (wp_Call_tag (HT := fun rep => by
       iintro H; ispecialize H $$ %rfl; icases H with ⟨%resp, %Hresp, -⟩
       ipureintro; exact tagOk_PropResp resp rep Hresp)
@@ -729,7 +728,7 @@ theorem wp_Close (cfg : Cfg GF) (c cl : Loc) (a : GoString) :
   icases Hcl with ⟨%r, #Hcl, #Hr⟩
   iStructNamed Hc
   unfold env rpcReady craqCtx
-  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs⟩, #Hcraq, %Hss, #Haddrs⟩
+  icases Henv with ⟨#Hpkg, ⟨#Hrpkg, #Hcs, -⟩, #Hcraq, %Hss, #Haddrs⟩
   wp_method_call
   wp_call
   wp_auto

@@ -40,7 +40,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF]
 variable [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [examples.craqnet.Assumptions]
 
@@ -82,9 +81,22 @@ theorem craqCodec_decOk : ⊢ net.rpc.decOk (hG := hG) craqCodec (functions exam
   iapply Hdec $$ Hd
   iexact HΦ
 
-/-- net/rpc is initialized and the kit's codec registered (persistent). -/
+/-- A machine's net/rpc and net/http environment (persistent): what Net's `rpc.DialHTTP.spec`
+asks besides the address (`receiptBound ≤ 2 ^ 64`, net/rpc's `cliEnv`, here inside its server's
+`srvEnv`, net/http's `httpEnv`, net/rpc's `connected`), the net/rpc server's `srvEnv` and the
+`connected` its `ServeHTTP` writes. net/rpc and net/http are names-only packages (their facts are
+`True`), so a machine's boot supplies the package variables (`rpcBootRes`); the bound is the
+deployment's. -/
+def rpcEnv : IProp GF :=
+  iprop(⌜receiptBound GF ≤ 2 ^ 64⌝ ∗ net.rpc.srvEnv ∗ net.http.httpEnv ∗
+    globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus)
+
+instance rpcEnv_persistent : Persistent (rpcEnv (hG := hG)) := by
+  unfold rpcEnv; infer_instance
+
+/-- net/rpc is initialized, the kit's codec registered, and the machine's environment (persistent). -/
 def rpcReady : IProp GF :=
-  iprop(isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ net.rpc.codecSet craqCodec)
+  iprop(isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ net.rpc.codecSet craqCodec ∗ rpcEnv)
 
 instance rpcReady_persistent : Persistent (rpcReady (hG := hG)) := by
   unfold rpcReady; infer_instance

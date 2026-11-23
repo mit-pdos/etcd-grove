@@ -6,8 +6,10 @@ and net/rpc over HTTP's server side (`RpcHttpServe`, H2/H3).
 
 Open points carried as preconditions (notes/dsv-craq.md, P5): a machine's codec registry at its
 initial state (`codecFresh`: `codecUnset` and `codecMu`'s mutex, from net/rpc's initialization,
-which Net has not proved), its mux at its initial state (`muxOwner []`, H4 open point 2), and
-net/rpc's server variables (`srvEnv`).
+which Net has not proved), its mux at its initial state (`muxOwner []`), its `DefaultServer`
+(`RpcHttpServe.defaultServer`), and its net/rpc and net/http variables (`rpcEnv`), all from the
+machine's boot (`rpcBootRes`); and the machine's thread bound `threadBound ≤ 2 ^ 31`
+(`RpcHttpServe`'s `HandleHTTP`, `ListenAndServe`: net/rpc's server).
 -/
 module
 
@@ -41,7 +43,7 @@ variable [package_sem' : github_com.despreston.go_craq.examples.craqnet.Assumpti
 variable [store.Assumptions] [store.kv.Assumptions] [transport.Assumptions]
 variable [transport.netrpc.Assumptions] [node.Assumptions] [coordinator.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [ra : RpcHttpAddr GF] [bvi : go.BasicIntoValInj]
+variable [bvi : go.BasicIntoValInj]
 
 local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet
 
@@ -180,13 +182,6 @@ theorem srvServes_coord (cfg : Cfg GF) (γs : GName)
     iapply coordSpec_errOk
   · simp [hsvc] at Hs
 
-instance muxRoute_persistent [rs : RpcHttpServe GF] (p : GoString) (h : GoInterface) :
-    Persistent (RpcHttpServe.muxRoute (GF := GF) p h) := rs.muxRoute_pers p h
-
-instance handlerOk_persistent [rs : RpcHttpServe GF] (h : GoInterface) (p : GoString)
-    (W : net.rpc.RpcWorld GF) (a : GoString) :
-    Persistent (RpcHttpServe.handlerOk (GF := GF) h p W a) := rs.handlerOk_pers h p W a
-
 /-- **The coordinator's machine**, `Server(1)`. -/
 theorem wp_Server1 [rs : RpcHttpServe GF]
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
@@ -194,13 +189,13 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
     (wp_cStart : coordinator.wp_Start.spec (GF := GF) (hG := hG))
     (h_csvc : coordinator.coord_svc.spec (GF := GF) (hG := hG))
     (h_fact : netrpc.factory.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF)
+    (cfg : Cfg GF) (htb : threadBound GF ≤ 2 ^ 31)
     (hc : cfg.cAddr = go!"127.0.0.1:7501") (hlen : cfg.chain.length < 2 ^ 31 - 1) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ coordRes cfg }}
+        rpcEnv ∗ (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ coordRes cfg }}
       (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Server)) (Val #(W64 1)))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, ⟨%γs, #Hdsv⟩, #Hctx, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Hre, ⟨%γs, #Hdsv⟩, #Hctx, Hres⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
   · iPkgInit
   ihave #Hhttp : isPkgInit (PROP := IProp GF) pkg_id.net.http $$ []
@@ -222,7 +217,7 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
   · iframe; ipureintro; rfl
   (try wp_auto)
   ihave #Hready : rpcReady $$ []
-  · unfold rpcReady; iframe Hrpc Hcs
+  · unfold rpcReady; iframe Hrpc Hcs Hre
   ihave #Hfact := h_fact cfg $$ [Hnr Hready Hctx]
   · iframe Hnr Hready Hctx
   wp_apply wp_cNew cfg _ $$ [Hres] as %c #Hc
@@ -240,31 +235,54 @@ theorem wp_Server1 [rs : RpcHttpServe GF]
   wp_apply rs.RegisterName craqCodec go!"RPC" _ (coordSpec cfg.γ cfg.chain) go!"CoordinatorBinding" false
     γs (by decide) $$ [] as %err Herr
   · iframe Hcs Hrcv Hdsv
-  icases Herr with (⟨%Herr, %srv, #Hds, #Hsrv, #Hreg⟩ | %Herr)
+  icases Herr with (⟨%Herr, #Hreg⟩ | %Herr)
   · subst Herr
     wp_auto
-    wp_apply rs.HandleHTTP [] $$ [Hmux] as ⟨Hmux, %srv', #Hds', #Hroute⟩
-    · iframe Hmux
-      ipureintro; simp
-    ihave %Hss := typedPointsto_agree_wand _ _ _ _ _ $$ Hds Hds'
-    subst Hss
+    unfold craqCtx
+    icases Hctx with ⟨-, %Hss, Haddrs⟩
+    icases BigSepL.bigSepL_cons.1 $$ Haddrs with ⟨#Ha, -⟩
+    ihave #Hserves := srvServes_coord cfg γs Hss.1 $$ Hreg
+    unfold rpcEnv
+    icases Hre with ⟨%Hrb, #Hse, #Hhe, #Hcon⟩
+    rw [hc]
+    wp_apply rs.HandleHTTP γs craqCodec cfg.W (fun x => x = go!"127.0.0.1:7501") [] $$ [Hmux]
+      as ⟨Hmux, #Hmh⟩
+    · isplitr
+      · iexact Hrpc
+      isplitr
+      · ipureintro; exact htb
+      isplitl [Hmux]
+      · iexact Hmux
+      isplitr
+      · ipureintro; simp
+      isplitr
+      · iexact Hdsv
+      isplitr
+      · iintro !> %x %hx
+        subst hx
+        iexact Hserves
+      isplitr
+      · iexact Hse
+      isplitr
+      · iexact Hcs
+      · iexact Hcon
     (try wp_auto)
     wp_apply wp_fork $$ []
     · wp_apply wp_cStart cfg c $$ []
       · iframe Hc
       ipureintro; first | rfl | simp | decide
     (try wp_auto)
-    unfold craqCtx
-    icases Hctx with ⟨-, %Hss, Haddrs⟩
-    icases BigSepL.bigSepL_cons.1 $$ Haddrs with ⟨#Ha, -⟩
-    ihave #Hserves := srvServes_coord cfg γs Hss.1 $$ Hreg
-    rw [hc]
-    ihave #Hh := rs.ServeHTTP srv γs craqCodec cfg.W go!"127.0.0.1:7501" $$ [Hsrv Hserves Henv Hcs]
-    · iframe Hsrv Hserves Henv Hcs
-    wp_apply rs.ListenAndServe cfg.W go!"127.0.0.1:7501" defaultRPCPath (serverHandler srv) $$ []
+    wp_apply rs.ListenAndServe cfg.W (fun x => x = go!"127.0.0.1:7501") go!"127.0.0.1:7501" $$ []
       as %e -
-    · iframe Ha Hroute Hh
-      ipureintro; decide
+    · isplitr
+      · iexact Hhttp
+      isplitr
+      · ipureintro; exact htb
+      isplitr
+      · ipureintro; exact ⟨by decide, rfl⟩
+      isplitr
+      · iexact Ha
+      · iexact Hmh
     (try wp_auto)
     iapply HΦ
     itrivial
@@ -296,7 +314,10 @@ theorem srvServes_node (cfg : Cfg GF) (a : GoString) (γs : GName)
   · simp [hsvc] at Hs
 
 theorem rpcReady_codecSet : rpcReady (hG := hG) ⊢ net.rpc.codecSet craqCodec := by
-  unfold rpcReady; iintro ⟨-, #H⟩; iexact H
+  unfold rpcReady; iintro ⟨-, #H, -⟩; iexact H
+
+theorem rpcReady_env : rpcReady (hG := hG) ⊢ rpcEnv := by
+  unfold rpcReady; iintro ⟨-, -, #H⟩; iexact H
 
 /-- `runNode(id, a, conf)`: chain machine `id`'s node at `a`. -/
 theorem wp_runNode [rs : RpcHttpServe GF]
@@ -306,16 +327,18 @@ theorem wp_runNode [rs : RpcHttpServe GF]
     (h_nsvc : node.node_svc.spec (GF := GF) (hG := hG))
     (h_fact : netrpc.factory.spec (GF := GF) (hG := hG))
     (wp_NewCC : netrpc.wp_NewCoordinatorClient.spec (GF := GF) (hG := hG))
-    (cfg : Cfg GF) (id : w64) (a : GoString) (conf : Conf)
+    (cfg : Cfg GF) (id : w64) (a : GoString) (conf : Conf) (htb : threadBound GF ≤ 2 ^ 31)
     (hc : cfg.cAddr = go!"127.0.0.1:7501") (ha : a ∈ cfg.chain) (hok : addrOk a = true) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ rpcReady ∗ RpcHttpServe.muxOwner [] ∗
-        net.rpc.srvEnv ∗ (∃ γ, defaultServer γ) ∗ craqCtx cfg ∗ nodeRes cfg a ∗ joinTicket cfg.γ a ∗
+        (∃ γ, RpcHttpServe.defaultServer γ) ∗ craqCtx cfg ∗ nodeRes cfg a ∗ joinTicket cfg.γ a ∗
         net.rpc.errOk (nodeSpec cfg.γ cfg.chain a) }}
       (App (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.runNode)) (Val #id))
         (Val #a)) (Val #conf))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hready, Hmux, #Henv, ⟨%γs, #Hdsv⟩, #Hctx, Hres, Htk, #HE⟩
+  wp_start as ⟨#Hready, Hmux, ⟨%γs, #Hdsv⟩, #Hctx, Hres, Htk, #HE⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
+  · iPkgInit
+  ihave #Hhttp : isPkgInit (PROP := IProp GF) pkg_id.net.http $$ []
   · iPkgInit
   ihave #Hno : isPkgInit (PROP := IProp GF) pkg_id.github_com.despreston.go_craq.node $$ []
   · iPkgInit
@@ -349,6 +372,7 @@ theorem wp_runNode [rs : RpcHttpServe GF]
   ihave #Hsvc := h_nsvc cfg n a $$ [Hno Hn]
   · iframe Hno Hn
   ihave #Hcs := rpcReady_codecSet $$ Hready
+  ihave #Hre := rpcReady_env $$ Hready
   ihave #HnB : nodeB cfg nb_ptr (ptrIface node.Node.ty n) a $$ []
   · unfold nodeB
     iframe Hnr Hpkg Hcs Hsvc
@@ -357,14 +381,39 @@ theorem wp_runNode [rs : RpcHttpServe GF]
   wp_apply rs.RegisterName craqCodec go!"RPC" _ (nodeSpec cfg.γ cfg.chain a) go!"NodeBinding" false
     γs (by decide) $$ [] as %err Herr
   · iframe Hcs Hrcv Hdsv
-  icases Herr with (⟨%Herr, %srv, #Hds, #Hsrv, #Hreg⟩ | %Herr)
+  icases Herr with (⟨%Herr, #Hreg⟩ | %Herr)
   · subst Herr
     wp_auto
-    wp_apply rs.HandleHTTP [] $$ [Hmux] as ⟨Hmux, %srv', #Hds', #Hroute⟩
-    · iframe Hmux
-      ipureintro; simp
-    ihave %Hss := typedPointsto_agree_wand _ _ _ _ _ $$ Hds Hds'
-    subst Hss
+    unfold craqCtx
+    icases Hctx with ⟨-, %Hss, Haddrs⟩
+    icases BigSepL.bigSepL_cons.1 $$ Haddrs with ⟨-, Haddrs⟩
+    obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 ha
+    ihave #Ha := BigSepL.bigSepL_lookup hi $$ Haddrs
+    have hac : a ≠ cfg.cAddr := fun h => Hss.2.2.1 (h ▸ ha)
+    ihave #Hserves := srvServes_node cfg a γs Hss.1 ha hac $$ [Hreg HE]
+    · iframe Hreg HE
+    unfold rpcEnv
+    icases Hre with ⟨%Hrb, #Hse, #Hhe, #Hcon⟩
+    wp_apply rs.HandleHTTP γs craqCodec cfg.W (fun x => x = a) [] $$ [Hmux] as ⟨Hmux, #Hmh⟩
+    · isplitr
+      · iexact Hrpc
+      isplitr
+      · ipureintro; exact htb
+      isplitl [Hmux]
+      · iexact Hmux
+      isplitr
+      · ipureintro; simp
+      isplitr
+      · iexact Hdsv
+      isplitr
+      · iintro !> %x %hx
+        subst hx
+        iexact Hserves
+      isplitr
+      · iexact Hse
+      isplitr
+      · iexact Hcs
+      · iexact Hcon
     (try wp_auto)
     wp_apply wp_fork $$ [Hnst Htk «id» «conf» «n»]
     · wp_auto
@@ -380,20 +429,16 @@ theorem wp_runNode [rs : RpcHttpServe GF]
         wp_auto
         ipureintro; first | rfl | simp)
     (try wp_auto)
-    unfold craqCtx
-    icases Hctx with ⟨-, %Hss, Haddrs⟩
-    icases BigSepL.bigSepL_cons.1 $$ Haddrs with ⟨-, Haddrs⟩
-    obtain ⟨i, hi⟩ := List.mem_iff_getElem?.1 ha
-    ihave #Ha := BigSepL.bigSepL_lookup hi $$ Haddrs
-    have hac : a ≠ cfg.cAddr := fun h => Hss.2.2.1 (h ▸ ha)
-    ihave #Hserves := srvServes_node cfg a γs Hss.1 ha hac $$ [Hreg HE]
-    · iframe Hreg HE
-    ihave #Hh := rs.ServeHTTP srv γs craqCodec cfg.W a $$ [Hsrv Hserves Henv Hcs]
-    · iframe Hsrv Hserves Henv Hcs
-    wp_apply rs.ListenAndServe cfg.W a defaultRPCPath (serverHandler srv) $$ []
-      as %e -
-    · iframe Ha Hroute Hh
-      ipureintro; exact hok
+    wp_apply rs.ListenAndServe cfg.W (fun x => x = a) a $$ [] as %e -
+    · isplitr
+      · iexact Hhttp
+      isplitr
+      · ipureintro; exact htb
+      isplitr
+      · ipureintro; exact ⟨hok, rfl⟩
+      isplitr
+      · iexact Ha
+      · iexact Hmh
     (try wp_auto)
     iapply HΦ
     itrivial
@@ -428,13 +473,13 @@ theorem Server.wp_proof [rs : RpcHttpServe GF]
     (HE : ∀ (cfg : Cfg GF) (a : GoString),
       ⊢ net.rpc.errOk (nodeSpec (G := hG.goose_globalGS) cfg.γ cfg.chain a)) :
     Server.spec (GF := GF) (hG := hG) := by
-  intro cfg id hcfg h1 h6
+  intro cfg id htb hcfg h1 h6
   have hc : cfg.cAddr = go!"127.0.0.1:7501" := hcfg.1
   by_cases hid : id = W64 1
   · subst hid
     have hres : serverRes cfg (uint.nat (W64 1)) = coordRes cfg := by simp [serverRes]
     rw [hres]
-    exact wp_Server1 wp_SetCodec wp_cNew wp_cStart h_csvc h_fact cfg hc
+    exact wp_Server1 wp_SetCodec wp_cNew wp_cStart h_csvc h_fact cfg htb hc
       (by rw [hcfg.2]; decide)
   have hn1 : uint.nat id ≠ 1 := fun h => hid (by word)
   obtain ⟨a, ha, hmem⟩ := serverAddrs_chain (uint.nat id - 1) (by omega) (by omega)
@@ -488,7 +533,7 @@ theorem Server.wp_proof [rs : RpcHttpServe GF]
   icases Hm with ⟨%Hcok, -⟩
   (try wp_auto)
   wp_if_destruct
-  · wp_apply wp_runNode wp_kvNew wp_nNew wp_nStart h_nsvc h_fact wp_NewCC cfg id a _ hc
+  · wp_apply wp_runNode wp_kvNew wp_nNew wp_nStart h_nsvc h_fact wp_NewCC cfg id a _ htb hc
       (by rw [hcfg.2]; exact hmem)
       (List.all_eq_true.1 serverAddrs_addrOk a (List.mem_of_mem_tail hmem)) $$ [Hmux Hres Htk]
     · iframe Hmux Hres Htk
