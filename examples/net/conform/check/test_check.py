@@ -597,9 +597,10 @@ class Positive(Base):
         a.read(18, 19, "c1", 100, err=err_sys("Read", 104))
         a.read(20, 21, "c1", 100, err=EOF)
         r = self.admitted()
-        # the reset cuts keeping every byte (lazily: any prefix), the EOF cuts again keeping none
+        # the reset cuts keeping nothing (v3.5: a sys error needs nothing unread), and the EOF
+        # reads the dead direction as it is
         cuts = [s["cut"]["keep"] for s in r["witness"]["steps"] if s.get("cut")]
-        self.assertEqual(cuts, [3, 0])
+        self.assertEqual(cuts, [0])
 
     def test_write_after_peer_close(self):
         d, a = setup_conn(self.tr)
@@ -873,6 +874,15 @@ class Negative(Base):
         d.write(10, 11, "c1", b"ab")
         a.read(12, 13, "c1", 10, b"ab")
         x = a.read(14, 15, "c1", 10, b"ab")
+        self.rejected(a, x)
+
+    def test_bytes_after_sys_read_error(self):
+        # v3.5 (D1, TestStickyReset): no byte follows a sys read error
+        d, a = setup_conn(self.tr)
+        d.write(10, 11, "c1", b"abcdef")
+        a.read(12, 13, "c1", 100, b"abc")
+        a.read(14, 15, "c1", 100, err=err_sys("Read", 104))
+        x = a.read(16, 17, "c1", 100, b"def")
         self.rejected(a, x)
 
     def test_read_before_write_called(self):

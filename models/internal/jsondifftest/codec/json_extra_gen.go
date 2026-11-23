@@ -51,7 +51,7 @@ func jsonUnmarshalExtra(data []byte, v any) error {
 	panic(jsoncodec.NotModelled("json model: decoding into a type the codec does not know"))
 }
 
-// jenc_root0 appends the encoding of a struct { Seq uint64 "json:\"seq,string\""; Data json.RawMessage "json:\"data\"" } inside d arrays and objects.
+// jenc_root0 appends the encoding of a struct { Seq uint64 "json:\"seq,string\""; Data json.RawMessage "json:\"data\"" } inside d arrays and objects, unaddressable.
 func jenc_root0(b []byte, v struct {
 	Seq  uint64          "json:\"seq,string\""
 	Data json.RawMessage "json:\"data\""
@@ -102,8 +102,9 @@ func jdec_root0(b []byte, i uint64, p *struct {
 }
 
 // jdecMember_root0 decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_root0(b []byte, i uint64, key string, p *struct {
 	Seq  uint64          "json:\"seq,string\""
 	Data json.RawMessage "json:\"data\""

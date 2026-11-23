@@ -144,11 +144,11 @@ theorem NewReplay.wp_proof
     ihave #Hopr := BigSepL2.bigSepL2_lookup (Φ := fun _ v op => opRep (GF := GF) v op) Hv Hop1 $$ Hops
     iunfold opRep at Hopr
     icases Hopr with ⟨#Hreq, #Hresp⟩
-    obtain ⟨hfit, hother, hin, hparse, hlim, hflat, hlist, hobj⟩ := hpre (sint.nat n) _ op1 Hn.2.2.1 Hop1
+    obtain ⟨hsz, hfit, hother, hin, hparse, hlim, hflat, hlist, hobj⟩ := hpre (sint.nat n) _ op1 Hn.2.2.1 Hop1
     have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len := ⟨Hn.1, by word⟩
     rw [ite_eq_left Hbnd]
     wp_auto
-    wp_apply wp_Step stp st op1.1 v.Request' v.Response' op1.2 hfit hin hparse hlim hother hflat hlist hobj
+    wp_apply wp_Step stp st op1.1 v.Request' v.Response' op1.2 hfit hin hparse hlim hother hflat hlist hobj hsz
       $$ [] as %b %np %cp ⟨%Hb, #Hnp, #Hcp⟩
     · iframe #
     obtain ⟨hok, hnext⟩ := replay_step_ok hR Hn.2.2.1 Hop1
