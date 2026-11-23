@@ -340,3 +340,11 @@ func TestFieldUsesOnlyGhostStructs(t *testing.T) {
 	patched := fieldPatched("\ntype Q struct{ a int }\n\nvar seen map[Q]bool\n\nfunc Show(q Q) any {\n\treturn q == q\n}\n")
 	wantOK(t, run(t, map[string]string{"r.go": orig}, map[string]string{"r.go": patched}))
 }
+
+// An original `if` without statements is not ghost code (it stays, and the files match).
+func TestEmptyIfIsNotGhost(t *testing.T) {
+	orig := strings.Replace(origKV, "\tv := kv.m[k]\n", "\tif kv.n > 0 {\n\t}\n\tv := kv.m[k]\n", 1)
+	patched := strings.Replace(orig, "package p\n", "package p\n\n"+primImport+"\n", 1)
+	patched = strings.Replace(patched, "\tv := kv.m[k]\n", "\tpr := primitive.NewProph()\n\tpr.ResolveU64(1)\n\tv := kv.m[k]\n", 1)
+	wantOK(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}))
+}
