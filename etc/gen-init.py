@@ -5286,11 +5286,19 @@ DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
                 f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
                 for n in DSV_NODES}
 
-# project dsv-craq (notes/dsv-craq.md): go-craq's packages. Not yet those importing net/rpc or
-# net/http (transport/netrpc, the kit examples/craqnet and its commands): their closure reaches the
-# models' package initializers, which nothing proves yet (plan phase 5.2, item 5).
+# project dsv-craq (notes/dsv-craq.md): go-craq's packages, the kit and its twelve machines'
+# commands. The net/rpc and net/http models' initializations are not proved yet (plan phase 5.2,
+# item 5): hypotheses (`Dsverify/Proof/net/{rpc,http}/Init.lean`'s `InitHyp`, dsv-vr's mechanism,
+# `DSV_HYP_INITS`).
 DSV_CRAQ = 'github_com.despreston.go_craq'
-DSV_PKGS += [f'{DSV_CRAQ}.{p}' for p in ['transport', 'store', 'store.kv', 'node', 'coordinator']]
+DSV_CRAQ_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s in range(1, 7)]
+DSV_PKGS += [f'{DSV_CRAQ}.{p}' for p in ['transport', 'store', 'store.kv', 'node', 'coordinator',
+                                         'transport.netrpc', 'examples.craqnet']] + \
+    [f'{DSV_CRAQ}.examples.craqnet.cmd.{n}' for n in DSV_CRAQ_NODES]
+# (no `PkgTable.lean` for the commands yet: a program's table walks its whole closure, and
+# net/http's names-only imports (crypto/tls, net/url, ...) are outside the inventory)
+DSV_CRAQ_HYP = ['net.rpc', 'net.http']
+DSV_HYP_INITS = globals().get('DSV_HYP_INITS', []) + DSV_CRAQ_HYP
 # go-craq's `errors.New` package variables: each package's fact (its `Base.lean`) is their
 # `errors.newVar`s (as the lab's `PkgState.lean`)
 _CRAQ_ERRS = {'store': ['ErrNotFound', 'ErrDirtyItem'],
@@ -5311,6 +5319,26 @@ allocates them, initializes its imports and runs their translated initializers.'
                [f'iexists _; iframe H{_xs[-1]} S{_xs[-1]} M{_xs[-1]}'])
 
 
+DSV_HYP_NEED = {}
+
+
+def dsv_hyp_fix(path, txt):
+    """A generated file of the part whose package's closure holds a hypothesis package: its import
+    of that package's initialization is the part's `Init.lean`, and its sections take the
+    hypothesis (`InitHyp`) as an instance."""
+    d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
+    for q in DSV_HYP_NEED.get(d, []):
+        txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                          f'public import {DSV_ROOT}.Proof.{q}.Init\n')
+        if f'public import {DSV_ROOT}.Proof.{q}.Init\n' not in txt:
+            txt = re.sub(r'(?m)^(public import .*\n)(?!public import)',
+                         lambda m: m.group(1) + f'public import {DSV_ROOT}.Proof.{q}.Init\n', txt,
+                         count=1)
+        txt = re.sub(r'(?m)^(variable \[sem : go\.Semantics\].*)$',
+                     lambda m: m.group(1) + f'\nvariable [_root_.Perennial.{q}.InitHyp GF]', txt)
+    return txt
+
+
 def dsv_inits():
     """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
     global inv, inst, CFG_OVERRIDE
@@ -5325,6 +5353,13 @@ def dsv_inits():
         for q, d in inventory(f'{DSV_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
+        for q in DSV_HYP_INITS:
+            inv[q] = dict(inv[q], perennial=True)
+        for q in DSV_CRAQ_HYP:  # dsv-craq: names-only imports of net/http outside the inventory
+            inv[q] = dict(inv[q], imports=[i for i in inv[q]['imports'] if i in inv])
+        for p in DSV_PKGS:
+            if p in inv:
+                DSV_HYP_NEED[dirof(p)] = [q for q in DSV_HYP_INITS if q in closure(p)]
         inst.update(instances(f'{DSV_ROOT}/Proof/'))
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
                if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
@@ -5365,7 +5400,8 @@ def dsv_inits():
             new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
                               'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
         return new
-    return [(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))) for path, txt in raw]
+    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))))
+            for path, txt in raw]
 
 
 def main(argv):

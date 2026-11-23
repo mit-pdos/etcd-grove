@@ -14,6 +14,8 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.log
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
+public import Dsverify.Proof.net.rpc.Base
+public import Dsverify.Proof.net.http.Base
 
 @[expose] public section
 
@@ -31,10 +33,6 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
--- net/rpc's and net/http's package facts: hypotheses until the models' initialization is proved
--- (plan phase 5.2, item 5; notes/dsv-craq.md, "Hypotheses")
-variable [IsPkgInit (IProp GF) pkg_id.net.rpc] [GetIsPkgInitWf (IProp GF) pkg_id.net.rpc]
-variable [IsPkgInit (IProp GF) pkg_id.net.http] [GetIsPkgInitWf (IProp GF) pkg_id.net.http]
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet :=
   define_is_pkg_init iprop(True)

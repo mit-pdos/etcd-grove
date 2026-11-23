@@ -42,7 +42,7 @@ variable [sem : go.Semantics]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [examples.craqnet.Assumptions]
-variable [IsPkgInit (IProp GF) pkg_id.net.rpc] [GetIsPkgInitWf (IProp GF) pkg_id.net.rpc]
+
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

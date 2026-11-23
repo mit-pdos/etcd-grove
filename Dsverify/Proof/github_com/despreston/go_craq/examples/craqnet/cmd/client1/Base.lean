@@ -6,6 +6,8 @@ module
 public import Dsverify.GeneratedProof.github_com.despreston.go_craq.examples.craqnet.cmd.client1
 public import Net.Proof.net.Base
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.Base
+public import Dsverify.Proof.net.rpc.Base
+public import Dsverify.Proof.net.http.Base
 
 @[expose] public section
 
@@ -23,9 +25,6 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
--- (net/rpc's and net/http's package facts: hypotheses, as in `examples/craqnet/Base.lean`)
-variable [IsPkgInit (IProp GF) pkg_id.net.rpc] [GetIsPkgInitWf (IProp GF) pkg_id.net.rpc]
-variable [IsPkgInit (IProp GF) pkg_id.net.http] [GetIsPkgInitWf (IProp GF) pkg_id.net.http]
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.client1 :=
   define_is_pkg_init iprop(True)
