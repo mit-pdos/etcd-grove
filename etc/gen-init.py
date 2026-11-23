@@ -261,6 +261,12 @@ inst = instances()
 # part's copies of `os`'s initializers). `@` marks a full module name.
 inv['net'] = inventory('Net/Code')['net']
 inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
+# (#37 stage S3, 2026-11-23) the protobuf model's methods in walpb (`pbmodel_gen.go`, `etc/goose.py`'s
+# overlay) call `models.lab/pbcodec`, the part `Net/`'s translation (`models.lab=Net`), with its
+# `IsPkgInit` instance in `Net/Proof/models_lab/pbcodec/Base.lean` (`True`); its `Init.lean` is
+# generated here over the main tree's imports, as `net`'s.
+inv['models_lab.pbcodec'] = inventory('Net/Code')['models_lab.pbcodec']
+inst['models_lab.pbcodec'] = [('@Net.Proof.models_lab.pbcodec.Base', 'iprop(True)')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}

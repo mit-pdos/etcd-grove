@@ -9,6 +9,8 @@ public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.google_golang_org.protobuf.reflect.protoreflect
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
+public import Net.GeneratedProof.models_lab.pbcodec
+public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.storage.wal.walpb
 

@@ -8,6 +8,8 @@ pointer target (`errIsTerm`, an `*errorString` leaf; 2026-11-14, `wal-vsnap4`), 
 module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal.walpb
+-- (#37 stage S3) the protobuf model's methods call `models.lab/pbcodec` (its package fact `True`)
+public import Net.Proof.models_lab.pbcodec.Base
 public import Proof.go_etcd_io.raft.v3.Base
 public import Spec.fmt.ErrorfErrs
 public import Spec.fmt.ErrorfErrsNot

@@ -142,6 +142,17 @@ class Project:
     # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
     # writes it.
     expand_comment_tabs: bool = False
+    # (#37 stage S3) protobuf message types, as Go types "import/path.Type", whose same-package
+    # methods (models/protobuf/pbgen.py's pbmodel mode, pbgen_core.py "THE SAME-PACKAGE METHODS":
+    # `pbmodel_gen.go`, build tag `goose || pbmodel`, methods `PbModel*` only) the project's own
+    # translation (module root `root`, not its parts: a translation without the methods is only
+    # conservative) sees: the file is generated afresh on every run (so `--check` regenerates it)
+    # from the types' registered descriptors (pbdesc, run in examples/'s module, whose etcd and raft
+    # pins `--check` keeps equal to the projects') into the scratch directory, and handed to goose and
+    # proofgen by `-overlay` (Perennial 078ceec6f: `go build -overlay`'s JSON), so the fork stays
+    # upstream's; `models.lab` (the generated code's `pbcodec`, models/) joins the workspace. The
+    # Go side builds the same program with `-tags pbmodel` (examples/models/pbetcd/pbmodel_forks.py).
+    pbmodel_roots: list = None
 
     @property
     def env(self):
@@ -370,9 +381,14 @@ PROJECTS = [
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
         module_models={"google.golang.org/grpc": "models/grpc"},
+        # (#37 stage S3, 2026-11-23) walpb's `Record` with the protobuf model's same-package methods
+        # (`PbModel*`, over models.lab/pbcodec: the part Net/'s translation, `models.lab=Net`): the
+        # first message type of the plan; the other types follow
+        pbmodel_roots=["go.etcd.io/etcd/server/v3/storage/wal/walpb.Record"],
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
+                    "models.lab=Net",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
                     "github.com/prometheus/client_model=",
@@ -2300,20 +2316,27 @@ def std_models_env(proj):
                 PATH=os.path.join(farm, "bin") + os.pathsep + os.environ.get("PATH", ""))
 
 
+# The module the pbmodel methods import (`models.lab/pbcodec`): Project.pbmodel_roots.
+PBMODEL_MODULE = ("models.lab", "models")
+
+
 def module_models_env(proj, src, env, tmp):
     """`env` with the project's module models put in place (Project.module_models): a copy of
     `src`'s go.work (its paths made absolute) or go.mod, in `tmp`, with a `replace` of each modelled
-    module by its model, named by GOWORK or GOFLAGS' -modfile. `env` itself if there are none."""
-    if not proj.module_models:
+    module by its model, named by GOWORK or GOFLAGS' -modfile; and, for a project with pbmodel
+    roots, models.lab added (a `use` of models/ in a workspace, else a `require` and `replace`).
+    `env` itself if there are none."""
+    if not proj.module_models and not proj.pbmodel_roots:
         return env
     env = dict(os.environ if env is None else env)
-    reps = {m: os.path.join(ROOT, d) for m, d in sorted(proj.module_models.items())}
+    reps = {m: os.path.join(ROOT, d) for m, d in sorted((proj.module_models or {}).items())}
+    uses = [os.path.join(ROOT, PBMODEL_MODULE[1])] if proj.pbmodel_roots else []
     if os.path.exists(os.path.join(src, "go.work")):
         j = json.loads(subprocess.run(["go", "work", "edit", "-json", "go.work"], cwd=src,
                                       check=True, capture_output=True, text=True).stdout)
         lines = ["go " + j["Go"]] + (["toolchain " + j["Toolchain"]] if j.get("Toolchain") else [])
         lines += ["use ("] + ["\t" + os.path.normpath(os.path.join(src, u["DiskPath"]))
-                              for u in j["Use"]] + [")"]
+                              for u in j["Use"]] + ["\t" + u for u in uses] + [")"]
         for r in j.get("Replace") or []:
             if r["Old"]["Path"] in reps:
                 continue
@@ -2344,9 +2367,59 @@ def module_models_env(proj, src, env, tmp):
             old = r["Old"]["Path"] + ("@" + r["Old"]["Version"] if r["Old"].get("Version") else "")
             edits.append(f"-replace={old}={os.path.normpath(os.path.join(src, new))}")
     edits += [f"-replace={m}={d}" for m, d in reps.items()]
+    if uses:
+        edits += [f"-require={PBMODEL_MODULE[0]}@v0.0.0-00010101000000-000000000000",
+                  f"-replace={PBMODEL_MODULE[0]}={uses[0]}"]
     subprocess.run(["go", "mod", "edit"] + edits + [modfile], check=True)
     env["GOFLAGS"] = (env.get("GOFLAGS", "") + " -modfile=" + modfile).strip()
     return env
+
+
+def pbmodel_overlay(proj, src, env, tmp):
+    """Project.pbmodel_roots: the overlay file (goose's `-overlay`) adding pbgen's `pbmodel_gen.go`
+    to each package of the roots' closure in `src`, generated into `tmp`; None if the project has no
+    roots."""
+    if not proj.pbmodel_roots:
+        return None
+    sys.path.insert(0, os.path.join(ROOT, "models", "protobuf"))
+    import pbgen
+    import pbgen_core
+    aliases, roots = {}, []
+    for r in proj.pbmodel_roots:
+        path, _, ty = r.rpartition(".")
+        alias = next((a for a, p in aliases.items() if p == path), None)
+        if alias is None:
+            alias = "p%d_%s" % (len(aliases), re.sub(r"\W", "_", path.rsplit("/", 1)[-1]))
+            aliases[alias] = path
+        roots.append(alias + "." + ty)
+    try:
+        dump = pbgen.derive(aliases, roots, os.path.join(ROOT, "examples"))
+        S = pbgen_core.Schema(dump, aliases, pbmodel=True)
+    except (pbgen.InputError, pbgen_core.PbRefused) as e:
+        sys.exit(f"goose.py: {proj.name}: pbgen --pbmodel failed: {getattr(e, 'reasons', e)}")
+    paths = sorted({S.pkg[n] for n in S.names})
+    r = subprocess.run(["go", "list", "-f", "{{.ImportPath}} {{.Dir}} {{.Name}}"] + paths, cwd=src,
+                       env=env, capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(f"goose.py: {proj.name}: go list of the pbmodel packages failed:\n{r.stderr}")
+    header = (f"// Code generated by pbgen.py --pbmodel (etc/goose.py, project {proj.name}). "
+              "DO NOT EDIT.\n\n")
+    replace = {}
+    for line in r.stdout.splitlines():
+        path, d, name = line.split(" ")
+        out = os.path.join(tmp, "pbmodel", path.replace("/", "_"), "pbmodel_gen.go")
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        with open(out, "w") as f:
+            f.write(pbgen_core.pbmodel_go(S, path, header, name))
+        target = os.path.join(d, "pbmodel_gen.go")
+        if os.path.exists(target):
+            sys.exit(f"goose.py: {proj.name}: {target} exists in the source (the pbmodel methods are "
+                     "the overlay's only)")
+        replace[target] = out
+    overlay = os.path.join(tmp, "pbmodel-overlay.json")
+    with open(overlay, "w") as f:
+        json.dump({"Replace": replace}, f, indent=1, sort_keys=True)
+    return overlay
 
 
 def pieces(proj):
@@ -2447,6 +2520,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
         # path relative to ROOT -> (new content or None, old content or None)
         new, old = {}, {}
         env = module_models_env(proj, src, std_models_env(proj), out)
+        overlay = pbmodel_overlay(proj, src, env, out)
         for i, (root, lean_roots, packages, owned) in enumerate(pieces(proj)):
             lib_dir = os.path.join(ROOT, root)
             piece_out = os.path.join(out, str(i))
@@ -2454,6 +2528,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
             if proj.tags:
                 roots = ["-tags", ",".join(proj.tags)] + roots
+            if overlay and i == 0:
+                roots = ["-overlay", overlay] + roots
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
                 run([os.path.join(bindir, tool)] + roots +
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
