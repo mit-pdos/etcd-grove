@@ -809,7 +809,8 @@ program's), or with `J`'s `seg` tracked, half of its claim given to the invarian
 def dsRenamed (j : Ino) (γ : GName) (k J : Ino) (hw hs : NamesH) (e : w64) : IProp GF :=
   iprop((⌜e ≠ 0⌝ ∗ dsHalf (L := L) j γ (some k) true hw none ∗
       osNames (L := L) J sN (DFrac.own 1) hs) ∨
-    ∃ hw', dsHalf (L := L) j γ (some k) true hw' (some (J, hs)) ∗ ⌜hw'.cur !! walB = some (.dir J)⌝)
+    ∃ hw', dsHalf (L := L) j γ (some k) true hw' (some (J, hs)) ∗
+      ⌜hw'.cur !! walB = some (.dir J) ∧ hw'.cur !! wtB = none⌝)
 
 /-- **`rename(2)` of `d/wal.tmp` (the directory `J`, whose `seg` is the key's file `k`) onto the
 absent `d/wal`**, `d` the directory `j`, by a call holding the whole call permission, begun after
@@ -878,6 +879,10 @@ theorem wp_dsRename
       $$ Hv Hv1 with ⟨Hv, Hv1⟩
     have hcw : restrictN wN c !! walB = some (.dir J) := by
       rw [restrictN_lookup _ _ _ wN_wal]; simp [c]
+    have hct : restrictN wN c !! wtB = none := by
+      rw [restrictN_lookup _ _ _ wN_wt]
+      simp only [c]
+      rw [GMap.lookup_insert_ne _ _ (Ne.symm wt_ne_wal)]; exact GMap.lookup_delete _ _
     have hD' : DInv j (some k) ((hw.log x en (restrictN wN c)).restrict j wO) (some (J, hs)) := by
       rw [restrict_log_writes hw j wO x en _ walB wO_wal (rename_writes_tgt j wtB walB _ _)]
       refine dinv_rename hD (by rw [restrict_cur _ _ _ _ wO_wal]; exact hA) x en _
@@ -897,7 +902,7 @@ theorem wp_dsRename
     iframe Hv Hw
     isplitl [HJ]
     · unfold osClaims jcl; iapply BigSepL.bigSepL_singleton.2; iexact HJ
-    ipureintro; exact hcw
+    ipureintro; exact ⟨hcw, hct⟩
 
 end rename
 
