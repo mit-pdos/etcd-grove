@@ -601,85 +601,64 @@ clients ++ servers) gryffNetCfg`, axioms Lean's three and porcupine's `CheckOper
 
 ## Next
 
-**Done 2026-11-23 (fourth session)**: (3) bufio: the wire layer is ported over dsv-bufio, all of it
-checking clean with `etc/lean-check.py -a`: `Wire/Proof/{Lemmas,VarintWp,State,Gryff1,Gryff2,Client,
-Epaxos,Genericsmr,Slices,SlicesM}`, `Wire/Specs`, `N/{ArrLen,SliceMarshal}`, `Replica/Base`; dlog's fact
-is now `DLOG ↦□ false` (`etc/dsv/gryff.py`'s `finish`, `src/dlog/Base.lean`; gen-init and
-`_gryff_boot.py` regenerated). `Wire/Proof/Lemmas.lean` also has lab-shaped wrappers over dsv-bufio's
-proofs: `wire.wp_Flush`, `wire.wp_WriteByte` (pre `⌜err = nil⌝ -∗ □ Q …`; post with dsv-bufio's two
-extra clauses: a failed writer keeps its state, a byte that fits is not sent), `wire.wp_NewWriter`
-(`wr.sz = 4096`, the wrapped writer not a `*bufio.Writer`), `wire.wp_NewReader` (over
-`io.readerOk rd.ri (fun _ m => 0 < m) I rd.E`, which `net.conn_readerOk` gives),
-`wire.writerOk_prefixClosed` (in the unfolded form `EtcdGrove.bufio.Q_of_prefix` takes). Also done:
-`N/Generic` (its `wp_WriteByte_sticky` over `wire.wp_WriteByte`), `N/Marshal`. `lake build` of
-`N.Marshal`, `N.ArrLen`, `N.SliceMarshal`, `Replica.Base`, `Wire.Specs`, the PkgTables of
-orch/client0/server1-4, the three replica `Boot`s and `ModelProof`: green (2658 jobs). In N files the
-bundles must be written `wire.WSt`/`wire.RSt`/`wire.BinaryVarintHyps` (in `netN`, `WSt` is sync's
-`LockState.WSt`).
+**Session 6 end state (`a06cfc3e72` + F9's pending files).** Ported and building: everything below
+the top level — Wire, Proto*, Pure*, Model, Kahn, X, all H layers, N (all; `N/SpecsCheck` skipped,
+a check file), Replica2/{State, Specs, SpecsN, Link}, B (all but `B/Init`, superseded by
+`Boot/Defs` + the generated owned boots), Rpc/*, Shares, Server/{Deploy, RpcEnv, MasterDefs,
+SpecsDefs, MasterRegister, MasterServe, MasterRun, MasterNew, ServeProof, RegisterProof,
+MasterBoot, SpecsReq} (the lab's Server/{Specs, Boot, BootIface}, B/Boot are composed at the kit
+level instead: `examples/gryffnet/KitServer.lean`, `Server.wp_proof`), the kit (`Kit`, `KitSpecs`,
+`KitProof`, `KitServer`, `ModelSet`, `ModelProof`), Client/Defs, the statement
+(`Dsverify/Spec/gryff/examples/gryffnet/TopLevelRobustness.lean`, `gryff_remote_robust.spec`) and
+`TopLevelDefs`. No sorry, no axiom under `Dsverify/`.
 
-**How to port the rest** (the helper is a scratch script, rewritten each session; its rules are the list in
-"What changed against the lab (proof)" plus): `port.py` = copy a lab module, header line "Ported from …",
-`GryffProof.` -> `Dsverify.Proof.gryff.`, `Gryff.{GeneratedProof,Code}.` -> `Dsverify.{…}.`; then the
-`wire_rw` rewrites; for N-level files also `bufio.ownWriter/writerOk/ownReader/readerOk/wp_Flush/
-wp_WriteByte/wp_NewWriter/wp_NewReader` -> `wire.…`, `bufio.prefixClosed` -> `EtcdGrove.io.prefixClosed`,
-`bufio.Q_of_prefix` -> `EtcdGrove.bufio.Q_of_prefix`, `variable [GryffNetPkgState GF]` dropped, the
-`Slots` import -> `Dsverify.Proof.gryff.src.gryff.Base`. Proofs that unfolded the lab's `ownWriter`/
-`writerRep` (e.g. `N/Generic.lean`'s `wp_WriteByte_sticky`) are redone over the wrappers.
+**Remaining, in order:**
+1. **`op.spec`** (KitSpecs; the kit client's `op`): fork F9 was proving it in `Client/{Conn, Stream,
+   Op}.lean` (uncommitted `Client/Conn.lean`, `N/NetSpecs.lean`'s `dialTimeout` field at the end of
+   session 6; check them with a targeted `lake build`). Plan: F8's (in this file's history, commit
+   `5151c01965`'s message and KitSpecs' docstrings): ops ≥ K → unknown, else a budget unit;
+   `started` + `time.wp_Sleep`; connect (`DialTimeout.spec` + `dial_au` at `addrProto (replicaOf
+   c)` from `replicaLis` by `lisProto_addr`, `idTok`→`clientConnAt`, `conn_readerOk`,
+   `conn_streamWriterOk` + `gryffWireP_closed`, the 4-byte handshake in `writerRoom`); the request
+   (Marshal, `op_begin` with `opAU` from `lin_opAU`, a read's `□ lin` used once, Flush); the reply
+   loop (`ownReader_protoNow` on `gryffWireQ`, `acceptStream`'s client branch, `sentLb_comparable`,
+   `opDone` → `Φ` by Proto/ClientLaws' claim law, errors by `rdErr_conn'`).
+2. **The start bridge for wildcard listeners**: `Net.robust_of_distProtoRB` gives `addrUnset` for
+   the listed addresses only; the seven wildcards (":7501", ":7502..7504", ":8502..8504") need
+   `lisUnset`. Write a kit-local copy of `robust_of_distBootRB` with `addrs_lis_start` in place of
+   `addrs_start` (public lemmas: `goose_dist_adequacy`, `net_globalStart`, `addrs_lis_start`,
+   `nodeWp_of_distBootG`; the listeners take pairwise disjoint address sets, none a client address).
+   A design finding for Net: a `robust_of_distProtoRB` variant with wildcard listeners.
+3. **Owned net/rpc init on the server machines**: `etc/dsv/_gryff_boot.py` must treat net/rpc (and
+   net/http: `gNoRpc`) as owned too (`RpcBootHyp.wp_init_own`, giving `rpcBootRes ∗ muxFree`), and
+   generate an owned boot for `server1` (the master) as for the replicas.
+4. **`Start.lean`**: the rpc world `γ.rpc` (`SS := rpcServicesDef`, handshakes per `worldOk`, `inv
+   regN' (regInv W)`), Gryff's ghost state (port the lab's `StartInit.lean`: `budget0`, `claims0`,
+   …), `deploy_alloc`, `lis_set_proto` for the replica ports (`gryffWireP/Q γ (portAddr k)`),
+   `H.rpcLisP_set` for the four rpc listeners, remote's pending library over `casR γ.proto` with
+   `casS0` + `mapCtx` + the six `remoteAddr`s, the shares (`clientNodeShare`, `serverShare`).
+5. **`Mains.lean`, `Linked.lean`, the proof `TopLevelRobustness.lean`** (paxos's pattern): Linked
+   discharges `KitProof`'s, `Server.wp_proof`, `Model.wp_proof`, `gryffCodecLaws`/`gryffRcvLaws`,
+   `lib.io.ReadFull.wp_proofLt`, Net's net/rpc (`Client.Call`, `DialHTTP`, `SetCodec`) and remote's
+   (`Check`, `ServeClient`) `wp_proof`s, `netN.NetSpecs` and `wire.BufioSpecs` from the
+   `wp_proof`s (no instance). **`DialHTTP.spec` is proved over `http.ReadResponse.spec`**, not yet
+   proved on models-rpc-http: unless it lands first, `http.ReadResponse.spec` becomes a premise of
+   the statement (name it so). Then `#print axioms gryff_remote_robust`, `etc/theorem-loc.py`
+   (InitHyp premises counted), the link check (VR finding 7), `etc/tcb-collections/dsv-gryff.txt`.
+6. **Landing work**: merge `lean` (Perennial `48401b6ba`/later, `/shared/perennial-*`; repoint
+   overrides/`PERENNIAL_DIR`, regenerate PkgTables) and models-rpc-http when it lands (drop
+   `RpcHttpHyp`'s `rpcLisP*`, `Server_ServeHTTP_spec` for Net's); use `Net.sentLb_agree/_le`,
+   `recvTokL_sentLb` (delete N/ConnLaws' copies); `etc/tier-check.py --check` (lab-style proof
+   imports: KitServer, Replica2/Link, H2c2/ExecOverwrite's `…wp_proof` call; restructure as
+   needed); `etc/goose.py --check --project dsv-gryff`, `gen-init --check`, `_gryff_boot.py --check`.
 
-**Import tiers (land gate, coordinator 2026-11-23):** `etc/tier-check.py --check` at `90a9b5a2fe`: **8 new
-violations**, all `defs->proof` from `Dsverify.Proof.gryff.Wire.Proof.Lemmas` to dsv-bufio's proof files
-(`Proof.bufio.{NewReaderOk, NewReaderSize, NewWriter, NewWriterSize, Reader__ReadOk, Writer__Flush,
-Writer__Write, Writer__WriteByte}`), for the wrappers and `wp_wire_Write`/`wp_wire_Read*`, which name
-`EtcdGrove.bufio.*.wp_proof`. To fix before landing: import `Spec.bufio.*` only and take the specs as
-hypotheses (section variables `(wp_Write : EtcdGrove.bufio.Writer.Write.spec)` … or one Prop structure
-of the bufio specs threaded through the wire specs), discharged by a `Link`/`*Linked` module with the
-`wp_proof`s. The rest of the port obeys the rule so far; new files must see callees through their specs
-only (lab-style imports of callees' proofs are violations: Rabia's port had 106).
-
-Remaining, in order (updated session 5; lab modules left: see `port/` scratch or diff the lab tree
-against `Dsverify/Proof/gryff/`; not to port: `Slots.lean`, `WS/Placed.lean` (gone by design),
-`S/SelfOwn.lean` (the lab's evidence copy, its proofs are in `Replica2/State`)):
-
-Everything portable without a design decision is ported. Two designs block the rest:
-
-1. **The client connection on `Net/` (N/Serve, N/ClientConn, N/ConnLaws, N/StrIndex, N/WaitPeers,
-   N/ConnSlots, N/Connect, N/Boot, then Replica2/Specs and everything above it: H1-H3, B/Handler,
-   B/Tables, B/BootLem, X/Bridge, X/Final, Replica2/Link).** `N/Serve.lean` is not in the tree (recreate
-   it: scratch `port/port.py N/Serve.lean`, then `port/nport.py` and `port/nextok.py`); its `clientConnInB` is the lab's connection vocabulary:
-   `net.rpc.connIface conn c true` -> `∃ t la ra, ⌜conn = interface.mkOk (ptr TCPConn) #t⌝ ∗
-   net.connAt t cn true a la ra`; `sendTok c true (addrQ γ a) []` / `connFreshG netDistGS c true`
-   -> `Net/`'s `sendTok`/`connFresh` (`GooseLang/Ext/Net/Proto.lean`); the reader's peek
-   `□ (∀ Y, I (u32Le hs ++ Y) -∗ …)` -> the reader-level update form used by `peerReaderB`
-   (`N/SpecsDefs.lean`), to be produced where the reader is made (`N/ClientConn`) from
-   `wire.ownReader_proto` (`Client/Bufio.lean`, `net.connReader_proto`: `▷ protoPrefix`, strip
-   the later under the update; the protocol `gryffWireP`'s facts are persistent/timeless) and the
-   reader as `wire.RSt := {connIface t, connReadE eof la ra ed}` (`net.conn_readerOk`, which takes
-   `net.Conn.Read.spec` as an argument: thread it as a section hypothesis or a field of a
-   `NetSpecs` class like `wire.BufioSpecs`); the writer `wire.WSt := {connIface t, connWriteE la ra
-   ed, 4096}` with `net.conn_streamWriterOk` (`J := sendTok cn s P`, `Q := P cn`); `errWf`/`errAny`
-   on read errors -> `rdErr` (`io.EOF` test: `net.eof_ptrTyped`, logging: `logArg_err` needs
-   `models_lab.errAny` of a `connReadE` error; `OpError.Error` is in `Net/`); `sharedInvs` ->
-   `protoInvs` where only those invariants are used; `c.RemoteAddr().String()` -> state it at the
-   call shape goose produces (the lab's was a `*TCPConn` method; `Lib/NetAddr.lean` has
-   `wp_TCPAddr_String`; `net.Conn.RemoteAddr.spec` returns `ra`, `connAt` holds `netAddr ra`);
-   `net.model.Assumptions` -> `net.Assumptions`/`net.FieldAssumptions`. `strings.Index`
-   (`N/StrIndex`) is names-only in Perennial: a hypothesis with Go's precondition-free spec.
-2. **Rpc against `Net/`'s rpc** (`Rpc/{Defs,CodecLow,CodecEncode,CodecDecode,CodecProof,Slot}`,
-   then `Server/*`, `Shares`, `Client/*`, `B/{Register,Registry,Rcvr,Init,Boot,NewReplica}`):
-   merge `origin/models-rpc-http` (`1a4d9546c9`; DialHTTP(Path) proved over
-   `http.ReadResponse.spec`) and use its client specs; the server side (`ServeHTTP`, `HandleHTTP`,
-   `http.Serve`, mux, wildcard `rpcLisP`) as ONE hypothesis class shaped like dsv-swiftpaxos's
-   `lib/RpcHttpHyps.lean` (read it on `origin/dsv-swiftpaxos`); `Client.Call` errors with
-   `errMsg`, `errOk` only for `srvErrMsg`, `codecFresh`/`srvEnv` from a per-machine boot resource
-   (next to the replicas' prophecy boot), all visible premises. The lab's `RpcCodec` (`enc`,
-   `dec`, `call`, `methods`) is `Net/`'s `CodecSpec` (`enc`, `dec`, `rcv`) plus the method specs;
-   the addresses are the kit's (`127.0.0.1:7501`, replicas' net/rpc at `127.0.0.1:850x`), not the
-   lab's `10.77.0.x` (`ipOf`, `portOf`, `masterRpcAddr` in `Rpc/Defs`).
-3. Then the client on remote, Codec()/Gen, Start/Shares, Mains, Linked (instances of the hypothesis
-   classes are NOT allowed: `wire.BufioSpecs` is discharged in `Linked` by `haveI := ⟨…wp_proof…⟩`
-   or by stating the top theorem over it and applying it to the proofs), `gryff_remote_robust` with
-   every premise visible (`InitHyp`s, `BinaryVarintHyps`, the rpc-http class, `strings.Index`;
-   `etc/theorem-loc.py`), `etc/tcb-collections/dsv-gryff.txt`.
+**Design findings this session (for the report):** remote's `ServeClient` needs the client state
+behind a persistent token (kit `Sys.mu`); remote gives no per-client bound on operations (kit
+`ops ≥ K`); `Check`'s `codecOk` needs an injective `EncIn` (24 bytes); Net's `NewServer.spec` does
+not expose the fresh server's empty service map (`RpcHttpHyp.srvFresh`, …); wildcard listeners in
+`robust_of_distProtoRB` (item 2); `io.ReadFull.spec`'s read condition at every length (rabia's
+`specLt`, `Lib/ReadFullLt`); lean-check false "0 errors" on new files (confirm with `lake build`);
+concurrent `lake` builds in one worktree race on `.olean`s.
 
 ### Older plan (sessions 1-3), still valid where not superseded above
 
