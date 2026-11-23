@@ -71,6 +71,32 @@ theorem errMsg_errAny (err : GoInterface) (msg : GoString) :
   inext
   iapply HΦ
 
+theorem errorString_isError [errors.Assumptions] :
+    go.typeSetContains (go.GoType.PointerType errors.errorString.ty) go.error = true := by
+  go_type_set
+
+/-- An `errors.New` variable's value has its message and is not a `ServerError` (the lab's
+`net.rpc.newVar_errMsg'`). -/
+theorem newVar_errMsg' [errors.Assumptions] (X msg : GoString) :
+    errors.newVar (GF := GF) X msg ⊢
+      ∃ e : GoInterface, globalAddr X ↦□ e ∗ net.rpc.errMsg e msg ∗ ⌜net.rpc.notServerErr e⌝ := by
+  unfold errors.newVar
+  iintro ⟨%x, #Hx, -, #H⟩
+  iexists _
+  iframe Hx
+  isplitl
+  · unfold net.rpc.errMsg
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; exact errorString_isError
+    iexact H
+  · ipureintro
+    intro e he
+    cases he
+    simp [net.rpc.ServerError.ty]
+
 end lemmas
 
 end github_com.despreston.go_craq

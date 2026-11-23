@@ -17,6 +17,7 @@ node's other role half), `rpcReady` (the node's rpc package with the kit's codec
 module
 
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Codec
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Node.Slots
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Coord.Slots
 
