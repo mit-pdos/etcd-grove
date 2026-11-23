@@ -4,7 +4,8 @@
 maintainers' `correctness.Model` from the frozen initial model `s` (k8s 7g step 5, decision 1): `isModel` of
 `realMS L init`, for any table `L` of the operations' values and views (`realM L init`: `Step` on a value
 decoded by `L`'s first entry with it). Its `Init` clones `s`, its `Step` type-asserts and calls
-`Model.Step`, its `Equal` is `Model.Equal`; no `Hash`, no `Partition`, no `StepContext`.
+`Model.Step`, its `Equal` is `Model.Equal`; no `Hash`, no `Partition`, no `StepContext`. The initial model has
+at most `2^61` items (`realMS`'s bound at index `0`).
 -/
 module
 
@@ -32,7 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- See the file header. -/
 abbrev toPorcupineModel.spec : Prop :=
   ∀ (mp : Loc) (init : RM) (L : List (github_com.anishathalye.porcupine.OpV × (Input × RResp))),
-  itemsFitL init →
+  itemsFitL init → GMap.size init.items ≤ 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness ∗
       modelAt mp init }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.toPorcupineModel)) (Val #mp))

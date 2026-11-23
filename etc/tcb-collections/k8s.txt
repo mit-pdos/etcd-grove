@@ -44,7 +44,6 @@ axiom metrics.RecordEtcdEvent.wp_proof
 axiom metrics.RecordEtcdRequest.wp_proof
 axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
-axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom pbAuthenticateRequestT_reg
 axiom pbAuthenticateResponseT_reg
 axiom pbCompactionRequestT_reg

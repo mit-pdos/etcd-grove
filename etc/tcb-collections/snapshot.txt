@@ -24,7 +24,6 @@ axiom DescribeConfChange.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
-axiom etcdserverpb.AlarmType.String.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom http.Flush_ok
 axiom http.NewRequest_ok

@@ -7,9 +7,9 @@
   once (`ansPend`), and the reader is back at the top of its loop (`rdrOwn`, the body read or the
   read failed); `keepReading` is `true`, and either `nil` with the request ready to run
   (`callReady`: the method's argument `argv` decoded from the request's argument bytes and its
-  reply `replyv` made, by the method's `NewArg` and `NewReply`), or an error with a message not
-  empty (the method is not registered, or the body did not read or decode) and the continuation's
-  error answers (`errCont`).
+  reply `replyv` made, by the method's `NewArg` and `NewReply`), or an error with one of the
+  server's own messages (`errSrv`: the method is not registered, or the body did not read or
+  decode) and the continuation's error answers (`errCont`).
 
 Proved in `Net/Proof/net/rpc/Server__readRequest.lean`.
 -/
@@ -49,7 +49,7 @@ abbrev Server.readRequest.spec : Prop :=
         req ↦ { (_root_.Perennial.zero_val net.rpc.Request) with ServiceMethod' := r.sm, Seq' := W64 k } ∗
         ansPend W a cn k r.sm Φ ∗ rdrOwn W a cn sc ∗
         ((⌜err = interface.nil⌝ ∗ callReady C svc mt argv replyv Φ) ∨
-          (⌜err ≠ interface.nil⌝ ∗ errNE err ∗ errCont Φ))) }}
+          (⌜err ≠ interface.nil⌝ ∗ errSrv err ∗ errCont Φ))) }}
 
 end spec
 

@@ -43,6 +43,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `store.updateOnce`) pass `V`'s post on; `blockLogger.recordWait` drops it.
 - **Decision.** Accepted (klog-printf, 2026-11-23): a premise the only source of `Verbose`s meets,
   and a stronger post of a proved function; no trusted contract changes.
+## 2026-11-23: `maps.Keys.spec_objMap` -- `slices.Sorted` needs the map below `2^62` keys (maps-keys, #36)
+
+- **Spec.** `Spec/maps/Keys.lean` (`maps.Keys.spec_objMap`, the axiom `maps.Keys.wp_proof_objMap`), and the
+  checker's model vocabulary that must supply its new premise: `itemsRO` (`Proof/.../k8s/etcd3/correctness/Defs.lean`),
+  the specs `Model.create`, `Model.update`, `Model.execute`, `Model.Step`, `initialModel`, `toPorcupineModel`,
+  `realCheck` (all under `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/`), `stepPre` and `realMS`'s `rep`.
+  No SpecPlan counterpart.
+- **Defect.** Too strong to prove: Perennial's `maps.wp_Sorted_Keys_string` (`ccfeb3895`) proves the pair only for
+  a map of at most `2^62` keys (`slices.Sort`'s heapsort premise: its index arithmetic overflows past that, real
+  in Go). The axiom claimed it for every map.
+- **Evidence.** `Perennial/Proof/maps/Results.lean`, `wp_Sorted_Keys_string`'s `⌜GMap.size M ≤ 2 ^ 62⌝`.
+- **Proposed change.** `spec_objMap`'s closure takes `⌜GMap.size M ≤ 2 ^ 62⌝` (and the axiom becomes a theorem from
+  Perennial's). The checker supplies it from a new invariant of the model's items, carried in `itemsRO`: at most
+  `2^62` items. A model that grows (`create`, `update`, so `execute`, `Step`) takes `GMap.size m.items < 2 ^ 62`;
+  `initialModel` takes its store's items at most `2^62`; `realMS`'s value at index `k` has at most `2^61 + k` items
+  (porcupine steps below index `2^60`), so `toPorcupineModel` takes an initial model of at most `2^61` items;
+  `stepPre` (so `ReplayPre`) carries the strict bound along the replay; `realCheck` takes the seeded store's items
+  below `2^60`, which `Check` has from `Model`'s premise (`g0.st.items.length + g0.hist.length < 2 ^ 60`). No
+  top-level statement moves (`Check.spec` is unchanged).
+- **Decision.** Accepted by the coordinator (option 1, #36), 2026-11-23; applied on branch `maps-keys`.
+
 ## 2026-11-23: `idClusterInv` / `NewGenerator.spec` -- the cluster's claims hold every machine's generator facts (etcd-dist D7)
 
 - **Spec.** `Spec/go_etcd_io/etcd/pkg/v3/idutil/NewGenerator.lean` (`idutil.NewGenerator.spec`), its vocabulary

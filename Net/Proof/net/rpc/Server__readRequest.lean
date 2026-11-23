@@ -7,8 +7,8 @@ of the argument bytes of a deposit), the deposit's decoding (the deposit kept), 
 into it (`ReadRequestBody` guarded by `req_guard`: the frame read is the request's argument bytes;
 `req_body` again after the read), and on a decoding
 the deposit and the decoding turned into the call obligation, whose `NewReply` runs here
-(`callObl`); a body that does not read or decode is an error (`rdErr`, `decErr`: messages not
-empty) with the deposit spent on `errOk` (`errCont`). Two later credits: the body's protocol fact.
+(`callObl`); a body that does not read or decode is an error (`rdErr`, `decErr`: the server's own
+messages, `errSrv`) with the deposit spent on `errOk` (`errCont`). Two later credits: the body's protocol fact.
 -/
 module
 
@@ -38,12 +38,12 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- A decoding error has a message not empty (`errNE`). -/
-theorem errNE_decErr (err : GoInterface) : decErr (GF := GF) err ⊢ errNE err := by
+/-- A decoding error's message is one of the server's own error answers (`errSrv`). -/
+theorem errSrv_decErr (err : GoInterface) : decErr (GF := GF) err ⊢ errSrv err := by
   iunfold decErr
   iintro ⟨%x, %msg, ⟨%He, %Hm⟩, #H⟩
-  subst He
-  iapply errNE_errorString x msg Hm $$ H
+  subst He Hm
+  iapply errSrv_errorString x _ srvErrMsg_dec $$ H
 
 /-- The reader after a request's body frame `pl`: back at the top of its loop. -/
 theorem rdr_adv (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (k : Nat)
@@ -285,7 +285,7 @@ theorem Server.readRequest.wp_proof
     isplitr
     · ipureintro; exact Hne1
     isplitl [Hdc]
-    · iapply errNE_decErr $$ Hdc
+    · iapply errSrv_decErr $$ Hdc
     iunfold errCont
     iintro %msg %hmsg
     iapply HerrOk' $$ %m %r.body %Φc %msg %hmsg HS
