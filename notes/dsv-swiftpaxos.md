@@ -116,7 +116,55 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, ninth session; resume here)
+## State (2026-11-23, tenth session; resume here)
+
+Read with the ninth session's state below (accurate where this does not say otherwise).
+
+**Done (pushed).**
+- **Merged `origin/lean` 38c516a9ba** (Perennial `71de6f043`, `b13965d80d`; one conflict,
+  `Dsverify/Code/os/signal.toml`: lean's, dsv-rabia's). Perennial: `/shared/perennial-71de6f043`
+  (made by the EPaxos landing agent), through `.lake/package-overrides.json` (dsv-epaxos's copy;
+  the old `.lake/packages` symlinks to `perennial-7b2259a12` moved to the scratchpad). Use
+  `PERENNIAL_DIR=/shared/perennial-71de6f043` for `etc/goose.py`/`etc/gen-init.py`. `.lake/build`
+  seeded by `rsync` from dsv-epaxos's (it builds on the same pin). `etc/goose.py --project
+  dsv-swiftpaxos`: 0 files changed (so the concurrent-map toml question of the third session is
+  settled: the translation is up to date with it).
+- **Package facts: per-package `Base.lean` instances** (`3cb4097f1d`). The lab's run-level
+  `SwiftNetPkgState` fields and the generic instances over them (kit `Base.lean`) are gone;
+  `SwiftNetPkgState` is kept as an empty extension of `SwiftLibs` (so the 311 ported files'
+  binders stand) and the kit `Base.lean` imports every package's `Base.lean`. The facts are the
+  lab's `pkgStates`: `True` but `replica.defs` (`LatencyConf ↦□ ""`), `replica` (its two
+  `errors.newVar`s, the lab's `replica.pkgSt`), `swift` (`swift.pkgSt`, its definition and
+  `swift.fastAckP` moved from `swift/Pkg.lean` to `swift/Base.lean`). Shared with dsv-epaxos,
+  copied identical: gods' six `Base`/`Init`, `encoding/json/{Base,Init}`, `net/{rpc,http}/Init`.
+  New: `encoding/hex/{Base,Init}` (the main tree's instance is in bbolt's `PkgInit`, whose
+  `Proof.runtime.PkgInitExt` clashes with `Net/`'s: the part's own, as rabia's `path`).
+- **`etc/dsv/swiftpaxos.py`'s gen-init section**: `PKGS` = gods + `rpc dlog config state hook
+  replica.defs replica master` (generated `Init.lean`s, all build; `replica`'s proves its
+  `errors.newVar` fact through custom `before`/`finish` steps); `MAIN`, `MAIN_GEN = [bufio,
+  encoding.hex]`; `HYP_INITS = [encoding.json, net.rpc, net.http, os.signal, math.rand,
+  encoding.gob, github_com.google.uuid]`, `HYP_IMPORTS = 'none'`. Hand-written `InitHyp` files
+  (no instance anywhere): `Dsverify/Proof/encoding/gob/Init.lean`,
+  `Dsverify/Proof/github_com/google/uuid/Init.lean` (net/rpc's shape); os/signal's and math/rand's
+  are dsv-rabia's (lean). gen-init run twice: stable.
+- **Package initialization (design).** `client`, `swift`, `concurrent-map`, the kit package and
+  the 13 programs are **not** in `PKGS`: their first initialization hands the node's boot thread
+  owned resources that Perennial's `wp_initialize'` (persistent `isPkgInit` only) cannot return:
+  the mutable globals `swift.MaxDescRoutines`, `useFastAckPool` (the kit's `serve` writes
+  `MaxDescRoutines`; a Go store needs the exclusive points-to) and `concurrent-map`'s
+  `SHARD_COUNT` (`swift.mutGlobalsInit`), and `client`'s node ghost (`client.freshAt`). Their
+  `Base.lean`s are hand-written (facts `True`, swift's `swift.pkgSt`), and their initializations
+  are the lab's first-run proofs (`examples/swiftnet/InitFirst.lean`'s `wp_package_init_first`,
+  `ClientPkgInits.lean`, `SrvInit.lean`), to be redone over these instances for the new kit
+  package and programs (step 4/5). `PROGRAMS` (the 13 `PkgTable.lean`s) is not configured yet:
+  the tables import each program's `Init.lean`, which will be hand-written (add `PROGRAMS` once
+  they exist, then rerun gen-init).
+
+**Next.** Unchanged from the ninth session's list (steps 2-7), with the initialization above. The
+lab-kit files that read the old `pkgStates` (`PkgState`, `Parts`, `ServersLink`, `SrvInit`,
+`ClientPkgInits`, `Orch`, `ClientNodeLink`) break; they are the lab kit's, replaced in step 5.
+
+## State (2026-11-23, ninth session; superseded where the tenth says so)
 
 Read with the eighth session's state below (accurate where this does not say otherwise).
 
@@ -860,6 +908,7 @@ unbuilt modules whose imports build, by how many wait on them; the error of each
 
 ## How to resume
 
-- `.lake/packages` here are symlinks to `/shared/perennial-9c3b81f30` (built) and its packages.
+- Perennial: `.lake/package-overrides.json` points at `/shared/perennial-71de6f043` (lean's pin since
+  38c516a9ba); `PERENNIAL_DIR=/shared/perennial-71de6f043` for goose.py/gen-init.py.
 - To build all the copied modules (one `lake build`, about 15 minutes when warm): list every `.lean` under `Dsverify/{Proof,Spec}/github_com/{imdea_software,orcaman,emirpasic}` and `Dsverify/{Proof,Spec}/encoding` as module names and pass them to `lake build`. A module failing with `bad import` waits on another.
 - `etc/dsv-swiftpaxos/port.py` (the lab-to-part copy, the module mapping above; reads the lab read-only) and `etc/dsv-swiftpaxos/genpkg.py` (`Base`'s package-state section) are the porting scripts.
