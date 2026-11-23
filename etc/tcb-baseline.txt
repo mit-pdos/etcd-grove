@@ -166,8 +166,6 @@ axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
-axiom maps.Clone.wp_proof_strBool
-axiom maps.Equal.wp_proof_strBool
 axiom maps.Keys.wp_proof_objMap
 axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof
@@ -282,7 +280,6 @@ axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
 axiom reflect.DeepEqual.wp_proof_k8s
 axiom reflect.DeepEqual.wp_proof_pgidSet
-axiom reflect.KindCompare.wp_proof
 axiom reflect.MakeSlice.wp_proof
 axiom reflect.New.wp_proof
 axiom reflect.Type.Elem.wp_proof
@@ -298,8 +295,6 @@ axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
-axiom reflectM.value_intoVal_inj
-axiom reflectM.value_into_val_typed
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
