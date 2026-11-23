@@ -71,6 +71,10 @@ def pairOk (k : GoString) (vs : List GoString) : Prop :=
 `DataLoss`. -/
 def restrictedCodes : List w32 := [W32 3, W32 5, W32 6, W32 9, W32 10, W32 11, W32 15]
 
+/-- **The model's `encodeMetadataHeader(k, v)`**: a `-bin` key's value base64-encoded without
+padding (`b64Raw`), any other value as it is. -/
+def encMdHdr (k v : GoString) : GoString := if go!"-bin" <:+ k then b64Raw v else v
+
 /-- **`grpcutil.div(d, r)`**: `d / r` rounded up when the remainder is positive (Go's truncating
 `/` and `%` on `int64`, `BitVec.sdiv`/`srem`). -/
 def durDiv (d r : w64) : w64 :=

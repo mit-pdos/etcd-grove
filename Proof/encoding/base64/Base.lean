@@ -64,6 +64,10 @@ def stdEnc (d : List w8) : GoString := b64Enc stdAlphabet (some 61) d
 string. -/
 def rawUrlEnc (d : List w8) : GoString := b64Enc urlAlphabet none d
 
+/-- **base64's standard encoding without padding** (`RawStdEncoding.EncodeToString`) of a byte
+string (phase 7 S2 core, 2026-11-23: grpc's `encodeBinHeader`). -/
+def rawStdEnc (d : List w8) : GoString := b64Enc stdAlphabet none d
+
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -92,6 +96,16 @@ abbrev rawUrlEncInit : IProp GF :=
       WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"EncodeToString" #e)) (Val #sl))
         {{ Φ }})
 
+/-- **`encoding/base64`'s fact, `RawStdEncoding`'s part** (phase 7 S2 core, 2026-11-23: grpc's
+`encodeBinHeader`): `RawStdEncoding = StdEncoding.WithPadding(NoPadding)` holds a fixed pointer, on
+which `EncodeToString(src)` returns `rawStdEnc` of `src`'s bytes, reading and keeping the slice. -/
+abbrev rawStdEncInit : IProp GF :=
+  iprop(∃ e : Loc, globalAddr RawStdEncoding ↦□ e ∗
+    □ ∀ (sl : GoSlice) (dq : DFrac) (d : List w8) (Φ : val → IProp GF),
+      sl ↦*{dq} d -∗ ▷ (sl ↦*{dq} d -∗ Φ #(rawStdEnc d)) -∗
+      WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"EncodeToString" #e)) (Val #sl))
+        {{ Φ }})
+
 /-- **`encoding/base64`'s fact, `StdEncoding`'s decoder** (prove-authcrypto, 2026-11-21; the auth
 store's `selectPassword`): on `StdEncoding`'s fixed pointer, `DecodeString(s)` returns a fresh slice
 and an error, the error `nil` when `s` is the standard encoding `stdEnc` of some bytes
@@ -105,8 +119,8 @@ abbrev stdDecInit : IProp GF :=
       WP (App (Val #(methods (go.GoType.PointerType Encoding.ty) go!"DecodeString" #e)) (Val #s))
         {{ Φ }})
 
-/-- **`encoding/base64`'s fact**: the three parts. -/
-abbrev base64Init : IProp GF := iprop(stdEncInit ∗ rawUrlEncInit ∗ stdDecInit)
+/-- **`encoding/base64`'s fact**: the four parts. -/
+abbrev base64Init : IProp GF := iprop(stdEncInit ∗ rawUrlEncInit ∗ stdDecInit ∗ rawStdEncInit)
 
 instance encoding_base64_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.encoding.base64 :=
@@ -135,8 +149,14 @@ theorem rawUrlEncInit_access :
 theorem stdDecInit_access :
     isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 ⊢ stdDecInit (GF := GF) := by
   iintro #H
-  ihave ⟨-, -, #H3⟩ := base64Init_access $$ H
+  ihave ⟨-, -, #H3, -⟩ := base64Init_access $$ H
   iexact H3
+
+theorem rawStdEncInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.encoding.base64 ⊢ rawStdEncInit (GF := GF) := by
+  iintro #H
+  ihave ⟨-, -, -, #H4⟩ := base64Init_access $$ H
+  iexact H4
 
 end init
 

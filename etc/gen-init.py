@@ -1485,13 +1485,14 @@ SPECIAL['encoding.base64'] = dict(
     doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26;
 k8s 7e-2, 2026-11-09): `StdEncoding` and `RawURLEncoding` hold fixed `*Encoding`s whose
 `EncodeToString` returns the standard encoding (`stdEnc`), resp. the URL encoding without padding
-(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP.
+(`rawUrlEnc`), of its argument's bytes, stated as the method call's own WP; so does
+`RawStdEncoding`'s, the standard encoding without padding (`rawStdEnc`; phase 7 S2 core, 2026-11-23).
 Its initializer allocates its four variables and runs their translated initializers (`base64.go`,
 translated with their bodies since 2026-11-20, prove-b64clock; until then the trust-boundary axioms
 `StdEncoding_init`, `RawURLEncoding_init` and `opaqueInitsOk`): `NewEncoding` of the two alphabets
 (`NewEncoding.wp_proof`; valid alphabets, `stdAlphabet_ok`, `urlAlphabet_ok`), and `WithPadding(NoPadding)`
 of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString`'s spec
-(`stdEncInit_intro`, `rawUrlEncInit_intro`).''',
+(`stdEncInit_intro`, `rawUrlEncInit_intro`, `rawStdEncInit_intro`).''',
     imports=['Proof.encoding.base64.NewEncoding', 'Proof.encoding.base64.Encoding__WithPadding',
              'Proof.encoding.base64.Encoding__EncodeToString', 'Proof.encoding.base64.Encoding__EncodedLen',
              'Proof.encoding.base64.Encoding__Encode', 'Proof.encoding.base64.InitFacts',
@@ -1515,7 +1516,8 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
         'try wp_auto',
         'wp_apply (EtcdGrove.base64.Encoding.WithPadding.wp_proof eU encU _) $$ HeU as %eRU ⟨HeU, HeRU⟩',
         'try wp_auto']},
-    finish=['ipersist HStdEncoding', 'ipersist HRawURLEncoding', 'ipersist HeS', 'ipersist HeRU'] +
+    finish=['ipersist HStdEncoding', 'ipersist HRawURLEncoding', 'ipersist HRawStdEncoding',
+            'ipersist HeS', 'ipersist HeRU', 'ipersist HeRS'] +
            FIN_PRE[:6] + ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
             'unfold _root_.Perennial.encoding.base64.base64Init', 'isplitl',
             '· iapply (EtcdGrove.base64.stdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
@@ -1526,12 +1528,17 @@ of each (`Encoding.WithPadding.wp_proof`); the fact's parts from `EncodeToString
             '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
             '    eRU { encU with padChar\' := W32 (-1) } hU.1 rfl) $$ HRawURLEncoding HeRU',
             # (prove-authcrypto, 2026-11-21) the decoder's part
-            'iapply (EtcdGrove.base64.stdDecInit_intro (EtcdGrove.base64.Encoding.DecodeString.wp_proof',
-            '    (EtcdGrove.base64.Encoding.DecodedLen.wp_proof EtcdGrove.base64.decodedLen.wp_proof)',
-            '    (EtcdGrove.base64.Encoding.Decode.wp_proof (EtcdGrove.base64.Encoding.decodeQuantum.wp_proof)',
-            '      EtcdGrove.base64.assemble32.wp_proof EtcdGrove.base64.assemble64.wp_proof',
-            '      EtcdGrove.byteorder.BEPutUint32.wp_proof EtcdGrove.byteorder.BEPutUint64.wp_proof))',
-            '  eS encS hS.1 hS.2.1 (by rw [hS.1]; exact hS.2.2.1) hS.2.2.2) $$ HStdEncoding HeS'],
+            'isplitl',
+            '· iapply (EtcdGrove.base64.stdDecInit_intro (EtcdGrove.base64.Encoding.DecodeString.wp_proof',
+            '      (EtcdGrove.base64.Encoding.DecodedLen.wp_proof EtcdGrove.base64.decodedLen.wp_proof)',
+            '      (EtcdGrove.base64.Encoding.Decode.wp_proof (EtcdGrove.base64.Encoding.decodeQuantum.wp_proof)',
+            '        EtcdGrove.base64.assemble32.wp_proof EtcdGrove.base64.assemble64.wp_proof',
+            '        EtcdGrove.byteorder.BEPutUint32.wp_proof EtcdGrove.byteorder.BEPutUint64.wp_proof))',
+            '    eS encS hS.1 hS.2.1 (by rw [hS.1]; exact hS.2.2.1) hS.2.2.2) $$ HStdEncoding HeS',
+            # (phase 7 S2 core, 2026-11-23) `RawStdEncoding`'s part, for grpc's `encodeBinHeader`
+            'iapply (EtcdGrove.base64.rawStdEncInit_intro (EtcdGrove.base64.Encoding.EncodeToString.wp_proof',
+            '      EtcdGrove.base64.Encoding.EncodedLen.wp_proof EtcdGrove.base64.Encoding.Encode.wp_proof)',
+            '    eRS { encS with padChar\' := W32 (-1) } hS.1 rfl) $$ HRawStdEncoding HeRS'],
 )
 
 # (prove-authcrypto, 2026-11-21) bcrypt's variables translated (until then `opaqueInitsOk`):

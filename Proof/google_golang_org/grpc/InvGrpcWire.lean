@@ -61,6 +61,7 @@ module
 
 public import GooseLang.Ext.Net.Slot
 public import Proof.google_golang_org.grpc.InvGrpc
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -180,24 +181,10 @@ def fieldLast (fs : List (GoString × GoString)) (k : GoString) : Option GoStrin
 /-- The method a head names (`operateHeaders`: the last `:path`). -/
 def pathOf (fs : List (GoString × GoString)) : Option GoString := fieldLast fs go!":path"
 
-/-- The base64 standard alphabet. -/
-def b64Alphabet : List w8 :=
-  go!"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-
-def b64Char (n : Nat) : w8 := b64Alphabet.getD (n % 64) 0
-
-/-- `base64.RawStdEncoding.EncodeToString` (no padding). -/
-def b64Raw : List w8 → List w8
-  | a :: b :: c :: rest =>
-    let x := a.toNat * 65536 + b.toNat * 256 + c.toNat
-    [b64Char (x / 262144), b64Char (x / 4096), b64Char (x / 64), b64Char x] ++ b64Raw rest
-  | [a, b] =>
-    let x := a.toNat * 65536 + b.toNat * 256
-    [b64Char (x / 262144), b64Char (x / 4096), b64Char (x / 64)]
-  | [a] =>
-    let x := a.toNat * 65536
-    [b64Char (x / 262144), b64Char (x / 4096)]
-  | [] => []
+/-- `base64.RawStdEncoding.EncodeToString` (no padding): base64's `rawStdEnc` (2026-11-23, S2 core:
+until then a copy of the encoder here, `b64Char`/`b64Alphabet`; one definition now, the one base64's
+package fact gives `RawStdEncoding.EncodeToString`). -/
+abbrev b64Raw (d : List w8) : List w8 := _root_.Perennial.encoding.base64.rawStdEnc d
 
 /-- **The incoming metadata `md` the server makes of the head `fs`** (`operateHeaders`), on every key
 grpc does not set itself (see the file header). -/
