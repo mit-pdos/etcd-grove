@@ -35,18 +35,11 @@ namespace EtcdGrove
 
 open Iris Iris.BI map
 
-section defs
+section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- The features `NewDefaultServerFeatureGate` registers (`DefaultEtcdServerFeatureGates`'s keys). -/
-def serverFeatures : List GoString :=
-  [go!"StopGRPCServiceOnDefrag", go!"InitialCorruptCheck", go!"CompactHashCheck",
-   go!"TxnModeWriteWithSharedBuffer", go!"LeaseCheckpoint", go!"LeaseCheckpointPersist",
-   go!"SetMemberLocalAddr", go!"FastLeaseKeepAlive", go!"PriorityRequest",
-   go!"NonBlockingDefrag"]
 
 /-- `DefaultEtcdServerFeatureGates` (`server/features/etcd_features.go`), in the initializer's
 insertion order (featuregate-3, 2026-11-23). -/
@@ -72,6 +65,21 @@ def featuresInit : IProp GF :=
 
 instance featuresInit_persistent : Persistent (featuresInit (GF := GF)) := by
   unfold featuresInit; infer_instance
+
+end init
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- The features `NewDefaultServerFeatureGate` registers (`DefaultEtcdServerFeatureGates`'s keys). -/
+def serverFeatures : List GoString :=
+  [go!"StopGRPCServiceOnDefrag", go!"InitialCorruptCheck", go!"CompactHashCheck",
+   go!"TxnModeWriteWithSharedBuffer", go!"LeaseCheckpoint", go!"LeaseCheckpointPersist",
+   go!"SetMemberLocalAddr", go!"FastLeaseKeepAlive", go!"PriorityRequest",
+   go!"NonBlockingDefrag"]
 
 /-- **The feature gate** `fg` (`featuregate.FeatureGate`, a contract): `Enabled(f)` of a registered
 feature returns some boolean. -/
