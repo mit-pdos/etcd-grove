@@ -173,7 +173,7 @@ noncomputable instance nodeSelectorTerm_access_load_matchLabels (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeSelectorTerm_access_store_matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (matchLabels' : k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance nodeSelectorTerm_access_store_matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (matchLabels' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) matchLabels' (DFrac.own 1))
@@ -189,7 +189,7 @@ noncomputable instance nodeSelectorTerm_access_load_matchFields (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance nodeSelectorTerm_access_store_matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (matchFields' : k8s_io.apimachinery.pkg.fields.Selector) :
+noncomputable instance nodeSelectorTerm_access_store_matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (matchFields' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) matchFields' (DFrac.own 1))
@@ -303,7 +303,7 @@ noncomputable instance RequiredNodeAffinity_access_load_labelSelector (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequiredNodeAffinity_access_store_labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (labelSelector' : k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance RequiredNodeAffinity_access_store_labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (labelSelector' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) labelSelector' (DFrac.own 1))

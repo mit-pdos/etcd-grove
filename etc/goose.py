@@ -538,6 +538,9 @@ PROJECTS = [
             # types only: the interfaces trace.Span embeds and the types of its methods' parameters
             # (so that Goose translates Span as an interface)
             "go.opentelemetry.io/otel/trace/embedded",
+            # (otel-tracing, 2026-11-23) with bodies: the no-op tracer `traceutil.Tracer` holds
+            # (`noop.NewTracerProvider().Tracer(...)`, its initializer)
+            "go.opentelemetry.io/otel/trace/noop",
             "go.opentelemetry.io/otel/codes",
             "go.opentelemetry.io/otel/attribute",
             # (prove-misc, 2026-11-20) names only but its package variables: the carrier interface

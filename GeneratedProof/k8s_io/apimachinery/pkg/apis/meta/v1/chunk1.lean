@@ -49,7 +49,7 @@ noncomputable instance Duration_access_load_Duration (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance Duration_access_store_Duration (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Duration) (Duration' : time.Duration) :
+noncomputable instance Duration_access_store_Duration (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Duration) (Duration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Duration go!"Duration" l) v.Duration' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Duration go!"Duration" l) Duration' (DFrac.own 1))
@@ -446,7 +446,7 @@ noncomputable instance MicroTime_access_load_Time (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance MicroTime_access_store_Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime) (Time' : time.Time) :
+noncomputable instance MicroTime_access_store_Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime) (Time' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime go!"Time" l) Time' (DFrac.own 1))
@@ -486,7 +486,7 @@ noncomputable instance Time_access_load_Time (l : Loc) (v : k8s_io.apimachinery.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Time_access_store_Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) (Time' : time.Time) :
+noncomputable instance Time_access_store_Time (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) (Time' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Time go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Time go!"Time" l) Time' (DFrac.own 1))
@@ -841,7 +841,7 @@ noncomputable instance OwnerReference_access_load_UID (l : Loc) (v : k8s_io.apim
  by
   solve_pointsto_access_struct
 
-noncomputable instance OwnerReference_access_store_UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference) (UID' : k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance OwnerReference_access_store_UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference) (UID' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference go!"UID" l) v.UID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.OwnerReference go!"UID" l) UID' (DFrac.own 1))
@@ -1023,7 +1023,7 @@ noncomputable instance StatusDetails_access_load_UID (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatusDetails_access_store_UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails) (UID' : k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance StatusDetails_access_store_UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails) (UID' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails go!"UID" l) v.UID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails go!"UID" l) UID' (DFrac.own 1))
@@ -1471,7 +1471,7 @@ noncomputable instance TableRow_access_load_Object (l : Loc) (v : k8s_io.apimach
  by
   solve_pointsto_access_struct
 
-noncomputable instance TableRow_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRow) (Object' : k8s_io.apimachinery.pkg.runtime.RawExtension) :
+noncomputable instance TableRow_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.TableRow) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRow go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.TableRow go!"Object" l) Object' (DFrac.own 1))

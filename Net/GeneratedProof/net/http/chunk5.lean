@@ -67,7 +67,7 @@ noncomputable instance unencryptedHTTP2Request_access_load_ctx (l : Loc) (v : ne
  by
   solve_pointsto_access_struct
 
-noncomputable instance unencryptedHTTP2Request_access_store_ctx (l : Loc) (v : net.http.unencryptedHTTP2Request) (ctx' : context.Context) :
+noncomputable instance unencryptedHTTP2Request_access_store_ctx (l : Loc) (v : net.http.unencryptedHTTP2Request) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.unencryptedHTTP2Request go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.unencryptedHTTP2Request go!"ctx" l) ctx' (DFrac.own 1))
@@ -83,7 +83,7 @@ noncomputable instance unencryptedHTTP2Request_access_load_c (l : Loc) (v : net.
  by
   solve_pointsto_access_struct
 
-noncomputable instance unencryptedHTTP2Request_access_store_c (l : Loc) (v : net.http.unencryptedHTTP2Request) (c' : net.Conn) :
+noncomputable instance unencryptedHTTP2Request_access_store_c (l : Loc) (v : net.http.unencryptedHTTP2Request) (c' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.unencryptedHTTP2Request go!"c" l) v.c' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.unencryptedHTTP2Request go!"c" l) c' (DFrac.own 1))
@@ -175,7 +175,7 @@ noncomputable instance http3ServerHandler_access_load_baseCtx (l : Loc) (v : net
  by
   solve_pointsto_access_struct
 
-noncomputable instance http3ServerHandler_access_store_baseCtx (l : Loc) (v : net.http.http3ServerHandler) (baseCtx' : context.Context) :
+noncomputable instance http3ServerHandler_access_store_baseCtx (l : Loc) (v : net.http.http3ServerHandler) (baseCtx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.http3ServerHandler go!"baseCtx" l) v.baseCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.http3ServerHandler go!"baseCtx" l) baseCtx' (DFrac.own 1))
@@ -207,7 +207,7 @@ noncomputable instance http3ServerHandler_access_load_shutdownCtx (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance http3ServerHandler_access_store_shutdownCtx (l : Loc) (v : net.http.http3ServerHandler) (shutdownCtx' : context.Context) :
+noncomputable instance http3ServerHandler_access_store_shutdownCtx (l : Loc) (v : net.http.http3ServerHandler) (shutdownCtx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.http3ServerHandler go!"shutdownCtx" l) v.shutdownCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.http3ServerHandler go!"shutdownCtx" l) shutdownCtx' (DFrac.own 1))
@@ -282,7 +282,7 @@ noncomputable instance timeoutHandler_access_load_dt (l : Loc) (v : net.http.tim
  by
   solve_pointsto_access_struct
 
-noncomputable instance timeoutHandler_access_store_dt (l : Loc) (v : net.http.timeoutHandler) (dt' : time.Duration) :
+noncomputable instance timeoutHandler_access_store_dt (l : Loc) (v : net.http.timeoutHandler) (dt' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.timeoutHandler go!"dt" l) v.dt' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.timeoutHandler go!"dt" l) dt' (DFrac.own 1))
@@ -298,7 +298,7 @@ noncomputable instance timeoutHandler_access_load_testContext (l : Loc) (v : net
  by
   solve_pointsto_access_struct
 
-noncomputable instance timeoutHandler_access_store_testContext (l : Loc) (v : net.http.timeoutHandler) (testContext' : context.Context) :
+noncomputable instance timeoutHandler_access_store_testContext (l : Loc) (v : net.http.timeoutHandler) (testContext' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.timeoutHandler go!"testContext" l) v.testContext' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.timeoutHandler go!"testContext" l) testContext' (DFrac.own 1))
@@ -340,7 +340,7 @@ noncomputable instance initALPNRequest_access_load_ctx (l : Loc) (v : net.http.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance initALPNRequest_access_store_ctx (l : Loc) (v : net.http.initALPNRequest) (ctx' : context.Context) :
+noncomputable instance initALPNRequest_access_store_ctx (l : Loc) (v : net.http.initALPNRequest) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.initALPNRequest go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.initALPNRequest go!"ctx" l) ctx' (DFrac.own 1))
@@ -565,7 +565,7 @@ noncomputable instance transferWriter_access_load_Body (l : Loc) (v : net.http.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance transferWriter_access_store_Body (l : Loc) (v : net.http.transferWriter) (Body' : io.Reader) :
+noncomputable instance transferWriter_access_store_Body (l : Loc) (v : net.http.transferWriter) (Body' : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.transferWriter go!"Body" l) v.Body' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.transferWriter go!"Body" l) Body' (DFrac.own 1))
@@ -581,7 +581,7 @@ noncomputable instance transferWriter_access_load_BodyCloser (l : Loc) (v : net.
  by
   solve_pointsto_access_struct
 
-noncomputable instance transferWriter_access_store_BodyCloser (l : Loc) (v : net.http.transferWriter) (BodyCloser' : io.Closer) :
+noncomputable instance transferWriter_access_store_BodyCloser (l : Loc) (v : net.http.transferWriter) (BodyCloser' : _root_.Perennial.io.Closer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.transferWriter go!"BodyCloser" l) v.BodyCloser' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.transferWriter go!"BodyCloser" l) BodyCloser' (DFrac.own 1))
@@ -870,7 +870,7 @@ noncomputable instance transferReader_access_load_Body (l : Loc) (v : net.http.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance transferReader_access_store_Body (l : Loc) (v : net.http.transferReader) (Body' : io.ReadCloser) :
+noncomputable instance transferReader_access_store_Body (l : Loc) (v : net.http.transferReader) (Body' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.transferReader go!"Body" l) v.Body' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.transferReader go!"Body" l) Body' (DFrac.own 1))
@@ -1017,7 +1017,7 @@ noncomputable instance Transport_access_load_idleMu (l : Loc) (v : net.http.Tran
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_idleMu (l : Loc) (v : net.http.Transport) (idleMu' : sync.Mutex) :
+noncomputable instance Transport_access_store_idleMu (l : Loc) (v : net.http.Transport) (idleMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"idleMu" l) v.idleMu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"idleMu" l) idleMu' (DFrac.own 1))
@@ -1097,7 +1097,7 @@ noncomputable instance Transport_access_load_reqMu (l : Loc) (v : net.http.Trans
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_reqMu (l : Loc) (v : net.http.Transport) (reqMu' : sync.Mutex) :
+noncomputable instance Transport_access_store_reqMu (l : Loc) (v : net.http.Transport) (reqMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"reqMu" l) v.reqMu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"reqMu" l) reqMu' (DFrac.own 1))
@@ -1129,7 +1129,7 @@ noncomputable instance Transport_access_load_altMu (l : Loc) (v : net.http.Trans
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_altMu (l : Loc) (v : net.http.Transport) (altMu' : sync.Mutex) :
+noncomputable instance Transport_access_store_altMu (l : Loc) (v : net.http.Transport) (altMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"altMu" l) v.altMu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"altMu" l) altMu' (DFrac.own 1))
@@ -1145,7 +1145,7 @@ noncomputable instance Transport_access_load_altProto (l : Loc) (v : net.http.Tr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_altProto (l : Loc) (v : net.http.Transport) (altProto' : sync.atomic.Value) :
+noncomputable instance Transport_access_store_altProto (l : Loc) (v : net.http.Transport) (altProto' : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"altProto" l) v.altProto' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"altProto" l) altProto' (DFrac.own 1))
@@ -1161,7 +1161,7 @@ noncomputable instance Transport_access_load_connsPerHostMu (l : Loc) (v : net.h
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_connsPerHostMu (l : Loc) (v : net.http.Transport) (connsPerHostMu' : sync.Mutex) :
+noncomputable instance Transport_access_store_connsPerHostMu (l : Loc) (v : net.http.Transport) (connsPerHostMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostMu" l) connsPerHostMu' (DFrac.own 1))
@@ -1337,7 +1337,7 @@ noncomputable instance Transport_access_load_TLSHandshakeTimeout (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_TLSHandshakeTimeout (l : Loc) (v : net.http.Transport) (TLSHandshakeTimeout' : time.Duration) :
+noncomputable instance Transport_access_store_TLSHandshakeTimeout (l : Loc) (v : net.http.Transport) (TLSHandshakeTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"TLSHandshakeTimeout" l) TLSHandshakeTimeout' (DFrac.own 1))
@@ -1433,7 +1433,7 @@ noncomputable instance Transport_access_load_IdleConnTimeout (l : Loc) (v : net.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_IdleConnTimeout (l : Loc) (v : net.http.Transport) (IdleConnTimeout' : time.Duration) :
+noncomputable instance Transport_access_store_IdleConnTimeout (l : Loc) (v : net.http.Transport) (IdleConnTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"IdleConnTimeout" l) IdleConnTimeout' (DFrac.own 1))
@@ -1449,7 +1449,7 @@ noncomputable instance Transport_access_load_ResponseHeaderTimeout (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_ResponseHeaderTimeout (l : Loc) (v : net.http.Transport) (ResponseHeaderTimeout' : time.Duration) :
+noncomputable instance Transport_access_store_ResponseHeaderTimeout (l : Loc) (v : net.http.Transport) (ResponseHeaderTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"ResponseHeaderTimeout" l) ResponseHeaderTimeout' (DFrac.own 1))
@@ -1465,7 +1465,7 @@ noncomputable instance Transport_access_load_ExpectContinueTimeout (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_ExpectContinueTimeout (l : Loc) (v : net.http.Transport) (ExpectContinueTimeout' : time.Duration) :
+noncomputable instance Transport_access_store_ExpectContinueTimeout (l : Loc) (v : net.http.Transport) (ExpectContinueTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"ExpectContinueTimeout" l) ExpectContinueTimeout' (DFrac.own 1))
@@ -1577,7 +1577,7 @@ noncomputable instance Transport_access_load_nextProtoOnce (l : Loc) (v : net.ht
  by
   solve_pointsto_access_struct
 
-noncomputable instance Transport_access_store_nextProtoOnce (l : Loc) (v : net.http.Transport) (nextProtoOnce' : sync.Once) :
+noncomputable instance Transport_access_store_nextProtoOnce (l : Loc) (v : net.http.Transport) (nextProtoOnce' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Transport go!"nextProtoOnce" l) nextProtoOnce' (DFrac.own 1))

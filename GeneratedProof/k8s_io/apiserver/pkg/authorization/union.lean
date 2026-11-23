@@ -127,7 +127,7 @@ noncomputable instance NamedAuthorizer_access_load_Authorizer (l : Loc) (v : k8s
  by
   solve_pointsto_access_struct
 
-noncomputable instance NamedAuthorizer_access_store_Authorizer (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (Authorizer' : k8s_io.apiserver.pkg.authorization.authorizer.Authorizer) :
+noncomputable instance NamedAuthorizer_access_store_Authorizer (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (Authorizer' : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) Authorizer' (DFrac.own 1))

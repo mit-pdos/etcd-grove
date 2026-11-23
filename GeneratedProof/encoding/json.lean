@@ -338,7 +338,7 @@ noncomputable instance Decoder_access_load_r (l : Loc) (v : encoding.json.Decode
  by
   solve_pointsto_access_struct
 
-noncomputable instance Decoder_access_store_r (l : Loc) (v : encoding.json.Decoder) (r' : io.Reader) :
+noncomputable instance Decoder_access_store_r (l : Loc) (v : encoding.json.Decoder) (r' : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.Decoder go!"r" l) v.r' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.json.Decoder go!"r" l) r' (DFrac.own 1))
@@ -478,7 +478,7 @@ noncomputable instance Encoder_access_load_w (l : Loc) (v : encoding.json.Encode
  by
   solve_pointsto_access_struct
 
-noncomputable instance Encoder_access_store_w (l : Loc) (v : encoding.json.Encoder) (w' : io.Writer) :
+noncomputable instance Encoder_access_store_w (l : Loc) (v : encoding.json.Encoder) (w' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.json.Encoder go!"w" l) v.w' (DFrac.own 1))
       (typedPointsto (structFieldRef encoding.json.Encoder go!"w" l) w' (DFrac.own 1))

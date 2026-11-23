@@ -341,7 +341,7 @@ noncomputable instance Sys_access_load_mu (l : Loc) (v : github_com.imdea_softwa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (mu' : sync.Mutex) :
+noncomputable instance Sys_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"mu" l) mu' (DFrac.own 1))
@@ -373,7 +373,7 @@ noncomputable instance Sys_access_load_opMu (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_opMu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (opMu' : sync.Mutex) :
+noncomputable instance Sys_access_store_opMu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (opMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"opMu" l) v.opMu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"opMu" l) opMu' (DFrac.own 1))

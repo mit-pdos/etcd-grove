@@ -50,7 +50,7 @@ noncomputable instance rudimentaryErrorBackoff_access_load_minPeriod (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance rudimentaryErrorBackoff_access_store_minPeriod (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (minPeriod' : time.Duration) :
+noncomputable instance rudimentaryErrorBackoff_access_store_minPeriod (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (minPeriod' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) minPeriod' (DFrac.own 1))
@@ -66,7 +66,7 @@ noncomputable instance rudimentaryErrorBackoff_access_load_lastErrorTimeLock (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance rudimentaryErrorBackoff_access_store_lastErrorTimeLock (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (lastErrorTimeLock' : sync.Mutex) :
+noncomputable instance rudimentaryErrorBackoff_access_store_lastErrorTimeLock (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (lastErrorTimeLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) lastErrorTimeLock' (DFrac.own 1))
@@ -82,7 +82,7 @@ noncomputable instance rudimentaryErrorBackoff_access_load_lastErrorTime (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance rudimentaryErrorBackoff_access_store_lastErrorTime (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (lastErrorTime' : time.Time) :
+noncomputable instance rudimentaryErrorBackoff_access_store_lastErrorTime (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (lastErrorTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) lastErrorTime' (DFrac.own 1))

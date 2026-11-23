@@ -84,7 +84,7 @@ noncomputable instance RaftCluster_access_load_localID (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance RaftCluster_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (localID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance RaftCluster_access_store_localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) localID' (DFrac.own 1))
@@ -100,7 +100,7 @@ noncomputable instance RaftCluster_access_load_cid (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance RaftCluster_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (cid' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance RaftCluster_access_store_cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) cid' (DFrac.own 1))
@@ -132,7 +132,7 @@ noncomputable instance RaftCluster_access_load_Mutex (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance RaftCluster_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (Mutex' : sync.Mutex) :
+noncomputable instance RaftCluster_access_store_Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (Mutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) Mutex' (DFrac.own 1))
@@ -384,7 +384,7 @@ noncomputable instance Member_access_load_ID (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Member_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (ID' : go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance Member_access_store_ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (ID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) ID' (DFrac.own 1))
