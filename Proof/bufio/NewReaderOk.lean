@@ -25,12 +25,15 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 theorem bufio.NewReader.wp_proofOk
     (wp_NewReaderSize : bufio.NewReaderSize.spec (GF := GF) (hG := hG)) :
     bufio.NewReader.specOk (GF := GF) (hG := hG) := by
-  intro ri Pre S E R hty hpre
-  wp_start as ⟨#Hrd, HS⟩
+  intro ri Pre S E R
+  wp_start as ⟨%hty, #Hpkg, #Hrd, #Hpu, HS⟩
   try wp_auto
-  wp_apply wp_NewReaderSize ri Pre S E R (W64 4096) hty (by
-    show bufio.preUpTo Pre (max (sint.Z (W64 4096)) 16).toNat
-    exact hpre) $$ [$Hpkg $Hrd $HS] as %br Hbr
+  wp_apply wp_NewReaderSize ri Pre S E R (W64 4096) $$ [$Hpkg $Hrd $HS] as %br Hbr
+  · isplitr
+    · ipureintro; exact hty
+    have h : (max (sint.Z (W64 4096)) 16).toNat = 4096 := rfl
+    rw [h]
+    iexact Hpu
   try wp_auto
   iapply HΦ $$ Hbr
 

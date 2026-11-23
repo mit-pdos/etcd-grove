@@ -32,9 +32,10 @@ local macro "flush_tail" : tactic => `(tactic| (
   iexists buf, _, rest'
   iframe Hb Hbuf Herr2
   ipureintro
-  constructor
+  refine ⟨?_, ?_, ?_⟩
   · simp only [List.length_drop]; word
-  · rw [Hr']; exact Hn.2))
+  · rw [Hr']; exact Hn.2.1
+  · rw [Hr']; exact Hn.2.2))
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -46,7 +47,7 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 set_option goose.wp.extras true
 
 theorem bufio.Writer.Flush.wp_proof : bufio.Writer.Flush.spec (GF := GF) (hG := hG) := by
-  intro bw wi J Q Ew sent pend err
+  intro bw wi J Q Ew sz sent pend err
   wp_start as Hown
   iunfold bufio.ownBufWriter at Hown
   icases Hown with ⟨#Hpkg, #Hwr, HJ, #HQ, Hrep⟩
@@ -166,7 +167,7 @@ theorem bufio.Writer.Flush.wp_proof : bufio.Writer.Flush.spec (GF := GF) (hG := 
   iexists buf, _, pend ++ rest
   simp only [List.nil_append]
   iframe Hb Hbuf Herr
-  ipureintro; exact ⟨rfl, Hn.2⟩
+  ipureintro; exact ⟨rfl, Hn.2.1, Hn.2.2⟩
 
 end proof
 

@@ -25,8 +25,8 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 set_option goose.wp.extras true
 
 theorem bufio.NewWriterSize.wp_proof : bufio.NewWriterSize.spec (GF := GF) (hG := hG) := by
-  intro wi J Q Ew W size hty
-  wp_start as ⟨#Hwr, HJ, #HQ⟩
+  intro wi J Q Ew W size
+  wp_start as ⟨%hty, #Hpkg, #Hwr, HJ, #HQ⟩
   wp_auto
   simp only [ite_eq_right_of_eq_false _ _ (eq_false hty), decide_eq_false hty]
   wp_auto
@@ -45,7 +45,11 @@ theorem bufio.NewWriterSize.wp_proof : bufio.NewWriterSize.spec (GF := GF) (hG :
     simp only [List.nil_append, List.length_nil]
     iframe «$r0» Hbuf
     isplitr
-    · ipureintro; refine ⟨rfl, ?_⟩; simp only [List.length_replicate]; first | (show 0 < (sint.Z _).toNat; omega) | decide
+    · ipureintro
+      refine ⟨rfl, ?_, ?_⟩
+      · simp only [List.length_replicate]; first | (show 0 < (sint.Z _).toNat; omega) | decide
+      · simp only [List.length_replicate, bufio.writerSize]
+        split <;> first | rfl | omega
     unfold io.werrAt
     ileft; ipureintro; rfl
 

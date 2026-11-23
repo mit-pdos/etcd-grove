@@ -13,8 +13,18 @@ counterpart of Perennial's `io.readerOk` (`Perennial/Proof/io/Reader.lean`).
   (a connection's protocol, ...), is closed under prefixes (`io.prefixClosed`): a writer may accept
   any prefix of what it was given, and `*bufio.Writer` passes on prefixes of its buffer.
 
+`Ew` is position-free (`Ew err`), unlike `io.readerOk`'s `E r err`, deliberately: a writer's
+errors say nothing about where in the stream they happened that its clients use (a connection's
+write `*OpError` is the same at any position; `J` already records what was accepted), and the kits'
+writers treat every write error alike. A client that needs a position can put it in `J`.
+
 `io.writerStream` (`Proof/io/WriterStream.lean`, the WAL's `*os.File`) is the all-or-broken variant:
-a failed write leaves the writer's own predicate `B`, not a prefix of the bytes.
+a failed write leaves the writer's own predicate `B`, not a prefix of the bytes. There is no law
+between the two (review on #24): a `writerStream` is not a `writerOk` (after an error its state is
+`B out xs`, which need not be `J` of any prefix: a file whose offset a failed write lost), and a
+`writerOk` is a `writerStream` only for the permission `Q` true and errors whose evidence gives
+`errOkOrNil`, which no client asks for (the WAL writes files through `writerStream`, the kits
+connections through `writerOk`); it would be stated when one does.
 Lean-first.
 -/
 module
