@@ -192,8 +192,7 @@ Missing: `Spec/Proof/encoding/gob/SetCodec`, `netrpc/rpc/LocalRegister` (kit fil
   `close_au`.
 - **Wildcard `Listen`** (replicas `"0.0.0.0:"+port`, master `":"+port`): `Net/Spec/net/Listen`
   needs `addrOk a`. A wildcard listener accepts connections dialed to any address with its port
-  (D21). The coordinator reports a wildcard-listen piece in progress (upamanyus, before
-  `models-rpc-http`); until then a hypothesis named after the future spec.
+  (D21). Superseded: `net-wildcard-listen` is merged (above); use its specs, no hypothesis.
 - **The HTTP path** (`rpc.DialHTTP`, `rpc.HandleHTTP`, `http.Serve`): NOT yet in `SwiftHyps`. A
   hypothesis returning `Net/`'s `isClient` over `rpcAddr` (frames from byte 0) is FALSE of the
   model (`DialHTTPPath` writes `CONNECT` first). Upamanyu's intended shapes (branch
