@@ -81,6 +81,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.EvalLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskLaws2
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.Parts
 
 @[expose] public section
 
@@ -131,9 +132,18 @@ macro "odguard " c:term:max : tactic => do
     ⌜($c = true ∧ v = returnVal #()) ∨ ($c = false ∧ v = executeVal)⌝ ∗
       $r0p ↦ zero_val Loc ∗ $r1p ↦ zero_val Bool)) at next with [$r0 $r1]))
 
-/-- Closes a guard's case: the Go returned (`Or.inl`) or fell through (`Or.inr`). -/
-macro "odcase " h:term : tactic => `(tactic| (try wp_auto; iframe; ipureintro; first
-  | exact Or.inl ⟨$h, rfl⟩ | exact Or.inr ⟨$h, rfl⟩))
+/-- In a guard's case: the Go falls through (`odskip`) or returns (`odretc`); leaves the Lean
+condition's value (`c = false`, `c = true`). -/
+macro "odskip " h:term:max : tactic => `(tactic| (
+  try wp_auto
+  iframe
+  ipureintro
+  first | (right; exact ⟨$h, rfl⟩) | simp))
+macro "odretc " h:term:max : tactic => `(tactic| (
+  try wp_auto
+  iframe
+  ipureintro
+  first | (left; exact ⟨$h, rfl⟩) | simp))
 
 set_option hygiene false in
 /-- After a guard: the join's facts; where the Go returned, so does the proof (`o = none`). -/
@@ -320,7 +330,7 @@ theorem State.OnDisk.wp_proof
     wp_apply wp_isApp _ X ia $$ [Hx]
     · iframe Hx; ipureintro; exact hia
     cases ia
-    · odcase (hiaf rfl)
+    · odskip (hiaf rfl)
     have h2 := hiat rfl
     unfold notM at h2
     obtain ⟨sd, hsd, h2⟩ := bind_ok h2
@@ -336,7 +346,62 @@ theorem State.OnDisk.wp_proof
     · iframe Hld Hll Hch Htl Hfm; ipureintro
       refine ⟨by rw [← hXld, ← hXll, ← hXch, ← hXtl]; exact hsd, numOk_bigOk hpli, by omega⟩
     subst h2
-    cases sd <;> odcase rfl
+    cases sd
+    · odretc rfl
+    · odskip rfl
+  odafter c
+  -- `!(x.T1() >= x.T0())`
+  have hT0b : bigOk X.T0 := getElem!_bigOk HW.1.currentTerm
+  obtain ⟨t1, ht1, Ho⟩ := bind_ok Ho
+  have ht1b : bigOk t1 := T1_bigOk HW ht1
+  odm T1
+  wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+  · iframe Hx; ipureintro; exact ht1
+  try wp_auto
+  odm T0
+  wp_apply wp_T0 _ X $$ [Hx] as %u0 %Hu0
+  · iexact Hx
+  try wp_auto
+  rw [Hu0, Hu1]
+  by_cases hge : X.T0 ≤ t1
+  case neg =>
+    rw [decide_eq_false hge]
+    simp only [ge_iff_le, decide_eq_false hge, Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+    subst Ho
+    odret
+  rw [decide_eq_true hge]
+  simp only [ge_iff_le, decide_eq_true hge, Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+  try wp_auto
+  -- `x.T1() != x.T0() && ro[n] == Leader`
+  obtain ⟨t1', ht1', Ho⟩ := bind_ok Ho
+  rw [ht1] at ht1'; cases ht1'
+  generalize hc : (t1 != X.T0 && X.ro[sint.nat n]! == leader) = c at Ho
+  ihave #Hron := strsRO_at rol ro n ⟨Hn, by rw [Hrol]; exact Hlt⟩ $$ Hro
+  odguard c
+  · odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    odm T0
+    wp_apply wp_T0 _ X $$ [Hx] as %u0 %Hu0
+    · iexact Hx
+    try wp_auto
+    rw [decide_w64_eq, Hu0, Hu1]
+    by_cases he : t1 = X.T0
+    · rw [decide_eq_true he]
+      try wp_auto
+      odskip (by rw [← hc, he]; simp only [bne_self_eq_false, Bool.false_and])
+    rw [decide_eq_false he]
+    try wp_auto
+    wp_apply wp_load_at _ _ _ Hn $$ [Hron] as -
+    · iexact Hron
+    try wp_auto
+    by_cases hl : ro[sint.nat n]! = leader
+    · rw [show decide (ro[sint.nat n]! = [108#8, 101#8, 97#8, 100#8, 101#8, 114#8]) = true from decide_eq_true hl]
+      odretc (by rw [← hc, hXro, hl]; simp only [show (t1 != X.T0) = true by simpa using he, beq_self_eq_true, Bool.and_self])
+    · rw [show decide (ro[sint.nat n]! = [108#8, 101#8, 97#8, 100#8, 101#8, 114#8]) = false from decide_eq_false hl]
+      odskip (by rw [← hc, hXro]; simp only [show (t1 != X.T0) = true by simpa using he,
+        show (ro[sint.nat n]! == leader) = false by simpa using hl, Bool.and_false])
   odafter c
   done
 
