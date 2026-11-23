@@ -48,6 +48,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   changes by one `GName`); a key's generator facts in the global invariant are heap-free (`idKeyGenFactsG`: the
   prefix's names, `g ↪[γgp]□ k`, `id ↪[γip]□ g` per issued id), their heap halves (`idIssueFragD`, the `prefix`
   points-to) in `idPfxInv gen p`; `idClusterOk`'s generator-distinctness clause is restricted to keys of one prefix.
+  **Top-level vocabulary (the #8 rule, 2026-11-23):** `IdNames` gains `gen`, and `IdNames` is a field of `KVNames`,
+  which `etcd_safe_single_process`'s statement names through its restart premise (`etcdstart.premises` →
+  `bootPremiseR` → `bootstrapRestartContract`: `∃ γk : KVNames, …` reading `c0`/`ch0`/`log0`/`lm`/`gps`, never
+  `ids`): the statement's term changes, its meaning does not (an existential over a type with one more unread
+  field). No other top-level statement names `IdNames` (`etc/theorem-loc.py --list-tcb`: `k8s_safe_single_process`,
+  `etcd_leaseexpiryN_safe_single_process` only as axiom vocabulary; `mvccfull`, `mvccrand`, `k8s_authz` not at
+  all). Option (a), this branch: accept it; option (b): `gen` an explicit parameter, `IdNames` unchanged. Pending
+  Upamanyu's answer on #28 (the coordinator); not queued until then.
 
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
