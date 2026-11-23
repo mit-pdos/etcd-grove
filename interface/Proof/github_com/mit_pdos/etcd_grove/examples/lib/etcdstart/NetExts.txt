@@ -8,6 +8,10 @@ def etcdNetExts_hasIdIssue : HasExt idIssueExt :=
 def etcdNetExts_hasFs : HasExt Fs.fsExt :=
   ⋯
 
+theorem etcdNetFs_start [GoGlobalContext] (σ : state) : ⊢ extsLocalStart σ.world ={⊤}=∗ Fs.osInv ∗
+    Fs.osTree (DFrac.own 1) (extLocal Fs.fsExt σ.world).fs.roots ((extLocal Fs.fsExt
+    σ.world).fs.treeDur, [])
+
 def etcdNetExtsInterp : GooseInterp :=
   { interps := (idIssue_interp, Fs.fs_interp, Net.net_interp, PUnit.unit) }
 
