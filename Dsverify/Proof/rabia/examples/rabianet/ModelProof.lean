@@ -580,6 +580,335 @@ theorem ents_set (evs : List Entry) (es : List EntV) (eve : Entry) (e : EntV) :
   · iapply ents_map; iframe Hs He
   · iapply ents_snoc; iframe Hs He
 
+/-! ### `cat`, `equalStrs` -/
+
+theorem wp_cat (a b : GoSlice) (A B : List GoString) (hl : A.length + B.length < 2 ^ 62) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ a ↦*□ A ∗ b ↦*□ B }}
+      (App (App (Val (@! rabia.examples.rabianet.cat)) (Val #a)) (Val #b))
+    {{ (q : GoSlice), RET #q; q ↦* (A ++ B) }} := by
+  wp_start as ⟨#Ha, #Hb⟩
+  ihave %HA := ownSlice_len _ _ _ $$ Ha
+  ihave %HB := ownSlice_len _ _ _ $$ Hb
+  wp_auto
+  wp_apply wp_slice_make2 (V := GoString) $$ [] as %q ⟨Hq, -⟩
+  · ipureintro; word
+  have hN : sint.nat (a.len + b.len) = A.length + B.length := by rw [HA.1, HB.1]; word
+  rw [hN]
+  wp_apply wp_slice_copy $$ [$Hq $Ha] as %n ⟨-, Hq, -⟩
+  rw [List.length_replicate, List.take_of_length_le (by omega), List.drop_replicate,
+    show A.length + B.length - A.length = B.length by omega]
+  ihave %Hql := ownSlice_len _ _ _ $$ Hq
+  ihave %Hqw := ownSlice_wf _ _ _ $$ Hq
+  have hb : 0 ≤ sint.Z a.len ∧ sint.Z a.len ≤ sint.Z q.len := by
+    have := Hql.1; simp only [List.length_append, List.length_replicate] at this; constructor <;> word
+  rw [ite_eq_left ⟨hb.1, hb.2, Hqw.2⟩]
+  icases (ownSlice_split_all a.len q _ _ hb).1 $$ Hq with ⟨Hq1, Hq2⟩
+  have hA : sint.nat a.len = A.length := HA.1.symm
+  rw [hA, List.take_left, List.drop_left]
+  wp_auto
+  wp_apply wp_slice_copy $$ [$Hq2 $Hb] as %m ⟨-, Hq2, -⟩
+  rw [List.length_replicate, List.take_of_length_le (by omega), List.drop_of_length_le (by simp),
+    List.append_nil]
+  ihave Hq := (ownSlice_split_all a.len q (DFrac.own 1) (A ++ B) hb).2 $$ [Hq1 Hq2]
+  · rw [hA, List.take_left, List.drop_left]; iframe Hq1 Hq2
+  iapply HΦ
+  iexact Hq
+
+theorem wp_equalStrs (a b : GoSlice) (A B : List GoString) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ a ↦*□ A ∗ b ↦*□ B }}
+      (App (App (Val (@! rabia.examples.rabianet.equalStrs)) (Val #a)) (Val #b))
+    {{ RET #(decide (A = B)); True }} := by
+  wp_start as ⟨#Ha, #Hb⟩
+  ihave %HA := ownSlice_len _ _ _ $$ Ha
+  ihave %HB := ownSlice_len _ _ _ $$ Hb
+  wp_auto
+  wp_if_destruct
+  rotate_left
+  · have hne : A ≠ B := fun h => Hif (by
+      have := congrArg List.length h; rw [HA.1, HB.1] at this; word)
+    rw [decide_eq_false hne]
+    iapply HΦ; itrivial
+  have h3 : a.len = b.len := Hif
+  have hAB : A.length = B.length := by rw [HA.1, HB.1, h3]
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z a.len ∧
+        A.take (sint.nat i) = B.take (sint.nat i)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Ht⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z a.len := Hif
+    list_elem A (sint.nat i) as x
+    list_elem B (sint.nat i) as y
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z a.len from ⟨Hi0, hlt⟩)]
+    wp_apply wp_load_slice_index a (sint.Z i) A _ x Hi0 $$ [Ha] as -
+    · iframe Ha; ipureintro; exact Hx_lookup
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z b.len from ⟨Hi0, h3 ▸ hlt⟩)]
+    wp_apply wp_load_slice_index b (sint.Z i) B _ y Hi0 $$ [Hb] as -
+    · iframe Hb; ipureintro; exact Hy_lookup
+    wp_if_destruct
+    rotate_left
+    · have hne : A ≠ B := by
+        intro h
+        rw [h, Hy_lookup] at Hx_lookup
+        exact Hif (Option.some.inj Hx_lookup).symm
+      rw [decide_eq_false hne]
+      wp_for_post
+      iapply HΦ; itrivial
+    · wp_for_post
+      iframe
+      iexists i + W64 1
+      iframe
+      ipureintro
+      have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+      refine ⟨by word, by word, ?_⟩
+      rw [hs, List.take_add_one, List.take_add_one, Ht, Hx_lookup, Hy_lookup, Hif]
+  · have heq : sint.Z i = sint.Z a.len := by omega
+    have hn : sint.nat i = A.length := by
+      rw [HA.1]; show (sint.Z i).toNat = _; rw [heq]
+    have e : A = B := by
+      rw [hn, List.take_length, hAB, List.take_length] at Ht
+      exact Ht
+    rw [decide_eq_true e]
+    iapply HΦ; itrivial
+
+/-! ### `find` -/
+
+/-- An entry's fields, read-only. -/
+theorem entry_fields (l : Loc) (v : Entry) :
+    (l ↦□ v : IProp GF) ⊢ l.[Entry, go!"K"] ↦□ v.K' ∗ l.[Entry, go!"Cur"] ↦□ v.Cur' ∗
+      l.[Entry, go!"Old"] ↦□ v.Old' ∗ l.[Entry, go!"Pend"] ↦□ v.Pend' := by
+  iintro #H
+  icases (AccessStrict.access_strict (A := l.[Entry, go!"K"] ↦□ v.K')
+      (A' := l.[Entry, go!"K"] ↦□ v.K') (P := l ↦□ v)) $$ H with ⟨H1, -⟩
+  icases (AccessStrict.access_strict (A := l.[Entry, go!"Cur"] ↦□ v.Cur')
+      (A' := l.[Entry, go!"Cur"] ↦□ v.Cur') (P := l ↦□ v)) $$ H with ⟨H2, -⟩
+  icases (AccessStrict.access_strict (A := l.[Entry, go!"Old"] ↦□ v.Old')
+      (A' := l.[Entry, go!"Old"] ↦□ v.Old') (P := l ↦□ v)) $$ H with ⟨H3, -⟩
+  icases (AccessStrict.access_strict (A := l.[Entry, go!"Pend"] ↦□ v.Pend')
+      (A' := l.[Entry, go!"Pend"] ↦□ v.Pend') (P := l ↦□ v)) $$ H with ⟨H4, -⟩
+  iframe H1 H2 H3 H4
+
+theorem findE_hit (es : List EntV) (k : GoString) (n : Nat) (e : EntV) (he : es[n]? = some e)
+    (hk : e.k = k) (hpre : k ∉ (es.map (·.k)).take n) : findE es k = e := by
+  induction es generalizing n with
+  | nil => simp at he
+  | cons x xs ih =>
+    cases n with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at he
+      subst he
+      simp [findE, List.find?_cons, hk]
+    | succ n =>
+      simp only [List.getElem?_cons_succ] at he
+      simp only [List.map_cons, List.take_succ_cons, List.mem_cons, not_or] at hpre
+      have := ih n he hpre.2
+      unfold findE at this ⊢
+      rw [List.find?_cons, decide_eq_false (Ne.symm hpre.1)]
+      exact this
+
+theorem findE_miss (es : List EntV) (k : GoString) (h : k ∉ es.map (·.k)) :
+    findE es k = ⟨k, [], [], []⟩ := by
+  unfold findE
+  rw [List.find?_eq_none.2]
+  · rfl
+  · intro x hx
+    simp only [decide_eq_true_eq]
+    intro hxk
+    exact h (List.mem_map.2 ⟨x, hx, hxk⟩)
+
+theorem wp_find (sl : GoSlice) (evs : List Entry) (es : List EntV) (k : GoString) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ evs ∗ entsRep evs es }}
+      (App (App (Val (@! rabia.examples.rabianet.find)) (Val #(State.mk sl))) (Val #k))
+    {{ (ev : Entry), RET #ev; entRep ev (findE es k) }} := by
+  wp_start as ⟨#Hsl, #Hs⟩
+  ihave %Hl := ownSlice_len _ _ _ $$ Hsl
+  ihave #Hs' := Hs
+  iunfold entsRep at Hs'
+  icases Hs' with ⟨%hm, -⟩
+  wp_auto
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z sl.len ∧
+        k ∉ (evs.map (·.K')).take (sint.nat i)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Hnk⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z sl.len := Hif
+    list_elem evs (sint.nat i) as ev
+    have hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨Hi0, hlt⟩
+    ihave Hev := (ownSlice_elem_acc (sint.Z i) ev sl DFrac.discard evs Hi0 Hev_lookup) $$ Hsl
+    icases Hev with ⟨#Hev, -⟩
+    ihave ⟨#HK, -⟩ := entry_fields _ ev $$ Hev
+    rw [ite_eq_left hb]
+    wp_auto
+    have hn : sint.nat i < evs.length := by rw [Hl.1]; word
+    wp_if_destruct
+    · rw [ite_eq_left hb]
+      wp_apply wp_load_slice_index sl (sint.Z i) evs _ ev Hi0 $$ [Hsl] as -
+      · iframe Hsl; ipureintro; exact Hev_lookup
+      iapply wp_for_post_return
+      wp_auto
+      ihave ⟨%e, %he, #He⟩ := ents_lookup Hev_lookup $$ Hs
+      ihave #He' := He
+      iunfold entRep at He'
+      icases He' with ⟨%hk, -⟩
+      have hfe : findE es ev.K' = e := by
+        refine findE_hit es ev.K' (sint.nat i) e he hk.1.symm ?_
+        rw [← hm.1]; exact Hnk
+      rw [hfe]
+      iapply HΦ
+      iexact He
+    · wp_for_post
+      iframe
+      iexists i + W64 1
+      iframe
+      ipureintro
+      have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+      refine ⟨by word, by word, ?_⟩
+      rw [hs, List.take_add_one, List.getElem?_map, Hev_lookup]
+      simp only [Option.map_some, Option.toList_some, List.mem_append, List.mem_singleton, not_or]
+      exact ⟨Hnk, fun h => Hif h.symm⟩
+  · have heq : sint.Z i = sint.Z sl.len := by omega
+    have hn : sint.nat i = evs.length := by
+      rw [Hl.1]; show (sint.Z i).toNat = _; rw [heq]
+    rw [hn, List.take_of_length_le (by simp), hm.1] at Hnk
+    rw [findE_miss es k Hnk]
+    iapply HΦ
+    unfold entRep
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    isplitl
+    · iapply ownSlice_nil
+    · iapply ownSlice_nil
+
+/-! ### `set` -/
+
+theorem map_set_none (evs : List Entry) (eve : Entry)
+    (hf : evs.any (fun x => decide (x.K' = eve.K')) = false) :
+    evs.map (fun x => if x.K' = eve.K' then eve else x) = evs := by
+  induction evs with
+  | nil => rfl
+  | cons x xs ih =>
+    simp only [List.any_cons, Bool.or_eq_false_iff, decide_eq_false_iff_not] at hf
+    simp only [List.map_cons, hf.1, ↓reduceIte, ih hf.2]
+
+theorem wp_set (sl : GoSlice) (evs : List Entry) (es : List EntV) (eve : Entry) (e : EntV)
+    (hlen : evs.length < 2 ^ 60) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ evs ∗ entsRep evs es ∗ entRep eve e }}
+      (App (App (Val (@! rabia.examples.rabianet.set)) (Val #(State.mk sl))) (Val #eve))
+    {{ (sl' : GoSlice), RET #(State.mk sl');
+        sl' ↦* (if evs.any (fun x => decide (x.K' = eve.K')) then
+          evs.map (fun x => if x.K' = eve.K' then eve else x) else evs ++ [eve]) ∗
+        entsRep (if evs.any (fun x => decide (x.K' = eve.K')) then
+          evs.map (fun x => if x.K' = eve.K' then eve else x) else evs ++ [eve]) (setE es e) }} := by
+  wp_start as ⟨#Hsl, #Hs, #He⟩
+  ihave %Hl := ownSlice_len _ _ _ $$ Hsl
+  ihave #Hset := ents_set evs es eve e $$ [Hs He]
+  · iframe Hs He
+  wp_auto
+  wp_apply (wp_slice_make3 (V := Entry) (W64 0) (sl.len + W64 1) (by word)) as %q0 ⟨Hq, Hcap, -⟩
+  rw [List.replicate_zero]
+  ihave HI : (∃ (i : w64) (f : Bool) (q : GoSlice), "i" ∷ i_ptr ↦ i ∗ "found" ∷ found_ptr ↦ f ∗
+      "es" ∷ es_ptr ↦ q ∗
+      "Hq" ∷ q ↦* (evs.take (sint.nat i)).map (fun x => if x.K' = eve.K' then eve else x) ∗
+      "Hcap" ∷ ownSliceCap Entry q (DFrac.own 1) ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z sl.len ∧
+        f = (evs.take (sint.nat i)).any (fun x => decide (x.K' = eve.K'))⌝ : IProp GF)
+      $$ [i found es Hq Hcap]
+  · iexists W64 0, false, q0
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    rw [h0]
+    simp only [List.take_zero, List.map_nil, List.any_nil]
+    iframe
+    ipureintro
+    refine ⟨by word, by word, by simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, hf⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z sl.len := Hif
+    list_elem evs (sint.nat i) as ev
+    have hb : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨Hi0, hlt⟩
+    have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+    ihave Hev := (ownSlice_elem_acc (sint.Z i) ev sl DFrac.discard evs Hi0 Hev_lookup) $$ Hsl
+    icases Hev with ⟨#Hev, -⟩
+    ihave ⟨#HK, -⟩ := entry_fields _ ev $$ Hev
+    rw [ite_eq_left hb]
+    wp_auto
+    have htake : evs.take (sint.nat i + 1) = evs.take (sint.nat i) ++ [ev] := by
+      rw [List.take_add_one, Hev_lookup]; rfl
+    by_cases hk : ev.K' = eve.K'
+    · rw [decide_eq_true hk]
+      wp_auto
+      wp_apply wp_slice_literal (V := Entry) [eve]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl1 ⟨Hsl1, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := Entry) $$ [$Hq $Hcap $Hsl1] as %q' ⟨Hq', Hcap', -⟩
+      wp_for_post
+      iframe
+      iexists i + W64 1, true, q'
+      rw [hs, htake]
+      simp only [List.map_append, List.map_cons, List.map_nil, hk, ↓reduceIte]
+      iframe
+      ipureintro
+      refine ⟨by word, by word, ?_⟩
+      simp [hk]
+    · rw [decide_eq_false hk]
+      wp_auto
+      rw [ite_eq_left hb]
+      wp_apply wp_load_slice_index sl (sint.Z i) evs _ ev Hi0 $$ [Hsl] as -
+      · iframe Hsl; ipureintro; exact Hev_lookup
+      wp_apply wp_slice_literal (V := Entry) [ev]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl1 ⟨Hsl1, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := Entry) $$ [$Hq $Hcap $Hsl1] as %q' ⟨Hq', Hcap', -⟩
+      wp_for_post
+      iframe
+      iexists i + W64 1, f, q'
+      rw [hs, htake]
+      simp only [List.map_append, List.map_cons, List.map_nil, hk, ↓reduceIte]
+      iframe
+      ipureintro
+      refine ⟨by word, by word, ?_⟩
+      simp [hf, hk]
+  · have heq : sint.Z i = sint.Z sl.len := by omega
+    have hn : sint.nat i = evs.length := by
+      rw [Hl.1]; show (sint.Z i).toNat = _; rw [heq]
+    rw [hn, List.take_length] at hf
+    rw [hn, List.take_length]
+    cases f
+    · wp_auto
+      wp_apply wp_slice_literal (V := Entry) [eve]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl1 ⟨Hsl1, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := Entry) $$ [$Hq $Hcap $Hsl1] as %q' ⟨Hq2, Hcap', -⟩
+      iapply HΦ
+      rw [← hf]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      rw [map_set_none evs eve hf.symm]
+      iframe Hq2
+      iexact Hset
+    · wp_auto
+      iapply HΦ
+      rw [← hf]
+      simp only [↓reduceIte]
+      iframe Hq
+      iexact Hset
+
 end proof
 
 end rabia.examples.rabianet
