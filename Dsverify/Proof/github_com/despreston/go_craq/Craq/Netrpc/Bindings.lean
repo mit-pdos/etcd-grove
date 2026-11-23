@@ -1013,6 +1013,224 @@ theorem newArg_BackPropagate (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen 
     iapply HΦ
     ipureintro; exact Hmsg
 
+theorem nodeSpec_ClientWrite (γ : CraqNames) (ch : List GoString) (a : GoString) (args : List w8)
+    (Φ : List w8 → GoString → IProp GF) :
+    nodeSpec γ ch a go!"ClientWrite" args Φ = iprop(False) := by
+  unfold nodeSpec; simp
+
+theorem newArg_ClientWrite (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.NodeBinding.ty b)
+      (nodeSpec cfg.γ cfg.chain a go!"ClientWrite")
+      (mOf examples.craqnet.rpcNewArg_r0_ClientWrite examples.craqnet.rpcNewReply_r0_ClientWrite
+        examples.craqnet.rpcCall_r0_ClientWrite) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold nodeB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface transport.netrpc.ClientWriteArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface transport.netrpc.ClientWriteArgs.ty p) iprop(True)
+      (nodeSpec cfg.γ cfg.chain a go!"ClientWrite") (fun _ _ => iprop(True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro _ %args %Φ HS
+    rw [nodeSpec_ClientWrite]
+    icases HS with ⟨⟩
+  iapply HΨ $$ %_ %_ %_ %hne Hdec []
+  · itrivial
+  iintro %args %Φ HS _
+  rw [nodeSpec_ClientWrite]
+  icases HS with ⟨⟩
+
+theorem nodeSpec_ReadAll (γ : CraqNames) (ch : List GoString) (a : GoString) (args : List w8)
+    (Φ : List w8 → GoString → IProp GF) :
+    nodeSpec γ ch a go!"ReadAll" args Φ = iprop(False) := by
+  unfold nodeSpec; simp
+
+theorem newArg_ReadAll (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.NodeBinding.ty b)
+      (nodeSpec cfg.γ cfg.chain a go!"ReadAll")
+      (mOf examples.craqnet.rpcNewArg_r0_ReadAll examples.craqnet.rpcNewReply_r0_ReadAll
+        examples.craqnet.rpcCall_r0_ReadAll) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold nodeB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface transport.netrpc.EmptyArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface transport.netrpc.EmptyArgs.ty p) iprop(True)
+      (nodeSpec cfg.γ cfg.chain a go!"ReadAll") (fun _ _ => iprop(True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro _ %args %Φ HS
+    rw [nodeSpec_ReadAll]
+    icases HS with ⟨⟩
+  iapply HΨ $$ %_ %_ %_ %hne Hdec []
+  · itrivial
+  iintro %args %Φ HS _
+  rw [nodeSpec_ReadAll]
+  icases HS with ⟨⟩
+
+theorem nodeB_nn (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢ ⌜b ≠ null⌝ := by
+  unfold nodeB
+  iintro ⟨-, -, -, #Hbs, -⟩
+  iapply typedPointsto_not_null _ _ _ $$ Hbs
+
+theorem craqCodec_rcv_eq (rcvr : GoInterface) (Ψ : Loc → IProp GF) :
+    craqCodec.rcv rcvr Ψ = iprop(∀ Φ : val → IProp GF, ▷ (∀ rp : Loc, Ψ rp -∗ Φ #rp) -∗
+      WP (App (Val #(functions examples.craqnet.rpcReceiver [])) (Val #rcvr)) {{ Φ }}) := rfl
+
+theorem nodeRcv (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢
+    craqCodec.rcv (ptrIface transport.netrpc.NodeBinding.ty b)
+      (net.rpc.rcvrIs craqCodec (ptrIface transport.netrpc.NodeBinding.ty b)
+        (nodeSpec cfg.γ cfg.chain a) go!"NodeBinding" false) := by
+  iintro #Hb
+  rw [craqCodec_rcv_eq]
+  iintro %Φ HΦ
+  ihave %Hnn := nodeB_nn $$ Hb
+  iapply wp_fupd
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (wp_map_make1 (K := GoString) (V := Loc) _ _) as %mp Hm
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m0 as H0
+  ipersist H0
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m1 as H1
+  ipersist H1
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m2 as H2
+  ipersist H2
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m3 as H3
+  ipersist H3
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m4 as H4
+  ipersist H4
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m5 as H5
+  ipersist H5
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m6 as H6
+  ipersist H6
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m7 as H7
+  ipersist H7
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m8 as H8
+  ipersist H8
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  wp_alloc m9 as H9
+  ipersist H9
+  repeat (first | (wp_apply wp_mapInsert $$ Hm as Hm) | wp_auto)
+  ipersist «$r0»
+  imod ownMap_persist $$ Hm with #Hm
+  iapply HΦ
+  unfold net.rpc.rcvrIs
+  iexists _, _
+  iframe «$r0» Hm
+  isplitr
+  · ipureintro
+    refine ⟨rfl, ?_, ?_⟩
+    · simp [Hnn]
+    · exact GMap.map_size_ne_0_lookup_2 _ (GMap.lookup_insert _ _ _)
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H9
+    iapply newArg_Write L I Hlen $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H8
+    iapply newArg_Update L I Hlen $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H7
+    iapply newArg_ReadAll $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H6
+    iapply newArg_Read L I Hlen $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H5
+    iapply newArg_Ping L $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H4
+    iapply newArg_LatestVersion L I Hlen $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H3
+    iapply newArg_FwdPropagate L I Hlen $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H2
+    iapply newArg_Commit L I Hlen $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H1
+    iapply newArg_ClientWrite $$ Hb
+  iapply (BI.BigSepM.bigSepM_insert (Φ := fun m mm => net.rpc.methodOk craqCodec
+    (ptrIface transport.netrpc.NodeBinding.ty b) (nodeSpec cfg.γ cfg.chain a m) mm) ?_).2
+  · first | rfl | decide | simp
+  isplitr
+  · iapply methodOk_of
+    iframe H0
+    iapply newArg_BackPropagate L I Hlen $$ Hb
+  iapply BI.BigSepM.bigSepM_empty.2
+  itrivial
+
 end proofs
 
 end netrpcP
