@@ -1,16 +1,17 @@
 /-
 What `examples/osfs/walfs`'s `dirswap.go` proof takes of the segment's data (over the file
-extension v2): the name `seg`, what a crash must leave of the segment's file (`DataGood`), the
-invariant's and the program's halves of it (`keyRes`, `segRes`), how a generation's start splits
-into them, and the specs of `dataOk`, `check(w)` (`w` any directory) and `syncDir(d)` (`d` a root).
-Copied from the segdir proof's `Boot.lean` (not imported: its names would clash), `check`
-generalized from a root to any directory.
+extension's shared view): the program's half of the segment's file (`segRes`; the invariant's,
+`keyRes`, and what a crash must leave, `DataGood`, are in `DSClaims.lean`), how a generation's start
+splits into them, and the specs of `dataOk`, `check(w)` (`w` any directory, a fraction of a claim on
+its `seg`) and `syncDir(d)` (`d` any directory). Copied from the segdir proof's `Boot.lean` (not
+imported: its names would clash), `check` generalized from a root to any directory.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DSBase
 public import Spec.os.File__ReadAt
 public import Spec.os.File__Close
+public import Proof.os.File__SyncS
 
 @[expose] public section
 
@@ -27,15 +28,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs DSBase
   github_com.mit_pdos.etcd_grove.examples.osfs.walfs
 
-def segB : GoString := go!"seg"
-
-theorem segB_ok : NameOk segB := by decide
-
 /-! ## The data a crash must leave -/
-
-/-- What a crash may leave of the segment's file: no file, or the data at 0. -/
-def DataGood (fo : Option OsFile) : Prop :=
-  ∀ f, fo = some f → 8 ≤ f.size ∧ ∀ b < 8, f.contents[b]? = dataC[b]?
 
 /-- What the program knows of the segment's file, held at the fractions `m`, `bs`: its first 8
 bytes in the page cache are the data. -/
@@ -108,29 +101,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
   [go.BasicIntoValInj]
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 
-/-- The invariant's half of the segment's file of the key `ko`: of its `OsMeta` and bytes, every
-crash of which is `DataGood`. -/
-def keyRes : Option Ino → IProp GF
-  | none => iprop(emp)
-  | some k => iprop(∃ (m : OsMeta) (bs : List ByteG),
-      osMeta (L := L) k (DFrac.own (1 : Qp).half) m ∗
-      osBytes (L := L) k 0 (DFrac.own (1 : Qp).half) bs ∗
-      ⌜∀ fo, FileCrashedR m [(0, DFrac.own (1 : Qp).half, bs)] fo → DataGood fo⌝)
-
-instance keyRes_timeless (ko : Option Ino) : Timeless (keyRes (L := L) ko) := by
-  cases ko <;> unfold keyRes <;> unfold osMeta osBytes bytesG <;> infer_instance
-
 /-- The program's half of the segment's file of the key `ko`, as `check` needs it. -/
 def segRes : Option Ino → IProp GF
   | none => iprop(emp)
   | some k => iprop(∃ (m : OsMeta) (bs : List ByteG),
       osMeta (L := L) k (DFrac.own (1 : Qp).half) m ∗
       osBytes (L := L) k 0 (DFrac.own (1 : Qp).half) bs ∗ ⌜CheckOk m bs⌝)
-
-/-- The segment's file of the key `ko` as a generation starts with it: `DataGood`. -/
-def startFile : Option Ino → IProp GF
-  | none => iprop(emp)
-  | some k => iprop(∃ f : OsFile, ⌜DataGood (some f)⌝ ∗ osFileStart (L := L) k f)
 
 /-- A generation's start of the segment's file, split between the invariant and the program. -/
 theorem startFile_split (ko : Option Ino) :
@@ -224,25 +200,28 @@ theorem wp_dataOk (sl : GoSlice) (dq : DFrac) (vs : List w8) (h : vs = dataC) :
   iapply HΦ
   iframe
 
-/-- `check(w)`, `w/seg` the file `i`, with half of its `OsMeta` and of its first 8 bytes, the data:
-it does not panic. -/
+/-- `check(w)`, `w` the directory `J` (a spine to it), `w/seg` the file `i` (a fraction of a
+claim on names of `J` containing `seg`), with half of its `OsMeta` and of its first 8 bytes, the
+data: it does not panic. -/
 theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
-    (R : Roots) (w : GoString) (V : Hist) (q : Qp) (i : Ino)
-    (hl : lookupH R V (child w segB) = some (.file i))
+    (R : Roots) (w : GoString) (dq : DFrac) (J : Ino) (N : NameSet) (dqn : DFrac) (h : NamesH)
+    (qc : Qp) (i : Ino) (hN : N.Mem segB) (hi : h.cur !! segB = some (.file i))
     (m : OsMeta) (bs : List ByteG) (hok : CheckOk m bs) :
-    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own q) R V ∗
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R w dq J ∗ osNames J N dqn h ∗
+        osCallPerm (callKey R w) qc ∗
         osMeta (GF := GF) i (DFrac.own (1 : Qp).half) m ∗
         osBytes (GF := GF) i 0 (DFrac.own (1 : Qp).half) bs }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.check)) (Val #w))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hos, Ht, Hm, Hb⟩
+  wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm, Hm, Hb⟩
   wp_auto
   rw [show w ++ go!"/seg" = child w segB from rfl]
-  wp_apply os.OpenFile.wp_nsRO (child w segB) (W32 0) q R V i hl $$ [Hos Ht]
-    as %f %err ⟨Ht, Hr⟩
-  · iframe; iexact Hos
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  wp_apply os.OpenFile.wp_fileS w segB (W64 0) (W32 0) R J i N dq dqn h qc
+      (by rw [show W64 0 ||| W64 0x80000 = flRO from by decide]; exact flRO_ok) (by decide)
+      segB_ok hN hi $$ [Hos Hsi Hp Hn Hperm] as %f %err ⟨Hp, Hn, Hperm, Hr⟩
+  · iframe; isplitl [] <;> iassumption
+  icases Hr with (⟨%fd, %herr, Hf, -, Hfd⟩ | ⟨%herr, -⟩)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
@@ -251,7 +230,8 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (try wp_auto)
     iapply HΦ
     itrivial
-  subst herr
+  obtain ⟨rfl, -⟩ := herr
+  rw [show openFd i (W64 0 ||| W64 0x80000) = ⟨i, true, false, none, none⟩ from rfl]
   obtain ⟨hsz, hbl, hbv⟩ := hok
   (try wp_auto)
   wp_apply (wp_slice_make2 (V := w8) (W64 8)) as %buf ⟨Hbuf, -⟩
@@ -283,18 +263,17 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     iapply HΦ
     itrivial
 
-/-- `syncDir(d)`, `d` the root of `j`, with a fraction of the history: any result. -/
-theorem wp_syncDir (R : Roots) (hR : RootsOk R) (d : GoString) (j : Ino) (hd : (d, j) ∈ R)
-    (V : Hist) (q : Qp) :
-    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own q) R V }}
+/-- `syncDir(d)`, `d` the directory `j` (a spine to it), with a fraction of the call permission:
+any result. -/
+theorem wp_syncDir (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) (qc : Qp) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.syncDir)) (Val #d))
-    {{ (ok : Bool), RET #ok; osTree (DFrac.own q) R V }} := by
-  wp_start as ⟨#Hinv, Ht⟩
-  ihave Ht := tree_half (L := hG.goose_localGS) q R V $$ Ht
+    {{ (ok : Bool), RET #ok; osPathS R d dq j ∗ osCallPerm (callKey R d) qc }} := by
+  wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
   (try wp_auto)
-  wp_apply os.Open.wp_dir d q.half q.half R V j (lookupH_root hR hd V) $$ [Hinv Ht] as %f %err Hr
-  · iframe; iexact Hinv
-  icases Hr with (⟨%fd, %herr, Hf, Ht, Hfd⟩ | ⟨%herr, Ht⟩)
+  wp_apply os.Open.wp_dirS d R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
+  · iframe; isplitl [] <;> iassumption
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
   rotate_left
   · obtain ⟨herr, rfl⟩ := herr
     cases err with
@@ -302,20 +281,19 @@ theorem wp_syncDir (R : Roots) (hR : RootsOk R) (d : GoString) (j : Ino) (hd : (
     | ok ie =>
     (try wp_auto)
     iapply HΦ
-    iapply tree_unhalf; iexact Ht
+    iframe
   subst herr
   (try wp_auto)
-  wp_apply os.File.Sync.wp_dir f fd d (DFrac.own 1) (DFrac.own 1) (j, .idle (dview V j) q.half)
-    $$ [Hinv Hf Hfd] as %err ⟨Hf, Hfd⟩
-  · iframe; iexact Hinv
+  imod osLogLb_0 with #Hlb
+  wp_apply os.File.Sync.wp_proofDirS f fd d (DFrac.own 1) R j .idle 0 $$ [Hinv Hsi Hf Hfd]
+    as %err ⟨Hf, Hfd, -⟩
+  · iframe; iframe #
   (try wp_auto)
-  wp_apply os.File.Close.wp_dir f fd d (j, .idle (dview V j) q.half) $$ [Hinv Hf Hfd] as %e Hd
+  wp_apply os.File.Close.wp_dirS f fd d j _ $$ [Hinv Hf Hfd] as %e -
   · iframe; iexact Hinv
-  ihave Ht := tree_back (L := hG.goose_localGS) q.half q.half R V _ rfl $$ Ht Hd
-  ihave Ht := tree_unhalf (L := hG.goose_localGS) q R V $$ Ht
   cases err with
-  | nil => (try wp_auto); iapply HΦ; iframe Ht
-  | ok ie => (try wp_auto); iapply HΦ; iframe Ht
+  | nil => (try wp_auto); iapply HΦ; iframe
+  | ok ie => (try wp_auto); iapply HΦ; iframe
 
 end prog
 
