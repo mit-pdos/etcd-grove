@@ -377,8 +377,8 @@ PROJECTS = [
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
                     "github.com/prometheus/client_model=",
                     "github.com/jonboulle/clockwork=",
-                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
-                    "encoding/hex=", "container/heap=", "unicode/utf8=",
+                    "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net", "hash=", "path=", "internal/nettrace=",
+                    "encoding/hex=", "container/heap=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
                     "crypto/tls=",
@@ -546,9 +546,6 @@ PROJECTS = [
             "encoding/hex",
             # (container/heap: the lessor's expiry notifier pushes and fixes its queue)
             "container/heap",
-            # (unicode/utf8: the server's unary interceptor checks the client's API version,
-            # unit P3b)
-            "unicode/utf8",
             # types and names only (their .toml)
             "go.etcd.io/etcd/client/v3",
             # with bodies (client/v3/kubernetes.toml): the client the Kubernetes API server's
@@ -608,8 +605,6 @@ PROJECTS = [
             # standard library's `path` (the stream handler's URL parsing) and of etcd's
             # `pkg/v3/ioutil` (the pipeline handler's limited reader) and `pkg/v3/httputil`
             "path",
-            # (`path`'s `Split` and `Base` call `LastIndexByteString`, with its body)
-            "internal/bytealg",
             "go.etcd.io/etcd/pkg/v3/ioutil",
             "go.etcd.io/etcd/pkg/v3/httputil",
             # names only (item 4, the server start): what `v3rpc.Server` names: grpc-prometheus
@@ -644,9 +639,9 @@ PROJECTS = [
                os.path.join("k8s_io", "utils", "third_party"), "google_golang_org", "go_uber_org",
                "go_opentelemetry_io",
                os.path.join("net", "http"), os.path.join("net", "textproto"), os.path.join("net", "url"),
-               "hash", "path", os.path.join("internal", "bytealg"), os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
+               "hash", "path", os.path.join("internal", "nettrace"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
-               os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
+               os.path.join("container", "heap"),
                os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
                os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),

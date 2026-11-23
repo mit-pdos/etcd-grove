@@ -21,7 +21,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3.credentials
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.apply
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.features
 public import Perennial.Proof.time.Base
-public import SpecPlan.Spec.PkgInit.unicode.utf8
+public import Perennial.Proof.unicode.utf8.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.api.v3.v3rpc.rpctypes

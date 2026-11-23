@@ -69,3 +69,93 @@ without maps or oneofs.
 No change to the emitted code. The core's documented deviations gained "what comes with an error"
 and "slice capacities and aliasing", and its doc says `pbdesc` is trusted with it and that the dump
 is made in the codec's own module.
+
+## The proto2 and oneof extension (2026-11-23, branch `ps2-pbgen-proto2/2026-11-23`, proving session 2, #18, offered by #24)
+
+**Target.** The extended core (`models/protobuf/pbgen_core.py`: proto2 and proto3 explicit presence,
+required fields, defaults, closed enums, packed and unpacked repeated scalars, oneofs) and
+`models/pbdesc/pbdesc.go`'s new facts (oneof holders via `protobuf_oneof` tags, wrappers via the
+registered `protoimpl.MessageInfo.OneofWrappers`, the opaque/hybrid presence and lazy fields). Same
+claim and method as above: a fresh reviewer agent with a snapshot of `models/` and protobuf-go's
+source, not the author's notes, asked for an accepted schema on which the emitted code and
+protobuf-go differ (experiments in `/shared/tmp/ps2/pbgen2/review/attack/`).
+
+**Found by the author's tests, before the review** (now refusals, both shown on protobuf-go by
+`models/internal/pbgenrand`'s `TestProtobufQuirks`, which fails if protobuf-go changes):
+
+1. **A oneof's non-first member with required fields.** Proto2 `M0 { required int32 x = 1; }`,
+   `M1 { oneof u { int32 f0 = 1; M0 f1 = 2; } }`, input `12 00` (f1, an empty M0): protobuf-go's
+   Unmarshal succeeds, and Marshal of the result fails. Its fast path (`internal/impl/decode.go:189`)
+   consults the isInit of the field's own coder, which only the oneof's first member's coder has
+   (`codec_field.go:83-118`); the full check (Marshal's, and Unmarshal's when the fast path says
+   so) goes through the first member to the set one. Found by `pbgenrand` (seed 1).
+   **Disposition: refused** (a oneof member other than the first declared, of a type reaching
+   required fields).
+2. **Required fields reached only through a cycle.** `R { A a = 1; }`, `A { B b = 1; C c = 2; }`,
+   `B { A a = 1; }`, `C { required int32 x = 1; }`: once `R`'s coder is built first, `B`'s
+   Marshal and Unmarshal never check required fields (`Marshal(&B{A: &A{C: &C{}}})` succeeds;
+   built in another order, it fails). `needsInitCheckLocked` (`checkinit.go:137-170`) returns
+   false on meeting a type in progress and caches the result of every type it finishes, so `B`
+   (finished while `A` was in progress) keeps a false. Found by reading the source.
+   **Disposition: refused** (a type with no required field of its own that reaches one, in a
+   cycle of two or more message types): its behavior depends on the program's history.
+
+**The review's findings.** No divergence on any accepted schema: its own reflection-based fuzzer
+(Marshal of random values, typed-nil wrappers, wrappers holding nil messages, nil repeated
+elements, nil `*T`; Unmarshal of real, mutated, doubled and descriptor-guided random inputs; and
+re-Marshal of decoded values), about 20k iterations per type over schemas with oneofs of every
+member kind (the first-declared member numbered above later ones, three oneofs in a message, real
+oneofs beside proto3 `optional`, wrapper names protoc-gen-go renames), required fields (direct,
+message, bytes, enum, nested, in repeated elements, in a oneof's first member, 70 in one message),
+defaults of every kind, closed enums at `INT32_MIN`, packing mixes, unchecked proto2 strings; the
+recursion limits through singular, repeated, oneof and `optional` fields; and `pbgenrand` rerun on
+three new seeds. It checked the two refusals sufficient (the fast path skips the check only where it
+would pass, past 64 required fields included; a wrongly cached false needs a type in a cycle of two
+or more that reaches required fields without its own). Reported and fixed:
+
+- `RESERVED` lacked `new`, which the emitted code now calls: a Go package named `new` would have
+  got that alias and the codec would not compile (never wrong code). **Fixed.**
+- The doc said internal/impl reads a field's default only for map keys; it also does in its
+  reflection and getter paths (`convert.go:95, 380`, `message_reflect_field.go:41, 53`,
+  `legacy_message.go:535`): no coder reads it, the point stands. **Fixed** (the wording), with two
+  off-by-a-few line citations (`decode.go:226-229`, `checkinit.go:126-170`).
+
+## Result (the extension)
+
+The claim stands for the extended subset, with the two refusals above. Evidence: `pbgenrand` with
+proto2 and proto3 files (seeds 1-4: 24 + 3 x 48 schemas, about 620 message types and 3700 fields;
+seed 4's schemas alone: 38 proto2 and 36 proto3 files, 315 explicit-presence fields, 34 required,
+119 proto3 `optional`, 75 defaults, 132 oneofs with 332 members, 141 unpacked and 107 packed repeated
+scalars, 57 closed enums), its refusals (`TestRefusals`, `TestProtobufQuirks`), the regression
+tests beside `examples/models/pbetcd` (now raftpb, walpb, `TxnRequest`/`Compare`/`RequestOp`/
+`ResponseOp`/`InternalRaftRequest`/`WatchRequest`: 66 message types, 232 fields, 13 enums) and
+`models/internal/pbdifftest`, and this review.
+
+## Pre-review of the extension (2026-11-23, upamanyus session, #24, at `884fa47be4`)
+
+Verdict "sound as claimed": no accepted schema on which the emitted code and protobuf-go differ
+beyond the documented deviations (now including that a known oneof member with another wire type is
+an unknown field, dropped). Its reruns: `TestRandomSchemas` at seeds 1, 7 (96 schemas) and 1234 (96
+schemas), `TestRefusals`, `TestProtobufQuirks`. Findings, none unsound, and what was done:
+
+1. The cycle refusal refuses a type with no required field of its own that reaches one and lies on
+   a cycle of two or more message types, also when it reaches one outside the cycle (`A{B b; C c}`,
+   `B{A a}`, `C{required x}`: `A` is refused); the doc and the message said "only through a cycle".
+   Conservative, so not unsound. **Fixed**: the wording (core doc, refusal message, `decisions.md`);
+   the behavior kept.
+2. Every test ran one order of protobuf-go's lazy type setup per process (its `needsInitCheck` is
+   cached per type at first use). **Added** `models/internal/pbgenrand`'s `TestOrders`: a proto2
+   and proto3 schema (a self-loop and a two-type cycle whose types have required fields of their
+   own, a self-loop reaching required fields only outside it, a cycle with no required field, a type
+   outside a cycle reaching one, a oneof whose first member needs the check, unchecked proto2 and
+   checked proto3 strings), the generated tests run in 13 orders, each in a fresh process (an empty
+   message of every type marshaled first, in that order). All agree.
+3. The random schemas never have more than about 10 required fields in a message, and
+   `avoidQuirks` strips the cycles it targets. **Added** to `TestOrders`'s schema a message of 70
+   required fields and the near-miss cycles above, and `TestFullRequired` (each type with every
+   required scalar set, then each missing in turn: Marshal, and Unmarshal of the partial encoding),
+   which reaches the full check past protobuf-go's 64-bit mask.
+4. Defense in depth: `pbdesc` now records a Go type that is not an APIv2 message or has its own
+   codec methods (`Marshal`, `Unmarshal`, `XXX_Marshal`, `XXX_Unmarshal`, `XXX_Size`: APIv1 and
+   gogo), and the core refuses it (protobuf-go's legacy path); `TestRefusals` has one (`p3.Leg`, a
+   generated message given its own `Marshal`/`Unmarshal`).

@@ -1166,9 +1166,14 @@ The old `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Robust.lean` s
 1. #683: prove `RobustOfNetFsBootG` in `Net/Statement/` (as `robust_of_netFsBoot`, the crashing node's `Hwp`
    taking `w`'s fs component by `HasExt.localCtx_get`; adjust `CrashBootWpG` to #683's final shapes if they
    moved), say `Net.robustOfNetFsBootG_holds : RobustOfNetFsBootG`; move `TopBridge.lean`'s definitions there.
-2. #677: its theorem of `errors.IsPathErrnoNotExist.spec`, say `errors_isPathErrnoNotExist_holds`.
-3. In `TopLevelRobustness.lean`, the one-line closures:
-   `theorem raft_kvnet_robust : raft_kvnet_robust.spec := raft_kvnet_robust_of_errors Net.robustOfNetFsBootG_holds errors_isPathErrnoNotExist_holds`
+2. #677: done 2026-11-23 (branch `kvnet-relink/2026-11-23`). `errors.IsPathErrnoNotExist.spec` is proved
+   (`Proof/errors/IsPathErrnoNotExist.lean`, `wal-safe-errors`) and every Link passes the proof, so
+   `raft_kvnet_robust_of_errors`, `raft_kvnet_robust_example_of_errors`, `kvPc_crashBoot`, `kvRep_gen` and
+   `kvReplica_wp` no longer take it (`ErrNotExistLaw` is gone). The binders `wp_IsNE` of
+   `ExistCallees.lean`'s and `durable`'s `tryRead.lean`'s proofs stay: callee specs, which the import tiers
+   require of a defs/proof module, and which their Links fill with the proof.
+3. In `TopLevelRobustness.lean`, the one-line closures (renaming `_of_errors` to `_of_bridge` if wanted):
+   `theorem raft_kvnet_robust : raft_kvnet_robust.spec := raft_kvnet_robust_of_errors Net.robustOfNetFsBootG_holds`
    `theorem raft_kvnet_robust_example : raft_kvnet_robust_example.spec := raft_kvnet_robust_example_of raft_kvnet_robust`
    with `#print axioms` of each; then delete `Robust.lean` and CLAUDE.md's "(kvnet's statement, not proved
    yet: ...Robust.lean.)", and rerun `etc/tcb-report.py --collection etc/tcb-collections/kvnet.txt --check --update`.
