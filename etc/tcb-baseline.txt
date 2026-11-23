@@ -45,7 +45,6 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
 axiom apimeta.GetItemsPtr.wp_proof
-axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom appslisters.wp_Errorf_labelArgs
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
@@ -205,7 +204,6 @@ axiom metrics.RecordEtcdRequest.wp_proof
 axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom net.Listen.wp_proof
@@ -303,7 +301,6 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Limiter.Wait.wp_proof
-axiom recEncC_ok
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
 axiom reflect.DeepEqual.wp_proof_k8s
