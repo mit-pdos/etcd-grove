@@ -11,14 +11,19 @@ RpcHttpHyp.defaultServer γs`).
 
 `RpcFirstInit` states that: net/rpc's initializer, run on a machine where neither net/rpc nor
 net/http is initialized yet (the initialization table `g` is `False` at both), ends in a table
-`g'` that agrees with `g` elsewhere and meets net/rpc's `GetIsPkgInitProp` (as `InitHyp`'s), and
-returns those resources. This is
-what Go does: a package's initializer runs once per process, its first run allocates the
-package's variables (net/http's `DefaultServeMux`, net/rpc's `DefaultServer`, the error
-variables), and it does not panic (`InitHyp`'s trust). It is a premise of
-`swiftpaxos_remote_robust`, per machine heap, never an instance (dsv-epaxos's `RpcBoot` states the
-same of a whole command's initializer; this states it of net/rpc's only, so the kit's own
-packages' first runs are proved: the coordinator's decision for the boot).
+`g'` that agrees with `g` elsewhere and meets net/rpc's and net/http's `GetIsPkgInitProp` (as
+their `InitHyp`s'), and returns those resources. This is what Go does: a package's initializer
+runs once per process, its first run allocates the package's variables (net/http's
+`DefaultServeMux`, net/rpc's `DefaultServer`, the error variables), and it does not panic
+(`InitHyp`'s trust).
+
+**Status: a visible premise, approved by the coordinator (2026-11-23).** It is a premise of
+`swiftpaxos_remote_robust`, per machine heap, and never an instance. It is the same kind of
+premise as dsv-epaxos's landed `RpcBoot` (a whole command's initializer returning `rpcBootRes`),
+scoped to net/rpc's initializer only: the kit's own packages' first runs (`concurrent-map`,
+`client`, `swift`, `swiftnet`, the commands) are proved (`examples/swiftnet/Boot.lean`). It stands
+in for the per-machine net/rpc boot resource Upamanyu said `Net/` will provide; when `Net/` has it,
+this premise goes.
 -/
 module
 
@@ -54,7 +59,7 @@ def rpcBootRes [H : RpcHttpHyp GF] : IProp GF :=
 class RpcFirstInit [H : RpcHttpHyp GF] : Prop where
   wp_init_first : ∀ (g g' : GoString → IProp GF),
     (g pkg_id.net.rpc ⊢ False) → (g pkg_id.net.http ⊢ False) →
-    GetIsPkgInitProp pkg_id.net.rpc g' →
+    GetIsPkgInitProp pkg_id.net.rpc g' → GetIsPkgInitProp pkg_id.net.http g' →
     (∀ p, p ≠ pkg_id.net.rpc → p ≠ pkg_id.net.http → g' p = g p) →
     {{ ownInitializing g }} (App (Val net.rpc.initialize') (Val #()))
     {{ RET #(); ownInitializing g' ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ rpcBootRes }}
