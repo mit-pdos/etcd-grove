@@ -83,7 +83,19 @@ netExt]`); the client's atomic update `AU <{∃∃ σ, absOwn γ σ}> @ ↑clien
 `clientN`) became `⊤ \ vsrE ⊆ E`. Step 3 instantiates remote's `RBase.Eop` with `vsrE` and
 `sysState` with `absOwn`.
 
-Step 3, done (but the kit specs `Codec`, `Gen`, `Orch`, `Client`, `Server`, next):
+**Since the resume (2026-11-23 ~03:50 UTC; dsv-infra `884cb306c9` merged):**
+`examples/vsrnet/CodecProof.lean` (`Codec.wp_proof`: `Codec()` meets `codecOk (kvR g)`; `outOk_out`)
+and `examples/vsrnet/KitProof.lean` (`wp_digit`, `wp_digits`, `Gen.spec`/`Gen.wp_proof`: `Gen` meets
+lintest's `genSpec` with inputs `∃ i : KIn, x = inV i.1`; `kin_get`/`kin_put`); both `lean-check`
+clean, no `sorry`. `digit`/`digits`/`Gen` need no `isPkgInit` (genSpec's precondition has none).
+Being ported (by helper agents of this session, files not yet committed when absent): the leaves
+`Spec/{queue,assert,time,vsrkv,ipv4port}.lean` + `Proof/<p>/*.lean` (lab paths kept under
+`Dsverify/Proof/github_com/tangledbytes/go_vsr/`), and the configuration protocol
+`examples/vsrnet/Conf.lean` (`confBytes`, `ConfOk`, `cfgAddrs`, `confProto`, `ackProto`; `choose`,
+`encode`, `decode`, `sendConf`, `Configure`, `awaitConf`, `waitConf`; `io.ReadFull` over a
+connection through a hypothesis `conn_readerOk`, mirroring dsv-bufio's `Net/Proof/net/ConnIo.lean`).
+
+Step 3, done (but the kit specs `Orch`, `Client`, `Server`, next):
 `examples/vsrnet/ModelSet.lean` (the pure side: `Rep s Cur Pend` (`s` holds `(lk Cur, Pend)` and every
 configuration of `s` is dominated by it, `DOk`), `stepG` (the Go `step` as a function), **`stepG_pSeq`**
 (`step`'s verdict is `pSeq kvB`'s and its next state represents the next set), `rep_init`, `rep_eq`,
