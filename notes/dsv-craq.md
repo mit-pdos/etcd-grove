@@ -164,6 +164,19 @@ the shared piece lands; none is an axiom.
   `log.Printf` with error arguments (`notes/perennial-changes.md`, 2026-11-23). The node and the
   coordinator call them.
 
+## Link check (VR's finding 7, 2026-11-23)
+
+Every package whose initialization or package fact the proofs use is linked by every command:
+`go list -deps` of `cmd/orch`, `cmd/client0`, `cmd/server1`, `cmd/server2` (real build, and with
+`-tags netmodel`) all contain `transport`, `store`, `store/kv`, `node`, `coordinator`,
+`transport/netrpc`, `examples/craqnet`, `net/rpc`, `net/http`, remote, porcupine. The package facts
+used (`Base.lean`: `store`/`node`/`coordinator`'s `errors.New` variables) are set by those
+packages' own initializers. No fact rests on an init hook: the codec's registration
+(`codecSet craqCodec`, in `rpcReady`) is the explicit call `Register()` (`rpc_model_gen.go`, build
+tag `netmodel || goose`; a no-op in the real build) made by `newSys` and `Server`, and the go-craq
+packages have no `func init`. The commands' `PkgTable.lean` are not generated yet (with `Mains`,
+P4 (d)); when they are, recheck that their tables list these packages.
+
 ## Proof design notes (for the next steps)
 
 - **P1. The linearization point.** The lab's `opAU γ i Q` is an Iris AU at `↑clientN`; remote gives a
