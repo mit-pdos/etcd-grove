@@ -188,6 +188,13 @@ macro "odjret " h:term:max : tactic => `(tactic| (
   exact Or.inl ⟨$h, rfl⟩))
 
 set_option hygiene false in
+/-- In a section's case: the guard's condition `ok` is false (`h : ok = false`), the Go returns. -/
+macro "odjno " h:term:max : tactic => `(tactic| (
+  rw [$h:term] at Ho
+  simp only [Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+  odjret (by subst Ho; rfl)))
+
+set_option hygiene false in
 macro "odjafter" : tactic => do
   let r0 := Lean.mkIdent (Lean.Name.mkSimple "$res0")
   let r1 := Lean.mkIdent (Lean.Name.mkSimple "$res1")
@@ -636,10 +643,167 @@ theorem State.OnDisk.wp_proof
       iframe; ipureintro; left; exact ⟨by subst Ho; rfl, trivial⟩
   odjafter
   subst hK
+  -- g3: `if x.voted() { … }`
+  unfold g3 at Ho
+  dsimp only at Ho
+  rw [hXs, hXn] at Ho
+  obtain ⟨vd, hvd, Ho⟩ := bind_ok Ho
+  generalize hK : g4 X (g5 X (g6 X (succ X))) = K at Ho
+  odjoin K
+  · odm voted
+    wp_apply wp_voted _ X vd $$ [Hx]
+    · iframe Hx; ipureintro; exact hvd
+    cases vd
+    · simp only [Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [ite_true] at Ho
+    obtain ⟨v1, hv1, Ho⟩ := bind_ok Ho
+    try wp_auto
+    odm V1
+    wp_apply wp_V1 _ X v1 $$ [Hx]
+    · iframe Hx; ipureintro; exact hv1
+    by_cases hv1e : v1 = []
+    case neg =>
+      simp only [show (v1 != []) = true by simpa using hv1e, ite_true, pure_ok, Except.ok.injEq] at Ho
+      rw [decide_eq_false hv1e]
+      odjret (by subst Ho; rfl)
+    subst hv1e
+    simp only [bne_self_eq_false, Bool.false_eq_true, ite_false] at Ho
+    rw [decide_eq_true (rfl : ([] : Str) = [])]
+    try wp_auto
+    obtain ⟨el, hel, Ho⟩ := bind_ok Ho
+    odm elect
+    wp_apply wp_elect _ X el $$ [Hx]
+    · iframe Hx; ipureintro; exact hel
+    cases el
+    case true =>
+      simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [Bool.not_false, ite_true] at Ho
+    obtain ⟨ok, hok, Ho⟩ := bind_ok Ho
+    obtain ⟨hm, hhm, hokt, hokf⟩ := andM_ok hok
+    simp only [pure_ok, Except.ok.injEq] at hhm
+    try wp_auto
+    odm hasM
+    wp_apply wp_hasM _ X $$ [Hx]
+    · iexact Hx
+    rw [hhm]
+    cases hm
+    · odjno (hokf rfl)
+    have h1 := hokt rfl
+    -- `x.m().typ() == "vote"`
+    obtain ⟨a2, ha2, h2t, h2f⟩ := andM_ok h1
+    obtain ⟨m, hm, ha2⟩ := bind_ok ha2
+    obtain ⟨ty, hty, ha2⟩ := bind_ok ha2
+    simp only [pure_ok, Except.ok.injEq] at ha2
+    subst ha2
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_typ gm m ty $$ [Hm]
+    · iframe Hm; ipureintro; exact hty
+    by_cases htv : ty = go!"vote"
+    case neg =>
+      rw [decide_eq_false htv]
+      odjno (h2f (by simpa using htv))
+    rw [decide_eq_true htv]
+    have h2 := h2t (by simp [htv])
+    -- `x.m().from() == w.vote()`
+    obtain ⟨a3, ha3, h3t, h3f⟩ := andM_ok h2
+    obtain ⟨m', hm', ha3⟩ := bind_ok ha3
+    rw [hm] at hm'; cases hm'
+    obtain ⟨fr, hfr, ha3⟩ := bind_ok ha3
+    obtain ⟨vt, hvt, ha3⟩ := bind_ok ha3
+    simp only [pure_ok, Except.ok.injEq] at ha3
+    subst ha3
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm' #Hm'
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_from gm' m fr $$ [Hm']
+    · iframe Hm'; ipureintro; exact hfr
+    try wp_auto
+    wp_apply wp_Event_vote pw X.w vt $$ [Hw]
+    · iframe Hw; ipureintro; exact hvt
+    try wp_auto
+    by_cases hfv : fr = vt
+    case neg =>
+      rw [decide_eq_false hfv]
+      odjno (h3f (by simpa using hfv))
+    rw [decide_eq_true hfv]
+    have h3 := h3t (by simp [hfv])
+    -- `x.m().term() == x.T1()`
+    obtain ⟨a4, ha4, h4t, h4f⟩ := andM_ok h3
+    obtain ⟨m', hm', ha4⟩ := bind_ok ha4
+    rw [hm] at hm'; cases hm'
+    obtain ⟨mt, hmt, ha4⟩ := bind_ok ha4
+    obtain ⟨t1', ht1', ha4⟩ := bind_ok ha4
+    rw [ht1] at ht1'; cases ht1'
+    simp only [pure_ok, Except.ok.injEq] at ha4
+    subst ha4
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm2 #Hm2
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_term gm2 m mt $$ [Hm2] as %ut %Hut
+    · iframe Hm2; ipureintro; exact hmt
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    rw [decide_w64_eq, Hut, Hu1]
+    by_cases hmt1 : mt = t1
+    case neg =>
+      rw [decide_eq_false hmt1]
+      odjno (h4f (by simpa using hmt1))
+    rw [decide_eq_true hmt1]
+    have h4 := h4t (by simp [hmt1])
+    -- `factsHas(s.Msgs, VoteFact(x.m())) && s.UpToDate(VoteFact(x.m()), n)`
+    obtain ⟨a5, ha5, h5t, h5f⟩ := andM_ok h4
+    obtain ⟨m', hm', ha5⟩ := bind_ok ha5
+    rw [hm] at hm'; cases hm'
+    obtain ⟨vf, hvf, ha5⟩ := bind_ok ha5
+    simp only [pure_ok, Except.ok.injEq] at ha5
+    subst ha5
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm3 #Hm3
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_VoteFact gm3 m vf $$ [Hm3] as %gvf %Hgvf
+    · iframe Hm3; ipureintro; exact hvf
+    try wp_auto
+    wp_apply wp_factsHas g.Msgs' s.msgs gvf vf $$ [HMsgs]
+    · iframe HMsgs; ipureintro; exact Hgvf
+    cases hcont : s.msgs.contains vf
+    · try wp_auto
+      odjno (h5f hcont)
+    have h5 := h5t hcont
+    obtain ⟨m', hm', h5⟩ := bind_ok h5
+    rw [hm] at hm'; cases hm'
+    obtain ⟨vf', hvf', h5⟩ := bind_ok h5
+    rw [hvf] at hvf'; cases hvf'
+    simp only [pure_ok, Except.ok.injEq] at h5
+    subst h5
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm4 #Hm4
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_VoteFact gm4 m vf $$ [Hm4] as %gvf' %Hgvf'
+    · iframe Hm4; ipureintro; exact hvf
+    try wp_auto
+    wp_apply wp_SUpToDate p s gvf' vf n $$ [Hs]
+    · iframe Hs; ipureintro; exact ⟨Hgvf', Hn, Hlt⟩
+    cases hup : s.upToDate vf (sint.nat n)
+    · odjno hup
+    simp only [hup, Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    odjskip Ho
+  odjafter
+  subst hK
   done
-
-end proof
-
-end AntCheck
-end EtcdGrove
-end Perennial
