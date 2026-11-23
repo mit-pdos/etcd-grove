@@ -43,7 +43,7 @@ namespace adapter
 section srv
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [examples.swiftnet.Assumptions] [net.model.Assumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- The run's package states (`pkgStates`) at this heap. -/
 local instance pkgStS : SwiftNetPkgState netDistGF := @pkgStates _ netDistGF hG sem
@@ -218,7 +218,7 @@ theorem init_client_first (Hinit : GetIsPkgInitProp clientPkg (gBoot (hG := hG) 
     all_goals (unfold pkgStS pkgStates; dsimp only; repeat (first | isplit | (iintro !>; itrivial) | itrivial))
     all_goals (unfold client.pkgSt; rw [if_pos hrn]; itrivial)
   imod inv_alloc client.ghostInitN ⊤ iprop(client.ghostUnclaimed g p ∨
-      addrTokG (extGlobalGS netConnExt (hlc := .hasLC))
+      addrTokG (extGlobalGS netExt (hlc := .hasLC))
         (client.keyAddr (netIp (L := hG.goose_localGS) (GF := netDistGF)))) $$ [Hpr Hgmu]
     with #Hgi
   · inext

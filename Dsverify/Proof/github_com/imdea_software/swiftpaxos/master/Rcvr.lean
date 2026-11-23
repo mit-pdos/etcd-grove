@@ -41,7 +41,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.model.Assumptions]
+variable [net.FieldAssumptions]
 
 set_option maxHeartbeats 4000000 in
 theorem master.rcvr.wp_proof

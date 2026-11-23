@@ -26,7 +26,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [net.rpc.RpcKit] [net.rpc.RpcCodec GF]
 
 /-- `NewDecoder(r)` returns a fresh `*Decoder` holding `r`. -/

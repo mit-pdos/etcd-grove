@@ -23,7 +23,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.model.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 variable [bufio.Assumptions] [state.Assumptions] [encoding.binary.Assumptions]
 variable [replica.defs.Assumptions] [dlog.Assumptions]
 

@@ -11,7 +11,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.LinHelp
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Model.LinCut
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

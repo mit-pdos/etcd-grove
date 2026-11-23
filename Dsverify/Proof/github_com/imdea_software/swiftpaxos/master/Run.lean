@@ -100,7 +100,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.model.Assumptions]
+variable [net.FieldAssumptions]
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 
 set_option maxHeartbeats 4000000 in
@@ -322,7 +322,7 @@ section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.model.Assumptions]
+variable [net.FieldAssumptions]
 
 /-- The frozen spec (`Spec/master/Master__Run.lean`): `Run.spec'`, `kitNameOk` unused. -/
 theorem master.Master.Run.wp_proof

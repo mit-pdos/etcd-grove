@@ -57,7 +57,7 @@ def client.pkgSt : IProp GF :=
   else iprop(∃ (g : Loc) (p : proph_id), globalAddr client.nodeGhost ↦□ g ∗ ⌜g ≠ null⌝ ∗
     structFieldRef client.Ghost go!"p" g ↦□ p ∗
     inv client.ghostInitN iprop(client.ghostUnclaimed g p ∨
-      addrTokG (extGlobalGS netConnExt (hlc := .hasLC))
+      addrTokG (extGlobalGS netExt (hlc := .hasLC))
         (client.keyAddr (netIp (L := hG.goose_localGS) (GF := GF)))))
 
 instance client.pkgSt_persistent : Persistent (client.pkgSt (GF := GF)) := by

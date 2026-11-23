@@ -42,7 +42,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.model.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 variable [bufio.Assumptions] [state.Assumptions] [encoding.binary.Assumptions]
 variable [replica.defs.Assumptions] [dlog.Assumptions]
 variable [net.rpc.Assumptions] [github_com.google.uuid.Assumptions] [math.rand.Assumptions] [time.Assumptions]
@@ -139,7 +139,7 @@ section newclient
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
-  [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.model.Assumptions]
+  [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [rpc.Assumptions] [replica.defs.Assumptions] [io.Assumptions] [io.ExtraAssumptions]
   [errors.Assumptions] [bufio.Assumptions]
 
@@ -161,7 +161,7 @@ end newclient
 section connect
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]
 variable [strings.Assumptions]
@@ -187,7 +187,7 @@ end connect
 section connectC
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]
 variable [strings.Assumptions]

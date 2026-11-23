@@ -18,7 +18,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RepsOk
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSyncPure
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncFacts
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

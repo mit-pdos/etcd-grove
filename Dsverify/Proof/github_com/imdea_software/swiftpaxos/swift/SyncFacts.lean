@@ -12,7 +12,7 @@ Facts about an `MSync` (the swift group's; not frozen):
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Steps
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

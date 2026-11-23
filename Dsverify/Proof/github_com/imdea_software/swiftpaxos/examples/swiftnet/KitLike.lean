@@ -97,7 +97,7 @@ theorem enc_of (C : net.rpc.RpcCodec GF) [KitLike C] (v : GoInterface) (Ψ : Lis
     @net.rpc.RpcCodec.enc _ GF kitCodec v Ψ ⊢ @net.rpc.RpcCodec.enc _ GF C v Ψ := by
   rw [KitLike.enc_eq (C := C)]
 
-variable [HasExt netConnExt] [net.Assumptions] [net.model.Assumptions]
+variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions]
   [net.rpc.Assumptions] [examples.swiftnet.Assumptions]
 
 /-- The harness's codec obligations at `kitCodecC`. -/

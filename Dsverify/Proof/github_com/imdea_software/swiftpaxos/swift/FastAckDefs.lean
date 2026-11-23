@@ -20,7 +20,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCallees
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Batcher
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

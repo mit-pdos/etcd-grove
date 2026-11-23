@@ -19,7 +19,7 @@ These open `sp.inv`'s body (T2-1, as Steps.lean).
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescNode
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

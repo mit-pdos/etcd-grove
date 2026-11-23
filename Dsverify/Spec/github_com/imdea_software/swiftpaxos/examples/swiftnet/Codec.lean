@@ -191,7 +191,7 @@ instance kitCodec : net.rpc.RpcCodec GF where
     rcvr = interface.mkOk (go.GoType.PointerType master.Master.ty) #p ∨
     rcvr = interface.mkOk (go.GoType.PointerType swift.Replica.ty) #p⌝)
 
-variable [HasExt netConnExt] [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 
 /-! The proofs (`Proof/swiftnet/codec/`) are about copies of this file's definitions
 (`Proof/swiftnet/codec/Own.lean`, `Ok.lean`: this module imports them, so they cannot import

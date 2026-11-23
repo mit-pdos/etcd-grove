@@ -31,7 +31,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 package states `S`, at every heap and Go context of node 0. -/
 def OrchHyps [GoGlobalContext] (S : SwiftNetPkgStates) : Prop :=
   ∀ (hG : HeapGS .hasLC netDistGF) (s : go.Semantics),
-    ∀ [examples.swiftnet.Assumptions] [net.model.Assumptions],
+    ∀ [examples.swiftnet.Assumptions] [net.FieldAssumptions],
     letI := @S netDistGF hG s
     adapter.SwiftInits
 

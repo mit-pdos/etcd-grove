@@ -30,7 +30,7 @@ section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [swift.Assumptions] [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
   [bufio.Assumptions] [replica.defs.Assumptions] [state.Assumptions] [replica.Assumptions]
   [rpc.Assumptions]

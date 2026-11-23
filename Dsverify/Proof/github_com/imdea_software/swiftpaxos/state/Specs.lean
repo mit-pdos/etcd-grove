@@ -38,7 +38,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section defs
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [SwiftLibs GF]
 
 /-- A key as the treemap holds it. -/
 def state.keyEnc (k : w64) : GoInterface := interface.mkOk state.Key.ty #k

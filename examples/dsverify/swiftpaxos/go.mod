@@ -1,8 +1,8 @@
 // The swiftpaxos kit (notes/dsv-swiftpaxos.md): dsverify-lab's swift-n2nofast-1 fork of
 // imdea-software/swiftpaxos (examples/swiftpaxos/fork/swiftpaxos at lab master 915f964, fork
-// commit 66dfc21), the system's packages only; the kit (examples/swiftnet) is not ported onto
-// examples/lib/remote yet, and the lab's models of gods, uuid and concurrent-map are not used (the
-// real modules). Not translated yet (no etc/goose.py project): see the notes for what blocks.
+// commit 66dfc21), the system's packages unchanged, over the real gods, uuid and concurrent-map;
+// the kit (examples/swiftnet) ported onto examples/lib/remote. Translated by etc/goose.py
+// project dsv-swiftpaxos.
 module github.com/imdea-software/swiftpaxos
 
 go 1.27

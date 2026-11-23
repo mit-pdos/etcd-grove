@@ -32,7 +32,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [state.Assumptions]
 variable [github_com.emirpasic.gods.maps.treemap.Assumptions] [sync.Assumptions]
 variable [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.model.Assumptions] [dlog.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [dlog.Assumptions]
   [time.Assumptions]
 
 theorem replica.wp_NewTableId_link : rpc.NewTableId.spec (hG := hG) := rpc.NewTableId.wp_proof

@@ -18,7 +18,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcceptL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SeqBound
 public import Perennial.Proof.bytes
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

@@ -14,7 +14,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSpec
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RepsOkInv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecKept
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.IterCbN
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

@@ -41,7 +41,7 @@ namespace adapter
 section inits
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [examples.swiftnet.Assumptions] [net.model.Assumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- The run's package states (`pkgStates`) at this heap. -/
 local instance pkgStI : SwiftNetPkgState netDistGF := @pkgStates _ netDistGF hG sem
@@ -398,7 +398,7 @@ theorem init_client : InitSpec pkg_id.github_com.imdea_software.swiftpaxos.clien
   imod (typedPointsto_dfractional _ _).dfractional_persist $$ H_nodeGhost with #HnG
   imod (typedPointsto_dfractional _ _).dfractional_persist $$ Hgp with #Hgp
   imod inv_alloc client.ghostInitN ⊤ iprop(client.ghostUnclaimed g p ∨
-      addrTokG (extGlobalGS netConnExt (hlc := .hasLC))
+      addrTokG (extGlobalGS netExt (hlc := .hasLC))
         (client.keyAddr (netIp (L := hG.goose_localGS) (GF := netDistGF)))) $$ [Hpr Hgmu]
     with #Hgi
   · inext

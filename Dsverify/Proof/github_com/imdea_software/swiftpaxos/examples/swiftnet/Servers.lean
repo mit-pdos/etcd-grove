@@ -82,7 +82,7 @@ end specs
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.model.Assumptions]
+variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
   [io.ExtraAssumptions]
 
 set_option goose.wp.extras true
@@ -140,7 +140,7 @@ node's ghost, `client.claimGhost.spec`, L2's), at every node's local
 ghost state and Go context, for the run's package states (`pkgStates`). -/
 def ServersHyps [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] : Prop :=
   ∀ (hG : HeapGS .hasLC netDistGF) (s : go.Semantics), hG.goose_globalGS = G →
-    ∀ [examples.swiftnet.Assumptions] [net.model.Assumptions] [io.ExtraAssumptions],
+    ∀ [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions],
     letI := @pkgStates _ netDistGF hG s
     swiftnetInitSrv.spec ∧ client.claimGhost.spec ∧ registerRPC.spec (GF := netDistGF) ∧
       master.New.spec ∧

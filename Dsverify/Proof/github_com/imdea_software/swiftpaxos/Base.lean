@@ -98,6 +98,10 @@ theorem netShaExts_hasSha256 :
 theorem netSha_noCollision : Sha256NoCollision sha256NoCollisionFilter :=
   sha256NoCollisionFilter_noCollision
 
+/-- The ghost state of a machine of the deployment (the lab's `netDistGF`): `Net`'s `netGF`, whose
+universal slot holds the ghost state of both extensions. -/
+abbrev netDistGF : BundledGFunctors := netGF
+
 end Dsv
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv

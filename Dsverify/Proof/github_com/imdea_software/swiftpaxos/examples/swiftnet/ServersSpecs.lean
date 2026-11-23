@@ -115,7 +115,7 @@ end specs
 section register
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.model.Assumptions]
+variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- `register(ip, port, maddr)` (runReplica's registration, retried): from replica node `k`
 of the configuration `c` (`k < c.n`), at the master's rpc address with its service: the

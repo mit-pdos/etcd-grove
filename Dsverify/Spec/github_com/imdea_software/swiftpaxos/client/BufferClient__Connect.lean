@@ -24,7 +24,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions] -- change log C4 (`failed`)
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] -- change log C4 (`failed`)
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 
 /-- From a fresh buffer client of the master's address, the master's rpc address and service,

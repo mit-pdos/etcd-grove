@@ -26,7 +26,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Steps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSeq
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleSync
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

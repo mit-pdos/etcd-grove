@@ -22,7 +22,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean)
 variable [C : net.rpc.RpcCodec netDistGF]
@@ -97,7 +97,7 @@ end proof
 section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions]
 
 /-- The frozen statement: `Disconnect.wp_proofG` at `kitCodec`. -/

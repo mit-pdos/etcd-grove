@@ -120,7 +120,7 @@ end client.cn
 /-! ## The internal specs -/
 
 /-- (An unfold of the harness's `net.rpc.rpcAddr`: a missing persistence instance.) -/
-instance client.cn.rpcAddr_persistent [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netConnExt]
+instance client.cn.rpcAddr_persistent [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
     [GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF]
     (W : net.rpc.RpcWorld netDistGF) (a : GoString) :
     Persistent (net.rpc.rpcAddr (GF := netDistGF) W a) := by
@@ -129,7 +129,7 @@ instance client.cn.rpcAddr_persistent [GooseExts] [GooseSemantics] [GooseInterp]
 section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link

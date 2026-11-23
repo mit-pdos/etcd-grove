@@ -36,7 +36,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.model.Assumptions] [io.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
   [io.ExtraAssumptions] [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [strings.Assumptions] [encoding.binary.Assumptions]
 

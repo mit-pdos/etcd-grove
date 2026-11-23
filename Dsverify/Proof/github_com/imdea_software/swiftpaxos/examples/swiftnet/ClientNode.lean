@@ -38,7 +38,7 @@ namespace cnode
 section hyps
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [examples.swiftnet.Assumptions] [net.model.Assumptions] [io.ExtraAssumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 
 /-- The client node's callees' specs owned by other groups (or other files), at client node
 `c`'s `HeapGS` and package states. -/
@@ -84,7 +84,7 @@ on its configured IP), for the package states `S`. -/
 def ClientNodeHyps [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] (S : SwiftNetPkgStates) :
     Prop :=
   ∀ (hG : HeapGS .hasLC netDistGF) (s : go.Semantics), hG.goose_globalGS = G →
-    ∀ [examples.swiftnet.Assumptions] [net.model.Assumptions] [io.ExtraAssumptions],
+    ∀ [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions],
     ∀ (c : Nat) (ip : IPv4), c < 6 → swiftNetCfg.ips[1 + c]? = some ip →
       netIp (L := hG.goose_localGS) (GF := netDistGF) = ip.spell →
     letI := @S netDistGF hG s

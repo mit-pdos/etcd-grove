@@ -37,7 +37,7 @@ attribute [local instance 2000] examples.swiftnet.kitCodecC
 section init
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [examples.swiftnet.Assumptions] [net.model.Assumptions] [io.ExtraAssumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 
 /-- The test package's initialization in the servers' statement (the same statement as
 `ClientOk`'s `wp_initialize'`), from the SwiftPaxos packages' initializers. -/
@@ -49,7 +49,7 @@ end init
 section init2
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [examples.swiftnet.Assumptions] [net.model.Assumptions] [io.ExtraAssumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 
 /-- The test package's initialization at `pkgStates` (sorry-free): ServersLink's `init`. -/
 theorem swiftnetInit_proof :

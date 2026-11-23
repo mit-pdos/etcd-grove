@@ -58,7 +58,7 @@ attribute [local instance] kitCodecC
 theorem kitWf_wfC (y : KitVal) : kitWf y ↔ KitVal.wfC y := by
   cases y <;> rfl
 
-variable [HasExt netConnExt] [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 
 theorem encOkC : ⊢ net.rpc.encOk (GF := GF) (net.rpc.kitFn go!"rpcEncode") := by
   unfold net.rpc.encOk

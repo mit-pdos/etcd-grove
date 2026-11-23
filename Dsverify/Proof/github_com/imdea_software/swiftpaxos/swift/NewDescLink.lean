@@ -47,7 +47,7 @@ variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurren
   [time.Assumptions] [config.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
   [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
   [io.Assumptions] [io.ExtraAssumptions] [errors.Assumptions] [bufio.Assumptions]
-  [net.Assumptions] [net.model.Assumptions] [sync.atomic.Assumptions]
+  [net.Assumptions] [net.FieldAssumptions] [sync.atomic.Assumptions]
 
 /-- **`newDesc` at the replica's kind-free records** (see the file header). -/
 theorem swift.Replica.newDesc.wp_linked (x : swift.RunX) (γ0 : sp.Names) (γc γm : GName)

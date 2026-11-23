@@ -83,7 +83,7 @@ end specs
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [examples.swiftnet.Assumptions] [net.model.Assumptions] [io.ExtraAssumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [io.ExtraAssumptions]
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 
 set_option goose.wp.extras true

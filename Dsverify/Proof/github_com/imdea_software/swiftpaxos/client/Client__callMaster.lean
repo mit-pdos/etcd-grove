@@ -67,7 +67,7 @@ end client.cn
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [client.Assumptions] [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [errors.Assumptions] [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
 -- `kitCodecC` in the link

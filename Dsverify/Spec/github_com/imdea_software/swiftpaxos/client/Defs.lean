@@ -230,7 +230,7 @@ end defs
 section failed
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 
 /-- `Connect` failed: the client's struct, whatever it holds, with its master rpc client if any
 (change log C4) (only `Disconnect` follows). -/

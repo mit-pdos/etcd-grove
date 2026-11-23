@@ -27,7 +27,7 @@ section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.model.Assumptions] [replica.defs.Assumptions]
+variable [net.FieldAssumptions] [replica.defs.Assumptions]
 
 theorem master.wp_New : master.New.spec := master.New.wp_proof
 
@@ -50,7 +50,7 @@ section linkC
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.model.Assumptions] [replica.defs.Assumptions]
+variable [net.FieldAssumptions] [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodecC` in the link
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 

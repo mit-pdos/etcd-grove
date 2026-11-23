@@ -182,7 +182,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.model.Assumptions]
+variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [net.rpc.Assumptions] [net.rpc.RpcKit]
 
 /-- A Go map's listing as the codec sees it (`mapOwn`), from its read-only points-to. -/
@@ -450,7 +450,7 @@ section proofG
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.model.Assumptions]
+variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [net.rpc.Assumptions]
 
 /-- **`swift.MSync.marshalHG`** (SyncFits.lean; `handleNewLeaderAckNs`'s hypothesis): `marshalHP`

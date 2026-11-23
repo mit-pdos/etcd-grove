@@ -24,7 +24,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncFact
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncAux
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MsgRep
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescFresh
-import all Spec.swift.Inv
+import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
 

@@ -31,7 +31,7 @@ namespace adapter
 section init
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [examples.swiftnet.Assumptions] [net.model.Assumptions]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- A package's initializer's spec (the form of Perennial's `X.initialize'.spec`). -/
 abbrev InitSpec (pkg : GoString) [IsPkgInit (IProp netDistGF) pkg]

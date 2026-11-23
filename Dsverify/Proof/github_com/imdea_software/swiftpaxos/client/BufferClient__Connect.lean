@@ -33,7 +33,7 @@ namespace client.cn
 section defs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [net.Assumptions]
-  [net.model.Assumptions] [net.rpc.Assumptions]
+  [net.FieldAssumptions] [net.rpc.Assumptions]
 
 /-- One replica's end while connecting: none yet (a nil connection), or connected (the
 `replicaEnd`'s second case). -/
@@ -132,7 +132,7 @@ end client.cn
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statement,
@@ -500,7 +500,7 @@ end proof
 section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-variable [net.Assumptions] [net.model.Assumptions] [net.rpc.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [bufio.Assumptions] [replica.defs.Assumptions] [dlog.Assumptions]
 
