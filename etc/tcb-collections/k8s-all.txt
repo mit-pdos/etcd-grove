@@ -14,7 +14,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/(Results|MainLinked
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
-axiom DescribeConfChange.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
