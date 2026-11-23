@@ -17,6 +17,10 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.Recv
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.Serve
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.NewTCP
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.HandleConn
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.events.Results
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
@@ -42,7 +46,7 @@ variable [go.BasicIntoValInj]
 theorem network.NewTCP.wp
     (wp_FromDecoder : events.Event.FromDecoder.spec (GF := GF) (hG := hG)) :
     network.NewTCP.spec (GF := GF) (hG := hG) :=
-  network.NewTCP.wp_proof wp_FromDecoder
+  network.NewTCP.wp_proof wp_FromDecoder ipv4port.IPv4Port.FromHostPort.wp assert.Assert.wp queue.New.wp
 
 theorem network.TCP.Run.wp
     (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := hG))
@@ -50,26 +54,33 @@ theorem network.TCP.Run.wp
     network.TCP.Run.spec (GF := GF) (hG := hG) :=
   network.TCP.Run.wp_proof wp_Debug wp_newDecoder events.NewNetworkEvent.wp net.Conn.Close.wp_proof
     net.Listener.Accept.wp_proof net.Conn.RemoteAddr.wp_proof net.Listen.wp_proof
+    ipv4port.FromAddrString.wp ipv4port.IPv4Port.String_ptr.wp
+    (network.TCP.handleConn.wp_proof wp_Debug wp_newDecoder events.NewNetworkEvent.wp
+      net.Conn.Close.wp_proof ipv4port.IPv4Port.String_ptr.wp queue.Queue.Push.wp)
 
 theorem network.TCP.Send.wp
     (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := hG))
     (wp_newDecoder : events.newDecoder.spec (GF := GF) (hG := hG)) :
     network.TCP.Send.spec (GF := GF) (hG := hG) :=
   network.TCP.Send.wp_proof wp_Debug wp_newDecoder events.NewNetworkEvent.wp net.Dial.wp_proof
-    net.Conn.Close.wp_proof
+    net.Conn.Close.wp_proof ipv4port.IPv4Port.String_ptr.wp
+    (network.TCP.handleConn.wp_proof wp_Debug wp_newDecoder events.NewNetworkEvent.wp
+      net.Conn.Close.wp_proof ipv4port.IPv4Port.String_ptr.wp queue.Queue.Push.wp)
 
 theorem network.TCP.Recv.wp : network.TCP.Recv.spec (GF := GF) (hG := hG) :=
-  network.TCP.Recv.wp_proof
+  network.TCP.Recv.wp_proof queue.Queue.Pop.wp
 
 theorem network.Network.Send.wp
     (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := hG))
     (wp_newDecoder : events.newDecoder.spec (GF := GF) (hG := hG)) :
     network.Network.Send.spec (GF := GF) (hG := hG) :=
   network.Network.Send.wp_proof wp_Debug wp_newDecoder events.NewNetworkEvent.wp net.Dial.wp_proof
-    net.Conn.Close.wp_proof
+    net.Conn.Close.wp_proof ipv4port.IPv4Port.String_ptr.wp
+    (network.TCP.handleConn.wp_proof wp_Debug wp_newDecoder events.NewNetworkEvent.wp
+      net.Conn.Close.wp_proof ipv4port.IPv4Port.String_ptr.wp queue.Queue.Push.wp)
 
 theorem network.Network.Recv.wp : network.Network.Recv.spec (GF := GF) (hG := hG) :=
-  network.Network.Recv.wp_proof
+  network.Network.Recv.wp_proof queue.Queue.Pop.wp
 
 end results
 

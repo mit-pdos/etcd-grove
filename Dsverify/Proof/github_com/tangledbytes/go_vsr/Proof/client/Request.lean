@@ -8,7 +8,7 @@ notes/dsv-vr.md): over any `GF`, on the net extension.
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Send
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
 
 @[expose] public section
 
@@ -36,7 +36,8 @@ set_option goose.wp.extras true
 theorem client.Client.Request.wp_proof
     (wp_TCP_Send : network.TCP.Send.spec (GF := GF) (hG := hG))
     (wp_ToWriter : ∀ _jc : models_lab.jsoncodec.JsonCodec GF,
-      events.Event.ToWriter.spec (GF := GF) (hG := hG)) :
+      events.Event.ToWriter.spec (GF := GF) (hG := hG))
+    (wp_NewTimer : time.NewTimer.spec (GF := GF) (hG := hG)) :
     client.Client.Request.spec (GF := GF) (hG := hG) := by
   intro cl γ c n op
   wp_start as ⟨%Hn, %Hop, %Hmb, %Hline, Hcl, #Hfact⟩
@@ -49,7 +50,7 @@ theorem client.Client.Request.wp_proof
   wp_auto
   irename «$r0» => Hr
   ipersist Hr
-  wp_apply (time.NewTimer.wp v.time' _ Ht) as %tm Htm
+  wp_apply (wp_NewTimer v.time' _ Ht) as %tm Htm
   dsimp only
   ihave %Hml := ownSlice_len $$ Hmems
   wp_method_call

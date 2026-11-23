@@ -16,6 +16,11 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Consum
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.CheckTimers
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.New
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.SubmitRun
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
 
 @[expose] public section
 
@@ -35,12 +40,14 @@ variable [models_lab.jsoncodec.JsonCodec GF]
 /-- `New.lean`: the members parsed (`FromHostPort`) and sorted (`sort.Sort` through
 `ByLess.sorter`, by `ipv4port.portLt`), `NewLogs`, the maps, the queue at `replica.sqElem γ tcp`,
 the timers; the facts `committedBy 0 []`, `linPrefix []` by `ghost_fact'`. -/
-theorem replica.New.wp : replica.New.spec (GF := GF) (hG := hG) := replica.New.wp_proof
+theorem replica.New.wp : replica.New.spec (GF := GF) (hG := hG) :=
+  replica.New.wp_proof ipv4port.IPv4Port.FromHostPort.wp ipv4port.ByLess.sorter.wp
+    log.NewLogs.wp_proof queue.New.wp time.NewTimer.wp
 
 /-- `SubmitRun.lean`: `Assert(!running)` (`running = false` in `replica.own`), `sq.Push` with
 `sqElem` (the event's first disjunct, from the precondition). -/
 theorem replica.Replica.Submit.wp : replica.Replica.Submit.spec (GF := GF) (hG := hG) :=
-  replica.Replica.Submit.wp_proof
+  replica.Replica.Submit.wp_proof assert.Assert.wp queue.Queue.Push.wp
 
 /-- `SubmitRun.lean`: `Assert(!running)`, `setIsRunning(true)`, the deferred
 `setIsRunning(false)`, `replica.wp_consumeSQ` and `replica.wp_checkTimers` (over `replica.ownR`;
@@ -56,7 +63,12 @@ theorem replica.Replica.Run.wp
     (wp_ToWriter : ∀ [jc : models_lab.jsoncodec.JsonCodec GF],
       events.Event.ToWriter.spec (GF := GF) (hG := hG)) :
     replica.Replica.Run.spec (GF := GF) (hG := hG) :=
-  replica.Replica.Run.wp_proof ⟨wp_Debug, wp_Info, wp_Warn, wp_Error, wp_TCP_Send, wp_ToWriter⟩
+  replica.Replica.Run.wp_proof ⟨wp_Debug, wp_Info, wp_Warn, wp_Error, wp_TCP_Send, wp_ToWriter,
+    assert.Assert.wp, ipv4port.IPv4Port.String.wp, ipv4port.IPv4Port.String_ptr.wp,
+    queue.Queue.Push.wp, queue.Queue.Pop.wp, time.NewTimer.wp, time.Timer.Reset.wp,
+    time.Timer.Done.wp, time.Timer.SetState.wp, time.Timer.State.wp, log.Logs.Len.wp_proof,
+    log.Logs.OpAt.wp_proof, log.Logs.ClientIDAt.wp_proof, log.Logs.RequestIDAt.wp_proof,
+    log.Logs.After.wp_proof, log.Logs.Add.wp_proof, log.Logs.Merge.wp_proof⟩
 
 end results
 

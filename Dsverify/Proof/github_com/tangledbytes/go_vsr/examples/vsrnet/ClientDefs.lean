@@ -15,9 +15,9 @@ whole request counter `nextReq γ (c + 1) n`.
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.OrchProof
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.OrchProofDefs
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.client
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
 
 @[expose] public section
 

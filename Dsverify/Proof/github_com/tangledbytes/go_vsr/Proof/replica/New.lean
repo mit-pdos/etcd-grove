@@ -15,10 +15,10 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Pure
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Ghost
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
 public import Perennial.Proof.sort.Link
 
 @[expose] public section
@@ -60,7 +60,13 @@ theorem replica.addrs_of_cfg (tcp : Loc) (γ : VsrGhost.Names) (me : GoString)
     iframe Ht Hl
 
 set_option maxHeartbeats 1000000 in
-theorem replica.New.wp_proof : replica.New.spec (GF := GF) (hG := hG) := by
+theorem replica.New.wp_proof
+    (wp_FromHostPort : ipv4port.IPv4Port.FromHostPort.spec (GF := GF) (hG := hG))
+    (wp_sorter : ipv4port.ByLess.sorter.spec (GF := GF) (hG := hG))
+    (wp_NewLogs : log.NewLogs.spec (GF := GF) (hG := hG))
+    (wp_QNew : queue.New.spec (GF := GF) (hG := hG))
+    (wp_NewTimer : time.NewTimer.spec (GF := GF) (hG := hG)) :
+    replica.New.spec (GF := GF) (hG := hG) := by
   intro F cfg γ N r tcp me dq ms P hid hr hms hN62 haddrs hnet htime
   wp_start as ⟨Hmem, #Hsrv, Hstore, #HisTCP, Hsender, #Hprotos, #Hlogger, Hrep, #Hsize, #Hsys,
     #HregI, #Hcodec, #Hkit⟩
@@ -108,7 +114,7 @@ theorem replica.New.wp_proof : replica.New.spec (GF := GF) (hG := hG) := by
       rw [List.getElem?_append_right (Nat.le_refl _), Nat.sub_self, List.getElem?_replicate]
       simp; omega
     ihave ⟨Hel, Hsl⟩ := ownSlice_elem_acc (sint.Z n) _ sl _ _ Hn.2.2 hlk $$ Hsl
-    wp_apply (ipv4port.IPv4Port.FromHostPort.wp _ _ a (haddrs a (List.mem_of_getElem? Ha_lookup)))
+    wp_apply (wp_FromHostPort _ _ a (haddrs a (List.mem_of_getElem? Ha_lookup)))
       $$ [Hel] as ⟨%p, Hel, #Hp⟩
     · iexact Hel
     ihave Hsl := Hsl $$ Hel
@@ -145,7 +151,7 @@ theorem replica.New.wp_proof : replica.New.spec (GF := GF) (hG := hG) := by
   rw [hps3]
   simp only [Nat.sub_self, List.replicate_zero, List.append_nil]
   try wp_auto
-  ihave #Hsorter := ipv4port.ByLess.sorter.wp sl $$ []
+  ihave #Hsorter := wp_sorter sl $$ []
   · iPkgInit
   wp_apply (sort.wp_Sort (GF := GF) ⟨ipv4port.ByLess.ty, #sl⟩ (ipv4port.cfgList sl)
       ipv4port.portLt ipv4port.ByLess.swo ps) $$ [Hsl Hps] as %ps' Hpost
@@ -173,16 +179,16 @@ theorem replica.New.wp_proof : replica.New.spec (GF := GF) (hG := hG) := by
   imod VsrReplica.ghost_fact' γ N r _ _ (.linPrefix [])
     (fun s _ _ _ _ => List.nil_prefix) $$ Hsize Hsys Hrep Hnil with ⟨Hrep, #Hl0⟩
   wp_apply (wp_map_make1 (K := w64) (V := replica.ClientTableData)) as %tblm Htbl
-  wp_apply log.NewLogs.wp_proof as %lsl ⟨Hlogs, Hlcap⟩
+  wp_apply wp_NewLogs as %lsl ⟨Hlogs, Hlcap⟩
   ihave Hlogs := log.ownLogs_persist _ _ _ $$ Hlogs
   imod Hlogs with #Hlogs
   try wp_auto
   wp_apply (wp_map_make1 (K := w64) (V := replica.PendingPrepareOK)) as %pkm Hpk
   wp_apply (wp_map_make1 (K := w64) (V := replica.PendingStartViewChange)) as %svm Hsv
   wp_apply (wp_map_make1 (K := w64) (V := replica.PendingDoViewChange)) as %dvm Hdv
-  wp_apply (queue.New.wp events.NetworkEvent.ty (replica.sqElem γ tcp)) as %q #Hq
-  wp_apply (time.NewTimer.wp cfg.Time' cfg.HeartbeatTimeout' htime) as %ct Hct
-  wp_apply (time.NewTimer.wp cfg.Time' (cfg.HeartbeatTimeout' * W64 2) htime) as %vct Hvct
+  wp_apply (wp_QNew events.NetworkEvent.ty (replica.sqElem γ tcp)) as %q #Hq
+  wp_apply (wp_NewTimer cfg.Time' cfg.HeartbeatTimeout' htime) as %ct Hct
+  wp_apply (wp_NewTimer cfg.Time' (cfg.HeartbeatTimeout' * W64 2) htime) as %vct Hvct
   try wp_auto
   iapply HΦ
   iframe Hmem

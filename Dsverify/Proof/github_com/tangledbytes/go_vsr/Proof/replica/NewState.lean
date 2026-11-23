@@ -12,11 +12,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.ViewHelpers
 
 @[expose] public section
@@ -52,7 +52,7 @@ theorem replica.wp_onNewState (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc
   unfold replica.repInv
   iNamed Hinv
   wp_auto
-  wp_apply (ipv4port.IPv4Port.String_ptr.wp src_ptr (DFrac.own 1) src) $$ [src] as src
+  wp_apply (H.wp_String_ptr src_ptr (DFrac.own 1) src) $$ [src] as src
   · iexact src
   wp_log
   wp_if_destruct
@@ -68,7 +68,7 @@ theorem replica.wp_onNewState (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc
   · wp_if_destruct
     · wp_method_call
       wp_auto
-      wp_apply (log.Logs.Len.wp_proof ev.Logs' DFrac.discard logs) $$ [Hlogs]
+      wp_apply (H.wp_Len ev.Logs' DFrac.discard logs) $$ [Hlogs]
       · iexact Hlogs
       iintro -
       wp_auto
@@ -78,7 +78,7 @@ theorem replica.wp_onNewState (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc
         simp_all
       · wp_method_call
         wp_auto
-        wp_apply (log.Logs.Len.wp_proof ev.Logs' DFrac.discard logs) $$ [Hlogs]
+        wp_apply (H.wp_Len ev.Logs' DFrac.discard logs) $$ [Hlogs]
         · iexact Hlogs
         iintro -
         wp_auto
@@ -146,7 +146,7 @@ theorem replica.wp_onNewState (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc
   iStructNamed Hr
   icases typedPointsto_not_null_dup _ _ _ $$ state with ⟨state, %Hnn2⟩
   iStructNamed state
-  wp_apply (log.Logs.Merge.wp_proof _ v.state'.Logs' DFrac.discard lg ev.Logs' DFrac.discard logs
+  wp_apply (H.wp_Merge _ v.state'.Logs' DFrac.discard lg ev.Logs' DFrac.discard logs
     DFrac.valid_discard) $$ [Logs Hcap]
     as ⟨%sl', Logs, #Hlog', Hcap', -⟩
   · iframe Logs Hlog Hcap Hlogs

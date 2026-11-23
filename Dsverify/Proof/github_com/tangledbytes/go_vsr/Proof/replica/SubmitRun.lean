@@ -50,7 +50,10 @@ theorem replica.repInv_running (γ : VsrGhost.Names) (r : Nat) (tcp : Loc) (v : 
       replica.repInv γ r tcp v := rfl
   rw [h]
 
-theorem replica.Replica.Submit.wp_proof : replica.Replica.Submit.spec (GF := GF) (hG := hG) := by
+theorem replica.Replica.Submit.wp_proof
+    (wp_Assert : assert.Assert.spec (GF := GF) (hG := hG))
+    (wp_Push : queue.Queue.Push.spec (GF := GF) (hG := hG)) :
+    replica.Replica.Submit.spec (GF := GF) (hG := hG) := by
   intro rp γ r tcp ev
   wp_start as ⟨Hown, ⟨%m, #Hev, #Hf, #Ha, Hecap⟩⟩
   unfold replica.isReplica replica.own
@@ -59,8 +62,8 @@ theorem replica.Replica.Submit.wp_proof : replica.Replica.Submit.spec (GF := GF)
   iNamed Hinv
   wp_auto
   rw [Hrun]
-  wp_apply assert.Assert.wp
-  wp_apply (queue.Queue.Push.wp events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq' ev)
+  wp_apply wp_Assert
+  wp_apply (wp_Push events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq' ev)
     $$ [Hecap]
   · iframe Hsq
     unfold replica.sqElem
@@ -83,7 +86,7 @@ theorem replica.Replica.Run.wp_proof (H : replica.Hyps (GF := GF) (hG := hG)) : 
   wp_apply wp_with_defer as %defer Hdefer
   try wp_auto
   rw [Hrun]
-  wp_apply assert.Assert.wp
+  wp_apply H.wp_Assert
   wp_apply replica.wp_setIsRunning rp v true $$ [Hr] as Hr
   · iexact Hr
   try wp_auto

@@ -18,8 +18,8 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server3.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server4.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server5.Base
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ClientProof
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ServerProof
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ClientProofDefs
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ServerProofDefs
 
 @[expose] public section
 

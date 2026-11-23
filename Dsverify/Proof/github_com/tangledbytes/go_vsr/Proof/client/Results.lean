@@ -15,6 +15,9 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Request
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Submit
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Run
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.New
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
 
 @[expose] public section
 
@@ -39,17 +42,17 @@ variable [time.Assumptions] [queue.Assumptions] [log.slog.Assumptions] [ipv4port
 variable [sort.Assumptions]
 
 theorem client.New.wp : client.New.spec (GF := GF) (hG := hG) :=
-  client.New.wp_proof
+  client.New.wp_proof ipv4port.IPv4Port.FromHostPort.wp ipv4port.ByLess.sorter.wp queue.New.wp
 theorem client.Client.Request.wp
     (wp_TCP_Send : network.TCP.Send.spec (GF := GF) (hG := hG))
     (wp_ToWriter : ∀ _jc : models_lab.jsoncodec.JsonCodec GF,
       events.Event.ToWriter.spec (GF := GF) (hG := hG)) :
     client.Client.Request.spec (GF := GF) (hG := hG) :=
-  client.Client.Request.wp_proof wp_TCP_Send wp_ToWriter
+  client.Client.Request.wp_proof wp_TCP_Send wp_ToWriter time.NewTimer.wp
 theorem client.Client.Submit.wp
     (wp_Logger_Error : log.slog.Logger.Error.spec (GF := GF) (hG := hG)) :
     client.Client.Submit.spec (GF := GF) (hG := hG) :=
-  client.Client.Submit.wp_proof wp_Logger_Error
+  client.Client.Submit.wp_proof wp_Logger_Error queue.Queue.Push.wp
 theorem client.Client.Run.wp
     (wp_TCP_Send : network.TCP.Send.spec (GF := GF) (hG := hG))
     (wp_ToWriter : ∀ _jc : models_lab.jsoncodec.JsonCodec GF,
@@ -58,6 +61,7 @@ theorem client.Client.Run.wp
     (wp_Logger_Debug : log.slog.Logger.Debug.spec (GF := GF) (hG := hG)) :
     client.Client.Run.spec (GF := GF) (hG := hG) :=
   client.Client.Run.wp_proof wp_TCP_Send wp_ToWriter wp_Logger_Error wp_Logger_Debug
+    queue.Queue.Pop.wp time.Timer.Done.wp time.Timer.Reset.wp
 theorem client.Client.CheckResult.wp : client.Client.CheckResult.spec (GF := GF) (hG := hG) :=
   client.Client.CheckResult.wp_proof
 

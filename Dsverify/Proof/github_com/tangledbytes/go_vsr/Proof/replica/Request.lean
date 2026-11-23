@@ -12,11 +12,11 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Exec
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 
 @[expose] public section
 
@@ -117,7 +117,7 @@ macro "request_tail" : tactic => `(tactic| (
   iStructNamedPrefix Hr "R"
   ihave %Hnn2 := typedPointsto_not_null _ _ _ $$ Rstate
   iStructNamedPrefix Rstate "S"
-  wp_apply (log.Logs.Add.wp_proof _ v.state'.Logs' DFrac.discard lg _ DFrac.valid_discard)
+  wp_apply (H.wp_Add _ v.state'.Logs' DFrac.discard lg _ DFrac.valid_discard)
     $$ [SLogs Hcap] as ⟨%sl', SLogs, #Hlog', Hcap⟩
   · iframe SLogs Hcap Hlog
   obtain ⟨vn, hvn⟩ : ∃ vn : replica.Replica, vn = { v with state' := { v.state' with
@@ -179,7 +179,7 @@ macro "request_tail" : tactic => `(tactic| (
       iexists _, _, _
       iframe
       ipureintro; word
-    wp_apply (ipv4port.IPv4Port.String_ptr.wp member_ptr (DFrac.own 1) m) $$ [member] as member
+    wp_apply (H.wp_String_ptr member_ptr (DFrac.own 1) m) $$ [member] as member
     · iexact member
     wp_log
     ihave #Ham := BI.BigSepL.bigSepL_lookup Hm_lookup $$ Haddrs
@@ -200,7 +200,7 @@ macro "request_tail" : tactic => `(tactic| (
       ipureintro; word
     | ok ii =>
       wp_auto
-      wp_apply (ipv4port.IPv4Port.String_ptr.wp member_ptr (DFrac.own 1) m) $$ [member] as member
+      wp_apply (H.wp_String_ptr member_ptr (DFrac.own 1) m) $$ [member] as member
       · iexact member
       wp_log
       wp_for_post
@@ -226,7 +226,7 @@ macro "request_tail" : tactic => `(tactic| (
   ihave #Hpok2 : VsrGhost.fact γ (.msg (.prepareOK (uint.nat vn.state'.ViewNumber')
       (uint.nat vn.state'.OpNum') (uint.nat vn.state'.ID'))) $$ []
   · rw [hvnV, hvnO, hvnI]; iexact Hpok
-  wp_apply (queue.Queue.Push.wp events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq'
+  wp_apply (H.wp_Push events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq'
     ⟨mid, «$v1_ptr»⟩) $$ []
   · iframe Hsq
     unfold replica.sqElem
@@ -303,7 +303,7 @@ theorem replica.wp_onRequest (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
   ihave %Hmlen0 := ownSlice_len $$ Hms
   have hn63 : n < 2 ^ 63 := by rw [← Hmslen]; exact (replica.len_of_slice _ _ Hmlen0).2
   wp_auto
-  wp_apply (ipv4port.IPv4Port.String_ptr.wp from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
+  wp_apply (H.wp_String_ptr from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
   · iexact «from»
   wp_log
   wp_if_destruct
@@ -367,7 +367,7 @@ theorem replica.wp_onRequest (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
           close_own
         | ok ii =>
           wp_auto
-          wp_apply (ipv4port.IPv4Port.String_ptr.wp from_ptr (DFrac.own 1) src) $$ [«from»]
+          wp_apply (H.wp_String_ptr from_ptr (DFrac.own 1) src) $$ [«from»]
             as «from»
           · iexact «from»
           wp_log

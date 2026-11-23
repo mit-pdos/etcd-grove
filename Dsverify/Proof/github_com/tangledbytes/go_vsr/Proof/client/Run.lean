@@ -10,8 +10,8 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Slog
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
 
 @[expose] public section
 
@@ -301,7 +301,11 @@ theorem client.Client.wp_onReply (cl : Loc) (γ : VsrGhost.Names) (c : Nat) (st 
 
 
 include wp_TCP_Send wp_ToWriter wp_Logger_Error wp_Logger_Debug in
-theorem client.Client.Run.wp_proof : client.Client.Run.spec (GF := GF) (hG := hG) := by
+theorem client.Client.Run.wp_proof
+    (wp_Pop : queue.Queue.Pop.spec (GF := GF) (hG := hG))
+    (wp_Done : time.Timer.Done.spec (GF := GF) (hG := hG))
+    (wp_Reset : time.Timer.Reset.spec (GF := GF) (hG := hG)) :
+    client.Client.Run.spec (GF := GF) (hG := hG) := by
   intro cl γ c st
   wp_start as Hcl
   wp_auto
@@ -332,7 +336,7 @@ theorem client.Client.Run.wp_proof : client.Client.Run.spec (GF := GF) (hG := hG
         wp_auto
         simp only [hreq, hrn, _root_.decide_false]
         wp_auto
-        wp_apply (time.Timer.Done.wp v.internal'.requestTimer' tst) $$ [Htm] as %b Htm
+        wp_apply (wp_Done v.internal'.requestTimer' tst) $$ [Htm] as %b Htm
         · iexact Htm
         cases b
         · wp_auto
@@ -383,7 +387,7 @@ theorem client.Client.Run.wp_proof : client.Client.Run.spec (GF := GF) (hG := hG
             wp_auto
             wp_apply (client.Logger.wp_Error_err wp_Logger_Error _ _ go!"error" _ (GoInterface.ok ei)) $$ [Hsle]
             · iframe; iframe #
-            wp_apply (time.Timer.Reset.wp v.internal'.requestTimer' tst) $$ [Htm] as Htm
+            wp_apply (wp_Reset v.internal'.requestTimer' tst) $$ [Htm] as Htm
             · iexact Htm
             isplitr
             · ipureintro; rfl
@@ -401,7 +405,7 @@ theorem client.Client.Run.wp_proof : client.Client.Run.spec (GF := GF) (hG := hG
             iexact Htm
           case nil =>
             wp_auto
-            wp_apply (time.Timer.Reset.wp v.internal'.requestTimer' tst) $$ [Htm] as Htm
+            wp_apply (wp_Reset v.internal'.requestTimer' tst) $$ [Htm] as Htm
             · iexact Htm
             isplitr
             · ipureintro; rfl
@@ -441,7 +445,7 @@ theorem client.Client.Run.wp_proof : client.Client.Run.spec (GF := GF) (hG := hG
   icases Hcl with ⟨%v, %mems, %F, %jc, Hv, %Hv, #Hmems, #Hok, #Hnet, Hsnd, #Hprotos, %Ht,
     #Hlog, #Hcodec, #Hkit, #Hq, Hpend⟩
   wp_auto
-  wp_apply (queue.Queue.Pop.wp events.Reply.ty
+  wp_apply (wp_Pop events.Reply.ty
     (fun rep : events.Reply => VsrGhost.fact γ (.msg (.reply (uint.nat rep.ID')
       (uint.nat rep.ClientID') (uint.nat rep.ViewNum') rep.Result'))) v.internal'.response')
     as %rep %ok Hrep

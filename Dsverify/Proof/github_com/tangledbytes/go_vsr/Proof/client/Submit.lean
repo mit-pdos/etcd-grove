@@ -10,7 +10,7 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.client
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Slog
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
 
 @[expose] public section
 
@@ -35,7 +35,8 @@ variable [events.Assumptions] [log.slog.Assumptions] [queue.Assumptions]
 set_option goose.wp.extras true
 
 theorem client.Client.Submit.wp_proof
-    (wp_Logger_Error : log.slog.Logger.Error.spec (GF := GF) (hG := hG)) :
+    (wp_Logger_Error : log.slog.Logger.Error.spec (GF := GF) (hG := hG))
+    (wp_Push : queue.Queue.Push.spec (GF := GF) (hG := hG)) :
     client.Client.Submit.spec (GF := GF) (hG := hG) := by
   intro cl γ c st tcp ev
   wp_start as ⟨Hcl, #Hev⟩
@@ -56,7 +57,7 @@ theorem client.Client.Submit.wp_proof
       obtain ⟨rfl, hid, hcid, hvn, hres⟩ := Hx
       simp only [hty, _root_.decide_true]
       wp_auto
-      wp_apply (queue.Queue.Push.wp events.Reply.ty
+      wp_apply (wp_Push events.Reply.ty
         (fun rep : events.Reply => VsrGhost.fact γ (.msg (.reply (uint.nat rep.ID')
           (uint.nat rep.ClientID') (uint.nat rep.ViewNum') rep.Result')))) $$ []
       · iframe #

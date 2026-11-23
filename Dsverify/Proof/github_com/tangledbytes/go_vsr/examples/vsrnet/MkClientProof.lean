@@ -11,9 +11,10 @@ the callees' specs `log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.OpProof
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.OpProofDefs
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.KitLib
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.MkClientProofDefs
 
 @[expose] public section
 
@@ -48,49 +49,12 @@ local notation "kpkg" => pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet
 
 set_option goose.wp.extras true
 
-/-- `replicas(addrs, conf)`: the configuration's replicas' addresses, server machines `1 .. N`. -/
-theorem wp_replicas (sl : GoSlice) (n h r : Nat) (hc : ConfOk n h r) :
-    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ VsrWire.addrs }}
-      (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.replicas)) (Val #sl))
-        (Val #(confOf n h r)))
-    {{ (ms : GoSlice), RET #ms; ms ↦*□ subslice 7 (7 + n) VsrWire.addrs }} := by
-  wp_start as #Hsl
-  wp_auto
-  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
-  ihave %Hwf := ownSlice_wf _ _ _ $$ Hsl
-  have hn : n ≤ 5 := by rcases hc.1 with rfl | rfl <;> decide
-  have h12 : VsrWire.addrs.length = 12 := rfl
-  have hb : 0 ≤ sint.Z (W64 6 + W64 1) ∧
-      sint.Z (W64 6 + W64 1) ≤ sint.Z (W64 6 + W64 1 + W64 (n : Int)) ∧
-      sint.Z (W64 6 + W64 1 + W64 (n : Int)) ≤ sint.Z sl.len := by
-    rw [h12] at Hlen
-    refine ⟨by word, by word, by word⟩
-  rw [ite_eq_left ⟨hb.1, hb.2.1, Int.le_trans hb.2.2 Hwf.2⟩]
-  wp_auto
-  iapply HΦ
-  icases (ownSlice_slice (W64 6 + W64 1) (W64 6 + W64 1 + W64 (n : Int)) sl DFrac.discard
-    VsrWire.addrs hb).1 $$ Hsl with ⟨-, Hm, -⟩
-  have e1 : sint.nat (W64 6 + W64 1) = 7 := by word
-  have e2 : sint.nat (W64 6 + W64 1 + W64 (n : Int)) = 7 + n := by word
-  rw [e1, e2]
-  iexact Hm
-
-/-- `mkClient(addrs, conf, c)`: client `c`'s system, its counter at 1. -/
-abbrev mkClient.spec : Prop :=
-  ∀ (γ : Names) (c : Nat) (sl : GoSlice) (cf : Conf), c < 6 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ VsrWire.addrs ∗
-      confOk (G := hG.goose_globalGS) γ cf ∗ pkg.network.netProtos γ ∗
-      sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
-      nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗
-      encoding.json.kitCodecOk vsrnet.scanF }}
-    (App (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.mkClient)) (Val #sl))
-      (Val #cf)) (Val #(W64 (c : Int))))
-  {{ (x : Loc), RET #x; sysRes γ c (interface.mkOk (go.GoType.PointerType Sys.ty) #x) 1 }}
-
 theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
     (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
     (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
-    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG)) :
+    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG))
+    (wp_NewReal : pkg.time.NewReal.spec (GF := GF) (hG := hG))
+    (wp_clientNew : pkg.client.New.spec (GF := GF) (hG := hG)) :
     mkClient.spec (GF := GF) (hG := hG) := by
   intro γ c sl cf hc
   wp_start as ⟨#Hsl, #Hcf, #Hprotos, #HsysI, #HregI, Hnext, #Hkit⟩
@@ -126,7 +90,7 @@ theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG :=
   · iframe #
   wp_apply (wp_replicas sl n h r Hok) as %ms #Hms
   · iframe #
-  wp_apply pkg.time.NewReal.wp as %rl %Hrl
+  wp_apply wp_NewReal as %rl %Hrl
   wp_apply (wp_requestMs (W64 (r : Int)) (by have := Hok.2.2; word)) as %rq -
   wp_apply (wp_logger wp_New wp_Discard) as %lg #Hlg
   have hn : n = 3 ∨ n = 5 := Hok.1
@@ -134,7 +98,7 @@ theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG :=
     List.mem_of_mem_take (List.mem_of_mem_drop (by simpa [subslice] using ha))
   have hlen : (subslice 7 (7 + n) VsrWire.addrs).length = n := by
     rcases hn with rfl | rfl <;> rfl
-  wp_apply (pkg.client.New.wp vsrnet.scanF _ γ DFrac.discard (subslice 7 (7 + n) VsrWire.addrs)
+  wp_apply (wp_clientNew vsrnet.scanF _ γ DFrac.discard (subslice 7 (7 + n) VsrWire.addrs)
     (by rw [hlen]; rcases hn with rfl | rfl <;> decide) (by rw [hlen]; rcases hn with rfl | rfl <;> decide)
     hms Hrl) $$ [Hsnd] as %vc ⟨-, Hvc⟩
   · iframe #

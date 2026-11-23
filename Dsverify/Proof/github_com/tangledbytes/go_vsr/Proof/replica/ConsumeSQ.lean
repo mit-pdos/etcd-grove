@@ -12,11 +12,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.ProcessEvent
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.IsEventFromPrimary
 
@@ -49,7 +49,7 @@ theorem replica.wp_consumeSQ (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
   unfold replica.repInv
   iNamed Hinv
   wp_auto
-  wp_apply (queue.Queue.Pop.wp events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq')
+  wp_apply (H.wp_Pop events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq')
     $$ [] as %ne %ok Hel
   · iexact Hsq
   cases ok
@@ -99,7 +99,7 @@ theorem replica.wp_consumeSQ (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
       · iexists _, _; iexact Hev
     iStructNamed Hev
     wp_log
-    wp_apply time.Timer.Reset.wp $$ [Hvct] as Hvct
+    wp_apply H.wp_Reset $$ [Hvct] as Hvct
     · iexact Hvct
     close_own
 

@@ -11,11 +11,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.InitiateStateTransfer
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Exec
 
@@ -94,7 +94,7 @@ theorem replica.wp_onPrepare (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
   unfold replica.repInv
   iNamed Hinv
   wp_auto
-  wp_apply (ipv4port.IPv4Port.String_ptr.wp from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
+  wp_apply (H.wp_String_ptr from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
   · iexact «from»
   wp_log
   wp_if_destruct
@@ -186,7 +186,7 @@ theorem replica.wp_onPrepare (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
   iStructNamedPrefix Hr "R"
   ihave %Hnn2 := typedPointsto_not_null _ _ _ $$ Rstate
   iStructNamedPrefix Rstate "S"
-  wp_apply (log.Logs.Add.wp_proof _ v.state'.Logs' DFrac.discard lg _ DFrac.valid_discard)
+  wp_apply (H.wp_Add _ v.state'.Logs' DFrac.discard lg _ DFrac.valid_discard)
     $$ [SLogs Hcap] as ⟨%sl', SLogs, #Hlog', Hcap⟩
   · iframe SLogs Hcap Hlog
   obtain ⟨vn, hvn⟩ : ∃ vn : replica.Replica, vn = { v with state' := { v.state' with
@@ -220,7 +220,7 @@ theorem replica.wp_onPrepare (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
   ipersist «$v1»
   have hvnQ : vn.internal'.sq' = v.internal'.sq' := by rw [hvn]
   rw [hvnQ]
-  wp_apply (queue.Queue.Push.wp events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq'
+  wp_apply (H.wp_Push events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq'
     ⟨src, «$v1_ptr»⟩) $$ []
   · iframe Hsq
     unfold replica.sqElem
@@ -255,7 +255,7 @@ theorem replica.wp_onPrepare (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Loc)
     prep_close
   | ok ii =>
     wp_auto
-    wp_apply (ipv4port.IPv4Port.String_ptr.wp from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
+    wp_apply (H.wp_String_ptr from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
     · iexact «from»
     wp_log
     prep_close

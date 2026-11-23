@@ -12,7 +12,7 @@ configured address's `addrProto` and `close_au`; the lab's `net.DialNet.wp_proof
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.HandleConn
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.HandleConnDefs
 public import Net.Spec.net.Dial
 
 @[expose] public section
@@ -64,7 +64,9 @@ theorem network.TCP.Send.wp_proof
     (wp_newDecoder : events.newDecoder.spec (GF := GF) (hG := hG))
     (wp_NewNetworkEvent : events.NewNetworkEvent.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_String_ptr : ipv4port.IPv4Port.String_ptr.spec (GF := GF) (hG := hG))
+    (wp_handleConn : network.TCP.handleConn.spec (GF := GF) (hG := hG)) :
     network.TCP.Send.spec (GF := GF) (hG := hG) := by
   intro tcp γ me a f R Q
   wp_start as ⟨#Htcp, Hsnd, #Haok, Hf, HR, #Hprotos⟩
@@ -86,7 +88,7 @@ theorem network.TCP.Send.wp_proof
   subst hγ
   iclear Hip' Hconns' Hsrcs' Hq' Hmu' Hroot'
   wp_auto
-  wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+  wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
   wp_apply wp_slice_literal (V := GoInterface)
     [interface.mkOk go.string #(go!"ipv4port"), interface.mkOk go.string #a.str']
   isplitr
@@ -96,9 +98,9 @@ theorem network.TCP.Send.wp_proof
     (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)) $$ [$Hsl]
   wp_apply sync.RWMutex.wp_RLock $$ [$Hown] as ⟨Hrl, HP⟩
   icases HP with ⟨%mc, %ms, %D, %S, Hcm, Hsm, HD, HS, %hS, #Hent, #Hdead, #Hsrcm⟩
-  wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+  wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
   wp_apply wp_map_lookup2 $$ [$Hcm] as Hcm
-  wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+  wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
   wp_apply (lc := 1) wp_map_lookup1 $$ [$Hsm] as Hsm
   cases hmc : mc !! a.str' with
   | some cv =>
@@ -115,7 +117,7 @@ theorem network.TCP.Send.wp_proof
       ipureintro; exact hS
     simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
     wp_auto
-    wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+    wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
     wp_apply wp_slice_literal (V := GoInterface)
       [interface.mkOk go.string #(go!"ipv4port"), interface.mkOk go.string #a.str']
     isplitr
@@ -132,7 +134,7 @@ theorem network.TCP.Send.wp_proof
     cases err with
     | nil =>
       wp_auto
-      wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+      wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
       wp_apply wp_slice_literal (V := GoInterface)
         [interface.mkOk go.string #(go!"ipv4port"), interface.mkOk go.string #a.str']
       isplitr
@@ -182,7 +184,7 @@ theorem network.TCP.Send.wp_proof
           conn_ptr ↦ interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c)
         at (if: _ then _ else _) with [Hcm ipv4port tcp conn]
         as ⟨%mc2, Hcm, %hmc2, #Hent2, ipv4port, tcp, conn⟩
-      · wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+      · wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
         wp_apply wp_map_lookup1 $$ [$Hcm] as Hcm
         cases hm1 : mc1 !! a.str' with
         | none =>
@@ -199,7 +201,7 @@ theorem network.TCP.Send.wp_proof
           obtain ⟨rfl, -, -⟩ := hcx1
           wp_auto
           wp_if_destruct
-          · wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+          · wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
             wp_apply wp_mapDelete $$ [$Hcm] as Hcm
             wp_join_done
             iexists (GMap.delete a.str' mc1)
@@ -244,7 +246,7 @@ theorem network.TCP.Send.wp_proof
       rw [hacc]
       simp only [Option.getD_some]
       wp_auto
-      wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+      wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
       wp_apply wp_slice_literal (V := GoInterface)
         [interface.mkOk go.string #(go!"ipv4port"), interface.mkOk go.string #a.str']
       isplitr
@@ -299,7 +301,7 @@ theorem network.TCP.Send.wp_proof
         | some b => rw [h] at hacc; cases b <;> simp_all
       rw [hacc']
       wp_auto
-      wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+      wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
       unfold network.netProtos VsrWire.protos
       ihave #Hpa := (BigSepL.bigSepL_mem (PROP := IProp GF)
         (Φ := fun a' => addrProto (Gg := hG.goose_globalGS) a' (VsrWire.protoOf ns.sys) (VsrWire.protoOf ns.sys))
@@ -330,7 +332,7 @@ theorem network.TCP.Send.wp_proof
         icases HP with ⟨%mc1, %ms1, %D1, %S1, Hcm, Hsm, HD, HS, %hS1, #Hent1, #Hdead1, #Hsrcm⟩
         imod network.register_dialed ns c cid a.str' D1 T $$
           [$Hreg $Hlc1 $Hfr $Hc $Hdead1 $HT $Hpool] with ⟨#Hx, %hcD, %T', HT, Hback⟩
-        wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+        wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
         wp_apply wp_mapInsert $$ [$Hcm] as Hcm
         wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hcm Hsm HD HS]
         · iexists (<[a.str' := interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c]> mc1),
@@ -343,17 +345,17 @@ theorem network.TCP.Send.wp_proof
           iexists c, (cid, false, a.str')
           iframe Hx
           ipureintro; exact ⟨rfl, rfl, hcD⟩
-        wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+        wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
         imod network.addrOkN_of_def tcp ns a $$ [$Hroot $Haok] with #HaokN
         wp_apply wp_fork $$ [Hrecv]
-        · wp_apply network.TCP.handleConn.wp_proof wp_Debug wp_newDecoder wp_NewNetworkEvent wp_Close
+        · wp_apply wp_handleConn
               tcp ns v c cid false a.str' dla dra a.str' a $$ [$Hrecv]
           · unfold network.tcpCore network.fieldsRO
             iframe Hrd Hca HaokN Hroot Hlock Hreg Hqueue Hip Hconns Hsrcs Hq Hmu
           itrivial
         ihave Hw : network.wholeLines ns.sys [] $$ []
         · iapply network.wholeLines_nil
-        wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+        wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
         wp_apply wp_slice_literal (V := GoInterface)
           [interface.mkOk go.string #(go!"ipv4port"), interface.mkOk go.string #a.str']
         isplitr
@@ -367,7 +369,7 @@ theorem network.TCP.Send.wp_proof
         cases err with
         | nil =>
           wp_auto
-          wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+          wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
           wp_apply wp_slice_literal (V := GoInterface)
             [interface.mkOk go.string #(go!"ipv4port"), interface.mkOk go.string #a.str']
           isplitr
@@ -417,7 +419,7 @@ theorem network.TCP.Send.wp_proof
               conn_ptr ↦ interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c)
             at (if: _ then _ else _) with [Hcm ipv4port tcp conn]
             as ⟨%mc2, Hcm, %hmc2, #Hent2, ipv4port, tcp, conn⟩
-          · wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+          · wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
             wp_apply wp_map_lookup1 $$ [$Hcm] as Hcm
             cases hm1 : mc1 !! a.str' with
             | none =>
@@ -434,7 +436,7 @@ theorem network.TCP.Send.wp_proof
               obtain ⟨rfl, -, -⟩ := hcx1
               wp_auto
               wp_if_destruct
-              · wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$ipv4port] as ipv4port
+              · wp_apply wp_String_ptr $$ [$ipv4port] as ipv4port
                 wp_apply wp_mapDelete $$ [$Hcm] as Hcm
                 wp_join_done
                 iexists (GMap.delete a.str' mc1)
@@ -492,7 +494,9 @@ theorem network.Network.Send.wp_proof
     (wp_newDecoder : events.newDecoder.spec (GF := GF) (hG := hG))
     (wp_NewNetworkEvent : events.NewNetworkEvent.spec (GF := GF) (hG := hG))
     (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_String_ptr : ipv4port.IPv4Port.String_ptr.spec (GF := GF) (hG := hG))
+    (wp_handleConn : network.TCP.handleConn.spec (GF := GF) (hG := hG)) :
     network.Network.Send.spec (GF := GF) (hG := hG) := by
   intro n γ a f R Q
   wp_start_folded as ⟨Hn, Hs, Ha, Hf, HR, #Hprotos⟩
@@ -508,6 +512,7 @@ theorem network.Network.Send.wp_proof
   subst e1 e2
   wp_pures
   wp_apply network.TCP.Send.wp_proof wp_Debug wp_newDecoder wp_NewNetworkEvent wp_Dial wp_Close
+      wp_String_ptr wp_handleConn
       _ γ me a f R Q $$ [$Htcp $Hs $Ha $Hf $HR $Hprotos]
     as %err ⟨Hs, #Herr, HQ⟩
   iapply HΦ

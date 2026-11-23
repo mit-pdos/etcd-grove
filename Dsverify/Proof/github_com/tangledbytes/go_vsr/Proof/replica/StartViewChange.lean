@@ -12,11 +12,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.InitiateViewChange
 
 @[expose] public section
@@ -49,10 +49,10 @@ theorem replica.wp_onStartViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (r
   unfold replica.repInv
   iNamed Hinv
   wp_auto
-  wp_apply (ipv4port.IPv4Port.String_ptr.wp src_ptr (DFrac.own 1) src) $$ [src] as src
+  wp_apply (H.wp_String_ptr src_ptr (DFrac.own 1) src) $$ [src] as src
   · iexact src
   wp_log
-  wp_apply time.Timer.Reset.wp $$ [Hvct] as Hvct
+  wp_apply H.wp_Reset $$ [Hvct] as Hvct
   · iexact Hvct
   wp_if_destruct
   · -- an old view

@@ -10,9 +10,9 @@ proof); the configured address is `VsrWire.addrs`'s (`VsrWire.addrs`, the same l
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.Ghost
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Perennial.Proof.sync.Results
 
 @[expose] public section
@@ -65,7 +65,10 @@ variable [encoding.json.DecoderRep GF] [models_lab.jsoncodec.JsonCodec GF]
 set_option goose.wp.extras true
 
 theorem network.NewTCP.wp_proof
-    (wp_FromDecoder : events.Event.FromDecoder.spec (GF := GF) (hG := hG)) :
+    (wp_FromDecoder : events.Event.FromDecoder.spec (GF := GF) (hG := hG))
+    (wp_FromHostPort : ipv4port.IPv4Port.FromHostPort.spec (GF := GF) (hG := hG))
+    (wp_Assert : assert.Assert.spec (GF := GF) (hG := hG))
+    (wp_QNew : queue.New.spec (GF := GF) (hG := hG)) :
     network.NewTCP.spec (GF := GF) (hG := hG) := by
   intro F me γ hme
   wp_start as ⟨#Hfd, #Hcs, #Hkit⟩
@@ -73,8 +76,8 @@ theorem network.NewTCP.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   iapply wp_fupd
   wp_auto
-  wp_apply ipv4port.IPv4Port.FromHostPort.wp _ _ me (by exact hme) $$ [$ipv4port] as ⟨%ip, ipv4port, #Hcfg⟩
-  wp_apply assert.Assert.wp
+  wp_apply wp_FromHostPort _ _ me (by exact hme) $$ [$ipv4port] as ⟨%ip, ipv4port, #Hcfg⟩
+  wp_apply wp_Assert
   wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %cm Hcm
   wp_apply (wp_map_make1 (K := GoString) (V := Bool)) as %sm Hsm
   imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := network.ConnRec)) with ⟨%γr, HR⟩
@@ -82,7 +85,7 @@ theorem network.NewTCP.wp_proof
   imod (ghost_map_alloc_empty (GF := GF) (K := Loc) (V := Unit)) with ⟨%γd, HD⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Unit)) with ⟨%γs, HS⟩
   let ns : network.TcpNames := ⟨γr, γh, γd, γs, γ⟩
-  wp_apply queue.New.wp events.NetworkEvent.ty (network.evOk ns) as %q #Hq
+  wp_apply wp_QNew events.NetworkEvent.ty (network.evOk ns) as %q #Hq
   iStructNamed «$r0»
   icases network.split_quarters _ _ $$ mu with ⟨mu34, mu14⟩
   ipersist mu14

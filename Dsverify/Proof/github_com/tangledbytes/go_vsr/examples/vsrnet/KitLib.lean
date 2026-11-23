@@ -9,16 +9,16 @@ had their own).
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Conf
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ConfDefs
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.JsonHyps
 public import Dsverify.Spec.log.slog.Logger
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.Addrs
-public import Net.Proof.net.Dial
-public import Net.Proof.net.Listen
-public import Net.Proof.net.Listener__Accept
-public import Net.Proof.net.Conn__Write
-public import Net.Proof.net.Conn__Close
-public import Net.Proof.net.Conn__RemoteAddr
+public import Net.Spec.net.Dial
+public import Net.Spec.net.Listen
+public import Net.Spec.net.Listener__Accept
+public import Net.Spec.net.Conn__Write
+public import Net.Spec.net.Conn__Close
+public import Net.Spec.net.Conn__RemoteAddr
 
 @[expose] public section
 

@@ -15,7 +15,7 @@ the extension's `AnyString` (`wp_TCPAddr_String`); `slog.Debug` is `wp_Debug`, a
 module
 
 public import Net.Proof.net.AtAddr
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.HandleConn
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.HandleConnDefs
 public import Net.Spec.net.Listen
 public import Net.Spec.net.Listener__Accept
 public import Net.Spec.net.Conn__RemoteAddr
@@ -71,7 +71,9 @@ theorem network.TCP.serve.wp_proof
     (wp_NewNetworkEvent : events.NewNetworkEvent.spec (GF := GF) (hG := hG))
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
-    (wp_RemoteAddr : net.Conn.RemoteAddr.spec (GF := GF) (hG := hG)) :
+    (wp_RemoteAddr : net.Conn.RemoteAddr.spec (GF := GF) (hG := hG))
+    (wp_FromAddrString : ipv4port.FromAddrString.spec (GF := GF) (hG := hG))
+    (wp_handleConn : network.TCP.handleConn.spec (GF := GF) (hG := hG)) :
     network.TCP.serve.spec (GF := GF) (hG := hG) := by
   intro tcp ns v li l me
   wp_start as ⟨#Hcore, #Hrd, #Hli, Hlis, #Hla, #Hpa⟩
@@ -145,9 +147,9 @@ theorem network.TCP.serve.wp_proof
       iexists c, (cid, true, key)
       iframe Hx
       ipureintro; exact ⟨rfl, rfl, hcD⟩
-    wp_apply ipv4port.FromAddrString.wp as %src %hsrc
+    wp_apply wp_FromAddrString as %src %hsrc
     wp_apply wp_fork $$ [Hrecv]
-    · wp_apply network.TCP.handleConn.wp_proof wp_Debug wp_newDecoder wp_NewNetworkEvent wp_Close
+    · wp_apply wp_handleConn
           tcp ns v c cid true me la _ key src $$ [$Hrecv]
       · unfold network.tcpCore network.fieldsRO network.addrOkN
         iframe Hrd Hca Hroot Hlock Hreg Hqueue Hip Hconns Hsrcs Hq Hmu
@@ -196,7 +198,10 @@ theorem network.TCP.Run.wp_proof
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
     (wp_RemoteAddr : net.Conn.RemoteAddr.spec (GF := GF) (hG := hG))
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
+    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_FromAddrString : ipv4port.FromAddrString.spec (GF := GF) (hG := hG))
+    (wp_String_ptr : ipv4port.IPv4Port.String_ptr.spec (GF := GF) (hG := hG))
+    (wp_handleConn : network.TCP.handleConn.spec (GF := GF) (hG := hG)) :
     network.TCP.Run.spec (GF := GF) (hG := hG) := by
   intro tcp γ me
   wp_start as ⟨#Htcp, Htok, #Hprotos⟩
@@ -208,7 +213,7 @@ theorem network.TCP.Run.wp_proof
   obtain ⟨hown, hme⟩ := hcfg
   unfold ipv4port.ipOwn at hown
   wp_auto
-  wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$Hip] as -
+  wp_apply wp_String_ptr $$ [$Hip] as -
   rw [hown]
   have hme' : me ∈ VsrWire.addrs := hme
   unfold network.netProtos VsrWire.protos
@@ -223,7 +228,7 @@ theorem network.TCP.Run.wp_proof
     iapply listen_au $$ Hpa
   · subst Hlerr
     wp_auto
-    wp_apply ipv4port.IPv4Port.String_ptr.wp $$ [$Hip] as -
+    wp_apply wp_String_ptr $$ [$Hip] as -
     wp_apply wp_slice_literal (V := GoInterface)
       [interface.mkOk go.string #(go!"addr"), interface.mkOk go.string #v.ip'.str']
     isplitr
@@ -232,7 +237,7 @@ theorem network.TCP.Run.wp_proof
     wp_apply network.wp_debug_wf wp_Debug _ _ _
       (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)) $$ [$Hsl]
     wp_apply network.TCP.serve.wp_proof wp_Debug wp_newDecoder wp_NewNetworkEvent wp_Close
-        wp_Accept wp_RemoteAddr tcp ns v lv l me $$ [$Hl $Hlis $Hla $Hpa $Hrd]
+        wp_Accept wp_RemoteAddr wp_FromAddrString wp_handleConn tcp ns v lv l me $$ [$Hl $Hlis $Hla $Hpa $Hrd]
     · unfold network.tcpCore network.fieldsRO
       iframe Hip Hconns Hsrcs Hq Hmu Hroot Hlock Hreg Hqueue
     iintro %err -

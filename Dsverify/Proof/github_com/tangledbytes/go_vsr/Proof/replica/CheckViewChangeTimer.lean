@@ -12,11 +12,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 
 @[expose] public section
 
@@ -52,7 +52,7 @@ theorem replica.wp_checkViewChangeTimer (H : replica.Hyps (GF := GF) (hG := hG))
   try wp_auto
   wp_if_destruct
   · close_own
-  wp_apply time.Timer.Done.wp $$ [Hvct] as %b Hvct
+  wp_apply H.wp_Done $$ [Hvct] as %b Hvct
   · iexact Hvct
   cases b
   · wp_auto
@@ -61,12 +61,12 @@ theorem replica.wp_checkViewChangeTimer (H : replica.Hyps (GF := GF) (hG := hG))
   wp_log
   try wp_auto
   ipersist «$v0»
-  wp_apply (queue.Queue.Push.wp events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq'
+  wp_apply (H.wp_Push events.NetworkEvent.ty (replica.sqElem γ tcp) v.internal'.sq'
     { Src' := zeroValDef, Event' := «$v0_ptr» }) $$ []
   · iframe Hsq
     unfold replica.sqElem
     iright; iright; iexact «$v0»
-  wp_apply time.Timer.Reset.wp $$ [Hvct] as Hvct
+  wp_apply H.wp_Reset $$ [Hvct] as Hvct
   · iexact Hvct
   close_own
 

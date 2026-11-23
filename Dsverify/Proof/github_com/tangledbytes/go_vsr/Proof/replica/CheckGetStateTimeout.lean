@@ -12,11 +12,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.InitiateStateTransfer
 
 @[expose] public section
@@ -63,7 +63,7 @@ theorem replica.wp_checkGetStateTimeout (H : replica.Hyps (GF := GF) (hG := hG))
   wp_auto
   simp only [hn, decide_false]
   wp_auto
-  wp_apply time.Timer.Done.wp $$ [Hgt] as %b Hgt
+  wp_apply H.wp_Done $$ [Hgt] as %b Hgt
   · iexact Hgt
   ihave Hgst : replica.gstOk n v r $$ [Hgt]
   · unfold replica.gstOk; iright; isplitl [Hgt]
@@ -81,10 +81,10 @@ theorem replica.wp_checkGetStateTimeout (H : replica.Hyps (GF := GF) (hG := hG))
   · unfold replica.gstOk; iexact Hgst
   icases Hgst' with (%Hnull | ⟨⟨%a, Hgt⟩, %Hgs⟩)
   · exact absurd Hnull hn
-  wp_apply time.Timer.State.wp $$ [Hgt] as Hgt
+  wp_apply H.wp_State $$ [Hgt] as Hgt
   · iexact Hgt
   wp_auto
-  wp_apply assert.Assert.wp
+  wp_apply H.wp_Assert
   try wp_auto
   wp_log
   obtain ⟨arr⟩ := a

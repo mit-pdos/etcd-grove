@@ -12,8 +12,9 @@ attempts), well below the ghost layer's 2^28 (`Op.spec`'s `n < 2 ^ 28`).
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.MkClientProof
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.MkClientProofDefs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ClientProofDefs
 
 @[expose] public section
 
@@ -48,62 +49,14 @@ local notation "kpkg" => pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet
 
 set_option goose.wp.extras true
 
-/-- Client `c`'s system at its address `a`: its request counter `n` is at most one more than the
-calls to `a` it served (`budUsed a m`). -/
-def sysTok (γ : Names) (c : Nat) (a : GoString) (sys : GoInterface) : IProp GF :=
-  iprop(∃ n m : Nat, ⌜n ≤ m + 1⌝ ∗ sysRes γ c sys n ∗ budUsed (Gg := hG.goose_globalGS) a m)
-
-/-- `Op` meets remote's `svcOp` over `sysTok`, at an address whose budget is 24 calls. -/
-theorem Op_svcOp (wp_Op : Op.spec (GF := GF) (hG := hG)) (γ : Names) (c : Nat) (hc : c < 6)
-    (a : GoString) (hbud : ρ.bud a = some 24) :
-    isPkgInit (PROP := IProp GF) kpkg ⊢
-      svcOp (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) a (sysTok γ c a)
-        (functions github_com.tangledbytes.go_vsr.examples.vsrnet.Op []) := by
-  unfold svcOp
-  iintro #Hpkg %sys %i %Ψ
-  iintro !> %Φ ⟨Htok, HU, Hu⟩ HΦ
-  unfold sysTok
-  icases Htok with ⟨%n, %m, %hnm, Hres, Hused⟩
-  ihave ⟨Hused, %Hle⟩ := budUsed_add (Gg := hG.goose_globalGS) a m $$ Hused Hu
-  have hm : m + 1 ≤ 24 := Hle 24 hbud
-  iapply (wp_Op γ c n sys i Ψ hc (by omega)) $$ [Hres HU]
-  · isplitr
-    · iexact Hpkg
-    isplitl [Hres]
-    · iexact Hres
-    iexact HU
-  iintro !> %v ⟨%n', %hn', Hres, Hv⟩
-  iapply HΦ
-  isplitl [Hres Hused]
-  · iexists n', m + 1
-    iframe
-    ipureintro; omega
-  icases Hv with (⟨%o, %Ho, HΨ⟩ | %Hv)
-  · ileft; iexists o; iframe; ipureintro; exact Ho
-  · iright; ipureintro; exact Hv
-
-/-- `Client(c)`: client machine `c`; it never returns. Its share of the start: the configuration
-addresses' and go-vsr addresses' protocols, the ghost layer's invariants, client `c + 1`'s request
-counter, and its address serving the far side's store. -/
-abbrev Client.spec : Prop :=
-  ∀ (γ : Names) (c : Nat), c < 6 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ confProtos (G := hG.goose_globalGS) γ ∗
-      pkg.network.netProtos γ ∗ sysInv (G := hG.goose_globalGS) γ ∗
-      regInv (G := hG.goose_globalGS) γ ∗ nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗
-      remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD c []) ∗
-      ⌜ρ.bud (clientAddrs.getD c []) = some 24⌝ }}
-    (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Client)) (Val #(W64 (c : Int))))
-  {{ RET #(); False }}
-
 theorem Client.wp_proof
-    (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
-    (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
-    (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
-    (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
     (codec_ok : vsrnet.codecOk (GF := GF) (hG := hG))
     (wp_Op : Op.spec (GF := GF) (hG := hG))
-    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG))
-    (wp_ServeClient : github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient.spec (GF := GF) (hG := hG) (I := KIn) (O := KOut)) :
+    (wp_ServeClient : github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient.spec (GF := GF) (hG := hG) (I := KIn) (O := KOut))
+    (wp_CfgAddrs : CfgAddrs.spec (GF := GF) (hG := hG))
+    (wp_waitConf : waitConf.spec (GF := GF) (hG := hG))
+    (wp_mkClient : mkClient.spec (GF := GF) (hG := hG))
+    (wp_Codec : Codec.spec (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro γ c hc
   wp_start as ⟨#Hcp, #Hnp, #HsysI, #HregI, Hnext, #Hra, %Hbud⟩
@@ -119,11 +72,11 @@ theorem Client.wp_proof
   iapply fupd_wp
   imod ownSlice_persist _ _ _ $$ Hasl with #Hasl
   imodintro
-  wp_apply CfgAddrs.wp_proof as %cfgs Hcfgs
-  wp_apply (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof conn_readerOk γ cfgs
+  wp_apply wp_CfgAddrs as %cfgs Hcfgs
+  wp_apply (wp_waitConf γ cfgs
     (DFrac.own 1) (W64 1 + W64 (c : Int)) (by word)) $$ [Hcfgs] as %cf ⟨-, #Hcf⟩
   · iframe; iframe #
-  wp_apply (mkClient.wp_proof wp_NewTCP wp_New wp_Discard wp_RegisterJSON_set γ c asl cf hc) $$ [Hnext] as %x Hres
+  wp_apply (wp_mkClient γ c asl cf hc) $$ [Hnext] as %x Hres
   · iframe; iframe #
   wp_apply wp_ClientAddrs as %casl Hcasl
   ihave %Hal := ownSlice_len _ _ _ $$ Hcasl
@@ -141,7 +94,7 @@ theorem Client.wp_proof
   have ha : a = clientAddrs.getD c [] := by simp [List.getD_eq_getElem?_getD, Ha_lookup]
   subst ha
   wp_auto
-  wp_apply (Codec.wp_proof γ.gn) as %cd #Hcd
+  wp_apply (wp_Codec γ.gn) as %cd #Hcd
   wp_apply wp_attempt as %d -
   wp_apply (wp_ServeClient (RBase.svc (Gg := hG.goose_globalGS) (kvR γ.gn)) (W64 (c : Int))
     (clientAddrs.getD c []) _ (functions github_com.tangledbytes.go_vsr.examples.vsrnet.Op []) cd d

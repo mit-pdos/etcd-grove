@@ -10,8 +10,8 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.client
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.client.Send
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
 public import Perennial.Proof.sort.Link
 
 @[expose] public section
@@ -68,7 +68,11 @@ theorem client.cfg_addrOk (n : GoInterface) (γ : VsrGhost.Names) :
     iframe #
     iexact Hl
 
-theorem client.New.wp_proof : client.New.spec (GF := GF) (hG := hG) := by
+theorem client.New.wp_proof
+    (wp_FromHostPort : ipv4port.IPv4Port.FromHostPort.spec (GF := GF) (hG := hG))
+    (wp_sorter : ipv4port.ByLess.sorter.spec (GF := GF) (hG := hG))
+    (wp_QNew : queue.New.spec (GF := GF) (hG := hG)) :
+    client.New.spec (GF := GF) (hG := hG) := by
   intro F cfg γ dq ms hms hms62 hcfg ht
   wp_start as ⟨Hms, #Hnet, Hsnd, #Hprotos, #Hlog, #Hcodec, #Hkit⟩
   wp_auto
@@ -112,7 +116,7 @@ theorem client.New.wp_proof : client.New.spec (GF := GF) (hG := hG) := by
     icases ownSlice_elem_acc (sint.Z k) (zero_val ipv4port.IPv4Port) sl (DFrac.own 1) _ Hk.2.1
       (by rw [hkp]; exact get_append_rep ps _ _ hpl) $$ Hsl with ⟨Hp, Hsl⟩
     have hma : a ∈ ms := List.mem_of_getElem? Ha
-    wp_apply (ipv4port.IPv4Port.FromHostPort.wp _ _ a (hcfg a hma)) $$ [Hp] as ⟨%pv, Hp, #Hcfg⟩
+    wp_apply (wp_FromHostPort _ _ a (hcfg a hma)) $$ [Hp] as ⟨%pv, Hp, #Hcfg⟩
     · iexact Hp
     ihave Hsl := Hsl $$ Hp
     rw [hkp, set_append_rep ps _ _ _ hpl]
@@ -135,7 +139,7 @@ theorem client.New.wp_proof : client.New.spec (GF := GF) (hG := hG) := by
     have hpl : ps.length = ms.length := by word
     rw [hpl, Nat.sub_self, List.replicate_zero, List.append_nil]
     wp_auto
-    ihave #Hsrt := ipv4port.ByLess.sorter.wp sl $$ []
+    ihave #Hsrt := wp_sorter sl $$ []
     · iPkgInit
     ihave Hown : ipv4port.cfgList sl ps $$ [Hsl Hps]
     · unfold ipv4port.cfgList
@@ -158,7 +162,7 @@ theorem client.New.wp_proof : client.New.spec (GF := GF) (hG := hG) := by
     ihave #Hok := client.cfg_addrOk cfg.Network' γ ps' $$ [Hnet Hps]
     · iframe #; iexact Hps
     have hlen' : 0 < ps'.length := by rw [← Hperm.length_eq, hpl]; exact hms
-    wp_apply (queue.New.wp events.Reply.ty
+    wp_apply (wp_QNew events.Reply.ty
       (fun rep : events.Reply => VsrGhost.fact γ (.msg (.reply (uint.nat rep.ID')
         (uint.nat rep.ClientID') (uint.nat rep.ViewNum') rep.Result')))) as %q #Hq
     iapply HΦ

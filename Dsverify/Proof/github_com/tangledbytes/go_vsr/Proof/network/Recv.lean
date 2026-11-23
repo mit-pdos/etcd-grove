@@ -8,7 +8,7 @@ notes/dsv-vr.md): over any `GF`, on the net extension (no change to the proofs).
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.Ghost
 
 @[expose] public section
@@ -29,13 +29,15 @@ variable [encoding.json.DecoderRep GF]
 
 set_option goose.wp.extras true
 
-theorem network.TCP.Recv.wp_proof : network.TCP.Recv.spec (GF := GF) (hG := hG) := by
+theorem network.TCP.Recv.wp_proof
+    (wp_Pop : queue.Queue.Pop.spec (GF := GF) (hG := hG)) :
+    network.TCP.Recv.spec (GF := GF) (hG := hG) := by
   intro tcp γ me
   wp_start as #Htcp
   unfold network.isTCP network.isTCPDef network.tcpCore network.fieldsRO
   icases Htcp with ⟨%ns, %v, %hγ, ⟨⟨#Hip, #Hconns, #Hsrcs, #Hq, #Hmu⟩, #Hroot, #Hlock, #Hreg, #Hqueue⟩, #Hcfg, #Hrd, #Hnv⟩
   wp_auto
-  wp_apply queue.Queue.Pop.wp $$ [$Hqueue] as %ev %ok Hev
+  wp_apply wp_Pop $$ [$Hqueue] as %ev %ok Hev
   iapply HΦ
   cases ok
   · simp only [Bool.false_eq_true, ite_false]; itrivial
@@ -50,14 +52,16 @@ theorem network.TCP.Recv.wp_proof : network.TCP.Recv.spec (GF := GF) (hG := hG) 
 
 /-- `n.Recv()` through the `Network` interface, as the code calls it (`MethodResolve` on the
 interface value, which resolves to the `*TCP`'s method): as `TCP.Recv`. -/
-theorem network.Network.Recv.wp_proof : network.Network.Recv.spec (GF := GF) (hG := hG) := by
+theorem network.Network.Recv.wp_proof
+    (wp_Pop : queue.Queue.Pop.spec (GF := GF) (hG := hG)) :
+    network.Network.Recv.spec (GF := GF) (hG := hG) := by
   intro n γ
   wp_start_folded as Hn
   unfold network.isNet
   icases Hn with ⟨%tcp, %me, %hn, #Htcp⟩
   subst hn
   wp_pures
-  wp_apply network.TCP.Recv.wp_proof tcp γ me $$ [$Htcp] as %ev %ok Hev
+  wp_apply network.TCP.Recv.wp_proof wp_Pop tcp γ me $$ [$Htcp] as %ev %ok Hev
   iapply HΦ
   cases ok
   · simp only [Bool.false_eq_true, ite_false]; itrivial

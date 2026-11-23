@@ -13,9 +13,9 @@ client table and the pending PrepareOKs of the uncommitted ops, and sends StartV
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
 
@@ -467,7 +467,7 @@ theorem replica.wp_finalizeViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (
     wp_auto
     rw [hvfL]
     have hi63 : uint.nat i < 2 ^ 63 := by omega
-    wp_apply (log.Logs.OpAt.wp_proof bls DFrac.discard blog i ex (by word)
+    wp_apply (H.wp_OpAt bls DFrac.discard blog i ex (by word)
       (by rw [show sint.nat i - 1 = uint.nat le by word]; exact Hex_lookup)) $$ [Hblog]
     · iexact Hblog
     iintro -
@@ -484,14 +484,14 @@ theorem replica.wp_finalizeViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (
     wp_method_call
     wp_auto
     rw [hvfL]
-    wp_apply (log.Logs.ClientIDAt.wp_proof bls DFrac.discard blog i ex (by word) hlk) $$ [Hblog]
+    wp_apply (H.wp_ClientIDAt bls DFrac.discard blog i ex (by word) hlk) $$ [Hblog]
     · iexact Hblog
     iintro -
     wp_auto
     wp_method_call
     wp_auto
     rw [hvfL]
-    wp_apply (log.Logs.RequestIDAt.wp_proof bls DFrac.discard blog i ex (by word) hlk) $$ [Hblog]
+    wp_apply (H.wp_RequestIDAt bls DFrac.discard blog i ex (by word) hlk) $$ [Hblog]
     · iexact Hblog
     iintro -
     wp_auto_lc 1
@@ -582,14 +582,14 @@ theorem replica.wp_finalizeViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (
     wp_method_call
     wp_auto
     rw [hvFL]
-    wp_apply (log.Logs.ClientIDAt.wp_proof bls DFrac.discard blog j ej (by word) hlk) $$ [Hblog]
+    wp_apply (H.wp_ClientIDAt bls DFrac.discard blog j ej (by word) hlk) $$ [Hblog]
     · iexact Hblog
     iintro -
     wp_auto
     wp_method_call
     wp_auto
     rw [hvFL]
-    wp_apply (log.Logs.RequestIDAt.wp_proof bls DFrac.discard blog j ej (by word) hlk) $$ [Hblog]
+    wp_apply (H.wp_RequestIDAt bls DFrac.discard blog j ej (by word) hlk) $$ [Hblog]
     · iexact Hblog
     iintro -
     wp_auto
@@ -740,10 +740,10 @@ theorem replica.wp_onDoViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (rp :
   unfold replica.repInv
   iNamed Hinv
   wp_auto
-  wp_apply (ipv4port.IPv4Port.String_ptr.wp src_ptr (DFrac.own 1) src) $$ [src] as src
+  wp_apply (H.wp_String_ptr src_ptr (DFrac.own 1) src) $$ [src] as src
   · iexact src
   wp_log
-  wp_apply time.Timer.Reset.wp $$ [Hvct] as Hvct
+  wp_apply H.wp_Reset $$ [Hvct] as Hvct
   · iexact Hvct
   wp_apply (replica.wp_primaryForView rp v ms n (by omega)) $$ [Hr] as Hr
   · iframe Hr Hms; ipureintro; exact Hmslen
@@ -874,7 +874,7 @@ theorem replica.wp_onDoViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (rp :
       iexists _, _, _
       iframe
       ipureintro; word
-    wp_apply (ipv4port.IPv4Port.String_ptr.wp member_ptr (DFrac.own 1) m) $$ [member] as member
+    wp_apply (H.wp_String_ptr member_ptr (DFrac.own 1) m) $$ [member] as member
     · iexact member
     wp_log
     ihave #Ham := BI.BigSepL.bigSepL_lookup Hm_lookup $$ Haddrs
@@ -895,7 +895,7 @@ theorem replica.wp_onDoViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (rp :
       ipureintro; word
     | ok ii =>
       wp_auto
-      wp_apply (ipv4port.IPv4Port.String_ptr.wp member_ptr (DFrac.own 1) m) $$ [member] as member
+      wp_apply (H.wp_String_ptr member_ptr (DFrac.own 1) m) $$ [member] as member
       · iexact member
       wp_log
       wp_for_post

@@ -12,11 +12,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.ViewHelpers
 
 @[expose] public section
@@ -161,10 +161,10 @@ theorem replica.wp_initiateStateTransfer (H : replica.Hyps (GF := GF) (hG := hG)
       icases Hgst with (%Hn | ⟨⟨%a, Ht⟩, -⟩)
       · exfalso; rw [hv1T] at *; simp_all
       rw [hv1T]
-      wp_apply time.Timer.State.wp $$ [Ht] as Ht
+      wp_apply H.wp_State $$ [Ht] as Ht
       · iexact Ht
       wp_auto
-      wp_apply assert.Assert.wp
+      wp_apply H.wp_Assert
       rcases a with ⟨arr⟩
       ihave %Halen := array_len _ _ _ _ $$ castedState
       obtain ⟨x, hx⟩ : ∃ x, arr[(2 : Int).toNat]? = some x :=
@@ -191,8 +191,8 @@ theorem replica.wp_initiateStateTransfer (H : replica.Hyps (GF := GF) (hG := hG)
         (by omega)
   have hv1Ti : v1.time' = v.time' := by rw [hv1]
   rw [hv1Ti]
-  wp_apply (time.NewTimer.wp v.time' (W64 15000000000) Htime) as %tm Htm
-  wp_apply (time.Timer.SetState.wp tm interface.nil _) $$ [Htm] as Htm
+  wp_apply (H.wp_NewTimer v.time' (W64 15000000000) Htime) as %tm Htm
+  wp_apply (H.wp_SetState tm interface.nil _) $$ [Htm] as Htm
   · iexact Htm
   obtain ⟨vf, hvf⟩ : ∃ vf : replica.Replica, vf = { v1 with
       internal' := { v1.internal' with getStateTimer' := tm } } := ⟨_, rfl⟩
@@ -277,7 +277,7 @@ theorem replica.wp_initiateStateTransfer (H : replica.Hyps (GF := GF) (hG := hG)
       icases ownSlice_elem_acc (sint.Z tgt) pm _ _ ms (by word)
         (by rw [show (sint.Z tgt).toNat = uint.nat tgt by word]; exact Hpm_lookup) $$ Hmsf
         with ⟨#Hel, -⟩
-      wp_apply (ipv4port.IPv4Port.String_ptr.wp _ _ pm) $$ [Hel] as -
+      wp_apply (H.wp_String_ptr _ _ pm) $$ [Hel] as -
       · iexact Hel
       wp_log
       wp_join_done

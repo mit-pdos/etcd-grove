@@ -4,8 +4,9 @@ key's length, its key and value; an output as three flags and its value (notes/d
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ModelProof
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ModelProofDefs
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.CodecProofDefs
 
 @[expose] public section
 
@@ -35,26 +36,6 @@ variable [bvi : go.BasicIntoValInj]
 local notation "kpkg" => pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet
 
 set_option goose.wp.extras true
-
-theorem inFields_bnd (i : KIn) :
-    (inFields i.1).2.1.length < 256 ∧ (inFields i.1).2.2.length < 2 ^ 16 := by
-  obtain ⟨i, -, hb, hk⟩ := i
-  cases i <;> simp only [InputBounded] at hb <;> simp only [inFields, List.length_nil] at hk ⊢ <;> omega
-
-/-- An output the codec meets is a short `Out`. -/
-theorem outOk_out (g : GN) (x : GoInterface) (h : RBase.outOk (kvR (GF := GF) (Gg := hG.goose_globalGS) g) x) :
-    ∃ u d f w, w.length < 2 ^ 16 ∧ x = outVal u d f w := by
-  rcases h with ⟨o, rfl⟩ | ⟨_, rfl⟩
-  · exact ⟨_, _, _, _, outFields_bnd o, rfl⟩
-  · exact ⟨true, false, false, [], by simp, rfl⟩
-
-/-- `Codec()`: the map's codec. -/
-abbrev Codec.spec : Prop :=
-  ∀ g : GN,
-  {{ isPkgInit (PROP := IProp GF) kpkg }}
-    (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Codec)) (Val #()))
-  {{ (cd : github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec), RET #cd;
-      codecOk (kvR (GF := GF) (Gg := hG.goose_globalGS) g) cd }}
 
 theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
   intro g

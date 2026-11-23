@@ -12,9 +12,9 @@ to the clients.
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Exec
@@ -55,7 +55,7 @@ theorem replica.wp_onPrepareOK (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Lo
   ihave %Hmlen0 := ownSlice_len $$ Hms
   have hn63 : n < 2 ^ 63 := by rw [← Hmslen]; exact (replica.len_of_slice _ _ Hmlen0).2
   wp_auto
-  wp_apply (ipv4port.IPv4Port.String_ptr.wp from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
+  wp_apply (H.wp_String_ptr from_ptr (DFrac.own 1) src) $$ [«from»] as «from»
   · iexact «from»
   wp_log
   wp_if_destruct
@@ -238,13 +238,13 @@ theorem replica.wp_onPrepareOK (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Lo
       rw [show sint.nat i - 1 = uint.nat le by word]; exact Hex_lookup
     wp_method_call
     wp_auto
-    wp_apply (log.Logs.OpAt.wp_proof _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
+    wp_apply (H.wp_OpAt _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
     · iexact Hlog
     iintro -
     wp_log
     wp_method_call
     wp_auto
-    wp_apply (log.Logs.OpAt.wp_proof _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
+    wp_apply (H.wp_OpAt _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
     · iexact Hlog
     iintro -
     wp_auto
@@ -322,7 +322,7 @@ theorem replica.wp_onPrepareOK (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Lo
         ipureintro; word
       | ok ii =>
         wp_auto
-        wp_apply (ipv4port.IPv4Port.String_ptr.wp member_ptr (DFrac.own 1) m) $$ [member] as member
+        wp_apply (H.wp_String_ptr member_ptr (DFrac.own 1) m) $$ [member] as member
         · iexact member
         wp_log
         wp_for_post
@@ -332,13 +332,13 @@ theorem replica.wp_onPrepareOK (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Lo
         ipureintro; word
     wp_method_call
     wp_auto
-    wp_apply (log.Logs.ClientIDAt.wp_proof _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
+    wp_apply (H.wp_ClientIDAt _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
     · iexact Hlog
     iintro -
     wp_auto
     wp_method_call
     wp_auto
-    wp_apply (log.Logs.RequestIDAt.wp_proof _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
+    wp_apply (H.wp_RequestIDAt _ DFrac.discard lg i ex (by word) hlk) $$ [Hlog]
     · iexact Hlog
     iintro -
     wp_auto_lc 1
@@ -386,10 +386,10 @@ theorem replica.wp_onPrepareOK (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Lo
         iexact Hc'
     wp_auto
     wp_apply wp_map_lookup1 $$ Hpk as Hpk
-    wp_apply ipv4port.IPv4Port.String.wp
+    wp_apply H.wp_String
     wp_log
     wp_apply wp_map_lookup1 $$ Hpk as Hpk
-    wp_apply ipv4port.IPv4Port.String.wp
+    wp_apply H.wp_String
     wp_join with [r Hr Hsender Hpk Hio res clientID reqID]
     · -- the reply to the client
       icases Haddr with (#Hca2 | %Hn)
@@ -416,7 +416,7 @@ theorem replica.wp_onPrepareOK (H : replica.Hyps (GF := GF) (hG := hG)) (rp : Lo
       | ok ii =>
         wp_auto
         wp_apply wp_map_lookup1 $$ Hpk as Hpk
-        wp_apply ipv4port.IPv4Port.String.wp
+        wp_apply H.wp_String
         wp_apply wp_map_lookup1 $$ Hpk as Hpk
         wp_log
         wp_join_done

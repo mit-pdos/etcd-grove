@@ -6,11 +6,21 @@ here), and the specs of the two calls into sibling packages whose proofs are not
 `events.Event.ToWriter.wp`, from `VsrProof/Proof/{network,events}/Results.lean`): both at every
 JSON codec (the replica's codec is the one its `repInv` holds). `Results.lean` takes each as a
 separate argument `(wp_X : X.spec)` and builds the bundle.
+
+The bundle also carries the specs of the callees in the leaf packages `assert`, `ipv4port`,
+`queue`, `time` and `log` (their proofs are in `Proof/<pkg>/`; the handlers see them through
+their specs only, as the import tiers ask, CLAUDE.md "Import tiers"): `Results.lean` passes
+their proofs.
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.replica
 public import Dsverify.Spec.log.slog.Logger
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
 
 @[expose] public section
 
@@ -35,6 +45,23 @@ structure replica.Hyps : Prop where
   wp_TCP_Send : ∀ [jc : models_lab.jsoncodec.JsonCodec GF], network.TCP.Send.spec (GF := GF) (hG := hG)
   wp_ToWriter : ∀ [jc : models_lab.jsoncodec.JsonCodec GF],
     events.Event.ToWriter.spec (GF := GF) (hG := hG)
+  wp_Assert : assert.Assert.spec (GF := GF) (hG := hG)
+  wp_String : ipv4port.IPv4Port.String.spec (GF := GF) (hG := hG)
+  wp_String_ptr : ipv4port.IPv4Port.String_ptr.spec (GF := GF) (hG := hG)
+  wp_Push : queue.Queue.Push.spec (GF := GF) (hG := hG)
+  wp_Pop : queue.Queue.Pop.spec (GF := GF) (hG := hG)
+  wp_NewTimer : time.NewTimer.spec (GF := GF) (hG := hG)
+  wp_Reset : time.Timer.Reset.spec (GF := GF) (hG := hG)
+  wp_Done : time.Timer.Done.spec (GF := GF) (hG := hG)
+  wp_SetState : time.Timer.SetState.spec (GF := GF) (hG := hG)
+  wp_State : time.Timer.State.spec (GF := GF) (hG := hG)
+  wp_Len : log.Logs.Len.spec (GF := GF) (hG := hG)
+  wp_OpAt : log.Logs.OpAt.spec (GF := GF) (hG := hG)
+  wp_ClientIDAt : log.Logs.ClientIDAt.spec (GF := GF) (hG := hG)
+  wp_RequestIDAt : log.Logs.RequestIDAt.spec (GF := GF) (hG := hG)
+  wp_After : log.Logs.After.spec (GF := GF) (hG := hG)
+  wp_Add : log.Logs.Add.spec (GF := GF) (hG := hG)
+  wp_Merge : log.Logs.Merge.spec (GF := GF) (hG := hG)
 
 end hyps
 

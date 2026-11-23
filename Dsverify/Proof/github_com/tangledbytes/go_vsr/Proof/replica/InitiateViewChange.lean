@@ -12,11 +12,11 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Send
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Log
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Helpers
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.Logs
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.ipv4port.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.queue.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.assert.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.log
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.ipv4port
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.queue
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.assert
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.ViewHelpers
 
 @[expose] public section
@@ -131,7 +131,7 @@ theorem replica.wp_initiateViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (
     · iframe Hms; ipureintro; rw [show (sint.Z i).toNat = sint.nat i by word]; exact Hm_lookup
     iintro -
     wp_auto
-    wp_apply (ipv4port.IPv4Port.String_ptr.wp member_ptr (DFrac.own 1) m) $$ [member] as member
+    wp_apply (H.wp_String_ptr member_ptr (DFrac.own 1) m) $$ [member] as member
     · iexact member
     wp_log
     ihave #Ham := BI.BigSepL.bigSepL_lookup Hm_lookup $$ Haddrs
@@ -154,7 +154,7 @@ theorem replica.wp_initiateViewChange (H : replica.Hyps (GF := GF) (hG := hG)) (
       ipureintro; word
     | ok ii =>
       wp_auto
-      wp_apply (ipv4port.IPv4Port.String_ptr.wp member_ptr (DFrac.own 1) m) $$ [member] as member
+      wp_apply (H.wp_String_ptr member_ptr (DFrac.own 1) m) $$ [member] as member
       · iexact member
       wp_log
       wp_for_post

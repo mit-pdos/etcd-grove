@@ -23,13 +23,14 @@ notes/dsv-vr.md), ported from dsverify-lab `examples/vr/proof/VsrProof/Top/{Serv
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.KitLib
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.replica.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.network.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.events.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrkv.Results
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.replica
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.network
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.events
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.vsrkv
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.time
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
 public import Perennial.Spec.time.Sleep
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ServerProofDefs
 
 @[expose] public section
 
@@ -52,13 +53,6 @@ attribute [local instance] Perennial.github_com.tangledbytes.go_vsr.examples.vsr
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS]
-
-/-- Server machine `id`'s share of the start (the lab's `serverRes`; see the file header). -/
-def srvShare (γ : Names) (id : Nat) : IProp GF :=
-  iprop(VsrWire.protos γ ∗ confProtos γ ∗ sysInv γ ∗ regInv γ ∗ repOwn γ (id - 1) VsrModel.initRep)
-
-instance srv_protos_persistent (γ : Names) : Persistent (VsrWire.protos (G := G) γ) := by
-  unfold VsrWire.protos; infer_instance
 
 end defs
 
@@ -86,51 +80,20 @@ local notation "kpkg" => pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet
 
 set_option goose.wp.extras true
 
-theorem addrs_len : VsrWire.addrs.length = 12 := rfl
-
-/-- `replicas(addrs, conf)`: `addrs[7 : 7 + N]`. -/
-theorem wp_replicasS (sl : GoSlice) (n h r : Nat) (hn : 7 + n ≤ sint.Z sl.cap) (hn5 : n ≤ 5) :
-    {{ isPkgInit (PROP := IProp GF) kpkg }}
-      (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.replicas)) (Val #sl))
-        (Val #(confOf n h r)))
-    {{ RET #(slice.slice sl GoString (W64 7) (W64 7 + W64 (n : Int))); True }} := by
-  wp_start as -
-  wp_auto
-  rw [show (W64 6 + W64 1 : w64) = W64 7 from rfl]
-  rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by word, by word, by word⟩)]
-  wp_auto
-  iapply HΦ; itrivial
-
-/-- `runReplica(id, addrs, conf)`, `id = i + 1`: replica `i < N` of the configuration at server
-machine `id`'s address `addrs[NC + id]`, the configuration's replicas its members; the event loop
-forever. -/
-abbrev runReplica.spec : Prop :=
-  ∀ (γ : Names) (i : Nat) (n h r : Nat), ConfOk n h r → i < n → ∀ (sl : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ VsrWire.addrs ∗
-      VsrWire.protos (G := hG.goose_globalGS) γ ∗ sysInv (G := hG.goose_globalGS) γ ∗
-      regInv (G := hG.goose_globalGS) γ ∗ repOwn (G := hG.goose_globalGS) γ i VsrModel.initRep ∗
-      fact (G := hG.goose_globalGS) γ (.size n) }}
-    (App (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.runReplica))
-      (Val #(W64 ((i + 1 : Nat) : Int)))) (Val #sl)) (Val #(confOf n h r)))
-  {{ RET #(); False }}
-
 theorem runReplica.wp_proof
     (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
     (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
-    (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := hG))
-    (wp_LDebug : log.slog.Logger.Debug.spec (GF := GF) (hG := hG))
-    (wp_LInfo : log.slog.Logger.Info.spec (GF := GF) (hG := hG))
-    (wp_LWarn : log.slog.Logger.Warn.spec (GF := GF) (hG := hG))
-    (wp_LError : log.slog.Logger.Error.spec (GF := GF) (hG := hG))
-    (wp_newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG))
-    (wp_Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
-    (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
-    (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG))
-    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG)) :
+    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG))
+    (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
+    (wp_TCP_Run : pkg.network.TCP.Run.spec (GF := GF) (hG := hG))
+    (wp_Recv : pkg.network.TCP.Recv.spec (GF := GF) (hG := hG))
+    (wp_StoreNew : vsrkv.New.spec (GF := GF) (hG := hG))
+    (wp_Handle_value : vsrkv.Store.Handle_value.spec (GF := GF) (hG := hG))
+    (wp_NewReal : pkg.time.NewReal.spec (GF := GF) (hG := hG))
+    (wp_ReplicaNew : pkg.replica.New.spec (GF := GF) (hG := hG))
+    (wp_Run : pkg.replica.Replica.Run.spec (GF := GF) (hG := hG))
+    (wp_Submit : pkg.replica.Replica.Submit.spec (GF := GF) (hG := hG)) :
     runReplica.spec (GF := GF) (hG := hG) := by
   intro γ i n h r hconf hi sl
   wp_start as ⟨#Hsl, #Hprotos, #HsysI, #HregI, Hrep, #Hsize⟩
@@ -166,15 +129,14 @@ theorem runReplica.wp_proof
     simp
   ihave #Hnet : isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.network $$ []
   · iPkgInit
-  wp_apply (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp wp_Decode_frame wp_Unmarshal codec_ok)
-      examples.vsrnet.scanF (VsrWire.addrs.getD (7 + i) go!"") γ hmem)
+  wp_apply (wp_NewTCP examples.vsrnet.scanF (VsrWire.addrs.getD (7 + i) go!"") γ hmem)
     as %tcp ⟨#Htcp, Hts⟩
   · iframe #
-  wp_apply vsrkv.New.wp as %st Hst
-  ihave #Hh := vsrkv.Store.Handle_value.wp st $$ []
+  wp_apply wp_StoreNew as %st Hst
+  ihave #Hh := wp_Handle_value st $$ []
   · iPkgInit
   wp_apply (wp_heartbeatMs _ (by unfold ConfOk at hconf; word)) as %hb -
-  wp_apply pkg.time.NewReal.wp as %rl %Hrl
+  wp_apply wp_NewReal as %rl %Hrl
   wp_apply (wp_replicasS sl n h r (by have := Hslwf.2; rw [hlen] at this; omega) hn5)
   wp_apply (wp_logger wp_New wp_Discard) as %lg #Hlg
   have hbd : 0 ≤ sint.Z (W64 7) ∧ sint.Z (W64 7) ≤ sint.Z (W64 7 + W64 (n : Int)) ∧
@@ -194,7 +156,7 @@ theorem runReplica.wp_proof
   have hid : uint.nat (W64 ((i + 1 : Nat) : Int) - W64 1) = i := by word
   ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.replica $$ []
   · iPkgInit
-  wp_apply (pkg.replica.New.wp examples.vsrnet.scanF
+  wp_apply (wp_ReplicaNew examples.vsrnet.scanF
     ⟨hb * W64 1000000, methods (go.GoType.PointerType vsrkv.Store.ty) go!"Handle" #st,
       interface.mkOk (go.GoType.PointerType pkg.network.TCP.ty) #tcp,
       interface.mkOk (go.GoType.PointerType pkg.time.Real.ty) #rl, W64 ((i + 1 : Nat) : Int) - W64 1,
@@ -213,21 +175,18 @@ theorem runReplica.wp_proof
   iunfold addrProto at Hpa
   icases Hpa with ⟨%γa, -, -, #Htok, -⟩
   wp_apply wp_fork $$ []
-  · wp_apply (pkg.network.TCP.Run.wp wp_Debug wp_newDecoder
-      tcp γ (VsrWire.addrs.getD (7 + i) go!"")) as %e -
+  · wp_apply (wp_TCP_Run tcp γ (VsrWire.addrs.getD (7 + i) go!"")) as %e -
     · iframe; iframe #
     itrivial
-  have hRun := pkg.replica.Replica.Run.wp (GF := GF) (hG := hG) wp_LDebug wp_LInfo wp_LWarn wp_LError
-    (pkg.network.TCP.Send.wp wp_Debug wp_newDecoder)
-    (pkg.events.Event.ToWriter.wp wp_NewEncoder wp_Encode codec_ok)
+  have hRun := wp_Run
   wp_for
-  wp_apply (pkg.network.TCP.Recv.wp tcp γ (VsrWire.addrs.getD (7 + i) go!"")) $$ [] as %ev %ok Hev
+  wp_apply (wp_Recv tcp γ (VsrWire.addrs.getD (7 + i) go!"")) $$ [] as %ev %ok Hev
   · iframe #
   cases ok
   case true =>
     simp only [↓reduceIte]
     wp_auto
-    wp_apply (pkg.replica.Replica.Submit.wp rp γ i tcp ev) $$ [Hrp Hev] as Hrp
+    wp_apply (wp_Submit rp γ i tcp ev) $$ [Hrp Hev] as Hrp
     · iframe
     wp_apply (hRun rp γ i tcp) $$ [Hrp] as Hrp
     · iframe
@@ -240,33 +199,10 @@ theorem runReplica.wp_proof
   wp_for_post
   iframe
 
-/-- **`Server(id)`**: server machine `id` (`1 ≤ id ≤ 5`, machine `NC + id`), given the start's
-share (`srvShare`); it never returns. -/
-abbrev Server.spec : Prop :=
-  ∀ (γ : Names) (id : w64), 1 ≤ uint.nat id ∧ uint.nat id ≤ 5 →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗
-      srvShare (G := hG.goose_globalGS) γ (uint.nat id) }}
-    (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Server)) (Val #id))
-  {{ RET #(); False }}
-
 theorem Server.wp_proof
-    (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
-    (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
-    (wp_Debug : log.slog.Debug.spec (GF := GF) (hG := hG))
-    (wp_LDebug : log.slog.Logger.Debug.spec (GF := GF) (hG := hG))
-    (wp_LInfo : log.slog.Logger.Info.spec (GF := GF) (hG := hG))
-    (wp_LWarn : log.slog.Logger.Warn.spec (GF := GF) (hG := hG))
-    (wp_LError : log.slog.Logger.Error.spec (GF := GF) (hG := hG))
-    (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
-    (wp_newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG))
-    (wp_Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
-    (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
-    (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
-    (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG))
-    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG)) :
+    (wp_CfgAddrs : CfgAddrs.spec (GF := GF) (hG := hG))
+    (wp_waitConf : waitConf.spec (GF := GF) (hG := hG))
+    (wp_runReplica : runReplica.spec (GF := GF) (hG := hG)) :
     Server.spec (GF := GF) (hG := hG) := by
   intro γ id hid
   obtain ⟨i, hi_eq⟩ : ∃ i : Nat, uint.nat id = i + 1 := ⟨uint.nat id - 1, by omega⟩
@@ -279,8 +215,8 @@ theorem Server.wp_proof
   rw [Nat.add_sub_cancel]
   icases Hsh with ⟨#Hprotos, #Hcps, #HsysI, #HregI, Hrep⟩
   wp_auto
-  wp_apply CfgAddrs.wp_proof as %cfgs Hcfgs
-  wp_apply (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof conn_readerOk γ cfgs _
+  wp_apply wp_CfgAddrs as %cfgs Hcfgs
+  wp_apply (wp_waitConf γ cfgs _
     (W64 6 + W64 ((i + 1 : Nat) : Int)) (by word)) $$ [Hcfgs] as %cf ⟨-, HP⟩
   · iframe; iframe #
   iunfold confOk at HP
@@ -295,9 +231,7 @@ theorem Server.wp_proof
     iapply fupd_wp
     imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
     imodintro
-    wp_apply (runReplica.wp_proof wp_New wp_Discard wp_Debug wp_LDebug wp_LInfo wp_LWarn wp_LError
-      wp_newDecoder wp_Decode_frame wp_Unmarshal wp_NewEncoder
-      wp_Encode codec_ok wp_RegisterJSON_set γ i n h r hconf hin sl) $$ [Hrep] as %hf
+    wp_apply (wp_runReplica γ i n h r hconf hin sl) $$ [Hrep] as %hf
     · iframe; iframe #
     exact hf.elim
   · wp_for
