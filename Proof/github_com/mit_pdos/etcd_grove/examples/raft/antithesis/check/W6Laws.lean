@@ -136,6 +136,17 @@ theorem queue_set_tail {s : State} {b E n : Nat} {q : QItem} {rest : List QItem}
     exact ⟨by simp at h1; omega, fun it hit => h2 it (List.mem_cons_of_mem _ hit)⟩
   · exact hW.queue x h
 
+/-- `Mem`'s successor (`InMemory`'s result stored in the state, the queue `Q`) within the budget. -/
+theorem within_mem {s : State} {r : MemResult} {b E : Nat} (hW : s.Within b E) (hr : r.Within b E s)
+    (hv : r.viol.length ≤ b) {Q : List (List QItem)}
+    (hQ : ∀ q ∈ Q, q.length ≤ b ∧ ∀ it ∈ q, it.ev.Within b E ∧ it.m.length ≤ b ∧ ∀ m ∈ it.m, m.Within b E) :
+    State.Within b E { s with role := r.role, leaders := r.leaders, ledLog := r.ledLog, ledConf := r.ledConf, ledAt := r.ledAt, elAt := r.elAt, config := r.config, confAt := r.confAt, chain := r.chain, termLen := r.termLen, viol := r.viol, queue := Q } := by
+  obtain ⟨hc, hi1, hi2, h1, h2, h3, h4, -, h6, hlog, -, -, -, -, -, -, -, -,
+    -, hm1, hm2, hv1, hv2, -, -, hu, hp, -, hrd, -⟩ := hW
+  obtain ⟨r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, -⟩ := hr
+  exact ⟨hc, hi1, hi2, h1, h2, h3, h4, r8, h6, hlog, r12, r3, r4, r7, r5, r6, r9, r10, r11, hm1, hm2, hv1,
+    hv2, r1, r2, hu, hp, hQ, hrd, hv⟩
+
 end W6Laws
 
 end AntCheck
