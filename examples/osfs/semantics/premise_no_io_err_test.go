@@ -149,6 +149,89 @@ func TestNoIoErrPathErrno(t *testing.T) {
 	}
 }
 
+// PathErrno's "Open" case (premise_no_io_err.go, 2026-11-23, claim #34), every round: an open without
+// O_CREAT of an absent name in an existing directory gives ENOENT, read-only (os.Open, fileutil.ReadDir's
+// open of a WAL directory, so errors.Is(err, os.ErrNotExist) holds, wal.Exist's false), read-write,
+// and with O_TRUNC, with no effect. The contrasts, why the clause asks for what it does: an absent
+// name under a regular file gives ENOTDIR (the parent must be a directory); the same name opened with
+// O_CREAT is created (the semantics has a success there, which NoIoErr asks for instead); and with
+// RLIMIT_NOFILE's soft limit reached (the model's state with no free fd), the open of the absent name
+// gives EMFILE, not ENOENT (Linux takes the fd before the walk: the clause asks for a free fd).
+func TestNoIoErrOpenAbsent(t *testing.T) {
+	base := extDir(t)
+	absent := base + "/wal"
+	file := base + "/f"
+	if err := os.WriteFile(file, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < noIoErrRounds/10; i++ {
+		for _, fl := range []int{syscall.O_RDONLY | syscall.O_CLOEXEC, syscall.O_RDWR | syscall.O_CLOEXEC,
+			syscall.O_WRONLY | syscall.O_TRUNC | syscall.O_CLOEXEC} {
+			if fd, err := syscall.Open(absent, fl, 0o600); err != syscall.ENOENT {
+				if err == nil {
+					syscall.Close(fd)
+				}
+				t.Fatalf("round %d: open(%#x) of an absent name: %v, want ENOENT", i, fl, err)
+			}
+		}
+		d, err := os.Open(absent)
+		if err == nil || !errors.Is(err, os.ErrNotExist) {
+			if err == nil {
+				d.Close()
+			}
+			t.Fatalf("round %d: os.Open of an absent name: %v, want os.ErrNotExist", i, err)
+		}
+		var pe *os.PathError
+		if !errors.As(err, &pe) || pe.Err != syscall.ENOENT {
+			t.Fatalf("round %d: os.Open of an absent name: %#v, want a *PathError of ENOENT", i, err)
+		}
+		if _, err := os.Lstat(absent); !os.IsNotExist(err) {
+			t.Fatalf("round %d: the failed opens changed the tree: %v", i, err)
+		}
+		if fd, err := syscall.Open(file+"/wal", syscall.O_RDONLY|syscall.O_CLOEXEC, 0); err != syscall.ENOTDIR {
+			if err == nil {
+				syscall.Close(fd)
+			}
+			t.Fatalf("round %d: open of a name under a file: %v, want ENOTDIR", i, err)
+		}
+		fd, err := syscall.Open(absent, syscall.O_RDWR|syscall.O_CREAT|syscall.O_CLOEXEC, 0o600)
+		if err != nil {
+			t.Fatalf("round %d: O_CREAT open of an absent name: %v", i, err)
+		}
+		syscall.Close(fd)
+		if err := syscall.Unlink(absent); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var rl syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rl); err != nil {
+		t.Fatal(err)
+	}
+	low := syscall.Rlimit{Cur: 64, Max: rl.Max}
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &low); err != nil {
+		t.Fatal(err)
+	}
+	var fds []int
+	for len(fds) <= 64 {
+		fd, err := syscall.Open(file, syscall.O_RDONLY|syscall.O_CLOEXEC, 0)
+		if err != nil {
+			break
+		}
+		fds = append(fds, fd)
+	}
+	_, errAbsent := syscall.Open(absent, syscall.O_RDONLY|syscall.O_CLOEXEC, 0)
+	for _, fd := range fds {
+		syscall.Close(fd)
+	}
+	if e := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rl); e != nil {
+		t.Fatal(e)
+	}
+	if errAbsent != syscall.EMFILE {
+		t.Fatalf("open of an absent name with no fd left (after %d fds): %v, want EMFILE", len(fds), errAbsent)
+	}
+	t.Logf("open of an absent name after %d more fds (soft limit 64): EMFILE", len(fds))
+}
+
 // Configuration C's permissions (premise_no_io_err.go, Impl.lean's "Environment", 2026-11-19): the
 // premise assumes the process may search and write the covered directories, no sticky bit, no
 // immutable or append-only attribute and no security module denies a path call. The contrast,

@@ -4,6 +4,7 @@ module
 public import GeneratedProof.golang_org.x.time.rate
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
+public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 
