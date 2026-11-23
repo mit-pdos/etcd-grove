@@ -887,7 +887,43 @@ tests kept as differential tests against the real library, a "not modelled" pani
    bytes of a deposit, which it keeps (the call and the error answers still need it). `readRequest` applies it
    to the request's deposit before the body read; `ReadRequestBody` takes the client's guard shape
    (`bodyDecG`, guard `pl = r.body` by `req_guard`). `bodyDec` gone.
-   *Left*: the HTTP path (`ServeHTTP`, `HandleHTTP`, `DialHTTP`); `ServeRequest`; `register`'s logging
+   **The Lean half, fourth part: the HTTP client (2026-11-23, branch `models-rpc-http`, on `models-rpc-server`).**
+   *The handshake* (`Proto.lean`; ledger 2026-11-23): `RpcWorld` fixes per address `hs` (the dialer's handshake) and
+   `hsAns` (the acceptor's answer); `reqProto` is a prefix of `W.hs a ++ reqsWire L`, beyond `W.hs a` only with
+   `sentLb cn true (W.hsAns a)` (no request before the answer: net/http's read-ahead sees none), `respProto` a prefix
+   of `W.hsAns a ++ respsWire Rs`, beyond `[]` only with `sentLb cn false (W.hs a)`; `rpcAddrP W a hs hsAns`, and
+   `rpcAddr W a := rpcAddrP W a [] []`. The client and server states start after the handshake (`rpcDialed`,
+   `rpcAccepted`, `readerOwn`, `sendInv`, `readerSt`, `srvSendInv`); every earlier statement unchanged and proved.
+   Over HTTP: `connectReq path`, `connectAns`, `connectedStatus`, `defaultRPCPath`.
+   *Proved and linked* (`Results.lean`, `section http`, `#print axioms` Lean's three): `connectReader.Read` (the
+   model's reader of the CONNECT answer, `HttpDefs.lean`: a stream reader whose bytes are a prefix of the answer
+   before any request, `resp_before_req`, and final after an error, `crErr_final`); `DialHTTPPath` and `DialHTTP` over
+   `http.ReadResponse.spec` (`DialHTTPPath.wp_of_ReadResponse`: the CONNECT request by `Conn.Write`, `bufio.NewReader`
+   of the `connectReader`, `ReadResponse`, on `connected` the whole answer delivered, so the whole request written,
+   `rpcDialed`, `NewClient`; else the `"dial-http"` `*OpError`, `errAny_opErrPtr`, after `Close`).
+   *Stated, not proved*: `http.ReadResponse.spec` (`Net/Spec/net/http/ReadResponse.lean`, for a CONNECT answer).
+   Its proof needs `readTransfer` and its helpers translated (`Net/Code/net/http.toml`: `readTransfer`,
+   `transferReader.parseTransferEncoding`, `fixLength`, `fixTrailer`, `shouldClose`, `bodyAllowedForStatus`,
+   `noResponseBodyExpected`, `ParseHTTPVersion`, `badStringError`, `fixPragmaCacheControl`, `Header.{get,Del}`, and
+   textproto's `CanonicalMIMEHeaderKey`, names only today), specs of `bufio.Reader.{ReadByte,Peek,fill}` (the main
+   tree's `Spec/bufio/` has `NewReader` and `Read`), `strings.{Cut,TrimLeft}` (translated by Perennial, no spec) and
+   `strconv.Atoi` (Perennial's). The parse is a function of the stream's bytes since they are final after an error.
+   *Model changes* (ledger 2026-11-23): `connectReader` (no byte after a read error, Go over Linux;
+   `nonissues/go-netrpc-dialhttp-reads-answer-after-read-error.md`), `io.WriteString(conn, s)` as
+   `conn.Write([]byte(s))` (`notes/perennial-changes.md`). *Translation*: net/http's `Request` and `Server` were
+   axiomatized (goose: `MultipartForm *multipart.Form`, `ErrorLog *log.Logger`, packages not imported), so
+   `DialHTTPPath`'s `&http.Request{...}` and every request of the server reached an axiomatized type's `sorry`
+   instances; `mime/multipart` now translated types-only into the part (`Net/Code/mime/multipart.toml`, project
+   models-net) and `log` imported: both are structs.
+   *Left, the server's HTTP path*: `Server.ServeHTTP` (on CONNECT: `w.(http.Hijacker).Hijack()`, the answer
+   written, `ServeConn` over `rpcAccepted`; the 405 path needs the response writer's `Header().Set`, `WriteHeader`,
+   `WriteString`), `HandleHTTP` (`http.Handle` twice; the debug path's handler panics NotModelled, so its spec
+   requires it never requested), and net/http's server to the hijack (`ListenAndServe`, `Serve`, `conn.serve`,
+   `readRequest`, `ServeMux` dispatch, `response.Hijack` with the background read's abort): none stated yet. The
+   server's head read has the same read-after-error question as the client's: Go's `conn.serve` reads through
+   `connReader`, which does not keep an error, so the model needs the same treatment there (a read after an error
+   returns none) before the hijacked connection's position can be `W.hs a`.
+   *Left*: the server's HTTP path (`ServeHTTP`, `HandleHTTP`), `ReadResponse`'s proof (above); `ServeRequest`; `register`'s logging
    premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
    not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
    `invalidRequest` at `()`) and `isPkgInit log` (item 5).

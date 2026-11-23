@@ -3903,3 +3903,12 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
   (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
   beside `Printf`'s. Not filed yet.
+
+## 2026-11-23: `io.WriteString` is not translated (net/rpc model, HTTP path)
+
+Perennial's `io` translates `WriteString` as a name only, so a translated body that calls it is stuck. net/rpc's
+`DialHTTPPath` and `ServeHTTP` write their handshake with `io.WriteString(conn, s)`. Worked around in the model
+(`models/net/rpc/{client,server}.go`, MODEL): `conn.Write([]byte(s))`, what `io.WriteString` does for a writer without a
+`WriteString` method (net's `*TCPConn`). The general fix: translate `io.WriteString` (its body: a type assertion to
+`io.StringWriter`, else `Write` of the string's bytes) with a spec over the writer's `Write` and `WriteString`
+contracts.

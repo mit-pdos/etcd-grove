@@ -25,6 +25,35 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `DialHTTPPath.spec`, `DialHTTP.spec`, `http.ReadResponse.spec` stated; `respProto` waits for the dialer's handshake; the model's `connectReader` (net/rpc model, HTTP path)
+
+- **Spec.** New: `Net/Spec/net/rpc/DialHTTPPath.lean`, `DialHTTP.lean`, `connectReader__Read.lean`,
+  `Net/Spec/net/http/ReadResponse.lean` (vocabulary `Net/Proof/net/rpc/HttpDefs.lean`: `crAt`, `crSt`, `crErr`).
+  Changed: `respProto` (`Proto.lean`), `srvSendInv` (`ServerDefs.lean`).
+- **Defect.** (1) Without a condition on the acceptor, a dialer that read the whole answer could not know its own
+  handshake was written whole (`DialHTTPPath` ignores its write's error), so `rpcDialed` (`sendTok … (W.hs a)`) was
+  unprovable. (2) The net extension's semantics allows bytes after a read error (a broken direction's surviving
+  bytes), with which Go's `ReadResponse` (textproto returns a line cut by an error without the error, bufio keeps
+  none) accepts the status line cut by an error and a later `"\n"` as the whole answer, the answer's last byte left
+  to the client's codec: `isClient` unprovable in the model, though Go over Linux never does it.
+- **Evidence.** (1) `models/net/rpc/client.go`, `DialHTTPPath` (`conn.Write`'s result dropped). (2)
+  `nonissues/go-netrpc-dialhttp-reads-answer-after-read-error.md`; `examples/net/semantics`' `TestReadEOFAfterFin`,
+  `TestResetCloseUnreadInput` (Linux: no byte after an error).
+- **Proposed change.** (1) `respProto` beyond `[]` holds `sentLb cn false (W.hs a)` (an acceptor answers a whole
+  handshake: `ServeHTTP` writes after `readRequest` read the head), kept by the server in `srvSendInv`. (2) The model
+  reads the answer through `connectReader` (MODEL, `client.go`): after an error, a read returns no byte (it reads
+  the connection into a buffer of its own, so `p` beyond what it returns is untouched, as `io.readerStream` asks);
+  an empty read returns at once. Go's behavior over Linux (`DialHTTPPath` sets no deadline). Also MODEL:
+  `io.WriteString(conn, s)` as `conn.Write([]byte(s))` in `DialHTTPPath` and `ServeHTTP` (what io does for a writer
+  without `WriteString`; Perennial does not translate `io.WriteString`). `DialHTTPPath.spec`: `receiptBound`,
+  `cliEnv`, `httpEnv` (bufio's and io's initialization; net/http's own variables to be added by `ReadResponse`'s
+  proof), net/rpc's `connected` variable, and `rpcAddrP W a (connectReq path) connectAns`; post `isClient` or
+  `errAny`, as `Dial.spec`. `http.ReadResponse.spec` is stated for a CONNECT answer only (a stream reader whose bytes
+  are a prefix of `connectAns`, final after an error): an error, a status other than `connected`, or `connected` with
+  the reader having delivered exactly `connectAns`.
+- **Decision.** Accepted (applied on branch `models-rpc-http`, 2026-11-23); `ReadResponse`'s proof may refine
+  `httpEnv` (pending).
+
 ## 2026-11-23: net/rpc's protocols get a per-address handshake (`rpcAddrP`); `rpcDialed`, `rpcAccepted` and `clientAt` are after it (net/rpc model, HTTP path)
 
 - **Spec.** `Net/Proof/net/rpc/Proto.lean`: `RpcWorld` (new fields `hs`, `hsAns`, default `[]`), `reqProto`,
