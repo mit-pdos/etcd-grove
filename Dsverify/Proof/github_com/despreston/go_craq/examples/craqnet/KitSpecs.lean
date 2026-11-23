@@ -172,7 +172,8 @@ abbrev Orch.spec [RemoteGS] : Prop :=
       mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
       pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp ∗
       pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
-      [∗list] a ∈ confAddrs, addrProto (Gg := hG.goose_globalGS) a confProto confProto }}
+      ([∗list] a ∈ confAddrs, addrProto (Gg := hG.goose_globalGS) a confProto confProto) ∗
+      [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 18 }}
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Orch)) (Val #()))
   {{ RET #(); True }}
 
@@ -207,10 +208,12 @@ abbrev removeNodeOk.spec (cfg : Cfg GF) : Prop :=
 /-- **Finding F2's premise, in the shape Net will give** (#24: net/rpc's initialization returns a
 per-machine resource once, like gryff's replicas' `wp_initialize'_own`): a machine's boot
 resources, made by its program's initialization: the codec registry at its initial state
-(`codecFresh`), net/rpc's `invalidRequest` (`srvEnv`'s part beyond the package fact), and
+(`codecFresh`), net/rpc's package variables as its server and clients read them (`srvEnv`:
+`cliEnv`'s and `invalidRequest`; the part's net/rpc package fact is `True`,
+`Dsverify/Proof/net/rpc/Init.lean`, so they come with the boot, as dsv-epaxos's), and
 `DefaultServeMux` with nothing registered (`muxOwner []`, net/http's; H4). -/
 def rpcBootRes [RpcHttpServe GF] : IProp GF :=
-  iprop(codecFresh ∗ globalAddr net.rpc.invalidRequest ↦□ () ∗ RpcHttpServe.muxOwner [])
+  iprop(codecFresh ∗ net.rpc.srvEnv ∗ RpcHttpServe.muxOwner [])
 
 /-- **F2's premise**: command `pkg`'s initializer `init`, run once from the machine's empty
 package state (only the deployment's boot holds `ownGoState ∅`, once per machine), initializes

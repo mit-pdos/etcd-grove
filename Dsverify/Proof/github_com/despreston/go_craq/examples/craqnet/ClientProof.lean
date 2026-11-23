@@ -583,7 +583,7 @@ theorem Client.wp_proof [LogHyp GF]
     iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Ψ
-    iintro !> %Φr ⟨%Hsys, Hupd⟩ HΦr
+    iintro !> %Φr ⟨%Hsys, Hupd, -⟩ HΦr
     subst Hsys
     wp_auto
     rw [ivK_inOf i]
@@ -605,7 +605,7 @@ theorem Client.wp_proof [LogHyp GF]
     · iright
       ipureintro; subst Ho; rfl
   · -- the client's system: its `Sys`
-    iintro !> %Φr - HΦr
+    iintro %Φr HΦr
     wp_auto
     iapply HΦr
     ipureintro; rfl
@@ -658,7 +658,7 @@ theorem Orch.wp_proof
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_kvS, pendLib_kvS]
-  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib, #Hcp⟩
+  wp_start as ⟨#Hra, #Hmap, #Hpend, Hlib, #Hcp, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -681,9 +681,9 @@ theorem Orch.wp_proof
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
   wp_apply wp_Check (kvR γ) kvS γp m addrs clientAddrs cd _ _ d pendN_craq lintestN_craq
     (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide) (by decide)
-    (by rw [hlen']; decide) $$ [Hlib]
+    (by rw [hlen']; decide) 18 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)
         (functions github_com.despreston.go_craq.examples.craqnet.Gen [])
         (fun x => iprop(∃ i, ⌜x = (kvR (Gg := hG.goose_globalGS) γ).iv i⌝)) from wp_Gen)

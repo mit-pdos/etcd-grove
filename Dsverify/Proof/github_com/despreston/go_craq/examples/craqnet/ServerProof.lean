@@ -77,6 +77,91 @@ theorem coordSpec_errOk (γ : CraqNames) (ch : List GoString) :
     rw [hF]
     icases HS with ⟨⟩
 
+/-- Node.Read's not-found message is not one of net/rpc's server's own error answers (F3). -/
+theorem notFoundMsg_not_srv : ¬ net.rpc.srvErrMsg notFoundMsg := by
+  unfold net.rpc.srvErrMsg net.rpc.rdErrMsg net.opErrMsg notFoundMsg
+  rintro (⟨sm, h⟩ | ⟨sm, h⟩ | ⟨sm, h⟩ | h | h | h | h | ⟨s1, s2, h⟩) <;>
+    (revert h; simp (config := { decide := true }) [List.append_assoc])
+
+/-- **F3, discharged**: the chain node's methods accept the server's own error answers
+(`srvErrMsg`): each method's `errOk` (every non-empty message), and Read's other messages, which
+exclude its not-found (`notFoundMsg_not_srv`). -/
+theorem nodeSpec_errOk (γ : CraqNames) (ch : List GoString) (a : GoString) :
+    ⊢ net.rpc.errOk (nodeSpec (G := hG.goose_globalGS) γ ch a) := by
+  unfold net.rpc.errOk
+  iintro !> %m %args %Φ %msg %Hmsg HS
+  have hne : msg ≠ [] := net.rpc.srvErrMsg_ne msg Hmsg
+  by_cases h1 : m = go!"Ping"
+  · subst h1
+    rw [nodeSpec_Ping]
+    icases HS with ⟨-, ⟨-, HE⟩⟩
+    imodintro
+    unfold errOk
+    iapply HE
+    ipureintro; exact hne
+  by_cases h2 : m = go!"Update"
+  · subst h2
+    rw [nodeSpec_Update]
+    icases HS with ⟨%md, %r, -, -, -, ⟨-, HE⟩⟩
+    imodintro
+    unfold errOk
+    iapply HE
+    ipureintro; exact hne
+  by_cases h3 : m = go!"Write"
+  · subst h3
+    rw [nodeSpec_Write]
+    icases HS with ⟨%k, %x, %v, -, -, ⟨-, HE⟩⟩
+    imodintro
+    unfold errOk
+    iapply HE
+    ipureintro; exact hne
+  by_cases h4 : m = go!"Commit"
+  · subst h4
+    rw [nodeSpec_Commit]
+    icases HS with ⟨%k, %v, -, -, ⟨-, HE⟩⟩
+    imodintro
+    unfold errOk
+    iapply HE
+    ipureintro; exact hne
+  by_cases h5 : m = go!"LatestVersion"
+  · subst h5
+    rw [nodeSpec_LatestVersion]
+    icases HS with ⟨%k, %Q, -, -, ⟨-, HE⟩⟩
+    imodintro
+    unfold errOk
+    iapply HE
+    ipureintro; exact hne
+  by_cases h6 : m = go!"Read"
+  · subst h6
+    rw [nodeSpec_Read]
+    icases HS with ⟨%k, %Q, -, -, HC⟩
+    unfold readCont
+    icases HC with ⟨-, ⟨-, HE⟩⟩
+    imodintro
+    iapply HE
+    ipureintro
+    exact ⟨hne, fun h => notFoundMsg_not_srv (h ▸ Hmsg)⟩
+  by_cases h7 : m = go!"FwdPropagate"
+  · subst h7
+    rw [nodeSpec_Fwd]
+    icases HS with ⟨%req, -, ⟨-, HE⟩⟩
+    imodintro
+    unfold errOk
+    iapply HE
+    ipureintro; exact hne
+  by_cases h8 : m = go!"BackPropagate"
+  · subst h8
+    rw [nodeSpec_Back]
+    icases HS with ⟨%req, %L, -, -, ⟨-, HE⟩⟩
+    imodintro
+    unfold errOk
+    iapply HE
+    ipureintro; exact hne
+  · have hF : nodeSpec (G := hG.goose_globalGS) γ ch a m args Φ = iprop(False) := by
+      unfold nodeSpec; simp [h1, h2, h3, h4, h5, h6, h7, h8]
+    rw [hF]
+    icases HS with ⟨⟩
+
 /-- The coordinator's registration serves its address. -/
 theorem srvServes_coord (cfg : Cfg GF) (γs : GName)
     (hss : cfg.W.SS = craqSS cfg.γ cfg.cAddr cfg.chain) :

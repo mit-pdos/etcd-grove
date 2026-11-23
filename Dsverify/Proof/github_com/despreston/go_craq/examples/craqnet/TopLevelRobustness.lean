@@ -110,24 +110,10 @@ theorem init_of_gen [hG : HeapGS .hasLC GF] (init : val) (pkg : GoString)
 
 end boot
 
-section env
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem' : net.rpc.Assumptions]
-
-/-- net/rpc's package fact is the client's variables (`cliEnv`). -/
-theorem rpcPkg_cliEnv : isPkgInit (PROP := IProp GF) pkg_id.net.rpc ⊢ net.rpc.cliEnv := by
-  iintro #H
-  ihave #Hd := isPkgInit_access _ $$ H
-  unfold net.rpc.cliEnv
-  iexact Hd
-
-end env
-
 /-- **The craq kit, closed** (see the statement's file). -/
 theorem craq_remote_robust : craq_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
-    hri hhi hlog ra rd rs halloc hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 hrn he σ g threads
+    hri hhi hlog ra rd rs halloc hb1 hb2 hb3 hb4 hb5 hb6 hb7 hb8 hb9 hb10 hb11 hrn σ g threads
   refine robust_of_distProtoRB (GF := remoteGF) craqKitAddrs (system σ) g threads (2 ^ 63) ?_
   intro G π hrb
   letI := ra G
@@ -139,8 +125,8 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     ⟨%γ, #Hcraq, Hown, Htail, Hnext, Hnodes⟩
   imod halloc G π (craqSS γ (serverAddrs.headD []) serverAddrs.tail) serverAddrs $$ Hreg Hss
     with ⟨%W, %HW, #Hra⟩
-  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ with ⟨%ρ, #Hmap⟩
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) (RBase.svc (kvR γ)))
+  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ clientAddrs 18 (by decide) with ⟨%ρ, %Hbud, #Hmap, Hunits⟩
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (kvR γ)) a)
     (fun _ => repP (Gg := G) (RBase.svc (kvR γ))) clientAddrs $$ Hreg Hsc with #Hpc
   imod addrs_set_proto (Gg := G) ⊤ (fun _ => confProto) (fun _ => confProto) confAddrs
     $$ Hreg Hsf with #Hpf
@@ -198,7 +184,7 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
   ihave #Hps6 : addrProto (Gg := G) (confAddrs.getD (5 + 6 - 1) []) confProto confProto $$ []
   · iapply BigSepL.bigSepL_lookup (i := 5 + 6 - 1) rfl $$ Hpf
   imodintro
-  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (kvR γ) a) ∗ mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (kvR γ) (kvS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (kvS0 (GF := remoteGF)) γp (kvS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ confAddrs, addrProto (Gg := G) a confProto confProto)
+  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (kvR γ) a) ∗ mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (kvR γ) (kvS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (kvS0 (GF := remoteGF)) γp (kvS0 (GF := remoteGF)).M.init ∗ ([∗list] a ∈ confAddrs, addrProto (Gg := G) a confProto confProto) ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G) a 18)
       else if i = 1 then iprop(craqCtx (G := G) cfg ∗ addrProto (Gg := G) (confAddrs.getD 0 []) confProto confProto ∗ remoteAddr (Gg := G) (kvR γ) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G) (I := KIn))
       else if i = 2 then iprop(craqCtx (G := G) cfg ∗ addrProto (Gg := G) (confAddrs.getD 1 []) confProto confProto ∗ remoteAddr (Gg := G) (kvR γ) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G) (I := KIn))
       else if i = 3 then iprop(craqCtx (G := G) cfg ∗ addrProto (Gg := G) (confAddrs.getD 2 []) confProto confProto ∗ remoteAddr (Gg := G) (kvR γ) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G) (I := KIn))
@@ -224,21 +210,20 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
     letI : RpcHttpDial remoteGF := rd G' hG.goose_localGS π
     letI : RpcHttpServe remoteGF := rs G' hG.goose_localGS π
     have HRN := hrn G' hG.goose_localGS π
-    have HE := he G' hG.goose_localGS π
     match i, hm with
     | 0, hm =>
       cases hm
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
-      iintro ⟨#Has, #Hmap0, #Hpend0, Hlib0, #Hpf0⟩ Hgs
+      iintro ⟨#Has, #Hmap0, #Hpend0, Hlib0, #Hpf0, Hbud0⟩ Hgs
       iapply wp_bootR cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit iprop(True)
-          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (kvR γ) a) ∗ mapCtx (Gg := G') (I := KIn) ∗ pendCtx (Gg := G') (kvR γ) (kvS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (kvS0 (GF := remoteGF)) γp (kvS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ confAddrs, addrProto (Gg := G') a confProto confProto))
+          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (kvR γ) a) ∗ mapCtx (Gg := G') (I := KIn) ∗ pendCtx (Gg := G') (kvR γ) (kvS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (kvS0 (GF := remoteGF)) γp (kvS0 (GF := remoteGF)).M.init ∗ ([∗list] a ∈ confAddrs, addrProto (Gg := G') a confProto confProto) ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G') a 18))
           (by
             iintro %Φ ⟨#Hpkg, Hp, -⟩ HΦ
             iapply (cmd.orch.wp_main EtcdGrove.dsvcraq.wp_Orch γ γp hrb) $$ [Hp] HΦ
-            iframe Hpkg Hp) $$ [Hlib0] Hgs
+            iframe Hpkg Hp) $$ [Hlib0 Hbud0] Hgs
       all_goals try iframe #
-      all_goals try iframe Hlib0
+      all_goals try iframe Hlib0 Hbud0
     | 1, hm =>
       cases hm
       dsimp only
@@ -324,14 +309,10 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hinv, Hmux⟩
-            ihave #Hrp : isPkgInit (PROP := IProp remoteGF) pkg_id.net.rpc $$ []
-            · iPkgInit
-            ihave #Hce := rpcPkg_cliEnv $$ Hrp
-            iapply (cmd.server1.wp_main (EtcdGrove.dsvcraq.wp_Server HRN HE) cfg hcfg) $$
+            icases HR with ⟨Hcf, #Hse, Hmux⟩
+            iapply (cmd.server1.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
-            unfold net.rpc.srvEnv
-            iframe Hpkg Hc Hcf Hmux Hce Hinv
+            iframe Hpkg Hc Hcf Hmux Hse
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
             iexact Hr) $$ [Hres0] Hgs
@@ -347,14 +328,10 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hinv, Hmux⟩
-            ihave #Hrp : isPkgInit (PROP := IProp remoteGF) pkg_id.net.rpc $$ []
-            · iPkgInit
-            ihave #Hce := rpcPkg_cliEnv $$ Hrp
-            iapply (cmd.server2.wp_main (EtcdGrove.dsvcraq.wp_Server HRN HE) cfg hcfg) $$
+            icases HR with ⟨Hcf, #Hse, Hmux⟩
+            iapply (cmd.server2.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
-            unfold net.rpc.srvEnv
-            iframe Hpkg Hc Hcf Hmux Hce Hinv
+            iframe Hpkg Hc Hcf Hmux Hse
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
             iexact Hr) $$ [Hres0] Hgs
@@ -370,14 +347,10 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hinv, Hmux⟩
-            ihave #Hrp : isPkgInit (PROP := IProp remoteGF) pkg_id.net.rpc $$ []
-            · iPkgInit
-            ihave #Hce := rpcPkg_cliEnv $$ Hrp
-            iapply (cmd.server3.wp_main (EtcdGrove.dsvcraq.wp_Server HRN HE) cfg hcfg) $$
+            icases HR with ⟨Hcf, #Hse, Hmux⟩
+            iapply (cmd.server3.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
-            unfold net.rpc.srvEnv
-            iframe Hpkg Hc Hcf Hmux Hce Hinv
+            iframe Hpkg Hc Hcf Hmux Hse
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
             iexact Hr) $$ [Hres0] Hgs
@@ -393,14 +366,10 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hinv, Hmux⟩
-            ihave #Hrp : isPkgInit (PROP := IProp remoteGF) pkg_id.net.rpc $$ []
-            · iPkgInit
-            ihave #Hce := rpcPkg_cliEnv $$ Hrp
-            iapply (cmd.server4.wp_main (EtcdGrove.dsvcraq.wp_Server HRN HE) cfg hcfg) $$
+            icases HR with ⟨Hcf, #Hse, Hmux⟩
+            iapply (cmd.server4.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
-            unfold net.rpc.srvEnv
-            iframe Hpkg Hc Hcf Hmux Hce Hinv
+            iframe Hpkg Hc Hcf Hmux Hse
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
             iexact Hr) $$ [Hres0] Hgs
@@ -416,14 +385,10 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hinv, Hmux⟩
-            ihave #Hrp : isPkgInit (PROP := IProp remoteGF) pkg_id.net.rpc $$ []
-            · iPkgInit
-            ihave #Hce := rpcPkg_cliEnv $$ Hrp
-            iapply (cmd.server5.wp_main (EtcdGrove.dsvcraq.wp_Server HRN HE) cfg hcfg) $$
+            icases HR with ⟨Hcf, #Hse, Hmux⟩
+            iapply (cmd.server5.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
-            unfold net.rpc.srvEnv
-            iframe Hpkg Hc Hcf Hmux Hce Hinv
+            iframe Hpkg Hc Hcf Hmux Hse
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
             iexact Hr) $$ [Hres0] Hgs
@@ -439,14 +404,10 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨#Hc, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Hinv, Hmux⟩
-            ihave #Hrp : isPkgInit (PROP := IProp remoteGF) pkg_id.net.rpc $$ []
-            · iPkgInit
-            ihave #Hce := rpcPkg_cliEnv $$ Hrp
-            iapply (cmd.server6.wp_main (EtcdGrove.dsvcraq.wp_Server HRN HE) cfg hcfg) $$
+            icases HR with ⟨Hcf, #Hse, Hmux⟩
+            iapply (cmd.server6.wp_main (EtcdGrove.dsvcraq.wp_Server HRN) cfg hcfg) $$
               [Hr Hcf Hmux] HΦ
-            unfold net.rpc.srvEnv
-            iframe Hpkg Hc Hcf Hmux Hce Hinv
+            iframe Hpkg Hc Hcf Hmux Hse
             unfold serverRes
             first | rw [if_pos rfl] | rw [if_neg (by decide)]
             iexact Hr) $$ [Hres0] Hgs
@@ -454,10 +415,10 @@ theorem craq_remote_robust : craq_remote_robust.spec := by
       all_goals try iframe Hres0
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hlib]
+    isplitl [Hlib Hunits]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
       iframe #
-      iframe Hlib
+      iframe Hlib Hunits
     iapply BigSepL.bigSepL_cons.2
     isplitl []
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]

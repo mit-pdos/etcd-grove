@@ -25,9 +25,9 @@ module
 
 public import Net.Proof.net.rpc.ClientDefs
 public import Net.Proof.models_lab.Errors
-public import Dsverify.Proof.net.rpc.Base
+public import Dsverify.Proof.net.rpc.Init
 public import Net.Proof.net.rpc.ServerDefs
-public import Dsverify.Proof.net.http.Base
+public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 

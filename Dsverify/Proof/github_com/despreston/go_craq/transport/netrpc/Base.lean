@@ -5,7 +5,7 @@ module
 
 public import Dsverify.GeneratedProof.github_com.despreston.go_craq.transport.netrpc
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.Base
-public import Dsverify.Proof.net.rpc.Base
+public import Dsverify.Proof.net.rpc.Init
 
 @[expose] public section
 

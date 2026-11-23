@@ -14,8 +14,8 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.log
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
-public import Dsverify.Proof.net.rpc.Base
-public import Dsverify.Proof.net.http.Base
+public import Dsverify.Proof.net.rpc.Init
+public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 

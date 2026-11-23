@@ -12,7 +12,7 @@ module
 
 public import Net.Proof.net.rpc.Results
 public import Net.Proof.models_lab.Errors
-public import Dsverify.Proof.net.rpc.Base
+public import Dsverify.Proof.net.rpc.Init
 
 @[expose] public section
 

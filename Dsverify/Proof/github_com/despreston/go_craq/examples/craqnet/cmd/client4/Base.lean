@@ -6,8 +6,8 @@ module
 public import Dsverify.GeneratedProof.github_com.despreston.go_craq.examples.craqnet.cmd.client4
 public import Net.Proof.net.Base
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.Base
-public import Dsverify.Proof.net.rpc.Base
-public import Dsverify.Proof.net.http.Base
+public import Dsverify.Proof.net.rpc.Init
+public import Dsverify.Proof.net.http.Init
 
 @[expose] public section
 

@@ -22,9 +22,8 @@ machine's heap `heapAt G L` and the start's `NetProtoGS`):
   net/rpc world at the server addresses (`rpcAlloc`);
 * F2: each machine's boot resources from its initialization (`RpcBoot`, the shape Net will give);
 * F1: RemoveNode's method obligation (`removeNodeOk.spec`; Net's `Client.Call` errors will give
-  their message), F3: the chain nodes' `errOk` (Net's `errOk` will be restricted to the server's
-  own messages). **F3 is false of Net's current `errOk`** (notes/dsv-craq.md, F3): until Net's
-  change lands, this premise cannot be met.
+  their message). (F3, the chain nodes' `errOk`, is proved: net-rpc-errors restricts Net's `errOk`
+  to the server's own messages, `srvErrMsg`, which Read's not-found is not; `nodeSpec_errOk`.)
 Proved in `Dsverify/Proof/github_com/despreston/go_craq/examples/craqnet/TopLevelRobustness.lean`.
 -/
 module
@@ -116,8 +115,6 @@ def craq_remote_robust.spec : Prop :=
       RpcBoot (GF := remoteGF) cmd.server6.initialize' pkg_id.github_com.despreston.go_craq.examples.craqnet.cmd.server6) →
     (∀ G L, letI := heapAt G L; ∀ (π : NetProtoGS) (cfg : Cfg remoteGF), letI := ra G;
       removeNodeOk.spec (GF := remoteGF) cfg) →
-    (∀ G L, letI := heapAt G L; ∀ (π : NetProtoGS) (cfg : Cfg remoteGF) a, letI := ra G;
-      ⊢ net.rpc.errOk (nodeSpec (GF := remoteGF) cfg.γ cfg.chain a)) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy craqKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g threads (2 ^ 63)
