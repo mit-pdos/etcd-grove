@@ -95,7 +95,8 @@ it; all 230 modules under `Dsverify/{Proof,Spec}/rabia` and the libraries' build
    token `ownRand r`, `Rand.Intn` takes the latter (`Hyps.rands : ∃ isSource ownRand, RandSpecs`):
    a zero `Rand` (nil source) is not covered. The consensus's `coinOk`/`exCoinOk` hold `∃ R, R r ∗
    ⌜Rand.Intn.spec R⌝` instead of `r ↦ v`.
-5. `log.Hyps` is gone: `log.Println.wp_proof` (`Dsverify/Proof/log/Println.lean`) is proved from
+5. `log.Hyps` is gone: `log.Println.wp_proof` (`Net/Proof/log/Println.lean`, Net's, shared with the epaxos kit; rabia's own copy
+   `Dsverify/Proof/log/` was dropped, its names clashing with Net's when both kits are loaded) is proved from
    Perennial's trusted `log.Println.impl` (it does nothing), its spec requiring `fmt.ArgsWf` of the
    arguments as Perennial's `log.Printf.spec` does (`send` passes one string); `KitNetDeps.println`.
 The statement's premises are now: the six `InitHyp`s, `proto.Hyps`, `zerolog.Hyps`, `math.rand.Hyps`,
@@ -261,8 +262,8 @@ statement; no instance anywhere):
   RandSpecs`: `NewSource`, `New`, `Rand.Intn` with exclusive tokens;
 - `os.signal.NoSignals` (`os/signal/Spec.lean`): the environment assumption.
 
-**Proved** from a model: `log.Println` (Perennial's trusted `log` model, `Dsverify/Proof/log/
-Println.lean`; until review #24 the premise `log.Hyps`); bufio (the shared change on #24: the
+**Proved** from a model: `log.Println` (Perennial's trusted `log` model, Net's
+`Net/Proof/log/Println.lean`; until review #24 the premise `log.Hyps`); bufio (the shared change on #24: the
 main tree's `Spec/bufio/`, `Proof/bufio/`).
 
 ## State, in detail
