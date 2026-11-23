@@ -613,7 +613,7 @@ theorem wp_readLoop (wp_SetReadDeadline : net.Conn.SetReadDeadline.spec (GF := G
   icases Hrdl with ⟨%b0, Hrdl⟩
   wp_apply wp_SetReadDeadline t cn true a la ra tm'
       (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [Hrdl]
-    as %err1 Hrdl
+    as %err1 ⟨%res1, Hrdl, -⟩
   · iframe Hca
     imod deadline_au cn true (W64 1) _ b0 $$ Hrdl with ⟨%st, Hst, Hcl⟩
     imodintro

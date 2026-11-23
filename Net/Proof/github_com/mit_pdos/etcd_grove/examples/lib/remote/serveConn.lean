@@ -64,7 +64,7 @@ theorem serveConn.wp_proof
   wp_apply wp_deadline as %tm -
   wp_apply wp_SetDeadline t cn true a la ra tm
       (fun _ => iprop(∃ b, rdlTok (Gg := hG.goose_globalGS) cn true b)) $$ [Hrdl]
-    as %err ⟨%b1, Hrdl⟩
+    as %err ⟨%res1, ⟨%b1, Hrdl⟩, -⟩
   · iframe Hca
     imod deadline_au cn true _ _ false $$ Hrdl with ⟨%st, Hst, Hk⟩
     imodintro
