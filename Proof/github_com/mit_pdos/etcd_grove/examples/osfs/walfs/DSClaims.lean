@@ -546,8 +546,8 @@ theorem ds_alloc (j : Ino) (ko : Option Ino) (mg : Bool) (hw : NamesH) (hsO : Op
 
 /-- **A fresh generation's start**: from the tree's resources (`osShared`, nothing logged) on a
 `SafeT` tree, the invariant with the program's half, and the whole claims the program changes:
-`wal.tmp`'s, and the `.except []` claim of `wal.tmp`'s directory. -/
 `wal.tmp`'s, the `.except []` claim of `wal.tmp`'s directory, and that of `wal.tmp/seg`'s (`segDir`). -/
+theorem ds_start (R : Roots) (r : GoString) (j : Ino) (hr : (r, j) ∈ R) (m : Tree)
     (hwf : TreeWf R m) (ko : Option Ino) (hs : SafeT j ko m) (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ osShared (L := L) R (m, []) -∗ keyRes (L := L) ko ={E}=∗
       ∃ γ, dsInv (L := L) j γ ∗ dsHalf (L := L) j γ ko false (NamesH.init m j wO) (initSeg m j) ∗
