@@ -16,7 +16,9 @@ read, `connReader.backgroundRead`, over `Conn.Read` and `OpError.Timeout`, and i
 head's read, `connReader.Read` in the head phase (`crHead`, over `Conn.Read`).
 
 The request's URI (2026-11-23): the model's `modelParseRequestURI` (`url.ParseRequestURI`) on a
-`reqPath`, over `modelPathBytes` and `modelPathByte`.
+`reqPath`, over `modelPathBytes` and `modelPathByte`; the request line's `parseRequestLine` (over
+`modelCutByte`) and `validMethod` (over `isToken` and httpguts' `ValidHeaderFieldName`, which reads
+`isTokenTable`: `tokenTable`, a premise).
 -/
 module
 
@@ -58,6 +60,10 @@ public import Proof.bufio.Writer__Reset
 public import Net.Proof.net.http.modelParseRequestURI
 public import Net.Proof.net.http.modelPathBytes
 public import Net.Proof.net.http.modelPathByte
+public import Net.Proof.net.http.parseRequestLine
+public import Net.Proof.net.http.validMethod
+public import Net.Proof.net.http.isToken
+public import Net.Proof.vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName
 
 @[expose] public section
 
@@ -102,6 +108,13 @@ theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
 
 theorem modelParseRequestURI.wp : modelParseRequestURI.spec (GF := GF) (hG := hG) :=
   modelParseRequestURI.wp_proof (modelPathBytes.wp_proof modelPathByte.wp_proof)
+
+theorem parseRequestLine.wp : parseRequestLine.spec (GF := GF) (hG := hG) :=
+  parseRequestLine.wp_proof modelCutByte.wp_proof
+
+theorem validMethod.wp : validMethod.spec (GF := GF) (hG := hG) :=
+  validMethod.wp_proof
+    (isToken.wp_proof vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName.wp_proof)
 
 end link
 
@@ -150,3 +163,5 @@ end Perennial
 #print axioms Perennial.net.http.connReader.releaseConn.wp
 #print axioms Perennial.net.http.connReader.Read.wp
 #print axioms Perennial.net.http.modelParseRequestURI.wp
+#print axioms Perennial.net.http.parseRequestLine.wp
+#print axioms Perennial.net.http.validMethod.wp

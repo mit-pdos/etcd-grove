@@ -5,7 +5,9 @@ The vocabulary of the specs of net/http's request reading (`readRequest` and wha
 * `pathByte c`: `c` is a byte the model's `modelPathByte` accepts, one net/url leaves alone in a path
   (RFC 3986's unreserved bytes and `$&+,/:;=@`);
 * `reqPath s`: `s` starts with `/` and has only such bytes: the request URIs on which the model's
-  `modelParseRequestURI` computes `url.ParseRequestURI`'s result itself (the URL with path `s`).
+  `modelParseRequestURI` computes `url.ParseRequestURI`'s result itself (the URL with path `s`);
+* `parseReqLine l`: what `parseRequestLine(l)` returns, the method, the request URI and the protocol
+  (the two `modelCutByte`s at `' '`) and `true`, or empties and `false`.
 -/
 module
 
@@ -27,6 +29,12 @@ def pathByte (c : w8) : Bool :=
 
 /-- See the file header. -/
 def reqPath (s : List w8) : Prop := s.head? = some (W8 47) ∧ ∀ c ∈ s, pathByte c = true
+
+/-- See the file header. -/
+def parseReqLine (l : List w8) : List w8 × List w8 × List w8 × Bool :=
+  let c1 := cutByte l (W8 32)
+  let c2 := cutByte c1.2.1 (W8 32)
+  if c1.2.2 && c2.2.2 then (c1.1, c2.1, c2.2.1, true) else ([], [], [], false)
 
 end net.http
 end Perennial
