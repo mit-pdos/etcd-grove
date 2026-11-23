@@ -1514,7 +1514,7 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
       ⌜o = ⟨req.Revision', req.Physical'⟩⌝) from rfl]
   icases Hown with ⟨%req, Hreq, %Ho⟩
   subst Ho
-  iunfold etcdCompactSpec at Hspec
+  iunfold etcdCompactSpec, etcdCompactSpecW at Hspec
   icases Hspec with ⟨%Hpre, #Hrv, Hk⟩
   obtain ⟨Hr1, Hph, Hkc⟩ := Hpre
   simp only at Hr1 Hph Hkc
@@ -3686,7 +3686,7 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
       iexists h
       iframe #
       ipureintro; exact Hhn
-    · iunfold etcdLeaseGrantSpecAny at Hspec
+    · iunfold etcdLeaseGrantSpecAny, etcdLeaseGrantSpecAnyW at Hspec
       iapply Hspec
       · ipureintro; exact Hid0
       · iapply v3rpc.etcdReached_of_srvRevLb E γr on rv hNx $$ Hreach
@@ -3747,7 +3747,7 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       iexists h
       iframe #
       ipureintro; exact Hhn
-    · iunfold etcdLeaseRevokeSpec at Hspec
+    · iunfold etcdLeaseRevokeSpec, etcdLeaseRevokeSpecW at Hspec
       iapply Hspec
       iapply v3rpc.etcdReached_of_srvRevLb E γr on rv hNx $$ Hreach
   · imodintro

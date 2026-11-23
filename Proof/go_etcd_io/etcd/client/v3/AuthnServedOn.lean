@@ -66,7 +66,7 @@ theorem authTokReg_of (addr u pw : GoString) (γa : auth.AuthNames) :
   · iapply (isGrpcRpcs_singleton _ _ _).1
     iexact H
   · iintro !> !>
-    unfold etcdAuthenticateSpec
+    unfold etcdAuthenticateSpec etcdAuthenticateSpecW
     iintro %t #Ht !>
     iexact Ht
 
@@ -177,7 +177,7 @@ theorem etcd_authenticateHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqName
     simp only [pbAuthenticateResponse]
     isplitl [Hv]
     · iexists v; iframe Hv; ipureintro; exact ⟨rfl, Hvu⟩
-    iunfold etcdAuthenticateSpec at Hspec
+    iunfold etcdAuthenticateSpec, etcdAuthenticateSpecW at Hspec
     iapply Hspec
     iexact Ht
   · iunfold authnAns at Ha

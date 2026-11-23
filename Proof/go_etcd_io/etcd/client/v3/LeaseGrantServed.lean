@@ -137,7 +137,7 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   iintro ⟨#Pv, #Hat, #HL⟩
   unfold grpcHandlerOwnOk
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, HspecR⟩ HΨ
-  iunfold etcdLeaseGrantSpecGR at HspecR
+  iunfold etcdLeaseGrantSpecGR, etcdLeaseGrantSpecGRW at HspecR
   icases HspecR with ⟨%HRm, Hspec⟩
   rw [show (pbLeaseGrantRequest (GF := GF)).recv r m = v3rpc.leaseGrantReqIs r m from rfl]
   rw [show (pbLeaseGrantRequest (GF := GF)).recvOwn r m = v3rpc.leaseGrantReqIdOwn r m.2 from rfl]
@@ -184,7 +184,7 @@ theorem etcd_leaseGrantHandlerOkGR (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
       iexists h
       iframe #
       ipureintro; exact Hhn
-    · iunfold etcdLeaseGrantSpecG at Hspec
+    · iunfold etcdLeaseGrantSpecGW at Hspec
       iapply Hspec
       · ipureintro; exact Hid0
       · iapply v3rpc.etcdReached_of_srvRevLb E γr on rv hNx $$ Hreach
@@ -352,7 +352,8 @@ theorem etcd_leaseGrantHandlerOkG (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, #Hctx, #Hrc, #Hr, Hid, Hspec⟩ HΨ
   iapply Hh $$ %m %Φ %ci %cd %r [HS Hid Hspec] HΨ
   iframe; iframe #
-  unfold etcdLeaseGrantSpecGR
+  unfold etcdLeaseGrantSpecGR etcdLeaseGrantSpecGRW
+  iunfold etcdLeaseGrantSpecG at Hspec
   iframe
 
 /-- **etcd's `LeaseGrant` handler meets etcd's `LeaseGrant` spec at the lessor's history**
@@ -384,7 +385,7 @@ theorem etcd_leaseLeasesHandlerOkL (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
   iintro ⟨#Pv, #Hat, #HL, #Hn, #H0, #Hinv⟩
   unfold grpcHandlerOk
   iintro %req %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, Hspec⟩ HΨ
-  iunfold etcdLeaseLeasesSpec at Hspec
+  iunfold etcdLeaseLeasesSpec, etcdLeaseLeasesSpecW at Hspec
   icases Hspec with ⟨%G, HG, Hk⟩
   ihave ⟨%m, -, #Hm, HG⟩ := grants_lb γl G 0 $$ [HG]
   · iframe H0; iexact HG
@@ -711,7 +712,7 @@ theorem etcd_leaseLeasesHandlerOkLive (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid
   iintro ⟨#Pv, #Hat, #HL, #Hn⟩
   unfold grpcHandlerOk
   iintro %req %Φ %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, Hspec⟩ HΨ
-  iunfold etcdLeaseLeasesSpecLive at Hspec
+  iunfold etcdLeaseLeasesSpecLive, etcdLeaseLeasesSpecLiveW at Hspec
   icases Hspec with ⟨%m, #Hm, Hk⟩
   iapply wp_fupd
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc

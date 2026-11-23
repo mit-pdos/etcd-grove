@@ -510,7 +510,7 @@ theorem etcdPutSpecM_false (s : Loc) (E : apply.AEnv GF)
     ∀ md o Φ Ψe, GrpcSpec.md (etcdPutSpec (GF := GF) E ρ.rd cid mid) md o Φ Ψe ⊢
       |==> etcdPutSpecM false s E ρ cid mid md o Φ Ψe := by
   intro md o Φ Ψe
-  unfold GrpcSpec.md etcdPutSpec etcdPutSpecM
+  unfold GrpcSpec.md etcdPutSpec etcdPutSpecW etcdPutSpecM
   iintro ⟨⟨%F, #HF, %Q, %Hl, Hau, Hk⟩, #HΨe⟩
   imod (kvOpAuM_of_au1 _ s E ρ (auth.mdTokenOf md) (.put o) Q) $$ Hau with Hau
   imodintro
@@ -532,7 +532,7 @@ theorem etcdDeleteSpecM_false (s : Loc) (E : apply.AEnv GF)
     ∀ md o Φ Ψe, GrpcSpec.md (etcdDeleteSpec (GF := GF) E ρ.rd cid mid) md o Φ Ψe ⊢
       |==> etcdDeleteSpecM false s E ρ cid mid md o Φ Ψe := by
   intro md o Φ Ψe
-  unfold GrpcSpec.md etcdDeleteSpec etcdDeleteSpecM
+  unfold GrpcSpec.md etcdDeleteSpec etcdDeleteSpecW etcdDeleteSpecM
   iintro ⟨⟨%F, #HF, %Q, %Hz, Hau, Hk⟩, #HΨe⟩
   imod (kvOpAuM_of_au1 _ s E ρ (auth.mdTokenOf md) (.deleteRange o) Q) $$ Hau with Hau
   imodintro
@@ -554,7 +554,7 @@ theorem etcdRangeSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] 
     ∀ md o Φ Ψe, GrpcSpec.md (etcdRangeSpec (GF := GF) E γr cid mid) md o Φ Ψe ⊢
       |==> etcdRangeSpecM false s E γr cid mid md o Φ Ψe := by
   intro md o Φ Ψe
-  unfold GrpcSpec.md etcdRangeSpec etcdRangeSpecM
+  unfold GrpcSpec.md etcdRangeSpec etcdRangeSpecW etcdRangeSpecM
   iintro ⟨⟨%c, %F, %Q, #Hc, #HF, Hq, Hk⟩, #HΨe⟩
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   imodintro
@@ -576,7 +576,7 @@ theorem etcdRangeSpecE_M [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s :
     ∀ md o Φ Ψe, etcdRangeSpecE (GF := GF) E γr cid mid md o Φ Ψe ⊢
       |==> etcdRangeSpecM false s E γr cid mid md o Φ Ψe := by
   intro md o Φ Ψe
-  unfold etcdRangeSpecE etcdRangeSpecM
+  unfold etcdRangeSpecE etcdRangeSpecEW etcdRangeSpecM
   iintro ⟨%c, %F, %Q, #Hc, #HF, Hq, Hck, He, Hk⟩
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   imodintro
@@ -590,7 +590,7 @@ theorem etcdTxnSpecM_false [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (s
     ∀ md t Φ Ψe, GrpcSpec.md (etcdTxnSpec (GF := GF) E ρ.rd γr cid mid) md t Φ Ψe ⊢
       |==> etcdTxnSpecM false s E ρ γr cid mid md t Φ Ψe := by
   intro md t Φ Ψe
-  unfold GrpcSpec.md etcdTxnSpec etcdTxnSpecM
+  unfold GrpcSpec.md etcdTxnSpec etcdTxnSpecW etcdTxnSpecM
   iintro ⟨⟨%Hpl, %Q, Hd, %c, %F, #Hc, #HF, Hk⟩, #HΨe⟩
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   ihave Hd : iprop(|==> ((⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
