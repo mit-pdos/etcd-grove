@@ -648,7 +648,7 @@ theorem wp_readLoop (wp_SetReadDeadline : net.Conn.SetReadDeadline.spec (GF := G
   wp_for_post
   iframe
   iexists (done ++ [m])
-  iframe Hr Hrdl
+  first | iframe Hr Hrdl | iframe Hr
   ipureintro
   intro x hx
   simp only [List.mem_append, List.mem_singleton] at hx
