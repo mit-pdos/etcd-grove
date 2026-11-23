@@ -37,6 +37,11 @@ def conv(t):
     t = t.replace('variable [state.Assumptions]\n',
                   'variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]\n'
                   '  [TH : TreemapHyp GF]\n')
+    t = re.sub(r'(?m)^variable \[G : GooseGlobalGS \.hasLC netDistGF\]',
+               'variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]\n'
+               'variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF]', t)
+    t = re.sub(r'\bProofMode NetConn\b', 'ProofMode Net', t)
+    t = re.sub(r'(?m)^open OFE ', 'open ', t)
     t = t.replace('netDistGF', 'GF').replace('(hG := hG)', '(GF := GF)')
     t = t.replace(' Dsv github_com.', ' github_com.')
     t = re.sub(r'(?m)^(theorem \S+\.spec_holds : \S+\.spec) :=', r'\1 (GF := GF) :=', t)

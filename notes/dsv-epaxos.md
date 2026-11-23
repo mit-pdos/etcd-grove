@@ -138,6 +138,16 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `sint_Z_W64_length`, split out of the lab's `Interface/Marshal`, which the marshal port must
    import instead of restating) and `wire/Varint/{PutUvarint,PutVarint,Decode}`: ported, 0 errors.
    `ReadByte`/`ReadUvarint`/`ReadVarint` wait for bufio.
+3f. **The epaxos code proofs that need no marshal/bufio/net (started 2026-11-23).** The ghost
+   chain `epaxos/{GhostLib,GhostDefs,GhostLaws,GhostStep,ExecFacts}` (then `GhostBasic`,
+   `GhostRep`, `GhostSimple`, `GhostSend`, `GhostExec`, the `Exec*` files, `FindSCC`) imports only
+   the ported `Interface/Client` and `Model/*`: the next files to port. Only `epaxos/BigOpExtra`
+   is in. `port.py` now rewrites the lab's ghost sections (`[G : GooseGlobalGS .hasLC
+   netDistGF]` to the generic `{GF} [G : GooseGlobalGS .hasLC GF]` with the extension classes,
+   `NetConn` to `Net`, drops `open OFE`). What remains by hand in `GhostLib`: with `GF` generic,
+   statements whose only `GF` is inside a defined predicate (`Timeless (rsAuth γ q l)`,
+   `Persistent (rsLb γ l)`, ...) need `(GF := GF)` (as `Interface/Client.lean` does), about 13
+   places in `GhostLib`, and the same kind in the rest of the chain.
 3d. **`Interface/Misc.lean`** (dlog's non-verbose `Println`/`Printf`/`Fatal`, config's
    `IsProxy` on an empty `ProxyInfo`) and its proofs `wire/Misc/{Dlog,IsProxy}.lean`: ported, check
    with 0 errors (2026-11-23). The lab's import of `Top/PkgState` is dropped (not needed).
