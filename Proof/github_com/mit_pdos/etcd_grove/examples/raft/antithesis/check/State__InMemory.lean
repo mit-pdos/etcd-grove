@@ -244,6 +244,66 @@ theorem State.InMemory.wp_proof
       isplitr; · iexact Hgla
       isplitr; · iexact Hgea
       ipureintro; rw [Hut, Hut2, Hwcaeq]; exact Hjp
+  clear Hjp
+  obtain ⟨ledAt, elAt⟩ := pp
+  simp -zeta only [jp2] at Hjp2
+  replace Hjp2 := bind_ok Hjp2; obtain ⟨cd, hcd, Hjp2⟩ := Hjp2
+  extract_lets jp3 at Hjp2
+  ihave %Hchl := logRO_len _ _ $$ HChain
+  wp_join iprop(∃ (gch : GoSlice) (ch : List Entry),
+      x_ptr ↦ ({ s' := p, n' := n, ev' := e } : G.inMem) ∗ s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      r_ptr.[G.MemResult, go!"Chain"] ↦ gch ∗ logRO gch ch ∗ ⌜jp3 ch = .ok r⌝)
+    at next with [x s ev n RChain] as ⟨%gch, %ch, x, s, ev, n, RChain, #Hch, %Hjp3⟩
+  · obtain ⟨cm, hcm, hct, hcf⟩ := andM_ok hcd
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_cmt_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_cmt _ _ cm $$ [Hx]
+    · iframe Hx; ipureintro; exact hcm
+    cases cm
+    · rw [hcf rfl] at Hjp2
+      simp only [Bool.false_eq_true, ite_false] at Hjp2
+      wp_auto
+      replace Hjp2 := bind_ok Hjp2; obtain ⟨ch, hch, Hjp2⟩ := Hjp2
+      simp only [pure_ok, Except.ok.injEq] at hch
+      subst hch
+      wp_join_done
+      iexists g.Chain', s.chain
+      iframe
+      isplitr; · iexact HChain
+      ipureintro; exact Hjp2
+    · replace hct := bind_ok (hct rfl); obtain ⟨cv, hcv, hct⟩ := hct
+      simp only [pure_ok, Except.ok.injEq] at hct
+      wp_auto
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_c_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_c _ _ cv $$ [Hx] as %uc %Huc
+      · iframe Hx; ipureintro; exact hcv
+      have hd : decide (sint.Z g.Chain'.len < sint.Z uc) = cd := by
+        rw [Hchl, Huc, ← hct]
+      rw [hd]
+      cases cd
+      · simp only [Bool.false_eq_true, ite_false] at Hjp2
+        wp_auto
+        replace Hjp2 := bind_ok Hjp2; obtain ⟨ch, hch, Hjp2⟩ := Hjp2
+        simp only [pure_ok, Except.ok.injEq] at hch
+        subst hch
+        wp_join_done
+        iexists g.Chain', s.chain
+        iframe
+        isplitr; · iexact HChain
+        ipureintro; exact Hjp2
+      · simp only [ite_true] at Hjp2
+        wp_auto
+        replace Hjp2 := bind_ok Hjp2; obtain ⟨ch, hch, Hjp2⟩ := Hjp2
+        rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_newC_unfold.method_unfold]
+        try wp_auto
+        wp_apply wp_newC _ _ ch $$ [Hx] as %gch #Hgch
+        · iframe Hx; ipureintro; exact hch
+        wp_join_done
+        iexists gch, ch
+        iframe
+        isplitr; · iexact Hgch
+        ipureintro; exact Hjp2
   trace_state
   sorry
 
