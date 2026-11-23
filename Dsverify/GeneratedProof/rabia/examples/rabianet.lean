@@ -12,6 +12,7 @@ public import Dsverify.GeneratedProof.rabia.internal.config
 public import Dsverify.GeneratedProof.rabia.internal.message
 public import Dsverify.GeneratedProof.rabia.internal.tcp
 public import Dsverify.GeneratedProof.rabia.roles.server
+public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.sync.atomic
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -314,6 +315,7 @@ noncomputable instance Entry_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "K" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"K" l) v.K' dq ∗
     "Cur" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Cur" l) v.Cur' dq ∗
+    "Old" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) v.Old' dq ∗
     "Pend" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Pend" l) v.Pend' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -353,6 +355,22 @@ noncomputable instance Entry_access_store_Cur (l : Loc) (v : rabia.examples.rabi
       (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Cur" l) v.Cur' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Cur" l) Cur' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cur' := Cur' } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Entry_access_load_Old (l : Loc) (v : rabia.examples.rabianet.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) v.Old' dq)
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) v.Old' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Entry_access_store_Old (l : Loc) (v : rabia.examples.rabianet.Entry) (Old' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) v.Old' (DFrac.own 1))
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) Old' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Old' := Old' } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -428,6 +446,7 @@ noncomputable instance Sys_typed_pointsto :
   typedPointstoDef l v dq := iprop(
     "conf" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"conf" l) v.conf' dq ∗
     "t" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"t" l) v.t' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) v.mu' dq ∗
     "next" ∷ typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"next" l) v.next' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -467,6 +486,22 @@ noncomputable instance Sys_access_store_t (l : Loc) (v : rabia.examples.rabianet
       (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"t" l) t' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := t' } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Sys_access_load_mu (l : Loc) (v : rabia.examples.rabianet.Sys) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Sys_access_store_mu (l : Loc) (v : rabia.examples.rabianet.Sys) (mu' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -30,6 +30,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -327,11 +328,16 @@ type Out struct {
 }
 
 // Entry is one key's state in the model: its value (Cur; "" if never written, as Gen's values
-// are never empty) and the values of its puts of unknown outcome that have not been seen (Pend;
-// each may still take effect, once, or never).
+// are never empty) and the values of its puts of unknown outcome that have not been seen, each of
+// which may still take effect, once, or never: those made since Cur was set (Pend: if one has
+// taken effect, the key's value is no longer Cur) and those made before (Old: one may have taken
+// effect before Cur was set, and been overwritten). The split makes the state stand for exactly
+// the configurations the history allows (two histories with the same entries allow the same
+// configurations), as Equal needs.
 type Entry struct {
 	K    string
 	Cur  string
+	Old  []string
 	Pend []string
 }
 
@@ -357,6 +363,14 @@ func has(p []string, v string) bool {
 		}
 	}
 	return false
+}
+
+// cat is a followed by b, in a new slice.
+func cat(a []string, b []string) []string {
+	q := make([]string, len(a)+len(b))
+	copy(q, a)
+	copy(q[len(a):], b)
+	return q
 }
 
 // erase is p without its first v, in a new slice.
@@ -402,18 +416,19 @@ func set(s State, e Entry) State {
 }
 
 // step is the model's step: a put of unknown outcome is pending; an answered put sets its key's
-// value; an answered get of v is one at a configuration where v is the key's value (already, or
-// by a pending put of v taking effect first); a get of unknown outcome changes nothing.
+// value (the pending puts become old); an answered get of v is one at a configuration where v is
+// the key's value (already, or by a pending put of v taking effect first: then the other pending
+// puts become old); a get of unknown outcome changes nothing.
 func step(s State, in In, o Out) (bool, State) {
 	e := find(s, in.K)
 	if o.Unknown {
 		if in.Put {
-			return true, set(s, Entry{K: in.K, Cur: e.Cur, Pend: push(e.Pend, in.V)})
+			return true, set(s, Entry{K: in.K, Cur: e.Cur, Old: e.Old, Pend: push(e.Pend, in.V)})
 		}
 		return true, s
 	}
 	if in.Put {
-		return o.Put, set(s, Entry{K: in.K, Cur: in.V, Pend: e.Pend})
+		return o.Put, set(s, Entry{K: in.K, Cur: in.V, Old: cat(e.Old, e.Pend), Pend: nil})
 	}
 	if o.Put {
 		return false, s
@@ -425,8 +440,9 @@ func step(s State, in In, o Out) (bool, State) {
 	if v == e.Cur {
 		return true, s
 	}
-	if v != "" && has(e.Pend, v) {
-		return true, set(s, Entry{K: in.K, Cur: v, Pend: erase(e.Pend, v)})
+	all := cat(e.Old, e.Pend)
+	if v != "" && has(all, v) {
+		return true, set(s, Entry{K: in.K, Cur: v, Old: erase(all, v), Pend: nil})
 	}
 	return false, s
 }
@@ -451,7 +467,8 @@ func equal(a State, b State) bool {
 		return false
 	}
 	for i := 0; i < len(a.Es); i++ {
-		if a.Es[i].K != b.Es[i].K || a.Es[i].Cur != b.Es[i].Cur || !equalStrs(a.Es[i].Pend, b.Es[i].Pend) {
+		if a.Es[i].K != b.Es[i].K || a.Es[i].Cur != b.Es[i].Cur || !equalStrs(a.Es[i].Old, b.Es[i].Old) ||
+			!equalStrs(a.Es[i].Pend, b.Es[i].Pend) {
 			return false
 		}
 	}
@@ -573,10 +590,14 @@ func Gen(c uint64, j uint64) In {
 }
 
 // gens is remote's generator over Gen: client c's next input (lintest's generator is given the
-// client only; each client's count of the inputs it was given is its own atomic counter).
+// client only; each client's count of the inputs it was given is its own atomic counter). A
+// client index outside the deployment's (which remote.Check never passes) gets its first input.
 func gens() func(int) any {
 	next := make([]uint64, NC)
 	return func(c int) any {
+		if c < 0 || uint64(c) >= NC {
+			return Gen(uint64(c), 0)
+		}
 		j := atomic.AddUint64(&next[c], 1) - 1
 		return Gen(uint64(c), j)
 	}
@@ -597,10 +618,13 @@ func Orch() {
 
 // Sys is a client machine's view of the deployment: the configuration, its one Rabia client
 // endpoint (internal/tcp's ClientTCP: one connection to its proxy, kept for all of the client's
-// operations, as Rabia's client keeps it) and the sequence number of its next request.
+// operations, as Rabia's client keeps it) and the sequence number of its next request, which mu
+// guards (remote.Serve runs one operation at a time, but remote.ServeClient's contract lets its
+// newClient hand the same system to any number of callers, so Op locks: notes/dsv-rabia.md).
 type Sys struct {
 	conf Conf
 	t    *tcp.ClientTCP
+	mu   *sync.Mutex
 	next uint32
 }
 
@@ -614,7 +638,7 @@ func newClient(c uint64) *Sys {
 	configure(NetAddrs()[:conf.N], conf)
 	t := tcp.ClientTcpInit(uint32(c), ProxyAddrs()[c%conf.N])
 	t.Connect()
-	return &Sys{conf: conf, t: t}
+	return &Sys{conf: conf, t: t, mu: new(sync.Mutex)}
 }
 
 // command is a client command as Rabia's carry it (Command.Commands; roles/client's
@@ -636,6 +660,22 @@ func command(in In) string {
 // with a fresh sequence number. The reply's command is the proxy's execution result: "0"+key+"ok"
 // for a put, "1"+key+value for a get (an empty value: not found; Gen's values are never empty).
 func Op(x *Sys, c uint64, in In) Out {
+	x.mu.Lock()
+	out := op1(x, c, in)
+	x.mu.Unlock()
+	return out
+}
+
+// SeqBudget bounds a client's sequence numbers (Rabia's proxy numbers a client's requests by them,
+// in increasing order): an operation past it answers unknown without sending anything. The
+// orchestrator makes K operations per client; remote.ServeClient's contract allows any number.
+const SeqBudget uint32 = 1 << 29
+
+// op1 is Op's body, run with x.mu held.
+func op1(x *Sys, c uint64, in In) Out {
+	if x.next >= SeqBudget {
+		return Out{Unknown: true}
+	}
 	seq := x.next
 	x.next++
 	x.t.SendChan <- message.Command{CliId: uint32(c), CliSeq: seq, Commands: []string{command(in)}}
