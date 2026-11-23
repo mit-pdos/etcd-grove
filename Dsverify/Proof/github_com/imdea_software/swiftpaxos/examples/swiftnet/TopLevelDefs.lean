@@ -72,7 +72,7 @@ abbrev heapAt [lctx : GoLocalContext] (G : GooseGlobalGS HasLC.hasLC netDistGF)
 
 /-- The libraries' representation choice `l` (a premise of the statement) at the start's net
 protocol names `π` (which `SwiftLibs` extends): `l`'s fields with `π` in place of its own. -/
-def libsAt (l : SwiftNetPkgState netDistGF) (π : NetProtoGS) : SwiftNetPkgState netDistGF :=
+abbrev libsAt (l : SwiftNetPkgState netDistGF) (π : NetProtoGS) : SwiftNetPkgState netDistGF :=
   { toSwiftLibs := { l.toSwiftLibs with toNetProtoGS := π } }
 
 end system
