@@ -37,7 +37,6 @@ axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom klog.Errorf.wp_proof
-axiom klog.V.wp_proof
 axiom klog.Verbose.InfoS.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom klog.Warningf.wp_proof
