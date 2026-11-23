@@ -479,10 +479,15 @@ P4 (d)); when they are, recheck that their tables list these packages.
   instance `Link.lean` makes from Net's proofs). **F1 stays** (`removeNodeOk.spec`): it is false of
   the model (RemoveNode's error can be a net `*OpError`, whose model `Error()` is not deterministic,
   so no `errMsg e msg`), so the statement is still vacuous until Net gives a deterministic
-  `OpError.Error` (trusted) or `callRet` admits `errAny` (notes/net-rpc-errors.md). Also open: the
-  `RpcHttpServe.RegisterName` premise gives `isServer` of `DefaultServer` from net/rpc's `True`
-  fact (the "defaultServer from True" shape Upamanyu rejected for epaxos; epaxos put
-  `∃ γs, defaultServer γs` in `rpcBootRes`).
+  `OpError.Error` (trusted) or `callRet` admits `errAny` (notes/net-rpc-errors.md).
+  `DefaultServer` now comes with the boot (`HttpRpc.lean`'s `defaultServer γ` in `rpcBootRes`,
+  `Server.spec`, and `RpcHttpServe.RegisterName`'s precondition, whose post keeps that `γ`), not from
+  net/rpc's `True` fact (the landing lesson; epaxos's shape). **Built on fk-lean1** (3a02ce3300):
+  `craq_remote_robust` and `nodeSpec_errOk` depend on `propext`, `Classical.choice`, `Quot.sound`
+  only; a joint import with the six landed statements (paxos, rabia, epaxos, quepaxa, swiftpaxos,
+  remote's counter) loads; all seven build on this branch. `etc/theorem-loc.py`: tcb 595 lines, all
+  premises, no axioms. Dup scan (scratchpad `dups.py`): no craq duplicates. Tier check clean; gen-init
+  `--check` clean; `proof_roots.namespace()` `Perennial.EtcdGrove.`; goose.py/gen-init.py equal lean's.
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
