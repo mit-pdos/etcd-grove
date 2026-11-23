@@ -409,7 +409,12 @@ proofs: `wire.wp_Flush`, `wire.wp_WriteByte` (pre `⌜err = nil⌝ -∗ □ Q �
 extra clauses: a failed writer keeps its state, a byte that fits is not sent), `wire.wp_NewWriter`
 (`wr.sz = 4096`, the wrapped writer not a `*bufio.Writer`), `wire.wp_NewReader` (over
 `io.readerOk rd.ri (fun _ m => 0 < m) I rd.E`, which `net.conn_readerOk` gives),
-`wire.writerOk_prefixClosed`. Not yet run: a `lake build` of these modules (lean-check only).
+`wire.writerOk_prefixClosed` (in the unfolded form `EtcdGrove.bufio.Q_of_prefix` takes). Also done:
+`N/Generic` (its `wp_WriteByte_sticky` over `wire.wp_WriteByte`), `N/Marshal`. `lake build` of
+`N.Marshal`, `N.ArrLen`, `N.SliceMarshal`, `Replica.Base`, `Wire.Specs`, the PkgTables of
+orch/client0/server1-4, the three replica `Boot`s and `ModelProof`: green (2658 jobs). In N files the
+bundles must be written `wire.WSt`/`wire.RSt`/`wire.BinaryVarintHyps` (in `netN`, `WSt` is sync's
+`LockState.WSt`).
 
 **How to port the rest** (the helper is a scratch script, rewritten each session; its rules are the list in
 "What changed against the lab (proof)" plus): `port.py` = copy a lab module, header line "Ported from …",
@@ -421,8 +426,7 @@ wp_WriteByte/wp_NewWriter/wp_NewReader` -> `wire.…`, `bufio.prefixClosed` -> `
 `writerRep` (e.g. `N/Generic.lean`'s `wp_WriteByte_sticky`) are redone over the wrappers.
 
 Remaining, in order:
-1. **N** (26 lab modules left): `N/Generic` (in progress: renamed, `wp_WriteByte_sticky` and
-   `writerOk_prefixClosed` redone over the wrappers; check it), `N/Marshal` (renamed, unchecked), then the
+1. **N** (24 lab modules left): the
    frontier `N/{WireDefs✓,WireInj✓,WireLaws✓,SliceElems✓}` -> `NetDefs` (needs `Proto2/Replica`, NOT
    ported yet: it imports `Proto2/{Laws✓,Wire✓}`, `Proto/WireLaws✓`, `Proto2P/Done✓` and the lab's
    `Harness/Proof/github_com/goose_lang/primitive/Proph.lean`, a proved helper (no axiom:
