@@ -50,7 +50,7 @@ def EpaxosNewSpecEp (isRep : EpNames → Nat → Loc → IProp GF) : Prop :=
       (Val (@! epaxos.New)) (Val #c.Alias')) (Val #(W64 i))) (Val #sl)) (Val #true))
       (Val #false)) (Val #false)) (Val #(W64 0))) (Val #false)) (Val #(W64 2))) (Val #cfg))
       (Val #logger))
-  {{ (r : Loc), RET #r; isRep γ i r }}
+  {{ (r : Loc), RET #r; isRep γ i r ∗ ⌜r ≠ null⌝ }}
 
 /-- The handlers' specs as the run loop uses them. -/
 theorem handlerSpecs_holds : HandlerSpecs (GF := GF) :=

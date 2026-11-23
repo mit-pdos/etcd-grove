@@ -194,7 +194,7 @@ abbrev epaxosNew.spec (isRep : EpNames → Nat → Loc → IProp GF) : Prop :=
       (Val (@! epaxos.New)) (Val #c.Alias')) (Val #(W64 i))) (Val #sl)) (Val #true))
       (Val #false)) (Val #false)) (Val #(W64 0))) (Val #false)) (Val #(W64 2))) (Val #cfg))
       (Val #logger))
-  {{ (r : Loc), RET #r; isRep γ i r }}
+  {{ (r : Loc), RET #r; isRep γ i r ∗ ⌜r ≠ null⌝ }}
 
 /-- `serve(k, sl, 7500)` for replica node `k` (`sl` the server addresses, `Port0 = 7500`): from
 net/rpc's fresh codec, the unclaimed `DefaultServeMux`, net/rpc's server variables, the bounds of

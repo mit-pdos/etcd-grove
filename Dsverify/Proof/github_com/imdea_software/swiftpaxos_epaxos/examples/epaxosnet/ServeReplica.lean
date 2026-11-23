@@ -46,7 +46,6 @@ theorem serveReplica.wp_proof [RpcHttpHyp GF]
     (wp_itoa : itoa.spec (GF := GF) (hG := hG))
     (wp_register : register.spec (GF := GF) (hG := hG))
     (wp_New : epaxosNew.spec isRep)
-    (isRep_nn : ∀ γ i r, isRep γ i r ⊢ ⌜r ≠ null⌝)
     (rcv : ∀ γ i, replicaRcv.spec (isRep γ i))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
     serveReplica.spec (GF := GF) (hG := hG) := by
@@ -109,11 +108,10 @@ theorem serveReplica.wp_proof [RpcHttpHyp GF]
   · iPkgInit
   unfold repStart
   icases Hst with ⟨Hfw, Hes⟩
-  wp_apply hN $$ [$Hep $Hid $Hfw $Hes $Hlf $HL $Hci $Hcfg $Hprx $«$a10»] as %r Hr
+  wp_apply hN $$ [$Hep $Hid $Hfw $Hes $Hlf $HL $Hci $Hcfg $Hprx $«$a10»] as %r ⟨Hr, %Hnn⟩
   · ipureintro
     refine ⟨⟨hk, HLk⟩, Hc.2.2.2, ?_⟩
     rw [Hc.2.2.1, hport]; rfl
-  ihave %Hnn := isRep_nn γ (uint.nat rid) r $$ Hr
   ihave Hrc := rcv γ (uint.nat rid) r $$ [$Hr]
   · iframe #; ipureintro; exact Hnn
   ihave ⟨%γs, #Hds⟩ := RpcHttpHyp.defaultServer_init $$ Hrpc

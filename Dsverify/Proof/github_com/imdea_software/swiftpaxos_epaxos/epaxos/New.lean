@@ -63,7 +63,7 @@ theorem wp_New_of (hRN : replica.New.spec (GF := GF)) (hReg : rpc.Table.Register
         (Val (@! epaxos.New)) (Val #c.Alias')) (Val #(W64 i))) (Val #sl)) (Val #true))
         (Val #false)) (Val #false)) (Val #(W64 0))) (Val #false)) (Val #(W64 2))) (Val #cfg))
         (Val #logger))
-    {{ (r : Loc), RET #r; isReplica γ i r }} := by
+    {{ (r : Loc), RET #r; isReplica γ i r ∗ ⌜r ≠ null⌝ }} := by
   wp_start as ⟨%Hk, Hid, Hfws, Heps, #Hlf, Hsl, #HCI, Hcfg, Hproxy, %Hc, Hlog⟩
   ihave #Hpk : pkgInit_epaxos $$ []
   · iPkgInit
@@ -256,6 +256,7 @@ theorem wp_New_of (hRN : replica.New.spec (GF := GF)) (hReg : rpc.Table.Register
   icases Hcm with ⟨%cms, Hcfs, %Hcml, Hcms⟩
   simp only [Nat.sub_self, List.replicate_zero, List.append_nil]
   generalize «$r0_ptr» = rp
+  ihave ⟨«$r0», %Hrnn⟩ := typedPointsto_not_null_dup $$ «$r0»
   iStructNamedPrefix «$r0» "f_"
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) (W64 100) (by decide)) as %stk ⟨Hstk, Hstkc, %Hstkcap⟩
   generalize «$r0_ptr» = ep
@@ -435,7 +436,8 @@ theorem wp_New_of (hRN : replica.New.spec (GF := GF)) (hReg : rpc.Table.Register
       iframe
     iexfalso; iexact Hf
   iapply HΦ
-  iexact Hisr
+  iframe Hisr
+  ipureintro; exact Hrnn
 
 
 end heap
