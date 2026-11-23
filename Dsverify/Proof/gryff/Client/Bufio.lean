@@ -114,7 +114,6 @@ theorem wp_Write_room (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)
   iintro %Φ ⟨Hr, #HQ, Hp⟩ HΦ
   unfold writerRoom
   icases Hr with ⟨Hown, %Hr⟩
-  unfold ownWriter at Hown
   iapply BufioSpecs.write (GF := GF) bw wr.wi J Q wr.Ew wr.sz sent pend interface.nil p dq ps
     $$ [Hown Hp]
   · iframe Hown Hp
@@ -133,7 +132,6 @@ theorem wp_Write_room (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)
   subst hp
   iapply HΦ
   iframe Hp
-  unfold ownWriter
   iframe Hown
   ipureintro; simp; omega
 
@@ -141,7 +139,8 @@ end
 
 section conn
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [sem : go.Semantics]
+variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
+variable [net.Assumptions] [net.FieldAssumptions]
 
 /-- What a connection's buffered reader has returned is a prefix of an allowed stream
 (`net.connReader_proto`). -/
