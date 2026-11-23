@@ -312,15 +312,26 @@ func awaitConf(addr string, ch chan msg) {
 }
 
 // Sys is a client node's view of the deployment: the addresses, the configuration, its one
-// SwiftPaxos client (nil: not connected) and the number of the client's operations that have
-// returned.
+// SwiftPaxos client (nil: not connected), the number of the client's operations that have
+// returned (mu guards it), and the number of operations op has started (opMu guards it and the
+// client: remote.Serve runs one operation at a time, but remote.ServeClient's contract lets its
+// newClient hand the same system to any number of callers, so op locks).
 type Sys struct {
 	addrs []string
 	conf  Conf
 	b     *client.BufferClient
 	mu    sync.Mutex
 	done  uint64
+	opMu  sync.Mutex
+	ops   uint64
 }
+
+// MaxOps bounds a client's operations: an operation past it answers unknown without sending
+// anything. A SwiftPaxos client numbers its commands by sequence numbers, and the proof bounds a
+// client's below 2^10 (the size of a replica's gob-encoded MSync, which carries every client's
+// commands, must fit gob's message limit). The orchestrator makes K operations per client;
+// remote.ServeClient's contract allows any number.
+const MaxOps uint64 = 1000
 
 // newClient is client c's node's side of the deployment at addrs: it waits for the
 // configuration on client node c's configuration address (node 1+c, port ConfOff above its
@@ -404,12 +415,24 @@ type Out struct {
 	V       string
 }
 
-// op is client c's operation on client node c, through its SwiftPaxos client (newClient's Sys,
-// connected at the client's first operation): a put is BufferClient.Write, a get
+// op is client c's operation on client node c (one at a time, at most MaxOps), through its
+// SwiftPaxos client (newClient's Sys, connected at the client's first operation): a put is BufferClient.Write, a get
 // BufferClient.Read. Both wait for the client's reply (the SwiftPaxos client's fast or slow
 // quorum, or an accept); a client that cannot connect gives an unknown outcome and tries again at
 // its next operation.
 func op(s *Sys, c uint64, in In) Out {
+	s.opMu.Lock()
+	out := op1(s, c, in)
+	s.opMu.Unlock()
+	return out
+}
+
+// op1 is op's body, run with s.opMu held: past MaxOps operations, an unknown outcome.
+func op1(s *Sys, c uint64, in In) Out {
+	if s.ops >= MaxOps {
+		return Out{Unknown: true}
+	}
+	s.ops++
 	if s.b == nil && !s.connect(c) {
 		return Out{Unknown: true}
 	}

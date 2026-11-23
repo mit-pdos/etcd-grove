@@ -111,7 +111,7 @@ func TestDeployment(t *testing.T) {
 	}
 }
 
-func op1(put bool, k uint64, v string, out Out, call, ret int64) porcupine.Operation {
+func opH(put bool, k uint64, v string, out Out, call, ret int64) porcupine.Operation {
 	return porcupine.Operation{Input: In{Put: put, K: k, V: v}, Output: out, Call: call, Return: ret}
 }
 
@@ -120,31 +120,31 @@ func op1(put bool, k uint64, v string, out Out, call, ret int64) porcupine.Opera
 func TestModel(t *testing.T) {
 	m := Model()
 	ok := []porcupine.Operation{
-		op1(true, 0, "a", Out{}, 0, 1),
-		op1(false, 0, "", Out{V: "a"}, 2, 3),
-		op1(false, 1, "", Out{V: ""}, 4, 5),
+		opH(true, 0, "a", Out{}, 0, 1),
+		opH(false, 0, "", Out{V: "a"}, 2, 3),
+		opH(false, 1, "", Out{V: ""}, 4, 5),
 	}
 	if !porcupine.CheckOperations(m, ok) {
 		t.Fatal("sequential history rejected")
 	}
 	stale := []porcupine.Operation{
-		op1(true, 0, "a", Out{}, 0, 1),
-		op1(true, 0, "b", Out{}, 2, 3),
-		op1(false, 0, "", Out{V: "a"}, 4, 5),
+		opH(true, 0, "a", Out{}, 0, 1),
+		opH(true, 0, "b", Out{}, 2, 3),
+		opH(false, 0, "", Out{V: "a"}, 4, 5),
 	}
 	if porcupine.CheckOperations(m, stale) {
 		t.Fatal("stale get accepted")
 	}
 	pend := []porcupine.Operation{
-		op1(true, 0, "a", Out{Unknown: true}, 0, 1),
-		op1(false, 0, "", Out{V: ""}, 2, 3),
-		op1(false, 0, "", Out{V: "a"}, 4, 5),
-		op1(false, 0, "", Out{V: "a"}, 6, 7),
+		opH(true, 0, "a", Out{Unknown: true}, 0, 1),
+		opH(false, 0, "", Out{V: ""}, 2, 3),
+		opH(false, 0, "", Out{V: "a"}, 4, 5),
+		opH(false, 0, "", Out{V: "a"}, 6, 7),
 	}
 	if !porcupine.CheckOperations(m, pend) {
 		t.Fatal("late pending put rejected")
 	}
-	back := append(pend, op1(false, 0, "", Out{V: ""}, 8, 9))
+	back := append(pend, opH(false, 0, "", Out{V: ""}, 8, 9))
 	if porcupine.CheckOperations(m, back) {
 		t.Fatal("value went back after a pending put took effect")
 	}
