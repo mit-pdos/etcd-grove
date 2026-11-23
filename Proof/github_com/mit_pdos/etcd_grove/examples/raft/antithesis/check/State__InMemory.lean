@@ -183,6 +183,67 @@ theorem State.InMemory.wp_proof
       isplitr; · iexact HConfig
       isplitr; · iexact HConfAt
       ipureintro; exact Ho
+  clear Ho
+  obtain ⟨config, confAt⟩ := cc
+  simp -zeta only [jp1] at Hjp
+  replace Hjp := bind_ok Hjp; obtain ⟨w, hw, Hjp⟩ := Hjp
+  extract_lets jp2 at Hjp
+  icases intsRO_at g.ConfAt' s.confAt n ⟨Hn, by rw [HWf.len_confAt]; exact Hlt⟩ $$ HConfAt with ⟨%wca, #Hwca, %Hwcaeq⟩
+  wp_join iprop(∃ (gla gea : GoSlice) (pp : TermFn Int × TermFn Int),
+      x_ptr ↦ ({ s' := p, n' := n, ev' := e } : G.inMem) ∗ s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      r_ptr.[G.MemResult, go!"LedAt"] ↦ gla ∗ r_ptr.[G.MemResult, go!"ElAt"] ↦ gea ∗
+      termIntsRO gla pp.1 ∗ termIntsRO gea pp.2 ∗ ⌜jp2 pp = .ok r⌝)
+    at next with [x s ev n RLedAt RElAt] as ⟨%gla, %gea, %pp, x, s, ev, n, RLedAt, RElAt, #Hla, #Hea, %Hjp2⟩
+  · rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_wins_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_wins _ _ w $$ [Hx]
+    · iframe Hx; ipureintro; exact hw
+    cases w
+    · simp only [Bool.false_eq_true, ite_false] at Hjp
+      wp_auto
+      replace Hjp := bind_ok Hjp; obtain ⟨pp, hpp, Hjp⟩ := Hjp
+      simp only [pure_ok, Except.ok.injEq] at hpp
+      subst hpp
+      wp_join_done
+      iexists g.LedAt', g.ElAt', (s.ledAt, s.elAt)
+      iframe
+      isplitr; · iexact HLedAt
+      isplitr; · iexact HElAt
+      ipureintro; exact Hjp
+    · simp only [ite_true] at Hjp
+      wp_auto
+      replace Hjp := bind_ok Hjp; obtain ⟨t, ht, Hjp⟩ := Hjp
+      replace Hjp := bind_ok Hjp; obtain ⟨t', ht', Hjp⟩ := Hjp
+      rw [ht] at ht'; cases ht'
+      replace Hjp := bind_ok Hjp; obtain ⟨pp, hpp, Hjp⟩ := Hjp
+      simp only [pure_ok, Except.ok.injEq] at hpp
+      subst hpp
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_T _ _ t $$ [Hx] as %ut %Hut
+      · iframe Hx; ipureintro; exact ht
+      wp_apply wp_load_at _ _ _ Hn $$ [Hwca] as -
+      · iexact Hwca
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_With_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_With _ _ ut wca $$ [HLedAt] as %gla #Hgla
+      · iframe HLedAt; ipureintro; have := HW.ledAt.1; omega
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_T _ _ t $$ [Hx] as %ut2 %Hut2
+      · iframe Hx; ipureintro; exact ht
+      wp_apply wp_load_at _ _ _ Hn $$ [Hwca] as -
+      · iexact Hwca
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.TermInts.TypeAssumptions.ptr_With_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_With _ _ ut2 wca $$ [HElAt] as %gea #Hgea
+      · iframe HElAt; ipureintro; have := HW.elAt.1; omega
+      wp_join_done
+      iexists gla, gea, (s.ledAt.with (sint.Z ut) (sint.Z wca), s.elAt.with (sint.Z ut2) (sint.Z wca))
+      iframe
+      isplitr; · iexact Hgla
+      isplitr; · iexact Hgea
+      ipureintro; rw [Hut, Hut2, Hwcaeq]; exact Hjp
   trace_state
   sorry
 
