@@ -89,40 +89,6 @@ theorem wp_apply (v : w64) (i : In) :
       wp_auto
       iapply HΦ; itrivial
 
-theorem eraseIdx_take_succ {α : Type} (P : List α) (n k : Nat) (x : α) (hx : P[n]? = some x) :
-    (P.take (n + 1)).eraseIdx k =
-      if n = k then (P.take n).eraseIdx k else (P.take n).eraseIdx k ++ [x] := by
-  have hn : n < P.length := (List.getElem?_eq_some_iff.1 hx).1
-  have hl : (P.take n).length = n := by simp; omega
-  rw [List.take_add_one, hx, Option.toList_some]
-  split
-  · subst k
-    rw [List.eraseIdx_append_of_length_le (by omega), hl, Nat.sub_self]
-    simp only [List.eraseIdx_cons_zero, List.append_nil]
-    exact (List.eraseIdx_of_length_le (by omega)).symm
-  · rename_i hne
-    by_cases hk : k < n
-    · rw [List.eraseIdx_append_of_lt_length (by omega)]
-    · rw [List.eraseIdx_of_length_le (by simp; omega), List.eraseIdx_of_length_le (by omega)]
-
-theorem wp_without (p : GoSlice) (P : List In) (i : w64) :
-    {{ isPkgInit (PROP := IProp GF) kpkg ∗ p ↦*□ P }}
-      (App (App (Val (@! gryff.examples.gryffnet.without)) (Val #p)) (Val #i))
-    {{ (q : GoSlice), RET #q; q ↦* P.eraseIdx (sint.nat i) }} := by
-  wp_start as #Hp
-  ihave %Hl := ownSlice_len _ _ _ $$ Hp
-  wp_auto
-  sorry
-
-theorem wp_with (p : GoSlice) (P : List In) (x : In) (hP : P.length < 2 ^ 62) :
-    {{ isPkgInit (PROP := IProp GF) kpkg ∗ p ↦*□ P }}
-      (App (App (Val (@! gryff.examples.gryffnet.«with»)) (Val #p)) (Val #x))
-    {{ (q : GoSlice), RET #q; q ↦* (P ++ [x]) }} := by
-  wp_start as #Hp
-  ihave %Hl := ownSlice_len _ _ _ $$ Hp
-  wp_auto
-  sorry
-
 theorem wp_sameCfg (a b : Cfg) (A B : List In) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ a.Pend' ↦*□ A ∗ b.Pend' ↦*□ B }}
       (App (App (Val (@! gryff.examples.gryffnet.sameCfg)) (Val #a)) (Val #b))
@@ -216,6 +182,111 @@ theorem wp_sameCfg (a b : Cfg) (A B : List In) :
       exact Ht
     simp only [true_and, decide_eq_true e]
     iapply HΦ; itrivial
+
+theorem eraseIdx_take_succ {α : Type} (P : List α) (n k : Nat) (x : α) (hx : P[n]? = some x) :
+    (P.take (n + 1)).eraseIdx k =
+      if n = k then (P.take n).eraseIdx k else (P.take n).eraseIdx k ++ [x] := by
+  have hn : n < P.length := (List.getElem?_eq_some_iff.1 hx).1
+  have hl : (P.take n).length = n := by simp; omega
+  rw [List.take_add_one, hx, Option.toList_some]
+  split
+  · subst k
+    rw [List.eraseIdx_append_of_length_le (by omega), hl, Nat.sub_self]
+    simp only [List.eraseIdx_cons_zero, List.append_nil]
+    exact (List.eraseIdx_of_length_le (by omega)).symm
+  · rename_i hne
+    by_cases hk : k < n
+    · rw [List.eraseIdx_append_of_lt_length (by omega)]
+    · rw [List.eraseIdx_of_length_le (by simp; omega), List.eraseIdx_of_length_le (by omega)]
+
+theorem wp_without (p : GoSlice) (P : List In) (i : w64) (hi : 0 ≤ sint.Z i) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ p ↦*□ P }}
+      (App (App (Val (@! gryff.examples.gryffnet.without)) (Val #p)) (Val #i))
+    {{ (q : GoSlice), RET #q; q ↦* P.eraseIdx (sint.nat i) }} := by
+  wp_start as #Hp
+  ihave %Hl := ownSlice_len _ _ _ $$ Hp
+  wp_auto
+  wp_apply (wp_slice_make3 (V := In) (W64 0) p.len (by word)) as %q0 ⟨Hq, Hcap, -⟩
+  rw [List.replicate_zero]
+  ihave HI : (∃ (j : w64) (q : GoSlice), "j" ∷ j_ptr ↦ j ∗ "q" ∷ q_ptr ↦ q ∗
+      "Hq" ∷ q ↦* (P.take (sint.nat j)).eraseIdx (sint.nat i) ∗
+      "Hcap" ∷ ownSliceCap In q (DFrac.own 1) ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z p.len⌝ : IProp GF) $$ [j q Hq Hcap]
+  · iexists W64 0, q0
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    rw [h0]
+    simp only [List.take_zero, List.eraseIdx_nil]
+    iframe
+    ipureintro
+    refine ⟨by word, by word⟩
+  wp_for HI
+  obtain ⟨Hj0, Hjl⟩ := Hj
+  wp_if_destruct
+  · have hlt : sint.Z j < sint.Z p.len := Hif
+    list_elem P (sint.nat j) as x
+    have e := eraseIdx_take_succ P (sint.nat j) (sint.nat i) x Hx_lookup
+    have hs : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+    by_cases hji : j = i
+    · subst hji
+      simp only [_root_.decide_true]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists j + W64 1, q
+      rw [hs, e, ite_eq_left rfl]
+      iframe
+      ipureintro
+      refine ⟨by word, by word⟩
+    · have hji' : sint.nat j ≠ sint.nat i := fun h => hji (by word)
+      simp only [hji, _root_.decide_false]
+      wp_auto
+      rw [ite_eq_left (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z p.len from ⟨Hj0, hlt⟩)]
+      wp_apply wp_load_slice_index p (sint.Z j) P _ x Hj0 $$ [Hp] as -
+      · iframe Hp; ipureintro; exact Hx_lookup
+      wp_apply wp_slice_literal (V := In) [x]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl ⟨Hsl, -⟩
+      wp_auto
+      wp_apply wp_slice_append (V := In) $$ [$Hq $Hcap $Hsl] as %q' ⟨Hq', Hcap', -⟩
+      wp_for_post
+      iframe
+      iexists j + W64 1, q'
+      rw [hs, e, if_neg hji']
+      iframe
+      ipureintro
+      refine ⟨by word, by word⟩
+  · have heq : sint.Z j = sint.Z p.len := by omega
+    have hn : sint.nat j = P.length := by
+      rw [Hl.1]; show (sint.Z j).toNat = _; rw [heq]
+    rw [hn, List.take_length]
+    iapply HΦ
+    iexact Hq
+
+theorem wp_with (p : GoSlice) (P : List In) (x : In) (hP : P.length < 2 ^ 62) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ p ↦*□ P }}
+      (App (App (Val (@! gryff.examples.gryffnet.«with»)) (Val #p)) (Val #x))
+    {{ (q : GoSlice), RET #q; q ↦* (P ++ [x]) }} := by
+  wp_start as #Hp
+  ihave %Hl := ownSlice_len _ _ _ $$ Hp
+  wp_auto
+  wp_apply wp_slice_make2 (V := In) $$ [] as %q ⟨Hq, -⟩
+  · ipureintro; word
+  wp_apply wp_slice_copy $$ [$Hq $Hp] as %n ⟨-, Hq, -⟩
+  have hn : sint.nat (p.len + W64 1) = P.length + 1 := by rw [Hl.1]; word
+  rw [hn, List.take_of_length_le (by simp), List.drop_replicate,
+    show P.length + 1 - P.length = 1 by omega, List.replicate_one]
+  ihave %Hql := ownSlice_len _ _ _ $$ Hq
+  have hb : 0 ≤ sint.Z p.len ∧ sint.Z p.len < sint.Z q.len := by
+    have := Hql.1; simp only [List.length_append, List.length_singleton] at this; word
+  rw [ite_eq_left hb]
+  wp_apply wp_store_slice_index q (sint.Z p.len) _ x $$ [Hq] as Hq
+  · iframe Hq; ipureintro; simp only [List.length_append, List.length_singleton]; word
+  rw [show (sint.Z p.len).toNat = P.length by rw [Hl.1],
+    List.set_append_right _ _ (by omega), Nat.sub_self, List.set_cons_zero]
+  wp_auto
+  iapply HΦ
+  iexact Hq
 
 end proof
 
