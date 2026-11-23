@@ -1,0 +1,218 @@
+trace traces/chaos.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 6092
+trace traces/happy.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 6198
+trace traces/m-sim5-async-snap.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 2439
+trace traces/m-sim5-batch.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 3420
+trace traces/m-sim5.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 2930
+trace traces/sim3-async.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 591
+trace traces/sim3-empty.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1494
+trace traces/sim3-parallel.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1374
+trace traces/sim3-snap-reads.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 2560
+trace traces/sim3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1439
+trace traces/sim5-async-empty.ndjson.gz EtcdBinding5Empty.cfg 0 ACCEPTED 1638
+trace traces/sim5.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 2886
+trace traces/x-batch3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1419
+trace traces/x-batch5-async.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1326
+mutation mutations/commit-ahead.ndjson.gz EtcdBinding.cfg 28 REJECTED 28 {"boot": "1794607746470193442", "by": "recv", "commit": 3, "e": "ready", "entries": [], "first": 0, "k": 28, "node": "raft1", "role": "follower", "seq": 9, "term": 2, "vote": "raft3"}
+mutation mutations/leader-commits-early.ndjson.gz EtcdBinding.cfg 37 REJECTED 37 {"boot": "1794607746443876971", "by": "propose", "commit": 3, "e": "ready", "entries": [{"term": 2, "type": "command", "value": "52b3830c074ce4ac2d0000000000000000"}], "first": 3, "k": 37, "node": "raft3", "role": "leader", "seq": 15, "term": 2, "vote": "raft3"}
+mutation mutations/term-back.ndjson.gz EtcdBinding.cfg 23 REJECTED 23 {"boot": "1794607746443876971", "by": "recv", "commit": 2, "e": "ready", "entries": [], "first": 0, "k": 23, "node": "raft3", "role": "leader", "seq": 10, "term": 1, "vote": "raft3"}
+mutation mutations/vote-changed.ndjson.gz EtcdBinding.cfg 18 REJECTED 18 {"boot": "1794607746470193442", "by": "recv", "commit": 0, "e": "ready", "entries": [{"term": 2, "type": "noop", "value": ""}], "first": 2, "k": 18, "node": "raft1", "role": "follower", "seq": 6, "term": 2, "vote": "raft1"}
+mutation mutations/vote-unasked.ndjson.gz EtcdBinding.cfg 8 REJECTED 8 {"boot": "1794607746470193442", "by": "recv", "commit": 0, "e": "ready", "entries": [], "first": 0, "k": 8, "node": "raft1", "role": "follower", "seq": 3, "term": 2, "vote": "raft2"}
+mutation mutations/vote-request-altered.ndjson.gz EtcdBinding.cfg 7 REJECTED 8 {"boot": "1794607746470193442", "by": "recv", "commit": 0, "e": "ready", "entries": [], "first": 0, "k": 8, "node": "raft1", "role": "follower", "seq": 3, "term": 2, "vote": "raft3"}
+mutation mutations/entry-altered.ndjson.gz EtcdBinding.cfg 43 REJECTED 43 {"boot": "1794607746470193442", "by": "recv", "commit": 2, "e": "ready", "entries": [{"term": 2, "type": "command", "value": "ff"}], "first": 3, "k": 43, "node": "raft1", "role": "follower", "seq": 13, "term": 2, "vote": "raft3"}
+mutation mutations/store-gap.ndjson.gz EtcdBinding.cfg 43 REJECTED 43 {"boot": "1794607746470193442", "by": "recv", "commit": 2, "e": "ready", "entries": [{"term": 2, "type": "command", "value": "52b3830c074ce4ac2d0000000000000000"}], "first": 4, "k": 43, "node": "raft1", "role": "follower", "seq": 13, "term": 2, "vote": "raft3"}
+mutation mutations/store-dropped.ndjson.gz EtcdBinding.cfg 43 REJECTED 43 {"boot": "1794607746470193442", "by": "recv", "e": "send", "k": 44, "msg": {"commit": 0, "entries": [], "from": "raft1", "hint": 0, "index": 3, "logTerm": 0, "reject": false, "term": 2, "to": "raft3", "type": "appresp"}, "node": "raft1", "seq": 14}
+mutation mutations/leader-entry-old-term.ndjson.gz EtcdBinding.cfg 37 REJECTED 37 {"boot": "1794607746443876971", "by": "propose", "commit": 2, "e": "ready", "entries": [{"term": 1, "type": "command", "value": "52b3830c074ce4ac2d0000000000000000"}], "first": 3, "k": 37, "node": "raft3", "role": "leader", "seq": 15, "term": 2, "vote": "raft3"}
+mutation mutations/follower-stores-unsent.ndjson.gz EtcdBinding.cfg 37 REJECTED 37 {"boot": "1794607746443876971", "by": "propose", "commit": 2, "e": "ready", "entries": [{"term": 2, "type": "command", "value": "52b3830c074ce4ac2d0000000000000000"}], "first": 3, "k": 37, "node": "raft3", "role": "follower", "seq": 15, "term": 2, "vote": "raft3"}
+mutation mutations/ack-too-far.ndjson.gz EtcdBinding.cfg 21 REJECTED 21 {"boot": "1794607746470193442", "by": "recv", "e": "send", "k": 21, "msg": {"commit": 0, "entries": [], "from": "raft1", "hint": 0, "index": 3, "logTerm": 0, "reject": false, "term": 2, "to": "raft3", "type": "appresp"}, "node": "raft1", "seq": 7}
+mutation mutations/grant-without-vote.ndjson.gz EtcdBindingM.cfg 454 REJECTED 454 {"by": "recv", "cause": [{"commit": 0, "entries": [], "from": "raft1", "hint": 0, "index": 8, "logTerm": 3, "reject": false, "term": 5, "to": "raft2", "type": "vote"}], "e": "send", "k": 454, "msg": {"commit": 0, "entries": [], "from": "raft2", "hint": 0, "index": 0, "logTerm": 0, "reje
+mutation mutations/leader-without-quorum.ndjson.gz EtcdBinding.cfg 5 REJECTED 5 {"boot": "1794607746443876971", "by": "campaign", "commit": 0, "e": "ready", "entries": [{"term": 2, "type": "noop", "value": ""}], "first": 2, "k": 4, "node": "raft3", "role": "leader", "seq": 2, "term": 2, "vote": "raft3"}
+mutation mutations/second-leader.ndjson.gz EtcdBinding.cfg 17 REJECTED 17 {"e": "ready", "node": "raft1", "by": "campaign", "role": "leader", "term": 2, "vote": "raft3", "commit": 0, "first": 2, "entries": [{"term": 2, "type": "noop", "value": ""}]}
+mutation mutations/send-entry-not-in-log.ndjson.gz EtcdBinding.cfg 15 REJECTED 15 {"boot": "1794607746443876971", "by": "recv", "e": "send", "k": 15, "msg": {"commit": 0, "entries": [{"term": 2, "type": "noop", "value": "ff"}], "from": "raft3", "hint": 0, "index": 1, "logTerm": 1, "reject": false, "term": 2, "to": "raft1", "type": "app"}, "node": "raft3", "seq": 7}
+mutation mutations/send-wrong-prev-term.ndjson.gz EtcdBinding.cfg 15 REJECTED 15 {"boot": "1794607746443876971", "by": "recv", "e": "send", "k": 15, "msg": {"commit": 0, "entries": [{"term": 2, "type": "noop", "value": ""}], "from": "raft3", "hint": 0, "index": 1, "logTerm": 2, "reject": false, "term": 2, "to": "raft1", "type": "app"}, "node": "raft3", "seq": 7}
+mutation mutations/send-commit-ahead.ndjson.gz EtcdBinding.cfg 15 REJECTED 15 {"boot": "1794607746443876971", "by": "recv", "e": "send", "k": 15, "msg": {"commit": 2, "entries": [{"term": 2, "type": "noop", "value": ""}], "from": "raft3", "hint": 0, "index": 1, "logTerm": 1, "reject": false, "term": 2, "to": "raft1", "type": "app"}, "node": "raft3", "seq": 7}
+mutation mutations/heartbeat-commit-ahead.ndjson.gz EtcdBinding.cfg 149 REJECTED 149 {"boot": "1794607746470193442", "e": "recv", "k": 149, "msg": {"commit": 47, "entries": [], "from": "raft3", "hint": 0, "index": 0, "logTerm": 0, "reject": false, "term": 2, "to": "raft1", "type": "hb"}, "node": "raft1", "seq": 47}
+mutation mutations/request-never-sent.ndjson.gz EtcdBinding.cfg 17 REJECTED 17 {"boot": "1794607746470193442", "e": "recv", "k": 17, "msg": {"commit": 0, "entries": [{"term": 2, "type": "noop", "value": "ff"}], "from": "raft3", "hint": 0, "index": 1, "logTerm": 1, "reject": false, "term": 2, "to": "raft1", "type": "app"}, "node": "raft1", "seq": 5}
+mutation mutations/not-leader-sends.ndjson.gz EtcdBinding.cfg 147 REJECTED 147 {"boot": "1794607746443876971", "by": "tick", "e": "send", "k": 147, "msg": {"commit": 7, "entries": [], "from": "raft2", "hint": 0, "index": 0, "logTerm": 0, "reject": false, "term": 2, "to": "raft1", "type": "hb"}, "node": "raft2", "seq": 55}
+mutation mutations/apply-skips.ndjson.gz EtcdBinding.cfg 26 REJECTED 26 {"boot": "1794607746443876971", "by": "recv", "e": "apply", "entries": [{"term": 2, "type": "noop", "value": ""}], "first": 2, "k": 26, "node": "raft3", "seq": 12}
+mutation mutations/apply-altered.ndjson.gz EtcdBinding.cfg 26 REJECTED 26 {"boot": "1794607746443876971", "by": "recv", "e": "apply", "entries": [{"term": 1, "type": "command", "value": "ff"}, {"term": 2, "type": "noop", "value": ""}], "first": 1, "k": 26, "node": "raft3", "seq": 12}
+mutation mutations/apply-uncommitted.ndjson.gz EtcdBinding.cfg 38 REJECTED 38 {"e": "apply", "node": "raft3", "by": "propose", "first": 3, "entries": [{"term": 2, "type": "command", "value": "52b3830c074ce4ac2d0000000000000000"}]}
+mutation mutations/boot-lost-entry.ndjson.gz EtcdBinding.cfg 4302 REJECTED 4302 {"boot": "1794607793484577052", "commit": 181, "e": "boot", "k": 4302, "lastIndex": 179, "lastTerm": 2, "node": "raft1", "seq": 1, "term": 2, "vote": "raft3"}
+mutation mutations/boot-lost-term.ndjson.gz EtcdBinding.cfg 4302 REJECTED 4302 {"boot": "1794607793484577052", "commit": 181, "e": "boot", "k": 4302, "lastIndex": 181, "lastTerm": 2, "node": "raft1", "seq": 1, "term": 1, "vote": "raft3"}
+mutation mutations/boot-lost-vote.ndjson.gz EtcdBinding.cfg 4302 REJECTED 4302 {"boot": "1794607793484577052", "commit": 181, "e": "boot", "k": 4302, "lastIndex": 181, "lastTerm": 2, "node": "raft1", "seq": 1, "term": 2, "vote": ""}
+mutation mutations/boot-lost-commit.ndjson.gz EtcdBinding.cfg 4302 REJECTED 4302 {"boot": "1794607793484577052", "commit": 179, "e": "boot", "k": 4302, "lastIndex": 181, "lastTerm": 2, "node": "raft1", "seq": 1, "term": 2, "vote": "raft3"}
+mutation mutations/gap.ndjson.gz EtcdBinding.cfg 3047 REJECTED 3047 {"e": "Gap", "node": "raft2", "expected": 5, "got": 6}
+mutation mutations/write-skipped.ndjson.gz EtcdBindingM.cfg 34 REJECTED 34 {"by": "recv", "cause": [{"commit": 0, "entries": [{"term": 2, "type": "noop", "value": ""}], "from": "raft1", "hint": 0, "index": 1, "logTerm": 1, "reject": false, "term": 2, "to": "raft3", "type": "app"}], "e": "send", "k": 36, "msg": {"commit": 0, "entries": [], "from": "raft3", "hint
+mutation mutations/write-out-of-order.ndjson.gz EtcdBindingM.cfg 32 REJECTED 32 {"commit": 0, "e": "write", "entries": [{"term": 2, "type": "noop", "value": ""}], "first": 3, "k": 32, "node": "raft1", "term": 2, "vote": "raft1"}
+mutation mutations/ack-before-write.ndjson.gz EtcdBindingM.cfg 34 REJECTED 34 {"by": "recv", "cause": [{"commit": 0, "entries": [{"term": 2, "type": "noop", "value": ""}], "from": "raft1", "hint": 0, "index": 1, "logTerm": 1, "reject": false, "term": 2, "to": "raft3", "type": "app"}], "e": "send", "k": 36, "msg": {"commit": 0, "entries": [], "from": "raft3", "hint
+mutation mutations/vote-request-before-write.ndjson.gz EtcdBindingM.cfg 7 REJECTED 7 {"by": "campaign", "cause": [], "e": "send", "k": 9, "msg": {"commit": 0, "entries": [], "from": "raft1", "hint": 0, "index": 1, "logTerm": 1, "reject": false, "term": 2, "to": "raft2", "type": "vote"}, "node": "raft1"}
+mutation mutations/leader-commits-alone.ndjson.gz EtcdBindingM.cfg 29 REJECTED 29 {"by": "propose", "commit": 3, "e": "mem", "entries": [{"term": 2, "type": "noop", "value": ""}], "first": 3, "k": 29, "node": "raft1", "role": "leader", "term": 2, "vote": "raft1", "w": 1}
+mutation mutations/apply-before-stored.ndjson.gz EtcdBindingM.cfg 32 REJECTED 32 {"a": 1, "by": "recv", "e": "apply", "entries": [{"term": 1, "type": "config", "value": ""}, {"term": 2, "type": "noop", "value": ""}], "first": 1, "k": 60, "node": "raft1"}
+mutation mutations/write-altered.ndjson.gz EtcdBindingM.cfg 40 REJECTED 40 {"commit": 0, "e": "write", "entries": [{"term": 3, "type": "noop", "value": ""}], "first": 2, "k": 40, "node": "raft2", "term": 2, "vote": "raft1"}
+mutation mutations/write-twice.ndjson.gz EtcdBindingM.cfg 36 REJECTED 36 {"commit": 0, "e": "write", "entries": [{"term": 2, "type": "noop", "value": ""}], "first": 2, "k": 34, "node": "raft3", "term": 2, "vote": "raft1"}
+mutation mutations/restore-ahead.ndjson.gz EtcdBindingM.cfg 1288 REJECTED 1288 {"a": 1, "e": "restore", "index": 39, "k": 1288, "node": "raft5", "outgoing": [], "voters": ["raft2", "raft3", "raft5"]}
+mutation mutations/snapshot-of-unapplied.ndjson.gz EtcdBindingM.cfg 106 REJECTED 106 {"e": "snap", "index": 1002, "k": 106, "node": "raft3", "term": 2}
+mutation mutations/snapshot-message-altered.ndjson.gz EtcdBindingM.cfg 790 REJECTED 790 {"by": "recv", "cause": [{"commit": 0, "entries": [], "from": "raft5", "hint": 1, "index": 27, "logTerm": 1, "reject": true, "term": 6, "to": "raft2", "type": "appresp"}], "e": "send", "k": 790, "msg": {"commit": 0, "entries": [], "from": "raft2", "hint": 0, "index": 4, "logTerm": 4, "r
+mutation mutations/read-index-stale.ndjson.gz EtcdBinding.cfg 119 VIOLATED 119 ReadIndexStale
+mutation mutations/batch-write-altered.ndjson.gz EtcdBindingM.cfg 47 REJECTED 47 {"commit": 0, "e": "net", "entries": [{"term": 3, "type": "noop", "value": ""}], "first": 2, "k": 47, "node": "raft2", "term": 2, "vote": "raft3"}
+mutation mutations/batch-write-short.ndjson.gz EtcdBindingM.cfg 54 REJECTED 54 {"commit": 2, "e": "net", "entries": [{"term": 2, "type": "command", "value": "7635"}], "first": 3, "k": 54, "node": "raft3", "term": 2, "vote": "raft3"}
+mutation mutations/batch-write-commit-ahead.ndjson.gz EtcdBindingM.cfg 54 REJECTED 54 {"commit": 3, "e": "net", "entries": [{"term": 2, "type": "command", "value": "7635"}, {"term": 2, "type": "noop", "value": ""}], "first": 3, "k": 54, "node": "raft3", "term": 2, "vote": "raft3"}
+mutation mutations/batch-flush-missing.ndjson.gz EtcdBindingM.cfg 580 REJECTED 580 {"commit": 4, "e": "net", "entries": [], "first": 0, "k": 581, "node": "raft1", "term": 3, "vote": "raft1"}
+mutation mutations/batch-send-before-made.ndjson.gz EtcdBindingM.cfg 20 REJECTED 20 {"b": 1, "by": "batch", "e": "send", "k": 21, "msg": {"commit": 0, "entries": [], "from": "raft2", "hint": 0, "index": 0, "logTerm": 0, "reject": false, "term": 2, "to": "raft3", "type": "voteresp"}, "node": "raft2"}
+mutation mutations/batch-ack-too-far.ndjson.gz EtcdBindingM.cfg 98 REJECTED 98 {"b": 1, "by": "batch", "e": "send", "k": 98, "msg": {"commit": 0, "entries": [], "from": "raft1", "hint": 0, "index": 5, "logTerm": 0, "reject": false, "term": 2, "to": "raft3", "type": "appresp"}, "node": "raft1"}
+mutation mutations/batch-vote-unasked.ndjson.gz EtcdBindingM.cfg 15 REJECTED 36 {"e": "flush", "k": 36, "more": 0, "node": "raft1"}
+mutation mutations/batch-append-unreported.ndjson.gz EtcdBindingM.cfg 45 REJECTED 54 {"commit": 2, "e": "net", "entries": [{"term": 2, "type": "command", "value": "7635"}, {"term": 2, "type": "noop", "value": ""}], "first": 3, "k": 54, "node": "raft3", "term": 2, "vote": "raft3"}
+mutation mutations/conf-voters-altered.ndjson.gz EtcdBindingM.cfg 551 REJECTED 551 {"e": "conf", "index": 7, "k": 551, "node": "raft2", "outgoing": [], "voters": ["raft1", "raft2", "raft3"]}
+mutation mutations/conf-outgoing-dropped.ndjson.gz EtcdBindingM.cfg 1390 REJECTED 1390 {"e": "conf", "index": 59, "k": 1390, "node": "raft2", "outgoing": [], "voters": ["raft2", "raft4", "raft5"]}
+mutation mutations/conf-wrong-entry.ndjson.gz EtcdBindingM.cfg 551 REJECTED 551 {"e": "conf", "index": 6, "k": 551, "node": "raft2", "outgoing": [], "voters": ["raft2", "raft3"]}
+mutation mutations/conf-before-apply.ndjson.gz EtcdBindingM.cfg 729 REJECTED 729 {"e": "conf", "index": 26, "k": 730, "node": "raft2", "outgoing": [], "voters": ["raft2", "raft3", "raft5"]}
+mutation mutations/conf-skipped.ndjson.gz EtcdBindingM.cfg 551 REJECTED 658 {"by": "propose", "commit": 23, "e": "mem", "entries": [{"term": 6, "type": "conf", "value": {"add": ["raft5"], "joint": false, "leave": false, "remove": []}}], "first": 26, "k": 659, "node": "raft2", "role": "leader", "term": 6, "vote": "raft2", "w": 1}
+mutation mutations/second-change-appended.ndjson.gz EtcdBindingM.cfg 102 REJECTED 102 {"by": "propose", "commit": 3, "e": "mem", "entries": [{"term": 2, "type": "conf", "value": {"add": [], "joint": false, "leave": false, "remove": ["raft1"]}}, {"term": 2, "type": "conf", "value": {"add": [], "joint": false, "leave": false, "remove": ["raft1"]}}], "first": 4, "k": 102, "
+mutation mutations/change-of-two-voters.ndjson.gz EtcdBindingM.cfg 659 REJECTED 659 {"by": "propose", "commit": 23, "e": "mem", "entries": [{"term": 6, "type": "conf", "value": {"add": ["raft3", "raft4", "raft5"], "joint": false, "leave": false, "remove": []}}], "first": 26, "k": 659, "node": "raft2", "role": "leader", "term": 6, "vote": "raft2", "w": 1}
+mutation mutations/leave-not-joint.ndjson.gz EtcdBindingM.cfg 102 REJECTED 102 {"by": "propose", "commit": 3, "e": "mem", "entries": [{"term": 2, "type": "conf", "value": {"add": [], "remove": [], "joint": false, "leave": true}}], "first": 4, "k": 102, "node": "raft1", "role": "leader", "term": 2, "vote": "raft1", "w": 1}
+mutation mutations/joint-in-joint.ndjson.gz EtcdBindingM.cfg 1391 REJECTED 1391 {"by": "apply", "commit": 61, "e": "mem", "entries": [{"term": 6, "type": "conf", "value": {"add": ["raft1"], "remove": [], "joint": true, "leave": false}}], "first": 67, "k": 1391, "node": "raft2", "role": "leader", "term": 6, "vote": "raft2", "w": 1}
+mutation mutations/boot-first-voters.ndjson.gz EtcdBindingM.cfg 1437 REJECTED 1437 {"applied": 43, "commit": 61, "e": "boot", "k": 1437, "lastIndex": 67, "lastTerm": 6, "node": "raft2", "outgoing": [], "term": 6, "vote": "raft2", "voters": ["raft1", "raft2", "raft3"]}
+mutation mutations/restore-voters-altered.ndjson.gz EtcdBindingM.cfg 1288 REJECTED 1288 {"a": 1, "e": "restore", "index": 38, "k": 1288, "node": "raft5", "outgoing": [], "voters": ["raft3", "raft5"]}
+sim sim/default-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1314
+sim sim/default-2.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1047
+sim sim/default-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 695
+sim sim/default-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1088
+sim sim/default-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1398
+sim sim/default-6.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 986
+sim sim/default-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 564
+sim sim/default-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 662
+sim sim/default-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1046
+sim sim/default-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1242
+sim sim/default-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1204
+sim sim/default-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 964
+sim sim/empty-1.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1314
+sim sim/empty-2.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1047
+sim sim/empty-3.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 695
+sim sim/empty-4.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1088
+sim sim/empty-5.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1398
+sim sim/empty-6.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 986
+sim sim/empty-7.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 564
+sim sim/empty-8.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 662
+sim sim/empty-9.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1046
+sim sim/empty-10.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1242
+sim sim/empty-11.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 1204
+sim sim/empty-12.ndjson.gz EtcdBindingEmpty.cfg 0 ACCEPTED 964
+sim sim/five-1.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1917
+sim sim/five-2.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1288
+sim sim/five-3.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1587
+sim sim/five-4.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1703
+sim sim/five-5.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 2177
+sim sim/five-6.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 2215
+sim sim/five-7.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1161
+sim sim/five-8.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 2004
+sim sim/five-9.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1750
+sim sim/five-10.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 1309
+sim sim/five-11.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 838
+sim sim/five-12.ndjson.gz EtcdBinding5.cfg 0 ACCEPTED 970
+sim sim/parallel-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1492
+sim sim/parallel-2.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1256
+sim sim/parallel-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 766
+sim sim/parallel-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1279
+sim sim/parallel-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1221
+sim sim/parallel-6.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1098
+sim sim/parallel-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 622
+sim sim/parallel-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1171
+sim sim/parallel-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1322
+sim sim/parallel-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1387
+sim sim/parallel-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1482
+sim sim/parallel-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1130
+sim sim/async-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 857
+sim sim/async-2.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1120
+sim sim/async-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 837
+sim sim/async-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1288
+sim sim/async-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1093
+sim sim/async-6.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1038
+sim sim/async-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 841
+sim sim/async-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 889
+sim sim/async-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 568
+sim sim/async-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1316
+sim sim/async-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 790
+sim sim/async-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 834
+sim sim/asyncsnapreads-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1395
+sim sim/asyncsnapreads-2.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1793
+sim sim/asyncsnapreads-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1154
+sim sim/asyncsnapreads-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1356
+sim sim/asyncsnapreads-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1964
+sim sim/asyncsnapreads-6.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1506
+sim sim/asyncsnapreads-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1306
+sim sim/asyncsnapreads-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1625
+sim sim/asyncsnapreads-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1682
+sim sim/asyncsnapreads-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1631
+sim sim/asyncsnapreads-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 693
+sim sim/asyncsnapreads-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1465
+sim sim/snapreads-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1268
+sim sim/snapreads-2.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1261
+sim sim/snapreads-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 936
+sim sim/snapreads-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 984
+sim sim/snapreads-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1039
+sim sim/snapreads-6.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1038
+sim sim/snapreads-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1215
+sim sim/snapreads-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 760
+sim sim/snapreads-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1185
+sim sim/snapreads-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 914
+sim sim/snapreads-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 712
+sim sim/snapreads-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 742
+sim sim/batch-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1520
+sim sim/batch-2.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1068
+sim sim/batch-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1306
+sim sim/batch-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1223
+sim sim/batch-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1587
+sim sim/batch-6.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1128
+sim sim/batch-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 691
+sim sim/batch-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1026
+sim sim/batch-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1875
+sim sim/batch-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 2393
+sim sim/batch-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1708
+sim sim/batch-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 605
+sim sim/member-1.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 5211
+sim sim/member-2.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 3348
+sim sim/member-3.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 4564
+sim sim/member-4.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 3344
+sim sim/member-5.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 3977
+sim sim/member-6.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 3674
+sim sim/member-7.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 3680
+sim sim/member-8.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 1701
+sim sim/member-9.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 4905
+sim sim/member-10.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 3851
+sim sim/member-11.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 4366
+sim sim/member-12.ndjson.gz EtcdBindingM.cfg 0 ACCEPTED 2752
+sim sim/prevote-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1635
+sim sim/prevote-2.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1614
+sim sim/prevote-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1931
+sim sim/prevote-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 791
+sim sim/prevote-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1488
+sim sim/prevote-6.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1025
+sim sim/prevote-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 894
+sim sim/prevote-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1194
+sim sim/prevote-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1584
+sim sim/prevote-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1016
+sim sim/prevote-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1503
+sim sim/prevote-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1165
+sim sim/nohold-1.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft3","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft1","type":"vote"},"node":"raft3"}
+sim sim/nohold-2.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft2","type":"vote"},"node":"raft1"}
+sim sim/nohold-3.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft2","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft1","type":"vote"},"node":"raft2"}
+sim sim/nohold-4.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft2","type":"vote"},"node":"raft1"}
+sim sim/nohold-5.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft2","type":"vote"},"node":"raft1"}
+sim sim/nohold-6.ndjson.gz EtcdBinding.cfg 0 REJECTED 6 {"by":"campaign","cause":[],"e":"send","k":6,"msg":{"commit":0,"entries":[],"from":"raft2","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft1","type":"vote"},"node":"raft2"}
+sim sim/nohold-7.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft2","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft1","type":"vote"},"node":"raft2"}
+sim sim/nohold-8.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft2","type":"vote"},"node":"raft1"}
+sim sim/nohold-9.ndjson.gz EtcdBinding.cfg 0 REJECTED 6 {"by":"campaign","cause":[],"e":"send","k":6,"msg":{"commit":0,"entries":[],"from":"raft3","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft1","type":"vote"},"node":"raft3"}
+sim sim/nohold-10.ndjson.gz EtcdBinding.cfg 0 REJECTED 5 {"by":"campaign","cause":[],"e":"send","k":5,"msg":{"commit":0,"entries":[],"from":"raft1","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft2","type":"vote"},"node":"raft1"}
+sim sim/nohold-11.ndjson.gz EtcdBinding.cfg 0 REJECTED 6 {"by":"campaign","cause":[],"e":"send","k":6,"msg":{"commit":0,"entries":[],"from":"raft3","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft1","type":"vote"},"node":"raft3"}
+sim sim/nohold-12.ndjson.gz EtcdBinding.cfg 0 REJECTED 6 {"by":"campaign","cause":[],"e":"send","k":6,"msg":{"commit":0,"entries":[],"from":"raft3","hint":0,"index":1,"logTerm":1,"reject":false,"term":2,"to":"raft1","type":"vote"},"node":"raft3"}
+sim sim/splitEH-1.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1322
+sim sim/splitEH-2.ndjson.gz EtcdBinding.cfg 0 REJECTED 78 {"by":"recv","commit":0,"e":"ready","entries":[{"term":8,"type":"noop","value":""}],"first":2,"k":78,"node":"raft1","role":"follower","term":7,"vote":"raft1"}
+sim sim/splitEH-3.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 695
+sim sim/splitEH-4.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1098
+sim sim/splitEH-5.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1405
+sim sim/splitEH-6.ndjson.gz EtcdBinding.cfg 0 REJECTED 130 {"by":"recv","commit":2,"e":"ready","entries":[{"term":5,"type":"noop","value":""}],"first":3,"k":130,"node":"raft3","role":"follower","term":4,"vote":"raft3"}
+sim sim/splitEH-7.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 566
+sim sim/splitEH-8.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 665
+sim sim/splitEH-9.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1054
+sim sim/splitEH-10.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1256
+sim sim/splitEH-11.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 1208
+sim sim/splitEH-12.ndjson.gz EtcdBinding.cfg 0 ACCEPTED 969
