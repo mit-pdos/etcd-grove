@@ -239,6 +239,33 @@ noncomputable def featureGate.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef featureGate.ty go!"lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType featureGate.ty)))) (Var "f")))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
 
+/-- GetAll returns a copy of the map of known feature names to feature specs.
+
+    go: feature_gate.go:327:23 -/
+noncomputable def featureGate.GetAll.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType featureGate.ty)))) (Var "f"))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (LiteralValue []))
+  (Let "retval" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Var "retval"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Var "retval"))
+  (Let "$a1" (App (Val (GoInstruction (TypeAssert (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Value.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef featureGate.ty go!"known"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType featureGate.ty)))) (Var "f")))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.maps.Copy [(go.GoType.MapType Feature.ty FeatureSpec.ty), (go.GoType.MapType Feature.ty FeatureSpec.ty), Feature.ty, FeatureSpec.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Pair (Var "retval") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType Feature.ty FeatureSpec.ty)))) (Var "$res0"))))))
+
 /-- Enabled returns true if the key is enabled.  If the key is not known, this call will panic.
 
     go: feature_gate.go:334:23 -/
@@ -519,6 +546,7 @@ class featureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType featureGate.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType Feature.ty FeatureSpec.ty)] false [go.error]))), (go!"AddFlag", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.flag.FlagSet.ty), go.string] false []))), (go!"DeepCopy", (some (go.signature.Signature [] false [MutableFeatureGate.ty]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"GetAll", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty FeatureSpec.ty)]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OverrideDefault", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetFromMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [go.string])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"Add" featureGate.Add.impl
   ptr_Enabled_unfold : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"Enabled" featureGate.Enabled.impl
+  ptr_GetAll_unfold : MethodUnfold (go.GoType.PointerType featureGate.ty) go!"GetAll" featureGate.GetAll.impl
 
 attribute [instance] featureGate.TypeAssumptions.type_repr
   featureGate.TypeAssumptions.underlying
@@ -540,6 +568,7 @@ attribute [instance] featureGate.TypeAssumptions.type_repr
   featureGate.TypeAssumptions.ptr_method_set
   featureGate.TypeAssumptions.ptr_Add_unfold
   featureGate.TypeAssumptions.ptr_Enabled_unfold
+  featureGate.TypeAssumptions.ptr_GetAll_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Feature_instance : Feature.TypeAssumptions

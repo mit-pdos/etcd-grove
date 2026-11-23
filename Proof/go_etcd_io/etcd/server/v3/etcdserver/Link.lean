@@ -3036,7 +3036,7 @@ theorem EtcdServer.wp_revokeExpiredLeases :
 
 theorem wp_addFeatureGateMetrics :
     addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=
-  addFeatureGateMetrics.wp_proof
+  addFeatureGateMetrics.wp_proof prometheus.GaugeVec.wp_With
 
 theorem auth.wp_NewAuthStore :
     auth.NewAuthStore.spec (GF := GF) (hG := hG) :=

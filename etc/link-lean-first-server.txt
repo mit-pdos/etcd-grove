@@ -697,7 +697,7 @@ bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRa
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
 # the trust boundary (`axiom … .wp_proof`): the names-only callees whose contracts only say they
 # return (the stats, the cluster's `String`/`SetVersionChangedNotifier`,
-# `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
+# `PeerDialTimeout`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
 # their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
 # the Go code (unit N1: `auth.NewTokenProvider`, proved since the auth plan's E2g, 2026-10-25, over
@@ -716,7 +716,9 @@ membership_RaftCluster__SetVersionChangedNotifier:
 # `URLs.StringSlice` translated and proved (prove-ps2-misc, 2026-11-21), over `url.URL.String`'s spec.
 types_URLs__StringSlice: =http.URLStringAny_ok
 config_ServerConfig__PeerDialTimeout:
-addFeatureGateMetrics:
+# (featuregate-4, 2026-11-23) `addFeatureGateMetrics` translated and proved, over featuregate's
+# `GetAll`/`Enabled` (through `isFeatureGate`) and `GaugeVec.With`
+addFeatureGateMetrics: prometheus_GaugeVec__With
 newCorruptionChecker:
 schema_NewAuthBackend:
 schema_NewAlarmBackend:

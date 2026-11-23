@@ -173,8 +173,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   predicate (`EtcdServer__{FeatureEnabled,NewUberApplier,Txn}`, `NewServer`, `NewServerR`) take one more
   component. Made after `NewDefaultServerFeatureGate` is proved (until then the change strengthens that
   axiom's post, a trust-boundary spec).
-- **Decision.** Pending: waits for `NewDefaultServerFeatureGate`'s proof (blocked on `maps.Clone`,
-  `notes/perennial-changes.md`).
+- **Decision.** Accepted by the coordinator; review requested on #36. Made on `featuregate-4`
+  (2026-11-23), after featuregate-3 proved `NewDefaultServerFeatureGate`: `isFeatureGate fg` is now
+  `∃ fi K, fg = ok fi ∗ ⌜serverFeatures ⊆ dom K ∧ featureLabelsOk K⌝ ∗ □ Enabled(f) for f ∈ dom K ∗
+  □ GetAll() returns a fresh m ↦$ K` (`featureLabelsOk K`: each name and `PreRelease` valid UTF-8).
+  `featuregate.featureGate.GetAll` translated and proved (over `maps.Copy`); `NewDefaultServerFeatureGate`
+  gives the new components (`K = serverFeatureSpecs ∪ defaultKnown`, ASCII literals);
+  `addFeatureGateMetrics.spec` unchanged, now proved (the axiom retired); the five proofs take the
+  extra components.
 
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
