@@ -83,12 +83,12 @@ theorem wp_Register (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG)) 
   iexact Hcs
 
 /-- `register(ip, port, maddr)` as replica node `k`'s `serve` calls it. -/
-abbrev register.spec [RpcHttpHyp GF] : Prop :=
+abbrev register.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (k : Nat), k ∈ replicaNodes →
     W.SS masterAddr go!"Master" = some (masterSvc γ) →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ rpcReady ∗ net.rpc.cliEnv ∗
       ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗
-      RpcHttpHyp.rpcAddrP W masterAddr (connectReq defaultRPCPath) connectAns ∗
+      RpcHttpAddr.rpcAddrP W masterAddr (connectReq defaultRPCPath) connectAns ∗
       nodeTok γ k ∗ inv regXN (regXInv γ (repStart γ)) }}
     (App (App (App (Val (@! examples.epaxosnet.register)) (Val #(replicaIp k)))
       (Val #(portOf k))) (Val #masterAddr))

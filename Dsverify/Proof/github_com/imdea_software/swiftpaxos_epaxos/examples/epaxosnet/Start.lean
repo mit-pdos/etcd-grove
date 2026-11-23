@@ -8,7 +8,7 @@ abstract key-value state's ghost variable, both halves; the fired outputs' map; 
 `roleInv` with the escrows' names; the registry of the registration exchange; the peer streams'
 and the replicas' framework state; the protocol invariant `epInv`), the net/rpc world `W`
 (`W.SS = rpcSS γ`, its connection registry `regInv W`), set the replica addresses' protocols
-(`repDialP`/`repAccP`, `addrs_set_proto`) and the rpc listeners' (`RpcHttpHyp.rpcLisP_set` at
+(`repDialP`/`repAccP`, `addrs_set_proto`) and the rpc listeners' (`RpcHttpAddr.rpcLisP_set` at
 `":7501"` and at each `rpcAddrOf k`, an exact listener: `addrUnset_lisUnset`), and hand out each
 machine's resources (`masterRes`, `replicaRes`, the client machines' `clientInvs`, the store's
 `own_state`).
@@ -311,11 +311,8 @@ end ghost
 
 section rpc
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [log.Assumptions] [net.http.Assumptions]
-variable [RH : RpcHttpHyp GF]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
+variable [RA : RpcHttpAddr GF]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -326,8 +323,8 @@ abbrev hsAns : List w8 := connectAns
 /-- The master's machine (server 1): the right to fix the node list, its wildcard listener's rpc
 protocols (`":7501"`), every replica's rpc address (it dials them), the rpc world's registry. -/
 def masterRes (γ : EpNames) (W : net.rpc.RpcWorld GF) : IProp GF :=
-  iprop(listUnset γ ∗ RH.rpcLisP W masterLis hsReq hsAns ∗
-    ([∗list] k ∈ replicaNodes, RH.rpcAddrP W (rpcAddrOf k) hsReq hsAns) ∗
+  iprop(listUnset γ ∗ RA.rpcLisP W masterLis hsReq hsAns ∗
+    ([∗list] k ∈ replicaNodes, RA.rpcAddrP W (rpcAddrOf k) hsReq hsAns) ∗
     inv net.rpc.regN' (net.rpc.regInv W))
 
 /-- Replica node `k`'s machine (server `k`, 2..6): its node token, the registration exchange's
@@ -336,7 +333,7 @@ address (it registers there), its own rpc listener's protocols (`rpcAddrOf k`), 
 registry. -/
 def replicaRes (γ : EpNames) (W : net.rpc.RpcWorld GF) (k : Nat) : IProp GF :=
   iprop(nodeTok γ k ∗ inv regXN (regXInv γ (repStart γ)) ∗ clientInvs γ ∗
-    RH.rpcAddrP W masterAddr hsReq hsAns ∗ RH.rpcLisP W (rpcAddrOf k) hsReq hsAns ∗
+    RA.rpcAddrP W masterAddr hsReq hsAns ∗ RA.rpcLisP W (rpcAddrOf k) hsReq hsAns ∗
     inv net.rpc.regN' (net.rpc.regInv W))
 
 /-- **The start**: from the registry, the replicas' peer and rpc addresses unset
@@ -345,7 +342,7 @@ def replicaRes (γ : EpNames) (W : net.rpc.RpcWorld GF) (k : Nat) : IProp GF :=
 `RBase.sysState`), the master's machine's resources, each replica node's, and `clientInvs γ`
 (persistent: each client machine's). -/
 theorem ep_start :
-    ⊢ regCtx (Gg := hG.goose_globalGS) -∗ ([∗list] a ∈ epStartAddrs, addrUnset a) -∗
+    ⊢ regCtx (Gg := G) -∗ ([∗list] a ∈ epStartAddrs, addrUnset a) -∗
       lisUnset masterLis ={⊤}=∗
       ∃ (γ : EpNames) (W : net.rpc.RpcWorld GF), ⌜W.SS = rpcSS γ⌝ ∗
         own_state γ (kvScan w8).init ∗ masterRes γ W ∗
@@ -355,19 +352,19 @@ theorem ep_start :
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hp, Hr⟩
   imod ep_ghost_start $$ Hreg Hp with ⟨%γ, %W, %HW, #HregW, HlU, HnT, #Hrx, #Hci, Hown⟩
   -- the master's wildcard listener
-  imod RH.rpcLisP_set ⊤ W masterLis hsReq hsAns masterLis_ok $$ Hreg HregW Hml with #Hml
-  ihave #Hma := RH.rpcLisP_addr W masterLis hsReq hsAns masterAddr masterAddr_ok
+  imod RA.rpcLisP_set ⊤ W masterLis hsReq hsAns masterLis_ok $$ Hreg HregW Hml with #Hml
+  ihave #Hma := RA.rpcLisP_addr W masterLis hsReq hsAns masterAddr masterAddr_ok
     masterLis_master $$ Hml
   -- each replica's rpc listener (an exact one)
   unfold replicaRpcAddrs
   rw [BigSepL.bigSepL_map]
-  ihave Hr : [∗list] k ∈ replicaNodes, |={⊤}=> RH.rpcLisP W (rpcAddrOf k) hsReq hsAns $$ [Hr]
+  ihave Hr : [∗list] k ∈ replicaNodes, |={⊤}=> RA.rpcLisP W (rpcAddrOf k) hsReq hsAns $$ [Hr]
   · iapply BigSepL.bigSepL_impl $$ Hr
     iintro !> %j %k %hk Hu
     have hok : addrOk (rpcAddrOf k) = true :=
       replicaRpcAddrs_ok _ (rpcAddrOf_mem' k (List.mem_of_getElem? hk))
     ihave Hu := addrUnset_lisUnset (rpcAddrOf k) hok $$ Hu
-    iapply RH.rpcLisP_set ⊤ W (rpcAddrOf k) hsReq hsAns (by simp [listenOk, hok]) $$ Hreg HregW Hu
+    iapply RA.rpcLisP_set ⊤ W (rpcAddrOf k) hsReq hsAns (by simp [listenOk, hok]) $$ Hreg HregW Hu
   imod BigSepL2.bigSepL_fupd ⊤ _ _ $$ Hr with #Hrl
   imodintro
   iexists γ, W
@@ -381,7 +378,7 @@ theorem ep_start :
     iintro !> %j %k %hk #H
     have hok : addrOk (rpcAddrOf k) = true :=
       replicaRpcAddrs_ok _ (rpcAddrOf_mem' k (List.mem_of_getElem? hk))
-    iapply RH.rpcLisP_addr W (rpcAddrOf k) hsReq hsAns (rpcAddrOf k) hok (Or.inl rfl) $$ H
+    iapply RA.rpcLisP_addr W (rpcAddrOf k) hsReq hsAns (rpcAddrOf k) hok (Or.inl rfl) $$ H
   isplitl [HnT]
   · ihave Hall := BigSepL.bigSepL_sep_eqv.2 $$ [HnT Hrl]
     · iframe HnT Hrl

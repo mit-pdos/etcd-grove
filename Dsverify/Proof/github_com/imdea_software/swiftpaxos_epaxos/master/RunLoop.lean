@@ -29,7 +29,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [master.Assumptions] [examples.epaxosnet.Assumptions] [epaxos.Assumptions]
-variable [log.Assumptions] [net.http.Assumptions] [RH : RpcHttpHyp GF]
+variable [log.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF] [RH : RpcHttpHyp GF]
 
 /-- A dialed replica client of `run()`. -/
 def cliOk (W : net.rpc.RpcWorld GF) (c : Loc) : IProp GF :=
@@ -216,10 +216,10 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
       ihave %Hndsl := ownSlice_len _ _ _ $$ Hnds
       rw [ite_eq_left (show 0 ≤ sint.Z iw ∧ sint.Z iw < sint.Z nds.len by
         rw [Hi.2.2] at Hndsl; word)]
-      ihave #Hra : RpcHttpHyp.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns $$ []
+      ihave #Hra : RpcHttpAddr.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns $$ []
       · unfold replicaRpcs
         iapply (BigSepL.bigSepL_mem (Φ := fun k =>
-          RpcHttpHyp.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns) hkr)
+          RpcHttpAddr.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns) hkr)
         iexact Hrpcs
       wp_auto
       wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W (rpcAddrOf k)) $$ [$Hcenv $Hrpcpkg $Hra] as %cl %err Hd

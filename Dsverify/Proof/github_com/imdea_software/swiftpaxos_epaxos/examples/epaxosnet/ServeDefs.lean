@@ -202,13 +202,13 @@ the threads and of the receipts, the rpc world `W` of the run (`rpcSS γ`), the 
 and replica `k`'s rpc listener address serving it over HTTP, node `k`'s token, the registration
 exchange and the replica addresses' protocols. It returns only if `rpc.Register` or `net.Listen`
 fails (`http.Serve` returns only on a listener error). -/
-abbrev serveReplica.spec [RpcHttpHyp GF] : Prop :=
+abbrev serveReplica.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (k : Nat) (sl : GoSlice), k ∈ replicaNodes →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
       net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
       sl ↦*□ serverAddrs ∗ ⌜W.SS = rpcSS γ⌝ ∗
-      RpcHttpHyp.rpcAddrP W masterAddr (connectReq defaultRPCPath) connectAns ∗
-      RpcHttpHyp.rpcLisP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns ∗
+      RpcHttpAddr.rpcAddrP W masterAddr (connectReq defaultRPCPath) connectAns ∗
+      RpcHttpAddr.rpcLisP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns ∗
       nodeTok γ k ∗ inv regXN (regXInv γ (repStart γ)) ∗ clientInvs γ }}
     (App (App (App (Val (@! examples.epaxosnet.serve)) (Val #(W64 k))) (Val #sl))
       (Val #(W64 7500)))

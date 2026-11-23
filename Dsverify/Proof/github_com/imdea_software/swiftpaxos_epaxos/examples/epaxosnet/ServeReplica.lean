@@ -38,7 +38,7 @@ variable [log.Assumptions] [net.http.Assumptions]
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 set_option goose.wp.extras true in
-theorem serveReplica.wp_proof [RpcHttpHyp GF]
+theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (isRep : EpNames → Nat → Loc → IProp GF)
     (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG))
     (wp_nodeConfig : nodeConfig.spec (GF := GF) (hG := hG))
@@ -148,7 +148,7 @@ theorem serveReplica.wp_proof [RpcHttpHyp GF]
     simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hk
     rcases hk with rfl | rfl | rfl | rfl | rfl <;> rfl
   rw [hn, listenAddr_eq k]
-  ihave ⟨%P, %Q, #Hlp⟩ := RpcHttpHyp.rpcLisP_lis $$ Hlis
+  ihave ⟨%P, %Q, #Hlp⟩ := RpcHttpAddr.rpcLisP_lis $$ Hlis
   wp_apply (wp_Listen go!"tcp" net.tcpNet_tcp (rpcAddrOf k)) as %lv %err Hl
   · isplitr
     · ipureintro; exact rpcAddrOf_listenOk k hk

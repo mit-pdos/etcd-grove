@@ -302,12 +302,12 @@ abbrev UpdateBeTheLeaderReply.specM : Prop :=
     (App (Val (@! replica.defs.UpdateBeTheLeaderReply)) (Val #l))
   {{ RET #(); l ↦ replica.defs.BeTheLeaderReply.mk (W32 (-1)) (W32 (-1)) }}
 
-variable [log.Assumptions] [net.http.Assumptions] [RH : RpcHttpHyp GF]
+variable [log.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF] [RH : RpcHttpHyp GF]
 
 /-- The rpc addresses of the replicas, as `run()` dials them (`DialHTTP`'s premise). -/
 def replicaRpcs (W : net.rpc.RpcWorld GF) : IProp GF :=
   iprop([∗list] k ∈ replicaNodes,
-    RpcHttpHyp.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns)
+    RpcHttpAddr.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns)
 
 instance replicaRpcs_persistent (W : net.rpc.RpcWorld GF) :
     Persistent (replicaRpcs (GF := GF) W) := by
@@ -339,7 +339,7 @@ abbrev Master.Run.specM (γ : EpNames) (W : net.rpc.RpcWorld GF) : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.master ∗
       isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
       masterFresh m cfg logger ∗ listUnset γ ∗ ⌜W.SS = rpcSS γ⌝ ∗
-      RpcHttpHyp.rpcLisP W go!":7501" (connectReq defaultRPCPath) connectAns ∗
+      RpcHttpAddr.rpcLisP W go!":7501" (connectReq defaultRPCPath) connectAns ∗
       replicaRpcs W ∗ RpcHttpHyp.muxOwner [] ∗ rpcReady ∗ net.rpc.srvEnv ∗
       ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))

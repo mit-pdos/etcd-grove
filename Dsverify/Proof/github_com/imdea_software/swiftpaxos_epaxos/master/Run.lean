@@ -29,7 +29,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [master.Assumptions] [examples.epaxosnet.Assumptions] [epaxos.Assumptions]
-variable [log.Assumptions] [net.http.Assumptions] [RH : RpcHttpHyp GF]
+variable [log.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF] [RH : RpcHttpHyp GF]
 
 /-- The wildcard `":7501"` takes no replica rpc address (their ports are 8502..8506). -/
 theorem wild_not_replicaRpc (a : GoString) (ha : lisAccepts go!":7501" a)
@@ -178,7 +178,7 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
     simp [fmt.decimal, fmt.decimalNat_of_ge, fmt.decimalNat_of_lt, fmt.digitByte]
   rw [h7501] at haddr
   subst haddr
-  ihave ⟨%P, %Q, #HlisP⟩ := RpcHttpHyp.rpcLisP_lis W go!":7501" _ _ $$ Hlis
+  ihave ⟨%P, %Q, #HlisP⟩ := RpcHttpAddr.rpcLisP_lis W go!":7501" _ _ $$ Hlis
   wp_apply (hListen go!"tcp" net.tcpNet_tcp go!":7501") $$ [] as %li %err Hres
   · isplitr
     · ipureintro; decide

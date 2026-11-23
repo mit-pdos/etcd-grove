@@ -3,7 +3,7 @@ The master package closed: `master.New`, the receivers' method bodies (`Register
 `GetReplicaList`) and `Master.Run`'s spec from the parts (`run()`, the `defs` helpers, dlog's
 logger, Net's `Listen`). Left as hypotheses: the clients' calls `btlCall.spec`, `pingCall.spec`
 and the receiver `masterRcv.spec` (`NetRpc/`, proved by the RPC layer), and net/rpc over HTTP
-(`[RpcHttpHyp GF]`, `Interface/RpcHttpHyps.lean`).
+(`[RpcHttpAddr GF] [RpcHttpHyp GF]`, `Interface/RpcHttpHyps.lean`).
 -/
 module
 
@@ -46,7 +46,7 @@ theorem master.wp_GetReplicaList (γ : EpNames) :
     masterGetReplicaList.spec (GF := GF) (isMaster γ) :=
   masterGetReplicaList.wp_proof dlog.Logger.Printf.spec_holds γ
 
-variable [log.Assumptions] [net.http.Assumptions] [RH : RpcHttpHyp GF]
+variable [log.Assumptions] [net.http.Assumptions] [RA : RpcHttpAddr GF] [RH : RpcHttpHyp GF]
 
 theorem master.wp_run (hBtl : btlCall.spec (GF := GF)) (hPing : pingCall.spec (GF := GF))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) : Master.run.specM (GF := GF) γ W :=

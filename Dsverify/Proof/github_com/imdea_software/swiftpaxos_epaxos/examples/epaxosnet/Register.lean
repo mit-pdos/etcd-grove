@@ -34,7 +34,7 @@ variable [log.Assumptions] [net.http.Assumptions]
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 set_option goose.wp.extras true in
-theorem register.wp_proof [RpcHttpHyp GF]
+theorem register.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (wp_Call : registerCall.spec (GF := GF) (hG := hG))
     (wp_Close : net.rpc.Client.Close.spec (GF := GF) (hG := hG)) :
     register.spec (GF := GF) (hG := hG) := by
