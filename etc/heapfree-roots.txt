@@ -1,0 +1,31 @@
+# The heap-free gate's roots (etc/heapfree-check.py): what a phase 7 S2 service table holds.
+# `module M`: imported; a bare name: a root, which must reach no HeapGS/GooseLocalGS constant;
+# `neg N`: a negative test, which must (the gate's check of itself).
+module Proof.go_etcd_io.etcd.client.v3.KVService
+module Proof.go_etcd_io.etcd.client.v3.InvLeaseGrant
+module Proof.go_etcd_io.etcd.client.v3.InvLease
+module Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
+module Proof.go_etcd_io.etcd.client.v3.AuthnSpec
+module Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreApi
+Perennial.EtcdGrove.client.etcdPutSpecW
+Perennial.EtcdGrove.client.etcdRangeSpecW
+Perennial.EtcdGrove.client.etcdRangeSpecEW
+Perennial.EtcdGrove.client.etcdDeleteSpecW
+Perennial.EtcdGrove.client.etcdTxnSpecW
+Perennial.EtcdGrove.client.etcdCompactSpecW
+Perennial.EtcdGrove.etcdLeaseGrantSpecW
+Perennial.EtcdGrove.etcdLeaseGrantSpecGW
+Perennial.EtcdGrove.etcdLeaseGrantSpecGRW
+Perennial.EtcdGrove.etcdLeaseGrantSpecLiveW
+Perennial.EtcdGrove.etcdLeaseGrantSpecAnyW
+Perennial.EtcdGrove.etcdLeaseRevokeSpecW
+Perennial.EtcdGrove.etcdLeaseLeasesSpecW
+Perennial.EtcdGrove.etcdLeaseLeasesSpecLiveW
+Perennial.EtcdGrove.etcdLeaseLeasesSpecAnyW
+Perennial.EtcdGrove.etcdLeaseTTLSpecW
+Perennial.EtcdGrove.client.etcdAuthenticateSpecW
+# the predicate fields etcdEnvOf sets (Nx, Cp)
+Perennial.EtcdGrove.srvApi.kvNx
+Perennial.EtcdGrove.kvCpOk
+neg Perennial.EtcdGrove.client.etcdPutSpec
+neg Perennial.EtcdGrove.pbPutRequest

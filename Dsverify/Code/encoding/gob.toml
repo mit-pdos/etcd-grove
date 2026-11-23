@@ -1,0 +1,4 @@
+# Names only: common's `GetRealSizeOf` calls gob's encoder (size estimates for the benchmark); the kit
+# never reaches it.
+translate = ["!*"]
+imports = ["!*"]

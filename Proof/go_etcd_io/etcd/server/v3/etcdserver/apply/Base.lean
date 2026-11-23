@@ -38,6 +38,7 @@ public import Proof.net.http.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
+public import Proof.errors.CtxErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
@@ -222,12 +223,18 @@ interceptor take it (`srvErrOk`: grpc's `status.FromError` accepts it, `statusEr
 a leaf whose `Error()` returns and whose `GRPCStatus`/`Is`, if any, return), so that `togRPCError`,
 which returns a context error as it is, returns a handler error grpc's server and the prometheus
 interceptor can take. Every error the server's request path returns is a leaf, or (a cancelled
-read's) a context error wrapped by `fmt.Errorf`'s `%w` (`ctxWrapErr`, `applyErrIs_ctxWrap`). -/
+read's) a context error wrapped by `fmt.Errorf`'s `%w` (`ctxWrapErr`, `applyErrIs_ctxWrap`).
+
+(errors-is-deadline, 2026-11-23) The tree's errors of type `deadlineExceededError` hold
+`deadlineExceededError{}` (`deTyped`, Go's typing). `togRPCError`'s
+`errors.Is(err, context.DeadlineExceeded)` needs this (`errors.IsDeadlineExceeded`, through
+`applyErrIs_treeDE`). -/
 def applyErrIs (err : GoInterface) : IProp GF :=
   iprop((□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
       (U : GoInterfaceOk → List GoInterface → Prop),
     _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
-    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U⌝) ∗
+    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U ∧
+      deTyped S⌝) ∗
     errKeyMsg err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err)
 
 instance applyErrIs_persistent (err : GoInterface) :
@@ -245,7 +252,11 @@ theorem applyErrIs_walk (err : GoInterface) :
           exactRels I U⌝ := by
   iunfold applyErrIs
   iintro ⟨#H, -, -⟩
-  iexact H
+  iintro !> %target
+  ihave ⟨%S, %I, %U, #Ht, %HS⟩ := H $$ %target
+  iexists S, I, U
+  iframe Ht
+  ipureintro; exact ⟨HS.1, HS.2.1, HS.2.2.1⟩
 
 /-- An `applyErrIs` error is one grpc's server and the prometheus interceptor take (`srvErrOk`). -/
 theorem applyErrIs_srvErrOk (err : GoInterface) :
@@ -296,6 +307,21 @@ theorem applyErrIs_tree [_root_.Perennial.errors.Assumptions] (err : GoInterface
   · iapply _root_.Perennial.errors.errorIsTree_of_walk S I U target $$ Ht
   ipureintro; exact ⟨HS.1, HS.2.1⟩
 
+/-- The error tree of an `applyErrIs` error, over-approximated, with its typing (`deTyped`): what
+`errors.IsDeadlineExceeded.spec` takes. -/
+theorem applyErrIs_treeDE [_root_.Perennial.errors.Assumptions] (err : GoInterface) :
+    applyErrIs (GF := GF) err ⊢ □ ∀ target : GoInterface,
+      ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+        _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗ ⌜S err ∧ deTyped S⌝ := by
+  iunfold applyErrIs
+  iintro ⟨#H, -, -⟩
+  iintro !> %target
+  ihave ⟨%S, %I, %U, #Ht, %HS⟩ := H $$ %target
+  iexists S, (fun ii => I ii true)
+  isplitl
+  · iapply _root_.Perennial.errors.errorIsTree_of_walk S I U target $$ Ht
+  ipureintro; exact ⟨HS.1, HS.2.2.2⟩
+
 /-- A pointer error is a safe map key at `error`: Go's `==` on two pointer errors of one type
 compares the pointers. -/
 theorem safeMapKey_ptrErr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError e) :
@@ -320,7 +346,7 @@ theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
   · iintro !> %ii %h
     cases h
   ipureintro
-  refine ⟨rfl, fun _ => ?_, exactRels_leaf⟩
+  refine ⟨rfl, fun _ => ?_, exactRels_leaf, fun ii h => by cases h⟩
   intro ii tii h
   cases h
 
@@ -343,20 +369,23 @@ theorem applyErrIs_leaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk
   isplitl
   · iapply _root_.Perennial.errors.errorWalkTree_leaf e target h.2.1 h.2.2.1
   ipureintro
-  exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1, exactRels_leaf⟩
+  exact ⟨rfl, fun _ => _root_.Perennial.errors.treeTyped_pointer e target h.1, exactRels_leaf,
+    deTyped_single e (deTypedErr_ptr e h.1)⟩
 
 /-- **A leaf error that is not a pointer** (as `context.DeadlineExceeded`'s
 `deadlineExceededError{}`): no `Is`, `As` or `Unwrap` method, a dynamic type that is not a pointer
 type (so no pointer target has its type: `TreeTyped` holds of every target `wp_Is` takes), a safe
 key of a map (its `==` with itself does not panic), without a `GRPCStatus` method (k8s etcd3 7c,
-HS-6), whose `Error()` returns. -/
+HS-6), whose `Error()` returns. If it is of type `deadlineExceededError`, it holds
+`deadlineExceededError{}` (`hde`, Go's typing; errors-is-deadline, 2026-11-23). -/
 theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfaceOk) (hleaf : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
     (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
     (hG : methodSet e.ty !! go!"GRPCStatus" = none)
     (hF : methodSet e.ty !! go!"Format" = none ∧
-      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
+    (hde : deTypedErr e) :
     errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
   iintro #Hm
   iunfold applyErrIs
@@ -374,18 +403,25 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
   isplitl
   · iapply _root_.Perennial.errors.errorWalkTree_leaf e target hleaf hIs
   ipureintro
-  refine ⟨rfl, fun hpt ii tii hii ht hty' => ?_, exactRels_leaf⟩
+  refine ⟨rfl, fun hpt ii tii hii ht hty' => ?_, exactRels_leaf, deTyped_single e hde⟩
   cases hii
   obtain ⟨T, l, hT, -⟩ := hpt tii ht
   exact absurd (hty'.trans hT) (hty T)
 
 /-- **The exact error tree of `err`**, as `applyErrIs` states it (its first conjunct,
-`applyErrIs_walk`). -/
+`applyErrIs_walkDE`). -/
 abbrev errTreeOk (err : GoInterface) : IProp GF :=
   iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (I : GoInterfaceOk → Bool → Prop)
       (U : GoInterfaceOk → List GoInterface → Prop),
     _root_.Perennial.errors.errorWalkTree (GF := GF) S I U target ∗
-    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U⌝)
+    ⌜S err ∧ (ptrTarget target → _root_.Perennial.errors.TreeTyped S target) ∧ exactRels I U ∧
+      deTyped S⌝)
+
+/-- An `applyErrIs` error's exact tree, with its typing (`errTreeOk`). -/
+theorem applyErrIs_walkDE (err : GoInterface) : applyErrIs (GF := GF) err ⊢ errTreeOk err := by
+  iunfold applyErrIs
+  iintro ⟨#H, -, -⟩
+  iexact H
 
 open Iris.ProofMode in
 /-- An error's node in a larger tree with larger relations is a node there. -/
@@ -464,7 +500,7 @@ theorem errTreeOk_wrap (ii : GoInterfaceOk) (mid : GoInterface) (pre : GoString)
       iapply errorWalkNode_mono S _ I _ U _ target j (fun e h => Or.inr h)
         (fun b h => Or.inr ⟨hji, h⟩) (fun cs h => Or.inr ⟨hji, h⟩) $$ Hn
   · ipureintro
-    refine ⟨Or.inl rfl, fun hpt ii' tii hii' ht hty => ?_, ?_, ?_⟩
+    refine ⟨Or.inl rfl, fun hpt ii' tii hii' ht hty => ?_, ⟨?_, ?_⟩, ?_⟩
     · rcases hii' with h | h
       · cases h
         obtain ⟨T, l, -, hl⟩ := hptr
@@ -475,13 +511,17 @@ theorem errTreeOk_wrap (ii : GoInterfaceOk) (mid : GoInterface) (pre : GoString)
       · rfl
       · exact absurd h0 hne'
       · exact absurd h1 hne
-      · exact HS.2.2.1 j b b' h h'
+      · exact HS.2.2.1.1 j b b' h h'
     · intro j cs cs' h h'
       rcases h with ⟨h0, rfl⟩ | ⟨hne, h⟩ <;> rcases h' with ⟨h1, rfl⟩ | ⟨hne', h'⟩
       · rfl
       · exact absurd h0 hne'
       · exact absurd h1 hne
-      · exact HS.2.2.2 j cs cs' h h'
+      · exact HS.2.2.1.2 j cs cs' h h'
+    · intro j hj
+      rcases hj with h | h
+      · cases h; exact deTypedErr_ptr ii hptr
+      · exact HS.2.2.2 j h
 
 open Iris.ProofMode in
 /-- **The tree of a chain of `%w` wraps** (`fmt.wrapChain`) down to an error whose tree is known:
@@ -511,7 +551,7 @@ theorem errTreeOk_chain [_root_.Perennial.errors.Assumptions]
         iunfold errMsgOk
         iexists _
         iexact Hs
-      iapply applyErrIs_walk $$ HA
+      iapply applyErrIs_walkDE $$ HA
     · iapply errTreeOk_wrap ii mid pre $$ Hw
       iapply ih mid $$ Hch Ht
 
@@ -530,7 +570,7 @@ theorem applyErrIs_ctxWrap [_root_.Perennial.errors.Assumptions] (err : GoInterf
   iunfold go_etcd_io.etcd.cache.v3.ctxWrapErr at Hw'
   icases Hw' with ⟨%pres, %c, %Hp, #Hch, #Hce⟩
   ihave #HAc := Hctx $$ Hce
-  ihave #Htc := applyErrIs_walk c $$ HAc
+  ihave #Htc := applyErrIs_walkDE c $$ HAc
   ihave #Hte := errTreeOk_chain hleaf pres err c $$ Hch Htc
   iunfold applyErrIs
   isplitl

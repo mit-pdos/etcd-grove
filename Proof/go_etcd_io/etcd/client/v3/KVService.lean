@@ -169,6 +169,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+end reply
+
+section replyHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A log the server certified to the client** (persistent; strict M1, 2026-11-06: in place of
 mvcc's `idxCert ∗ certOk`): a floor of the server's committed log (`srvApi.kvLogLb`), the apply
 chain's witness of it (`E.Nx`: the KV model of a committed raft prefix, at the server's
@@ -183,6 +193,16 @@ instance srvLogCert_persistent (E : apply.AEnv GF) (log : mvcc.Log) :
     Persistent (srvLogCert E log) := by
   unfold srvLogCert; infer_instance
 
+end replyHF
+
+section reply
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
 open Iris.ProofMode in
 /-- **A certified log is a well-formed small log** (D48; strict M1: as the server's
 `srvApi.logOk_of_receipt`, by `preceipt_lt`). -/
@@ -194,6 +214,16 @@ theorem srvLogCert_logOk (E : apply.AEnv GF) (log : mvcc.Log) (hrb : receiptBoun
   ipureintro
   refine ⟨Hp.1, by omega, ?_⟩
   unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
+
+end reply
+
+section replyHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **What a successful `Txn` of `t` delivers to the client** with the reply's message `m`, for a
 client that knows the committed index `c` and has the floor `F` (the vertical slice's unit V2).
@@ -251,11 +281,31 @@ instance txnRevLb_persistent (γk : KVNames) (t : TxnModel) (m : TxnRespM) :
     Persistent (txnRevLb (GF := GF) γk t m) := by
   unfold txnRevLb; split <;> infer_instance
 
+end replyHF
+
+section reply
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
 theorem txnRevLb_same (γk γk' : KVNames) (h : kvSame γk γk') (t : TxnModel) (m : TxnRespM) :
     txnRevLb (GF := GF) γk t m ⊢ txnRevLb γk' t m := by
   unfold txnRevLb; split
   · exact .rfl
   · exact kvRevLb_same γk γk' h m.hdr.revision
+
+end reply
+
+section replyHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's spec of the KV service's `Txn`** (the vertical slice's unit V2; a predicate
 transformer, as `etcdPutSpec`): a caller asking a transaction `t` of plain operations (no nested
@@ -270,8 +320,8 @@ linearized at the reply carries (unit W-M3: in `txnReplied`, at the state of the
 met); a read-only one takes none (`Q` trivial) or, linearizable (unit W-M3), a read update
 (`kvReadAu`, at the read names, as `etcdRangeSpec`'s), whose `□ Q` at the state of the log read
 the reply carries. -/
-def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
-    GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse :=
+def etcdTxnSpecW (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
+    TxnModel → (TxnRespM → IProp GF) → IProp GF :=
   fun (t : TxnModel) (Φ : TxnRespM → IProp GF) =>
     iprop(⌜TxnModel.plain t ∧ txnModelIn t⌝ ∗ ∃ Q : KVState → IProp GF,
       (⌜txn.txnReadonly t = true ∧ Q = fun _ => iprop(True)⌝ ∨
@@ -282,6 +332,23 @@ def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
       srvApi.kvLogLb E.γs F ∗
       ∀ m : TxnRespM, txnReplied E γw γr c F t Q cid mid m -∗ txnRevLb γw.kv t m -∗ Φ m)
 
+end replyHF
+
+section reply
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
+/-- **`etcdTxnSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec is
+`etcdTxnSpecW`, over the models alone, what a service table holds; this is its form at the message
+types). -/
+def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbTxnRequest pbTxnResponse :=
+  etcdTxnSpecW E γw γr cid mid
+
 end reply
 
 section defs
@@ -290,6 +357,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **What a successful `Put` of `o` tells the client** about the reply's message `m` (persistent;
 see the file header): since 2026-10-14 (unit C2a) with the witness that the log after is applied
@@ -351,6 +428,16 @@ def putReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
     srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
     (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
 open Iris.ProofMode in
 /-- A delivered put's result, weakened (2026-10-19, D21 M6). -/
 theorem putReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
@@ -370,32 +457,96 @@ theorem putReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o 
   · ipureintro; exact Hlt
   iapply h $$ HQ
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of the KV service's `Put`** (a predicate transformer; see the file header): a
 caller asking the put `o` gets a reply message `m` with `putReplied` (`putReplyOk`, with its
 witness at the read names `γr` (2026-10-14, unit C2a), and the revision's token), at a log
 extending the caller's floor `F` (the vertical slice's unit V2); since 2026-10-15 (unit T2) a put
 with no lease (any other flags) with the caller's persistent update over the whole state
 `kvOpAu (.put o) Q`, whose `□ Q` of the state it linearized at the reply carries. -/
-def etcdPutSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
-    GrpcSpec (GF := GF) pbPutRequest pbPutResponse :=
+def etcdPutSpecW (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    OpFull → (PutRespM → IProp GF) → IProp GF :=
   fun (o : OpFull) (Φ : PutRespM → IProp GF) =>
     iprop(∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.leaseID = W64 0⌝ ∗ kvOpAu1 γr.kv (.put o) Q ∗
           ∀ m : PutRespM, putReplied E γr F o Q cid mid m -∗ kvRevLb γr.kv m.hdr.revision -∗
             Φ m)
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
+/-- **`etcdPutSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec is
+`etcdPutSpecW`, over the models alone, what a service table holds; this is its form at the message
+types). -/
+def etcdPutSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbPutRequest pbPutResponse :=
+  etcdPutSpecW E γr cid mid
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of the KV service's `Range`**: a caller that knows the committed index `c`
 (`committedAtLeast γr c`; `0` is free) asking the range `o` gets a reply message `m` with
 `rangeReplyOk` at `c`; since 2026-10-14 (unit T1) with the caller's persistent read update
 (`kvReadAu`, over the whole state since 2026-10-15, unit T2: a linearizable range), or none (`Q`
 trivial). -/
-def etcdRangeSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
-    GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse :=
+def etcdRangeSpecW (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    OpFull → (RangeRespM → IProp GF) → IProp GF :=
   fun (o : OpFull) (Φ : RangeRespM → IProp GF) =>
     iprop(∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF), committedAtLeast γr c ∗
       srvApi.kvLogLb E.γs F ∗
       (⌜Q = fun _ => iprop(True)⌝ ∨ (⌜o.base.serializable = false⌝ ∗ kvReadAu γr.kv Q)) ∗
       ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗ Φ m)
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
+/-- **`etcdRangeSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec is
+`etcdRangeSpecW`, over the models alone, what a service table holds; this is its form at the message
+types). -/
+def etcdRangeSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbRangeRequest pbRangeResponse :=
+  etcdRangeSpecW E γr cid mid
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **A failed `Range`'s reply facts** (persistent; k8s etcd3 7c-2 part 2, S6, 2026-11-06): what
 the caller learns when `Range` fails with mvcc's future-revision or compacted error, `P` the
@@ -423,8 +574,8 @@ instance rangeErrReply_persistent (E : apply.AEnv GF) (γr : ReadNames) (c : w64
 check refuses it (`v3rpc.rangeCheck`), at the future revision's and the compacted one's descriptions
 from the read's facts at the error (`rangeErrReply`). `KVServiceOn.etcdRangeSpecM false`'s, without
 its auth parts (`etcdRangeSpecE_M`, `etcdRangeSpecM_E`), which are trivial with auth off. -/
-def etcdRangeSpecE (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
-    GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse :=
+def etcdRangeSpecEW (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcMd → OpFull → (RangeRespM → IProp GF) → (GoString → IProp GF) → IProp GF :=
   fun _md (o : OpFull) (Φ : RangeRespM → IProp GF) (Ψe : GoString → IProp GF) =>
     iprop(∃ (c : w64) (F : mvcc.Log) (Q : KVState → IProp GF), committedAtLeast γr c ∗
       srvApi.kvLogLb E.γs F ∗
@@ -435,13 +586,30 @@ def etcdRangeSpecE (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
           Ψe go_etcd_io.etcd.cache.v3.compactedDesc)) ∗
       ∀ m : RangeRespM, rangeReplyOk E γr c F o cid mid Q m -∗ Φ m)
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
+/-- **`etcdRangeSpecEW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec is
+`etcdRangeSpecEW`, over the models alone, what a service table holds; this is its form at the
+message types). -/
+def etcdRangeSpecE (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpecMd (GF := GF) pbRangeRequest pbRangeResponse :=
+  etcdRangeSpecEW E γr cid mid
+
 /-- `etcdRangeSpec`'s caller, giving the error outcome at every description, meets
 `etcdRangeSpecE`. -/
 theorem etcdRangeSpec_E (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
     ∀ md o Φ Ψe, GrpcSpec.md (etcdRangeSpec (GF := GF) E γr cid mid) md o Φ Ψe ⊢
       |==> etcdRangeSpecE E γr cid mid md o Φ Ψe := by
   intro md o Φ Ψe
-  unfold GrpcSpec.md etcdRangeSpec etcdRangeSpecE
+  unfold GrpcSpec.md etcdRangeSpec etcdRangeSpecW etcdRangeSpecE etcdRangeSpecEW
   iintro ⟨⟨%c, %F, %Q, #Hc, #HF, Hq, Hk⟩, #HΨe⟩
   imodintro
   iexists c, F, Q
@@ -451,6 +619,16 @@ theorem etcdRangeSpec_E (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
   isplit
   · iintro -; iapply HΨe
   · iintro -; iapply HΨe
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **What a successful `DeleteRange` of `o` tells the client** about the reply's message `m`
 (persistent): the apply thread's application of the delete `op'` the proposed data decode to
@@ -497,6 +675,16 @@ def deleteReplied (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFu
     srvLogCert E x'.log ∗ revMinted E x.log x'.log ∗ appliedWit γr x'.log ∗ ⌜mvcc.LogPutsLe etcdKeyMax x'.log⌝ ∗
     (∃ lt, ⌜E.authOn = false ∨ γr.kv.lm = .none → lt = []⌝ ∗ Q (kvStateOf x.log lt)))
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
 open Iris.ProofMode in
 /-- A delivered delete's result, weakened (2026-10-20, linkv-txn stage A). -/
 theorem deleteReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (o : OpFull)
@@ -516,30 +704,84 @@ theorem deleteReplied_mono (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) 
   · ipureintro; exact Hlt
   iapply h $$ HQ
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of the KV service's `DeleteRange`**: a caller asking the delete `o` gets a
 reply message `m` with `deleteReplied` (`deleteReplyOk` and the revision's token); since
 2026-10-15 (unit T2) a delete whose range end is not `[0]` (the wire keeps it), with the caller's
 update over the whole state, fired at most once since 2026-10-20 (linkv-txn stage A, as `Put`
 since D21 M6) `kvOpAu1 (.deleteRange o) Q`, whose `Q` of the state it linearized at the reply
 carries. -/
-def etcdDeleteSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
-    GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
+def etcdDeleteSpecW (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    OpFull → (DelRespM → IProp GF) → IProp GF :=
   fun (o : OpFull) (Φ : DelRespM → IProp GF) =>
     iprop(∃ F : mvcc.Log, srvApi.kvLogLb E.γs F ∗
       ∃ Q : KVState → IProp GF, ⌜o.base.rangeEnd ≠ [W8 0]⌝ ∗ kvOpAu1 γr.kv (.deleteRange o) Q ∗
       ∀ m : DelRespM, deleteReplied E γr F o Q cid mid m -∗ Φ m)
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
+/-- **`etcdDeleteSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec is
+`etcdDeleteSpecW`, over the models alone, what a service table holds; this is its form at the
+message types). -/
+def etcdDeleteSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbDeleteRangeRequest pbDeleteRangeResponse :=
+  etcdDeleteSpecW E γr cid mid
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's spec of the KV service's `Compact`** (the client's `kv.Compact`, 2026-11-01): a caller
 asking a compaction at a revision past `0` (M2's scope) at least the cluster's retention behind
 one the KV has reached (`kvRevLbZ`, C3's server stage, 2026-11-02), not
 physical, on a compacting server (`γr.kv.cmp`, M2's scope), gets a reply message with the
 member's header. A compaction is not a state change of the clients' KV (M2's A4): no update. -/
-def etcdCompactSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
-    GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
+def etcdCompactSpecW (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    CompactReqM → (CompactRespM → IProp GF) → IProp GF :=
   fun (o : CompactReqM) (Φ : CompactRespM → IProp GF) =>
     iprop(⌜1 ≤ sint.Z o.revision ∧ o.physical = false ∧ γr.kv.cmp = true⌝ ∗
       kvRevLbZ γr.kv (sint.Z o.revision + γr.kv.cret) ∗
       ∀ m : CompactRespM, ⌜m.hdr.clusterId = cid ∧ m.hdr.memberId = mid⌝ -∗ Φ m)
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+
+/-- **`etcdCompactSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the spec
+is `etcdCompactSpecW`, over the models alone, what a service table holds; this is its form at the
+message types). -/
+def etcdCompactSpec (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    GrpcSpec (GF := GF) pbCompactionRequest pbCompactionResponse :=
+  etcdCompactSpecW E γr cid mid
 
 end defs
 
@@ -914,7 +1156,7 @@ theorem putSpec_of (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KVSta
   exact anySpec_intro _ _ _ _ (fun x : SrvAt GF => srvApi.kvLogLb x.E.γs F)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.put o) Q) (fun x hx => by
       iintro ⟨#HFx, Haux⟩
-      unfold etcdPutSpec
+      unfold etcdPutSpec etcdPutSpecW
       iexists F
       iframe HFx
       iexists Q
@@ -938,7 +1180,7 @@ theorem rangeSpec_of (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull
       (⌜o.base.serializable = false⌝ ∗ kvReadAu x.γr.kv Q)))
     (fun x hx => by
       iintro ⟨⟨#Hcx, #HFx⟩, Hdqx⟩
-      unfold etcdRangeSpec
+      unfold etcdRangeSpec etcdRangeSpecW
       iexists c, F, Q
       iframe Hcx HFx Hdqx
       iintro %m Hm
@@ -1071,7 +1313,7 @@ theorem rangeSpecE_of (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFul
   icases Hcx with ⟨#Hc, #HF⟩
   ihave Hdq := (BigAndL.bigAndL_mem (Φ := fun x : SrvAt GF => iprop(⌜Q = fun _ => iprop(True)⌝ ∨
     (⌜o.base.serializable = false⌝ ∗ kvReadAu x.γr.kv Q))) hx) $$ HR
-  unfold etcdRangeSpecE
+  unfold etcdRangeSpecE etcdRangeSpecEW
   iexists c, F, Q
   iframe Hc HF Hdq
   isplitr
@@ -1108,7 +1350,7 @@ theorem deleteSpec_of (ms : List (SrvAt GF)) (F : mvcc.Log) (o : OpFull) (Q : KV
   exact anySpec_intro _ _ _ _ (fun x : SrvAt GF => srvApi.kvLogLb x.E.γs F)
     (fun x : SrvAt GF => kvOpAu1 x.γr.kv (.deleteRange o) Q) (fun x hx => by
       iintro ⟨#HFx, Haux⟩
-      unfold etcdDeleteSpec
+      unfold etcdDeleteSpec etcdDeleteSpecW
       iexists F
       iframe HFx
       iexists Q
@@ -1132,7 +1374,7 @@ theorem txnSpec_of (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (t : TxnModel
     (fun x : SrvAt GF => txnUpdAt x.γr x.γr t Q)
     (fun x hx => by
       iintro ⟨⟨#Hcx, #HFx⟩, Hu⟩
-      unfold etcdTxnSpec
+      unfold etcdTxnSpec etcdTxnSpecW
       isplitl []
       · ipureintro; exact ⟨hp, hin⟩
       iexists Q

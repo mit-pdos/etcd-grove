@@ -138,7 +138,7 @@ theorem etcd_leaseTTLHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
       iexists w.Header', w.Keys'
       iframe #
       ipureintro; exact Hhn
-    · iunfold etcdLeaseTTLSpec at Hspec
+    · iunfold etcdLeaseTTLSpec, etcdLeaseTTLSpecW at Hspec
       iapply Hspec
       ipureintro
       simp only
@@ -227,7 +227,7 @@ theorem etcd_leaseLeasesHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
       iexists w.Header', w.Leases', ps
       iframe #
       ipureintro; exact ⟨Hhn, Hlen⟩
-    · iunfold etcdLeaseLeasesSpecAny at Hspec
+    · iunfold etcdLeaseLeasesSpecAny, etcdLeaseLeasesSpecAnyW at Hspec
       iapply Hspec
       ipureintro; exact Hnd
   · imodintro

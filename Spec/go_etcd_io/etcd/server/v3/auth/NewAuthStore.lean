@@ -128,6 +128,14 @@ at the etcd pin):
   token provider's `disable()`, unlocks and returns `nil`. It reads nothing else and writes nothing,
   so any number of `Close`s, before or after the other methods, is fine (`TestBksCloseAfterNew`,
   `notes/axiom-review/auth-close.md`).
+
+(errors-is-deadline, 2026-11-23) Since then the errors its contracts promise as `applyErrIs` (the
+auth checks' `authApplyErrIs`) also say that the error tree's errors of type
+`context.deadlineExceededError` hold `deadlineExceededError{}` (`deTyped`). Go's typing makes this
+true of every Go error: `deadlineExceededError` is a field-less struct type, whose only value is
+`deadlineExceededError{}`. The model does not type interface values, and `togRPCError` compares the
+error with `context.DeadlineExceeded`, so the fact is stated. It was accepted by the coordinator
+under the user's approval of the same typing class (2026-11-23), and review was requested on #31.
 -/
 abbrev auth.NewAuthStore.spec : Prop :=
   ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)

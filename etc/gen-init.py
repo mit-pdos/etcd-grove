@@ -255,6 +255,12 @@ def instances(proof='Proof/'):
 
 inv = inventory()
 inst = instances()
+# (net-swap, etcd-dist D2, 2026-11-22) the main tree's `net` is the part `Net/`'s translation (over the
+# net extension; `etc/goose.py`'s `net=Net`), with its `IsPkgInit` instance in `Net/Proof/net/Base.lean`
+# (`isInit`); its `Init.lean` is generated here over the main tree's imports (`Net/`'s own imports the
+# part's copies of `os`'s initializers). `@` marks a full module name.
+inv['net'] = inventory('Net/Code')['net']
+inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -1116,6 +1122,9 @@ trusted initializers of its other variables (models in `TrustedCode/` that do no
             'is_pkg_init_finish', 'unfold isInit closedErr', 'imodintro',
             'iframe HErrClosed HerrClosed', 'iexists _', 'iexact HerrTimeout'],
 )
+
+# (net-swap, 2026-11-22) the main tree's `net` is `Net/`'s: the same initializer proof
+SPECIAL['net'] = NET_SPECIAL['net']
 
 # (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
 # package into the closure) its five error variables, translated `errors.New` calls
@@ -4217,7 +4226,8 @@ def gen(p, cfg=None):
     d = inv[p]
     k = plain(p)
     imods = inst.get(k) or inst.get(p)
-    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else 'Proof.' + imods[0][0].replace('/', '.')
+    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else (
+        imods[0][0][1:] if imods[0][0].startswith('@') else 'Proof.' + imods[0][0].replace('/', '.'))
     cl = closure(p)
     needs_ctx = 'context' in cl
     needs_raft = 'go_etcd_io.raft.v3' in cl
@@ -4660,9 +4670,8 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+# (net-swap, 2026-11-22) etcd/all's, k8s/all's and leaseexpiryN's tables went with their closed theorems
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
@@ -4679,11 +4688,7 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
@@ -5347,6 +5352,10 @@ def dsv_kit_raw(k, base):
     pkgs, programs = getattr(k, 'PKGS', []), getattr(k, 'PROGRAMS', {})
     hyp = list(getattr(k, 'HYP_INITS', []))
     hyp_imports = getattr(k, 'HYP_IMPORTS', 'all')
+    # (a dict: per package, `'all'` for a package it does not list)
+    hyp_mode = (lambda q: hyp_imports.get(q, 'all')) if isinstance(hyp_imports, dict) \
+        else (lambda q: hyp_imports)
+    hyp_none = [q for q in hyp if hyp_mode(q) == 'none']
     main = list(getattr(k, 'MAIN', []))
     main_gen = list(getattr(k, 'MAIN_GEN', main))
     own = set(getattr(k, 'OWN', ()))
@@ -5355,10 +5364,10 @@ def dsv_kit_raw(k, base):
     try:
         CFG_OVERRIDE = NET_SPECIAL
         RAFT_INIT = RAFT_INIT - set(main)  # a `MAIN` package's `Init` is the part's
-        if hyp_imports == 'none':
+        if hyp_none:
             # a hypothesis package's imports, as its `GetIsPkgInitWf` sees them: none (its
             # `Init.lean`), so the programs' tables stop there
-            pkginfo_imports = lambda q: [] if q in hyp else saved_pi(q)
+            pkginfo_imports = lambda q: [] if q in hyp_none else saved_pi(q)
         inv, inst = dict(net_inv), dict(net_inst)
         _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
@@ -5383,9 +5392,9 @@ def dsv_kit_raw(k, base):
         # class `InitHyp`): external here, their imports as `HYP_IMPORTS` says
         for q in hyp:
             inv[q] = dict(inv[q], perennial=True)
-            if hyp_imports == 'none':
+            if hyp_mode(q) == 'none':
                 inv[q]['imports'] = []
-            elif hyp_imports == 'known':
+            elif hyp_mode(q) == 'known':
                 inv[q]['imports'] = [i for i in inv[q]['imports'] if i in inv]
         PERENNIAL_HERE.difference_update(hyp)
         gen_pkgs = [p for p in pkgs if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')] + main_gen

@@ -98,7 +98,14 @@ in a `*url.Error` by `Client.Do`; the child's cause is `Cause(ctx)` or the cause
 `ctx` finds, or one of net/http's own (`errRequestCanceled`, ...), each an error with an `Error()` and no
 `Is` method of the program's. Without it, a context made by `WithDeadlineCause(Background(), d,
 badErr{})` met the premise, and `RenewHTTP` returned a `*url.Error` wrapping `badErr{}`, whose `Is`
-method panics in the `errors.Is` `applyErrIs` claims safe (`TestRenewHTTPCausePanics`). -/
+method panics in the `errors.Is` `applyErrIs` claims safe (`TestRenewHTTPCausePanics`).
+(errors-is-deadline, 2026-11-23) Since then the post's `applyErrIs` also says that the error tree's
+errors of type `context.deadlineExceededError` hold `deadlineExceededError{}` (`deTyped`). Go's
+typing makes this true of every Go error: `deadlineExceededError` is a field-less struct type, whose
+only value is `deadlineExceededError{}`. The model does not type interface values, and `togRPCError`
+compares the error with `context.DeadlineExceeded`, so the fact is stated. It was accepted by the
+coordinator under the user's approval of the same typing class (2026-11-23), and review was
+requested on #31. -/
 abbrev leasehttp.RenewHTTP.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (url : GoString)
     (rt : GoInterface),

@@ -36,7 +36,6 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
-importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 # (wal-link P2 and the data-directory fix, 2026-11-19) the closed theorems' premise `etcdWalAreasInit`
 # (`HWal`) and the areas' allocation at adequacy, which `AdequacyMembers` publicly imports
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WalAreasInit

@@ -6,6 +6,7 @@ public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.go_redis.redis.v8
 public import Dsverify.GeneratedProof.github_com.go_redis.redis.v8.chunk1
 public import Dsverify.GeneratedProof.github_com.go_redis.redis.v8.chunk2
+public import Dsverify.GeneratedProof.github_com.go_redis.redis.v8.chunk3
 
 @[expose] public section
 
@@ -17,6 +18,177 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.go_redis.redis.v8
+
+namespace XInfoStreamFullCmd
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance XInfoStreamFullCmd_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XInfoStreamFullCmd where
+  typedPointstoDef l v dq := iprop(
+    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"baseCmd" l) v.baseCmd' dq ∗
+    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"val" l) v.val' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance XInfoStreamFullCmd_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XInfoStreamFullCmd github_com.go_redis.redis.v8.XInfoStreamFullCmd.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance XInfoStreamFullCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.XInfoStreamFullCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XInfoStreamFullCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.XInfoStreamFullCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.XInfoStreamFullCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XInfoStreamFullCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.XInfoStreamFullCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"val" l) v.val' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance XInfoStreamFullCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.XInfoStreamFullCmd) (val' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"val" l) v.val' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XInfoStreamFullCmd go!"val" l) val' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.XInfoStreamFullCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end XInfoStreamFullCmd
+
+namespace ZSliceCmd
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance ZSliceCmd_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.ZSliceCmd where
+  typedPointstoDef l v dq := iprop(
+    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' dq ∗
+    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance ZSliceCmd_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.ZSliceCmd github_com.go_redis.redis.v8.ZSliceCmd.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance ZSliceCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ZSliceCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.ZSliceCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ZSliceCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ZSliceCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.ZSliceCmd) (val' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) v.val' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZSliceCmd go!"val" l) val' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.ZSliceCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end ZSliceCmd
+
+namespace ZWithKeyCmd
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance ZWithKeyCmd_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.ZWithKeyCmd where
+  typedPointstoDef l v dq := iprop(
+    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' dq ∗
+    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance ZWithKeyCmd_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.ZWithKeyCmd github_com.go_redis.redis.v8.ZWithKeyCmd.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance ZWithKeyCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ZWithKeyCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.ZWithKeyCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ZWithKeyCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance ZWithKeyCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.ZWithKeyCmd) (val' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) v.val' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZWithKeyCmd go!"val" l) val' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.ZWithKeyCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end ZWithKeyCmd
 
 namespace ScanCmd
 section def_
@@ -239,6 +411,228 @@ noncomputable instance GeoLocationCmd_access_store_locations (l : Loc) (v : gith
 
 end def_
 end GeoLocationCmd
+
+namespace GeoSearchLocationQuery
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance GeoSearchLocationQuery_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoSearchLocationQuery where
+  typedPointstoDef l v dq := iprop(
+    "GeoSearchQuery" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' dq ∗
+    "WithCoord" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithCoord" l) v.WithCoord' dq ∗
+    "WithDist" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithDist" l) v.WithDist' dq ∗
+    "WithHash" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithHash" l) v.WithHash' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance GeoSearchLocationQuery_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoSearchLocationQuery github_com.go_redis.redis.v8.GeoSearchLocationQuery.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance GeoSearchLocationQuery_access_load_GeoSearchQuery (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationQuery_access_store_GeoSearchQuery (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (GeoSearchQuery' : github_com.go_redis.redis.v8.GeoSearchQuery) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"GeoSearchQuery" l) GeoSearchQuery' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GeoSearchQuery' := GeoSearchQuery' } : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationQuery_access_load_WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithCoord" l) v.WithCoord' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithCoord" l) v.WithCoord' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationQuery_access_store_WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (WithCoord' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithCoord" l) v.WithCoord' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithCoord" l) WithCoord' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithCoord' := WithCoord' } : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationQuery_access_load_WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithDist" l) v.WithDist' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithDist" l) v.WithDist' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationQuery_access_store_WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (WithDist' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithDist" l) v.WithDist' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithDist" l) WithDist' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithDist' := WithDist' } : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationQuery_access_load_WithHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithHash" l) v.WithHash' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithHash" l) v.WithHash' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationQuery_access_store_WithHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (WithHash' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithHash" l) v.WithHash' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationQuery go!"WithHash" l) WithHash' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithHash' := WithHash' } : github_com.go_redis.redis.v8.GeoSearchLocationQuery) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end GeoSearchLocationQuery
+
+namespace GeoSearchStoreQuery
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance GeoSearchStoreQuery_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoSearchStoreQuery where
+  typedPointstoDef l v dq := iprop(
+    "GeoSearchQuery" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' dq ∗
+    "StoreDist" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"StoreDist" l) v.StoreDist' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance GeoSearchStoreQuery_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoSearchStoreQuery github_com.go_redis.redis.v8.GeoSearchStoreQuery.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance GeoSearchStoreQuery_access_load_GeoSearchQuery (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchStoreQuery) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchStoreQuery_access_store_GeoSearchQuery (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchStoreQuery) (GeoSearchQuery' : github_com.go_redis.redis.v8.GeoSearchQuery) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"GeoSearchQuery" l) v.GeoSearchQuery' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"GeoSearchQuery" l) GeoSearchQuery' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GeoSearchQuery' := GeoSearchQuery' } : github_com.go_redis.redis.v8.GeoSearchStoreQuery) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchStoreQuery_access_load_StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchStoreQuery) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"StoreDist" l) v.StoreDist' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"StoreDist" l) v.StoreDist' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchStoreQuery_access_store_StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchStoreQuery) (StoreDist' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"StoreDist" l) v.StoreDist' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchStoreQuery go!"StoreDist" l) StoreDist' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StoreDist' := StoreDist' } : github_com.go_redis.redis.v8.GeoSearchStoreQuery) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end GeoSearchStoreQuery
+
+namespace GeoSearchLocationCmd
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+
+noncomputable instance GeoSearchLocationCmd_typed_pointsto :
+    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoSearchLocationCmd where
+  typedPointstoDef l v dq := iprop(
+    "baseCmd" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"baseCmd" l) v.baseCmd' dq ∗
+    "opt" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"opt" l) v.opt' dq ∗
+    "val" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"val" l) v.val' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance GeoSearchLocationCmd_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoSearchLocationCmd github_com.go_redis.redis.v8.GeoSearchLocationCmd.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance GeoSearchLocationCmd_access_load_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"baseCmd" l) v.baseCmd' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationCmd_access_store_baseCmd (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (baseCmd' : github_com.go_redis.redis.v8.baseCmd) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"baseCmd" l) v.baseCmd' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"baseCmd" l) baseCmd' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseCmd' := baseCmd' } : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationCmd_access_load_opt (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"opt" l) v.opt' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"opt" l) v.opt' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationCmd_access_store_opt (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (opt' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"opt" l) v.opt' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"opt" l) opt' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opt' := opt' } : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationCmd_access_load_val (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"val" l) v.val' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance GeoSearchLocationCmd_access_store_val (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (val' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"val" l) v.val' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchLocationCmd go!"val" l) val' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := val' } : github_com.go_redis.redis.v8.GeoSearchLocationCmd) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end GeoSearchLocationCmd
 
 namespace GeoPosCmd
 section def_

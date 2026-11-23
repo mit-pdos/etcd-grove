@@ -51,38 +51,128 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [EM : EtcdModel GF]
 
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseGrant` at the lessor `γl`** (see the file header): any request gets a
 reply whose lease ID is not `NoLease`, whose header revision etcd has reached, and whose lease was
 granted at some index of the lessor's history (one member's: see the file header). -/
-def etcdLeaseGrantSpec (γl : GName) :
-    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+def etcdLeaseGrantSpecW (γl : GName) : w64 × w64 → (LeaseGrantRespM → IProp GF) → IProp GF :=
   fun (_ : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
     iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗
       (∃ i : Nat, lease.leaseGrantedAt γl i m.id) -∗ Φ m)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+
+
+/-- **`etcdLeaseGrantSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseGrantSpecW`, over the models alone, what a service table holds; this is its form
+at the message types). -/
+def etcdLeaseGrantSpec (γl : GName) :
+    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  etcdLeaseGrantSpecW γl
+
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's spec of `LeaseGrant` at a success fact `G`** (the lease-expiry plan's X2, 2026-11-04):
 `etcdLeaseGrantSpec` with the fact the reply carries of its lease a parameter
 (`etcdLeaseGrantSpec_eq`: the grant at the history; `etcdLeaseGrantSpecLive`: the lease live in it).
 (2026-11-05, the lease-expiry plan's E3/R5: the granted TTL) `G` takes the request (`(TTL, ID)`)
 before the lease id, so that the fact can bound the lease's TTL by the requested one. -/
-def etcdLeaseGrantSpecG (G : w64 × w64 → w64 → IProp GF) :
-    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+def etcdLeaseGrantSpecGW (G : w64 × w64 → w64 → IProp GF) :
+    w64 × w64 → (LeaseGrantRespM → IProp GF) → IProp GF :=
   fun (req : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
     iprop(∀ m : LeaseGrantRespM, ⌜m.id ≠ W64 0⌝ -∗ etcdReached m.hdr.revision -∗ G req m.id -∗
       Φ m)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+
+
+/-- **`etcdLeaseGrantSpecGW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseGrantSpecGW`, over the models alone, what a service table holds; this is its form
+at the message types). -/
+def etcdLeaseGrantSpecG (G : w64 × w64 → w64 → IProp GF) :
+    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  etcdLeaseGrantSpecGW G
 
 /-- `etcdLeaseGrantSpec` is `etcdLeaseGrantSpecG` at the grant at the history. -/
 theorem etcdLeaseGrantSpec_eq (γl : GName) :
     etcdLeaseGrantSpec (GF := GF) γl =
       etcdLeaseGrantSpecG (fun _ id => iprop(∃ i : Nat, lease.leaseGrantedAt γl i id)) := rfl
 
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseGrant` at a success fact `G`, for the requests of a filter `R`** (the
 lease-expiry plan's E3, 2026-11-04): `etcdLeaseGrantSpecG`, the caller also showing that its request
 (`(TTL, ID)`) is one `R` covers. -/
+def etcdLeaseGrantSpecGRW (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) :
+    w64 × w64 → (LeaseGrantRespM → IProp GF) → IProp GF :=
+  fun (m : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
+    iprop(⌜R m⌝ ∗ etcdLeaseGrantSpecGW G m Φ)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+
+
+/-- **`etcdLeaseGrantSpecGRW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseGrantSpecGRW`, over the models alone, what a service table holds; this is its form
+at the message types). -/
 def etcdLeaseGrantSpecGR (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) :
     GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
-  fun (m : w64 × w64) (Φ : LeaseGrantRespM → IProp GF) =>
-    iprop(⌜R m⌝ ∗ etcdLeaseGrantSpecG G m Φ)
+  etcdLeaseGrantSpecGRW G R
+
+end specs
+
+section specsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **etcd's spec of `LeaseGrant` at the lessor `γl`, in any lease mode** (the lease-expiry plan's
 X2, 2026-11-04): a request with `ID = 0` (E3, 2026-11-04, the user's: generated ids only, as
@@ -99,11 +189,27 @@ which no consumer reads since `leaseReqIs`.) (Review r1 F13) `leaseReqIs γl`, l
 γl`, is one member's (the lessor `γl`'s) ghost state: a client asking `TimeToLive` at another member
 cannot use it. The cluster-level form is the log's grant entry (`appliedTable`'s `(id, ttl)`) with a
 per-member law tying each lessor's request of the id to it (the plan's `srvEver`, a Prove item). -/
-def etcdLeaseGrantSpecLive (γl : GName) :
-    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
-  etcdLeaseGrantSpecGR (fun (req : w64 × w64) id => iprop(∃ (i : Nat) (l : Loc),
+def etcdLeaseGrantSpecLiveW (γl : GName) : w64 × w64 → (LeaseGrantRespM → IProp GF) → IProp GF :=
+  etcdLeaseGrantSpecGRW (fun (req : w64 × w64) id => iprop(∃ (i : Nat) (l : Loc),
       lease.leaseLiveFrom γl i id l ∗ lease.leaseReqIs γl id req.1))
     (fun m => m.2 = W64 0)
+
+end specsHF
+
+section specs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+
+
+/-- **`etcdLeaseGrantSpecLiveW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseGrantSpecLiveW`, over the models alone, what a service table holds; this is its
+form at the message types). -/
+def etcdLeaseGrantSpecLive (γl : GName) :
+    GrpcSpec (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
+  etcdLeaseGrantSpecLiveW γl
 
 end specs
 
@@ -113,27 +219,51 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+end specsL
+
+section specsLHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseLeases` at the lessor `γl`** (see the file header): the caller's grants
 `G` (each granted at some index of this member's lessor: the listing is member-local, see the file
 header) are all listed, and no lease twice. -/
-def etcdLeaseLeasesSpec (γl : GName) :
-    GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+def etcdLeaseLeasesSpecW (γl : GName) : Unit → (LeaseLeasesRespM → IProp GF) → IProp GF :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>
     iprop(∃ G : List w64, ([∗list] id ∈ G, ∃ i : Nat, lease.leaseGrantedAt γl i id) ∗
       ∀ m : LeaseLeasesRespM, ⌜m.ids.Nodup ∧ ∀ id ∈ G, id ∈ m.ids⌝ -∗ Φ m)
+
+end specsLHF
+
+section specsL
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+/-- **`etcdLeaseLeasesSpecW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseLeasesSpecW`, over the models alone, what a service table holds; this is its form
+at the message types). -/
+def etcdLeaseLeasesSpec (γl : GName) :
+    GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+  etcdLeaseLeasesSpecW γl
 
 /-- (S6) The old `LeaseGrant` contract is weaker. -/
 theorem etcdLeaseGrantSpec_any [EM : EtcdModel GF] (γl : GName) (m : w64 × w64)
     (Φ : LeaseGrantRespM → IProp GF) :
     etcdLeaseGrantSpecAny (GF := GF) m Φ ⊢ etcdLeaseGrantSpec γl m Φ := by
-  unfold etcdLeaseGrantSpecAny etcdLeaseGrantSpec
+  unfold etcdLeaseGrantSpecAny etcdLeaseGrantSpecAnyW etcdLeaseGrantSpec etcdLeaseGrantSpecW
   iintro H %r Hid Hr -
   iapply H $$ Hid Hr
 
 /-- (S6) The old `LeaseLeases` contract is weaker (the caller hands in no grant). -/
 theorem etcdLeaseLeasesSpec_any (γl : GName) (m : Unit) (Φ : LeaseLeasesRespM → IProp GF) :
     etcdLeaseLeasesSpecAny (GF := GF) m Φ ⊢ etcdLeaseLeasesSpec γl m Φ := by
-  unfold etcdLeaseLeasesSpecAny etcdLeaseLeasesSpec
+  unfold etcdLeaseLeasesSpecAny etcdLeaseLeasesSpecAnyW etcdLeaseLeasesSpec etcdLeaseLeasesSpecW
   iintro H
   iexists ([] : List w64)
   isplitr
@@ -181,15 +311,41 @@ def etcdLeaseTTLSpecLive (γl : GName) (s : Loc) :
             lease.leaseAbsentFrom γl m resp.id) -∗
         Φ resp)
 
+end specsLive
+
+section specsLiveHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseLeases` at the lessor `γl`, in the revocable lease mode** (the
 lease-expiry plan's E3, 2026-11-05): the caller hands in a lower bound `m` of the lessor's history,
 and the reply lists the lease ids of a snapshot of the history at an index `≥ m` (`leaseIdsAt`: the
 ids of its lease map, no id twice). -/
-def etcdLeaseLeasesSpecLive (γl : GName) :
-    GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+def etcdLeaseLeasesSpecLiveW (γl : GName) : Unit → (LeaseLeasesRespM → IProp GF) → IProp GF :=
   fun (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) =>
     iprop(∃ m : Nat, lease.lessorLb γl m ∗
       ∀ resp : LeaseLeasesRespM, (∃ j : Nat, ⌜m ≤ j⌝ ∗ lease.leaseIdsAt γl j resp.ids) -∗ Φ resp)
+
+end specsLiveHF
+
+section specsLive
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+
+/-- **`etcdLeaseLeasesSpecLiveW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23:
+the spec is `etcdLeaseLeasesSpecLiveW`, over the models alone, what a service table holds; this is
+its form at the message types). -/
+def etcdLeaseLeasesSpecLive (γl : GName) :
+    GrpcSpec (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
+  etcdLeaseLeasesSpecLiveW γl
 
 /-- A registration with `Spec` is one with `Spec'` if `Spec'` gives `Spec` with the persistent `P`
 (`isGrpcRpc_mono` with a context). -/
@@ -235,7 +391,7 @@ theorem isGrpcRpc_leaseTTL_live_any (addr : GoString) (γl : GName) (s : Loc) (m
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" etcdLeaseTTLSpec := by
   apply isGrpcRpc_mono_with
   intro r Φ
-  unfold etcdLeaseTTLSpec etcdLeaseTTLSpecLive
+  unfold etcdLeaseTTLSpec etcdLeaseTTLSpecW etcdLeaseTTLSpecLive
   iintro ⟨#Hm, H⟩
   iexists m
   iframe Hm
@@ -250,7 +406,7 @@ theorem isGrpcRpc_leaseLeases_live_any (addr : GoString) (γl : GName) (m : Nat)
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" etcdLeaseLeasesSpecAny := by
   apply isGrpcRpc_mono_with
   intro r Φ
-  unfold etcdLeaseLeasesSpecAny etcdLeaseLeasesSpecLive
+  unfold etcdLeaseLeasesSpecAny etcdLeaseLeasesSpecAnyW etcdLeaseLeasesSpecLive etcdLeaseLeasesSpecLiveW
   iintro ⟨#Hm, H⟩
   iexists m
   iframe Hm
