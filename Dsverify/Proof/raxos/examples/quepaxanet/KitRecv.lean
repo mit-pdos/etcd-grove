@@ -376,6 +376,59 @@ theorem wp_receive (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
       wp_for_post
       recv_end
 
+/-- `s.accept(l)` on a listener at client `c`'s address (it never returns). -/
+theorem wp_accept (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
+    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_NewReader : EtcdGrove.bufio.NewReader.specOk (GF := GF) (hG := hG))
+    (γ : QNames) (c : Nat) (s : Loc) (li : GoInterface) (lv : w64) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ isSysL γ c s ∗
+        addrProto (clientAddr c) (clientInProto γ c) silentProto ∗ net.isListener li lv ∗
+        netLis (extLocalGS netExt (L := hG.goose_localGS)) lv (clientAddr c) true ∗
+        netLisAt (extLocalGS netExt (L := hG.goose_localGS)) lv (clientAddr c) }}
+      (App (Val (s @!! go.GoType.PointerType raxos.examples.quepaxanet.Sys.ty @!! go!"accept"))
+        (Val #li))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hsys, #Hpr, #Hli, Hl, #Hla⟩
+  iunfold net.isListener at Hli
+  icases Hli with ⟨%t, %x, %Ht, #Hlt⟩
+  subst Ht
+  have wp_A := net.Listener.Accept.spec_addrOk wp_Accept
+  wp_auto
+  ihave HI : ("Hl" ∷ netLis (extLocalGS netExt (L := hG.goose_localGS)) lv (clientAddr c) true :
+    IProp GF) $$ [Hl]
+  · iframe
+  wp_for HI
+  wp_apply wp_A t lv x (clientAddr c)
+      (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) lv (clientAddr c) true)
+      (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) lv (clientAddr c) true ∗
+        connEnd (Gg := hG.goose_globalGS) cn true silentProto (clientInProto γ c) [] [] ∗
+        connFresh (Gg := hG.goose_globalGS) cn true))
+      $$ [Hl]
+    as %cv %err (⟨%Herr, %cn, #Hcv, Hl, Hend, -⟩ | ⟨%kk, Hl, #Herr⟩)
+  · iframe Hlt Hla
+    iapply accept_au (clientAddr c) (clientInProto γ c) silentProto _ lv true $$ Hpr Hl
+  · subst Herr
+    iunfold net.isConn at Hcv
+    icases Hcv with ⟨%tc, %la, %ra, %Hcv, #Hconn⟩
+    subst Hcv
+    iunfold connEnd at Hend
+    icases Hend with ⟨Hs, Hr⟩
+    ihave #HcIs := sendTok_connIs cn true _ _ $$ Hs
+    ihave Hr := recvTok_L cn true _ _ $$ Hr
+    wp_auto
+    wp_apply wp_fork $$ [Hr]
+    · wp_apply wp_receive wp_Read wp_Close wp_NewReader γ c s tc cn la ra $$ [Hr]
+      · iframe Hsys Hconn HcIs Hr
+      itrivial
+    wp_for_post
+    iframe
+  · ihave %Hne := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
+    wp_auto
+    wp_for_post
+    iframe
+
 end recv
 
 end raxos.examples.quepaxanet
