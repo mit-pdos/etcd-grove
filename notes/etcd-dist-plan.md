@@ -775,6 +775,21 @@ allocation (`allocNOnM`, `srvClusterBootOn_alloc`, `kvInvOn`) has the same cut (
 auth-off one. **(c) and (d) held** (the coordinator, 2026-11-23: they touch files other sessions are editing;
 sequenced on #28).
 
+**Done (2026-11-23, branch `d7-split`; no axiom, no `sorry`, no statement of an existing result changed).**
+- (a) `Proof/.../examples/etcd/dist/ClusterStart.lean`: `cluster_svc_start` (and `cluster_svc_start_list`), proved
+  from `S2Draft`'s fields: for members `ms` (client address, member id) and a `Pub` per member id, from the
+  protocol registry and every member address's `addrUnset`, the slot map once and per member `γE`, the publication
+  invariant and its address set to `etcdSvc γE id`; returns each member's `memberSvcShare` and the clients'
+  persistent `clientSvcFacts` (every member's `kvRegsPub` and publication invariant). `putget_start` is its
+  one-member case (not yet rewritten as its corollary: it lives in the putget skeleton, `putgetGF`).
+- (b) `etcdstart/AllocN.lean`: `clusterFacts` (persistent: `memberBoot_of`'s six persistent arguments),
+  `memberSlice` (a member's exclusive part, today with `nodeBoot`), `memberBoot_of_slice` (a member's boot step),
+  `clusterAllocN` (the cluster's part: `newServerNames_allocL` + `srvClusterBoot_alloc`, returning the facts, the
+  slices over `ids` and the client's `etcdKV`), `memberBoots_of` restated over the slices; `allocN` is now
+  `clusterAllocN` then `memberBoots_of` then the network, its statement unchanged (every driver unchanged).
+  Still at a heap: `clusterAllocN` moves to the global classes with (c) and (d), its statement then the global
+  start's. The auth-on `allocNOnM` is not cut yet (same shape, `clusterFactsOn`).
+
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
 **Decided (the user, 2026-11-22, relayed by the coordinator).** (1) **Retire** the single-process `etcd_robust`/`etcd_safe`,

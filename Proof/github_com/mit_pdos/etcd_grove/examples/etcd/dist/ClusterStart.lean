@@ -64,7 +64,7 @@ theorem cluster_svc_start_list (S : S2Draft GF) (Pub : w64 → S.EnvView → IPr
     iintro #_ #_ _
     imodintro
     iexists []
-    unfold clientSvcFacts
+    iunfold clientSvcFacts
     isplitr
     · ipureintro; rfl
     isplitl
@@ -82,10 +82,10 @@ theorem cluster_svc_start_list (S : S2Draft GF) (Pub : w64 → S.EnvView → IPr
     imodintro
     iexists γE :: γEs
     simp only [List.zip_cons_cons, List.length_cons, Hlen]
-    unfold clientSvcFacts
-    unfold clientSvcFacts at Hcs
+    iunfold clientSvcFacts
+    iunfold clientSvcFacts at Hcs
     isplitr
-    · ipureintro; rfl
+    · ipureintro; simp [Hlen]
     isplitl [Hhalf Hms]
     · iapply BigSepL.bigSepL_cons.2
       isplitl [Hhalf]
