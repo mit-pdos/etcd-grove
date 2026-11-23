@@ -144,6 +144,11 @@ theorem credsLookup_snoc (cms : List (GMap GoString GoString)) (m : GMap GoStrin
     (k : GoString) : credsLookup (cms ++ [m]) k = (m !! k).or (credsLookup cms k) := by
   simp [credsLookup, List.foldl_append]
 
+theorem mapFields_snoc (keys : List GoString) (k : GoString) (look : GoString → Option GoString)
+    (v : GoString) (h : look k = some v) :
+    mapFields (keys ++ [k]) look = mapFields keys look ++ [(k, encMdHdr k v)] := by
+  simp [mapFields, List.filterMap_append, h]
+
 end grpcHdr
 
 open Iris Iris.BI

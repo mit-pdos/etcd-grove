@@ -592,6 +592,89 @@ theorem grpc.createHeaderFields.wp_proof
       refine ⟨?_, Or.inr ⟨d, by simpa using Hif, rfl⟩⟩
       simp only [hfPairs] at Hfs3 ⊢
       simp [Hfs3]
+  iintro (⟨%Hv, %hsl4, %fs4, %tfs, headerFields, Hhf, Hcap, %Hfs4, «$res0», «$res1»⟩ |
+    ⟨%Hv, %e, %sl, %He, «$res0», «$res1»⟩)
+  rotate_left
+  · subst Hv
+    wp_auto
+    ihave Hch : chp ↦{dq} ch $$ [Host Method SendCompress AcceptedCompressors Creds ContentSubtype
+      PreviousAttempts Authority]
+    · iapply typedPointsto_combine _ _ _ Hchnn
+      simp only [TypedPointsto.typedPointstoDef, named]
+      rw [hcreds]
+      iframe
+    iapply HΦ
+    iframe
+    iright
+    ipureintro; exact He
+  subst Hv
+  wp_auto
+  wp_join iprop(∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField)
+      (afs : List (GoString × GoString)),
+      headerFields_ptr ↦ hsl ∗ hsl ↦* fs ∗
+      ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+      ⌜hfPairs fs = grpcHdr.callHdrFields ch acc ua ++ tfs ++ afs ∧
+        grpcHdr.credsFieldsOk cms afs⌝) at next
+    with [headerFields Hhf Hcap Ham k v]
+    as ⟨%hsl5, %fs5, %afs, headerFields, Hhf, Hcap, %Hfs5⟩
+  · icases Ham with (%Hnull | Ham)
+    · obtain ⟨rfl, rfl⟩ := Hnull
+      wp_call
+      isplitr
+      · itrivial
+      iexists _, _, []
+      iframe
+      ipureintro
+      refine ⟨by simp [Hfs4.1], [], ⟨List.nodup_nil, fun k => ?_⟩, rfl⟩
+      rw [← HM.2.2 k]; simp
+    · wp_apply (wp_map_for_range (K := GoString) (V := GoString) (fun keys (j : Int) => iprop(
+          ∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField) (kv vv : GoString),
+          "headerFields" ∷ headerFields_ptr ↦ hsl ∗ "Hhf" ∷ hsl ↦* fs ∗
+          "Hcap" ∷ ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+          "k" ∷ k_ptr ↦ kv ∗ "v" ∷ v_ptr ↦ vv ∗
+          "%Hfj" ∷ ⌜0 ≤ j ∧ hfPairs fs = grpcHdr.callHdrFields ch acc ua ++ tfs ++
+            grpcHdr.mapFields (keys.take j.toNat) (M !! ·)⌝))) $$ Ham
+      iintro %keys ⟨%Hmem, %Hsize, %Hnd⟩
+      isplitl [headerFields Hhf Hcap k v]
+      · iexists _, _, _, _
+        simp only [named]
+        iframe
+        ipureintro
+        refine ⟨by omega, ?_⟩
+        simp [Hfs4.1, grpcHdr.mapFields]
+      isplitr
+      · imodintro
+        iintro %j %key %vl ⟨%Hk, %Hlook⟩ ⟨%hsl, %fs, %kv, %vv, headerFields, Hhf, Hcap, k, v, %Hfj⟩
+        wp_auto
+        wp_apply wp_encodeMetadataHeader
+        append_hf
+        unfold forMapPostcondition
+        iright; ileft
+        isplitr
+        · itrivial
+        iexists _, _, key, vl
+        simp only [named]
+        iframe
+        ipureintro
+        refine ⟨by omega, ?_⟩
+        have htake : keys.take (j + 1).toNat = keys.take j.toNat ++ [key] := by
+          rw [show (j + 1).toNat = j.toNat + 1 by omega, List.take_add_one, Hk]; rfl
+        rw [htake, grpcHdr.mapFields_snoc _ _ _ vl Hlook]
+        simp only [hfPairs] at Hfj ⊢
+        simp [Hfj.2]
+      · iintro ⟨%hsl, %fs, %kv, %vv, headerFields, Hhf, Hcap, k, v, %Hfj⟩ Ham
+        isplitr
+        · itrivial
+        iexists _, _, _
+        iframe
+        ipureintro
+        have htk : keys.take (GMap.size M : Int).toNat = keys := by
+          apply List.take_of_length_le; rw [Hsize]; simp
+        rw [htk] at Hfj
+        refine ⟨Hfj.2, keys, ⟨Hnd, fun k => ?_⟩, ?_⟩
+        · rw [← HM.2.2 k]; exact Hmem k
+        · simp only [grpcHdr.mapFields]
+          congr 1; funext k; rw [HM.2.2 k]
   sorry
 
 end proof
