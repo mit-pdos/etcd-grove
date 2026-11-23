@@ -13,7 +13,9 @@ translate = ["!*", "New", "Message.GetTo", "Message.CloseNotify", "Message.Close
   # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
   "init.0"]
 imports = ["!*", "errors", "io", "github.com/prometheus/client_golang/prometheus",
-  "go.etcd.io/raft/v3/raftpb"]
+  "go.etcd.io/raft/v3/raftpb",
+  # (claim #34 stage 4) `New`'s `zap.NewNop`
+  "go.uber.org/zap"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
