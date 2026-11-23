@@ -612,6 +612,26 @@ proof, `sorry` or axiom. Where they differ from the sketch, and why:
   through `Ready`'s *enter*/`Hlead`); `rawNode_entries` as `[∗list] e ∈ ps.log, entData γ e`; the
   budget laws plus `raftState_open_rn`, `rnTermLB_bound`, the persistence laws.
 
+**Asked for `ReadyOut` by the Sim side (`ReadyOutP`), 2026-11-23:**
+- *Indices* (`ps.log[i].Index' = i + 1`): not a new conjunct; it is `PlogWf base0 ps.log`
+  (`Plog.lean`: `es[k]? = some e → uint.Z e.Index' = uint.Z b.index' + (k + 1)`, at `b = base0`),
+  which `rawNode_wf.law` gives of the node after the `Ready` (`pAccepted ps` has `ps`'s log).
+- *First entry* (`es[0]` is the first conflict with `rs.dur.ents`): **false of raft's code as a post
+  of `RawNode.Ready`**, so not added. `Ready` hands out the unstable entries from
+  `offsetInProgress`, which a truncation moves back and nothing moves forward until the next
+  `Ready`. With two inputs between `Ready`s (which the specs allow, and `node.go` does), a first
+  `MsgApp` of a leader of term `t1` overwrites the durable entry `(i, t0)` with `(i, t1)`, and a
+  second, of a later leader whose log has `(i, t0)` (possible: leader completeness covers committed
+  entries only), writes `(i, t0)` back: `offsetInProgress = i`, so `es[0] = (i, t0)`, equal to the
+  durable entry at `i`. The same holds of a leader that was a follower truncated since the last
+  `Ready` (`first ≠ |L0| + 1`). It is true under the harness's discipline (each input from a state
+  `HasReady` found idle, `PIdle`, then its `Ready`s), but that is not a fact of `rs`/`ps`. A true
+  statement needs the boundary as an index: `ownRawNodeAt` at `ip` (`= offsetInProgress - 1`), the
+  input forms' post `ip' = min ip (the common prefix of ps.log and ps'.log)` (`AppTrunc`'s
+  physical fact), `Ready`'s `es ≠ [] → es[0].Index' = ip + 1` and reset `ip := |ps.log|`; the Sim side
+  then derives the conflict from `PIdle` (`ip = |dur|`) and one `AppEnd`. Not done: it changes
+  every form (open, with the coordinator).
+
 **Not covered: a forwarded proposal.** The harness forwards proposals (`DisableProposalForwarding`
 off), so a leader's `RawNode.Step` receives `MsgProp`s with `From` the follower's id and term `0`.
 Neither `RawNode.Step.spec` (`NetMsgOk`: `MsgProp ∉ netStepTypes`) nor `raft.Step.spec`
