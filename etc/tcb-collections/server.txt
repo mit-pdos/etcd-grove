@@ -138,8 +138,6 @@ axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.LessThan.wp_proof
-axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
@@ -163,6 +161,5 @@ axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.wp_WithTimeout_weak
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

@@ -10,8 +10,16 @@ public import Proof.hash.crc32.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Proof.hash.Init
+public import Proof.internal.byteorder.Init
 public import Proof.hash.crc32.simpleMakeTable
 public import Proof.hash.crc32.simplePopulateTable
+public import Proof.hash.crc32.simpleUpdate
+public import Proof.hash.crc32.slicingMakeTable
+public import Proof.hash.crc32.slicingUpdate
+public import Proof.hash.crc32.archAvailableCastagnoli
+public import Proof.hash.crc32.archInitCastagnoli
+public import Proof.hash.crc32.archUpdateCastagnoli
+public import Proof.internal.byteorder.LEUint32
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -52,12 +60,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoFunc) ieeeInitOnce _ as HieeeInitOnce
+  wp_apply wp_GlobalAlloc (V := GoFunc) updateIEEE _ as HupdateIEEE
+  wp_apply wp_GlobalAlloc (V := Loc) ieeeTable8 _ as HieeeTable8
   wp_apply wp_GlobalAlloc (V := Loc) IEEETable _ as HIEEETable
   wp_apply wp_GlobalAlloc (V := GoFunc) castagnoliInitOnce _ as HcastagnoliInitOnce
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Bool') haveCastagnoli _ as HhaveCastagnoli
+  wp_apply wp_GlobalAlloc (V := GoFunc) updateCastagnoli _ as HupdateCastagnoli
+  wp_apply wp_GlobalAlloc (V := Loc) castagnoliTable8 _ as HcastagnoliTable8
+  wp_apply wp_GlobalAlloc (V := Loc) castagnoliTable _ as HcastagnoliTable
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
-      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (_root_.Perennial.internal.byteorder.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.hash.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of IEEETable))
   try wp_auto
@@ -66,7 +81,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of castagnoliInitOnce))
   try wp_auto
-  wp_apply _root_.Perennial.sync.wp_OnceFunc as %_ -
+  wp_apply _root_.Perennial.sync.wp_OnceFunc as %castagnoliOnce HcastagnoliOnce
   try wp_auto
   -- translated initializer of ieeeInitOnce))
   try wp_auto
@@ -85,6 +100,111 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   ipersist HIEEETable
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HtI with #HtI
+  ipersist HcastagnoliInitOnce
+  ihave Hhc : _root_.Perennial.sync.atomic.ownBool (GF := GF) (globalAddr haveCastagnoli) (DFrac.own 1) false $$ [HhaveCastagnoli]
+  · rw [_root_.Perennial.sync.atomic.ownBool_unseal]
+    unfold _root_.Perennial.sync.atomic.ownBoolDef
+    have e : (zero_val _root_.Perennial.sync.atomic.Bool') =
+        ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :
+          _root_.Perennial.sync.atomic.Bool') := rfl
+    rw [← e]; iexact HhaveCastagnoli
+  imod inv_alloc hash.crc32.crc32N ⊤ hash.crc32.haveInv $$ [Hhc] with #Hinv
+  · inext; iunfold hash.crc32.haveInv; iexists false; iframe
+    simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+  imod HcastagnoliOnce $$ %iprop(globalAddr castagnoliTable ↦ zero_val Loc ∗
+      globalAddr castagnoliTable8 ↦ zero_val Loc ∗ globalAddr updateCastagnoli ↦ zero_val GoFunc)
+      %hash.crc32.castagnoliReady %⊤ [] [HcastagnoliTable HcastagnoliTable8 HupdateCastagnoli] [] with #HcastOnce
+  · iintro !> #HQ; imodintro; iexact HQ
+  · iframe
+  · iintro !> %Φ ⟨HT, HT8, HU⟩ HΦ
+    wp_auto
+    rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]
+    wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof
+      _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %t Ht
+    try wp_auto
+    ipersist HT
+    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ht with #Ht
+    wp_apply _root_.Perennial.EtcdGrove.hash.crc32.archAvailableCastagnoli.wp_proof as %avail -
+    cases avail
+    · -- no fast path: the slicing-by-8 table and its closure
+      try simp only [Bool.false_eq_true, ↓reduceIte]
+      try wp_auto
+      rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]
+      wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.slicingMakeTable.wp_proof
+        _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %t8 Ht8
+      try wp_auto
+      ipersist HT8
+      imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ht8 with #Ht8
+      try wp_auto
+      ipersist HU
+      wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]
+      · iexact Hd4
+      iinv Hinv with Hi Hclose
+      iapply fupd_mask_intro Std.LawfulSet.empty_subset
+      iintro Hmask
+      inext
+      iunfold hash.crc32.haveInv at Hi
+      icases Hi with ⟨%v, Hb, -⟩
+      iexists v
+      iframe Hb
+      iintro Hb
+      imod Hmask with _
+      imod Hclose $$ [Hb] with _
+      · inext; iunfold hash.crc32.haveInv; iexists true; iframe Hb; simp only [↓reduceIte]
+        isplitl []
+        · iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht
+        iexists _; iframe HU
+        iunfold hash.crc32.updSpec
+        iintro %c %s %bs %dq !> %Ψ Hs HΨ
+        wp_auto
+        wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.slicingUpdate.wp_proof
+          _root_.Perennial.EtcdGrove.hash.crc32.simpleUpdate.wp_proof
+          _root_.Perennial.EtcdGrove.byteorder.LEUint32.wp_proof) $$ [Hs] as Hs
+        · iframe Hs; iexact Ht8
+        try wp_auto
+        rw [show _root_.Perennial.hash.crc32.crcUpdate (_root_.Perennial.hash.crc32.crcTableOf
+          _root_.Perennial.hash.crc32.castagnoliPoly) c bs = _root_.Perennial.hash.crc32.crc32c c bs from rfl]
+        iapply HΨ $$ Hs
+      imodintro
+      try wp_auto
+      iapply HΦ
+      iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht
+    · -- the fast path: `archInitCastagnoli()`, `updateCastagnoli = archUpdateCastagnoli`
+      try simp only [↓reduceIte]
+      try wp_auto
+      wp_apply _root_.Perennial.EtcdGrove.hash.crc32.archInitCastagnoli.wp_proof
+      try wp_auto
+      ipersist HU
+      ihave #Hus : (hash.crc32.updSpec (GF := GF) (functions archUpdateCastagnoli [])) $$ []
+      · iunfold hash.crc32.updSpec
+        iintro %c %s %bs %dq !> %Ψ Hs HΨ
+        wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.archUpdateCastagnoli.wp_proof
+          (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof
+            _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof)
+          _root_.Perennial.EtcdGrove.hash.crc32.simpleUpdate.wp_proof) $$ [Hs] as Hs
+        · iexact Hs
+        iapply HΨ $$ Hs
+      wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]
+      · iexact Hd4
+      iinv Hinv with Hi Hclose
+      iapply fupd_mask_intro Std.LawfulSet.empty_subset
+      iintro Hmask
+      inext
+      iunfold hash.crc32.haveInv at Hi
+      icases Hi with ⟨%v, Hb, -⟩
+      iexists v
+      iframe Hb
+      iintro Hb
+      imod Hmask with _
+      imod Hclose $$ [Hb] with _
+      · inext; iunfold hash.crc32.haveInv; iexists true; iframe Hb; simp only [↓reduceIte]
+        isplitl []
+        · iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht
+        iexists _; iframe #
+      imodintro
+      try wp_auto
+      iapply HΦ
+      iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht
   iframe Hown
   imodintro
   isplitr
@@ -92,10 +212,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  unfold hash.crc32.crc32Init hash.crc32.ieeeTableArr
+  unfold hash.crc32.crc32Init
+  isplitl []
+  · unfold hash.crc32.ieeeTableArr
+    iexists _
+    iframe HIEEETable
+    iexact HtI
+  iframe Hinv
   iexists _
-  iframe HIEEETable
-  iexact HtI
+  iframe HcastagnoliInitOnce
+  iexact HcastOnce
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

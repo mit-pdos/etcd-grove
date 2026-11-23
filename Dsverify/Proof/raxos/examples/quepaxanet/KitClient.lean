@@ -108,7 +108,7 @@ theorem Client.wp_proof
     iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Φo
-    iintro !> %Φr ⟨%Hsys', HL⟩ HΦr
+    iintro !> %Φr ⟨%Hsys', HL, -⟩ HΦr
     subst Hsys'
     wp_auto
     wp_apply wp_Op wp_Dial wp_Write wp_Close wp_After γ cn s i Φo $$ [HL] as %v Hv
@@ -126,7 +126,7 @@ theorem Client.wp_proof
       iright
       ipureintro; rfl
   · -- the client's system
-    iintro !> %Φr - HΦr
+    iintro %Φr HΦr
     wp_auto
     iapply HΦr
     ipureintro; rfl

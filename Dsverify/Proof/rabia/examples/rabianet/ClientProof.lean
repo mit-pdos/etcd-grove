@@ -516,7 +516,7 @@ theorem Client.wp_proof (wp_Codec : Codec.spec (GF := GF) (hG := hG))
     iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Φo
-    iintro !> %Φr ⟨⟨%Hsys, #Hs⟩, HL⟩ HΦr
+    iintro !> %Φr ⟨⟨%Hsys, #Hs⟩, HL, -⟩ HΦr
     subst Hsys
     ihave HAU := slotUpd_opAU γ i Φo $$ HL
     simp only [RBase.svc, kvR, inV]
@@ -538,7 +538,7 @@ theorem Client.wp_proof (wp_Codec : Codec.spec (GF := GF) (hG := hG))
       ipureintro
       rw [clampO_val out hok, kvOutV_outVal]
   · -- the client's system
-    iintro !> %Φr - HΦr
+    iintro %Φr HΦr
     wp_auto
     iapply HΦr
     iframe #

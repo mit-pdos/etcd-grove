@@ -397,7 +397,7 @@ theorem Orch.wp_proof [hr : hyp.RandHyp GF]
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_qS, pendLib_qS]
-  wp_start as ⟨Hres, #Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨Hres, #Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   wp_apply wp_CfgAddrs as %cfgs Hcfgs
   wp_apply wp_ClientAddrs as %addrs Haddrs
   wp_apply gens_proof as %gen #Hgen
@@ -424,9 +424,9 @@ theorem Orch.wp_proof [hr : hyp.RandHyp GF]
     omega
   wp_apply wp_Check (qR γ) qS γp m addrs clientAddrs cd gen _ d pendN_raxos lintestN_raxos
     (qS_pendDec γ) (qR_encOut_inj γ) (fun st => qR_timeless γ st) hrb (by rw [hlen']; decide)
-    (by decide) (by rw [hlen']; decide) $$ [Hlib]
+    (by decide) (by rw [hlen']; decide) 60 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     simp only [qR]; iexact Hgen
   iapply HΦ
   itrivial

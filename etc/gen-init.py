@@ -1045,27 +1045,161 @@ says returns.''',
 # (prove-etcdint3, 2026-11-21) `hash/crc32`'s initializer translated (until then the trust-boundary
 # axiom `opaqueInitsOk` of its three variables): `IEEETable = simpleMakeTable(IEEE)`, over its proved
 # spec, and the two `sync.OnceFunc`s (closures not run at initialization)
+# (crc32-hooks2, 2026-11-22, etcd-grove#14) `castagnoliInitOnce`'s triple and `haveCastagnoli`'s
+# invariant (`PkgInit.lean`): the once's function sets up the Castagnoli state, the fast path or
+# the slicing-by-8 one
+_CRC32_ONCE = [
+    'ipersist HcastagnoliInitOnce',
+    'ihave Hhc : _root_.Perennial.sync.atomic.ownBool (GF := GF) (globalAddr haveCastagnoli) (DFrac.own 1) false $$ [HhaveCastagnoli]',
+    '· rw [_root_.Perennial.sync.atomic.ownBool_unseal]',
+    '  unfold _root_.Perennial.sync.atomic.ownBoolDef',
+    "  have e : (zero_val _root_.Perennial.sync.atomic.Bool') =",
+    "      ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :",
+    "        _root_.Perennial.sync.atomic.Bool') := rfl",
+    '  rw [← e]; iexact HhaveCastagnoli',
+    'imod inv_alloc hash.crc32.crc32N ⊤ hash.crc32.haveInv $$ [Hhc] with #Hinv',
+    '· inext; iunfold hash.crc32.haveInv; iexists false; iframe',
+    '  simp only [Bool.false_eq_true, ↓reduceIte]; itrivial',
+    'imod HcastagnoliOnce $$ %iprop(globalAddr castagnoliTable ↦ zero_val Loc ∗',
+    '    globalAddr castagnoliTable8 ↦ zero_val Loc ∗ globalAddr updateCastagnoli ↦ zero_val GoFunc)',
+    '    %hash.crc32.castagnoliReady %⊤ [] [HcastagnoliTable HcastagnoliTable8 HupdateCastagnoli] [] with #HcastOnce',
+    '· iintro !> #HQ; imodintro; iexact HQ',
+    '· iframe',
+    '· iintro !> %Φ ⟨HT, HT8, HU⟩ HΦ',
+    '  wp_auto',
+    '  rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
+    '  wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof',
+    '    _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %t Ht',
+    '  try wp_auto',
+    '  ipersist HT',
+    '  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ht with #Ht',
+    '  wp_apply _root_.Perennial.EtcdGrove.hash.crc32.archAvailableCastagnoli.wp_proof as %avail -',
+    '  cases avail',
+    '  · -- no fast path: the slicing-by-8 table and its closure',
+    '    try simp only [Bool.false_eq_true, ↓reduceIte]',
+    '    try wp_auto',
+    '    rw [show (W32 2197175160) = _root_.Perennial.hash.crc32.castagnoliPoly from rfl]',
+    '    wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.slicingMakeTable.wp_proof',
+    '      _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %t8 Ht8',
+    '    try wp_auto',
+    '    ipersist HT8',
+    '    imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Ht8 with #Ht8',
+    '    try wp_auto',
+    '    ipersist HU',
+    '    wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]',
+    '    · iexact Hd4',
+    '    iinv Hinv with Hi Hclose',
+    '    iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+    '    iintro Hmask',
+    '    inext',
+    '    iunfold hash.crc32.haveInv at Hi',
+    '    icases Hi with ⟨%v, Hb, -⟩',
+    '    iexists v',
+    '    iframe Hb',
+    '    iintro Hb',
+    '    imod Hmask with _',
+    '    imod Hclose $$ [Hb] with _',
+    '    · inext; iunfold hash.crc32.haveInv; iexists true; iframe Hb; simp only [↓reduceIte]',
+    '      isplitl []',
+    '      · iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+    '      iexists _; iframe HU',
+    '      iunfold hash.crc32.updSpec',
+    '      iintro %c %s %bs %dq !> %Ψ Hs HΨ',
+    '      wp_auto',
+    '      wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.slicingUpdate.wp_proof',
+    '        _root_.Perennial.EtcdGrove.hash.crc32.simpleUpdate.wp_proof',
+    '        _root_.Perennial.EtcdGrove.byteorder.LEUint32.wp_proof) $$ [Hs] as Hs',
+    '      · iframe Hs; iexact Ht8',
+    '      try wp_auto',
+    '      rw [show _root_.Perennial.hash.crc32.crcUpdate (_root_.Perennial.hash.crc32.crcTableOf',
+    '        _root_.Perennial.hash.crc32.castagnoliPoly) c bs = _root_.Perennial.hash.crc32.crc32c c bs from rfl]',
+    '      iapply HΨ $$ Hs',
+    '    imodintro',
+    '    try wp_auto',
+    '    iapply HΦ',
+    '    iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+    '  · -- the fast path: `archInitCastagnoli()`, `updateCastagnoli = archUpdateCastagnoli`',
+    '    try simp only [↓reduceIte]',
+    '    try wp_auto',
+    '    wp_apply _root_.Perennial.EtcdGrove.hash.crc32.archInitCastagnoli.wp_proof',
+    '    try wp_auto',
+    '    ipersist HU',
+    '    ihave #Hus : (hash.crc32.updSpec (GF := GF) (functions archUpdateCastagnoli [])) $$ []',
+    '    · iunfold hash.crc32.updSpec',
+    '      iintro %c %s %bs %dq !> %Ψ Hs HΨ',
+    '      wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.archUpdateCastagnoli.wp_proof',
+    '        (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof',
+    '          _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof)',
+    '        _root_.Perennial.EtcdGrove.hash.crc32.simpleUpdate.wp_proof) $$ [Hs] as Hs',
+    '      · iexact Hs',
+    '      iapply HΨ $$ Hs',
+    '    wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]',
+    '    · iexact Hd4',
+    '    iinv Hinv with Hi Hclose',
+    '    iapply fupd_mask_intro Std.LawfulSet.empty_subset',
+    '    iintro Hmask',
+    '    inext',
+    '    iunfold hash.crc32.haveInv at Hi',
+    '    icases Hi with ⟨%v, Hb, -⟩',
+    '    iexists v',
+    '    iframe Hb',
+    '    iintro Hb',
+    '    imod Hmask with _',
+    '    imod Hclose $$ [Hb] with _',
+    '    · inext; iunfold hash.crc32.haveInv; iexists true; iframe Hb; simp only [↓reduceIte]',
+    '      isplitl []',
+    '      · iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+    '      iexists _; iframe #',
+    '    imodintro',
+    '    try wp_auto',
+    '    iapply HΦ',
+    '    iunfold hash.crc32.castagnoliReady; iexists t; iframe HT; unfold castagnoliTableArr; iexact Ht',
+]
+_CRC32_FIN = [
+    'unfold hash.crc32.crc32Init',
+    'isplitl []',
+    '· unfold hash.crc32.ieeeTableArr',
+    '  iexists _',
+    '  iframe HIEEETable',
+    '  iexact HtI',
+    'iframe Hinv',
+    'iexists _',
+    'iframe HcastagnoliInitOnce',
+    'iexact HcastOnce',
+]
 SPECIAL['hash.crc32'] = dict(
     doc='''Its fact (`crc32Init`, `PkgInit.lean`): `IEEETable` holds, read-only, a pointer to the IEEE
-table, read-only. Its initializer allocates its variables, initializes its imports and runs their
-translated initializers: `simpleMakeTable(IEEE)` (`crc32.go:101`, over its spec) and the two
-`sync.OnceFunc(func() {...})` (`castagnoliInitOnce`, `ieeeInitOnce`: Perennial's `sync.wp_OnceFunc`;
-their functions run only when called). (prove-etcdint3, 2026-11-21: until then untranslated, the
-trust-boundary axiom `opaqueInitsOk`, and its fact `True`.)''',
-    imports=['Proof.hash.crc32.simpleMakeTable', 'Proof.hash.crc32.simplePopulateTable'],
-    alloc_types=dict(IEEETable='Loc', castagnoliInitOnce='GoFunc', ieeeInitOnce='GoFunc'),
+table, read-only; `castagnoliInitOnce` a function every call of which returns with the Castagnoli
+table set up (`castagnoliReady`); and `haveInv`, the invariant of `haveCastagnoli` (once true, the
+table is set up and `updateCastagnoli` holds a function computing CRC-32C). Its initializer allocates
+its variables, initializes its imports and runs their translated initializers: `simpleMakeTable(IEEE)`
+(`crc32.go:101`, over its spec) and the two `sync.OnceFunc(func() {...})` (`castagnoliInitOnce`,
+`ieeeInitOnce`: Perennial's `sync.wp_OnceFunc`; their functions run only when called). The proof
+allocates `haveInv` and gives `castagnoliInitOnce`'s function its triple: it sets `castagnoliTable`
+(`simpleMakeTable`), then either the fast path (`archInitCastagnoli`, `archUpdateCastagnoli`: the
+trusted hooks) or the slicing-by-8 table and its closure (`slicingMakeTable`, `slicingUpdate`), and
+stores `true` in `haveCastagnoli`. (prove-etcdint3, 2026-11-21: until then untranslated, the
+trust-boundary axiom `opaqueInitsOk`, and its fact `True`; crc32-hooks2, 2026-11-22, etcd-grove#14:
+the Castagnoli state and once.)''',
+    imports=['Proof.hash.crc32.simpleMakeTable', 'Proof.hash.crc32.simplePopulateTable',
+             'Proof.hash.crc32.simpleUpdate', 'Proof.hash.crc32.slicingMakeTable',
+             'Proof.hash.crc32.slicingUpdate', 'Proof.hash.crc32.archAvailableCastagnoli',
+             'Proof.hash.crc32.archInitCastagnoli', 'Proof.hash.crc32.archUpdateCastagnoli',
+             'Proof.internal.byteorder.LEUint32'],
+    alloc_types=dict(IEEETable='Loc', castagnoliInitOnce='GoFunc', ieeeInitOnce='GoFunc',
+                     castagnoliTable='Loc', castagnoliTable8='Loc', updateCastagnoli='GoFunc',
+                     haveCastagnoli="_root_.Perennial.sync.atomic.Bool'", ieeeTable8='Loc', updateIEEE='GoFunc'),
     before=dict(
         IEEETable=['try wp_auto',
                    'rw [show (W32 3988292384) = _root_.Perennial.hash.crc32.ieeePoly from rfl]',
                    'wp_apply (_root_.Perennial.EtcdGrove.hash.crc32.simpleMakeTable.wp_proof _root_.Perennial.EtcdGrove.hash.crc32.simplePopulateTable.wp_proof) as %tI HtI',
                    'try wp_auto'],
-        castagnoliInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %_ -', 'try wp_auto'],
+        castagnoliInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %castagnoliOnce HcastagnoliOnce', 'try wp_auto'],
         ieeeInitOnce=['try wp_auto', 'wp_apply _root_.Perennial.sync.wp_OnceFunc as %_ -', 'try wp_auto'],
         **{'$end': ['try wp_auto']}),
     finish=['ipersist HIEEETable',
             'imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HtI with #HtI'] +
-           FIN_PRE[:6] +
-           ['imodintro', 'unfold hash.crc32.crc32Init hash.crc32.ieeeTableArr', 'iexists _', 'iframe HIEEETable', 'iexact HtI'],
+           _CRC32_ONCE + FIN_PRE[:6] + ['imodintro'] + _CRC32_FIN,
 )
 # (WAL package init, 2026-11-13) the part's raft root package (names-only): `emptyState`, a
 # translated `&pb.HardState{}`; (W4c U4, 2026-11-14) in its fact (`rootInit`, `PkgInit.lean`), as the
@@ -1215,7 +1349,9 @@ after initializing its imports (`serviceconfig`, `attributes`: types only).''',
 )
 
 _VERS = ['V3_0', 'V3_1', 'V3_2', 'V3_3', 'V3_4', 'V3_5', 'V3_6', 'V3_7', 'V3_8', 'V3_9', 'V4_0']
-_SEMVER_NEW = 'EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof'
+_SEMVER_NEW = ('EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof '
+               '_root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String '
+               '_root_.Perennial.fmt.wp_Fprintf)')
 def semver_new_steps(x):
     """`x = *semver.New(...)`: `semver.New`'s spec (a read-only version), then the load."""
     return ['try wp_auto',
@@ -1240,6 +1376,7 @@ versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, prove
                              'try wp_auto']),
     imports=['Proof.github_com.Masterminds.semver.v3.New',
              'Proof.github_com.Masterminds.semver.v3.Version__String',
+             'Perennial.Proof.bytes.Link',
              'Proof.github_com.Masterminds.semver.v3.NewVersion',
              'Proof.github_com.Masterminds.semver.v3.Version__Major',
              'Proof.github_com.Masterminds.semver.v3.Version__Minor'],
@@ -3622,6 +3759,18 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
     heavy=True,
 ), ['errUnmarshalNilLevel'])
+# (zap-z1, 2026-11-23) zap's internal buffer pool: `zap.Logger.check` reads `Get`
+SPECIAL['go_uber_org.zap.internal.bufferpool'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes `buffer` and runs their
+translated initializers (zap-z1, 2026-11-23: zap's `Logger.check` reads `Get`): `_pool = buffer.NewPool()`
+(`pool.New` of a function literal, proved) and `Get = _pool.Get` (a method value, not called).''',
+    alloc_types={'_pool': '_root_.Perennial.go_uber_org.zap.buffer.Pool', 'Get': 'GoFunc'},
+    before={'_pool': ['try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
+                      'rw [recv_eq_func_mk BAnon BAnon]',
+                      'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pbuf -',
+                      'try wp_auto']},
+    imports=['Proof.go_uber_org.zap.internal.pool.New'],
+)
 # (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
 SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
 SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
@@ -3706,7 +3855,7 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  iexists _',
         '  iframe',
         '  ipureintro',
-        '  exact ⟨⟨_, rfl⟩, rfl, rfl, rfl, rfl⟩',
+        '  exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
         '',
         '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
         'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',
@@ -4776,8 +4925,11 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-# (net-swap, 2026-11-22) etcd/all's, k8s/all's and leaseexpiryN's tables went with their closed theorems
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+# (net-swap, 2026-11-22) etcd/all's, k8s/all's and leaseexpiryN's tables went with their closed theorems;
+# (2026-11-23, etcd-grove#28) restored with them, as `*_single_process` (`notes/single-process-restore.md`)
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
@@ -4794,7 +4946,13 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
+            # (2026-11-23, etcd-grove#28) k8s_safe_single_process's and etcd_leaseexpiryN_safe_single_process's
+            # tables, restored
+            'github_com.mit_pdos.etcd_grove.examples.k8s.all':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
