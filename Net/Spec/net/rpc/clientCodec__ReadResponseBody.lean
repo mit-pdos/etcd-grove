@@ -37,28 +37,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 
-/-- What a body read needs to decode into `body` from the decoding resource `D` (persistent):
-nothing for a `nil` body (the frame is discarded), else a registered codec meeting `C` and, from
-`D`, its `dec` of any payload, `Θ pl` its outcome. -/
-def bodyDec (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
-    (Θ : List w8 → Bool → IProp GF) : IProp GF :=
-  match body with
-  | interface.nil => iprop(True)
-  | interface.ok _ => iprop(codecSet C ∗ □ (D -∗ ∀ pl, C.dec pl body (Θ pl)))
-
-instance bodyDec_persistent (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
-    (Θ : List w8 → Bool → IProp GF) : Persistent (bodyDec C body D Θ) := by
-  cases body <;> unfold bodyDec <;> infer_instance
-
-/-- What a body read of the payload `pl` gives: `nil` and `D` for a `nil` body; else the
-decoding's outcome. -/
-def bodyRes (body : GoInterface) (D : IProp GF) (Θ : List w8 → Bool → IProp GF) (pl : List w8)
-    (err : GoInterface) : IProp GF :=
-  match body with
-  | interface.nil => iprop(⌜err = interface.nil⌝ ∗ D)
-  | interface.ok _ => iprop(∃ ok : Bool, ⌜err = interface.nil ↔ ok = true⌝ ∗ Θ pl ok ∗
-      (if ok then iprop(True) else decErr err))
-
 /-- See the file header. -/
 abbrev clientCodec.ReadResponseBody.spec : Prop :=
   ∀ (c t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (body : GoInterface)

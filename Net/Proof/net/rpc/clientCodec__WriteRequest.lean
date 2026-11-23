@@ -73,7 +73,7 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
   wp_apply wp_putFrame slice.nil [] h2 (DFrac.own 1) _ $$ [$Hn1 $Hn1c $Hh2] as %b1 ⟨Hb1, Hb1c, Hh2⟩
   wp_apply wp_getCodec C $$ Hset as %cd #Hcd
   unfold codecIs
-  icases Hcd with ⟨%v, #Hv, #Henc', #Hdec'⟩
+  icases Hcd with ⟨%v, #Hv, #Henc', #Hdec', -⟩
   iStructNamed Hv
   wp_auto
   unfold encOk

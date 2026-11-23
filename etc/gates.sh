@@ -283,6 +283,13 @@ models/internal/grpcdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 # the encoding/json model (models/encoding/json): its stream tests against the real encoding/json's
 # golden transcripts, in the real build and in the model build (an overlay: goroot.py)
 models/internal/jsonstreamtest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
+# the third-party library models (models/{gods,uuid,concurrent-map}, the dsverify kits'): the same
+# tests against gods v1.18.1, uuid v1.3.1, concurrent-map v1.0.0 and against the models, with equal
+# transcripts
+models/internal/tpdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
+# the log/slog model (models/log/slog): the same tests against Go's log/slog and the model (an
+# overlay: goroot.py), with equal transcripts
+models/internal/slogdifftest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
 if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # clients on machines of their own (examples/lib/remote, notes/remote-port-plan.md): the library's and
 # its counter instance's tests over real sockets (fault proxy, the four commands as processes, a

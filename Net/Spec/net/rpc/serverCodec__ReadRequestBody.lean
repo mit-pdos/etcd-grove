@@ -1,0 +1,75 @@
+/-
+`c.ReadRequestBody(body)` on the model's server codec `c` (`codec.go`), whose `rwc` holds the end
+`s` of the connection `cn` (kept, `↦□`) and whose sticky read error `rerr` the caller owns (`r0`): with
+`r0` not `nil` it returns `r0` with `D` back and reads nothing; otherwise `readFrame` of the next frame (through the caller's reader
+predicate `P` and accessor, as `readFrame.spec`), then, unless `body` is `nil` (the frame is
+discarded), the registered codec's `Decode` of its payload into `body`.
+
+The caller's decoding resource `D` is what it gives up for a decoding; `bodyDec C body D Θ`
+(persistent) says what it is worth: nothing for a `nil` body, else a registered codec meeting `C`
+and, from `D`, the codec's `dec` of any payload into `body`, `Θ pl` its outcome. It returns:
+
+* after a whole frame `frameOf pl` (at most `maxFrameN` bytes): `nil` with `D` for a `nil` body;
+  else the decoding's result `ok` with `Θ pl ok` (`nil` exactly when `ok`, otherwise a decoding
+  error, `decErr`);
+* or a read failure (`errFrame`, `ef`, or `readFrame`'s `readErr`), with `D` back (nothing was
+  decoded), which `rerr` then holds.
+
+Proved in `Net/Proof/net/rpc/serverCodec__ReadRequestBody.lean`.
+-/
+module
+
+public import Net.Spec.net.rpc.readFrame
+public import Net.Proof.net.rpc.Codec
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Net
+
+namespace net.rpc
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
+
+/-- See the file header. -/
+abbrev serverCodec.ReadRequestBody.spec : Prop :=
+  ∀ (c t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (body r0 : GoInterface)
+    (C : CodecSpec GF) (D : IProp GF) (Θ : List w8 → Bool → IProp GF)
+    (P : List w8 → IProp GF) (eof ueof ed ef : GoInterface),
+  {{ structFieldRef net.rpc.serverCodec go!"rwc" c ↦□
+        interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
+      net.connAt (GF := GF) t cn s a la ra ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
+      globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
+      globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ globalAddr net.rpc.errFrame ↦□ ef ∗
+      errors.newVar net.rpc.errFrame go!"rpc: malformed frame" ∗ bodyDec C body D Θ ∗ D ∗ P [] ∗
+      structFieldRef net.rpc.serverCodec go!"rerr" c ↦ r0 ∗
+      □ (∀ (got : List w8) (m : Nat), P got -∗
+        |={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗
+          netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d ∗
+          ∀ r d', ⌜ReadOutcome st d m r d'⌝ -∗
+            netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st -∗
+            netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d' ={∅,⊤}=∗
+              P (got ++ r.got)) }}
+    (App (Val (c @!! go.GoType.PointerType net.rpc.serverCodec.ty @!! go!"ReadRequestBody"))
+      (Val #body))
+  {{ (err : GoInterface), RET #err;
+      (⌜r0 ≠ interface.nil ∧ err = r0⌝ ∗ P [] ∗ D ∗
+          structFieldRef net.rpc.serverCodec go!"rerr" c ↦ r0) ∨
+      (⌜r0 = interface.nil⌝ ∗ ∃ got : List w8, P got ∗
+        ((∃ pl : List w8, ⌜got = frameOf pl ∧ pl.length ≤ maxFrameN⌝ ∗ bodyRes body D Θ pl err ∗
+            structFieldRef net.rpc.serverCodec go!"rerr" c ↦ interface.nil) ∨
+          ⌜err ≠ interface.nil⌝ ∗ D ∗
+            (⌜err = ef⌝ ∨ readErr la ra eof ueof ed true got err) ∗
+            structFieldRef net.rpc.serverCodec go!"rerr" c ↦ err)) }}
+
+end spec
+
+end net.rpc
+end Perennial

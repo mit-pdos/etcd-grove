@@ -25,6 +25,77 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
+
+- **Spec.** `models/net/rpc/codec.go` (the model, trusted): `serverCodec` gains `rerr`, the first frame read
+  error, which every later `ReadRequestHeader`/`ReadRequestBody` returns without reading.
+  `Net/Spec/net/rpc/serverCodec__{ReadRequestHeader,ReadRequestBody}.lean`: a premise `rerr ↦ r0`; with `r0`
+  not `nil` the read returns `r0` and reads nothing, otherwise as before, `rerr` then holding a frame read's
+  error (`nil` after a success or a header that does not parse). `newServerCodec.spec` gives `rerr ↦ nil` and
+  `closed ↦ false` too. `Net/Proof/net/rpc/ServerDefs.lean`: `readerSt` (prepared, unused) redefined over
+  the frames read and the count `k` (`reqPls` via `reqPlsFrom`); `srvEnv`'s `invalidRequest` is the unit
+  `struct{}{}` value (it was an interface value, of the wrong type for the load); new `rdrOwn`, `rdrMid`,
+  `callReady`, `ansRes`, `errCont`, `rdErr`, `srvCodecAt`, `srvCodecOwn`.
+- **Defect.** Found proving `ServeCodec`. Go's `ServeCodec` answers a request whose body read failed and reads
+  on (`readRequest` returns `keepReading` true); gob's decoder keeps no read error, so the next header is
+  read from the middle of the failed request. The net extension's semantics lets a read return bytes after a
+  read error (a `sys` error on a cut direction with unread bytes kept), so the reader could decode bytes no
+  client wrote as a request, and run a method on them without a deposit: the server's guarantee (each run
+  answers a request a client deposited) is unprovable over the unchanged model.
+- **Evidence.** `models/net/rpc/server.go` (`ServeCodec`, `readRequest`); Go 1.27.3's `encoding/gob`
+  (`DecodeValue` resets `dec.err`); `GooseLang/Ext/Net/Impl.lean` (`ReadAvail`'s `sys` case, `ReadOutcome`'s
+  break keeping a prefix); Linux: a read error comes once the unread bytes are read, then EOF
+  (`examples/net/semantics`' `TestResetInNetwork`, `TestKilledWithUnreadInput`, `TestTimeoutOnBreak`), but for
+  a read deadline's timeout. `nonissues/go-netrpc-server-reads-on-after-body-read-error.md`.
+- **Proposed change.** As above: the model's codec, Go's behavior over Linux when the program sets no read
+  deadline on a served connection (the model's claim says so, `codec.go`'s doc);
+  `models/internal/rpcdifftest/run.sh` still passes. The client codec is unchanged (its reader stops at the
+  first error). Not done: `Register`/`RegisterName`'s premises excluding the logging paths (entry below) could
+  now go, `log.Println` being modelled and specified (`Net/Spec/log/Println.lean`).
+- **Decision.** Applied (branch `models-rpc-server`) for the sticky error and the specs; the premises' removal
+  pending. The sticky error narrows the model's trusted claim (no read deadlines on served connections): for
+  the user to confirm.
+
+## 2026-11-23: net/rpc model's server -- `decErr` gains a non-empty message; `CodecSpec` gains `rcv`; the net model's `OpError.Error` is never empty
+
+- **Spec.** `Net/Proof/net/rpc/Codec.lean`: `decErr err` (a decoding error) now also says its message is not
+  empty; `CodecSpec` gains a field `rcv : GoInterface → (Loc → IProp) → IProp` (what `Receiver(rcvr)` needs,
+  returning a `*Receiver` with `Ψ`), and `codecIs` holds `rcvOk C v.Receiver'`. `Net/TrustedCode/net.lean`
+  (trusted): `OpError.Error.impl` returns an arbitrary string that is not empty (was any string).
+- **Defect.** Found stating the server's request loop. When a request's header reads but its body does not
+  read or decode, `ServeCodec` answers it with `sendResponse(..., err.Error())`; with a message `""`
+  `sendResponse` sends a *success* response, encoding the placeholder `invalidRequest`, which no generated codec
+  lists (its `Encode` panics). Both errors that can reach there were allowed an empty message: a decoding error
+  (`decErr`) and the `Read`'s `*OpError` (the model's `AnyString`). And `register`'s dispatch goes through the
+  codec's `Receiver`, about which `CodecSpec` said nothing (the first part had left it "to state").
+- **Evidence.** `models/net/rpc/server.go` (`ServeCodec`, `sendResponse`, `readRequest`); the generated
+  codec's decoding error is `errors.New("net/rpc model: malformed value")` (`rpcgen_core.py`); Go's
+  `(*OpError).Error()` starts with `e.Op` (`net.go`), measured: `TestErrorsAreOpErrors`
+  (`examples/net/semantics/errors_test.go`, now checking every message starts with the operation and holds `": "`).
+- **Proposed change.** As above. The client's proofs destructure the longer `codecIs` and `decErr` (patterns
+  only); `errAny_opErr` is derived from the new `errNE_opErr` (`Errs.lean`). No client statement changes.
+- **Decision.** Applied (branch `models-rpc-server`): strengthenings the generated codec and Go meet; the
+  `OpError.Error` model change is a narrowing of trusted behaviour backed by the measured test (D14).
+
+## 2026-11-23: net/rpc model's server -- `Register`/`RegisterName` cover only the receivers they accept without logging; a method spec must accept error answers
+
+- **Spec.** `Net/Spec/net/rpc/Server__{register,Register,RegisterName}.lean` vs dsverify-lab's
+  `Server.RegisterName.spec`/`Register.spec` (`old/dsverify/.../ServerDefs.lean`), and `errOk`/`srvServes`
+  (`Net/Proof/net/rpc/ServerDefs.lean`) vs dsverify's `srvServes`/`rcvrOk`.
+- **Defect.** dsverify's statements return "`nil` and the registration, or some error" for any receiver. Go's
+  `register` logs (`log.Print`) before returning three of its errors (no service name, not exported, no suitable
+  methods), and Perennial has no model of `log.Print` (names only), so those paths are stuck. And dsverify's
+  `rcvrOk` gave `Φ reply msg` only through the method's run; Go's server also answers requests it does not run
+  (the body did not read or decode, the method is not registered) with an error message.
+- **Evidence.** `Net/Code/net/rpc.lean`, `Server.register.impl` (`FuncResolve log.Print`); Perennial
+  `Code/log.toml` (`trusted = ["Printf", "Println", ...]`). `server.go`'s `ServeCodec` error path.
+- **Proposed change.** `register`'s premise `regNameOk` (a non-empty `name` with `useName`; without it, `rcvr`
+  not a nil pointer, where Go panics, and its type's name starting with an upper-case ASCII letter, where the
+  model's `IsExported` is exact) and `rcvrIs`'s at-least-one-method; the remaining error (a name taken) stays.
+  `srvServes` asks each service spec for `errOk S` (an error answer, message not empty, from the deposit).
+  When Perennial models `log.Print` (`notes/perennial-changes.md`, 2026-11-23), the premises can go.
+- **Decision.** Applied (branch `models-rpc-server`); kits register receivers of exported types with methods,
+  and their specs' continuations accept `ServerError`s (Go's client returns them for any call).
 ## 2026-11-22: `errors.IsCtxErr` takes `isPkgInit context` (errors-is-axioms, #31)
 
 - **Spec.** `errors.IsCtxErr.spec` (`Spec/errors/IsCtxErr.lean`); no spec-plan counterpart.
@@ -4756,9 +4827,11 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   (`SnapApplyWalk.lean:338`), has no receipt bound in scope (`isServerM` holds only the thread
   bound), so the change threads a receipt-bound fact into the walk (from `isServerM`, as its thread
   bound, or a premise of `applySnapshot`'s spec).
-- **Decision.** Deferred to a follow-up of #30 (the server's proof, beyond step 2's backend-internal
-  scope): decided by the agent, pending the user (`notes/step-bounds-questions.md`, Q2). The axiom
-  stays false above `2 ^ 60` until then; no closed theorem reaches that.
+- **Decision.** Deferred from step 2, then applied at the user's request (2026-11-22, branch
+  `openbackend-receipt`, `notes/step-bounds-questions.md`, Q2): the axiom and `OpenSnapshotBackend`'s
+  spec take `[ReceiptBoundLe GF (2 ^ 60)]`; `srvSnapRO`'s receipt conjunct and `applySnapshot`'s
+  `hrbw` become `receiptBound GF ≤ 2 ^ 60` (implying the `wbInit - 6` they stated), which the walk
+  passes as the instance.
 ## 2026-11-22: kvnet's top-level statement takes `os`'s two field-assumption instances (KvNet)
 
 - **Spec.** `raft_kvnet_robust.spec` and `raft_kvnet_robust_example.spec`
@@ -4853,3 +4926,33 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   write it, each after removing the entry from `pending`.
 - **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
 - **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).
+
+## 2026-11-23: grpc's contracts take a resource parameter (#24's S2 signatures, item (c))
+
+- **Spec.** `Proof/google_golang_org/grpc/InvGrpc.lean`, `InvGrpcStream.lean`, `InvGrpcRun.lean` and the axioms
+  stated over them. Server: `srvChainWP R`, `grpcSrvChain R`, `srvStreamChainWP R`, `grpcSrvStreamChain R`
+  (each call `R -∗ WP … {{ v, R ∗ Ψ v }}`); the Go facts a run is given (`grpcAccepted`, so `acceptRun`/
+  `acceptRunConns`; the run and method contracts `grpcRunOkMd`, `grpcMethodOk(Md)`) at every resource
+  (`grpcSrvChainAll`, `grpcSrvStreamChainAll`); the stream run contract's chain at `R := True` (the run keeps its
+  `threadTok` in its own pre/post). Client: `grpcConn conn addrs ics dopts Ok` (the family `Ok` the credentials
+  were dialed for), `perRPCCredsOk pc Ok Q` (`GetRequestMetadata` given `R` with `Ok R`, given back),
+  `grpcInvokerOk conn addrs Ok inv` (each attempt given `R` with `Ok R`), `chainWP R`; `ClientConn.Invoke`,
+  `ClientConn.NewStream` take `⌜Ok R⌝ ∗ R` and give `R` back; `cliStreamIs`/`cliBidiStreamIs … Ok`: `SendMsg`,
+  `RecvMsg`, `CloseSend` (and the wrappers' `Send`/`Recv`/`CloseSend`) likewise; `NewClient` takes the
+  credentials at `Ok` and returns `grpcConn … Ok`.
+- **Defect.** None of grpc-go's: the contracts did not let a caller lend a resource (a reader slot of a pool) to
+  the per-RPC credentials grpc calls, so `perRPCCredential.GetRequestMetadata`, `Client.Endpoints` (the retry
+  interceptor) and `api.IsCapabilityEnabled` (the server's interceptors) could only be axioms reading under a
+  lock without a reader token.
+- **Evidence.** #24 ("draft signatures for the resource parameter (S2)", the per-call `R` / family `Ok`
+  exchange, item (c)). Found while restating: the credentials also run inside a client stream's
+  `SendMsg`/`RecvMsg`/`CloseSend` (a transparent retry before the stream commits, `stream.go:800-819,930`), so
+  the agreed `NewStream` `R` alone was not enough: the stream's operations take one too.
+- **Why true of the code.** grpc-go v1.84: the server's chain closures (`server.go:1227-1276`) and the client's
+  (`chainUnaryInterceptors`, `getChainUnaryInvoker`) call the next interceptor synchronously and touch no
+  program resource; the credentials are called only by `http2Client.createHeaderFields` → `getTrAuthData` when
+  an attempt's transport stream is made, synchronously inside the caller's `Invoke`/`NewStream`/stream
+  operation, transparent retries included.
+- **Proposed change.** As above. etcd's client instantiates `Ok := anyRes` (every resource; its credentials'
+  axiom needs none yet) and passes `R := True`; etcd's handlers use the chains at `R := True`.
+- **Decision.** Applied (agreed on #24; reviewed there before landing). No top-level statement changes.
