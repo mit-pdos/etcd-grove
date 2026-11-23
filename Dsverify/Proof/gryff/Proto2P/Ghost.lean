@@ -407,7 +407,7 @@ open model kahn pure p2
 section
 variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [InvGS_gen .hasLC GF]
 
-theorem connRep_lookup (γ : ProtoNames) (R : GMap w64 Nat) (conn : w64) (k : Fin 3) (last : Int) :
+theorem connRep_lookup (γ : ProtoNames) (R : GMap Nat Nat) (conn : Nat) (k : Fin 3) (last : Int) :
     ⊢ ghostMapAuth (GF := GF) γ.s2.connRep 1 R -∗ (⌜last < 0⌝ ∨ connRepIs γ conn k) -∗
       ⌜last < 0 ∨ R.lookup conn = some k.val⌝ := by
   iintro HR (%hl | H)
@@ -416,7 +416,7 @@ theorem connRep_lookup (γ : ProtoNames) (R : GMap w64 Nat) (conn : w64) (k : Fi
     ihave %h := ghost_map_lookup $$ HR H
     ipureintro; exact Or.inr h
 
-theorem connRep_update (γ : ProtoNames) (R : GMap w64 Nat) (conn : w64) (k : Fin 3) (last : Int)
+theorem connRep_update (γ : ProtoNames) (R : GMap Nat Nat) (conn : Nat) (k : Fin 3) (last : Int)
     (hn : last < 0 → R.lookup conn = none) :
     ghostMapAuth (GF := GF) γ.s2.connRep 1 R ∗ (⌜last < 0⌝ ∨ connRepIs γ conn k) ⊢ |==>
       (ghostMapAuth γ.s2.connRep 1 (R.insert conn k.val) ∗ connRepIs γ conn k) := by

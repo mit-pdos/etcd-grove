@@ -236,7 +236,7 @@ theorem facts_recv {S : Inv2St} (hf : Inv2Facts S) {k q : Fin 3} {n : Nat} {m : 
 
 /-! ## A request token -/
 
-theorem facts_req_mint {S : Inv2St} (hf : Inv2Facts S) {k : Fin 3} {hs : w32} {conn : w64}
+theorem facts_req_mint {S : Inv2St} (hf : Inv2Facts S) {k : Fin 3} {hs : w32} {conn : Nat}
     {last req : Int} {i : RegInput w64} {nI : OpInfo}
     (hconn : S.conns.lookup hs = some (some conn)) (hpl : S.placers.lookup conn = some last)
     (hlt : last < req) (h0 : 0 ≤ req) (hrep : last < 0 ∨ S.connRep.lookup conn = some k.val)
@@ -293,7 +293,7 @@ theorem facts_req_mint {S : Inv2St} (hf : Inv2Facts S) {k : Fin 3} {hs : w32} {c
     · subst_vars; exact hfresh
     · exact hf.reqFresh id ki h'
   · intro id k0 hor
-    show ∃ (hs1 : w32) (conn1 : w64) (n1 : Int), id.1 = sint.Z hs1 ∧
+    show ∃ (hs1 : w32) (conn1 : Nat) (n1 : Int), id.1 = sint.Z hs1 ∧
       S.conns.lookup hs1 = some (some conn1) ∧
       (S.placers.insert conn req).lookup conn1 = some n1 ∧ id.2 ≤ n1 ∧
       (S.connRep.insert conn k.val).lookup conn1 = some k0
@@ -533,7 +533,7 @@ theorem facts_op_end {S : Inv2St} (hf : Inv2Facts S) {cid req : Int}
 
 /-! ## A connection's binding and counter -/
 
-theorem facts_conn {S : Inv2St} (hf : Inv2Facts S) {hs : w32} {c : w64}
+theorem facts_conn {S : Inv2St} (hf : Inv2Facts S) {hs : w32} {c : Nat}
     (hn : S.conns.lookup hs = some none) :
     Inv2Facts { S with conns := S.conns.insert hs (some c) } := by
   refine { hf with binding := ?_ }
@@ -544,7 +544,7 @@ theorem facts_conn {S : Inv2St} (hf : Inv2Facts S) {hs : w32} {c : w64}
   rw [GMap.lookup_insert_eq_iff, if_neg]; exact h2
   intro e; subst e; rw [hn] at h2; cases h2
 
-theorem facts_placer {S : Inv2St} (hf : Inv2Facts S) {c : w64}
+theorem facts_placer {S : Inv2St} (hf : Inv2Facts S) {c : Nat}
     (hn : S.placers.lookup c = none) :
     Inv2Facts { S with placers := S.placers.insert c (-1) } := by
   refine { hf with binding := ?_, repSet := ?_ }

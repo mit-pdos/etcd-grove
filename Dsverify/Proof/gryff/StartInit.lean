@@ -134,7 +134,7 @@ def cur0 : GMap (Nat × Nat) Nat :=
 /-- The claim tokens of the three replica nodes (`γ.s2.claim`). -/
 def claims0 : GMap Nat Unit := GMap.insert 0 () (GMap.insert 1 () (GMap.insert 2 () ∅))
 
-theorem connFacts_init (conns : GMap w32 (Option w64)) : connFacts conns ∅ ∅ := by
+theorem connFacts_init (conns : GMap w32 (Option Nat)) : connFacts conns ∅ ∅ := by
   refine ⟨fun id h => ?_, fun hs cid r _ h => ?_⟩ <;> simp at h
 
 end Perennial.gryff

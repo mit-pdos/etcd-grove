@@ -137,11 +137,11 @@ structure Inv2St where
   /-- each client id's turn (next request id, last request pending) -/
   turns : GMap Int (Int × Bool)
   /-- client ids' connections -/
-  conns : GMap w32 (Option w64)
+  conns : GMap w32 (Option Nat)
   /-- connections' request counters (the last request id handed out as a token) -/
-  placers : GMap w64 Int
+  placers : GMap Nat Int
   /-- connections' replica ids -/
-  connRep : GMap w64 Nat
+  connRep : GMap Nat Nat
   /-- per pair `(k, q)`: messages of `k`'s stream to `q` handed out as tokens -/
   cur : GMap (Nat × Nat) Nat
   /-- receive tokens not yet consumed -/
@@ -185,7 +185,7 @@ structure Inv2Facts (S : Inv2St) : Prop where
   connection's counter, at the connection's replica id -/
   binding : ∀ id k, ((∃ i, S.reqs.lookup id = some (k, i)) ∨
       (∃ o ∈ ops S.l1, o.idZ = id ∧ o.r.val = k)) →
-    ∃ (hs : w32) (conn : w64) (n : Int), id.1 = sint.Z hs ∧
+    ∃ (hs : w32) (conn : Nat) (n : Int), id.1 = sint.Z hs ∧
       S.conns.lookup hs = some (some conn) ∧ S.placers.lookup conn = some n ∧ id.2 ≤ n ∧
       S.connRep.lookup conn = some k
   /-- a connection's replica id is recorded at its first request token (so a connection with
@@ -318,7 +318,7 @@ def reqTok (γ : ProtoNames) (k : Fin 3) (id : OpId) (i : RegInput w64) : IProp 
   ghostMapElem γ.s2.reqs id (DFrac.own 1) (k.val, i)
 
 /-- Client connection `conn` is accepted at replica id `k` (persistent). -/
-def connRepIs (γ : ProtoNames) (conn : w64) (k : Fin 3) : IProp GF :=
+def connRepIs (γ : ProtoNames) (conn : Nat) (k : Fin 3) : IProp GF :=
   ghostMapElem γ.s2.connRep conn DFrac.discard k.val
 
 /-- The first messages `ms` of `k`'s stream to `q` (persistent). -/
@@ -352,7 +352,7 @@ instance predIdIs_persistent (γ : ProtoNames) (i : Nat) (ws : List w64) :
     Persistent (predIdIs (GF := GF) γ i ws) := by unfold predIdIs; infer_instance
 instance predsSet_persistent (γ : ProtoNames) : Persistent (predsSet (GF := GF) γ) := by
   unfold predsSet; infer_instance
-instance connRepIs_persistent (γ : ProtoNames) (conn : w64) (k : Fin 3) :
+instance connRepIs_persistent (γ : ProtoNames) (conn : Nat) (k : Fin 3) :
     Persistent (connRepIs (GF := GF) γ conn k) := by unfold connRepIs; infer_instance
 instance streamLb_persistent (γ : ProtoNames) (k q : Fin 3) (ms : List Msg) :
     Persistent (streamLb (GF := GF) γ k q ms) := by unfold streamLb; infer_instance

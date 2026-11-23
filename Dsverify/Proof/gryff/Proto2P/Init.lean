@@ -17,7 +17,7 @@ namespace Perennial.gryff.p2
 open model kahn pure dsverify_lab.harness
 
 /-- The invariant's state at the start (the client ids' turns and connections as allocated). -/
-def inv0 (mt : GMap Int (Int × Bool)) (mc : GMap w32 (Option w64)) : Inv2St :=
+def inv0 (mt : GMap Int (Int × Bool)) (mc : GMap w32 (Option Nat)) : Inv2St :=
   ⟨fun _ => [], [], preds0, preds0, ∅, budget0, W64 0, [], ∅, mt, mc, ∅, ∅, cur0, ∅, ∅⟩
 
 theorem foldr_insert_lookup {K V : Type} [DecidableEq K] (f : K → V) :
@@ -56,7 +56,7 @@ theorem frontVal_nil : frontVal [] 0 = W64 0 := by
     · exact h 1
     · exact h 2
 
-theorem facts_init (mt : GMap Int (Int × Bool)) (mc : GMap w32 (Option w64)) :
+theorem facts_init (mt : GMap Int (Int × Bool)) (mc : GMap w32 (Option Nat)) :
     Inv2Facts (inv0 mt mc) := by
   have hops : ops (inv0 mt mc).l1 = [] := rfl
   exact {

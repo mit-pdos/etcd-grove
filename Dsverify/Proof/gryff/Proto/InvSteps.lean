@@ -39,7 +39,7 @@ def allFacts (σ : w64) (stores : GMap Nat (w64 × PTag)) (tv : GMap PTag w64)
     (places : GMap OpId Placement) (lin : List (OpId × RegOutput w64))
     (insts : GMap (Int × Int) InstAttrs) (execS : List ExecEntry)
     (preds : GMap Nat (List ExecEntry)) (turns : GMap Int (Int × Bool))
-    (conns : GMap w32 (Option w64)) (placers : GMap w64 Int) : Prop :=
+    (conns : GMap w32 (Option Nat)) (placers : GMap Nat Int) : Prop :=
   invFactsB σ stores tv lbs ops lin insts execS preds turns ∧ opsJoin ops info places ∧
     connFacts conns placers places
 
@@ -167,7 +167,7 @@ theorem op_begin_pure {σ : w64} {stores : GMap Nat (w64 × PTag)} {tv : GMap PT
     {places : GMap OpId Placement} {lin : List (OpId × RegOutput w64)}
     {insts : GMap (Int × Int) InstAttrs} {execS : List ExecEntry}
     {preds : GMap Nat (List ExecEntry)} {turns : GMap Int (Int × Bool)}
-    {conns : GMap w32 (Option w64)} {placers : GMap w64 Int}
+    {conns : GMap w32 (Option Nat)} {placers : GMap Nat Int}
     (h : allFacts σ stores tv lbs ops info places lin insts execS preds turns conns placers)
     (cid r req : Int) (hr : r ≤ req) (hturn : turns.lookup cid = some (r, false)) (n : OpInfo)
     (hreg : ∀ e a, e ∈ execS → insts.lookup e.inst = some a → (ops.lookup a.op).isSome) :
@@ -246,7 +246,7 @@ theorem op_end_pure {σ : w64} {stores : GMap Nat (w64 × PTag)} {tv : GMap PTag
     {places : GMap OpId Placement} {lin : List (OpId × RegOutput w64)}
     {insts : GMap (Int × Int) InstAttrs} {execS : List ExecEntry}
     {preds : GMap Nat (List ExecEntry)} {turns : GMap Int (Int × Bool)}
-    {conns : GMap w32 (Option w64)} {placers : GMap w64 Int}
+    {conns : GMap w32 (Option Nat)} {placers : GMap Nat Int}
     (h : allFacts σ stores tv lbs ops info places lin insts execS preds turns conns placers)
     (cid req : Int) (o : RegOutput w64) (hturn : turns.lookup cid = some (req + 1, true))
     (hreg : (ops.lookup (cid, req)).isSome) (hlin : ((cid, req), o) ∈ lin) :
@@ -302,9 +302,9 @@ theorem sintZ_inj32 {a b : w32} (h : sint.Z a = sint.Z b) : a = b := BitVec.toIn
 
 /-- The registration and binding maps after placing `id = (hs, req)` on connection `cid`. -/
 theorem place_join_conn {ops : GMap OpId OpMeta} {info : GMap OpId OpInfo}
-    {places : GMap OpId Placement} {conns : GMap w32 (Option w64)} {placers : GMap w64 Int}
+    {places : GMap OpId Placement} {conns : GMap w32 (Option Nat)} {placers : GMap Nat Int}
     (hj : opsJoin ops info places) (hc : connFacts conns placers places)
-    {hs : w32} {cid : w64} {req last : Int} {n : OpInfo} (pl : Placement)
+    {hs : w32} {cid : Nat} {req last : Int} {n : OpInfo} (pl : Placement)
     (hinfo : info.lookup (sint.Z hs, req) = some n)
     (hconn : conns.lookup hs = some (some cid)) (hplacer : placers.lookup cid = some last)
     (hlt : last < req) :
@@ -699,7 +699,7 @@ theorem store_update_all {σ : w64} {stores : GMap Nat (w64 × PTag)} {tv : GMap
     {places : GMap OpId Placement} {lin : List (OpId × RegOutput w64)}
     {insts : GMap (Int × Int) InstAttrs} {execS : List ExecEntry}
     {preds : GMap Nat (List ExecEntry)} {turns : GMap Int (Int × Bool)}
-    {conns : GMap w32 (Option w64)} {placers : GMap w64 Int} {k : Nat} {v v' : w64}
+    {conns : GMap w32 (Option Nat)} {placers : GMap Nat Int} {k : Nat} {v v' : w64}
     {t t' : PTag}
     (h : allFacts σ stores tv lbs ops info places lin insts execS preds turns conns placers)
     (hk : stores.lookup k = some (v, t)) (htv : tv.lookup t' = some v') (hlt : tagLt t t') :

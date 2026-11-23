@@ -96,6 +96,10 @@ structure ProtoNames where
   places : GName
   conns : GName
   placers : GName
+  /-- the accepted connections whose requests are placed (a ghost map `Nat ↦ Unit` of
+  persistent elements, `connPlaced`; the placers' invariant's: port, in place of the lab's
+  read-only fresh-end tokens, which `Net/`'s `connFresh` has no persistent form of) -/
+  placed : GName
   /-- stage 2's names (the invariant `gryffInv2`; `reg`, `lin`, `ops`, `turns`, `conns`,
   `placers` above are shared with it) -/
   s2 : Proto2Names

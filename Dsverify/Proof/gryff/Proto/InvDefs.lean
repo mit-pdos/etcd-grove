@@ -255,11 +255,11 @@ def opsJoin (ops : GMap OpId OpMeta) (info : GMap OpId OpInfo) (places : GMap Op
 
 /-- Client-id and connection bindings (H-U4-8): a placed operation is of a client id bound to a
 connection, and its request id is at most the last one that connection's placer placed. -/
-def connFacts (conns : GMap w32 (Option w64)) (placers : GMap w64 Int)
+def connFacts (conns : GMap w32 (Option Nat)) (placers : GMap Nat Int)
     (places : GMap OpId Placement) : Prop :=
-  (∀ id, (places.lookup id).isSome → ∃ (hs : w32) (cid : w64), id.1 = sint.Z hs ∧
+  (∀ id, (places.lookup id).isSome → ∃ (hs : w32) (cid : Nat), id.1 = sint.Z hs ∧
     conns.lookup hs = some (some cid)) ∧
-  (∀ (hs : w32) (cid : w64) r, conns.lookup hs = some (some cid) →
+  (∀ (hs : w32) (cid : Nat) r, conns.lookup hs = some (some cid) →
     (places.lookup (sint.Z hs, r)).isSome → ∃ n, placers.lookup cid = some n ∧ r ≤ n)
 
 /-! ## The resources -/
@@ -299,7 +299,7 @@ def gryffInvBody (γ : ProtoNames) : IProp GF :=
       (places : GMap OpId Placement)
       (lin : List (OpId × RegOutput w64)) (insts : GMap (Int × Int) InstAttrs)
       (execS : List ExecEntry) (preds : GMap Nat (List ExecEntry))
-      (turns : GMap Int (Int × Bool)) (conns : GMap w32 (Option w64)) (placers : GMap w64 Int),
+      (turns : GMap Int (Int × Bool)) (conns : GMap w32 (Option Nat)) (placers : GMap Nat Int),
     ghostVar γ.reg (1 : Qp).half σ ∗ ghostMapAuth γ.stores 1 stores ∗
     ghostMapAuth γ.tagVal 1 tv ∗ ghostMapAuth γ.storeLbs 1 lbs ∗ ghostMapAuth γ.ops 1 info ∗
     ghostMapAuth γ.places 1 places ∗

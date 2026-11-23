@@ -122,6 +122,56 @@ replaces by `Net/`'s specs anyway; the rpc/http and bufio parts are items 1-3. D
   "verification workaround"), as the lab's forks do; this repository's rule is prophecy patches
   (`etc/proph-patches/`). Kept as the lab's for now (as dsv-paxos kept its fork's), to decide.
 
+## What changed against the lab (proof)
+
+- **Connection ids are `Nat`** (`Net/`'s `cn`), not the lab's `w64`: the ghost maps `conns`
+  (`GMap w32 (Option Nat)`), `placers` (`GMap Nat Int`), `connRep` (`GMap Nat Nat`) and every
+  `cid`/`conn` binder (`Proto/InvDefs`, `InvSteps`, `Wire`, `WireLaws`, `Proto2/InvDefs`,
+  `Proto2P/{Ghost,Facts,Init}`, `StartInit`).
+- **The placers' invariant** (`Proto/Wire.lean`'s `placersInv`): the lab made each placed
+  connection's fresh acceptor token read-only (its harness's fresh tokens were ghost-map elements,
+  `connPlacedG`, `WS/Placed.lean`); `Net/`'s `connFresh` is an exclusive token with no persistent
+  form, so the invariant now holds the tokens themselves, plus the authority of a new ghost map
+  `ProtoNames.placed` (`Nat ↦ Unit`, same domain as the placers map) whose persistent element
+  `connPlaced γ cid` witnesses placement; `placedConn γ cid` = the invariant ∗ that element, and
+  `placedConn_fresh` opens the invariant and uses `connFresh_excl`. `WS/Placed.lean` is gone.
+- `Proto/WireLaws`' laws take `□ protoInvs γ` (Gryff's invariant and the placers', `Proto/Wire`)
+  in place of the hub's `sharedInvs` (`Shares.lean`, which imports the deployment); the hub's
+  `sharedInvs` will contain `protoInvs`.
+- The replicas' ports are the kit's (`portAddr k` = `127.0.0.1:750(2+k)`), not the lab's
+  `10.77.0.x` rig addresses.
+- The Net-facing layers are generic in `GF` with paxos's section variables (`[GooseExts]
+  [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext] {GF} [G : GooseGlobalGS .hasLC
+  GF] [π : NetProtoGS]`, `attribute [local instance] GooseGlobalGS.gooseInvGS`) in place of the
+  lab's fixed `netDistGF`.
+
+## net/rpc's server: models-rpc-server merged
+
+`origin/models-rpc-server` (`040ef5e808`, the whole net/rpc server proved on Lean's three axioms;
+not landed, waiting for review; the coordinator's instruction of 2026-11-23) is **merged** into this
+branch (merge `061b255f51`), so the proof builds against its specs (`Net/Spec/net/rpc/
+{NewServer,Server__Register,Server__ServeConn,Server__Accept,Dial,Client__Call}.lean`, ...)
+directly. **It does not cover Gryff's HTTP transport of net/rpc**: `Server.HandleHTTP`,
+`rpc.HandleHTTP`, `rpc.DialHTTP` (`DialHTTPPath`'s CONNECT handshake) and `http.Serve` (the master
+and the replicas serve net/rpc over HTTP, `masterlib/master.go`, `serverlib/server.go`). Those stay
+hypotheses (items 1-2 below); the fork's Go is not changed to avoid them (coordinator's decision,
+2026-11-23). Such a hypothesis must use a protocol of the HTTP handshake followed by frames: the
+model's `DialHTTPPath` writes `"CONNECT /_goRPC_ HTTP/1.0\n\n"` before `NewClient`, and
+`ServeHTTP` reads it before any frame, so "DialHTTP returns `Net/`'s `isClient` over `rpcAddr`"
+(frames from byte 0) is false of the model (`isClient`'s `sendInv` needs every written byte to be a
+prefix of `reqsWire`). Name them after the plan's phase 5.2 specs (`notes/dsverify-net-port-plan.md`,
+~580-725); the coordinator asked upamanyus on #24 for that `Net/` piece. **Intended shapes** (upamanyus,
+#24; branch `models-rpc-http`, stacked on `models-rpc-server`, after the wildcard listen work; no
+date): `rpcAddrP a hs …` (client-to-server bytes `hs ++ reqsWire`, server-to-client
+`hsAns ++ ansWire`; `rpcAddr a … := rpcAddrP a [] [] …`; over HTTP `hs := connectReq path`,
+`hsAns` = `HTTP/1.0 200 Connected to Go RPC\n\n`), `rpc.DialHTTPPath.spec`/`rpc.DialHTTP.spec`
+(`isClient` or an error), `rpc.Server.ServeHTTP.spec`, `rpc.Server.HandleHTTP.spec rpcPath
+debugPath`/`rpc.HandleHTTP.spec` (registration on `DefaultServeMux`; the debug path never
+requested), `http.ListenAndServe.spec`/`http.Serve.spec`/`ServeMux.ServeHTTP.spec` (the server up
+to the hijack, handlers as `handlerOk` per path). Gryff's hypotheses must match these names and
+shapes exactly (gryff's clients do not pipeline after `CONNECT`: `DialHTTPPath` waits for the
+answer).
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
