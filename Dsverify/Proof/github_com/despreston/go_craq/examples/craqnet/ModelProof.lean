@@ -347,6 +347,27 @@ theorem mrep_set {m : GMap GoString GoString} {a : St} (hm : mrep m a) (k : GoSt
       GMap.lookup_insert_ne _ _ (Ne.symm hx)]
     simp [upd, hx]; exact hm x
 
+theorem find_some (P : List KIn) (hP : ∀ x ∈ P, isPut x = true) (k : GoString) (w : Str8)
+    (hk : k.length < 256) (idx : Nat)
+    (h1 : ∀ j < idx, ∀ e, (P.map pendOf)[j]? = some e → ¬ (e.K' = k ∧ e.V' = w.1))
+    (h2 : (P.map pendOf)[idx]? = some (pend.mk k w.1)) :
+    (⟨.put k w.1, ⟨hk, w.2⟩⟩ : KIn) ∈ P ∧
+      P.erase ⟨.put k w.1, ⟨hk, w.2⟩⟩ = P.eraseIdx idx := by
+  rw [List.getElem?_map] at h2
+  obtain ⟨y, hy, hpy⟩ := Option.map_eq_some_iff.1 h2
+  have hyP : y ∈ P := List.mem_of_getElem? hy
+  obtain ⟨_, rfl⟩ := pendOf_put (hP y hyP) hpy
+  refine ⟨hyP, erase_first P _ idx hy (fun j hj he => ?_)⟩
+  exact h1 j hj (pend.mk k w.1) (by rw [List.getElem?_map, he]; rfl) ⟨rfl, rfl⟩
+
+theorem find_none (P : List KIn) (k : GoString) (w : Str8) (hk : k.length < 256)
+    (h1 : ∀ j < (P.map pendOf).length, ∀ e, (P.map pendOf)[j]? = some e → ¬ (e.K' = k ∧ e.V' = w.1)) :
+    (⟨.put k w.1, ⟨hk, w.2⟩⟩ : KIn) ∉ P := by
+  intro hm
+  obtain ⟨j, hj, he⟩ := List.getElem_of_mem hm
+  exact h1 j (by simpa using hj) (pend.mk k w.1)
+    (by rw [List.getElem?_map, List.getElem?_eq_getElem hj, he]; rfl) ⟨rfl, rfl⟩
+
 /-- kit.go's `In` of a store input. -/
 def inOf : KIn → In
   | ⟨.get k, _⟩ => In.mk false k []
@@ -376,7 +397,164 @@ theorem wp_step (mp : Loc) (sl : GoSlice) (m : GMap GoString GoString) (a : St) 
   all_goals simp only [inOf]
   all_goals wp_auto
   · -- a get, its answer known
-    sorry
+    have hlk := lookup_mrep hm k
+    wp_apply (wp_map_lookup2 go.string go.string mp m k DFrac.discard) $$ [$Hm] as -
+    cases hak : a k with
+    | none =>
+      have hmk : m !! k = none := by rw [hlk, hak]; rfl
+      simp only [hmk, Option.isSome_none, Option.getD_none, _root_.decide_false]
+      cases f
+      · simp only [Bool.not_false]
+        wp_auto
+        by_cases hw : w.1 = []
+        · simp only [hw, _root_.decide_true, Bool.not_true]
+          wp_auto
+          iapply HΦ
+          unfold stepPost
+          isplitr
+          · ipureintro; simp_all [decAns, goStep]
+          simp only [↓reduceIte]
+          iexists mp, sl, m, a, P
+          isplitr
+          · ipureintro; refine ⟨rfl, by simp_all [decAns, goStep], hm, hP, by omega⟩
+          isplit
+          · iexact Hm
+          · iexact Hsl
+        · simp only [hw, _root_.decide_false, Bool.not_false]
+          wp_auto
+          iapply HΦ
+          unfold stepPost
+          isplitr
+          · ipureintro; simp_all [decAns, goStep]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          itrivial
+      · simp only [Bool.not_true]
+        wp_auto
+        wp_apply wp_findPend sl (P.map pendOf) k w.1 $$ [$Hsl] as %idx %ok %Hf
+        cases ok
+        · have hnm := find_none P k w hi (by simpa using Hf.1)
+          wp_auto
+          iapply HΦ
+          unfold stepPost
+          isplitr
+          · ipureintro; simp_all [decAns, goStep]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          itrivial
+        · obtain ⟨hidx0, hidx⟩ := Hf.2 rfl
+          obtain ⟨hmem, herase⟩ := find_some P hP k w hi (sint.nat idx) (by simpa using Hf.1) hidx
+          wp_auto
+          wp_apply +noauto wp_set mp m DFrac.discard k w.1 $$ [$Hm] as %c ⟨Hc, -⟩
+          iapply fupd_wp
+          imod ownMap_persist c _ _ $$ Hc with #Hc
+          imodintro
+          wp_auto
+          wp_apply +noauto wp_erasePend sl (P.map pendOf) idx hidx0 $$ [$Hsl] as %q Hq
+          iapply fupd_wp
+          imod ownSlice_persist _ _ _ $$ Hq with #Hq
+          imodintro
+          wp_auto
+          iapply HΦ
+          unfold stepPost
+          have hg : goStep a P ⟨.get k, hi⟩ (decAns ⟨.get k, hi⟩ false true w) =
+              some (upd a k w, P.erase ⟨.put k w.1, ⟨hi, w.2⟩⟩) := by
+            simp [decAns, goStep, hmem, hak]
+          rw [hg]
+          isplitr
+          · ipureintro; rfl
+          simp only [Option.isSome_some, ↓reduceIte]
+          iexists c, q, <[k := w.1]> m, upd a k w, P.erase ⟨.put k w.1, ⟨hi, w.2⟩⟩
+          isplitr
+          · ipureintro
+            refine ⟨rfl, rfl, mrep_set hm k w, fun y hy => hP y (List.mem_of_mem_erase hy), ?_⟩
+            have := List.length_erase_le (l := P) (a := ⟨.put k w.1, ⟨hi, w.2⟩⟩); omega
+          rw [herase, map_eraseIdx']
+          isplit
+          · iexact Hc
+          · iexact Hq
+    | some y =>
+      have hmk : m !! k = some y.1 := by rw [hlk, hak]; rfl
+      simp only [hmk, Option.isSome_some, Option.getD_some, _root_.decide_true]
+      cases f
+      · simp only [Bool.not_false]
+        wp_auto
+        by_cases hw : w.1 = []
+        · simp only [hw, _root_.decide_true, Bool.not_true]
+          wp_auto
+          iapply HΦ
+          unfold stepPost
+          isplitr
+          · ipureintro; simp_all [decAns, goStep]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          itrivial
+        · simp only [hw, _root_.decide_false, Bool.not_false]
+          wp_auto
+          iapply HΦ
+          unfold stepPost
+          isplitr
+          · ipureintro; simp_all [decAns, goStep]
+          simp only [Bool.false_eq_true, ↓reduceIte]
+          itrivial
+      · simp only [Bool.not_true]
+        wp_auto
+        by_cases hyw : y = w
+        · subst hyw
+          simp only [_root_.decide_true]
+          wp_auto
+          iapply HΦ
+          unfold stepPost
+          isplitr
+          · ipureintro; simp_all [decAns, goStep]
+          simp only [↓reduceIte]
+          iexists mp, sl, m, a, P
+          isplitr
+          · ipureintro; refine ⟨rfl, by simp_all [decAns, goStep], hm, hP, by omega⟩
+          isplit
+          · iexact Hm
+          · iexact Hsl
+        · have hyw' : y.1 ≠ w.1 := fun h => hyw (Subtype.ext h)
+          simp only [hyw', _root_.decide_false]
+          wp_auto
+          wp_apply wp_findPend sl (P.map pendOf) k w.1 $$ [$Hsl] as %idx %ok %Hf
+          cases ok
+          · have hnm := find_none P k w hi (by simpa using Hf.1)
+            wp_auto
+            iapply HΦ
+            unfold stepPost
+            isplitr
+            · ipureintro; simp_all [decAns, goStep]
+            simp only [Bool.false_eq_true, ↓reduceIte]
+            itrivial
+          · obtain ⟨hidx0, hidx⟩ := Hf.2 rfl
+            obtain ⟨hmem, herase⟩ := find_some P hP k w hi (sint.nat idx) (by simpa using Hf.1) hidx
+            wp_auto
+            wp_apply +noauto wp_set mp m DFrac.discard k w.1 $$ [$Hm] as %c ⟨Hc, -⟩
+            iapply fupd_wp
+            imod ownMap_persist c _ _ $$ Hc with #Hc
+            imodintro
+            wp_auto
+            wp_apply +noauto wp_erasePend sl (P.map pendOf) idx hidx0 $$ [$Hsl] as %q Hq
+            iapply fupd_wp
+            imod ownSlice_persist _ _ _ $$ Hq with #Hq
+            imodintro
+            wp_auto
+            iapply HΦ
+            unfold stepPost
+            have hg : goStep a P ⟨.get k, hi⟩ (decAns ⟨.get k, hi⟩ false true w) =
+                some (upd a k w, P.erase ⟨.put k w.1, ⟨hi, w.2⟩⟩) := by
+              simp [decAns, goStep, hmem, hak, hyw]
+            rw [hg]
+            isplitr
+            · ipureintro; rfl
+            simp only [Option.isSome_some, ↓reduceIte]
+            iexists c, q, <[k := w.1]> m, upd a k w, P.erase ⟨.put k w.1, ⟨hi, w.2⟩⟩
+            isplitr
+            · ipureintro
+              refine ⟨rfl, rfl, mrep_set hm k w, fun y hy => hP y (List.mem_of_mem_erase hy), ?_⟩
+              have := List.length_erase_le (l := P) (a := ⟨.put k w.1, ⟨hi, w.2⟩⟩); omega
+            rw [herase, map_eraseIdx']
+            isplit
+            · iexact Hc
+            · iexact Hq
   · -- a get, unknown
     iapply HΦ
     unfold stepPost
