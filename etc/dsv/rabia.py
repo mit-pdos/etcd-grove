@@ -11,6 +11,9 @@ GOOSE = dict(
     # (module `rabia`). Into the part `Dsverify/`, with remote and `net` the part `Net/`'s,
     # lintest, porcupine, bufio, container/heap and path the main tree's; zerolog, gogo/protobuf,
     # go-redis and os/signal names only into the part (no model here: notes/dsv-rabia.md).
+    # go-redis is v8.11.5 (the fork pins v8.8.2), the version the QuePaxa kit builds with: this
+    # project owns the one go-redis translation in `Dsverify/`, which both kits' theorems use
+    # (issue #24).
     repo=None,
     rev=None,
     local=os.path.join("examples", "dsverify", "rabia"),

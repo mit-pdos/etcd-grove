@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
+
+- **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
+  `threadBound` is what its steps could have forked. Net's net/rpc server (`ServeCodec`,
+  `ServeConn`, `Accept`; hence `HandleHTTP`/`Serve`) needs `threadBound GF ≤ 2^31`, so a kit using
+  it is covered only for executions of fewer than `2^31 - 1` steps, not `2^63`.
+- **Who needs it.** dsv-epaxos (`notes/dsv-epaxos.md`, "Findings / open points" 1:
+  `epaxos_remote_robust`'s step bound `2^31 - 1`); any kit serving net/rpc.
+- **Workaround.** The statement's step bound is `2^31 - 1` (stated, honest; review of #24).
+- **Proposed change.** A dist adequacy that bounds live threads (`threads ≤ 2^31`, a premise on the
+  run) while allowing `2^63` steps would restore the `2^63` bound.
+- **Status.** Not proposed yet.
+
 ### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
 
 - **Limitation.** `glang/lean.go`'s `leanComment` keeps a Go doc comment's tabs; a doc comment
@@ -57,7 +70,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `CompareAndSwap` can compare the old and new values' types (panic only when they differ, as Go), and their specs
   take `ownValue u 1 x` with `x = nil ∨ x.ty = v.ty` instead of `x = nil`. **Status.** Done in Perennial
   `87ffd73b7` (a pure `TypeOfEq` instruction; specs over any `x` with `sameTypeOrNil x v`), in the pin since
-  `71de6f043` (2026-11-23). The three axioms above are not yet proved over it.
+  `71de6f043` (2026-11-23). The three axioms above are not yet proved over it: the second increment
+  (2026-11-23, branch `featuregate-2`) found each blocked elsewhere. `featuregate.New` calls `maps.Clone`
+  (below, "Generic maps and slices iterators"); `init_0_ok`'s input map is built by `version.MustParse`
+  (`regexp`) and `DefaultMutableFeatureGate_init` states nothing of the gate's state; `addFeatureGateMetrics`'s
+  spec is unprovable as stated (ledger, 2026-11-23).
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
@@ -390,7 +407,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Who needs it.** The maintainers' checker in the k8s etcd3 driver (k8s 7g,
   `notes/k8s-7g-scope.md` Q8): `slices.Sorted(maps.Keys(s.Items))` in `Model.list`/`listItems`, and
   the D30g patch's `maps.Clone`/`maps.Equal` of `NeedsRewrite`. Any later Go code ranging over
-  sorted map keys (a common idiom since Go 1.23) needs the same.
+  sorted map keys (a common idiom since Go 1.23) needs the same. (2026-11-23, claim #36) etcd's
+  `featuregate.New` (`known := maps.Clone(defaultFeatures)`, a `map[Feature]FeatureSpec`), and its `Add`/
+  `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
+  axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
+  only; a second local instance would be a new trust-boundary axiom, for approval).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
@@ -3995,6 +4016,11 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
   callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
   WAL uses its own `Spec/io/ReadFull.lean`.
+- **dsv-epaxos (2026-11-23).** `replica.serveConn` calls `io.ReadFull(conn, b[n:n+1])` on the
+  `net.Conn` itself. Workaround: `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/replica/IoReadFull.lean`
+  copies `readatleast-prefix`'s two specs and proofs verbatim under the names `ioReadAtLeastPre`,
+  `ioReadFullPre` (over the same translated `io` code, proved, no axiom); drop it for Perennial's on the
+  pin bump that has the change.
 
 ## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia)
 

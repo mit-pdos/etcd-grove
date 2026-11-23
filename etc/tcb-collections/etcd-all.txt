@@ -14,7 +14,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/(Results|MainLinke
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
-axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -63,7 +62,6 @@ axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
 axiom bytes.Buffer.Write.wp_proof
-axiom ccDecodeV2_nil
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
@@ -73,7 +71,6 @@ axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof

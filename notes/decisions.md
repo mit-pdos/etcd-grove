@@ -41976,3 +41976,42 @@ lazy type setup (each in a fresh process), `TestRefusals` has one schema per rem
 and checks the newly accepted constructs are not refused, `examples/models/pbetcd` covers raftpb,
 walpb and the oneof requests (its generated regression test), and the new section of
 `notes/axiom-review/pbgen.md` is the review.
+
+## The protobuf boundary's stage S1: `entryEncC`, `entDecode`, `ccDecodeV2` are concrete; `entryEncC_ok`, `ccDecodeV2_nil` theorems (2026-11-23 · #37 · branch `proto-s1`)
+
+**2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37)**
+
+Until now `entDecode` (an `Entry`'s decoding), `entryEncC` (its encoding) and `ccDecodeV2` (a
+`ConfChangeV2`'s decoding) were `opaque`, and what was known of them were two axioms,
+`entryEncC_ok` (the round trip and the length of an `Entry`'s encoding) and `ccDecodeV2_nil` (the
+empty bytes decode to the empty `ConfChangeV2`), and the trusted specs of `proto.Marshal`/
+`proto.Unmarshal` that name them.
+
+**Decision:** they are definitions, over a generic wire format:
+`Proof/google_golang_org/protobuf/proto/Wire.lean` (varints, tags, length-delimited and fixed
+values, proto2 explicit presence `opt`, unknown fields appended after the known fields; a
+decoder for flat schemas, its tags and values read as protobuf-go reads them: non-minimal
+varints, the 10-byte limit, number ranges, wire types 4, 6, 7 refused, groups skipped up to 10001
+deep, a known field's records in input order and the last scalar winning, the rest kept in the
+unknown fields with its tag re-encoded minimally), and the per-type codecs
+`Proof/go_etcd_io/raft/v3/PbWireRaft.lean` (`entryEncRaw`, `entDecodeRaw`, `cc2DecodeRaw`; an enum
+written sign-extended and read as its low 32 bits). `decode_encode` (records the decoder reads
+back and unknown fields as `ufWire` says decode to themselves) gives `entryEncC_ok` (now a
+theorem, its statement unchanged); `ccDecodeV2_nil` is `simp`. Both axioms left the trust base.
+
+**What it changes in the trust base.** Nothing is weaker, and two trusted specs say more:
+`proto.MarshalPb`/`UnmarshalPb` (at `Entry`) and `proto.MarshalConfChangeV2`/
+`UnmarshalConfChangeV2` now claim byte-exact agreement of protobuf-go with these Lean functions
+(Unmarshal fails exactly where the decoder says `none`, and otherwise gives its result; Marshal's
+bytes, at `Entry`, are `entryEncRaw`'s). That is true, and its evidence is
+`examples/pbschema/wirevectors_test.go`: protobuf-go v1.36.12's `Marshal` of random `Entry`s
+(presence, extreme values, unknown fields) and `Unmarshal`'s outcome on their encodings, on
+encodings with interleaved and adversarial records, on byte mutations of all of them and on edge
+cases (varint limits, number limits, wire types, groups 10001 and 10002 deep), and on
+`ConfChangeV2`s and their mutations: 962 vectors, written as the `#guard`s of
+`Proof/google_golang_org/protobuf/proto/EntryWireVectors.lean` (checked when it builds; the test
+fails if the module is not what it generates; gated in `etc/gates.sh`'s models section). Until stage
+S3 proves the Go model of `proto` against these functions, the vectors are what backs them.
+
+*Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
+`ccDecodeV1` (still opaque: nothing needed it).
