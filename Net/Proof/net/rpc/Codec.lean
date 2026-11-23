@@ -8,11 +8,12 @@ functions stand in for gob and reflection.
   which were its own dispatch: here the server's dispatch is net/rpc's own code, through the
   `Receiver`'s `Method`s): `enc v Ψ` is what `Encode(v)` needs, and it returns a fresh slice of
   bytes `bs` with `Ψ bs`; `dec bs ptr Ψ` is what `Decode(bs, ptr)` needs, and it returns `nil`
-  with `Ψ true` or an error (some error, `errAny`) with `Ψ false`.
+  with `Ψ true` or an error (some error, `errAny`) with `Ψ false`; `rcv rcvr Ψ` is what
+  `Receiver(rcvr)` needs, and it returns a `*Receiver` `rp` with `Ψ rp` (what reflection tells
+  `Register`: the server's `rcvrIs`, `ServerDefs.lean`).
 * `codecIs C c` (persistent): `c` holds a `Codec` whose `Encode` and `Decode` meet `C`
   (`encOk`, `decOk`; a decoding error is an `errors.New` error, `decErr`, as the generated codec's
-  `rpcErrDecode()`). The `Receiver`'s obligations are the server's (not yet stated:
-  `notes/dsverify-net-port-plan.md`, phase 5.2).
+  `rpcErrDecode()`), and whose `Receiver` meets `C.rcv` (`rcvOk`).
 * The registry: `codecMu`'s invariant `codecInv` holds half of `codec`'s points-to; the other half
   is `codecUnset` (at `nil`, the package's initial state) until `SetCodec` writes it and keeps it
   for good (`codecSet C`, persistent: what `getCodec` needs). So `getCodec` after a `SetCodec`
@@ -40,6 +41,7 @@ namespace net.rpc
 structure CodecSpec [GooseExts] (GF : BundledGFunctors) where
   enc : GoInterface → (List w8 → IProp GF) → IProp GF
   dec : List w8 → GoInterface → (Bool → IProp GF) → IProp GF
+  rcv : GoInterface → (Loc → IProp GF) → IProp GF
 
 section errs
 variable [GooseExts] [go_gctx : GoGlobalContext]
@@ -78,13 +80,15 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
     WP (App (Val #fe) (Val #v)) {{ Φ }})
 
 /-- A decoding error: a fresh `errors.New` error (an `*errors.errorString`) whose `Error()` returns
-its message `msg`, persistently. The generated codec's `Decode` fails only with
+its message `msg`, not empty, persistently. The generated codec's `Decode` fails only with
 `rpcErrDecode()`, `errors.New("net/rpc model: malformed value")` (`models/net/rpc/rpcgen_core.py`).
 What the client needs of it: not a `ServerError`, an `Error()`, and a pointer, which `==` compares
-(`input`'s `err == io.EOF`). -/
+(`input`'s `err == io.EOF`). What the server needs: a message that is not empty, so that the error
+response it sends for a request whose body does not decode is one (`sendResponse` with a
+message `""` would encode the placeholder `invalidRequest`, a type no generated codec lists). -/
 def decErr (err : GoInterface) : IProp GF :=
   iprop(∃ (x : Loc) (msg : GoString),
-    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x⌝ ∗
+    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x ∧ msg ≠ []⌝ ∗
     □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
         (Val #())) {{ Φ }})
@@ -101,9 +105,14 @@ def decOk (C : CodecSpec GF) (fd : GoFunc) : IProp GF :=
         Ψ ok -∗ (if ok then iprop(True) else decErr err) -∗ Φ #err) -∗
     WP (App (App (Val #fd) (Val #data)) (Val #ptr)) {{ Φ }})
 
-/-- `c` holds a `Codec` whose `Encode` and `Decode` meet `C` (persistent). -/
+/-- `Receiver`'s function `fr` meets `C.rcv`. -/
+def rcvOk (C : CodecSpec GF) (fr : GoFunc) : IProp GF :=
+  iprop(□ ∀ (rcvr : GoInterface) (Ψ : Loc → IProp GF) (Φ : val → IProp GF),
+    C.rcv rcvr Ψ -∗ ▷ (∀ rp : Loc, Ψ rp -∗ Φ #rp) -∗ WP (App (Val #fr) (Val #rcvr)) {{ Φ }})
+
+/-- `c` holds a `Codec` whose `Encode`, `Decode` and `Receiver` meet `C` (persistent). -/
 def codecIs (C : CodecSpec GF) (c : Loc) : IProp GF :=
-  iprop(∃ v : net.rpc.Codec, c ↦□ v ∗ encOk C v.Encode' ∗ decOk C v.Decode')
+  iprop(∃ v : net.rpc.Codec, c ↦□ v ∗ encOk C v.Encode' ∗ decOk C v.Decode' ∗ rcvOk C v.Receiver')
 
 /-- `codecMu`'s invariant: half of `codec`'s points-to. -/
 def codecInv : IProp GF :=
@@ -119,10 +128,32 @@ def codecSet (C : CodecSpec GF) : IProp GF :=
     ∃ c : Loc, ⌜c ≠ null⌝ ∗ globalAddr net.rpc.codec ↦□ c ∗ codecIs C c)
 
 instance codecIs_persistent (C : CodecSpec GF) (c : Loc) : Persistent (codecIs (GF := GF) C c) := by
-  unfold codecIs encOk decOk; infer_instance
+  unfold codecIs encOk decOk rcvOk; infer_instance
 
 instance codecSet_persistent (C : CodecSpec GF) : Persistent (codecSet (GF := GF) C) := by
   unfold codecSet; infer_instance
+
+/-- What a body read needs to decode into `body` from the decoding resource `D` (persistent):
+nothing for a `nil` body (the frame is discarded), else a registered codec meeting `C` and, from
+`D`, its `dec` of any payload, `Θ pl` its outcome. -/
+def bodyDec (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF) : IProp GF :=
+  match body with
+  | interface.nil => iprop(True)
+  | interface.ok _ => iprop(codecSet C ∗ □ (D -∗ ∀ pl, C.dec pl body (Θ pl)))
+
+instance bodyDec_persistent (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF) : Persistent (bodyDec C body D Θ) := by
+  cases body <;> unfold bodyDec <;> infer_instance
+
+/-- What a body read of the payload `pl` gives: `nil` and `D` for a `nil` body; else the
+decoding's outcome. -/
+def bodyRes (body : GoInterface) (D : IProp GF) (Θ : List w8 → Bool → IProp GF) (pl : List w8)
+    (err : GoInterface) : IProp GF :=
+  match body with
+  | interface.nil => iprop(⌜err = interface.nil⌝ ∗ D)
+  | interface.ok _ => iprop(∃ ok : Bool, ⌜err = interface.nil ↔ ok = true⌝ ∗ Θ pl ok ∗
+      (if ok then iprop(True) else decErr err))
 
 end defs
 

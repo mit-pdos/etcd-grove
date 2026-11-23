@@ -57,7 +57,10 @@ keeping the inode), so it creates no file-extension resource: everything concret
 `New`'s proved post of what it consumed. What it adds to `New` is only the goroutine and the
 `select` (no resource), and the absence of `newBackend`'s panic, which `dbOpensOk` and
 `openMmapOk cfg` exclude (`¬ dbOpenOk` is `False` since S3e: bbolt's `Open` has no error under
-`theFs`'s `FsNoErrAll`). -/
+`theFs`'s `FsNoErrAll`). (#30, 2026-11-22) Under `[ReceiptBoundLe GF (2 ^ 60)]` as well, which
+`New`'s spec takes (its post holds the receipt bound: the backend's buffered entries are paid by
+receipts, `backend.bufRc`): without it, from S3e to this change, the axiom gave `New`'s post at receipt
+bounds where `New`'s proof gives nothing, and so was false there (ledger 2026-11-22). -/
 axiom storage.OpenBackend.wp_proof : storage.OpenBackend.spec (GF := GF) (hG := hG)
 
 end proof

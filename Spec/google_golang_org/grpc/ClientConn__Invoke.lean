@@ -36,18 +36,23 @@ itself if `dopts` is empty), the chain over grpc's `invoke` (`chainWP`: the firs
 called with an invoker that runs the rest; with no interceptor, `invoke` itself), where `invoke`
 makes one attempt (`grpcInvokerOk conn addrs`: a run of the handler served for the method at one
 of `addrs`, or an error). Stated as a weakest precondition, for any postcondition `Ψ`: the call's behavior is the
-chain's. -/
+chain's. Since 2026-11-23 (#24's S2 signatures, the resource parameter): the caller gives a
+resource `R` of the connection's family (`Ok R`, fixed at the dial: `grpcConn`), which the chain's
+calls and the attempts are lent (`chainWP R`, `grpcInvokerOk conn addrs Ok`) and which comes back
+with the call's result. True of grpc-go v1.84: `Invoke` calls the composed interceptor (or
+`invoke`) on the caller's goroutine, each interceptor calls its invoker synchronously, and the
+attempts call the per-RPC credentials only from there (`grpcInvokerOk`'s docstring). -/
 abbrev grpc.ClientConn.Invoke.spec : Prop :=
   ∀ (conn : Loc) (addrs : List GoString) (ics : List GoFunc) (dopts : List GoInterface)
-    (ctx : GoInterface) (method : GoString) (req reply : GoInterface) (opts : GoSlice)
-    (vs : List GoInterface) (Ψ : val → IProp GF),
-  isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics dopts ∗
-      opts ↦*□ vs ∗
-      (∀ (inv : GoFunc) (opts' : GoSlice), grpcInvokerOk conn addrs inv -∗
-        opts' ↦*□ (dopts ++ vs) -∗ chainWP conn ics inv #ctx #method #req #reply #opts' Ψ) ⊢
+    (Ok : IProp GF → Prop) (ctx : GoInterface) (method : GoString) (req reply : GoInterface)
+    (opts : GoSlice) (vs : List GoInterface) (R : IProp GF) (Ψ : val → IProp GF),
+  isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcConn conn addrs ics dopts Ok ∗
+      opts ↦*□ vs ∗ ⌜Ok R⌝ ∗ R ∗
+      (∀ (inv : GoFunc) (opts' : GoSlice), grpcInvokerOk conn addrs Ok inv -∗
+        opts' ↦*□ (dopts ++ vs) -∗ chainWP R conn ics inv #ctx #method #req #reply #opts' Ψ) ⊢
     WP (App (App (App (App (App
       (Val (conn @!! go.GoType.PointerType google_golang_org.grpc.ClientConn.ty @!! go!"Invoke"))
-      (Val #ctx)) (Val #method)) (Val #req)) (Val #reply)) (Val #opts)) {{ Ψ }}
+      (Val #ctx)) (Val #method)) (Val #req)) (Val #reply)) (Val #opts)) {{ v, R ∗ Ψ v }}
 
 end spec
 
