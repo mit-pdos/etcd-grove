@@ -101,11 +101,12 @@ def cfgVal (n : Nat) (cv : raxos.configuration.InstanceConfig) : IProp GF :=
 /-! ## The replica's share -/
 
 /-- Replica `k`'s share of the start, in the configuration `c` (it is one of `c`'s replicas): its
-addresses' tokens, its recorder's and its proxy's consensus ghost state, the configuration, the
+proxy address's token (the recorder needs none: its listener's protocols, `recLisP`, are in
+`netProtos`), its recorder's and its proxy's consensus ghost state, the configuration, the
 shared invariants and protocols, the `"nil"` batch's registration. -/
 def replicaRes (γ : QNames) (c : QConf) (k : Nat) : IProp GF :=
   iprop(⌜c.ok ∧ 1 ≤ k ∧ k ≤ c.n⌝ ∗ confIs γ c ∗
-    addrTok (proxyAddr k) ∗ addrTok (recAddr k) ∗
+    addrTok (proxyAddr k) ∗
     recHalf γ k ∅ ∗ initFront γ k 1 ∗
     inv consN (consInv γ) ∗ inv smrN (smrInv γ) ∗ netProtos γ ∗
     batchReg γ go!"nil" nilBatch ∗ spentLb γ 0)

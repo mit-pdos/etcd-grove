@@ -143,6 +143,42 @@ class RandHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 
 end rand
 
+/-! ## strconv.Atoi -/
+
+namespace strconv
+
+/-- The value of a string of decimal digits. -/
+def decVal (s : List w8) : Nat := s.foldl (fun acc b => acc * 10 + (b.toNat - 48)) 0
+
+/-- `s` is a non-empty string of at most 18 decimal digits. -/
+def smallDigits (s : List w8) : Prop :=
+  1 ≤ s.length ∧ s.length ≤ 18 ∧ ∀ b ∈ s, 48 ≤ b.toNat ∧ b.toNat ≤ 57
+
+section atoi
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **Hypothesis** `strconv.Atoi(s)` for a string of 1 to 18 decimal digits: its value and a
+`nil` error (the lab's `wp_Atoi`, proved there over its own translation of `strconv`; Perennial's
+`strconv.Atoi.spec` does not give the value). Discharge: the lab's proof
+(`Harness/Proof/strconv/Atoi.lean`) redone over Perennial's translation of `internal/strconv`'s
+fast path. -/
+abbrev Atoi.spec : Prop :=
+  ∀ (s : GoString), smallDigits s →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.strconv }}
+      (App (Val (@! Perennial.strconv.Atoi)) (Val #s))
+    {{ RET (PairV #(W64 (decVal s)) #GoInterface.nil); True }}
+
+end atoi
+
+end strconv
+
+/-- The `strconv.Atoi` hypothesis. -/
+class AtoiHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
+  Atoi : strconv.Atoi.spec (GF := GF) (hG := hG)
+
 /-! ## gRPC, unary -/
 
 namespace grpc
@@ -178,6 +214,9 @@ structure GrpcVocab [GooseExts] (GF : BundledGFunctors) where
   isClientConn : Loc → GrpcWorld GF → GoString → IProp GF
   /-- an error a handler may return, which the server turns into a status (persistent) -/
   handlerErr : GoInterface → IProp GF
+  /-- a dial option that sets the transport's credentials (`WithInsecure()`'s; the lab's model's
+  `DialOption.creds = true`) -/
+  credsOpt : GoInterface → Prop
   worldOk_persistent : ∀ W, Persistent (worldOk W)
   isServer_persistent : ∀ s γ W a, Persistent (isServer s γ W a)
   isClientConn_persistent : ∀ cc W a, Persistent (isClientConn cc W a)
@@ -274,27 +313,32 @@ abbrev Server.RegisterService.spec : Prop :=
       go!"RegisterService")) (Val #sd)) (Val #ss))
   {{ RET #(); V.srvOwn γ (name :: R) ∗ descOk V W a sd dq name ss }}
 
-/-- `s.Serve(lis)` on a listener of `a` (from `net.Listen`), with the server's owner token or its
-served token: it returns only with an error, and the served token. -/
+/-- `s.Serve(lis)` on a listener at `la` (from `net.Listen`; `la` may be a wildcard, D21) whose
+accepted addresses all carry the protocols of the server's address `a` (`lisProto`, set once by
+`lis_set_proto`), with the server's owner token or its served token: it returns only with an
+error, and the served token. (The lab's spec took a listener at `a` itself and `grpcAddr V W a`;
+the replicas listen at `0.0.0.0:port` and are dialed at `127.0.0.1:port`.) -/
 abbrev Server.Serve.spec : Prop :=
-  ∀ (s : Loc) (γs : GName) (W : GrpcWorld GF) (a : GoString) (R : List GoString)
+  ∀ (s : Loc) (γs : GName) (W : GrpcWorld GF) (a la : GoString) (R : List GoString)
     (li : GoInterface) (l : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ V.isServer s γs W a ∗
       (V.srvOwn γs R ∨ V.srvServed γs) ∗ net.isListener li l ∗
-      netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
-      netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a ∗ grpcAddr (Gg := hG.goose_globalGS) V W a }}
+      netLis (extLocalGS netExt (L := hG.goose_localGS)) l la true ∗
+      netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
+      lisProto (Gg := hG.goose_globalGS) la (V.reqProto W a) (V.respProto W a) ∗ V.worldOk W }}
     (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.Server.ty @!! go!"Serve"))
       (Val #li))
   {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ ∗ V.srvServed γs }}
 
-/-- `WithInsecure()`: some dial option. -/
+/-- `WithInsecure()`: a dial option that sets the transport's credentials. -/
 abbrev WithInsecure.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc }}
     (App (Val (@! google_golang_org.grpc.WithInsecure)) (Val #()))
-  {{ (o : GoInterface), RET #o; True }}
+  {{ (o : GoInterface), RET #o; ⌜V.credsOpt o⌝ }}
 
-/-- `Dial(a, opts...)` of a gRPC address of the world, with `WithInsecure()`'s option among the
-options (as QuePaxa's): a client connection, or an error. -/
+/-- `Dial(a, opts...)` of a gRPC address of the world (the lab's `dialPost`): a client
+connection if some option sets credentials (as QuePaxa's `WithInsecure()`), else an error (gRPC's
+`errNoTransportSecurity`; `Dial` does not block, so nothing else fails). -/
 abbrev Dial.spec : Prop :=
   ∀ (W : GrpcWorld GF) (a : GoString) (opts : GoSlice) (dq : DFrac) (os : List GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcAddr (Gg := hG.goose_globalGS) V W a ∗
@@ -302,7 +346,8 @@ abbrev Dial.spec : Prop :=
     (App (App (Val (@! google_golang_org.grpc.Dial)) (Val #a)) (Val #opts))
   {{ (cc : Loc) (err : GoInterface), RET (PairV #cc #err);
       opts ↦*{dq} os ∗
-      ((⌜err = interface.nil⌝ ∗ V.isClientConn cc W a) ∨ (⌜err ≠ interface.nil⌝ ∗ errAny err)) }}
+      ((⌜err = interface.nil ∧ ∃ o ∈ os, V.credsOpt o⌝ ∗ V.isClientConn cc W a) ∨
+        (⌜err ≠ interface.nil ∧ ∀ o ∈ os, ¬ V.credsOpt o⌝ ∗ errAny err)) }}
 
 /-- `cc.Invoke(ctx, fm, args, reply, opts)`: `nil` after one run of the method's handler at the
 server on the encoded request, with its continuation `Φ rep` and the reply decoded into `reply`
@@ -337,7 +382,7 @@ class GrpcHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlob
   NewServer : NewServer.spec V
   RegisterService : Server.RegisterService.spec V
   Serve : Server.Serve.spec V
-  WithInsecure : WithInsecure.spec (GF := GF)
+  WithInsecure : WithInsecure.spec V
   Dial : Dial.spec V
   Invoke : ClientConn.Invoke.spec V
 

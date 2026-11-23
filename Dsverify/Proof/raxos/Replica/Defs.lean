@@ -118,8 +118,8 @@ def srvProxy (γ : QNames) (c : QConf) (k : Nat) (s : Loc) : IProp GF :=
 def srvRecorder (γ : QNames) (c : QConf) (k : Nat) (s : Loc) : IProp GF :=
   iprop(∃ (re c0 : Loc), s.[Server, go!"RecorderInstance"] ↦□ re ∗
     re.[Recorder, go!"connection"] ↦ c0 ∗
-    re.[Recorder, go!"address"] ↦□ (go!"0.0.0.0" ++ go!":" ++ decStr (7626 + k)) ∗
-    isRecorder γ k re ∗ addrTok (proxyAddr k) ∗ addrTok (recAddr k))
+    re.[Recorder, go!"address"] ↦□ recLis k ∗
+    isRecorder γ k re ∗ addrTok (proxyAddr k))
 
 end defs
 

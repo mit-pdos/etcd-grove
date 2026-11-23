@@ -76,6 +76,10 @@ def proxyAddr (k : Nat) : GoString := portAddr (7606 + k)
 /-- Replica `r`'s recorder address (`RecAddrs()[6+r]`). -/
 def recAddr (r : Nat) : GoString := portAddr (7626 + r)
 
+/-- Replica `r`'s recorder's listening address (`recorder.go`: `"0.0.0.0:" + RECORDERPORT`, the
+wildcard with `recAddr r`'s port, D21). -/
+def recLis (r : Nat) : GoString := go!"0.0.0.0:" ++ decStr (7626 + r)
+
 /-- Server node `k`'s configuration address (`CfgAddrs()[6+k]`). -/
 def confAddr (k : Nat) : GoString := portAddr (7646 + k)
 
@@ -196,6 +200,19 @@ variable [go_gctx : GoGlobalContext] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 
 /-! ## Every address's protocols -/
 
+/-- Recorder `r`'s listener (persistent): every address its wildcard `recLis r` takes carries
+the gRPC protocols of its address `recAddr r` (`lisProto`, set by `lis_set_proto` from
+`lisUnset (recLis r)`), and the world's registry. Dialers get `grpcAddr` of `recAddr r` from it
+(`recLisP_grpcAddr`, `Replica/Serve.lean`). -/
+def recLisP (V : GrpcVocab GF) (W : GrpcWorld GF) (r : Nat) : IProp GF :=
+  iprop(lisProto (recLis r) (V.reqProto W (recAddr r)) (V.respProto W (recAddr r)) ∗ V.worldOk W)
+
+omit go_gctx qv in
+instance recLisP_persistent (V : GrpcVocab GF) (W : GrpcWorld GF) (r : Nat) :
+    Persistent (recLisP V W r) := by
+  unfold recLisP; infer_instance
+
+
 /-- The protocols of every configured address but the request addresses (persistent): node 0's
 port (silent), the clients', the proxies' and the configuration ports' as above, the recorders'
 gRPC's (`grpcAddr` of the deployment's vocabulary `QpVocab`), the unused ones silent. -/
@@ -206,12 +223,12 @@ def netProtos (γ : QNames) : IProp GF :=
     ([∗list] c ∈ List.range 6, addrProto (cconfAddr c) (confInProto γ) ackProto) ∗
     ([∗list] k ∈ [1, 2, 3, 4, 5], addrProto (proxyAddr k) (proxyInProto γ k) silentProto) ∗
     ([∗list] k ∈ [1, 2, 3, 4, 5], addrProto (confAddr k) (confInProto γ) ackProto) ∗
-    ([∗list] r ∈ [1, 2, 3, 4, 5], grpcAddr qv.grpc (world γ) (recAddr r)))
+    ([∗list] r ∈ [1, 2, 3, 4, 5], recLisP qv.grpc (world γ) r))
 
 omit go_gctx in
 instance netProtos_persistent (γ : QNames) :
     Persistent (netProtos (GF := GF) γ) := by
-  unfold netProtos grpcAddr; infer_instance
+  unfold netProtos; infer_instance
 
 end protos
 
