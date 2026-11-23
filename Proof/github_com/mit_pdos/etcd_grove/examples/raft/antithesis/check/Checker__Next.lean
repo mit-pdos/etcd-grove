@@ -1,15 +1,10 @@
 /-
 Lean-first (no Rocq counterpart). #33 S3b W7 (2026-11-23): the proof of `Checker.Next` (`check.go`).
-
-`violated`'s result is compared with `nil` (`v != nil`), and `violated.spec` does not say that an
-empty result is `nil`; the call is proved here by the triple `Checker.Next.violated_wp` (`violated`'s
-proof, its postcondition with the fact), over `ElectionSafety`'s and `OneVotePerTerm`'s specs.
 -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Checker__Next
-public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__ElectionSafety
-public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__OneVotePerTerm
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.violated
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__GCDue
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__GC
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__Step
@@ -36,87 +31,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
-/-- `violated`, with the fact `Next` compares its result by: an empty result is `nil`. -/
-theorem Checker.Next.violated_wp
-    (wp_ElectionSafety : State.ElectionSafety.spec (GF := GF) (hG := hG))
-    (wp_OneVotePerTerm : State.OneVotePerTerm.spec (GF := GF) (hG := hG)) :
-  ∀ (p : Loc) (s : State),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
-      stateRO p s }}
-    (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.violated)) (Val #p))
-  {{ (u : GoSlice), RET #u; strsRO u (violated s) ∗ ⌜violated s = [] → u = slice.nil⌝ }} := by
-  intro p s
-  wp_start as #Hs
-  iapply wp_fupd
-  ihave #Hs' := Hs
-  iunfold stateRO at Hs'
-  iNamed Hs'
-  iNamed Hf
-  iStructNamed Hp
-  wp_auto
-  wp_apply wp_ElectionSafety p s $$ [Hs]
-  · iexact Hs
-  try wp_auto
-  cases hES : s.electionSafety
-  · try wp_auto
-    wp_apply wp_slice_literal (V := GoString) [go!"ElectionSafety"]
-    isplitr
-    · ipureintro; rfl
-    iintro %sl ⟨Hsl, -⟩
-    wp_auto
-    ipersist Hsl
-    iapply HΦ
-    unfold violated; simp only [hES, Bool.not_false, ↓reduceIte]
-    imodintro; iunfold strsRO; iframe Hsl; ipureintro; intro h; cases h
-  try wp_auto
-  wp_apply wp_OneVotePerTerm p s $$ [Hs]
-  · iexact Hs
-  try wp_auto
-  cases hOV : s.oneVotePerTerm
-  · try wp_auto
-    wp_apply wp_slice_literal (V := GoString) [go!"OneVotePerTerm"]
-    isplitr
-    · ipureintro; rfl
-    iintro %sl ⟨Hsl, -⟩
-    wp_auto
-    ipersist Hsl
-    iapply HΦ
-    unfold violated; simp only [hES, hOV, Bool.not_true, Bool.not_false, Bool.false_eq_true, ↓reduceIte]
-    imodintro; iunfold strsRO; iframe Hsl; ipureintro; intro h; cases h
-  try wp_auto
-  ihave %Hvl := strsRO_len _ _ $$ HViol
-  have hv : violated s = s.viol := by
-    unfold violated; simp only [hES, hOV, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
-  rw [hv]
-  try wp_auto
-  by_cases h0 : g.Viol'.len = W64 0
-  · rw [decide_eq_true h0]
-    have hnil : s.viol = [] := by
-      rw [h0, sint_zero] at Hvl; exact List.eq_nil_of_length_eq_zero (by omega)
-    try wp_auto
-    iapply HΦ
-    rw [hnil]
-    imodintro
-    iframe; isplitl
-    · iapply Init0_strsNil
-    · ipureintro; intro _; rfl
-  · rw [decide_eq_false h0]
-    try wp_auto
-    iapply HΦ
-    imodintro
-    iframe HViol
-    ipureintro; intro hn; rw [hn] at Hvl; exfalso; apply h0; simp at Hvl; word
-
-
 theorem Checker.Next.wp_proof
-    (wp_ElectionSafety : State.ElectionSafety.spec (GF := GF) (hG := hG))
-    (wp_OneVotePerTerm : State.OneVotePerTerm.spec (GF := GF) (hG := hG))
+    (wp_violated : violated.spec (GF := GF) (hG := hG))
     (wp_GCDue : State.GCDue.spec (GF := GF) (hG := hG))
     (wp_GC : State.GC.spec (GF := GF) (hG := hG))
     (wp_Step : State.Step.spec (GF := GF) (hG := hG))
     (gc_within : GCWithin) :
     Checker.Next.spec (GF := GF) (hG := hG) := by
-  have wp_violated := Checker.Next.violated_wp wp_ElectionSafety wp_OneVotePerTerm
   intro p c e ev c'
   wp_start as ⟨Hc, #He, %Hb, %Hn⟩
   iunfold checkerOwn at Hc

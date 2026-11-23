@@ -262,6 +262,10 @@ theorem AntCheck.State.wp_OneVotePerTerm :
     AntCheck.State.OneVotePerTerm.spec (GF := GF) (hG := hG) :=
   AntCheck.State.OneVotePerTerm.wp_proof
 
+theorem AntCheck.wp_violated :
+    AntCheck.violated.spec (GF := GF) (hG := hG) :=
+  AntCheck.violated.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm
+
 theorem AntCheck.State.wp_idx :
     AntCheck.State.idx.spec (GF := GF) (hG := hG) :=
   AntCheck.State.idx.wp_proof
@@ -1050,10 +1054,6 @@ theorem AntCheck.onDisk.wp_voted :
     AntCheck.onDisk.voted.spec (GF := GF) (hG := hG) :=
   AntCheck.onDisk.voted.wp_proof AntCheck.onDisk.wp_w AntCheck.onDisk.wp_V1 AntCheck.Event.wp_vote
 
-theorem AntCheck.wp_violated :
-    AntCheck.violated.spec (GF := GF) (hG := hG) :=
-  AntCheck.violated.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm
-
 theorem AntCheck.wp_votesAdd :
     AntCheck.votesAdd.spec (GF := GF) (hG := hG) :=
   AntCheck.votesAdd.wp_proof AntCheck.wp_votesHas
@@ -1097,7 +1097,7 @@ theorem AntCheck.State.wp_Step :
 
 theorem AntCheck.Checker.wp_Next :
     AntCheck.Checker.Next.spec (GF := GF) (hG := hG) :=
-  AntCheck.Checker.Next.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm AntCheck.State.wp_GCDue AntCheck.State.wp_GC (AntCheck.State.wp_Step h_State__OnDisk) AntCheck.State.gc_within
+  AntCheck.Checker.Next.wp_proof AntCheck.wp_violated AntCheck.State.wp_GCDue AntCheck.State.wp_GC (AntCheck.State.wp_Step h_State__OnDisk) AntCheck.State.gc_within
 
 theorem AntCheck.wp_Run :
     AntCheck.Run.spec (GF := GF) (hG := hG) :=

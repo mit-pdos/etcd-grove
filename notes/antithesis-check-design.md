@@ -636,3 +636,5 @@ new file of its own (named below), and it reports its link lines, which the inte
   laws `OnDiskProofLaws.lean`. Done: guards g1-g6, successor u0, u1; left: `msgs` joins (written, not
   re-checked), votes, leaders/ledLog, `pre`, u4-u8, `viol` v1-v5, the final `succOwn`. Its link line is
   in H4b's report (the `State__OnDisk: ?` line of the link list until then).
+- **`violated.spec` strengthened** (H6's finding 1, ledger 2026-11-23): its post says an empty result
+  is `nil`; `Checker.Next` takes `violated.spec`, and its re-proof `violated_wp` is gone.

@@ -54,7 +54,7 @@ theorem violated.wp_proof
     ipersist Hsl
     iapply HΦ
     unfold violated; simp only [hES, Bool.not_false, ↓reduceIte]
-    imodintro; iunfold strsRO; iexact Hsl
+    imodintro; iunfold strsRO; iframe Hsl; ipureintro; intro h; cases h
   try wp_auto
   wp_apply wp_OneVotePerTerm p s $$ [Hs]
   · iexact Hs
@@ -69,7 +69,7 @@ theorem violated.wp_proof
     ipersist Hsl
     iapply HΦ
     unfold violated; simp only [hES, hOV, Bool.not_true, Bool.not_false, Bool.false_eq_true, ↓reduceIte]
-    imodintro; iunfold strsRO; iexact Hsl
+    imodintro; iunfold strsRO; iframe Hsl; ipureintro; intro h; cases h
   try wp_auto
   ihave %Hvl := strsRO_len _ _ $$ HViol
   have hv : violated s = s.viol := by
@@ -84,12 +84,15 @@ theorem violated.wp_proof
     iapply HΦ
     rw [hnil]
     imodintro
-    iapply Init0_strsNil
+    iframe; isplitl
+    · iapply Init0_strsNil
+    · ipureintro; intro _; rfl
   · rw [decide_eq_false h0]
     try wp_auto
     iapply HΦ
     imodintro
-    iexact HViol
+    iframe HViol
+    ipureintro; intro hn; rw [hn] at Hvl; exfalso; apply h0; simp at Hvl; word
 
 end proof
 

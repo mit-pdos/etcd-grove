@@ -28,7 +28,7 @@ abbrev violated.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
       stateRO p s }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.violated)) (Val #p))
-  {{ (u : GoSlice), RET #u; strsRO u (violated s) }}
+  {{ (u : GoSlice), RET #u; strsRO u (violated s) ∗ ⌜violated s = [] → u = slice.nil⌝ }}
 
 end spec
 

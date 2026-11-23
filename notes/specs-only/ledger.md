@@ -4837,3 +4837,15 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   write it, each after removing the entry from `pending`.
 - **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
 - **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).
+
+## 2026-11-23: `violated.spec` says an empty result is `nil` (antithesis check, #33 S3b W7)
+
+- **Spec.** `Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/violated.lean`.
+- **Defect.** Its post held only `strsRO u (violated s)`; `Checker.Next` tests `v != nil` on the
+  result, which a list `[]` held by a non-nil slice would not decide, so `Next`'s proof re-proved the
+  call with the extra fact (`Checker.Next.violated_wp`).
+- **Evidence.** `check.go`'s `violated` returns `nil` when no invariant is broken and the state's
+  `Viol` is empty (`len(s.Viol) == 0`), else a non-empty slice.
+- **Proposed change.** The post adds `⌜violated s = [] → u = slice.nil⌝`; `violated.wp_proof` is the
+  re-proof's body, `Checker.Next.wp_proof` takes `violated.spec`, `violated_wp` goes.
+- **Decision.** Applied (a callee strengthening its own proof discharges; no trust or top-level change).
