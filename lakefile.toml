@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvNet"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "Net", "KvNet", "Dsverify"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
