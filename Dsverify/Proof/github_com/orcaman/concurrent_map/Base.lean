@@ -4,7 +4,7 @@ The package fact of `github_com.orcaman.concurrent_map` (dsv-swiftpaxos, notes/d
 module
 
 public import Dsverify.GeneratedProof.github_com.orcaman.concurrent_map
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Perennial.Proof.sync.Link
 
 @[expose] public section

@@ -24,7 +24,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.I
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Init
 public import Net.Proof.net.Init
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.github_com.google.uuid.Init

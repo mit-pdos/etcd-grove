@@ -380,6 +380,8 @@ that needs it):
 - `net.rpc.InitHyp GF` (`Dsverify/Proof/net/rpc/Init.lean`): net/rpc's initializer.
 - `net.http.InitHyp GF` (`Dsverify/Proof/net/http/Init.lean`): net/http's initializer.
 - `encoding.json.InitHyp GF` (`Dsverify/Proof/encoding/json/Init.lean`, dsv-vr's): encoding/json's.
+  **Gone (2026-11-23, branch `dsv-json-main`, notes/dsv-json-main.md)**: the kit uses the main tree's
+  `encoding/json` (J1 of #24); its `wp_initialize'` is proved, so the statement lost this premise.
 
 **The `InitHyp`s' conditions (dsv-inithyp-fix, review of #24, finding 1):** net/rpc's and net/http's
 were false as landed: their `GetIsPkgInitWf` (`g p = isPkgInit p ∧ True`) constrained the table only
