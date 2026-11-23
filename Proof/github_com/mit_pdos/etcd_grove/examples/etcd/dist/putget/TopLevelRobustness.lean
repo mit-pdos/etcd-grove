@@ -17,7 +17,7 @@ bridge `robust_of_distBootIL` picks them). Against phase 7 S2's draft names (`S2
 `notes/putget-dist-plan.md` sections 8 and 10), `putget_safe_of_s2` splits it:
 * the start (`putget_start`, proved): the client address set to etcd's table at `γE`, the publication
   invariant, the member's and the client's shares (`Defs.lean`);
-* the member's boot (`member_boot`, `MemberLinked.lean`, proved): the in-process `Main.wp_proof`'s first half
+* the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first half
   (`etcdstart.wp_StartServer1`, shared with it), `Serve` in S2's form publishing the view with `putgetPub`,
   from S2's names and the named hypotheses `MemberBootHyps` (`ClearProxy`'s spec, the metric names' rights,
   `dataDirFresh`, `addrOk`'s peer URL plain);
@@ -29,7 +29,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.TopL
 public import Net.Statement.DistBridgeExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.S2Draft
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.MemberLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AdequacyMember
 
 @[expose] public section
 
@@ -126,7 +126,7 @@ theorem putget_start [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : 
   iframe #
 
 /-- **The client machine's boot against S2's names** (the client half of `putget_safe`; the member's half is
-`member_boot`, `MemberLinked.lean`): under S2's names, the client's boot program safe from its share at every
+`member_boot`, `AdequacyMember.lean`): under S2's names, the client's boot program safe from its share at every
 `γE`, with what the member publishes (`putgetPub`: the client's putget invariant at the view's read names).
 The in-process `Main.wp_proof`'s second half, reading the view from its first call's reply and then
 `kvRegsPub_at`. -/

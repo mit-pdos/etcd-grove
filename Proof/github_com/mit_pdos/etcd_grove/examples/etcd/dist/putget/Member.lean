@@ -49,7 +49,11 @@ theorem Member.wp_proof
     (wp_holdForever : holdForever.spec (GF := GF) (hG := hG))
     (hne : mvcc.api.names_nonempty.law) :
     Member.spec (GF := GF) (hG := hG) := by
-  intro CS π S peer client N id ctxs boot γE Pub Hbf hpl Htb HLv Hrb48 HrbN HwbN Haf Hbuq Hrf Hdbo Hms
+  intro CS π TB RB S peer client id ctxs boot γE Pub Hbf hpl HLv Haf Hbuq Hrf Hdbo Hms
+  have Htb : threadBound GF ≤ 2 ^ 28 := TB.threadBound_le
+  have Hrb48 : receiptBound GF ≤ 2 ^ 48 := Nat.le_trans RB.receiptBound_le (by decide)
+  have HrbN : receiptBound GF ≤ 2 ^ 28 + 1 := Nat.le_trans RB.receiptBound_le (by decide)
+  have HwbN : 2 ^ 28 + 7 + bootWB ≤ backend.wbInit := by unfold bootWB backend.wbInit; omega
   wp_start as ⟨Htok, #Hprem, Hdd, Hwa, Hshare, #Hpub⟩
   iunfold memberShare at Hshare
   icases Hshare with ⟨#Haddr, Hhalf, #Hinv⟩
@@ -75,7 +79,7 @@ theorem Member.wp_proof
   -- `StartServer(Name, peer, client, lg)`
   ihave Hstart := etcdstart.memberStartRes_one (GF := GF) name $$ [Hdd Hwa]
   · iframe; iframe #
-  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne N name peer client lg id ctxs boot Hbf hpl
+  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne (2 ^ 28) name peer client lg id ctxs boot Hbf hpl
       (by decide) (by decide) Htb Hrb48 HrbN HwbN Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)

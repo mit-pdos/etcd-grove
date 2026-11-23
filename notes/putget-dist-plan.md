@@ -416,7 +416,7 @@ the gates: `etc/tcb-report.py --check` (no `Link`/`Results` of ours, so no new r
 ## 10. The member's boot, proved against S2's draft (2026-11-23, branch `putget-boot`)
 
 `putget_safe_of_s2` now takes only the **client** half as a boot hypothesis: the member machine's boot is
-proved (`member_boot`, `Proof/.../dist/putget/MemberLinked.lean`) from `S2Holds` and four named hypotheses
+proved (`member_boot`, `Proof/.../dist/putget/AdequacyMember.lean`) from `S2Holds` and four named hypotheses
 (`MemberBootHyps`), no axiom, no `sorry`.
 
 **What is proved.**

@@ -14,7 +14,9 @@ It publishes its view at `γE` once `Serve` succeeds (S2's `Serve_s2`), with the
 allocated from the bootstrap log's KV state.
 
 **The pure premises:** the in-process putget's (`Spec/.../examples/etcd/putget/Main.lean`): `bootstrap`'s
-results (`BootFacts`), the logic's bounds, the server's workload and environment premises, the gRPC service
+results (`BootFacts`), the logic's bounds (as the logic's bound classes, `ThreadBoundLe`/`ReceiptBoundLe` at
+`2 ^ 28`, the distributed adequacy's; the apply thread's write budget fixed at `2 ^ 28`), the thread levels a
+served member needs (`srvLevels`), the server's workload and environment premises, the gRPC service
 values' method sets; and the peer URL `http://peer` plain (`host:port`, what the one-member directory
 takes).
 -/
@@ -43,17 +45,17 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget
 
 /-- See the file header. -/
 abbrev Member.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS] (S : S2Draft (G := hG.goose_globalGS) GF)
-    (peer client : GoString) (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [π : NetProtoGS]
+    [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)] (S : S2Draft (G := hG.goose_globalGS) GF)
+    (peer client : GoString) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (γE : GName) (Pub : S.EnvView → IProp GF),
   etcdstart.BootFacts id ctxs boot →
   types.plainPeerURL (go!"http://" ++ peer) →
-  threadBound GF ≤ 2 ^ 28 → srvLevels (GF := GF) → receiptBound GF ≤ 2 ^ 48 →
-  receiptBound GF ≤ N + 1 → N + 7 + bootWB ≤ backend.wbInit →
+  srvLevels (GF := GF) →
   authRecordsFit → apply.backendUnderQuota → grpcRepliesFit → storage.diskOk →
   v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
-      threadTok ∗ etcdstart.premises (GF := GF) name peer client N id ctxs boot ∗
+      threadTok ∗ etcdstart.premises (GF := GF) name peer client (2 ^ 28) id ctxs boot ∗
       dataDirFresh (GF := GF) (memberDataDir name) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
       memberShare (G := hG.goose_globalGS) S client γE id Pub ∗ memberPubOk S Pub }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member)) (Val #peer))

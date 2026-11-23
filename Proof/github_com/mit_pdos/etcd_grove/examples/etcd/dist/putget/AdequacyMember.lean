@@ -100,6 +100,8 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
   haveI := Hctx hG
   haveI : ReceiptBoundLe putgetGF (2 ^ 62) := ⟨by omega⟩
+  haveI : ReceiptBoundLe putgetGF (2 ^ 28) := ⟨by omega⟩
+  haveI : ThreadBoundLe putgetGF (2 ^ 28) := ⟨by rw [hT]; omega⟩
   haveI := etcdFsSemOk
   iintro Hshare Hls Hgs Htok
   ihave Hown := ownInitializing_of_empty
@@ -129,9 +131,8 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩ S
   wp_apply (Member.wp_proof (HM.clearProxy hG) zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
-      S peer client (2 ^ 28) id ctxs boot γE (putgetPub S) Hbf (HM.peerPlain peer hpeer)
-      (by rw [hT]; omega) (by unfold srvLevels; rw [hT]; omega) (by omega) (by omega)
-      (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance)
+      S peer client id ctxs boot γE (putgetPub S) Hbf (HM.peerPlain peer hpeer)
+      (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hdd Hwa Hshare]
   · iframe; iframe #
   ipureintro
