@@ -59,28 +59,14 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
   /-- lab `encoding.gob.Decoder.Decode.wp_proof` -/
   gob_Decode : ∀ [examples.swiftnet.Assumptions], encoding.gob.Decoder.Decode.spec (GF := GF)
 
-  /-- lab `Harness/Proof/math/rand.lean` `math.rand.NewSource.wp_proof` (lib/LibSpecs.lean) -/
-  math_rand_NewSource : math.rand.NewSource.labSpec (GF := GF)
-  /-- lab `math.rand.New.wp_proof` -/
-  math_rand_New : ∀ [math.rand.Assumptions], math.rand.New.labSpec (GF := GF)
-  /-- lab `math.rand.Intn.wp_proof` -/
-  math_rand_Intn : math.rand.Intn.spec (GF := GF)
   /-- lab `uuid.wp_ID` (`uuid.wp_New` is the environment class `SwiftOsRandom`, below) -/
   uuid_ID : ∀ [github_com.google.uuid.Assumptions], github_com.google.uuid.UUID.ID.spec (GF := GF)
-
-/-- **The environment assumption** (not a library spec; dsv-rabia's `os.signal.NoSignals`): no
-signal is sent to the deployment's processes, so the channel `hook.HookUser1` registers for
-`SIGUSR1` never receives one (`lib/LibSpecs.lean`, `os.signal.NotifyQuietUsr1.spec`). A premise of
-`swiftpaxos_remote_robust` beside the library hypotheses, kept apart from them. -/
-class SwiftNoSignals [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
-    [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  notifyQuiet : os.signal.NotifyQuietUsr1.spec (GF := GF)
 
 /-- **The environment assumption on the OS's randomness** (not a library spec): reading
 `crypto/rand.Reader` does not fail, so `uuid.New()` (`Must(NewRandom())`, which panics when it
 fails) returns (`lib/LibSpecs.lean`, `github_com.google.uuid.New.spec`, lab `uuid.wp_New`). A
-premise of `swiftpaxos_remote_robust` beside the library hypotheses and `SwiftNoSignals`, kept
-apart from them. -/
+premise of `swiftpaxos_remote_robust` beside the library hypotheses and `os.signal.NoSignals
+usr1Sigs`, kept apart from them. -/
 class SwiftOsRandom [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
     [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
   uuid_New : github_com.google.uuid.New.spec (GF := GF)
@@ -127,15 +113,6 @@ theorem NewDecoder.wp_hyp : NewDecoder.spec (GF := GF) := h.gob_NewDecoder
 theorem Encoder.EncodeW.wp_hyp : Encoder.EncodeW.spec (GF := GF) := h.gob_EncodeW
 theorem Decoder.Decode.wp_hyp : Decoder.Decode.spec (GF := GF) := h.gob_Decode
 end encoding.gob
-
-namespace math.rand
-theorem NewSource.wp_hyp : NewSource.labSpec (GF := GF) := h.math_rand_NewSource
-theorem New.wp_hyp [math.rand.Assumptions] : New.labSpec (GF := GF) := h.math_rand_New
-theorem Intn.wp_hyp : Intn.spec (GF := GF) := h.math_rand_Intn
-end math.rand
-
-theorem os.signal.NotifyQuietUsr1.wp_hyp [hs : github_com.imdea_software.swiftpaxos.SwiftNoSignals GF] :
-    os.signal.NotifyQuietUsr1.spec (GF := GF) := hs.notifyQuiet
 
 namespace github_com.google.uuid
 theorem wp_New [hr : github_com.imdea_software.swiftpaxos.SwiftOsRandom GF] : New.spec (GF := GF) :=

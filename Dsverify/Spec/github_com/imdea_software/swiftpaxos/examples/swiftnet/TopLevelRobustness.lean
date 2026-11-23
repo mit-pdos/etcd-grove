@@ -19,9 +19,10 @@ and the start's net protocol names `π`):
   `gobFmt`), each argued true of the real library in its docstring;
 * the package initializers without a proof here (`InitHyp`, `etc/dsv/README.md`): math/rand's,
   net/rpc's, net/http's, encoding/json's, encoding/gob's, os/signal's, google/uuid's;
-* the library specs (`SwiftHyps`, `Hyps.lean`: treemap, gob, bufio's lab lemmas, math/rand, uuid's
-  `ID`), the environment (`SwiftNoSignals`: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's
-  randomness does not fail, uuid's `New`);
+* the library specs (`SwiftHyps`, `Hyps.lean`: treemap, gob, bufio's lab lemmas, uuid's `ID`;
+  `math.rand.Hyps`, dsv-rabia's `math/rand` specs), the environment (`os.signal.NoSignals usr1Sigs`,
+  dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
+  fail, uuid's `New`);
 * net/rpc over HTTP (`lib/RpcHttpHyps.lean`; Net's `models-rpc-http`, not landed, named after its
   shapes): the addresses' and listeners' protocols (`RpcHttpAddr`, per global ghost state) and the
   specs (`RpcHttpHyp`, per heap);
@@ -42,6 +43,8 @@ public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.github_com.google.uuid.Init
 public import Dsverify.Proof.math.rand.Init
+public import Dsverify.Proof.math.rand.Spec
+public import Dsverify.Proof.os.signal.Spec
 
 @[expose] public section
 
@@ -85,7 +88,8 @@ def swiftpaxos_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; os.signal.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; github_com.google.uuid.InitHyp netDistGF) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; SwiftHyps netDistGF) →
-    (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; SwiftNoSignals netDistGF) →
+    (∀ G L, letI := heapAt G L; math.rand.Hyps netDistGF) →
+    (∀ G L, letI := heapAt G L; os.signal.NoSignals usr1Sigs netDistGF) →
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := libsAt l π; SwiftOsRandom netDistGF) →
     ∀ (ra : ∀ (G : GooseGlobalGS HasLC.hasLC netDistGF) (π : NetProtoGS), letI := G;
         letI := libsAt l π; RpcHttpAddr netDistGF)

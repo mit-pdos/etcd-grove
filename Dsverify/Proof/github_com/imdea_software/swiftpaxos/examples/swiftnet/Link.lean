@@ -96,7 +96,7 @@ attribute [local instance] swiftBufioDeps_holds swiftNetDeps_holds swiftKitDeps_
 section srv
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-  [SwiftHyps netDistGF] [SwiftNoSignals netDistGF]
+  [SwiftHyps netDistGF] [math.rand.Hyps netDistGF] [os.signal.NoSignals usr1Sigs netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- The package states' facts `swift.New` uses, from `pkgStates`. -/
@@ -310,7 +310,7 @@ end srv
 section machines
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
-  [SwiftHyps netDistGF] [SwiftNoSignals netDistGF] [SwiftOsRandom netDistGF]
+  [SwiftHyps netDistGF] [math.rand.Hyps netDistGF] [os.signal.NoSignals usr1Sigs netDistGF] [SwiftOsRandom netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 

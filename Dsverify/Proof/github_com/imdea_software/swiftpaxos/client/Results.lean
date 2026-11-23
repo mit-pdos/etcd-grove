@@ -59,7 +59,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [math.rand.Hyps netDistGF]
   [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 variable [bufio.Assumptions] [state.Assumptions] [encoding.binary.Assumptions]

@@ -127,7 +127,7 @@ theorem sw_start_at [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
 
 /-- **The SwiftPaxos kit, closed** (see the statement's file). -/
 theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hrand hri hhi hji hgi hsi hui hsw hns hor ra rh hfi σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 fsem bvi l hrand hri hhi hji hgi hsi hui hsw hmr hns hor ra rh hfi σ g threads
   refine robust_of_distProtoLisRBT_sha (GF := netDistGF) swAddrs swLas (system σ) g threads
     (2 ^ 31 - 1) swLas_pairwise swLas_disj ?_
   intro G π hrb
@@ -205,7 +205,8 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
     letI : os.signal.InitHyp netDistGF := hsi G' hG.goose_localGS
     letI : github_com.google.uuid.InitHyp netDistGF := hui G' hG.goose_localGS
     letI : SwiftHyps netDistGF := hsw G' hG.goose_localGS π
-    letI : SwiftNoSignals netDistGF := hns G' hG.goose_localGS π
+    letI : math.rand.Hyps netDistGF := hmr G' hG.goose_localGS
+    letI : os.signal.NoSignals usr1Sigs netDistGF := hns G' hG.goose_localGS
     letI : SwiftOsRandom netDistGF := hor G' hG.goose_localGS π
     letI : RpcHttpHyp netDistGF := rh G' hG.goose_localGS π
     letI : RpcFirstInit (GF := netDistGF) := hfi G' hG.goose_localGS π

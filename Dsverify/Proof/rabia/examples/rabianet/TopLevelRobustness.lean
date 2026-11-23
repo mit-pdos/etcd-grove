@@ -187,7 +187,7 @@ theorem rabia_remote_robust_of (wp_Codec : ∀ [GoGlobalContext] [hG : HeapGS Ha
     haveI : math.rand.InitHyp remoteGF := hmi G' hG.goose_localGS
     haveI : github_com.rs.zerolog.Hyps remoteGF := hz G' hG.goose_localGS
     haveI : math.rand.Hyps remoteGF := hmr G' hG.goose_localGS
-    haveI : os.signal.NoSignals remoteGF := hns G' hG.goose_localGS
+    haveI : os.signal.NoSignals os.signal.quietSigs remoteGF := hns G' hG.goose_localGS
     match i, hm with
     | 0, hm =>
       cases hm

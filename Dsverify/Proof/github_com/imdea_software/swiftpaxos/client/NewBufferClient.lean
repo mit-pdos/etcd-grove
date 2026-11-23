@@ -8,7 +8,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NewBufferClient
 public import Perennial.Proof.time
 
--- PORT: lab imports dropped: Harness.Proof.math.rand
+-- PORT: lab imports dropped: Harness.Proof.math.rand (its specs are dsv-rabia's `math.rand.Hyps`)
 
 @[expose] public section
 
@@ -23,7 +23,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [math.rand.Hyps netDistGF]
 variable [client.Assumptions] [math.rand.Assumptions] [time.Assumptions]
 
 theorem client.NewBufferClient.wp_proof : client.NewBufferClient.spec (hG := hG) := by
@@ -43,9 +43,12 @@ theorem client.NewBufferClient.wp_proof : client.NewBufferClient.spec (hG := hG)
   ihave #Htm1 := client.time_init $$ Hpkg
   wp_apply time.wp_Now $$ [$Htm1] as %tm -
   wp_apply time.Time.wp_UnixNano as %x -
-  wp_apply math.rand.NewSource.wp_hyp as %src -
+  -- `math/rand`'s specs, for some tokens (dsv-rabia's `math.rand.Hyps`); the kit only stores the
+  -- `*Rand`, so the `Rand`'s token is dropped.
+  obtain ⟨isSource, ownRand, hR⟩ := math.rand.Hyps.rands (GF := netDistGF)
+  wp_apply hR.NewSource as %src Hsrc
   iapply wp_fupd
-  wp_apply math.rand.New.wp_hyp as %r ⟨%rv, Hr⟩
+  wp_apply hR.New $$ [$Hsrc] as %r -
   ipersist «$r0»
   imodintro
   iapply HΦ

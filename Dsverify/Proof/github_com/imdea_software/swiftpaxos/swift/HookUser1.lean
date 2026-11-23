@@ -5,7 +5,8 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/HookUser1.lean (l
 `hook.HookUser1(f)` (hook/hook.go): a channel for `SIGUSR1`, `signal.Notify` on it, and a
 goroutine that waits on it, then runs `f`. The net model never delivers a signal
 (Harness/Proof/os/signal.lean): the channel is a bag of `False` messages, so the goroutine's
-receive never returns and `f` never runs. `hook.HookUser1.specI` (Proof/swift/NewSpecs.lean).
+receive never returns and `f` never runs (here the environment assumption
+`os.signal.NoSignals usr1Sigs`: no `SIGUSR1` is sent). `hook.HookUser1.specI` (Proof/swift/NewSpecs.lean).
 -/
 module
 
@@ -28,7 +29,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
-variable [hook.Assumptions] [SwiftNoSignals netDistGF]
+variable [hook.Assumptions] [os.signal.NoSignals usr1Sigs netDistGF]
 
 set_option goose.wp.extras true
 
@@ -49,12 +50,13 @@ theorem hook.HookUser1.wp_proof [syscall.Assumptions] [os.Assumptions] :
   imodintro
   ihave #Hsig : isPkgInit (PROP := IProp netDistGF) pkg_id.os.signal $$ []
   · iPkgInit
-  wp_apply wp_slice_literal (V := GoInterface) _
+  wp_apply wp_slice_literal (V := os.Signal) (l := usr1Sigs) _
   isplitr
   · ipureintro; rfl
   iintro %sl ⟨Hsl, _⟩
   wp_auto
-  wp_apply os.signal.NotifyQuietUsr1.wp_hyp _ _ _ Hnn $$ [$Hsig $Hsl] as -
+  wp_apply (os.signal.NoSignals.notifyQuiet (sigs := usr1Sigs) (GF := netDistGF))
+    (List.cons_ne_nil _ _) _ _ _ Hnn $$ [$Hsig $Hsl] as -
   wp_apply wp_fork $$ [-HΦ]
   · wp_auto
     wp_apply wp_bag_receive γ ch (fun _ : GoInterface => iprop(False)) $$ [$Hbag] as %v HF

@@ -207,7 +207,7 @@ theorem wp_MsgHandler [math.rand.Hyps GF] : consensus.Consensus.MsgHandler.spec 
 theorem wp_ServerInit [github_com.rs.zerolog.Hyps GF] : ServerInit.spec (GF := GF) :=
   ServerInit.wp_proof Slot.Reset.wp_proof wp_ProxyInit wp_NetworkInit wp_ConsensusInit
 
-theorem wp_Prologue [github_com.rs.zerolog.Hyps GF] [os.signal.NoSignals GF] :
+theorem wp_Prologue [github_com.rs.zerolog.Hyps GF] [os.signal.NoSignals os.signal.quietSigs GF] :
     Server.Prologue.spec (GF := GF) :=
   Server.Prologue.wp_proof rabia.internal.system.SigListen.wp_proof wp_Network_Prologue
     wp_Proxy_Prologue wp_TerminalLogger
