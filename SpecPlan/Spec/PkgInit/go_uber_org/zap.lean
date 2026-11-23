@@ -10,11 +10,13 @@ public import Perennial.Proof.errors.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap.internal.pool
 public import Perennial.Proof.math.Base
+public import SpecPlan.Spec.PkgInit.go_uber_org.zap.internal.stacktrace
 public import SpecPlan.Spec.PkgInit.os
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.sync.atomic.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap.internal
 public import Perennial.Proof.strings.Base
+public import SpecPlan.Spec.PkgInit.go_uber_org.zap.internal.bufferpool
 public import SpecPlan.Spec.PkgInit.net.url
 
 @[expose] public section

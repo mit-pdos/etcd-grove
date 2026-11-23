@@ -64,7 +64,7 @@ theorem watchCheckOk_tok (tag : GName) (s conn : Loc) (om : GrpcMd) (n : Nat)
         ((∃ t, ⌜tok = some (strings.trimPrefix t go!"Bearer ")⌝ ∗ □ P t) ∨
           ⌜tok = auth.mdTokenOf (metadata.mdNorm m)⌝) ∗
         auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
-        □ (⌜M.isOn = true⌝ → v3rpc.infoBoundT s M tok info) := by
+        □ (⌜M.isOn = true⌝ → v3rpc.infoBoundT (srvTLSId s) M tok info) := by
   iintro ⟨#Hc, #Ht⟩
   unfold watchCheckOk
   icases Hc with ⟨%m, %md, %hka, #Ha⟩

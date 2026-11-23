@@ -1,0 +1,6 @@
+# (zap-z1, 2026-11-23) `NewPool` (zap's `bufferpool._pool` is one) with its body; the rest names only.
+translate = ["!*", "NewPool", "_size"]
+imports = ["!*", "go.uber.org/zap/internal/pool"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

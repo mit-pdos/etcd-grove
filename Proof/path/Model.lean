@@ -16,6 +16,7 @@ the lemmas below say what the model gives on the strings rafthttp builds: a clea
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.Spec.internal.bytealg.LastIndexByteString
 
 @[expose] public section
 
@@ -36,25 +37,10 @@ abbrev slash : w8 := W8 47
 /-- `'.'`. -/
 abbrev dot : w8 := W8 46
 
-/-- `LastIndexByteString`'s loop from `i` down: the last index below `i` of `c` in `s`, or `-1`. -/
-def lastIdxFrom (s : List w8) (c : w8) : Nat → Int
-  | 0 => -1
-  | j + 1 => if s.getD j 0 = c then j else lastIdxFrom s c j
-
-/-- `bytealg.LastIndexByteString(s, c)`: the last index of `c` in `s`, or `-1`. -/
-def lastIndexByte (s : List w8) (c : w8) : Int := lastIdxFrom s c s.length
-
-theorem lastIdxFrom_bounds (s : List w8) (c : w8) (j : Nat) :
-    -1 ≤ lastIdxFrom s c j ∧ lastIdxFrom s c j < j := by
-  induction j with
-  | zero => simp [lastIdxFrom]
-  | succ k ih =>
-    unfold lastIdxFrom
-    split <;> omega
-
-theorem lastIndexByte_bounds (s : List w8) (c : w8) :
-    -1 ≤ lastIndexByte s c ∧ lastIndexByte s c < s.length :=
-  lastIdxFrom_bounds s c s.length
+-- `bytealg.LastIndexByteString(s, c)`'s model, Perennial's (since 2026-11-23; until then defined
+-- here): `lastIndexByte s c`, the last index of `c` in `s` or `-1`, by its loop `lastIdxFrom`.
+export _root_.Perennial.internal.bytealg (lastIdxFrom lastIndexByte lastIdxFrom_bounds
+  lastIndexByte_bounds)
 
 /-- The backtracking loop of a `..` element: `for w > dotdot && o[w] != '/' { w-- }`, from `w`. -/
 def backW (o : List w8) (dd : Nat) : Nat → Nat

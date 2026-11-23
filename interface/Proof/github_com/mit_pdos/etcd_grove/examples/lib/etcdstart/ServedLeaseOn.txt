@@ -7,16 +7,17 @@ def etcdstart.etcdLeaseServedOn [v3rpc_sem :
     apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
   iprop(isGrpcRpcMd addr
         go!"/etcdserverpb.Lease/LeaseGrant"
-        (client.etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) ∗
+        (client.etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) ∗
       isGrpcRpcMd addr
           go!"/etcdserverpb.Lease/LeaseRevoke"
-          (client.etcdLeaseRevokeSpecOn s E ρ) ∗
+          (client.etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) ∗
         isGrpcRpcMd addr
             go!"/etcdserverpb.Lease/LeaseTimeToLive"
-            (client.etcdLeaseTTLSpecMd s E (mvcc.api.mvccLeases E.γ)) ∗
+            (client.etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s (mvcc.api.mvccLeases E.γ)) E
+              (mvcc.api.mvccLeases E.γ)) ∗
           isGrpcRpcMd addr
             go!"/etcdserverpb.Lease/LeaseLeases"
-            (client.etcdLeaseLeasesSpecMd s E (mvcc.api.mvccLeases E.γ)))
+            (client.etcdLeaseLeasesSpecMd (srvTLSId s) E (mvcc.api.mvccLeases E.γ)))
 
 theorem etcdstart.etcdLeaseServedOn_persistent [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (addr : GoString) (s : Loc) (E :

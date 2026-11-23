@@ -267,6 +267,6 @@ Nothing for `issues/` or `nonissues/`: the one failure found was this test's own
    (the store's own read of the current revision, then a kill delaying the watch).
    **Decided (kaashoek, 2026-11-22): accepted** — etcd really answers so (the revision the store
    picked is compacted before the watch is established), so the check must allow it.
-5. Lean: none started. A statement over this deployment (as `etcd_dist_safe`'s) would need D2
+5. Lean: none started. A statement over this deployment (as `etcd_safe`'s) would need D2
    (`net` for clientv3 in `Net/`) and a `Report`/`Do` instance per workload (the codecs' `wireOk`,
    the store's `opMaybe` from the driver's call spec), as D8's kv.

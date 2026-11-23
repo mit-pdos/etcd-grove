@@ -38,6 +38,8 @@ theorem mvcc.kvHasher.WriteKeyValue.wp_proof (hBR : mvcc.BytesToRev.spec (GF := 
   obtain ⟨⟨r, rest, rfl, hrest, hr1, hr2⟩, hkeep⟩ := Hk
   iunfold mvcc.kvHasherOk at Hok
   icases Hok with ⟨%d, %tab, %c, %Hhash, Hd, #Ht⟩
+  ihave #Hc32 : isPkgInit (PROP := IProp GF) pkg_id.hash.crc32 $$ []
+  · iPkgInit
   wp_auto
   wp_apply (hBR key r rest dk hrest hr1 hr2) $$ [$Hkey] as Hkey
   -- `upper.GreaterThan(kr)`: the pointer wrapper, then the value method

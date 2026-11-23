@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.io
-public import Code.net
+public import Net.Code.net
 public import Perennial.Code.sync
 public import Perennial.Golang.Defn
 

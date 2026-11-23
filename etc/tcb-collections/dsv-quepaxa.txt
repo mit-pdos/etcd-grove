@@ -1,0 +1,36 @@
+# dsv-quepaxa (notes/dsv-quepaxa.md): dsverify-lab's QuePaxa kit (quepaxa-bump-1) ported onto the
+# net extension and examples/lib/remote, in the part Dsverify/: the replica's, proxy's and
+# proposer's results (Dsverify/Proof/raxos/{Replica,Proxy,Proposer}/Results.lean) and the kit's
+# closed theorem `quepaxa_remote_robust` (examples/quepaxanet/TopLevelRobustness.lean: twelve
+# machines, Robust [] under DistDeploy; the statement,
+# Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean, takes as visible premises the
+# libraries' initialization hypotheses `InitHyp` (yaml.v2, go-redis v8, io/ioutil, encoding/gob,
+# grpc, grpc/codes, math/rand) and the library hypotheses of Dsverify/Proof/raxos/Hyp.lean:
+# `PbHyp`, `RandHyp`, `UtcHyp`, `SortHyp`, `PrintlnHyp`, `GrpcHyp`, `GrpcWorldHyp`, `MapHyp`, over
+# an arbitrary vocabulary `QpVocab`). Its `#print axioms`: `propext`, `Classical.choice`,
+# `Quot.sound` only. The baseline below is empty: written by hand (2026-11-23) from that
+# `#print axioms`.
+#
+# Trusted code (not axioms, so not in the baseline; goose `trusted` declarations, part of the trust
+# base as CLAUDE.md's `TrustedCode/` says): Dsverify/TrustedCode/raxos/replica/src.lean and
+# Dsverify/TrustedCode/raxos/proto/client.lean, the lab's no-op models (`λ: <>, #()`) of
+# protoc-gen-go's descriptor-table initializers of QuePaxa's two `.pb.go` files (`init.0` and the
+# `file_*_proto_{rawDesc,rawDescData,msgTypes,goTypes,depIdxs}` variables' initializers). Why
+# faithful (the pattern of claim issue #32, etcd's protobuf packages, 2026-11-22): protoc-gen-go's
+# `file_X_proto_init()` builds the descriptor reflectively and registers it in `protoregistry`; it
+# panics only on a malformed descriptor or a conflicting registration, which a well-formed
+# generated file registered once does not have, and no translated code reads the registries or
+# the descriptor tables (QuePaxa's code uses no reflection; protobuf's `Marshal`/`Unmarshal` are
+# the hypothesis `PbHyp`). The packages' other initializer (`Consensus_ServiceDesc`) is translated
+# and proved.
+#
+# The Go verified: examples/dsverify/quepaxa/ (the fork's common, configuration, proto,
+# proto/client, replica/src, and the kit examples/quepaxanet with its twelve commands).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-quepaxa.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-quepaxa.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/dsv-quepaxa.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline.
+roots ^Dsverify/Proof/raxos/

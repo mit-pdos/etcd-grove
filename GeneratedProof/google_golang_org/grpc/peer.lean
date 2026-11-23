@@ -3,7 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.google_golang_org.grpc.credentials
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.peer
 

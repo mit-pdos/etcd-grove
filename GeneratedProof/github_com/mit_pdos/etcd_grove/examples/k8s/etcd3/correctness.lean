@@ -11,7 +11,7 @@ public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
 public import GeneratedProof.k8s_io.apimachinery.pkg.watch
 public import GeneratedProof.k8s_io.apiserver.pkg.storage
-public import GeneratedProof.maps
+public import Perennial.GeneratedProof.maps
 public import Perennial.GeneratedProof.math
 public import Perennial.GeneratedProof.reflect
 public import Perennial.GeneratedProof.slices
