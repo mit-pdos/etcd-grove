@@ -1,0 +1,152 @@
+# dsv-vr: dsverify-lab's vr kit on the net extension (phase 6)
+
+Branch `dsv-vr` (2026-11-23), off `origin/dsv-paxos` (`e3eaf5cd0d`). Plan:
+`notes/dsverify-net-port-plan.md`, phase 6; the pattern: `notes/dsv-paxos.md`. Source: dsverify-lab
+`master` `915f964`, `examples/vr/` (run **`vsr-bump-1`**, the end of vsr-net-1 → vsr-net-clients-1 →
+vsr-bump-1: clients on nodes of their own, Perennial `3afd77e35`; proof `c8b5962` tag `final`, fork
+`go-vsr` `9c4be18`; read only, nothing in the lab changed). Worktree `/shared/etcd-grove-dsvvr`.
+
+## What is where
+
+| | here |
+|---|---|
+| Go | `examples/dsverify/vr/` (module `github.com/tangledbytes/go-vsr`, the fork's path): the fork's `pkg/{assert,client,events,ipv4port,log,network,queue,replica,time}` and `examples/{vsrkv,vsrwire}` unchanged; the kit `examples/vsrnet` rewritten onto `examples/lib/remote` (`kit.go`) with its twelve commands `cmd/{orch,client0..5,server1..5}`; `kit_test.go` runs the twelve machines in one process (real `encoding/json`, `log/slog`), the model's verdicts and the codec. Left out of the fork: `cmd/`, `internal/simulator`, `pkg/utils`, `examples/vsrspec` (the lab's) |
+| translation | `etc/goose.py` project `dsv-vr` into the part `Dsverify/` (remote and `net` the part `Net/`'s, lintest and porcupine the main tree's); **names only, into the part**: the `encoding/json` model (`models/encoding/json`, `std_models`; `Dsverify/Code/encoding/json.toml`) and `log/slog` (`Dsverify/Code/log/slog.toml`). Every `Dsverify.GeneratedProof` module of the project builds |
+| the protocol's proof | `Dsverify/Proof/github_com/tangledbytes/go_vsr/`: the lab's `VsrProof/X/Y.lean` at `X/Y.lean`, ported by editing. Done: `Model/Basic.lean` (the pure VR model, 1960 lines; the lab's `Harness.Model` key-value map restated there: `KvInput`, `KvOutput`, `kvStep`), `Ghost/Impl/Pure.lean` |
+| trust base | `etc/tcb-collections/dsv-vr.txt` (roots `^Dsverify/Proof/github_com/tangledbytes/`; nothing linked yet) |
+
+Module mapping for the rest of the port: `VsrProof.X` → `Dsverify.Proof.github_com.tangledbytes.go_vsr.X`
+(the lab's `Spec/<pkg>.lean` hub files keep their place under it, as paxos kept its hubs);
+`Vsr.Code.github_com.tangledbytes.go_vsr.*` → `Dsverify.Code.github_com.tangledbytes.go_vsr.*` (and
+`GeneratedProof`). The translations of go-vsr's packages are the lab's line for line (same goose
+output sizes: replica 3572, client 791, ipv4port 651, network 685 lines), but `events` (1321: the lab
+excluded `Event.FromReader` by a goose configuration; here it is translated).
+
+## What changed against the lab (so far)
+
+- **The deployment is remote's.** The lab's orchestrator ran `harness/remote.RunRemote` (its
+  driver, recorder and `check.KV`, the porcupine axiom); here `Orch` sends the configuration
+  (`Configure`, the lab's `New`) and then runs `remote.Check` against **the kit's own model**,
+  `kit.go`'s `Model` (a key-value map with pending puts: state `Cur` (the map) and `Pend` (puts of
+  unknown outcome); an answered put takes effect, an answered get reads `Cur` or a pending put of its
+  value at its key, which then leaves `Pend`; the state is the most permissive configuration, so the
+  step is deterministic). Inputs `In{Put, K, V}`, outputs `Out{Unknown, Found, V}`, `Codec()` bytes.
+  Each client is a machine of its own (`remote.ServeClient`), so twelve machines.
+- **Client `c` makes its go-vsr client before `ServeClient`** (paxos's finding: `ServeClient.spec`'s
+  `newClient` is a persistent triple with precondition `True`; a second go-vsr client with id `c+1`
+  would reuse its request numbers). The configuration wait (`waitConf`) is before it too.
+- **Gen and choose use `primitive.RandomUint64`** (Perennial's any-value), not `math/rand`
+  (Perennial's `math/rand` is names only; the lab had its own trusted model). `Gen(c)` takes no
+  operation index (remote's `gen func(int) any`), so a put or get of `k0`/`k1` at random, a put's value
+  `v<c><r>`; the lab alternated put/get of one key per round.
+- **Addresses** are loopback constants (`Addrs`, `CfgAddrs`, `ClientAddrs`: `127.0.0.1:75xx`, a port
+  per machine and role), not `ports(addrs, ConfigPort)` (`strings.Split`). The first operation of a
+  client waits `StartMs + c·StaggerMs` (the lab's `Start(c)`, which remote has no hook for).
+- **`RegisterJSON` is hand-written** (`register.go`: nothing, in the real build;
+  `register_goose.go`: nothing, under goose), not jsongen's: see "Findings".
+
+## State
+
+Done: the Go (`go vet`, `go test ./...` green: the deployment test, ~5 s, the fork's own tests), the
+translation (builds), the pure model and the ghost layer's pure part (`lean-check` clean, `Model/Basic`
+built). **No `sorry`, no axiom in the part's vr files.** Not started: everything else (below).
+
+**Building** (no full `lake build`): the worktree's `.lake` was seeded from `/shared/etcd-grove-netswap`
+(same Perennial pin `9c3b81f30`): `.lake/packages` and `.lake/build/lib/lean` but the parts this
+port never imports (RaftWitness, RaftTla, RaftNoAx, KvNet, WalTester, SpecPlan, PorcupineDag, Bbolt,
+`Proof/go_etcd_io`, `Proof/k8s_io`, the examples' proofs but `examples/lib`): 4.3 GB. Lake rebuilt
+Perennial and `Net/` where they differ; then `lake build <targets>` and `etc/lean-check.py`. Remember
+`export PATH=$HOME/.elan/bin:$PATH`.
+
+### Next steps, in order
+
+1. **Package initialization** (`etc/gen-init.py`, `dsv_inits`). Every package needs a `Base.lean`
+   with its `IsPkgInit` instance (`define_is_pkg_init`; `instances()` finds it) before gen-init runs
+   (it raises on a package without one). Facts (the lab's `Top/PkgStates.lean`): `True` but
+   `network` (`errors.newVar ErrNoConn "network: no connection to the source address"`), `events`
+   (`hookKnown`: `frameDecoder` and its mutex), `vsrwire` (`frameDecoderSet`). The two names-only
+   packages (`encoding.json`, `log.slog`) must not get gen-init's trust-boundary axioms
+   (`initFuncsOk`/`opaqueInitsOk`): use its `ASSUMED` mechanism (unused since 2026-10-17: importers
+   take `initialize'.spec` as a hypothesis `wp_<name>`). The additive entry (tried, reverted until the
+   `Base.lean` files exist):
+
+   ```python
+   DSV_VR = 'github_com.tangledbytes.go_vsr'
+   DSV_VR_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 6)]
+   DSV_PKGS += [f'{DSV_VR}.pkg.{p}' for p in ['assert', 'log', 'ipv4port', 'events', 'queue', 'time',
+                                              'network', 'client', 'replica']] + \
+       [f'{DSV_VR}.examples.{p}' for p in ['vsrwire', 'vsrkv', 'vsrnet']] + \
+       [f'{DSV_VR}.examples.vsrnet.cmd.{n}' for n in DSV_VR_NODES]
+   DSV_PROGRAMS.update({f'{DSV_VR}.examples.vsrnet.cmd.{n}':
+                        f'Proof/{DSV_VR.replace(".", "/")}/examples/vsrnet/cmd/{n}/PkgTable.lean'
+                        for n in DSV_VR_NODES})
+   ```
+2. **The ghost layer** (`Ghost/Impl/{Defs,Basic,Alloc,Client,Lin,Step}`, `Ghost/System`): over a
+   generic `GF` (the lab's fixed `netDistGF` gone, as paxos), and the client's atomic update
+   `AU <{∃∃ σ, absOwn γ σ}> @ ↑clientN, ∅ <{…}>` in the registry (helping: the replica that executes
+   a request first commits it) replaced by remote's one-shot update, as paxos's `opAU`
+   (`remote.lin (kvR Γ)`, `lin_opAU`): the registry's entries hold it, `Lin.lean` fires it.
+3. **The far side's store and the model** (`examples/vsrnet/Kit.lean`, `ModelSet.lean`,
+   `ModelProof.lean`, as paxos's): linkv's pending-writes store of the key-value map (`PendSpec`:
+   gets are reads, puts writes), `RBase` with the VR state's abstract half as `sysState`; the Go
+   `step` on `(Cur, Pend)` against linkv's set step (the representation: the configurations whose map
+   agrees with `Cur` after some of `Pend` take effect, …; remote's lemma decides the exact direction
+   needed); the model's Go functions (`lookup`, `set`, `has`, `erase`, `push`, `equalPairs`, `step`).
+4. **The leaves** (`assert`, `queue`, `ipv4port`, `time`, `log`, `vsrkv`), then `events`/`vsrwire`
+   (over the JSON hypotheses), `network` (the transport: `Net/Spec/net/*` + `Proto.lean`'s laws, as
+   paxos's `NetProof.lean`: the lab's `Write`/`Read`/`Dial`/`Listen`/`Accept`/`Close` call sites
+   become the canonical specs with `writeP`/`write_acc`, `read_au`, `dial_au`, `listen_au`,
+   `accept_au`, `close_au`; JSON's `Encoder` writes through `net.Conn.Write` and its `Decoder` reads
+   through `net.Conn.Read`, so the hypotheses below must be stated over a writer/reader the net
+   library's laws give), `client`, `replica` (20 handler files), then the kit (`Top/` → `Kit`,
+   `KitProof`, `Mains`, `Linked`), the statement and its proof.
+5. The generated JSON codec's proofs (the lab's `Proof/vsrnetjson`, `Proof/jsoncodec`: ~8k lines)
+   wait for jsongen's codec (finding 2); until then the codec's `JsonCodec` correctness is part of the
+   JSON hypotheses.
+
+## Hypotheses (missing model pieces; the coordinator's rule of 2026-11-23)
+
+Not stated in Lean yet (no file); each to be a hypothesis of the kit's theorems named after the lab's
+spec, until the piece lands:
+- **encoding/json** (the model's Lean half: `models/encoding/json`'s translation with its bodies in
+  `Net/` and its specs; `notes/dsverify-net-port-plan.md` 5.1 "For the Lean half"): the lab's
+  `encoding.json.SetCodec.spec`, `Marshal.spec`, `Unmarshal.spec`, `Valid.spec`,
+  `NewEncoder.spec`, `Encoder.Encode.spec`, `RawMessage.MarshalJSON.spec`,
+  `RawMessage.UnmarshalJSON.spec` (`Harness/Proof/encoding/json/{Codec,Valid,Raw,Stream}.lean`), and
+  `NewDecoder.spec`, `Decoder.Decode.spec` (the lab proved its Decoder in the kit,
+  `VsrProof/Proof/jsonstream/`, over its own buffer policy; the model's is jsontext's, so these are
+  hypotheses here), with `initialize'.spec` (the `ASSUMED` route above). Vocabulary:
+  `Net/Proof/models_lab/jsoncodec/Codec.lean`'s `JsonCodec`, `marshalOk`, `unmarshalOk`, `scanOk`.
+- **log/slog** (no model at all, Go or Lean, here or in Perennial; the lab had its own,
+  `Harness/Proof/log/slog.lean`, 422 lines): `log.slog.New.spec`, `Logger.{Debug,Info,Warn,Error}.spec`,
+  `log.slog.Debug.spec` (package-level), the `DiscardHandler` variable's value, `initialize'.spec`
+  (`isInit`). go-vsr calls `slog.Debug` 15 times, `(*Logger).Debug/Info/Warn/Error` 84 times.
+
+## Findings
+
+1. **remote's `gen func(int) any`** has no operation index: the lab's `Gen(c, j)` (put then get of
+   the same key per round) cannot be expressed; the port draws at random. A design note for remote,
+   not a blocker.
+2. **jsongen refuses go-vsr's `log.Logs`**: it has `MarshalJSON`/`UnmarshalJSON` (upstream go-vsr's,
+   kept by the lab's vsr-bump-1 fork `9c4be18`; `models/internal/jsonvsr` copied the earlier fork
+   `215992d`, which has none, and the plan says "the vsr kit fork has none"): `models/json/jsongen.py
+   examples/dsverify/vr/examples/vsrnet/json.toml …` exits 2 on `log.Logs` (root and the
+   `Logs` fields of `DoViewChange`, `StartView`, `NewState`). The lab's jsongen supported user JSON
+   methods (`jencMarshaler`/`jdecUnmarshaler`). So the kit has no generated codec and no model build:
+   either jsongen supports the two methods again (a models change) or the fork drops them (a change to
+   the system under test: the methods only re-encode `[]Log`, but their decoding differs from the
+   default on a non-nil target). Not decided here.
+3. **`encoding/json`'s `RawMessage` is `jsontext.Value`** in Go 1.27.3's default build, so the main
+   tree's names-only `encoding/json` (the real package) does not translate a kit that names
+   `json.RawMessage` (`Unknown identifier encoding.json.jsontext.Value`); the port translates the
+   model's names instead (its `RawMessage` is its own `[]byte` type), which is also what the
+   eventual Lean half will be.
+4. `ServeClient`'s `newClient` (paxos's finding) applies here as well; the kit sidesteps it the same
+   way.
+
+## Which lab run
+
+Ported: **`vsr-bump-1`** (dsverify-lab `master` `915f964`, `examples/vr/`): fork `9c4be18`, proof
+`c8b5962` tag `final` (33k lines in `VsrProof/`, of which ~8k the generated JSON codec's proof and
+~2k the JSON stream), Perennial `3afd77e35`. Its `dsv_goal_check` rests on Lean's three axioms and the
+lab's porcupine axiom (`CheckOperations.wp_proof`), which remote's verified porcupine replaces.

@@ -1,4 +1,8 @@
 /-
+Ported from dsverify-lab examples/vr/proof/VsrProof/Model/Basic.lean (lab master 915f964;
+notes/dsv-vr.md): `Harness.Model`'s key-value map (`KvInput`, `KvOutput`, its step `kvStep`) restated
+here.
+
 The pure model of go-vsr's protocol (Viewstamped Replication, normal operation, view change and
 state transfer), as the fixed fork implements it (`notes/fork.md`), for `n` replicas (a field of
 the state: the deployment draws 3 or 5, f = 1 or 2; quorums are lists of more than `n / 2`
