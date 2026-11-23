@@ -62,7 +62,7 @@ variable [sem : go.Semantics]
 
 /-- A prefix of an allowed stream is allowed. -/
 theorem bufio.Q_of_prefix (Q : List w8 → IProp GF) (x y : List w8) (h : x <+: y) :
-    iprop(□ (∀ (x y : List w8), Q (x ++ y) -∗ Q x)) ⊢ □ Q y -∗ □ Q x := by
+    iprop(□ (∀ (x y : List w8), □ Q (x ++ y) -∗ Q x)) ⊢ □ Q y -∗ □ Q x := by
   obtain ⟨z, rfl⟩ := h
   iintro #Hpc #Hy
   imodintro

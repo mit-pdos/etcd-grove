@@ -36,9 +36,9 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `Q` holds of every prefix of a stream it holds of (persistent). -/
+/-- `Q` holds of every prefix of a stream it holds of persistently (persistent). -/
 def io.prefixClosed (Q : List w8 → IProp GF) : IProp GF :=
-  iprop(□ (∀ (x y : List w8), Q (x ++ y) -∗ Q x))
+  iprop(□ (∀ (x y : List w8), □ Q (x ++ y) -∗ Q x))
 
 instance io.prefixClosed_persistent (Q : List w8 → IProp GF) :
     Persistent (io.prefixClosed (GF := GF) Q) := by

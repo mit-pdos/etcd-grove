@@ -4,6 +4,7 @@
 module
 
 public import Spec.bufio.NewReader
+public import Proof.bufio.Base
 
 @[expose] public section
 
@@ -20,16 +21,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.bufio.Assumptions]
-
-/-- The builtin `max` of two `int`s: the larger. -/
-theorem bufio.wp_max_int (x y : w64) :
-    {{ (True : IProp GF) }}
-      (App (App (Val #(functions go.max [go.int, go.int])) (Val #x)) (Val #y))
-    {{ (m : w64), RET #m; ⌜(m = x ∨ m = y) ∧ sint.Z x ≤ sint.Z m ∧ sint.Z y ≤ sint.Z m⌝ }} := by
-  wp_start
-  wp_if_destruct
-  · iapply HΦ; ipureintro; refine ⟨Or.inl rfl, Int.le_refl _, ?_⟩; word
-  · iapply HΦ; ipureintro; refine ⟨Or.inr rfl, ?_, Int.le_refl _⟩; word
 
 theorem bufio.NewReader.wp_proof : bufio.NewReader.spec (GF := GF) (hG := hG) := by
   intro ri S E r hty
