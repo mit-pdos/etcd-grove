@@ -5,7 +5,7 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, fourth agent: see P5 for the current state; the line below is the first agent's):** the Go and its translation are done and tested;
+**State in one line (2026-11-23, fifth agent: see P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -363,6 +363,45 @@ P4 (d)); when they are, recheck that their tables list these packages.
   -> KitProof`, `KitProof -> ModelProof`, `ClientProof -> Net.Proof.net.rpc.SetCodec` (told to
   use the Spec)). Restructure at landing: move `KitProof`'s helpers (`wp_ServerAddrs`, …) to a
   defs module or take them as arguments; `Protocol/` lemma files are defs, not proofs.
+- **P6. Fifth agent (2026-11-23, from f35a3d5a7e)**. Done:
+  (1) **F4 fixed, proof only** (3d67b9b188): the store has one output `got none` for a put's
+  success and a get's not found (kit.go answers both `Out{}`); `ModelSet.lean`'s `KOut` is `got
+  (Option Str8) | bad` (`bad`: an answer no operation gives, what an ill-formed `Out` decodes to;
+  never output; `ovK .bad = Out{V: "\x00"}`); `kvStep` answers a put `got none`; `Kit.lean`'s
+  `liftOut i` depends on the input (a put's `got none` is `.done`); `decAns` is input-independent
+  (`ovK`'s inverse). `ModelDefs.lean` proves `kvS_pendDec` (`PendDec (kvR γ) kvS`) and
+  `kvR_encOut_inj`; `Orch.wp_proof` uses them (no false arguments). kit.go unchanged.
+  (2) **Tier split** (kit tier-clean, `etc/tier-check.py`: 0 craqnet violations): `ModelProof` →
+  `ModelDefs` (defs: helpers, `Model.spec`, the F4 lemmas) + `ModelProof` (`Model.wp_proof`);
+  `KitProof` → `KitDefs` (helpers) + `KitProof` (`Codec`/`Gen.wp_proof`); `KitSpecs.lean` (defs):
+  `cfgKit`, `serverAddrs_chain`, `codecFresh`, `wp_Register`, `KIn`/`KOut_countable`,
+  `awaitConf.spec`, `configure.spec`, `Client.spec`, `Orch.spec`, `serverRes`, **`Server.spec`**;
+  `ServerProof.lean` (proof): `wp_Server1`, `wp_runNode`, **`Server.wp_proof`** (every id: the
+  coordinator, or a chain machine: Register, awaitConf goroutine, `<-ch`, `runNode` if `id ≤
+  N+1`, idle loop); arguments the packages' specs, `awaitConf.spec`, `HRN` (F1), `HE` (F3).
+  (3) **LogHyp per Go's preconditions** (rabia review lessons): `log.Printf`/`log.Println` have
+  bodies in Perennial's trusted model, so `LogHyp.wp_Printf`/`wp_Println` are now theorems; the
+  class keeps `wp_Default` (returns a non-nil logger) and `*Logger`'s `Printf`/`Println`, which
+  now require `l ≠ null` (a nil logger panics); `nodeFields`' pure part is `⌜ch = chan.nil ∧ lg ≠
+  null⌝` (node `New` from `wp_Default`), the `wp_log` macros discharge it.
+  (4) **PkgTables**: `etc/dsv/craq.py` `PROGRAMS` (the twelve commands) and `HYP_IMPORTS =
+  'none'` (as gryff: net/http's names-only imports are outside the inventory); `gen-init`
+  generated `cmd/*/PkgTable.lean` (transport/netrpc's `Init` no longer takes net/http's InitHyp).
+  **models-rpc-http (1a4d9546c9) does not build here**: merged, `Net/Proof/net/rpc/DialHTTPPath.lean:157`
+  fails (`irename «$a1»: unknown hypothesis`): it was written against the old `bufio.NewReader`
+  spec, and lean (merged here) has dsv-bufio's revision. So the merge was undone (not pushed); the
+  adaptation (H4's client side on Net's `rpcAddrP`/`DialHTTP.spec`, `RpcHttpAddr`/`RpcHttpDial`
+  removed, `rpcPkg_dialEnv`, `connected` in net/rpc's fact, `DialHTTP.spec` + `receiptBound ≤
+  2^64` as `Connect`/`New` arguments) is `git stash@{0}` and the scratchpad's
+  `craq-rpchttp-adapt.patch`: reapply when models-rpc-http is rebased on lean.
+  **Next**: `Mains.lean` (12 `wp_main`s), `Link.lean` (namespace `Perennial.EtcdGrove.dsvcraq`,
+  the lab's `Craq/Proof/Link.lean`: `NodeP.Laws` from `Protocol/`'s `wp_proof`s, the codec
+  laws' fields, `netrpcP.wp_NewNodeClient`/`factory`/`wp_NewCoordinatorClient`, `kv.wp_New`,
+  coordinator/node specs, `awaitConf`/`configure` from ConfProof with Net's net specs),
+  `TopLevelDefs`, `TopLevelRobustness`, the statement. **F2's premise (decided)**: per machine,
+  the command's initializer from `ownGoState ∅` returns `ownInitializing getIs ∗ isPkgInit cmd ∗
+  codecFresh ∗ invalidRequest ↦□ ()` (∗ `muxOwner []` for net/http), the shape Net will give
+  (gryff's `wp_initialize'_own`); sound because only the boot holds `ownGoState ∅`.
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
