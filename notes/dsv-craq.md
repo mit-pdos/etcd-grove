@@ -116,12 +116,17 @@ the shared piece lands; none is an axiom.
   proved `Client.Call`/`Close`). `craqCtx` now says every address is an `httpRpcAddr`. Every file
   with `[π : NetProtoGS]` takes `[ra : RpcHttpAddr GF]` (`Netrpc/Connect`, `New` also `[rd :
   RpcHttpDial GF]`). No instance of either class exists; they become premises of the statement.
-  **Still to state** (the server side, same shapes): `rpc.Server.ServeHTTP.spec`,
-  `rpc.Server.HandleHTTP.spec`, `rpc.HandleHTTP.spec` (the debug path never requested),
-  `http.ListenAndServe.spec`/`http.Serve.spec`/`ServeMux.ServeHTTP.spec` with `handlerOk` per path,
-  over `rpcAddrP`; the package-level `rpc.RegisterName` (`DefaultServer`); and the allocation of
-  `rpcAddrP` for the deployment's addresses (without it the abstract `rpcAddrP` could be `False`
-  and the client specs vacuous: the statement must take allocation and server specs together).
+  **The server side** (H2, H3) is stated too, in the same file: class `RpcHttpServe GF` with
+  abstract `muxOwner R`, `muxRoute p h`, `handlerOk h p W a`, and the fields `RegisterName`
+  (package-level, `DefaultServer`), `HandleHTTP` (Net's `rpc.HandleHTTP.spec`), `ServeHTTP`
+  (Net's `rpc.Server.ServeHTTP.spec` as a handler: `isServer`, `srvServes`, `srvEnv`, `codecSet`
+  give `handlerOk (serverHandler s) defaultRPCPath W a`), `ListenAndServe` (Net's
+  `http.ListenAndServe.spec`, over `httpRpcAddr`). Not used yet (the kit's `Server`/`runNode`
+  proofs). **Open**: a machine's `muxOwner []` (from net/http's initialization: H1, Net's piece
+  decides), and the allocation of `rpcAddrP` at the deployment's addresses (the statement must
+  take it with these classes, or the abstract predicates could be `False`). When Net's piece lands:
+  replace `RpcHttpAddr.rpcAddrP` by Net's `rpcAddrP`, the class fields by Net's specs, and drop the
+  classes.
 - **H5. The generated codec**: the kit's `rpcEncode`/`rpcDecode` meet a `CodecSpec` (`encOk`/`decOk`,
   `decErr`), and `rpcReceiver`'s methods (`NewArg`, `NewReply`, `Call` through the bindings) meet
   `methodOk` for `nodeSpec`/`coordSpec` (the lab's `Methods.lean`). Per-kit proofs of rpcgen output
@@ -147,7 +152,10 @@ the shared piece lands; none is an axiom.
   `step` on the decoded answer, `Kit.lean`'s `decAns`) is, and the next set is bracketed by `goStep`'s
   next state. Values are bounded (`Str8`, < 256 bytes: `encStr`'s length byte), so the store `kvB` is
   over `St = GoString → Option Str8`; `Kit.lean`'s `lift` maps it to the protocol's `KvM.State`.
-- **P4. Next steps** (2026-11-23): (1) `ModelProof.lean` (started: `wp_pushPend` done, paxos's
+- **P4. Next steps** (2026-11-23; the coordinator's order: H4/server hypotheses true and named
+  after Net's shapes (done, `HttpRpc.lean`), then prove H5 (the generated codec's lemmas,
+  `Codec.lean`'s `CodecLaws`, rpc_gen.go's `rpcEncode`/`rpcDecode`), then ModelProof, KitProof,
+  Mains/TopLevel with the hypotheses as visible premises): (1) `ModelProof.lean` (started: `wp_pushPend` done, paxos's
   `wp_push` with `V := pend`; for `findPend`, paxos's `wp_has` does not carry over as is: the loop
   condition's `Hif` is `#(decide (i < len)) = #true` (`of_decide_eq_true (go.intoVal_inj Hif)`), the
   test `p[i].K == k && p[i].V == v` loads the element's **fields** through `sliceIndexRef`

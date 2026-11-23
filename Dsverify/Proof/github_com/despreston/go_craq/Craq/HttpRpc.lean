@@ -26,6 +26,8 @@ module
 public import Net.Proof.net.rpc.ClientDefs
 public import Net.Proof.models_lab.Errors
 public import Dsverify.Proof.net.rpc.Base
+public import Net.Proof.net.rpc.ServerDefs
+public import Dsverify.Proof.net.http.Base
 
 @[expose] public section
 
@@ -100,6 +102,66 @@ class RpcHttpDial [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [Go
     [net.FieldAssumptions] [NetProtoGS] [ra : RpcHttpAddr GF] where
   DialHTTPPath : rpc.DialHTTPPath.spec (GF := GF)
   DialHTTP : rpc.DialHTTP.spec (GF := GF)
+
+/-! ## The server side (H2, H3)
+
+Net's expected `rpc.Server.ServeHTTP.spec` (as a handler of net/http's: on `CONNECT` it hijacks,
+writes `connectedAns` and runs `ServeConn` on the frame part), `rpc.HandleHTTP.spec` (the
+`DefaultServer` at `DefaultRPCPath` on `DefaultServeMux`; the debug path is never requested) and
+`http.ListenAndServe.spec` (the net/http server up to the hijack, over `rpcAddrP`, the handlers
+given as `handlerOk` per path); and the package-level `rpc.RegisterName` (the `DefaultServer`'s
+`Server.RegisterName`, proved on models-rpc-server, with net/rpc's package variable). The mux's
+vocabulary (`muxOwner R`: the right to register paths at `DefaultServeMux`, `R` those registered,
+exclusive; `muxRoute p h`: it routes `p` to `h`, persistent) and `handlerOk h p W a` are abstract
+here, as the lab's `Harness/Proof/net/{http,rpc}`. **Open**: where a machine's `muxOwner []`
+comes from (net/http's initialization, H1: Net's piece decides); without it, and without the
+allocation of `rpcAddrP`, these say nothing. -/
+
+/-- The `*Server` `s` as an `http.Handler`. -/
+abbrev serverHandler [GooseExts] [GoGlobalContext] (s : Loc) : GoInterface :=
+  interface.mkOk (go.GoType.PointerType net.rpc.Server.ty) #s
+
+/-- **H2, H3** (the section header). -/
+class RpcHttpServe [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [net.rpc.Assumptions]
+    [net.FieldAssumptions] [NetProtoGS] [ra : RpcHttpAddr GF] where
+  muxOwner : List GoString → IProp GF
+  muxRoute : GoString → GoInterface → IProp GF
+  muxRoute_pers : ∀ p h, Persistent (muxRoute p h)
+  handlerOk : GoInterface → GoString → net.rpc.RpcWorld GF → GoString → IProp GF
+  handlerOk_pers : ∀ h p W a, Persistent (handlerOk h p W a)
+  /-- `rpc.RegisterName(name, rcvr)`: `Server.RegisterName.spec` on the `DefaultServer`. -/
+  RegisterName : ∀ (C : net.rpc.CodecSpec GF) (name : GoString) (rcvr : GoInterface)
+      (S : net.rpc.MethodSpec GF) (nm : GoString) (np : Bool),
+    name ≠ [] →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ net.rpc.codecSet C ∗
+        C.rcv rcvr (net.rpc.rcvrIs C rcvr S nm np) }}
+      (App (App (Val (@! net.rpc.RegisterName)) (Val #name)) (Val #rcvr))
+    {{ (err : GoInterface), RET #err;
+        (⌜err = interface.nil⌝ ∗ ∃ (s : Loc) (γ : GName),
+          globalAddr net.rpc.DefaultServer ↦□ s ∗ net.rpc.isServer s γ ∗
+          net.rpc.svcReg γ C name S) ∨ ⌜err ≠ interface.nil⌝ }}
+  /-- `rpc.HandleHTTP()`: Net's `rpc.HandleHTTP.spec` (expected). -/
+  HandleHTTP : ∀ (R : List GoString),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ muxOwner R ∗
+        ⌜defaultRPCPath ∉ R ∧ go!"/debug/rpc" ∉ R⌝ }}
+      (App (Val (@! net.rpc.HandleHTTP)) (Val #()))
+    {{ RET #(); muxOwner (go!"/debug/rpc" :: defaultRPCPath :: R) ∗
+        ∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗
+          muxRoute defaultRPCPath (serverHandler s) }}
+  /-- The `*Server` handles `DefaultRPCPath` of `a` (Net's `rpc.Server.ServeHTTP.spec`, as a
+  handler), given its registrations serve `a`. -/
+  ServeHTTP : ∀ (s : Loc) (γ : GName) (C : net.rpc.CodecSpec GF) (W : net.rpc.RpcWorld GF)
+      (a : GoString),
+    net.rpc.isServer s γ ∗ net.rpc.srvServes γ C W a ∗ net.rpc.srvEnv ∗ net.rpc.codecSet C ⊢
+      handlerOk (serverHandler s) defaultRPCPath W a
+  /-- `http.ListenAndServe(a, nil)`: Net's `http.ListenAndServe.spec` (expected): it serves `a`'s
+  connections, routing `p` to `h`, and returns only with `Listen`'s error. -/
+  ListenAndServe : ∀ (W : net.rpc.RpcWorld GF) (a p : GoString) (h : GoInterface),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ ⌜addrOk a = true⌝ ∗
+        httpRpcAddr W a ∗ muxRoute p h ∗ handlerOk h p W a }}
+      (App (App (Val (@! net.http.ListenAndServe)) (Val #a)) (Val #interface.nil))
+    {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ }}
 
 end github_com.despreston.go_craq
 
