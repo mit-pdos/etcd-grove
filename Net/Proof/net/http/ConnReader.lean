@@ -102,20 +102,21 @@ def curReqN : Namespace := (nroot.@"net.http").@"curReq"
 /-- See the file header. -/
 def crConnOk (c : Loc) : IProp GF :=
   iprop(⌜c = null⌝ ∨ (∃ (f : GoFunc) (γc : context.ContextNames), ⌜c ≠ null⌝ ∗
+    isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.sync.atomic ∗
     structFieldRef net.http.conn go!"cancelCtx" c ↦□ f ∗ context.cancelSpec f γc iprop(True) ∗
     inv curReqN (curReqInv c)))
 
 instance crConnOk_persistent (c : Loc) : Persistent (crConnOk (GF := GF) c) := by
   unfold crConnOk; infer_instance
 
-/-- What the reader holds while no read runs: the byte buffer, and the reader's token at `R0` or,
-with a byte, past it, with `Z cn`. -/
+/-- What the reader holds while no read runs: the byte buffer, and the reader's token, at `R0` with
+no byte kept, or anywhere with `Z cn` (a byte read past the head, kept or dropped after a
+failure). -/
 def crRead (cr : Loc) (cn : Nat) (P : Proto GF) (Z : Nat → IProp GF) (R0 : List w8) (hb : Bool) :
     IProp GF :=
-  iprop(∃ arr : GoArray w8 1, structFieldRef net.http.connReader go!"byteBuf" cr ↦ arr ∗
-    if hb then (∃ b : w8, ⌜arr.arr = [b]⌝ ∗
-        recvTok (Gg := hG.goose_globalGS) cn true P (R0 ++ [b]) ∗ Z cn)
-    else recvTok (Gg := hG.goose_globalGS) cn true P R0)
+  iprop((∃ arr : GoArray w8 1, structFieldRef net.http.connReader go!"byteBuf" cr ↦ arr) ∗
+    ∃ R : List w8, recvTok (Gg := hG.goose_globalGS) cn true P R ∗
+      (⌜R = R0 ∧ hb = false⌝ ∨ Z cn))
 
 /-- The fields in the background phase (see the file header). -/
 def crBg (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :
@@ -127,7 +128,7 @@ def crBg (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z :
     structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
     structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗
     ghostVar γ.r (1 : Qp).half hs ∗ crConnOk c ∗
-    if ir then iprop(True) else iprop(token γ.bg ∗ crRead cr cn P Z hs hb))
+    if ir then iprop(⌜hb = false⌝) else iprop(token γ.bg ∗ crRead cr cn P Z hs hb))
 
 /-- The connection reader's invariant but its condition variable (by phase). -/
 def crPh (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :

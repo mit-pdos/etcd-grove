@@ -131,14 +131,13 @@ theorem wp_closeNotify (w : Loc) :
 /-- `cr.handleReadErrorLocked(err)`: the connection's context canceled and its current response
 notified, if the reader still has its connection. -/
 theorem wp_handleReadErrorLocked (cr c : Loc) (err : GoInterface) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.sync.atomic ∗
-        structFieldRef net.http.connReader go!"conn" cr ↦ c ∗ crConnOk c }}
+    {{ structFieldRef net.http.connReader go!"conn" cr ↦ c ∗ crConnOk (GF := GF) c }}
       (App (Val (cr @!! go.GoType.PointerType net.http.connReader.ty @!! go!"handleReadErrorLocked"))
         (Val #err))
     {{ RET #(); structFieldRef net.http.connReader go!"conn" cr ↦ c }} := by
   wp_start as ⟨Hc, #Hok⟩
   iunfold crConnOk at Hok
-  icases Hok with (%Hnull | ⟨%f, %γc, %Hnn, #Hf, #Hcancel, #Hinv⟩)
+  icases Hok with (%Hnull | ⟨%f, %γc, %Hnn, #Hsync, #Hatomic, #Hf, #Hcancel, #Hinv⟩)
   · subst Hnull
     wp_auto
     iapply HΦ $$ Hc
