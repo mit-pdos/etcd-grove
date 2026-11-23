@@ -22,11 +22,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
-/-- R 171 `Cardinality(ConfsAfter(l, a))`: `confsAfterCount`, where defined. -/
+/-- R 171 `Cardinality(ConfsAfter(l, a))`: `confsAfterCount`, where defined (`a + 1` and `len(l) + 1` within the Go `int`). -/
 abbrev confsAfterCount.spec : Prop :=
   ∀ (sl : GoSlice) (l : List Entry) (a : w64) (k : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
-      logRO sl l ∗ ⌜confsAfterCount l (sint.Z a) = .ok k⌝ }}
+      logRO sl l ∗ ⌜confsAfterCount l (sint.Z a) = .ok k ∧ sint.Z a < 2 ^ 63 - 1 ∧ (l.length : Int) < 2 ^ 63 - 1⌝ }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.confsAfterCount)) (Val #sl)) (Val #a))
   {{ (w : w64), RET #w; ⌜sint.Z w = k⌝ }}
 

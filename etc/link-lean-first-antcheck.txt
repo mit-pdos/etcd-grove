@@ -11,3 +11,105 @@ SubSeq:
 TermAt:
 Value__Equal: stringsEqual
 stringsEqual:
+State__clone:
+State__Made: State__clone setPre
+State__idx:
+setConf:
+setConfirmed:
+setInt:
+setLog:
+setMsgs:
+setPre:
+setQueue:
+setReads:
+setStr:
+Msg__need:
+Msg__typ: Msg__need
+Msg__from: Msg__need
+Msg__to: Msg__need
+Msg__term: Msg__need
+Msg__index: Msg__need
+Msg__logTerm: Msg__need
+Msg__entries: Msg__need
+Msg__commit: Msg__need
+Msg__reject: Msg__need
+Event__has:
+Event__need:
+Event__by: Event__need
+Event__role: Event__need
+Event__term: Event__need
+Event__vote: Event__need
+Event__commit: Event__need
+Event__first: Event__need
+Event__entries: Event__need
+Event__lastIndex: Event__need
+Event__lastTerm: Event__need
+Event__applied: Event__need
+Event__voters: Event__need
+Event__outgoing: Event__need
+Event__snap: Event__need
+Event__msg: Event__need
+Event__cause: Event__need
+Event__w: Event__need
+Event__more: Event__need
+Event__index: Event__need
+Event__ctx: Event__need
+msgSeqHead:
+strLess:
+SetAdd: strLess
+SetOf: SetAdd
+Set__Has:
+Set__Union: SetAdd
+Set__Minus: Set__Has
+Set__Equal:
+interCount: Set__Has
+violAdd: SetAdd
+Value__rec:
+Concat:
+Min:
+Max:
+Conf__Equal: Set__Equal
+intsHas:
+Init0:
+factsHas:
+factsAdd: factsHas
+factsUnion: factsAdd
+factsMinus: factsHas
+votesHas:
+votesAdd: votesHas
+votesUnion: votesAdd
+votesMinus: votesHas
+leadersHas:
+leadersAdd: leadersHas
+TermLogs__Has:
+TermLogs__Get:
+TermLogs__With:
+TermLogs__Without: intsHas
+TermConfs__Get:
+TermConfs__With:
+TermConfs__Without: intsHas
+TermInts__Has:
+TermInts__Get:
+TermInts__With:
+TermInts__Without: intsHas
+IsConf:
+State__LastTerm: TermAt
+State__InitConf:
+Majority: interCount
+IsQuorum: Majority
+State__UpToDate: State__LastTerm
+State__VoteRequest: State__LastTerm
+State__ElectionSafety:
+State__OneVotePerTerm:
+confsAfterCount: IsConf
+State__AllSwitched: confsAfterCount
+State__OneWaiting: confsAfterCount
+State__PrevOk: At
+State__HasFirst: At
+Target: Value__rec SetOf Set__Union Set__Minus
+NextConf: Value__rec Target
+Legal: Value__rec Target Set__Minus Set__Union
+LastConf: At IsConf
+ConfOf: At IsConf NextConf
+State__Granted: factsHas SetAdd votesHas
+State__Acked: SetAdd
