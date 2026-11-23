@@ -1,5 +1,8 @@
 # dsv-gryff: dsverify-lab's gryff kit on the net extension (phase 6)
 
+**Coordinator (2026-11-23, ~06:00):** `lean` moved to `e20bbac22f` (Perennial `c95e92207`, no checkout
+on the host): do not merge it; stay on `07268ddb57` with `/shared/perennial-7b2259a12`.
+
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 `notes/dsv-paxos.md`. Source: dsverify-lab `master` `915f964`, `examples/gryff/` (run
@@ -82,6 +85,29 @@ theorems take as an instance (a `Prop` class), up to `gryff_remote_robust`.
   is not needed for the package inits; the programs' `PkgTable`s (dsv_inits) will take the classes
   the same way.
 
+**Stated in Lean (2026-11-23, fourth session):**
+- **`wire.BinaryVarintHyps GF`** (`Dsverify/Proof/gryff/Wire/Proof/VarintWp.lean`): `encoding/binary`'s
+  `ReadUvarint`, `ReadVarint`, `PutUvarint`, `PutVarint`, the lab's four statements (`wp_ReadUvarint`,
+  ...) over dsv-bufio's reader. Perennial `7b2259a12` translates these four names only
+  (`Perennial/Code/encoding/binary.toml`'s `translate` lacks them); the lab proved them over its own
+  hand translation (`Harness/Code/binary_extra.lean` + `encoding.binary.ExtraAssumptions`, trusted
+  code, not allowed here). Translating `encoding/binary` into the part (as the main tree does `io/fs`)
+  would clash with Perennial's `encoding.binary` constants, which the kit also uses (`LittleEndian`).
+  **Proposed Perennial change**: add `"ReadUvarint", "ReadVarint", "PutUvarint", "PutVarint"` to
+  `binary.toml`; then the lab's proofs (`proof/GryffProof/Wire/Proof/VarintWp.lean` at `21ef7d6`, its
+  `wp_ReadUvarint`... bodies) discharge the class, with `ReadByte` from dsv-bufio (no copied
+  `wp_ReadByte_wf` needed: `Reader.ReadByte.spec` gives `io.ptrTyped`). To record in
+  `notes/perennial-changes.md` when the port is done. A premise of the statement (never an instance).
+
+**Library gaps the lab filled with its own translations** (`proof/Harness/Code/*_extra.lean` + an
+`<pkg>.ExtraAssumptions` class of `FuncUnfold`s: trusted code, not allowed here), checked against
+Perennial `7b2259a12` (2026-11-23): `encoding.binary` varints (now `BinaryVarintHyps`, above);
+`io.ExtraAssumptions` (21 lab uses: `ReadFull`/`ReadAtLeast`): **not needed**, Perennial proves both
+(`io.wp_ReadFull`, `io.wp_ReadAtLeast`); `strconv` `Atoi`/`Itoa` and `time.Time.IsZero`: **translated by
+Perennial now** (use its specs or prove over its bodies); still names only, to become hypotheses where
+reached: `sort.Ints`/`sort.Slice` (1 lab use), `math.Pow` (1), `strings.Index` (1, `N/StrIndex.lean`),
+`time.Time.UTC` (with `IsZero`, `Replica/Base.lean`'s `wp_Time_IsZero`).
+
 **To be stated** (as the port reaches their call sites; each a field of a class named after the
 lab's spec):
 1. **net/rpc's server side** (plan 5.2, items 4-6; `models-rpc-server` in progress): the master runs
@@ -151,6 +177,41 @@ replaces by `Net/`'s specs anyway; the rpc/http and bufio parts are items 1-3. D
   (`etc/proph-patches/`). Kept as the lab's for now (as dsv-paxos kept its fork's), to decide.
 
 ## What changed against the lab (proof)
+
+- **bufio is dsv-bufio's** (`Wire/Proof/Lemmas.lean`, sections "The writer", "The reader"). The lab's
+  harness predicates become abbreviations over dsv-bufio's, never unfolded: `ownWriter bw wr J Q sent
+  pend err := EtcdGrove.bufio.ownBufWriter bw wr.wi J Q wr.Ew wr.sz …`, `writerOk wr J Q :=
+  EtcdGrove.io.streamWriterOk wr.wi J Q wr.Ew`, `ownReader br rd I R := EtcdGrove.bufio.ownBufReader br
+  rd.ri (fun _ m => 0 < m) I rd.E R` (the read condition a connection gives). The new fixed
+  parameters are bundled (`WSt := {wi, Ew, sz}`, `RSt := {ri, E}`), so the lab's `wr J Q` / `rd I`
+  argument shapes stay and the port is mechanical (`(wr : GoInterface)` -> `(wr : WSt GF)`).
+  `readerOk rd I` is now `isPkgInit io ∗ isPkgInit bufio` (the lab's held the reader's contract, which
+  is inside `ownBufReader`). `io.ReadAtLeast`/`io.ReadFull` go through Perennial's specs and
+  `bufio.ownBufReader_readerOk` (`wp_wire_ReadAtLeast`, `wp_wire_ReadFull`, `_arr`).
+- **Facts of the bytes ahead are `readNext br rd I R P`** (`Lemmas.lean`): `□ ∀ V, ownReader … (R ++ V)
+  ={⊤}=∗ ownReader … (R ++ V) ∗ ⌜∃ pend, P (V ++ pend)⌝`, stated of the reader resource. The lab's
+  premise `□ (∀ D, I (R ++ D) ={⊤}=∗ I (R ++ D) ∗ ⌜P D⌝)` needed its `ownReader_peek`, which unfolded
+  the reader to reach the buffered bytes (forbidden now). `readNext` is that lemma's conclusion as the
+  premise; laws `readNext_true`, `readNext_shift`, `readNext_mono`, `ownReader_peek`. For a
+  connection it is to be derived from `net.connReader_proto` (a later, stripped under the update since
+  the fact is pure) in N.
+- **Read errors are `rdErr rd err`** (`Lemmas.lean`): `⌜err ≠ nil⌝ ∗ □ (errE rd.E r err for some r ∨
+  ErrUnexpectedEOF's value ∨ ErrShortBuffer's ∨ binary.errOverflow's)`, in place of the lab's
+  `net.rpc.errAny err ∗ ⌜errWf err⌝` (which its harness reader gave). N must prove, for the
+  connection's `E` (`net.connReadE`: `io.EOF` or a `netErr` `*OpError`), what `replicaListener`/
+  `clientListener` need of it: `err != io.EOF` (`io.ptrTyped`: `net.eof_ptrTyped`, `netErr_ptrTyped`) and
+  `log.Printf("… %v", err)` (an `Error()` method: `models_lab.errAny`, or Perennial's
+  `errors.newVar` for the `io` ones).
+- Mechanical rewrites of these (scratch script, reproducible from this list): `open … NetConn Dsv bufio`
+  -> `open …`; drop `attribute [local instance] netConnExts …` and add `[GooseExts] [GooseSemantics]
+  [GooseInterp]`; `(rd : GoInterface)`/`(wr : GoInterface)` -> `RSt GF`/`WSt GF`; the `nextOk` premise
+  -> `readNext br rd I R X.nextOk`; `net.rpc.errAny err ∗ ⌜errWf err⌝` -> `rdErr rd err` (and the
+  `%Hwf` patterns and `exact Hwf` splits dropped); the nested `iintro !> %D HI; …; trivial` ->
+  `iapply readNext_true; intro; trivial`; `[io.ExtraAssumptions]` dropped,
+  `[encoding.binary.ExtraAssumptions]` -> `[BinaryVarintHyps GF]` (only in files importing
+  `VarintWp`); `· iexact Hpkg2` after `wp_wire_Read*` dropped (`readerOk` holds the inits);
+  `encoding.binary` lemmas from `Perennial.Proof.encoding.binary.Results`; the packages' `IsPkgInit`
+  instances from `Dsverify/Proof/gryff/src/<pkg>/Base.lean` (imported by `Wire/Proof/State.lean`).
 
 - **Connection ids are `Nat`** (`Net/`'s `cn`), not the lab's `w64`: the ghost maps `conns`
   (`GMap w32 (Option Nat)`), `placers` (`GMap Nat Int`), `connRep` (`GMap Nat Nat`) and every
