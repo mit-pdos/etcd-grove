@@ -36,6 +36,23 @@ until Perennial models it, or the model replaces it by a backwards byte loop as 
 trusted-model change, for the user). Proposed: `time.Until.spec` beside `Since`'s in Perennial;
 `LastIndex` as in that entry.
 
+### klog's printf path: `bytes.Buffer.WriteByte`, `fmt` over `[]string`, `fmt.Fprint` (2026-11-23, klog-leaves, #25)
+
+- **Limitation.** klog's `printfDepth` (`klog.go:764`: `Errorf`, `Warningf`, `Verbose.Infof`) ends
+  with `buf.WriteByte('\n')` on its `*buffer.Buffer` (which embeds `bytes.Buffer`); Perennial's
+  `bytes` translates `Buffer.Write`, `Bytes`, `Len`, `String`, ... but not `WriteByte` (names-only).
+  The compactor's `Errorf`/`Infof` calls pass `[]string` arguments (`c.client.Endpoints()`), on which
+  Perennial's `fmt` model is stuck (reflection into a slice; here `fmt.SprintfSlice`/`ErrorfSlice` are
+  axioms for that reason), so `fmt.wp_Fprintf` does not cover `klog.argsOk`. `Verbose.InfoS`'s
+  `printS` also calls `fmt.Fprint` (of a `*bytes.Buffer`, a `Stringer`) and `strconv.AppendQuote`,
+  neither with a spec.
+- **Who needs it.** The axioms `klog.Errorf`, `klog.Warningf`, `klog.Verbose.Infof`,
+  `klog.Verbose.InfoS` (`Proof/k8s_io/klog/v2/`); `klog.V` is proved without them.
+- **Workaround.** The four stay trust-boundary axioms.
+- **Proposed change.** `bytes.Buffer.WriteByte` translated and proved (as `Write`); `fmt`'s model
+  printing a slice of basic-typed elements by reflection (`%v`/`%s`); `fmt.Fprint`'s spec;
+  `strconv.AppendQuote`'s. With the first two, the three printf axioms become proofs over trusted
+  models of klog's sink only (`loggingT.header`, `loggingT.output`, the `sync.Pool` buffer pool).
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's

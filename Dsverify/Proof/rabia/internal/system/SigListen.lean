@@ -23,7 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : rabia.internal.system.Assumptions]
-variable [os.signal.NoSignals GF]
+variable [os.signal.NoSignals os.signal.quietSigs GF]
 
 omit package_sem in
 /-- A channel's `isChan` says it is not `nil` (here of `os.Signal`). -/
@@ -48,7 +48,8 @@ theorem SigListen.wp_proof : SigListen.spec (GF := GF) := by
   iintro %sl ⟨Hsl, _⟩
   wp_auto_lc 2
   ihave %Hnn := isChan_ne_nil_signal _ _ $$ Hch
-  wp_apply (os.signal.NoSignals.notifyQuiet (GF := GF)) _ _ _ Hnn $$ [$Hsl] as -
+  wp_apply (os.signal.NoSignals.notifyQuiet (sigs := os.signal.quietSigs) (GF := GF))
+    (List.cons_ne_nil _ _) _ _ _ Hnn $$ [$Hsl] as -
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
   isplit

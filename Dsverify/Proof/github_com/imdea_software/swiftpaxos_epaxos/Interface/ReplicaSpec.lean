@@ -57,7 +57,7 @@ abbrev pkgInit_replica : IProp GF :=
 /-- `replica.New(alias, id, 2, addrs, true, true, false, cfg, logger)` as `epaxos.New` calls it
 (failures 2, thrifty, exec, no local reads) for replica `id` of the final list `L` (node `k`'s
 address at `id`), from the replica's start resources. -/
-def replica.New.spec [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TreemapHyp GF] : Prop :=
+def replica.New.spec [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [StateTreemap GF] : Prop :=
   ∀ (γ : EpNames) (k id : Nat) (L : List GoString) (sl : GoSlice) (als : GoString)
     (cfg logger proxy : Loc) (c : config.Config),
   {{ pkgInit_replica (GF := GF) ∗ ⌜k ∈ replicaNodes ∧ L[id]? = some (peerAddrOf k)⌝ ∗ listFinal γ L ∗

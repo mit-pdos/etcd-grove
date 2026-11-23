@@ -191,9 +191,39 @@ instance github_com_go_logr_logr_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.github_com.go_logr.logr :=
   build_get_is_pkg_init_wf
 
+-- (klog-leaves, 2026-11-23) klog's `internal/severity`: types and constants only
+instance k8s_io_klog_v2_internal_severity_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.klog.v2.internal.severity :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_klog_v2_internal_severity_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.klog.v2.internal.severity :=
+  build_get_is_pkg_init_wf
+
+/-- The address of the field `f` of `logging.settings` (klog's global `loggingT`, which embeds
+`settings`). -/
+abbrev klogSettingsField (f : GoString) : Loc :=
+  structFieldRef k8s_io.klog.v2.settings f
+    (structFieldRef k8s_io.klog.v2.loggingT go!"settings" (globalAddr k8s_io.klog.v2.logging))
+
+/-- **klog's fact** (klog-leaves, 2026-11-23; etcd-grove#25): of the global `logging`, the `-v` level
+(`verbosity`) holds some level, the `-vmodule` filter's length (`filterLength`) is 0 and no global
+logger is set (`logger` is `nil`), all three read-only for good. What `V` reads (`klog.go:1405`: the
+level, atomically, then the filter's length, atomically, then, in `newVerbose`, the logger). The
+initializer establishes it: `logging` is allocated zero, and klog's `init` (`klog.go:426`, a trusted
+no-op, `TrustedCode/k8s_io/klog/v2.lean`) writes 0 to both counters (`setVState(0, nil, false)`),
+which the zero value already holds. Nothing translated writes them (`-v`, `-vmodule`, `SetLogger`
+are not called by verified code). -/
+def klogInit : IProp GF :=
+  iprop((∃ v : w32, klogSettingsField (GF := GF) go!"verbosity" ↦□ v) ∗
+    klogSettingsField (GF := GF) go!"filterLength" ↦□ (W32 0) ∗
+    klogSettingsField (GF := GF) go!"logger" ↦□ null)
+
+instance klogInit_persistent : Persistent (klogInit (GF := GF)) := by
+  unfold klogInit; infer_instance
+
 instance k8s_io_klog_v2_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.klog.v2 :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init klogInit
 instance k8s_io_klog_v2_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.klog.v2 :=
   build_get_is_pkg_init_wf
