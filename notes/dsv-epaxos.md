@@ -139,9 +139,39 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    over `ownIter`; pure: `ScanPure.scan_flatten_sorted`, `Execute.vals_es`); `ScanPure` defines
    `keysSorted` (was `TreemapLemmas`'). `#print axioms`: Lean's three (2026-11-23).
 3e. **`Interface/Varint.lean`** (`epaxos.putVarint.spec`, `pkgInit_{state,defs,epaxos}` and
-   `sint_Z_W64_length`, split out of the lab's `Interface/Marshal`, which the marshal port must
-   import instead of restating) and `wire/Varint/{PutUvarint,PutVarint,Decode}`: ported, 0 errors.
-   `ReadByte`/`ReadUvarint`/`ReadVarint` wait for bufio.
+   `sint_Z_W64_length`, split out of the lab's `Interface/Marshal`) and
+   `wire/Varint/{PutUvarint,PutVarint,Decode}`: ported, 0 errors.
+3g. **The marshal layer: DONE (2026-11-23)** over dsv-bufio (`75ef5881aa`):
+   `Interface/Marshal.lean`, `wire/{WProg,RProg,Bytes,Binary16,Codec,Varint,Link}`,
+   `wire/Varint/{ReadUvarint,ReadVarint}`, `wire/Marshal/*` (18 files). `lake build
+   …wire.Link` passes; `#print axioms` of `Serializable.{Marshal,Unmarshal}.wp_proof`,
+   `replica.defs.Propose.Unmarshal.wp_proof`, `epaxos.readVarint.wp_proof`: Lean's three. Design
+   (changed against the lab):
+   - The writer's and reader's parameters are bundled: `BufWr GF` (`wi`, `J`, `Q`, `Ew`, `sz`,
+     and `Q_pre : ∀ x y, Q (x ++ y) ⊢ Q x`: the marshalers' partial writes need `Q` prefix-closed,
+     which the lab read off its `writerOk`; dsv-bufio's `io.writerOk` holds it inside the sealed
+     `ownBufWriter`, so it is a Lean field; a connection's `Q = P cn` with `ProtoPrefixClosed P`
+     gives it) and `BufRd GF` (`ri`, `Pre`, `S`, `E`; a stream fact `F` with `F_pers`,
+     `F_of : S r ⊢ S r ∗ F r`, `F_pre` prefix-closed: exactly `bufio.ownBufReader_fact`'s
+     premises; `Pre_pos : 0 < m → Pre r m`, a connection's `Pre`). `wrOwn bw wr …` /
+     `rdOwn br rd R` abbreviate `EtcdGrove.bufio.ownBufWriter`/`ownBufReader` (never unfolded).
+   - `nextIs rd R enc wf := □ ∀ r, rd.F r -∗ ▷ ⌜R <+: r → …⌝`: over the stream fact, **a step
+     later** (for a connection `F = ▷ protoPrefix P cn` from `net.connReader_proto`; the lab's
+     `nextIs` was over its harness's stream state `I S`, with no later). `nextIs_read` returns
+     `▷ ⌜…⌝`; the decoders strip it with `imod H with %H` (a WP goal, a timeless pure fact).
+     For a connection the caller (the replica's listener, the lab's `listener_nextIs`) proves
+     `nextIs` from `▷ protoPrefix` and its role element, under the later.
+   - `marshalTriple`/`unmarshalTriple`: as the lab's with the bundles; `isPkgInit bufio` stays a
+     conjunct (for `io`'s error values); the lab's `bufio.writerOk`/`readerOk` conjuncts are gone
+     (inside the reader/writer); an unmarshal error is only `⌜err ≠ nil⌝` (the lab's
+     `net.rpc.errAny` was its harness's). `wire/RProg`'s `wp_ReadFull_br`/`wp_ReadAtLeast_br` are
+     Perennial's `io.wp_ReadFull`/`io.wp_ReadAtLeast` over `bufio.ownBufReader_readerOk`, their
+     error results `ptrTyped` no more; the lab's `Varint/ReadByte.lean` (`wp_ReadByte_wf`) is
+     dsv-bufio's `Reader.ReadByte.spec` (its error is `ptrTyped`); the lab's `BufioSticky.lean`
+     and `Interface/BufioLocal.lean` are dsv-bufio's sticky-error clauses (`wire/WProg`).
+   - `etc/dsv-epaxos/port.py --bufio` does the call-site rewrites (argument bundles, dropped
+     conjuncts and error facts, `imod` after `nextIs_read`, `(GF := GF)` on statements whose
+     only `GF` is inside a spec): the 18 `wire/Marshal/*` files needed no hand edit.
 3f. **The epaxos code proofs that need no marshal/bufio/net (started 2026-11-23).** The ghost
    chain `epaxos/{GhostLib,GhostDefs,GhostLaws,GhostStep,ExecFacts}` (then `GhostBasic`,
    `GhostRep`, `GhostSimple`, `GhostSend`, `GhostExec`, the `Exec*` files, `FindSCC`) imports only
@@ -223,30 +253,24 @@ through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (n
 
 ## Next (for a successor)
 
-State at handoff (2026-11-23, after the dsv-infra/models-rpc-server merges): done are the Go, the
-translation, the inits, the pure model, `Interface/{Names,Net,Client,PeerWire,Wire,Treemap,State,
-Misc}` and the proofs of the `state` package (`wire/State`) and of `wire/Misc`. Everything above
-the state package waits on one of three library pieces:
+State at handoff (2026-11-23): done are the Go, the translation, the inits, the pure model,
+`Interface/{Names,Net,Client,PeerWire,Wire,Treemap,State,Misc,Varint,Marshal,RpcHttpHyps}`, the
+proofs of the `state` package (`wire/State`), of `wire/Misc` and the whole marshal layer
+(`wire/**`, `wire/Link`). Next: (2) the ghost chain (3f), (3) the replica/master/epaxos code proofs,
+(4) the model proof, the mains, `epaxos_remote_robust`, the TCB baseline. Library pieces:
 
-1. **bufio (the marshal layer): UNBLOCKED (dsv-bufio `75ef5881aa` merged, 2026-11-23).** Use its
-   names directly (namespace `Perennial.EtcdGrove`: `ownBufReader`, `ownBufWriter` with the size
-   index after `Ew`, `preUpTo` an IProp, `Read` with `⌜0 < xs.length → Pre R xs.length⌝`,
-   `Write`/`WriteByte` with `⌜err = nil⌝ -∗ □ Q` and a fitting write giving `e = nil ∧ sent' =
-   sent`; laws `bufio.ownBufReader_fact`, `ownBufWriter_fact`, `ownBufWriter_size`,
-   `Net.recvTokL_proto`, `net.connReader_proto`; `Writer.Available/Buffered/Size`). Never unfold
-   the bufio predicates; never call Perennial's `io.ReadFull` over a connection directly (go
-   through a `*bufio.Reader`). The old text follows. `Interface/Marshal.lean` (the lab's: message kinds,
-   `marshalTriple`/`unmarshalTriple`, the `own*` message predicates, the per-type marshaler specs,
-   `epaxos.putVarint`/`readVarint`), then `wire/{WProg,RProg,Bytes,Binary16,Codec}`,
-   `wire/Varint/*`, `wire/Marshal/*` (~7k lines), are stated in the lab over its harness's
-   `bufio.ownWriter`/`ownReader` (`Interface/BufioLocal.lean`). Restate them over dsv-bufio's
-   **revised** `ownBufWriter`/`ownBufReader` (origin/dsv-bufio is being revised after Upamanyu's
-   review: R1, R3, W1, W2 and the new laws `ownBufReader_fact`, `ownBufWriter_fact`,
-   `recvTokL_proto`; the coordinator's resume-addendum). As of 2026-11-23 the revision was not
-   pushed (origin/dsv-bufio still `bb18c0f3ef`): merge it once it is, or mirror its revised shapes
-   as hypotheses. Never unfold the bufio predicates. The pure pieces of `wire/Varint` (`PutUvarint`,
-   `PutVarint`, `Decode`) need only `epaxos.putVarint.spec`: they can be ported first, with that
-   spec moved out of `Interface/Marshal` into a small file of its own.
+0. **Wildcard listen (coordinator, 2026-11-23): `net-wildcard-listen` LANDED on `lean`
+   (`1b2fd95b30`, with the Perennial pin bump to `7b2259a12`, `/shared/perennial-7b2259a12`).**
+   The master listens on `":%d"` (`master/master.go:72`), a wildcard: its code proof needs
+   `Listen.spec` with `listenOk` and `Listener.Accept.spec` with `lisAccepts`
+   (`Net/Proof/net/AtAddr.lean`; laws `lisProto`, `listen_lis_au`, `accept_lis_au`, … in
+   `Proto.lean`). Not merged yet (deliberately: the pin bump invalidates the build seeded from
+   9c3b81f30, so merge `origin/lean` right before the master's code proof, then point
+   `.lake/package-overrides.json` and `PERENNIAL_DIR` at `/shared/perennial-7b2259a12`). The
+   replicas listen on their full peer address (`replica.go:393`) and the kit's server on
+   `ip:port` (`kit.go:267`): the old shapes (`Listen.spec_addrOk`) serve them.
+
+1. **bufio (the marshal layer): DONE** (3g above).
 2. **net/rpc over HTTP** (the master and the replicas: `rpc.Register` on `DefaultServer`,
    `rpc.HandleHTTP`, `http.Serve(l, nil)`, `rpc.DialHTTP`). `origin/models-rpc-server` (merged
    here) proves `NewServer`, `Server.Register(Name)`, `ServeConn`/`ServeCodec`, `Accept`, `Dial`,
