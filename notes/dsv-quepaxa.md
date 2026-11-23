@@ -8,6 +8,10 @@ Perennial `3afd77e35`; read only, nothing in the lab changed). The lab's top-lev
 `dsv_goal_check : SafeDist (orchNode :: clientNodes ++ serverNodes) quepaxaNetCfg`, axioms Lean's
 three and porcupine's `CheckOperations.wp_proof`.
 
+**Status (2026-11-23): done.** `quepaxa_remote_robust` (twelve machines, `Robust []` under
+`DistDeploy`, the library hypotheses visible premises) rests on Lean's three axioms; "The statement
+and its premises" and "State" below.
+
 **The coordinator's rule for missing model pieces** (2026-11-23, all seven ports): a model piece
 that is not proved here (gRPC's unary path, bufio beyond `NewReader`/`Read`, third-party libraries
 the lab replaced by cut-down copies, ...) is neither added nor a reason to stop: its spec is a
@@ -26,8 +30,10 @@ change each.
 | package facts and initialization | `Dsverify/Proof/<pkg>/Base.lean` (`True` for every QuePaxa package and names-only library; each imports its imports' fact modules), `Dsverify/Proof/google_golang_org/protobuf/Base.lean` (protobuf's five packages' facts: the main tree's live in `cache/v3/Base`, `raft/v3/Base`, which import the main tree's `net`); `etc/gen-init.py` `dsv_inits` (additive: `DSV_QP*`, `DSV_MAIN` = bufio, math/rand, protobuf's `Init` made in the part as `NET_MAIN`'s in `Net/`, `DSV_OWN` = the part's grpc without the main tree's `SPECIAL`, `SPECIAL['raxos.replica.src']` for `Consensus_ServiceDesc`); generated `Init.lean` and the twelve commands' `PkgTable.lean` all build |
 | the protocol's proof | `Dsverify/Proof/raxos/` (the lab's `Quepaxa/Proof/` layout), all building: `Pure/Conf.lean`, `Pure/Consensus.lean` (verbatim), `Pure/Smr.lean` (edited: the kit's `KIn`/`KOut`, linkv's `kvB`, `execCmd_step`; the lab's `Harness.Models` `kvAbs` moved here, recursive, `kvAbs_put` by `rfl`), `Pure/ModelSet.lean` (new: `mSet`, `step_mSet`, `mSet_empty`, `stepE_ok`); `Msg.lean` (the lab's; its `pbCodec` instance dropped: `marshalPre`/`unmarshalPre` are the shapes the protobuf hypotheses will take), `Ghost.lean` (edited, below), `Cons/{Lemmas,Laws}.lean` (the lab's; connections numbered by the net extension), `Smr/{OpId,SumId,Exec}.lean` (Exec edited: `kvAbs_mem`, `cmdPut_cmdOf`/`goodVal_of_put` over `KIn`) |
 | the kit's model | `.../raxos/examples/quepaxanet/Model.lean` (the spec `qS`: the Go state as a list `E` of keys and `Ent`s, `qRep`, `qDec`/`qDec_box`, `stepL`/`stepL_pSeq`, bounds; `Model.spec`) and `ModelProof.lean` (`Model.wp_proof`: `Model()` meets `isModel qS`; helpers `push`/`has`/`erase` (paxos's proofs), `cat`, `lookup`, `set`, `stepE`, `step`, `equalS`/`equalE`/`equal`) |
-| hypotheses | `Dsverify/Proof/raxos/Hyp.lean` (protobuf `PbHyp`, math/rand `RandHyp`, gRPC `GrpcVocab`/`GrpcHyp` and the instance class `QpVocab`, `sync.Map` `MapVocab`/`MapHyp`; below) |
-| trust base | `etc/tcb-collections/dsv-quepaxa.txt` (to come with the statement) |
+| hypotheses | `Dsverify/Proof/raxos/Hyp.lean` (protobuf `PbHyp`, math/rand `RandHyp`, gRPC `GrpcVocab`/`GrpcHyp`/`GrpcWorldHyp` and the instance class `QpVocab`, `sync.Map` `MapVocab`/`MapHyp`; below) |
+| the kit | `.../raxos/examples/quepaxanet/`: `Kit.lean` (the store `qR γ`, the shares, the specs `Codec`, `Gens`, `Orch`, `Client`, `Server`), `Kit*.lean` (their proofs; `KitClient` the client machine's), `StartAddr`/`StartGhost`/`Start.lean` (`kitAddrs`, `kitLis`, `kit_start`), `DistBridgeLis.lean` (`robust_of_distProtoLisRB`: `Net/`'s bridge with wildcard listeners), `Linked.lean` (`wp_Codec`, `wp_Gens`, `wp_Orch`, `wp_Server`, `wp_Client`), `Mains.lean` (the twelve commands' `wp_main`) |
+| the statement | `Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean`: `quepaxa_remote_robust.spec` (`DistDeploy quepaxaKitAddrs (system σ) g → Robust [] (system σ) g threads (2^63)` under the premises below); definitions in `Proof/raxos/examples/quepaxanet/TopLevelDefs.lean` (`boot`, `system`, `quepaxaKitAddrs := kitAddrs`); proof `Proof/raxos/examples/quepaxanet/TopLevelRobustness.lean` |
+| trust base | `etc/tcb-collections/dsv-quepaxa.txt` (roots `^Dsverify/Proof/raxos/`, empty baseline; the two trusted descriptor-table inits and their justification) |
 
 ## What changed against the lab (Go)
 
@@ -103,8 +109,11 @@ named after the lab's specs, until each comes as one shared change. **All are in
   `a` and `grpcAddr W a`), `WithInsecure.spec` and `Dial.spec` (**as the lab's `dialPost`**: the
   vocabulary's `credsOpt o` (the lab's `DialOption.creds = true`) for `WithInsecure()`'s option;
   `Dial` fails only if no option sets credentials, so QuePaxa's error branch, `fmt.Fprintf` +
-  `os.Exit`, is unreachable and needs no spec), `ClientConn.Invoke.spec`, and the law `world_alloc`;
-  bundled as `class hyp.grpc.GrpcHyp V` (over `[PbCodec GF]`, to be `qpCodec`). **Audit fixes
+  `os.Exit`, is unreachable and needs no spec), `ClientConn.Invoke.spec`;
+  bundled as `class hyp.grpc.GrpcHyp V` (over `[PbCodec GF]`, to be `qpCodec`). The law `world_alloc`
+  (a world's registry for any method specs) is its own class `hyp.grpc.GrpcWorldHyp V` over the
+  global ghost state `GooseGlobalGS` (2026-11-23, top-level session): the start
+  (`robust_of_distProtoLisRB`'s obligation, `kit_start`) has no machine's heap. **Audit fixes
   (2026-11-23)**: `Invoke` takes `⌜opts.len = W64 0⌝` (QuePaxa's generated client passes no call
   options; `Esp.lean`'s `wp_ESP`/`wp_FetchBatches`/`wp_InformDecision` take it as an auto-param
   `by rfl` for `slice.nil`) and its error branch gives `D ∨ ∃ rep b, Θ rep b` (a trailer error
@@ -174,7 +183,115 @@ named after the lab's specs, until each comes as one shared change. **All are in
   Perennial's and the main tree's (`Proof/math/rand`, `Proof/strconv`, Perennial's `log`, `sort`)
   when the proof reaches them; hypotheses (in `Hyp.lean`) where missing.
 
+## The statement and its premises
+
+`quepaxa_remote_robust : quepaxa_remote_robust.spec` (`#print axioms`: `propext`,
+`Classical.choice`, `Quot.sound`). Every hypothesis is a visible premise, ∀-bound; no instance of
+any `InitHyp` (or other hypothesis class) exists anywhere. The heap premises are stated for every
+machine's heap over `remoteGF` at the deployment's local context, `heapAt G L` (rabia's form):
+
+- `[GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]`, the twelve commands'
+  `cmd.{orch,client0..5,server1..5}.Assumptions`, `net.FieldAssumptions`, `go.BasicIntoValInj`
+  (paxos's list). The other packages' `Assumptions` the proofs use (`net`, `fmt`, `strconv`,
+  `time`, `bufio`, `errors`, `io`, `log`, `strings`, remote's, lintest's, perclient's,
+  `raxos/replica/src`, `raxos/proto/client`, `raxos/examples/quepaxanet`) are not separate
+  premises: each command's `Assumptions` carries its imports' (`import_*_Assumption` fields,
+  instances), transitively, and the proof finds them through it.
+- `InitHyp remoteGF` of yaml.v2, go-redis v8, io/ioutil, encoding/gob, grpc, grpc/codes,
+  math/rand (seven; each: Go runs the package's untranslated initializers without panicking).
+- `∀ qv : hyp.QpVocab remoteGF` (the abstract gRPC and `sync.Map` vocabulary), then
+  `hyp.PbHyp`, `hyp.RandHyp`, `hyp.UtcHyp`, `hyp.SortHyp`, `hyp.PrintlnHyp`,
+  `hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.grpc` (also for every `NetProtoGS`),
+  `hyp.grpc.GrpcWorldHyp (Gg := G) qv.grpc` (for every global ghost state `G`),
+  `hyp.sync.MapHyp qv.map`.
+- `∀ σ g threads, DistDeploy quepaxaKitAddrs (system σ) g → Robust [] (system σ) g threads (2^63)`.
+
+**Vacuity check** (by inspection): `DistDeploy` is satisfiable (`kitAddrs_nodup`, `kitAddrs_ok`
+proved; the network and listener states' `init` are the empty ones). The premises are jointly
+satisfiable in principle: each is a property of the real library on a Go global context that
+gives the names-only functions (grpc, yaml, go-redis, ...) their bodies (the statement is ∀
+`GoGlobalContext`/`go.Semantics`, and the commands' `Assumptions` fix only the translated
+packages' unfoldings, so they do not clash with a body for a names-only function), the
+vocabulary existentially chosen by a model (`GrpcWorldHyp` holds of any vocabulary whose
+`worldOk` is fresh ghost state). Doubts: (1) `MapHyp.ivt` is about Perennial's model of
+`sync.Map` (its `internal/sync.HashTrieMap` field is an axiomatized type with `sorry` instances),
+not Go's: satisfiable only if some points-to `tp` is coherent with that model's
+`IntoValTypedUnderlying` (believed: any typed points-to over the underlying representation);
+(2) `PbHyp` speaks of Perennial's translation of protobuf's `proto.Marshal`/`Unmarshal` (the main
+tree's), which must actually behave as the real protobuf on QuePaxa's messages (the audit of
+2026-11-23 checked the spec against Go's behaviour, not the translation's reachability);
+(3) `GrpcHyp`'s `Invoke` and `Serve` describe the lab's model's behaviour (audited against
+grpc-go, "Hypotheses" above).
+
+`etc/theorem-loc.py quepaxa_remote_robust --no-go`: `tcb 582` lines, all statement premises
+(`tcb_premises 582`, `tcb_axioms 0`, `axioms 0`); `--list-tcb` lists the seven `InitHyp` classes
+(6 lines each, `Dsverify/Proof/<pkg>/Init.lean:27-33`), `Hyp.lean`'s classes and specs
+(`PbHyp` ... `GrpcWorldHyp`, `MapHyp`, `QpVocab`), `Msg.lean`'s encodings, `Proto.lean`,
+`TopLevelDefs`. So the `InitHyp` premises are counted (dsv README's requirement, confirmed here).
+(paxos's: 28.)
+
 ## State
+
+**Done (2026-11-23)**: the whole port. The Go, the translation, the protocol's proof
+(`Replica`, `Proxy`, `Proposer` `Results`), the kit's proofs and links, the start, the mains and
+**`quepaxa_remote_robust`** (`lake build Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness`
+OK; `#print axioms` Lean's three, checked in `Dsverify/Scratch/QpTopAx.lean`, untracked). No
+`sorry` and no `axiom` declaration in `Dsverify/` outside `Scratch/` (the generated
+`GeneratedProof/google_golang_org/grpc/chunk*.lean` hold goose's `sorry -- axiomatized type`
+instances of the names-only grpc's opaque types, which nothing reaches: `#print axioms`). The only
+trusted code: the two descriptor-table init files (collection). Checks of the last session:
+`etc/tier-check.py --check`: 19 raxos non-scratch violations (unchanged; the new modules add none,
+the top level is a linking module), the rest `Dsverify/Scratch`'s; `PERENNIAL_DIR=... etc/gen-init.py
+--check`: 268 files up to date; `etc/goose.py --check --project dsv-quepaxa --perennial
+/shared/perennial-7b2259a12`: up to date. `etc/tcb-report.py --collection
+etc/tcb-collections/dsv-quepaxa.txt --check` not run (it needs every root module of the
+repository built, a full build; gates.sh runs it).
+
+Last session's changes (top level): `Hyp.lean` `GrpcHyp.world_alloc` → `class GrpcWorldHyp`
+over `GooseGlobalGS`, `kit_start` takes it as an instance (was the premise `hW`); `Wire.lean`'s
+unused `ClientBatch.Marshal.spec`/`Unmarshal.spec` deleted (`KitWire`'s `cbMarshal.spec` and
+`NetUnmarshal`'s `unmarshalB.spec` are the ones used); new `TopLevelDefs.lean`, `Mains.lean`,
+`TopLevelRobustness.lean` (Proof and Spec), `etc/tcb-collections/dsv-quepaxa.txt`.
+
+Build: `PERENNIAL_DIR=/shared/perennial-7b2259a12 etc/goose.py --project dsv-quepaxa`, `... etc/gen-init.py`,
+`lake build Dsverify.Proof.raxos.examples.quepaxanet.TopLevelRobustness`.
+
+## Design findings
+
+- **remote's `ServeClient.spec`** takes `newClient` as a persistent triple with precondition `True`:
+  a client that needs exclusive resources or must run once is made before `ServeClient` (as paxos);
+  remote's `op` may overlap (retried reads): the lock invariant holds `s.next` with the counter's
+  half; `tok sys` can be pure (kit fork 5).
+- **Wildcard listeners**: the replicas listen at `0.0.0.0:port`; `Net/`'s bridge
+  (`robust_of_distProtoRB`) only knows listed addresses, so `DistBridgeLis.lean` adds the
+  wildcards (`addrs_lis_start`, `lis_set_proto`; pairwise disjoint, none taking a listed address).
+  A candidate for `Net/Statement/` (it is a copy with listeners).
+- **Hypotheses over the global ghost state**: a hypothesis used at the start (before any machine's
+  heap exists) must be a class over `GooseGlobalGS`, not `HeapGS` (`GrpcWorldHyp`).
+- **`addrTok` is persistent in `Net/`** (exclusive in the lab): the proxy's uniqueness comes from a
+  ghost token, not the address (Session log, "Design points found" 2).
+- **`sync.Map`'s points-to is `sorry` in Perennial**: `MapHyp.ivt` stands in
+  (`notes/perennial-changes.md`).
+- Kernel rejections from `omega` inside Iris proofs: factored into pure lemmas (`MabCalc`).
+
+## Follow-ups
+
+- Discharge the hypotheses as shared changes: protobuf (the kit's codec from
+  `models/protobuf/pbgen.py`), gRPC's unary path (the Lean half of `models/grpc`, phase 7 S2),
+  `sort.Ints` (Perennial's translation + the lab's proof over `slices.wp_Sort`), `time.Time.UTC`,
+  `fmt.Println`, math/rand, `sync.Map` (Perennial's `HashTrieMap` instances), the `InitHyp`s.
+- `DistBridgeLis.lean` into `Net/Statement/` if other kits need wildcards.
+- Tier violations (19 raxos, from the lab's layout: defs modules importing proofs) and
+  `Dsverify/Scratch/` (untracked) to clean.
+- The per-function spec/proof layout and generated Links, as paxos's follow-ups.
+
+## Which lab run
+
+`quepaxa-bump-1` (dsverify-lab `master` `915f964`, `examples/quepaxa/SOURCE.md`): proof `4ae902e`
+(tag `final`), fork `77b5258`, harness `cd3a97b` (lab commit `71cae38`), Perennial `3afd77e35`;
+verified there in 671 s (`verify-final.log`).
+
+## Session log (the port's history, newest last)
 
 - Done: the Go (commit `0fbd49207a`; the fork's files byte-identical to the lab's since the
   dsv-infra merge: goose's `expand_comment_tabs` expands the tabs of Go comments, which Lean rejects,
@@ -666,9 +783,3 @@ named after the lab's specs, until each comes as one shared change. **All are in
   `raxos/replica/src` is in every node's `PkgTable` and `go list -deps` links it into every command
   (orch, client0..5, server1..5). No fact relies on a package the program does not link. (The lab's
   `registerProto` codec hook is gone: protobuf is the hypothesis `PbHyp`, not a package fact.)
-
-## Which lab run
-
-`quepaxa-bump-1` (dsverify-lab `master` `915f964`, `examples/quepaxa/SOURCE.md`): proof `4ae902e`
-(tag `final`), fork `77b5258`, harness `cd3a97b` (lab commit `71cae38`), Perennial `3afd77e35`;
-verified there in 671 s (`verify-final.log`).
