@@ -4,14 +4,14 @@ shared view. `seglog` needs no crash invariant: its result asks nothing of the t
 The program holds the whole claim on `seg.log` of its root `dir` with the root's call permission
 (`logRes`) and, if `seg.log` names a directory, that directory's whole claim (`DS.subRes`), all from
 what a generation starts with (`log_start`). Here: that start, and `os.OpenFile(dir/seg.log,
-O_RDWR|O_CREATE)` of the absent name (`wp_openLog`, `specCreateS` with the trivial update), which also
+O_RDWR|O_CREATE)` of the absent name (`wp_openLog`, over `specCreateS`, a hypothesis, with the trivial update), which also
 gives the `*File`'s offset (`os.ownOff`). The removal is `DS.wp_rmAny`, the opens of the existing file
 `os.OpenFile.wp_fileS`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DSRemove
-public import Proof.os.OpenFileS
+public import Spec.os.OpenFileS
 public import Proof.os.WriteFileLemmas
 
 @[expose] public section
@@ -117,7 +117,7 @@ variable [sem : go.Semantics] [os.Assumptions] [os.file.FieldAssumptions]
 
 /-- **`os.OpenFile(dir/seg.log, O_RDWR|O_CREATE, perm)`**, `dir` the root of inode `j`, `seg.log`
 absent: on success a new file of a fresh inode `i`, `seg.log` names it. -/
-theorem wp_openLog (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (h : NamesH)
+theorem wp_openLog (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG)) (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (h : NamesH)
     (hn : h.cur !! logB = none) (perm : w32) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ logRes (GF := GF) R dir j h }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child dir logB))) (Val #(W64 66))) (Val #perm))
@@ -137,7 +137,7 @@ theorem wp_openLog (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R)
   ihave Hau := os.osAU_triv (A := Option (Nat × Nat × Ino))
     (osNames (GF := GF) j (.only [logB]) (DFrac.own (1 : Qp).half) h)
     (crOut j logB h (DFrac.own (1 : Qp).half)) $$ Hnr
-  wp_apply os.OpenFile.wp_proofCreateS dir logB (W64 66) perm R j _ h
+  wp_apply wp_CreateS dir logB (W64 66) perm R j _ h
     (1 : Qp).half (1 : Qp).half 1 (crOut j logB h (DFrac.own (1 : Qp).half)) hfl hcr htr logB_ok
     (fun J h' => by rw [hn] at h'; cases h') (Qp.half_add_half 1)
     $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]

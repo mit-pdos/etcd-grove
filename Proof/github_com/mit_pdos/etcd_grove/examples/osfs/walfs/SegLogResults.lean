@@ -24,6 +24,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLog
 public import Proof.os.File__WriteAt
+public import Proof.os.OpenFileS
 public import Proof.os.File__Fd
 public import Proof.os.File__Close
 public import Proof.syscall.Fdatasync
@@ -114,7 +115,7 @@ theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
       unfold bootLog
       wp_apply Hinit_wp $$ Hgs
       wp_pures
-      wp_apply wp_Run os.File.Close.wp_proof os.File.WriteAt.wp_proof os.File.Fd.wp_proof
+      wp_apply wp_Run os.OpenFile.wp_proofCreateS os.File.Close.wp_proof os.File.WriteAt.wp_proof os.File.Fd.wp_proof
           syscall.Fdatasync.wp_proof R dir j hrj _ $$ [Hh Hsub]
       · iframe; iframe #
       ipureintro; rfl

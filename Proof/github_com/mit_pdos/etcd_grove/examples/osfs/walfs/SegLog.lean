@@ -97,7 +97,8 @@ def segFile (i : Ino) : IProp GF :=
 /-- `Segment(dir/seg.log, rec)`, `dir` the root of inode `j`, `seg.log` absent, `rec` the 8 bytes
 of data: on success `seg.log` names a new file of a fresh inode `i`, `segSize` long, and the offset
 past `rec` is returned. -/
-theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+theorem wp_Segment (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
@@ -116,7 +117,7 @@ theorem wp_Segment (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   rw [show (W64 2 ||| W64 64) = W64 66 from by decide]
-  wp_apply wp_openLog R dir j hrj h hn (W32 384) $$ [Hos Hsi Hh] as %f %err Hr
+  wp_apply wp_openLog wp_CreateS R dir j hrj h hn (W32 384) $$ [Hos Hsi Hh] as %f %err Hr
   · iframe; iframe #
   icases Hr with (⟨%fd, %i, %V', %hek, Hf, Ho, Hfd, Hm, Hh⟩ | ⟨%herr, %V', Hh⟩)
   rotate_left
@@ -577,7 +578,8 @@ theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
 
 /-- `Run(dir)`, `dir` the root of inode `j`, with the whole claim on `seg.log` (and, if it names a
 directory, that directory's whole claim): it does not panic (nor is it stuck). -/
-theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+theorem wp_Run (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (wp_Fdatasync : syscall.Fdatasync.spec (GF := GF) (hG := hG))
@@ -680,7 +682,7 @@ theorem wp_Run (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (try wp_auto)
     ihave Hh : logRes (GF := GF) R dir j h $$ [Hperm Hn]
     · unfold logRes; iframe
-    wp_apply wp_Segment wp_Fd wp_Close wp_WriteAt wp_Fdatasync R dir j hrj h hn sl2 (DFrac.own 1)
+    wp_apply wp_Segment wp_CreateS wp_Fd wp_Close wp_WriteAt wp_Fdatasync R dir j hrj h hn sl2 (DFrac.own 1)
       $$ [Hh Hsl2] as %e %err ⟨%V', Hh, Hr⟩
     · iframe; iframe #
     icases Hr with (⟨%hr, %k, %hk1, Hsf⟩ | %herr)
