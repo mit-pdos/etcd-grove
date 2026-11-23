@@ -999,6 +999,23 @@ tests kept as differential tests against the real library, a "not modelled" pani
    (the accept loop; `Temporary()` back-off, `logf`), `ListenAndServe`, `ServeMux.Handle`/`ServeHTTP` on an exact
    path (Go 1.22 patterns: `parsePattern`, the routing tree; `use121` reads `GODEBUG=httpmuxgo121` at init:
    both muxes, or a model decision), `HandleHTTP` (`runtime.Caller` in `registerErr`: not modelled by Perennial).
+   **The connection reader's other methods (2026-11-23, same branch).** *Proved and linked*
+   (`Net/Proof/net/http/Results.lean`, Lean's three axioms): `connReader.startBackgroundRead` (main phase to
+   background: the fields into the mutex invariant, `backgroundRead` forked with the token, the buffer and the
+   reader's token at exactly the head), `connReader.releaseConn` (after a hijack, `crLeft` to `crLeft`), and
+   `connReader.Read` in the head phase: `crHead cr γ cn P Q L c r` (`ConnReaderHead.lean`: the main phase, the
+   fields owned, `remain` at `L - len(r)`, the acceptor's `sendTok cn true Q []`, the reader's token at `R` past the
+   delivered `r`, at it while no read failed), so `io.readerStreamNE` with `crHeadErr` (every error a pointer;
+   `ConnReaderStream.lean`: `crHead_stream`, `crHead_bound`) and the head's prefix law `crHead_prefix` (`headLaw`,
+   `zLaw`: `r <+: hs`), which `modelReadLine`/`modelReadMIMEHeader` take. No spec or model change.
+   *Left, in order*: the pools (`newBufioReader` needs a spec of bufio's `Reader.Reset`, translated but
+   unspecified, and a reader pool predicate like `wPools`; `newBufioWriterSize` needs a lemma from `NewWriterSize`'s
+   `ownBufWriter … [] nil` to `rawWriter`), then `readRequest`, `conn.serve`, `Serve`/`ListenAndServe`, the mux,
+   `HandleHTTP`, as listed above, under the decisions of 2026-11-23 (the 400 answer in `respProto` and read by
+   `ReadResponse`; the model's mux Go 1.22's, not reading `httpmuxgo121`; `registerErr`'s `runtime.Caller`
+   unreachable; contexts by Perennial's specs first; `url.ParseRequestURI` and the `strings` functions by local
+   proofs first). Not yet merged: `origin/lean`'s Perennial bump (`71de6f043`, `strings.Builder` and
+   `bytealg`), which rebuilds the whole tree.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
