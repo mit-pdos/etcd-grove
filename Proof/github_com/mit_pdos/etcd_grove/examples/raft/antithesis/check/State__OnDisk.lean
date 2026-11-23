@@ -1492,5 +1492,102 @@ theorem State.OnDisk.wp_proof
       · rw [decide_eq_false hle]
         odretc (by rw [← hc1]; simp [hle])
     odafterj c1
+    obtain ⟨ld1, hld1, Ho⟩ := bind_ok Ho
+    odm leads
+    wp_apply wp_leads _ X ld1 $$ [Hx]
+    · iframe Hx; ipureintro; exact hld1
+    cases ld1
+    case true =>
+      -- `!(x.T1() == x.T0() && SendableIn(ld, ll, ch, tl, x.f()))`
+      simp only [ite_true] at Ho
+      obtain ⟨ok, hok, Ho⟩ := bind_ok Ho
+      obtain ⟨a1, ha1, h1t, h1f⟩ := andM_ok hok
+      obtain ⟨t1', ht1', ha1⟩ := bind_ok ha1
+      rw [ht1] at ht1'; cases ht1'
+      simp only [pure_ok, Except.ok.injEq] at ha1
+      subst ha1
+      try wp_auto
+      odm T1
+      wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+      · iframe Hx; ipureintro; exact ht1
+      try wp_auto
+      odm T0
+      wp_apply wp_T0 _ X $$ [Hx] as %u0 %Hu0
+      · iexact Hx
+      try wp_auto
+      rw [decide_w64_eq, Hu0, Hu1]
+      by_cases he : t1 = X.T0
+      case neg =>
+        rw [decide_eq_false he]
+        odjno (h1f (by simpa using he))
+      rw [decide_eq_true he]
+      have h1 := h1t (by simp [he])
+      obtain ⟨f, hf, h1⟩ := bind_ok h1
+      obtain ⟨hfp, hfe', -⟩ := OnDisk.f_within hb HW hf
+      try wp_auto
+      odm f
+      wp_apply wp_f _ X f $$ [Hx] as %gf #Hf
+      · iframe Hx; ipureintro; exact hf
+      try wp_auto
+      wp_apply wp_SendableIn ldl ld lll ll chl ch tll tl gf f ok $$ [Hld Hll Hch Htl Hf]
+      · iframe Hld Hll Hch Htl Hf; ipureintro; exact ⟨h1, hfp, by omega⟩
+      cases ok
+      · odjno (rfl : false = false)
+      simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [Bool.false_eq_true, ite_false] at Ho
+    have hfnl : X.f = X.fm := f_notLeads hld1
+    try wp_auto
+    -- M2: `!(x.hasM() && IsReq(x.m()) && x.m().term() == x.T1())`
+    obtain ⟨ok2, hok2, Ho⟩ := bind_ok Ho
+    generalize hc2 : (!ok2) = c2 at Ho
+    obtain ⟨hm, hhm, h2t, h2f⟩ := andM_ok hok2
+    simp only [pure_ok, Except.ok.injEq] at hhm
+    odguard c2
+    · odm hasM
+      wp_apply wp_hasM _ X $$ [Hx]
+      · iexact Hx
+      rw [hhm]
+      cases hm
+      · odretc (by rw [← hc2, h2f rfl]; rfl)
+      have h2 := h2t rfl
+      obtain ⟨rq, hrq, h3t, h3f⟩ := andM_ok h2
+      obtain ⟨m, hm, hrq⟩ := bind_ok hrq
+      try wp_auto
+      odm m
+      wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+      · iframe Hx; ipureintro; exact hm
+      try wp_auto
+      wp_apply wp_IsReq gm m rq $$ [Hm]
+      · iframe Hm; ipureintro; exact hrq
+      cases rq
+      · odretc (by rw [← hc2, h3f rfl]; rfl)
+      have h3 := h3t rfl
+      obtain ⟨m', hm', h3⟩ := bind_ok h3
+      rw [hm] at hm'; cases hm'
+      obtain ⟨mt, hmt, h3⟩ := bind_ok h3
+      obtain ⟨t1', ht1', h3⟩ := bind_ok h3
+      rw [ht1] at ht1'; cases ht1'
+      simp only [pure_ok, Except.ok.injEq] at h3
+      try wp_auto
+      odm m
+      wp_apply wp_m _ X m $$ [Hx] as %gm' #Hm'
+      · iframe Hx; ipureintro; exact hm
+      try wp_auto
+      wp_apply wp_Msg_term gm' m mt $$ [Hm'] as %ut %Hut
+      · iframe Hm'; ipureintro; exact hmt
+      try wp_auto
+      odm T1
+      wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+      · iframe Hx; ipureintro; exact ht1
+      try wp_auto
+      rw [decide_w64_eq, Hut, Hu1]
+      subst h3
+      by_cases hmt1 : mt = t1
+      · rw [decide_eq_true hmt1]
+        odskip (by rw [← hc2, hmt1]; simp)
+      · rw [decide_eq_false hmt1]
+        odretc (by rw [← hc2]; simpa using hmt1)
+    odafterj c2
     done
   done
