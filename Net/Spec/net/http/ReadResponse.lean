@@ -3,16 +3,18 @@
 `b` a `*bufio.Reader` (`bufio.ownReader`, nothing delivered yet) of a stream reader `ri` that
 makes progress (`io.readerStreamNE ri S E`: no `(0, nil)` read, so bufio never gives up with
 `io.ErrNoProgress` and then reads on) whose bytes are, as long as it is read, a prefix of net/rpc's answer
-`connectAns` (`"HTTP/1.0 200 Connected to Go RPC\n\n"`) and that delivers nothing after an error
+`connectAns` (`"HTTP/1.0 200 Connected to Go RPC\n\n"`) or of net/http's server's `400` answer
+`badReqAns` (to a request it could not read: `"HTTP/1.1 400 Bad Request"`, a `Content-Type` and a
+`Connection: close` header line, its body), and that delivers nothing after an error
 (the law over `E` and `S`: after an error at `r`, the stream stays at `r`; the model's
 `connectReader`), `req` the request `{Method: "CONNECT"}`. It returns an error (some error, non-nil:
 the stream's, `io.ErrUnexpectedEOF`, a malformed line's), or a response whose `Status` is either not
-`"200 Connected to Go RPC"` or is it, and then the reader has delivered exactly `connectAns` (the
-status line and the empty header block, each up to its `"\n"`: a line cut by an error does not
-parse as a whole one, since nothing follows the error). The model's head parser
-(`textproto_model.go`) and `readTransfer` (the answer's body, read to the connection's end, is not
-read here). `httpEnv` (`Net/Proof/net/http/Defs.lean`) is the package state the parse reads.
-Proved in `Net/Proof/net/http/ReadResponse.lean`.
+`"200 Connected to Go RPC"` (the `400` answer's is `"400 Bad Request"`) or is it, and then the reader
+has delivered exactly `connectAns` (the status line and the empty header block, each up to its `"\n"`:
+a line cut by an error does not parse as a whole one, since nothing follows the error). The model's
+head parser (`textproto_model.go`) and `readTransfer` (the answer's body, read to the connection's
+end, is not read here). `httpEnv` (`Net/Proof/net/http/Defs.lean`) is the package state the parse
+reads. Proved in `Net/Proof/net/http/ReadResponse.lean`.
 -/
 module
 
@@ -40,7 +42,7 @@ abbrev ReadResponse.spec : Prop :=
   ∀ (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
     (req : Loc) (rq : net.http.Request),
   {{ httpEnv ∗ EtcdGrove.io.readerStreamNE ri S E ∗ EtcdGrove.bufio.ownReader b ri S E [] ∗
-      (□ ∀ r, S r -∗ ⌜r <+: net.rpc.connectAns⌝) ∗
+      (□ ∀ r, S r -∗ ⌜r <+: net.rpc.connectAns ∨ r <+: net.rpc.badReqAns⌝) ∗
       (□ ∀ (r r' : List w8) (err : GoInterface), E r err -∗ S r' -∗ ⌜r <+: r' → r' = r⌝) ∗
       req ↦ rq ∗ ⌜rq.Method' = go!"CONNECT"⌝ }}
     (App (App (Val (@! net.http.ReadResponse)) (Val #b)) (Val #req))

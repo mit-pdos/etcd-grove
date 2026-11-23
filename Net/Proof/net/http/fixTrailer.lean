@@ -24,11 +24,13 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 theorem fixTrailer.wp_proof : fixTrailer.spec (GF := GF) (hG := hG) := by
-  intro h chunked maxH
-  wp_start as Hm
+  intro h ms chunked maxH
+  wp_start as ⟨Hm, %Hk⟩
   wp_auto
   wp_apply (wp_map_lookup2 (V := GoSlice) go.string (go.SliceType go.string) h _ go!"Trailer" _) $$ Hm
     as Hm
+  rw [Hk]
+  try wp_auto
   iapply HΦ
   iexact Hm
 

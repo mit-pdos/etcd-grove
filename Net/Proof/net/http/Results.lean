@@ -4,9 +4,11 @@ answer (`Net/Spec/net/http/ReadResponse.lean`), each proof applied to its callee
 the model's head parser (`modelReadLine`, `modelReadMIMEHeader`), `modelCutByte`,
 `modelTrimLeftByte`, `ParseHTTPVersion`, `badStringError` (over Perennial's `fmt.Errorf`),
 `readTransfer` and its helpers (`shouldClose`, `parseTransferEncoding`, `fixLength`, `fixTrailer`,
-`Header.Del`, textproto's `MIMEHeader.Del` and `CanonicalMIMEHeaderKey`, httpguts'
-`HeaderValuesContainsToken`), `fixPragmaCacheControl`, Perennial's `strconv.Atoi`, and bufio's
-`ReadByte` (`specNE`), `Peek` and `fill` (the main tree's `Proof/bufio/`).
+`Header.Del`, textproto's `MIMEHeader.Del` and `CanonicalMIMEHeaderKey`, the model's
+`modelHeaderValuesContainsToken` and its helpers), `fixPragmaCacheControl`, Perennial's `strconv.Atoi`
+and `strings.HasPrefix`, and bufio's `ReadByte` (`specNE`), `Peek` and `fill` (the main tree's
+`Proof/bufio/`); since 2026-11-23 also on net/http's `400` answer (its two header lines: the model's
+`modelReadMIMEHeader` over httpguts' `ValidHeaderFieldName`/`ValidHeaderFieldValue` and `fmt.Sprintf`).
 
 The server's hijack (2026-11-23): `response.Hijack` (`hijackOk` from `hjPre`, what `conn.serve` has
 when it calls the handler) over `conn.hijackLocked`, `connReader.abortPendingRead`, the net
@@ -19,6 +21,9 @@ The request's URI (2026-11-23): the model's `modelParseRequestURI` (`url.ParseRe
 `reqPath`, over `modelPathBytes` and `modelPathByte`; the request line's `parseRequestLine` (over
 `modelCutByte`) and `validMethod` (over `isToken` and httpguts' `ValidHeaderFieldName`, which reads
 `isTokenTable`: `tokenTable`, a premise).
+
+The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
+`Server.maxHeaderValueCount`.
 -/
 module
 
@@ -38,11 +43,21 @@ public import Net.Proof.net.http.fixTrailer
 public import Net.Proof.net.http.Header__Del
 public import Net.Proof.net.textproto.MIMEHeader__Del
 public import Net.Proof.net.textproto.CanonicalMIMEHeaderKey
-public import Net.Proof.vendor.golang_org.x.net.http.httpguts.HeaderValuesContainsToken
+public import Net.Proof.net.http.modelHeaderValuesContainsToken
+public import Net.Proof.net.http.modelHeaderValueContainsToken
+public import Net.Proof.net.http.modelIndexByte
+public import Net.Proof.net.http.modelTrimOWS
+public import Net.Proof.net.http.modelTokenEqual
+public import Net.Proof.net.http.modelLowerASCII
+public import Net.Proof.net.http.readRequestLimit
+public import Net.Proof.net.http.Server__maxHeaderValueCount
+public import Net.Proof.vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldValue
+public import Perennial.Proof.strings.Link
 public import Proof.bufio.Reader__fill
 public import Proof.bufio.Reader__Peek
 public import Proof.bufio.Reader__ReadByteNE
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.fmt.BytesResults
 public import Perennial.Proof.strconv.Link
 public import Net.Proof.net.http.response__Hijack
 public import Net.Proof.net.http.conn__hijackLocked
@@ -89,21 +104,34 @@ theorem modelReadLine.wp : modelReadLine.spec (GF := GF) (hG := hG) :=
 
 theorem modelReadMIMEHeader.wp : modelReadMIMEHeader.spec (GF := GF) (hG := hG) :=
   modelReadMIMEHeader.wp_proof (EtcdGrove.bufio.Reader.Peek.wp_proof EtcdGrove.bufio.Reader.fill.wp_proof)
-    modelReadLine.wp
+    modelReadLine.wp net.textproto.CanonicalMIMEHeaderKey.wp_proof
+    vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName.wp_proof
+    vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldValue.wp_proof fmt.wp_Sprintf
+    fmt.wp_Sprintf_bytes
 
 theorem Header.Del.wp : Header.Del.spec (GF := GF) (hG := hG) :=
   Header.Del.wp_proof
     (net.textproto.MIMEHeader.Del.wp_proof net.textproto.CanonicalMIMEHeaderKey.wp_proof)
 
+theorem modelHeaderValuesContainsToken.wp : modelHeaderValuesContainsToken.spec (GF := GF) (hG := hG) :=
+  modelHeaderValuesContainsToken.wp_proof
+    (modelHeaderValueContainsToken.wp_proof modelIndexByte.wp_proof modelTrimOWS.wp_proof
+      (modelTokenEqual.wp_proof modelLowerASCII.wp_proof))
+
+theorem shouldClose.wp : shouldClose.spec (GF := GF) (hG := hG) :=
+  shouldClose.wp_proof modelHeaderValuesContainsToken.wp Header.Del.wp
+
 theorem readTransfer.wp : readTransfer.spec (GF := GF) (hG := hG) :=
-  readTransfer.wp_proof
-    (shouldClose.wp_proof vendor.golang_org.x.net.http.httpguts.HeaderValuesContainsToken.wp_proof)
+  readTransfer.wp_proof shouldClose.wp
     transferReader.parseTransferEncoding.wp_proof (fixLength.wp_proof Header.Del.wp)
     fixTrailer.wp_proof
 
+theorem ParseHTTPVersion.wp : ParseHTTPVersion.spec (GF := GF) (hG := hG) :=
+  ParseHTTPVersion.wp_proof strings.wp_HasPrefix
+
 theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
   ReadResponse.wp_proof modelReadLine.wp modelReadMIMEHeader.wp modelCutByte.wp_proof
-    modelTrimLeftByte.wp_proof ParseHTTPVersion.wp_proof (badStringError.wp_proof fmt.wp_Errorf)
+    modelTrimLeftByte.wp_proof ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
     fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
 
 theorem modelParseRequestURI.wp : modelParseRequestURI.spec (GF := GF) (hG := hG) :=
@@ -115,6 +143,14 @@ theorem parseRequestLine.wp : parseRequestLine.spec (GF := GF) (hG := hG) :=
 theorem validMethod.wp : validMethod.spec (GF := GF) (hG := hG) :=
   validMethod.wp_proof
     (isToken.wp_proof vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName.wp_proof)
+
+theorem readRequestLimit.wp : readRequestLimit.spec (GF := GF) (hG := hG) :=
+  readRequestLimit.wp_proof modelReadLine.wp modelReadMIMEHeader.wp parseRequestLine.wp validMethod.wp
+    ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf) modelParseRequestURI.wp
+    fixPragmaCacheControl.wp_proof shouldClose.wp readTransfer.wp strings.wp_HasPrefix
+
+theorem Server.maxHeaderValueCount.wp : Server.maxHeaderValueCount.spec (GF := GF) (hG := hG) :=
+  Server.maxHeaderValueCount.wp_proof
 
 end link
 
@@ -157,6 +193,7 @@ end net.http
 end Perennial
 
 #print axioms Perennial.net.http.ReadResponse.wp
+#print axioms Perennial.net.http.modelReadMIMEHeader.wp
 #print axioms Perennial.net.http.connReader.backgroundRead.wp
 #print axioms Perennial.net.http.response.Hijack.wp
 #print axioms Perennial.net.http.connReader.startBackgroundRead.wp
@@ -165,3 +202,5 @@ end Perennial
 #print axioms Perennial.net.http.modelParseRequestURI.wp
 #print axioms Perennial.net.http.parseRequestLine.wp
 #print axioms Perennial.net.http.validMethod.wp
+#print axioms Perennial.net.http.readRequestLimit.wp
+#print axioms Perennial.net.http.Server.maxHeaderValueCount.wp

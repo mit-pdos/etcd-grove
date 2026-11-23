@@ -138,7 +138,7 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
       imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
       icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp⟩
       imod resp_before_req W a cn γ _ $$ [$Hrpc $Hh $Hlc2 $Hpp] with ⟨Hh, %Hpre⟩
-      rw [HhsA] at Hpre
+      rw [HhsA, show hsErr connectAns = badReqAns from ite_eq_left rfl] at Hpre
       imodintro
       iintro %e %He
       iapply HΦ
@@ -209,7 +209,7 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
     imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
     icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp⟩
     imod resp_before_req W a cn γ _ $$ [$Hrpc $Hh $Hlc2 $Hpp] with ⟨Hh, %Hpre⟩
-    rw [HhsA] at Hpre
+    rw [HhsA, show hsErr connectAns = badReqAns from ite_eq_left rfl] at Hpre
     imodintro
     have hxl : xs.length = p.len.toNat := by
       rw [Hlen.1]; have := Hlen.2; unfold sint.nat; word

@@ -2305,6 +2305,24 @@ noncomputable def modelPathBytes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def modelPathByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.modelPathByte"
 
+noncomputable def modelHeaderValuesContainsToken [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelHeaderValuesContainsToken"
+
+noncomputable def modelHeaderValueContainsToken [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelHeaderValueContainsToken"
+
+noncomputable def modelIndexByte [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelIndexByte"
+
+noncomputable def modelTrimOWS [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelTrimOWS"
+
+noncomputable def modelLowerASCII [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelLowerASCII"
+
+noncomputable def modelTokenEqual [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelTokenEqual"
+
 noncomputable def newTransferWriter [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.newTransferWriter"
 
@@ -8250,7 +8268,7 @@ noncomputable def checkConnErrorWriter.Write.impl [GooseExts] [GoGlobalContext] 
 
 /-- NotModelled marks the value as the models' panic.
 
-    go: textproto_model.go:54:20 -/
+    go: textproto_model.go:58:20 -/
 noncomputable def notModelled.NotModelled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
@@ -8263,7 +8281,7 @@ noncomputable def notModelled.NotModelled.impl [GooseExts] [GoGlobalContext] : v
     "\r\n"; at the end of the input, the bytes before it (without error) if there are any, else
     the read error (bufio's ReadLine, which textproto's readLineSlice calls).
 
-    go: textproto_model.go:59:6 -/
+    go: textproto_model.go:63:6 -/
 noncomputable def modelReadLine.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -8353,7 +8371,7 @@ noncomputable def modelReadLine.impl [GooseExts] [GoGlobalContext] : val :=
 /-- trimLine is textproto's trim (reader.go): the line without leading and trailing spaces and
     tabs.
 
-    go: textproto_model.go:81:6 -/
+    go: textproto_model.go:85:6 -/
 noncomputable def trimLine.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -8398,7 +8416,7 @@ noncomputable def trimLine.impl [GooseExts] [GoGlobalContext] : val :=
     heads without continuation lines: header lines up to an empty line, each "Name: value" (the
     name canonicalized, the value without the space around it), at most maxHeaders of them.
 
-    go: textproto_model.go:99:6 -/
+    go: textproto_model.go:103:6 -/
 noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "maxHeaders"
@@ -8695,7 +8713,7 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
     false when s holds none. strings.Cut finds the first instance with strings.Index, which for a
     one-byte separator is the first index of that byte.
 
-    go: textproto_model.go:169:6 -/
+    go: textproto_model.go:173:6 -/
 noncomputable def modelCutByte.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "sep"
@@ -8759,7 +8777,7 @@ noncomputable def modelCutByte.impl [GooseExts] [GoGlobalContext] : val :=
     calls it in place of strings.TrimLeft, a name only in Perennial's translation): Go's TrimLeft of a
     one-byte ASCII cutset is strings' trimLeftByte, this loop.
 
-    go: textproto_model.go:181:6 -/
+    go: textproto_model.go:185:6 -/
 noncomputable def modelTrimLeftByte.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -8787,7 +8805,7 @@ noncomputable def modelTrimLeftByte.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- modelChunked stands for a chunked body's reader: not modelled.
 
-    go: textproto_model.go:189:6 -/
+    go: textproto_model.go:193:6 -/
 noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
@@ -8806,7 +8824,7 @@ noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
     in encodePath mode changes none of these bytes). On every other URI it is Go's function.
     MODEL: Go's parse calls strings.Cut, ToLower and Index, which Perennial translates as names only.
 
-    go: textproto_model.go:200:6 -/
+    go: textproto_model.go:204:6 -/
 noncomputable def modelParseRequestURI.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rawurl"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)))) (Val #())))
@@ -8848,7 +8866,7 @@ noncomputable def modelParseRequestURI.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- modelPathBytes reports whether every byte of s is one modelPathByte accepts.
 
-    go: textproto_model.go:208:6 -/
+    go: textproto_model.go:212:6 -/
 noncomputable def modelPathBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -8888,7 +8906,7 @@ noncomputable def modelPathBytes.impl [GooseExts] [GoGlobalContext] : val :=
     bytes (letters, digits, "-", "_", ".", "~") and the sub-delimiters and separators that
     shouldEscape(c, encodePath) does not escape ("$", "&", "+", ",", "/", ":", ";", "=", "@").
 
-    go: textproto_model.go:220:6 -/
+    go: textproto_model.go:224:6 -/
 noncomputable def modelPathByte.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -8912,7 +8930,284 @@ noncomputable def modelPathByte.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: transfer.go:257:6 -/
+/-- modelHeaderValuesContainsToken is httpguts.HeaderValuesContainsToken(values, token) (Go 1.27.3's
+    vendored golang.org/x/net/http/httpguts): whether a comma-separated element of one of values,
+    without the optional whitespace around it, is token, ASCII case-insensitively. httpguts' code,
+    but for strings.IndexByte(v, ','), which Perennial translates as a name only, as modelIndexByte,
+    and tokenEqual's loop (modelTokenEqual). MODEL: shouldClose calls it in place of httpguts'.
+
+    go: textproto_model.go:237:6 -/
+noncomputable def modelHeaderValuesContainsToken.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "values"
+  (Lam "token"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (Let "values" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "values"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "values"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (App (Val (GoInstruction (FuncResolve modelHeaderValueContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- modelHeaderValueContainsToken is httpguts' headerValueContainsToken (strings.IndexByte as
+    modelIndexByte).
+
+    go: textproto_model.go:248:6 -/
+noncomputable def modelHeaderValueContainsToken.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Lam "token"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve modelTrimOWS []))) (Val #())) (Var "$a0")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (App (Val (GoInstruction (FuncResolve modelTokenEqual []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (Let "$a1" (Val #(W8 44))
+  (App (App (App (Val (GoInstruction (FuncResolve modelIndexByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "comma" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "comma")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))))))) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "comma")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$r0")))))))
+  (If (Let "$a0" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "comma")))))
+  (App (App (Val (GoInstruction (FuncResolve modelTrimOWS []))) (Val #())) (Var "$a0")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (App (Val (GoInstruction (FuncResolve modelTokenEqual []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (Let "$a1" (Val #(W8 44))
+  (App (App (App (Val (GoInstruction (FuncResolve modelIndexByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "comma") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "comma") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- modelIndexByte is strings.IndexByte(s, c): the index of the first c in s, or -1.
+
+    go: textproto_model.go:259:6 -/
+noncomputable def modelIndexByte.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "c"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
+/-- modelTrimOWS is httpguts' trimOWS: x without the spaces and tabs at its ends.
+
+    go: textproto_model.go:269:6 -/
+noncomputable def modelTrimOWS.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc go.string))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "x")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "x")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))) (Val #(W8 9))))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "x") (Var "$r0")))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "x")) (Val #(W64 0)))) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "x")) (Val #(W64 0)))) (Val #(W8 9))))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "x"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "x") (Var "$r0")))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
+
+/-- modelLowerASCII is httpguts' lowerASCII.
+
+    go: textproto_model.go:280:6 -/
+noncomputable def modelLowerASCII.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 65)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 90)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 32))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.byte))) (Var "$res0")))))
+
+/-- modelTokenEqual is httpguts' tokenEqual(t1, t2): t1 and t2 equal, ASCII case-insensitively, t1
+    ASCII. httpguts ranges over t1's runes and fails at the first one not ASCII (utf8.RuneSelf or
+    above, utf8.RuneError for a byte that starts no valid encoding); before it every rune is one
+    byte, at its byte index. This loop over t1's bytes fails at the first byte not ASCII, which
+    starts that rune: the same result.
+
+    go: textproto_model.go:292:6 -/
+noncomputable def modelTokenEqual.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t1"
+  (Lam "t2"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "t2" (App (Val (GoInstruction (GoAlloc go.string))) (Var "t2"))
+  (Let "t1" (App (Val (GoInstruction (GoAlloc go.string))) (Var "t1"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "t1"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "t1")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve modelLowerASCII []))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "t2")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (App (App (Val (GoInstruction (FuncResolve modelLowerASCII []))) (Val #())) (Var "$a0")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 128)))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "b") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "t1"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "t2"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: transfer.go:255:6 -/
 noncomputable def noResponseBodyExpected.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "requestMethod"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -8926,7 +9221,7 @@ noncomputable def noResponseBodyExpected.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: transfer.go:462:26 -/
+/-- go: transfer.go:460:26 -/
 noncomputable def transferReader.protoAtLeast.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "m"
@@ -8947,7 +9242,7 @@ noncomputable def transferReader.protoAtLeast.impl [GooseExts] [GoGlobalContext]
 /-- bodyAllowedForStatus reports whether a given response status code
     permits a body. See RFC 7230, section 3.3.
 
-    go: transfer.go:468:6 -/
+    go: transfer.go:466:6 -/
 noncomputable def bodyAllowedForStatus.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "status"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -8988,7 +9283,7 @@ noncomputable def bodyAllowedForStatus.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- msg is *Request or *Response.
 
-    go: transfer.go:498:6 -/
+    go: transfer.go:496:6 -/
 noncomputable def readTransfer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "msg"
   (Lam "r"
@@ -9316,7 +9611,7 @@ noncomputable def readTransfer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- isUnsupportedTEError checks if the error is of type
     unsupportedTEError. It is usually invoked with a non-nil err.
 
-    go: transfer.go:633:6 -/
+    go: transfer.go:631:6 -/
 noncomputable def isUnsupportedTEError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -9344,7 +9639,7 @@ noncomputable def isUnsupportedTEError.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- parseTransferEncoding sets t.Chunked based on the Transfer-Encoding header.
 
-    go: transfer.go:639:26 -/
+    go: transfer.go:637:26 -/
 noncomputable def transferReader.parseTransferEncoding.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
@@ -9438,7 +9733,7 @@ noncomputable def transferReader.parseTransferEncoding.impl [GooseExts] [GoGloba
     function is not a method, because ultimately it should be shared by
     ReadResponse and ReadRequest.
 
-    go: transfer.go:669:6 -/
+    go: transfer.go:667:6 -/
 noncomputable def fixLength.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "isResponse"
   (Lam "status"
@@ -9659,7 +9954,7 @@ noncomputable def fixLength.impl [GooseExts] [GoGlobalContext] : val :=
     receiving a response and body
     'header' is the request headers.
 
-    go: transfer.go:756:6 -/
+    go: transfer.go:754:6 -/
 noncomputable def shouldClose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "major"
   (Lam "minor"
@@ -9677,7 +9972,7 @@ noncomputable def shouldClose.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "conv"))
   (Let "$a1" (Val #(go!"close"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.vendor.golang_org.x.net.http.httpguts.HeaderValuesContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve modelHeaderValuesContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "hasClose" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9697,7 +9992,7 @@ noncomputable def shouldClose.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "major")) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "minor")) (Val #(W64 0)))) (Val #false)))
   (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasClose")) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "conv"))
   (Let "$a1" (Val #(go!"keep-alive"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.vendor.golang_org.x.net.http.httpguts.HeaderValuesContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve modelHeaderValuesContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))

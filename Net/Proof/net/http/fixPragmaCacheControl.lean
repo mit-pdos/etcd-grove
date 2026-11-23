@@ -24,11 +24,13 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
 
 theorem fixPragmaCacheControl.wp_proof : fixPragmaCacheControl.spec (GF := GF) (hG := hG) := by
-  intro h
-  wp_start as Hm
+  intro h ms
+  wp_start as ⟨Hm, %Hk⟩
   wp_auto
   wp_apply (wp_map_lookup2 (V := GoSlice) go.string (go.SliceType go.string) h _ go!"Pragma" _) $$ Hm
     as Hm
+  rw [Hk]
+  try wp_auto
   iapply HΦ
   iexact Hm
 

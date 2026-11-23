@@ -1069,6 +1069,35 @@ tests kept as differential tests against the real library, a "not modelled" pani
    (`respProto` also allows prefixes of `badReqAns`, `ReadResponse.spec` over them, `DialHTTPPath`'s error on
    it: ledger 2026-11-23, accepted, not applied); then `conn.serve`, `Serve`/`ListenAndServe`, the mux,
    `HandleHTTP`.
+   **The 400 answer and the request (2026-11-23, same branch; ledger 2026-11-23, "net/http's head readers
+   widened").** *The 400 change, applied*: `respProto` also holds of every prefix of `hsErr (W.hsAns a)`
+   (`badReqAns` over HTTP, nothing for raw net/rpc), at any time; the client's readers exclude it past the
+   handshake's answer (`hsErr_excl`; `resp_of_read`, `resp_before_req`, `crSt`, `DialHTTPPath`: the 400's
+   status is not `connectedStatus`, its error); `ReadResponse.spec`'s stream a prefix of `connectAns` or
+   `badReqAns`. *Generalized, one spec per function, the old ones instances*: `modelReadMIMEHeader` over a
+   header block (`hdrBlockOk`, `hdrWire`, `hdrOwn`, `Defs.lean`; the law relative to the reader's position;
+   errors `mimeErr`: the stream's or a `ProtocolError`), httpguts' `ValidHeaderFieldValue` (translated with its
+   body), `shouldClose`/`fixPragmaCacheControl`/`parseTransferEncoding`/`fixLength`/`fixTrailer` over a
+   header map without the names they test, `readTransfer` for a `*Response` or a `*Request` (a conjunction;
+   the request without a body, `reqNoBody`), `ParseHTTPVersion` on a prefix of either version,
+   `badStringError`'s error a pointer; `httpEnv` also holds httpguts' `tokenTable`, `strings`' initialization
+   and `errTooLarge`. *Model change* (MODEL, pending the user's review): `shouldClose` calls the model's
+   `modelHeaderValuesContainsToken` (httpguts' code, `strings.IndexByte` as `modelIndexByte`: Perennial has it
+   as a name only), with `modelHeaderValueContainsToken`, `modelIndexByte`, `modelTrimOWS`, `modelLowerASCII`,
+   `modelTokenEqual` translated and proved; httpguts' `HeaderValuesContainsToken` no longer translated with its
+   body; evidence `TestReadResponse`'s new heads (Go's 400 answer, Connection tokens), `run.sh` passes.
+   *Proved and linked* (`Results.lean`, Lean's three axioms): all of the above, `readRequestLimit` on
+   `connectReq path` (`readRequestLimit.spec`: the stream a prefix of it, finality, `errMsgOk` of its errors;
+   post an error, or `connectReqv req path` and the reader past the request; `textproto.ProtocolError.Error`
+   translated) and `Server.maxHeaderValueCount`.
+   *Left, in order*: `conn.readRequest` needs of `c.bufr`'s stream (`crHead`) what `readRequestLimit.spec`
+   asks: finality and `errMsgOk` of its errors, which `crHeadErr` (`True`) does not give (strengthen it to the
+   failure's record, as `crErr`, and its errors to `io.EOF`'s and the net model's `OpError`s with their
+   `Error()`), a bound on the path's length (`crHead_bound`'s `L`), and the dialer's handshake a `connectReq
+   path` with `reqPath path`; then `time.Now`, `setReadLimit`/`hitReadLimit`, `http1ServerSupportsRequest`,
+   the `Host` checks, `context.WithCancel` (Perennial's spec), the body switch on `NoBody`,
+   `SetReadDeadline` of the zero time, the response's allocation; then `conn.serve` (the 400 answer is now
+   `respProto`'s), `Serve`/`ListenAndServe`, the mux, `HandleHTTP`.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

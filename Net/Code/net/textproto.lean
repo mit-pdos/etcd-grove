@@ -318,6 +318,21 @@ noncomputable def validHeaderFieldByte.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
+/-- go: textproto.go:51:24 -/
+noncomputable def ProtocolError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc ProtocolError.ty))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad ProtocolError.ty))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.net.textproto where
   pkgImportedPkgs := []
 
@@ -509,10 +524,15 @@ class ProtocolError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq ProtocolError.ty ProtocolError.underlying
   method_set : go.MethodSetIs ProtocolError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProtocolError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  Error_unfold : MethodUnfold ProtocolError.ty go!"Error" ProtocolError.Error.impl
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType ProtocolError.ty) go!"Error" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve ProtocolError.ty go!"Error"))) (App (Val (GoInstruction (GoLoad ProtocolError.ty))) (Var "$r"))))
 
 attribute [instance] ProtocolError.TypeAssumptions.underlying
   ProtocolError.TypeAssumptions.method_set
   ProtocolError.TypeAssumptions.ptr_method_set
+  ProtocolError.TypeAssumptions.Error_unfold
+  ProtocolError.TypeAssumptions.ptr_Error_unfold
 
 opaque Conn.nonempty_type : NonemptyType.{0}
 def Conn : Type := Conn.nonempty_type.type

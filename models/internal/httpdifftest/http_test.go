@@ -368,6 +368,13 @@ var responseHeads = []string{
 	"HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nbody to eof",
 	"HTTP/1.1 204 No Content\r\n\r\n",
 	"HTTP/1.1 301 Moved\r\nLocation: /x\r\nConnection: close\r\n\r\n",
+	// net/http's server's answer to a request it cannot read (conn.serve), which net/rpc's
+	// DialHTTPPath may read; and Connection values around modelHeaderValuesContainsToken
+	"HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n400 Bad Request",
+	"HTTP/1.0 200 OK\r\nConnection: Keep-Alive\r\n\r\nrest",
+	"HTTP/1.1 200 OK\r\nConnection: foo, \t CLOSE \t,bar\r\nContent-Length: 0\r\n\r\n",
+	"HTTP/1.0 200 OK\r\nConnection: k\xc3\xa9ep-alive\r\nConnection: x,,keep-alive ,\r\n\r\n",
+	"HTTP/1.1 200 OK\r\nConnection: clos\r\nConnection: closed, Close\r\n\r\n",
 }
 
 // ReadResponse on response heads and their mutations (the request a CONNECT for the first,

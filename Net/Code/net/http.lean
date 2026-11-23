@@ -193,6 +193,12 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   modelParseRequestURI_unfold : FuncUnfold modelParseRequestURI [] modelParseRequestURI.impl
   modelPathBytes_unfold : FuncUnfold modelPathBytes [] modelPathBytes.impl
   modelPathByte_unfold : FuncUnfold modelPathByte [] modelPathByte.impl
+  modelHeaderValuesContainsToken_unfold : FuncUnfold modelHeaderValuesContainsToken [] modelHeaderValuesContainsToken.impl
+  modelHeaderValueContainsToken_unfold : FuncUnfold modelHeaderValueContainsToken [] modelHeaderValueContainsToken.impl
+  modelIndexByte_unfold : FuncUnfold modelIndexByte [] modelIndexByte.impl
+  modelTrimOWS_unfold : FuncUnfold modelTrimOWS [] modelTrimOWS.impl
+  modelLowerASCII_unfold : FuncUnfold modelLowerASCII [] modelLowerASCII.impl
+  modelTokenEqual_unfold : FuncUnfold modelTokenEqual [] modelTokenEqual.impl
   noResponseBodyExpected_unfold : FuncUnfold noResponseBodyExpected [] noResponseBodyExpected.impl
   bodyAllowedForStatus_unfold : FuncUnfold bodyAllowedForStatus [] bodyAllowedForStatus.impl
   readTransfer_unfold : FuncUnfold readTransfer [] readTransfer.impl
@@ -394,6 +400,12 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.modelParseRequestURI_unfold
   Assumptions.modelPathBytes_unfold
   Assumptions.modelPathByte_unfold
+  Assumptions.modelHeaderValuesContainsToken_unfold
+  Assumptions.modelHeaderValueContainsToken_unfold
+  Assumptions.modelIndexByte_unfold
+  Assumptions.modelTrimOWS_unfold
+  Assumptions.modelLowerASCII_unfold
+  Assumptions.modelTokenEqual_unfold
   Assumptions.noResponseBodyExpected_unfold
   Assumptions.bodyAllowedForStatus_unfold
   Assumptions.readTransfer_unfold

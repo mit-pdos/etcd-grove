@@ -548,6 +548,7 @@ theorem resp_step (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
   isplitr
   · imodintro
     iunfold respProto
+    ileft
     iexists γ, Rs ++ [x]
     iframe Hrpc Hels
     isplitr

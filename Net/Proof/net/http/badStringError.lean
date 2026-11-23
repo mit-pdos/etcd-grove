@@ -34,11 +34,18 @@ theorem badStringError.wp_proof (wp_Errorf : fmt.Errorf.spec (GF := GF) (hG := h
   · ipureintro; rfl
   iintro %sl ⟨Hsl, -⟩
   wp_auto
-  wp_apply wp_Errorf _ _ _ _ $$ [$Hsl] as %e -
+  wp_apply wp_Errorf _ _ _ _ $$ [$Hsl] as %e ⟨-, %s, -, Hee⟩
   · iapply fmt.argsOk_of_argsWf
     rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
     exact fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
-  iapply HΦ; itrivial
+  iunfold fmt.errorfErr at Hee
+  icases Hee with ⟨⟨%Hptr, -⟩, -⟩
+  iapply HΦ
+  ipureintro
+  obtain ⟨T, l, hT, hl⟩ := Hptr
+  intro ii T' h hty
+  cases h
+  exact ⟨l, hl⟩
 
 end proof
 

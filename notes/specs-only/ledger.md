@@ -25,6 +25,57 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: net/http's head readers widened for Go's 400 answer and net/rpc's `CONNECT` request: header blocks, header maps, version prefixes; `readRequestLimit.spec`; the model's `modelHeaderValuesContainsToken` (net/http model)
+
+- **Spec.** `Net/Proof/net/rpc/Proto.lean` (`respProto`, new `badReqAns`, `hsErr`), `HttpDefs.lean`
+  (`crSt`, `resp_before_req`), `ClientRead.lean` (`resp_of_read`); `Net/Spec/net/http/`: `ReadResponse`,
+  `modelReadMIMEHeader`, `shouldClose`, `fixPragmaCacheControl`, `transferReader.parseTransferEncoding`,
+  `fixLength`, `fixTrailer`, `readTransfer`, `ParseHTTPVersion`, `badStringError`; new
+  `readRequestLimit`, `Server.maxHeaderValueCount`, the model's `modelHeaderValuesContainsToken` and its
+  helpers, httpguts' `ValidHeaderFieldValue`; `Net/Proof/net/http/Defs.lean` (`httpEnv`, the header
+  vocabulary `HdrLine`/`hdrBlockOk`/`hdrWire`/`hdrOwn`/`hdrVals`/`mimeErr`, `badHdr`), `RequestDefs.lean`
+  (`connectReqVal`, `connectReqv`, `errMsgOk`).
+- **Defect.** (1) The 400 change decided in the entry below (applying it): `ReadResponse` must read Go's
+  `400` head, whose header block has two lines, and its `readTransfer`/`shouldClose` meet a non-empty
+  header with `Connection: close`; the head readers' specs were stated for an empty header only. (2)
+  `readRequestLimit` (net/rpc's `CONNECT path HTTP/1.0` request, phase 5.2's next step) needs
+  `readTransfer` for a `*Request` (stated for a `*Response` only), `ParseHTTPVersion` on a version cut by
+  an error (stated for the two whole versions), `badStringError`'s error comparable with `io.EOF` (the
+  deferred rewrite), and `Error()` on the header reader's errors. (3) `shouldClose` calls httpguts'
+  `HeaderValuesContainsToken`, whose `headerValueContainsToken` calls `strings.IndexByte`, which
+  Perennial translates as a name only: no proof of `Connection: close` over Go's code.
+- **Evidence.** (1) Go's `conn.serve` (`fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request\r\n…")`);
+  `internal/httpdifftest`'s `TestReadResponse` (the exact answer added to its heads: status
+  `400 Bad Request`, `close=true`, the body read to the end). (2) `request.go` `readRequestLimit` (the
+  `defer` comparing `err == io.EOF`; `err.Error() == "message too large"`). (3)
+  `Perennial/Code/strings.lean` (`IndexByte` a name).
+- **Change.** (1) `respProto W a cn bs` also holds of every prefix of `hsErr (W.hsAns a)` (Go's 400 answer
+  over HTTP, nothing for raw net/rpc), at any time (Go answers before the handshake is whole); the
+  dialer's readers exclude it once past the handshake's answer (`hsErr_excl`); `crSt` keeps the dialer's
+  bytes a prefix of `connectAns` or `badReqAns`; `ReadResponse.spec`'s law the same, its post unchanged
+  (the 400 answer's status is not `connectedStatus`: `DialHTTPPath` returns its error).
+  `modelReadMIMEHeader.spec` over a header block `hb` (`hdrBlockOk`: distinct canonical names, printable
+  values without space at their ends) of at most `maxHeaders` lines, the stream's bytes past the reader a
+  prefix of `hdrWire hb eol ++ rest`, finality; post `hdrOwn m hb` or an error (`mimeErr`: the stream's
+  or a `ProtocolError`); the empty block is the old instance. `shouldClose`, `fixPragmaCacheControl`,
+  `parseTransferEncoding`, `fixLength`, `fixTrailer`, `readTransfer` over a header map `ms` without the
+  names they test (`"Connection"`'s values owned, `hdrVals`); `shouldClose` may delete `"Connection"`.
+  (2) `readTransfer.spec` is a conjunction, the response case and the request case (`reqNoBody`:
+  `NoBody`, `ContentLength` 0, `Trailer` nil); `fixLength.spec` for `isResp` either way;
+  `ParseHTTPVersion.spec` on a prefix of either version (`ok` iff whole); `badStringError.spec`'s error
+  `io.ptrTyped`; `httpEnv` also holds httpguts' `tokenTable` (moved here), `strings`' initialization and
+  `errTooLarge`'s value (premises, as before, until net/http's initialization is proved). New
+  `readRequestLimit.spec` (the stream a prefix of `connectReq path`, finality, `errMsgOk` of its errors;
+  post an error, or `connectReqv req path` and the reader past the request) and
+  `Server.maxHeaderValueCount.spec`. (3) MODEL change (for the user's review): `shouldClose` calls the
+  model's `modelHeaderValuesContainsToken` (`textproto_model.go`: httpguts' code with `strings.IndexByte`
+  as `modelIndexByte`, `tokenEqual`'s range over runes as one over bytes, the same result);
+  `TestReadResponse` gained Connection-token heads (case, whitespace, commas, a non-ASCII token, several
+  lines); `run.sh` passes. httpguts' `HeaderValuesContainsToken` is no longer called by the model.
+- **Decision.** (1) accepted by the user (the entry below); applied with (2) on branch `models-rpc-http`
+  (2026-11-23): no trust added, every result still proved. (3) pending the user's review (a
+  trusted-model change).
+
 ## 2026-11-23: `hijackOk` gives the server back a resource; `respProto` does not allow Go's 400 answer to a cut handshake (net/http's server up to the hijack)
 
 - **Spec.** `Net/Proof/net/http/ServerDefs.lean` (`hijackOk`), `Net/Spec/net/rpc/Server__ServeHTTP.lean`
@@ -59,8 +110,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `connected`). `conn.serve`'s spec states the premise (the acceptor's protocol allows the 400 answer) until
   then.
 - **Decision.** (1) applied (branch `models-rpc-http`, 2026-11-23). (2) accepted by the user (2026-11-23: `respProto`
-  also allows prefixes of Go's 400 answer, `ReadResponse` accepts that head, `DialHTTPPath` errors on it); not yet
-  applied (`notes/dsverify-net-port-plan.md`, phase 5.2, "The request line and URI", *Left*).
+  also allows prefixes of Go's 400 answer, `ReadResponse` accepts that head, `DialHTTPPath` errors on it); applied
+  2026-11-23 (branch `models-rpc-http`; the entry above).
 
 ## 2026-11-23: `http.ReadResponse.spec` over a reader that makes progress; `httpEnv` widened; `connectReader.Read.spec` makes progress; `ReadByte.specNE`; the model's `modelCutByte`/`modelTrimLeftByte` and `connReader.failed` (net/http model, `ReadResponse`'s proof)
 

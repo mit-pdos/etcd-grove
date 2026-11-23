@@ -78,47 +78,45 @@ noncomputable def isASCII [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def PunycodeHostPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"vendor/golang.org/x/net/http/httpguts.PunycodeHostPort"
 
-/-- HeaderValuesContainsToken reports whether any string in values
-    contains the provided token, ASCII case-insensitively.
+/-- isLWS reports whether b is linear white space, according
+    to http://www.w3.org/Protocols/rfc2616/rfc2616-sec2.html#sec2.2
 
-    go: httplex.go:101:6 -/
-noncomputable def HeaderValuesContainsToken.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "values"
-  (Lam "token"
+    	LWS            = [CRLF] 1*( SP | HT )
+
+    go: httplex.go:173:6 -/
+noncomputable def isLWS.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
-  (Let "values" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "values"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #false)
+  (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "b"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 9)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "values"))
-  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
-  (App (App (App (Val (GoInstruction (FuncResolve headerValueContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "$r0" (Val #true)
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- isCTL reports whether b is a control byte, according
+    to http://www.w3.org/Protocols/rfc2616/rfc2616-sec2.html#sec2.2
+
+    	CTL            = <any US-ASCII control character
+    	                 (octets 0 - 31) and DEL (127)>
+
+    go: httplex.go:180:6 -/
+noncomputable def isCTL.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "b"))
+  (let del := #(127 : Int);
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val del)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value"))))))))))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- ValidHeaderFieldName reports whether v is a valid HTTP/1.x header name.
     HTTP/2 imposes the additional restriction that uppercase ASCII
@@ -176,6 +174,87 @@ noncomputable def ValidHeaderFieldName.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- ValidHeaderFieldValue reports whether v is a valid "field-value" according to
+    http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2 :
+
+    	message-header = field-name ":" [ field-value ]
+    	field-value    = *( field-content | LWS )
+    	field-content  = <the OCTETs making up the field-value
+    	                 and consisting of either *TEXT or combinations
+    	                 of token, separators, and quoted-string>
+
+    http://www.w3.org/Protocols/rfc2616/rfc2616-sec2.html#sec2.2 :
+
+    	TEXT           = <any OCTET except CTLs,
+    	                  but including LWS>
+    	LWS            = [CRLF] 1*( SP | HT )
+    	CTL            = <any US-ASCII control character
+    	                 (octets 0 - 31) and DEL (127)>
+
+    RFC 7230 says:
+
+    	field-value    = *( field-content / obs-fold )
+    	obj-fold       =  N/A to http2, and deprecated
+    	field-content  = field-vchar [ 1*( SP / HTAB ) field-vchar ]
+    	field-vchar    = VCHAR / obs-text
+    	obs-text       = %x80-FF
+    	VCHAR          = "any visible [USASCII] character"
+
+    http2 further says: "Similarly, HTTP/2 allows header field values
+    that are not valid. While most of the values that can be encoded
+    will not alter header field parsing, carriage return (CR, ASCII
+    0xd), line feed (LF, ASCII 0xa), and the zero character (NUL, ASCII
+    0x0) might be exploited by an attacker if they are translated
+    verbatim. Any request or response that contains a character not
+    permitted in a header field value MUST be treated as malformed
+    (Section 8.1.2.6). Valid characters are defined by the
+    field-content ABNF rule in Section 3.2 of [RFC7230]."
+
+    This function does not (yet?) properly handle the rejection of
+    strings that begin or end with SP or HTAB.
+
+    go: httplex.go:303:6 -/
+noncomputable def ValidHeaderFieldValue.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "v"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (Var "v"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "v")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve isCTL []))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve isLWS []))) (Val #())) (Var "$a0")))) (Val #false))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "b") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.vendor.golang_org.x.net.http.httpguts where
@@ -278,11 +357,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc isTokenTable (go.GoType.ArrayType 256 go.bool))) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  HeaderValuesContainsToken_unfold : FuncUnfold HeaderValuesContainsToken [] HeaderValuesContainsToken.impl
+  isLWS_unfold : FuncUnfold isLWS [] isLWS.impl
+  isCTL_unfold : FuncUnfold isCTL [] isCTL.impl
   ValidHeaderFieldName_unfold : FuncUnfold ValidHeaderFieldName [] ValidHeaderFieldName.impl
+  ValidHeaderFieldValue_unfold : FuncUnfold ValidHeaderFieldValue [] ValidHeaderFieldValue.impl
 
-attribute [instance] Assumptions.HeaderValuesContainsToken_unfold
+attribute [instance] Assumptions.isLWS_unfold
+  Assumptions.isCTL_unfold
   Assumptions.ValidHeaderFieldName_unfold
+  Assumptions.ValidHeaderFieldValue_unfold
 
 end vendor.golang_org.x.net.http.httpguts
 

@@ -2,7 +2,8 @@
 `cr.Read(p)`, the model's `connectReader` (`models/net/rpc/client.go`) over the dialer's end of a
 connection to `a` in `W` before any request (`crAt`, `crSt`, `HttpDefs.lean`), the end's reader
 at `r`: `p`'s first bytes `ys` (`sint.Z n = len(ys)`, at most `len(p)`) are the connection's next
-bytes, `cr` then at `r ++ ys`, still a prefix of the answer `connectAns`; and no error, or an error
+bytes, `cr` then at `r ++ ys`, still a prefix of the answer `connectAns` or of net/http's `400`
+answer `badReqAns`; and no error, or an error
 (`crErr`: `cr` failed at `r ++ ys`, which it stays at); a byte or an error when `p` is not empty.
 As `io.readerStreamNE`'s triple, for `DialHTTPPath`'s `bufio.Reader`. Proved in `Net/Proof/net/rpc/connectReader__Read.lean`.
 -/

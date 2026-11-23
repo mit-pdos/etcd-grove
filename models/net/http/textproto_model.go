@@ -16,6 +16,10 @@
 //     Go's result computed here on a path of the bytes modelPathByte accepts, Go's function on
 //     every other URI (Perennial translates strings.Cut, ToLower and Index, which net/url's parse
 //     calls, as names only).
+//   - httpguts.HeaderValuesContainsToken, which shouldClose calls on a head's Connection values, is
+//     modelHeaderValuesContainsToken: the same code with strings.IndexByte (which Perennial
+//     translates as a name only) as modelIndexByte, and tokenEqual's range over a string's runes as
+//     one over its bytes.
 //   - Chunked message bodies (transfer.go: a request or response with Transfer-Encoding chunked)
 //     are not modelled: reading one panics. Content-Length bodies, bodies to the end of the
 //     connection, and no body are Go's code.
@@ -223,4 +227,80 @@ func modelPathByte(c byte) bool {
 	}
 	return c == '-' || c == '_' || c == '.' || c == '~' || c == '$' || c == '&' || c == '+' ||
 		c == ',' || c == '/' || c == ':' || c == ';' || c == '=' || c == '@'
+}
+
+// modelHeaderValuesContainsToken is httpguts.HeaderValuesContainsToken(values, token) (Go 1.27.3's
+// vendored golang.org/x/net/http/httpguts): whether a comma-separated element of one of values,
+// without the optional whitespace around it, is token, ASCII case-insensitively. httpguts' code,
+// but for strings.IndexByte(v, ','), which Perennial translates as a name only, as modelIndexByte,
+// and tokenEqual's loop (modelTokenEqual). MODEL: shouldClose calls it in place of httpguts'.
+func modelHeaderValuesContainsToken(values []string, token string) bool {
+	for _, v := range values {
+		if modelHeaderValueContainsToken(v, token) {
+			return true
+		}
+	}
+	return false
+}
+
+// modelHeaderValueContainsToken is httpguts' headerValueContainsToken (strings.IndexByte as
+// modelIndexByte).
+func modelHeaderValueContainsToken(v string, token string) bool {
+	for comma := modelIndexByte(v, ','); comma != -1; comma = modelIndexByte(v, ',') {
+		if modelTokenEqual(modelTrimOWS(v[:comma]), token) {
+			return true
+		}
+		v = v[comma+1:]
+	}
+	return modelTokenEqual(modelTrimOWS(v), token)
+}
+
+// modelIndexByte is strings.IndexByte(s, c): the index of the first c in s, or -1.
+func modelIndexByte(s string, c byte) int {
+	for i := 0; i < len(s); i++ {
+		if s[i] == c {
+			return i
+		}
+	}
+	return -1
+}
+
+// modelTrimOWS is httpguts' trimOWS: x without the spaces and tabs at its ends.
+func modelTrimOWS(x string) string {
+	for len(x) > 0 && (x[0] == ' ' || x[0] == '\t') {
+		x = x[1:]
+	}
+	for len(x) > 0 && (x[len(x)-1] == ' ' || x[len(x)-1] == '\t') {
+		x = x[:len(x)-1]
+	}
+	return x
+}
+
+// modelLowerASCII is httpguts' lowerASCII.
+func modelLowerASCII(b byte) byte {
+	if 'A' <= b && b <= 'Z' {
+		return b + ('a' - 'A')
+	}
+	return b
+}
+
+// modelTokenEqual is httpguts' tokenEqual(t1, t2): t1 and t2 equal, ASCII case-insensitively, t1
+// ASCII. httpguts ranges over t1's runes and fails at the first one not ASCII (utf8.RuneSelf or
+// above, utf8.RuneError for a byte that starts no valid encoding); before it every rune is one
+// byte, at its byte index. This loop over t1's bytes fails at the first byte not ASCII, which
+// starts that rune: the same result.
+func modelTokenEqual(t1, t2 string) bool {
+	if len(t1) != len(t2) {
+		return false
+	}
+	for i := 0; i < len(t1); i++ {
+		b := t1[i]
+		if b >= 0x80 {
+			return false
+		}
+		if modelLowerASCII(b) != modelLowerASCII(t2[i]) {
+			return false
+		}
+	}
+	return true
 }

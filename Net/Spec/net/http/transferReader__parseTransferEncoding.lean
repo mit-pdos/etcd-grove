@@ -1,6 +1,6 @@
 /-
-`t.parseTransferEncoding()` on a `transferReader` whose header is empty (no `Transfer-Encoding`):
-`nil`, nothing changed. Proved in `Net/Proof/net/http/transferReader__parseTransferEncoding.lean`.
+`t.parseTransferEncoding()` on a `transferReader` whose header map has no `"Transfer-Encoding"`: `nil`,
+nothing changed. Proved in `Net/Proof/net/http/transferReader__parseTransferEncoding.lean`.
 -/
 module
 
@@ -24,11 +24,11 @@ variable [package_sem' : net.http.Assumptions]
 
 /-- See the file header. -/
 abbrev transferReader.parseTransferEncoding.spec : Prop :=
-  ∀ (t : Loc) (tr : net.http.transferReader),
-  {{ (t ↦ tr ∗ tr.Header' ↦$ (∅ : GMap GoString GoSlice) : IProp GF) }}
+  ∀ (t : Loc) (tr : net.http.transferReader) (ms : GMap GoString GoSlice),
+  {{ (t ↦ tr ∗ tr.Header' ↦$ ms ∗ ⌜ms !! go!"Transfer-Encoding" = none⌝ : IProp GF) }}
     (App (Val (t @!! go.GoType.PointerType net.http.transferReader.ty @!! go!"parseTransferEncoding"))
       (Val #()))
-  {{ RET #interface.nil; t ↦ tr ∗ tr.Header' ↦$ (∅ : GMap GoString GoSlice) }}
+  {{ RET #interface.nil; t ↦ tr ∗ tr.Header' ↦$ ms }}
 
 end spec
 

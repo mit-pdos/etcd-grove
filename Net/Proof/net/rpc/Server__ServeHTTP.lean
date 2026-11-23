@@ -41,6 +41,7 @@ theorem hsAns_proto (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNam
   iintro ⟨#Hrpc, #Hsl⟩
   imodintro
   iunfold respProto
+  ileft
   iexists γ, []
   iframe Hrpc Hsl
   isplitr

@@ -1,5 +1,5 @@
 /-
-`fixPragmaCacheControl(header)` on an empty header (no `Pragma`): nothing changed. Proved in
+`fixPragmaCacheControl(header)` on a header map without `"Pragma"`: nothing changed. Proved in
 `Net/Proof/net/http/fixPragmaCacheControl.lean`.
 -/
 module
@@ -24,10 +24,10 @@ variable [package_sem' : net.http.Assumptions]
 
 /-- See the file header. -/
 abbrev fixPragmaCacheControl.spec : Prop :=
-  ∀ (h : Loc),
-  {{ (h ↦$ (∅ : GMap GoString GoSlice) : IProp GF) }}
+  ∀ (h : Loc) (ms : GMap GoString GoSlice),
+  {{ (h ↦$ ms ∗ ⌜ms !! go!"Pragma" = none⌝ : IProp GF) }}
     (App (Val (@! net.http.fixPragmaCacheControl)) (Val #h))
-  {{ RET #(); h ↦$ (∅ : GMap GoString GoSlice) }}
+  {{ RET #(); h ↦$ ms }}
 
 end spec
 

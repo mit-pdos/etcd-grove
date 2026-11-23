@@ -26,11 +26,12 @@ variable [package_sem' : net.http.Assumptions]
 
 theorem transferReader.parseTransferEncoding.wp_proof :
     transferReader.parseTransferEncoding.spec (GF := GF) (hG := hG) := by
-  intro t tr
-  wp_start as ⟨Ht, Hm⟩
+  intro t tr ms
+  wp_start as ⟨Ht, Hm, %Hk⟩
   try wp_auto
   wp_apply (wp_map_lookup2 (V := GoSlice) go.string (go.SliceType go.string) tr.Header' _
     go!"Transfer-Encoding" _) $$ Hm as Hm
+  rw [Hk]
   try wp_auto
   iapply HΦ
   iframe

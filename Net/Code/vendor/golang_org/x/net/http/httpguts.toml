@@ -1,8 +1,10 @@
 # Project models-net (etc/goose.py): Go 1.27.3's vendored `golang.org/x/net/http/httpguts`, names
 # only (the net/http model's server calls `ValidHeaderFieldName`, `ValidHeaderFieldValue`,
 # `ValidHostHeader`).
-# With its body (2026-11-23): `HeaderValuesContainsToken`, which net/http's `shouldClose` runs, and
-# `ValidHeaderFieldName` with its table `isTokenTable` (net/http's `isToken`, which `validMethod` runs).
-translate = ["!*", "HeaderValuesContainsToken", "ValidHeaderFieldName", "isTokenTable"]
+# With its body (2026-11-23): `ValidHeaderFieldName` with its table `isTokenTable` (net/http's
+# `isToken`, which `validMethod` runs); `ValidHeaderFieldValue` with `isCTL`, `isLWS` (the model's
+# `modelReadMIMEHeader` on a header line). (`HeaderValuesContainsToken`, translated with its body until
+# 2026-11-23, calls `strings.IndexByte`, a name only in Perennial: `shouldClose` calls the model's copy.)
+translate = ["!*", "ValidHeaderFieldName", "isTokenTable", "ValidHeaderFieldValue", "isCTL", "isLWS"]
 imports = ["!*"]
 translate_types = true
