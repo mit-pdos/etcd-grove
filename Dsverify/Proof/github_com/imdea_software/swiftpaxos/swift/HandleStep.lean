@@ -77,7 +77,7 @@ theorem swift.localOk_handled (N r : Nat) (ld : Bool) (v v' : swift.RunV) (M : O
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- The base of the run loop's `cballot` from its last `MSync`. -/
 theorem swift.syncObj_base (γ : sp.Names) (N : Nat) (ls : Loc) (b : Nat)

@@ -33,7 +33,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- **`proposeCtx` without its take law** (round 37; table rev 8 G-ctx, plan R8b.1 (3)): the base
@@ -101,7 +101,7 @@ end specs
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- `phaseWhy` reads only `phase` and `D` (round 33). -/

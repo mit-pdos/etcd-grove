@@ -94,7 +94,7 @@ theorem sp.recoverSync_seq (N : Nat) (reps : List (Nat × sp.Report)) :
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- **A ballot's `MSync` against its sequence** (`sync_ok`, `sp.recoverSync_seq`). -/

@@ -61,7 +61,7 @@ theorem cidOf_pnode (c : Nat) (hc : c < 6) : (cidOf c).toNat - 1 = c := by
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 -- the rpc codec (decision D6, Proof/swiftnet/KitLike.lean): the link uses `kitCodecC`
 variable [C : net.rpc.RpcCodec netDistGF]
 

@@ -98,7 +98,7 @@ abbrev swift.DC.sn (c : swift.DC) : swift.StN := ⟨c.γxm, c.γout, c.γcl, c.s
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **A record's base** (round 35, table rev 7b §3.12, G-hrec): the record with its owner-kind
@@ -516,7 +516,7 @@ end defs
 
 section defsOcf
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **The stored closures once the condition holds** (round 29, G14): nothing stored at the false
@@ -757,7 +757,7 @@ end specsOcf
 
 section shLemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- `shOwn`'s `status` and `FQ` shares out, and back (round 24). -/
@@ -1238,7 +1238,7 @@ end shLemmas
 
 section capLemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **`rowPhaseOk` after the handler's `COMMIT`** (:736): every clause holds at phase 3. -/

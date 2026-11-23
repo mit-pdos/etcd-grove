@@ -49,7 +49,7 @@ end init
 
 section init2
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 /-- The test package's initialization at `pkgStates` (sorry-free): ServersLink's `init`. -/

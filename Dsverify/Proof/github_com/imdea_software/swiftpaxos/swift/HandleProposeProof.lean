@@ -309,7 +309,7 @@ macro "refoldHP1" : tactic => `(tactic| (
 
 section ctx
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- What `handlePropose` reads of the replica besides `descCtx` (persistent; the run loop's

@@ -97,7 +97,7 @@ def swift.LView.newBal (w : swift.LView) (b' : Nat) : swift.LView :=
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- Row tokens allocated for the fresh commands `o` of ballot `b`. -/
 theorem swift.rowToks_alloc (γo : GName) (b : Nat) (rv : swift.RowV) (o : List sp.CmdId)

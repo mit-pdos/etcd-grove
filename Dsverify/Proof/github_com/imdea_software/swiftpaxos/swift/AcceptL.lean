@@ -79,7 +79,7 @@ end specs
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- The accepted map's epoch is the pin's: `delivInv` links `γa` to the record's epoch, which

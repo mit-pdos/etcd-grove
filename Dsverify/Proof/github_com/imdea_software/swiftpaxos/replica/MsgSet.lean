@@ -37,7 +37,7 @@ namespace replica.mset
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [π : NetProtoGS]
 variable [sem : go.Semantics]
 
 /-- The leader message: none, or one with `PL`. -/
@@ -170,7 +170,7 @@ end defs
 
 section specs0
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [π : NetProtoGS]
 variable [sem : go.Semantics]
 
 theorem ownD_ne_null (ms : Loc) (q : GoInterface) (sz : Nat) (mem : w32 → Prop)

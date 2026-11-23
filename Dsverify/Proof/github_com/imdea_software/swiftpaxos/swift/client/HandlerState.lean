@@ -51,7 +51,7 @@ structure HC where
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- The handler's context (persistent): the protocol's invariant and configuration, the reply
 channel's protocol, the fields the handler only reads, the package-level variables it reads
@@ -182,7 +182,7 @@ end defs
 
 section laws
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A decided command's sequence number is non-negative: the law `sp.doneRes_seq_nonneg`
 (change log C8, HUB-REQUEST 9). The handler needs it to mint the delivery token of `x.seq` and

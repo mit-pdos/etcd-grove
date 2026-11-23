@@ -170,7 +170,7 @@ end sp
 
 section dstep
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- **The replica's own pre-acceptance of `y` in its epoch `b` is `y`'s row token's**. -/

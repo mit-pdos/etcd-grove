@@ -26,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 theorem swift.wp_slice_append_nn {st t : go.GoType} [st ↓u go.SliceType t] {V : Type} [ZeroVal V]
     [TypedPointsto (GF := netDistGF) V]

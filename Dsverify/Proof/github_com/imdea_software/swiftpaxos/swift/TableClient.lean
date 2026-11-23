@@ -102,7 +102,7 @@ theorem nextOk_reply (d : List w8) (h : sp.nextOk (W8 15) d) : replyNext d := by
   cases m <;> simp [sp.Msg.isPeer, sp.Msg.code, sp.rpcTable] at hp hc
 
 section law
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- The stream law at any bytes `B` read: whatever `B` extends `R` with satisfies `L`. -/
 theorem streamLaw_at (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
@@ -126,7 +126,7 @@ end law
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- `(*MFastAckClient).Unmarshal(br)` on a peer reader whose next bytes are of an
 `MFastAckClient` (type 10). -/
@@ -163,7 +163,7 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 

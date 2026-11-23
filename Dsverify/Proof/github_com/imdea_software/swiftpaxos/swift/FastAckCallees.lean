@@ -97,7 +97,7 @@ theorem swift.nodup_w32_len (l : List w32) (h : l.Nodup) : l.length ≤ 2 ^ 32 :
 
 section dstep
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- `preacc_notSelf` from a descriptor's tokens. -/

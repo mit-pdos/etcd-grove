@@ -74,7 +74,7 @@ theorem sp.recoverSync_nodup (N : Nat) (reps : List (Nat × sp.Report)) :
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- **A ballot's `MSync`**: its ballot is positive and its ids are distinct (`sync_ok`). -/
@@ -139,7 +139,7 @@ end ghost
 
 section conv
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [examples.swiftnet.Assumptions]
 
 /-- The Go map of a listing (first entry of a key wins, as `map.lookupL`). -/

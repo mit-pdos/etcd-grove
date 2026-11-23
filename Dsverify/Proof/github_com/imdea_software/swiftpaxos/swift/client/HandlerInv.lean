@@ -43,7 +43,7 @@ namespace swift.handler
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A command id as the protocol's. -/
 def cmdOf (c : swift.CommandId) : sp.CmdId := ⟨c.ClientId', c.SeqNum'⟩
@@ -137,7 +137,7 @@ end defs
 
 section cert
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A leader reply's checksum is not empty (it ends with the dependency hash). Unfolds
 `sp.msgOk`, `sp.checksum` (notes: a missing law `msgOk_reply_cs`). -/

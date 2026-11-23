@@ -29,7 +29,7 @@ namespace cnode
 
 section laws
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A connected client's view of the configuration (an unfold of `client.connected`). -/
 theorem connected_cfg (b : Loc) (γ : sp.Names) (γc γm : GName) (cid : w32) (N : Nat) :

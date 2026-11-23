@@ -67,7 +67,7 @@ end defs
 
 section fresh
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 open Classical in
 /-- What the client package's first initialization hands to a node's boot thread: on a replica

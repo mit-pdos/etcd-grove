@@ -26,7 +26,7 @@ namespace swift.handler
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- The fast path's certificate: the leader's `MReply` of ballot `b` (checksum `csL`) and
 `MFastAckClient`s of `b` of `N / 2` distinct non-leader replicas with checksums `SHashesEq`

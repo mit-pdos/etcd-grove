@@ -210,7 +210,7 @@ end plumbing
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- The stopped epoch's token is at the run loop's view's `(ballot, cballot)` (both agree with
 the node state in `nodeInvD`). -/
@@ -676,12 +676,11 @@ theorem swift.Replica.handleNewLeader.wp_proofN (rp : Loc) (γ : sp.Names) (γc 
     ipureintro; exact id
   rename_i Hge
   -- 2. `log.Println("Recovering... with the ballot", msg.Ballot)`
-  have tStr : ∀ x : GoString, {{ (True : IProp netDistGF) }}
-      (App (Val (@! log.touch)) (Val #(interface.mkOk go.string #x))) {{ RET #(); True }} :=
-    fun x => swift.wp_touch_noFmt _ (fun ii h => by cases h; exact log.noMethods_no_fmt _)
-  have tI32 : ∀ x : w32, {{ (True : IProp netDistGF) }}
-      (App (Val (@! log.touch)) (Val #(interface.mkOk go.int32 #x))) {{ RET #(); True }} :=
-    fun x => swift.wp_touch_noFmt _ (fun ii h => by cases h; exact log.noMethods_no_fmt _)
+  have tStr : ∀ x : GoString, swift.printable (interface.mkOk go.string #x) :=
+    fun x => swift.printable_of_argsWf _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
+  have tI32 : ∀ x : w32, swift.printable (interface.mkOk go.int32 #x) :=
+    fun x => swift.printable_of_argsWf _
+      (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int32 x) fmt.ArgsWf.nil)
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType [])))))
     (Val (LiteralValueV _)))
   iapply wp_slice_literal (V := GoInterface) (t := go.GoType.InterfaceType []) [_, _]

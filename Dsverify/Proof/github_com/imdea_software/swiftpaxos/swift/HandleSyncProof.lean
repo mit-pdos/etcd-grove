@@ -1275,12 +1275,11 @@ theorem swift.Replica.handleSync.wp_proofR (EpR EpH : GMap swift.CommandId Loc �
     ipureintro; exact ⟨by word, by word⟩
   try wp_auto
   -- the four `log.Println`s (`swift.wp_PrintlnT`: each argument's `touch`)
-  have tStr : ∀ x : GoString, {{ (True : IProp netDistGF) }}
-      (App (Val (@! log.touch)) (Val #(interface.mkOk go.string #x))) {{ RET #(); True }} :=
-    fun x => swift.wp_touch_noFmt _ (fun ii h => by cases h; exact log.noMethods_no_fmt _)
-  have tI32 : ∀ x : w32, {{ (True : IProp netDistGF) }}
-      (App (Val (@! log.touch)) (Val #(interface.mkOk go.int32 #x))) {{ RET #(); True }} :=
-    fun x => swift.wp_touch_noFmt _ (fun ii h => by cases h; exact log.noMethods_no_fmt _)
+  have tStr : ∀ x : GoString, swift.printable (interface.mkOk go.string #x) :=
+    fun x => swift.printable_of_argsWf _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil)
+  have tI32 : ∀ x : w32, swift.printable (interface.mkOk go.int32 #x) :=
+    fun x => swift.printable_of_argsWf _
+      (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int32 x) fmt.ArgsWf.nil)
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.InterfaceType [])))))
     (Val (LiteralValueV _)))
   iapply wp_slice_literal (V := GoInterface) (t := go.GoType.InterfaceType []) [_]
@@ -1340,7 +1339,7 @@ theorem swift.Replica.handleSync.wp_proofR (EpR EpH : GMap swift.CommandId Loc �
     intro x hx; simp only [List.mem_cons, List.mem_nil_iff, or_false] at hx
     rcases hx with rfl | rfl
     · exact tStr _
-    · exact swift.wp_touch_noFmt _ (fun ii h => by cases h; exact log.noMethods_no_fmt _))) $$ [$Hlsl4] as -
+    · exact swift.printable_of_argsWf _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int64 _) fmt.ArgsWf.nil))) $$ [$Hlsl4] as -
   try wp_auto
   -- the post: normal operation at `b'` (`sync_runSt`), the new epoch with its descriptors
   ihave Hn1 : (slice.nil ↦* ([] : List swift.CommandId) : IProp netDistGF) $$ []

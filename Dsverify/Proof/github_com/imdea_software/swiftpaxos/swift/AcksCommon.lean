@@ -57,7 +57,7 @@ theorem swift.rid_ne_leader (me bw : w32) (N b : Nat) (hN : 1 ≤ N ∧ N ≤ 7)
 
 section c16
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- **C16, the producer side**: a light slow ack a replica sends (`fastAckFromLeader`: after its
 acceptance of `x` in the ack's ballot, only when `r.leader() != r.Id`, the ballot being the
@@ -168,7 +168,7 @@ macro "fastAdd" : tactic => `(tactic| (
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- The ballot's read share and the sets' fields out of the handler's lent state, and back. -/
@@ -357,7 +357,7 @@ end lemmas
 
 section hdLemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **The slow set's handler spec at the frame `Dc`** (round 33, G-cap): from `descOwn`'s

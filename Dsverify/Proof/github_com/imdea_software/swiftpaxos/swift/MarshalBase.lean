@@ -90,7 +90,7 @@ theorem set4' {A : Type} (l : List A) (hl : l.length = 4) (a b c d : A) :
 
 section helpers
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A prefix of an allowed stream is allowed. -/
 theorem Qpre (Q : List w8 → IProp netDistGF) (A C : List w8) (B : List w8) (h : C = A ++ B) :
@@ -242,7 +242,7 @@ macro "mstoreb" : tactic => `(tactic| (
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 set_option goose.wp.extras true

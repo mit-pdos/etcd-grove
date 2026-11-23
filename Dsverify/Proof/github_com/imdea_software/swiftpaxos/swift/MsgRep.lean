@@ -60,7 +60,7 @@ structure swift.CsNames where
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- An `MNewLeaderAckN` entry's command and dependencies (owned). -/
 def swift.repEntryOwn (cm : state.Command) (sd : swift.SDep) (e : sp.RepEntry) :

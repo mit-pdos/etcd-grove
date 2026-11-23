@@ -35,7 +35,7 @@ theorem swift.LView.tookSync_locAt (w : swift.LView) (b' : Nat) (o : List sp.Cmd
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 end lemmas
 

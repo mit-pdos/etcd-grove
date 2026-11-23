@@ -70,7 +70,7 @@ macro "ghostAcc" : tactic => `(tactic| (
 
 section repPreAdopt
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- `repPre` when a follower adopts the leader's dependencies (round 47, `fastAckFromLeader`'s

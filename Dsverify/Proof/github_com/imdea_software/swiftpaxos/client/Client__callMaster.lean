@@ -29,7 +29,7 @@ namespace client.cn
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [examples.swiftnet.Assumptions]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [examples.swiftnet.Assumptions] [π : NetProtoGS]
 
 /-- The master's answer to `GetReplicaList`. -/
 def rlPhi (γc γm : GName) : List w8 → GoString → IProp netDistGF := fun rep _ =>

@@ -122,7 +122,7 @@ end sp
 
 section dstep
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- **An acceptance from `y`'s descriptor by the leader's pre-acceptance**

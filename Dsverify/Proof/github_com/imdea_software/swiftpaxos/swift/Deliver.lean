@@ -90,7 +90,7 @@ def swift.phCOMMIT : w64 := W64 3
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 
@@ -626,7 +626,7 @@ end specs
 
 section rdr
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- **`delivered`'s reader at the replica's value as an owned reader** (round 42, table §3R11 T8,
 gap 11-2): the persistent points-to at `dm` and a reader bundle at `dm`. -/

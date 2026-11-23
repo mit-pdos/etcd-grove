@@ -62,7 +62,7 @@ structure swift.EpV where
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A share `q` of the fast quorum `FQ` (round 23, D18 G2: an epoch field, `handleSync` writes
 it; a descriptor's `descCore` holds a share for its life): the value with its quorum and the
@@ -103,7 +103,7 @@ end defs
 
 section laws
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- `epochShare` is fractional. -/
 theorem swift.epochShare_split (n : swift.EpN) (v : swift.EpV) (q1 q2 : Qp) :

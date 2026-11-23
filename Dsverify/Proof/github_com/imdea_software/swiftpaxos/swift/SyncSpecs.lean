@@ -45,7 +45,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- The run loop's own class-L/E fields `handleSync` writes besides `runSt`'s (round 11:
 `repchan` at half, the other half the epoch's; SWB-11: `proposeDeps`, reset to an empty map).

@@ -92,7 +92,7 @@ theorem swift.leadUpdOk_of (hd : sp.Seq) (K : sp.CmdId → Prop)
 
 section mono
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- `hlogOwn` is monotone in `K` and `Λ` (change log C22). -/
@@ -167,7 +167,7 @@ end specs
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 instance swift.ldSound_persistent (γ : sp.Names) (L b : Nat)

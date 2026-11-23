@@ -124,7 +124,7 @@ theorem swift.localOk_localOkS {N r : Nat} {ld : Bool} {v : swift.RunV} {M : Opt
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- `runSt` with `localOkS` (see the file header). -/
@@ -163,7 +163,7 @@ end defs
 
 section compose
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- The run loop's values after `handleSync`. -/
@@ -296,7 +296,7 @@ end compose
 
 section keys
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 /-- The keys' map along `s`, its contents only (`keysOwn` without the map's points-to), with the

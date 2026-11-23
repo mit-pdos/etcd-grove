@@ -29,7 +29,7 @@ namespace client.cn
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- What the call's goroutine sends: the call's result (`Call.spec`'s postcondition, weakened). -/
 def callP (Rargs : IProp netDistGF) (Φ : List w8 → GoString → IProp netDistGF)

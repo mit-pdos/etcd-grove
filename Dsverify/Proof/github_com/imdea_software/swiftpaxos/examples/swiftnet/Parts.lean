@@ -64,7 +64,7 @@ theorem client_pkg_facts (hG : HeapGS .hasLC netDistGF) (s : go.Semantics)
     unfold defs.pkgSt
     exact .rfl
 
-variable [G : GooseGlobalGS .hasLC netDistGF]
+variable [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- **The client nodes' callees**, linked: the test package's initialization (the packages'
 initializers, ClientPkgInits.lean), `registerRPC`, the client package's specs (group E,

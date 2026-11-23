@@ -250,7 +250,7 @@ theorem dep_v1 {d : List w8} (ht : sp.uvTerm d) (h : depNext d) :
 
 section specs2
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- `(*MNewLeaderAckN).Unmarshal(br)`: without an error, the bytes read are the body of a
 well-formed `.newLeaderAckN r b c es`, which `t` represents (`swift.msgRepM`'s shape). -/
@@ -281,7 +281,7 @@ def depOf (p : GoSlice × List sp.CmdId) : swift.SDep := swift.SDep.mk p.1
 
 section zip
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 theorem zipOwn : ∀ (es : List sp.RepEntry) (cps : List (GoSlice × DCmd))
     (dps : List (GoSlice × List sp.CmdId)),
@@ -319,7 +319,7 @@ end zip
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
@@ -578,7 +578,7 @@ end proofs
 
 section proofs2
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] [replica.defs.Assumptions] [state.Assumptions]
 

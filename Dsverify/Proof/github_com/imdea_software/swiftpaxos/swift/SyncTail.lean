@@ -13,6 +13,8 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ProposeHalves
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSetQ
+public import Perennial.Proof.fmt
+public import Perennial.Proof.log
 
 -- PORT: lab imports dropped: Harness.Proof.log
 
@@ -42,7 +44,7 @@ theorem swift.rid_leaderS (bw : w32) (N b : Nat) (hN : 1 ≤ N ∧ N ≤ 7) (hb 
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A proposal's `cmdIs`. -/
 theorem swift.propIs_cmdIs (γ : sp.Names) (gp : Loc) (x : sp.CmdId) (c : sp.Cmd) :
@@ -96,115 +98,79 @@ end lemmas
 
 section log
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [log.Assumptions]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [log.Assumptions] [π : NetProtoGS]
 
-/-- `touch(v)` for `nil` or a value whose type has neither `Error` nor `String`: no method runs
-(`log.wp_touch` without `fmt.ArgWf`'s basic-type condition). -/
+/-- An argument `log.Println` formats without calling a method of it (the condition under which
+Perennial's trusted model of `log.Println`, which does nothing, is faithful,
+`Net/Spec/log/Println.lean`): `nil`, `fmt.ArgWf` (a basic value), or a value whose type has no
+`Error`, `String` or `Format` method (fmt's `%v` calls only those; the quorum values `handleSync`
+prints). **Port change**: the lab's `log` model called `touch` on each argument; Perennial's
+does nothing (notes/dsv-swiftpaxos.md). -/
+def swift.printable (v : GoInterface) : Prop :=
+  ∀ ii, v = interface.ok ii → fmt.ArgWf ii ∨
+    (methodSet ii.ty !! go!"Error" = none ∧ methodSet ii.ty !! go!"String" = none ∧
+      methodSet ii.ty !! go!"Format" = none)
+
+/-- A value whose type has no `Error`, `String` or `Format` method is printable. -/
 theorem swift.wp_touch_noFmt (v : GoInterface)
     (hv : ∀ ii, v = interface.ok ii →
-      methodSet ii.ty !! go!"Error" = none ∧ methodSet ii.ty !! go!"String" = none) :
-    {{ (True : IProp netDistGF) }}
-      (App (Val (@! log.touch)) (Val #v))
-    {{ RET #(); True }} := by
-  wp_start
-  cases v with
-  | nil =>
-    wp_auto
-    iapply HΦ; ipureintro; trivial
-  | ok ii =>
-    obtain ⟨hE, hS⟩ := hv ii rfl
-    have hE' : go.typeSetContains ii.ty go.error = false := by
-      simp [go.typeSetContains_underlying, go.typeSetElemsContains_cons,
-        go.typeSetElemsContains_nil, go.typeSetElemContains, hE]
-    have hS' : go.typeSetContains ii.ty log.stringer.ty = false := by
-      simp [go.typeSetContains_underlying, go.typeSetElemsContains_cons,
-        go.typeSetElemsContains_nil, go.typeSetElemContains, hS]
-    wp_auto
-    simp only [hE', Bool.false_eq_true, ↓reduceIte]
-    wp_auto
-    simp only [hS', Bool.false_eq_true, ↓reduceIte]
-    wp_auto
-    iapply HΦ; ipureintro; trivial
+      methodSet ii.ty !! go!"Error" = none ∧ methodSet ii.ty !! go!"String" = none ∧
+        methodSet ii.ty !! go!"Format" = none) :
+    swift.printable v :=
+  fun ii h => .inr (hv ii h)
 
-/-- `touchAll(vs)` when each argument's `touch` returns. -/
-theorem swift.wp_touchAllT (arg : GoSlice) (xs : List GoInterface) (dq : DFrac)
-    (h : ∀ x ∈ xs, {{ (True : IProp netDistGF) }} (App (Val (@! log.touch)) (Val #x))
-      {{ RET #(); True }}) :
-    {{ (arg ↦*{dq} xs : IProp netDistGF) }}
-      (App (Val (@! log.touchAll)) (Val #arg))
-    {{ RET #(); arg ↦*{dq} xs }} := by
-  wp_start as Hs
-  wp_auto
-  ihave %Hlen := ownSlice_len $$ Hs
-  ihave IH : iprop(∃ (n : w64) (vv : GoInterface),
-      "i" ∷ i_ptr ↦ n ∗ "v" ∷ v_ptr ↦ vv ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (xs.length : Int)⌝) $$ [i v]
-  · iexists _, _
-    iframe
-    ipureintro
-    exact ⟨by word, by word⟩
-  wp_for IH
-  wp_if_destruct
-  · have Hlt : (sint.Z n).toNat < xs.length := by word
-    obtain ⟨x, Hx⟩ : ∃ x, xs[(sint.Z n).toNat]? = some x :=
-      ⟨_, List.getElem?_eq_getElem Hlt⟩
-    simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z arg.len from ⟨Hn.1, Hif⟩]
-    wp_apply wp_load_slice_index arg (sint.Z n) xs dq x Hn.1 $$ [Hs] as Hs
-    · iframe; ipureintro; exact Hx
-    wp_apply (h x (List.mem_of_getElem? Hx))
-    wp_for_post
-    iframe
-    iexists _, _
-    iframe
-    ipureintro
-    exact ⟨by word, by word⟩
-  · iapply HΦ
-    iframe
+/-- A value `fmt.ArgsWf` accepts is printable. -/
+theorem swift.printable_of_argsWf (v : GoInterface) (h : fmt.ArgsWf [v]) : swift.printable v :=
+  fun ii hv => .inl (h ii (by simp [hv]))
 
-/-- `log.Println(args...)` when each argument's `touch` returns. -/
+/-- `log.Println(args...)` of printable arguments (Perennial's trusted model returns). -/
 theorem swift.wp_PrintlnT (arg : GoSlice) (xs : List GoInterface) (dq : DFrac)
-    (h : ∀ x ∈ xs, {{ (True : IProp netDistGF) }} (App (Val (@! log.touch)) (Val #x))
-      {{ RET #(); True }}) :
+    (h : ∀ x ∈ xs, swift.printable x) :
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.log ∗ arg ↦*{dq} xs }}
       (App (Val (@! log.Println)) (Val #arg))
     {{ RET #(); arg ↦*{dq} xs }} := by
   wp_start as Hs
-  wp_auto
-  wp_apply swift.wp_touchAllT arg xs dq h $$ Hs as Hs
-  iapply HΦ; iframe
+  wp_end
 
 omit [log.Assumptions] in
 theorem swift.noFmt_of_methodSetIs {t : go.GoType} {ms : List (GoString × Option go.signature)}
     [go.MethodSetIs t ms] (hE : go.methodSetLookup ms go!"Error" = none)
-    (hS : go.methodSetLookup ms go!"String" = none) :
-    methodSet t !! go!"Error" = none ∧ methodSet t !! go!"String" = none := by
+    (hS : go.methodSetLookup ms go!"String" = none)
+    (hF : go.methodSetLookup ms go!"Format" = none) :
+    methodSet t !! go!"Error" = none ∧ methodSet t !! go!"String" = none ∧
+      methodSet t !! go!"Format" = none := by
   have h1 := go.MethodSetIs.method_set_is (t := t) (ms := ms) go!"Error"
   have h2 := go.MethodSetIs.method_set_is (t := t) (ms := ms) go!"String"
-  rw [hE] at h1; rw [hS] at h2
-  exact ⟨h1, h2⟩
+  have h3 := go.MethodSetIs.method_set_is (t := t) (ms := ms) go!"Format"
+  rw [hE] at h1; rw [hS] at h2; rw [hF] at h3
+  exact ⟨h1, h2, h3⟩
 
 omit [log.Assumptions] in
 theorem swift.quorumTy_noFmt [replica.Assumptions] :
     methodSet replica.Quorum.ty !! go!"Error" = none ∧
-      methodSet replica.Quorum.ty !! go!"String" = none :=
+      methodSet replica.Quorum.ty !! go!"String" = none ∧
+      methodSet replica.Quorum.ty !! go!"Format" = none :=
   swift.noFmt_of_methodSetIs (by simp [go.methodSetLookup]) (by simp [go.methodSetLookup])
+    (by simp [go.methodSetLookup])
 
 omit [log.Assumptions] in
 /-- A quorum value (`quorumIs`'s: `Majority`, `ThreeQuarters` or `Quorum`) has neither `Error`
 nor `String`. -/
 theorem swift.quorumIs_noFmt [replica.Assumptions] (q : GoInterface) (sz : Nat) (mem : w32 → Prop) :
     replica.mset.quorumIs q sz mem ⊢ ⌜∀ ii, q = interface.ok ii →
-      methodSet ii.ty !! go!"Error" = none ∧ methodSet ii.ty !! go!"String" = none⌝ := by
+      methodSet ii.ty !! go!"Error" = none ∧ methodSet ii.ty !! go!"String" = none ∧
+        methodSet ii.ty !! go!"Format" = none⌝ := by
   unfold replica.mset.quorumIs
   iintro ⟨-, (%Hq | ⟨%ql, %s, %Hq, -⟩)⟩
   · ipureintro
     intro ii hii
     rcases Hq.1 with h | h <;> rw [h] at hii <;> cases hii <;>
-      exact swift.noFmt_of_methodSetIs (by decide) (by decide)
+      exact swift.noFmt_of_methodSetIs (by decide) (by decide) (by decide)
   · ipureintro
     intro ii hii
     rw [Hq.1] at hii; cases hii
     exact swift.noFmt_of_methodSetIs (by simp [go.methodSetLookup]) (by simp [go.methodSetLookup])
+      (by simp [go.methodSetLookup])
 
 end log
 

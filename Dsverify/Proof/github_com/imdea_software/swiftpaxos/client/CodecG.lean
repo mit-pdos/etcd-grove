@@ -30,7 +30,7 @@ namespace client
 
 section failed
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [C : net.rpc.RpcCodec netDistGF]
 
