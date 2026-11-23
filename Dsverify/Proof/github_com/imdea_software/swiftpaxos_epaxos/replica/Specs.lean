@@ -59,8 +59,9 @@ slice `fsl`) were read; one `PROPOSE` (the protocol allows no more), its proposa
 `ProposeChan`. -/
 def replica.Replica.clientListener.spec : Prop :=
   ∀ (γ : EpNames) (r : Loc) (id : Nat) (L : List GoString) (p : FwPtrs) (Rext : IProp GF)
-    (conn : GoInterface) (cid : Nat) (c : w64) (i : KvI) (fsl : GoSlice) (first : List w8),
-  {{ pkgInit_replica ∗ fwRun0 γ r id L p Rext ∗ connIf conn cid true ∗
+    (conn : GoInterface) (cid : Nat) (c : w64) (i : KvI) (fsl : GoSlice) (first : List w8)
+    (t : Loc) (la ra ed eof : GoInterface),
+  {{ pkgInit_replica ∗ fwRun0 γ r id L p Rext ∗ connIn conn cid true t la ra ed eof ∗
       sendTok cid true (repAccP γ (L.getD id [])) [] ∗
       recvTok cid true (repDialP γ (L.getD id [])) first ∗ opTok γ cid ∗ clientConn γ cid c i ∗
       ⌜first <+: proposeBytes c i⌝ ∗ fsl ↦* first }}
