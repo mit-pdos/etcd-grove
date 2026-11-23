@@ -69,6 +69,12 @@ def kvOutV [GooseExts] : KvOutput GoString → Out
 /-- The unknown output. -/
 def unkOutV [GooseExts] : Out := ⟨true, false, false, []⟩
 
+/-- An output `Op` answers: a found value is not empty, and nine bytes more than it fit a Go
+string's length (it is the reply string's tail past `"1" + key`). -/
+def outOk : KvOutput GoString → Prop
+  | .got (some v) => v ≠ [] ∧ v.length + 9 < 2 ^ 63
+  | _ => True
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
@@ -162,7 +168,8 @@ abbrev Op.spec : Prop :=
       (App (App (App (Val (@! rabia.examples.rabianet.Op)) (Val #l)) (Val #(W64 c)))
         (Val #(kvInV i)))
     {{ (o : Out), RET #o; ⌜o = unkOutV⌝ ∨
-        ∃ σ σ' out, ⌜o = kvOutV out ∧ (kv GoString GoString).step σ i σ' out⌝ ∗ Q σ σ' out }}
+        ∃ σ σ' out, ⌜o = kvOutV out ∧ (kv GoString GoString).step σ i σ' out ∧ outOk out⌝ ∗
+          Q σ σ' out }}
 
 end spec
 
