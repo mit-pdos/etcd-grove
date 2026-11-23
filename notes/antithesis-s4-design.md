@@ -191,3 +191,30 @@ Each group writes its files only; shared vocabulary is fixed first (S-step) and 
 
 Builds: one helper building at a time (the machine is CPU-starved); only cones to `.olean` locally;
 full builds and gates through the VM land queue.
+
+## 6. Status (2026-11-23, end of the first S4 session)
+
+- **Approved** (the coordinator, 2026-11-23): §1's `raft_antithesis_safe`, `raft_antithesis_robust.spec`,
+  `raft_antithesis_accepts` at `Nodes = 3`, `antGF` = `tcGF`'s slots. `TopLevelDefs.lean` and
+  `Spec/.../antithesis/TopLevelRobustness.lean` are written and typecheck.
+- **S-raft statements** (`RawNodeAt`, `RawNodeAbsSpecs`, `RawNodeApi`): written, typecheck; deviations in
+  `notes/antithesis-rawnode-design.md` §2.6.
+- **S-sim statements** (`Sim/Abs`, `Rel`, `Stmts`, `Smoke`): written, typecheck; `Prefix.accepts` proved; a
+  51-report honest smoke stream built from `Abs`'s reports is accepted (`decide +kernel`); deviations in
+  the rawnode note §3.5.
+- **S-harness statements**: in progress (`HarnessDefs.lean`, one spec file per harness function).
+- **Open items for the coordinator:**
+  1. *A forwarded `MsgProp`* at a leader is outside `raft.Step.spec`'s premise (`From = 0 ∨ From = id`) and
+     `NetMsgOk`; `ProposeEnd`'s forward arm has the wrong `src` for a twice-forwarded proposal. Options: (a)
+     widen `raft.Step`/`RawNode.Step` for a network `MsgProp` with the proposal resources (raft step cone
+     rebuild); (b) `DisableProposalForwarding: true` in the harness (the binding checks nothing of `prop`).
+     Recommended (b); asked.
+  2. *`Ready`'s first entry.* The binding needs the first reported entry to be the first conflict with the
+     durable log (B 378, 387). It is false as a post of `RawNode.Ready` in general (two inputs between
+     `Ready`s can truncate and restore an entry; §2.6), true under the harness's discipline (each input from
+     `PIdle`). The fix: `ownRawNodeAt` carries the in-progress boundary `ip` (`offsetInProgress - 1`), each
+     input form's post says `ip' = min ip (common prefix of ps.log, ps'.log)`, `Ready` says `es ≠ [] →
+     es[0].Index' = ip + 1` and resets `ip`. Touches every form; not yet done.
+- **Stress evidence** (scratch, not committed): three extreme harness variants (split votes: 1ms ticks, 15ms
+  delays, 20% loss; storm: 30 isolations of 8ms at 40% loss; burst: 200 proposals 0.2ms apart, 12ms
+  delays), 340 runs each, every stream ACCEPTED by the Go checker. No discrepancy found.
