@@ -51,7 +51,7 @@ theorem state.Operation.Marshal.spec_holds : state.Operation.Marshal.spec (GF :=
     as %nn %e ⟨Hbs, Hw⟩
   iapply HΦ
   iframe Hl
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp) $$ Hw
 
 theorem state.Key.Marshal.spec_holds : state.Key.Marshal.spec (GF := GF) := by
   intro l dq k bw wr sent pend err
@@ -70,7 +70,7 @@ theorem state.Key.Marshal.spec_holds : state.Key.Marshal.spec (GF := GF) := by
     [$Hpkg2 $Hw $Hbs] as %nn %e ⟨Hbs, Hw⟩
   iapply HΦ
   iframe Hl
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp) $$ Hw
 
 theorem state.Value.Marshal.spec_holds : state.Value.Marshal.spec (GF := GF) := by
   intro l dq dq' sl v bw wr sent pend err
@@ -98,7 +98,7 @@ theorem state.Value.Marshal.spec_holds : state.Value.Marshal.spec (GF := GF) := 
     [$Hpkg2 $Hw $Hv] as %nn2 %e2 ⟨Hv, Hw⟩
   iapply HΦ
   iframe Hl Hv
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp [encValue]) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp [encValue]) $$ Hw
 
 theorem state.Command.Marshal.spec_holds : state.Command.Marshal.spec (GF := GF) := by
   intro l dq cv wc bw wr sent pend err
@@ -126,7 +126,7 @@ theorem state.Command.Marshal.spec_holds : state.Command.Marshal.spec (GF := GF)
       simp only [TypedPointsto.typedPointstoDef]
       iframe Op K V
     · iunfold cmdOk; iframe Hv; ipureintro; exact ⟨hop, hk⟩
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp [encCommand, hop, hk]) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp [encCommand, hop, hk]) $$ Hw
 
 end heap
 end Perennial.github_com.imdea_software.swiftpaxos_epaxos

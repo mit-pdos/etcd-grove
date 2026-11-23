@@ -28,7 +28,7 @@ theorem varintEnc_length_le (x : w64) : (varintEnc x).length ≤ 10 :=
   uvarintEnc_length_le_10 _ (zigzag_lt x)
 
 section
-variable [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- A slice's length (`len(s)`, as the `int64` the code writes) as a varint: `encLen`. -/
 theorem slice_len_varint (sl : GoSlice) (n : Nat) (h : (n : Int) = sint.Z sl.len) :
@@ -87,8 +87,8 @@ macro "wvarint" X:term:max REST:term:max TODO:term:max hr:term:max : tactic => `
   rw [htk]
   (try wp_auto)
   wp_apply wp_wprog_Write bw wr sent pend err _ $REST (varintEnc $X) $TODO _ _ $hr
-    $$ [Hpkg2 Hwr Hw Hbs] as %nn1 %e1 ⟨Hbs, Hw⟩
-  · iframe Hwr Hw Hbs
+    $$ [Hpkg2 Hw Hbs] as %nn1 %e1 ⟨Hbs, Hw⟩
+  · iframe Hw Hbs
   ihave Hb := Hback $$ %_ %(by simp) Hbs
   ihave Harr := arrBytes_intro b_ptr (W64 16) _ (by
     simp only [List.length_append, List.length_drop, List.length_take]; omega) $$ Hb
@@ -131,8 +131,8 @@ macro "wvarintN" N:num X:term:max REST:term:max TODO:term:max hr:term:max : tact
   rw [htk]
   (try wp_auto)
   wp_apply wp_wprog_Write bw wr sent pend err _ $REST (varintEnc $X) $TODO _ _ $hr
-    $$ [Hpkg2 Hwr Hw Hbs] as %nn1 %e1 ⟨Hbs, Hw⟩
-  · iframe Hwr Hw Hbs
+    $$ [Hpkg2 Hw Hbs] as %nn1 %e1 ⟨Hbs, Hw⟩
+  · iframe Hw Hbs
   ihave Hb := Hback $$ %_ %(by simp) Hbs
   ihave Harr := arrBytes_intro b_ptr (W64 $N) _ (by
     simp only [List.length_append, List.length_drop, List.length_take]; omega) $$ Hb

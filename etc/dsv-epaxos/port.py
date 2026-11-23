@@ -58,15 +58,46 @@ def bufio_conv(t):
     t = re.sub(r'\bnextIs I ', 'nextIs rd ', t)
     t = re.sub(r'\brd I\b', 'rd', t)
     t = re.sub(r'\bwr J Q\b', 'wr', t)
+    t = t.replace(' Hwr Hw ', ' Hw ').replace('iframe Hwr ', 'iframe ')
     t = t.replace('#Hrd, ', '').replace('$Hrd ', '').replace('#Hwr, ', '').replace('$Hwr ', '')
-    t = t.replace(', #Herr⟩', '⟩')
+    t = re.sub(r', #Herr\d*⟩', '⟩', t)
+    t = re.sub(r'(%he\d*), #He\d*, ', r'\1, ', t)
     t = re.sub(r'(?m)^\s*ihave #He := errOrNil_errAny .*\n', '', t)
-    t = re.sub(r'(?m)^(\s*)iframe He\n', '', t)
+    t = re.sub(r'(?m)^(\s*)iframe He\d*\n', '', t)
     t = re.sub(r'net\.rpc\.errAny err ∗\s*', '', t)
     t = re.sub(r'(?<![.\w])Q \(sent ', 'wr.Q (sent ', t)
     t = t.replace('io.ExtraAssumptions', 'io.Assumptions')
     t = t.replace('bufio.io_init_of_bufio', 'EtcdGrove.bufio.io_init_of_bufio')
-    return t
+    t = re.sub(r'\bnextIs_(total|shift) I ', r'nextIs_\1 rd ', t)
+    t = re.sub(r'wprog_finish _ _ _ _ _ _ _ _ _ ', 'wprog_finish _ _ _ _ _ _ _ ', t)
+    t = re.sub(r'wprog_start _ _ _ _ _ _ _ _ ', 'wprog_start _ _ _ _ _ _ ', t)
+    t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
+               r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',
+               'attribute [local instance] GooseGlobalGS.gooseInvGS', t)
+    t = t.replace('variable [GoGlobalContext] [hG : HeapGS .hasLC Dsv.GF] [go.Semantics]',
+                  'variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]\n'
+                  'variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]')
+    t = t.replace('IProp Dsv.GF', 'IProp GF')
+    t = re.sub(r'(?m)^variable \[GoGlobalContext\]$', 'variable [GooseExts] [GoGlobalContext]', t)
+    # statements whose only `GF` is inside a spec's definition
+    t = re.sub(r'\b((?:un)?marshalTriple) pkgInit_(\w+)', r'\1 (pkgInit_\2 (GF := GF))', t)
+    t = re.sub(r'(?<![\w.])((?:epaxos|state|replica\.defs|Serializable)\.[\w.]*\.spec)(?=( MsgKind\.\w+| k\b)?\s*:= by)',
+               r'\1 (GF := GF)', t)
+    t = re.sub(r'(∀ k, (?:epaxos|Serializable)\.[\w.]*\.spec) k', r'\1 (GF := GF) k', t)
+    # the stream fact comes a step later (`nextIs_read`): strip it with `imod` after the `ihave`
+    ls = t.split('\n'); out = []; i = 0
+    while i < len(ls):
+        l = ls[i]
+        m = re.match(r'^(\s*)ihave ⟨(\w+), %(\w+)⟩ := nextIs_read', l)
+        if not m:
+            out.append(l); i += 1; continue
+        ind, h = m.group(1), m.group(3)
+        out.append(l.replace('%' + h + '⟩', h + '⟩', 1)); i += 1
+        while i < len(ls) and ls[i].strip() and (len(ls[i]) - len(ls[i].lstrip()) > len(ind)
+                or ls[i].lstrip().startswith('· ')) :
+            out.append(ls[i]); i += 1
+        out.append(ind + 'imod ' + h + ' with %' + h)
+    return '\n'.join(out)
 
 BUFIO = '--bufio' in sys.argv
 for p in [a for a in sys.argv[1:] if a != '--bufio']:

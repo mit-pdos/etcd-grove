@@ -40,7 +40,7 @@ variable [epaxos.Assumptions] [bufio.Assumptions] [io.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := by
+theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec (GF := GF) MsgKind.accept := by
   dsimp only [epaxos.Unmarshal.spec, MsgKind.ty]
   intro l br rd R
   wp_start as ⟨Hown, #Hnext, Hl⟩
@@ -102,20 +102,19 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
     exact pfx_skip (P := [w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19])
       (P' := u32Le p.leaderId ++ u32Le p.replica ++ u32Le p.inst ++ u32Le p.ballot ++ u32Le p.seq)
       (by simp [u32Le_length]) (by simpa only [List.append_assoc] using hp)
-  ihave #Hn1 := nextIs_shift I R [w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] Msg.body _ varintEnc (fun _ => True) (fun m ext t hwf hp => by
+  ihave #Hn1 := nextIs_shift rd R [w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] Msg.body _ varintEnc (fun _ => True) (fun m ext t hwf hp => by
       obtain ⟨p, rfl, hc, -⟩ := msg_accept m hwf
       exact varint_next _ (by unfold cmdsWf at hc; omega) _ _ (hdr p t ext hp)) $$ Hnext
   have hrv := epaxos.readVarint.spec_holds (GF := GF)
   unfold epaxos.readVarint.spec at hrv
   wp_apply hrv br rd _ $$ [$Hpkg $Hpkg2 $Hown $Hn1] as %x %err1 H1
-  icases H1 with (⟨%he1, Hown⟩ | ⟨%he1, #He1, %d1, Hown⟩)
+  icases H1 with (⟨%he1, Hown⟩ | ⟨%he1, %d1, Hown⟩)
   rotate_left
   · -- an error
     rcases err1 with ei | _
     · wp_auto
       iapply HΦ
       iright
-      iframe He1
       isplitr
       · ipureintro; simp
       iexists _ ++ d1
@@ -130,7 +129,8 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
     · exact absurd rfl he1
   subst he1
   rw [List.append_assoc]
-  ihave ⟨Hown, %Hp1⟩ := nextIs_read br rd R (_ ++ varintEnc x) Msg.body _ $$ [$Hnext $Hown]
+  ihave ⟨Hown, Hp1⟩ := nextIs_read br rd R (_ ++ varintEnc x) Msg.body _ $$ [$Hnext $Hown]
+  imod Hp1 with %Hp1
   obtain ⟨n, hn, hxn⟩ : ∃ n : Nat, n < 2 ^ 62 ∧ x = W64 (n : Int) := by
     obtain ⟨m, ext, hwf, hp⟩ := Hp1
     obtain ⟨p, rfl, hc, -⟩ := msg_accept m hwf
@@ -191,7 +191,7 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
       rw [List.getElem?_replicate, if_pos (by omega)]
     ihave ⟨Hc, Hcback⟩ := ownSlice_elem_acc (j : Int) _ cs _ _ (by omega) hlk $$ Hcs
     -- the next command's stream fact
-    ihave #Hn2 := nextIs_shift I R ([w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] ++ (varintEnc (W64 (n : Int)) ++ (rdc.map encCommand).flatten)) Msg.body _
+    ihave #Hn2 := nextIs_shift rd R ([w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] ++ (varintEnc (W64 (n : Int)) ++ (rdc.map encCommand).flatten)) Msg.body _
       encCommand cmdWf (fun m ext t hwf hp => by
         obtain ⟨p, rfl, hc, -⟩ := msg_accept m hwf
         obtain ⟨hn', hu⟩ := hafter p _ ext hc (by simpa only [List.append_assoc] using hp)
@@ -200,7 +200,7 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
     · iPkgInit
     wp_apply state.Command.Unmarshal.spec_holds _ _ br rd _
       $$ [$Hst $Hpkg2 $Hown $Hn2 $Hc] as %e2 H2
-    icases H2 with (⟨%he2, %wc, %hwc, Hown, %cv, Hc, #Hcok⟩ | ⟨%he2, #He2, %d2, Hown, %cv, Hc⟩)
+    icases H2 with (⟨%he2, %wc, %hwc, Hown, %cv, Hc, #Hcok⟩ | ⟨%he2, %d2, Hown, %cv, Hc⟩)
     rotate_left
     · -- an error
       rcases e2 with ei | _
@@ -208,7 +208,6 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
         wp_for_post
         iapply HΦ
         iright
-        iframe He2
         isplitr
         · ipureintro; simp
         iexists ([w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] ++
@@ -266,7 +265,7 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
       intro p u ext hc hp
       obtain ⟨hn', hu⟩ := hafter p _ ext hc hp
       exact cmds_done p.command rdc hc.2 hrw (by omega) _ _ hu
-    ihave #Hn3 := nextIs_shift I R ([w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] ++ (varintEnc (W64 (n : Int)) ++ (rdc.map encCommand).flatten))
+    ihave #Hn3 := nextIs_shift rd R ([w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] ++ (varintEnc (W64 (n : Int)) ++ (rdc.map encCommand).flatten))
       Msg.body _ varintEnc (fun _ => True) (fun m ext t hwf hp => by
         obtain ⟨p, rfl, hc, hd⟩ := msg_accept m hwf
         obtain ⟨-, h2⟩ := hafter2 p t ext hc (by simpa only [List.append_assoc] using hp)
@@ -275,14 +274,13 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
           ((p.deps.map u32Le).flatten ++ ext) (by simpa only [List.append_assoc] using h2)) $$ Hnext
     simp only [List.append_assoc] at *
     wp_apply hrv br rd _ $$ [$Hpkg $Hpkg2 $Hown $Hn3] as %y %err4 H4
-    icases H4 with (⟨%he4, Hown⟩ | ⟨%he4, #He4, %d4, Hown⟩)
+    icases H4 with (⟨%he4, Hown⟩ | ⟨%he4, %d4, Hown⟩)
     rotate_left
     · -- an error
       rcases err4 with ei | _
       · wp_auto
         iapply HΦ
         iright
-        iframe He4
         isplitr
         · ipureintro; simp
         iexists [w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19] ++
@@ -299,7 +297,8 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
       · exact absurd rfl he4
     subst he4
     rw [List.append_assoc R]
-    ihave ⟨Hown, %Hp4⟩ := nextIs_read br rd R _ Msg.body _ $$ [$Hnext $Hown]
+    ihave ⟨Hown, Hp4⟩ := nextIs_read br rd R _ Msg.body _ $$ [$Hnext $Hown]
+    imod Hp4 with %Hp4
     obtain ⟨nd, hnd, hyn⟩ : ∃ nd : Nat, nd < 2 ^ 62 ∧ y = W64 (nd : Int) := by
       obtain ⟨m, ext, hwf, hp⟩ := Hp4
       obtain ⟨p, rfl, hc, hd⟩ := msg_accept m hwf
@@ -340,7 +339,7 @@ theorem epaxos.Unmarshal.spec_accept : epaxos.Unmarshal.spec MsgKind.accept := b
       ihave ⟨%L4, %hL4, Hbs, Hback2⟩ := arrBytes_slice b_ptr (W64 4) (W64 20) 4 rfl (by decide)
         (by decide) $$ Harr
       wp_apply wp_ReadAtLeast_br br rd _ _ _ (W64 4) (by rw [hL4]; exact Int.le_refl _)
-        $$ [$Hpkg2 $Hown $Hbs] as %n5 %err5 ⟨%y4, %Hd5, Hbs, Hown, #Herr5⟩
+        $$ [$Hpkg2 $Hown $Hbs] as %n5 %err5 ⟨%y4, %Hd5, Hbs, Hown⟩
       obtain ⟨-, hdl5, hiff5⟩ := Hd5
       rcases err5 with ei | _
       · -- an error

@@ -128,7 +128,8 @@ theorem state.Value.Unmarshal.spec_holds : state.Value.Unmarshal.spec (GF := GF)
     iframe Hown
     iexists sl0; iexact Hl
   have hd4 : d1.length = 4 := by simpa using hiff.mp rfl
-  ihave ⟨Hown, %Hp⟩ := nextIs_read br rd R d1 encValue _ $$ [$Hnext $Hown]
+  ihave ⟨Hown, Hp⟩ := nextIs_read br rd R d1 encValue _ $$ [$Hnext $Hown]
+  imod Hp with %Hp
   obtain ⟨v, ext, hv, hp⟩ := Hp
   obtain ⟨hd1, a, b, hab, hlen⟩ := value_hdr d1 hd4 v ext hv hp
   rw [List.drop_eq_nil_of_le (by simp; omega), List.append_nil, hab]
@@ -143,7 +144,7 @@ theorem state.Value.Unmarshal.spec_holds : state.Value.Unmarshal.spec (GF := GF)
   · ipureintro; word
   (try wp_auto)
   wp_apply wp_ReadFull_br br rd (R ++ d1) bs2 _ $$ [$Hpkg2 $Hown $Hbs2]
-    as %n2 %err2 ⟨%d2, %Hd2, Hbs2, Hown, #Herr2⟩
+    as %n2 %err2 ⟨%d2, %Hd2, Hbs2, Hown⟩
   obtain ⟨-, hdl2, hiff2⟩ := Hd2
   rw [List.append_assoc]
   rcases err2 with ei | _
@@ -197,19 +198,18 @@ theorem state.Command.Unmarshal.spec_holds : state.Command.Unmarshal.spec (GF :=
   iStructNamed Hl
   wp_auto
   -- the operation
-  ihave #Hn1 := nextIs_total I R (fun op : w8 => [op]) (fun _ => True)
+  ihave #Hn1 := nextIs_total rd R (fun op : w8 => [op]) (fun _ => True)
     (total_of_fixed _ 1 (fun _ => rfl) (fun t ht => by
       match t, ht with | [c], _ => exact ⟨c, rfl⟩))
   wp_apply state.Operation.Unmarshal.spec_holds _ cv0.Op' br rd R
     $$ [$Hpkg $Hpkg2 $Hown $Hn1 $Op] as %e1 H1
-  icases H1 with (⟨%he1, %op, -, Hown, Op⟩ | ⟨%he1, #He1, %d, Hown, %op, Op⟩)
+  icases H1 with (⟨%he1, %op, -, Hown, Op⟩ | ⟨%he1, %d, Hown, %op, Op⟩)
   rotate_left
   · -- an error
     rcases e1 with ei | _
     · wp_auto
       iapply HΦ
       iright
-      iframe He1
       isplitr
       · ipureintro; simp
       iexists d
@@ -222,18 +222,17 @@ theorem state.Command.Unmarshal.spec_holds : state.Command.Unmarshal.spec (GF :=
   subst he1
   wp_auto
   -- the key
-  ihave #Hn2 := nextIs_total I (R ++ [op]) u64Le (fun _ => True)
+  ihave #Hn2 := nextIs_total rd (R ++ [op]) u64Le (fun _ => True)
     (total_of_fixed _ 8 u64Le_length (fun t ht => ⟨_, (leToU64_le t ht)⟩))
   wp_apply state.Key.Unmarshal.spec_holds _ cv0.K' br rd (R ++ [op])
     $$ [$Hpkg $Hpkg2 $Hown $Hn2 $K] as %e2 H2
-  icases H2 with (⟨%he2, %k, -, Hown, K⟩ | ⟨%he2, #He2, %d, Hown, %k, K⟩)
+  icases H2 with (⟨%he2, %k, -, Hown, K⟩ | ⟨%he2, %d, Hown, %k, K⟩)
   rotate_left
   · -- an error
     rcases e2 with ei | _
     · wp_auto
       iapply HΦ
       iright
-      iframe He2
       isplitr
       · ipureintro; simp
       iexists [op] ++ d
@@ -247,19 +246,18 @@ theorem state.Command.Unmarshal.spec_holds : state.Command.Unmarshal.spec (GF :=
   subst he2
   wp_auto
   -- the value
-  ihave #Hn3 := nextIs_shift I R ([op] ++ u64Le k) encCommand cmdWf encValue
+  ihave #Hn3 := nextIs_shift rd R ([op] ++ u64Le k) encCommand cmdWf encValue
     (fun v => v.length < 2 ^ 16) (fun wc ext t hwf hp => cmd_rest op k wc ext t hwf hp) $$ Hnext
   rw [List.append_assoc]
   wp_apply state.Value.Unmarshal.spec_holds _ cv0.V' br rd (R ++ ([op] ++ u64Le k))
     $$ [$Hpkg $Hpkg2 $Hown $Hn3 $V] as %e3 H3
-  icases H3 with (⟨%he3, %v, %hv, Hown, %sl, V, Hsl⟩ | ⟨%he3, #He3, %d, Hown, %sl, V⟩)
+  icases H3 with (⟨%he3, %v, %hv, Hown, %sl, V, Hsl⟩ | ⟨%he3, %d, Hown, %sl, V⟩)
   rotate_left
   · -- an error
     rcases e3 with ei | _
     · wp_auto
       iapply HΦ
       iright
-      iframe He3
       isplitr
       · ipureintro; simp
       iexists [op] ++ u64Le k ++ d

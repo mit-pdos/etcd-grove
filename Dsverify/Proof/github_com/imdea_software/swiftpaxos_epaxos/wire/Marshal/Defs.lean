@@ -58,7 +58,7 @@ theorem replica.defs.Propose.Marshal.spec_holds : replica.defs.Propose.Marshal.s
     iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe CommandId ClientId Command Timestamp
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp [ProposeV.enc, encPropose]) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp [ProposeV.enc, encPropose]) $$ Hw
 
 theorem replica.defs.Propose.Unmarshal.spec_holds : replica.defs.Propose.Unmarshal.spec (GF := GF) := by
   intro l v0 br rd R
@@ -94,7 +94,7 @@ theorem replica.defs.Propose.Unmarshal.spec_holds : replica.defs.Propose.Unmarsh
   wload; wload; wload; wload
   wload; wload; wload; wload
   rw [← encoding.binary.leToU32_4 w0, ← encoding.binary.leToU32_4 w4]
-  ihave #Hn2 := nextIs_shift I R [w0, w1, w2, w3, w4, w5, w6, w7] ProposeV.enc
+  ihave #Hn2 := nextIs_shift rd R [w0, w1, w2, w3, w4, w5, w6, w7] ProposeV.enc
     (fun p => cmdWf p.cmd) encCommand cmdWf (fun p ext t hwf hp =>
       ⟨p.cmd, u64Le p.ts ++ ext, hwf, prefix_skip [w0, w1, w2, w3, w4, w5, w6, w7]
         (u32Le p.cmdId ++ u32Le p.clientId) t _ (by simp [u32Le_length])
@@ -103,14 +103,13 @@ theorem replica.defs.Propose.Unmarshal.spec_holds : replica.defs.Propose.Unmarsh
   · iPkgInit
   wp_apply state.Command.Unmarshal.spec_holds _ v0.Command' br rd _
     $$ [$Hst $Hpkg2 $Hown $Hn2 $Command] as %e1 H1
-  icases H1 with (⟨%he1, %wc, %hwc, Hown, %cv, Command, #Hc⟩ | ⟨%he1, #He1, %d1, Hown, %cv, Command⟩)
+  icases H1 with (⟨%he1, %wc, %hwc, Hown, %cv, Command, #Hc⟩ | ⟨%he1, %d1, Hown, %cv, Command⟩)
   rotate_left
   · -- an error
     rcases e1 with ei | _
     · wp_auto
       iapply HΦ
       iright
-      iframe He1
       isplitr
       · ipureintro; simp
       iexists _ ++ d1
@@ -125,7 +124,7 @@ theorem replica.defs.Propose.Unmarshal.spec_holds : replica.defs.Propose.Unmarsh
   subst he1
   wp_auto
   wp_apply wp_ReadAtLeast_br br rd _ _ _ (W64 8) (by simp; decide) $$ [$Hpkg2 $Hown $Hbs]
-    as %n2 %err2 ⟨%d2, %Hd2, Hbs, Hown, #Herr2⟩
+    as %n2 %err2 ⟨%d2, %Hd2, Hbs, Hown⟩
   obtain ⟨-, hdl2, hiff2⟩ := Hd2
   rcases err2 with ei | _
   · -- an error
@@ -207,7 +206,7 @@ theorem replica.defs.ProposeReplyTS.Marshal.spec_holds : replica.defs.ProposeRep
     iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe OK CommandId Value Timestamp
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp [ProposeReplyV.enc, encProposeReplyTS]) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp [ProposeReplyV.enc, encProposeReplyTS]) $$ Hw
 
 theorem replica.defs.Beacon.Marshal.spec_holds : replica.defs.Beacon.Marshal.spec (GF := GF) := by
   intro l dq ts bw wr sent pend err
@@ -226,7 +225,7 @@ theorem replica.defs.Beacon.Marshal.spec_holds : replica.defs.Beacon.Marshal.spe
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe Timestamp
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp [encBeacon]) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp [encBeacon]) $$ Hw
 
 theorem replica.defs.BeaconReply.Marshal.spec_holds : replica.defs.BeaconReply.Marshal.spec (GF := GF) := by
   intro l dq ts bw wr sent pend err
@@ -245,7 +244,7 @@ theorem replica.defs.BeaconReply.Marshal.spec_holds : replica.defs.BeaconReply.M
   · iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe Timestamp
-  iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp [encBeacon]) $$ Hw
+  iapply wprog_finish _ _ _ _ _ _ _ (by simp [encBeacon]) $$ Hw
 
 theorem replica.defs.Beacon.Unmarshal.spec_holds : replica.defs.Beacon.Unmarshal.spec (GF := GF) := by
   intro l v0 br rd R
@@ -344,7 +343,7 @@ theorem list5 {α} (d : List α) (h : d.length = 5) : ∃ a0 a1 a2 a3 a4, d = [a
   | [a0, a1, a2, a3, a4], _ => exact ⟨a0, a1, a2, a3, a4, rfl⟩
 
 theorem replica.defs.ProposeReplyTS.Unmarshal.spec_holds :
-    replica.defs.ProposeReplyTS.Unmarshal.spec := by
+    replica.defs.ProposeReplyTS.Unmarshal.spec (GF := GF) := by
   intro l v0 br rd R
   wp_start as ⟨Hown, #Hnext, Hl⟩
   ihave ⟨Hl, %Hnn⟩ := typedPointsto_not_null_dup $$ Hl
@@ -380,7 +379,7 @@ theorem replica.defs.ProposeReplyTS.Unmarshal.spec_holds :
   wp_auto
   wload; wload; wload; wload; wload
   rw [← encoding.binary.leToU32_4 w1]
-  ihave #Hn2 := nextIs_shift I R [w0, w1, w2, w3, w4] ProposeReplyV.enc
+  ihave #Hn2 := nextIs_shift rd R [w0, w1, w2, w3, w4] ProposeReplyV.enc
     (fun p => p.val.length < 2 ^ 16) encValue (fun v => v.length < 2 ^ 16) (fun p ext t hwf hp =>
       ⟨p.val, u64Le p.ts ++ ext, hwf, prefix_skip [w0, w1, w2, w3, w4]
         ([p.ok] ++ u32Le p.cmdId) t _ (by simp [u32Le_length])
@@ -390,14 +389,13 @@ theorem replica.defs.ProposeReplyTS.Unmarshal.spec_holds :
   · iPkgInit
   wp_apply state.Value.Unmarshal.spec_holds _ v0.Value' br rd _
     $$ [$Hst $Hpkg2 $Hown $Hn2 $Value] as %e1 H1
-  icases H1 with (⟨%he1, %v, %hv, Hown, %sl, Value, Hsl⟩ | ⟨%he1, #He1, %d1, Hown, %sl, Value⟩)
+  icases H1 with (⟨%he1, %v, %hv, Hown, %sl, Value, Hsl⟩ | ⟨%he1, %d1, Hown, %sl, Value⟩)
   rotate_left
   · -- an error
     rcases e1 with ei | _
     · wp_auto
       iapply HΦ
       iright
-      iframe He1
       isplitr
       · ipureintro; simp
       iexists _ ++ d1
@@ -415,7 +413,7 @@ theorem replica.defs.ProposeReplyTS.Unmarshal.spec_holds :
     (by simp only [List.length_append, List.length_cons, List.length_drop, List.length_replicate,
       List.length_nil]; rfl) (by simp) (by simp) $$ Hb
   wp_apply wp_ReadAtLeast_br br rd _ _ _ (W64 8) (by simp; decide) $$ [$Hpkg2 $Hown $Hbs]
-    as %n2 %err2 ⟨%d2, %Hd2, Hbs, Hown, #Herr2⟩
+    as %n2 %err2 ⟨%d2, %Hd2, Hbs, Hown⟩
   obtain ⟨-, hdl2, hiff2⟩ := Hd2
   rcases err2 with ei | _
   · -- an error

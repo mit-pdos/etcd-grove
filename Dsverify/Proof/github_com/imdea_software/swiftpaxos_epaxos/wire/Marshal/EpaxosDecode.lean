@@ -69,15 +69,15 @@ theorem cmds_done (cs read : List WCmd) (hwf : ∀ c ∈ cs, cmdWf c) (hrd : ∀
 
 section heap
 open Iris Iris.BI Iris.ProofMode
-attribute [local instance] Dsv.netConnExts Dsv.netConnExtsSemantics Dsv.netConnExtsInterp
-  GooseGlobalGS.gooseInvGS Dsv.netConnExts_has
-variable [GoGlobalContext] [hG : HeapGS .hasLC Dsv.GF] [go.Semantics] [state.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics] [state.Assumptions]
 
 /-- One more decoded command at the end of the decoded slice. -/
 theorem cmds_snoc (vsd : List state.Command) (rdc : List WCmd) (hl : vsd.length = rdc.length)
     (cv : state.Command) (wc : WCmd) :
     (([∗list] k ↦ c ∈ vsd, ∃ wc', ⌜rdc[k]? = some wc'⌝ ∗ cmdOk c wc') ∗ cmdOk cv wc :
-      IProp Dsv.GF) ⊢
+      IProp GF) ⊢
       [∗list] k ↦ c ∈ vsd ++ [cv], ∃ wc', ⌜(rdc ++ [wc])[k]? = some wc'⌝ ∗ cmdOk c wc' := by
   refine (sep_mono ?_ ?_).trans BigSepL.bigSepL_snoc.2
   · apply BigSepL.bigSepL_mono

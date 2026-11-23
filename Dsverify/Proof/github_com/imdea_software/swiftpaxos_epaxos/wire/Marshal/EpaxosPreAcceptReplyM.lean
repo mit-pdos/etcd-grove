@@ -26,7 +26,7 @@ set_option goose.wp.extras true
 
 theorem epaxos.PreAcceptReply.Marshal.wp (l : Loc) (dq dq1 dq2 : DFrac)
     (m : model.PreAcceptReply) :
-    marshalTriple pkgInit_epaxos (l @!! go.GoType.PointerType epaxos.PreAcceptReply.ty @!! go!"Marshal")
+    marshalTriple (pkgInit_epaxos (GF := GF)) (l @!! go.GoType.PointerType epaxos.PreAcceptReply.ty @!! go!"Marshal")
       (ownPreAcceptReply l m dq dq1 dq2) (model.encPreAcceptReply m) := by
   intro bw wr sent pend err
   wp_start as ⟨Hown, HQ, Hl⟩
@@ -182,10 +182,10 @@ theorem epaxos.PreAcceptReply.Marshal.wp (l : Loc) (dq dq1 dq2 : DFrac)
           iexact Hds
         iunfold ownDeps
         iexact Hcds
-      iapply wprog_finish _ _ _ _ _ _ _ _ _ (by simp [encPreAcceptReply, encDeps, hvd, hvc])
+      iapply wprog_finish _ _ _ _ _ _ _ (by simp [encPreAcceptReply, encDeps, hvd, hvc])
         $$ Hw
 
-theorem epaxos.Marshal.spec_preAcceptReply : epaxos.Marshal.spec MsgKind.preAcceptReply := by
+theorem epaxos.Marshal.spec_preAcceptReply : epaxos.Marshal.spec (GF := GF) MsgKind.preAcceptReply := by
   intro l dq dq1 dq2 m hk
   cases m <;> simp [Msg.kind] at hk
   exact epaxos.PreAcceptReply.Marshal.wp l dq dq1 dq2 _

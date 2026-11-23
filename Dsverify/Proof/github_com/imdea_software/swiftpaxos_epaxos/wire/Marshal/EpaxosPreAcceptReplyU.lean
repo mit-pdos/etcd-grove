@@ -49,7 +49,7 @@ variable [epaxos.Assumptions] [bufio.Assumptions] [io.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.preAcceptReply := by
+theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec (GF := GF) MsgKind.preAcceptReply := by
   dsimp only [epaxos.Unmarshal.spec, MsgKind.ty]
   intro l br rd R
   wp_start as ⟨Hown, #Hnext, Hl⟩
@@ -113,21 +113,20 @@ theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.pre
         u32Le p.seq ++ [p.status])
       (by simp [u32Le_length])
       (by simpa only [List.append_assoc, List.cons_append, List.singleton_append] using hp)
-  ihave #Hn1 := nextIs_shift I R [w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19, w20] Msg.body _ varintEnc (fun _ => True)
+  ihave #Hn1 := nextIs_shift rd R [w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19, w20] Msg.body _ varintEnc (fun _ => True)
     (fun m ext t hwf hp => by
       obtain ⟨p, rfl, hd, -⟩ := msg_preAcceptReply m hwf
       exact varint_next _ (by unfold depsWf at hd; omega) _ _ (hdr p t ext hp)) $$ Hnext
   have hrv := epaxos.readVarint.spec_holds (GF := GF)
   unfold epaxos.readVarint.spec at hrv
   wp_apply hrv br rd _ $$ [$Hpkg $Hpkg2 $Hown $Hn1] as %x %err1 H1
-  icases H1 with (⟨%he1, Hown⟩ | ⟨%he1, #He1, %d1, Hown⟩)
+  icases H1 with (⟨%he1, Hown⟩ | ⟨%he1, %d1, Hown⟩)
   rotate_left
   · -- an error
     rcases err1 with ei | _
     · wp_auto
       iapply HΦ
       iright
-      iframe He1
       isplitr
       · ipureintro; simp
       iexists _ ++ d1
@@ -142,7 +141,8 @@ theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.pre
     · exact absurd rfl he1
   subst he1
   rw [List.append_assoc]
-  ihave ⟨Hown, %Hp1⟩ := nextIs_read br rd R (_ ++ varintEnc x) Msg.body _ $$ [$Hnext $Hown]
+  ihave ⟨Hown, Hp1⟩ := nextIs_read br rd R (_ ++ varintEnc x) Msg.body _ $$ [$Hnext $Hown]
+  imod Hp1 with %Hp1
   obtain ⟨nd, hnd, hxn⟩ : ∃ nd : Nat, nd < 2 ^ 62 ∧ x = W64 (nd : Int) := by
     obtain ⟨m, ext, hwf, hp⟩ := Hp1
     obtain ⟨p, rfl, hd, -⟩ := msg_preAcceptReply m hwf
@@ -191,7 +191,7 @@ theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.pre
     ihave ⟨%L4, %hL4, Hbs, Hback2⟩ := arrBytes_slice b_ptr (W64 4) (W64 21) 4 rfl (by decide)
       (by decide) $$ Harr
     wp_apply wp_ReadAtLeast_br br rd _ _ _ (W64 4) (by rw [hL4]; exact Int.le_refl _)
-      $$ [$Hpkg2 $Hown $Hbs] as %n5 %err5 ⟨%y4, %Hd5, Hbs, Hown, #Herr5⟩
+      $$ [$Hpkg2 $Hown $Hbs] as %n5 %err5 ⟨%y4, %Hd5, Hbs, Hown⟩
     obtain ⟨-, hdl5, hiff5⟩ := Hd5
     rcases err5 with ei | _
     · -- an error
@@ -260,7 +260,7 @@ theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.pre
       intro p u ext hd hp
       obtain ⟨hn', hu⟩ := hafter p _ ext hd hp
       exact deps_done p.deps rdd (by omega) _ _ hu
-    ihave #Hn3 := nextIs_shift I R ([w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19, w20] ++ (varintEnc (W64 (nd : Int)) ++ (rdd.map u32Le).flatten))
+    ihave #Hn3 := nextIs_shift rd R ([w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19, w20] ++ (varintEnc (W64 (nd : Int)) ++ (rdd.map u32Le).flatten))
       Msg.body _ varintEnc (fun _ => True) (fun m ext t hwf hp => by
         obtain ⟨p, rfl, hd, hcd⟩ := msg_preAcceptReply m hwf
         have h2 := hafter2 p t ext hd (by simpa only [List.append_assoc] using hp)
@@ -268,14 +268,13 @@ theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.pre
           ((p.committedDeps.map u32Le).flatten ++ ext) h2) $$ Hnext
     simp only [List.append_assoc] at *
     wp_apply hrv br rd _ $$ [$Hpkg $Hpkg2 $Hown $Hn3] as %y %err4 H4
-    icases H4 with (⟨%he4, Hown⟩ | ⟨%he4, #He4, %d4, Hown⟩)
+    icases H4 with (⟨%he4, Hown⟩ | ⟨%he4, %d4, Hown⟩)
     rotate_left
     · -- an error
       rcases err4 with ei | _
       · wp_auto
         iapply HΦ
         iright
-        iframe He4
         isplitr
         · ipureintro; simp
         iexists [w0, w1, w2, w3, w4, w5, w6, w7, w8', w9, w10, w11, w12, w13, w14, w15, w16, w17, w18, w19, w20] ++ (varintEnc (W64 (nd : Int)) ++ ((rdd.map u32Le).flatten ++ d4))
@@ -291,7 +290,8 @@ theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.pre
       · exact absurd rfl he4
     subst he4
     rw [List.append_assoc R]
-    ihave ⟨Hown, %Hp4⟩ := nextIs_read br rd R _ Msg.body _ $$ [$Hnext $Hown]
+    ihave ⟨Hown, Hp4⟩ := nextIs_read br rd R _ Msg.body _ $$ [$Hnext $Hown]
+    imod Hp4 with %Hp4
     obtain ⟨nc, hnc, hync⟩ : ∃ nc : Nat, nc < 2 ^ 62 ∧ y = W64 (nc : Int) := by
       obtain ⟨m, ext, hwf, hp⟩ := Hp4
       obtain ⟨p, rfl, hd, hcd⟩ := msg_preAcceptReply m hwf
@@ -332,7 +332,7 @@ theorem epaxos.Unmarshal.spec_preAcceptReply : epaxos.Unmarshal.spec MsgKind.pre
       simp only [ite_true]
       wp_auto
       wp_apply wp_ReadAtLeast_br br rd _ _ _ (W64 4) (by rw [hLl]; exact Int.le_refl _)
-        $$ [$Hpkg2 $Hown $Hbs] as %n5 %err5 ⟨%y4, %Hd5, Hbs, Hown, #Herr5⟩
+        $$ [$Hpkg2 $Hown $Hbs] as %n5 %err5 ⟨%y4, %Hd5, Hbs, Hown⟩
       obtain ⟨-, hdl5, hiff5⟩ := Hd5
       rcases err5 with ei | _
       · -- an error
