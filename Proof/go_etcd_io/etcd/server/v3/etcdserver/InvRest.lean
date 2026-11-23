@@ -621,11 +621,11 @@ per key, which `Recover`'s loop dereferences), every `members_removed` key a mem
 member and are the static cluster's (those of `bootOk`'s `Members()` contract, with the directory's
 peer URLs), none removed, and the cluster version is one `MustDetectDowngrade` accepts for this
 server (no downgrade); (2026-10-25, the user's decision) the members it decodes to are `ms`
-(`c.members` after `UnsafeLoad`, each as the record its JSON unmarshals to, `clusterMem`'s);
-(prove-ps2-bootstage1, 2026-11-23, #34 stage 1, the plan's "widened `clusterImageOk`") and, if `c`'s
-version is set (`c.version` not nil: its lock's version slot, `rcVerSlot`, at `1`), `cluster` holds a
-version (so `Recover` keeps the slot, never loading nil once the version is known). True of the
-images the axiom `clusterImageOk_restModel` claims it of: a fresh cluster's (`c0 = 0`, every
+(`c.members` after `UnsafeLoad`, each as the record its JSON unmarshals to, `clusterMem`'s).
+**Widened** (prove-ps2-bootstage1, 2026-11-23, #34 stage 1, D2; stage 5 removes it with the
+`Recover` axiom): the `cluster` bucket holds a version whenever `c.version` is set (its lock's
+version slot, `rcVerSlot`, at `1`), so `Recover` keeps the slot, never loading nil once the
+version is known. True of the images the axiom `clusterImageOk_restModel` claims it of: a fresh cluster's (`c0 = 0`, every
 `ClusterVersionSet` applied with `shouldApplyV3`), where the cluster's version came from a
 `ClusterVersionSet` of the applied log `L` (`SetVersion`, which saves it) or from an earlier image's
 `cluster` bucket, and `restModel` keeps the saved version along `L <+: L'` (no entry deletes it). -/
