@@ -126,7 +126,6 @@ theorem wp_setState (c s : Loc) (nc : GoInterface) (st : w64)
     imodintro
     wp_auto
     iapply HΦ; iexists _; iexact Hst)
-  all_goals sorry
 
 /-- `bw.Available()` of a writer holding nothing: its buffer's size. -/
 theorem wp_rawAvailable [bufio.Assumptions] (bw : Loc) (sz : Nat) :
