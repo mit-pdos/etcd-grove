@@ -284,13 +284,34 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
      credit (`wp_apply (lc := 1)`, `lc_fupd_elim_later`); NewReader/NewWriter on the conn as above.
    These sections need `[field_sem : net.FieldAssumptions]` (as paxos's): a section variable, so a
    premise of the statement, like paxos's.
-   **Next (in this order):** `New` (ported, errors: `fwFresh`/instance binders), `Dial` (ported, not checked:
-   dial by `Net/`'s `Dial.spec` and `dial_au`), `WaitPeers`, `ConnectGhost`, `Connect` (`Listen.spec_addrOk`
-   via `listen_au` from `clientInvs`' `addrProto`), `Link`. The untracked `replica/{New,Dial,ConnectGhost}.lean`
-   are raw `port.py` output. Then (2) `Interface/{RpcPure,Rpc,MasterSpec,Servers}` over models-rpc-server
+   - `replica/New` (the store's assumptions as section binders; the lab's `addrTok` premise dropped);
+     **`replica.defs`' package fact is now `LatencyConf ↦□ ""`** (`Base.lean`; gen-init `finish` step in
+     `etc/dsv/epaxos.py`; `gen-init.py --check` passes), read by `New`.
+   - `replica/Dial` (`serveConnDial`, as ServeConn), `replica/WaitPeers` (`Listen.spec_addrOk
+     Listen.wp_proof` with `listen_au` from the address's `addrProto`, `addrTok_ok`/`addrProto_tok` for
+     the valid address; **`waitForPeerConnections.specX` no longer takes `addrTok`**; the loop keeps
+     `netLis`; Accept as WaitClients), `replica/ConnectGhost` (port output, checks).
+   **Next (in this order):** `replica/Connect` (565 lines; untracked raw `port.py` output in the tree, 2
+   errors at first): `lisRes_not_null` → `bufio.ownBufReader_not_null` (dsv-bufio-laws) on `lisRes`'s
+   `rdOwn`; `hWP` loses its `addrTok` (`Htok` in `fwStart`: check what `fwStartDef` still carries);
+   the dial by `Net/`'s `Dial.spec` (or `DialTimeout`) with `dial_au` (`GooseLang/Ext/Net/Proto.lean`
+   l.1190; paxos's `NetProof.lean` dials the same way); the handshake `conn.Write(b[:4])` by
+   `net.Conn.Write.wp_proof` with `write_acc`/`writeP` (Proto.lean l.962-1018) or through
+   `conn_streamWriterOk`'s contract; `NewReader`/`NewWriter` on the dialer's end (side `false`) as in
+   ServeConn (`connRd`/`connWr` with `repDialP_ppc`); `slotConn`/`lisRes` now carry `t la ra ed eof`
+   (from `isConn` and `replica_net_errs`). Then `Link` (the lab's 117 lines: collects the replica's
+   `spec_holds`; new premises: `TCPAddrStringHyp`, `[net.FieldAssumptions]`).
+   Then (2) `Interface/{RpcPure,Rpc,MasterSpec,Servers}` over models-rpc-server
    (decode guards: `callfix.txt`/`srvfix.txt` in the coordinator's scratchpad) and `RpcHttpHyp`; (3) the
    epaxos code proofs (`Epaxos/Proof/epaxos`, 71 files, 24k lines) and the codec; (4) the model proof,
    mains, `epaxos_remote_robust`, TCB baseline.
+   Recipes that recur (for the rest of the port): a bufio reader/writer built by a spec with `_`
+   arguments comes back in unfolded form (`ownBufReader … (prIface pr) … (prI …)`), one taken from a
+   loop invariant in `rdOwn`/`wrOwn` form; lemmas need both forms (`connRd_fact`/`connRd_fact'`,
+   `rd_clientU`/`rd_client`), framing between them by `simp only [rdOwn, wrOwn, connRd, connWr, prRd]`
+   first. `wp_auto` stops at float64 ops (`wp_float64_*`) and leaves `if decide True = true then …`
+   after a method resolution on an interface (`try simp only [decide_true, ↓reduceIte]`). The type
+   inequalities NewReader/NewWriter ask: `unfold X.ty Y.ty; simp` after `go.GoType.PointerType.injEq`.
    - **port.py** has three layers: `conv` (renames), `generic_conv` (every port: section headers,
      `(GF := GF)` on spec statements, spec hypotheses `(hP : X.spec)` and `have h := thm γ …`,
      `Dsv.` names, unseal equations, `clientN` → `epEop` masks, `[net.model.Assumptions]` →
