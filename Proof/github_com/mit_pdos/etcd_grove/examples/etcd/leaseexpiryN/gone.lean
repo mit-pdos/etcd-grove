@@ -61,7 +61,7 @@ theorem gone.wp_proof
     · iframe #
       isplitl; rotate_left; · ipureintro; exact hAs
       imodintro; inext
-      iunfold etcdLeaseLeasesSpecLive
+      iunfold etcdLeaseLeasesSpecLive, etcdLeaseLeasesSpecLiveW
       iexists m
       iframe Hlb
       iintro %r Hr
