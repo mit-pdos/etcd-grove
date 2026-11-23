@@ -18,6 +18,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.Bufio
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.ConnIo
 public import Net.Proof.net.Conn__Write
@@ -190,6 +191,44 @@ theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
   rw [htake]
   iframe Hb HJ
   iapply errOrNil_werrAt $$ He
+
+/-- The lab's `net.TCPConn.Write.spec` (`Harness/Spec/net/TCPConn__Write.lean`; its error code
+dropped: no caller here uses it), from `Net/`'s `Conn.Write` and `write_acc`. -/
+theorem _root_.Perennial.net.TCPConn.Write.labProof (c : Loc) (cid : Nat) (side : Bool)
+    (b : GoSlice) (bs : List w8) (dq : DFrac) (P : Proto GF) (W : List w8) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ net.ownTCPConn (GF := GF) c cid side ∗
+        sendTok (Gg := hG.goose_globalGS) cid side P W ∗ □ P cid (W ++ bs) ∗ b ↦*{dq} bs }}
+      (App (Val (c @!! go.GoType.PointerType net.TCPConn.ty @!! go!"Write")) (Val #b))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+        ∃ k : Nat, ⌜n = W64 k ∧ k ≤ bs.length ∧ (err = interface.nil → k = bs.length)⌝ ∗
+        b ↦*{dq} bs ∗ sendTok (Gg := hG.goose_globalGS) cid side P (W ++ bs.take k) }} := by
+  iintro %Φ ⟨#Hpkg, #Hc, HJ, #HQ, Hb⟩ HΦ
+  icases net_facts $$ Hpkg with ⟨%eof, %ed, -, -, #Hed⟩
+  iunfold net.ownTCPConn at Hc
+  icases Hc with ⟨%a, %la, %ra, #Hat, -⟩
+  ihave HJ0 := writeP_init cid side P W $$ HJ
+  ihave #Hacc := write_acc cid side P W bs $$ HQ
+  iapply net.Conn.Write.wp_proof c cid side a la ra b bs dq ed (writeP cid side P W)
+    $$ [HJ0 Hb]
+  · iframe Hat Hb Hed HJ0 Hacc
+  iintro !> %n %err ⟨%w, %res, HJ, Hb, %Hw, #HE⟩
+  obtain ⟨hpre, rfl, hnone, -⟩ := Hw
+  unfold writeP
+  ihave %Hres := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
+  have hk2 : w.length ≤ bs.length ∧ (err = interface.nil → w.length = bs.length) := by
+    refine ⟨hpre.length_le, fun herr => ?_⟩
+    cases res with
+    | none => rw [hnone rfl]
+    | some k => exact absurd herr (net.netErr_ne_nil (Hres.2 (by simp)))
+  have htake : bs.take w.length = w := by
+    obtain ⟨rs, rfl⟩ := hpre; simp
+  iapply HΦ
+  iexists w.length
+  isplitr
+  · ipureintro
+    exact ⟨by simp, hk2.1, hk2.2⟩
+  rw [htake]
+  iframe Hb HJ
 
 end proofs
 

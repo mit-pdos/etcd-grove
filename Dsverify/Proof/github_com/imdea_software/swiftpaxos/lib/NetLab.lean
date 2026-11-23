@@ -13,7 +13,7 @@ The lab's `net` vocabulary the replica's and the master's transport specs name (
 * `net.newConnResult op side Pout Pin cv err`: a new end with its tokens, or an error (an
   `*OpError`; the lab's also said `cv = nil`, which `Net/`'s specs do not).
 * Lab-shaped specs proved from `Net/`'s (named `*.labProof`, as `Net/` owns `*.wp_proof`):
-  `net.DialTimeout.labProof`, `net.TCPConn.Close.labProof`, `net.TCPConn.RemoteAddr.labProof`.
+  `net.DialTimeout.labProof`, `net.Dial.labProof`, `net.TCPConn.Close.labProof`, `net.TCPConn.RemoteAddr.labProof`.
 * `nodeIp ip`: the lab's node-IP fact (its harness gave each node an IP and wildcard `Listen`s took
   it). **Port change**: `Net/` has no node IP (any machine may listen at any valid address, D6,
   D20, D21; every node here is on loopback), so it is `True`; what the lab derived from it (the
@@ -25,6 +25,7 @@ module
 public import Net.Proof.net.Base
 public import GooseLang.Ext.Net.Proto
 public import Net.Proof.net.DialTimeout
+public import Net.Proof.net.Dial
 public import Net.Proof.net.Listen
 public import Net.Proof.net.Listener__Accept
 public import Net.Proof.net.Conn__Close
@@ -149,6 +150,50 @@ theorem net.DialTimeout.labProof (a : GoString) (d : w64) (P Q : Proto GF) :
   · iright
     ihave %Hn := net.opErr_netErr _ _ _ _ _ $$ Herr
     obtain ⟨pe, rfl⟩ := Hn
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    ipureintro; exact ⟨pe, rfl⟩
+
+/-- The lab's `net.Dial.spec` (`"tcp"`), from `Net/`'s and `dial_au`. -/
+theorem net.Dial.labProof (a : GoString) (P Q : Proto GF) :
+    {{ addrProto (Gg := hG.goose_globalGS) a P Q }}
+      (App (App (Val (@! net.Dial)) (Val #(go!"tcp"))) (Val #a))
+    {{ (cv err : GoInterface), RET (PairV #cv #err);
+        net.newConnResult go!"dial" false P Q cv err }} := by
+  iintro %Φ #Ha HΦ
+  ihave %Hok := addrTok_ok a $$ [Ha]
+  · iapply addrProto_tok $$ Ha
+  iapply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp a iprop(True)
+    (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false P Q [] [] ∗
+      connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
+  · isplitr
+    · ipureintro; exact Hok
+    isplit
+    · itrivial
+    · iapply dial_au a P Q $$ Ha
+  iintro !> %cv %err Hres
+  iapply HΦ
+  unfold net.newConnResult
+  icases Hres with (⟨%Herr, %cn, #Hc, Hend, Hfr⟩ | ⟨-, %x, -, #Herr⟩)
+  · subst Herr
+    unfold net.isConn
+    icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
+    ileft
+    iexists t, cn
+    isplitr
+    · ipureintro; exact ⟨Hct, rfl⟩
+    ihave #Hcs : connIs (Gg := hG.goose_globalGS) cn $$ [Hend]
+    · iunfold connEnd at Hend
+      icases Hend with ⟨Hs, -⟩
+      iapply sendTok_connIs $$ Hs
+    iframe Hend Hfr
+    unfold net.ownTCPConn
+    iexists a, la, ra
+    iframe Hca Hcs
+  · iright
+    ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hn.2 (by simp)
     iexists _
     isplitr
     · ipureintro; rfl

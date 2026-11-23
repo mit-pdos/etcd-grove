@@ -37,7 +37,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [net.rpc.Assumptions]
   [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [strings.Assumptions] [encoding.binary.Assumptions]
 
@@ -76,7 +76,7 @@ theorem replica.Replica.ConnectToPeers.wp_proof
     %alsl, %latsl, %ewsl, %l, %cwm, %lats, %ews, %al, #Hinv, #Hlg, #Hq, #HN, #HId, #HCfg,
     #Hplain, #HRPC, #Htbl, #HtOk, #HPC, #Hpcbag, #HSd, #HLR, #HDt, #HAlias, #HAL, #Hl, #HPs, Hps,
     #HPR, Hpr, #HPW, Hpw, #HAl, Hal, #HLat, Hlat, #HEw, Hew, #HCW, Hcw, HM, HLis, Hpc, %Hpure,
-    Htok, #Hip, #Haps⟩
+    #Hlp, #Haps⟩
   obtain ⟨hla, hmem, hpre, hme0, hmeN, hN7, hlN, hall, hlats, hews⟩ := Hpure
   have hamem : a ∈ replicaAddrs := List.elem_iff.1 (by simpa using hmem)
   ihave #Hap := bigSepL_mem (Φ := fun a' => addrProto a' (sp.inP γ γc γm) (sp.outQ γ γc γm))
@@ -108,9 +108,9 @@ theorem replica.Replica.ConnectToPeers.wp_proof
   imod start_bag (fun _ : Bool => replica.acceptSt r γ γc γm N me a pssl prsl pwsl alsl) _ dch γd
     trivial $$ Hdch Hdown with #Hdone
   try wp_auto
-  wp_apply wp_fork $$ [HLis Hpc Htok Hhi]
+  wp_apply wp_fork $$ [HLis Hpc Hhi]
   · wp_apply wp_wait r γ γc γm N me asl l a ip lg pssl prsl pwsl alsl _ _ dch γd
-      $$ [$HLis $Hpc $Htok $Hlg $Hq $HN $HId $HAL $Hl $HPs $HPR $HPW $HAl $Hap $Hip $Hdone Hhi]
+      $$ [$HLis $Hpc $Hlg $Hq $HN $HId $HAL $Hl $HPs $HPR $HPW $HAl $Hlp $Hdone Hhi]
     · isplitr
       · ipureintro
         refine ⟨rfl, hla, hmem, hpre, hme0, hmeN, hN7, hlN, ?_, ?_, ?_, ?_⟩ <;> omega
@@ -164,11 +164,13 @@ theorem replica.Replica.ConnectToPeers.wp_proof
     rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨hiv0, by omega⟩)]
     wp_apply wp_load_slice_index _ _ _ _ a' hiv0 $$ [Hl] as -
     · iframe Hl; ipureintro; exact ha'
-    wp_apply net.Dial.wp_proof a' (sp.inP γ γc γm) (sp.outQ γ γc γm) $$ [$Hap'] as %cv %er Hres
+    wp_apply net.Dial.labProof a' (sp.inP γ γc γm) (sp.outQ γ γc γm) $$ [$Hap'] as %cv %er Hres
     unfold net.newConnResult
-    icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, #Hown, ⟨Hsend, Hrecv⟩, Hfresh⟩ |
-      ⟨%ie, ⟨%Hcv, %Her⟩, Herr⟩)
+    icases Hres with (⟨%c, %cid, ⟨%Hcv, %Her⟩, #Hown, Hend, Hfresh⟩ |
+      ⟨%ie, %Her, %Herr⟩)
     · subst Hcv Her
+      iunfold connEnd at Hend
+      icases Hend with ⟨Hsend, Hrecv⟩
       try wp_auto
       rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨hiv0, by omega⟩)]
       try wp_auto
@@ -214,9 +216,9 @@ theorem replica.Replica.ConnectToPeers.wp_proof
       try wp_auto
       ihave Hhello' : (□ sp.inP γ γc γm cid ([] ++ sp.helloBytes me) : IProp netDistGF) $$ []
       · imodintro; rw [List.nil_append]; iexact Hhello
-      wp_apply net.TCPConn.Write.wp_proof c cid false _ (sp.helloBytes me) _ (sp.inP γ γc γm) []
-        $$ [$Hpkg3 $Hown $Hsend $Hhello' $Hsl] as %nw %ew ⟨%k5, %code, %Hw, Hsl, Hsend, Herrw⟩
-      obtain ⟨hnw, hk5, herrw, hnil⟩ := Hw
+      wp_apply net.TCPConn.Write.labProof c cid false _ (sp.helloBytes me) _ (sp.inP γ γc γm) []
+        $$ [$Hpkg3 $Hown $Hsend $Hhello' $Hsl] as %nw %ew ⟨%k5, %Hw, Hsl, Hsend⟩
+      obtain ⟨hnw, hk5, hnil⟩ := Hw
       try wp_auto
       have hiv1 : (sint.Z (iv + W64 1)).toNat = (sint.Z iv).toNat + 1 := by
         have : sint.Z me = me.toInt := rfl
@@ -266,7 +268,10 @@ theorem replica.Replica.ConnectToPeers.wp_proof
         try wp_auto
         ihave #Hci : net.rpc.connIface (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c)
           cid false $$ []
-        · unfold net.rpc.connIface; iexists c; iframe Hown; ipureintro; rfl
+        · ihave #Hown' := Hown
+          iunfold net.ownTCPConn at Hown'
+          icases Hown' with ⟨%a0, %la0, %ra0, #Hat0, #Hcs0⟩
+          unfold net.rpc.connIface; iexists c, a0, la0, ra0; iframe Hat0 Hcs0; ipureintro; rfl
         ihave #Hrdok := bufio.readerOk_conn _ cid false (sp.outQ γ γc γm) $$ [$Hpkg3 $Hci]
         ihave Hrecv := recvTok_L _ _ _ _ $$ Hrecv
         wp_apply bufio.wp_NewReader _ _ [] $$ [$Hpkg2 $Hrdok $Hrecv] as %br Hrd
@@ -326,7 +331,7 @@ theorem replica.Replica.ConnectToPeers.wp_proof
           · ipureintro; exact ⟨by simp [sp.WrKind.head, sp.framesOf], by simp⟩
           · iapply (BigSepL.bigSepL_nil_intro (P := iprop(True))); itrivial
         · iexact Hlo
-    · subst Hcv Her
+    · subst Her
       try wp_auto
       wp_apply time.wp_Sleep
       wp_for_post
@@ -473,12 +478,17 @@ theorem replica.Replica.ConnectToPeers.wp_proof
         rw [hjz]; iexact Hew1
       itrivial
     nextIt
+  try rw [if_pos (by first
+    | simp [Hif]
+    | (have h : ¬ (sint.Z j < sint.Z prsl.len) := fun h => Hif (by simp [h])
+       simp [h]))]
+  try wp_auto
   iapply HΦ
   iexists γw
   iframe Hrep
   unfold replica.serveSt
   iexists lv, pcsl, pcs, al
-  iframe HLis Hlis Hap Hpc Hpcs Hpok HAlias
+  iframe HLis Hlis Hlp Hpc Hpcs Hpok HAlias
 
 end proof
 
