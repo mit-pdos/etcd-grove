@@ -39,7 +39,10 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "metadataFromOutgoingContextRaw",
   # (phase 7 S2 core, 2026-11-23) `createHeaderFields`' helpers of the model's `model_http_util.go`
   # (grpc-go's `http_util.go`): `isReservedHeader`, `encodeMetadataHeader` (`-bin` values in base64)
-  "isReservedHeader", "encodeMetadataHeader", "encodeBinHeader", "binHdrSuffix"]
+  "isReservedHeader", "encodeMetadataHeader", "encodeBinHeader", "binHdrSuffix",
+  # (phase 7 S2 core, 2026-11-23) the head's fields (`model_transport.go`, grpc-go's
+  # `http2Client.createHeaderFields`)
+  "createHeaderFields"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated

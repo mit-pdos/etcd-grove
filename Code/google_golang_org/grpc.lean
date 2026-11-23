@@ -152,6 +152,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   isReservedHeader_unfold : FuncUnfold isReservedHeader [] isReservedHeader.impl
   encodeBinHeader_unfold : FuncUnfold encodeBinHeader [] encodeBinHeader.impl
   encodeMetadataHeader_unfold : FuncUnfold encodeMetadataHeader [] encodeMetadataHeader.impl
+  createHeaderFields_unfold : FuncUnfold createHeaderFields [] createHeaderFields.impl
   headerListTooLarge_unfold : FuncUnfold headerListTooLarge [] headerListTooLarge.impl
   appendOversizedBlock_unfold : FuncUnfold appendOversizedBlock [] appendOversizedBlock.impl
   appendHeaderBlock_unfold : FuncUnfold appendHeaderBlock [] appendHeaderBlock.impl
@@ -323,6 +324,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.isReservedHeader_unfold
   Assumptions.encodeBinHeader_unfold
   Assumptions.encodeMetadataHeader_unfold
+  Assumptions.createHeaderFields_unfold
   Assumptions.headerListTooLarge_unfold
   Assumptions.appendOversizedBlock_unfold
   Assumptions.appendHeaderBlock_unfold
