@@ -195,6 +195,13 @@ builds `isRaftCluster`, whose lock invariant stage 1 changes.
   (`SnapApply*`, `apply/Contracts`) do not move. No other clause of `bootOk`/`bootOkR` changes.
 - **I4.** `rcLockInv`'s other fields (members `memAt` half, `rcLocalIn`, `removed` empty) stay as they
   are. Stage 2 relies on them.
+- **I5 (agreed with proving session 2, 2026-11-23, its option (b)).** After stage 1 lands, stage 2 (this
+  claim) gives the lock invariant a pure property `K` of the members' values: `rcLockInv c K`
+  carries `⌜K mem⌝` beside `memAt c ½ ms mem`, and today's `isRaftCluster c` is the instance
+  `K := fun _ => True`. Bootstrap's instance says the domain is `bootGo.ps` and each member has its
+  own id with peer URLs `bootGo.dir`. `AddMember` (a boot member re-added, `ccApplyOk`) and
+  `UpdateAttributes` (name and client URLs only) keep it. It is what `bootOk`'s `Hmembers` needs of
+  `Members()`.
 
 ### 7.2 Go's values (a defs module `Proof/…/etcdserver/BootValues.lean`, written in stage 3)
 
