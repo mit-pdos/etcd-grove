@@ -370,8 +370,59 @@ reference to a skipped variable) and specs of `credentials`, `grpcutil`, `string
   `isReservedHeader`, `strconv.Itoa` (Perennial's), `strings.{TrimSuffix, ToLower}` (Perennial's and the
   repository's).
 
-Next: the remaining callees above, then `createHeaderFields`, `newClientTransportStream`, the stream's
-`Write`/`reader`.
+**Built in the session's fourth part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **`metadataFromOutgoingContextRaw`, translated and proved.** grpc's `internal` is translated names-only
+  but `FromOutgoingContextRaw` (`Code/google_golang_org/grpc/internal.toml`: its other initialized
+  variables `[[skip]]`s, literals; `translate_types`: two `axiomatized type` instances, `HealthChecker`,
+  which names the untranslated `connectivity`); `metadata`'s `init` and `fromOutgoingContextRaw` with
+  their bodies. The cell is another package's (allocated by `internal`, written by `metadata`'s `init`,
+  read by grpc's initializer) and a package fact is persistent, so it lives in `internal`'s fact
+  `internalInit` (`cache/v3/Base.lean`), an invariant with two states: *held* (the cell, a counter
+  `γS` past `0` only with `fromOutRawAny` in it, the whole ghost variable `γI`) and *lent* (a package
+  state `ownGoState σ`, exclusive, and half of `γI` at `σ`). A package initializer takes the cell out by
+  lending its package state, does its plain (non-atomic) load or store, and puts it back
+  (`Proof/google_golang_org/grpc/internal/FromOutRaw.lean`: `fromOutRaw_alloc`, `fromOutRaw_acc`,
+  `wp_store_fromOutRaw`, `wp_load_fromOutRaw`). `metadata`'s fact `metadataInit` (until then `True`) is
+  the invariant with the counter's lower bound `1`. `etc/gen-init.py`: `SPECIAL` entries for `internal`
+  (the invariant's allocation), `metadata` (the translated `init`'s store) and grpc's
+  `metadataFromOutgoingContextRaw` (the load, then the type assertion and the store into a `GoFunc`
+  cell). The trust-boundary axiom `metadata.initFuncsOk` is gone (`etc/tcb-baseline.txt`,
+  `tcb-collections/mvccfull.txt` edited by hand: no full build was run). grpc's `wp_initialize'_lb`
+  reaches, as before, grpc's own `initFuncsOk`/`opaqueInitsOk`, `status.Error.wp_proof`,
+  `codes.initFuncsOk`, `credentials.opaqueInitsOk`. `grpcInit` still says nothing of the new variables.
+- **A grpc-model rewrite (trusted, for review):** `createHeaderFields`' audience takes the method's last
+  `/` with a backwards byte loop (`MODEL:`) in place of `strings.LastIndex` (names-only in Perennial), as
+  `net/rpc/server.go` does; `internal/grpcdifftest`'s `TestPerRPCCredsAudience` (new: with and without a
+  `:443` suffix, against grpc-go and the model); `run.sh` green; `models/README.md`.
+- **`createHeaderFields`' callees translated with their bodies:** `internal/grpcutil` (new;
+  `RegisteredCompressorNames`, whose fact `grpcutilInit` is the nil slice for good, `IsCompressorNameRegistered`,
+  `RegisteredCompressors`, `ContentType`, `EncodeDuration`, `div`), `internal/metadata` (new;
+  `ValidatePair`, `ValidateKey`, `hasNotPrintable`), `internal/status.IsRestrictedControlPlaneCode`,
+  `credentials.NewContextWithRequestInfo`, and the model's `isReservedHeader`, `encodeMetadataHeader`,
+  `encodeBinHeader`; grpc imports `strings`, `strconv`, `encoding/base64` (so `cache/v3/Base` imports
+  base64's fact), `grpcutil`, `internal/metadata`. Their vocabulary: `HeaderFields.lean` (`reservedHdr`,
+  `contentTypeOf`, `keyOk`/`pairOk`, `restrictedCodes`).
+- **Proved** (Lean's three axioms; not linked: no grpc `Link` yet): `grpc.isReservedHeader`,
+  `grpcutil.ContentType`, `grpcutil.IsCompressorNameRegistered` (`false`), `grpcutil.RegisteredCompressors`
+  (`""`, over Perennial's `strings.Join.spec`), `istatus.IsRestrictedControlPlaneCode` (over
+  `status.Status.Code.spec`, the existing trust boundary).
+- **Left, with what each needs:** `ValidatePair` (Perennial's `fmt.Errorf` spec covers its `%q`:
+  `wp_Errorf_argsWf`); `EncodeDuration` (Perennial's `strconv.FormatInt`); `encodeMetadataHeader`
+  (`base64.RawStdEncoding.EncodeToString`: base64's fact `base64Init` has `StdEncoding` and
+  `RawURLEncoding` only, so it gains a `rawStdEncInit` part, proved in base64's generated `Init` as
+  `rawUrlEncInit` is: a change to base64's fact); `NewContextWithRequestInfo` (`context.WithValue`'s
+  spec, `Spec/context/WithValue.lean`, lists the key types it accepts; `requestInfoKey` is not one:
+  extending it changes that trusted statement, left for review).
+- **Found (for the head's spec, not a bug):** per-RPC credentials may return a pseudo-header key
+  (`ValidateKey` skips keys starting with `:`), which `createHeaderFields` appends after the real
+  `:path`. grpc-go's HTTP/2 server refuses a pseudo-header after a regular one (a stream error); the
+  model's server takes the last `:path` (`pathOf`), an over-approximation the claim allows. The client
+  attempt's spec therefore needs the credentials' keys not to be pseudo-headers (etcd's token
+  credentials return `token` only): a premise from the credentials' contract (`connCredsOk`).
+
+Next: the four callees left above, then `createHeaderFields`, `newClientTransportStream`, the stream's
+`Write`/`reader`; `grpcInit` gains, once, what the client proof needs (`metadataFromOutgoingContextRaw`
+holding `fromOutgoingContextRaw`, `errStreamDone` non-nil, `transportFailureCodes`' contents).
 
 ### 1. The vocabulary
 
