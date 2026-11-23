@@ -292,5 +292,162 @@ theorem wp_config (wp_Split : strings.Split.spec (GF := GF) (hG := hG))
 
 end config
 
+/-! ## The server machine -/
+
+section server
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : raxos.examples.quepaxanet.Assumptions]
+variable [π : NetProtoGS] [ρ : RemoteGS] [qv : hyp.QpVocab GF]
+variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [_root_.Perennial.io.Assumptions] [strings.Assumptions]
+
+attribute [local instance] HeapGS.goose_globalGS
+
+local notation "kpkg" => pkg_id.raxos.examples.quepaxanet
+
+set_option goose.wp.extras true
+
+theorem srv_idx (k : w64) (csl : GoSlice) (hk : 1 ≤ uint.nat k ∧ uint.nat k ≤ 5)
+    (Hcl : cfgAddrsL.length = sint.nat csl.len ∧ 0 ≤ sint.Z csl.len) :
+    0 ≤ sint.Z (W64 6 + k) ∧ sint.Z (W64 6 + k) < sint.Z csl.len := by
+  have : cfgAddrsL.length = 12 := rfl
+  obtain ⟨h1, h2⟩ := Hcl
+  have h3 : ((sint.nat csl.len : Nat) : Int) = sint.Z csl.len := Int.toNat_of_nonneg h2
+  have h4 : sint.Z (W64 6 + k) = 6 + uint.nat k := by word
+  omega
+
+theorem kn_le (k : w64) (c : QConf) (hc : c.ok) (h : uint.Z k ≤ uint.Z (W64 (c.n : Int))) :
+    uint.nat k ≤ c.n := by
+  have : c.n ≤ 5 := by rcases hc.1 with h | h <;> omega
+  word
+
+omit π ρ qv in
+/-- `registerProto()`: nothing. -/
+theorem wp_registerProto :
+    {{ isPkgInit (PROP := IProp GF) kpkg }}
+      (App (Val (@! raxos.examples.quepaxanet.registerProto)) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start
+  wp_end
+
+/-- A new bag channel of capacity 1. -/
+theorem wp_make_bag1 {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
+    {t : go.GoType} [IntoValTyped (GF := GF) V t] (P : V → IProp GF) :
+    {{ (True : IProp GF) }}
+      (App (Val #(functions go.make2 [go.GoType.ChannelType go.ChanDir.sendrecv t]))
+        (Val #(W64 1)))
+    {{ (ch : Loc), RET #ch; ∃ γc, isChanBag γc ch P }} := by
+  iintro %Φ - HΦ
+  iapply wp_fupd
+  wp_apply (chan.wp_make2 (V := V) (W64 1)) as %ch %γc ⟨#Hch, -, Hoc⟩
+  · ipureintro; word
+  have Hs : match (if (W64 1) = W64 0 then ChanState.Idle else ChanState.Buffered ([] : List V)) with
+      | .Idle | .Buffered [] => True | _ => False := by
+    rw [if_neg (by decide)]; trivial
+  imod start_bag P _ ch γc Hs $$ Hch Hoc with #Hbag
+  imodintro
+  iapply HΦ
+  iexists γc; iexact Hbag
+
+/-- The replica's share from the server's and the configuration's. -/
+theorem replicaRes_of (γ : QNames) (c : QConf) (k : Nat) (hc : c.ok) (hk : 1 ≤ k ∧ k ≤ c.n) :
+    serverRes (GF := GF) γ k ∗ confIs γ c ⊢ replicaRes γ c k := by
+  unfold serverRes sharedRes
+  iintro ⟨⟨Htok, Hrec, Hfr, #Hsh⟩, #Hconf⟩
+  icases Hsh with ⟨#Hc, #Hs, #Hn, #Hb, #Hsp⟩
+  unfold replicaRes
+  isplitr
+  · ipureintro; exact ⟨hc, hk⟩
+  iframe
+  iframe Hconf Hc Hs Hn Hb Hsp
+
+/-- **`Server(k)`**: the configuration, then replica `k` if `k ≤ c.n`; it never returns. -/
+theorem Server.wp_proof
+    (wp_Split : strings.Split.spec (GF := GF) (hG := hG))
+    (wp_New : raxos.New.spec (GF := GF) (hG := hG))
+    (wp_NI : raxos.Server.NetworkInit.spec (GF := GF) (hG := hG))
+    (wp_SP : raxos.Server.StartProposers.spec (GF := GF) (hG := hG))
+    (wp_Run : raxos.Server.Run.spec (GF := GF) (hG := hG))
+    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
+    (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (wp_ReadFull : raxos.ioLt.ReadFull.spec (GF := GF) (hG := hG)) :
+    Server.spec (GF := GF) (hG := hG) := by
+  intro γ k hk
+  wp_start as Hres
+  wp_auto
+  wp_apply wp_Addrs as %asl Hasl
+  wp_apply wp_RecAddrs as %rsl Hrsl
+  wp_apply wp_CfgAddrs as %csl Hcsl
+  iapply fupd_wp
+  imod ownSlice_persist _ _ _ $$ Hasl with #Hasl
+  imod ownSlice_persist _ _ _ $$ Hrsl with #Hrsl
+  imod ownSlice_persist _ _ _ $$ Hcsl with #Hcsl
+  imodintro
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply (wp_make_bag1 (confP γ)) as %ch ⟨%γc, #Hch⟩
+  have hk' : (sint.Z (W64 6 + k)).toNat = 6 + uint.nat k := by word
+  ihave %Hcl := ownSlice_len _ _ _ $$ Hcsl
+  have hidx : 0 ≤ sint.Z (W64 6 + k) ∧ sint.Z (W64 6 + k) < sint.Z csl.len :=
+    srv_idx k csl hk Hcl
+  rw [ite_t hidx]
+  wp_apply wp_load_slice_index csl (sint.Z (W64 6 + k)) cfgAddrsL _ (portAddr (7640 + (6 + uint.nat k)))
+    hidx.1 $$ [Hcsl] as -
+  · iframe Hcsl; ipureintro; rw [hk']; exact cfgAddrsL_get _ (by omega)
+  unfold serverRes
+  icases Hres with ⟨Htok, Hrec, Hfr, #Hsh⟩
+  ihave #Hpr := confProto_of_shared γ (6 + uint.nat k) (by omega) $$ Hsh
+  wp_apply wp_fork $$ []
+  · wp_apply wp_awaitConf_of wp_Listen wp_Accept wp_Read wp_Write wp_Close wp_ReadFull γ _ ch γc
+      $$ [$Hpkg $Hpr $Hch]
+    itrivial
+  wp_apply (wp_bag_receive γc ch (confP γ)) $$ [$Hch] as %v Hv
+  unfold confP
+  icases Hv with ⟨%c, ⟨%Hv, %hc⟩, #Hconf⟩
+  subst Hv
+  wp_auto
+  wp_if_destruct
+  · have hkn : uint.nat k ≤ c.n := kn_le k c hc Hif
+    wp_apply wp_registerProto
+    have hn : c.n = 3 ∨ c.n = 5 := hc.1
+    wp_apply wp_config wp_Split c.n hn asl rsl $$ [$Hasl $Hrsl] as %cfg ⟨%cv, #Hcfg, #Hcv⟩
+    have hkw : k = W64 (uint.nat k : Int) := by word
+    rw [show (LogPath : val) = #(go!"/tmp/quepaxa-net/") from rfl]
+    ihave Hrr := replicaRes_of γ c (uint.nat k) hc ⟨hk.1, hkn⟩ $$ [Htok Hrec Hfr]
+    · unfold serverRes; iframe Htok Hrec Hfr Hsh Hconf
+    have hNew := wp_New γ c (uint.nat k) cfg cv go!"/tmp/quepaxa-net/"
+    simp only [callV, List.foldl_cons, List.foldl_nil] at hNew
+    rw [← hkw] at hNew
+    wp_apply hNew $$ [$Hcfg $Hcv $Hrr] as %srv Hsrv
+    ihave #Hsrc : isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src $$ []
+    · iPkgInit
+    wp_apply wp_NI γ c (uint.nat k) srv $$ [$Hsrc $Hsrv] as Hsrv
+    wp_apply wp_SP γ c (uint.nat k) srv $$ [$Hsrc $Hsrv] as Hsrv
+    wp_apply wp_Run γ c (uint.nat k) srv $$ [$Hsrc $Hsrv]
+    ihave HT : (True : IProp GF) $$ []
+    · itrivial
+    wp_for HT
+    (try rw [if_pos (by simp)])
+    (try wp_auto)
+    wp_apply time.wp_Sleep
+    wp_for_post
+    iframe
+  · ihave HT : (True : IProp GF) $$ []
+    · itrivial
+    wp_for HT
+    (try rw [if_pos (by simp)])
+    (try wp_auto)
+    wp_apply time.wp_Sleep
+    wp_for_post
+    iframe
+
+end server
+
 end raxos.examples.quepaxanet
 end Perennial
