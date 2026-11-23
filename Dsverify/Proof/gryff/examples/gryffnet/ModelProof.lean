@@ -618,9 +618,9 @@ theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []
       (App (App (App (Val (@! gryff.examples.gryffnet.step)) (Val #(State.mk sl))) (Val #i))
         (Val #o))
     {{ (ok : Bool) (s' : State), RET (PairV #ok #s'); ∃ (sl' : GoSlice) (cs' : List Cfg)
-        (L' : List GCfg), ⌜s' = State.mk sl' ∧ stepRes L i o ok L' ∧
+        (L' : List GCfg) (dq : DFrac), ⌜s' = State.mk sl' ∧ stepRes L i o ok L' ∧
           (ok = true → L' ≠ [] ∧ ∀ x ∈ L', x.pend.length ≤ k + 1)⌝ ∗
-        sl' ↦*□ cs' ∗ cfgsOk cs' L' }} := by
+        sl' ↦*{dq} cs' ∗ cfgsOk cs' L' }} := by
   wp_start as ⟨#Hsl, #Hcs⟩
   ihave %Hl := ownSlice_len _ _ _ $$ Hsl
   ihave %HcsL : ⌜cs.length = L.length⌝ $$ []
@@ -635,7 +635,7 @@ theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []
     · simp only [Bool.not_false]
       wp_auto
       iapply HΦ
-      iexists sl, cs, L
+      iexists sl, cs, L, DfracDiscarded
       iframe #
       ipureintro
       refine ⟨rfl, ?_, fun _ => ⟨hne, fun x hx => by have := hL x hx; omega⟩⟩
@@ -643,7 +643,84 @@ theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []
       simp only [hu, ↓reduceIte, H, hw, Bool.false_eq_true]
     · simp only [Bool.not_true]
       wp_auto
-      sorry
+      wp_apply (wp_slice_make3 (V := Cfg) (W64 0) sl.len (by word)) as %q0 ⟨Hq, Hcap, -⟩
+      rw [List.replicate_zero]
+      let f : GCfg → GCfg := fun x => ⟨x.st, x.pend ++ [i]⟩
+      irename «in» => Hin
+      ihave HI : (∃ (j : w64) (q : GoSlice) (cs2 : List Cfg), "i" ∷ i_ptr ↦ j ∗ "cs" ∷ cs_ptr ↦ q ∗
+          "Hq" ∷ q ↦* cs2 ∗ "Hcap" ∷ ownSliceCap Cfg q (DFrac.own 1) ∗
+          "#Hcs2" ∷ cfgsOk cs2 ((L.take (sint.nat j)).map f) ∗
+          "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len⌝ : IProp GF) $$ [i cs Hq Hcap]
+      · iexists W64 0, q0, []
+        have h0 : sint.nat (W64 0) = 0 := rfl
+        rw [h0]
+        simp only [List.take_zero, List.map_nil]
+        iframe
+        isplitl []
+        · iapply cfgsOk_nil
+        ipureintro
+        refine ⟨by word, by word⟩
+      wp_for HI
+      obtain ⟨Hj0, Hjl⟩ := Hj
+      wp_if_destruct
+      · have hlt : sint.Z j < sint.Z sl.len := Hif
+        have hjL : sint.nat j < L.length := by rw [← HcsL, Hl.1]; word
+        obtain ⟨xc, Hx_lookup⟩ : ∃ x, cs[sint.nat j]? = some x :=
+          ⟨cs[sint.nat j]'(by rw [Hl.1]; word), List.getElem?_eq_getElem _⟩
+        ihave ⟨%xg, %Hxg, #Hx⟩ := cfgsOk_get cs L (sint.nat j) xc Hx_lookup $$ Hcs
+        ihave #Hel : (sliceIndexRef Cfg (sint.Z j) sl ↦□ xc : IProp GF) $$ []
+        · ihave ⟨H1, -⟩ := ownSlice_elem_acc (sint.Z j) xc sl _ cs Hj0 Hx_lookup $$ Hsl
+          iexact H1
+        icases (Cfg.Cfg_access_load_V _ xc _).access_strict $$ Hel with ⟨#HelV, -⟩
+        icases (Cfg.Cfg_access_load_Pend _ xc _).access_strict $$ Hel with ⟨#HelP, -⟩
+        rw [ite_eq_left (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len from ⟨Hj0, hlt⟩)]
+        wp_auto
+        rw [ite_eq_left (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len from ⟨Hj0, hlt⟩)]
+        wp_auto
+        unfold cfgOk
+        icases Hx with ⟨%HxV, #HxP⟩
+        have hxg : xg ∈ L := List.mem_of_getElem? Hxg
+        wp_apply +noauto wp_with xc.Pend' xg.pend i (by have := hL xg hxg; omega) $$ [$HxP] as %qp Hqp
+        iapply fupd_wp
+        imod ownSlice_persist _ _ _ $$ Hqp with #Hqp
+        imodintro
+        wp_auto
+        wp_apply wp_slice_literal (V := Cfg) [_]
+        isplitr
+        · ipureintro; rfl
+        iintro %sl1 ⟨Hsl1, -⟩
+        wp_auto
+        wp_apply wp_slice_append (V := Cfg) $$ [$Hq $Hcap $Hsl1] as %q' ⟨Hq', Hcap', -⟩
+        ihave #Hy : cfgOk (Cfg.mk xc.V' qp) (f xg) $$ []
+        · unfold cfgOk
+          isplitr
+          · ipureintro; exact HxV
+          iexact Hqp
+        ihave #Hcs3 := cfgsOk_snoc cs2 _ _ _ $$ [$Hcs2 $Hy]
+        wp_for_post
+        iframe
+        iexists j + W64 1, q', _
+        iframe
+        have hs : sint.nat (j + W64 1) = sint.nat j + 1 := by word
+        rw [hs, List.take_add_one, Hxg, Option.toList_some, List.map_append, List.map_singleton]
+        iframe #
+        ipureintro
+        refine ⟨by word, by word⟩
+      · have hjL : sint.nat j = L.length := by
+          have h1 := Hjl; rw [← HcsL, Hl.1]; word
+        rw [hjL, List.take_length]
+        iapply HΦ
+        iexists _, cs2, L.map f, _
+        iframe Hq
+        iframe #
+        ipureintro
+        refine ⟨rfl, ?_, fun _ => ⟨by simpa using hne, fun x hx => ?_⟩⟩
+        · unfold stepRes
+          simp only [hu, ↓reduceIte, H, hw]
+          rfl
+        · obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+          have := hL y hy
+          simp [f]; omega
 
 end proof
 
