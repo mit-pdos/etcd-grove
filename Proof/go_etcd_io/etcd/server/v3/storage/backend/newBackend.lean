@@ -16,7 +16,6 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Panic
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewAlloc
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.MutexLit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 public import Perennial.ProgramLogic.Bounds
 public import Spec.go_etcd_io.bbolt.Open

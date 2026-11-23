@@ -10,6 +10,10 @@ imports = ["!*"]
 # their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
 # translated code, so no verified code reads them; each reason says why not running the
 # initializer is unobservable.
+# (etcd-grove#32, 2026-11-22) the `init` function trusted: a model that does nothing
+# (TrustedCode/k8s_io/component_base/metrics.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]
+
 [[skip]]
 names = ["DefBuckets", "noopCounterVec", "noopHistogramVec", "noopTimingHistogramVec",
   "noopGaugeVec", "noop", "disabledMetrics", "labelValueAllowLists", "defObjectives",

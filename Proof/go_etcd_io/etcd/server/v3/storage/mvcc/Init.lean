@@ -44,6 +44,7 @@ public import Perennial.Proof.context.NewErrorString
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.NewVarCell
 public import Perennial.Proof.sync.RWMutexGuard
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

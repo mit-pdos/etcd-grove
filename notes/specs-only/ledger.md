@@ -25,6 +25,22 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: `errors.IsCtxErr` takes `isPkgInit context` (errors-is-axioms, #31)
+
+- **Spec.** `errors.IsCtxErr.spec` (`Spec/errors/IsCtxErr.lean`); no spec-plan counterpart.
+- **Defect.** Unprovable once it is no longer an axiom: the precondition pins `err` (`context.isCtxErr`)
+  but gives of `target` only the cell it was read from (`Canceled` or `DeadlineExceeded`). When the two
+  come from different variables, nothing says what `target` holds, and Go's `err == target` (which `Is`
+  runs first) needs `target`'s type comparable (`errors.ComparableTarget`, perennial#677).
+- **Evidence.** The proof over `errors.wp_Is` (perennial#677): `ComparableTarget (· = err) target` for an
+  unknown `target`.
+- **Proposed change.** Add `isPkgInit pkg_id.context` to the precondition: with it, `target` is a context's
+  error too (`context.isCtxErr_of_Canceled`/`_of_DeadlineExceeded`), a `*errorString` or
+  `deadlineExceededError{}`, both comparable. The four callers (`parseProposeCtxErr`, `PromoteMember`,
+  `LeaseRenew`, `watchServer.Watch`) have it. The post is unchanged.
+- **Decision.** Accepted (internal: a premise every caller holds; the spec stops being a trust boundary,
+  the axiom `errors.IsCtxErr.wp_proof` is retired), upamanyus-agent 2026-11-22.
+
 ## 2026-11-22: `FollowerStats.Succ` takes the stats' mutex (prove-ps2-succ)
 
 - **Spec.** `v2stats.FollowerStats.Succ.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a
@@ -4658,6 +4674,27 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above (a stronger post).
 - **Decision.** Applied.
 
+## 2026-11-22: prometheus's `NewGauge` returns a representation, not method triples (prove-ps2-metrics)
+
+- **Spec.** `prometheus.NewGauge.spec`'s post: `metric.gaugeSpec g ∗ metric.gaugeSetSpec g` becomes
+  `metric.isGauge g` (a `*gauge` whose `valBits` is in an invariant, `MetricRep.lean`). `GaugeVec.WithLabelValues.spec`'s
+  post gains `metric.isGauge gi` (additive, before the slice's points-to: every caller's pattern ends in `-`).
+  `mvccInit` gains `totalEventsCounter`'s `counterSpec` and `pendingEventsGauge`'s `isGauge` (in its last
+  conjunct); `membershipInit` gains `isLearner`'s `gaugeSetSpec` and `knownPeers`' label names (two conjuncts
+  at the end: `PromoteMember`'s and `ValidateConfigurationChange`'s patterns gain a `-`).
+- **Defect.** None false: the posts claimed the methods' behaviour (trusted), and lacked what `Sub` (on
+  `pendingEventsGauge`) and the vector gauge's `Set` (`knownPeers`) need, so `ReportEventReceived`,
+  `setIsLearnerMetric` and `updateMembershipMetric` stayed axioms.
+- **Evidence.** client_golang v1.24.1: `NewGauge` and `GaugeVec`'s `newMetric` return `&gauge{...}`,
+  and `valBits` is only accessed through `sync/atomic`. The methods (`gauge.{Set,Add,Sub,Inc,Dec}`) are
+  translated and proved over their bodies; `metric.gaugeSpec_of_isGauge`, `gaugeSetSpec_of_isGauge`
+  (`MetricLaws.lean`) recover the old claims, applied by `etc/gen-init.py`'s `metric_steps`. (`NewCounter`
+  unchanged: `counter`'s struct needs `timestamppb` translated, whose names-only initializer would add two
+  trust-boundary axioms, more than `counter.Add`/`Inc`'s proofs would remove.)
+- **Proposed change.** As above; agreed with kaashoek's prom-registry on #15 (2026-11-22).
+- **Decision.** Applied. Trust: the constructors' axioms claim less (a representation instead of method
+  triples); three etcd axioms retired, two added (`client_model/go`'s `opaqueInitsOk`/`initFuncsOk`: the
+  package now imported for `gauge`'s `labelPairs`): net -1.
 ## 2026-11-22: bbolt's `(*Options).String` takes the package's `isPkgInit` (ps2 misc2)
 
 - **Spec.** `Options.String.spec` (`Spec/go_etcd_io/bbolt/Options__String.lean`): the pre gains
@@ -4799,3 +4836,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `MustDeleteMemberFromBackend`'s spec has no caller that instantiates it (`applyConfChange` takes it unused).
 - **Decision.** Applied: the two contract clauses approved by the user (2026-11-22, relayed by proving session 2);
   the intermediate premises under the approved ownership-premise rule (2026-11-21).
+
+## 2026-11-23: `clientCodec.ReadResponseHeader.spec` bounds the header it read; `Client.send.spec` and `callRes` take the call's `Error` at `nil` (net/rpc model)
+
+- **Spec.** `Net/Spec/net/rpc/clientCodec__ReadResponseHeader.lean`: the success case's pure part gains
+  `(respHdr seq sm e).length ≤ maxFrameN` (as `ReadResponseBody`'s `pl.length ≤ maxFrameN`).
+  `Net/Spec/net/rpc/Client__send.lean`: the pre's `structFieldRef Call "Error" pc ↦ e0` (any `e0`, a parameter)
+  becomes `↦ interface.nil`; `callRes` (`Net/Proof/net/rpc/ClientDefs.lean`, a pending call in `mutex`'s
+  invariant) likewise holds `Error ↦ interface.nil` (its `∃ e0` dropped).
+- **Defect.** Found proving `Client.input`. (1) To identify the answer a header heads (`ans_next`, `respHdr_inj`)
+  the reader needs the header's strings shorter than `2 ^ 62`; the spec gave no bound on what was read. (2) For a
+  successful reply `input` calls `call.done()` without writing `call.Error`, so the outcome `done` carries is the
+  field's old value; `callPost`'s `nil` case needs it `nil`, which an arbitrary `e0` does not give.
+- **Evidence.** `Net/Proof/net/rpc/Client__input.lean` (`hdr_match`; the default case of the switch).
+- **Why true of the code.** (1) `readFrame` refuses a frame over `maxFrameN` (its spec already says so), and the
+  header is that frame's payload (`ReadResponseHeader`'s proof: `pl = respHdr ...`). (2) `Go` makes the call with
+  `new(Call)`, `Error` `nil` (`Client.Go`'s proof passes the zero value); only `send`'s failure path and `input`
+  write it, each after removing the entry from `pending`.
+- **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
+- **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).

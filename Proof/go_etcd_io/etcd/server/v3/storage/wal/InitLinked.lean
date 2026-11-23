@@ -33,6 +33,10 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Inc
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Dec
 public import Proof.github_com.prometheus.client_golang.prometheus.MustRegister
 public import Proof.runtime.PkgInitExt
 
@@ -172,7 +176,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     unfold EtcdGrove.wal.histSpec
     iexact CwalWriteSec
   -- translated initializer of walWriteBytes))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwalWriteBytes ⟨#CwalWriteBytes, #DwalWriteBytes, %NwalWriteBytes⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cwalWriteBytes ⟨#RwalWriteBytes, %NwalWriteBytes⟩
+  ihave #CwalWriteBytes : (EtcdGrove.prometheus.metric.gaugeSpec cwalWriteBytes : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals iassumption
+  ihave #DwalWriteBytes : (EtcdGrove.prometheus.metric.gaugeSetSpec cwalWriteBytes : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals iassumption
   try wp_auto
   ihave #EwalWriteBytes : (EtcdGrove.wal.gaugeAddSpec cwalWriteBytes : IProp GF) $$ []
   · iunfold EtcdGrove.prometheus.metric.gaugeSpec at CwalWriteBytes
@@ -181,17 +191,17 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iexact K
   -- translated initializer of errBadWALName))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW #EBW
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBW ⟨#_, #EBW⟩
   try wp_auto
   -- translated initializer of SegmentSizeBytes))
   -- translated initializer of openWALFilesFn))
   -- translated initializer of ErrMetadataConflict))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xMC #EMC
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xMC ⟨#_, #EMC⟩
   try wp_auto
   -- translated initializer of ErrFileNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFN #EFN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xFN ⟨#_, #EFN⟩
   try wp_auto
   -- translated initializer of ErrCRCMismatch))
   try wp_auto
@@ -201,19 +211,19 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   -- translated initializer of ErrSnapshotMismatch))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSM #ESM
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSM ⟨#_, #ESM⟩
   try wp_auto
   -- translated initializer of ErrSnapshotNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSN #ESN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSN ⟨#_, #ESN⟩
   try wp_auto
   -- translated initializer of ErrSliceOutOfRange))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSO #ESO
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xSO ⟨#_, #ESO⟩
   try wp_auto
   -- translated initializer of ErrDecoderNotFound))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xDN #EDN
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xDN ⟨#_, #EDN⟩
   try wp_auto
   -- translated initializer of crcTable))
   try wp_auto
@@ -223,7 +233,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of MaxSaveBatchBytes))
   -- translated initializer of ErrSaveBatchTooLarge))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL #EBL
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xBL ⟨#_, #EBL⟩
   try wp_auto
   -- the translated init.«0»
   wp_func_call

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.component_base.metrics
 
 @[expose] public section
 
@@ -1801,6 +1802,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Gatherer_instance : Gatherer.TypeAssumptions
   Registerer_instance : Registerer.TypeAssumptions
   GaugeFunc_instance : GaugeFunc.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.StableCollector_instance
   Assumptions.BaseStableCollector_instance
@@ -1856,6 +1858,7 @@ attribute [instance] Assumptions.StableCollector_instance
   Assumptions.Gatherer_instance
   Assumptions.Registerer_instance
   Assumptions.GaugeFunc_instance
+  Assumptions.«init.0_unfold»
 
 end k8s_io.component_base.metrics
 

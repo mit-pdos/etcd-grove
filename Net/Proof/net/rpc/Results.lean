@@ -8,12 +8,19 @@ reached by these).
 * the wire's helpers: `putU64`, `getU64`, `putString`, `putFrame`, `getString`;
 * the reads: `readFull` (gob's `recvMessage` errors: `io.EOF` between frames,
   `io.ErrUnexpectedEOF` within one, the connection's `*OpError`), `readFrame`, and the client
-  codec's `ReadResponseHeader` (a frame of `respHdr seq sm e`, or `errFrame`, or a read error);
+  codec's `ReadResponseHeader` (a frame of `respHdr seq sm e`, or `errFrame`, or a read error) and
+  `ReadResponseBody` (a frame, decoded into the body unless it is `nil`);
+* the client codec's `WriteRequest` (the sticky error, or `reqWire` written through the library's
+  `sendTok`) and `Close`;
 * the codec registry: `SetCodec`, `getCodec` (`Codec.lean`: `CodecSpec`, `codecIs`, `codecSet`).
 
-Not yet stated (the plan note, phase 5.2, lists what remains): the codecs' other methods, the
-Client (`Call`, `Go`, `Close`, `NewClient`, `Dial`, `DialHTTP(Path)`), the Server (`Register(Name)`,
-`ServeConn`/`ServeCodec`, `ServeHTTP`, `HandleHTTP`) and the generated `Codec`'s `Receiver`.
+* the client (`ClientDefs.lean`, over the protocol `Proto.lean`): `newClientCodec`, `Call.done`,
+  `Client.Close`, `Client.send`, `Client.Go`, `Client.Call` (dsverify-lab's statement), the reader
+  `Client.input`, and `NewClientWithCodec`, `NewClient`, `Dial` (`net.Dial`'s proof).
+
+Not yet stated (the plan note, phase 5.2, lists what remains): the server
+codec's methods, `DialHTTP(Path)`, the Server (`Register(Name)`, `ServeConn`/`ServeCodec`,
+`ServeHTTP`, `HandleHTTP`) and the generated `Codec`'s `Receiver`.
 -/
 module
 
@@ -27,6 +34,22 @@ public import Net.Proof.net.rpc.readFrame
 public import Net.Proof.net.rpc.getCodec
 public import Net.Proof.net.rpc.SetCodec
 public import Net.Proof.net.rpc.clientCodec__ReadResponseHeader
+public import Net.Proof.net.rpc.clientCodec__ReadResponseBody
+public import Net.Proof.net.rpc.clientCodec__WriteRequest
+public import Net.Proof.net.rpc.clientCodec__Close
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.rpc.Call__done
+public import Net.Proof.net.rpc.Client__Close
+public import Net.Proof.net.rpc.Client__send
+public import Net.Proof.net.rpc.Client__Go
+public import Net.Proof.net.rpc.Client__Call
+public import Net.Proof.net.rpc.newClientCodec
+public import Net.Proof.net.rpc.Client__input
+public import Net.Proof.net.rpc.NewClientWithCodec
+public import Net.Proof.net.rpc.NewClient
+public import Net.Proof.net.rpc.Dial
+public import Net.Proof.net.Dial
+public import Net.Proof.net.Conn__Close
 public import Net.Proof.net.Conn__Read
 public import Perennial.Proof.sync.Link
 
@@ -75,7 +98,61 @@ theorem readFrame.wp : readFrame.spec (GF := GF) (hG := hG) :=
 theorem clientCodec.ReadResponseHeader.wp : clientCodec.ReadResponseHeader.spec (GF := GF) (hG := hG) :=
   clientCodec.ReadResponseHeader.wp_proof readFrame.wp getU64.wp_proof getString.wp
 
+theorem clientCodec.ReadResponseBody.wp [sync.Assumptions] :
+    clientCodec.ReadResponseBody.spec (GF := GF) (hG := hG) :=
+  clientCodec.ReadResponseBody.wp_proof readFrame.wp getCodec.wp
+
+theorem clientCodec.WriteRequest.wp [sync.Assumptions] [NetProtoGS] :
+    clientCodec.WriteRequest.spec (GF := GF) (hG := hG) :=
+  clientCodec.WriteRequest.wp_proof getCodec.wp putU64.wp_proof putString.wp putFrame.wp
+    net.Conn.Write.wp_proof
+
+theorem clientCodec.Close.wp : clientCodec.Close.spec (GF := GF) (hG := hG) :=
+  clientCodec.Close.wp_proof net.Conn.Close.wp_proof
+
+theorem newClientCodec.wp : newClientCodec.spec (GF := GF) (hG := hG) := newClientCodec.wp_proof
+
 end results
+
+section client
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [net.rpc.Assumptions]
+variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [sync.Assumptions] [NetProtoGS]
+
+theorem Call.done.wp : Call.done.spec (GF := GF) (hG := hG) := Call.done.wp_proof
+
+theorem Client.Close.wp : Client.Close.spec (GF := GF) (hG := hG) :=
+  Client.Close.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.Close.wp
+
+theorem Client.send.wp : Client.send.spec (GF := GF) (hG := hG) :=
+  Client.send.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.WriteRequest.wp
+    Call.done.wp
+
+theorem Client.Go.wp : Client.Go.spec (GF := GF) (hG := hG) := Client.Go.wp_proof Client.send.wp
+
+theorem Client.Call.wp : Client.Call.spec (GF := GF) (hG := hG) := Client.Call.wp_proof Client.Go.wp
+
+theorem Client.input.wp [errors.Assumptions] : Client.input.spec (GF := GF) (hG := hG) :=
+  Client.input.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.ReadResponseHeader.wp
+    clientCodec.ReadResponseBody.wp Call.done.wp
+
+theorem NewClientWithCodec.wp [errors.Assumptions] : NewClientWithCodec.spec (GF := GF) (hG := hG) :=
+  NewClientWithCodec.wp_proof Client.input.wp
+
+theorem NewClient.wp [errors.Assumptions] : NewClient.spec (GF := GF) (hG := hG) :=
+  NewClient.wp_proof newClientCodec.wp NewClientWithCodec.wp
+
+theorem Dial.wp [errors.Assumptions] : Dial.spec (GF := GF) (hG := hG) :=
+  Dial.wp_proof net.Dial.wp_proof NewClient.wp
+
+end client
+
+section results'
+
+end results'
 
 end net.rpc
 end Perennial
@@ -90,3 +167,16 @@ end Perennial
 #print axioms Perennial.net.rpc.readFull.wp
 #print axioms Perennial.net.rpc.readFrame.wp
 #print axioms Perennial.net.rpc.clientCodec.ReadResponseHeader.wp
+#print axioms Perennial.net.rpc.clientCodec.ReadResponseBody.wp
+#print axioms Perennial.net.rpc.clientCodec.WriteRequest.wp
+#print axioms Perennial.net.rpc.clientCodec.Close.wp
+#print axioms Perennial.net.rpc.newClientCodec.wp
+#print axioms Perennial.net.rpc.Call.done.wp
+#print axioms Perennial.net.rpc.Client.Close.wp
+#print axioms Perennial.net.rpc.Client.send.wp
+#print axioms Perennial.net.rpc.Client.Go.wp
+#print axioms Perennial.net.rpc.Client.Call.wp
+#print axioms Perennial.net.rpc.Client.input.wp
+#print axioms Perennial.net.rpc.NewClientWithCodec.wp
+#print axioms Perennial.net.rpc.NewClient.wp
+#print axioms Perennial.net.rpc.Dial.wp

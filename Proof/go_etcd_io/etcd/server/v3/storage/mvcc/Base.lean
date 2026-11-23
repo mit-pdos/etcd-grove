@@ -39,6 +39,7 @@ public import Perennial.Proof.strings
 public import Perennial.Proof.io
 public import Proof.hash.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricRep
 
 @[expose] public section
 
@@ -192,7 +193,9 @@ metrics reporters' locks (`reportVar`), which `setupMetricsReporter` takes to se
 (mvccfull's Freeze, 2026-11-10: `errVars.law`) `ErrWatcherNotExist` as the `errors.New` error it is,
 and the message cells of `ErrEmptyWatcherRange` and `ErrWatcherNotExist` (as `ErrCompacted`'s and
 `ErrFutureRev`'s), so that the four error variables a client compares with are apart: one conjunct,
-the last, so that every pattern ending in `-` is unchanged. -/
+the last, so that every pattern ending in `-` is unchanged; and (prove-ps2-metrics, 2026-11-22), in
+that last conjunct, `ReportEventReceived`'s two metrics: the counter `totalEventsCounter` and the
+gauge `pendingEventsGauge` as the `*gauge` it is (`metric.isGauge`, for its proved `Sub`). -/
 abbrev mvccInit : IProp GF :=
   iprop((∃ e : GoInterfaceOk, globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e) ∗
     (∃ e : GoInterfaceOk, globalAddr ErrCompacted ↦□ GoInterface.ok e) ∗
@@ -241,7 +244,10 @@ abbrev mvccInit : IProp GF :=
     reportVar reportCompactRevMu reportCompactRev ∗
     (EtcdGrove.errorsNewVar ErrWatcherNotExist go!"mvcc: watcher does not exist" ∗
       EtcdGrove.errVarCell ErrEmptyWatcherRange go!"mvcc: watcher range is empty" ∗
-      EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist"))
+      EtcdGrove.errVarCell ErrWatcherNotExist go!"mvcc: watcher does not exist" ∗
+      (∃ c : GoInterfaceOk, globalAddr totalEventsCounter ↦□ GoInterface.ok c ∗ counterSpec c) ∗
+      (∃ g : GoInterfaceOk, globalAddr pendingEventsGauge ↦□ GoInterface.ok g ∗
+        EtcdGrove.prometheus.metric.isGauge g)))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc :=
   define_is_pkg_init mvccInit

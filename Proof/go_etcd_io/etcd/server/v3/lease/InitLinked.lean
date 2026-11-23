@@ -26,6 +26,10 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Inc
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Dec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec

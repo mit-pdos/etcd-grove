@@ -557,6 +557,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Record_instance : Record.TypeAssumptions
   Snapshot_instance : Snapshot.TypeAssumptions
   ValidateSnapshotForWrite_unfold : FuncUnfold ValidateSnapshotForWrite [] ValidateSnapshotForWrite.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
@@ -567,6 +568,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 attribute [instance] Assumptions.Record_instance
   Assumptions.Snapshot_instance
   Assumptions.ValidateSnapshotForWrite_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_proto_Assumption

@@ -3,6 +3,7 @@ module
 
 public import Code.github_com.go_logr.logr
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.klog.v2
 
 @[expose] public section
 
@@ -1286,6 +1287,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Verbose_instance : Verbose.TypeAssumptions
   LogFilter_instance : LogFilter.TypeAssumptions
   klogger_instance : klogger.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
   import_logr_Assumption : _root_.Perennial.github_com.go_logr.logr.Assumptions
 
 attribute [instance] Assumptions.LoggerOption_instance
@@ -1312,6 +1315,8 @@ attribute [instance] Assumptions.LoggerOption_instance
   Assumptions.Verbose_instance
   Assumptions.LogFilter_instance
   Assumptions.klogger_instance
+  Assumptions.«init.0_unfold»
+  Assumptions.«init.1_unfold»
   Assumptions.import_logr_Assumption
 
 end k8s_io.klog.v2

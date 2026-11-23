@@ -63,7 +63,8 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
     wp_auto
     -- `errors.Is(nil, ErrLeaseNotFound)`: `false` (an empty tree; `err` nil)
     wp_apply hIs (· = GoInterface.nil) (fun _ _ => True) (fun _ _ => True) GoInterface.nil
-        (GoInterface.ok eNF) hpt (fun _ _ h _ _ => by cases h) $$ [] as %b ⟨%Hb1, -⟩
+        (GoInterface.ok eNF)
+        (_root_.Perennial.errors.comparableTarget_pointer _ _ hpt (fun _ _ h _ _ => by cases h)) $$ [] as %b ⟨%Hb1, -⟩
     · isplitr
       · iintro !> %ii %h; cases h
       ipureintro; rfl
@@ -121,7 +122,8 @@ theorem v3rpc.LeaseServer.LeaseLeases.wp_proof
       ihave #HTr := applyErrIs_walk _ $$ Hae
       ihave ⟨%S', %I', %U', #Htree, %HS⟩ := HTr $$ %(GoInterface.ok eNF)
       -- `if err != nil && !errors.Is(err, lease.ErrLeaseNotFound)`
-      wp_apply hIs S' I' U' (GoInterface.ok ei) (GoInterface.ok eNF) hpt (HS.2.1 hpt) $$ []
+      wp_apply hIs S' I' U' (GoInterface.ok ei) (GoInterface.ok eNF)
+        (_root_.Perennial.errors.comparableTarget_pointer _ _ hpt (HS.2.1 hpt)) $$ []
         as %b1 ⟨-, %Hw1⟩
       · iframe #; ipureintro; exact HS.1
       cases b1 with
