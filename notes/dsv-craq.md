@@ -5,7 +5,7 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, ~05:00 UTC):** the Go and its translation are done and tested;
+**State in one line (2026-11-23, second agent: see P4 for the current state; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -167,27 +167,39 @@ the shared piece lands; none is an axiom.
   `step` on the decoded answer, `Kit.lean`'s `decAns`) is, and the next set is bracketed by `goStep`'s
   next state. Values are bounded (`Str8`, < 256 bytes: `encStr`'s length byte), so the store `kvB` is
   over `St = GoString → Option Str8`; `Kit.lean`'s `lift` maps it to the protocol's `KvM.State`.
-- **P4. Next steps** (2026-11-23; the coordinator's order: H4/server hypotheses true and named
-  after Net's shapes (done, `HttpRpc.lean`), then prove H5 (the generated codec's lemmas,
-  `Codec.lean`'s `CodecLaws`, rpc_gen.go's `rpcEncode`/`rpcDecode`), then ModelProof, KitProof,
-  Mains/TopLevel with the hypotheses as visible premises): (1) `ModelProof.lean` (started: `wp_pushPend` done, paxos's
-  `wp_push` with `V := pend`; for `findPend`, paxos's `wp_has` does not carry over as is: the loop
-  condition's `Hif` is `#(decide (i < len)) = #true` (`of_decide_eq_true (go.intoVal_inj Hif)`), the
-  test `p[i].K == k && p[i].V == v` loads the element's **fields** through `sliceIndexRef`
-  (`StructFieldRef pend.ty`), so it needs the field-load lemma of a slice element, not
-  `wp_load_slice_index`; `pend` has no `DecidableEq`: state the result as `b = true ↔ pend.mk k v ∈
-  P` with the first index (`pend.mk k v ∉ P.take i`), which `erasePend`'s `List.erase` needs): kit.go's `copyMap`, `set`, `pushPend`,
-  `findPend`, `erasePend`, `step` (= `goStep` of `decAns`, over `kvRep`), `Model` (`isModel kvS`,
-  `Equal` trivially), as paxos's `ModelProof.lean` (maps: `wp_map_for_range`, `wp_map_lookup2`,
-  `wp_map_insert`, `ownMap mp DFrac.discard`); (2) `KitProof.lean`: `Codec` (`codecOk (kvR γ)`),
-  `Gen`, `digit`, `Sys.end`, `readAt`, `op` (put: `isCoordClient`'s `Write` with `opAU` from
-  `lin_opAU`; get: `isNodeClient`'s `Read` with `opAU` from the read's `□ lin`; `errNotFound` is
-  `net.rpc.serverErr notFoundMsg`), `newSys`/`awaitConf`/`decode`, `remove`, `Client`
-  (`remote.ServeClient`), `choose`/`plan`/`configure`/`sendConf`/`Orch` (`remote.Check`), `Server`/
-  `runNode` (blocked on H2-H4, see H4's finding); (3) `Mains`, `TopLevelDefs`, `TopLevelRobustness`
-  as paxos's (with the craq protocol's allocation `craq_alloc` at the start, `Specs.lean`'s
-  `nodeRes`/`coordRes` handed to the servers), the statement's InitHyp premises (net.rpc, net.http)
-  visible in the `.spec`.
+- **P4. Next steps** (2026-11-23, second agent; the coordinator's order: (a) H5, (b) ModelProof,
+  (c) KitProof, (d) Mains/TopLevelDefs/TopLevelRobustness/`craq_remote_robust` + `etc/theorem-loc.py`,
+  (e) `etc/tcb-collections/dsv-craq.txt`). State:
+  (a) `Craq/CodecProof.lean`: all seven `enc_*` proved; decoding started (`ownSlice_suffix`, the pure
+  `getU64` + `getU64_enc`, `wp_rpcGetU64`). Still to do, in this order: restate `Codec.lean`'s
+  `dec_*` (premise: `rep`'s tag, if it parses, is the target type's; failure branches `∃` field
+  values, since a failed decode leaves the fields decoded before the failure written, e.g.
+  `VersionResponse.Key`), pure decoders (`getStr` for `rpcGetTag`/`rpcDec_t5`, `getBool`, bytes,
+  the structs, `[]ValueVersion`, the response map) with round-trip lemmas against `Wire.lean`, then
+  `wp_rpcGetTag`, `wp_rpcDec_t{5,6,12,11,29,16,20,24,28,10,9,8}` (the struct ones generated like
+  the encoders: `scratchpad/genstruct.py`'s pattern, `all_goals` per field), then `rpcDecode`'s cases
+  (`wp_func_call; wp_call; wp_auto` resolves the type switch, as in `enc_EmptyArgs`). The `∀ rep`
+  gap (H5 above) needs Net. Tactics that worked: `wp_auto` errors when nothing is left (use
+  `(try wp_auto)`); `iStructNamed H` splits a struct points-to into fields; a loop's `return` is
+  `rw [forPostcondition_unseal]; unfold forPostconditionDef; iright; iright; iright; ileft`; a
+  `Hif` from `wp_if_destruct` is sometimes the Prop, sometimes `#(decide _) = #true` (`first |
+  exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)`); `isimp only [..] at H` rewrites an
+  Iris hypothesis.
+  (b) `examples/craqnet/ModelProof.lean`: `pushPend`, `copyMap`, `set`, `findPend` (first index,
+  over fields `K'`/`V'`), `erasePend` (`P.eraseIdx i`) proved. Still to do: `step` (spec: on
+  `ownMap mp □ m`, `sl ↦*□ P.map pendOf`, `m` agreeing with `a`, `P` all puts, returns
+  `(goStep a P i (decAns i u f w)).isSome` and, when ok, the next `(mp', sl')` holding `goStep`'s
+  `(a', P')`; the branches are listed in kit.go's `step`; `findPend` ↔ membership needs `pendOf`
+  injective on puts, and `P.erase x = P.eraseIdx (first index)`), then `Model.wp_proof` as paxos's
+  (`isModel kvS`: Init gives `kvRep 0` with `sim_init`; Step uses `sim_step` and `linkv.pM_step`;
+  `Equal` is `false`, so its spec is trivial).
+  (c)-(e) not started: `KitProof.lean` (`Codec`, `Gen`, `op`, `Client`/`ServeClient`, `Orch`/
+  `remote.Check`, `Server`/`runNode` over `HttpRpc.lean`'s classes), `Mains`, `TopLevelDefs`,
+  `TopLevelRobustness` as paxos's; the statement's premises: every `InitHyp` (net.rpc, net.http),
+  `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`, `LogHyp`, and the two open points of H4 (the
+  allocation of `rpcAddrP` at the deployment's addresses; a machine's starting `muxOwner []`) as
+  explicit premises in the shape Net's piece will likely give (an allocation lemma `|==> ∃ W,
+  [∗list] a ∈ addrs, rpcAddrP W a hs hsAns` and `muxOwner []` from net/http's initialization).
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
