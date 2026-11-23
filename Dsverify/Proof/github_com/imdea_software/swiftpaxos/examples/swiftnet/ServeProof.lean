@@ -352,13 +352,170 @@ theorem serve.wp_proof (D : SwNetDeps (hG := hG)) (γ : SwiftNames netDistGF) (i
       icases Hglob with ⟨%d0, %v0, %n0, HMax, HPool, HShard⟩
       wp_apply hmax (W64 (c.desc : Int)) d0
         (by obtain ⟨-, -, -, h⟩ := Hcv; have := hcl.2.2.2; word) $$ [$HMax] as HMax
-      sorry
+      iStructNamed Hcv
+      wp_auto
+      ipersist «$a10»
+      ihave #Hlg : dlog.quiet (GF := netDistGF) «$a10_ptr» $$ [«$a10»]
+      · unfold dlog.quiet
+        ihave %Hnn := typedPointsto_not_null $$ «$a10»
+        iframe «$a10»
+        ipureintro; exact Hnn
+      iapply fupd_wp
+      imod ownSlice_persist $$ Hnl with #Hnl
+      imodintro
+      ihave #Hc' := (conf.is_confIs γ c).1 $$ Hc
+      ihave %Hcc := sp.cfg_conf (γc := γ.conf) (γm := γ.mem) nodes.length fr nodes c $$ [Hcfgv Hc']
+      · iframe Hcfgv Hc'
+      obtain ⟨hN, hfr⟩ := Hcc
+      have hfr' : fr = decide (W64 (c.fastRead : Int) = W64 1) := by
+        rw [hfr]
+        have := hcl.2.1
+        apply Bool.eq_iff_iff.mpr
+        simp only [beq_iff_eq, decide_eq_true_eq]
+        constructor
+        · intro h; rw [h]; rfl
+        · intro he; have := congrArg uint.Z he; word
+      subst hfr'
+      ihave #Hprotos := cnode.lis_replicaAddrs (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem) $$ Hlis
+      have hrak : replicaAddrs.getD k go!"" =
+          sp.addrPort (nodeHost (7 + (k + 1))) (W64 ((nodePort (7 + (k + 1)) : Nat) : Int)) := by
+        rw [List.getD_eq_getElem?_getD, hra, Option.getD_some]
+      have hlk : replicaLis[k]? = some (replicaLis.getD k go!"") := by
+        rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp [replicaLis]; omega)]
+        rfl
+      ihave #Hlk := BigSepL.bigSepL_lookup
+        (Φ := fun _ la => lisProto la (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem))
+        hlk $$ Hlis
+      rw [← wildOf_lis k (by omega), hrak] at *
+      have hsr : srvR γ (k + 1) = client.nodeGhostOk γ.sp (sp.PNode.rep k) := by
+        unfold srvR; rw [if_neg (by omega)]; rfl
+      rw [hsr]
+      ihave #Hng := HR
+      ihave #Hip := nodeIp_intro (GF := netDistGF) (nodeHost (7 + (k + 1)))
+      wp_apply hSNew cv.Alias' rid nl nodes nodes.length k _ (W64 (c.pool : Int))
+        ((W64 (c.n : Int) - W64 1) / W64 2) cfgp «$a10_ptr» γ.sp γ.conf γ.mem γ.lin
+        (sp.addrPort (nodeHost (7 + (k + 1))) (W64 ((nodePort (7 + (k + 1)) : Nat) : Int)))
+        (nodeHost (7 + (k + 1)))
+        $$ [$Hinv $Hcfgv $Hnl $Hrole $Hip $Hlk $Hprotos $Hcfg $Hlg $Hng $Hcs HMax HPool HShard]
+        as %rep Hrok
+      · isplitr [HMax HPool HShard]
+        · ipureintro
+          refine ⟨hra, Hrid, ?_⟩
+          unfold sp.addrPort; exact List.prefix_append _ _
+        isplitr [HMax HPool HShard]
+        · ipureintro
+          refine ⟨?_, ?_⟩
+          · obtain ⟨-, -, h, -⟩ := Hcv; have := hcl.2.2.1; word
+          · rw [← hN]; have := hcl.1; obtain ⟨h, -⟩ := Hcv; word
+        isplitl [HMax HPool HShard]
+        · iexists _, _, _
+          iframe
+          ipureintro
+          obtain ⟨-, -, -, h⟩ := Hcv; have := hcl.2.2.2; word
+        unfold encoding.gob.codecSet; itrivial
+      icases Hds0 with ⟨%γs, #Hds⟩
+      wp_apply (H.Register_spec γs net.rpc.RpcCodec.spec
+          (interface.mkOk (go.GoType.PointerType swift.Replica.ty) #rep)
+          (withErr (sp.replicaRpcSpec γ.conf γ.mem)) go!"Replica" (W8 82) go!"eplica" rfl
+          ⟨by decide, by decide⟩) $$ [$Hds $Hcs Hrok] as %err Hreg
+      · simp only [net.rpc.RpcCodec.spec] at *
+        iexact Hrok
+      icases Hreg with (⟨%He, #Hsr⟩ | %He)
+      rotate_left
+      · rcases err with ei | _
+        · wp_auto
+          wp_for
+          try rw [if_pos (decide_eq_true rfl)]
+          wp_apply time.wp_Sleep
+          wp_for_post
+          iframe
+        · exact absurd rfl He
+      subst He
+      wp_auto
+      have hrpc := atStr_rpc k (by omega)
+      have hra' : atStr (8 + k) (W64 1000) ∈ replicaRpcAddrs := List.mem_of_getElem? hrpc
+      have hrok : addrOk (atStr (8 + k) (W64 1000)) = true :=
+        cnode.replicaRpcAddrs_ok _ hra'
+      ihave #Hss : (□ ∀ a, ⌜lisAccepts (atStr (8 + k) (W64 1000)) a⌝ →
+          net.rpc.srvServes γs net.rpc.RpcCodec.spec γ.W a : IProp netDistGF) $$ []
+      · iintro !> %a %ha
+        have ha' := (lisAccepts_addrOk hrok).1 ha
+        subst ha'
+        unfold net.rpc.srvServes
+        iintro !> %svc %S %hS
+        rw [HSS] at hS
+        have hb : lisAcceptsB go!":7001" (atStr (8 + k) (W64 1000)) = false := by
+          simp only [replicaRpcAddrs, List.mem_cons, List.not_mem_nil, _root_.or_false] at hra'
+          rcases hra' with h | h | h | h | h <;> rw [h] <;> decide
+        unfold services at hS
+        rw [if_neg (fun h => by have h1 := h.1; rw [hb] at h1; exact absurd h1 (by decide))] at hS
+        by_cases hsv : svc = go!"Replica"
+        · rw [if_pos ⟨hra', hsv⟩] at hS
+          cases hS
+          subst hsv
+          iframe Hsr
+          iapply withErr_errOk
+        · rw [if_neg (fun h => hsv h.2)] at hS
+          cases hS
+      wp_apply (H.HandleHTTP_spec γs net.rpc.RpcCodec.spec γ.W
+          (lisAccepts (atStr (8 + k) (W64 1000))) []) $$ [$Hmux $Hds $Hss $Hsrv $Hcs]
+        as ⟨-, #Hmh'⟩
+      · ipureintro; exact ⟨Hthr, by simp, by simp⟩
+      rw [e7]
+      wp_apply wp_at sl (DFrac.own 1) (W64 ((7 + (k + 1) : Nat) : Int)) (W64 1000) (by word)
+        $$ [$Hsl] as Hsl
+      rw [hu, show 7 + (k + 1) = 8 + k from by omega]
+      ihave #Hrl := BigSepL.bigSepL_lookup
+        (Φ := fun _ la => RpcHttpAddr.rpcLisP γ.W la (connectReq defaultRPCPath) connectAns)
+        hrpc $$ Hrr
+      ihave %Hlok := RpcHttpAddr.rpcLisP_ok γ.W _ _ _ $$ Hrl
+      wp_apply (D.listen go!"tcp" net.tcpNet_tcp (atStr (8 + k) (W64 1000))) as %lv %lerr Hl
+      · isplitr
+        · ipureintro; exact Hlok
+        iapply RpcHttpAddr.rpcLisP_lis
+        iexact Hrl
+      icases Hl with (⟨%He, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, -, #Hre⟩)
+      rotate_left
+      · ihave %Hne := net.resErr_netErr $$ Hre
+        have hne := net.netErr_ne_nil (Hne.2 (by simp))
+        rcases lerr with ei | _
+        · wp_auto
+          wp_for
+          try rw [if_pos (decide_eq_true rfl)]
+          wp_apply time.wp_Sleep
+          wp_for_post
+          iframe
+        · exact absurd rfl hne
+      subst He
+      wp_auto
+      iapply fupd_wp
+      imod (lisInv_alloc ⊤ _ l (atStr (8 + k) (W64 1000)) true) $$ Hnl with #Hli2
+      imodintro
+      wp_apply (H.Serve_spec γ.W (atStr (8 + k) (W64 1000)) defaultRPCPath lv l)
+        $$ [$Hrl $Hmh' $Hli $Hon $Hli2] as %e2 -
+      · ipureintro; exact Hthr
+      try wp_auto
+      wp_for
+      try rw [if_pos (decide_eq_true rfl)]
+      wp_apply time.wp_Sleep
+      wp_for_post
+      iframe
     · -- a node outside the configuration: idle
       wp_for
       try rw [if_pos (decide_eq_true rfl)]
       wp_apply time.wp_Sleep
       wp_for_post
       iframe
+
+
+theorem Server.wp_proof (wp_serve : ∀ γ i, i < 6 → serve.spec (hG := hG) γ i)
+    (wp_Addrs : cnode.AddrsC.spec) : Server.spec (hG := hG) := by
+  intro γ i hi
+  wp_start as Hres
+  wp_auto
+  wp_apply wp_Addrs as %asl Hasl
+  wp_apply wp_serve γ i hi asl $$ [$Hasl $Hres]
+  iapply HΦ; itrivial
 
 end proof
 
