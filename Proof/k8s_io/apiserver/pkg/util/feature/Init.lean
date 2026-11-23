@@ -3,14 +3,16 @@ Package initialization of `k8s_io.apiserver.pkg.util.feature`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultMutableFeatureGate` and
-`DefaultFeatureGate` hold the same feature gate. Its initializer initializes its import
-(`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
-(`feature_gate.go`); the trust-boundary axioms `DefaultMutableFeatureGate_init`
-(`featuregate.NewFeatureGate()`: a gate) and `DefaultFeatureGate_init` (`DefaultFeatureGate =
-DefaultMutableFeatureGate`: the same gate) state them. (Sweep repairs 1, B5, 2026-11-08: until then
+`DefaultFeatureGate` hold the same feature gate. Its initializer allocates `DefaultFeatureGate`,
+initializes its import (`component-base/featuregate`, names-only), runs `DefaultMutableFeatureGate`'s
+untranslated initializer (`feature_gate.go`), which the trust-boundary axiom
+`DefaultMutableFeatureGate_init` (`featuregate.NewFeatureGate()`: a gate) states, and
+`DefaultFeatureGate`'s translated one (`DefaultFeatureGate = DefaultMutableFeatureGate`, a conversion
+between interface types, which keeps the gate). (Sweep repairs 1, B5, 2026-11-08: until then
 `DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any feature, false of an
 unregistered one, and `DefaultMutableFeatureGate` was `opaqueInitsOk`'s, unlinked; the gate's specs
-are now `features`' registration's, `features.init_0_ok`.)
+are now `features`' registration's, `features.init_0_ok`. Until 2026-11-23, #36, `DefaultFeatureGate`'s
+initializer was untranslated, the trust-boundary axiom `DefaultFeatureGate_init`.)
 -/
 module
 
@@ -46,11 +48,6 @@ axiom DefaultMutableFeatureGate_init :
     {{ (True : IProp GF) }} (App (Val DefaultMutableFeatureGate.init) (Val #()))
     {{ RET #(); ∃ g : GoInterfaceOk, globalAddr DefaultMutableFeatureGate ↦ GoInterface.ok g }}
 
-/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`): the same gate. -/
-axiom DefaultFeatureGate_init : ∀ g : GoInterfaceOk,
-    {{ (globalAddr DefaultMutableFeatureGate ↦□ GoInterface.ok g : IProp GF) }} (App (Val DefaultFeatureGate.init) (Val #()))
-    {{ RET #(); globalAddr DefaultFeatureGate ↦ GoInterface.ok g }}
-
 end k8s_io.apiserver.pkg.util.feature
 end opaqueInits
 
@@ -75,11 +72,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) DefaultFeatureGate _ as HDefaultFeatureGate
   wp_apply (_root_.Perennial.k8s_io.component_base.featuregate.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply DefaultMutableFeatureGate_init as ⟨%gDefaultMutableFeatureGate, HDefaultMutableFeatureGate⟩
+  -- translated initializer of DefaultFeatureGate))
+  try wp_auto
+  -- translated initializer of DefaultMutableFeatureGate))
   ipersist HDefaultMutableFeatureGate
-  wp_apply (DefaultFeatureGate_init gDefaultMutableFeatureGate) $$ [] as HDefaultFeatureGate
-  · iframe #
   ipersist HDefaultFeatureGate
   iframe Hown
   imodintro

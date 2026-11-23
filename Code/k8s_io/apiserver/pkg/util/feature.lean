@@ -29,8 +29,6 @@ opaque DefaultMutableFeatureGate.init [GooseExts] [GoGlobalContext] : val
 noncomputable def DefaultFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/feature.DefaultFeatureGate"
 
-opaque DefaultFeatureGate.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.util.feature where
   pkgImportedPkgs := [pkg_id.k8s_io.component_base.featuregate]
 
@@ -42,12 +40,16 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr DefaultMutableFeatureGate))) (Val #()))))
   (App (Val doExecute)
-  (App (Val DefaultFeatureGate.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr DefaultFeatureGate))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val DefaultMutableFeatureGate.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.k8s_io.component_base.featuregate.initialize') (Val #()))))))))
+  (App (Val _root_.Perennial.k8s_io.component_base.featuregate.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc DefaultFeatureGate _root_.Perennial.k8s_io.component_base.featuregate.FeatureGate.ty)) (Val #()))))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   import_featuregate_Assumption : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions

@@ -1346,28 +1346,24 @@ the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", 
 
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
     doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultMutableFeatureGate` and
-`DefaultFeatureGate` hold the same feature gate. Its initializer initializes its import
-(`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
-(`feature_gate.go`); the trust-boundary axioms `DefaultMutableFeatureGate_init`
-(`featuregate.NewFeatureGate()`: a gate) and `DefaultFeatureGate_init` (`DefaultFeatureGate =
-DefaultMutableFeatureGate`: the same gate) state them. (Sweep repairs 1, B5, 2026-11-08: until then
+`DefaultFeatureGate` hold the same feature gate. Its initializer allocates `DefaultFeatureGate`,
+initializes its import (`component-base/featuregate`, names-only), runs `DefaultMutableFeatureGate`'s
+untranslated initializer (`feature_gate.go`), which the trust-boundary axiom
+`DefaultMutableFeatureGate_init` (`featuregate.NewFeatureGate()`: a gate) states, and
+`DefaultFeatureGate`'s translated one (`DefaultFeatureGate = DefaultMutableFeatureGate`, a conversion
+between interface types, which keeps the gate). (Sweep repairs 1, B5, 2026-11-08: until then
 `DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any feature, false of an
 unregistered one, and `DefaultMutableFeatureGate` was `opaqueInitsOk`'s, unlinked; the gate's specs
-are now `features`' registration's, `features.init_0_ok`.)''',
+are now `features`' registration's, `features.init_0_ok`. Until 2026-11-23, #36, `DefaultFeatureGate`'s
+initializer was untranslated, the trust-boundary axiom `DefaultFeatureGate_init`.)''',
+    alloc_types={'DefaultFeatureGate': 'GoInterface'},
     custom={
         'DefaultMutableFeatureGate': dict(
             doc='/-- `DefaultMutableFeatureGate = featuregate.NewFeatureGate()` (`feature_gate.go`): a feature gate, no Kubernetes feature registered yet (`features`\' `init` registers them, `features.init_0_ok`). -/',
             post='∃ g : GoInterfaceOk, globalAddr DefaultMutableFeatureGate ↦ GoInterface.ok g',
-            pat='⟨%g@, H@⟩'),
-        'DefaultFeatureGate': dict(
-            doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`): the same gate. -/',
-            binder='∀ g : GoInterfaceOk,',
-            pre='globalAddr DefaultMutableFeatureGate ↦□ GoInterface.ok g',
-            post='globalAddr DefaultFeatureGate ↦ GoInterface.ok g',
-            apply=['ipersist HDefaultMutableFeatureGate',
-                   'wp_apply (DefaultFeatureGate_init gDefaultMutableFeatureGate) $$ [] as HDefaultFeatureGate',
-                   '· iframe #'])},
-    finish=['ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
+            pat='⟨%g@, H@⟩')},
+    before={'DefaultFeatureGate': ['try wp_auto']},
+    finish=['ipersist HDefaultMutableFeatureGate', 'ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
             'imodintro', 'iexists _', 'iframe #'],
 )
 
