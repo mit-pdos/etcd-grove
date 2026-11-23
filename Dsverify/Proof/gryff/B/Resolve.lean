@@ -43,7 +43,7 @@ variable [gA : examples.gryffnet.Assumptions] [wire.BufioSpecs GF]
 theorem wp_resolveU64 (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (t : List Ev)
     (ws : List w64) (x : w64) :
     {{ globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p t ws }}
-      (App (Val (globalAddr src.gryff.traceProph @!!
+      (App (Val ((globalAddr src.gryff.traceProph : Loc) @!!
         go.PointerType github_com.goose_lang.primitive.ProphId.ty @!! go!"ResolveU64")) (Val #x))
     {{ RET #(); replicaProph (GF := GF) γ k p t (ws ++ [x]) }} := by
   iintro %Φ ⟨#Hl, Hp⟩ HΦ
@@ -1221,7 +1221,7 @@ variable [gA : examples.gryffnet.Assumptions] [wire.BufioSpecs GF]
 theorem wp_resolveU64_test (γ : ProtoNames) (k : Fin 3) (r : Loc) (p : ProphId) (t : List Ev)
     (ws : List w64) (x : w64) :
     {{ globalAddr src.gryff.traceProph ↦□ p ∗ replicaProph (GF := GF) γ k p t ws }}
-      (App (Val (globalAddr src.gryff.traceProph @!!
+      (App (Val ((globalAddr src.gryff.traceProph : Loc) @!!
         go.PointerType github_com.goose_lang.primitive.ProphId.ty @!! go!"ResolveU64")) (Val #x))
     {{ RET #(); replicaProph (GF := GF) γ k p t (ws ++ [x]) }} :=
   wp_resolveU64 γ k r p t ws x
