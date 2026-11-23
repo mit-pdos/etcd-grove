@@ -184,6 +184,118 @@ theorem gcLoop_cfg : ∀ (k : Nat) (s s' : State) (vo : Option Verdict),
       · rw [ih s1 s' vo (hn h0), gc_cfg hg]
       · cases hv h0; exact gc_cfg hg
 
+/-- `init0`'s state has the configuration it is given. -/
+theorem init0_cfg {cfg : Config} {s : State} (h : init0 cfg = .ok s) : s.cfg = cfg := by
+  unfold init0 at h
+  cases hb : cfg.bootstrapped
+  · simp only [hb, Bool.not_false, ↓reduceIte, pure_ok, Except.ok.injEq] at h
+    subst h; rfl
+  · simp only [hb, Bool.not_true, Bool.false_eq_true, ↓reduceIte] at h
+    cases hv : cfg.initVoters with
+    | nil => simp [hv] at h; cases h
+    | cons first rest =>
+      simp only [hv, pure_ok, Except.ok.injEq] at h
+      subst h; rfl
+
+/-- **`Step` keeps the configuration** (what `Run` needs, with `GC`'s `gc_cfg`, to bound the
+configurations by the stream's `Stream.ConfBounded`, which is stated over `Run`'s `cfg`). -/
+abbrev StepCfg : Prop :=
+  ∀ (s : State) (ev : Event) (s' : State), s.step ev = .ok (some s') → s'.cfg = s.cfg
+
+/-- `next` keeps the configuration. -/
+theorem next_cfg_of (step_cfg : StepCfg) {c c' : Checker} {ev : Event} (hd : c.done = false)
+    (h : c.next ev = .ok c') : c'.state.cfg = c.state.cfg := by
+  obtain ⟨s, vo, hg, hsome, hnone⟩ := next_ok hd h
+  have hs := gcLoop_cfg _ _ _ _ hg
+  cases vo with
+  | some v => rw [hsome v rfl]; exact hs
+  | none =>
+    obtain ⟨o, hst, hno, hso⟩ := hnone rfl
+    cases o with
+    | none => rw [hno rfl]; exact hs
+    | some ns =>
+      obtain ⟨hv1, hv0⟩ := hso ns rfl
+      have hns := step_cfg s ev ns hst
+      by_cases h0 : violated ns = []
+      · rw [hv0 h0]; simp only; rw [hns, hs]
+      · rw [hv1 h0]; simp only; rw [hns, hs]
+
+/-- A stream's weight: its size plus two per report. -/
+theorem weight_sum (evs : List Event) :
+    (evs.map Event.weight).sum = 2 * evs.length + (evs.map Event.size).sum := by
+  induction evs with
+  | nil => rfl
+  | cons ev evs ih => simp only [List.map_cons, List.sum_cons, List.length_cons, ih, Event.weight]; omega
+
+/-- The weight of the first `n + 1` reports. -/
+theorem take_weight_succ (evs : List Event) (n : Nat) (h : n < evs.length) :
+    ((evs.take (n + 1)).map Event.weight).sum = ((evs.take n).map Event.weight).sum + evs[n].weight := by
+  simp only [List.take_add_one, List.getElem?_eq_getElem h, Option.toList_some, List.map_append,
+    List.sum_append, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil]
+  omega
+
+/-- The weight of the first `n` reports is at most the stream's. -/
+theorem take_weight_le (evs : List Event) (n : Nat) :
+    ((evs.take n).map Event.weight).sum ≤ (evs.map Event.weight).sum := by
+  conv => rhs; rw [← List.take_append_drop n evs]
+  simp only [List.map_append, List.sum_append]; omega
+
+/-- `Run`'s budget after `n` reports: below `numBound`. -/
+theorem run_budget_lt (evs : List Event) (n : Nat) (hsb : Stream.Bounded evs) :
+    ((1 + ((evs.take n).map Event.weight).sum : Nat) : Int) < numBound := by
+  have h1 := take_weight_le evs n
+  rw [weight_sum evs] at h1
+  have h2 := hsb.1
+  have : ((1 + ((evs.take n).map Event.weight).sum : Nat) : Int) ≤
+      ((1 + 2 * evs.length + (evs.map Event.size).sum : Nat) : Int) := by omega
+  omega
+
+/-- A checker within `Run`'s budget after `n` reports is within some budget (`End`'s premise). -/
+theorem run_bounded {evs : List Event} {n : Nat} {s : State} {E : Nat} (hsb : Stream.Bounded evs)
+    (hW : s.Within (1 + ((evs.take n).map Event.weight).sum) E) : s.Bounded :=
+  ⟨_, E, run_budget_lt evs n hsb, hW⟩
+
+/-- **`Run`'s invariant gives `Next`'s premise**: a state within the budget of the first `n`
+reports, with configuration `cfg`, is within budget for report `n` (by `Stream.Bounded` and
+`Stream.ConfBounded`'s `E`). -/
+theorem run_boundedFor {cfg : Config} {evs : List Event} {n : Nat} {s : State} {E : Nat}
+    (hn : n < evs.length) (hsb : Stream.Bounded evs) (hChE : ∀ ev ∈ evs, ev.ChgOk E)
+    (hE : ((cfg.initVoters.length + (2 + 2 * evs.length + (evs.map Event.size).sum) * E : Nat) : Int) < 2 ^ 61)
+    (hW : s.Within (1 + ((evs.take n).map Event.weight).sum) E) (hcfg : s.cfg = cfg) :
+    s.BoundedFor evs[n] := by
+  have hmem : evs[n] ∈ evs := List.getElem_mem hn
+  have h1 := take_weight_le evs (n + 1)
+  rw [take_weight_succ evs n hn, weight_sum evs] at h1
+  refine ⟨_, E, hW, hsb.2 _ hmem, hChE _ hmem, ?_, ?_⟩
+  · have h2 := hsb.1
+    have : ((1 + ((evs.take n).map Event.weight).sum + evs[n].weight : Nat) : Int) ≤
+        ((1 + 2 * evs.length + (evs.map Event.size).sum : Nat) : Int) := by omega
+    omega
+  · rw [hcfg]
+    have hle : 1 + ((evs.take n).map Event.weight).sum + evs[n].weight + 1 ≤
+        2 + 2 * evs.length + (evs.map Event.size).sum := by omega
+    have := Nat.mul_le_mul_right E hle
+    have : ((cfg.initVoters.length + (1 + ((evs.take n).map Event.weight).sum + evs[n].weight + 1) * E : Nat) : Int) ≤
+        ((cfg.initVoters.length + (2 + 2 * evs.length + (evs.map Event.size).sum) * E : Nat) : Int) := by omega
+    omega
+
+/-- **`Run`'s invariant, one report on** (from `StepWithin`, `GCWithin`, `StepCfg`): report `n`
+taken without a verdict leaves the state within the budget of the first `n + 1` reports, with
+configuration `cfg`. -/
+theorem run_step_of (step_within : StepWithin) (gc_within : GCWithin) (step_cfg : StepCfg)
+    {cfg : Config} {evs : List Event} {n : Nat} {c c' : Checker} {E : Nat}
+    (hn : n < evs.length) (hsb : Stream.Bounded evs) (hChE : ∀ ev ∈ evs, ev.ChgOk E)
+    (hd : c.done = false) (hW : c.state.Within (1 + ((evs.take n).map Event.weight).sum) E)
+    (hcfg : c.state.cfg = cfg) (h : c.next evs[n] = .ok c') (hd' : c'.done = false) :
+    c'.state.Within (1 + ((evs.take (n + 1)).map Event.weight).sum) E ∧ c'.state.cfg = cfg := by
+  have hmem : evs[n] ∈ evs := List.getElem_mem hn
+  have hb := run_budget_lt evs (n + 1) hsb
+  rw [take_weight_succ evs n hn] at hb ⊢
+  refine ⟨?_, by rw [next_cfg_of step_cfg hd h, hcfg]⟩
+  have := next_within_of step_within gc_within hd hW (hsb.2 _ hmem) (hChE _ hmem)
+    (by rw [← Nat.add_assoc] at hb; exact hb) h hd'
+  rwa [Nat.add_assoc] at this
+
 end CheckLaws
 end AntCheck
 end EtcdGrove
