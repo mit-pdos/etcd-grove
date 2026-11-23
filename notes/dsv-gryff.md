@@ -489,7 +489,7 @@ stay on `07268ddb57`/`7b2259a12`). **When merging `lean`/`dsv-protolaws`:** dele
 update), `rpcLisP_ok` (new) and `rpcLisP_set` (premises `listenOk la`, `∀ a, addrOk a ∧ lisAccepts
 la a → W.hs a = hs ∧ …`) are aligned to those shapes. **When it lands, merge it**: drop
 `rpcLisP*` and `Server_ServeHTTP_spec` from `RpcHttpHyp` for Net's (the class keeps net/http's
-server up to the hijack and `HandleHTTP`). dsv-protolaws is queued to land too.
+server up to the hijack and `HandleHTTP`). dsv-protolaws LANDED (`lean` `bd14566295`): use `Net.sentLb_agree`/`sentLb_le`/`recvTokL_sentLb` at the next lean merge (see above).
 
 **Design (1), the connections on `Net/` (decided, in `Replica2/Specs.lean` and `N/ConnLaws.lean`):**
 - A replica listens at the wildcard `lisAddrOf a0` (`a0[strings.Index(a0, ":"):]`, `":7502"` for
