@@ -39,10 +39,10 @@ theorem Tree.Iterator.wp_proof : Tree.Iterator.spec (GF := GF) := by
   wp_end
 
 theorem Iterator.Value.wp_proof : Iterator.Value.spec (GF := GF) := by
-  intro q enc rest k v
+  intro q tr enc cmp T h D rest k v
   wp_start as Hown
-  unfold ownIterR
-  icases Hown with ⟨%tr, %cmp, %T, %h, %D, %nd, %pos, Hq, Htr, %Hat⟩
+  unfold ownIterT
+  icases Hown with ⟨%nd, %pos, Hq, Htr, %Hat⟩
   rcases Hat with ⟨-, hc, -⟩ | ⟨-, hc, -⟩ | ⟨hpos, C, k', v', L, R, hT, hc, hrest⟩
   · cases hc
   · cases hc
@@ -59,7 +59,7 @@ theorem Iterator.Value.wp_proof : Iterator.Value.spec (GF := GF) := by
   wp_auto
   ihave Hns := Hback $$ Hn
   iapply HΦ
-  iexists tr, cmp, T, h, D, nd, pos
+  iexists nd, pos
   iframe Hq
   isplitl [Htr Hns]
   · iexists sz; iframe; ipureintro; exact ⟨hrep, hperm, hnd⟩
@@ -67,10 +67,10 @@ theorem Iterator.Value.wp_proof : Iterator.Value.spec (GF := GF) := by
   exact Or.inr (Or.inr ⟨hpos, C, k, v, L, R, hT, rfl, hrest⟩)
 
 theorem Iterator.Key.wp_proof : Iterator.Key.spec (GF := GF) := by
-  intro q enc rest k v
+  intro q tr enc cmp T h D rest k v
   wp_start as Hown
-  unfold ownIterR
-  icases Hown with ⟨%tr, %cmp, %T, %h, %D, %nd, %pos, Hq, Htr, %Hat⟩
+  unfold ownIterT
+  icases Hown with ⟨%nd, %pos, Hq, Htr, %Hat⟩
   rcases Hat with ⟨-, hc, -⟩ | ⟨-, hc, -⟩ | ⟨hpos, C, k', v', L, R, hT, hc, hrest⟩
   · cases hc
   · cases hc
@@ -87,7 +87,7 @@ theorem Iterator.Key.wp_proof : Iterator.Key.spec (GF := GF) := by
   wp_auto
   ihave Hns := Hback $$ Hn
   iapply HΦ
-  iexists tr, cmp, T, h, D, nd, pos
+  iexists nd, pos
   iframe Hq
   isplitl [Htr Hns]
   · iexists sz; iframe; ipureintro; exact ⟨hrep, hperm, hnd⟩
@@ -144,10 +144,10 @@ theorem Tree.Left.wp_proof : Tree.Left.spec (GF := GF) := by
 
 theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
     Iterator.Next.spec (GF := GF) := by
-  intro q enc rest cur
+  intro q tr enc cmp T h D rest cur
   wp_start as Hown
-  unfold ownIterR
-  icases Hown with ⟨%tr, %cmp, %T, %h, %D, %nd, %pos, Hq, Htr, %Hat⟩
+  unfold ownIterT
+  icases Hown with ⟨%nd, %pos, Hq, Htr, %Hat⟩
   wp_auto
   wp_if_destruct
   · -- past the end: stays there
@@ -158,7 +158,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
     · subst hc hr
       iapply HΦ
       isplitr; · ipureintro; simp
-      iexists tr, cmp, T, h, D, null, W8 2
+      iexists null, W8 2
       iframe
       ipureintro; right; left; exact ⟨rfl, rfl, rfl⟩
     · exact absurd h1 (by decide)
@@ -184,7 +184,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           iapply HΦ
           simp only [RB.entries_leaf]
           isplitr; · ipureintro; simp
-          iexists tr, cmp, RB.leaf, h, D, null, W8 2
+          iexists null, W8 2
           iframe
           ipureintro; right; left; exact ⟨rfl, rfl, rfl⟩
         · exfalso
@@ -200,7 +200,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
         iapply HΦ
         rw [hrest]
         isplitr; · ipureintro; simp
-        iexists tr, cmp, T, h, D, m, W8 1
+        iexists m, W8 1
         iframe
         ipureintro; right; right; exact ⟨rfl, C, k, v, .leaf, R, hT, rfl, rfl⟩
     · -- at a node
@@ -266,7 +266,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
             rw [RB.entries_leaf, List.nil_append, ← hpost]
             simp only [Ctx.post, Frame.post, List.cons_append]
             isplitr; · ipureintro; simp
-            iexists tr, cmp, T, h, D, fn, W8 1
+            iexists fn, W8 1
             iframe
             ipureintro
             refine ⟨⟨hrep, hperm, hnd⟩, ?_⟩
@@ -309,7 +309,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           rw [RB.entries_leaf, List.nil_append, ← hpost]
           simp only [Ctx.post]
           isplitr; · ipureintro; simp
-          iexists tr, cmp, T, h, D, null, W8 2
+          iexists null, W8 2
           iframe
           ipureintro
           refine ⟨⟨hrep, hperm, hnd⟩, ?_⟩
@@ -362,7 +362,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           rw [← hent]
           simp only [RB.entries_node, RB.entries_leaf, List.nil_append, List.cons_append]
           isplitr; · ipureintro; simp
-          iexists tr, cmp, T, h, D, s, W8 1
+          iexists s, W8 1
           iframe
           ipureintro
           refine ⟨⟨hrep, hperm, hnd⟩, ?_⟩

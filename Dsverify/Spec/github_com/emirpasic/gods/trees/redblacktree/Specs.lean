@@ -3,7 +3,7 @@
 `models/gods`: gods' code but the iterator's `Next`/`Prev` without `goto`; notes/gods-verified.md):
 the specs of the functions the treemap reaches from the kits' calls (`NewWith`, `Put` with its
 `insertCase` fix-up and rotations, `Get` through `lookup`, `Iterator`, `Left`, the iterator's
-`Next`, `Value`, `Key`), over the representation of `Defs.lean` (`isTree`, `treeRaw`, `ownIterR`).
+`Next`, `Value`, `Key`), over the representation of `Defs.lean` (`isTree`, `treeRaw`, `ownIterT`).
 
 The public functions' specs are over `isTree tr enc es` (the entries `es`); the internal ones over
 `treeRaw` (the model tree `T` and the heap function `h` explicit), since the fix-up's
@@ -74,27 +74,30 @@ abbrev Tree.Left.spec : Prop :=
 
 /-- `iterator.Next()`: the next entry, if any. -/
 abbrev Iterator.Next.spec : Prop :=
-  ∀ (q : Loc) (enc : w64 → GoInterface) (rest : Entries) (cur : Option (w64 × GoInterface)),
-  {{ ownIterR (GF := GF) q enc rest cur }}
+  ∀ (q tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface) (h : Loc → Node)
+    (D : List Loc) (rest : Entries) (cur : Option (w64 × GoInterface)),
+  {{ ownIterT (GF := GF) q tr enc cmp T h D rest cur }}
     (App (Val (q @!! go.GoType.PointerType Iterator.ty @!! go!"Next")) (Val #()))
   {{ (b : Bool), RET #b;
       match rest with
-      | [] => ⌜b = false⌝ ∗ ownIterR q enc [] none
-      | e :: r => ⌜b = true⌝ ∗ ownIterR q enc r (some e) }}
+      | [] => ⌜b = false⌝ ∗ ownIterT q tr enc cmp T h D [] none
+      | e :: r => ⌜b = true⌝ ∗ ownIterT q tr enc cmp T h D r (some e) }}
 
 /-- `iterator.Value()` at the entry `(k, v)`. -/
 abbrev Iterator.Value.spec : Prop :=
-  ∀ (q : Loc) (enc : w64 → GoInterface) (rest : Entries) (k : w64) (v : GoInterface),
-  {{ ownIterR (GF := GF) q enc rest (some (k, v)) }}
+  ∀ (q tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface) (h : Loc → Node)
+    (D : List Loc) (rest : Entries) (k : w64) (v : GoInterface),
+  {{ ownIterT (GF := GF) q tr enc cmp T h D rest (some (k, v)) }}
     (App (Val (q @!! go.GoType.PointerType Iterator.ty @!! go!"Value")) (Val #()))
-  {{ RET #v; ownIterR q enc rest (some (k, v)) }}
+  {{ RET #v; ownIterT q tr enc cmp T h D rest (some (k, v)) }}
 
 /-- `iterator.Key()` at the entry `(k, v)`. -/
 abbrev Iterator.Key.spec : Prop :=
-  ∀ (q : Loc) (enc : w64 → GoInterface) (rest : Entries) (k : w64) (v : GoInterface),
-  {{ ownIterR (GF := GF) q enc rest (some (k, v)) }}
+  ∀ (q tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface) (h : Loc → Node)
+    (D : List Loc) (rest : Entries) (k : w64) (v : GoInterface),
+  {{ ownIterT (GF := GF) q tr enc cmp T h D rest (some (k, v)) }}
     (App (Val (q @!! go.GoType.PointerType Iterator.ty @!! go!"Key")) (Val #()))
-  {{ RET #(enc k); ownIterR q enc rest (some (k, v)) }}
+  {{ RET #(enc k); ownIterT q tr enc cmp T h D rest (some (k, v)) }}
 
 /-! ### Helpers of the fix-up -/
 

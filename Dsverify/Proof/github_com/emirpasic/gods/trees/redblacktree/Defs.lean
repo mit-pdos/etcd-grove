@@ -855,11 +855,11 @@ def iterAt (T : RB GoInterface) (nd : Loc) (pos : w8) (rest : Entries)
       (L R : RB GoInterface), T = Ctx.plug C (.node nd k v L R) ∧ cur = some (k, v) ∧
       rest = R.entries ++ Ctx.post C)
 
-/-- The iterator at `q` over a tree it owns. -/
-def ownIterR (q : Loc) (enc : w64 → GoInterface) (rest : Entries)
-    (cur : Option (w64 × GoInterface)) : IProp GF :=
-  iprop(∃ (tr : Loc) (cmp : GoFunc) (T : RB GoInterface) (h : Loc → Node) (D : List Loc)
-      (nd : Loc) (pos : w8),
+/-- The iterator at `q` over the tree at `tr` (`T`, `h`, `D`), which it owns. -/
+def ownIterT (q tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface)
+    (h : Loc → Node) (D : List Loc) (rest : Entries) (cur : Option (w64 × GoInterface)) :
+    IProp GF :=
+  iprop(∃ (nd : Loc) (pos : w8),
     q ↦ Iterator.mk tr nd pos ∗ treeRaw tr enc cmp T h D ∗ ⌜iterAt T nd pos rest cur⌝)
 
 theorem treeRaw_pure (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface)
