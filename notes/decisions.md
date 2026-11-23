@@ -42015,3 +42015,48 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
 
 *Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
 `ccDecodeV1` (still opaque: nothing needed it).
+
+## jsongen's subset extended to embedded structs, pointers and a type's own JSON methods (2026-11-23 · proving session 2, #18, item 1 of #24's split · branch `ps2-jsongen/2026-11-23`, not landed: for Upamanyu's review)
+
+**Context.** jsongen (`models/json/`, "The encoding/json model is of Go 1.27.3's default build; jsongen
+as a trusted generator", above) refused every etcd type the membership axioms need: `membership.Member`
+and `ConfigChangeContext` embed structs, `raftpb.ConfState` has `AutoLeave *bool`, `cluster_util` decodes
+`[]*membership.Member`; and go-vsr's `log.Logs` has its own `MarshalJSON`/`UnmarshalJSON`, so the vr kit had
+no codec (kaashoek's requirement on #24). The design note, `notes/jsongen-extension.md`, was posted on #24
+before the code; upamanyus-agent approved the design, asking for dominance collisions at equal depth in
+the random harness and for the method calls themselves (not only the bytes) to be compared.
+
+**Decision.** The trusted core reproduces encoding/json/v2's own field walk (`makeStructFields`, whose
+errors v1's options ignore) rather than v1's `typeFields`: breadth-first with the `visitChildren =
+!seen[tf]` rule, exact dominance (a name with no dominant field is dropped, silently, as Go), depth-first
+output, case-insensitive matching in breadth-first precedence; this also replaces two old refusals (equal
+and case-equal names in one struct). Pointers `*T` to every accepted non-pointer, non-interface type.
+A type's own `MarshalJSON`/`UnmarshalJSON` are called where Go's `CallMethodsWithLegacySemantics` calls
+them: a pointer receiver only on an addressable value, so the codec gets a second encoder `jencA_<T>(b, p,
+d)` for the types whose encoding depends on it; outputs go through `jencValue` (validated,
+nesting-checked, compacted, as a RawMessage); `UnmarshalJSON` gets `b[j:k:k]` and its error is recorded
+while decoding continues. The default structure of a type with methods is checked only in the direction
+it is used; text methods are accepted only where a JSON method shadows them. jsondesc (trusted with the
+core) now dumps which hook interfaces a type or its pointer implements (reflect's `Implements`) and its
+pointer's exported method names (for the promoted-selector check). Still refused, among others:
+unexported embedded pointers on a used path, embedded types with methods, `**T`, named pointers,
+`,string` on pointers or method types, `MarshalJSONTo`/`UnmarshalJSONFrom`, maps (so map keys and values
+never reach a method). k8s's unexported `storage.continueToken`, `etcd3.etcdHealth` and `controller`'s
+patch structs stay out structurally: a codec in another package cannot name them.
+
+**Evidence.** `models/internal/jsongenrand`: random embedded (exported, unexported, by pointer, repeated,
+self-embedded through a pointer, colliding Go and JSON names at equal and different depths, tagged and
+not), pointer and method types (value and pointer receivers; outputs with whitespace, fixed, invalid,
+nil, empty, failing, nested to the limit; decoders merging, recording their bytes, failing), reached in
+every context, a wrapper `{V M; P *M; S []M; A any}` per method type; the generated test compares bytes,
+values, errors-or-not and the logged method calls in order (`jtCallLog`). Nine mutants of the core (no
+dominance, no addressability, no allocation of embedded pointers, fold order reversed, the seen rule
+dropped, a pointer's null ignored, an `any`'s value addressable, the method's bytes with whitespace, a
+method's nil output taken as null) are each caught by a 12-module run (a tenth, a method's error made a
+NotModelled panic, survives by design: such panics are the model's allowed outcome). `TestRefusals` (one per refusal),
+`TestAccepted` (the formerly refused constructs). Regression codecs: `examples/models/jsonetcd` (Member,
+RaftAttributes, Attributes, ConfigChangeContext, `[]*Member`, DowngradeInfo, Versions, ConfState,
+HashKVRequest/Response) and `models/internal/jsonvsr` (go-vsr's current `log.go`, Logs' methods); the
+dsv-vr kit's own `json.toml` generates (checked in a scratch copy), and so do k8s's `v1.AvoidPods` and
+`metav1.OwnerReference` (`metav1.Time`: both methods, opaque). Goose translates the generated codecs
+(tried on jsonvsr and jsonetcd). The independent review: `notes/axiom-review/jsongen.md`.
