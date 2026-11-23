@@ -24,7 +24,7 @@ change each.
 | trusted code | only `Dsverify/TrustedCode/{raxos/replica/src,raxos/proto/client}.lean` (the lab's no-op `init`s of protoc-gen-go's descriptor tables in QuePaxa's own packages; empty `ManualProof/` beside them). They stay trusted code, not `InitHyp`s: those packages' other initializers (`Consensus_ServiceDesc`) are translated and proved, and a hypothesis would cover the whole package's `initialize'`; untranslated instead, they would be `opaque` initializers and gen-init's `opaqueInitsOk` axiom. (The names-only libraries' no-op models of 0e2763910c are gone: `InitHyp`s, below.) |
 | initialization hypotheses | `Dsverify/Proof/{gopkg_in/yaml_v2,github_com/go_redis/redis/v8,io/ioutil,encoding/gob,google_golang_org/grpc,google_golang_org/grpc/codes,math/rand}/Init.lean`, hand-written (dsv-vr's pattern): `class InitHyp GF : Prop` holding the package's `wp_initialize'`; gen-init's `DSV_HYP_INITS` / `dsv_hyp_fix` (vr's code) treat them as external and add `variable [<pkg>.InitHyp GF]` to every generated init file above them |
 | package facts and initialization | `Dsverify/Proof/<pkg>/Base.lean` (`True` for every QuePaxa package and names-only library; each imports its imports' fact modules), `Dsverify/Proof/google_golang_org/protobuf/Base.lean` (protobuf's five packages' facts: the main tree's live in `cache/v3/Base`, `raft/v3/Base`, which import the main tree's `net`); `etc/gen-init.py` `dsv_inits` (additive: `DSV_QP*`, `DSV_MAIN` = bufio, math/rand, protobuf's `Init` made in the part as `NET_MAIN`'s in `Net/`, `DSV_OWN` = the part's grpc without the main tree's `SPECIAL`, `SPECIAL['raxos.replica.src']` for `Consensus_ServiceDesc`); generated `Init.lean` and the twelve commands' `PkgTable.lean` all build |
-| the protocol's proof | `Dsverify/Proof/raxos/` (the lab's `Quepaxa/Proof/` layout): so far `Pure/Conf.lean`, `Pure/Consensus.lean` (verbatim, build) |
+| the protocol's proof | `Dsverify/Proof/raxos/` (the lab's `Quepaxa/Proof/` layout): so far `Pure/Conf.lean`, `Pure/Consensus.lean` (verbatim) and `Pure/Smr.lean` (edited: the lab's `Harness.Model` `kv` replaced by the kit's `KIn`/`KOut` and linkv's pending-writes store `kvB`; `execCmd_step`: executing an input's command is `kvB`'s step), all build |
 | trust base | `etc/tcb-collections/dsv-quepaxa.txt` (to come with the statement) |
 
 ## What changed against the lab (Go)
@@ -116,9 +116,9 @@ named after the lab's specs, until each comes as one shared change:
   `Codec`, `Proposer`, `Replica`, `Proxy`, `Kit`), the net calls ported onto `Net/Spec/net/*` and
   `Proto.lean`'s laws as `paxos/NetProof.lean` did, the hypotheses above as section variables; then
   `quepaxa_remote_robust` (`DistDeploy … → Robust [] …`) over them, its collection.
-  First steps: `Pure/Smr.lean` (imports the lab's `Harness.Model` `kv`: re-base its law
-  `execCmd`-is-a-`kv`-step onto the kit's model here, `model.go`'s Lean form, a `ModelSet` analog as
-  paxos's, against linkv's `pSeq`); then `PkgState`/`Msg`/`Ghost` (the lab's `QuepaxaNetSpec`,
+  Next steps: the kit model's Lean form (`model.go`'s per-key `State` as a set of `kvB`
+  configurations, paxos's `woSet`/`ModelSet.lean` analog, per key: `stepE` is `pSeq kvB`'s step;
+  `Pure/Smr`'s `kvB` is done); then `PkgState`/`Msg`/`Ghost` (the lab's `QuepaxaNetSpec`,
   `Harness.ClientSpec`, `Harness.Models` replaced by remote's statement). The lab's modules that
   import `Harness.Proof.{grpc,sync.Map,bufio.*}` take the hypotheses above.
 - Size: the lab's protocol proof is 37k lines (`Quepaxa/Proof/`, without the translation), against
