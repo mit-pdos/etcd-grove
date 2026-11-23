@@ -4,7 +4,7 @@ the vocabulary of the specs of `*bufio.Writer` (`Spec/bufio/NewWriterSize.lean`,
 dsverify kits write through over a `net.Conn` (`Net/Proof/net/ConnIo.lean`). The writer-side
 counterpart of Perennial's `io.readerOk` (`Perennial/Proof/io/Reader.lean`).
 
-* `io.writerOk wi J Q Ew` (persistent): `wi.Write(p)`, from the state `J out` (`out` the bytes it has
+* `io.streamWriterOk wi J Q Ew` (persistent): `wi.Write(p)`, from the state `J out` (`out` the bytes it has
   accepted so far) and the permission `□ Q (out ++ xs)` for `p`'s bytes `xs`, accepts a prefix
   `xs.take k` of them and leaves `J (out ++ xs.take k)`, returning `n = k`, `k ≤ len(p)`, and an error,
   `nil` only when all of `p` was accepted (`io.Writer`'s contract, `io/io.go`: "Write must return a
@@ -20,11 +20,17 @@ writers treat every write error alike. A client that needs a position can put it
 
 `io.writerStream` (`Proof/io/WriterStream.lean`, the WAL's `*os.File`) is the all-or-broken variant:
 a failed write leaves the writer's own predicate `B`, not a prefix of the bytes. There is no law
-between the two (review on #24): a `writerStream` is not a `writerOk` (after an error its state is
+between the two (review on #24): a `writerStream` is not a `streamWriterOk` (after an error its state is
 `B out xs`, which need not be `J` of any prefix: a file whose offset a failed write lost), and a
-`writerOk` is a `writerStream` only for the permission `Q` true and errors whose evidence gives
+`streamWriterOk` is a `writerStream` only for the permission `Q` true and errors whose evidence gives
 `errOkOrNil`, which no client asks for (the WAL writes files through `writerStream`, the kits
-connections through `writerOk`); it would be stated when one does.
+connections through `streamWriterOk`); it would be stated when one does.
+
+`io.writerOk w Wr` (`Proof/io/SectionReader.lean`, session S4: bbolt's `Tx.WriteTo` and `io.CopyN`) is a
+different contract for the same interface: a write of `chunk` appends a prefix to the bytes `Wr c bs`
+records (no permission `Q`, no error evidence `Ew`: its errors are `fmtErrorOkOrNil`). There is no law
+between it and `streamWriterOk` yet; this one was named `io.writerOk` until it met that one on `lean`
+(2026-11-23), and unifying the two is a follow-up (`notes/dsv-bufio.md`).
 Lean-first.
 -/
 module
@@ -63,7 +69,7 @@ instance io.werrAt_persistent (Ew : GoInterface → IProp GF) (err : GoInterface
   unfold io.werrAt; infer_instance
 
 /-- **`wi` writes by the contract `J`, `Q`, `Ew`** (see the file header). -/
-def io.writerOk (wi : GoInterfaceOk) (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF) :
+def io.streamWriterOk (wi : GoInterfaceOk) (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF) :
     IProp GF :=
   iprop(io.prefixClosed Q ∗
     □ ∀ (out : List w8) (p : GoSlice) (dq : DFrac) (xs : List w8),
@@ -73,28 +79,28 @@ def io.writerOk (wi : GoInterfaceOk) (J Q : List w8 → IProp GF) (Ew : GoInterf
         ∃ k : Nat, ⌜n = W64 k ∧ k ≤ xs.length ∧ (err = interface.nil → k = xs.length)⌝ ∗
           p ↦*{dq} xs ∗ J (out ++ xs.take k) ∗ io.werrAt Ew err }})
 
-instance io.writerOk_persistent (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
-    (Ew : GoInterface → IProp GF) : Persistent (io.writerOk wi J Q Ew) := by
-  unfold io.writerOk; infer_instance
+instance io.streamWriterOk_persistent (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
+    (Ew : GoInterface → IProp GF) : Persistent (io.streamWriterOk wi J Q Ew) := by
+  unfold io.streamWriterOk; infer_instance
 
-/-- A call of `Write`, with `io.writerOk` kept folded in the caller's context. -/
-theorem io.wp_writer_Write (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
+/-- A call of `Write`, with `io.streamWriterOk` kept folded in the caller's context. -/
+theorem io.wp_streamWriter_Write (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
     (Ew : GoInterface → IProp GF) (out : List w8) (p : GoSlice) (dq : DFrac) (xs : List w8) :
-    {{ io.writerOk wi J Q Ew ∗ J out ∗ □ Q (out ++ xs) ∗ p ↦*{dq} xs }}
+    {{ io.streamWriterOk wi J Q Ew ∗ J out ∗ □ Q (out ++ xs) ∗ p ↦*{dq} xs }}
       (App (Val #(methods wi.ty go!"Write" wi.v)) (Val #p))
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         ∃ k : Nat, ⌜n = W64 k ∧ k ≤ xs.length ∧ (err = interface.nil → k = xs.length)⌝ ∗
           p ↦*{dq} xs ∗ J (out ++ xs.take k) ∗ io.werrAt Ew err }} := by
   iintro %Φ ⟨#Hw, HJ, #HQ, Hp⟩ HΦ
-  unfold io.writerOk
+  unfold io.streamWriterOk
   icases Hw with ⟨-, #Hw⟩
   iapply Hw $$ %out %p %dq %xs [HJ Hp] HΦ
   iframe HJ HQ Hp
 
 /-- The writer's permission is closed under prefixes. -/
-theorem io.writerOk_prefixClosed (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
-    (Ew : GoInterface → IProp GF) : io.writerOk wi J Q Ew ⊢ io.prefixClosed Q := by
-  unfold io.writerOk
+theorem io.streamWriterOk_prefixClosed (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
+    (Ew : GoInterface → IProp GF) : io.streamWriterOk wi J Q Ew ⊢ io.prefixClosed Q := by
+  unfold io.streamWriterOk
   iintro ⟨#H, -⟩
   iexact H
 

@@ -3887,8 +3887,8 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   but no `io.Writer` counterpart with short writes; and a few slice facts `*bufio.Reader`/`*bufio.Writer`
   need (a sub-slice accessor `[r, w)`, the suffix accessor `b[n:]`, advancing a slice `p = p[k:]`,
   `copy` within one slice) are not in its slice library.
-- **Workaround here.** `io.writerOk wi J Q Ew` (`Proof/io/WriterOk.lean`: `Write` accepts a prefix of the
-  bytes, `nil` only for all of them; `Q` closed under prefixes, `io.prefixClosed`) with `io.wp_writer_Write`;
+- **Workaround here.** `io.streamWriterOk wi J Q Ew` (`Proof/io/StreamWriterOk.lean`: `Write` accepts a prefix of the
+  bytes, `nil` only for all of them; `Q` closed under prefixes, `io.prefixClosed`) with `io.wp_streamWriter_Write`;
   the slice facts in `Proof/bufio/Base.lean` (`bufio.ownSlice_sub_acc`, `bufio.suffix_acc`,
   `bufio.slice_advance`, `bufio.flush_shift`, ...).
 - **`io.ReadFull`/`io.ReadAtLeast`** are translated and proved in Perennial at the pin (`io.wp_ReadFull`,
@@ -3899,7 +3899,7 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   premise asks `Pre` at `ys.length = len(buf)` too, an empty read. See the next entry. The `copy` count
   trap (#24 item 4) is gone at the pin (`wp_slice_copy_int` states `sint.Z n = min ...`); it remains in
   the net model's `Conn.Read` spec (`ReadOut`: `sint.nat k = min ...`), the reason for `0 < len(p)`.
-- **Proposed.** `io.writerOk` next to `io.readerOk` in `Perennial/Proof/io/`; the slice facts in
+- **Proposed.** `io.streamWriterOk` next to `io.readerOk` in `Perennial/Proof/io/`; the slice facts in
   `Perennial/Proof/` slice library; `bufio.wand_pure_persistent` (`Proof/bufio/Own.lean`: `□ (∀ _ : φ, P)`
   from `⌜φ⌝ -∗ □ P`, a general Iris fact, review round 2 on #24, N6) in Perennial's (or iris-lean's)
   BI lemmas.
