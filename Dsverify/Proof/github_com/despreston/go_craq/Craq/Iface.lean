@@ -8,7 +8,7 @@ implementing package proves its values meet it; the calling package uses only th
 
 * `Cfg`: the run's configuration seen by the code: ghost names `γ`, the rpc world `W`, the
   coordinator's address `cAddr`, the chain's addresses `chain`; `craqCtx` (persistent): the
-  protocol's invariant, `W`'s services are the run's (`craqSS`), every address serves rpc.
+  protocol's invariant, `W`'s services are the run's (`craqSS`), every address serves net/rpc over HTTP (`httpRpcAddr`, H4).
 * The store (`isStore`, `storeOwn`): logically atomic specs over the abstract contents, a map
   from keys to their items `(version, value, committed)` in arrival order (`StoreS`).
 * The clients (`isNodeClient`, `isCoordClient`, `freshNodeClient`, `freshCoordClient`): their
@@ -23,6 +23,7 @@ public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Methods
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Store
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.netrpc.Base
 public import Net.Proof.net.rpc.ClientDefs
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.HttpRpc
 public import Net.Proof.models_lab.Errors
 
 @[expose] public section
@@ -40,6 +41,7 @@ namespace github_com.despreston.go_craq
 section global
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
+variable [ra : RpcHttpAddr GF]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -54,10 +56,10 @@ structure Cfg (GF : BundledGFunctors) where
 def craqCtx (cfg : Cfg GF) : IProp GF :=
   iprop(isCraq cfg.γ ∗ ⌜cfg.W.SS = craqSS cfg.γ cfg.cAddr cfg.chain ∧ cfg.chain.Nodup ∧
       cfg.cAddr ∉ cfg.chain ∧ go!"" ∉ cfg.chain⌝ ∗
-    [∗list] a ∈ cfg.cAddr :: cfg.chain, net.rpc.rpcAddr cfg.W a)
+    [∗list] a ∈ cfg.cAddr :: cfg.chain, httpRpcAddr cfg.W a)
 
 instance craqCtx_persistent (cfg : Cfg GF) : Persistent (craqCtx (G := G) cfg) := by
-  unfold craqCtx net.rpc.rpcAddr; infer_instance
+  unfold craqCtx; infer_instance
 
 /-- Node `a`'s share of the ghost state at the start. -/
 def nodeRes (cfg : Cfg GF) (a : GoString) : IProp GF :=

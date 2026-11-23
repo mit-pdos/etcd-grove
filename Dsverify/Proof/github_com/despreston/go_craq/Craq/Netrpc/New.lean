@@ -30,10 +30,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [ra : RpcHttpAddr GF]
+variable [rd : RpcHttpDial GF]
 
 
 /-- The promoted `Connect` of a `*NodeClient`. -/
-theorem wp_NodeClient_Connect (HDial : DialHTTP.spec (GF := GF)) (cfg : Cfg GF) (c cl : Loc) (a : GoString)
+theorem wp_NodeClient_Connect (cfg : Cfg GF) (c cl : Loc) (a : GoString)
     (ha : a ∈ cfg.cAddr :: cfg.chain) :
     env cfg ∗ c ↦□ transport.netrpc.NodeClient.mk cl ∗ cl ↦ transport.netrpc.Client.mk null ⊢
     ∀ Φ : val → IProp GF,
@@ -48,15 +50,14 @@ theorem wp_NodeClient_Connect (HDial : DialHTTP.spec (GF := GF)) (cfg : Cfg GF) 
   wp_method_call
   wp_call
   wp_auto
-  ihave Hw := wp_Client_Connect HDial cfg cl a ha $$ [Hcl]
+  ihave Hw := wp_Client_Connect cfg cl a ha $$ [Hcl]
   · isplitr
     · iexact Henv
     · iexact Hcl
   iapply Hw
   inext; iexact HΦ
 
-theorem wp_NewNodeClient (HDial : DialHTTP.spec (GF := GF))
-    (HencE : enc_EmptyArgs.spec (GF := GF)) (HencW : enc_WriteArgs.spec (GF := GF))
+theorem wp_NewNodeClient (HencE : enc_EmptyArgs.spec (GF := GF)) (HencW : enc_WriteArgs.spec (GF := GF))
     (HencC : enc_CommitArgs.spec (GF := GF)) (HencS : enc_string.spec (GF := GF))
     (HencM : enc_NodeMeta.spec (GF := GF)) (HencP : enc_PropagateRequest.spec (GF := GF))
     (HdecE : dec_EmptyReply.spec (GF := GF)) (HdecV : dec_VersionResponse.spec (GF := GF))
@@ -88,7 +89,7 @@ theorem wp_NewNodeClient (HDial : DialHTTP.spec (GF := GF))
       · iexact Hrpkg
       · iexact Hcs
     · iexact Hctx
-  ihave Hw := wp_NodeClient_Connect HDial cfg c «$v0_ptr» a (List.mem_cons_of_mem _ ha) $$ [«$v0»]
+  ihave Hw := wp_NodeClient_Connect cfg c «$v0_ptr» a (List.mem_cons_of_mem _ ha) $$ [«$v0»]
   · isplitr
     · iexact Henv
     isplitr
@@ -111,8 +112,7 @@ theorem wp_NewNodeClient (HDial : DialHTTP.spec (GF := GF))
     · iexact Hcon
   · iright; iexact Hany
 
-theorem factory (HDial : DialHTTP.spec (GF := GF))
-    (HencE : enc_EmptyArgs.spec (GF := GF)) (HencW : enc_WriteArgs.spec (GF := GF))
+theorem factory (HencE : enc_EmptyArgs.spec (GF := GF)) (HencW : enc_WriteArgs.spec (GF := GF))
     (HencC : enc_CommitArgs.spec (GF := GF)) (HencS : enc_string.spec (GF := GF))
     (HencM : enc_NodeMeta.spec (GF := GF)) (HencP : enc_PropagateRequest.spec (GF := GF))
     (HdecE : dec_EmptyReply.spec (GF := GF)) (HdecV : dec_VersionResponse.spec (GF := GF))
@@ -125,7 +125,7 @@ theorem factory (HDial : DialHTTP.spec (GF := GF))
   unfold isFactory
   imodintro
   iintro %Φ HΦ
-  wp_apply (wp_NewNodeClient HDial HencE HencW HencC HencS HencM HencP HdecE HdecV HdecI HdecP cfg)
+  wp_apply (wp_NewNodeClient HencE HencW HencC HencS HencM HencP HdecE HdecV HdecI HdecP cfg)
     as %c Hc
   · unfold rpcReady
     isplitr
@@ -136,7 +136,7 @@ theorem factory (HDial : DialHTTP.spec (GF := GF))
   iapply HΦ $$ Hc
 
 /-- The promoted `Connect` of a `*CoordinatorClient`. -/
-theorem wp_CoordClient_Connect (HDial : DialHTTP.spec (GF := GF)) (cfg : Cfg GF) (c cl : Loc) (a : GoString)
+theorem wp_CoordClient_Connect (cfg : Cfg GF) (c cl : Loc) (a : GoString)
     (ha : a ∈ cfg.cAddr :: cfg.chain) :
     env cfg ∗ c ↦□ transport.netrpc.CoordinatorClient.mk cl ∗
       cl ↦ transport.netrpc.Client.mk null ⊢
@@ -152,14 +152,14 @@ theorem wp_CoordClient_Connect (HDial : DialHTTP.spec (GF := GF)) (cfg : Cfg GF)
   wp_method_call
   wp_call
   wp_auto
-  ihave Hw := wp_Client_Connect HDial cfg cl a ha $$ [Hcl]
+  ihave Hw := wp_Client_Connect cfg cl a ha $$ [Hcl]
   · isplitr
     · iexact Henv
     · iexact Hcl
   iapply Hw
   inext; iexact HΦ
 
-theorem wp_NewCoordinatorClient (HDial : DialHTTP.spec (GF := GF)) (HencS : enc_string.spec (GF := GF))
+theorem wp_NewCoordinatorClient (HencS : enc_string.spec (GF := GF))
     (HencCW : enc_ClientWriteArgs.spec (GF := GF)) (HdecM : dec_NodeMeta.spec (GF := GF))
     (HdecE : dec_EmptyReply.spec (GF := GF)) :
     netrpc.wp_NewCoordinatorClient.spec (GF := GF) := by
@@ -189,7 +189,7 @@ theorem wp_NewCoordinatorClient (HDial : DialHTTP.spec (GF := GF)) (HencS : enc_
       · iexact Hrpkg
       · iexact Hcs
     · iexact Hctx
-  ihave Hw := wp_CoordClient_Connect HDial cfg c «$v0_ptr» cfg.cAddr List.mem_cons_self $$ [«$v0»]
+  ihave Hw := wp_CoordClient_Connect cfg c «$v0_ptr» cfg.cAddr List.mem_cons_self $$ [«$v0»]
   · isplitr
     · iexact Henv
     isplitr

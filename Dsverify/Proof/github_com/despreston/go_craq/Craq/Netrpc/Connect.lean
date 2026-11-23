@@ -27,10 +27,12 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [examples.craqnet.Assumptions] [store.Assumptions] [transport.Assumptions] [transport.netrpc.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [ra : RpcHttpAddr GF]
+variable [rd : RpcHttpDial GF]
 
 
 /-- `cl.Connect(a)` on an unconnected `*Client`: connected to `a`, or an error. -/
-theorem wp_Client_Connect (HDial : DialHTTP.spec (GF := GF)) (cfg : Cfg GF) (cl : Loc) (a : GoString) (ha : a ∈ cfg.cAddr :: cfg.chain) :
+theorem wp_Client_Connect (cfg : Cfg GF) (cl : Loc) (a : GoString) (ha : a ∈ cfg.cAddr :: cfg.chain) :
     env cfg ∗ cl ↦ transport.netrpc.Client.mk null ⊢
     ∀ Φ : val → IProp GF,
       ▷ (∀ err : GoInterface, ((⌜err = interface.nil⌝ ∗ connected cfg cl a) ∨
@@ -45,7 +47,7 @@ theorem wp_Client_Connect (HDial : DialHTTP.spec (GF := GF)) (cfg : Cfg GF) (cl 
   wp_method_call
   wp_call
   wp_auto
-  wp_apply HDial cfg.W a $$ [Hrpkg Ha] as %r %err Hpost
+  wp_apply RpcHttpDial.DialHTTP cfg.W a $$ [Hrpkg Ha] as %r %err Hpost
   · iexact Ha
   icases Hpost with (⟨%He, #Hr⟩ | ⟨%He, #Hany⟩)
   · subst He
