@@ -21,14 +21,14 @@ names when they are needed. Names are the lab's.
   `decErr dec rd` (its sticky error is set: every `Decode` returns it). The lab's `events.rstream`
   read the lab model's fields (`buf`, `scanp`, `err`, `rerr`); these two stand for them. An instance
   is the model's choice, given with the decoder's specs; none is given here.
-* `bufio.errWf`, `bufio.errOrNil`: an error result (nil, or an error with some message), over the
-  repository's `models_lab.errAny` (the lab's `net.rpc.errAny`).
+* `bufio.errWf`, `bufio.errOrNil` are `Dsverify/Proof/bufio/ErrOrNil.lean`'s (shared with swiftpaxos).
 -/
 module
 
 public import Dsverify.Proof.encoding.json.Base
 public import Net.Proof.models_lab.jsoncodec.Codec
 public import Net.Proof.models_lab.Errors
+public import Dsverify.Proof.bufio.ErrOrNil
 
 @[expose] public section
 
@@ -104,29 +104,5 @@ instance codecSet_persistent : Persistent (codecSet (GF := GF)) := by
 end defs2
 
 end encoding.json
-
-namespace bufio
-
-section defs
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- A non-nil error of a pointer type holds a pointer (true of every error Go code makes; what
-comparing it with an `errors.New` error needs). -/
-def errWf [GooseExts] [GoGlobalContext] (err : GoInterface) : Prop :=
-  ∀ e : GoInterfaceOk, err = interface.ok e → ∀ T : go.GoType, e.ty = go.GoType.PointerType T →
-    ∃ l : Loc, e.v = #l
-
-/-- An error result: `nil`, or an error with some message (and `errWf`). -/
-def errOrNil (err : GoInterface) : IProp GF :=
-  iprop(⌜err = interface.nil⌝ ∨ (models_lab.errAny err ∗ ⌜errWf err⌝))
-
-instance errOrNil_persistent (err : GoInterface) : Persistent (errOrNil (GF := GF) err) := by
-  unfold errOrNil; infer_instance
-
-end defs
-
-end bufio
 
 end Perennial

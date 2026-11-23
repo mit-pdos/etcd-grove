@@ -19,6 +19,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Net.Proof.models_lab.Errors
+public import Dsverify.Proof.bufio.ErrOrNil
 public import Proof.bufio.Own
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 public import Proof.bufio.ReaderLaws
@@ -52,16 +53,6 @@ def prefixClosed (Q : List w8 → IProp GF) : IProp GF :=
 def prefixClose (Q : List w8 → IProp GF) (W : List w8) : IProp GF :=
   iprop(⌜W = []⌝ ∨ ∃ ext : List w8, ⌜W <+: ext⌝ ∗ □ Q ext)
 
-/-- A non-nil error of a pointer type holds a pointer (true of every error Go code makes; what
-comparing it with an `errors.New` error, e.g. `err == io.EOF`, needs). -/
-def errWf (err : GoInterface) : Prop :=
-  ∀ e : GoInterfaceOk, err = interface.ok e → ∀ T : go.GoType, e.ty = go.GoType.PointerType T →
-    ∃ l : Loc, e.v = #l
-
-/-- An error result: `nil`, or an error with some message (and `errWf`). -/
-def errOrNil (err : GoInterface) : IProp GF :=
-  iprop(⌜err = interface.nil⌝ ∨ (models_lab.errAny err ∗ ⌜errWf err⌝))
-
 /-- The errors with the evidence `E` are errors with some message (and `errWf`) (persistent). -/
 def errsOk (E : List w8 → GoInterface → IProp GF) : IProp GF :=
   iprop(□ ∀ (r : List w8) (e : GoInterface), E r e -∗ models_lab.errAny e ∗ ⌜errWf e⌝)
@@ -85,8 +76,6 @@ def writerOk (wr : GoInterface) (J : List w8 → IProp GF) (Q : List w8 → IPro
 instance prefixClosed_persistent (Q : List w8 → IProp GF) :
     Persistent (prefixClosed (GF := GF) Q) := by
   unfold prefixClosed; infer_instance
-instance errOrNil_persistent (err : GoInterface) : Persistent (errOrNil (GF := GF) err) := by
-  unfold errOrNil; infer_instance
 instance errsOk_persistent (E : List w8 → GoInterface → IProp GF) :
     Persistent (errsOk (GF := GF) E) := by
   unfold errsOk; infer_instance
