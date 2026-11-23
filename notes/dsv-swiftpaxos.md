@@ -173,6 +173,54 @@ the missing lab files (`netrpc.rpc.LocalRegister`, `encoding.gob.SetCodec` ×2) 
 defs→linking 15, proof→linking 4); none involves a file changed this session (the eighth
 session's 257 was counted differently).
 
+**Next (step 5), in order — a plan per piece (templates: dsv-rabia LANDED on lean `06fe42e389`,
+`Dsverify/Proof/rabia/examples/rabianet/*`; dsv-epaxos `/shared/etcd-grove-dsvepaxos`
+(origin/dsv-epaxos), whose kit has the same master/replica/net/rpc structure and is further on:
+`Bridge` (`robust_of_distProtoLisRB`, the master's wildcard), `Start`, `ServerSpecs`/`ServerProof`,
+`Register`, `ServeReplica`; dsv-craq's `RpcBoot`).**
+0. **Merge `origin/lean`** first (rabia's `Dsverify/Proof/os/signal/{Init,Spec}` (`os.signal.InitHyp`,
+   `NoSignals`), `math/rand` Init/Spec, remote's current specs, gen-init's `dsv_inits`): lean pins
+   Perennial `940c686dd` (no `/shared/perennial-940c686dd` checkout yet: make one as the others,
+   repoint `.lake/packages` and `PERENNIAL_DIR`, rebuild; seed `.lake/build` by `rsync` from a
+   sibling as epaxos did). Then `etc/dsv/swiftpaxos.py`: `PKGS`, `PROGRAMS` (the 13 `cmd/*`
+   PkgTables), `HYP_INITS` (`encoding/gob`, `github.com/google/uuid`,
+   `github.com/orcaman/concurrent-map`; `os/signal` is rabia's) and their hand-written
+   `Dsverify/Proof/<pkg>/Init.lean` (`class InitHyp`, no instance), as rabia's `os/signal/Init.lean`.
+   `SwiftOsRandom`/`SwiftNoSignals` become/align with rabia's environment classes where they coincide
+   (rabia's `NoSignals` is over SIGINT/SIGTERM; ours over SIGUSR1: keep ours, same shape).
+1. **The model** (in flight at the end of the ninth session, a subagent: `examples/swiftnet/
+   {ModelSet,ModelLemmas,KitModel,ModelProof}.lean`, after rabia's): the store over `In`/`Out`, the
+   set semantics (downward closed in the pending puts), `Model()`/`Codec()`/`Gen` specs. If its
+   files are present but uncommitted, check them (`etc/lean-check.py -a`) and commit what checks.
+2. **The client machine** (`Client`/`clientNode`/`newClient`/`op` with `opMu` and `MaxOps`): rabia's
+   `ClientProof`/`Kit` (`is_sys`, the store's far side `RBase` `kvR γ` over `sp.inv`'s lin state, the
+   lin point `opAU`), reusing the lab kit's `ClientNodeNew` (awaitConf future), `ClientConnect`,
+   `ClientOp` (the BufferClient Read/Write logically atomic specs, `ClientAU`), `ClientLeaders`
+   (`changeLeaders` over `DialHTTP` + `Call BeTheLeader`: `master.wp_call_btl`'s pattern).
+3. **The orchestrator** (`orch`: `New` = the lab's `OrchNew`/`OrchSend`/`OrchParts`/`OrchAddr`;
+   `remote.Check` with the model): rabia's `OrchProof`.
+4. **The servers** (`serve`: `awaitConf`, `Register()` (SetCodec), the master branch (`master.New`,
+   `Run` (`master.Master.wp_Run`), the replica branch (`register` (lab `Register.lean`, over
+   `DialHTTP_spec` and the per-type `enc_RegisterArgs`/`dec_RegisterReply`), `swift.New` (needs the
+   replica's `lisProto (wildOf a)` and `codecSet`), `rpc.Register` + `swift.rcvr.spec`,
+   `HandleHTTP`, `Listen` at the rpc port (`rpcLisP_lis`), `http.Serve`): the lab's
+   `Serve`/`ServeShare`/`Servers`/`SrvInit`, epaxos's `ServerProof`/`ServeReplica`.
+5. **Start and statement**: the ghost start (lab `Start.lean`: conf/membership mono lists,
+   `sp.inv`, the rpc world `W` with `W.SS` = master/replica `withErr` specs, `rpcLisP_set` at the
+   master's `":7001"` and the replicas' rpc ports with the handshake premise over `worldHs`), the
+   boot (`wp_boot` as rabia's; net/rpc's per-machine boot resource as craq's `RpcBoot`:
+   `codecFresh`, `srvEnv`), `Mains`, `Linked`/`Link` (namespace
+   `Perennial.EtcdGrove.dsvswiftpaxos`), `TopLevelDefs`, `TopLevelRobustness` (bridge over
+   `addrs_lis_start` as epaxos's `robust_of_distProtoLisRB`; over `netShaExts`: the
+   two-extension bridge, design finding 1), `swiftpaxos_remote_robust` with every premise visible
+   (`SwiftHyps`, `SwiftNoSignals`, `SwiftOsRandom`, `RpcHttpHyp`, `GobFmt` (a `SwiftLibs` field:
+   surface it in the `.spec`), every `InitHyp`), `etc/theorem-loc.py`, `etc/tcb-collections/
+   dsv-swiftpaxos.txt`; then delete the lab kit (`examples/swiftnet/*` but the new files,
+   `Spec/.../swiftnet/{Interface,Base,registerRPC}`, `KitLike`'s lab fields, `lib/NetRpc`'s
+   `rcvrOk`).
+6. On models-rpc-http's landing: merge, replace `RpcHttpHyp`'s proved parts (eighth session).
+7. Tier restructuring (262) before landing.
+
 ## State (2026-11-23, eighth session; superseded where the ninth says so)
 
 Read with the seventh session's state below (accurate where this does not say otherwise).
