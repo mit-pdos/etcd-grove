@@ -35,7 +35,7 @@ translation, and `Closures.lean`, the func literals its package fact names (`DAG
   etc/gen-init.py --check    exit 1 if a file differs from what would be generated
   etc/gen-init.py PKG...     regenerate these packages (Lean names, `go_etcd_io.etcd.pkg.v3.wait`)
 """
-import glob, json, os, re, sys
+import glob, json, os, re, sys, types
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
@@ -202,7 +202,7 @@ def register(cfg, p, regs):
         if x not in b:
             continue
         for i, l in enumerate(b[x]):
-            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, %{n}⟩'), (f'⟨#R{x}, -⟩', f'⟨#R{x}, %{n}⟩'),
+            for a, z in [(f'⟨#C{x}, -⟩', f'⟨#C{x}, %{n}⟩'), (f'⟨#C{x}, #D{x}, -⟩', f'⟨#C{x}, #D{x}, %{n}⟩'),
                          (f'⟨#L{x}, -⟩', f'⟨#L{x}, %{n}⟩')]:
                 l = l.replace(a, z)
             b[x][i] = l
@@ -911,22 +911,7 @@ def _walErrVar(x, tag):
 # options literal (a histogram's buckets `ExponentialBuckets(start, 2, n)`), over prometheus's
 # constructor specs; the steps before its store (`before`, keyed by the variable)
 PROM_CTORS = [f'Proof.github_com.prometheus.client_golang.prometheus.{f}'
-              for f in ['NewCounter', 'NewGauge', 'NewHistogram', 'ExponentialBuckets',
-                        # (prove-ps2-metrics, 2026-11-22) `NewGauge` returns `isGauge`; the methods'
-                        # triples come from their proofs, through these laws
-                        'MetricLaws', 'gauge__Set', 'gauge__Add', 'gauge__Inc', 'gauge__Dec']]
-
-_PM = 'EtcdGrove.prometheus'
-def gauge_rep(c, h):
-    """After `NewGauge` (`#R<h> : isGauge <c>`): `#C<h> : metric.gaugeSpec <c>` and
-    `#D<h> : metric.gaugeSetSpec <c>`, from the methods' proofs (prove-ps2-metrics, 2026-11-22)."""
-    a = f'{_PM}.gauge.Add.wp_proof'
-    return [f'ihave #C{h} : ({_PM}.metric.gaugeSpec {c} : IProp GF) $$ []',
-            f'· iapply {_PM}.metric.gaugeSpec_of_isGauge ({_PM}.gauge.Inc.wp_proof {a}) ({_PM}.gauge.Dec.wp_proof {a}) {a}',
-            '  all_goals iassumption',
-            f'ihave #D{h} : ({_PM}.metric.gaugeSetSpec {c} : IProp GF) $$ []',
-            f'· iapply {_PM}.metric.gaugeSetSpec_of_isGauge {_PM}.gauge.Set.wp_proof',
-            '  all_goals iassumption']
+              for f in ['NewCounter', 'NewGauge', 'NewHistogram', 'ExponentialBuckets']]
 
 def metric_steps(x, kind):
     P = 'EtcdGrove.prometheus'
@@ -934,8 +919,8 @@ def metric_steps(x, kind):
         return [f'wp_apply {P}.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, -⟩',
                 'try wp_auto']
     if kind == 'gauge':
-        return ([f'wp_apply {P}.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#R{x}, -⟩'] +
-                gauge_rep(f'c{x}', x) + ['try wp_auto'])
+        return [f'wp_apply {P}.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %c{x} ⟨#C{x}, #D{x}, -⟩',
+                'try wp_auto']
     assert kind == 'hist'
     return [f'wp_apply {P}.ExponentialBuckets.wp_proof _ _ _ (by rfl) (by decide) as %b{x} B{x}',
             'try wp_auto',
@@ -1776,9 +1761,7 @@ trust-boundary axiom `ClusterVersionMetrics_init`).''',
     before={x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#_, #M{x}⟩']
             for x in _MEMBERSHIP_ERRS},
     finish=['ipersist HClusterVersionMetrics'] +
-        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] +
-        # (prove-ps2-metrics, 2026-11-22) the membership writers' metrics, in the fact
-        ['ipersist HisLearner', 'ipersist HknownPeers'] + FIN_PRE[:6] +
+        [f'ipersist H{x}' for x in _MEMBERSHIP_ERRS] + FIN_PRE[:6] +
         ['try (isplitl []; · (imodintro; itrivial))', 'imodintro',
          'unfold membershipInit membershipErrMsgs',
          'simp only [EtcdGrove.errorsNewVars, EtcdGrove.errorsNewVar]',
@@ -2776,8 +2759,6 @@ WatchableKV = (*watchableStore)(nil)`) are translated too (until then the trust-
             **{x: gaugefunc_steps(x) for x in _MV_GFUNC}},
     finish=([f'ipersist H{x}' for x in _MV_ERR] +
             [f'ipersist H{x}' for x in list(_mv_custom)] + [f'ipersist H{x}' for x, _ in _MV_METRICS] +
-            # (prove-ps2-metrics, 2026-11-22) `ReportEventReceived`'s counter, in the fact's last conjunct
-            ['ipersist HtotalEventsCounter'] +
             ['ipersist HdefaultCompactionBatchLimit', 'ipersist HdefaultCompactionSleepInterval'] +
             ['ipersist HchanBufLen', 'ipersist HmaxWatchersPerSync', 'ipersist HwatchResyncPeriod',
              'ipersist HwatchBatchMaxRevs', 'ipersist HrestoreChunkKeys',
@@ -5272,45 +5253,136 @@ def kvnet_inits(ext_txt):
     return outs
 
 
-# The part `Dsverify/` (the dsverify kits ported onto the net extension, notes/dsv-paxos.md;
-# project dsv-paxos): its packages over the part `Net/`'s `net` and remote, and the main tree's
-# lintest and porcupine (`NET_MAIN`). Generated as `Net/`'s, from `Net/`'s translation and instances
-# with the part's added, the imports of the part's modules prefixed `Dsverify.` and of `Net/`'s
-# `Net.`; the programs' `PkgTable`s (`DSV_PROGRAMS`).
+# The part `Dsverify/` (the dsverify kits ported onto the net extension, notes/dsv-paxos.md): each
+# kit's packages over the part `Net/`'s `net` and remote, and the main tree's lintest and porcupine
+# (`NET_MAIN`). Generated as `Net/`'s, from `Net/`'s translation and instances with the part's added,
+# the imports of the part's modules prefixed `Dsverify.` and of `Net/`'s `Net.`; the programs'
+# `PkgTable`s. Each kit configures its own generation in its own file, `etc/dsv/<kit>.py` (format:
+# etc/dsv/README.md; `goose.dsv_kits()` loads them), so that a kit adds a file instead of editing
+# this one; each kit's packages are generated in a context of its own (`dsv_kit_raw`).
 DSV_ROOT = 'Dsverify'
-DSV_PAXOS = 'github_com.xiang90.paxos'
-DSV_NODES = ['orch'] + [f'client{c}' for c in range(4)] + [f'server{s}' for s in range(1, 6)]
-DSV_PKGS = [DSV_PAXOS, f'{DSV_PAXOS}.examples.paxosnet'] + \
-    [f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}' for n in DSV_NODES]
-DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
-                f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
-                for n in DSV_NODES}
+DSV_KITS = _goose.DSV_KITS
 
 
-def dsv_inits():
-    """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
-    global inv, inst, CFG_OVERRIDE
-    saved = inv, inst, CFG_OVERRIDE
+def dsv_hyp_fix(path, txt, need):
+    """A generated file of the part whose package's closure holds a hypothesis package (`need`:
+    the package directory -> its hypothesis packages): its import of that package's
+    initialization is the part's `Init.lean`, and its sections take the hypothesis (`InitHyp`)
+    as an instance."""
+    d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
+    for q in need.get(d, []):
+        txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                          f'public import {DSV_ROOT}.Proof.{q}.Init\n')
+        if f'public import {DSV_ROOT}.Proof.{q}.Init\n' not in txt:
+            txt = re.sub(r'(?m)^(public import .*\n)(?!public import)',
+                         lambda m: m.group(1) + f'public import {DSV_ROOT}.Proof.{q}.Init\n', txt,
+                         count=1)
+        txt = re.sub(r'(?m)^(variable \[sem : go\.Semantics\].*)$',
+                     lambda m: m.group(1) + f'\nvariable [_root_.Perennial.{q}.InitHyp GF]', txt)
+    return txt
+
+
+def dsv_special():
+    """The kits' `special(g)` configurations, added to `SPECIAL` (a package configured twice is
+    an error)."""
+    g = types.SimpleNamespace(**globals())
+    for k in DSV_KITS:
+        for p, cfg in (k.special(g) if hasattr(k, 'special') else {}).items():
+            if p in SPECIAL:
+                sys.exit(f'gen-init: etc/dsv/{k.KIT}.py configures {p}, which already has a configuration')
+            SPECIAL[p] = cfg
+            DSV_CFG[p] = k.KIT
+
+
+DSV_CFG = {}  # a kit-configured package -> its kit
+dsv_special()
+
+
+def dsv_kit_raw(k, base):
+    """Kit `k`'s generated files (paths under the part, imports not yet redirected), and the
+    package directory -> hypothesis packages map of `dsv_hyp_fix`. `base`: the main tree's
+    (`inv`, `inst`), and the inventory and instances of `Net/` and of `Dsverify/`."""
+    global inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports
+    main_inv, main_inst, net_inv, net_inst, dsv_inv, dsv_inst = base
+    pkgs, programs = getattr(k, 'PKGS', []), getattr(k, 'PROGRAMS', {})
+    hyp = list(getattr(k, 'HYP_INITS', []))
+    hyp_imports = getattr(k, 'HYP_IMPORTS', 'all')
+    main = list(getattr(k, 'MAIN', []))
+    main_gen = list(getattr(k, 'MAIN_GEN', main))
+    own = set(getattr(k, 'OWN', ()))
+    saved = inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, set(PERENNIAL_HERE)
+    saved_pi = pkginfo_imports
     try:
         CFG_OVERRIDE = NET_SPECIAL
-        inv = inventory(f'{NET_ROOT}/Code')
-        inst = instances(f'{NET_ROOT}/Proof/')
+        RAFT_INIT = RAFT_INIT - set(main)  # a `MAIN` package's `Init` is the part's
+        if hyp_imports == 'none':
+            # a hypothesis package's imports, as its `GetIsPkgInitWf` sees them: none (its
+            # `Init.lean`), so the programs' tables stop there
+            pkginfo_imports = lambda q: [] if q in hyp else saved_pi(q)
+        inv, inst = dict(net_inv), dict(net_inst)
+        _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
-            inv[p] = saved[0][p]
-            inst[p] = saved[1][p]
-        for q, d in inventory(f'{DSV_ROOT}/Code').items():
+            inv[p] = main_inv[p]
+            inst[p] = main_inst[p]
+        # the main tree's packages `MAIN` (always the main tree's inventory), and those of their
+        # imports that `Net/` lacks
+        st, seen = list(main), set()
+        while st:
+            p = st.pop()
+            if p in seen or p not in main_inv or (p not in main and (p in inv or p in inst)):
+                continue
+            seen.add(p)
+            inv[p] = main_inv[p]
+            if p in main_inst:
+                inst[p] = main_inst[p]
+            st += main_inv[p]['imports']
+        for q, d in dsv_inv.items():
             if not d['perennial']:
                 inv[q] = d
-        inst.update(instances(f'{DSV_ROOT}/Proof/'))
-        raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS
-               if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')
-               for path, txt in gen(p, SPECIAL.get(p))]
-        made = {path for path, _ in raw}
-        for p, path in DSV_PROGRAMS.items():
+        # the packages whose `wp_initialize'` is a hypothesis (`Dsverify/Proof/<pkg>/Init.lean`'s
+        # class `InitHyp`): external here, their imports as `HYP_IMPORTS` says
+        for q in hyp:
+            inv[q] = dict(inv[q], perennial=True)
+            if hyp_imports == 'none':
+                inv[q]['imports'] = []
+            elif hyp_imports == 'known':
+                inv[q]['imports'] = [i for i in inv[q]['imports'] if i in inv]
+        PERENNIAL_HERE.difference_update(hyp)
+        gen_pkgs = [p for p in pkgs if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')] + main_gen
+        gen_pkgs = [p for p in dict.fromkeys(gen_pkgs) if p not in hyp]
+        need = {dirof(p): [q for q in hyp if q in closure(p)] for p in pkgs + main_gen if p in inv}
+        inst.update(dsv_inst)
+        raw = [(f'{DSV_ROOT}/{path}', txt) for p in gen_pkgs
+               for path, txt in gen(p, None if p in own and DSV_CFG.get(p) != k.KIT
+                                    else SPECIAL.get(p))]
+        for p, path in programs.items():
             path, txt = gen_table(p, path)
             raw.append((f'{DSV_ROOT}/{path}', txt))
     finally:
-        inv, inst, CFG_OVERRIDE = saved
+        inv, inst, CFG_OVERRIDE, RAFT_INIT, pkginfo_imports, here = saved
+        PERENNIAL_HERE.clear()
+        PERENNIAL_HERE.update(here)
+    return raw, need
+
+
+_DSV_KEEP = []
+
+
+def dsv_inits():
+    """The part's `Init.lean` files and its programs' `PkgTable.lean`, every kit's."""
+    base = (inv, inst, inventory(f'{NET_ROOT}/Code'), instances(f'{NET_ROOT}/Proof/'),
+            inventory(f'{DSV_ROOT}/Code'), instances(f'{DSV_ROOT}/Proof/'))
+    raw, need, by = [], {}, {}
+    for k in DSV_KITS:
+        r, n = dsv_kit_raw(k, base)
+        for path, txt in r:
+            if path in by:
+                if by[path][1] != txt:
+                    sys.exit(f'gen-init: kits {by[path][0]} and {k.KIT} generate {path} differently')
+                continue
+            by[path] = (k.KIT, txt)
+            raw.append((path, txt))
+            need[path] = n
     made = {path for path, _ in raw}
 
     def imp(m):
@@ -5341,7 +5413,9 @@ def dsv_inits():
             new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
                               'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
         return new
-    return [(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))) for path, txt in raw]
+    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt)),
+                               need[path]))
+            for path, txt in raw]
 
 
 def main(argv):
