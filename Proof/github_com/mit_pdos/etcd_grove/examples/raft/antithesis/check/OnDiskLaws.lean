@@ -51,13 +51,11 @@ theorem OnDisk.m_within {x : OnDisk} {b E : Nat} {m : Msg} (hW : x.Within b E) (
     m.Within b E :=
   hW.2.2.2.1 m (msgSeqHead_mem hm)
 
-/-- The request `fm`'s numbers and entries within the budget. -/
-theorem OnDisk.fm_within {x : OnDisk} {b E : Nat} {f : AppendFact} (hW : x.Within b E) (h : x.fm = .ok f) :
+/-- A request's (`ReqFactIn(ll, m)`'s) numbers and entries within the budget. -/
+theorem reqFactIn_within {ll : TermFn (List Entry)} {m : Msg} {b E : Nat} {f : AppendFact} (hmw : m.NumsOk ∧ m.size ≤ b)
+    (hll : ∀ p ∈ ll, bigOk p.1 ∧ logWithin b E p.2) (h : reqFactIn ll m = .ok f) :
     numOk f.prevLogIndex ∧ f.entries.length ≤ b ∧ numOk f.commit ∧ numOk f.term ∧ numOk f.prevLogTerm := by
-  unfold OnDisk.fm at h
-  obtain ⟨m, hm, h⟩ := bind_ok h
-  have hmw := OnDisk.m_within hW hm
-  obtain ⟨⟨hnt, hni, hnl, hnc, hne⟩, hsz, -⟩ := hmw
+  obtain ⟨⟨hnt, hni, hnl, hnc, hne⟩, hsz⟩ := hmw
   have hb0 : numOk 0 := by unfold numOk numBound; omega
   unfold reqFactIn at h
   obtain ⟨ty, hty, h⟩ := bind_ok h
@@ -72,7 +70,7 @@ theorem OnDisk.fm_within {x : OnDisk} {b E : Nat} {f : AppendFact} (hW : x.Withi
       obtain ⟨k', -, h⟩ := bind_ok h
       obtain ⟨es, hes, h⟩ := bind_ok h
       obtain ⟨p, hp, -, hp2⟩ := TermFn.get_mem hl
-      have hpl := (hW.2.2.2.2.2.2.2.1 p hp).2.1
+      have hpl := (hll p hp).2.1
       rw [hp2] at hpl
       obtain ⟨src, -, h⟩ := bind_ok h
       obtain ⟨dst, -, h⟩ := bind_ok h
@@ -109,6 +107,14 @@ theorem OnDisk.fm_within {x : OnDisk} {b E : Nat} {f : AppendFact} (hW : x.Withi
     rw [h1] at hnt; rw [h2] at hni; rw [h3] at hnl; rw [h5] at hnc
     refine ⟨hni, ?_, hnc, hnt, hnl⟩
     unfold Msg.size at hsz; rw [h4] at hsz; simpa using hsz
+
+/-- The request `fm`'s numbers and entries within the budget. -/
+theorem OnDisk.fm_within {x : OnDisk} {b E : Nat} {f : AppendFact} (hW : x.Within b E) (h : x.fm = .ok f) :
+    numOk f.prevLogIndex ∧ f.entries.length ≤ b ∧ numOk f.commit ∧ numOk f.term ∧ numOk f.prevLogTerm := by
+  unfold OnDisk.fm at h
+  obtain ⟨m, hm, h⟩ := bind_ok h
+  have hmw := OnDisk.m_within hW hm
+  exact reqFactIn_within ⟨hmw.1, hmw.2.1⟩ hW.2.2.2.2.2.2.2.1 h
 
 /-- One step of `K`'s fold (the Lean's lambda). -/
 def kStep (fm : AppendFact) (l0 : List Entry) (acc : Option Int) (i : Nat) : EvalM (Option Int) := do

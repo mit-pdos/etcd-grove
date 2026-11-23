@@ -76,6 +76,12 @@ theorem not_decide_eq_bne {α : Type} [DecidableEq α] [BEq α] [LawfulBEq α] (
     (!decide (a = b)) = (a != b) := by
   by_cases h : a = b <;> simp [h]
 
+theorem beq_of_eq' {α : Type} [BEq α] [LawfulBEq α] {a b : α} (h : a = b) : (a == b) = true := by
+  subst h; exact beq_self_eq_true a
+
+theorem beq_of_ne' {α : Type} [BEq α] [LawfulBEq α] {a b : α} (h : ¬ a = b) : (a == b) = false := by
+  simpa using h
+
 /-- Go's `==` on `int`s is the Lean's `=` on their values. -/
 theorem decide_w64_eq (r u : w64) : decide (r = u) = decide (sint.Z r = sint.Z u) := by
   by_cases h : r = u

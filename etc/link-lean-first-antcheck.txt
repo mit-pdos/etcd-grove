@@ -144,6 +144,15 @@ isUnmodelled:
 State__queued: Event__by
 
 # W2 (the small actions)
+State__Wrote: State__clone setPre
+State__SnapEv: State__clone Event__index Event__term TermAt
+State__ReadAsked: State__clone Event__ctx setReads
+State__ReadGiven: State__clone Event__ctx Event__index setReads violAdd
+State__Recv: State__clone Event__msg Msg__to Msg__term IsReq SnapOk ReqFactIn State__Sendable setMsgs
+State__ApplyEv: State__clone Event__first Event__entries Event__has SubSeq EntriesEqual setInt setPre State__MemCommit violAdd
+State__RestoreEv: State__clone Event__index Event__has SubSeq EntriesEqual setInt setPre State__InitConf ConfOf SameConf
+State__ConfEv: State__clone Event__index SubSeq EntriesEqual At IsConf Legal RecordedIn NextConf SameConf setConf setInt TermConfs__With TermInts__With
+State__Net: State__clone setPre Event__term Event__vote Event__commit Event__entries Event__first State__Vote SubSeq EntriesEqual
 
 # W3 (InMemory)
 

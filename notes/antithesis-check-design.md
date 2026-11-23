@@ -570,3 +570,11 @@ Go loop follows (induction on the fuel); its intermediate states stay within bud
   `OnDisk.fm_within` (the request's numbers `numOk`, its entries within `b`), `K_bounds`, `es_le`,
   `first_bounds` (`-2^61 < first < 2^62`), `f_within`, `L0_le`, and `kStep` (`K`'s fold step).
   W4b and W6 use them for `OnDisk`'s arithmetic. No spec or shared file changed.
+- **W2 done:** the nine small actions (`Wrote`, `SnapEv`, `Net`, `ReadAsked`, `ReadGiven`, `Recv`,
+  `ApplyEv`, `RestoreEv`, `ConfEv`) and the ten budget laws `State.<act>_within` (with `made`) in
+  `Within/<Act>.lean`. Their shared pure laws: `ActionLaws.lean` (`filterM`/`anyM`, `ConfOf`'s and
+  `Legal`'s bounds, `atE_mem`), `Within/Parts.lean` (`State.Within`'s thirty parts by name),
+  `Within/Laws.lean` (growth of `setAdd`/`union`/`nextConf`/`TermFn.with`, one-position updates, and
+  copies of `StateLaws.lean`'s budget `mono` laws without that file's section instances: there the
+  pure laws carry `[GooseExts]` .. `Assumptions` arguments they do not use, which a pure budget law
+  cannot supply; a cleanup of `StateLaws.lean` for its owner).
