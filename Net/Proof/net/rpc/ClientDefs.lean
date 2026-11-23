@@ -19,13 +19,15 @@ the client is not shut down): its `*Call`'s fields (read-only but `Error`), the 
 `done` channel (`Fulfill` of Perennial's future idiom) with the caller's way to fulfil it from
 the call's outcome, the caller's saved continuation `post`, its collection token `col` (traded for
 the answer's continuation, `answerRes`), its names recorded in the connection (`nm`, `Proto.lean`),
-the decoding resource `D` and its decoding into the reply. The reader removes an entry before it
+the decoding resource `D` and its decoding into the reply of the replies the method answers with
+(`bodyDecG` guarded by `Φ rep ""`: a generated codec decodes only bytes of the reply's type, and
+the method's answer is what says the reply is one). The reader removes an entry before it
 answers it, so a call is answered at most once.
 
-**The outcome** a call's `done` channel carries (`callPost`): `nil` with the method's answer `Φ rep
-""` and the reply decoded (`Θ rep true`); `ServerError(msg)` (`msg ≠ ""`) with the method's answer
+**The outcome** a call's `done` channel carries (`callPost`): `nil` with the reply decoded (`Θ rep
+true`, which the decoding obligation gets from the method's answer `Φ rep ""`); `ServerError(msg)` (`msg ≠ ""`) with the method's answer
 `Φ rep msg` and `D` back; or another error, not a `ServerError`, with `D` back or a failed decoding
-(`Θ rep false`). An answer comes with `reqSent`: the call's request was written (the connection's
+(`Θ rep false`, from the answer too). An answer comes with `reqSent`: the call's request was written (the connection's
 request list holds its number). A call is numbered on a ticket (`ticket γt o`, `o` the number or
 `none` if `send` refused it, the caller's write-once ghost cell): `send`'s result (`sendRes`) is
 the encoding's `Rargs`, or, when nothing was encoded, the encoding premise back with the request's
@@ -140,7 +142,7 @@ def unsent (γ : RpcConnNames) (o : Option Nat) : IProp GF :=
 /-- What a call's `done` channel carries (see the file header). -/
 def callPost (γ : RpcConnNames) (o : Option Nat) (Φ : List w8 → GoString → IProp GF)
     (Θ : List w8 → Bool → IProp GF) (D : IProp GF) (err : GoInterface) : IProp GF :=
-  iprop((⌜err = interface.nil⌝ ∗ reqSent γ o ∗ ∃ rep, Φ rep [] ∗ Θ rep true) ∨
+  iprop((⌜err = interface.nil⌝ ∗ reqSent γ o ∗ ∃ rep, Θ rep true) ∨
     (∃ msg : GoString, ⌜msg ≠ [] ∧ err = serverErr msg⌝ ∗ reqSent γ o ∗ (∃ rep, Φ rep msg) ∗ D) ∨
     (⌜err ≠ interface.nil ∧ notServerErr err⌝ ∗ models_lab.errAny err ∗
       (D ∨ reqSent γ o ∗ ∃ rep, Θ rep false)))
@@ -170,7 +172,7 @@ def callRes (γ : RpcConnNames) (s : w64) (pc : Loc) : IProp GF :=
     ticket γt (some (uint.nat s)) ∗ callDone γ γt sm args reply ch γf K Φ Θ D ∗
     savedPredOwn post .discard (fun p : List w8 × GoString => Φ p.1 p.2) ∗ token col ∗
     ghostMapElem γ.nm (uint.nat s) .discard (post, col, ap) ∗
-    D ∗ bodyDec C reply D Θ ∗ ⌜reply ≠ interface.nil ∧ pc ≠ null⌝)
+    D ∗ bodyDecG C reply D (fun rep => Φ rep []) Θ ∗ ⌜reply ≠ interface.nil ∧ pc ≠ null⌝)
 
 /-! ## The client's invariants -/
 
