@@ -8,8 +8,10 @@ variable).
 module
 
 public import Proof.bufio.PkgInit
+public import Perennial.Proof.bytes.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
+public import Perennial.Proof.strings.Link
 public import Perennial.Proof.errors.NewVar
 public import Net.Proof.runtime.PkgInitExt
 
@@ -61,10 +63,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := _) ErrBufferFull _ as HErrBufferFull
   wp_apply wp_GlobalAlloc (V := _) ErrInvalidUnreadRune _ as HErrInvalidUnreadRune
   wp_apply wp_GlobalAlloc (V := _) ErrInvalidUnreadByte _ as HErrInvalidUnreadByte
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
+      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrInvalidUnreadByte))
   -- translated initializer of ErrInvalidUnreadRune))
   -- translated initializer of ErrBufferFull))

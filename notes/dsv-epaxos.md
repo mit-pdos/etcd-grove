@@ -12,7 +12,11 @@ project and gen-init configuration are now `etc/dsv/epaxos.py` only (no shared l
 dsv-epaxos` up to date). `origin/models-rpc-server` (`040ef5e808`, not landed: waits for the human
 reviewer; the coordinator's instruction): the whole net/rpc server proved on Lean's three axioms;
 the kit builds against its server specs directly (no mirrored hypotheses for net/rpc's server).
-It also brought `origin/lean` (`92eb404dbc`: dsv-tpmodels' gods/uuid/concurrent-map/slog models).
+`origin/dsv-bufio` (`75ef5881aa`, the revision after Upamanyu's review; under re-review, not
+landed): bufio's generic specs (table in the last section of `notes/dsv-bufio.md`); bufio now
+imports `bytes`/`strings`, so `Dsverify/Proof/bufio/Init.lean` and the 17 `PkgTable.lean`s were
+regenerated (`lake build` of `cmd.{server2,orch,client0}.PkgTable` passes). It also brought
+`origin/lean` (`92eb404dbc`: dsv-tpmodels' gods/uuid/concurrent-map/slog models).
 
 **State (2026-11-23):** the Go, the translation, the package initializers (all 32 packages and the
 17 programs' `PkgTable`s build, no axiom: the names-only inits are `InitHyp` hypotheses) and the
@@ -224,7 +228,14 @@ translation, the inits, the pure model, `Interface/{Names,Net,Client,PeerWire,Wi
 Misc}` and the proofs of the `state` package (`wire/State`) and of `wire/Misc`. Everything above
 the state package waits on one of three library pieces:
 
-1. **bufio (the marshal layer).** `Interface/Marshal.lean` (the lab's: message kinds,
+1. **bufio (the marshal layer): UNBLOCKED (dsv-bufio `75ef5881aa` merged, 2026-11-23).** Use its
+   names directly (namespace `Perennial.EtcdGrove`: `ownBufReader`, `ownBufWriter` with the size
+   index after `Ew`, `preUpTo` an IProp, `Read` with `⌜0 < xs.length → Pre R xs.length⌝`,
+   `Write`/`WriteByte` with `⌜err = nil⌝ -∗ □ Q` and a fitting write giving `e = nil ∧ sent' =
+   sent`; laws `bufio.ownBufReader_fact`, `ownBufWriter_fact`, `ownBufWriter_size`,
+   `Net.recvTokL_proto`, `net.connReader_proto`; `Writer.Available/Buffered/Size`). Never unfold
+   the bufio predicates; never call Perennial's `io.ReadFull` over a connection directly (go
+   through a `*bufio.Reader`). The old text follows. `Interface/Marshal.lean` (the lab's: message kinds,
    `marshalTriple`/`unmarshalTriple`, the `own*` message predicates, the per-type marshaler specs,
    `epaxos.putVarint`/`readVarint`), then `wire/{WProg,RProg,Bytes,Binary16,Codec}`,
    `wire/Varint/*`, `wire/Marshal/*` (~7k lines), are stated in the lab over its harness's
