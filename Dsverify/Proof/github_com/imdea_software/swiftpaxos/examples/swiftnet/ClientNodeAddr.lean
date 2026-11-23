@@ -76,6 +76,21 @@ theorem portMaster_proof : portMaster.spec := by
 
 theorem Addrs_proof : AddrsC.spec := wp_Addrs_servers (GF := netDistGF)
 
+
+theorem ClientAddrs_proof : ClientAddrs.spec := by
+  wp_start
+  wp_auto
+  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string))))
+    (Val (LiteralValueV _)))
+  iapply wp_slice_literal (V := GoString) (t := go.string) clientAddrs
+  wp_auto
+  isplitl []
+  · ipureintro; rfl
+  iintro %lit_ptr ⟨Hlit, -⟩
+  wp_auto
+  iapply HΦ
+  iexact Hlit
+
 end proofs
 
 end cnode

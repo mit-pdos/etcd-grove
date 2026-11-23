@@ -105,6 +105,11 @@ orchestrator's second message, once every node acknowledged its configuration. -
 def clientStartAddrs : List GoString :=
   [go!"127.0.0.1:9101", go!"127.0.0.1:9102", go!"127.0.0.1:9103", go!"127.0.0.1:9104",
    go!"127.0.0.1:9105", go!"127.0.0.1:9106"]
+/-- The client nodes' request addresses (`ClientAddrs()`, remote's: `RPCOff` above node
+`1 + c`'s first, 7101..7106). -/
+def clientAddrs : List GoString :=
+  [go!"127.0.0.1:7101", go!"127.0.0.1:7102", go!"127.0.0.1:7103", go!"127.0.0.1:7104",
+   go!"127.0.0.1:7105", go!"127.0.0.1:7106"]
 /-- The master's rpc address (`Addrs()[7]`). -/
 def masterAddr : GoString := go!"127.0.0.1:7001"
 /-- The server nodes' configuration ports (`9000 + i`, server node i = 1..6). -/

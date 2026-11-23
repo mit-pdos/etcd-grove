@@ -263,6 +263,38 @@ abbrev newClient.spec (γ : SwiftNames netDistGF) (c : Nat) : Prop :=
     (App (App (Val (@! examples.swiftnet.newClient)) (Val #asl)) (Val #(W64 (c : Int))))
   {{ (s : Loc), RET #s; isSysL γ c s }}
 
+/-- `ClientAddrs()`: a new slice of the client nodes' request addresses. -/
+abbrev ClientAddrs.spec : Prop :=
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
+    (App (Val (@! examples.swiftnet.ClientAddrs)) (Val #()))
+  {{ (sl : GoSlice), RET #sl; sl ↦* clientAddrs }}
+
+/-- What client machine `c` starts with: its share, its boot resources (the node's fresh ghost,
+net/rpc's fresh codec state and client state), the link invariant, remote's protocols of its
+request address and remote's map of inputs. -/
+def clientRes (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) : IProp netDistGF :=
+  iprop(clientNodeShare γ c ∗ client.ghostFresh ∗ codecFresh ∗ cliBoot ∗
+    linkInv (G := hG.goose_globalGS) γ γk ∗
+    remoteAddr (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk)
+      (clientAddrs.getD c go!"") ∗
+    mapCtx (Gg := hG.goose_globalGS) (I := KIn))
+
+/-- `clientNode(addrs, caddr, c)`: client machine `c`'s program at its request address; it never
+returns. -/
+abbrev clientNode.spec (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) : Prop :=
+  ∀ (asl : GoSlice),
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ asl ↦* addrs ∗ clientRes γ γk c }}
+    (App (App (App (Val (@! examples.swiftnet.clientNode)) (Val #asl))
+      (Val #(clientAddrs.getD c go!""))) (Val #(W64 (c : Int))))
+  {{ RET #(); False }}
+
+/-- `Client(c)`: client machine `c` (`c < NC = 6`); it never returns. -/
+abbrev Client.spec : Prop :=
+  ∀ (γ : SwiftNames netDistGF) (γk : GName) (c : Nat), c < 6 →
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ clientRes γ γk c }}
+    (App (Val (@! examples.swiftnet.Client)) (Val #(W64 (c : Int))))
+  {{ RET #(); False }}
+
 end specs
 
 end cnode
