@@ -775,7 +775,408 @@ theorem u9_some {t1 : Int} {ns s' : State} (h : u9 x t1 ns = .ok (some s')) :
   obtain ⟨_, h⟩ := v4_ok h
   exact v5_some h
 
-#exit
+/-! ## The values within the budget -/
+
+section values
+variable {b E : Nat}
+
+/-- What `g5_some` gives: where `stores`, the new entries end within a leader log of `ll`. -/
+def StoresFit (x : OnDisk) : Prop :=
+  x.stores = .ok true → ∃ fi es, ∃ p ∈ x.ll, x.first = .ok fi ∧ x.es = .ok es ∧ fi - 1 + es.length ≤ p.2.length
+
+theorem bigOk_zero : bigOk 0 := by unfold bigOk; omega
+
+theorem T1_bigOk (hW : x.Within b E) {t : Int} (h : x.T1 = .ok t) : bigOk t := by
+  have hn := hW.2.1.1.1
+  unfold OnDisk.T1 at h
+  rw [show x.w = x.q.ev from rfl, need_ok h] at *
+  rw [need_ok h] at hn
+  exact numOk_bigOk hn
+
+theorem commit_bigOk (hW : x.Within b E) {c : Int} (h : need x.w.commit = .ok c) : bigOk c := by
+  have hn := hW.2.1.1.2.1
+  rw [show x.w = x.q.ev from rfl] at h
+  rw [need_ok h] at hn
+  exact numOk_bigOk hn
+
+theorem subSeq_mem {l r : List Entry} {a c : Int} (h : subSeq l a c = .ok r) {e : Entry} (he : e ∈ r) : e ∈ l := by
+  unfold subSeq at h
+  split at h
+  · cases h; cases he
+  split at h
+  · cases h
+  cases h
+  exact List.mem_of_mem_drop (List.mem_of_mem_take he)
+
+theorem ll_within (hW : x.Within b E) {p : Int × List Entry} (hp : p ∈ x.ll) : bigOk p.1 ∧ logWithin b E p.2 :=
+  hW.2.2.2.2.2.2.2.1 p hp
+
+theorem L0_within (hW : x.Within b E) : logWithin b E x.L0 := by
+  unfold OnDisk.L0
+  exact getElem!_mem' hW.1.2.2.2.2.2.2.2.2.2.1 (show logWithin b E [] by simp [logWithin])
+
+theorem fm_entries (hW : x.Within b E) {f : AppendFact} (h : x.fm = .ok f) :
+    ∀ e ∈ f.entries, bigOk e.term ∧ e.chgSize ≤ E := by
+  unfold OnDisk.fm at h
+  obtain ⟨m, hm, h⟩ := bind_ok h
+  have hmw := OnDisk.m_within hW hm
+  unfold reqFactIn at h
+  obtain ⟨ty, -, h⟩ := bind_ok h
+  split at h
+  · obtain ⟨t, -, h⟩ := bind_ok h
+    dsimp only at h
+    split at h
+    · obtain ⟨l, hl, h⟩ := bind_ok h
+      obtain ⟨k', -, h⟩ := bind_ok h
+      obtain ⟨es, hes, h⟩ := bind_ok h
+      obtain ⟨p, hp, -, hp2⟩ := TermFn.get_mem hl
+      obtain ⟨src, -, h⟩ := bind_ok h
+      obtain ⟨dst, -, h⟩ := bind_ok h
+      obtain ⟨t', -, h⟩ := bind_ok h
+      obtain ⟨k, -, h⟩ := bind_ok h
+      cases h
+      intro e he
+      have := (ll_within hW hp).2.2 e (by rw [hp2]; exact subSeq_mem hes he)
+      exact this
+    · obtain ⟨es, hes, h⟩ := bind_ok h
+      cases hes
+      obtain ⟨src, -, h⟩ := bind_ok h
+      obtain ⟨dst, -, h⟩ := bind_ok h
+      obtain ⟨t', -, h⟩ := bind_ok h
+      obtain ⟨k, -, h⟩ := bind_ok h
+      cases h
+      intro e he; cases he
+  · unfold toAppendFact at h
+    obtain ⟨src, -, h⟩ := bind_ok h
+    obtain ⟨dst, -, h⟩ := bind_ok h
+    obtain ⟨t, -, h⟩ := bind_ok h
+    obtain ⟨p, -, h⟩ := bind_ok h
+    obtain ⟨pt, -, h⟩ := bind_ok h
+    obtain ⟨es, hes, h⟩ := bind_ok h
+    obtain ⟨c, -, h⟩ := bind_ok h
+    cases h
+    have h4 := need_ok hes
+    intro e he
+    refine ⟨numOk_bigOk (hmw.1.2.2.2.2 es h4 e he), ?_⟩
+    exact hmw.2.2 _ (by unfold Msg.entryLists; rw [h4]; simp) e he
+
+theorem es_entries (hW : x.Within b E) {es : List Entry} (h : x.es = .ok es) :
+    ∀ e ∈ es, bigOk e.term ∧ e.chgSize ≤ E := by
+  unfold OnDisk.es at h
+  obtain ⟨c, -, h⟩ := bind_ok h
+  split at h
+  · obtain ⟨fm, hfm, h⟩ := bind_ok h
+    obtain ⟨k, -, h⟩ := bind_ok h
+    exact fun e he => fm_entries hW hfm e (subSeq_mem h he)
+  · split at h
+    · cases h; intro e he; cases he
+    · have h4 := need_ok h
+      intro e he
+      have hn := hW.2.1.1.2.2.2.2.2.2.2.2.2.2.1 es h4 e he
+      refine ⟨numOk_bigOk hn, ?_⟩
+      exact hW.2.1.2.2 _ (by unfold Event.entryLists; rw [show x.w = x.q.ev from rfl] at h4; rw [h4]; simp) e he
+
+theorem stores_eq {st : Bool} (h : x.stores = .ok st) : ∃ es, x.es = .ok es ∧ st = (es.length != 0) := by
+  unfold OnDisk.stores at h
+  obtain ⟨es, hes, h⟩ := bind_ok h
+  cases h
+  exact ⟨es, hes, rfl⟩
+
+theorem L1_within (hW : x.Within b E) (hS : StoresFit x) {l : List Entry} (h : x.L1 = .ok l) :
+    logWithin b E l := by
+  unfold OnDisk.L1 at h
+  obtain ⟨st, hst, h⟩ := bind_ok h
+  cases st
+  · simp at h; subst h; exact L0_within hW
+  · simp only [ite_true] at h
+    obtain ⟨fi, hfi, h⟩ := bind_ok h
+    obtain ⟨sub, hsub, h⟩ := bind_ok h
+    obtain ⟨es, hes, h⟩ := bind_ok h
+    cases h
+    obtain ⟨fi', es', p, hp, hfi', hes', hlen⟩ := hS hst
+    rw [hfi] at hfi'; cases hfi'
+    rw [hes] at hes'; cases hes'
+    have hpb := (ll_within hW hp).2.1
+    have hesb := OnDisk.es_le hW hes
+    have hsubl : (sub.length : Int) ≤ max 0 (fi - 1) := by
+      by_cases h1 : 1 ≤ fi - 1
+      · have := subSeq_len_eq (Int.le_refl 1) h1 hsub
+        omega
+      · unfold subSeq at hsub
+        rw [if_pos (by omega)] at hsub
+        cases hsub; simp; omega
+    refine ⟨?_, fun e he => ?_⟩
+    · simp only [List.length_append]; omega
+    · rcases List.mem_append.1 he with he | he
+      · exact (L0_within hW).2 e (subSeq_mem hsub he)
+      · exact es_entries hW hes e he
+
+theorem f_leads_gen {f : AppendFact} (hl : x.leads = .ok true) (hf : x.f = .ok f) :
+    ∃ es st, x.es = .ok es ∧ x.stores = .ok st ∧ f.entries = es ∧
+      ((st = false ∧ f.prevLogIndex = 0) ∨ (st = true ∧ ∃ fi, x.first = .ok fi ∧ f.prevLogIndex = fi - 1)) := by
+  unfold OnDisk.f at hf
+  obtain ⟨ld, hld, hf⟩ := bind_ok hf
+  rw [hl] at hld; cases hld
+  dsimp only at hf
+  simp only [ite_true] at hf
+  obtain ⟨t1, -, hf⟩ := bind_ok hf
+  obtain ⟨es, hes, hf⟩ := bind_ok hf
+  obtain ⟨st, hst, hf⟩ := bind_ok hf
+  refine ⟨es, st, hes, hst, ?_⟩
+  cases st
+  · simp only [Bool.false_eq_true, ite_false] at hf
+    suffices H : f.entries = es ∧ f.prevLogIndex = 0 from ⟨H.1, .inl ⟨rfl, H.2⟩⟩
+    obtain ⟨a, -, hf⟩ := bind_ok hf
+    split at hf
+    · obtain ⟨l, -, hf⟩ := bind_ok hf
+      obtain ⟨fi2, -, hf⟩ := bind_ok hf
+      obtain ⟨m, -, hf⟩ := bind_ok hf
+      split at hf
+      · obtain ⟨c, -, hf⟩ := bind_ok hf
+        cases hf; exact ⟨rfl, rfl⟩
+      · cases hf; exact ⟨rfl, rfl⟩
+    · obtain ⟨m, -, hf⟩ := bind_ok hf
+      split at hf
+      · obtain ⟨c, -, hf⟩ := bind_ok hf
+        cases hf; exact ⟨rfl, rfl⟩
+      · cases hf; exact ⟨rfl, rfl⟩
+  · simp only [ite_true] at hf
+    obtain ⟨fi, hfi, hf⟩ := bind_ok hf
+    suffices H : f.entries = es ∧ f.prevLogIndex = fi - 1 from ⟨H.1, .inr ⟨rfl, fi, hfi, H.2⟩⟩
+    obtain ⟨a, -, hf⟩ := bind_ok hf
+    split at hf
+    · obtain ⟨l, -, hf⟩ := bind_ok hf
+      obtain ⟨fi2, -, hf⟩ := bind_ok hf
+      obtain ⟨m, -, hf⟩ := bind_ok hf
+      split at hf
+      · obtain ⟨c, -, hf⟩ := bind_ok hf
+        cases hf; exact ⟨rfl, rfl⟩
+      · cases hf; exact ⟨rfl, rfl⟩
+    · obtain ⟨m, -, hf⟩ := bind_ok hf
+      split at hf
+      · obtain ⟨c, -, hf⟩ := bind_ok hf
+        cases hf; exact ⟨rfl, rfl⟩
+      · cases hf; exact ⟨rfl, rfl⟩
+
+theorem f_notLeads (hl : x.leads = .ok false) : x.f = x.fm := by
+  unfold OnDisk.f; rw [hl]; rfl
+
+theorem last_bigOk (hW : x.Within b E) (hb : ((b + 1 : Nat) : Int) < numBound) (hS : StoresFit x)
+    {f : AppendFact} (hf : x.f = .ok f) : bigOk (f.prevLogIndex + f.entries.length) := by
+  unfold numBound at hb
+  cases hl : x.leads with
+  | error e => unfold OnDisk.f at hf; rw [hl] at hf; cases hf
+  | ok ld =>
+    cases ld
+    · rw [f_notLeads hl] at hf
+      have := OnDisk.fm_within hW hf
+      unfold numOk numBound at this; unfold bigOk; omega
+    · obtain ⟨es, st, hes, hst, hfe, hcase⟩ := f_leads_gen hl hf
+      rcases hcase with ⟨rfl, hp⟩ | ⟨rfl, fi, hfi, hp⟩
+      · have := OnDisk.es_le hW hes
+        rw [hp, hfe]; unfold bigOk; omega
+      · obtain ⟨fi', es', p, hpm, hfi', hes', hlen⟩ := hS hst
+        rw [hfi] at hfi'; cases hfi'
+        rw [hes] at hes'; cases hes'
+        have := (ll_within hW hpm).2.1
+        have := OnDisk.first_bounds hb hW hfi
+        rw [hp, hfe]; unfold bigOk; omega
+
+theorem getElem!_bigOk {l : List Int} {n : Nat} (h : ∀ y ∈ l, bigOk y) : bigOk l[n]! :=
+  getElem!_mem' h bigOk_zero
+
+theorem ackAt_bigOk (hW : x.Within b E) (hb : ((b + 1 : Nat) : Int) < numBound) (hS : StoresFit x)
+    {a : Int} (h : x.ackAt = .ok a) : bigOk a := by
+  unfold OnDisk.ackAt at h
+  obtain ⟨bl, -, h⟩ := bind_ok h
+  cases bl
+  · simp only [Bool.false_eq_true, ite_false] at h
+    unfold OnDisk.last at h
+    obtain ⟨f, hf, h⟩ := bind_ok h
+    cases h
+    exact last_bigOk hW hb hS hf
+  · simp only [ite_true] at h
+    cases h
+    exact getElem!_bigOk hW.1.2.2.2.2.2.1
+
+theorem last_ok_bigOk (hW : x.Within b E) (hb : ((b + 1 : Nat) : Int) < numBound) (hS : StoresFit x)
+    {a : Int} (h : x.last = .ok a) : bigOk a := by
+  unfold OnDisk.last at h
+  obtain ⟨f, hf, h⟩ := bind_ok h
+  cases h
+  exact last_bigOk hW hb hS hf
+
+theorem imax_bigOk {a c : Int} (ha : bigOk a) (hc : bigOk c) : bigOk (imax a c) := by
+  unfold imax; split <;> assumption
+
+theorem conf1_bigOk (hW : x.Within b E) (hb : ((b + 1 : Nat) : Int) < numBound) (hS : StoresFit x)
+    {c : Confirmed} (h : x.conf1 = .ok c) : bigOk c.term ∧ bigOk c.index := by
+  unfold OnDisk.conf1 at h
+  obtain ⟨st, -, h⟩ := bind_ok h
+  cases st
+  · simp only [Bool.false_eq_true, ite_false] at h
+    obtain ⟨a, -, h⟩ := bind_ok h
+    cases a
+    · simp only [Bool.false_eq_true, ite_false] at h
+      cases h
+      exact getElem!_mem' hW.1.2.2.2.2.2.2.2.2.1 ⟨bigOk_zero, bigOk_zero⟩
+    · simp only [ite_true] at h
+      obtain ⟨t1, ht1, h⟩ := bind_ok h
+      have hc0 := getElem!_mem' (n := x.n) hW.1.2.2.2.2.2.2.2.2.1 ⟨bigOk_zero, bigOk_zero⟩
+      split at h
+      · obtain ⟨t1', ht1', h⟩ := bind_ok h
+        obtain ⟨l, hl, h⟩ := bind_ok h
+        cases h
+        exact ⟨T1_bigOk hW ht1', imax_bigOk hc0.2 (last_ok_bigOk hW hb hS hl)⟩
+      · obtain ⟨t1', ht1', h⟩ := bind_ok h
+        obtain ⟨l, hl, h⟩ := bind_ok h
+        cases h
+        exact ⟨T1_bigOk hW ht1', last_ok_bigOk hW hb hS hl⟩
+  · simp only [ite_true] at h
+    obtain ⟨t1, ht1, h⟩ := bind_ok h
+    obtain ⟨l, hl, h⟩ := bind_ok h
+    cases h
+    exact ⟨T1_bigOk hW ht1, last_ok_bigOk hW hb hS hl⟩
+
+theorem newC_within (hW : x.Within b E) (hS : StoresFit x) {l : List Entry} (h : x.newC = .ok l) :
+    logWithin b E l := by
+  unfold OnDisk.newC at h
+  obtain ⟨l1, hl1, h⟩ := bind_ok h
+  obtain ⟨c, -, h⟩ := bind_ok h
+  have := L1_within hW hS hl1
+  exact ⟨Nat.le_trans (subSeq_length_le h) this.1, fun e he => this.2 e (subSeq_mem h he)⟩
+
+theorem ch1_within (hW : x.Within b E) (hS : StoresFit x) {l : List Entry} (h : x.ch1 = .ok l) :
+    logWithin b E l := by
+  unfold OnDisk.ch1 at h
+  obtain ⟨a, -, h⟩ := bind_ok h
+  cases a
+  · simp at h; subst h; exact hW.2.2.2.2.2.2.2.2.1
+  · simp only [ite_true] at h; exact newC_within hW hS h
+
+theorem old_bigOk (hW : x.Within b E) {o : Int} (h : x.old = .ok o) : bigOk o := by
+  unfold OnDisk.old at h
+  obtain ⟨t, -, h⟩ := bind_ok h
+  split at h
+  · obtain ⟨p, hp, -, hp2⟩ := TermFn.get_mem h
+    rw [← hp2]; exact (hW.2.2.2.2.2.2.2.2.2.1.2 p hp).2
+  · cases h; exact bigOk_zero
+
+theorem first_bigOk (hW : x.Within b E) (hb : ((b + 1 : Nat) : Int) < numBound) {fi : Int}
+    (h : x.first = .ok fi) : bigOk fi ∧ bigOk (fi - 1) := by
+  have := OnDisk.first_bounds hb hW h
+  unfold bigOk; omega
+
+theorem termAt_bigOk {l : List Entry} {k : Int} (h : ∀ e ∈ l, bigOk e.term) : bigOk (termAt l k) := by
+  unfold termAt
+  split
+  · rename_i hk
+    have hi : (k - 1).toNat < l.length := by omega
+    rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hi]
+    exact h _ (List.getElem_mem hi)
+  · exact bigOk_zero
+
+theorem voteRequest_nums (hW : x.Within b E) (hb : ((b + 1 : Nat) : Int) < numBound) {t : Int} (ht : bigOk t) :
+    (x.s.voteRequest x.n t).NumsOk := by
+  unfold numBound at hb
+  have hl := L0_within hW
+  unfold OnDisk.L0 at hl
+  unfold State.voteRequest Fact.NumsOk State.lastTerm
+  refine ⟨ht, ?_, termAt_bigOk (fun e he => (hl.2 e he).1), bigOk_zero⟩
+  have := hl.1
+  show bigOk ((x.s.log[x.n]!).length : Int)
+  unfold bigOk; omega
+
+theorem ackFact_nums {src dst : Str} {t a : Int} (ht : bigOk t) (ha : bigOk a) : (ackFact src dst t a).NumsOk :=
+  ⟨ht, bigOk_zero, bigOk_zero, ha⟩
+
+end values
+
+/-! ## Sets as lists -/
+
+theorem lset_add_len {α : Type} [DecidableEq α] (l : List α) (a : α) : (lset.add l a).length ≤ l.length + 1 := by
+  unfold lset.add; split <;> simp
+
+theorem lset_add_mem {α : Type} [DecidableEq α] {l : List α} {a y : α} (h : y ∈ lset.add l a) : y ∈ l ∨ y = a := by
+  unfold lset.add at h; split at h
+  · exact .inl h
+  · simpa using h
+
+theorem lset_union_len {α : Type} [DecidableEq α] (s t : List α) : (lset.union s t).length ≤ s.length + t.length := by
+  unfold lset.union
+  induction t generalizing s with
+  | nil => simp
+  | cons a t ih =>
+    simp only [List.foldl_cons, List.length_cons]
+    have := ih (lset.add s a); have := lset_add_len s a; omega
+
+theorem lset_union_mem {α : Type} [DecidableEq α] {s t : List α} {y : α} (h : y ∈ lset.union s t) : y ∈ s ∨ y ∈ t := by
+  unfold lset.union at h
+  induction t generalizing s with
+  | nil => exact .inl h
+  | cons a t ih =>
+    simp only [List.foldl_cons] at h
+    rcases ih h with h' | h'
+    · rcases lset_add_mem h' with h'' | h''
+      · exact .inl h''
+      · exact .inr (h'' ▸ List.mem_cons_self)
+    · exact .inr (List.mem_cons_of_mem _ h')
+
+theorem lset_minus_len {α : Type} [DecidableEq α] (s t : List α) : (lset.minus s t).length ≤ s.length := by
+  unfold lset.minus; exact List.length_filter_le _ _
+
+theorem lset_minus_mem {α : Type} [DecidableEq α] {s t : List α} {y : α} (h : y ∈ lset.minus s t) : y ∈ s := by
+  unfold lset.minus at h; exact (List.mem_filter.1 h).1
+
+theorem lset_minus_self {α : Type} [DecidableEq α] (s : List α) : lset.minus s s = [] := by
+  unfold lset.minus; simp
+
+theorem lset_minus_add {α : Type} [DecidableEq α] (l t : List α) (a : α) :
+    (lset.minus (lset.add l a) t).length ≤ (lset.minus l t).length + 1 := by
+  unfold lset.add; split
+  · omega
+  · unfold lset.minus; rw [List.filter_append]; simp only [List.length_append]
+    have := List.length_filter_le (fun x => !t.contains x) [a]; simp at this ⊢; omega
+
+
+
+/-! ## What the successor keeps -/
+
+/-- The sections of `onDisk`, through to the successor's last section (`u9`). -/
+theorem chain_some {s' : State} (h : g1 x (g2 x (g3 x (g4 x (g5 x (g6 x (succ x)))))) = .ok (some s')) :
+    succ x = .ok (some s') ∧ StoresFit x := by
+  obtain ⟨h5, hS⟩ := g5_some (g4_some (g3_some (g2_some (g1_some h))))
+  exact ⟨g6_some h5, hS⟩
+
+theorem keeps_of {s' : State} (h : g1 x (g2 x (g3 x (g4 x (g5 x (g6 x (succ x)))))) = .ok (some s')) :
+    s'.cfg = x.s.cfg ∧ s'.queue = x.s.queue ∧ s'.pending = x.s.pending ∧ s'.i = x.s.i := by
+  have h := (chain_some h).1
+  unfold succ at h
+  obtain ⟨t1, voted, vf, -, -, h⟩ := u0_ok h
+  obtain ⟨L1, c, c1, el, -, -, -, -, h⟩ := u1_ok h
+  obtain ⟨msgs', h, -⟩ := u2_ok h
+  obtain ⟨votes', h, -⟩ := u3_ok h
+  obtain ⟨pre1, h, -⟩ := u4_ok h
+  obtain ⟨pre2, h, -⟩ := u5_ok h
+  obtain ⟨pre3, h, -⟩ := u6_ok h
+  obtain ⟨p, h, -⟩ := u7_ok h
+  obtain ⟨ch1, tl', -, h, -⟩ := u8_ok h
+  have hs' := u9_some h
+  rw [hs']
+  exact ⟨rfl, rfl, rfl, rfl⟩
+
+end OnDiskLaws2
+
+/-- **`OnDisk` keeps the configuration, the queues, the pending messages and `i`.** -/
+theorem State.onDisk_keeps : ∀ (s : State) (n : Nat) (q : QItem) (more : Bool) (ro : List Str)
+    (ld : List LeaderRec) (ll : TermFn (List Entry)) (ch : List Entry) (tl : TermFn Int) (vi : SSet)
+    (ns : State), s.onDisk n q more ro ld ll ch tl vi = .ok (some ns) →
+      ns.cfg = s.cfg ∧ ns.queue = s.queue ∧ ns.pending = s.pending ∧ ns.i = s.i := by
+  intro s n q more ro ld ll ch tl vi ns h
+  rw [OnDiskLaws2.onDisk_eq] at h
+  exact OnDiskLaws2.keeps_of h
+
+namespace OnDiskLaws2
 end OnDiskLaws2
 end AntCheck
 end EtcdGrove
