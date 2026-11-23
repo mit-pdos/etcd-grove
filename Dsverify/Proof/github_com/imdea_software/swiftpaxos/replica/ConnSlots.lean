@@ -142,7 +142,7 @@ def replica.readerPart (γ : sp.Names) (γc γm : GName) (me : w32) (i : Nat) (r
   iprop(⌜rd = null⌝ ∨ ∃ (cv : GoInterface) (cid : Nat) (R : List w8),
     net.rpc.connIface cv cid (sp.peerRdKind me i).side ∗ sp.connKind γ cid .peer ∗
     bufio.ownReader rd cv
-      (recvTok cid (sp.peerRdKind me i).side ((sp.peerRdKind me i).proto γ γc γm)) R ∗
+      (recvTokL cid (sp.peerRdKind me i).side ((sp.peerRdKind me i).proto γ γc γm)) R ∗
     ⌜sp.rdAt (sp.peerRdKind me i) [] R⌝)
 
 /-- A peer's writer, as `r.M`'s invariant holds it. -/

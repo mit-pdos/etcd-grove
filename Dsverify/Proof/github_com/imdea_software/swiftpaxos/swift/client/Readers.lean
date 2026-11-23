@@ -71,9 +71,9 @@ instance facP_persistent H v : Persistent (facP H v) := by
 stream's start. -/
 def rdEnd (H : HC) (rd : Loc) : IProp netDistGF :=
   iprop(⌜rd = null⌝ ∨ ∃ (srv : GoInterface) (c : Nat),
-    bufio.readerOk srv (recvTok c false (sp.outQ H.γ H.γc H.γm)) ∗
+    bufio.readerOk srv (recvTokL c false (sp.outQ H.γ H.γc H.γm)) ∗
     sp.connKind H.γ c (.client H.cid) ∗
-    bufio.ownReader rd srv (recvTok c false (sp.outQ H.γ H.γc H.γm)) [])
+    bufio.ownReader rd srv (recvTokL c false (sp.outQ H.γ H.γc H.γm)) [])
 
 /-- The client's table, read-only: the three client messages' entries, their channels'
 protocols. -/
@@ -230,7 +230,7 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
       wp_auto
       ipersist i
       ihave HR : (∃ done : List sp.Msg,
-          "Hown" ∷ bufio.ownReader rd srv (recvTok cc false (sp.outQ H.γ H.γc H.γm)) (sp.framesOf done) ∗
+          "Hown" ∷ bufio.ownReader rd srv (recvTokL cc false (sp.outQ H.γ H.γc H.γm)) (sp.framesOf done) ∗
           "%Hdone" ∷ ⌜∀ d ∈ done, sp.cw.cMsg H.cid d⌝ : IProp netDistGF) $$ [Hown]
       · iexists []
         iframe
@@ -247,7 +247,7 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
         · exact absurd rfl Hen
       subst Hen
       wp_auto
-      icases sp.cw.rd_stOk rd srv cc H.cid _ $$ [$Hk $Hown] with ⟨Hown, %Hst⟩
+      icases sp.cw.rd_stOk rd srv cc H.cid _ $$ [$Hk $Hown] with ⟨Hown, >%Hst⟩
       have hcode := sp.cw.next_code Hdone Hst
       unfold tblOk
       icases Htbl with ⟨%M, %o1, %o2, %o3, %ch1, %ch2, %ch3, %g1, %g2, %g3, #HM, %HMk, #Hb1, #Hb2, #Hb3⟩
@@ -320,7 +320,7 @@ theorem RegisterRPCTable.wp_proof : RegisterRPCTable.specI (hG := hG) := by
         wp_auto
         ipersist p
         wp_apply wp_New_MLightSlowAck o2 as %ob Hob
-        ihave #Hbr := bufio.bufioReadsOk rd srv (recvTok cc false (sp.outQ H.γ H.γc H.γm)) $$ [$Hpkg3 $Hrd]
+        ihave #Hbr := bufio.bufioReadsOk rd srv (recvTokL cc false (sp.outQ H.γ H.γc H.γm)) $$ [$Hpkg3 $Hrd]
         wp_apply (MLightSlowAck.Unmarshal.wp_proof ob _ _ _ _) $$
           [$Hpkg4 $Hbr $Hown $Hob] as %err ⟨%data, Hown, Hres⟩
         icases Hres with (⟨%Hen, %sa, %Hd, Hob⟩ | ⟨%Hen, %v', -⟩)

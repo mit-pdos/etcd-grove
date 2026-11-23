@@ -398,7 +398,7 @@ theorem SDep.Unmarshal.wp_proof : SDep.Unmarshal.specS (hG := hG) := by
     iexists _
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
-  icases streamLaw_use br rd I R vd1 _ $$ [$Hlaw $Hown] with ⟨Hown, %Hn1⟩
+  icases streamLaw_use br rd I R vd1 _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hn1⟩
   obtain ⟨n, rfl, hn62⟩ := dep_v1 ht1 Hn1
   obtain ⟨-, rfl⟩ := swift.rd.varint_count n hb1 hx1
   try wp_auto
@@ -664,7 +664,7 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
     iexists _
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
-  icases streamLaw_use br rd I R (aH r0 b0 c0 ++ vd1) _ $$ [$Hlaw Hown] with ⟨Hown, %Hn1⟩
+  icases streamLaw_use br rd I R (aH r0 b0 c0 ++ vd1) _ $$ [$Hlaw Hown] with ⟨Hown, >%Hn1⟩
   · iExactEq Hown; simp only [List.append_assoc]
   obtain ⟨n1, rfl, hn1⟩ := ackN_v1 (aH_length _ _ _) ht1 Hn1
   obtain ⟨-, rfl⟩ := swift.rd.varint_count n1 hb1 hx1
@@ -772,7 +772,7 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
     iexact Ht
   obtain ⟨ht2, hb2, hx2⟩ := Hx2 rfl
   icases streamLaw_use br rd I R (aH r0 b0 c0 ++ sp.varintLen ids.length ++ fI ids ++ vd2) _ $$
-    [$Hlaw Hown] with ⟨Hown, %Hn2⟩
+    [$Hlaw Hown] with ⟨Hown, >%Hn2⟩
   · iExactEq Hown; simp only [List.append_assoc]
   obtain ⟨n2, rfl, hn2⟩ := ackN_v2 (aH_length _ _ _) rfl ht2 Hn2
   obtain ⟨-, rfl⟩ := swift.rd.varint_count n2 hb2 hx2
@@ -901,7 +901,7 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
     iexact Ht
   obtain ⟨ht3, hb3, hx3⟩ := Hx3 rfl
   icases streamLaw_use br rd I R (aH r0 b0 c0 ++ sp.varintLen ids.length ++ fI ids ++
-    sp.varintLen phs.length ++ fP phs ++ vd3) _ $$ [$Hlaw Hown] with ⟨Hown, %Hn3⟩
+    sp.varintLen phs.length ++ fP phs ++ vd3) _ $$ [$Hlaw Hown] with ⟨Hown, >%Hn3⟩
   · iExactEq Hown; simp only [List.append_assoc]
   obtain ⟨n3, rfl, hn3⟩ := ackN_v3 (aH_length _ _ _) rfl rfl ht3 Hn3
   obtain ⟨-, rfl⟩ := swift.rd.varint_count n3 hb3 hx3
@@ -1020,7 +1020,7 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
   obtain ⟨ht4, hb4, hx4⟩ := Hx4 rfl
   icases streamLaw_use br rd I R (aH r0 b0 c0 ++ sp.varintLen ids.length ++ fI ids ++
     sp.varintLen phs.length ++ fP phs ++ sp.varintLen cps.length ++ fC (cps.map Prod.snd) ++ vd4) _ $$
-    [$Hlaw Hown] with ⟨Hown, %Hn4⟩
+    [$Hlaw Hown] with ⟨Hown, >%Hn4⟩
   · iExactEq Hown; simp only [List.append_assoc]
   obtain ⟨n4, rfl, hn4⟩ := ackN_v4 (aH_length _ _ _) rfl rfl (by simp) hokc ht4 Hn4
   obtain ⟨-, rfl⟩ := swift.rd.varint_count n4 hb4 hx4
@@ -1139,7 +1139,7 @@ theorem MNewLeaderAckN.Unmarshal.wp_proof (wp_SDep : SDep.Unmarshal.specS (hG :=
     intro x hx; obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hx; exact hokd p hp
   icases streamLaw_use br rd I R (aH r0 b0 c0 ++ sp.varintLen ids.length ++ fI ids ++
     sp.varintLen phs.length ++ fP phs ++ sp.varintLen cps.length ++ fC (cps.map Prod.snd) ++
-    sp.varintLen dps.length ++ fD (dps.map Prod.snd)) _ $$ [$Hlaw $Hown] with ⟨Hown, %Hfin⟩
+    sp.varintLen dps.length ++ fD (dps.map Prod.snd)) _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hfin⟩
   obtain ⟨es, hes, hesw, hn1, hn2, hn3, hn4, hI, hP, hC1, hC2, hD⟩ :=
     ackN_final (aH_length _ _ _) rfl rfl (by simp) hokc (by simp) hwd Hfin
   try wp_auto

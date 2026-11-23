@@ -162,7 +162,7 @@ theorem MAcks.Unmarshal.wp_proof (wp_FA : MFastAck.Unmarshal.specS (hG := hG)) :
     iexists _
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
-  icases streamLaw_use br rd I R vd1 _ $$ [$Hlaw $Hown] with ⟨Hown, %Hn1⟩
+  icases streamLaw_use br rd I R vd1 _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hn1⟩
   obtain ⟨n, rfl, hn62⟩ := acks_v1 ht1 Hn1
   obtain ⟨-, rfl⟩ := swift.rd.varint_count n hb1 hx1
   try wp_auto
@@ -293,7 +293,7 @@ theorem MAcks.Unmarshal.wp_proof (wp_FA : MFastAck.Unmarshal.specS (hG := hG)) :
     obtain ⟨ht2, hb2, hx2⟩ := Hx2 rfl
     subst hlk
     icases streamLaw_use br rd I R (sp.varintLen fps.length ++
-      ((fps.map Prod.snd).map sp.FastAck.enc).flatten ++ vd2) _ $$ [$Hlaw Hown] with ⟨Hown, %Hn2⟩
+      ((fps.map Prod.snd).map sp.FastAck.enc).flatten ++ vd2) _ $$ [$Hlaw Hown] with ⟨Hown, >%Hn2⟩
     · iExactEq Hown; simp only [List.append_assoc]
     have hwf : ∀ f ∈ fps.map Prod.snd, f.wf := by
       intro f hf; obtain ⟨p, hp, rfl⟩ := List.mem_map.1 hf; exact hok p hp

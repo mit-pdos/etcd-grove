@@ -201,14 +201,14 @@ abbrev MFastAckClient.Unmarshal.specI : Prop :=
   ∀ (t : Loc) (v : swift.MFastAckClient) (br : Loc) (srv : GoInterface) (c : Nat)
     (γ : sp.Names) (γc γm : GName) (cl : w32) (done : List sp.Msg) (ov : GoInterface),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.io ∗ isPkgInit (PROP := IProp netDistGF) pkg_id.bufio ∗
-      bufio.readerOk srv (recvTok c false (sp.outQ γ γc γm)) ∗ sp.connKind γ c (.client cl) ∗
-      bufio.ownReader br srv (recvTok c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 10]) ∗
+      bufio.readerOk srv (recvTokL c false (sp.outQ γ γc γm)) ∗ sp.connKind γ c (.client cl) ∗
+      bufio.ownReader br srv (recvTokL c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 10]) ∗
       typedPointsto (globalAddr swift.errVarintOverflow) ov DFrac.discard ∗
       ⌜ov ≠ interface.nil ∧ ∀ d ∈ done, sp.cw.cMsg cl d⌝ ∗ t ↦ v }}
     (App (Val (t @!! go.GoType.PointerType swift.MFastAckClient.ty @!! go!"Unmarshal"))
       (Val #(interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br)))
   {{ (err : GoInterface), RET #err; ∃ data : List w8,
-      bufio.ownReader br srv (recvTok c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 10] ++ data) ∗
+      bufio.ownReader br srv (recvTokL c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 10] ++ data) ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (r b : w32) (x : sp.CmdId) (cs : List sp.Hash) (csl : GoSlice),
           ⌜data = (sp.Msg.fastAckClient r b x cs).body ∧ sp.cw.hashOk cs⌝ ∗
           t ↦ swift.MFastAckClient.mk r b (cmdIdV x) csl ∗ csl ↦* cs.map shashOf) ∨
@@ -221,14 +221,14 @@ abbrev MReply.Unmarshal.specI : Prop :=
   ∀ (t : Loc) (v : swift.MReply) (br : Loc) (srv : GoInterface) (c : Nat)
     (γ : sp.Names) (γc γm : GName) (cl : w32) (done : List sp.Msg) (ov : GoInterface),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.io ∗ isPkgInit (PROP := IProp netDistGF) pkg_id.bufio ∗
-      bufio.readerOk srv (recvTok c false (sp.outQ γ γc γm)) ∗ sp.connKind γ c (.client cl) ∗
-      bufio.ownReader br srv (recvTok c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 15]) ∗
+      bufio.readerOk srv (recvTokL c false (sp.outQ γ γc γm)) ∗ sp.connKind γ c (.client cl) ∗
+      bufio.ownReader br srv (recvTokL c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 15]) ∗
       typedPointsto (globalAddr swift.errVarintOverflow) ov DFrac.discard ∗
       ⌜ov ≠ interface.nil ∧ ∀ d ∈ done, sp.cw.cMsg cl d⌝ ∗ t ↦ v }}
     (App (Val (t @!! go.GoType.PointerType swift.MReply.ty @!! go!"Unmarshal"))
       (Val #(interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br)))
   {{ (err : GoInterface), RET #err; ∃ data : List w8,
-      bufio.ownReader br srv (recvTok c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 15] ++ data) ∗
+      bufio.ownReader br srv (recvTokL c false (sp.outQ γ γc γm)) (sp.framesOf done ++ [W8 15] ++ data) ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (r b : w32) (x : sp.CmdId) (cs : List sp.Hash) (val : List w8)
           (csl vsl : GoSlice),
           ⌜data = (sp.Msg.reply r b x cs val).body ∧ sp.cw.hashOk cs ∧ cs ≠ []⌝ ∗
@@ -382,7 +382,7 @@ theorem MFastAckClient.Unmarshal.wp_proof : MFastAckClient.Unmarshal.specI (hG :
   try wp_auto
   rw [hts]
   wp_auto
-  ihave #Hbr := bufio.bufioReadsOk br srv (recvTok c false (sp.outQ γ γc γm)) $$ [$Hpkg2 $Hrd]
+  ihave #Hbr := bufio.bufioReadsOk br srv (recvTokL c false (sp.outQ γ γc γm)) $$ [$Hpkg2 $Hrd]
   ihave Hsl := slice_array b_ptr 16 (Perennial.zero_val (GoArray w8 16)) (by decide) $$ b
   rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0, show W64 16 - W64 0 = W64 16 from rfl]
   rw [show (Perennial.zero_val (GoArray w8 16)).arr = List.replicate 16 (W8 0) from rfl]
@@ -429,7 +429,7 @@ theorem MFastAckClient.Unmarshal.wp_proof : MFastAckClient.Unmarshal.specI (hG :
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
   -- the varint is the frame's own: a count `n`
-  icases sp.cw.rd_stOk br srv c cl _ $$ [$Hk $Hown] with ⟨Hown, %Hst⟩
+  icases sp.cw.rd_stOk br srv c cl _ $$ [$Hk $Hown] with ⟨Hown, >%Hst⟩
   obtain ⟨n, rfl, -⟩ := sp.cw.next_v1 Hdone (Or.inl rfl) (hdr := [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
     d10, d11, d12, d13, d14, d15]) rfl ht1 (by simpa [List.append_assoc] using Hst)
   obtain ⟨hn63, rfl⟩ := varint_count n hb1 hx1
@@ -445,7 +445,7 @@ theorem MFastAckClient.Unmarshal.wp_proof : MFastAckClient.Unmarshal.specI (hG :
       "Ht" ∷ t ↦ swift.MFastAckClient.mk (leToU32 [d0, d1, d2, d3]) (leToU32 [d4, d5, d6, d7])
         ⟨leToU32 [d8, d9, d10, d11], leToU32 [d12, d13, d14, d15]⟩ sl ∗
       "Hsl" ∷ sl ↦* (hs.map shashOf ++ List.replicate (n - k) (zero_val swift.SHash)) ∗
-      "Hown" ∷ bufio.ownReader br srv (recvTok c false (sp.outQ γ γc γm))
+      "Hown" ∷ bufio.ownReader br srv (recvTokL c false (sp.outQ γ γc γm))
         (sp.framesOf done ++ [W8 10] ++ [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12,
           d13, d14, d15] ++ sp.varintLen n ++ hs.flatten) ∗
       "Hb1" ∷ slice.mk b_ptr (W64 1) (W64 16) ↦* [y] ∗
@@ -580,7 +580,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specI (hG := hG) := by
   try wp_auto
   rw [hts]
   wp_auto
-  ihave #Hbr := bufio.bufioReadsOk br srv (recvTok c false (sp.outQ γ γc γm)) $$ [$Hpkg2 $Hrd]
+  ihave #Hbr := bufio.bufioReadsOk br srv (recvTokL c false (sp.outQ γ γc γm)) $$ [$Hpkg2 $Hrd]
   ihave Hsl := slice_array b_ptr 16 (Perennial.zero_val (GoArray w8 16)) (by decide) $$ b
   rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0, show W64 16 - W64 0 = W64 16 from rfl]
   rw [show (Perennial.zero_val (GoArray w8 16)).arr = List.replicate 16 (W8 0) from rfl]
@@ -627,7 +627,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specI (hG := hG) := by
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
   -- the varint is the frame's own: a count `n`
-  icases sp.cw.rd_stOk br srv c cl _ $$ [$Hk $Hown] with ⟨Hown, %Hst⟩
+  icases sp.cw.rd_stOk br srv c cl _ $$ [$Hk $Hown] with ⟨Hown, >%Hst⟩
   obtain ⟨n, rfl, hnpos⟩ := sp.cw.next_v1 Hdone (Or.inr rfl) (hdr := [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9,
     d10, d11, d12, d13, d14, d15]) rfl ht1 (by simpa [List.append_assoc] using Hst)
   obtain ⟨hn63, rfl⟩ := varint_count n hb1 hx1
@@ -643,7 +643,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specI (hG := hG) := by
       "Ht" ∷ t ↦ swift.MReply.mk (leToU32 [d0, d1, d2, d3]) (leToU32 [d4, d5, d6, d7])
         ⟨leToU32 [d8, d9, d10, d11], leToU32 [d12, d13, d14, d15]⟩ sl v.Rep' ∗
       "Hsl" ∷ sl ↦* (hs.map shashOf ++ List.replicate (n - k) (zero_val swift.SHash)) ∗
-      "Hown" ∷ bufio.ownReader br srv (recvTok c false (sp.outQ γ γc γm))
+      "Hown" ∷ bufio.ownReader br srv (recvTokL c false (sp.outQ γ γc γm))
         (sp.framesOf done ++ [W8 15] ++ [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12,
           d13, d14, d15] ++ sp.varintLen n ++ hs.flatten) ∗
       "Hb1" ∷ slice.mk b_ptr (W64 1) (W64 16) ↦* [y] ∗
@@ -768,7 +768,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specI (hG := hG) := by
       iexists _
       iexact Ht
     obtain ⟨ht2, hb2, hx2⟩ := Hx2 rfl
-    icases sp.cw.rd_stOk br srv c cl _ $$ [$Hk $Hown] with ⟨Hown, %Hst2⟩
+    icases sp.cw.rd_stOk br srv c cl _ $$ [$Hk $Hown] with ⟨Hown, >%Hst2⟩
     obtain ⟨m, rfl⟩ := sp.cw.next_v2 Hdone (hdr := [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15]) rfl hok ht2
       (by simpa [List.append_assoc] using Hst2)
     obtain ⟨hm63, rfl⟩ := varint_count m hb2 hx2
@@ -783,7 +783,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specI (hG := hG) := by
         "Ht" ∷ t ↦ swift.MReply.mk (leToU32 [d0, d1, d2, d3]) (leToU32 [d4, d5, d6, d7])
           ⟨leToU32 [d8, d9, d10, d11], leToU32 [d12, d13, d14, d15]⟩ sl rsl ∗
         "Hrsl" ∷ rsl ↦* (vs ++ List.replicate (m - k) (W8 0)) ∗
-        "Hown" ∷ bufio.ownReader br srv (recvTok c false (sp.outQ γ γc γm))
+        "Hown" ∷ bufio.ownReader br srv (recvTokL c false (sp.outQ γ γc γm))
           (sp.framesOf done ++ [W8 15] ++ [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15] ++ sp.varintLen hs.length ++ hs.flatten ++
             sp.varintLen m ++ vs) ∗
         "Hb1" ∷ slice.mk b_ptr (W64 1) (W64 16) ↦* [y] ∗

@@ -113,7 +113,7 @@ abbrev replica.Replica.clientListener.spec : Prop :=
       isPkgInit (PROP := IProp netDistGF) pkg_id.strings ∗
       replica.isReplica r γ γc γm γw N me ∗ replica.fld r go!"Alias" ↦□ al ∗
       net.rpc.connIface cv cid true ∗
-      bufio.ownReader br cv (recvTok cid true (sp.inP γ γc γm))
+      bufio.ownReader br cv (recvTokL cid true (sp.inP γ γc γm))
         (if hasFirst then [first] else []) ∗
       ⌜hasFirst = true → first ≠ W8 0xFF⌝ ∗
       sendTok cid true (sp.outQ γ γc γm) [] }}

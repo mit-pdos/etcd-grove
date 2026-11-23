@@ -89,7 +89,7 @@ theorem replica.Replica.replicaListener.wp_proof
       (gb : replica.defs.Beacon) (gbr : replica.defs.BeaconReply) (e' : w64),
       "err" ∷ err_ptr ↦ er ∗ "msgType" ∷ msgType_ptr ↦ mt ∗ "gbeacon" ∷ gbeacon_ptr ↦ gb ∗
       "gbeaconReply" ∷ gbeaconReply_ptr ↦ gbr ∗
-      "Hrd" ∷ bufio.ownReader br cv (recvTok cid k.side (k.proto γ γc γm)) R ∗
+      "Hrd" ∷ bufio.ownReader br cv (recvTokL cid k.side (k.proto γ γc γm)) R ∗
       "%Hat" ∷ ⌜er = interface.nil → sp.rdAt k done R⌝ ∗
       "He" ∷ typedPointsto (sliceIndexRef w64 (sint.Z rid) ewsl) e' (DFrac.own 1) :
       IProp netDistGF) $$ [err msgType gbeacon gbeaconReply Hrd He]

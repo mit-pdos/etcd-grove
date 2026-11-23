@@ -65,7 +65,7 @@ abbrev replica.Replica.replicaListener.spec : Prop :=
       replica.isReplica r γ γc γm γw N me ∗
       ⌜(∃ id, k = .peerIn id) ∨ k = .peerOut⌝ ∗ ⌜0 ≤ sint.Z rid ∧ sint.Z rid < N⌝ ∗
       net.rpc.connIface cv cid k.side ∗ sp.connKind γ cid k.conn ∗
-      bufio.ownReader br cv (recvTok cid k.side (k.proto γ γc γm)) R ∗ ⌜sp.rdAt k done R⌝ ∗
+      bufio.ownReader br cv (recvTokL cid k.side (k.proto γ γc γm)) R ∗ ⌜sp.rdAt k done R⌝ ∗
       replica.fld r go!"Ewma" ↦□ ewsl ∗ ⌜sint.Z ewsl.len = N⌝ ∗
       typedPointsto (sliceIndexRef w64 (sint.Z rid) ewsl) e (DFrac.own 1) }}
     (App (App (Val (r @!! go.GoType.PointerType replica.Replica.ty @!! go!"replicaListener"))

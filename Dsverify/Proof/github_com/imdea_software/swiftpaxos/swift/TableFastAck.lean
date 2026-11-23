@@ -246,7 +246,7 @@ theorem MFastAck.Unmarshal.wp_proof : MFastAck.Unmarshal.specS (hG := hG) := by
   generalize hx : (⟨leToU32 [d8, d9, d10, d11], leToU32 [d12, d13, d14, d15]⟩ : sp.CmdId) = xid at *
   -- the count is the encoding's own
   icases streamLaw_use br rd I R ((sp.le32 r ++ sp.le32 b ++ sp.encCmdId xid) ++ vd1) fastAckNext
-    $$ [$Hlaw Hown] with ⟨Hown, %Hl1⟩
+    $$ [$Hlaw Hown] with ⟨Hown, >%Hl1⟩
   · iExactEq Hown; simp only [List.append_assoc]
   obtain ⟨f1, w1, hw1, hp1⟩ := Hl1
   rw [fa_enc] at hp1
@@ -402,7 +402,7 @@ theorem MFastAck.Unmarshal.wp_proof : MFastAck.Unmarshal.specS (hG := hG) := by
       iexact Ht
     obtain ⟨ht2, hb2, hx2⟩ := Hx2 rfl
     icases streamLaw_use br rd I R ((sp.le32 r ++ sp.le32 b ++ sp.encCmdId xid ++ sp.varintLen k ++
-        (ds.map sp.encCmdId).flatten) ++ vd2) fastAckNext $$ [$Hlaw Hown] with ⟨Hown, %Hl2⟩
+        (ds.map sp.encCmdId).flatten) ++ vd2) fastAckNext $$ [$Hlaw Hown] with ⟨Hown, >%Hl2⟩
     · iExactEq Hown; simp only [List.append_assoc]
     obtain ⟨f2, w2, hw2, hp2⟩ := Hl2
     rw [fa_enc] at hp2

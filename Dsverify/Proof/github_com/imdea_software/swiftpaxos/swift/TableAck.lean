@@ -244,7 +244,7 @@ theorem Ack.Unmarshal.wp_proof : Ack.Unmarshal.specS (hG := hG) := by
   generalize hx : (⟨leToU32 [d0, d1, d2, d3], leToU32 [d4, d5, d6, d7]⟩ : sp.CmdId) = xid at *
   -- the count is the encoding's own
   icases streamLaw_use br rd I R ((sp.encCmdId xid) ++ vd1) ackNext
-    $$ [$Hlaw Hown] with ⟨Hown, %Hl1⟩
+    $$ [$Hlaw Hown] with ⟨Hown, >%Hl1⟩
   · iExactEq Hown; simp only [List.append_assoc]
   obtain ⟨f1, w1, hw1, hp1⟩ := Hl1
   rw [ack_enc] at hp1
@@ -400,7 +400,7 @@ theorem Ack.Unmarshal.wp_proof : Ack.Unmarshal.specS (hG := hG) := by
       iexact Ht
     obtain ⟨ht2, hb2, hx2⟩ := Hx2 rfl
     icases streamLaw_use br rd I R ((sp.encCmdId xid ++ sp.varintLen k ++
-        (ds.map sp.encCmdId).flatten) ++ vd2) ackNext $$ [$Hlaw Hown] with ⟨Hown, %Hl2⟩
+        (ds.map sp.encCmdId).flatten) ++ vd2) ackNext $$ [$Hlaw Hown] with ⟨Hown, >%Hl2⟩
     · iExactEq Hown; simp only [List.append_assoc]
     obtain ⟨f2, w2, hw2, hp2⟩ := Hl2
     rw [ack_enc] at hp2

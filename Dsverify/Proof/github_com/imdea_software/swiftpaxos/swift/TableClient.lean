@@ -108,16 +108,19 @@ variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : 
 theorem streamLaw_at (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
     (R : List w8) (L : List w8 → Prop) (B : List w8) :
     sp.streamLaw br rd I R L ∗ bufio.ownReader br rd I B ⊢
-      bufio.ownReader br rd I B ∗ ⌜∀ Y, B = R ++ Y → L Y⌝ := by
+      bufio.ownReader br rd I B ∗ ▷ ⌜∀ Y, B = R ++ Y → L Y⌝ := by
   iintro ⟨#Hlaw, Hown⟩
   by_cases hB : ∃ Y, B = R ++ Y
   · obtain ⟨Y0, rfl⟩ := hB
-    icases streamLaw_use br rd I R Y0 L $$ [$Hlaw $Hown] with ⟨Hown, %H⟩
+    icases streamLaw_use br rd I R Y0 L $$ [$Hlaw $Hown] with ⟨Hown, H⟩
     iframe Hown
+    inext
+    icases H with %H
     ipureintro
     intro Y hY
     rw [← List.append_cancel_left hY]; exact H
   · iframe Hown
+    inext
     ipureintro
     intro Y hY
     exact absurd ⟨Y, hY⟩ hB
@@ -228,7 +231,7 @@ theorem MFastAckClient.Unmarshal.wp_proof : MFastAckClient.Unmarshal.specS (hG :
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
   -- the varint is the frame's own: a count `n`
-  icases streamLaw_at br rd I R _ _ $$ [$Hlaw $Hown] with ⟨Hown, %Hst⟩
+  icases streamLaw_at br rd I R _ _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hst⟩
   obtain ⟨n, rfl, hn62⟩ := fac_v1 (hdr := [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15]) rfl ht1 (Hst _ (by simp))
   obtain ⟨hn63, rfl⟩ := varint_count n hb1 hx1
   wp_auto
@@ -427,7 +430,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specS (hG := hG) := by
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
   -- the varint is the frame's own: a count `n`
-  icases streamLaw_at br rd I R _ _ $$ [$Hlaw $Hown] with ⟨Hown, %Hst⟩
+  icases streamLaw_at br rd I R _ _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hst⟩
   obtain ⟨n, rfl, hn62, hnpos⟩ := rep_v1 (hdr := [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15]) rfl ht1 (Hst _ (by simp))
   obtain ⟨hn63, rfl⟩ := varint_count n hb1 hx1
   wp_auto
@@ -567,7 +570,7 @@ theorem MReply.Unmarshal.wp_proof : MReply.Unmarshal.specS (hG := hG) := by
       iexists _
       iexact Ht
     obtain ⟨ht2, hb2, hx2⟩ := Hx2 rfl
-    icases streamLaw_at br rd I R _ _ $$ [$Hlaw $Hown] with ⟨Hown, %Hst2⟩
+    icases streamLaw_at br rd I R _ _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hst2⟩
     obtain ⟨m, rfl, hm62⟩ := rep_v2 (hdr := [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15]) rfl hok ht2 (Hst2 _ (by simp))
     obtain ⟨hm63, rfl⟩ := varint_count m hb2 hx2
     wp_auto

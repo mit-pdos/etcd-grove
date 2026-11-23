@@ -139,7 +139,7 @@ theorem MOptAcks.Unmarshal.wp_proof (wp_Ack : Ack.Unmarshal.specS (hG := hG)) :
     iexact Ht
   obtain ⟨ht1, hb1, hx1⟩ := Hx rfl
   icases streamLaw_use br rd I R ([d0, d1, d2, d3, d4, d5, d6, d7] ++ vd1) _ $$ [$Hlaw Hown]
-    with ⟨Hown, %Hn1⟩
+    with ⟨Hown, >%Hn1⟩
   · iExactEq Hown; simp only [List.append_assoc]
   obtain ⟨n, rfl, hn62⟩ := optAcks_v1 rfl ht1 Hn1
   obtain ⟨-, rfl⟩ := swift.rd.varint_count n hb1 hx1

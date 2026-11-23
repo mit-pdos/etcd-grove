@@ -79,8 +79,10 @@ theorem streamLaw_mono (br : Loc) (rd : GoInterface) (I : List w8 → IProp netD
   iintro #H
   imodintro
   iintro %d Hown
-  icases H $$ %d Hown with ⟨Hown, %Hd⟩
+  icases H $$ %d Hown with ⟨Hown, Hd⟩
   iframe Hown
+  inext
+  icases Hd with %Hd
   ipureintro; exact h d Hd
 
 theorem streamLaw_shift (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
@@ -92,15 +94,15 @@ theorem streamLaw_shift (br : Loc) (rd : GoInterface) (I : List w8 → IProp net
   iintro %d Hown
   ihave Hown : bufio.ownReader br rd I (R ++ (X ++ d)) $$ [Hown]
   · iExactEq Hown; simp
-  icases H $$ %(X ++ d) Hown with ⟨Hown, %Hd⟩
+  icases H $$ %(X ++ d) Hown with ⟨Hown, Hd⟩
   isplitl [Hown]
   · iExactEq Hown; simp
-  ipureintro; exact Hd
+  iexact Hd
 
 theorem streamLaw_use (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
     (R d : List w8) (L : List w8 → Prop) :
     sp.streamLaw br rd I R L ∗ bufio.ownReader br rd I (R ++ d) ⊢
-      bufio.ownReader br rd I (R ++ d) ∗ ⌜L d⌝ := by
+      bufio.ownReader br rd I (R ++ d) ∗ ▷ ⌜L d⌝ := by
   unfold sp.streamLaw
   iintro ⟨#H, Hown⟩
   iapply H $$ %d Hown

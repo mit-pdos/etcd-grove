@@ -118,15 +118,17 @@ theorem reader_streamLaw (br : Loc) (rd : GoInterface) (k : RdKind)
     (done : List Msg) (R : List w8) (c : w8) (hR : R = k.head ++ framesOf done)
     (hd : ∀ x ∈ done, x.wf) :
     connKind γ cid k.conn ⊢
-      streamLaw br rd (recvTok cid k.side (k.proto γ γc γm)) (R ++ [c]) (nextOk c) := by
+      streamLaw br rd (recvTokL cid k.side (k.proto γ γc γm)) (R ++ [c]) (nextOk c) := by
   subst hR
   iintro #Hk
   unfold streamLaw
   imodintro
   iintro %d Hrd
-  icases ownReader_proto br rd cid k.side _ _ $$ Hrd with ⟨Hrd, (%Hnil | ⟨%ext, %Hext, #HP⟩)⟩
-  · simp at Hnil
+  icases ownReader_proto br rd cid k.side _ _ $$ Hrd with ⟨Hrd, Hp⟩
   iframe Hrd
+  inext
+  icases Hp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
+  · simp at Hnil
   iapply stream_nextOk k hk cid ext done c d (by simpa [List.append_assoc] using Hext) hd $$
     [$Hk $HP]
 

@@ -173,7 +173,7 @@ theorem MSync.Unmarshal.wp_proof (wp_ND : encoding.gob.NewDecoder.spec (GF := ne
   try wp_auto
   icases Hres with (⟨%He, %bs, ⟨%Hd, %Hbl⟩, Hpsi⟩ | ⟨%He, -, -⟩)
   · subst He Hd
-    icases streamLaw_use br rd I R (sp.gobFrame bs) _ $$ [$Hlaw $Hown] with ⟨Hown, %Hn⟩
+    icases streamLaw_use br rd I R (sp.gobFrame bs) _ $$ [$Hlaw $Hown] with ⟨Hown, >%Hn⟩
     obtain ⟨s, w, hsw, u, hu⟩ := sync_of_next Hn
     have hbs := gobFrame_body hsw Hbl hu
     subst hbs

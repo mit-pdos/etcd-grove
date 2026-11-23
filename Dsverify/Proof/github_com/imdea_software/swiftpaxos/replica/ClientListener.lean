@@ -99,7 +99,7 @@ theorem replica.Replica.clientListener.wp_proof
   ipersist reader
   try wp_auto
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ fv : w8, first_ptr ↦ fv ∗
-      hasFirst_ptr ↦ true ∗ bufio.ownReader br cv (recvTok cid true (sp.inP γ γc γm)) [fv] ∗
+      hasFirst_ptr ↦ true ∗ bufio.ownReader br cv (recvTokL cid true (sp.inP γ γc γm)) [fv] ∗
       (∃ cl, sp.connKind γ cid (.client cl))) ∨ ⌜v = returnVal #()⌝)) at next
     with [Hrd first hasFirst]
   · cases hasFirst
@@ -220,7 +220,7 @@ theorem replica.Replica.clientListener.wp_proof
       (ko : Option w32) (hf : Bool),
       "err" ∷ err_ptr ↦ er ∗ "msgType" ∷ msgType_ptr ↦ mt ∗ "hasFirst" ∷ hasFirst_ptr ↦ hf ∗
       "Hrd" ∷ bufio.ownReader br (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #cl0)
-        (recvTok cid true (sp.inP γ γc γm)) (R ++ if hf then [fv] else []) ∗
+        (recvTokL cid true (sp.inP γ γc γm)) (R ++ if hf then [fv] else []) ∗
       "Hk" ∷ (match ko with
         | none => ⌜False⌝
         | some cl => sp.connKind γ cid (.client cl) ∗
@@ -253,7 +253,7 @@ theorem replica.Replica.clientListener.wp_proof
     wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ c : w8, msgType_ptr ↦ c ∗
         hasFirst_ptr ↦ false ∗ err_ptr ↦ interface.nil ∗
         bufio.ownReader br (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #cl0)
-          (recvTok cid true (sp.inP γ γc γm)) (R ++ [c])) ∨ ⌜v = breakVal⌝)) at next
+          (recvTokL cid true (sp.inP γ γc γm)) (R ++ [c])) ∨ ⌜v = breakVal⌝)) at next
       with [Hrd msgType hasFirst err]
     · cases hf
       · simp only [Bool.false_eq_true, ↓reduceIte, List.append_nil] at *

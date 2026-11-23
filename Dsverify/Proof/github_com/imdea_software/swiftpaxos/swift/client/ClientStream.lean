@@ -134,32 +134,35 @@ section reader
 variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable {γ : Names} {γc γm : GName}
 
-/-- The protocol fact of what a reader over a connection has read (`recvTok_proto`). (Unfolds
-the harness's `ownReader`: a missing law of `bufio`.) -/
+/-- The protocol fact of what a reader over a connection has read, a step later (dsv-bufio's
+`ownBufReader_fact` with `recvTokL_proto`, as `net.connReader_proto`). -/
 theorem ownReader_proto (br : Loc) (rd : GoInterface) (cid : Nat)
     (side : Bool) (P : Proto netDistGF) (R : List w8) :
-    bufio.ownReader br rd (recvTok cid side P) R ⊢
-      bufio.ownReader br rd (recvTok cid side P) R ∗
-      (⌜R = []⌝ ∨ ∃ ext, ⌜R <+: ext⌝ ∗ □ P cid ext) := by
+    bufio.ownReader br rd (recvTokL cid side P) R ⊢
+      bufio.ownReader br rd (recvTokL cid side P) R ∗
+      ▷ (⌜R = []⌝ ∨ ∃ ext, ⌜R <+: ext⌝ ∗ □ P cid ext) := by
   unfold bufio.ownReader
-  iintro ⟨%pend, %perr, HI, Hrep⟩
-  icases recvTok_proto cid side P (R ++ pend) $$ HI with ⟨HI, #Hp⟩
-  isplitl [HI Hrep]
-  · iexists pend, perr; iframe
+  iintro ⟨%ri, %E, %hrd, #HE, H⟩
+  icases EtcdGrove.bufio.ownBufReader_fact br ri _ _ E R
+      (fun r => iprop(▷ protoPrefix P cid r)) (fun r => recvTokL_proto cid side P r)
+      (fun x y => later_mono (protoPrefix_le (List.prefix_append x y))) $$ H with ⟨H, #Hp⟩
+  isplitl [H]
+  · iexists ri, E; iframe HE H; ipureintro; exact hrd
+  inext
   unfold protoPrefix
   icases Hp with (%Hn | ⟨%ext, %He, #HP⟩)
-  · ileft; ipureintro; exact (List.append_eq_nil_iff.1 Hn).1
-  · iright; iexists ext; iframe HP; ipureintro
-    exact (List.prefix_append R pend).trans He
+  · ileft; ipureintro; exact Hn
+  · iright; iexists ext; iframe HP; ipureintro; exact He
 
-/-- What a client's reader has read is `stOk`. -/
+/-- What a client's reader has read is `stOk` (a step later). -/
 theorem rd_stOk (br : Loc) (rd : GoInterface) (cid : Nat) (cl : w32) (R : List w8) :
     connKind γ cid (.client cl) ∗
-      bufio.ownReader br rd (recvTok cid false (outQ γ γc γm)) R ⊢
-      bufio.ownReader br rd (recvTok cid false (outQ γ γc γm)) R ∗ ⌜stOk cl R⌝ := by
+      bufio.ownReader br rd (recvTokL cid false (outQ γ γc γm)) R ⊢
+      bufio.ownReader br rd (recvTokL cid false (outQ γ γc γm)) R ∗ ▷ ⌜stOk cl R⌝ := by
   iintro ⟨#Hk, Hr⟩
   icases ownReader_proto br rd cid false _ R $$ Hr with ⟨Hr, Hp⟩
   iframe Hr
+  inext
   icases Hp with (%Hn | ⟨%ext, %He, #HP⟩)
   · ipureintro; subst Hn; exact ⟨[], by simp [framesOf], by simp⟩
   icases outQ_frames cid cl ext $$ [$Hk $HP] with ⟨%ms, %H, -⟩
@@ -172,13 +175,14 @@ witness. -/
 theorem rd_witness (br : Loc) (rd : GoInterface) (cid : Nat) (cl : w32) (done : List Msg)
     (m : Msg) (hd : ∀ d ∈ done, cMsg cl d) (hm : cKind m) :
     connKind γ cid (.client cl) ∗
-      bufio.ownReader br rd (recvTok cid false (outQ γ γc γm)) (framesOf done ++ m.frame) ⊢
-      bufio.ownReader br rd (recvTok cid false (outQ γ γc γm)) (framesOf done ++ m.frame) ∗
-      msgOk γ γc γm m ∗ ⌜cMsg cl m⌝ := by
+      bufio.ownReader br rd (recvTokL cid false (outQ γ γc γm)) (framesOf done ++ m.frame) ⊢
+      bufio.ownReader br rd (recvTokL cid false (outQ γ γc γm)) (framesOf done ++ m.frame) ∗
+      ▷ (msgOk γ γc γm m ∗ ⌜cMsg cl m⌝) := by
   haveI := msgOk_persistent (γ := γ) (γc := γc) (γm := γm)
   iintro ⟨#Hk, Hr⟩
   icases ownReader_proto br rd cid false _ _ $$ Hr with ⟨Hr, Hp⟩
   iframe Hr
+  inext
   icases Hp with (%Hn | ⟨%ext, %He, #HP⟩)
   · exfalso; simp [Msg.frame] at Hn
   icases outQ_frames cid cl ext $$ [$Hk $HP] with ⟨%ms, %H, Hms⟩

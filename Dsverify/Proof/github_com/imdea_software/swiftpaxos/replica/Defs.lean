@@ -129,11 +129,11 @@ def nextOk (c : w8) (d : List w8) : Prop :=
   ∃ (m : Msg) (w : List w8), m.wf ∧ m.isPeer ∧ m.code = c ∧ d <+: m.body ++ w
 
 /-- The stream law of the `*bufio.Reader` `br` (over `rd`, `I`) after it returned `R`: what it
-returns next satisfies `L` (persistent). -/
+returns next satisfies `L`, a step later (persistent). -/
 def streamLaw (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF) (R : List w8)
     (L : List w8 → Prop) : IProp netDistGF :=
   iprop(□ ∀ d : List w8, bufio.ownReader br rd I (R ++ d) -∗
-    bufio.ownReader br rd I (R ++ d) ∗ ⌜L d⌝)
+    bufio.ownReader br rd I (R ++ d) ∗ ▷ ⌜L d⌝)
 
 instance streamLaw_persistent (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
     (R : List w8) (L : List w8 → Prop) : Persistent (streamLaw br rd I R L) := by

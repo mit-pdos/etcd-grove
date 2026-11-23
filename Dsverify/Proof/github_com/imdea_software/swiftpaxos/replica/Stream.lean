@@ -297,23 +297,25 @@ end laws
 section reader
 variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
-/-- The protocol fact of what a reader over a connection has read (`recvTok_proto`). (Unfolds
-the harness's `ownReader`: a missing law of `bufio`.) -/
+/-- The protocol fact of what a reader over a connection has read, a step later (dsv-bufio's
+`ownBufReader_fact` with `recvTokL_proto`, as `net.connReader_proto`). -/
 theorem ownReader_proto (br : Loc) (rd : GoInterface) (cid : Nat)
     (side : Bool) (P : Proto netDistGF) (R : List w8) :
-    bufio.ownReader br rd (recvTok cid side P) R ⊢
-      bufio.ownReader br rd (recvTok cid side P) R ∗
-      (⌜R = []⌝ ∨ ∃ ext, ⌜R <+: ext⌝ ∗ □ P cid ext) := by
+    bufio.ownReader br rd (recvTokL cid side P) R ⊢
+      bufio.ownReader br rd (recvTokL cid side P) R ∗
+      ▷ (⌜R = []⌝ ∨ ∃ ext, ⌜R <+: ext⌝ ∗ □ P cid ext) := by
   unfold bufio.ownReader
-  iintro ⟨%pend, %perr, HI, Hrep⟩
-  icases recvTok_proto cid side P (R ++ pend) $$ HI with ⟨HI, #Hp⟩
-  isplitl [HI Hrep]
-  · iexists pend, perr; iframe
+  iintro ⟨%ri, %E, %hrd, #HE, H⟩
+  icases EtcdGrove.bufio.ownBufReader_fact br ri _ _ E R
+      (fun r => iprop(▷ protoPrefix P cid r)) (fun r => recvTokL_proto cid side P r)
+      (fun x y => later_mono (protoPrefix_le (List.prefix_append x y))) $$ H with ⟨H, #Hp⟩
+  isplitl [H]
+  · iexists ri, E; iframe HE H; ipureintro; exact hrd
+  inext
   unfold protoPrefix
   icases Hp with (%Hn | ⟨%ext, %He, #HP⟩)
-  · ileft; ipureintro; exact (List.append_eq_nil_iff.1 Hn).1
-  · iright; iexists ext; iframe HP; ipureintro
-    exact (List.prefix_append R pend).trans He
+  · ileft; ipureintro; exact Hn
+  · iright; iexists ext; iframe HP; ipureintro; exact He
 
 end reader
 

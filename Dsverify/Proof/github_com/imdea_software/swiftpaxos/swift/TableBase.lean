@@ -69,7 +69,7 @@ theorem unmarshalOk_vacuous (c : w8) (hc : ∀ m : sp.Msg, m.code ≠ c)
   ihave Hown : bufio.ownReader br rd I (R ++ []) $$ [Hown]
   · iExactEq Hown; simp
   unfold sp.streamLaw
-  icases Hlaw $$ %([] : List w8) Hown with ⟨-, %H⟩
+  icases Hlaw $$ %([] : List w8) Hown with ⟨-, >%H⟩
   obtain ⟨m, w, -, -, hcm, -⟩ := H
   exact absurd hcm (hc m)
 
