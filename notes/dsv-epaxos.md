@@ -453,12 +453,38 @@ follow the rule (a proof file sees callees through their specs only).
 
 ## Next (for a successor)
 
-State at handoff (2026-11-23, later): see 3h for the replica layer (Interface/Replica(Spec), replica/{Core,Specs,Quorum,Defs,Log,DelayChan,Stream,PrefixReader,SendMsg,ReplyPropose,Beacon} done). Earlier: done are the Go, the translation, the inits, the pure model,
-`Interface/{Names,Net,Client,PeerWire,Wire,Treemap,State,Misc,Varint,Marshal,RpcHttpHyps}`, the
-proofs of the `state` package (`wire/State`), of `wire/Misc` and the whole marshal layer
-(`wire/**`, `wire/Link`), the ghost chain (3f), part of the layer above it (3h). Next:
-`Interface/Replica` (3h), then (3) the replica/master/epaxos code proofs,
-(4) the model proof, the mains, `epaxos_remote_robust`, the TCB baseline. Library pieces:
+**State at handoff (2026-11-23, resumed agent 2, head after `epaxos/Link`):** done and `lake build`
+clean, `#print axioms` Lean's three: the Go, translation, inits, pure model, the marshal layer
+(`wire/**`, `wire/Link`), the ghost chain, the replica package (`replica/**`, **`replica/Link`**), the
+**epaxos package (`epaxos/**`, 3i; **`epaxos/Link`**: `wp_New : EpaxosNewSpecEp isReplica`)**.
+`TCPAddrStringHyp` proved. Tier-check: 34 new `defs->proof` violations (section "Import tiers"),
+none from the epaxos package.
+
+**Next, in order:**
+1. **Merge** `origin/lean` (now `c4e044df92`: models-rpc-server LANDED, Perennial `c95e92207`:
+   repoint `.lake/package-overrides.json` and `PERENNIAL_DIR` to `/shared/perennial-c95e92207`, reseed
+   the build, regenerate the `PkgTable`s with `etc/gen-init.py`, rebuild `replica.Link`/`epaxos.Link`)
+   and `origin/models-rpc-http` (client side of net/rpc over HTTP; see "RPC layer: shapes to use").
+2. **The RPC layer** (the lab's `Interface/{RpcPure,Rpc,MasterSpec,Servers}`, `Proof/rpcmaster/*`,
+   `Proof/codec/*`): restate over rpcgen's codec (`examples/epaxosnet/rpc_gen.go`, net/rpc's
+   `CodecSpec` in `Net/Proof/net/rpc/Codec.lean`) following dsv-craq (`Craq/{Codec,CodecProof,
+   CodecSrv,CodecSrvProof,HttpRpc,Methods}`): the lab's kitgen codec proofs (`Proof/codec`, `Rpc.lean`'s
+   `wp_rpcEncode_*`/`wp_rpcDecode_*`) are replaced, not ported. The methods: master `Register`,
+   `GetLeader`, `GetReplicaList`; replica `BeTheLeader`, `Ping` (the rest of the lab's
+   `Interface/Epaxos.lean`: `wp_BeTheLeader`, `wp_Ping`, `rcvr_ok`). The decode guards (`argDec`
+   on the server, `Client.Call`'s guard) are models-rpc-server's. The master listens on `":7501"`:
+   `rpcLisP` (wildcard). `RpcHttpHyp`'s client fields → models-rpc-http's `DialHTTP(Path)` specs; keep
+   the server fields as visible premises.
+3. **The kit** (`examples/epaxosnet`: `Gen`, `Op`, `serve`/`Server`, `Orch`, `Client`; the lab's
+   `Proof/examples/epaxosnet/*`, `Top/*`) onto remote, as dsv-rabia (`TopLevelDefs`,
+   `TopLevelRobustness`, the kit's `Sys` with a Mutex for `ServeClient`) and dsv-paxos; the model proof
+   (Go `step` vs the set-of-configurations semantics, `ModelSet`/`ModelProof` of paxos); the mains;
+   `epaxos_remote_robust` with every `[<pkg>.InitHyp GF]`, `[TreemapHyp GF]`, `RpcHttpHyp`, the
+   net/rpc open points (codecFresh as a per-machine boot resource, errOk/srvErrMsg, errMsg) as
+   visible premises (`etc/theorem-loc.py`); the TCB baseline.
+4. The tier restructuring (34 violations) before landing.
+
+Library pieces (older notes, still accurate where not superseded above):
 
 0. **Wildcard listen (coordinator, 2026-11-23): `net-wildcard-listen` LANDED on `lean`
    (`1b2fd95b30`, with the Perennial pin bump to `7b2259a12`, `/shared/perennial-7b2259a12`).**
