@@ -3,8 +3,6 @@
 # Results.lean (added 2026-11-02, durability stage II (t); baseline as found).
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
-axiom ccDecodeV2_nil
-axiom entryEncC_ok
 axiom pbEntryC_reg
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof

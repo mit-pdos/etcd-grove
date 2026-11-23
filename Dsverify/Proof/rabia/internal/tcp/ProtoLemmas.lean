@@ -4,9 +4,8 @@
 
 Lemmas on the protocols of `Core/Proto.lean` and `Net`'s connection tokens, for tcp's proofs:
 the protocols' persistence and prefix closure (`ProtoPrefixClosed`, what `net.conn_streamWriterOk`
-asks), the sent bytes' laws `sentLb_prefix`, `sentLb_agree` (from `Proto.lean`'s definitions:
-missing laws there, as the lab's were of its harness), `recvTokL_sentLb` and its reader form
-`rdOwn_sentLb` (what a connection's reader has returned was sent), the handshakes' injectivity.
+asks), `rdOwn_sentLb` (what a connection's reader has returned was sent, from `Proto.lean`'s
+`recvTokL_sentLb` and `sentLb_le`, laws first proved here, #24), the handshakes' injectivity.
 -/
 module
 
@@ -50,36 +49,6 @@ instance proxyQ_persistent (γ : Names) (k : Nat) (cid : Nat) (W : List w8) :
 instance netP_persistent (γ : Names) (k : Nat) (cid : Nat) (W : List w8) :
     Persistent (netP (GF := GF) γ k cid W) := by unfold netP; infer_instance
 
-/-- A prefix of sent bytes was sent (`Proto.lean`'s `sentLb`, `wLb_le`). -/
-theorem sentLb_prefix (cn : Nat) (s : Bool) (W W' : List w8) (h : W' <+: W) :
-    sentLb (Gg := hG.goose_globalGS) cn s W ⊢ sentLb (Gg := hG.goose_globalGS) cn s W' := by
-  unfold sentLb
-  iintro ⟨%γ, #He, #Hlb⟩
-  iexists γ
-  iframe He
-  iapply wLb_le _ W' h $$ Hlb
-
-/-- Two prefixes of what a writer wrote are comparable. -/
-theorem sentLb_agree (cn : Nat) (s : Bool) (A B : List w8) :
-    sentLb (Gg := hG.goose_globalGS) cn s A ∗ sentLb (Gg := hG.goose_globalGS) cn s B ⊢
-      ⌜A <+: B ∨ B <+: A⌝ := by
-  unfold sentLb
-  iintro ⟨⟨%γ1, #He1, #H1⟩, ⟨%γ2, #He2, #H2⟩⟩
-  icases connElem_agree cn γ1 γ2 $$ He1 He2 with %h
-  subst h
-  unfold wLb
-  iapply mono_list_lb_valid $$ H1 H2
-
-/-- What a reader has read was written by the other end (`recvTok_sentLb`, for `recvTokL`). -/
-theorem recvTokL_sentLb (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
-    recvTokL (Gg := hG.goose_globalGS) cn s P R ⊢
-      recvTokL (Gg := hG.goose_globalGS) cn s P R ∗ sentLb (Gg := hG.goose_globalGS) cn (!s) R := by
-  refine persistent_entails_left ?_
-  unfold recvTokL recvCore sentLb connH
-  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, -⟩, -, -, #Hlb⟩, -⟩
-  iexists γ
-  iframe He Hlb
-
 /-- What a connection's reader has returned was written by the other end. -/
 theorem rdOwn_sentLb [_root_.Perennial.bufio.Assumptions] (br : Loc) (cn : Nat) (s : Bool)
     (P : Proto GF) (R : List w8) :
@@ -88,7 +57,7 @@ theorem rdOwn_sentLb [_root_.Perennial.bufio.Assumptions] (br : Loc) (cn : Nat) 
   iintro ⟨%ri, %E, H⟩
   ihave ⟨H, #Hlb⟩ := EtcdGrove.bufio.ownBufReader_fact br ri rabia.internal.message.connPre _ E R
     (fun r => sentLb (Gg := hG.goose_globalGS) cn (!s) r) (fun r => recvTokL_sentLb cn s P r)
-    (fun x y => sentLb_prefix cn (!s) (x ++ y) x (List.prefix_append x y)) $$ H
+    (fun x y => sentLb_le cn (!s) x (List.prefix_append x y)) $$ H
   iframe Hlb
   iexists ri, E
   iexact H

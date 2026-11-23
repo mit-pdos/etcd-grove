@@ -1117,21 +1117,6 @@ trusted initializers of its other variables (models in `TrustedCode/` that do no
             'iframe HErrClosed HerrClosed', 'iexists _', 'iexact HerrTimeout'],
 )
 
-# (2026-10-26) `ValidString` with its body: the tables it reads are translated
-SPECIAL['unicode.utf8'] = dict(
-    doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
-their values (`firstTable`, `acceptTable`), read-only for good. Its initializer allocates them and
-stores their translated array literals.''',
-    alloc_types={'first': 'GoArray w8 256',
-                 'acceptRanges': 'GoArray _root_.Perennial.unicode.utf8.acceptRange 16'},
-    # `first`'s literal is 256 `let`s
-    pre=['set_option maxRecDepth 20000', ''],
-    heavy=True,
-    finish=['ipersist Hfirst', 'ipersist HacceptRanges'] + FIN_PRE + [
-        'unfold EtcdGrove.utf8.utf8Init', 'isplit',
-        '· iExactEq Hfirst', '  rfl', '· iExactEq HacceptRanges', '  rfl'],
-)
-
 # (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
 # package into the closure) its five error variables, translated `errors.New` calls
 _CC = [('ErrElectionNotLeader', 'N'), ('ErrElectionNoLeader', 'O'), ('ErrLocked', 'L'),
@@ -1346,28 +1331,24 @@ the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", 
 
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
     doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultMutableFeatureGate` and
-`DefaultFeatureGate` hold the same feature gate. Its initializer initializes its import
-(`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
-(`feature_gate.go`); the trust-boundary axioms `DefaultMutableFeatureGate_init`
-(`featuregate.NewFeatureGate()`: a gate) and `DefaultFeatureGate_init` (`DefaultFeatureGate =
-DefaultMutableFeatureGate`: the same gate) state them. (Sweep repairs 1, B5, 2026-11-08: until then
+`DefaultFeatureGate` hold the same feature gate. Its initializer allocates `DefaultFeatureGate`,
+initializes its import (`component-base/featuregate`, names-only), runs `DefaultMutableFeatureGate`'s
+untranslated initializer (`feature_gate.go`), which the trust-boundary axiom
+`DefaultMutableFeatureGate_init` (`featuregate.NewFeatureGate()`: a gate) states, and
+`DefaultFeatureGate`'s translated one (`DefaultFeatureGate = DefaultMutableFeatureGate`, a conversion
+between interface types, which keeps the gate). (Sweep repairs 1, B5, 2026-11-08: until then
 `DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any feature, false of an
 unregistered one, and `DefaultMutableFeatureGate` was `opaqueInitsOk`'s, unlinked; the gate's specs
-are now `features`' registration's, `features.init_0_ok`.)''',
+are now `features`' registration's, `features.init_0_ok`. Until 2026-11-23, #36, `DefaultFeatureGate`'s
+initializer was untranslated, the trust-boundary axiom `DefaultFeatureGate_init`.)''',
+    alloc_types={'DefaultFeatureGate': 'GoInterface'},
     custom={
         'DefaultMutableFeatureGate': dict(
             doc='/-- `DefaultMutableFeatureGate = featuregate.NewFeatureGate()` (`feature_gate.go`): a feature gate, no Kubernetes feature registered yet (`features`\' `init` registers them, `features.init_0_ok`). -/',
             post='∃ g : GoInterfaceOk, globalAddr DefaultMutableFeatureGate ↦ GoInterface.ok g',
-            pat='⟨%g@, H@⟩'),
-        'DefaultFeatureGate': dict(
-            doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`): the same gate. -/',
-            binder='∀ g : GoInterfaceOk,',
-            pre='globalAddr DefaultMutableFeatureGate ↦□ GoInterface.ok g',
-            post='globalAddr DefaultFeatureGate ↦ GoInterface.ok g',
-            apply=['ipersist HDefaultMutableFeatureGate',
-                   'wp_apply (DefaultFeatureGate_init gDefaultMutableFeatureGate) $$ [] as HDefaultFeatureGate',
-                   '· iframe #'])},
-    finish=['ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
+            pat='⟨%g@, H@⟩')},
+    before={'DefaultFeatureGate': ['try wp_auto']},
+    finish=['ipersist HDefaultMutableFeatureGate', 'ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
             'imodintro', 'iexists _', 'iframe #'],
 )
 
@@ -2767,7 +2748,7 @@ _MV_REPORT = ['reportDbTotalSizeInBytes', 'reportDbTotalSizeInUseInBytes', 'repo
 SPECIAL['go_etcd_io.etcd.server.v3.storage.mvcc'] = dict(
     doc="""Its fact (`mvccInit`, `Base.lean`): its error variables (translated `errors.New` calls), its
 metrics (`metrics.go`, translated: `prometheus.NewCounter`, `NewGauge` and `NewHistogram` of an
-options literal, the trust-boundary axioms of those constructors and of `ExponentialBuckets`; a
+options literal, the trust-boundary axioms of those constructors and `ExponentialBuckets`'s spec; a
 counter's `Add` only of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). (prove-initmisc, 2026-11-20) Its other metrics (`totalEventsCounter`, `hashSec`,
 `hashRevSec`, and the `NewGaugeFunc` gauges, over that constructor's spec) and `_` (`var _
