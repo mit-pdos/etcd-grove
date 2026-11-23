@@ -295,6 +295,8 @@ runs over plain `goose_crash_adequacy`. `fsSQ_crash_adequacyShared`, `AdequacySh
    (`DSClaims` grows into `DirSwap`; `Boot`/`SegLog` the same way); crashlog; bboltfs/minibolt; the
    WAL, WalTester, `etcdstart` and `StartFiles`; osfs/netfs `Results` and `NetFsBridge`; kvnet, last.
 
-Stages land once the core has no `sorry`. With the legacy API deleted, there is no "alongside"
-stage. Stages 1-3 of §4 land as one core stage, together with every client that imports a deleted
-name. kvnet's relink follows.
+Landing stays as in §4, with stage 1 (the new adequacy, `fs_start` and `crashRest_treeS'`
+alongside legacy) landing first. The one open choice is whether keeping the legacy half alongside
+in stage 1 (shared names filled at init, legacy mode kept) costs more than it saves. If it does,
+stages 1 and 3 merge into one core stage with every client that imports a deleted name, and
+kvnet's relink follows. That is decided when the scaffold builds, and reported before any landing.
