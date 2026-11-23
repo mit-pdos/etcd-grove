@@ -3,6 +3,8 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.github_com.Masterminds.semver.v3
+public import Perennial.GeneratedProof.bytes
+public import Perennial.GeneratedProof.fmt
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory

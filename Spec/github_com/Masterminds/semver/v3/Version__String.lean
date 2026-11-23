@@ -1,5 +1,5 @@
 /-
-`semver.Version.String`: the trust boundary (`github.com/Masterminds/semver/v3` is names-only). Lean-first (no Rocq counterpart).
+`semver.Version.String` (`version.go:340-352`). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -21,14 +21,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `v.String()` (`v` not nil) returns a string that starts with the major and minor versions in
-decimal, each followed by a dot (`semverStr`: `"%d.%d.%d"`, then `-pre` and `+metadata`,
-`version.go`; D19l (iii), 2026-10-18: until then some string). -/
+/-- `v.String()` of a version `v` points to, at any fraction, kept, returns its rendering
+(`semver.render`: `major.minor.patch` in decimal, then `-pre` and `+metadata` if not empty), which
+starts with the major and minor versions in decimal, each followed by a dot
+(`semver.semverStr_render`). (2026-11-23, prove-ps2-semstr, proved over the real code: until then
+a trust-boundary axiom of any `v` not nil, which a concurrent writer races, returning some string
+with `semverStr`; D19l (iii), 2026-10-18: until then some string.) -/
 abbrev semver.Version.String.spec : Prop :=
-  ∀ (v : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 ∗ ⌜v ≠ null⌝ }}
+  ∀ (v : Loc) (dq : DFrac) (x : github_com.Masterminds.semver.v3.Version),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 ∗ v ↦{dq} x }}
     (App (Val (v @!! go.GoType.PointerType github_com.Masterminds.semver.v3.Version.ty @!! go!"String")) (Val #()))
-  {{ (s : GoString), RET #s; ⌜semverStr s⌝ }}
+  {{ RET #(semver.render x); v ↦{dq} x }}
 
 end spec
 
