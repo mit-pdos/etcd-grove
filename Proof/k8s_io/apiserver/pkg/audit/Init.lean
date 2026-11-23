@@ -2,9 +2,8 @@
 Package initialization of `k8s_io.apiserver.pkg.audit`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return (it has no
-initialized variable).
+Its fact is `True`. Its initializer initializes its imports (it has no initialized
+variable).
 -/
 module
 
@@ -27,26 +26,6 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace k8s_io.apiserver.pkg.audit
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `k8s_io.apiserver.pkg.audit`'s untranslated `init` functions return.** Goose
-names a package's `func init()`s `init.<k>`, as gc does, and translates them names-only
-here, so the model does not unfold them (`@! init.<k>`: the semantics' `functions`, which
-the package's `Assumptions` do not constrain for them). Go runs them at program start, and
-etcd starts, so each returns without panicking. A fact about the Go code, as the axioms of
-other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
-axiom initFuncsOk :
-    ∀ f ∈ ([init.«0», init.«1»] : List GoString),
-    {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
-
-end k8s_io.apiserver.pkg.audit
-end opaqueInits
-
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -67,8 +46,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  wp_apply (initFuncsOk init.«1» (by mem_tac))
+  -- the translated init.«0»
+  wp_func_call
+  wp_call
+  try wp_auto
+  -- the translated init.«1»
+  wp_func_call
+  wp_call
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.k8s_io.apimachinery.pkg.api.resource
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.api.resource
 
