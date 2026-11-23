@@ -151,6 +151,17 @@ def crInv (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z 
   iprop((structFieldRef net.http.connReader go!"cond" cr ↦ (null : Loc) ∨ ∃ cv, crCond cr cv) ∗
     crPh cr γ cn P hs Z)
 
+/-- The fields as the main thread owns them in the main phase, no read running (`inRead` false):
+the reader's connection `c`, `hasByte` `hb`, `aborted`, `failed`, and the reader's resources. -/
+def crOwn (cr : Loc) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) : IProp GF :=
+  iprop(∃ (c : Loc) (hb ab fl : Bool),
+    structFieldRef net.http.connReader go!"conn" cr ↦ c ∗
+    structFieldRef net.http.connReader go!"hasByte" cr ↦ hb ∗
+    structFieldRef net.http.connReader go!"inRead" cr ↦ false ∗
+    structFieldRef net.http.connReader go!"aborted" cr ↦ ab ∗
+    structFieldRef net.http.connReader go!"failed" cr ↦ fl ∗
+    crConnOk c ∗ crRead cr cn P Z hs hb)
+
 /-- See the file header. -/
 def crIs (cr : Loc) (γ : CrNames) (cn : Nat) (P : Proto GF) (hs : List w8) (Z : Nat → IProp GF) :
     IProp GF :=
