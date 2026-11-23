@@ -8,6 +8,7 @@ public import Proof.go_etcd_io.raft.v3.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
+public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 public import Proof.errors.NewVar
 
 @[expose] public section
@@ -100,12 +101,19 @@ def membershipErrMsgs : List (GoString × GoString) :=
     (ErrTooManyLearners, go!"membership: too many learner members in cluster")]
 
 /-- `api/membership`'s package facts: `ClusterVersionMetrics` (above), and (D43 M4, 2026-10-26)
-every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`). -/
+every error variable its `errors.New` error (`errorsNewVars membershipErrMsgs`), and
+(prove-ps2-metrics, 2026-11-22) the metrics of the membership writers' metric updates: the gauge
+`isLearner` (its `Set` returns) and the gauge vector `knownPeers`, with its label names. -/
 abbrev membershipInit : IProp GF :=
   iprop((∃ gv : Loc,
     globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv ∗
     ⌜EtcdGrove.prometheus.vecLabels gv [go!"cluster_version"]⌝) ∗
-    EtcdGrove.errorsNewVars membershipErrMsgs)
+    EtcdGrove.errorsNewVars membershipErrMsgs ∗
+    (∃ g : GoInterfaceOk,
+      globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.isLearner ↦□ GoInterface.ok g ∗
+      EtcdGrove.prometheus.metric.gaugeSetSpec g) ∗
+    (∃ gv : Loc, globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.knownPeers ↦□ gv ∗
+      ⌜EtcdGrove.prometheus.vecLabels gv [go!"Local", go!"Remote"]⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership :=
   define_is_pkg_init membershipInit
