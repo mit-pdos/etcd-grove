@@ -1,0 +1,332 @@
+/-
+`(*KV).Commit`.
+-/
+module
+
+public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Kv.Lemmas
+public import Perennial.Proof.log
+
+@[expose] public section
+
+noncomputable section
+
+set_option linter.unusedSectionVars false
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
+
+namespace github_com.despreston.go_craq
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+namespace kvp
+
+section proofs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics] [store.kv.Assumptions] [store.Assumptions]
+
+theorem wp_Commit (p : Loc) (γs : GName) (k : GoString) (v : w64) :
+    isKV (hG := hG) p γs ⊢
+      <<{ ∀∀ S, storeOwn γs 1 S }>>
+        (App (App (Val #(methods (go.GoType.PointerType store.kv.KV.ty) go!"Commit" #p))
+          (Val #k)) (Val #v)) @ ∅
+      <<{ storeOwn γs 1 (if S.hasVer k v then S.commit k v else S) |
+          (err : GoInterface), RET #err;
+          if S.hasVer k v then ⌜err = interface.nil⌝ else errNotFound err }>> := by
+  iintro #Hkv
+  unfold isKV
+  icases Hkv with ⟨%mp, #Hitems, #Hmu, #Hpkg⟩
+  ihave #Herr := errNotFound_of_init $$ Hpkg
+  icases Herr with ⟨%errNF, #Herr⟩
+  unfold atomic_wp
+  iintro %Φ AU
+  wp_method_call
+  wp_auto
+  wp_apply wp_with_defer as %defer Hdefer
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hi⟩
+  unfold lockInv
+  icases Hi with ⟨%m, %S0, Hm, Hγ, %Hnone, Hmap⟩
+  icases map_take m S0 k Hnone $$ Hmap with ⟨⟨%l0, Hk, %Hl0⟩, Hrest⟩
+  unfold keyOwn
+  icases Hk with ⟨Hsl0, Hcap0, Hits⟩
+  wp_apply wp_lookup p mp m k (l0.map Prod.fst) (fun h => by simpa using Hl0.2.1 h)
+    $$ [$Hitems $Hm $Hsl0] as ⟨Hm, Hsl0⟩
+  unfold errNotFound
+  icases Herr with ⟨%xe, %Hxe, #HeA, #HeS, #HeM⟩
+  cases hks : (m !! k).isSome
+  · -- absent key
+    have hk : m !! k = none := by
+      cases h : m !! k <;> simp_all
+    wp_auto
+    have hl0 : l0 = [] := Hl0.2.2 hk
+    subst hl0
+    have hv : S0.hasVer k v = false := by rw [hasVer_eq S0 k v [] Hl0.1]; rfl
+    iapply fupd_wp
+    imod AU with ⟨%x', Hst, -, Hcommit⟩
+    rcases x' with ⟨S', ⟨⟩⟩
+    dsimp only [Tele.app]
+    ihave %Heq := own_agree γs 1 S0 S' $$ Hγ Hst
+    subst S'
+    rw [hv]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    imod Hcommit $$ %() [Hst] with HΦ
+    · iexact Hst
+    imodintro
+    ihave Hmap := map_restore m S0 k [] ⟨Hl0.1, fun h => by simp [hk] at h⟩ $$ [Hsl0 Hcap0 Hits Hrest]
+    · unfold keyOwn; iframe
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hm Hγ Hmap]
+    · inext
+      iexists m, S0
+      iframe
+      ipureintro; exact Hnone
+    dsimp only [Tele.lam, Tele.app, Tele.bind, BI.tforall_cons, BI.tforall_nil, BIBase.wandM]
+    iapply HΦ
+    rw [hv]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    iframe #
+  -- present key
+  have hne : l0 ≠ [] := Hl0.2.1 hks
+  obtain ⟨slk, hk⟩ : ∃ slk, m !! k = some slk := by
+    cases h : m !! k <;> simp_all
+  simp only [hk, Option.getD_some]
+  wp_auto
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl0
+  simp only [List.length_map] at Hlen
+  ihave HI : (∃ (i : w64) (pi : Loc),
+      "i" ∷ i_ptr ↦ i ∗ "itm" ∷ itm_ptr ↦ pi ∗
+      "found" ∷ found_ptr ↦ (l0.take (sint.nat i)).any (fun e => decide (e.2.1 = v)) ∗
+      "Hdone" ∷ ([∗list] e ∈ (l0.take (sint.nat i)).map (mark v), itemOwn e.1 k e.2) ∗
+      "Htodo" ∷ ([∗list] e ∈ l0.drop (sint.nat i), itemOwn e.1 k e.2) ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z slk.len⌝ : IProp GF) $$ [i itm found Hits]
+  · iexists W64 0, _
+    simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.drop_zero, List.map_nil,
+      List.any_nil]
+    iframe
+    isplitl []
+    · iapply BigSepL.bigSepL_nil_intro (P := iprop(True)); itrivial
+    · ipureintro; word
+  wp_for HI
+  wp_if_destruct
+  · -- loop body
+    simp only [Hi.1, Hif, _root_.and_self, ↓reduceIte]
+    list_elem l0 (sint.nat i) as e
+    wp_apply wp_load_slice_index slk (sint.Z i) (l0.map Prod.fst) _ e.1 Hi.1 $$ [Hsl0] with Hsl0
+    · iframe; ipureintro
+      rw [List.getElem?_map, show (sint.Z i).toNat = sint.nat i from rfl, He_lookup]; rfl
+    rw [drop_cons_of_lookup l0 _ e He_lookup]
+    icases BigSepL.bigSepL_cons.1 $$ Htodo with ⟨He, Htodo⟩
+    iunfold itemOwn at He
+    iunfold itemPtr at He
+    icases He with ⟨%Hnn, ⟨#HK, #HV, %vsl, #HVal, #Hx⟩, HC⟩
+    wp_auto
+    have Htake := take_succ_of_lookup l0 _ e He_lookup
+    have Hi1 : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+    by_cases hv : e.2.1 = v
+    · rw [decide_eq_true hv]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1, e.1
+      rw [Hi1, Htake, List.map_append, List.any_append,
+        show ([e].any fun e => decide (e.snd.fst = v)) = true by simp [hv], Bool.or_true]
+      iframe i itm found Htodo
+      isplitl [Hdone HC]
+      · iapply BigSepL.bigSepL_append.2
+        iframe Hdone
+        simp only [mark, hv, ↓reduceIte, List.map_cons, List.map_nil]
+        iapply BigSepL.bigSepL_singleton.2
+        unfold itemOwn itemPtr
+        iframe HC HK HV
+        isplitr
+        · ipureintro; exact Hnn
+        iexists vsl
+        iframe # 
+      · ipureintro; word
+    · rw [decide_eq_false hv]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1, e.1
+      rw [Hi1, Htake, List.map_append, List.any_append,
+        show ([e].any fun e => decide (e.snd.fst = v)) = false by simp [hv], Bool.or_false]
+      iframe i itm found Htodo
+      isplitl [Hdone HC]
+      · iapply BigSepL.bigSepL_append.2
+        iframe Hdone
+        simp only [mark, hv, ↓reduceIte, List.map_cons, List.map_nil]
+        iapply BigSepL.bigSepL_singleton.2
+        unfold itemOwn itemPtr
+        iframe HC HK HV
+        isplitr
+        · ipureintro; exact Hnn
+        iexists vsl
+        iframe # 
+      · ipureintro; word
+  · -- loop exit
+    have hiE : sint.nat i = l0.length := by
+      rw [Hlen.1]; word
+    rw [hiE, List.take_length, List.drop_length]
+    iclear Htodo
+    have hr := map_restore (hG := hG) m S0 k
+    simp only [hk, Option.getD_some, Option.isSome_some, forall_const] at hr
+    cases hany : l0.any (fun e => decide (e.2.1 = v))
+    · -- no item has the version
+      rw [mark_id l0 v hany]
+      have hv : S0.hasVer k v = false := by rw [hasVer_eq S0 k v l0 Hl0.1]; exact hany
+      wp_auto
+      iapply fupd_wp
+      imod AU with ⟨%x', Hst, -, Hcommit⟩
+      rcases x' with ⟨S', ⟨⟩⟩
+      dsimp only [Tele.app]
+      ihave %Heq := own_agree γs 1 S0 S' $$ Hγ Hst
+      subst S'
+      rw [hv]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      imod Hcommit $$ %() [Hst] with HΦ
+      · iexact Hst
+      imodintro
+      ihave Hmap := hr l0 ⟨Hl0.1, hne⟩ $$ [Hsl0 Hcap0 Hdone Hrest]
+      · unfold keyOwn; iframe
+      wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hm Hγ Hmap]
+      · inext
+        iexists m, S0
+        iframe
+        ipureintro; exact Hnone
+      dsimp only [Tele.lam, Tele.app, Tele.bind, BI.tforall_cons, BI.tforall_nil, BIBase.wandM]
+      iapply HΦ
+      rw [hv]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iframe #
+    · -- found
+      have hv : S0.hasVer k v = true := by rw [hasVer_eq S0 k v l0 Hl0.1]; exact hany
+      rw [← mark_fst l0 v]
+      generalize hl1 : l0.map (mark v) = l1
+      have hlen1 : l1.length = l0.length := by rw [← hl1, List.length_map]
+      wp_apply wp_slice_literal (l := ([] : List Loc))
+      isplitr
+      · ipureintro; rfl
+      iintro %kp ⟨Hkept, Hkcap⟩
+      wp_auto
+      ihave HI : (∃ (i : w64) (pi : Loc) (ks : GoSlice),
+          "i" ∷ i_ptr ↦ i ∗ "itm" ∷ itm_ptr ↦ pi ∗ "kept" ∷ kept_ptr ↦ ks ∗
+          "Hks" ∷ ks ↦* ((l1.take (sint.nat i)).filter (keep v)).map Prod.fst ∗
+          "Hkcap" ∷ ownSliceCap Loc ks (DFrac.own 1) ∗
+          "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z slk.len⌝ : IProp GF) $$ [i itm kept Hkept Hkcap]
+      · iexists W64 0, _, _
+        simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.filter_nil,
+          List.map_nil]
+        iframe
+        ipureintro; word
+      wp_for HI
+      wp_if_destruct
+      · -- loop body
+        simp only [Hi.1, Hif, _root_.and_self, ↓reduceIte]
+        list_elem l1 (sint.nat i) as e
+        wp_apply wp_load_slice_index slk (sint.Z i) (l1.map Prod.fst) _ e.1 Hi.1 $$ [Hsl0] with Hsl0
+        · iframe; ipureintro
+          rw [List.getElem?_map, show (sint.Z i).toNat = sint.nat i from rfl, He_lookup]; rfl
+        icases BigSepL.bigSepL_lookup_acc He_lookup |>.1 $$ Hdone with ⟨He, Hdone⟩
+        iunfold itemOwn at He
+        iunfold itemPtr at He
+        icases He with ⟨%Hnn, ⟨#HK, #HV, %vsl, #HVal, #Hx⟩, HC⟩
+        wp_auto
+        ihave Hdone := Hdone $$ %e [HC]
+        · unfold itemOwn itemPtr
+          iframe HC HK HV
+          isplitr
+          · ipureintro; exact Hnn
+          iexists vsl
+          iframe #
+        rw [list_set_lookup_self l1 _ e He_lookup]
+        have Htake := take_succ_of_lookup l1 _ e He_lookup
+        have Hi1 : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+        by_cases hkeep : uint.Z v ≤ uint.Z e.2.1
+        · rw [decide_eq_true hkeep]
+          wp_auto
+          wp_apply wp_slice_literal (l := [e.1])
+          isplitr
+          · ipureintro; rfl
+          iintro %kp1 ⟨Htmp, -⟩
+          wp_auto
+          wp_apply wp_slice_append (V := Loc) $$ [$Hks $Hkcap $Htmp] as %ks' ⟨Hks, Hkcap, -⟩
+          wp_for_post
+          iframe
+          iexists i + W64 1, e.1, ks'
+          rw [Hi1, Htake, List.filter_append, List.map_append]
+          simp only [List.filter_cons, List.filter_nil, keep, decide_eq_true hkeep, ↓reduceIte,
+            List.map_cons, List.map_nil]
+          iframe
+          ipureintro; word
+        · rw [decide_eq_false hkeep]
+          wp_auto
+          wp_for_post
+          iframe
+          iexists i + W64 1, e.1, ks
+          rw [Hi1, Htake, List.filter_append, List.map_append]
+          simp only [List.filter_cons, List.filter_nil, keep, decide_eq_false hkeep,
+            Bool.false_eq_true, ↓reduceIte, List.map_nil, List.append_nil]
+          iframe
+          ipureintro; word
+      · -- loop exit
+        have hiE : sint.nat i = l1.length := by
+          rw [hlen1, Hlen.1]; word
+        rw [hiE, List.take_length]
+        wp_apply wp_mapInsert $$ Hm as Hm
+        wp_apply wp_slice_literal (l := [interface.mkOk go.uint64 #v, interface.mkOk go.string #k])
+        isplitr
+        · ipureintro; rfl
+        iintro %ap ⟨Hargs, -⟩
+        wp_apply log.wp_Printf _ _ _ _
+          (fmt.ArgsWf.cons_int _ _ _ (.uint64 v) (fmt.ArgsWf.cons_string k _ fmt.ArgsWf.nil))
+          $$ [$Hargs] as -
+        have hitems : (S0.commit k v).items k = ((l1.filter (keep v)).map Prod.snd) := by
+          rw [items_commit_self, Hl0.1, commit_list, hl1]
+        have hne2 : l1.filter (keep v) ≠ [] := by rw [← hl1]; exact commit_ne_nil l0 v hany
+        iapply fupd_wp
+        imod AU with ⟨%x', Hst, -, Hcommit⟩
+        rcases x' with ⟨S', ⟨⟩⟩
+        dsimp only [Tele.app]
+        ihave %Heq := own_agree γs 1 S0 S' $$ Hγ Hst
+        subst S'
+        rw [hv]
+        simp only [↓reduceIte]
+        imod own_update γs S0 S0 (S0.commit k v) $$ Hγ Hst with ⟨Hγ, Hst⟩
+        imod Hcommit $$ %() [Hst] with HΦ
+        · iexact Hst
+        imodintro
+        ihave Hrest := map_rest m S0 (S0.commit k v) k
+          (fun k' h => items_commit_ne S0 k k' v h) $$ Hrest
+        ihave Hmap := map_put m (S0.commit k v) k ks $$ [Hrest Hks Hkcap Hdone]
+        · iframe Hrest
+          unfold keyInv keyOwn
+          iexists l1.filter (keep v)
+          iframe Hks Hkcap
+          isplitl [Hdone]
+          · iapply sepL_filter $$ Hdone
+          · ipureintro; exact ⟨hne2, hitems⟩
+        wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hm Hγ Hmap]
+        · inext
+          iexists <[k := ks]> m, S0.commit k v
+          iframe
+          ipureintro
+          intro k' hk'
+          have hne' : k' ≠ k := by
+            intro e; subst e; rw [GMap.lookup_insert_eq] at hk'; cases hk'
+          rw [GMap.lookup_insert_ne m ks (Ne.symm hne')] at hk'
+          rw [items_commit_ne S0 k k' v hne']
+          exact Hnone k' hk'
+        dsimp only [Tele.lam, Tele.app, Tele.bind, BI.tforall_cons, BI.tforall_nil, BIBase.wandM]
+        iapply HΦ
+        rw [hv]
+        simp only [↓reduceIte]
+        ipureintro; trivial
+
+end proofs
+
+end kvp
+
+end github_com.despreston.go_craq
+
+end Perennial

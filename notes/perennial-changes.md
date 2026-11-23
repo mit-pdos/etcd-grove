@@ -3836,3 +3836,18 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 - **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
   `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
 - **Status.** Not filed yet.
+
+## 2026-11-23: `log`'s `Logger` methods, `Default`, `Fatalf`, and `Printf` of error arguments (go-craq; branch `dsv-craq`)
+
+- **Limitation.** Perennial's `log` model (`Code/log.toml`) trusts `Printf` and `Println` only: `log.Default`,
+  `log.Fatalf` and the methods of `*log.Logger` (`Printf`, `Println`) are names only, so a call is stuck.
+  go-craq's node logs through a `*log.Logger` (`n.log.Printf`, `n.log.Println`, 30 calls; `log.Default()` in
+  `node.New`; `log.Fatalf` in `Start`'s backfill failure). And `log.Printf.spec` takes `fmt.ArgsWf` (predeclared
+  basic types only), while go-craq's coordinator passes errors with `%v` (Go calls their `Error()`) and the node
+  errors and struct pointers with `%#v`/`%+v` (Go's `%#v` calls only a `GoString()` method, which none of these
+  values has; `%+v` of a `*store.Item` or `*transport.NodeMeta` calls none).
+- **Work-around here.** None yet: the node's and the coordinator's proofs are not ported (notes/dsv-craq.md). The
+  plan: specs of these as hypotheses of the closed statement (the lab had its own `log` model, `Harness/Code/log.lean`).
+- **Proposed (general).** `*log.Logger`'s `Printf`/`Println`/`Print`, `log.Default`, `log.New` in the log model
+  (as `Printf`); `fmt.ArgsWf` widened to error arguments whose `Error()` has a spec (`%v`, `%s`) and to `%#v`/`%+v`
+  of values without formatting methods. **Status.** Not started.
