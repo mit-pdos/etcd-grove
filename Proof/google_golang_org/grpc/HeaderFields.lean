@@ -7,6 +7,7 @@ functions of their arguments. Lean-first.
 module
 
 public import Proof.google_golang_org.grpc.InvGrpcWire
+public import Perennial.Proof.internal.strconv.FormatBasics
 
 @[expose] public section
 
@@ -69,6 +70,33 @@ def pairOk (k : GoString) (vs : List GoString) : Prop :=
 `InvalidArgument`, `NotFound`, `AlreadyExists`, `FailedPrecondition`, `Aborted`, `OutOfRange`,
 `DataLoss`. -/
 def restrictedCodes : List w32 := [W32 3, W32 5, W32 6, W32 9, W32 10, W32 11, W32 15]
+
+/-- **`grpcutil.div(d, r)`**: `d / r` rounded up when the remainder is positive (Go's truncating
+`/` and `%` on `int64`, `BitVec.sdiv`/`srem`). -/
+def durDiv (d r : w64) : w64 :=
+  if 0 < sint.Z (BitVec.srem d r) then BitVec.sdiv d r + W64 1 else BitVec.sdiv d r
+
+/-- The `grpc-timeout` value in one unit: `strconv.FormatInt(div(t, r), 10)` and the unit's letter. -/
+def encDurUnit (t r : w64) (u : GoString) : GoString :=
+  _root_.Perennial.internal.strconv.fmtInt (durDiv t r) (W64 10) ++ u
+
+/-- `grpcutil.EncodeDuration`'s bound on the number (`maxTimeoutValue`, eight digits). -/
+def maxTimeoutValue : Int := 99999999
+
+/-- **`grpcutil.EncodeDuration(t)`**: `0n` for a non-positive duration, else the duration in the
+finest unit (`n`, `u`, `m`, `S`, `M`, then `H`) whose rounded-up count is at most
+`maxTimeoutValue` (hours unconditionally). -/
+def encodeDurationOf (t : w64) : GoString :=
+  if sint.Z t ≤ 0 then go!"0n"
+  else if sint.Z (durDiv t (W64 1)) ≤ maxTimeoutValue then encDurUnit t (W64 1) go!"n"
+  else if sint.Z (durDiv t (W64 1000)) ≤ maxTimeoutValue then encDurUnit t (W64 1000) go!"u"
+  else if sint.Z (durDiv t (W64 1000000)) ≤ maxTimeoutValue then
+    encDurUnit t (W64 1000000) go!"m"
+  else if sint.Z (durDiv t (W64 1000000000)) ≤ maxTimeoutValue then
+    encDurUnit t (W64 1000000000) go!"S"
+  else if sint.Z (durDiv t (W64 60000000000)) ≤ maxTimeoutValue then
+    encDurUnit t (W64 60000000000) go!"M"
+  else encDurUnit t (W64 3600000000000) go!"H"
 
 end grpcHdr
 end EtcdGrove
