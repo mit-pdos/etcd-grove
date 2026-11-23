@@ -945,7 +945,8 @@ PROJECTS = [
         # `examples/dsverify/epaxos` (a Go module of its own, module path the fork's with
         # "-epaxos": the swiftpaxos kit translates the same repository). Into the part `Dsverify/`,
         # with gods (the real v1.18.1) translated into it too; remote, `net`, net/rpc and net/http
-        # the part `Net/`'s, lintest, porcupine, bufio and encoding/json the main tree's.
+        # the part `Net/`'s, encoding/json the part's names-only one (dsv-vr's), lintest, porcupine
+        # and bufio the main tree's.
         repo=None,
         rev=None,
         local=os.path.join("examples", "dsverify", "epaxos"),
@@ -955,19 +956,20 @@ PROJECTS = [
                     "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
                     "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
                     "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
-                    "bufio=", "encoding/json=", "net/url=", "path=", "crypto/tls=",
+                    "bufio=", "encoding/json=Dsverify", "net/url=", "path=", "crypto/tls=",
                     "golang.org/x/net/http/httpguts=Net", "vendor=Net", "go/token=Net"],
         packages=["github.com/emirpasic/gods/utils", "github.com/emirpasic/gods/containers",
                   "github.com/emirpasic/gods/maps", "github.com/emirpasic/gods/trees",
                   "github.com/emirpasic/gods/trees/redblacktree",
                   "github.com/emirpasic/gods/maps/treemap",
                   "./rpc", "./dlog", "./config", "./state", "./replica/defs", "./replica",
-                  "./epaxos", "./master", "./examples/epaxosnet", "./examples/epaxosnet/cmd/orch"]
+                  "./epaxos", "./master", "./examples/epaxosnet", "./examples/epaxosnet/cmd/orch",
+                  "encoding/json"]
                  + ["./examples/epaxosnet/cmd/client%d" % c for c in range(10)]
                  + ["./examples/epaxosnet/cmd/server%d" % s for s in range(1, 7)],
         owned=[os.path.join("github_com", "imdea_software", "swiftpaxos_epaxos"),
-               os.path.join("github_com", "emirpasic")],
-        std_models=["net/rpc", "net/http"],
+               os.path.join("github_com", "emirpasic"), os.path.join("encoding", "json")],
+        std_models=["net/rpc", "net/http", "encoding/json"],
     ),
     Project(
         name="models-net",

@@ -8,12 +8,12 @@ variable).
 module
 
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Base
-public import Perennial.Proof.fmt.Link
 public import Dsverify.Proof.encoding.json.Init
+public import Perennial.Proof.fmt.Link
 public import Dsverify.Proof.github_com.emirpasic.gods.containers.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.Init
 public import Dsverify.Proof.github_com.emirpasic.gods.utils.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
 
@@ -36,8 +36,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Assumptions]
 variable [_root_.Perennial.encoding.json.InitHyp GF]
+variable [package_sem : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Assumptions]
 
 namespace github_com.emirpasic.gods.trees.redblacktree
 
@@ -52,7 +52,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.encoding.json.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.encoding.json _root_.Perennial.encoding.json.initialize'
+      _root_.Perennial.encoding.json.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (_root_.Perennial.github_com.emirpasic.gods.utils.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (_root_.Perennial.github_com.emirpasic.gods.trees.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'

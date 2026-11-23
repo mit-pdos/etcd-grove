@@ -1,68 +1,46 @@
 /-
-The initializer of `encoding/json` as a **hypothesis** of the part's EPaxos proofs (notes/dsv-epaxos.md,
-"Hypotheses"; `etc/gen-init.py`'s `DSV_HYP_INITS`): the main tree's `Proof/encoding/json/Init.lean` rests on the axiom `initFuncsOk` (an untranslated `func init`), which the part may not take. The class `encoding.json.InitHyp GF` says that
-it runs from any initialization state and gives the package's fact (`True` here: no proof of the
-part reads a variable of `encoding/json`); `wp_initialize'_lb` is the form the generated initializers call.
-To discharge: prove `encoding.json.wp_initialize'_lb` (a generated `Init.lean` without axioms) and replace
-this module by it.
+**A hypothesis**: `encoding.json`'s initializer meets Perennial's initialization spec (notes/dsv-vr.md,
+"Hypotheses"). `encoding.json` is translated names only in the part (its model's Lean half does not exist
+yet), so its `initialize'` cannot be proved here, and the rule is no new axiom: the spec is the
+class `InitHyp` (a `Prop`), which every theorem whose proof initializes `encoding.json` takes as an
+instance argument (`etc/gen-init.py`'s `dsv_inits` adds the section variable), up to the kit's
+closed statement. Replace by the model's proved `wp_initialize'` when it lands.
 -/
 module
 
-public import GeneratedProof.encoding.json
+public import Dsverify.Proof.encoding.json.Base
 public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std
+open Iris Iris.BI Iris.ProgramLogic
 
 namespace encoding.json
 
-section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- The package's fact, `True`, written by hand (not `define_is_pkg_init`, which needs the facts of
-all its imports, some of which have none in the part): no importer reads the imports' facts
-through it. -/
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.encoding.json :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
-/-- Its well-formedness: `get_is_pkg_init` gives its fact (its imports' are not constrained). -/
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
-  { get_is_pkg_init_prop_def := fun g => g pkg_id.encoding.json = isPkgInit pkg_id.encoding.json ∧ True }
-
-end def_
+/-- **Hypothesis** (the file header): `encoding.json`'s initializer establishes its package fact. -/
+class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
+    (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] : Prop where
+  wp_init : ∀ (get_is_pkg_init : GoString → IProp GF),
+    GetIsPkgInitProp pkg_id.encoding.json get_is_pkg_init →
+    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.json }}
 
 section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.encoding.json.Assumptions]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
 
-/-- **Hypothesis**: `encoding/json`'s initializer runs, keeping what is initialized, and gives its fact. -/
-class InitHyp (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] : Prop where
-  initLb : ∀ (get_is_pkg_init : GoString → IProp GF),
-    GetIsPkgInitProp pkg_id.encoding.json get_is_pkg_init → ∀ (σ0 : GMap GoString Bool),
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.encoding.json }}
-
-theorem wp_initialize'_lb [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.encoding.json get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.encoding.json }} :=
-  h.initLb get_is_pkg_init Hinit σ0
+/-- Perennial's form of `encoding.json`'s initialization, from the hypothesis. -/
+theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.encoding.json get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.encoding.json }} :=
+  h.wp_init get_is_pkg_init Hinit
 
 end init
 

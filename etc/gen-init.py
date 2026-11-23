@@ -5288,17 +5288,15 @@ DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
 # The EPaxos kit (notes/dsv-epaxos.md; project dsv-epaxos): gods' packages, the fork's, the kit's and
 # its 17 programs.
 DSV_EPAXOS = 'github_com.imdea_software.swiftpaxos_epaxos'
-# the main tree's packages the part's closure adds to `NET_MAIN` (EPaxos: bufio, encoding/json)
-DSV_MAIN = ['bufio', 'encoding.json', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
+# the main tree's packages the part's closure adds to `NET_MAIN` (EPaxos: bufio and net/http's)
+DSV_MAIN = ['bufio', 'path', 'internal.bytealg', 'net.url', 'crypto.tls']
 # of which the part gets a copy of the main tree's `Init.lean` (over the part's `PkgInitExt`)
 DSV_MAIN_COPY = ['bufio']
-# initializers that are hypotheses of the part's proofs (notes/dsv-epaxos.md, "Hypotheses"): no
-# axiom-free `Init.lean` exists (net/rpc's and net/http's of `Net/`'s models: not generated, their
-# closure reaches untranslated initializers; encoding/json's main-tree one has `initFuncsOk`). Each
-# has a hand-written `Dsverify/Proof/<pkg>/Init.lean` with the class `<pkg>.InitHyp GF` and its
-# `wp_initialize'_lb` under it; a generated file whose package's closure reaches one takes the class
-# as a section variable.
-DSV_HYP_INITS = ['net.rpc', 'net.http', 'encoding.json']
+# initializers that are hypotheses of the part's proofs (notes/dsv-epaxos.md, "Hypotheses"; dsv-vr's
+# mechanism, `dsv_hyp_fix`, and its `InitHyp` class): net/rpc's and net/http's (`Net/`'s models: no
+# initializer proof; their closure reaches untranslated initializers) and the part's names-only
+# encoding/json (dsv-vr's). On a merge with dsv-vr: the union of the two lists.
+DSV_HYP_INITS = ['encoding.json', 'net.rpc', 'net.http']
 DSV_EPAXOS_NODES = ['orch'] + [f'client{c}' for c in range(10)] + [f'server{s}' for s in range(1, 7)]
 DSV_PKGS += [f'github_com.emirpasic.gods.{p}' for p in
              ['utils', 'containers', 'maps', 'trees', 'trees.redblacktree', 'maps.treemap']] + \
@@ -5330,12 +5328,33 @@ DSV_PROGRAMS.update({f'{DSV_EPAXOS}.examples.epaxosnet.cmd.{n}':
                      for n in DSV_EPAXOS_NODES})
 
 
+DSV_HYP_NEED = {}
+
+
+def dsv_hyp_fix(path, txt):
+    """A generated file of the part whose package's closure holds a hypothesis package: its import
+    of that package's initialization is the part's `Init.lean`, and its sections take the
+    hypothesis (`InitHyp`) as an instance."""
+    d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
+    for q in DSV_HYP_NEED.get(d, []):
+        txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                          f'public import {DSV_ROOT}.Proof.{q}.Init\n')
+        if f'public import {DSV_ROOT}.Proof.{q}.Init\n' not in txt:
+            txt = re.sub(r'(?m)^(public import .*\n)(?!public import)',
+                         lambda m: m.group(1) + f'public import {DSV_ROOT}.Proof.{q}.Init\n', txt,
+                         count=1)
+        txt = re.sub(r'(?m)^(variable \[sem : go\.Semantics\].*)$',
+                     lambda m: m.group(1) + f'\nvariable [_root_.Perennial.{q}.InitHyp GF]', txt)
+    return txt
+
+
 def dsv_inits():
     """The part's `Init.lean` files and its programs' `PkgTable.lean`."""
     global inv, inst, CFG_OVERRIDE, pkginfo_imports
     saved = inv, inst, CFG_OVERRIDE
     saved_pi = pkginfo_imports
-    # (the hypothesis packages' imports, as their `GetIsPkgInitWf` sees them: none)
+    # (EPaxos) a hypothesis package's imports, as its `GetIsPkgInitWf` sees them: none (its
+    # `Init.lean`), so the programs' tables stop there (net/http's closure has no facts in the part)
     pkginfo_imports = lambda q: [] if q in DSV_HYP_INITS else saved_pi(q)
     try:
         CFG_OVERRIDE = NET_SPECIAL
@@ -5347,25 +5366,19 @@ def dsv_inits():
         for q, d in inventory(f'{DSV_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
+        for q in DSV_HYP_INITS:
+            inv[q] = dict(inv[q], perennial=True, imports=[])
+        for p in DSV_PKGS + DSV_MAIN_COPY:
+            if p in inv:
+                DSV_HYP_NEED[dirof(p)] = [q for q in DSV_HYP_INITS if q in closure(p)]
         inst.update(instances(f'{DSV_ROOT}/Proof/'))
-        # a hypothesis package's fact constrains nothing of its imports (its `GetIsPkgInitWf`,
-        # `Dsverify/Proof/<pkg>/Init.lean`): the closures stop there
-        for h in DSV_HYP_INITS:
-            inv[h] = dict(inv[h], imports=[])
-        hyps = {}
-
-        def hyp_vars(p, path, txt):
-            hs = [h for h in DSV_HYP_INITS if h in closure(p) and h != p]
-            if hs:
-                hyps[path] = hs
-            return path, txt
-        raw = [hyp_vars(p, f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS + DSV_MAIN_COPY
+        raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS + DSV_MAIN_COPY
                if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean') or p in DSV_MAIN_COPY
                for path, txt in gen(p, SPECIAL.get(p))]
         made = {path for path, _ in raw}
         for p, path in DSV_PROGRAMS.items():
             path, txt = gen_table(p, path)
-            raw.append(hyp_vars(p, f'{DSV_ROOT}/{path}', txt))
+            raw.append((f'{DSV_ROOT}/{path}', txt))
     finally:
         inv, inst, CFG_OVERRIDE = saved
         pkginfo_imports = saved_pi
@@ -5399,13 +5412,7 @@ def dsv_inits():
             new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
                               'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
         return new
-
-    def add_hyps(path, txt):
-        if path not in hyps:
-            return txt
-        v = ''.join(f'variable [_root_.Perennial.{h}.InitHyp GF]\n' for h in hyps[path])
-        return re.sub(r'(?m)^(variable \[package_sem : .*\n)', lambda m: m.group(1) + v, txt)
-    return [(path, add_hyps(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))))
+    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))))
             for path, txt in raw]
 
 

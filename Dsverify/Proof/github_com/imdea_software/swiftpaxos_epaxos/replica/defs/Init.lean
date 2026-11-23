@@ -17,6 +17,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.I
 public import Net.Proof.net.Init
 public import Net.Proof.os.Init
 public import Net.Proof.runtime.PkgInitExt
+public import Dsverify.Proof.encoding.json.Init
 
 @[expose] public section
 
@@ -39,8 +40,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Assumptions]
 variable [_root_.Perennial.encoding.json.InitHyp GF]
+variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Assumptions]
 
 namespace github_com.imdea_software.swiftpaxos_epaxos.replica.defs
 

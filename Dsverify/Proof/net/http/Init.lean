@@ -1,10 +1,9 @@
 /-
 The initializer of `net/http` as a **hypothesis** of the part's EPaxos proofs (notes/dsv-epaxos.md,
 "Hypotheses"; `etc/gen-init.py`'s `DSV_HYP_INITS`): `Net/`'s model of net/http has no initializer proof (plan 5.2 item 7; its imports' initializers are not all translated). The class `net.http.InitHyp GF` says that
-it runs from any initialization state and gives the package's fact (`True` here: no proof of the
-part reads a variable of `net/http`); `wp_initialize'_lb` is the form the generated initializers call.
-To discharge: prove `net.http.wp_initialize'_lb` (a generated `Init.lean` without axioms) and replace
-this module by it.
+it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/http`);
+generated initializers take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`). To discharge:
+prove `net.http.wp_initialize'` (a generated `Init.lean` without axioms) and replace this module by it.
 -/
 module
 
@@ -41,28 +40,23 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
 end def_
 
 section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.net.http.Assumptions]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
 
-/-- **Hypothesis**: `net/http`'s initializer runs, keeping what is initialized, and gives its fact. -/
-class InitHyp (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] : Prop where
-  initLb : ∀ (get_is_pkg_init : GoString → IProp GF),
-    GetIsPkgInitProp pkg_id.net.http get_is_pkg_init → ∀ (σ0 : GMap GoString Bool),
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.net.http }}
+/-- **Hypothesis** (the file header): `net/http`'s initializer establishes its package fact. -/
+class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
+    (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] : Prop where
+  wp_init : ∀ (get_is_pkg_init : GoString → IProp GF),
+    GetIsPkgInitProp pkg_id.net.http get_is_pkg_init →
+    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http }}
 
-theorem wp_initialize'_lb [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.net.http get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.net.http }} :=
-  h.initLb get_is_pkg_init Hinit σ0
+/-- Perennial's form of `net/http`'s initialization, from the hypothesis. -/
+theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
+    (Hinit : GetIsPkgInitProp pkg_id.net.http get_is_pkg_init) :
+    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http }} :=
+  h.wp_init get_is_pkg_init Hinit
 
 end init
 

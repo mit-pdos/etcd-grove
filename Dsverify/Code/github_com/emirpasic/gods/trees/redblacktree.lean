@@ -5,7 +5,7 @@ public import Dsverify.Code.github_com.emirpasic.gods.containers
 public import Perennial.Code.fmt
 public import Dsverify.Code.github_com.emirpasic.gods.trees
 public import Dsverify.Code.github_com.emirpasic.gods.utils
-public import Code.encoding.json
+public import Dsverify.Code.encoding.json
 public import Perennial.Golang.Defn
 
 @[expose] public section
