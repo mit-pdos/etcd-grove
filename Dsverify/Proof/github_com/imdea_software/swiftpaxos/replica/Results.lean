@@ -3,9 +3,9 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/Link.lean (lab 
 -/
 /-
 The replica group's linked results for `replica/replica.go`, `replica/defs`, `rpc`: each proof
-applied to its callees' linked results (the quorum's are in `QuorumLink.lean`, the state
+applied to its callees' linked results (the quorum's are in `QuorumLinked.lean`, the state
 machine's in `Proof/state/Link.lean`, cmap's in `Proof/cmap/Link.lean`, HashLog's in
-`Proof/swift/HashLogLink.lean`).
+`Proof/swift/HashLogLinked.lean`).
 -/
 module
 

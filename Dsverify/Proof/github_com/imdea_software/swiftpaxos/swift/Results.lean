@@ -5,7 +5,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/Link.lean (lab ma
 The swift replica's linked results: each proof applied to its callees' proved results (the
 replica group's quorum system and the concurrent map's). The receiver is proved over the
 generated codec (Rcvr.lean).
-`handleSync` and `handleNewLeaderAckNs` are linked in Proof/swift/SyncLink.lean (imported here:
+`handleSync` and `handleNewLeaderAckNs` are linked in Proof/swift/SyncLinked.lean (imported here:
 `swift.Replica.wp_handleSync`, `swift.Replica.wp_handleNewLeaderAckNs`, with their open hypotheses
 marked OPEN).
 -/

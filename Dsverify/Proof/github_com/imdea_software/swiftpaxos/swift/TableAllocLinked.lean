@@ -1,9 +1,9 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/TableAllocH.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/TableAllocLinked.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
 `swift.tableAllocH` (Proof/swift/RunLoopSpecs.lean), proved from `swift.tableOk_alloc`
-(Proof/swift/TableLink.lean): its context `swift.tbl.ctxTbl u` comes from `swift`'s package
+(Proof/swift/TableLinked.lean): its context `swift.tbl.ctxTbl u` comes from `swift`'s package
 (the readers' packages, `errVarintOverflow`: `swift.ErrVarintFact`, from the package state at the
 link), the fast-ack pool's switch, gob's codec (change log C17) and the codec's obligations
 (`kitCodecOk` at the linked codec, a hypothesis: `kitCodecOkC_holds` at the link).

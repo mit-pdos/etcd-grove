@@ -1,5 +1,5 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/SyncLink.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/SyncLinked.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
 `handleSync` and `handleNewLeaderAckNs` linked (round 14, sv-swa): their proofs
@@ -94,7 +94,7 @@ variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurren
   [github_com.emirpasic.gods.maps.treemap.Assumptions] [net.FieldAssumptions]
 
 /-- **`handleSync`, linked** at the run loop's names `x` (round 16; round 23: generic in the
-epoch's states, instantiated with the descriptors' state in SyncLinkD.lean): the running epoch
+epoch's states, instantiated with the descriptors' state in SyncDLinked.lean): the running epoch
 `EpR`, the halted one `EpH`, the new one `EpS`, the stopped descriptors' `DF`, with their
 hypotheses (`replyChan.stop`, `stopDescs`, `EpS_start`, `getCmdDesc.syncSpecI`); every other
 callee linked. -/

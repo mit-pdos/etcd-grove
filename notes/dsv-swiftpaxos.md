@@ -166,6 +166,16 @@ dsv-rabia's (`Dsverify/Proof/{math/rand,os/signal}/Spec.lean`). Now `math.rand.N
 `math.rand.New.labSpec`, `os.signal.NotifyQuietUsr1.spec` (`.wp_hyp` likewise); `Intn.spec` is
 rabia's (the same statement). The remaining hits are docstring words and Perennial's own.
 
+**Checks (this session, after the merge):** all 619 kit modules build (`lake build` of every module
+under `Dsverify/{Proof,Spec}/github_com/imdea_software/swiftpaxos`, `.../orcaman`, `.../emirpasic`);
+`#print axioms swiftpaxos_remote_robust`: `propext`, `Classical.choice`, `Quot.sound`; a scratch file
+importing rabia's, epaxos's and this kit's `TopLevelRobustness` together elaborates (`lake env lean`);
+`tier-check --check` ok; `gen-init --check`, `goose --check` (69 projects), `copy-part --check`,
+`_swiftpaxos_boot.py --check` ok; `errorf-wrap` `init_errors() == []`; `proof_roots.namespace()` =
+`Perennial.EtcdGrove.`; `theorem-loc --list-tcb`: TCB 729 lines, all premises, `tcb_axioms` 0 (the
+deps classes are closed, not premises). The statement (`Spec/.../TopLevelRobustness.lean`) is
+unchanged. Not run: `tcb-report --check` (needs every repository root built).
+
 ## State (2026-11-23, thirteenth session; superseded where the fourteenth says so)
 
 Read with the twelfth session's state below (accurate where this does not say otherwise).

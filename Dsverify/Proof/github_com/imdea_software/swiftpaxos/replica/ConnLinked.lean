@@ -1,5 +1,5 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/ConnLink.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/ConnLinked.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
 The replica group's linked results for the connection setup and the clients' side of

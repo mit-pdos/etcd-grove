@@ -57,7 +57,7 @@ variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [swi
 /-- The table's entries, once the channels are bags (the swift messages' `New`/`Unmarshal`),
 under the package's facts: `swift`'s package (its `errVarintOverflow`, the readers' packages),
 the fast-ack pool's switch `useFastAckPool ↦□ u`, and gob's codec (change log C17: `New` takes
-`codecSet`; proved by `swift.tableAllocH_proof`, Proof/swift/TableAllocH.lean). -/
+`codecSet`; proved by `swift.tableAllocH_proof`, Proof/swift/TableAllocLinked.lean). -/
 def swift.tableAllocH : Prop :=
   ∀ (γ : sp.Names) (γc γm : GName) (v : swift.CommunicationSupply) (M : GMap w8 rpc.Pair')
     (u : Bool),

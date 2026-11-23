@@ -114,14 +114,14 @@ theorem swift.Replica.getCmdDescWith.wp_proofD (γ0 : sp.Names) (γc γm : GName
     (wp_Upsert : github_com.orcaman.concurrent_map.ConcurrentMap.UpsertVL.spec (GF := netDistGF))
     (wp_newDesc : ∀ (rp : Loc) (MP : GoInterface → IProp netDistGF), swift.mpTy MP →
       swift.Replica.newDesc.specNc (x.dc γ0 γc γm rp) (swift.RCh γ0 γc γm rp) MP)
-    -- round 44 (D53 (1)): the linked specs (DescLink.lean), passed in by ServersLink
+    -- round 44 (D53 (1)): the linked specs (DescLinked.lean), passed in by ServersLink
     (wp_seq : swift.Replica.handleMsg.seqSpecD γ0 γc γm x)
     (wp_hd : swift.Replica.handleDesc.specD γ0 γc γm x (swift.RCh γ0 γc γm)) :
     swift.Replica.getCmdDescWith.propSpecIN (swift.descDSNo γ0 γc γm x) :=
   swift.Replica.getCmdDescWith.wp_proofDS γ0 γc γm x wp_Str hinj wp_HasV wp_Upsert
     wp_seq
     -- round 39 (D43 (5)): `newDesc` at the replica's records, a hypothesis linked in ServersLink
-    -- (`swift.Replica.newDesc.wp_linked`, NewDescLink.lean)
+    -- (`swift.Replica.newDesc.wp_linked`, NewDescLinked.lean)
     wp_newDesc
     wp_hd
 

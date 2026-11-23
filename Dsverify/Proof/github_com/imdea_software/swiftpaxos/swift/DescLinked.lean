@@ -1,5 +1,5 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/DescLink.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/DescLinked.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
 **The descriptor goroutine's and the inline call's specs at the run loop's records** (round 43,

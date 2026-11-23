@@ -1,5 +1,5 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/WritersLink.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/WritersLinked.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
 The replica's writing side, linked: each proof applied to its callees' linked results

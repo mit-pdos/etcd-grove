@@ -1,9 +1,9 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/SyncLinkD.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/SyncDLinked.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
 `handleSync`/`handleNewLeaderAckNs` linked at the descriptors' state (round 23, sv-swb; task 3):
-SyncLink.lean's generic theorems at `EpR := descDS`, `EpH := descDSH` (DescDS.lean), `EpS :=
+SyncLinked.lean's generic theorems at `EpR := descDS`, `EpH := descDSH` (DescDS.lean), `EpS :=
 descEpS` (DescFresh.lean), `DF := descDFA x.γsh`, with `replyChan.stop` by `swift.epR_stop_ofD`
 (over the proved `replyChan.stop.specR`), `stopDescs` by `swift.Replica.stopDescs.wp_specI`,
 `EpS_start` by `swift.descEpS_of`. Open: `getCmdDesc.syncSpecI (descEpS …)` (the descriptor

@@ -1,5 +1,5 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/NewDescLink.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/NewDescLinked.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
 **`newDesc` linked at the replica's records** (round 39, sv-swb; decision D43 (5), notes/prove-swift.md
