@@ -1,7 +1,10 @@
 /-
 The initializer of `net/http` as a **hypothesis** of the part's EPaxos proofs (notes/dsv-epaxos.md,
 "Hypotheses"; `etc/gen-init.py`'s `DSV_HYP_INITS`): `Net/`'s model of net/http has no initializer proof (plan 5.2 item 7; its imports' initializers are not all translated). The class `net.http.InitHyp GF` says that
-it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/http`);
+it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/http`) and those of
+every package its initializer reaches (its imports' initializers run first: the well-formedness
+condition `GetIsPkgInitProp pkg_id.net.http` constrains the table at each of them; a package of
+that closure with no fact elsewhere has a `True` one in the part, `Dsverify/Proof/<pkg>/Base.lean`);
 generated initializers take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`). To discharge:
 prove `net.http.wp_initialize'` (a generated `Init.lean` without axioms) and replace this module by it.
 -/
@@ -9,6 +12,19 @@ module
 
 public import Net.GeneratedProof.net.http
 public import Net.Proof.runtime.PkgInitExt
+public import Net.Proof.net.Base
+public import Proof.bufio.PkgInit
+public import Proof.net.url.PkgInit
+public import Dsverify.Proof.path.Base
+public import Dsverify.Proof.crypto.tls.Base
+public import Dsverify.Proof.net.textproto.Base
+public import Dsverify.Proof.vendor.golang_org.x.net.http.httpguts.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.sync.Base
+public import Perennial.Proof.sync.atomic.Base
+public import Perennial.Proof.runtime.Base
 
 @[expose] public section
 
@@ -28,14 +44,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The package's fact, `True`, written by hand (not `define_is_pkg_init`, which needs the facts of
-all its imports, some of which have none in the part): no importer reads the imports' facts
-through it. -/
+/-- The package's fact: `True`, with its imports' facts (`define_is_pkg_init`). -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.http :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
-/-- Its well-formedness: `get_is_pkg_init` gives its fact (its imports' are not constrained). -/
+  define_is_pkg_init iprop(True)
+/-- Its well-formedness: `get_is_pkg_init` gives its fact and, recursively, the facts of every
+package its initializer reaches (its `PkgInfo` imports, which are the packages whose initializers
+`initialize'` runs: `build_get_is_pkg_init_wf`). -/
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.http :=
-  { get_is_pkg_init_prop_def := fun g => g pkg_id.net.http = isPkgInit pkg_id.net.http ∧ True }
+  build_get_is_pkg_init_wf
 
 end def_
 
