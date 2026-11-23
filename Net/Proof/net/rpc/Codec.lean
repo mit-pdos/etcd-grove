@@ -78,13 +78,15 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
     WP (App (Val #fe) (Val #v)) {{ Φ }})
 
 /-- A decoding error: a fresh `errors.New` error (an `*errors.errorString`) whose `Error()` returns
-its message `msg`, persistently. The generated codec's `Decode` fails only with
+its message `msg`, not empty, persistently. The generated codec's `Decode` fails only with
 `rpcErrDecode()`, `errors.New("net/rpc model: malformed value")` (`models/net/rpc/rpcgen_core.py`).
 What the client needs of it: not a `ServerError`, an `Error()`, and a pointer, which `==` compares
-(`input`'s `err == io.EOF`). -/
+(`input`'s `err == io.EOF`). What the server needs: a message that is not empty, so that the error
+response it sends for a request whose body does not decode is one (`sendResponse` with a
+message `""` would encode the placeholder `invalidRequest`, a type no generated codec lists). -/
 def decErr (err : GoInterface) : IProp GF :=
   iprop(∃ (x : Loc) (msg : GoString),
-    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x⌝ ∗
+    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x ∧ msg ≠ []⌝ ∗
     □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
         (Val #())) {{ Φ }})
@@ -123,6 +125,28 @@ instance codecIs_persistent (C : CodecSpec GF) (c : Loc) : Persistent (codecIs (
 
 instance codecSet_persistent (C : CodecSpec GF) : Persistent (codecSet (GF := GF) C) := by
   unfold codecSet; infer_instance
+
+/-- What a body read needs to decode into `body` from the decoding resource `D` (persistent):
+nothing for a `nil` body (the frame is discarded), else a registered codec meeting `C` and, from
+`D`, its `dec` of any payload, `Θ pl` its outcome. -/
+def bodyDec (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF) : IProp GF :=
+  match body with
+  | interface.nil => iprop(True)
+  | interface.ok _ => iprop(codecSet C ∗ □ (D -∗ ∀ pl, C.dec pl body (Θ pl)))
+
+instance bodyDec_persistent (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
+    (Θ : List w8 → Bool → IProp GF) : Persistent (bodyDec C body D Θ) := by
+  cases body <;> unfold bodyDec <;> infer_instance
+
+/-- What a body read of the payload `pl` gives: `nil` and `D` for a `nil` body; else the
+decoding's outcome. -/
+def bodyRes (body : GoInterface) (D : IProp GF) (Θ : List w8 → Bool → IProp GF) (pl : List w8)
+    (err : GoInterface) : IProp GF :=
+  match body with
+  | interface.nil => iprop(⌜err = interface.nil⌝ ∗ D)
+  | interface.ok _ => iprop(∃ ok : Bool, ⌜err = interface.nil ↔ ok = true⌝ ∗ Θ pl ok ∗
+      (if ok then iprop(True) else decErr err))
 
 end defs
 

@@ -194,7 +194,7 @@ theorem wp_errors_New' (msg : GoString) :
 /-- A decoding error is `inErr`. -/
 theorem inErr_dec (err : GoInterface) : decErr (GF := GF) err ⊢ inErr err := by
   unfold decErr
-  iintro ⟨%x, %msg, %He, #H⟩
+  iintro ⟨%x, %msg, ⟨%He, -⟩, #H⟩
   subst He
   iapply inErr_errorString x msg $$ H
 
