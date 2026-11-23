@@ -100,7 +100,7 @@ theorem bufio.Writer.Flush.wp_proof : bufio.Writer.Flush.spec (GF := GF) (hG := 
       show sint.nat n = pend.length by show (sint.Z n).toNat = _; omega, List.take_left]
   rw [hsub]
   wp_auto
-  wp_apply io.wp_writer_Write wi J Q Ew sent _ _ pend $$ [$Hwr $HJ $HQ $Hsub]
+  wp_apply io.wp_streamWriter_Write wi J Q Ew sent _ _ pend $$ [$Hwr $HJ $HQ $Hsub]
     as %nw %err2 ⟨%k, %Hk, Hsub, HJ, #Herr2⟩
   obtain ⟨rfl, Hk⟩ := Hk
   ihave Hbuf := Hback $$ Hsub

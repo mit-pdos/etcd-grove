@@ -1,6 +1,6 @@
 /-
 `bufio.NewWriterSize(wr, size)` (Go 1.27.3 `bufio.go`) over a writer `wr` by the `io.Writer`
-contract `io.writerOk wi J Q Ew` (`Proof/io/WriterOk.lean`): a fresh writer with a buffer of
+contract `io.streamWriterOk wi J Q Ew` (`Proof/io/StreamWriterOk.lean`): a fresh writer with a buffer of
 `bufio.writerSize size` bytes (`size`, 4096 if `size ≤ 0`; the size index of `bufio.ownBufWriter`,
 `Proof/bufio/Own.lean`) that has sent `W` (`J W`, `□ Q W`) and buffers nothing.
 
@@ -34,7 +34,7 @@ abbrev bufio.NewWriterSize.spec : Prop :=
   ∀ (wi : GoInterfaceOk) (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF) (W : List w8)
     (size : w64),
   {{ ⌜wi.ty ≠ go.GoType.PointerType _root_.Perennial.bufio.Writer.ty⌝ ∗
-      isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ io.writerOk wi J Q Ew ∗ J W ∗ □ Q W }}
+      isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ io.streamWriterOk wi J Q Ew ∗ J W ∗ □ Q W }}
     (App (App (Val (@! _root_.Perennial.bufio.NewWriterSize)) (Val #(GoInterface.ok wi)))
       (Val #size))
   {{ (bw : Loc), RET #bw; bufio.ownBufWriter bw wi J Q Ew (bufio.writerSize size) W [] interface.nil }}

@@ -74,7 +74,7 @@ theorem bufio.Writer.Write.wp_proof
   icases Hown with ⟨#Hpkg, #Hwr, HJ, #HQsp, Hrep⟩
   iunfold bufio.writerRep at Hrep
   icases Hrep with ⟨%buf, %n, %rest, Hb, Hbuf, %Hn, #Herr⟩
-  ihave #HQpc := io.writerOk_prefixClosed $$ Hwr
+  ihave #HQpc := io.streamWriterOk_prefixClosed $$ Hwr
   iunfold io.prefixClosed at HQpc
   ihave %Hplen := ownSlice_len _ _ _ $$ Hp
   have hp63 : sint.Z p.len < 2 ^ 63 := by word
@@ -145,7 +145,7 @@ theorem bufio.Writer.Write.wp_proof
       ihave #HQw := bufio.Q_of_prefix Q (sent0 ++ ps.drop j) (sent ++ pend ++ ps)
         (by rw [hsent, List.append_assoc (sent ++ pend), List.take_append_drop]
             exact List.prefix_refl _) $$ HQpc HQa
-      wp_apply io.wp_writer_Write wi J Q Ew sent0 pc dq (ps.drop j) $$ [$Hwr $HJ $HQw $Hpc]
+      wp_apply io.wp_streamWriter_Write wi J Q Ew sent0 pc dq (ps.drop j) $$ [$Hwr $HJ $HQw $Hpc]
         as %nw %err2 ⟨%k, %Hk, Hpc, HJ, #Herr2⟩
       obtain ⟨rfl, Hk⟩ := Hk
       have hdl : (ps.drop j).length = ps.length - j := List.length_drop

@@ -10,8 +10,8 @@ Lean-first (no Rocq counterpart).
   the oracle `o` it accounts for (`tRelI`, from the `_keep` lemmas: `walSyncedLb`/`walNamed` of the
   new generation), the area's durability, the oracle file as the crash left it (`durFound`,
   `durFoundTmp`, from `durInv_crash`) holding `o` (`tOracleFile ⟨v, none⟩ o none`), and the pure facts
-  `walBootCrash` needs of the crashed tree and state. **`BootFo V.now e.jr` is carried as a fact**
-  (`tester_crash`'s premise until the WAL's `walFoRes` lands and `walInv_crash` exports it).
+  `walBootCrash` needs of the crashed tree and state. `BootFo V.now e.jr` is carried as a fact,
+  from `walInv_crash` (`bootFo_of`; until 2026-11-22 in part `tester_crash`'s premise `BootFoNmTmp`).
 * `tBootCrash`: from `TCrashed e V` and what `wp_osShare` gives (the shared invariant, the whole call
   permission, every directory's whole claim), the incarnation's `TBoot e`, as `tBoot0` does for the
   first: the WAL's area by `walBootCrash`, the oracle file's by durable's `durBoot` on the oracle

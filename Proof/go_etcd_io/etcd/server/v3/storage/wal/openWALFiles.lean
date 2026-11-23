@@ -10,6 +10,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.closeAll
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.TryLockFile
 public import Spec.fmt.ErrorfErrsTerm
 public import Spec.errors.IsPathErrnoTerm
+public import Proof.errors.ErrTree
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.NewFileReader
 public import Spec.path.filepath.Join
 public import Proof.os.NsS
@@ -214,11 +215,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply wp_ErrorfT _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] ?wf $$ [Hasl] as %e1 ⟨#He1, #He1t⟩
+        wp_apply wp_ErrorfT _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] ?wf ?ww $$ [Hasl] as %e1 ⟨#He1, #He1t⟩
         case wf => errargs_wf
+        case ww => wraps_le1
         · iframe
           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
-            errIsTerm (GoInterface.ok e)))).2
+            errTreeTerm (GoInterface.ok e)))).2
           iframe Hok Hterm
         (try wp_auto)
         wp_for_post
@@ -234,7 +236,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         · ipureintro; rfl
         isplitl []
         · iexact He1
-        iright; iexact He1t
+        iright
+        ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+        · iPkgInit
+        iapply (errIsTerm_of_tree (GoInterface.ok e1)) $$ Herrs He1t
     · (try wp_auto)
       wp_apply wp_TryLock (child d b) (W64 2) (W32 384) _ Unit _ _
           (walOpen_triple R d b dq j i N dqn h qc (W64 2)
