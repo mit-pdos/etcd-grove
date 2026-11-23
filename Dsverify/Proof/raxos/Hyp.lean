@@ -179,6 +179,33 @@ class AtoiHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   Atoi : strconv.Atoi.spec (GF := GF) (hG := hG)
 
+/-! ## time.Time.UTC -/
+
+namespace time
+
+section utc
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **Hypothesis** `t.UTC()`: some `Time` (the lab's `Time.wp_UTC`; Perennial leaves `Time.UTC`
+untranslated, `Perennial/Code/time.toml`). Discharge: Perennial translating `UTC` (its body is
+`t.setLoc(&utcLoc)`, both translated) and the lab's proof. -/
+abbrev Time.UTC.spec : Prop :=
+  ∀ (t : Perennial.time.Time),
+    {{ (True : IProp GF) }}
+      (App (Val (t @!! Perennial.time.Time.ty @!! go!"UTC")) (Val #()))
+    {{ (t' : Perennial.time.Time), RET #t'; True }}
+
+end utc
+
+end time
+
+/-- The `time.Time.UTC` hypothesis. -/
+class UtcHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
+  UTC : time.Time.UTC.spec (GF := GF) (hG := hG)
+
 /-! ## sort.Ints -/
 
 namespace sort
