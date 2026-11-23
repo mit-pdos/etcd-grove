@@ -224,6 +224,15 @@ theorem bootSendP_send_ok {s : State} {n : Nat} {ev : Event} {o : Option State}
   · rw [ite_eq_right_of_eq_false _ _ (eq_false hlb)] at h ⊢
     cases bt <;> cases uo <;> exact h
 
+/-- `Send`'s `c := ev.cause() or s.Pending[n]` (B 557) taken apart from the rest of the appresp tail. -/
+theorem bootSendP_cjoin_ok {β : Type} {late : Bool} {x : Option (List Msg)} {P : List Msg}
+    {f : List Msg → EvalM β} {o : β}
+    (h : (if late = true then (do let c ← need x; f c) else (do let c ← pure P; f c)) = .ok o) :
+    ∃ c, (if late = true then need x else pure P : EvalM (List Msg)) = .ok c ∧ f c = .ok o := by
+  cases late
+  · exact bind_ok h
+  · exact bind_ok h
+
 section iris
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -248,6 +257,23 @@ theorem bootSendP_stateOwn_log (q : Loc) (s : State) :
   iunfold stateOwn
   iexists g
   iframe Hp Hf
+
+/-- `c[k]` of a `[]Msg`. -/
+theorem bootSendP_msgsRO_at (sl : GoSlice) (ms : List Msg) (k : w64) (hk : 0 ≤ sint.Z k ∧ sint.Z k < ms.length) :
+    msgsRO (GF := GF) sl ms ⊢ ∃ g : G.Msg, sliceAt sl k g ∗ msgRO g ms[sint.nat k]! := by
+  iintro #H
+  iunfold msgsRO at H
+  icases H with ⟨%gs, #Hgs, #Hb⟩
+  iapply sliceRO_at (fun g m => msgRO (GF := GF) g m) sl gs ms k hk
+  iframe Hgs Hb
+
+/-- `c[0]` of a nonempty `[]Msg`. -/
+theorem bootSendP_msgsRO_head (sl : GoSlice) (ms : List Msg) (h : ms ≠ []) :
+    msgsRO (GF := GF) sl ms ⊢ ∃ g : G.Msg, sliceAt sl (W64 0) g ∗ msgRO g ms[0]! := by
+  have hl : 0 < ms.length := List.length_pos_iff.2 h
+  have := bootSendP_msgsRO_at (GF := GF) sl ms (W64 0) ⟨by decide, by
+    rw [show sint.Z (W64 0) = 0 from rfl]; omega⟩
+  exact this
 
 end iris
 
