@@ -15,7 +15,7 @@ module
 
 public import Dsverify.Proof.raxos.Replica.Fetch
 public import Dsverify.Proof.raxos.Proposer.Strings
-public import Net.Proof.net.Listen
+public import Dsverify.Proof.raxos.LibDeps
 public import Perennial.Proof.time.Link
 public import GooseLang.Ext.Net.Decide
 
@@ -220,6 +220,7 @@ variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 attribute [local instance] hyp.qpCodec
 
 variable [gh : hyp.grpc.GrpcHyp qv.grpc]
+variable [QpNetDeps GF]
 
 set_option goose.wp.extras true
 
@@ -263,7 +264,7 @@ theorem wp_serve (γ : QNames) (k : Nat) (r gc : Loc) :
   wp_apply wp_RegisterConsensusServer s γs (recAddr k) γ [] gc $$ [$Hsrv $Hown $Hdesc]
     as ⟨Hown, -⟩
   · ipureintro; simp
-  wp_apply net.Listen.wp_proof go!"tcp" net.tcpNet_tcp (recLis k) as %li %err Hres
+  wp_apply QpNetDeps.listen go!"tcp" net.tcpNet_tcp (recLis k) as %li %err Hres
   · isplitr
     · ipureintro; exact recLis_listenOk k Hk
     iapply listen_lis_au $$ Hlp

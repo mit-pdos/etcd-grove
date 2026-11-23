@@ -42,6 +42,9 @@ variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 variable [_root_.Perennial.io.Assumptions] [log.Assumptions] [strings.Assumptions]
 variable [NaInvG GF]
 
+attribute [local instance] qpBufioDeps_holds qpNetDeps_holds qpFormatIntDeps_holds
+  qpPrintfDeps_holds
+
 theorem wp_Codec : Codec.spec (GF := GF) (hG := hG) := codec_proof
 
 theorem wp_Gens : Gens.spec (GF := GF) (hG := hG) := gens_proof

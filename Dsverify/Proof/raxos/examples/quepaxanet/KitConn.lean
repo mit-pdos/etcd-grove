@@ -267,6 +267,7 @@ variable [sem : go.Semantics] [package_sem' : raxos.examples.quepaxanet.Assumpti
 variable [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [net.Assumptions] [net.FieldAssumptions] [_root_.Perennial.bufio.Assumptions]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions] [pb : hyp.PbHyp GF]
+variable [QpBufioDeps GF]
 
 attribute [local instance] HeapGS.goose_globalGS
 
@@ -420,7 +421,7 @@ theorem wp_connect (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       · iPkgInit
       rw [show interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t =
         GoInterface.ok (net.connIface t) from rfl]
-      wp_apply (EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof)
+      wp_apply QpBufioDeps.newWriter
           (net.connIface t) (sendTok cn false (proxyInProto γ k))
           (proxyInProto γ k cn) (net.connWriteE la ra ed) (raxos.hs (21 + c)) $$ [Hs] as %bw Hbw
       · iframe Hbufio Hwok Hs Hhs
@@ -603,7 +604,7 @@ theorem wp_send (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     iapply proto_of_frames γ k cn L (frameBatch bv) c j hc [W8 1] (by simp [frame]) HS.2 hfok
     iframe HL Hreg' Htix
   wp_auto
-  wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w'
+  wp_apply QpBufioDeps.writeByte w'
       (net.connIface t) _ _ _ 4096 sent pend err (W8 1) $$ [Hbw]
     as %e1 ⟨%s1, %p1, %H1, Hbw⟩
   · iframe Hbw; iintro %_; iexact HQ1
@@ -653,7 +654,7 @@ theorem wp_send (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   obtain ⟨hb, H2⟩ := H2 rfl
   dsimp only
   wp_auto
-  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof w' _ _ _ _ 4096 s2 p2 e2' $$ Hbw
+  wp_apply QpBufioDeps.flush w' _ _ _ _ 4096 s2 p2 e2' $$ Hbw
     as %e3 ⟨%k3, %H3, Hbw⟩
   rcases e3 with ei | _
   · -- `Flush` failed

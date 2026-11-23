@@ -36,6 +36,9 @@ variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 variable [strconv.Assumptions] [fmt.Assumptions]
 
+attribute [local instance] qpBufioDeps_holds qpNetDeps_holds qpFormatIntDeps_holds
+  qpPrintfDeps_holds
+
 theorem New.wp_proof [MapHyp qv.map] [hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.grpc]
     [hyp.RandHyp GF] [hyp.UtcHyp GF] :
     New.spec (GF := GF) (hG := hG) :=

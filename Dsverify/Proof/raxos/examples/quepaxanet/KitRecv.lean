@@ -152,6 +152,7 @@ variable [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [net.Assumptions] [net.FieldAssumptions] [_root_.Perennial.bufio.Assumptions]
 variable [_root_.Perennial.io.Assumptions]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions] [pb : hyp.PbHyp GF]
+variable [QpBufioDeps GF]
 
 attribute [local instance] HeapGS.goose_globalGS
 
@@ -237,7 +238,7 @@ theorem wp_receive (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     · ipureintro; exact net.connIface_ne_bufioReader t
     iapply EtcdGrove.bufio.preUpTo_of_pure
     intro r m hm _; exact hm
-  ihave #Hbrok := EtcdGrove.bufio.ownBufReader_readerOk EtcdGrove.bufio.Reader.Read.wp_proofOk
+  ihave #Hbrok := EtcdGrove.bufio.ownBufReader_readerOk QpBufioDeps.readOk
     br (net.connIface t) (fun _ m => 0 < m) (recvTokL (Gg := hG.goose_globalGS) cn true (clientInProto γ c)) _
   have h0 : sint.Z (W64 0) = 0 := rfl
   have h4 : W64 4 - W64 0 = W64 4 := rfl
@@ -322,7 +323,7 @@ theorem wp_receive (wp_Read : net.Conn.Read.spec (GF := GF) (hG := hG))
     ipureintro; simp
   irename «from» => Hfrm
   wp_for HI
-  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br _ _ _ _ (raxos.hs k ++ frs A) $$ Hbr
+  wp_apply QpBufioDeps.readByte br _ _ _ _ (raxos.hs k ++ frs A) $$ Hbr
     as %cd %e1 Hres
   icases Hres with (⟨%He, Hbr⟩ | ⟨%He, -, -, Hbr⟩)
   · subst He

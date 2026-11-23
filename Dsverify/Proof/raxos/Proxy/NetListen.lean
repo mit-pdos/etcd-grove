@@ -29,6 +29,7 @@ variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions] [pb : hyp.PbHyp GF]
 variable [net.Assumptions] [net.FieldAssumptions]
+variable [QpBufioDeps GF]
 
 attribute [local instance] HeapGS.goose_globalGS
 
@@ -75,7 +76,7 @@ theorem connectionListener_proof : connectionListener.spec (GF := GF) (hG := hG)
     iframe
     ipureintro; simp
   wp_for HI
-  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br ri Pre (recvTokL cid true (proxyInProto γ k)) E
+  wp_apply QpBufioDeps.readByte br ri Pre (recvTokL cid true (proxyInProto γ k)) E
     (raxos.hs (21 + cl) ++ frs A) $$ Hrd as %c %e1 Hres
   icases Hres with (⟨%He, Hrd⟩ | ⟨%He, -, -, Hrd⟩)
   · subst He

@@ -33,6 +33,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions] [pb : hyp.PbHyp GF]
+variable [QpBufioDeps GF]
 
 /-- `t.Unmarshal(br)` into a fresh `ClientBatch`, from a `*bufio.Reader` whose every non-empty read
 is allowed, at a position `R` where the stream's fact `Φ` bounds the next 8 bytes' length: an
@@ -70,7 +71,7 @@ theorem unmarshal_bounded : unmarshalB.spec (GF := GF) (hG := hG) := by
   iunfold errors.newVar at HEOF HUEOF
   icases HEOF with ⟨%xe, #HEOF, -⟩
   icases HUEOF with ⟨%xu, #HUEOF, -⟩
-  ihave #Hrok := EtcdGrove.bufio.ownBufReader_readerOk EtcdGrove.bufio.Reader.Read.wp_proofOk
+  ihave #Hrok := EtcdGrove.bufio.ownBufReader_readerOk QpBufioDeps.readOk
     br ri Pre S E
   have HPre' : ∀ (r0 : List w8) (n : Nat) (ys : List w8), ys.length ≤ n →
       (fun R m => 0 < m → Pre R m) (r0 ++ ys) (n - ys.length) :=

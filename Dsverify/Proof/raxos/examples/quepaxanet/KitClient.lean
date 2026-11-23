@@ -37,6 +37,7 @@ variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj] [_root_.P
 variable [_root_.Perennial.io.Assumptions] [time.Assumptions]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions] [pb : hyp.PbHyp GF]
 variable [github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
+variable [QpBufioDeps GF]
 
 attribute [local instance] HeapGS.goose_globalGS
 

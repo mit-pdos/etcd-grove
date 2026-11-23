@@ -6,7 +6,7 @@ module
 
 public import Dsverify.Proof.raxos.Proxy.MabSpecs
 public import Dsverify.Proof.raxos.Hyp
-public import Proof.strconv.FormatInt
+public import Dsverify.Proof.raxos.LibDeps
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.time.Results
 
@@ -214,6 +214,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [strconv.Assumptions] [time.Assumptions] [hsort : hyp.SortHyp GF]
+variable [QpFormatIntDeps GF]
 
 /-- `strconv.FormatInt(i, 10)` for `0 <= i < 10` (the lab's `strconv.wp_FormatInt`), from the
 main tree's `strconv.FormatInt.spec`. -/
@@ -222,7 +223,7 @@ theorem wp_FormatInt_digit (i : w64) (h0 : 0 ≤ sint.Z i) (h10 : sint.Z i < 10)
       (App (App (Val (@! _root_.Perennial.strconv.FormatInt)) (Val #i)) (Val #(W64 10)))
     {{ RET #(digitString (sint.Z i)); True }} := by
   iintro %Φ #Hpkg HΦ
-  iapply (EtcdGrove.strconv.FormatInt.wp_proof i (W64 10))
+  iapply (QpFormatIntDeps.formatInt i (W64 10))
   · iframe Hpkg; ipureintro; decide
   inext
   iintro %str %Hstr

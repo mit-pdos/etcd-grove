@@ -97,6 +97,7 @@ variable [π : NetProtoGS] [ρ : RemoteGS] [qv : hyp.QpVocab GF]
 variable [net.Assumptions] [net.FieldAssumptions] [_root_.Perennial.bufio.Assumptions]
 variable [_root_.Perennial.io.Assumptions] [time.Assumptions]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions] [pb : hyp.PbHyp GF]
+variable [QpBufioDeps GF]
 
 attribute [local instance] HeapGS.goose_globalGS
 

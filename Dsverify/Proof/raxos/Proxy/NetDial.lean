@@ -6,7 +6,7 @@ module
 
 public import Dsverify.Proof.raxos.Proxy.NetWriter
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
-public import Proof.bufio.NewWriterSize
+public import Dsverify.Proof.raxos.LibDeps
 
 @[expose] public section
 
@@ -27,6 +27,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions]
+variable [QpBufioDeps GF] [QpNetDeps GF]
 
 theorem clientInProto_hs (γ : QNames) (cl k : Nat) (hk : k < 2 ^ 16) (cid : Nat) :
     ⊢ clientInProto (GF := GF) γ cl cid (hs k) := by
@@ -71,7 +72,7 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
   simp only [Option.getD_some]
   ihave %Hok2 := addrTok_ok (clientAddr cl) $$ [Hproto]
   · iapply addrProto_tok $$ Hproto
-  wp_apply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp (clientAddr cl) iprop(True)
+  wp_apply QpNetDeps.dial go!"tcp" net.tcpNet_tcp (clientAddr cl) iprop(True)
       (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (clientInProto γ cl) silentProto [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
     as %cv %err (⟨%Herr, %cn, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
@@ -118,7 +119,7 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
     ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
     · iPkgInit
     ihave ⟨%ed, #Hed⟩ := github_com.mit_pdos.etcd_grove.examples.net.wire.ed_of_poll $$ Hpoll
-    wp_apply net.Conn.Write.wp_proof t cn false (clientAddr cl) la ra _ (hs k) (DFrac.own 1) ed
+    wp_apply QpNetDeps.connWrite t cn false (clientAddr cl) la ra _ (hs k) (DFrac.own 1) ed
         (writeP cn false (clientInProto γ cl) []) $$ [Hsl Hs]
       as %n %err ⟨%w, %res, Hs, Hsl, %Hw, #HE⟩
     · iframe Hca Hsl Hed
@@ -133,7 +134,7 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
     | some ke =>
       obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
       wp_auto
-      wp_apply net.Conn.Close.wp_proof t cn false (clientAddr cl) la ra (fun _ => iprop(True)) $$ []
+      wp_apply QpNetDeps.connClose t cn false (clientAddr cl) la ra (fun _ => iprop(True)) $$ []
         as %e -
       · iframe Hca
         imod close_au cn false $$ Hconn with ⟨%st, %dd, Hst, Hdd, Hcl⟩
@@ -157,13 +158,13 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
       simp only [List.nil_append]
       wp_auto
       wp_apply sync.Mutex.wp_Lock $$ [$Hwmu] as ⟨Hlocked, HR⟩
-      ihave #Hwok := net.conn_streamWriterOk net.Conn.Write.wp_proof t cn false (clientAddr cl) la ra ed
+      ihave #Hwok := net.conn_streamWriterOk QpNetDeps.connWrite t cn false (clientAddr cl) la ra ed
         (clientInProto γ cl) (clientInProto_prefixClosed γ cl) $$ [$Hca $Hed]
       ihave #Hbufio : isPkgInit (PROP := IProp GF) pkg_id.bufio $$ []
       · iPkgInit
       rw [show interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t = GoInterface.ok (net.connIface t)
         from rfl]
-      wp_apply (EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof) (net.connIface t) (sendTok cn false (clientInProto γ cl))
+      wp_apply QpBufioDeps.newWriter (net.connIface t) (sendTok cn false (clientInProto γ cl))
           (clientInProto γ cl cn) (net.connWriteE la ra ed) (hs k) $$ [Hs] as %w Hw
       · iframe Hbufio Hwok Hs Hhs
         ipureintro; exact net.connIface_ne_bufioWriter t

@@ -13,9 +13,9 @@ vocabulary (`StoreInst.lean`) and `isStore_alloc_proof` (`MapHyp qv.map`).
 module
 
 public import Dsverify.Proof.raxos.Replica.Serve
-public import Dsverify.Proof.raxos.Proposer.Results
+public import Dsverify.Proof.raxos.Proposer.Run
 public import Dsverify.Proof.raxos.Proxy.Store
-public import Proof.fmt.Printf
+public import Dsverify.Proof.raxos.LibDeps
 
 @[expose] public section
 
@@ -55,6 +55,7 @@ variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 attribute [local instance] hyp.qpCodec
 
 variable [gh : hyp.grpc.GrpcHyp qv.grpc] [hr : hyp.RandHyp GF] [ha : hyp.AtoiSpec GF]
+variable [QpPrintfDeps GF] [QpNetDeps GF]
 
 -- the generated `sync.Map`/`ClientBatchStore` instances are `sorry` (`StoreInst.lean`)
 attribute [-instance] Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_typed_pointsto
@@ -268,7 +269,7 @@ theorem wp_createProposers
   · iexists _, _, _; iframe; ipureintro; simp; word
   wp_for HI
   wp_if_destruct
-  · have hNP := NewProposer.wp_proof (GF := GF) (hG := hG) γ c k i peers toProp fromProp toFetch
+  · have hNP := prop.wp_NewProposer (GF := GF) (hG := hG) γ c k i peers toProp fromProp toFetch
       fromFetch toDec γ1 γ2 γ4 γ5 γ6
     simp only [callV, List.foldl_cons, List.foldl_nil] at hNP
     wp_apply hNP $$ [$HbtoP $HbfromP $HbtoF $HbfromF $HbtoD $Hcons $Hsmr $Hpeers $Hconf]
@@ -291,7 +292,7 @@ theorem wp_createProposers
       simp only [List.length_append, List.length_singleton] at Hlen
       have : (sint.Z (psl'.len - W64 1)).toNat = ps.length := by word
       rw [this]; simp
-    wp_apply Proposer.runProposer.wp_proof γ c k p $$ [$Hp]
+    wp_apply prop.wp_runProposer γ c k p $$ [$Hp]
     wp_for_post
     iframe
     iexists _, psl', _
@@ -442,7 +443,7 @@ theorem wp_New [hMV : MapHyp qv.map] (hNP : NewProxy.spec (GF := GF) (hG := hG))
   simp only [callV, List.foldl_cons, List.foldl_nil] at hNR
   wp_apply hNR $$ [$Hcv' $Hst $Hb3 $Hhalf $Hcons] as %re ⟨Hconn, #Haddr, #Hrec⟩
   iapply wp_fupd
-  wp_apply EtcdGrove.fmt.Printf.wp_proof _ slice.nil [] (DFrac.own 1) as %n %e -
+  wp_apply QpPrintfDeps.printf _ slice.nil [] (DFrac.own 1) as %n %e -
   · iframe #
     isplitl []
     · iapply ownSlice_nil

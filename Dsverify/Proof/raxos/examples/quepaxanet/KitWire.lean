@@ -59,6 +59,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.proto.client.Assumptions] [raxos.replica.src.Assumptions] [pb : hyp.PbHyp GF]
 variable [_root_.Perennial.bufio.Assumptions]
+variable [QpBufioDeps GF]
 
 theorem cbMarshal_proof : cbMarshal.spec (GF := GF) (hG := hG) := by
   intro t dq b bw wi J Q Ew sz sent pend err
@@ -105,7 +106,7 @@ theorem cbMarshal_proof : cbMarshal.spec (GF := GF) (hG := hG) := by
     rw [HL, u64Le_le8, show uint.nat (W64 (encBatch b).length) = (encBatch b).length by word]
     simp only [List.append_nil]
     ihave ⟨#HQ1, #HQ2⟩ := HQ $$ %Hfit
-    wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) bw wi J Q
+    wp_apply QpBufioDeps.write bw wi J Q
         Ew sz sent pend err _ (DFrac.own 1) _ $$ [Hown Hsl]
       as %nn %e1 ⟨%k1, %sent1, %pend1, %Hk1, -, Hown⟩
     · iframe Hown Hsl
@@ -121,7 +122,7 @@ theorem cbMarshal_proof : cbMarshal.spec (GF := GF) (hG := hG) := by
     have H1 : sent1 ++ pend1 = sent ++ pend ++ le8 (encBatch b).length := by
       rw [Hk1.2.2.1, Hk1.2.2.2.2.1 rfl, List.take_length]
     wp_auto
-    wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) bw wi J Q
+    wp_apply QpBufioDeps.write bw wi J Q
         Ew sz sent1 pend1 GoInterface.nil data (DFrac.own 1) _ $$ [Hown Hbs]
       as %nn2 %e2 ⟨%k2, %sent2, %pend2, %Hk2, -, Hown⟩
     · iframe Hown Hbs

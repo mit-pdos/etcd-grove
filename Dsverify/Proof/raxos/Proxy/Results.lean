@@ -23,6 +23,18 @@ public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Close
 public import Proof.bufio.NewReaderOk
 public import Proof.bufio.NewReaderSize
+public import Proof.bufio.NewWriter
+public import Proof.bufio.NewWriterSize
+public import Proof.bufio.Reader__ReadByte
+public import Proof.bufio.Reader__ReadOk
+public import Proof.bufio.Writer__Flush
+public import Proof.bufio.Writer__Write
+public import Proof.bufio.Writer__WriteByte
+public import Proof.strconv.FormatInt
+public import Proof.fmt.Printf
+public import Net.Proof.net.Dial
+public import Net.Proof.net.Conn__Write
+public import Dsverify.Proof.raxos.IoReadFull
 
 @[expose] public section
 
@@ -40,6 +52,35 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : Net.NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [strconv.Assumptions] [time.Assumptions] [fmt.Assumptions]
+
+/-- bufio's proofs, the hypothesis `QpBufioDeps` of the proxy's and the kit's proofs
+(`LibDeps.lean`); a local instance of the linking modules only. -/
+theorem qpBufioDeps_holds [_root_.Perennial.bufio.Assumptions] : QpBufioDeps GF where
+  flush := EtcdGrove.bufio.Writer.Flush.wp_proof
+  writeByte := EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+  write := EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
+  readByte := EtcdGrove.bufio.Reader.ReadByte.wp_proof
+  readOk := EtcdGrove.bufio.Reader.Read.wp_proofOk
+  newWriter := EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof
+
+/-- net's proofs, the hypothesis `QpNetDeps` (`LibDeps.lean`); a local instance of the linking
+modules only. -/
+theorem qpNetDeps_holds [net.Assumptions] [net.FieldAssumptions] : QpNetDeps GF where
+  connWrite := net.Conn.Write.wp_proof
+  connClose := net.Conn.Close.wp_proof
+  dial := net.Dial.wp_proof
+  listen := net.Listen.wp_proof
+
+/-- `strconv.FormatInt`'s proof, the hypothesis `QpFormatIntDeps` (`LibDeps.lean`). -/
+theorem qpFormatIntDeps_holds : QpFormatIntDeps GF where
+  formatInt := EtcdGrove.strconv.FormatInt.wp_proof
+
+/-- `fmt.Printf`'s proof, the hypothesis `QpPrintfDeps` (`LibDeps.lean`). -/
+theorem qpPrintfDeps_holds : QpPrintfDeps GF where
+  printf := EtcdGrove.fmt.Printf.wp_proof
+
+attribute [local instance] qpBufioDeps_holds qpNetDeps_holds qpFormatIntDeps_holds
+  qpPrintfDeps_holds
 
 /-- `pr.Run()`, the proxy's main loop. -/
 theorem Proxy.Run.wp_proof [hyp.SortHyp GF] :

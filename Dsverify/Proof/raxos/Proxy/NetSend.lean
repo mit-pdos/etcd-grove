@@ -87,6 +87,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [pb : hyp.PbHyp GF]
+variable [QpBufioDeps GF]
 
 /-- The answer's frame, once encoded into `enc` (fit), sent on a healthy writer: the code
 byte, the length and the encoding, then the flush; the writer's slot is restored. -/
@@ -153,7 +154,7 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
     icases Hslot with ⟨%wi, %cid, %Ew, %sent, %pend, %err, Hown, Hst⟩
     simp only [hcode]
     rcases err with ei | _
-    · wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w wi _ _ Ew 4096 sent pend
+    · wp_apply QpBufioDeps.writeByte w wi _ _ Ew 4096 sent pend
           (GoInterface.ok ei) (W8 1) $$ [Hown] as %e1 ⟨%sent1, %pend1, %Hwb, Hown⟩
       · iframe Hown; iintro %h; cases h
       obtain ⟨rfl, -, -⟩ := Hwb.2.2.2.1 (by intro h; cases h)
@@ -175,7 +176,7 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
       iexists r
       iframe Hans
       ipureintro; rfl
-    wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w wi _ _ Ew 4096 sent pend GoInterface.nil
+    wp_apply QpBufioDeps.writeByte w wi _ _ Ew 4096 sent pend GoInterface.nil
         (W8 1) $$ [Hown] as %e1 ⟨%sent1, %pend1, %Hwb, Hown⟩
     · iframe Hown
       iintro %_
@@ -195,7 +196,7 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
     iunfold ownMB at Hmb
     icases Hmb with ⟨%s, Hm, Hs, -⟩
     wp_auto
-    wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w wi _ _ Ew 4096 sent1 pend1 GoInterface.nil s
+    wp_apply QpBufioDeps.write w wi _ _ Ew 4096 sent1 pend1 GoInterface.nil s
         (DFrac.own 1) _ $$ [Hown Hs] as %nn %e2 ⟨%k2, %sent2, %pend2, %Hk2, -, Hown⟩
     · iframe Hown Hs
       iintro %_
@@ -214,7 +215,7 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
     have H2 : sent2 ++ pend2 = ansStream k (L ++ [(Batch.mk x (clientName cl) [r])]) := by
       rw [Hk2.2.2.1, (Hk2.2.2.2.2.1 rfl), List.take_length, H1, HL.1, ansStream_snoc]
     wp_auto
-    wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof w wi _ _ Ew 4096 sent2 pend2 GoInterface.nil
+    wp_apply QpBufioDeps.flush w wi _ _ Ew 4096 sent2 pend2 GoInterface.nil
       $$ Hown as %e3 ⟨%k3, %Hf3, Hown⟩
     have H3 : sent2 ++ pend2.take k3 ++ pend2.drop k3 =
         ansStream k (L ++ [(Batch.mk x (clientName cl) [r])]) := by
