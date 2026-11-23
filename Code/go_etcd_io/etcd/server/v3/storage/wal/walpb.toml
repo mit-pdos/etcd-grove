@@ -12,7 +12,9 @@ imports = ["!*", "errors", "fmt", "go.etcd.io/raft/v3/raftpb", "google.golang.or
 # (TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean): the fields' reset; the
 # message-state store, protobuf runtime plumbing, left out (the model's docstring says why that is
 # faithful)
-trusted = ["Record.Reset"]
+# (etcd-grove#32, 2026-11-22) the `init` function (the file descriptor's registration) trusted:
+# a model that does nothing (TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["Record.Reset", "init.0"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.go_etcd_io.etcd.api.v3.authpb
 public import GeneratedProof.google_golang_org.protobuf.reflect.protoreflect
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Golang.Theory
