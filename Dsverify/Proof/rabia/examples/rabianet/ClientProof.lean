@@ -17,6 +17,8 @@ public import Dsverify.Proof.rabia.internal.tcp.ClientTcpInit
 public import Dsverify.Proof.rabia.internal.tcp.ClientTCP__Connect
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Perennial.Proof.sync.Link
+public import Dsverify.Proof.rabia.examples.rabianet.KitModel
+public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient
 
 @[expose] public section
 
@@ -458,6 +460,121 @@ theorem newClient.wp_proof : newClient.spec (GF := GF) := by
   unfold is_sys
   iexists t, «$v2_ptr», γc, cf
   iframe #
+
+theorem outOk_outB (o : KvOutput GoString) (h : outOk o) : outB o := by
+  cases o with
+  | done => trivial
+  | got w =>
+    cases w with
+    | none => trivial
+    | some v => exact h
+
+theorem clampO_val (o : KvOutput GoString) (h : outOk o) : (clampO o).1 = o := by
+  rw [clampO_of o (outOk_outB o h)]
+
+theorem kvOutV_outVal (o : KvOutput GoString) : kvOutV o = outVal o := by
+  rcases o with _ | _ | v <;> rfl
+
+theorem kvInV_inVal (i : KvInput GoString GoString) : kvInV i = inVal i := by
+  cases i <;> rfl
+
+theorem wp_attempt :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet }}
+      (App (Val (@! rabia.examples.rabianet.attempt)) (Val #()))
+    {{ (d : w64), RET #d; True }} := by
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
+
+section client
+variable [ρ : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.RemoteGS]
+
+open github_com.mit_pdos.etcd_grove.examples.lib.remote in
+/-- `Client(c)`: client machine `c`, from its share, its package state (with which it claims
+`Conf`), its address's remote protocols and remote's map; it never returns. -/
+abbrev Client.spec : Prop :=
+  ∀ (γ : Names) (c : Nat) (σ : GMap GoString Bool), c < nC →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗ cliCore γ c ∗
+        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
+        remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr c) ∗
+        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
+      (App (Val (@! rabia.examples.rabianet.Client)) (Val #(W64 c)))
+    {{ RET #(); False }}
+
+open github_com.mit_pdos.etcd_grove.examples.lib.remote in
+theorem Client.wp_proof (wp_Codec : Codec.spec (GF := GF) (hG := hG))
+    (wp_ServeClient : github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient.spec
+      (GF := GF) (hG := hG) (I := KIn) (O := KOut)) :
+    Client.spec (GF := GF) (hG := hG) := by
+  intro γ c σ hc
+  have hc6 : c < 6 := hc
+  wp_start as ⟨Hcore, Hσ, #Hra, #Hmap⟩
+  ihave #Hrp : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply newClient.wp_proof γ c σ hc $$ [$Hpkg $Hcore $Hσ] as %l #Hsys
+  irename sys => Hsysp
+  ipersist Hsysp
+  irename c => Hcp
+  ipersist Hcp
+  try wp_auto
+  wp_apply ClientAddrs.wp_proof as %sl ⟨%L, Hsl, %HL⟩
+  subst HL
+  ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
+  have hcw : sint.Z (W64 (c : Int)) = (c : Int) := by word
+  have hsl : sint.Z sl.len = (nC : Int) := by
+    obtain ⟨h1, h2⟩ := Hsl0
+    rw [List.length_map, List.length_range] at h1
+    rw [h1]; exact (Int.toNat_of_nonneg h2).symm
+  rw [ite_eq_left (by rw [hcw, hsl]; omega)]
+  wp_apply wp_load_slice_index sl _ _ _ (cliAddr c) (by omega) $$ [$Hsl] as -
+  · ipureintro; rw [hcw]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hc
+  try wp_auto
+  wp_apply (wp_Codec γ) as %cd #Hcd
+  wp_apply wp_attempt as %d -
+  try wp_auto
+  wp_apply wp_ServeClient (RBase.svc (Gg := hG.goose_globalGS) (kvR γ)) _ _ _ _ cd d
+    (fun sys => iprop(⌜sys = interface.mkOk (go.GoType.PointerType Sys.ty) #l⌝ ∗ is_sys γ c l))
+    $$ [] as ⟨⟩
+  iframe #
+  isplit
+  · iapply codecOk_wireOk $$ Hcd
+  isplit
+  · -- the operation: client `c`'s request
+    iapply opMaybe_svcOp
+    unfold opMaybe
+    iintro %sys %i %Φo
+    iintro !> %Φr ⟨⟨%Hsys, #Hs⟩, HL⟩ HΦr
+    subst Hsys
+    ihave HAU := slotUpd_opAU γ i Φo $$ HL
+    simp only [RBase.svc, kvR, inV]
+    wp_auto
+    rw [← kvInV_inVal]
+    wp_apply Op.wp_proof γ c l i.1 (fun _ _ o => Φo (clampO o)) hc i.2.1 $$ [$Hpkg $Hs $HAU]
+      as %o Ho
+    try wp_auto
+    iapply HΦr
+    isplitr
+    · iframe #
+    icases Ho with (%Ho | ⟨%σ, %σ', %out, %Hout, HQ⟩)
+    · subst Ho
+      iright; ipureintro; rfl
+    · obtain ⟨rfl, -, hok⟩ := Hout
+      ileft
+      iexists clampO out
+      iframe HQ
+      ipureintro
+      rw [clampO_val out hok, kvOutV_outVal]
+  · -- the client's system
+    iintro !> %Φr - HΦr
+    wp_auto
+    iapply HΦr
+    iframe #
+    ipureintro; rfl
+
+end client
 
 end proof
 
