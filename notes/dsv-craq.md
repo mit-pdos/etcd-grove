@@ -185,13 +185,58 @@ the shared piece lands; none is an axiom.
   `out_intoVal_inj`, `in_intoVal_inj`, `outV_inj`, `ivK_inj`), `ivK_inOf`, `Model.wp_proof`
   (Init: `sim_init`; Step: `wp_step`, `linkv.pM_step … (kvDec_box …)`, `sim_step`; Equal: always
   false; Hash nil).
-  (c)-(e) not started: `KitProof.lean` (`Codec`, `Gen`, `op`, `Client`/`ServeClient`, `Orch`/
-  `remote.Check`, `Server`/`runNode` over `HttpRpc.lean`'s classes), `Mains`, `TopLevelDefs`,
-  `TopLevelRobustness` as paxos's; the statement's premises: every `InitHyp` (net.rpc, net.http),
-  `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`, `LogHyp`, and the two open points of H4 (the
-  allocation of `rpcAddrP` at the deployment's addresses; a machine's starting `muxOwner []`) as
-  explicit premises in the shape Net's piece will likely give (an allocation lemma `|==> ∃ W,
-  [∗list] a ∈ addrs, rpcAddrP W a hs hsAns` and `muxOwner []` from net/http's initialization).
+  (c) **KitProof** (in progress). `Kit.lean` now states `Codec.spec` (over `kvR γ`, remote's
+  `codecOk`) and `Gen.spec` (`genSpec`, inputs `∃ x : KIn, i = ivK x`); `KitProof.lean` (new)
+  proves them and the address helpers (`wp_ServerAddrs`, `wp_ClientAddrs`, `wp_ConfAddrs`,
+  `wp_attempt`, `wp_digit`) — delegated to a sub-agent (third agent's session); check the file.
+  Still to state and prove, porting the lab's `Kit/` (3060 lines; `Craq/Proof/Kit/*.lean` in the
+  lab) by editing onto remote and Net, in paxos's shape (`Kit.lean`'s `Orch.spec`/`Client.spec`/
+  `Server.spec`, `KitProof.lean`):
+  * the configuration messages: `Conf.encode`/`decode`/`mine`/`plan`/`choose` (lab
+    `OrchConf.lean`, `Decode.lean`), `sendConf` (net.Dial/Write/ReadFull/Close) and `awaitConf`
+    (Listen/Accept/ReadFull, a bag channel of `msgOk`; lab `Await.lean`, `OrchSend.lean`) over a
+    trivial protocol (`confProto`: the messages carry nothing; set at the conf addresses with
+    `addrs_set_proto`);
+  * the client machine: `newSys` (awaitConf goroutine, `<-ch`, `Register()` = the codec's
+    `codecSet craqCodec`, `go s.remove(rs)`), `Sys.end`/`readAt`/`remove` (CoordinatorClient
+    `RemoveNode`, `Netrpc/CoordClient.wp_CRemoveNode`), `op` (put: coordinator `Write`; get: node
+    `Read`, `Netrpc/`; the linearization through `lin_opAU`), `Client` via
+    `remote.ServeClient.spec` (paxos's finding: `newClient` returns the `Sys` made before);
+    lab `Op.lean`, `New.lean`, `Client.lean`;
+  * the server machine: `Server(1)` = `coordinator.New`, `CoordinatorBinding`,
+    `rpc.RegisterName` (`RpcHttpServe.RegisterName`), `rpc.HandleHTTP`, `go c.Start()`,
+    `http.ListenAndServe` (`RpcHttpServe.ListenAndServe` with `ServeHTTP`'s `handlerOk`);
+    `Server(k ≥ 2)` = awaitConf, then `runNode` (`node.New` over `kv.New`, `NodeBinding`, the same
+    rpc/http calls, a goroutine `Sleep; n.Start()`), then the idle loop; lab `Boot.lean`,
+    `BootNode.lean`. **Missing piece**: the bindings' server side (`CoordinatorBinding`/
+    `NodeBinding` methods meeting `coordSpec`/`nodeSpec` as `rcvrIs craqCodec …` for
+    `Server.RegisterName`: the request decoding (`CodecSpec`'s `dec` of the args, `rpcDecode` of
+    the args types: more `dec_*` lemmas, for `EmptyArgs`, `WriteArgs`, `CommitArgs`, `string`,
+    `NodeMeta`, `ClientWriteArgs`, `PropagateRequest`) and the replies' encoding
+    (`rpcEncode` of the reply types: `enc_*` for `EmptyReply`, `VersionResponse`, `Item`,
+    `PropagateResponse`, `NodeMeta`), plus `rpcReceiver`'s `rcv` for the two bindings — the
+    lab's `Dispatch/` did this for its own codec; here they are proofs over `rpc_gen.go`
+    (`Codec.lean` has no server-side lemmas yet).
+  * the start (lab `Start.lean`): `craq_alloc` (`Protocol/Alloc.lean`) for the chain's five
+    addresses, the rpc world `W` with `W.SS = craqSS γ cAddr chain`, the server addresses'
+    `httpRpcAddr W a` (**H4 open point 1**, a premise), the client addresses' remote protocols
+    (`addrs_set_proto`, as paxos), the conf addresses' `confProto`, `pend_alloc`, `mapCtx_alloc`.
+  (d) `Mains` (12 commands: orch, client0..4, server1..6; paxos's `wp_main`), `TopLevelDefs`
+  (`boot`, `system`, `craqKitAddrs := serverAddrs ++ clientAddrs ++ confAddrs`),
+  `TopLevelRobustness` (`robust_of_distProtoRB`, as `paxos_remote_robust`), the statement
+  `Dsverify/Spec/.../craqnet/TopLevelRobustness.lean`'s `craq_remote_robust.spec`. Its premises
+  (coordinator's rule: every hypothesis class and both open points of H4 visible): the
+  `InitHyp`s of net/rpc and net/http (H1; dsv-infra, `etc/dsv/README.md`; merge
+  `origin/dsv-infra`, now 338ef14dd2), `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`,
+  `RpcCallReply`, `LogHyp` (H6); **H4 open point 1** as `∀ SS as, regCtx -∗ ([∗list] a ∈ as,
+  addrUnset a) ={⊤}=∗ ∃ W, ⌜W.SS = SS⌝ ∗ [∗list] a ∈ as, httpRpcAddr W a` (the shape of
+  `robust_of_distProtoRB`'s start, `Net/Statement/DistBridge.lean`; Net has no rpc allocation
+  lemma even for raw `rpcAddr` yet); **open point 2** as `⊢ |==> muxOwner []` per server machine
+  (or from net/http's `InitHyp`). Since the classes depend on the start's `GooseGlobalGS`/
+  `NetProtoGS` (introduced inside `robust_of_distProtoRB`), the statement takes them as
+  functions of those instances (`∀ [GooseGlobalGS .hasLC remoteGF] [NetProtoGS], …`). Then check
+  `etc/theorem-loc.py` counts these premises (say so here) and set
+  `etc/tcb-collections/dsv-craq.txt`'s roots to the statement.
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
