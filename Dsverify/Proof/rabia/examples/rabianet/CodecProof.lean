@@ -1,0 +1,304 @@
+/-
+`Codec()` and `gens()` (kit.go) meet their specs `Codec.spec` and `gens.spec` (`KitModel.lean`;
+notes/dsv-rabia.md; as paxos's `KitProof.lean` and remote's counter's `Codec.lean`):
+
+* **The codec**: `EncIn` writes the put flag, then `putU64`'s 8 little-endian bytes of the key's
+  length (`u64le`, `u64le_eq`: Perennial's `u64Le`) at 1..8 of a 9-byte slice, then appends the key
+  and the value; `DecIn` reads them back (`getU64` decodes `u64Le`; a get's bytes end at the key,
+  so its value is `""`); `EncOut`/`DecOut` a kind byte and the value; `IsRead`, `Unknown`,
+  `IsUnknown`.
+* **The generator**: `Gen(c, j)` is an input of the store (`inB`: an 8-byte key
+  `"key0000"+digit`, a put's value `"v"+digit+digit`, never empty); `gens()`'s counters are a
+  slice of `NC` `uint64`s in an invariant, each `atomic.AddUint64` opening it for one step.
+-/
+module
+
+public import Dsverify.Proof.rabia.examples.rabianet.ModelProof
+public import Perennial.Proof.encoding.binary.Base
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Perennial.Proof.sync.atomic.Results
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
+
+namespace rabia.examples.rabianet
+
+open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote Perennial.rabia
+  Perennial.rabia.model
+
+section lemmas
+
+open encoding.binary in
+/-- `u64Le x`'s byte `i` is `byte(x >> (8*i))` (remote's counter's `Codec.lean`). -/
+theorem u64Le_getElem (x i : w64) (hi : uint.nat i < 8) :
+    (u64Le x)[uint.nat i]? = some (W8 (uint.Z (x >>> (W64 8 * i)))) := by
+  obtain ⟨n, hn, rfl⟩ : ∃ n : Nat, n < 8 ∧ i = W64 n := ⟨uint.nat i, hi, by word⟩
+  have hn' : uint.nat (W64 n : w64) = n := by word
+  rw [hn', u64Le_8]
+  rcases n with _ | _ | _ | _ | _ | _ | _ | _ | n
+  all_goals first | rfl | omega
+
+/-- Storing the next byte of `l1` over `l2`. -/
+theorem take_drop_set {l1 l2 : List w8} {n : Nat} {a : w8} (h1 : l1[n]? = some a)
+    (h2 : n < l2.length) :
+    (l1.take n ++ l2.drop n).set n a = l1.take (n + 1) ++ l2.drop (n + 1) := by
+  have hn : n < l1.length := by
+    rcases Nat.lt_or_ge n l1.length with h | h
+    · exact h
+    · rw [List.getElem?_eq_none h] at h1; cases h1
+  have ht : (l1.take n).length = n := by simp; omega
+  rw [List.set_append, ite_eq_right (by omega), ht, Nat.sub_self, List.take_add_one, h1]
+  rw [List.drop_eq_getElem_cons h2, List.set_cons_zero]
+  simp
+
+theorem combine_append_single (l : List w8) (v : w8) :
+    LittleEndian.combine (l ++ [v]) = LittleEndian.combine l + v.toNat * 2 ^ (8 * l.length) := by
+  induction l with
+  | nil => simp [LittleEndian.combine]
+  | cons a l ih =>
+    simp only [List.cons_append, LittleEndian.combine, ih, List.length_cons]
+    rw [show 8 * (l.length + 1) = 8 * l.length + 8 by omega, Nat.pow_add, Nat.mul_add,
+      Nat.add_assoc]
+    congr 2
+    rw [Nat.mul_comm 256, Nat.mul_assoc]
+
+open encoding.binary in
+/-- One more byte of the little-endian decoding: `x | uint64(v) << (8*i)`. -/
+theorem leToU64_take_succ (bs : List w8) (i : w64) (v : w8) (hi : uint.nat i < 8)
+    (hv : bs[uint.nat i]? = some v) :
+    leToU64 (bs.take (uint.nat i + 1)) =
+      leToU64 (bs.take (uint.nat i)) ||| (W64 (uint.Z v) <<< (W64 8 * i)) := by
+  have hl : (bs.take (uint.nat i)).length = uint.nat i := by
+    have : uint.nat i < bs.length := by
+      rcases Nat.lt_or_ge (uint.nat i) bs.length with h | h
+      · exact h
+      · rw [List.getElem?_eq_none h] at hv; cases hv
+    simp; omega
+  have hc := combine_bound (bs.take (uint.nat i))
+  rw [hl] at hc
+  have hlt : 2 ^ (8 * uint.nat i) ≤ 2 ^ 56 := Nat.pow_le_pow_right (by decide) (by omega)
+  have hv8 := v.isLt
+  rw [List.take_add_one, hv, Option.toList_some, leToU64, leToU64Def, leToU64, leToU64Def,
+    combine_append_single, hl]
+  have hsh : (W64 8 * i).toNat = 8 * uint.nat i := by word
+  have hw : (W64 (uint.Z v) : w64) = v.setWidth 64 := by
+    simp only [W64, uint.Z, BitVec.ofInt_natCast, BitVec.ofNat_toNat]
+  apply BitVec.eq_of_toNat_eq
+  rw [hw, BitVec.shiftLeft_eq', hsh,
+    toNat_or_shl _ v (8 * uint.nat i) (by rw [BitVec.toNat_ofNat]; omega) (by omega)]
+  simp only [BitVec.toNat_ofNat]
+  have : (v.toNat + 1) * 2 ^ (8 * uint.nat i) ≤ 256 * 2 ^ (8 * uint.nat i) :=
+    Nat.mul_le_mul_right _ (by omega)
+  rw [Nat.add_mul, Nat.one_mul] at this
+  rw [Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)]
+
+open encoding.binary in
+/-- kit.go's bytes of a `uint64` are Perennial's `u64Le`. -/
+theorem u64le_eq (x : w64) : u64le x = u64Le x := by
+  rw [u64Le_8]
+  simp only [u64le, List.range, List.range.loop, List.map_cons, List.map_nil]
+  have h0 : x >>> W64 (8 * ((0 : Nat) : Int)) = x := by
+    apply BitVec.eq_of_toNat_eq; simp
+  rw [h0]
+  rfl
+
+end lemmas
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : rabia.examples.rabianet.Assumptions]
+variable [bvi : go.BasicIntoValInj]
+variable [π : NetProtoGS] [ρ : RemoteGS]
+
+local notation "kpkg" => pkg_id.rabia.examples.rabianet
+
+set_option goose.wp.extras true
+
+theorem wp_putU64 (b : GoSlice) (L : List w8) (hL : L.length = 8) (x : w64) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ b ↦* L }}
+      (App (App (Val (@! rabia.examples.rabianet.putU64)) (Val #b)) (Val #x))
+    {{ RET #(); b ↦* u64Le x }} := by
+  wp_start as Hb
+  ihave %Hbl := ownSlice_len _ _ _ $$ Hb
+  have hb8 : sint.Z b.len = 8 := by have := Hbl.1; rw [hL] at this; word
+  wp_auto
+  ihave HI : (∃ (j : w64), "i" ∷ i_ptr ↦ j ∗
+      "Hb" ∷ b ↦* ((u64Le x).take (uint.nat j) ++ L.drop (uint.nat j)) ∗
+      "%Hj" ∷ ⌜uint.nat j ≤ 8⌝ : IProp GF) $$ [i Hb]
+  · iexists W64 0
+    iframe
+    ipureintro; simp
+  wp_for HI
+  wp_if_destruct
+  · have hj8 : uint.nat j < 8 := by word
+    have hj0 : 0 ≤ sint.Z j := by word
+    have hjz : sint.Z j < 8 := by word
+    have hs : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z b.len := ⟨hj0, by omega⟩
+    rw [ite_eq_left hs]
+    wp_apply wp_store_slice_index b (sint.Z j) _ (W8 (uint.Z (x >>> (W64 8 * j))))
+      $$ [Hb] as Hb
+    · have hlen : ((u64Le x).take (uint.nat j) ++ L.drop (uint.nat j)).length = 8 := by
+        simp only [List.length_append, List.length_take, List.length_drop, u64Le_length, hL]
+        omega
+      iframe Hb; ipureintro; rw [hlen]; exact ⟨hs.1, by exact_mod_cast hjz⟩
+    wp_for_post
+    iframe
+    iexists j + W64 1
+    have hsn : (sint.Z j).toNat = uint.nat j := by word
+    rw [hsn, take_drop_set (u64Le_getElem x j hj8) (by rw [hL]; word),
+      show uint.nat (j + W64 1) = uint.nat j + 1 by word]
+    iframe
+    ipureintro; word
+  · have hj8 : uint.nat j = 8 := by word
+    rw [hj8, List.take_of_length_le (by simp [u64Le_length]), List.drop_of_length_le (by omega),
+      List.append_nil]
+    iapply HΦ
+    iexact Hb
+
+theorem wp_getU64 (b : GoSlice) (bs : List w8) (dq : DFrac) (h : 8 ≤ bs.length) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ b ↦*{dq} bs }}
+      (App (Val (@! rabia.examples.rabianet.getU64)) (Val #b))
+    {{ RET #(leToU64 (bs.take 8)); b ↦*{dq} bs }} := by
+  wp_start as Hb
+  ihave %Hbl := ownSlice_len _ _ _ $$ Hb
+  have hb8 : 8 ≤ sint.Z b.len := by
+    have := Hbl.1
+    have h2 : ((sint.nat b.len : Nat) : Int) = sint.Z b.len := Int.toNat_of_nonneg Hbl.2
+    omega
+  wp_auto
+  ihave HI : (∃ (j : w64), "i" ∷ i_ptr ↦ j ∗
+      "x" ∷ x_ptr ↦ leToU64 (bs.take (uint.nat j)) ∗
+      "%Hj" ∷ ⌜uint.nat j ≤ 8⌝ : IProp GF) $$ [i x]
+  · iexists W64 0
+    iframe
+    ipureintro; simp
+  wp_for HI
+  wp_if_destruct
+  · have hj8 : uint.nat j < 8 := by word
+    have hj0 : 0 ≤ sint.Z j := by word
+    have hjz : sint.Z j < 8 := by word
+    have hs : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z b.len := ⟨hj0, by omega⟩
+    rw [ite_eq_left hs]
+    have hsn : (sint.Z j).toNat = uint.nat j := by word
+    obtain ⟨w, hw⟩ : ∃ w, bs[uint.nat j]? = some w :=
+      ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    wp_apply wp_load_slice_index b (sint.Z j) _ dq w hj0 $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rw [hsn]; exact hw
+    wp_for_post
+    iframe
+    iexists j + W64 1
+    rw [show uint.nat (j + W64 1) = uint.nat j + 1 by word, leToU64_take_succ bs j w hj8 hw]
+    iframe
+    ipureintro; word
+  · have hj8 : uint.nat j = 8 := by word
+    rw [hj8]
+    iapply HΦ
+    iexact Hb
+
+theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
+  intro γ
+  wp_start
+  wp_auto
+  wp_func_lits
+  wp_auto
+  iapply HΦ
+  unfold codecOk kvR
+  simp only
+  isplitr
+  · -- EncIn
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    rcases i with ⟨i, hi⟩
+    cases i with
+    | put k v =>
+      simp only [inVal, encInB]
+      wp_auto
+      have hk8 : k.length = 8 := hi.1.1
+      have hv : v.length < 2 ^ 40 := hi.2
+      wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hv
+      wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hv'
+      wp_apply (wp_slice_make3 (V := w8) (W64 9) (W64 9 + W64 k.length + W64 v.length)
+        (by rw [hk8]; word)) as %b ⟨Hb, Hcap, -⟩
+      ihave %Hbl := ownSlice_len _ _ _ $$ Hb
+      ihave %Hbw := ownSlice_wf _ _ _ $$ Hb
+      have hb9 : sint.Z b.len = 9 := by
+        have := Hbl.1; simp only [List.length_replicate] at this; word
+      have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by rw [hb9]; decide
+      rw [ite_eq_left h0]
+      wp_apply wp_store_slice_index b (sint.Z (W64 0)) _ (W8 1) $$ [Hb] as Hb
+      · iframe Hb; ipureintro; simp only [List.length_replicate]; word
+      rw [show (List.replicate 9 (zero_val w8)).set 0 (W8 1) =
+        W8 1 :: List.replicate 8 (W8 0) from rfl]
+      have h1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z b.len := by rw [hb9]; decide
+      rw [ite_eq_left ⟨h1.1, h1.2, Hbw.2⟩]
+      icases (ownSlice_split_all (W64 1) b _ _ h1).1 $$ Hb with ⟨Hb1, Hb2⟩
+      rw [show sint.nat (W64 1) = 1 from rfl, List.take_one, List.drop_one, List.head?_cons,
+        Option.toList_some, List.tail_cons]
+      wp_auto
+      wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+      wp_apply wp_putU64 (slice.slice b w8 (W64 1) b.len) (List.replicate 8 (W8 0)) (by simp)
+        (W64 k.length) $$ [$Hb2] as Hb2
+      ihave Hb := (ownSlice_split_all (W64 1) b (DFrac.own 1) (W8 1 :: u64Le (W64 k.length)) h1).2
+        $$ [Hb1 Hb2]
+      · rw [show sint.nat (W64 1) = 1 from rfl, List.take_one, List.drop_one, List.head?_cons,
+          Option.toList_some, List.tail_cons]
+        iframe Hb1 Hb2
+      wp_apply wp_string_to_bytes as %sk ⟨Hsk, -⟩
+      wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsk] as %b2 ⟨Hb, Hcap, -⟩
+      wp_apply wp_string_to_bytes as %sv ⟨Hsv, -⟩
+      wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsv] as %b3 ⟨Hb, -, -⟩
+      iapply HΦ'
+      rw [u64le_eq]
+      simp only [List.cons_append, List.append_assoc]
+      iexact Hb
+    | get k =>
+      simp only [inVal, encInB]
+      wp_auto
+      have hk8 : k.length = 8 := hi.1
+      wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hv
+      wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hv'
+      wp_apply (wp_slice_make3 (V := w8) (W64 9) (W64 9 + W64 k.length + W64 ([] : GoString).length)
+        (by simp only [hk8, List.length_nil]; word)) as %b ⟨Hb, Hcap, -⟩
+      ihave %Hbl := ownSlice_len _ _ _ $$ Hb
+      ihave %Hbw := ownSlice_wf _ _ _ $$ Hb
+      have hb9 : sint.Z b.len = 9 := by
+        have := Hbl.1; simp only [List.length_replicate] at this; word
+      rw [show List.replicate 9 (zero_val w8) = W8 0 :: List.replicate 8 (W8 0) from rfl]
+      have h1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z b.len := by rw [hb9]; decide
+      rw [ite_eq_left ⟨h1.1, h1.2, Hbw.2⟩]
+      icases (ownSlice_split_all (W64 1) b _ _ h1).1 $$ Hb with ⟨Hb1, Hb2⟩
+      rw [show sint.nat (W64 1) = 1 from rfl, List.take_one, List.drop_one, List.head?_cons,
+        Option.toList_some, List.tail_cons]
+      wp_auto
+      wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+      wp_apply wp_putU64 (slice.slice b w8 (W64 1) b.len) (List.replicate 8 (W8 0)) (by simp)
+        (W64 k.length) $$ [$Hb2] as Hb2
+      ihave Hb := (ownSlice_split_all (W64 1) b (DFrac.own 1) (W8 0 :: u64Le (W64 k.length)) h1).2
+        $$ [Hb1 Hb2]
+      · rw [show sint.nat (W64 1) = 1 from rfl, List.take_one, List.drop_one, List.head?_cons,
+          Option.toList_some, List.tail_cons]
+        iframe Hb1 Hb2
+      wp_apply wp_string_to_bytes as %sk ⟨Hsk, -⟩
+      wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsk] as %b2 ⟨Hb, Hcap, -⟩
+      wp_apply wp_string_to_bytes as %sv ⟨Hsv, -⟩
+      wp_apply wp_slice_append (V := w8) $$ [$Hb $Hcap $Hsv] as %b3 ⟨Hb, -, -⟩
+      iapply HΦ'
+      rw [u64le_eq]
+      simp only [List.cons_append, List.append_assoc, List.append_nil]
+      iexact Hb
+  sorry
+
+end proof
+
+end rabia.examples.rabianet
+end Perennial
