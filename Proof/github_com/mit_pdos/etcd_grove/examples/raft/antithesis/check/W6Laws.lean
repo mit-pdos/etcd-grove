@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart). #33 S3b W6 (2026-11-23): pure laws of W6's pro
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.EvalLaws
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.Laws
 
 @[expose] public section
 
@@ -75,6 +76,36 @@ theorem fold_length_le {α : Type} {f : α → EvalM Bool} :
 theorem filterM_length_le {α : Type} {xs ys : List α} {f : α → EvalM Bool} (h : filterM xs f = .ok ys) :
     ys.length ≤ xs.length := by
   have := fold_length_le (f := f) h; simpa using this
+
+/-- **`OnDisk` keeps the fields it does not give** (`State.onDisk_keeps`, H4's; taken as a hypothesis
+named `onDisk_keeps` by `Write`, `Flush`, `Ready` and their budget laws until it is proved). -/
+abbrev OnDiskKeeps : Prop :=
+  ∀ (s : State) (n : Nat) (q : QItem) (more : Bool) (ro : List Str) (ld : List LeaderRec)
+    (ll : TermFn (List Entry)) (ch : List Entry) (tl : TermFn Int) (vi : SSet) (ns : State),
+    s.onDisk n q more ro ld ll ch tl vi = .ok (some ns) →
+    ns.cfg = s.cfg ∧ ns.queue = s.queue ∧ ns.pending = s.pending ∧ ns.i = s.i
+
+/-- A non-empty `l[n]!` is an element of `l`. -/
+theorem getElem!_cons_mem {α : Type} {l : List (List α)} {n : Nat} {q : α} {rest : List α}
+    (h : l[n]! = q :: rest) : n < l.length ∧ (q :: rest) ∈ l := by
+  by_cases hn : n < l.length
+  · refine ⟨hn, ?_⟩
+    rw [← h, List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hn]; exact List.getElem_mem hn
+  · rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_none (by omega)] at h; cases h
+
+/-- `Write`'s and `Flush`'s `OnDisk` arguments (the state's own fields and its first queued item)
+within the state's budget. -/
+theorem onDisk_within_self {s : State} {b E n : Nat} {q : QItem} {rest : List QItem} (more : Bool)
+    (hW : s.Within b E) (hq : s.queue[n]! = q :: rest) :
+    OnDisk.Within b E (OnDisk.mk s n q more s.role s.leaders s.ledLog s.chain s.termLen s.viol) := by
+  obtain ⟨-, hm⟩ := getElem!_cons_mem hq
+  obtain ⟨-, hit⟩ := hW.queue _ hm
+  obtain ⟨h1, h2, h3⟩ := hit q List.mem_cons_self
+  exact ⟨hW, h1, h2, h3, hW.leaders_len, hW.leaders, hW.ledLog_len, hW.ledLog, hW.chain, hW.termLen,
+    by have := hW.viol; simp only; omega⟩
+
+theorem subslice_tail {α : Type} (q : α) (rest : List α) :
+    subslice 1 (q :: rest).length (q :: rest) = rest := by simp [subslice]
 
 end W6Laws
 
