@@ -3836,3 +3836,25 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 - **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
   `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
 - **Status.** Not filed yet.
+
+## 2026-11-23: bufio's generic specs over an `io.Writer` contract and slice helpers kept locally (dsv-bufio, #24, branch `dsv-bufio`)
+
+- **Limitation.** Perennial has an `io.Reader` contract (`io.readerOk`, `Perennial/Proof/io/Reader.lean`)
+  but no `io.Writer` counterpart with short writes; and a few slice facts `*bufio.Reader`/`*bufio.Writer`
+  need (a sub-slice accessor `[r, w)`, the suffix accessor `b[n:]`, advancing a slice `p = p[k:]`,
+  `copy` within one slice) are not in its slice library.
+- **Workaround here.** `io.writerOk wi J Q Ew` (`Proof/io/WriterOk.lean`: `Write` accepts a prefix of the
+  bytes, `nil` only for all of them; `Q` closed under prefixes, `io.prefixClosed`) with `io.wp_writer_Write`;
+  the slice facts in `Proof/bufio/Base.lean` (`bufio.ownSlice_sub_acc`, `bufio.suffix_acc`,
+  `bufio.slice_advance`, `bufio.flush_shift`, ...).
+- **Not needed.** `io.ReadFull`/`io.ReadAtLeast`: translated and proved in Perennial at the pin
+  (`io.wp_ReadFull`, `io.wp_ReadAtLeast`, over `io.readerOk`); a `*bufio.Reader` is an `io.readerOk`
+  reader (`bufio.ownBufReader_readerOk`, `Proof/bufio/ReaderLaws.lean`), and so is a connection's end
+  (`net.conn_readerOk`, `Net/Proof/net/ConnIo.lean`), so they apply unchanged. The `copy` count trap
+  (#24 item 4: `copy`'s count as `sint.nat`) is gone at the pin: `wp_slice_copy_int` states
+  `sint.Z n = min ...`, used here. It remains in the net model's `Conn.Read` spec (`ReadOut`:
+  `sint.nat k = min ...`); `net.conn_readerOk` works around it by its precondition `0 < len(p)`
+  (with `readOutcome_got_le`, a read of `len(p) > 0` returns `k > 0` bytes, so `sint.nat` is exact).
+- **Proposed.** `io.writerOk` next to `io.readerOk` in `Perennial/Proof/io/`; the slice facts in
+  `Perennial/Proof/` slice library.
+- **Status.** Not filed yet.
