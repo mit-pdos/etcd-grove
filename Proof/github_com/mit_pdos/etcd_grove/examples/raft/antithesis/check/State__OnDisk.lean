@@ -2611,7 +2611,12 @@ theorem State.OnDisk.wp_proof
   --   viol = violAdd(viol, "CommitBeyondConfirmed") }; ns.Viol = viol; return ns, true`
   have hv4l := OnDiskProofLaws.setAddIf_len cp v3v go!"CommittedEntriesPreserved"
   generalize hv4 : (if cp then setAdd v3v go!"CommittedEntriesPreserved" else v3v) = viol4 at Ho hv4l ⊢
-  obtain ⟨cf, cb, hcf, hcb, hoeq⟩ := OnDiskProofLaws.v5_ok' Ho
+  -- `Ho`'s successor is the record `u1`-`u8` build (with `X.ld`, `X.ll`), `S7` the one the stores
+  -- built (with `ld`, `ll`): the same once `X` is unfolded.
+  have Ho7 : v5 X t1 S7 viol4 = .ok o := by
+    rw [hXld, hXll] at Ho
+    subst hS7 hS6 hS5 hS4 hS3 hS2; exact Ho
+  obtain ⟨cf, cb, hcf, hcb, hoeq⟩ := OnDiskProofLaws.v5_ok' Ho7
   odm conf1
   wp_apply wp_conf1 _ X cf $$ [Hx] as %gcf %Hgcf
   · iframe Hx; ipureintro; exact hcf
@@ -2682,9 +2687,6 @@ theorem State.OnDisk.wp_proof
   iunfold succOwn
   isplitr
   · ipureintro; rfl
-  -- TODO: `Hq`'s state and the goal's are the same record built in two ways (`iexact` fails to
-  -- unify them, `dsimp only` here takes ~30 min and still fails): state their equality as a Lean `have`.
-  subst hS7 hS6 hS5 hS4 hS3 hS2
   iexact Hq
 
 end proof
