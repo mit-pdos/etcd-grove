@@ -32,7 +32,7 @@ theorem confAddrC_mem (c : Nat) (hc : c < 6) : confAddrC c ∈ clientConfAddrs :
   exact List.getElem_mem _
 
 section share
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 instance rpcAddrG_persistent (W : net.rpc.RpcWorld netDistGF) (a : GoString) :
     Persistent (net.rpc.rpcAddr W a) := by

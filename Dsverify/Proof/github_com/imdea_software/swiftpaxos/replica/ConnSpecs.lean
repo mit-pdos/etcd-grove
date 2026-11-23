@@ -55,7 +55,7 @@ def replica.peerSlot (γ : sp.Names) (γc γm : GName) (me : w32) (pssl prsl pws
     replica.elem pssl i cv ∗ replica.elem prsl i rd ∗ replica.elem pwsl i w ∗
     replica.elem alsl i al ∗
     (⌜rd = null ∧ w = null⌝ ∨
-      ∃ (cid : w64) (R : List w8),
+      ∃ (cid : Nat) (R : List w8),
         net.rpc.connIface cv cid (sp.peerRdKind me i).side ∗ sp.connKind γ cid .peer ∗
         bufio.ownReader rd cv
           (recvTok cid (sp.peerRdKind me i).side ((sp.peerRdKind me i).proto γ γc γm)) R ∗
@@ -64,7 +64,7 @@ def replica.peerSlot (γ : sp.Names) (γc γm : GName) (me : w32) (pssl prsl pws
 /-- A client's connection accepted while waiting for the peers (see the file header). -/
 def replica.pendingOk (γ : sp.Names) (γc γm : GName) (p : replica.pendingClient) :
     IProp netDistGF :=
-  iprop(∃ cid : w64, net.rpc.connIface p.conn' cid true ∗
+  iprop(∃ cid : Nat, net.rpc.connIface p.conn' cid true ∗
     bufio.ownReader p.reader' p.conn' (recvTok cid true (sp.inP γ γc γm)) [p.first'] ∗
     ⌜p.first' ≠ W8 0xFF⌝ ∗ sendTok cid true (sp.outQ γ γc γm) [])
 

@@ -66,7 +66,7 @@ theorem swift.small_ids_len (l : List sp.CmdId) (hnd : l.Nodup) (hs : ∀ x ∈ 
   simpa using this
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- **A registered command's id is small** (`sp.inv`'s body). -/

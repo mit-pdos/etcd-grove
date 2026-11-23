@@ -35,7 +35,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 namespace orch
 
 section protos
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-! ## The configuration ports' protocols -/
 
@@ -99,7 +99,7 @@ end protos
 
 /-- An acknowledgment of a predicted node's configuration port: its registration. -/
 theorem ackQP_reg [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF] (γ : SwiftNames netDistGF)
-    (n : sp.PNode) (cid : w64) (ext : List w8) (h : [confAck] <+: ext) :
+    (n : sp.PNode) (cid : Nat) (ext : List w8) (h : [confAck] <+: ext) :
     conf.ackQP γ n cid ext ⊢ sp.predReg γ.sp n := by
   unfold conf.ackQP
   iintro ⟨-, (%He | #H)⟩

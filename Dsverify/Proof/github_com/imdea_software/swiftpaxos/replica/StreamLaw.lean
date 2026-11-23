@@ -52,11 +52,11 @@ theorem frames_nextOk_pure {ok : Msg → Prop} {done ms : List Msg} {c : w8} {d 
         (by simp only [framesOf, List.append_assoc]; exact h2)
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm : GName}
 
 /-- The next message's bytes of a stream whose kind the reader knows. -/
-theorem stream_nextOk (k : RdKind) (hk : ∀ m, k.ok m → m.isPeer) (cid : w64) (ext : List w8)
+theorem stream_nextOk (k : RdKind) (hk : ∀ m, k.ok m → m.isPeer) (cid : Nat) (ext : List w8)
     (done : List Msg) (c : w8)
     (d : List w8) (hpre : k.head ++ framesOf done ++ c :: d <+: ext) (hd : ∀ x ∈ done, x.wf) :
     connKind γ cid k.conn ∗ k.proto γ γc γm cid ext ⊢ ⌜nextOk c d⌝ := by
@@ -114,7 +114,7 @@ variable {γ : Names} {γc γm : GName}
 
 /-- **The peer reader's stream law** after the frames of `done` and the type byte `c`. -/
 theorem reader_streamLaw (br : Loc) (rd : GoInterface) (k : RdKind)
-    (hk : ∀ m, k.ok m → m.isPeer) (cid : w64)
+    (hk : ∀ m, k.ok m → m.isPeer) (cid : Nat)
     (done : List Msg) (R : List w8) (c : w8) (hR : R = k.head ++ framesOf done)
     (hd : ∀ x ∈ done, x.wf) :
     connKind γ cid k.conn ⊢

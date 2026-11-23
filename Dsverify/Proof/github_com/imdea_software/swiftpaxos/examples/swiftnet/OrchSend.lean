@@ -42,7 +42,7 @@ abbrev sendConf.spec : Prop :=
       addrProto a P Q ∗ □ (∀ cid, P cid bs) ∗ b ↦* bs }}
     (App (App (Val (@! examples.swiftnet.sendConf)) (Val #a)) (Val #b))
   {{ (ok : Bool), RET #ok;
-      if ok then ∃ (cid : w64) (ext : List w8), ⌜[confAck] <+: ext⌝ ∗ □ Q cid ext else True }}
+      if ok then ∃ (cid : Nat) (ext : List w8), ⌜[confAck] <+: ext⌝ ∗ □ Q cid ext else True }}
 
 end spec
 

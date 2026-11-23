@@ -139,7 +139,7 @@ theorem replica.range_split3 (Φ : Nat → IProp netDistGF) (N m : Nat) (hm : m 
 /-- A peer's reader, as its listener takes it (none for a null reader). -/
 def replica.readerPart (γ : sp.Names) (γc γm : GName) (me : w32) (i : Nat) (rd : Loc) :
     IProp netDistGF :=
-  iprop(⌜rd = null⌝ ∨ ∃ (cv : GoInterface) (cid : w64) (R : List w8),
+  iprop(⌜rd = null⌝ ∨ ∃ (cv : GoInterface) (cid : Nat) (R : List w8),
     net.rpc.connIface cv cid (sp.peerRdKind me i).side ∗ sp.connKind γ cid .peer ∗
     bufio.ownReader rd cv
       (recvTok cid (sp.peerRdKind me i).side ((sp.peerRdKind me i).proto γ γc γm)) R ∗

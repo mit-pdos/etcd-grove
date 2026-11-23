@@ -218,7 +218,7 @@ theorem claim_pred (wp_claim : client.claimGhost.spec) (γ : SwiftNames netDistG
   iapply (wp_claim γ.sp γ.conf γ.mem γ.lin n) $$ Hcl Hinv Hfr Htok
 
 /-- The acknowledgment of predicted node `n`'s configuration port, once it registered. -/
-theorem ackQP_of_reg (γ : SwiftNames netDistGF) (n : sp.PNode) (cid : w64) :
+theorem ackQP_of_reg (γ : SwiftNames netDistGF) (n : sp.PNode) (cid : Nat) :
     sp.predReg γ.sp n ⊢ conf.ackQP γ n cid [confAck] := by
   unfold conf.ackQP
   iintro #H

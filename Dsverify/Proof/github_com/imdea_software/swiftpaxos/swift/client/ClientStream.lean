@@ -33,10 +33,10 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 namespace sp.cw
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm : GName}
 
-instance connKind_persistent' (cid : w64) (k : ConnKind) : Persistent (connKind γ cid k) := by
+instance connKind_persistent' (cid : Nat) (k : ConnKind) : Persistent (connKind γ cid k) := by
   unfold connKind; infer_instance
 
 theorem chainHash_len (xs : List CmdId) (init h : Hash) :
@@ -102,7 +102,7 @@ theorem msgOk_cKind (cl : w32) (m : Msg) (hm : Msg.isToClient cl m) :
 
 /-- The protocol of a stream to client `cl`: every prefix is `stOk`, and a message decoded
 after the frames of `done` has its witness. -/
-theorem outQ_frames (cid : w64) (cl : w32) (ext : List w8) :
+theorem outQ_frames (cid : Nat) (cl : w32) (ext : List w8) :
     connKind γ cid (.client cl) ∗ outQ γ γc γm cid ext ⊢
       ∃ ms : List Msg, ⌜ext <+: framesOf ms ∧ ∀ m ∈ ms, cMsg cl m⌝ ∗
         [∗list] m ∈ ms, msgOk γ γc γm m := by
@@ -131,12 +131,12 @@ theorem outQ_frames (cid : w64) (cl : w32) (ext : List w8) :
 end laws
 
 section reader
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable {γ : Names} {γc γm : GName}
 
 /-- The protocol fact of what a reader over a connection has read (`recvTok_proto`). (Unfolds
 the harness's `ownReader`: a missing law of `bufio`.) -/
-theorem ownReader_proto (br : Loc) (rd : GoInterface) (cid : w64)
+theorem ownReader_proto (br : Loc) (rd : GoInterface) (cid : Nat)
     (side : Bool) (P : Proto netDistGF) (R : List w8) :
     bufio.ownReader br rd (recvTok cid side P) R ⊢
       bufio.ownReader br rd (recvTok cid side P) R ∗
@@ -153,7 +153,7 @@ theorem ownReader_proto (br : Loc) (rd : GoInterface) (cid : w64)
     exact (List.prefix_append R pend).trans He
 
 /-- What a client's reader has read is `stOk`. -/
-theorem rd_stOk (br : Loc) (rd : GoInterface) (cid : w64) (cl : w32) (R : List w8) :
+theorem rd_stOk (br : Loc) (rd : GoInterface) (cid : Nat) (cl : w32) (R : List w8) :
     connKind γ cid (.client cl) ∗
       bufio.ownReader br rd (recvTok cid false (outQ γ γc γm)) R ⊢
       bufio.ownReader br rd (recvTok cid false (outQ γ γc γm)) R ∗ ⌜stOk cl R⌝ := by
@@ -169,7 +169,7 @@ theorem rd_stOk (br : Loc) (rd : GoInterface) (cid : w64) (cl : w32) (R : List w
 /-- **The message decoded, with its witness**: after the frames of `done` (client messages),
 the frame of a client message `m`, `m` is the stream's next message: of client `cl`, with its
 witness. -/
-theorem rd_witness (br : Loc) (rd : GoInterface) (cid : w64) (cl : w32) (done : List Msg)
+theorem rd_witness (br : Loc) (rd : GoInterface) (cid : Nat) (cl : w32) (done : List Msg)
     (m : Msg) (hd : ∀ d ∈ done, cMsg cl d) (hm : cKind m) :
     connKind γ cid (.client cl) ∗
       bufio.ownReader br rd (recvTok cid false (outQ γ γc γm)) (framesOf done ++ m.frame) ⊢

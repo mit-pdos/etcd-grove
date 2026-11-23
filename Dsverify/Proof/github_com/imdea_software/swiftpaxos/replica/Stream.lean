@@ -67,7 +67,7 @@ def RdKind.side : RdKind → Bool
   | _ => true
 
 section defs
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 def RdKind.proto (γ : Names) (γc γm : GName) : RdKind → Proto netDistGF
   | .peerOut => outQ γ γc γm
@@ -97,11 +97,11 @@ theorem hello_prefix {a b : w32} {x y : List w8} (h : helloBytes a ++ x <+: hell
   exact (hello_peel hu.symm).1.symm
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm : GName}
 
 /-- (An unfold of the slot's exposed `connKind`: a missing persistence instance.) -/
-instance rconnKind_persistent (cid : w64) (k : ConnKind) : Persistent (connKind γ cid k) := by
+instance rconnKind_persistent (cid : Nat) (k : ConnKind) : Persistent (connKind γ cid k) := by
   unfold connKind; infer_instance
 
 instance rmsgOk_persistent (m : Msg) : Persistent (msgOk γ γc γm m) := msgOk_persistent m
@@ -140,7 +140,7 @@ theorem frames_next (head : List w8) (ok : Msg → Prop) (bs : List w8) (done : 
   exact ⟨(hok m (by simp)).1, hf⟩
 
 /-- **The next message** of a stream whose kind the reader knows (see the file header). -/
-theorem stream_next (k : RdKind) (cid : w64) (ext : List w8) (done : List Msg) (c : w8)
+theorem stream_next (k : RdKind) (cid : Nat) (ext : List w8) (done : List Msg) (c : w8)
     (data : List w8) (m : Msg)
     (hpre : k.head ++ framesOf done ++ c :: data <+: ext) (hdec : decodes c data m)
     (hd : ∀ d ∈ done, d.wf) :
@@ -207,7 +207,7 @@ theorem frames_code_pure {done ms : List Msg} {c : w8} (hd : ∀ d ∈ done, d.w
       exact ⟨m, rest, by rw [hr]; rfl, hc⟩
 
 /-- A client's stream: every message's type byte is `PROPOSE` (0). -/
-theorem client_code (cid : w64) (cl : w32) (ext : List w8) (done : List Msg) (c : w8)
+theorem client_code (cid : Nat) (cl : w32) (ext : List w8) (done : List Msg) (c : w8)
     (hpre : framesOf done ++ [c] <+: ext) (hd : ∀ d ∈ done, d.wf) :
     connKind γ cid (.client cl) ∗ inP γ γc γm cid ext ⊢ ⌜c = W8 0⌝ := by
   iintro ⟨#Hk, HP⟩
@@ -224,7 +224,7 @@ theorem client_code (cid : w64) (cl : w32) (ext : List w8) (done : List Msg) (c 
   rw [← hc]; rfl
 
 /-- The type byte of a stream's next message: a message of the kind's. -/
-theorem stream_code (k : RdKind) (cid : w64) (ext : List w8) (done : List Msg) (c : w8)
+theorem stream_code (k : RdKind) (cid : Nat) (ext : List w8) (done : List Msg) (c : w8)
     (hpre : k.head ++ framesOf done ++ [c] <+: ext) (hd : ∀ d ∈ done, d.wf) :
     connKind γ cid k.conn ∗ k.proto γ γc γm cid ext ⊢ ⌜∃ m : Msg, k.ok m ∧ m.code = c⌝ := by
   iintro ⟨#Hk, HP⟩
@@ -274,7 +274,7 @@ theorem stream_code (k : RdKind) (cid : w64) (ext : List w8) (done : List Msg) (
     iapply key [] _ ext hpre $$ HP
 
 /-- A connection whose first byte is not the peers' hello is a client's. -/
-theorem client_kind (cid : w64) (ext : List w8) (c : w8) (hpre : [c] <+: ext)
+theorem client_kind (cid : Nat) (ext : List w8) (c : w8) (hpre : [c] <+: ext)
     (hc : c ≠ W8 0xFF) :
     inP γ γc γm cid ext ⊢ ∃ cl, connKind γ cid (.client cl) := by
   iintro HP
@@ -295,11 +295,11 @@ theorem client_kind (cid : w64) (ext : List w8) (c : w8) (hpre : [c] <+: ext)
 end laws
 
 section reader
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 
 /-- The protocol fact of what a reader over a connection has read (`recvTok_proto`). (Unfolds
 the harness's `ownReader`: a missing law of `bufio`.) -/
-theorem ownReader_proto (br : Loc) (rd : GoInterface) (cid : w64)
+theorem ownReader_proto (br : Loc) (rd : GoInterface) (cid : Nat)
     (side : Bool) (P : Proto netDistGF) (R : List w8) :
     bufio.ownReader br rd (recvTok cid side P) R ⊢
       bufio.ownReader br rd (recvTok cid side P) R ∗

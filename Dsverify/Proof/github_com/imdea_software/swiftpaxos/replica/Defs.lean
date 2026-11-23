@@ -104,7 +104,7 @@ instance wrAt_persistent (γ : Names) (γc γm : GName) (k : WrKind) (W : List w
 
 /-- The writer `w` of kind `k` (see the file header). -/
 def wrSt (γ : Names) (γc γm : GName) (w : Loc) (k : WrKind) : IProp netDistGF :=
-  iprop(∃ (cv : GoInterface) (cid : w64) (sent pend : List w8) (err : GoInterface),
+  iprop(∃ (cv : GoInterface) (cid : Nat) (sent pend : List w8) (err : GoInterface),
     net.rpc.connIface cv cid k.side ∗ connKind γ cid k.conn ∗
     bufio.writerOk cv (sendTok cid k.side (k.proto γ γc γm)) (k.proto γ γc γm cid) ∗
     bufio.ownWriter w cv (sendTok cid k.side (k.proto γ γc γm)) (k.proto γ γc γm cid)

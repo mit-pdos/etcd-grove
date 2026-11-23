@@ -26,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 namespace sp
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm : GName}
 
 /-- A client's stream's first byte is a proposal's type byte. -/
@@ -45,7 +45,7 @@ theorem client_first_byte (cl : w32) (ext : List w8) (c : w8) (hpre : [c] <+: ex
     exact hu.1
 
 /-- A stream that starts with the hello byte is a peer's. -/
-theorem peer_of_hello (cid : w64) (ext : List w8) (hpre : [W8 0xFF] <+: ext) :
+theorem peer_of_hello (cid : Nat) (ext : List w8) (hpre : [W8 0xFF] <+: ext) :
     inP γ γc γm cid ext ⊢ connKind γ cid .peer := by
   iintro HP
   icases inP_elim cid ext $$ HP with (%Hnil | ⟨%k', Hk', HP⟩)
@@ -57,7 +57,7 @@ theorem peer_of_hello (cid : w64) (ext : List w8) (hpre : [W8 0xFF] <+: ext) :
     exfalso; revert Hc; decide
 
 /-- On a peer's connection, the first 5 bytes read are a hello. -/
-theorem hello_read (cid : w64) (ext bs : List w8) (hpre : bs <+: ext) (hl : bs.length = 5) :
+theorem hello_read (cid : Nat) (ext bs : List w8) (hpre : bs <+: ext) (hl : bs.length = 5) :
     connKind γ cid .peer ∗ inP γ γc γm cid ext ⊢ ⌜∃ id, bs = helloBytes id⌝ := by
   iintro ⟨#Hk, HP⟩
   icases inP_elim cid ext $$ HP with (%Hnil | ⟨%k', Hk', HP⟩)
@@ -74,7 +74,7 @@ theorem hello_read (cid : w64) (ext bs : List w8) (hpre : bs <+: ext) (hl : bs.l
   exact (List.append_inj hu (by rw [hl, h5])).1
 
 /-- The dialer's hello is in `inP` on a connection it registered as a peer's. -/
-theorem hello_inP (cid : w64) (me : w32) :
+theorem hello_inP (cid : Nat) (me : w32) :
     connKind γ cid .peer ⊢ inP γ γc γm cid (helloBytes me) := by
   iintro #Hk
   iapply inP_peer cid me

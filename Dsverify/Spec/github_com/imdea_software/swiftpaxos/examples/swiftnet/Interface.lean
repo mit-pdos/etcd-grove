@@ -53,7 +53,7 @@ structure SwiftNames (GF : BundledGFunctors) where
   lin : GName
 
 section slots
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-! ## The configuration slot (`conf`) -/
 
@@ -145,7 +145,7 @@ theorem mem.write (γ : SwiftNames netDistGF) (l : List GoString) :
 end slots
 
 section protos
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- The protocol of what a dialer of `a` writes (for the plain addresses). -/
 def protoP (γ : SwiftNames netDistGF) (a : GoString) : Proto netDistGF :=
@@ -172,7 +172,7 @@ end protos
 /-! ## The rpc services (`W.SS`) -/
 
 section services
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- The services of each rpc address: the master's (`"Master"` at `masterAddr`) and each
 replica node's (`"Replica"` at its rpc port). The method specs are the SwiftPaxos slot's
@@ -188,7 +188,7 @@ end services
 /-! ## The shares -/
 
 section shares
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- What every node gets: every address's protocols (persistent) and the shared invariants. -/
 def common (γ : SwiftNames netDistGF) : IProp netDistGF :=

@@ -56,7 +56,7 @@ has read the frames of `done` (`k`: the accepted connection after the peer's hel
 dialed one), with the listener's `Ewma[rid]`. -/
 abbrev replica.Replica.replicaListener.spec : Prop :=
   ∀ (r : Loc) (γ : sp.Names) (γc γm γw : GName) (N : Nat) (me : w32) (rid : w64) (br : Loc)
-    (k : sp.RdKind) (cv : GoInterface) (cid : w64) (R : List w8) (done : List sp.Msg)
+    (k : sp.RdKind) (cv : GoInterface) (cid : Nat) (R : List w8) (done : List sp.Msg)
     (ewsl : GoSlice) (e : w64),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.replica ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.bufio ∗

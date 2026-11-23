@@ -94,7 +94,7 @@ theorem client_node_hyps : cnode.ClientNodeHyps pkgStates := by
 end link
 
 section parts
-variable [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- The start (Proof/swiftnet/Start.lean). -/
 theorem start_ok : StartOk := start_ok'

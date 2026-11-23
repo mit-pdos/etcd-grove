@@ -164,7 +164,7 @@ theorem sp.syncOrder_complete (M : sp.SyncMsg) (hnd : (M.map Prod.fst).Nodup) (x
     exact List.mem_mergeSort.mpr hx
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 theorem sp.cmdIs_all (mC : GMap sp.CmdId sp.Cmd) (l : List sp.CmdId) :

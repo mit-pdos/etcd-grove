@@ -220,7 +220,7 @@ abbrev client.Client.dial.specI : Prop :=
       cl ↦ v ∗ dlog.quiet v.Logger' ∗ addrProto a P Q }}
     (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"dial")) (Val #a))
   {{ (cv err : GoInterface), RET (PairV #cv #err); cl ↦ v ∗
-      ((∃ (c : Loc) (cid : w64),
+      ((∃ (c : Loc) (cid : Nat),
         ⌜cv = interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c ∧ err = interface.nil⌝ ∗
         net.ownTCPConn c cid false ∗ connEnd cid false P Q [] [] ∗ connFresh cid false) ∨
        ⌜cv = interface.nil ∧ err ≠ interface.nil⌝) }}

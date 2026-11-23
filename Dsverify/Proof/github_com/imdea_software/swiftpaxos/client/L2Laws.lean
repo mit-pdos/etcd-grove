@@ -146,7 +146,7 @@ theorem predsOf_upd {N : Nat} {mW : GMap PNode (List w64)} {l : List GoString} {
     · rfl
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm γl : GName}
 
 attribute [local instance] cfg_timeless_acc

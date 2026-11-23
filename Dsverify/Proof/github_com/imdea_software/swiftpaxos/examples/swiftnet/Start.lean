@@ -68,7 +68,7 @@ theorem start_bigSepL_range {B : Type _} {PROP : Type _} [BI PROP] (n : Nat) (l 
   exact .rfl
 
 section start
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 instance start_rpcAddr_persistent (W : net.rpc.RpcWorld netDistGF) (a : GoString) :
     Persistent (net.rpc.rpcAddr (GF := netDistGF) W a) := by

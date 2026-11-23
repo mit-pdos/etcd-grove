@@ -29,7 +29,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace sp
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm γl : GName}
 
 /-- A replica's own pre-acceptance fact is in its state (an identity step of `node_step`). -/

@@ -78,7 +78,7 @@ theorem swiftnetInitSrv_proof :
 end initSrv
 
 section link
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- The package states' facts `swift.New` uses, from `pkgStates`. -/
 theorem srv_pkg_facts (hG : HeapGS .hasLC netDistGF) (s : go.Semantics) :

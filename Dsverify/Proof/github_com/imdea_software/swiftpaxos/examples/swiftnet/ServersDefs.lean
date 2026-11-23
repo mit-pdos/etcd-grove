@@ -52,7 +52,7 @@ instance goMsg_countable [GooseExts] : Pos.Countable examples.swiftnet.msg :=
     (by rintro ⟨a, b⟩ ⟨a', b'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 section conf
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- `conf.dialP` is prefix-closed (what a reader of a configuration port uses). -/
 theorem conf.dialP_closed (γ : SwiftNames netDistGF) : ProtoPrefixClosed (conf.dialP γ) where
@@ -80,7 +80,7 @@ theorem conf.dialPC_closed (γ : SwiftNames netDistGF) : ProtoPrefixClosed (conf
 
 /-- What a server node's configuration port's reader has read, `confLen` bytes of it: a
 configuration's encoding with no change. -/
-theorem conf.dialP_full (γ : SwiftNames netDistGF) (cid : w64) (bs : List w8)
+theorem conf.dialP_full (γ : SwiftNames netDistGF) (cid : Nat) (bs : List w8)
     (hl : bs.length = confLen) :
     conf.dialP γ cid bs ⊢ ∃ c cs, conf.is γ c ∗
       ⌜bs = c.encodeC cs ∧ c.valid ∧ c.changesOk cs ∧ cs = []⌝ := by
@@ -96,7 +96,7 @@ theorem conf.dialP_full (γ : SwiftNames netDistGF) (cid : w64) (bs : List w8)
 
 /-- What a client node's configuration port's reader has read, `confLen` bytes of it: a
 configuration's encoding with changes `decode` accepts. -/
-theorem conf.dialPC_full (γ : SwiftNames netDistGF) (cid : w64) (bs : List w8)
+theorem conf.dialPC_full (γ : SwiftNames netDistGF) (cid : Nat) (bs : List w8)
     (hl : bs.length = confLen) :
     conf.dialPC γ cid bs ⊢ ∃ c cs, conf.is γ c ∗
       ⌜bs = c.encodeC cs ∧ c.valid ∧ c.changesOk cs ∧ True⌝ := by

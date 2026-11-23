@@ -105,7 +105,7 @@ port, nothing written yet, nothing read (`hasFirst` false) or only its first byt
 the peers' hello (`hasFirst` true: read by `waitForPeerConnections`; see the file header). -/
 abbrev replica.Replica.clientListener.spec : Prop :=
   ∀ (r : Loc) (γ : sp.Names) (γc γm γw : GName) (N : Nat) (me : w32) (al : GoString)
-    (cv : GoInterface) (cid : w64) (br : Loc) (first : w8) (hasFirst : Bool),
+    (cv : GoInterface) (cid : Nat) (br : Loc) (first : w8) (hasFirst : Bool),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.replica ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.bufio ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net ∗

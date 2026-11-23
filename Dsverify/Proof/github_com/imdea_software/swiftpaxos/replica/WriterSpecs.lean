@@ -96,7 +96,7 @@ theorem framesOf_snoc' (ms : List Msg) (m : Msg) :
   simp [framesOf]
 
 /-- The protocol of a writer's kind holds of whole frames of its messages. -/
-theorem wrAt_proto (γ : Names) (γc γm : GName) (k : WrKind) (cid : w64) (ms : List Msg)
+theorem wrAt_proto (γ : Names) (γc γm : GName) (k : WrKind) (cid : Nat) (ms : List Msg)
     (hms : ∀ m ∈ ms, k.ok m ∧ m.wf) :
     connKind γ cid k.conn ∗ ([∗list] m ∈ ms, msgOk γ γc γm m) ⊢
       k.proto γ γc γm cid (k.head ++ framesOf ms) := by
@@ -133,7 +133,7 @@ theorem wrAt_proto (γ : Names) (γc γm : GName) (k : WrKind) (cid : w64) (ms :
 may be computed after its first byte is written: `SendBeacon`'s timestamp). -/
 theorem wrSt_open_gen (γ : Names) (γc γm : GName) (w : Loc) (k : WrKind) :
     wrSt γ γc γm w k ⊢
-      ∃ (cv : GoInterface) (cid : w64) (W : List w8),
+      ∃ (cv : GoInterface) (cid : Nat) (W : List w8),
         bufio.writerOk cv (sendTok cid k.side (k.proto γ γc γm)) (k.proto γ γc γm cid) ∗
         wsink w cv (sendTok cid k.side (k.proto γ γc γm)) (k.proto γ γc γm cid) W ∗
         (□ ∀ m : Msg, ⌜k.ok m ∧ m.wf⌝ -∗ msgOk γ γc γm m -∗ □ k.proto γ γc γm cid (W ++ m.frame)) ∗
@@ -229,7 +229,7 @@ theorem msgsOk_eq (γ : Names) (γc γm : GName) (m : Msg) :
 theorem wrSt_open (γ : Names) (γc γm : GName) (w : Loc) (k : WrKind) (m : Msg)
     (hm : k.ok m ∧ m.wf) :
     wrSt γ γc γm w k ∗ msgOk γ γc γm m ⊢
-      ∃ (cv : GoInterface) (cid : w64) (W : List w8),
+      ∃ (cv : GoInterface) (cid : Nat) (W : List w8),
         bufio.writerOk cv (sendTok cid k.side (k.proto γ γc γm)) (k.proto γ γc γm cid) ∗
         wsink w cv (sendTok cid k.side (k.proto γ γc γm)) (k.proto γ γc γm cid) W ∗
         □ k.proto γ γc γm cid (W ++ m.frame) ∗

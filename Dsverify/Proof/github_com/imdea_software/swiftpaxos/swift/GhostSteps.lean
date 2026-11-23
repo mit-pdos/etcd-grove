@@ -29,7 +29,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
 section defs
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- **A site's ghost update** at replica node `k`'s step `e`: with the node's half of its future
 words starting with `e`'s, give back the rest and `Q`. -/

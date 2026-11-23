@@ -271,7 +271,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace sp
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm γl : GName}
 
 /-- **`depsIn` of a `locLb`'s sequence is short** (round N6, D75 (2)): the sequence is a prefix of

@@ -50,7 +50,7 @@ theorem depsIn_not_self (s : Seq) (x : CmdId) : x ∉ depsIn s x := by
   · simp at h
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm γl : GName}
 
 /-- A pre-acceptance's dependencies do not contain the command (an identity step of

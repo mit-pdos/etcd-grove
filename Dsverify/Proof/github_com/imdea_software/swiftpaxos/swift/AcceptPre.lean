@@ -37,7 +37,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 namespace sp
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm γl : GName}
 
 /-- **An acceptance by the leader's pre-acceptance** (`fastAckFromLeader`): replica `r` accepts

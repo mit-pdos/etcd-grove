@@ -201,7 +201,7 @@ namespace swift
 open sp
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- The reports' commands are registered (round 18, sv-swc; for `swift.syncFits`): any list of

@@ -33,7 +33,7 @@ open swift.rd
 
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-- A client whose sequence number is tracked (`clientSeq`) has an id of at least 1: the law
 `sp.clientSeq_pos` (change log C13, HUB-REQUEST 10). -/
