@@ -82,6 +82,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskLaws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskLaws2
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.Parts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.OnDiskProofLaws
 
 @[expose] public section
 
@@ -1680,4 +1681,67 @@ theorem State.OnDisk.wp_proof
     odjskip Ho
   odjafter
   subst hK
+  -- The successor. u0: `ns := s.clone(); ns.CurrentTerm = …; if x.voted() { ns.VoteTerm = …; ns.VoteFor = … }`
+  unfold succ at Ho
+  obtain ⟨t1', vd, ht1', hvd, hvv, Ho⟩ := OnDiskProofLaws.u0_ok' Ho
+  rw [ht1] at ht1'; cases ht1'
+  wp_apply wp_Sclone p s $$ [Hs] as %q Hq
+  · iexact Hs
+  try wp_auto
+  ipersist ns
+  odm T1
+  wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+  · iframe Hx; ipureintro; exact ht1
+  try wp_auto
+  wp_apply wp_setInt g.CurrentTerm' s.currentTerm n u1 $$ [HCurrentTerm] as %ctl #Hctl
+  · iframe HCurrentTerm; ipureintro; exact ⟨Hn, by rw [HWf.len_currentTerm]; exact Hlt⟩
+  try wp_auto
+  rw [Hu1]
+  wp_apply wp_set_currentTerm q s ctl (s.currentTerm.set (sint.nat n) t1)
+    (by rw [List.length_set, HWf.len_currentTerm]) $$ [Hq Hctl] as Hq
+  · iframe Hq Hctl
+  try wp_auto
+  wp_join (v := executeVal) iprop(stateOwn q (ns0 X t1 vd (OnDiskProofLaws.vf0 X vd))) at next with [Hq] as Hq
+  · odm voted
+    wp_apply wp_voted _ X vd $$ [Hx]
+    · iframe Hx; ipureintro; exact hvd
+    cases vd
+    · try wp_auto
+      wp_join_done
+      have : ({ s with currentTerm := s.currentTerm.set (sint.nat n) t1 } : State) =
+          ns0 X t1 false (OnDiskProofLaws.vf0 X false) := by subst hX; rfl
+      rw [this]; iexact Hq
+    obtain ⟨v, hv⟩ := hvv rfl
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1' %Hu1'
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    wp_apply wp_setInt g.VoteTerm' s.voteTerm n u1' $$ [HVoteTerm] as %vtl #Hvtl
+    · iframe HVoteTerm; ipureintro; exact ⟨Hn, by rw [HWf.len_voteTerm]; exact Hlt⟩
+    try wp_auto
+    rw [Hu1']
+    wp_apply wp_set_voteTerm q { s with currentTerm := s.currentTerm.set (sint.nat n) t1 } vtl (s.voteTerm.set (sint.nat n) t1)
+      (by rw [List.length_set, HWf.len_voteTerm]) $$ [Hq Hvtl] as Hq
+    · iframe Hq Hvtl
+    try wp_auto
+    wp_apply wp_Event_vote pw X.w v $$ [Hw]
+    · iframe Hw; ipureintro; exact hv
+    try wp_auto
+    wp_apply wp_setStr g.VoteFor' s.voteFor n v $$ [HVoteFor] as %vfl #Hvfl
+    · iframe HVoteFor; ipureintro; exact ⟨Hn, by rw [HWf.len_voteFor]; exact Hlt⟩
+    try wp_auto
+    wp_apply wp_set_voteFor q { { s with currentTerm := s.currentTerm.set (sint.nat n) t1 } with
+        voteTerm := s.voteTerm.set (sint.nat n) t1 } vfl (s.voteFor.set (sint.nat n) v)
+      (by rw [List.length_set, HWf.len_voteFor]) $$ [Hq Hvfl] as Hq
+    · iframe Hq Hvfl
+    try wp_auto
+    wp_join_done
+    have : ({ { { s with currentTerm := s.currentTerm.set (sint.nat n) t1 } with
+        voteTerm := s.voteTerm.set (sint.nat n) t1 } with voteFor := s.voteFor.set (sint.nat n) v } : State) =
+        ns0 X t1 true (OnDiskProofLaws.vf0 X true) := by
+      have hw : X.w.vote = some v := need_ok hv
+      simp only [ns0, OnDiskProofLaws.vf0, ite_true, hw, Option.getD_some]
+      subst hX; rfl
+    rw [this]; iexact Hq
   done
