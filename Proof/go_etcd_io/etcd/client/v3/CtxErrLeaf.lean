@@ -65,11 +65,14 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **A done context's error** (persistent): a non-nil leaf error (`errors.isLeafError`) of a
 context error's shape (`ctxErrShape`: no `Is` method, no `EtcdError`), a pointer if an
 `*errors.errorString` (`errPtrOk`), whose `Error()` stably returns one of Go's two context messages
-(`ctxErrMsg`, `errorMsgIs`). -/
+(`ctxErrMsg`, `errorMsgIs`). If of type `deadlineExceededError`, it holds `deadlineExceededError{}`:
+`errors.IsDeadlineExceeded` needs this to compare it with `context.DeadlineExceeded` (Go's typing;
+errors-is-deadline, 2026-11-23). -/
 def ctxErrLeaf (err : GoInterface) : IProp GF :=
   iprop(∃ (e : GoInterfaceOk) (m : GoString),
     ⌜err = GoInterface.ok e ∧ ctxErrMsg m ∧ ctxErrShape e ∧ errors.isLeafError e ∧
-      errPtrOk err⌝ ∗ errorMsgIs e m)
+      errPtrOk err ∧ (e.ty = _root_.Perennial.context.deadlineExceededError.ty →
+        e.v = #(zero_val _root_.Perennial.context.deadlineExceededError))⌝ ∗ errorMsgIs e m)
 
 instance ctxErrLeaf_persistent (err : GoInterface) : Persistent (ctxErrLeaf (GF := GF) err) := by
   unfold ctxErrLeaf; infer_instance
@@ -88,7 +91,8 @@ theorem ctxErrLeaf_of_isCtxErr (err : GoInterface) :
     iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩, go!"context canceled"
     isplitl []
     · ipureintro
-      refine ⟨rfl, Or.inl rfl, ⟨?_, hl.2.2⟩, hl.2.1, errPtrOk_ptr x⟩
+      refine ⟨rfl, Or.inl rfl, ⟨?_, hl.2.2⟩, hl.2.1, errPtrOk_ptr x,
+        fun h => absurd h (_root_.Perennial.context.deadlineExceededError_ne_ptr _).symm⟩
       unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
     · unfold errorMsgIs
       iintro !> %Φ HΦ
@@ -104,7 +108,7 @@ theorem ctxErrLeaf_of_isCtxErr (err : GoInterface) :
     isplitl []
     · ipureintro
       refine ⟨rfl, Or.inr rfl, ⟨?_, by simp [hIs]⟩,
-        by simp [_root_.Perennial.errors.isLeafError, hAs, hU], ?_⟩
+        by simp [_root_.Perennial.errors.isLeafError, hAs, hU], ?_, fun _ => rfl⟩
       · unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty
           _root_.Perennial.context.deadlineExceededError.ty
         simp
@@ -122,12 +126,14 @@ grpc's `status`, no caller's `errors.New` value, and of a context error's shape 
 theorem ctxErrLeaf_of_errs (err : GoInterface) (hne : err ≠ GoInterface.nil) :
     statusErrOk (GF := GF) err ∗ errCellOk err ∗
       (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
-        ⌜err = GoInterface.ok e ∧ ctxErrMsg m ∧ ctxErrShape e⌝ ∗ errorMsgIs e m) ⊢
+        ⌜err = GoInterface.ok e ∧ ctxErrMsg m ∧ ctxErrShape e ∧
+          (e.ty = _root_.Perennial.context.deadlineExceededError.ty →
+            e.v = #(zero_val _root_.Perennial.context.deadlineExceededError))⌝ ∗ errorMsgIs e m) ⊢
       ctxErrLeaf err := by
   iintro ⟨#Hs, #Hc, Hm⟩
   icases Hm with (%Hn | ⟨%e, %m, %Hem, #Hm⟩)
   · exact absurd Hn hne
-  obtain ⟨rfl, hm, hsh⟩ := Hem
+  obtain ⟨rfl, hm, hsh, hde⟩ := Hem
   iunfold statusErrOk at Hs
   ihave ⟨-, %Hl, -, -⟩ := Hs $$ %e %rfl
   ihave %Hp := errPtrOk_of_cell (GoInterface.ok e) $$ Hc
@@ -135,7 +141,7 @@ theorem ctxErrLeaf_of_errs (err : GoInterface) (hne : err ≠ GoInterface.nil) :
   iexists e, m
   iframe Hm
   ipureintro
-  exact ⟨rfl, hm, hsh, Hl, Hp⟩
+  exact ⟨rfl, hm, hsh, Hl, Hp, hde⟩
 
 end defs
 
