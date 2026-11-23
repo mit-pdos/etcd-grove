@@ -239,8 +239,12 @@ predicate can be a ghost-only representation whose ghost names are carried in it
 existentially inside it (`own m M` as an authoritative map element at a name stored in the
 predicate's own existential, allocated by `own_zero`'s update; the gRPC world's registry name is
 already the argument `W.reg`, allocated by `GrpcWorldHyp`), and the specs that need shared state
-(`sync.Map`'s `Load`/`Store`/`Delete`) are logically atomic, so the library's own invariant can be
-opened inside the spec rather than named by the vocabulary. Nothing here constructs such a model.
+(`sync.Map`'s `Load`/`Store`/`Delete`) are logically atomic. Since `qv` is fixed before any heap,
+`own` cannot carry an invariant across calls: a model needs a ghost-only or physical representation
+(the map's cells themselves, or ghost state at a name inside `own`'s existential), reached through
+the specs' update and atomic steps, not an invariant named by the vocabulary (review #24). `MapHyp.ivt`
+remains an honest open doubt: a claim about Perennial's model at an opaque type, believed satisfiable.
+Nothing here constructs such a model.
 
 `etc/theorem-loc.py quepaxa_remote_robust --no-go`: `tcb 787` lines (582 before review #24's
 finding 2: `Msg.lean`'s `fields*`/`rt*`/`pt*`), all statement premises (`tcb_premises 787`, `tcb_axioms 0`, `axioms 0`); `--list-tcb` lists the seven `InitHyp` classes
