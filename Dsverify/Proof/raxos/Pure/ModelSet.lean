@@ -493,6 +493,253 @@ theorem step_errR (hne : ∃ c, mSet M c) {i : KIn} (hp : i.put = false) :
   · intro c' hc'
     exact ⟨c', c', hc', .errR c' i hp rfl, .refl _⟩
 
+theorem all_mk0 (f : Bool) (v : GoString) (A : List GoString) : Ent.all ⟨f, v, A, []⟩ = A :=
+  List.append_nil A
+
+theorem known_true (v : GoString) (o n : List GoString) : Ent.known ⟨true, v, o, n⟩ = some v := rfl
+
+/-- Any part of an entry's pending values is pending in one of its configurations. -/
+theorem pre_of_sub (e : Ent) {R : List GoString} (h : R.Subperm e.all) : ∃ σ, eSet e σ R := by
+  rcases split_subperm h with hp | ⟨y, hy, hR⟩
+  · exact ⟨e.known, .inl ⟨rfl,
+      hp.symm.subperm_left.1 (List.sublist_append_right _ _).subperm, h⟩⟩
+  · exact ⟨some y, .inr ⟨y, hy, rfl, hR⟩⟩
+
+theorem pstep_ok_inv {c c₁ : Cfg} {i : KIn} {o : KOut} (hs : PStep kvB c i (.ok o) c₁) :
+    o = (kvB.step i c.st).2 ∧ c₁ = ⟨(kvB.step i c.st).1, c.pend⟩ := by
+  cases hs with
+  | ok _ => exact ⟨rfl, rfl⟩
+  | obs _ h _ => simp [kvB] at h
+
+theorem pstep_ok_mk (c : Cfg) (i : KIn) :
+    PStep kvB c i (.ok (kvB.step i c.st).2) ⟨(kvB.step i c.st).1, c.pend⟩ := .ok c i rfl
+
+/-- An answered put. -/
+theorem step_okput (hne : ∃ c, mSet M c) {i : KIn} (hp : i.put = true) (o : KOut) :
+    (pSeq kvB).step (mSet M) (i, .ok o) =
+      if o = ⟨false, []⟩ then some (mSet (upd M i.k ⟨true, i.v, (M i.k).all, []⟩)) else none := by
+  have ho : ∀ st : Store, (kvB.step i st).2 = ⟨false, []⟩ := by intro st; simp [kvB, hp]
+  split
+  · rename_i hoo
+    subst hoo
+    obtain ⟨e, he⟩ : ∃ e, M i.k = e := ⟨_, rfl⟩
+    rw [he]
+    have sound : ∀ c c₁, mSet M c → PStep kvB c i (.ok ⟨false, []⟩) c₁ →
+        mSet (upd M i.k ⟨true, i.v, e.all, []⟩) c₁ := by
+      intro c c₁ hc hs
+      obtain ⟨-, rfl⟩ := pstep_ok_inv hs
+      refine mSet_upd_of hc hc.1 (fun k' hk => by simp [kvB, hp, hk]) (fun _ _ => rfl) ?_
+      simp only [kvB, hp, ↓reduceIte]
+      rcases (he ▸ hc.2 i.k) with ⟨-, -, h3⟩ | ⟨x, -, -, h2⟩
+      · exact .inl ⟨rfl, List.nil_subperm, by simpa [Ent.all] using h3⟩
+      · exact .inl ⟨rfl, List.nil_subperm, by
+          simpa [Ent.all] using h2.trans (List.erase_subperm _ _)⟩
+    refine pSeq_some (mSet_closed M) (mSet_closed _) sound ?_ ?_
+    · intro c' hc'
+      have ho' := others_of_upd hc'
+      have hk := hc'.2 i.k
+      rw [upd_same] at hk
+      unfold eSet at hk; rw [all_mk0, known_true] at hk
+      rcases hk with ⟨h1, -, h3⟩ | ⟨x, hx, h1, h2⟩
+      · obtain ⟨σ, hσ⟩ := pre_of_sub e h3
+        refine ⟨put c' i.k σ (vals i.k c'.pend), put c' i.k (some i.v) (vals i.k c'.pend),
+          mSet_put hc'.1 ho' (by rw [he]; exact hσ), ?_, ?_⟩
+        · rw [← put_ok_put c' hp, ← ho]; exact pstep_ok_mk _ _
+        · rw [← h1]; exact reach_put_self hc'.1 i.k
+      · obtain ⟨σ, hσ⟩ := pre_of_sub e (cons_subperm hx h2)
+        refine ⟨put c' i.k σ (x :: vals i.k c'.pend), put c' i.k (some i.v) (x :: vals i.k c'.pend),
+          mSet_put hc'.1 ho' (by rw [he]; exact hσ), ?_, ?_⟩
+        · rw [← put_ok_put c' hp, ← ho]; exact pstep_ok_mk _ _
+        · exact reach_end hc'.1 h1 _ List.mem_cons_self (by simpa using List.Subperm.refl _)
+    · obtain ⟨c, hc⟩ := hne
+      exact ⟨_, sound c _ hc (by rw [← ho c.st]; exact pstep_ok_mk _ _)⟩
+  · rename_i hoo
+    refine pSeq_none (mSet_closed M) fun c c₁ _ hs => ?_
+    obtain ⟨h1, -⟩ := pstep_ok_inv hs
+    exact hoo (h1.trans (ho _))
+
+theorem get_answer {c c₁ : Cfg} {i : KIn} (hp : i.put = false) {o : KOut}
+    (hs : PStep kvB c i (.ok o) c₁) : o = ans (c.st i.k) ∧ c₁ = c := by
+  obtain ⟨h1, h2⟩ := pstep_ok_inv hs
+  rw [get_ok c hp] at h1 h2
+  exact ⟨h1, h2⟩
+
+theorem get_step (c : Cfg) {i : KIn} (hp : i.put = false) :
+    PStep kvB c i (.ok (ans (c.st i.k))) c := by
+  have := pstep_ok_mk c i
+  rw [get_ok c hp] at this
+  exact this
+
+theorem st_put_self (c : Cfg) (k : GoString) (σ : Option GoString) (R : List GoString) :
+    (put c k σ R).st k = σ := by simp [st_put]
+
+/-- An answered get that saw the known state: nothing changes. -/
+theorem step_get_eq (hne : ∃ c, mSet M c) {i : KIn} (hp : i.put = false) :
+    (pSeq kvB).step (mSet M) (i, .ok (ans (M i.k).known)) = some (mSet M) := by
+  refine pSeq_some (mSet_closed M) (mSet_closed M) ?_ ?_ ?_
+  · intro c c₁ hc hs; obtain ⟨-, rfl⟩ := get_answer hp hs; exact hc
+  · intro c' hc'
+    rcases hc'.2 i.k with ⟨h1, -, -⟩ | ⟨x, hx, h1, h2⟩
+    · exact ⟨c', c', hc', h1 ▸ get_step c' hp, .refl _⟩
+    · refine ⟨put c' i.k (M i.k).known (M i.k).all, put c' i.k (M i.k).known (M i.k).all,
+        mSet_put hc'.1 (fun k' _ => hc'.2 k') (eSet_known_all _), ?_, ?_⟩
+      · have := get_step (put c' i.k (M i.k).known (M i.k).all) hp
+        rwa [st_put_self] at this
+      · exact reach_end hc'.1 h1 _ hx h2
+  · obtain ⟨c, hc⟩ := hne
+    exact ⟨_, mSet_put hc.1 (fun k' _ => hc.2 k') (eSet_known_all (M i.k))⟩
+
+/-- An answered get that saw a pending value `w`: that put took effect last. -/
+theorem step_get_fire (hne : ∃ c, mSet M c) {i : KIn} (hp : i.put = false) {w : GoString}
+    (hw : w ∈ (M i.k).all) (hne' : (⟨true, w⟩ : KOut) ≠ ans (M i.k).known) :
+    (pSeq kvB).step (mSet M) (i, .ok ⟨true, w⟩) =
+      some (mSet (upd M i.k ⟨true, w, (M i.k).all.erase w, []⟩)) := by
+  obtain ⟨e, he⟩ : ∃ e, M i.k = e := ⟨_, rfl⟩
+  rw [he] at hw hne' ⊢
+  have sound : ∀ c c₁, mSet M c → PStep kvB c i (.ok ⟨true, w⟩) c₁ →
+      mSet (upd M i.k ⟨true, w, e.all.erase w, []⟩) c₁ := by
+    intro c c₁ hc hs
+    obtain ⟨ho, rfl⟩ := get_answer hp hs
+    refine mSet_upd_of hc hc.1 (fun _ _ => rfl) (fun _ _ => rfl) ?_
+    rcases (he ▸ hc.2 i.k) with ⟨h1, -, -⟩ | ⟨x, -, h1, h2⟩
+    · exact absurd (h1 ▸ ho) hne'
+    · rw [h1] at ho ⊢
+      simp only [ans, KOut.mk.injEq, true_and] at ho
+      subst ho
+      exact .inl ⟨by simp [Ent.known], List.nil_subperm, by simpa [Ent.all] using h2⟩
+  refine pSeq_some (mSet_closed M) (mSet_closed _) sound ?_ ?_
+  · intro c' hc'
+    have ho' := others_of_upd hc'
+    have hk := hc'.2 i.k
+    rw [upd_same] at hk
+    unfold eSet at hk; rw [all_mk0, known_true] at hk
+    rcases hk with ⟨h1, -, h3⟩ | ⟨x, hx, h1, h2⟩
+    · refine ⟨c', c', ?_, ?_, .refl _⟩
+      · have h : mSet M (put c' i.k (some w) (vals i.k c'.pend)) :=
+          mSet_put hc'.1 ho' (by rw [he]; exact .inr ⟨w, hw, rfl, h3⟩)
+        rw [← h1] at h
+        exact mSet_closed M _ _ h (reach_put_self hc'.1 i.k)
+      · have := get_step c' hp; rwa [h1] at this
+    · refine ⟨put c' i.k (some w) (x :: vals i.k c'.pend), put c' i.k (some w) (x :: vals i.k c'.pend),
+        mSet_put hc'.1 ho' (by rw [he]; exact .inr ⟨w, hw, rfl, cons_subperm hx h2⟩), ?_, ?_⟩
+      · have := get_step (put c' i.k (some w) (x :: vals i.k c'.pend)) hp
+        rwa [st_put_self] at this
+      · exact reach_end hc'.1 h1 _ List.mem_cons_self (by simpa using List.Subperm.refl _)
+  · obtain ⟨c, hc⟩ := hne
+    have hc1 : mSet M (put c i.k (some w) (e.all.erase w)) :=
+      mSet_put hc.1 (fun k' _ => hc.2 k') (by rw [he]; exact .inr ⟨w, hw, rfl, List.Subperm.refl _⟩)
+    have := get_step (put c i.k (some w) (e.all.erase w)) hp
+    rw [st_put_self] at this
+    exact ⟨_, sound _ _ hc1 this⟩
+
+/-- Any other answer of a get: impossible. -/
+theorem step_get_bad {i : KIn} (hp : i.put = false) {o : KOut}
+    (h1 : o ≠ ans (M i.k).known) (h2 : ¬ (o.found = true ∧ o.v ∈ (M i.k).all)) :
+    (pSeq kvB).step (mSet M) (i, .ok o) = none := by
+  refine pSeq_none (mSet_closed M) fun c c₁ hc hs => ?_
+  obtain ⟨ho, -⟩ := get_answer hp hs
+  rcases hc.2 i.k with ⟨h, -, -⟩ | ⟨x, hx, h, -⟩
+  · exact h1 (h ▸ ho)
+  · rw [h] at ho; subst ho; exact h2 ⟨rfl, hx⟩
+
+theorem upd_self (M : GoString → Ent) (k : GoString) : upd M k (M k) = M := by
+  funext k'; simp only [upd]; split <;> simp_all
+
+theorem eq_ans_iff {e : Ent} (he : e.Ok) (o : KOut) :
+    (o.found = e.f ∧ o.v = e.v) ↔ o = ans e.known := by
+  obtain ⟨f, v⟩ := o
+  obtain ⟨ef, ev, eo, en⟩ := e
+  cases ef
+  · have : ev = [] := he rfl
+    subst this
+    simp [ans, Ent.known]
+  · simp [ans, Ent.known]
+
+/-- **The model's step is `pSeq kvB`'s** on the sets the states stand for (`model.go`'s `stepE` on
+the input's key; `hne`: the state stands for some configuration, as every state the model reaches
+does). -/
+theorem step_mSet (hne : ∃ c, mSet M c) (i : KIn) (hok : (M i.k).Ok) (a : Ans KOut) :
+    (pSeq kvB).step (mSet M) (i, a) =
+      if (stepE (M i.k) i a).1 then some (mSet (upd M i.k (stepE (M i.k) i a).2)) else none := by
+  cases a with
+  | err =>
+    cases hp : i.put
+    · simp only [stepE, hp, Bool.false_eq_true, ↓reduceIte, upd_self]; exact step_errR hne hp
+    · simp only [stepE, hp, ↓reduceIte]; exact step_errW hne hp
+  | ok o =>
+    cases hp : i.put
+    · simp only [stepE, hp, Bool.false_eq_true, ↓reduceIte]
+      by_cases h1 : o.found = (M i.k).f ∧ o.v = (M i.k).v
+      · rw [if_pos h1, (eq_ans_iff hok o).1 h1]
+        simp only [↓reduceIte, upd_self]
+        exact step_get_eq hne hp
+      · rw [if_neg h1]
+        have h1' : o ≠ ans (M i.k).known := fun h => h1 ((eq_ans_iff hok o).2 h)
+        by_cases h2 : o.found = true ∧ o.v ∈ (M i.k).all
+        · rw [if_pos h2]
+          obtain ⟨found, w⟩ := o
+          simp only at h2
+          obtain ⟨rfl, hw⟩ := h2
+          exact step_get_fire hne hp hw h1'
+        · rw [if_neg h2]; exact step_get_bad hp h1' h2
+    · simp only [stepE, hp, ↓reduceIte]
+      rw [step_okput hne hp o]
+      obtain ⟨found, v⟩ := o
+      cases found <;> cases v <;> simp
+
 end steps
+
+/-! ## The model's initial state and invariants -/
+
+theorem stepE_ok {e : Ent} (he : e.Ok) (i : KIn) (a : Ans KOut) : (stepE e i a).2.Ok := by
+  unfold stepE
+  cases a with
+  | err => cases i.put <;> simpa [Ent.Ok] using he
+  | ok o =>
+    cases i.put
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+      split
+      · exact he
+      · split
+        · intro h; simp at h
+        · exact he
+    · simp only [↓reduceIte]
+      split
+      · exact he
+      · intro h; simp at h
+
+/-- **The model's initial state** (no entry) stands for linkv's initial set. -/
+theorem mSet_empty : mSet (fun _ => Ent.empty) = pInit kvB := by
+  funext c
+  apply propext
+  constructor
+  · rintro ⟨hp, he⟩
+    have hk : ∀ k, c.st k = none ∧ vals k c.pend = [] := by
+      intro k
+      rcases he k with ⟨h1, -, h3⟩ | ⟨x, hx, -, -⟩
+      · exact ⟨h1, List.subperm_nil.1 h3⟩
+      · simp [Ent.empty, Ent.all] at hx
+    obtain ⟨st, pend⟩ := c
+    simp only [pInit, PCfg.mk.injEq]
+    constructor
+    · funext k; exact (hk k).1
+    · cases pend with
+      | nil => rfl
+      | cons j p =>
+        have := (hk j.k).2
+        rw [vals_cons_same rfl] at this
+        cases this
+  · intro h
+    subst h
+    refine ⟨fun i hi => by simp [pInit] at hi, fun k => Or.inl ⟨rfl, ?_, ?_⟩⟩ <;>
+      simp [vals, Ent.empty, Ent.all, kvB]
+
+/-- A state `pSeq` reaches is not empty. -/
+theorem pSeq_some_ne {S T : PSet Store KIn} {x : KIn × Ans KOut} (h : (pSeq kvB).step S x = some T) :
+    ∃ c, T c := by
+  simp only [pSeq] at h
+  split at h
+  · rename_i hc; obtain ⟨c, hc⟩ := hc; cases h; exact ⟨c, hc⟩
+  · cases h
 
 end Perennial.raxos.pure
