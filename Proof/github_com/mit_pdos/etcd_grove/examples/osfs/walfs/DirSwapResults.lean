@@ -6,14 +6,14 @@ metadata operations closed under the journal order, replayed; a process restart 
 under the semantics' "Restarts" assumption).
 
 The boot program's precondition, over a generation's local ghost state `L` (`bootPreDS`), is `L`'s
-invariant of the mapped cells, the whole of the tree's history, which is `SafeH` and `MonoH`
-(`DirSwap.lean`) with some key `ko`, and that key's file as `L` starts with it (`startFile`),
-`DataGood`. Each generation puts half of the history and of the file in its crash invariant
-(`dsInv`) and runs `BootDir` (`wp_BootDir`). After a crash, the crash part opens the old
-generation's invariant: the new history is a crash of the old one (`osTreeCrash_take`), so its
-facts hold with the invariant's key, whose file in the new generation is a crash of the
-invariant's half (`osCrash_take_runs_keep`), so `DataGood`; if the crash dropped it, no crash of
-the new history names it, and the key `none` will do.
+invariant of the mapped cells, the shared view's resources of the durable tree `m` the generation
+starts from (`osShared R (m, [])`), `m` well formed and `SafeT` (`DSClaims.lean`) with some key `ko`,
+and that key's file as `L` starts with it (`startFile`), `DataGood`. Each generation splits the
+claims of `m` between its crash invariant (`dsInv`) and the program (`ds_start`) and runs `BootDir`
+(`wp_BootDir`). After a crash, the crash part opens the old generation's invariant (`ds_crash`): the
+tree left is `SafeT` with the invariant's key, whose file in the new generation is a crash of the
+invariant's half, so `DataGood` (if the crash dropped it, the key `none` will do); the next
+generation's shared resources come from the old generation's `osSharedInv` (`crashRest_treeS'`).
 
 **What is assumed**, as for `segdir`'s result (`Results.lean`): the package initializer
 (`Hinit_wp`), the hand-written `os.file` field facts and `os`'s Goose-generated package facts
@@ -57,8 +57,8 @@ variable [GoGlobalContext] {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF]
 `j`. -/
 def bootPreDS (R : Roots) (j : Ino) (L : GooseLocalGS GF) : IProp GF :=
   iprop(osInv (L := L) ∗ ownGoState (hG := L.goose_go_stateGS) ∅ ∗
-    ∃ (V : Hist) (ko : Option Ino), osTree (L := L) (DFrac.own 1) R V ∗
-      ⌜SafeH j ko V ∧ MonoH j V⌝ ∗ startFile (L := L) ko)
+    ∃ (m : Tree) (ko : Option Ino), osShared (L := L) R (m, []) ∗
+      ⌜TreeWf R m ∧ SafeT j ko m⌝ ∗ startFile (L := L) ko)
 
 end gen
 
@@ -105,18 +105,19 @@ theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
     unfold bootPreDS
     imodintro
     iframe Hos Hgs
+    have hwf : TreeWf R (extLocal fsExt σ.world).fs.treeDur := hRdef ▸ Hinit.2.2.2.2.1
     rcases Hsafe with hs | ⟨k, hs, f, hf, hgood⟩
     · iexists _, none
       iframe Ht
       isplitr
-      · ipureintro; exact inv_nil hs
+      · ipureintro; exact ⟨hwf, hs⟩
       unfold startFile; iempintro
     · icases (BigSepM.bigSepM_lookup
         (Φ := fun i f => osFileStart (L := hG.goose_localGS) i f) hf) $$ Hfs with Hf
       iexists _, (some k)
       iframe Ht
       isplitr
-      · ipureintro; exact inv_nil hs
+      · ipureintro; exact ⟨hwf, hs⟩
       unfold startFile
       iexists _
       iframe Hf
@@ -128,82 +129,39 @@ theorem dirswap_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics
     subst Hlctx'
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold bootPreDS
-    iintro ⟨#Hos, Hgs, %V0, %ko0, Ht, %hs, Hsf⟩ _
-    imod ghostVar_alloc (GF := GF) ko0 with ⟨%γ, Hv⟩
-    icases (ghostVar_split_half (A := Option Ino) γ 1 _).1 $$ Hv with ⟨Hv1, Hv2⟩
-    icases (tree_halves (L := hG.goose_localGS) 1 R V0).1 $$ Ht with ⟨Ht1, Ht2⟩
+    iintro ⟨#Hos, Hgs, %m, %ko0, Hsh, %hs, Hsf⟩ _
     icases startFile_split (L := hG.goose_localGS) ko0 $$ Hsf with ⟨Hk, Hs⟩
-    imod inv_alloc dsN ⊤ (iprop(∃ (V : Hist) (ko : Option Ino),
-        osTree (L := hG.goose_localGS) (DFrac.own (1 : Qp).half) R V ∗
-        ghostVar γ (1 : Qp).half ko ∗ ⌜SafeH j ko V ∧ MonoH j V⌝ ∗
-        keyRes (L := hG.goose_localGS) ko)) $$ [Ht2 Hv1 Hk] with #Hinv
-    · inext; iexists V0, ko0; iframe; ipureintro; exact hs
+    imod ds_start (L := hG.goose_localGS) R dir j Hdir m hs.1 ko0 hs.2 ⊤ CoPset.subseteq_top
+      $$ Hsh Hk with ⟨%γ, #Hinv, Hh, Ht, HT, HK, #Hsi, -, Hperms, -⟩
+    icases osCallPerms_root (L := hG.goose_localGS) R dir j hR Hdir $$ Hperms with ⟨Hperm, -⟩
     imodintro
-    isplitl [Hgs Ht1 Hv2 Hs]
+    isplitl [Hgs Hperm Hh Ht HT HK Hs]
     · -- the boot program
       unfold bootDS
       wp_apply Hinit_wp $$ Hgs
       wp_pures
       wp_apply wp_BootDir os.File.ReadAt.wp_proof os.File.Close.wp_proof os.File.WriteAt.wp_proof
-          os.File.Sync.wp_proof R hR dir j Hdir γ V0 ko0 (safeH_now hs.1) $$ [Ht1 Hv2 Hs]
-      · iframe; iframe #; unfold dsInv; iexact Hinv
+          os.File.Sync.wp_proof R dir j Hdir γ m ko0 hs.2 $$ [Hperm Hh Ht HT HK Hs]
+      · iframe; iframe #
       ipureintro; rfl
     · -- after a crash: the tree and the file from the old generation's invariant
-      iintro %L' %V' _ #Hos' Hr Hgs'
-      imod inv_acc (E := ⊤) (show ↑dsN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
-        with ⟨Hi, Hclose⟩
-      icases Hi with ⟨%V, %ko, >Ht, >Hv, >%Hp, >Hk⟩
-      icases osTreeCrash_take (fun _ _ => True) hG.goose_localGS L' [] V' _ R V $$ Hr Ht
-        with ⟨%hc, Ht', Hr, Ht⟩
-      have hp' := inv_crash Hp hc
-      cases ko with
-      | none =>
-        imod Hclose $$ [Ht Hv Hk] with -
-        · inext; iexists V, none; iframe; ipureintro; exact Hp
-        imodintro
-        iframe Hos' Hgs'
-        iexists V', none
-        iframe Ht'
-        isplitr
-        · ipureintro; exact hp'
-        unfold startFile; iempintro
-      | some k =>
-        try unfold keyRes
-        dsimp only
-        icases Hk with ⟨%m, %bs, Hm, Hb, %hgood⟩
-        icases osCrash_take_runs_keep (fun _ _ => True) hG.goose_localGS L' [] true V' k
-          List.not_mem_nil _ m [(0, DFrac.own (1 : Qp).half, bs)] $$ Hr Hm [Hb]
-          with ⟨%fo, %hfo, Hf, -, Hm, Hb⟩
-        · iapply BigSepL.bigSepL_singleton.2; iexact Hb
-        icases BigSepL.bigSepL_singleton.1 $$ Hb with Hb
-        imod Hclose $$ [Ht Hv Hm Hb] with -
-        · inext; iexists V, (some k); iframe Ht Hv
-          isplitr
-          · ipureintro; exact Hp
-          dsimp only
-          iexists m, bs
-          iframe
-          ipureintro; exact hgood
-        imodintro
-        iframe Hos' Hgs'
-        obtain ⟨hfc, hnamed, -⟩ := hfo
-        cases fo with
-        | none =>
-          iexists V', none
-          iframe Ht'
-          isplitr
-          · ipureintro
-            exact inv_unnamed hp' (fun hn => by have := hnamed hn; simp at this)
-          unfold startFile; iempintro
-        | some f =>
-          iexists V', (some k)
-          iframe Ht'
-          isplitr
-          · ipureintro; exact hp'
-          unfold startFile osFileStartO
-          iexists f
-          iframe Hf
-          ipureintro; exact hgood _ hfc
+      iintro %L' %V' _ #Hos' Hr Hgs' -
+      imod ds_crash (fun _ _ => True) hG.goose_localGS L' R j γ V' $$ Hinv Hsi Hr
+        with ⟨%ko, %D, %hs', Hsf, Hr⟩
+      imod crashRest_treeWf' (fun _ _ => True) hG.goose_localGS L' D false V' R ⊤ CoPset.subseteq_top
+        $$ Hsi Hr with ⟨%hwf', Hr⟩
+      imod crashRest_treeS' (fun _ _ => True) hG.goose_localGS L' D V' R ⊤ CoPset.subseteq_top
+        $$ Hsi Hr with ⟨%hV, Hsh', -⟩
+      obtain ⟨m', l⟩ := V'
+      simp only at hV
+      subst hV
+      have hnow : Hist.now ((m', []) : Hist) = m' := by simp [Hist.now, Hist.ops, replay]
+      rw [hnow] at hs' hwf'
+      imodintro
+      iframe Hos' Hgs'
+      iexists m', ko
+      iframe Hsh' Hsf
+      ipureintro; exact ⟨hwf', hs'⟩
 
 /-- **Crash safety of `examples/osfs/walfs`'s `dirswap.BootDir`.** In every execution with crashes
 of the boot program (`RealCrashNsteps`, the real semantics), from a state whose Go context
