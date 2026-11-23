@@ -214,3 +214,33 @@ the old one.
   4 hits are the scan's pre-existing false positives); `git diff <base> -- etc/goose.py
   etc/gen-init.py` empty (gods' settings are in `etc/dsv/{epaxos,swiftpaxos}.py`).
 * `models/internal/tpdifftest/run.sh`: ok.
+
+## Merged with lean e6f16339c2 (dsv-json-main, Perennial ccfeb3895), 2026-11-23
+
+`dsv-json-main` (on `lean`) moved both kits onto the main tree's encoding/json and removed their
+`encoding.json.InitHyp` premises; this branch removes the treemap premises. The merge (497e4872f9)
+keeps both:
+
+* Conflicts (three files): epaxos's `epaxos_remote_robust.spec` (the json InitHyp line on our side,
+  the treemap premise on lean's: both dropped), its header's premise list (json-main's wording for
+  the initializers, no treemap bullet), its proof's `intro` (neither `hji` nor `htm`), and
+  swiftnet's header (json-main's initializer wording, no treemap). `etc/dsv/{epaxos,swiftpaxos}.py`
+  merged cleanly: json-main's settings plus `module_models`.
+* `etc/goose.py --check` (Perennial ccfeb3895) and `etc/gen-init.py` (twice, 273 files): no changes.
+* Statement diff against `lean`: removals only. epaxos: the premise
+  `∀ G L, letI := heapAt G L; github_com.emirpasic.gods.maps.treemap.Hyps remoteGF` (and its header
+  bullet). swiftpaxos: `SwiftLibs` loses `isTreeMap`/`isTreeMap_sorted`, `SwiftHyps` loses
+  `treemap_NewWith`/`Put`/`Get` (and the restated lab names); the spec text is lean's.
+
+Checks after the merge:
+
+* fk-lean1 (head cd9688eed2, with a scratch module, dropped in the next commit): the six
+  TopLevelRobustness modules build; `#print axioms` of `swiftpaxos_remote_robust`,
+  `rabia_remote_robust`, `epaxos_remote_robust`, `quepaxa_remote_robust`, `paxos_remote_robust`,
+  `counter_remote_robust` and `treemap.hyps_true`, imported together: `[propext, Classical.choice,
+  Quot.sound]` each.
+* Here: tier-check ok (227 known, no new); gen-init --check ok (273); goose --check ok;
+  copy-part --check 0 differ; `proof_roots.namespace()` = `Perennial.EtcdGrove.`; the dup scan: the
+  same 4 pre-existing false positives; `git diff origin/lean -- etc/goose.py etc/gen-init.py` empty;
+  `models/internal/tpdifftest/run.sh` ok.
+* Still waiting: Upamanyu's review of the `MODEL:` commit 5a23ad3863.
