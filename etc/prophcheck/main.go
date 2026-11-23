@@ -24,6 +24,7 @@
 //
 //	P.ResolveBool(E)   P.ResolveU64(E)        P an added prophecy: a prophecy-only variable, X.F for a
 //	                                          prophecy-only field F, or a local prophecy of the patch
+//	P.Resolve(A)                              A a resolved value (below)
 //	H(E...)   X.H(E...)                       a call of a prophecy-only helper (helpers do not recurse)
 //	NAME := E   NAME = E   NAME op= E         NAME a local of the helper (a parameter or a local
 //	NAME++   NAME--                           it defines)
@@ -35,6 +36,7 @@
 //
 //	NAME := primitive.NewProph()              NAME not in ORIG: a local prophecy
 //	P.ResolveBool(E)   P.ResolveU64(E)        P an added prophecy
+//	P.Resolve(A)                              A a resolved value (below)
 //	H(E...)   X.H(E...)                       a call of a prophecy-only helper
 //	X.F = primitive.NewProph()                F a prophecy-only field
 //	if C { S... } else { S... }               (no init statement; the branches, the else
@@ -46,7 +48,12 @@
 // name `primitive`). E, E2, C and X are read-only expressions: identifiers, literals, field
 // selections, dereferences, indexing, slicing, type assertions, `&` of a field selection or of an
 // indexing, unary (but `<-`) and binary operations of read-only expressions, and calls of `len`,
-// `cap` and conversions to predeclared basic types (names the package does not redeclare).
+// `cap` and conversions to predeclared basic types (names the package does not redeclare). A
+// resolved value A, `Resolve`'s argument (of type any), is a read-only expression, a conversion
+// `any(A)` or `interface{}(A)`, or a struct literal `T{A, ...}` / `T{F: A, ...}` with T a struct
+// type the package declares (without type parameters) or a struct type literal `struct{...}`: a
+// value built from read-only values, with no allocation (no `&T{}`, slice or map literal, `new`,
+// `make` or `append`).
 //
 // Why this is enough: Go's prophecy operations do nothing (goose-lang/primitive's proph.go). A
 // read-only expression has no effect: evaluated, it either produces a value or fails (a nil
@@ -91,6 +98,7 @@ type pkgProphOnly struct {
 	origDir, dir string
 	origNames    map[string]bool          // every identifier of the original package's Go files
 	shadowed     map[string]bool          // the names the original package declares
+	structTypes  map[string]bool          // the struct types the original package declares (no type parameters)
 	vars         map[string]bool          // prophecy-only variables
 	fields       map[string]string        // prophecy-only field -> its struct type
 	helpers      map[string]*ast.FuncDecl // prophecy-only helpers (functions and methods) by name
@@ -214,11 +222,61 @@ func (c *checker) addedProph(p ast.Expr, locals map[string]bool) bool {
 	return false
 }
 
-// resolveCall reports whether call is a resolution `P.ResolveBool(E)` / `P.ResolveU64(E)` of an
-// added prophecy (and reports a bad argument).
+// resolvedValue reports whether a is a resolved value (`Resolve`'s argument): a read-only
+// expression, a conversion to any of a resolved value, or a struct literal of resolved values (T
+// a struct type the package declares, or a struct type literal).
+func (c *checker) resolvedValue(a ast.Expr) bool {
+	switch a := a.(type) {
+	case *ast.ParenExpr:
+		return c.resolvedValue(a.X)
+	case *ast.CompositeLit:
+		switch t := a.Type.(type) {
+		case *ast.Ident:
+			if !c.pkg.structTypes[t.Name] {
+				return false
+			}
+		case *ast.StructType:
+		default:
+			return false
+		}
+		for _, el := range a.Elts {
+			if kv, ok := el.(*ast.KeyValueExpr); ok {
+				if _, ok := kv.Key.(*ast.Ident); !ok {
+					return false
+				}
+				el = kv.Value
+			}
+			if !c.resolvedValue(el) {
+				return false
+			}
+		}
+		return true
+	case *ast.CallExpr:
+		if len(a.Args) == 1 && !a.Ellipsis.IsValid() && c.isAny(a.Fun) {
+			return c.resolvedValue(a.Args[0])
+		}
+	}
+	return c.readOnly(a)
+}
+
+// isAny reports whether t is the type any (not redeclared by the package) or `interface{}`.
+func (c *checker) isAny(t ast.Expr) bool {
+	switch t := t.(type) {
+	case *ast.ParenExpr:
+		return c.isAny(t.X)
+	case *ast.Ident:
+		return t.Name == "any" && !c.pkg.shadowed["any"] && c.pkg.helpers["any"] == nil && !c.pkg.vars["any"]
+	case *ast.InterfaceType:
+		return t.Methods == nil || len(t.Methods.List) == 0
+	}
+	return false
+}
+
+// resolveCall reports whether call is a resolution `P.ResolveBool(E)` / `P.ResolveU64(E)` /
+// `P.Resolve(A)` of an added prophecy (and reports a bad argument).
 func (c *checker) resolveCall(call *ast.CallExpr, locals map[string]bool) bool {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok || (sel.Sel.Name != "ResolveBool" && sel.Sel.Name != "ResolveU64") {
+	if !ok || (sel.Sel.Name != "ResolveBool" && sel.Sel.Name != "ResolveU64" && sel.Sel.Name != "Resolve") {
 		return false
 	}
 	if id, ok := sel.X.(*ast.Ident); ok && !c.origNames[id.Name] && !c.pkg.origNames[id.Name] &&
@@ -228,6 +286,13 @@ func (c *checker) resolveCall(call *ast.CallExpr, locals map[string]bool) bool {
 	}
 	if !c.addedProph(sel.X, locals) {
 		return false
+	}
+	if sel.Sel.Name == "Resolve" {
+		if len(call.Args) != 1 || call.Ellipsis.IsValid() || !c.resolvedValue(call.Args[0]) {
+			c.errorf(call.Pos(), "a resolution: its argument is not one resolved value (a read-only "+
+				"expression, a conversion to any, or a struct literal of resolved values)")
+		}
+		return true
 	}
 	if len(call.Args) != 1 || call.Ellipsis.IsValid() || !c.readOnly(call.Args[0]) {
 		c.errorf(call.Pos(), "a resolution: its argument is not one read-only expression")
@@ -502,7 +567,7 @@ func declaredNames(f *ast.File, out map[string]bool) {
 }
 
 // origPackage: the identifiers and the declared names of the Go files of dir (the original package).
-func origPackage(dir string, idents, declared map[string]bool) {
+func origPackage(dir string, idents, declared, structTypes map[string]bool) {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
 		return
@@ -517,6 +582,16 @@ func origPackage(dir string, idents, declared map[string]bool) {
 			continue
 		}
 		declaredNames(f, declared)
+		for _, d := range f.Decls {
+			if g, ok := d.(*ast.GenDecl); ok && g.Tok == token.TYPE {
+				for _, sp := range g.Specs {
+					ts := sp.(*ast.TypeSpec)
+					if _, ok := ts.Type.(*ast.StructType); ok && ts.TypeParams == nil && !ts.Assign.IsValid() {
+						structTypes[ts.Name.Name] = true
+					}
+				}
+			}
+		}
 		ast.Inspect(f, func(n ast.Node) bool {
 			if id, ok := n.(*ast.Ident); ok {
 				idents[id.Name] = true
@@ -939,10 +1014,11 @@ func check(pairs [][2]string) []string {
 		pkg := pkgs[dir]
 		if pkg == nil {
 			pkg = &pkgProphOnly{origDir: dir, dir: filepath.Dir(pr[1]), origNames: map[string]bool{},
-				shadowed: map[string]bool{}, vars: map[string]bool{}, fields: map[string]string{},
+				shadowed: map[string]bool{}, structTypes: map[string]bool{}, vars: map[string]bool{},
+				fields:  map[string]string{},
 				helpers: map[string]*ast.FuncDecl{}, calls: map[string]map[string]bool{},
 				inits: map[*ast.FuncDecl]string{}}
-			origPackage(dir, pkg.origNames, pkg.shadowed)
+			origPackage(dir, pkg.origNames, pkg.shadowed, pkg.structTypes)
 			pkgs[dir] = pkg
 			order = append(order, dir)
 		}

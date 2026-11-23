@@ -14,7 +14,7 @@ may only add prophecy-only code (the rule as widened by Upamanyu, #24; the exact
   variable initialized only by `NewProph` (`var NAME = primitive.NewProph()`, or, as Goose needs,
   `var NAME primitive.ProphId` and `func init() { p := primitive.NewProph(); NAME = p }`), and helper functions (or unexported
   methods) without results whose bodies hold only read-only computation (locals, counted loops,
-  `if`s) plus `ResolveBool`/`ResolveU64` and calls of other helpers (not recursive);
+  `if`s) plus `ResolveBool`/`ResolveU64`/`Resolve` and calls of other helpers (not recursive);
 - statements: `NAME := primitive.NewProph()`, resolutions of an added prophecy, calls of the
   helpers, `X.F = primitive.NewProph()` for a prophecy-only field (or `F: primitive.NewProph()` in a
   composite literal), and `if C { ... } else { ... }` holding only such statements;
@@ -22,7 +22,9 @@ may only add prophecy-only code (the rule as widened by Upamanyu, #24; the exact
 
 The arguments `E` of resolutions and calls and the conditions `C` are read-only expressions (field
 reads, dereferences, indexing, `&` of a field or element, comparisons, arithmetic, `len`,
-conversions; no calls, no channel operations, no assignments). A read-only expression may fail (a nil
+conversions; no calls, no channel operations, no assignments); `Resolve`'s argument (of type `any`)
+may also be a conversion to `any` or a struct literal of such values (a struct type of the package
+or a `struct{...}` type literal; no allocation, `append` or `make`). A read-only expression may fail (a nil
 dereference): the patched program then has a failing behavior the original lacks, which its proof
 rules out, so a proof of the patched program still covers every behavior of the original.
 `etc/prophcheck/main.go` checks this on syntax trees (the patched files, their prophecy-only code erased,

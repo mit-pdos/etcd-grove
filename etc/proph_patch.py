@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prophecy patches: changes to a project's Go code, applied before translation, that only add
 prophecy-only code: prophecies (`primitive.NewProph`) in locals, package variables and struct fields,
-their resolutions (`ResolveBool`, `ResolveU64`) on read-only expressions, and prophecy-only helpers.
+their resolutions (`ResolveBool`, `ResolveU64` on read-only expressions, `Resolve` on a value built from them), and prophecy-only helpers.
 
 usage: etc/proph_patch.py [--project NAME]... [--src NAME=DIR]...
 

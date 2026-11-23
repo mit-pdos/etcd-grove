@@ -47,7 +47,7 @@ ORIG's directory (tests included).
 
 **Helper bodies** hold only these statements (locals: the receiver, parameters and the locals the
 helper defines in scope):
-- `P.ResolveBool(E)` / `P.ResolveU64(E)`, P an added prophecy: a prophecy-only variable (not shadowed by a
+- `P.ResolveBool(E)` / `P.ResolveU64(E)` / `P.Resolve(A)`, P an added prophecy: a prophecy-only variable (not shadowed by a
   local), `X.F` for a prophecy-only field F and read-only X, or a local prophecy the patch declared;
 - a call of a prophecy-only helper, `H(E...)` or `X.H(E...)` (X, E read-only; no `...`); the package's
   helper call graph must have no cycle (a helper terminates);
@@ -77,6 +77,16 @@ indexing, slicing, type assertions (not `.(type)`), `&` of a field selection or 
 unary operations but `<-`, binary operations, and calls of `len`, `cap` and conversions to the
 predeclared basic types that the package does not redeclare (nor a prophecy-only helper or variable).
 
+**Resolved values** (`Resolve(any)`'s argument; branch `proph-resolve-any`, below): a read-only
+expression, a conversion `any(A)` or `interface{}(A)` (`any` not redeclared), or a struct literal
+`T{A, ...}` / `T{F: A, ...}` of resolved values, with T a struct type ORIG's package declares at top
+level (no type parameters, not an alias) or a struct type literal `struct{...}`. No `&T{...}`,
+slice, array or map literal, `new`, `make`, `append` or other call: the value is built from
+read-only values, with no allocation. (Go may still allocate to box a non-pointer value in the
+interface; that is invisible, and in the model the conversion builds a value.) A resolution's
+argument that converts to `any` a value reaching a struct with a prophecy-only field is refused by
+the field check below, like any other conversion to an interface.
+
 **Erasure**: PATCHED, its prophecy-only declarations, fields, statements, literal elements and import
 erased, must equal ORIG as a syntax tree (positions, comments, formatting and `ast.Object`s
 ignored).
@@ -98,6 +108,23 @@ slices and maps. Refused:
 - `unsafe.Sizeof`/`Alignof`/`Offsetof` of a value that reaches T.
 This is conservative (a `*T` passed as `any` is refused even if only its methods are used).
 
+## `Resolve(any)` (branch `proph-resolve-any`, 2026-11-23)
+
+Upamanyu chose option (a) for swiftpaxos (#24): goose's `primitive` gains `(ProphId) Resolve(v
+any)` (Perennial branch `resolve-any`: trusted, modelled by GooseLang's `ResolveProph` on the
+interface value), so an event resolves as one value, atomic by construction, with no prophecy-only
+mutex. The rule admits it (coordinator-E's text): `Resolve(any)` calls in prophecy-only helpers
+(and, like the other resolutions, as prophecy-only statements), "with an argument built from
+read-only values the caller already has: a struct literal or conversion to any, with no
+allocation, append or make" (the resolved values above). Why this is still enough: `Resolve` does
+nothing in Go, like `ResolveBool`/`ResolveU64`, and a resolved value is read-only computation (it
+may fail, as a read-only expression may). Tests: `TestResolveAny` (in a helper: an anonymous struct
+literal with a nested one, `any(...)`, `interface{}(...)`, a struct type of the package, a
+read-only expression; at statement level: a local prophecy resolved with a struct literal) and
+`TestResolveAnyRefusals` (`&T{}`, slice, map and array literals, a non-struct named type, another
+package's type, `make`, `new`, `append`, a call inside a struct literal or under `any(...)`, a
+closure, two arguments; and `&T{}` in a helper).
+
 ## Not admitted (interpretations of the rule)
 - Constants and types (the rule lists variables, fields and helpers): inline constants.
 - `init` functions other than a prophecy-only initializer.
@@ -106,6 +133,8 @@ This is conservative (a `*T` passed as `any` is refused even if only its methods
 - Calls of another package's helpers (each package's helpers are its own).
 - A prophecy-only field initialized from anything but `NewProph` (e.g. a copy of a prophecy-only variable).
 - A prophecy-only mutex, or any helper that blocks, allocates or writes the heap.
+- A `Resolve` argument that allocates (`&T{}`, slice, array or map literals, `new`, `make`, `append`)
+  or names another package's struct type (`q.T{...}`: not checked to be a struct type).
 
 ## Tests (`etc/prophcheck/main_test.go`)
 Positive: the first rule's local prophecy with an `if`/`else`; a prophecy-only variable with helpers (a

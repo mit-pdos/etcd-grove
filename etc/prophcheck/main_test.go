@@ -33,7 +33,8 @@ func run(t *testing.T, orig, patched map[string]string) []string {
 		}
 		src := "package primitive\n\ntype prophId struct{ x int }\n\ntype ProphId = *prophId\n\n" +
 			"func NewProph() ProphId { return &prophId{} }\n\n" +
-			"func (p *prophId) ResolveBool(b bool) {}\n\nfunc (p *prophId) ResolveU64(x uint64) {}\n"
+			"func (p *prophId) ResolveBool(b bool) {}\n\nfunc (p *prophId) ResolveU64(x uint64) {}\n\n" +
+			"func (p *prophId) Resolve(v any) {}\n"
 		if err := os.WriteFile(filepath.Join(prim, "proph.go"), []byte(src), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -386,4 +387,81 @@ func TestProphOnlyInitializerRefusals(t *testing.T) {
 			wantErr(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": head + tc.extra}), tc.want)
 		})
 	}
+}
+
+// Resolve(any): one value per resolution, a struct literal (a struct type of the package or a
+// struct type literal) or a conversion to any of read-only values, in a helper (from its locals)
+// and at statement level.
+func TestResolveAny(t *testing.T) {
+	patched := `package p
+
+` + primImport + `
+
+type KV struct {
+	m map[string]string
+	n int
+}
+
+var trace = primitive.NewProph()
+
+func (kv *KV) resolveGet(k string, v string) {
+	s := ""
+	for i := 0; i < len(k); i++ {
+		s += k[i : i+1]
+	}
+	trace.Resolve(struct {
+		tag uint64
+		key string
+		val string
+		in  struct{ n int }
+	}{1, s, v, struct{ n int }{kv.n}})
+	trace.Resolve(any(kv.n))
+	trace.Resolve(interface{}(uint64(len(v))))
+	trace.Resolve(KV{m: kv.m, n: kv.n})
+	trace.Resolve(k)
+}
+
+func (kv *KV) Get(k string) string {
+	pr := primitive.NewProph()
+	v := kv.m[k]
+	pr.Resolve(struct{ k, v string }{k: k, v: v})
+	kv.resolveGet(k, v)
+	return v
+}
+`
+	wantOK(t, run(t, map[string]string{"kv.go": origKV}, map[string]string{"kv.go": patched}))
+}
+
+// Negative: a Resolve argument that allocates, calls, or is not one value.
+func TestResolveAnyRefusals(t *testing.T) {
+	const want = "its argument is not one resolved value"
+	orig := origKV + "\ntype L []int\n"
+	cases := []struct{ name, arg string }{
+		{"a pointer to a literal", "&KV{n: 1}"},
+		{"a slice literal", "[]int{kv.n}"},
+		{"a map literal", "map[int]int{1: kv.n}"},
+		{"an array literal", "[1]int{kv.n}"},
+		{"a literal of a non-struct type", "L{kv.n}"},
+		{"a literal of another package's type", "q.T{N: kv.n}"},
+		{"make", "make([]int, kv.n)"},
+		{"new", "new(int)"},
+		{"append", "append(L(nil), kv.n)"},
+		{"a call in a struct literal", "struct{ s string }{kv.Get(\"a\")}"},
+		{"a call converted to any", "any(kv.Get(\"a\"))"},
+		{"a closure", "func() {}"},
+		{"two arguments", "kv.n, kv.n"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			patched := strings.Replace(orig, "\tv := kv.m[k]\n",
+				"\tpr := primitive.NewProph()\n\tpr.Resolve("+tc.arg+")\n\tv := kv.m[k]\n", 1)
+			patched = strings.Replace(patched, "package p\n", "package p\n\n"+primImport+"\n", 1)
+			wantErr(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}), want)
+		})
+	}
+	// in a helper too
+	patched := strings.Replace(orig, "\tv := kv.m[k]\n", "\tkv.g()\n\tv := kv.m[k]\n", 1) +
+		"\nfunc (kv *KV) g() {\n\ttrace.Resolve(&KV{n: kv.n})\n}\n"
+	patched = strings.Replace(patched, "package p\n", "package p\n\n"+primImport+"\n\nvar trace = primitive.NewProph()\n", 1)
+	wantErr(t, run(t, map[string]string{"kv.go": orig}, map[string]string{"kv.go": patched}), want)
 }
