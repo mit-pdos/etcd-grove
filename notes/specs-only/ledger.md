@@ -25,6 +25,22 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-22: `errors.IsCtxErr` takes `isPkgInit context` (errors-is-axioms, #31)
+
+- **Spec.** `errors.IsCtxErr.spec` (`Spec/errors/IsCtxErr.lean`); no spec-plan counterpart.
+- **Defect.** Unprovable once it is no longer an axiom: the precondition pins `err` (`context.isCtxErr`)
+  but gives of `target` only the cell it was read from (`Canceled` or `DeadlineExceeded`). When the two
+  come from different variables, nothing says what `target` holds, and Go's `err == target` (which `Is`
+  runs first) needs `target`'s type comparable (`errors.ComparableTarget`, perennial#677).
+- **Evidence.** The proof over `errors.wp_Is` (perennial#677): `ComparableTarget (· = err) target` for an
+  unknown `target`.
+- **Proposed change.** Add `isPkgInit pkg_id.context` to the precondition: with it, `target` is a context's
+  error too (`context.isCtxErr_of_Canceled`/`_of_DeadlineExceeded`), a `*errorString` or
+  `deadlineExceededError{}`, both comparable. The four callers (`parseProposeCtxErr`, `PromoteMember`,
+  `LeaseRenew`, `watchServer.Watch`) have it. The post is unchanged.
+- **Decision.** Accepted (internal: a premise every caller holds; the spec stops being a trust boundary,
+  the axiom `errors.IsCtxErr.wp_proof` is retired), upamanyus-agent 2026-11-22.
+
 ## 2026-11-22: `FollowerStats.Succ` takes the stats' mutex (prove-ps2-succ)
 
 - **Spec.** `v2stats.FollowerStats.Succ.spec` (`Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v2stats/`; a

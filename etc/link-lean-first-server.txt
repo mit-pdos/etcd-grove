@@ -314,14 +314,14 @@ etcdserver_isConnectedToQuorumSince: numConnectedSince quorum
 config_ServerConfig__ReqTimeout:
 membership_RaftCluster__ID:
 proto_MarshalIRR:
-# Two more trust-boundary axioms of the request path (unit 2, 2026-10-12): a context's
-# `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
-# `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
-# `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# A trust-boundary axiom of the request path (unit 2, 2026-10-12): a context's `Value` at
+# `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at `&cancelCtxKey`).
+# `errors.Is` of a context's error against `context.Canceled` / `DeadlineExceeded` was another until
+# errors-is-axioms (2026-11-22): now proved over Perennial's `errors.Is` at comparable targets.
 # And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
 # `Context.Err`; Perennial's `isContext` says only "a typed error").
 context_ValueStartTime:
-errors_IsCtxErr:
+errors_IsCtxErr: =_root_.Perennial.errors.wp_Is
 context_ErrDone:
 # (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
 trace_SpanFromContext:

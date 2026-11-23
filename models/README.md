@@ -32,7 +32,11 @@ it changes marked `MODEL:`; its difference from the library is computed, not sto
 that nothing builds) and builds in place of the
 real package through `goroot.py` (`overlay`: a `go build -overlay` file, with `-tags netmodel` for a
 program's generated registration; `farm`: a GOROOT of links, for goose, a project's `std_models` in
-`etc/goose.py`). Where a model does not model the library it panics with a value that has a
+`etc/goose.py`). `overlay` fails when GOROOT is a toolchain under GOMODCACHE (the one
+`GOTOOLCHAIN=go1.27.3` downloads when the installed go is another release): `go build -overlay`
+refuses to replace files beneath GOMODCACHE. `farm` (`GOROOT=DIR GOTOOLCHAIN=local`, DIR/bin first
+in PATH) is the supported path there, and the one the difftests use (`internal/rpcdifftest/run.sh`).
+Where a model does not model the library it panics with a value that has a
 `NotModelled` method.
 
 ## The grpc model (`grpc/`)
