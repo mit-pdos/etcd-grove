@@ -630,3 +630,4 @@ new file of its own (named below), and it reports its link lines, which the inte
   12 actions and `State.step_cfg` (`Within/ActionCfg.lean`). **`Run` linked**, with `Checker.Next`, W6
   and `Bind`, in Link's `links_pending` section over the two proofs left: `State.Send` (one branch
   left, appresp's non-boot tail) and `State.OnDisk` (in progress).
+- **W5 done:** H3c finished `State.Send` (linked). Left: `State.OnDisk` (H4b), the one pending hypothesis of Link's `links_pending` section.

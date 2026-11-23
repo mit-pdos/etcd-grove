@@ -235,6 +235,6 @@ Checker__Next: State__ElectionSafety State__OneVotePerTerm State__GCDue State__G
 
 # pending (proofs in progress)
 State__Boot: State__clone setPre setMsgs setQueue setReads setStr Recovered State__Vote SubSeq Concat State__VoteOf setInt setLog setConfirmed factsMinus votesMinus Event__has Event__applied EntriesEqual ConfOf State__InitConf setConf LastConf SameConf
-State__Send: ?
+State__Send: State__clone Event__msg Event__has Event__cause Msg__from Msg__typ Msg__to Msg__term Msg__reject Msg__index isForwarded Set__Has setPre factsHas VoteFact votesHas factsAdd IsReq SnapOk ReqFactIn State__Sendable AckFact msgSeqHead State__PrevOk State__HasFirst Max setConfirmed State__EffTerm isUnmodelled
 State__OnDisk: ?
 Run: NewChecker Checker__Next Checker__End =AntCheck.State.step_within =AntCheck.State.gc_within =AntCheck.State.step_cfg
