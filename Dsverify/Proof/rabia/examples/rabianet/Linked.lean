@@ -35,8 +35,8 @@ variable [math.rand.Hyps GF] [log.Hyps GF]
 
 theorem wp_Server [github_com.rs.zerolog.Hyps GF] [os.signal.NoSignals GF] :
     Server.spec (GF := GF) :=
-  Server.wp_proof rabia.roles.server.wp_ServerInit rabia.roles.server.wp_Prologue
-    rabia.roles.server.wp_ServerMain
+  Server.wp_proof EtcdGrove.dsvrabia.wp_ServerInit EtcdGrove.dsvrabia.wp_Prologue
+    EtcdGrove.dsvrabia.wp_ServerMain
 
 theorem wp_Client (wp_Codec : Codec.spec (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) :=

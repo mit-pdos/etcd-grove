@@ -32,6 +32,16 @@ axiomatized the type with a `sorry` instance, which the server's proofs reached 
 that no linked result reaches those instances was wrong for this one; the remaining ones, e.g.
 `encoder`, `BurstSampler`, `syncWriter`, are not reached: `#print axioms` is clean).
 
+**Landing prep (2026-11-23, fourth agent):** merged `lean` `e20bbac22f` (Perennial `c95e92207`,
+checkout `/shared/perennial-c95e92207`). The server's `Link.lean` is in `EtcdGrove.dsvrabia` (as
+paxos's: `etc/proof_roots.py`'s `namespace()` is the Links' common prefix; in
+`Perennial.rabia.roles.server` it shrank to `Perennial.` and renamed every trust-base entry).
+`lake build` of the top module and `#print axioms` (Lean's three) redone at that pin.
+**Open for the gates:** `etc/tier-check.py --check` refuses 106 new edges (88 proof->proof, 14
+defs->proof, 4 spec->proof), all under `Dsverify/{Spec,Proof}/rabia` and the part's library
+`Spec.lean`s (which declare `wp_proof`s, so are proof tier); the baseline only shrinks, so they
+need the proofs to take callees' specs as hypotheses (linked in `Link`/`Linked`) before landing.
+
 **Kit Go changes (third agent and its agents):** `Sys` has a mutex, `Op` locks it (`op1` the body);
 `op1` answers unknown once the sequence numbers reach `SeqBudget = 2^29` (`proxyP`'s budget;
 remote serves unboundedly many operations); the model's `Entry` has `Old` (puts overwritten while

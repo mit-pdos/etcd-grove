@@ -20,9 +20,13 @@ set_option linter.unusedSectionVars false
 
 noncomputable section
 
-namespace Perennial.rabia.roles.server
+namespace Perennial
+
+-- (in `EtcdGrove.`, as every `Link.lean`: `etc/proof_roots.py`'s `namespace()` is their common prefix)
+namespace EtcdGrove.dsvrabia
 
 open Iris Iris.BI Net
+open rabia.roles.server
 
 section link
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
@@ -47,4 +51,6 @@ theorem wp_ServerMain [github_com.rs.zerolog.Hyps GF] [math.rand.Hyps GF] :
 
 end link
 
-end Perennial.rabia.roles.server
+end EtcdGrove.dsvrabia
+
+end Perennial
