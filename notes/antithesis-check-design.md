@@ -310,7 +310,7 @@ proof shows them unreachable.
 **Results** (2026-11-23): 500 runs under `-race` (5 variants x 100: default; lossy, 30% dropped and
 delays up to 10ms; churn, 10 isolations of 30ms and 1ms ticks; long, 300 proposals; slow, delays up
 to 25ms), no race reported, every stream ACCEPTED by `check`, and by TLC (`streamcheck.py`, `manifest-empty`): 500 of 500, Go
-and TLC agreeing on each. No divergence between the verified raft and the model was found, so
+and TLC agreeing on each; a second batch of 1,000 (200 per variant, `-race`) likewise, 1,000 of 1,000. No divergence between the verified raft and the model was found, so
 nothing went to `issues/` or `nonissues/`. A typical run: ~1,300-1,600 reports, terms up to ~11, 3-4
 leaders, 20-30 entries committed.
 
