@@ -3986,6 +3986,27 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
 - **Status.** Not filed yet.
 
+## 2026-11-23: `os.Unsetenv` has no model (the environment as machine-local state; `putget_safe`, branch `putget-dist`)
+
+`examples/etcd/dist/env.ClearProxy` (called first by `etcd_safe`'s and `putget_safe`'s machine programs) unsets the
+proxy variables and `ETCD_VERIFY` with `os.Unsetenv`, which Perennial's `os` translation has names only
+(`Perennial/Code/os.lean`): no WP for a call to it. With a model of the process environment as machine-local state
+(`Getenv`/`Setenv`/`Unsetenv` over it; upamanyus's note on #24 that the environment is an `os` model question),
+`ClearProxy`'s spec gives `envVerifyOff` (and "no proxy variable", which net/http's and grpc's proxy readers need) as
+a fact of the program, where today only the single-process start axiom `goose_adequacy_start` hands out
+`envVerifyOff`. Local workaround: `env.ClearProxy.spec` is a hypothesis of the member's boot WP
+(`notes/putget-dist-plan.md`, section 3). General fix: an `os` environment model in Perennial, designed on its own.
+
+## 2026-11-23: distributed adequacy's thread bound over every execution (`putget_safe`, branch `putget-dist`)
+
+`goose_dist_adequacy` takes `DistThreadsBelow T n` (every execution of up to `n` steps keeps fewer than `T`
+threads), not the bound along the given execution (`Robust`'s `DistCrashNstepsBelow`); the bridge
+(`Net/Statement/DistBridgeExts.lean`) meets it with `T = n + 2`, so `threadBound GF = receiptBound GF + 1` and a
+proof that needs `threadBound ≤ 2 ^ 28` (etcd's server) bounds the statement's steps by `2 ^ 28 - 1`. The general
+fix is the distributed analogue of `goose_adequacy_below` (`AdequacyAlong.lean`): the thread bound along the
+execution. Also local, for Perennial: `Exts.globalStart`'s projection at an extension's position
+(`extIn_globalStart_get`, `hasExt_globalStart`, proved in `DistBridgeExts.lean`), beside
+`ExtIn.globalCtx_acc`.
 ## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
 
 - **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body
