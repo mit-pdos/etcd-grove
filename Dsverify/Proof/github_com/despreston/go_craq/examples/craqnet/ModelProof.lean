@@ -390,7 +390,48 @@ theorem wp_step (mp : Loc) (sl : GoSlice) (m : GMap GoString GoString) (a : St) 
     · iexact Hm
     · iexact Hsl
   · -- a put, its answer known
-    sorry
+    cases f
+    · simp only
+      wp_auto
+      by_cases hw : w.1 = []
+      · simp only [hw, decide_true, Bool.not_true]
+        wp_auto
+        wp_apply +noauto wp_set mp m DFrac.discard k x $$ [$Hm] as %c ⟨Hc, -⟩
+        iapply fupd_wp
+        imod ownMap_persist c _ _ $$ Hc with #Hc
+        imodintro
+        wp_auto
+        iapply HΦ
+        unfold stepPost
+        simp only [decAns, goStep, Bool.not_false, Bool.true_and, hw, decide_true, ↓reduceIte,
+          Option.isSome_some]
+        isplitr
+        · ipureintro; first | rfl | trivial
+        iexists c, sl, <[k := x]> m, upd a k ⟨x, hi.2⟩, P
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl, mrep_set hm k ⟨x, hi.2⟩, hP, by omega⟩
+        isplit
+        · iexact Hc
+        · iexact Hsl
+      · simp only [hw, decide_false, Bool.not_false]
+        wp_auto
+        iapply HΦ
+        unfold stepPost
+        simp only [decAns, goStep, Bool.not_true, Bool.not_false, Bool.false_and, Bool.true_and,
+          Bool.false_eq_true, ↓reduceIte, Option.isSome_none, hw, decide_false, decide_true]
+        isplitr
+        · ipureintro; first | rfl | trivial | simp_all
+        itrivial
+    · simp only
+      wp_auto
+      have hw : True := trivial
+      iapply HΦ
+      unfold stepPost
+      simp only [decAns, goStep, Bool.not_true, Bool.not_false, Bool.false_and, Bool.true_and,
+        Bool.false_eq_true, ↓reduceIte, Option.isSome_none, hw, decide_false, decide_true]
+      isplitr
+      · ipureintro; first | rfl | trivial | simp_all
+      itrivial
   · -- a put, unknown
     wp_apply +noauto wp_pushPend sl (P.map pendOf) k x hpm $$ [$Hsl] as %q Hq
     iapply fupd_wp
