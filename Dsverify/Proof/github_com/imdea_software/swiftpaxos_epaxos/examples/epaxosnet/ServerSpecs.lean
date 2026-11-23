@@ -63,7 +63,7 @@ error). -/
 abbrev serveMaster.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (sl : GoSlice),
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-      net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+      net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
       ⌜W.SS = rpcSS γ⌝ ∗ masterRes γ W }}
     (App (App (App (Val (@! examples.epaxosnet.serve)) (Val #(W64 1))) (Val #sl))
       (Val #(W64 7500)))
@@ -75,7 +75,7 @@ bounds of the threads and of the receipts) and its resources from the start (`se
 abbrev Server.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (id : w64), 1 ≤ uint.nat id → uint.nat id ≤ 6 →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-      net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+      net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
       serverRes γ W (uint.nat id) }}
     (App (Val (@! examples.epaxosnet.Server)) (Val #id))
   {{ RET #(); True }}

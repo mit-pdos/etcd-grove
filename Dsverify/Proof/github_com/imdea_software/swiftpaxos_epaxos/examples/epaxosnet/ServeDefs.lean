@@ -186,7 +186,7 @@ fails (`http.Serve` returns only on a listener error). -/
 abbrev serveReplica.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (k : Nat) (sl : GoSlice), k ∈ replicaNodes →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-      net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+      net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
       sl ↦*□ serverAddrs ∗ ⌜W.SS = rpcSS γ⌝ ∗
       RpcHttpAddr.rpcAddrP W masterAddr (connectReq defaultRPCPath) connectAns ∗
       RpcHttpAddr.rpcLisP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns ∗

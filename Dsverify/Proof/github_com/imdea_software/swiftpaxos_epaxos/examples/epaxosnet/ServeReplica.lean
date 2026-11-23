@@ -50,7 +50,7 @@ theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
     serveReplica.spec (GF := GF) (hG := hG) := by
   intro γ W k sl hk
-  wp_start as ⟨Hcf, Hmux, #Hsrv, %Hb, #Hsl, %HSS, #Hma, #Hlis, Hnt, #Hrx, #Hci⟩
+  wp_start as ⟨Hcf, Hmux, #Hsrv, #Hde, %Hb, #Hsl, %HSS, #Hma, #Hlis, Hnt, #Hrx, #Hci⟩
   wp_auto
   wp_apply (wp_Register wp_SetCodec) $$ [$Hcf] as #Hcs
   wp_apply wp_nodeConfig as %cfg ⟨%c, Hcfg, Hprx, %Hc⟩

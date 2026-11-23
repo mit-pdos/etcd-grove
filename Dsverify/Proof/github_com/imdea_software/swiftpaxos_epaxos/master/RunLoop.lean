@@ -112,7 +112,8 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
   ihave #Hdefs : isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.replica.defs $$ []
   · iPkgInit
   unfold runRes
-  icases Hr with ⟨%nds, %alsl0, Hndsf, Hnds, Hnext, #Half0, Halv0, #Hrpcs, %HW, #Hready, #Hcenv⟩
+  icases Hr with ⟨%nds, %alsl0, Hndsf, Hnds, Hnext, #Half0, Halv0, #Hrpcs, %HW, #Hready, #Hcenv, #Hde⟩
+  unfold dialEnv; icases Hde with ⟨#Hhe, #Hcon⟩
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
   · iPkgInit
   ihave #Hrpcpkg : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
@@ -222,7 +223,7 @@ theorem Master.run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
           RpcHttpAddr.rpcAddrP W (rpcAddrOf k) (connectReq defaultRPCPath) connectAns) hkr)
         iexact Hrpcs
       wp_auto
-      wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W (rpcAddrOf k)) $$ [$Hcenv $Hrpcpkg $Hra] as %cl %err Hd
+      wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W (rpcAddrOf k)) $$ [$Hcenv $Hhe $Hcon $Hra] as %cl %err Hd
       · ipureintro; exact HW.2
       wp_apply wp_store_slice_index nds (sint.Z iw) ns cl $$ [$Hnds] as Hnds
       · ipureintro; constructor <;> word

@@ -397,11 +397,11 @@ theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server1 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+        net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 1 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -432,11 +432,11 @@ theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server2 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+        net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 2 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -467,11 +467,11 @@ theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server3 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+        net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 3 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -502,11 +502,11 @@ theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server4 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+        net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 4 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -537,11 +537,11 @@ theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server5 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+        net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 5 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)
@@ -572,11 +572,11 @@ theorem wp_main [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions]
     [RpcHttpAddr GF] [RpcHttpHyp GF] (wp_Server : epaxosnet.Server.spec (GF := GF) (hG := hG))
     (γ : EpNames) (W : net.rpc.RpcWorld GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.server6 ∗ codecFresh ∗ RpcHttpHyp.muxOwner [] ∗
-        net.rpc.srvEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
+        net.rpc.srvEnv ∗ dialEnv ∗ ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗
         serverRes γ W 6 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨Hcf, Hmux, #Henv, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Henv, #Hde, %Hb, Hres⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet) $$ []
   · iPkgInit
   (try wp_auto)

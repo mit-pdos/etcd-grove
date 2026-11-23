@@ -342,10 +342,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨%HSS, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Henv, Hmux⟩
+            icases HR with ⟨Hcf, #Henv, Hmux, #Hde⟩
             iapply (cmd.server1.wp_main EtcdGrove.dsvepaxos.wp_Server γ W) $$ [Hr Hcf Hmux] HΦ
             unfold serverRes
-            iframe Hpkg Hcf Hmux Henv
+            iframe Hpkg Hcf Hmux Henv Hde
             isplitr
             · ipureintro; exact hb'
             isplitr
@@ -362,10 +362,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨%HSS, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Henv, Hmux⟩
+            icases HR with ⟨Hcf, #Henv, Hmux, #Hde⟩
             iapply (cmd.server2.wp_main EtcdGrove.dsvepaxos.wp_Server γ W) $$ [Hr Hcf Hmux] HΦ
             unfold serverRes
-            iframe Hpkg Hcf Hmux Henv
+            iframe Hpkg Hcf Hmux Henv Hde
             isplitr
             · ipureintro; exact hb'
             isplitr
@@ -382,10 +382,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨%HSS, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Henv, Hmux⟩
+            icases HR with ⟨Hcf, #Henv, Hmux, #Hde⟩
             iapply (cmd.server3.wp_main EtcdGrove.dsvepaxos.wp_Server γ W) $$ [Hr Hcf Hmux] HΦ
             unfold serverRes
-            iframe Hpkg Hcf Hmux Henv
+            iframe Hpkg Hcf Hmux Henv Hde
             isplitr
             · ipureintro; exact hb'
             isplitr
@@ -402,10 +402,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨%HSS, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Henv, Hmux⟩
+            icases HR with ⟨Hcf, #Henv, Hmux, #Hde⟩
             iapply (cmd.server4.wp_main EtcdGrove.dsvepaxos.wp_Server γ W) $$ [Hr Hcf Hmux] HΦ
             unfold serverRes
-            iframe Hpkg Hcf Hmux Henv
+            iframe Hpkg Hcf Hmux Henv Hde
             isplitr
             · ipureintro; exact hb'
             isplitr
@@ -422,10 +422,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨%HSS, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Henv, Hmux⟩
+            icases HR with ⟨Hcf, #Henv, Hmux, #Hde⟩
             iapply (cmd.server5.wp_main EtcdGrove.dsvepaxos.wp_Server γ W) $$ [Hr Hcf Hmux] HΦ
             unfold serverRes
-            iframe Hpkg Hcf Hmux Henv
+            iframe Hpkg Hcf Hmux Henv Hde
             isplitr
             · ipureintro; exact hb'
             isplitr
@@ -442,10 +442,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
           (by
             iintro %Φ ⟨#Hpkg, ⟨%HSS, Hr⟩, HR⟩ HΦ
             iunfold rpcBootRes at HR
-            icases HR with ⟨Hcf, #Henv, Hmux⟩
+            icases HR with ⟨Hcf, #Henv, Hmux, #Hde⟩
             iapply (cmd.server6.wp_main EtcdGrove.dsvepaxos.wp_Server γ W) $$ [Hr Hcf Hmux] HΦ
             unfold serverRes
-            iframe Hpkg Hcf Hmux Henv
+            iframe Hpkg Hcf Hmux Henv Hde
             isplitr
             · ipureintro; exact hb'
             isplitr

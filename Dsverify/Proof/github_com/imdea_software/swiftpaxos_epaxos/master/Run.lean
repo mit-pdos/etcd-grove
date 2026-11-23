@@ -73,7 +73,7 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
     (hRun : Master.run.specM (GF := GF) γ W) :
     Master.Run.specM (GF := GF) γ W := by
   intro m cfg logger
-  wp_start as ⟨Hfresh, Hunset, %HW, #Hlis, #Hrpcs, Hmux, #Hready, #Hsrv, %Hbnd⟩
+  wp_start as ⟨Hfresh, Hunset, %HW, #Hlis, #Hrpcs, Hmux, #Hready, #Hsrv, #Hde, %Hbnd⟩
   unfold masterFresh
   icases Hfresh with ⟨%x, %c, Hm, %Hx, Hnl, Hnlc, Hal, Halc, Hpl, Hplc, Hnds, Hld, Halv, Hlat, Hmu,
     #Hcond, #Hlog, #Hcfg, %Hleader⟩
@@ -207,7 +207,7 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
       unfold runRes
       iexists x.nodes', x.alive'
       iframe
-      iframe alive Hrpcs Hready Hcenv
+      iframe alive Hrpcs Hready Hcenv Hde
       ipureintro; exact ⟨HW, Hbnd.2⟩
     itrivial
   imod lisInv_alloc_m l go!":7501" $$ Hnl with #Hlinv

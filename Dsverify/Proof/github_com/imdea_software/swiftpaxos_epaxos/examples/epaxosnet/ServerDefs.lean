@@ -86,7 +86,7 @@ theorem wp_Register (wp_SetCodec : net.rpc.SetCodec.spec (GF := GF) (hG := hG)) 
 abbrev register.spec [RpcHttpAddr GF] [RpcHttpHyp GF] : Prop :=
   ∀ (γ : EpNames) (W : net.rpc.RpcWorld GF) (k : Nat), k ∈ replicaNodes →
     W.SS masterAddr go!"Master" = some (masterSvc γ) →
-  {{ isPkgInit (PROP := IProp GF) kpkg ∗ rpcReady ∗ net.rpc.cliEnv ∗
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗ rpcReady ∗ net.rpc.cliEnv ∗ dialEnv ∗
       ⌜receiptBound GF ≤ 2 ^ 64⌝ ∗
       RpcHttpAddr.rpcAddrP W masterAddr (connectReq defaultRPCPath) connectAns ∗
       nodeTok γ k ∗ inv regXN (regXInv γ (repStart γ)) }}

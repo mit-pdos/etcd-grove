@@ -39,13 +39,14 @@ theorem register.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (wp_Close : net.rpc.Client.Close.spec (GF := GF) (hG := hG)) :
     register.spec (GF := GF) (hG := hG) := by
   intro γ W k hk hSS
-  wp_start as ⟨#Hready, #Hce, %Hrb, #Hra, Hnt, #Hrx⟩
+  wp_start as ⟨#Hready, #Hce, #Hde, %Hrb, #Hra, Hnt, #Hrx⟩
+  unfold dialEnv; icases Hde with ⟨#Hhe, #Hcon⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.net.rpc $$ []
   · unfold rpcReady; icases Hready with ⟨H, -⟩; iexact H
   wp_auto
   ipersist «$r0»
   wp_for
-  wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W masterAddr) $$ [$Hce $Hrpc $Hra]
+  wp_apply (RpcHttpHyp.DialHTTP_spec go!"tcp" net.tcpNet_tcp W masterAddr) $$ [$Hce $Hhe $Hcon $Hra]
     as %mc %err Hd
   · ipureintro; exact Hrb
   icases Hd with (⟨%He, #Hcl⟩ | ⟨%He, -⟩)

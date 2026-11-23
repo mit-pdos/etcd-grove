@@ -352,7 +352,8 @@ theorem ep_start :
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hp, Hr⟩
   imod ep_ghost_start $$ Hreg Hp with ⟨%γ, %W, %HW, #HregW, HlU, HnT, #Hrx, #Hci, Hown⟩
   -- the master's wildcard listener
-  imod RA.rpcLisP_set ⊤ W masterLis hsReq hsAns masterLis_ok $$ Hreg HregW Hml with #Hml
+  imod RA.rpcLisP_set ⊤ W masterLis hsReq hsAns masterLis_ok (fun a _ => RA.worldHs_http W a)
+    $$ Hreg HregW Hml with #Hml
   ihave #Hma := RA.rpcLisP_addr W masterLis hsReq hsAns masterAddr masterAddr_ok
     masterLis_master $$ Hml
   -- each replica's rpc listener (an exact one)
@@ -364,7 +365,8 @@ theorem ep_start :
     have hok : addrOk (rpcAddrOf k) = true :=
       replicaRpcAddrs_ok _ (rpcAddrOf_mem' k (List.mem_of_getElem? hk))
     ihave Hu := addrUnset_lisUnset (rpcAddrOf k) hok $$ Hu
-    iapply RA.rpcLisP_set ⊤ W (rpcAddrOf k) hsReq hsAns (by simp [listenOk, hok]) $$ Hreg HregW Hu
+    iapply RA.rpcLisP_set ⊤ W (rpcAddrOf k) hsReq hsAns (by simp [listenOk, hok])
+      (fun a _ => RA.worldHs_http W a) $$ Hreg HregW Hu
   imod BigSepL2.bigSepL_fupd ⊤ _ _ $$ Hr with #Hrl
   imodintro
   iexists γ, W

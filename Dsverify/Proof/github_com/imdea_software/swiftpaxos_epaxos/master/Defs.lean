@@ -320,7 +320,7 @@ def runRes (γ : EpNames) (W : net.rpc.RpcWorld GF) (m : Loc) : IProp GF :=
   iprop(∃ nds alsl : GoSlice, mfld m go!"nodes" ↦ nds ∗ nds ↦* List.replicate 5 (null : Loc) ∗
     mfld m go!"nextLeader" ↦ W64 (-1) ∗
     mfld m go!"alive" ↦□ alsl ∗ alsl ↦*{DFrac.own (1 : Qp).half} List.replicate 5 false ∗
-    replicaRpcs W ∗ ⌜W.SS = rpcSS γ ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗ rpcReady ∗ net.rpc.cliEnv)
+    replicaRpcs W ∗ ⌜W.SS = rpcSS γ ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗ rpcReady ∗ net.rpc.cliEnv ∗ dialEnv)
 
 /-- `m.run()`: waits for the five replicas, dials them, tells one `BeTheLeader`, pings them for
 good (it never returns). -/
@@ -340,7 +340,7 @@ abbrev Master.Run.specM (γ : EpNames) (W : net.rpc.RpcWorld GF) : Prop :=
       isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
       masterFresh m cfg logger ∗ listUnset γ ∗ ⌜W.SS = rpcSS γ⌝ ∗
       RpcHttpAddr.rpcLisP W go!":7501" (connectReq defaultRPCPath) connectAns ∗
-      replicaRpcs W ∗ RpcHttpHyp.muxOwner [] ∗ rpcReady ∗ net.rpc.srvEnv ∗
+      replicaRpcs W ∗ RpcHttpHyp.muxOwner [] ∗ rpcReady ∗ net.rpc.srvEnv ∗ dialEnv ∗
       ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
   {{ RET #(); True }}

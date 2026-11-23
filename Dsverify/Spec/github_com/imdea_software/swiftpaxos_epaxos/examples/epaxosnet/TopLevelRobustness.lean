@@ -26,7 +26,7 @@ machine's heap `heapAt G L` and the start's `NetProtoGS`):
   the specs (`RpcHttpHyp`: `DialHTTP(Path)`, `HandleHTTP`, the package-level `Register`,
   `http.Serve`, the mux), per heap;
 * each server machine's boot resources from its initialization (`RpcBoot`: net/rpc's fresh codec
-  state, `invalidRequest`, the unclaimed `DefaultServeMux`).
+  state, `invalidRequest`, the unclaimed `DefaultServeMux`, what `DialHTTP` reads: `dialEnv`).
 Proved in `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/examples/epaxosnet/TopLevelRobustness.lean`.
 -/
 module

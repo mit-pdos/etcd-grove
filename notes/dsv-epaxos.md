@@ -366,6 +366,17 @@ that needs it):
 - `net.http.InitHyp GF` (`Dsverify/Proof/net/http/Init.lean`): net/http's initializer.
 - `encoding.json.InitHyp GF` (`Dsverify/Proof/encoding/json/Init.lean`, dsv-vr's): encoding/json's.
 
+- **Premise soundness (2026-11-23, review of #24):** `RpcHttpAddr.rpcLisP_set` lacked
+  models-rpc-http's handshake premise (e6b232b2f6 `Net/Proof/net/rpc/Proto.lean`; without it the
+  field is false there: the world fixes each address's handshake, so two listeners set with
+  different handshakes give `False`). Now stated as there, with dsv-swiftpaxos's stand-ins
+  `worldHs`/`worldHsAns` for `RpcWorld.hs`/`.hsAns`, plus `worldHs_http` (every stand-in world is
+  HTTP at `DefaultRPCPath`: what models-rpc-http's start would build), discharged in `ep_start`.
+  `rpcAddrP_raw` dropped (unused; with `worldHs_http` no stand-in world is raw). `DialHTTP(Path)_spec`
+  were stronger than models-rpc-http's (they took `isPkgInit net.rpc`, `True` here, for its
+  `net.http.httpEnv ∗ connected ↦□ connectedStatus`): now its premises verbatim (`httpEnv`,
+  `connectedStatus` copied), given by the boot (`rpcBootRes`'s `dialEnv`) and threaded through
+  `Server`/`serveMaster`/`serveReplica`/`register`/`Master.Run`/`runRes`.
 - `RpcHttpHyp GF` (`Interface/RpcHttpHyps.lean`, 2026-11-23): net/rpc over HTTP with Upamanyu's
   names and shapes (#24): abstract `rpcAddrP W a hs hsAns` (`rpcAddrP_raw`: `[] []` is `Net/`'s
   `rpcAddr`), `handlerOk`, `muxHas`, `defaultServer`; concrete `connectReq path`, `connectAns`,
