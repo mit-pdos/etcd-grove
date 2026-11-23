@@ -66,6 +66,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.RecordedIn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Recovered
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.ReqFactIn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.SameConf
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.SendableIn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.SetAdd
@@ -220,6 +221,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.votesUnion
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.Combined
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.GC
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.ActionCfg
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.Init0
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__OnDisk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__Send
 
@@ -1092,6 +1095,10 @@ theorem AntCheck.State.wp_Step :
 theorem AntCheck.Checker.wp_Next :
     AntCheck.Checker.Next.spec (GF := GF) (hG := hG) :=
   AntCheck.Checker.Next.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm AntCheck.State.wp_GCDue AntCheck.State.wp_GC (AntCheck.State.wp_Step h_State__OnDisk h_State__Send) AntCheck.State.gc_within
+
+theorem AntCheck.wp_Run :
+    AntCheck.Run.spec (GF := GF) (hG := hG) :=
+  AntCheck.Run.wp_proof AntCheck.wp_NewChecker (AntCheck.Checker.wp_Next h_State__OnDisk h_State__Send) AntCheck.Checker.wp_End AntCheck.State.step_within AntCheck.State.gc_within AntCheck.State.step_cfg
 
 end links_pending
 

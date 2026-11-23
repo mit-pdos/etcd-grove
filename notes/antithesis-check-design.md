@@ -626,3 +626,7 @@ new file of its own (named below), and it reports its link lines, which the inte
   `State.Send`, `State.OnDisk`, whose proofs are in progress): W6 and `Checker.Next`. Left: the Hoare
   proofs of `Boot`, `Send`, `OnDisk`; `State.step_cfg` (needs each action's `cfg`-keeping,
   `W6Laws.KeepsCfg`, for the 12 actions outside W6), then `Run`'s link.
+- **Integrated (cont.):** H3b's `State.Boot` (`BootSendProofLaws.lean`); H5b's `State.<act>_cfg` for the
+  12 actions and `State.step_cfg` (`Within/ActionCfg.lean`). **`Run` linked**, with `Checker.Next`, W6
+  and `Bind`, in Link's `links_pending` section over the two proofs left: `State.Send` (one branch
+  left, appresp's non-boot tail) and `State.OnDisk` (in progress).
