@@ -932,6 +932,38 @@ PROJECTS = [
         owned=[os.path.join("github_com", "xiang90")],
     ),
     Project(
+        name="dsv-epaxos",
+        # dsverify-lab's EPaxos kit (notes/dsv-epaxos.md; notes/dsverify-net-port-plan.md, phase 6):
+        # the lab's fork of imdea-software/swiftpaxos (epaxos-e1nogs-1, fork commit 71d99d4), the
+        # packages the kit runs, with its kit ported onto examples/lib/remote,
+        # `examples/dsverify/epaxos` (a Go module of its own, module path the fork's with
+        # "-epaxos": the swiftpaxos kit translates the same repository). Into the part `Dsverify/`,
+        # with gods (the real v1.18.1) translated into it too; remote, `net`, net/rpc and net/http
+        # the part `Net/`'s, lintest, porcupine, bufio and encoding/json the main tree's.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "dsverify", "epaxos"),
+        root="Dsverify",
+        lean_roots=["github.com/imdea-software/swiftpaxos-epaxos=Dsverify",
+                    "github.com/emirpasic/gods=Dsverify",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
+                    "bufio=", "encoding/json=", "net/url=", "path=", "crypto/tls=",
+                    "golang.org/x/net/http/httpguts=Net", "vendor=Net", "go/token=Net"],
+        packages=["github.com/emirpasic/gods/utils", "github.com/emirpasic/gods/containers",
+                  "github.com/emirpasic/gods/maps", "github.com/emirpasic/gods/trees",
+                  "github.com/emirpasic/gods/trees/redblacktree",
+                  "github.com/emirpasic/gods/maps/treemap",
+                  "./rpc", "./dlog", "./config", "./state", "./replica/defs", "./replica",
+                  "./epaxos", "./master", "./examples/epaxosnet", "./examples/epaxosnet/cmd/orch"]
+                 + ["./examples/epaxosnet/cmd/client%d" % c for c in range(10)]
+                 + ["./examples/epaxosnet/cmd/server%d" % s for s in range(1, 7)],
+        owned=[os.path.join("github_com", "imdea_software", "swiftpaxos_epaxos"),
+               os.path.join("github_com", "emirpasic")],
+        std_models=["net/rpc", "net/http"],
+    ),
+    Project(
         name="models-net",
         # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
         # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take
