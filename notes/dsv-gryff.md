@@ -507,29 +507,50 @@ of the bufio specs threaded through the wire specs), discharged by a `Link`/`*Li
 `wp_proof`s. The rest of the port obeys the rule so far; new files must see callees through their specs
 only (lab-style imports of callees' proofs are violations: Rabia's port had 106).
 
-Remaining, in order:
-1. **N** (24 lab modules left): the
-   frontier `N/{WireDefs✓,WireInj✓,WireLaws✓,SliceElems✓}` -> `NetDefs` (needs `Proto2/Replica`, NOT
-   ported yet: it imports `Proto2/{Laws✓,Wire✓}`, `Proto/WireLaws✓`, `Proto2P/Done✓` and the lab's
-   `Harness/Proof/github_com/goose_lang/primitive/Proph.lean`, a proved helper (no axiom:
-   `go.NotInterface go.prophId` and `ResolveU64` through a pointer) to copy into
-   `Dsverify/Proof/gryff/Lib/` if Perennial `7b2259a12` still lacks it) -> `Stats`, `SpecsDefs` (needs `Replica2/State`), ... The lab's room lemmas
-   (`bufio.writerRoom`, `wp_WriteByte_room`, `wp_Write_room`, `wp_NewWriter_room`, `ownWriter_room`) are
-   dsv-bufio's fit clauses (`err = nil ∧ pend.length + n ≤ sz → e = nil ∧ sent' = sent`) with
-   `bufio.ownBufWriter_size`; `bufio.ownWriter_sentLb` -> `bufio.ownBufWriter_fact` with
-   `sendTok_sentLb`; `bufio.ownReader_proto` -> `net.connReader_proto`; `bufio.readerOk_conn`/
-   `writerOk_conn` -> `net.conn_readerOk`/`net.conn_streamWriterOk` (`RSt := {connIface t, connReadE …}`,
-   `WSt := {connIface t, connWriteE …, 4096}`). N must also give, for a connection, `readNext` (from
-   `net.connReader_proto`) and what logging/`err != io.EOF` need of `rdErr` (see above).
-   `N/StrIndex.lean` needs `strings.Index` (names only in Perennial: a hypothesis).
-2. **Rpc** (`Rpc/*`, 6 modules) against `Net/`'s `CodecSpec` with the decode guards (`Client.Call`'s
-   `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep))`, the server's `argDec`), and the HTTP transport
-   as ONE hypothesis class mirroring `models-rpc-http`'s intended shapes (as dsv-epaxos's
-   `Interface/RpcHttpHyps.lean`, on `origin/dsv-epaxos`: copy its shape).
-3. Server, Replica2/B/H*/X, the client on remote, Codec()/Gen (see item 2 of the old list below),
-   Start/Shares, Mains, Linked, `gryff_remote_robust` (every hypothesis class, `InitHyp`s and
-   `BinaryVarintHyps` included, a visible premise; confirm with `etc/theorem-loc.py`),
-   `etc/tcb-collections/dsv-gryff.txt`.
+Remaining, in order (updated session 5; lab modules left: see `port/` scratch or diff the lab tree
+against `Dsverify/Proof/gryff/`; not to port: `Slots.lean`, `WS/Placed.lean` (gone by design),
+`S/SelfOwn.lean` (the lab's evidence copy, its proofs are in `Replica2/State`)):
+
+Everything portable without a design decision is ported. Two designs block the rest:
+
+1. **The client connection on `Net/` (N/Serve, N/ClientConn, N/ConnLaws, N/StrIndex, N/WaitPeers,
+   N/ConnSlots, N/Connect, N/Boot, then Replica2/Specs and everything above it: H1-H3, B/Handler,
+   B/Tables, B/BootLem, X/Bridge, X/Final, Replica2/Link).** `N/Serve.lean` is copied and
+   mechanically rewritten but not checked; its `clientConnInB` is the lab's connection vocabulary:
+   `net.rpc.connIface conn c true` -> `∃ t la ra, ⌜conn = interface.mkOk (ptr TCPConn) #t⌝ ∗
+   net.connAt t cn true a la ra`; `sendTok c true (addrQ γ a) []` / `connFreshG netDistGS c true`
+   -> `Net/`'s `sendTok`/`connFresh` (`GooseLang/Ext/Net/Proto.lean`); the reader's peek
+   `□ (∀ Y, I (u32Le hs ++ Y) -∗ …)` -> the reader-level update form used by `peerReaderB`
+   (`N/SpecsDefs.lean`), to be produced where the reader is made (`N/ClientConn`) from
+   `wire.ownReader_proto` (`Client/Bufio.lean`, `net.connReader_proto`: `▷ protoPrefix`, strip
+   the later under the update; the protocol `gryffWireP`'s facts are persistent/timeless) and the
+   reader as `wire.RSt := {connIface t, connReadE eof la ra ed}` (`net.conn_readerOk`, which takes
+   `net.Conn.Read.spec` as an argument: thread it as a section hypothesis or a field of a
+   `NetSpecs` class like `wire.BufioSpecs`); the writer `wire.WSt := {connIface t, connWriteE la ra
+   ed, 4096}` with `net.conn_streamWriterOk` (`J := sendTok cn s P`, `Q := P cn`); `errWf`/`errAny`
+   on read errors -> `rdErr` (`io.EOF` test: `net.eof_ptrTyped`, logging: `logArg_err` needs
+   `models_lab.errAny` of a `connReadE` error; `OpError.Error` is in `Net/`); `sharedInvs` ->
+   `protoInvs` where only those invariants are used; `c.RemoteAddr().String()` -> state it at the
+   call shape goose produces (the lab's was a `*TCPConn` method; `Lib/NetAddr.lean` has
+   `wp_TCPAddr_String`; `net.Conn.RemoteAddr.spec` returns `ra`, `connAt` holds `netAddr ra`);
+   `net.model.Assumptions` -> `net.Assumptions`/`net.FieldAssumptions`. `strings.Index`
+   (`N/StrIndex`) is names-only in Perennial: a hypothesis with Go's precondition-free spec.
+2. **Rpc against `Net/`'s rpc** (`Rpc/{Defs,CodecLow,CodecEncode,CodecDecode,CodecProof,Slot}`,
+   then `Server/*`, `Shares`, `Client/*`, `B/{Register,Registry,Rcvr,Init,Boot,NewReplica}`):
+   merge `origin/models-rpc-http` (`1a4d9546c9`; DialHTTP(Path) proved over
+   `http.ReadResponse.spec`) and use its client specs; the server side (`ServeHTTP`, `HandleHTTP`,
+   `http.Serve`, mux, wildcard `rpcLisP`) as ONE hypothesis class shaped like dsv-swiftpaxos's
+   `lib/RpcHttpHyps.lean` (read it on `origin/dsv-swiftpaxos`); `Client.Call` errors with
+   `errMsg`, `errOk` only for `srvErrMsg`, `codecFresh`/`srvEnv` from a per-machine boot resource
+   (next to the replicas' prophecy boot), all visible premises. The lab's `RpcCodec` (`enc`,
+   `dec`, `call`, `methods`) is `Net/`'s `CodecSpec` (`enc`, `dec`, `rcv`) plus the method specs;
+   the addresses are the kit's (`127.0.0.1:7501`, replicas' net/rpc at `127.0.0.1:850x`), not the
+   lab's `10.77.0.x` (`ipOf`, `portOf`, `masterRpcAddr` in `Rpc/Defs`).
+3. Then the client on remote, Codec()/Gen, Start/Shares, Mains, Linked (instances of the hypothesis
+   classes are NOT allowed: `wire.BufioSpecs` is discharged in `Linked` by `haveI := ⟨…wp_proof…⟩`
+   or by stating the top theorem over it and applying it to the proofs), `gryff_remote_robust` with
+   every premise visible (`InitHyp`s, `BinaryVarintHyps`, the rpc-http class, `strings.Index`;
+   `etc/theorem-loc.py`), `etc/tcb-collections/dsv-gryff.txt`.
 
 ### Older plan (sessions 1-3), still valid where not superseded above
 
