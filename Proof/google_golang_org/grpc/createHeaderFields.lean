@@ -1008,14 +1008,18 @@ theorem grpc.createHeaderFields.wp_proof
           rw [hn]
           by_cases hev : row.length % 2 = 0
           · rw [hev, Nat.sub_zero, List.take_length]
-          · have hsplit : row = row.take (row.length - 1) ++ [row[row.length - 1]'(by omega)] := by
-              conv_lhs => rw [← List.take_append_drop (row.length - 1) row]
-              congr 1
-              rw [List.drop_eq_getElem_cons (by omega), List.drop_eq_nil_of_le (by omega)]
+          · have hlen1 : row.length - 1 + 1 = row.length := by omega
+            have hsplit : row = row.take (row.length - 1) ++ [row[row.length - 1]'(by omega)] := by
+              have : row.take (row.length - 1 + 1) = row.take (row.length - 1) ++ row[row.length - 1]?.toList := List.take_add_one
+              rw [hlen1, List.take_length, List.getElem?_eq_getElem (by omega)] at this
+              exact this
             rw [show row.length % 2 = 1 by omega]
-            conv_lhs => rw [hsplit]
-            rw [grpcHdr.rowFields_append _ _ (by simp; omega)]
-            simp [grpcHdr.rowFields]
+            calc grpcHdr.rowFields row
+                = grpcHdr.rowFields (row.take (row.length - 1) ++
+                    [row[row.length - 1]'(by omega)]) := congrArg _ hsplit
+              _ = _ := by
+                rw [grpcHdr.rowFields_append _ _ (by simp; omega)]
+                simp [grpcHdr.rowFields]
         rw [Hn.2.2.1, Hm.2.2, ← hrow', List.take_add_one, List.getElem?_eq_getElem HmR, ← hgd, hrow]
         simp
     · have hm : sint.nat m = rows.length := by
