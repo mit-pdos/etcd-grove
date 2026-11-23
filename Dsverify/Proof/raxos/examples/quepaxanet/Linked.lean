@@ -1,5 +1,6 @@
 /-
-The QuePaxa kit's links: its functions' proofs (`KitGen`, `KitCodecFn`, `KitOrch`, `KitServer`)
+The QuePaxa kit's links: its functions' proofs (`KitGen`, `KitCodecFn`, `KitOrch`, `KitServer`,
+`KitClient`)
 applied to their callees' proofs (the kit's model, remote's `Link.lean`, `net`'s, `IoReadFull`'s,
 Perennial's `strings.Split`, the replica's `Replica/Results`).
 -/
@@ -7,6 +8,8 @@ module
 
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitServer
 public import Dsverify.Proof.raxos.examples.quepaxanet.KitOrch
+public import Dsverify.Proof.raxos.examples.quepaxanet.KitClient
+public import Perennial.Proof.time.After
 public import Dsverify.Proof.raxos.examples.quepaxanet.ModelProof
 public import Dsverify.Proof.raxos.Replica.Results
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
@@ -59,6 +62,20 @@ theorem wp_Server [hyp.sync.MapHyp qv.map] [hyp.grpc.GrpcHyp (cd := hyp.qpCodec)
     net.Listener.Accept.wp_proof net.Conn.Read.wp_proof net.Conn.Write.wp_proof
     net.Conn.Close.wp_proof (raxos.ioLt.ReadFull.wp_proof raxos.ioLt.ReadAtLeast.wp_proof)
 
+theorem wp_Client [hyp.PbHyp GF] [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
+    [time.Assumptions] [_root_.Perennial.bufio.Assumptions] [errors.Assumptions]
+    [github_com.mit_pdos.etcd_grove.examples.lib.remote.Assumptions]
+    [github_com.mit_pdos.etcd_grove.examples.lib.lintest.Assumptions]
+    [github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions] :
+    Client.spec (GF := GF) (hG := hG) :=
+  Client.wp_proof EtcdGrove.remote.wp_ServeClient wp_Codec net.Listen.wp_proof
+    net.Listener.Accept.wp_proof net.Conn.Read.wp_proof net.Conn.Write.wp_proof
+    net.Conn.Close.wp_proof (raxos.ioLt.ReadFull.wp_proof raxos.ioLt.ReadAtLeast.wp_proof)
+    net.Dial.wp_proof
+    (EtcdGrove.bufio.NewReader.wp_proofOk
+      (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
+    time.After.wp_proof
+
 end linked
 
 end raxos.examples.quepaxanet
@@ -68,3 +85,4 @@ end Perennial
 #print axioms Perennial.raxos.examples.quepaxanet.wp_Gens
 #print axioms Perennial.raxos.examples.quepaxanet.wp_Orch
 #print axioms Perennial.raxos.examples.quepaxanet.wp_Server
+#print axioms Perennial.raxos.examples.quepaxanet.wp_Client
