@@ -525,6 +525,98 @@ theorem State.InMemory.wp_proof
       iexists false
       iframe
       ipureintro; exact Hjp5
+  clear Hjp5
+  simp -zeta only [jp6] at Hjp6
+  replace Hjp6 := bind_ok Hjp6; obtain ⟨d3, hd3, Hjp6⟩ := Hjp6
+  icases logsRO_at g.Log' s.log n ⟨Hn, by rw [HWf.len_log]; exact Hlt⟩ $$ HLog with ⟨%glog, #Hglog, #Hlogn⟩
+  wp_join iprop(∃ (lcv' : Bool),
+      x_ptr ↦ ({ s' := p, n' := n, ev' := e } : G.inMem) ∗ s_ptr ↦ p ∗ ev_ptr ↦ e ∗ n_ptr ↦ n ∗
+      lc_ptr ↦ lcv' ∗ ⌜jp7 () lcv' = .ok r⌝)
+    at next with [x s ev n lc] as ⟨%lcv', x, s, ev, n, lc, %Hjp7⟩
+  · obtain ⟨nl, hnl, hdt, hdf⟩ := andM_ok hd3
+    simp only [pure_ok, Except.ok.injEq] at hnl
+    subst hnl
+    cases lcv
+    case true =>
+      rw [hdf rfl] at Hjp6
+      simp only [Bool.false_eq_true, ite_false] at Hjp6
+      wp_auto
+      wp_join_done
+      iexists true
+      iframe
+      ipureintro; exact Hjp6
+    simp only [Bool.not_false] at hdt
+    replace hdt := hdt trivial
+    wp_auto
+    rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_wins_unfold.method_unfold]
+    try wp_auto
+    wp_apply wp_wins _ _ d3 $$ [Hx]
+    · iframe Hx; ipureintro; exact hdt
+    cases d3
+    · simp only [Bool.false_eq_true, ite_false] at Hjp6
+      wp_auto
+      wp_join_done
+      iexists false
+      iframe
+      ipureintro; exact Hjp6
+    simp only [ite_true] at Hjp6
+    replace Hjp6 := bind_ok Hjp6; obtain ⟨lcv2, hany, Hjp6⟩ := Hjp6
+    ihave #HTL := HTermLen
+    iunfold termIntsRO at HTL
+    icases HTL with ⟨%gs, #Hgs, %Hgr⟩
+    ihave %Hgsl := ownSlice_len _ _ _ $$ Hgs
+    have Hgbl := Hgr.length_eq
+    wp_auto
+    ihave HI : (∃ j : Nat, "i" ∷ i_ptr ↦ W64 (j : Int) ∗ "p" ∷ (∃ pv : G.TermInt, p_ptr ↦ pv) ∗
+        "lc" ∷ lc_ptr ↦ false ∗
+        "%Hj" ∷ ⌜j ≤ s.termLen.length ∧ anyM (s.termLen.drop j) (fun q => andM
+          (do let t ← InMem.T { s := s, n := sint.nat n, ev := ev }; pure (decide (q.1 < t)))
+          (notM (do let sc ← subSeq s.chain 1 q.2; isPrefix sc s.log[sint.nat n]!))) = .ok lcv2⌝ : IProp GF)
+      $$ [i p lc]
+    · iexists 0
+      iframe
+      isplitl [p]
+      · iexists _; iexact p
+      ipureintro; exact ⟨Nat.zero_le _, hany⟩
+    wp_for HI
+    obtain ⟨Hjle, Hjany⟩ := Hj
+    by_cases hjl : j < s.termLen.length
+    · have hc : sint.Z (W64 (j : Int)) < sint.Z g.TermLen'.len := by word
+      rw [decide_eq_true hc]
+      simp only [↓reduceIte]
+      wp_auto
+      have h0 : 0 ≤ sint.Z (W64 (j : Int)) := by word
+      icases p with ⟨%pv, p⟩
+      have hjg : j < gs.length := by omega
+      have HgqR := forall₂_getElem Hgr j hjg hjl
+      wp_apply wp_load_index g.TermLen' (W64 (j : Int)) gs gs[j] h0
+        (by rw [show sint.nat (W64 (j : Int)) = j by word]; exact List.getElem?_eq_getElem hjg) $$ [Hgs]
+      · iexact Hgs
+      have hq : s.termLen[j]! = s.termLen[j] := by
+        rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hjl]; rfl
+      rw [anyM_drop_succ s.termLen _ hjl, hq] at Hjany
+      replace Hjany := bind_ok Hjany; obtain ⟨fv, hfv, Hjany⟩ := Hjany
+      obtain ⟨a, ha, hat, haf⟩ := andM_ok hfv
+      replace ha := bind_ok ha; obtain ⟨t, ht, ha⟩ := ha
+      simp only [pure_ok, Except.ok.injEq] at ha
+      rw [github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.inMem.TypeAssumptions.ptr_T_unfold.method_unfold]
+      try wp_auto
+      wp_apply wp_T _ _ t $$ [Hx] as %ut %Hut
+      · iframe Hx; ipureintro; exact ht
+      have hw1 : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by word
+      trace_state
+      sorry
+    · have hc : ¬ sint.Z (W64 (j : Int)) < sint.Z g.TermLen'.len := by word
+      rw [decide_eq_false hc]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      have hjeq : j = s.termLen.length := by omega
+      rw [hjeq] at Hjany
+      simp only [List.drop_length] at Hjany
+      cases Hjany
+      wp_join_done
+      iexists false
+      iframe
+      ipureintro; exact Hjp6
   trace_state
   sorry
 
