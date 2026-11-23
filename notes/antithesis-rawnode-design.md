@@ -34,7 +34,20 @@ each first-tier finding changed:
   report; new lemma `antSim_quiet` (§3.2, §3.3).
 - F6 (pre-vote and check-quorum off had no source): the start spec takes both off and `rawNode` keeps
   them off (`rawNode_scope`, §2.1).
-Second-tier S1-S10 are folded in where they apply (§2.4 counts, `AckEnd`, `AppRespEnd`'s reject arm, C3,
+**Revision 2** (2026-11-23), after review round 2 (fresh reviewer; 3 first-tier, 6 second-tier):
+- T1 (`commitIn_camp` still unprovable: no records for the campaign log): it takes a leader's full log `G`
+  with records extending the campaign log (§2.1), with the proof route.
+- T2 (§2.5 unsound: a storage cap does not stop the snapshot fallback, which also fires on the log's
+  in-memory boundary; the threading list was wrong; the natural fix edits `InvNodeRun`, #22's): §2.5 is
+  restated as **the open item of the design**, its requirement exact, two candidate mechanisms with their
+  obstacles, and a probe before the freeze (Q7).
+- T3 (C1 after a drain needs a protocol-level idle fact from `HasReady`'s false arm): `HasReady`'s new
+  post gives it (§2.2).
+- Second tier: `PendAbs` persistent (not pure), no "at its last index"; a drain-phase relation for
+  `send`/`apply` (§3.2); C3's `termLen` coverage; `AckScope` without a snapshot parameter; `ReadyOut`'s
+  snapshot none; the corollaries' layout.
+
+Second-tier S1-S10 of round 1 are folded in where they apply (§2.4 counts, `AckEnd`, `AppRespEnd`'s reject arm, C3,
 C4, entry types, layout, the boot drain).
 
 Reading order: §0 the answers the coordinator asked for; §1 the chain, top down; §2 raft's side (the API
@@ -146,11 +159,15 @@ with its `NState`'s protocol reading and its queue's abstraction named. Sealed. 
 
 /-- (new, in a module `import all`-ing `InvRawnode`) `ownRawNode`'s body with `toPState s = ps` and the
 queued `stepsOnAdvance`' protocol messages `qs` (`pendList`'s records, abstracted: a leader's
-self-acknowledgement at its last index, a candidate's self-vote; the storage acknowledgements carry no
+self-acknowledgement, a candidate's self-vote; the storage acknowledgements carry no
 protocol message). Its text is `ownRawNode`'s with two conjuncts more. -/
 def ownRawNodeAt (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PState) (qs : List Msg) :
     IProp GF :=
-  iprop(∃ (s : NState) …, <ownRawNode's conjuncts> ∗ ⌜toPState s = ps⌝ ∗ ⌜PendAbs id s steps qs⌝)
+  iprop(∃ (s : NState) …, <ownRawNode's conjuncts> ∗ ⌜toPState s = ps⌝ ∗ pendAbs id steps qs)
+-- `pendAbs` (revision 2): persistent, not pure: the queued messages' states are existential inside
+-- `pendList`'s big-sep (`InvRawnode.lean:2035`, `∃ st, msgIn l DFrac.discard st ∗ …`); `pendAbs` names
+-- them by `msgIn □`'s agreement. It does not pin a self-acknowledgement's index (`SelfMsgOk` does not):
+-- `Ready`'s post pins `qs` instead (`ps.outbox.filter (·.dst = id)`, the queue's source).
 
 theorem ownRawNodeAt_ownRawNode : ownRawNodeAt γ rn id rs ps qs ⊢ ownRawNode γ rn id rs      -- internal
 theorem ownRawNode_at : ownRawNode γ rn id rs ⊢ ∃ ps qs, ownRawNodeAt γ rn id rs ps qs      -- internal
@@ -177,7 +194,7 @@ facts read out of the owned predicate):
 | `rawNode_commit` | `commitIn γ ps.log ps.commit ps.term ∗ isCommitted γ (ps.log.take ps.commit)` | `ownLogGhost`'s `Hcommit` |
 | `rawNode_outbox` | `[∗ list] m ∈ ps.outbox, outMsgOk …` reduced to: each message is `isMessage` once its batch is entered (as `Ready.spec`'s `Henter`) | `Hout` |
 | *(revision 1, F6)* scope in the body | `ownRawNodeAt` has one more conjunct, `⌜rs.mode = .static ∧ s.prevote = false ∧ s.cq = false⌝`: the API's `rawNode` is the scope's node. The start spec establishes it from the new premise `cv.PreVote' = false ∧ cv.CheckQuorum' = false`; every step keeps it (the flags are the `Config`'s, copied by `newRaft`, never written) | `NStateWf`, the start spec |
-| `rawNode_noCompact` *(revision 1, F3)* | in a never-compacted cluster, every queued message is no `.snap` (§2.5) | §2.5 |
+| `rawNode_noSnap` *(revision 1, F3; open, §2.5)* | in the no-snapshot scope, no queued message is a `.snap`, `ps.base = base0` and no snapshot pending | §2.5's mechanism |
 | `rawNode_entries` *(review S6)* | every entry of `ps.log` is a filler (the leader's empty entry) or a proposal whose ticket `entTk` the client minted, so of the type the client proposed | the proposal registry (`deposited`, `entTk`) |
 | `rawNode_term_tc` | `⌜uint.Z ps.term ≤ uint.Z rs.tc⌝` | exists (`ownRawNode_term_tc`) |
 | `rawNode_raise_tc` | `rawNode γ rn id rs ps ⊢ rawNode γ rn id {rs with tc} ps` (`rs.tc ≤ tc`) | exists (`ownRawNode_raise_tc`) |
@@ -192,14 +209,19 @@ candidate's campaign record) **Leader completeness, for a client.** What was com
 `tm` is in the campaign log of every *leader* of a later term. Proved from `lc_core`/`cq_agree`
 (`Protocol/LeaderCompleteness.lean`, which take `isLeader` with the campaign record and conclude at an
 index of a log with records) inside `raftCommitInv`. -/
-theorem commitIn_camp (γ : RaftNames) (F : List EntryM) (c tm : w64) (j T : w64) (F0 : List EntryM) :
-    uint.Z tm < uint.Z T →
-    ⊢ commitIn γ F c tm -∗ logRecs γ base0 F -∗ isLeader γ j T -∗ isCamp γ j T F0 ={↑raftN γ}=∗
-      ⌜F.take (uint.nat c) <+: F0⌝
+theorem commitIn_camp (γ : RaftNames) (F : List EntryM) (c tm : w64) (j T : w64) (F0 G : List EntryM) :
+    uint.Z tm < uint.Z T → PlogWf base0 G → F0 <+: G →
+    ⊢ commitIn γ F c tm -∗ logRecs γ base0 F -∗ isLeader γ j T -∗ isCamp γ j T F0 -∗
+      logRecs γ base0 G ={↑raftN γ}=∗ ⌜F.take (uint.nat c) <+: F0⌝
 ```
 
-Every caller has the two added premises: C5 (§3.2) certifies every log in the binding's state, and the
-binding's leader logs are of terms in `S.leaders`.
+(Revision 2, T1: `lc_core`, `LeaderCompleteness.lean:575`, concludes about a log with records whose term at
+the campaign log's last index is the campaign's last term; `isCamp` carries no records, so the law takes
+a full log `G` of the leader extending `F0`, as `recs_chain`, `Ghost.lean:2917`, and `ReadIndex.lean:547`
+do.) Proof: `logRecs_take` gives `F0`'s records; `lc_core` at `G := F0`, its last-entry premise by
+`camp_last`; `commitJ`'s quorum arm gives `c ≤ n`, the quorum's term `t ≤ tm < T` and equal terms at `c`
+(its boot arm is `c = 0` here); `full_match` twice gives `F.take c = F0.take c`. Every caller has the
+premises: `rawNode_leader` with `rawNode_logRecs` at the leader's report, and C5 for every `ledLog[t]`.
 
 **The term budget** (decision 2; gap 2). `budgetInv`, `termLB`, `tickCred`, `budget_spend`,
 `budget_step`, `termLB_bound` are `InvNodeChan.lean`'s (internal) and `termLB_rb` is `TracedNodeRun`'s.
@@ -291,7 +313,7 @@ def TickEnd (c : CfgM) (id : w64) (s s' : PState) : Prop :=
   (s.role = .leader ∧ ∃ ms, (∀ x ∈ ms, HeartbeatOk id s x) ∧ s' = psendMsgs s ms)
 
 /-- `Advance`: the queued self-addressed messages `qs` (`rawNode`'s third index: a leader's
-self-acknowledgement at its last index, a candidate's self-vote) stepped in order by `RecvEnd`; the
+self-acknowledgement, a candidate's self-vote) stepped in order by `RecvEnd`; the
 storage acknowledgements leave `PState` as it is (`AckEnd`, §2.4). -/
 inductive AdvanceEnd (c : CfgM) (id : w64) : PState → List Msg → PState → Prop
   | nil (s) : AdvanceEnd c id s [] s
@@ -315,7 +337,7 @@ had `ownRawNode … rs`, and the old premises unchanged.
 | `RawNode.Step` (`RawNode__Step.lean`) | `ownRawNode {rs with term := t, psnap}` ∗ term bounds | `rawNode {…} ps' []` ∗ `⌜RecvEnd c id ps (absMsg ty st.msg st.ents st.ctx) ps'⌝` (`mtypeOf st.msg.Type' = some ty`; `ps` the pre's) |
 | `RawNode.Tick` | `ownRawNode {rs with term := t}` ∗ `t ≤ term + 1` | `rawNode {…} ps' []` ∗ `⌜TickEnd c id ps ps'⌝` |
 | `RawNode.Propose` | `ownRawNode …` | `rawNode … ps' []` ∗ `⌜ProposeEnd id ps (stamped data) ps'⌝` (dropped: `ps' = ps`) |
-| `RawNode.HasReady` | `b` and its idle facts | unchanged, `rawNode rs ps qs` in and out |
+| `RawNode.HasReady` | `b` and its idle facts (`ownRawNodeIdle`: the hard state pinned, not the soft state) | `rawNode rs ps qs` in and out; on `false` (revision 2, T3) the protocol-level idle fact `PIdle id rs ps`: `ps.outbox.filter (·.dst ≠ id) = []`, `⟨ps.term, ps.vote, ps.commit⟩ = rs.phs` (the last reported hard state, or the zero one at a fresh node), `roleGo ps.role = rs.role` (new proof: Go's `HasReady` compares `softSt` with `prevSoftSt`), `rs.dur.ents = ps.log` (nothing unpersisted) |
 | `RawNode.Ready` | `ownRawNode {rs with …}` ∗ `hsOptC`, `entsROz`, `isRaftMsg`, `isCommitted (delivered ++ ce)`, … | `rawNode {rs with …} {ps with outbox := []} (ps.outbox.filter (·.dst = id))` ∗ `⌜ReadyOut id rs ps h es ms ce ss⌝` (below) |
 | `RawNode.Advance` | `ownRawNode (advRS rs t ca)` | `rawNode (advRS …) ps' []` ∗ `⌜AdvanceEnd c id ps qs ps'⌝` (`qs` the pre's) |
 | `NewRawNode.emptyStartSpec` (S3a) | `ownRawNode (rawNodeRestarted …)` | premise `cv.PreVote' = false ∧ cv.CheckQuorum' = false` (F6); `rawNode (rawNodeRestarted …) pInit []` with `pInit` term 0, vote 0, follower, empty log, commit 0, empty outbox |
@@ -324,8 +346,9 @@ had `ownRawNode … rs`, and the old premises unchanged.
 
 **Where they live** (review S7). The layout gives a spec file one `<F>.spec`. The internal stronger
 triples are `RawNode.<F>.absSpec` in a defs module `Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`
-*(new)*, each proved in its function's proof file (which then proves `RawNode.<F>.spec` as the corollary,
-both linked); the API form (over `rawNode`, §2.1) in `RawNodeApi.lean`, proved in `RawNodeApiLinked.lean`.
+*(new)*, each proved in its function's proof file (`RawNode.<F>.wp_absProof`); the old
+`RawNode.<F>.spec` is the corollary `RawNode.<F>.spec_of_abs : RawNode.<F>.absSpec → RawNode.<F>.spec` in
+the defs module, applied in `Link.lean` (revision 2: a proof file proves one thing, `--layout`); the API form (over `rawNode`, §2.1) in `RawNodeApi.lean`, proved in `RawNodeApiLinked.lean`.
 `etc/api/raft-layout.txt` gets the defs module as a known exception if `--layout` flags it. `interface/`
 regenerates for `raft.Step` (through `stepClose`, §2.4), `maybeSendAppend` (§2.5) and the new modules.
 
@@ -349,6 +372,8 @@ def ReadyOut (id : w64) (rs : RNState) (ps : PState) (h : HardStateM) (es ce : L
   (∀ q ∈ ms, q.st.msg.To' ≠ id ∧ q.st.msg.To' ∈ voters) ∧
   -- the committed entries are the log's, after those delivered, up to at most the commit index
   rs.delivered ++ ce <+: ps.log ∧ (rs.delivered ++ ce).length ≤ uint.nat ps.commit
+-- and (revision 2) the `Ready`'s snapshot is none (`rdSnapOut` with `L = none`, from `rs.psnap = false`:
+-- no `MsgSnap` stepped, §2.5); the harness panics otherwise (`harness.go` `drain`)
 ```
 
 `roleGo`, `absMsgOf` are *(new)* names for the existing readings (`Role` as `StateType`; `absMsg` at the
@@ -388,13 +413,15 @@ ctx s s'⌝`; they take `⌜StepEnd c id m ents ctx s s'⌝` instead. `raft.Step
 definition (a weaker precondition: the caller's closing wand gets more).
 
 `AckEnd` (the storage acknowledgements' end state: protocol reading unchanged) becomes
-`⌜s.gh.tr.isSome ∨ AckScope c m sn → AckEnd m s s'⌝`, with `AckScope` the untraced scope that gives it
-(review S2): no snapshot in the acknowledgement (`sn = none`) and no automatic leave (`c.autoLeave =
-false`, true of a static, non-joint configuration). Its two sources change: the `MsgStorageAppendResp`
+`⌜s.gh.tr.isSome ∨ AckScope c s → AckEnd m s s'⌝`, with `AckScope c s := c.autoLeave = false ∧
+s.logst.snap = none` the untraced scope that gives it (review S2; revision 2: `stepClose` has no snapshot
+parameter, and an acknowledgement carries a snapshot only when one is pending, `s.logst.snap ≠ none`):
+no automatic leave (true of a static, non-joint configuration) and no pending snapshot. Its two sources change: the `MsgStorageAppendResp`
 path's post already has it outright (`raft__Step/MsgStorageAppendResp.lean:98`); the
 `MsgStorageApplyResp` path's post (`raft__Step/MsgStorageApplyResp.lean:194`, `⌜s.gh.tr.isSome → …⌝`)
 gets `AckScope`'s disjunct, from its own `appliedTo` premise (the automatic leave runs only at
-`c.autoLeave`). The snapshot-acknowledgement close (`raft__Step.lean:1077`) discharges it by `sn ≠ none`.
+`c.autoLeave`). The snapshot-acknowledgement close (`raft__Step.lean:1077`) discharges it by its pending snapshot
+(`AckScope`'s second conjunct false).
 
 - **Consumers** (the close sites that apply the wand): `gate_close`, `gate_close_g`, `gate_close_mid`
   (`TracedStepGates.lean`) and their 21 applications in `raft__Step.lean` (review S1), which pass `(fun _
@@ -415,7 +442,7 @@ record the events at each hook gate (the trace check's mechanism without a trace
 traced bundle is 15k lines for its families), and the gates give the states at the events, not the end
 state, so `InputEnd` would still need the close.
 
-### 2.5 The second change: no snapshot at a never-compacted node (revision 1, F3)
+### 2.5 The second change: no snapshot (revision 1, F3; the open item, revision 2)
 
 **The gap.** Every broadcast `StepEnd` describes is `ReplSends` (`Defs.lean:1584`): `ReplOk = AppOk ∨
 SnapOk`, with `m.ty = .snap → s.gh.ns = false`, and the no-snapshot mode `NGhost.ns` (off at raft's level since U8
@@ -427,33 +454,45 @@ is not (S3a's `emptyStartSpec` takes `¬ clusterNoSnap γ`). So nothing proved s
 `MemoryStorage`, whose first index stays 1 with the dummy entry at 0, and a leader's `Next ≥ 1`
 (`PrOk`), so `term(Next - 1)` and `entries(Next)` never fail and `maybeSendSnapshot` is never reached.
 
-**The argument exists**, at traced nodes: `maybeSendAppend.spec` takes `TrNoSnap s.gh.tr s.logst`
-(`TracedSend.lean:45`: at a traced node, a compacted log, `prev.index ≠ 0 ∨ storPast storage 1`, is a
-contradiction), and its proof refutes the snapshot fallback with it.
+**What is needed, exactly** (revision 2, T2). The snapshot fallback of `maybeSendAppend`
+(`raft__maybeSendAppend.lean:466-497`) runs on `⌜s.logst.prev.index' ≠ 0⌝ ∨ storPast …`: on the
+storage's compaction **or on the log's in-memory boundary** `prev`, which a stepped `MsgSnap` moves on
+restore. A cap on the storage alone (revision 1's `storCapF st 0`, an `NGhost.nc` flag) refutes only the
+right disjunct, so revision 1's change was unsound. What refutes both is the `ns` mode's pattern: a
+storage cap (`NsCap`) **and** a log invariant `LogNsOk` (`InvRaftPhys.lean:931-933`: `snap = none ∧
+prev.index' ≤ 1 ∧ … ∧ ∀ m ∈ s.outbox, m.ty ≠ .snap`), kept across steps by `LogNsKeep` with `raft.Step`'s
+premise `m.Type' = MsgSnap → s.gh.ns = false` (`Spec/.../raft__Step.lean:669`) and, over the cluster,
+by no node sending one. And the caller learns the result through `ReplSends`' clause
+`m.ty = .snap → s.gh.ns = false`. (The traced proof's `TrNoSnap`, `TracedSend.lean:45`, refutes the
+fallback the same way but only at a traced node, and its untraced providers, `trNoSnap_none`, hold no
+storage facts.)
 
-**The change.** A node-level flag for "my storage is never compacted" (the client's promise, as
-`storCapF st 1` is for the old no-snapshot mode), set at construction and kept:
-- `NGhost.nc : Bool` *(new)*; `ownRaftPhys` holds `⌜nc = true⌝ → storCapF st 0` (the storage's floor
-  stays 0: never compacted), as `NsCap` holds `storCapF st 1` for `ns`;
-- `TrNoSnap tr ls` becomes `NoSnapIf (tr ≠ none ∨ nc = true) ls` in `maybeSendAppend.spec` (and its
-  callers' threading of it, `TrNoSnap`'s users: `bcastAppend`, `sendAppend`, the win, `stepLeader`'s);
-- `ReplSends`' clause `m.ty = .snap → s.gh.ns = false` gains `∧ s.gh.nc = false`;
-- `NewRawNode`'s start spec takes the storage's floor-0 cap (the harness's `bootStorage` over a
-  `MemoryStorage` it never compacts gives it) and sets `nc`; `rawNode` exposes it as `rawNode_noCompact`:
-  every message the node queues is no `.snap`, so `ps.base = base0` and `ps.log` is the whole log.
+**The obstacle.** `ns` is for a cluster with a bootstrap log (`reNoSnap_ok`; `Next ≥ 2` in `PrLo`; the
+rejection hint's `RejHintOk`; `ownStepGhost_boot_term`); its keep is threaded through `ownRaftPhys`'s close
+in `InvNodeRun.lean:500-508, 715-721` (positional), which #22 edits.
 
-**Cost and risk.** `NGhost` is in `Defs.lean`: adding a field with a default rebuilds all of raft and its
-clients once, but no statement that builds an `NGhost` by a literal breaks (defaults). The proofs touched:
-`maybeSendAppend` (the refutation is the traced one, its premise widened), the threading of
-`NoSnapIf` (where `TrNoSnap` is threaded today), `ReplSends`' producers (they already prove the `ns`
-clause from `PrvalsOk`'s `PrOkN`; the `nc` clause from `maybeSendAppend`'s post), `ownRaftPhys`'s new
-conjunct (kept by every step: the flag is constant, the storage's cap persistent). Estimated 800-1,500
-lines, and the most uncertain item of S3c: a **probe first** (Q7), proving `maybeSendAppend`'s widened
-spec before anything else. Alternatives: (b) the harness handles snapshots (the binding has `snap` and
-`restore`; S2 and S3b change, and §4's risk 6 of `antithesis-check-design.md` applies); (c) widen
-`ns` to empty-log clusters (`reNoSnap_ok` in `Protocol/Ghost.lean`, `PrLo`'s `Next ≥ 2` to `Next ≥ 1 +
-[bootLen ≠ 0]`, the rejection hint's `RejHintOk`): more files, and the protocol's ghost names, so a larger
-rebuild than (a).
+**Two candidate mechanisms; neither is chosen before a probe (Q7):**
+- **(a) `ns` at a floor.** The mode's floor a function of the boot, `k := min 1 bootLen`: cap
+  `storCapF st k`, `LogNsOk`'s `prev.index' ≤ k`, `PrLo`'s `k + 1 ≤ next` (for `k = 0`, `PrOk`'s
+  `1 ≤ next`), `RejHintOk`'s bound at `k`; `reNoSnap_ok`'s boot requirement split into what each use needs
+  (a node past term 0 before it sends: true of an empty-log cluster, whose nodes send nothing at term 0).
+  Definitions change; `InvNodeRun`'s text does not (its conjuncts name `LogNsKeep`, not the bound), but
+  its proofs may need re-checking: coordinate with #22. `ReplSends` already excludes `.snap` under `ns`,
+  so `StepEnd` carries the result with no new threading. The start spec puts an empty-log cluster in the
+  mode when the client promises `storCapF st 0`.
+- **(b) a gate-chosen flag at the `RawNode` layer.** `StepG` gets a field `nc : Bool := false`; the gate
+  bundles' `"#Hnosnap"` (`LemmasStepGates.lean:414, 461`) becomes `cond R.nc (NoSnapAt s.logst) (TrNoSnap
+  s.gh.tr s.logst)` (definitionally today's at the default, so every existing family is unchanged);
+  `maybeSendAppend.spec` takes it and adds the post `R.nc → ∀ m ∈ ms, m.ty ≠ .snap`, threaded up to
+  `StepEnd`'s leader results (`bcastAppend`, `sendAppend`, `stepLeader`'s arms incl. `stepLeader/Rest`,
+  `stepLeader/MsgProp`, `stepCandidate`'s win, `RawNode__Tick`'s and `RawNode__Bootstrap`'s families).
+  The `RawNode` family proves `NoSnapAt` from a cap and a `LogNsOk`-like conjunct kept in `ownRawNodeAt`
+  (the `RawNode` layer), so `ownRaftPhys` and `InvNodeRun` are untouched.
+
+**The probe** (step 0 of §6): under (a), prove `maybeSendAppend` at `k = 0` and list, statically
+(`etc/importers.py --uses PrLo …`), every proof the definitions' change breaks, `InvNodeRun`'s included;
+cost (b)'s threading the same way. Then decide with the user (Q7). Until then §2.2's "no `.snap`" facts
+and C1's `ps.base = base0` rest on this item. Estimated 800-2,000 lines either way.
 
 ---
 
@@ -487,6 +526,12 @@ commit changes `matched` and may send appends with no `ready`, a message causing
 reported) and `net` the messages sent and not yet received. Pure, except C5, which the harness holds as
 persistent ghost facts and turns into the pure `GlobalOk` before each lemma.
 
+- **The drain phase** (revision 2, review 2's second tier): `send` and `apply` reports come after a
+  `ready`, before `Advance`. In that phase the node's view is `(rs, ps, qs, pend)` at its last `Ready`:
+  `ps` with the outbox emptied, `qs` the self-addressed messages for `Advance`, `pend` the `Ready`'s
+  messages not yet reported; C1-C2 hold of `ps` and the `Ready`'s write; `antSim_send` moves one message
+  from `pend` to `net`; `Advance` (with `pend = []`) ends the phase through `antSim_quiet` or a later
+  `Ready`.
 - **C1 the per-node durable part** (between inputs the node has no unwritten state: every change of its
   term, vote, log, commit or role is in a `Ready` (`ReadyOut`), whose `ready` report the harness makes
   before its write, and the drain runs until `HasReady` is false):
@@ -503,6 +548,8 @@ persistent ghost facts and turns into the pure `GlobalOk` before each lemma.
   at `S.currentTerm[n]` has `a.index ≤ S.confirmed[n].index` with `S.confirmed[n].term = a.term`, or
   `a.index ≤ S.commitIndex[n]`; `S.confirmed[n] = (t, k)` gives `S.log[n][1..k] = S.ledLog[t][1..k]` while
   `t ∈ DOMAIN S.ledLog`; `DOMAIN S.ledLog ⊆ {t | ∃ l ∈ S.leaders, l.term = t}`;
+  (revision 2) `∃ x ≤ S.currentTerm[n], termLen[x] ≥ S.commitIndex[n]` (the `RecordedIn` arm at a win,
+  B 253, and a request's commit, B 126, carried over from a follower's commit);
   `S.commitIndex[n] ≤ |chain|` and `chain[1..commitIndex[n]] = log[n][1..commitIndex[n]]` (review S4:
   the transcription's `subSeq` is an evaluation error past the end, `Types.lean:143`, and
   `CommittedEntriesPreserved` and `ApplyEv` evaluate it);
@@ -665,13 +712,12 @@ What does not: the traced capability, `rnTrace`, the gate families and the bundl
 
 Order, each step keeping every existing result proved:
 
-0. **Probe** (revision 1): `maybeSendAppend`'s spec with `NoSnapIf (tr ≠ none ∨ nc)` (§2.5), proved, and
-   its threading listed, before anything else lands: it is the least certain item.
+0. **Probe** (revision 2): §2.5's two mechanisms, `maybeSendAppend` at the floor `k = 0` and the static
+   list of what each breaks (`InvNodeRun` included), before anything else lands: the least certain item.
 1. `stepClose` unconditional and `AckEnd` under `AckScope` (§2.4): `LemmasStepGates`, `TracedStepGates`,
    `raft__Step.lean` (21 sites, one macro), `raft__Step/MsgStorageApplyResp.lean`'s post, the traced
    bundle's `hend` sites; regenerate the copies. About 200 changed lines.
-1b. The no-compaction flag (§2.5): `NGhost.nc`, `ownRaftPhys`'s cap, `NoSnapIf`'s threading, `ReplSends`'
-   clause, `NewRawNode`'s start. 800-1,500 lines.
+1b. No snapshot (§2.5), by the probe's mechanism. 800-2,000 lines.
 2. `Protocol/InputEnd.lean`: the definitions and `StepEnd → InputEnd` lifting lemmas (one per type, from
    the callee results on `NState` to `PState`, reusing the existing `rframe_*`/`stepC_*` lemmas that build
    `StepCD` from the same results). 1,200-1,800 lines.
@@ -723,9 +769,13 @@ model.
 trace check's rule). (b) Replaced by the new ones, every caller updated (`node__run*`, which #22 edits).
 **Recommend (a).**
 
-**Q7. Excluding snapshots** (revision 1, F3; §2.5). Nothing proved today says the harness's leaders send
-no `MsgSnap`, and the harness panics on one. (a) A no-compaction flag at raft's level (`NGhost.nc`), the
-traced proof's `TrNoSnap` argument made available untraced, the client promising never to compact
-(`storCapF st 0`); probe first. (b) The harness handles snapshots (`snap`/`restore` reports): S2 and S3b
-change, and the binding's known divergence on a snapshot's configuration is near. (c) Widen the `ns` mode
-(revived for auth-lease) to empty-log clusters: its `Next ≥ 2` machinery and `reNoSnap_ok` change. **Recommend (a)**, after the probe.
+**Q7. Excluding snapshots** (revisions 1-2, §2.5). Nothing proved today says the harness's leaders
+send no `MsgSnap`, and the harness panics on one; a storage cap alone does not refute raft's snapshot
+fallback (the log's in-memory boundary counts too). (a) Widen the `ns` mode (revived for auth-lease) to
+an empty-log cluster at floor 0: definitions change (`PrLo`, `LogNsOk`, `NsCap`, `reNoSnap_ok`),
+`InvNodeRun`'s text does not but its proofs may need re-checking, so coordinated with #22. (b) A
+gate-chosen flag, kept at the `RawNode` layer: no edit near #22, but a no-snapshot post threaded from
+`maybeSendAppend` up through `stepLeader`'s results to `StepEnd`. (c) The harness handles snapshots
+(`snap`/`restore` reports): S2 and S3b change, and the binding's known divergence on a snapshot's
+configuration comes near. **Recommend: probe (a) and (b) statically first; (a) if `InvNodeRun`'s proofs
+survive the definitions' change, else (b).**
