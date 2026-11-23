@@ -88,7 +88,7 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    (`wp_map_make1`), `errVarintOverflow` an `errors.New`. The facts the lab proves
    (`Epaxos/Top/PkgState.lean`: `errVarintOverflow`, `deferMap` ↦□, `LatencyConf` ↦□ "") are not
    yet in `Base.lean`: add them (gen-init `finish` steps) when a code proof reads them.
-2. **Pure model: ported mechanically** (`scratchpad/port/port.py`, reproduced here: module
+2. **Pure model: ported mechanically** (`etc/dsv-epaxos/port.py`: module
    `Epaxos.{Model,Interface}.X` → `Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.
    {Model,Interface}.X`, `Epaxos.Proof.X` → `…swiftpaxos_epaxos.X`; identifier `swiftpaxos` →
    `swiftpaxos_epaxos`; `dsverify_lab.harness` → `…swiftpaxos_epaxos.kvs`; `KvsInput/KvsOutput/
