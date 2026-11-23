@@ -84,6 +84,24 @@ theorem leToU64_take_succ (bs : List w8) (i : w64) (v : w8) (hi : uint.nat i < 8
   rw [Nat.add_mul, Nat.one_mul] at this
   rw [Nat.mod_eq_of_lt (by omega), Nat.mod_eq_of_lt (by omega)]
 
+section dec
+variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext] [GoSemanticsFunctions]
+variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
+variable [package_sem : raxos.examples.quepaxanet.Assumptions]
+
+theorem encOutV_outV (u f : Bool) (w : GoString) (h : (encOutB u f w).length < 2 ^ 63) :
+    encOutV (outV (Out.mk u f w)) = encOutB u f w := by
+  have hx : ∃ p : Bool × Bool × GoString, outV (Out.mk u f w) = outV (Out.mk p.1 p.2.1 p.2.2) ∧
+      (encOutB p.1 p.2.1 p.2.2).length < 2 ^ 63 := ⟨(u, f, w), rfl, h⟩
+  rw [encOutV, dif_pos hx]
+  have := (Classical.choose_spec hx).1
+  have e := outV_inj this
+  simp only [Out.mk.injEq] at e
+  obtain ⟨e1, e2, e3⟩ := e
+  rw [← e1, ← e2, ← e3]
+
+end dec
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -303,6 +321,69 @@ theorem wp_DecIn (i : KIn) (b : GoSlice) (dq : DFrac) :
     iapply HΦ
     itrivial
   · exfalso; exact Hif hbz
+
+theorem wp_EncOut (o : Out) :
+    {{ isPkgInit (PROP := IProp GF) kpkg }}
+      (App (Val (@! raxos.examples.quepaxanet.EncOut)) (Val #o))
+    {{ (b : GoSlice), RET #b; b ↦* encOutB o.Unknown' o.Found' o.V' }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_flag
+  wp_apply wp_flag
+  wp_apply wp_slice_literal (V := w8) [_, _]
+  isplitr
+  · ipureintro; rfl
+  iintro %lit ⟨Hlit, Hcap⟩
+  wp_auto
+  wp_apply wp_string_to_bytes as %sl ⟨Hsl, -⟩
+  wp_apply wp_slice_append (V := w8) $$ [$Hlit $Hcap $Hsl] as %b2 ⟨Hb2, -, -⟩
+  iapply HΦ
+  rw [encOutB, show flagB o.Unknown' :: flagB o.Found' :: o.V' = [flagB o.Unknown', flagB o.Found'] ++ o.V' from rfl]
+  iexact Hb2
+
+theorem wp_DecOut (u f : Bool) (w : GoString) (b : GoSlice) (dq : DFrac) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ b ↦*{dq} encOutB u f w }}
+      (App (Val (@! raxos.examples.quepaxanet.DecOut)) (Val #b))
+    {{ RET (PairV #(Out.mk u f w) #true); True }} := by
+  wp_start as Hb
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hb
+  ihave %Hwf := ownSlice_wf _ _ _ $$ Hb
+  have hbl' : sint.nat b.len = 2 + w.length := by
+    rw [← Hlen.1]; simp [encOutB]; omega
+  have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by word
+  have h1 : 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) < sint.Z b.len := by word
+  wp_auto
+  wp_if_destruct
+  · exfalso; revert Hif; word
+  rw [ite_eq_left h0]
+  wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq (flagB u) (by word) $$ [Hb] as Hb
+  · iframe Hb; ipureintro; rfl
+  wp_if_destruct
+  · exfalso; revert Hif; cases u <;> simp [flagB] <;> word
+  rw [ite_eq_left h1]
+  wp_apply wp_load_slice_index b (sint.Z (W64 1)) _ dq (flagB f) (by word) $$ [Hb] as Hb
+  · iframe Hb; ipureintro; rfl
+  wp_if_destruct
+  · exfalso; revert Hif; cases f <;> simp [flagB] <;> word
+  rw [ite_eq_left h0]
+  wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq (flagB u) (by word) $$ [Hb] as Hb
+  · iframe Hb; ipureintro; rfl
+  rw [ite_eq_left h1]
+  wp_apply wp_load_slice_index b (sint.Z (W64 1)) _ dq (flagB f) (by word) $$ [Hb] as Hb
+  · iframe Hb; ipureintro; rfl
+  have h2 : 0 ≤ sint.Z (W64 2) ∧ sint.Z (W64 2) ≤ sint.Z b.len := by word
+  wp_auto
+  rw [ite_eq_left (show 0 ≤ sint.Z (W64 2) ∧ sint.Z (W64 2) ≤ sint.Z b.len ∧
+    sint.Z b.len ≤ sint.Z b.cap from ⟨h2.1, h2.2, Hwf.2⟩)]
+  icases (ownSlice_split_all (W64 2) b dq _ h2).1 $$ Hb with ⟨Hb1, Hb2⟩
+  rw [show (encOutB u f w).drop (sint.nat (W64 2)) = w from rfl]
+  wp_apply wp_bytes_to_string $$ [Hb2] as Hb2
+  · iexact Hb2
+  have hu : decide (flagB u = W8 1) = u := by cases u <;> decide
+  have hf : decide (flagB f = W8 1) = f := by cases f <;> decide
+  rw [hu, hf]
+  iapply HΦ
+  itrivial
 
 end proof
 

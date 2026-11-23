@@ -354,6 +354,43 @@ named after the lab's specs, until each comes as one shared change. **All are in
   `id > conf.N` branch sleeping forever); the start (`γ.net` with `netTok 1..5`,
   `addrs_lis_start` with the proxies' and recorders' wildcards, `lis_set_proto` for each,
   `NetProtoGS`); then `TopLevelRobustness.lean`.
+- **The kit, session of 2026-11-23 (kit fork 2)**. Done:
+  * **Option A taken**: `Pure/QIn.lean` (pure, generic): `subB B p` (a pending-writes store on a
+    subtype of its inputs), `cmap`/`pre`/`AllP`; `ppost_sub`, **`pSeq_sub_step`** (`pSeq (subB B p)`
+    on `pre S` is `pSeq B` on `S`, mapped by `pre`, when `S`'s pending inputs satisfy `p`),
+    `AllP_step`, `pInit_sub`. `qInOk i := inputOk i ∧ |k| + |v| < 2^48`, `QIn := {i // qInOk i}`,
+    `qB := subB kvB qInOk`. `ModelSet.lean` is unchanged (over `KIn`); the porcupine model `qS`
+    (`Model.lean`) is now over `PSet Store QIn`: `qDecQ` (`qDec` and `qInOk`), `qRep`'s set is
+    `pre (mSet (lk E))` with `AllP qInOk (mSet (lk E))`, `ioOk` asks `qInOk (kin x)`.
+    `Model.wp_proof` re-proved (`lake build ...ModelProof` OK).
+  * `Kit.lean` (defs): `QIn.countable`/`QIn.beq`, `flagB`, `strB` (`u64Le` length ++ bytes),
+    `encInB`, `encOutB`, `qiv`/`qov`/`qunk`, `encOutV` (a boxed `Out`'s bytes **if they fit**
+    `2^63`, else `[]`: no bound on outputs is needed; `EncOut`'s proof derives the bound from the
+    slice it builds), **`qR γ : RBase GF Store QIn KOut`** (`sysState := ownState γ`, `Eop :=
+    ↑raxosN`), `lin_opAU : lin (qR γ) i Φ ⊣⊢ opAU γ i.1 Φ := .rfl` (definitional, no `bnd`), the
+    shares `sharedRes`, `orchRes` (`confTok ∗ sharedRes`), `ticketsOf`, `clientRes` (cnt half at 0,
+    tickets, shared), `serverRes` (`netTok`, `recHalf`, `initFront`, shared), `clientAddrs`
+    (`7661..7666`), and the specs `Codec.spec`, `Gens.spec`, `Orch.spec`, `Client.spec`,
+    `Server.spec`. lean-check clean; `lake build ...Kit` OK.
+  * `KitCodec.lean` (defs tier: no `wp_proof` names): `wp_flag`, `wp_appendStr`, `wp_takeStr`
+    (success on `strB s ++ r`, the slice given back, the rest `slice.slice b (8+|s|) b.len`),
+    `wp_EncIn`, `wp_DecIn`, `wp_EncOut`, `wp_DecOut`, `encOutV_outV`, all proved; `codec_proof`
+    (the closures, as paxos's `Codec.wp_proof`) in progress (see the file's `sorry`).
+  * **Go changes to the kit** (`kit.go`, retranslated with `etc/goose.py --project dsv-quepaxa`,
+    `gen-init --check` up to date, Go tests pass): (1) `Gens()` takes its counters under a
+    `sync.Mutex`, index `c mod NC`: lintest's `genSpec` is persistent, for any `id ≥ 0` and
+    concurrent calls (the old closure indexed `next[c]` unguarded: out of range for `c ≥ NC`, racy).
+    (2) `Op` takes its sequence number under `s.mu` and sends **at most `K` requests**: past the
+    budget it answers `Out{Unknown: true}` without sending.
+  * **Design findings (remote vs the protocol proof)**: (a) remote's `ServeClient` runs `op` any
+    number of times, possibly overlapping (its `svcOp` is persistent with `tok sys` from a
+    `True`-precondition `newClient`; `Do` retries reads, and a retry may overlap the call it
+    retries): the lab's `nextInv` (an exclusive `s.next` taken by the one running `Op`) and its
+    per-operation `clientTok γ c j` do not fit; the client machine's invariant must hold `s.next`
+    under `s.mu` (new lock invariant: `waiting` and `next` with the client's quarter of `γ.cnt`).
+    (b) QuePaxa's protocol proof has a **finite ticket supply** (600 tickets: 5 replicas × 6 clients
+    × 20 requests; `consInv`'s slot bound `spentLb ≤ 600`, `smrInv`'s `Cnt ≤ 20`): hence the Go
+    budget (2). Neither needs a change to remote.
 - **Next, in order** (ported ~20k of 37k lab lines; Replica and Proxy done but `WireProof`):
   2. `Codec/*` (7.3k: only the pure
      parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
