@@ -177,7 +177,7 @@ the shared piece lands; none is an axiom.
 - **P4. Next steps** (2026-11-23, second agent; the coordinator's order: (a) H5, (b) ModelProof,
   (c) KitProof, (d) Mains/TopLevelDefs/TopLevelRobustness/`craq_remote_robust` + `etc/theorem-loc.py`,
   (e) `etc/tcb-collections/dsv-craq.txt`). State:
-  (a) **Decoders**: `dec_*` restated (H5); `Netrpc/` moved onto `RpcCallReply` (built: `lake build
+  (a) **Decoders**: `dec_*` restated (H5); `Netrpc/` moved onto `wp_Call_tag` (Net's fixed Call) (built: `lake build
   ...Craq.Netrpc.New` green, 2026-11-23). The decoder proofs in `CodecProof.lean` were delegated to
   a sub-agent (third agent's session); see the git log / the file for which `dec_*` and
   `craqCodecLaws` are proved. Plan if unfinished: pure decoders with round-trip lemmas against
@@ -233,7 +233,7 @@ the shared piece lands; none is an axiom.
   (coordinator's rule: every hypothesis class and both open points of H4 visible): the
   `InitHyp`s of net/rpc and net/http (H1; dsv-infra, `etc/dsv/README.md`; merge
   `origin/dsv-infra`, now 338ef14dd2), `RpcHttpAddr`, `RpcHttpDial`, `RpcHttpServe`,
-  `RpcCallReply`, `LogHyp` (H6); **H4 open point 1** as `∀ SS as, regCtx -∗ ([∗list] a ∈ as,
+  `LogHyp` (H6); **H4 open point 1** as `∀ SS as, regCtx -∗ ([∗list] a ∈ as,
   addrUnset a) ={⊤}=∗ ∃ W, ⌜W.SS = SS⌝ ∗ [∗list] a ∈ as, httpRpcAddr W a` (the shape of
   `robust_of_distProtoRB`'s start, `Net/Statement/DistBridge.lean`; Net has no rpc allocation
   lemma even for raw `rpcAddr` yet); **open point 2** as `⊢ |==> muxOwner []` per server machine
