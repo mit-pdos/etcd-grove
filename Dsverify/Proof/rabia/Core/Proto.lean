@@ -244,9 +244,10 @@ def estabTok (γ : Names) (c k : Nat) : IProp GF :=
 
 /-- What a server writes to server `k`'s network address (at the recorded configuration): its
 handshake, then its messages to `k`: a prefix of its broadcast log, in order, with
-`ProposalReply`s to `k` interleaved. -/
+`ProposalReply`s to `k` interleaved. (Nothing written yet is allowed outright: a buffered writer
+is made over the connection before anything is known of it, `bufio.NewWriterSize`'s `□ Q W`.) -/
 def netP (γ : Names) (k : Nat) : Proto GF := fun cid W =>
-  iprop(∃ (cf : RCfg) (X : Nat) (fs : List MsgV), cfgIs γ.rab cf ∗
+  iprop(⌜W = []⌝ ∨ ∃ (cf : RCfg) (X : Nat) (fs : List MsgV), cfgIs γ.rab cf ∗
     ⌜X < cf.n ∧ W <+: hsBytes X ++ frames (fs.map encMsg) ∧
       ∀ m ∈ fs, (encMsg m).length < 2 ^ 32⌝ ∗
     bcastLb γ X (bcastPart fs) ∗
@@ -259,18 +260,20 @@ def opBudget : Nat := 2 ^ 29
 /-- What a client writes to server `k`'s proxy (`k = c mod n` at the recorded configuration): its
 handshake, then, on its established connection only, its registered requests in increasing
 sequence numbers (`Op` numbers them `cl.next`; the endpoint writes them in order and skips one whose
-command cannot be framed, G12/N8), within the budget; every frame's payload is below `2^32`. -/
+command cannot be framed, G12/N8), within the budget; every frame's payload is below `2^32`.
+(Nothing written yet is allowed outright, as `netP`.) -/
 def proxyP (γ : Names) (k : Nat) : Proto GF := fun cid W =>
-  iprop(∃ (cf : RCfg) (c : Nat) (qs : List CmdV), cfgIs γ.rab cf ∗ ⌜c < nC ∧ c % cf.n = k ∧
+  iprop(⌜W = []⌝ ∨ ∃ (cf : RCfg) (c : Nat) (qs : List CmdV), cfgIs γ.rab cf ∗ ⌜c < nC ∧ c % cf.n = k ∧
       W <+: hsBytes c ++ frames (qs.map encCmd) ∧
       qs.length ≤ opBudget ∧ qs.Pairwise (fun a b => a.cliSeq.toNat < b.cliSeq.toNat) ∧
       ∀ q ∈ qs, q.cliSeq.toNat < opBudget ∧ (encCmd q).length < 2 ^ 32⌝ ∗
     (⌜qs = []⌝ ∨ estab γ c k cid) ∗ [∗list] q ∈ qs, reqOk γ c q)
 
 /-- What server `k`'s proxy writes to a client: replies to the client of the connection's
-handshake (a client id `c < nC`); every frame's payload is below `2^32`. -/
+handshake (a client id `c < nC`); every frame's payload is below `2^32`. (Nothing written yet is
+allowed outright, as `netP`: the proxy makes its writer before it reads the handshake.) -/
 def proxyQ (γ : Names) (_k : Nat) : Proto GF := fun cid W =>
-  iprop(∃ (c : Nat) (rs : List CmdV), sentLb (Gg := G) cid false (hsBytes c) ∗
+  iprop(⌜W = []⌝ ∨ ∃ (c : Nat) (rs : List CmdV), sentLb (Gg := G) cid false (hsBytes c) ∗
     ⌜c < nC ∧ W <+: frames (rs.map encCmd) ∧ ∀ q ∈ rs, (encCmd q).length < 2 ^ 32⌝ ∗
     [∗list] q ∈ rs, repOk γ c q)
 
