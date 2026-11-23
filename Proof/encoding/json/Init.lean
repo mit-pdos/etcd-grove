@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.PkgInit
+public import Proof.encoding.json.Base
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
