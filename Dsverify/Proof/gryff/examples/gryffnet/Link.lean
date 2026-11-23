@@ -14,6 +14,7 @@ module
 
 public import Dsverify.Proof.gryff.examples.gryffnet.KitServer
 public import Dsverify.Proof.gryff.examples.gryffnet.KitProof
+public import Dsverify.Proof.gryff.examples.gryffnet.KitOp
 public import Dsverify.Proof.gryff.examples.gryffnet.ModelProof
 public import Dsverify.Proof.gryff.Rpc.CodecProof
 public import Dsverify.Proof.gryff.Lib.ReadFullLtProof
@@ -105,7 +106,7 @@ theorem Call_wp : net.rpc.Client.Call.spec (GF := GF) (hG := hG) :=
 end rpc
 
 variable [package_sem' : gryff.examples.gryffnet.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [AllG GF] [bvi : go.BasicIntoValInj]
+variable [π : NetProtoGS] [bvi : go.BasicIntoValInj]
 
 variable [ρ : RemoteGS] in
 /-- The orchestrator. -/
@@ -114,9 +115,11 @@ theorem wp_Orch [NaInvG GF] : Orch.spec (GF := GF) (hG := hG) :=
 
 variable [ρ : RemoteGS] in
 /-- Every client machine, from `op`'s proof. -/
-theorem wp_Client [NaInvG GF] (wp_op : op.spec (GF := GF) (hG := hG)) :
-    Client.spec (GF := GF) (hG := hG) :=
-  Client.wp_proof wp_op EtcdGrove.remote.wp_ServeClient
+theorem wp_Client [NaInvG GF] [bufio.Assumptions] [net.Assumptions]
+    [wire.BinaryVarintHyps GF] : Client.spec (GF := GF) (hG := hG) := by
+  haveI := bufioSpecs (GF := GF) (hG := hG)
+  haveI := netSpecs (GF := GF) (hG := hG)
+  exact Client.wp_proof op.wp_proof EtcdGrove.remote.wp_ServeClient
 
 section server
 variable [fa : gryff.src.fastrpc.Assumptions] [binA : wire.BinaryVarintHyps GF]
