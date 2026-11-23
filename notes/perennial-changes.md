@@ -57,7 +57,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `CompareAndSwap` can compare the old and new values' types (panic only when they differ, as Go), and their specs
   take `ownValue u 1 x` with `x = nil ∨ x.ty = v.ty` instead of `x = nil`. **Status.** Done in Perennial
   `87ffd73b7` (a pure `TypeOfEq` instruction; specs over any `x` with `sameTypeOrNil x v`), in the pin since
-  `71de6f043` (2026-11-23). The three axioms above are not yet proved over it.
+  `71de6f043` (2026-11-23). The three axioms above are not yet proved over it: the second increment
+  (2026-11-23, branch `featuregate-2`) found each blocked elsewhere. `featuregate.New` calls `maps.Clone`
+  (below, "Generic maps and slices iterators"); `init_0_ok`'s input map is built by `version.MustParse`
+  (`regexp`) and `DefaultMutableFeatureGate_init` states nothing of the gate's state; `addFeatureGateMetrics`'s
+  spec is unprovable as stated (ledger, 2026-11-23).
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
@@ -390,7 +394,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Who needs it.** The maintainers' checker in the k8s etcd3 driver (k8s 7g,
   `notes/k8s-7g-scope.md` Q8): `slices.Sorted(maps.Keys(s.Items))` in `Model.list`/`listItems`, and
   the D30g patch's `maps.Clone`/`maps.Equal` of `NeedsRewrite`. Any later Go code ranging over
-  sorted map keys (a common idiom since Go 1.23) needs the same.
+  sorted map keys (a common idiom since Go 1.23) needs the same. (2026-11-23, claim #36) etcd's
+  `featuregate.New` (`known := maps.Clone(defaultFeatures)`, a `map[Feature]FeatureSpec`), and its `Add`/
+  `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
+  axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
+  only; a second local instance would be a new trust-boundary axiom, for approval).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
