@@ -99,7 +99,20 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `#print axioms model.inv_step_deliver`: Lean's three). Also `Interface/PeerWire.lean` (the peer
    messages' pure encoders and `Countable` instances; by hand: imports `Perennial.Std.Countable`,
    which the lab's `Names` brought, and keeps `open Iris`).
-3. **Not started:** the model layer's bridge to remote and the kit's model (the lab's
+3. **Interface layer, by hand (in progress).** `Interface/Names.lean` (`EpNames`, without the
+   lab's `rpc : RpcWorld netDistGF` field: Net/'s net/rpc world is passed on its own when needed),
+   `Interface/Net.lean` (the peer streams' ghost vocabulary; GF generic under `GooseGlobalGS`,
+   statements annotated `(GF := GF)`; connection ids are the extension's `Nat`, so `peerConn`'s
+   variable is `Option Nat` and `cwriters` maps a writer to a `Nat`), **`Interface/Client.lean`
+   redesigned**: the op's update is `opU γ i Φ`, exactly remote's `lin` of the store (`sysState =
+   own_state γ`, `Eop = epEop = ↑epN`, `B.step = kvStep`, the function form of `kvScan`,
+   `kvStep_spec`), in place of the lab's `AU … @ ↑clientN`; the escrow keeps `Φ o` (not the lab's
+   `Q σ σ' o`); `escrow_fire` needs `⊤ ∖ epEop ⊆ E` (was `↑clientN ⊆ E`) and still gives the
+   lab's `(kvScan w8).step σ i σ' o`; `escrow_claim` gives `Φ o`; `inPre` is the lab's `kit.pre`;
+   `serverAddrs`/`replicaAddrs` the kit's `ServerAddrs()` (7501..7506; replicas 7502..7506); the
+   lab's `is_sys`, `orchShareEp`, `clientShareEp` are gone (remote's start and `Op(addrs, c, in)`
+   replace them). `solve_ndisj` (the lab harness's) → `nclose_subseteq`.
+4. **Not started:** the rest of the model layer's bridge to remote and the kit's model (the lab's
    `Interface/*` beyond `Wire`: they are stated over the lab's harness `EpaxosNetSpec`, the
    `netConnExts` world and its `kvScan` escrow; here they must be restated over `Net/`'s specs and
    `Proto.lean`'s laws and the kit's set-of-configurations model), the code proofs
@@ -142,6 +155,16 @@ list it here, do not widen shared translations or add models.)
 5. Also used, with specs to check before the port: `log` (`Logger.Printf`/`Println`/`Fatal`,
    through dlog), `encoding/json` (names only; the replica's latency config, never read: `LatencyConf` ""),
    `sort`, `math`, `strconv`, `fmt.Sprintf` (the master), `time`, `os`.
+
+**bufio (coordinator, 2026-11-23):** the shared change is `origin/dsv-bufio` (`bb18c0f3ef`, in
+review; `/shared/etcd-grove-dsvbufio/notes/dsv-bufio.md`). Use its names (or merge it): namespace
+`Perennial.EtcdGrove`: `bufio.NewReaderSize.spec`, `NewReader.specOk`, `Reader.Read.specOk`,
+`Reader.ReadByte.spec`, `NewWriterSize.spec`, `NewWriter.spec`, `Writer.Flush.spec`,
+`Writer.Write.spec`, `Writer.WriteByte.spec` over `ownBufReader`/`ownBufWriter` with contracts
+`io.readerOk`/`io.writerOk`; law `ownBufReader_readerOk` (Perennial's `io.wp_ReadFull`/`ReadAtLeast`
+through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (needs
+`ProtoPrefixClosed P`). The lab's `Interface/BufioLocal.lean`, `Proof/wire/BufioSticky` and
+`Harness/Proof/bufio/*` are replaced by these, not ported.
 
 ## Next (for a successor)
 
