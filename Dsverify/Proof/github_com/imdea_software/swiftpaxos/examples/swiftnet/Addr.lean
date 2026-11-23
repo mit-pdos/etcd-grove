@@ -7,6 +7,7 @@ kit.go's address helpers on the deployment's addresses: `Addrs`, `host`, `port`,
 -/
 module
 
+public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServersSpecs
 
 @[expose] public section
@@ -220,7 +221,7 @@ theorem wp_at : at.spec (GF := GF) := by
   · ipureintro; rfl
   iintro %lit_ptr ⟨Hlit, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf _ _ _ _
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _
     (fmt.ArgsWf.cons_string _ _ (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _) fmt.ArgsWf.nil))
     $$ [$Hlit] as %str ⟨-, %Hout⟩
   rw [SprintfOut.str_colon_d_uint64 _ _ _ Hout,

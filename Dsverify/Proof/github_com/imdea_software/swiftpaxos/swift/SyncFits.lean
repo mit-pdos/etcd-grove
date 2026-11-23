@@ -168,6 +168,7 @@ theorem swift.syncFits_of (me bl : w32) (M : sp.SyncMsg) (hn : M.length ≤ 6 * 
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [C : net.rpc.RpcCodec netDistGF]
 variable [swift.Assumptions]
 
 /-- **`MSync.Marshal`** with gob's package and `codecSet` (change log C18; the kit codec's

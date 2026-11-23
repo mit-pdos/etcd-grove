@@ -19,6 +19,7 @@ returning:
 -/
 module
 
+public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunDefs
@@ -375,7 +376,7 @@ theorem master.Master.run.wp_proof
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
     wp_auto
-    wp_apply fmt.wp_Sprintf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
+    wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
       (IntArgValue.int _) ArgsWf.nil)) $$ [$Hasl] as %str ⟨-, %Hstr⟩
     rw [master.sprintf_str_d _ _ _ Hstr]
     rw [if_pos (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nodesS0.len by have := Hj.2.2.1; word)]

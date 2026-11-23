@@ -7,6 +7,7 @@ the lock invariant `master.lockInv` with the write-once membership.
 -/
 module
 
+public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
@@ -74,7 +75,7 @@ theorem master.Master.Register.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
     (IntArgValue.int port) ArgsWf.nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
   have Hs := master.sprintf_str_d ip port str Hs
   ihave %Hcc := confIs_agree γc cc c $$ [Hc Hconf]

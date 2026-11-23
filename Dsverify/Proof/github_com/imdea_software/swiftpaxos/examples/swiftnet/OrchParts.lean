@@ -461,7 +461,7 @@ theorem Conf.String.wp_proof : Conf.String.spec := fun p v dq => by
   · ipureintro; rfl
   iintro %lit ⟨Hlit, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf _ _ _ _
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _
     (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _)
       (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _)
         (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.uint64 _)

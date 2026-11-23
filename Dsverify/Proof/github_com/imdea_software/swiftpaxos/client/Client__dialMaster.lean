@@ -7,6 +7,7 @@ port (`sp.addrPort`, port 7001), up to three `rpc.DialHTTP`s.
 -/
 module
 
+public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
@@ -49,7 +50,7 @@ theorem client.Client.dialMaster.wp_proof
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_string _ _ (ArgsWf.cons_int _ _ _
     (IntArgValue.int v.masterPort') ArgsWf.nil)) $$ [$Hasl] as %str ⟨-, %Hs⟩
   have Hs := master.sprintf_str_d _ _ str Hs
   have hport := client.cn.masterAddr_port Hv.2

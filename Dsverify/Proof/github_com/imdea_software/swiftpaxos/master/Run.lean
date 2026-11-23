@@ -7,6 +7,7 @@ creation (`master.createdFull`) and the specs of `run` and of the receiver (`rcv
 -/
 module
 
+public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
@@ -215,7 +216,7 @@ theorem master.Master.Run.wp_proof_full
   · ipureintro; rfl
   iintro %s3 ⟨Hs3, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001)) ArgsWf.nil)
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001)) ArgsWf.nil)
     $$ [$Hs3] as %str ⟨-, %Hstr⟩
   rw [master.sprintf_colon_d _ _ Hstr, hport]
   rw [hmaddr]
@@ -293,7 +294,7 @@ theorem master.Master.Run.wp_proof_full
       · ipureintro; rfl
       iintro %s5 ⟨Hs5, -⟩
       wp_auto
-      wp_apply fmt.wp_Sprintf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001))
+      wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001))
         ArgsWf.nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
       rw [master.sprintf_colon_d _ _ Hstr', hport]
       wp_apply net.ListenWild.wp_proof go!"10.77.0.17" [] go!"7001" hwild $$ [Htok]

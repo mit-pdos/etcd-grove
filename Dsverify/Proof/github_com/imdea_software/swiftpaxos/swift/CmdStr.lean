@@ -171,7 +171,7 @@ theorem swift.CommandId.String.wp_proof : swift.CommandId.String.specS swift.cmd
   · ipureintro; rfl
   iintro %lit ⟨Hlit, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf _ _ _ _
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _
     (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int32 _)
       (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int32 _) fmt.ArgsWf.nil))
     $$ [Hlit] as %s ⟨-, %Hout⟩
@@ -198,7 +198,7 @@ theorem swift.CommandId.String.wp_proofI : swift.CommandId.String.specI := by
   · ipureintro; rfl
   iintro %lit ⟨Hlit, -⟩
   wp_auto
-  wp_apply fmt.wp_Sprintf _ _ _ _
+  wp_apply fmt.wp_Sprintf_argsWf _ _ _ _
     (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int32 _)
       (fmt.ArgsWf.cons_int _ _ _ (fmt.IntArgValue.int32 _) fmt.ArgsWf.nil))
     $$ [Hlit] as %s ⟨-, -⟩
