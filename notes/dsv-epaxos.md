@@ -162,7 +162,7 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 3g. **The marshal layer: DONE (2026-11-23)** over dsv-bufio (`75ef5881aa`):
    `Interface/Marshal.lean`, `wire/{WProg,RProg,Bytes,Binary16,Codec,Varint,Link}`,
    `wire/Varint/{ReadUvarint,ReadVarint}`, `wire/Marshal/*` (18 files). `lake build
-   …wire.Link` passes; `#print axioms` of `Serializable.{Marshal,Unmarshal}.wp_proof`,
+   …wire.Results` passes; `#print axioms` of `Serializable.{Marshal,Unmarshal}.wp_proof`,
    `replica.defs.Propose.Unmarshal.wp_proof`, `epaxos.readVarint.wp_proof`: Lean's three. Design
    (changed against the lab):
    - The writer's and reader's parameters are bundled: `BufWr GF` (`wi`, `J`, `Q`, `Ew`, `sz`,
@@ -344,8 +344,8 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `omit … [net.model.Assumptions]` → the Net variables; FIXUPS for `EpaxosRep` (`efld` over the
    local context, as `fld`), `HCtx`, `Slot`, `New` (no `addrTok`). `epaxos.New`'s theorem is
    `wp_New_of` (premises: the replica specs, `HandlerSpecs`, `ExecuteCommandsSpec`, `CmdStringSpec`).
-   Not yet: the lab's `Interface/Epaxos.lean` (it closes these premises: imports `replica.Link`,
-   `wire.Link`, `ExecuteCommandsProof`, `HandlePropose`, the kit's `Server` and `rpcmaster.ReplicaRcvr`).
+   Not yet: the lab's `Interface/Epaxos.lean` (it closes these premises: imports `replica.Results`,
+   `wire.Results`, `ExecuteCommandsProof`, `HandlePropose`, the kit's `Server` and `rpcmaster.ReplicaRcvr`).
 3d. **`Interface/Misc.lean`** (dlog's non-verbose `Println`/`Printf`/`Fatal`, config's
    `IsProxy` on an empty `ProxyInfo`) and its proofs `wire/Misc/{Dlog,IsProxy}.lean`: ported, check
    with 0 errors (2026-11-23). The lab's import of `Top/PkgState` is dropped (not needed).
@@ -548,8 +548,8 @@ empty baseline (`tcb-report --check` not run: it needs a full build).
 landed; Perennial **`c95e92207`**: `.lake/package-overrides.json` points at
 `/shared/perennial-c95e92207`, `PERENNIAL_DIR` likewise; the build seeded by `rsync` from
 `/shared/etcd-grove-dsvrabia/.lake/build` without `Dsverify/`; `gen-init.py --check` (268 up to
-date) and `goose.py --check --project dsv-epaxos` pass; `lake build` of `replica.Link`,
-`epaxos.Link` green, 2716 jobs). `etc/goose.py`/`etc/gen-init.py` equal lean's. models-rpc-http
+date) and `goose.py --check --project dsv-epaxos` pass; `lake build` of `replica.Results`,
+`epaxos.Results` green, 2716 jobs). `etc/goose.py`/`etc/gen-init.py` equal lean's. models-rpc-http
 NOT merged (its `DialHTTPPath` proof fails on lean's bufio, #24): `RpcHttpHyp` keeps the client
 fields. `epaxos.New`'s spec now asks `c.Port' = 7500 + k` (the kit's port; was the lab's 7000 + k,
 unused by the proof).
@@ -662,7 +662,7 @@ commit what checks.
 **Next, in order:**
 1. **Merge** `origin/lean` (now `c4e044df92`: models-rpc-server LANDED, Perennial `c95e92207`:
    repoint `.lake/package-overrides.json` and `PERENNIAL_DIR` to `/shared/perennial-c95e92207`, reseed
-   the build, regenerate the `PkgTable`s with `etc/gen-init.py`, rebuild `replica.Link`/`epaxos.Link`)
+   the build, regenerate the `PkgTable`s with `etc/gen-init.py`, rebuild `replica.Results`/`epaxos.Results`)
    and `origin/models-rpc-http` (client side of net/rpc over HTTP; see "RPC layer: shapes to use").
 2. **The RPC layer** (the lab's `Interface/{RpcPure,Rpc,MasterSpec,Servers}`, `Proof/rpcmaster/*`,
    `Proof/codec/*`): restate over rpcgen's codec (`examples/epaxosnet/rpc_gen.go`, net/rpc's

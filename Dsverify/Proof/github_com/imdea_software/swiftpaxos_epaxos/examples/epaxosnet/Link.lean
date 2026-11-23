@@ -20,14 +20,14 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.example
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.OpProof
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.KitProof
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.ModelProof
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.Link
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.master.Results
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.Rpc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.NetRpc.Calls
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.NetRpc.Bindings
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.NetRpc.CodecProof
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.NetRpc.CodecSrvProof
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Misc.Dlog
 public import Net.Proof.net.rpc.Results
 public import Net.Proof.net.Listen

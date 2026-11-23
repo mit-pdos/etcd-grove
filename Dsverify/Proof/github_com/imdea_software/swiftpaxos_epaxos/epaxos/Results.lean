@@ -12,8 +12,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.HandlersLink
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.HandlePropose
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.ExecuteCommandsProof
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Link
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Results
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Results
 
 @[expose] public section
 

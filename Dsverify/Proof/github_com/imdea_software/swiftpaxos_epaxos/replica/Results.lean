@@ -25,7 +25,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ClosestPeers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.Quorum
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.RpcTable
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.Results
 public import Perennial.Proof.time.Link
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__Write
