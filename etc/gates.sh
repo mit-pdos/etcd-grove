@@ -240,6 +240,14 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# protobuf stage S1 (#37): the wire codecs' vectors module EntryWireVectors.lean (whose #guards the
+# build checks against the Lean codecs) is what examples/pbschema/wirevectors_test.go generates from
+# protobuf-go (examples/go.mod's pin)
+if (cd examples && GOWORK=off gotest -run '^TestWireVectors$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
+  echo "wirevectors: ok"
+else
+  echo "wirevectors: FAILED"; tail -10 "$tmp/wirevec.log"; fail=1
+fi
 # the library models (models/, models/README.md; notes/dsverify-net-port-plan.md phase 5): every
 # generated codec is exactly its generator's output for its derived input (pbgen: the roots'
 # descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers

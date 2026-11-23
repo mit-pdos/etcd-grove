@@ -225,4 +225,7 @@ importable Proof.go_etcd_io.raft.v3.InvPbCore
 importable Proof.go_etcd_io.raft.v3.PbContentCore
 importable Proof.go_etcd_io.raft.v3.PbContentOwnCore
 importable Proof.go_etcd_io.raft.v3.PbEntryTypeCore
+# (2026-11-23, protobuf stage S1, #37) the pure wire codecs of `Entry` and `ConfChangeV2` that
+# `entryEncC`/`entDecode` (`PbEntryTypeCore`) and `ccDecodeV2` (`CCModel`) are
+importable Proof.go_etcd_io.raft.v3.PbWireRaft
 importable Proof.go_etcd_io.raft.v3.NodeInstalls

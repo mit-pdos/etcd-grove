@@ -170,7 +170,7 @@ theorem osFs_crash_adequacy [hPre : GooseGpreS GF] (N T : Nat) (e : Expr) (σ : 
     imod Hwp HN HT Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
     imodintro
     iframe Hwp
-    iintro %L' Hcr Hcs Hgs
+    iintro %L' Hcr Hcs Hgs _
     have Hc : extsCrashStart (GF := GF) hG.goose_localGS L' ⊢
         osCrashStart (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) :=
       sep_elim_left

@@ -21,6 +21,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : _root_.Perennial.unicode.utf8.Assumptions]
 
 /-- `utf8.ValidString(s)` returns whether `s` is valid UTF-8 (`utf8Valid`, Go's definition;
 D19l (iii), 2026-10-18: until then some boolean). -/

@@ -10,6 +10,7 @@ public import Proof.go_etcd_io.etcd.api.v3.version.PkgInit
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 public import Proof.errors.NewVar
+public import Perennial.Proof.internal.bytealg.Base
 
 @[expose] public section
 
@@ -70,15 +71,6 @@ end encoding.json
 -- `*GaugeVec`, with its label name `cluster_version`: D19l (iii), 2026-10-18)
 -- (prove-errinits, 2026-11-19: membership imports `path` for its store paths; until then in
 -- the server's `BaseApply.lean`)
-namespace internal.bytealg
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.internal.bytealg :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.internal.bytealg :=
-  build_get_is_pkg_init_wf
-
-end internal.bytealg
-
 namespace path
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.path :=

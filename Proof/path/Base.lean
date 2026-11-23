@@ -4,7 +4,7 @@ Proof of `Spec/path/Base.lean`. Lean-first.
 module
 
 public import Spec.path.Base
-public import Spec.internal.bytealg.LastIndexByteString
+public import Perennial.Spec.internal.bytealg.LastIndexByteString
 
 @[expose] public section
 
@@ -82,12 +82,10 @@ local macro "base_tail" q:term : tactic => `(tactic| (
       simp only [show (W8 47 : w8) = 47#8 from rfl] at *
       simp [Hpne, Hqs, hi0, *]))
 
-theorem path.Base.wp_proof (hLast : bytealg.LastIndexByteString.spec (GF := GF) (hG := hG)) :
+theorem path.Base.wp_proof (hLast : _root_.Perennial.internal.bytealg.LastIndexByteString.spec (GF := GF) (hG := hG)) :
     path.Base.spec (GF := GF) (hG := hG) := by
   intro p
   wp_start
-  ihave #Hb : isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg $$ []
-  · iPkgInit
   try wp_auto
   wp_if_destruct
   · -- `""`
