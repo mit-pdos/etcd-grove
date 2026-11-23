@@ -59,6 +59,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** goose imports the package of every named type it emits, a constant's type
   included.
 - **Status.** Not proposed yet.
+### `atomic.Value.Store` into a non-empty cell may panic in the model: the feature gates' `Add` (2026-11-23, featuregate, claim #36)
+
+- **Limitation.** Perennial's trusted `Value.Store`/`Swap` (`TrustedCode/sync/atomic.lean`) may `Panic` (`ArbitraryInt`)
+  whenever the cell is non-empty, because the model cannot compare the stored and new values' dynamic types (Go panics
+  only when they differ); `Value.Store.spec` requires the cell to hold `nil`. Both feature gates store again into a
+  filled cell: etcd's `featureGate.Add` (`pkg/featuregate/feature_gate.go`, `f.known.Store(known)` after `New` stored
+  one) and Kubernetes' `AddVersioned`/`SetFromMap` (`component-base/featuregate`). So neither gate's registration
+  can be proved over the model.
+- **Who needs it.** `features.NewDefaultServerFeatureGate.wp_proof` (etcd), `k8s_io.apiserver.pkg.features.init_0_ok`
+  (k8s), and through the gate `addFeatureGateMetrics.wp_proof`.
+- **Work-around here.** None: the three stay trust-boundary axioms.
+- **Proposed (general).** Model the type check: `GoInterfaceOk` carries its dynamic type (`fi.ty`), so `Store`/`Swap`/
+  `CompareAndSwap` can compare the old and new values' types (panic only when they differ, as Go), and their specs
+  take `ownValue u 1 x` with `x = nil ∨ x.ty = v.ty` instead of `x = nil`. **Status.** Done in Perennial
+  `87ffd73b7` (a pure `TypeOfEq` instruction; specs over any `x` with `sameTypeOrNil x v`), in the pin since
+  `71de6f043` (2026-11-23). The three axioms above are not yet proved over it: the second increment
+  (2026-11-23, branch `featuregate-2`) found each blocked elsewhere. `featuregate.New` calls `maps.Clone`
+  (below, "Generic maps and slices iterators"); `init_0_ok`'s input map is built by `version.MustParse`
+  (`regexp`) and `DefaultMutableFeatureGate_init` states nothing of the gate's state; `addFeatureGateMetrics`'s
+  spec is unprovable as stated (ledger, 2026-11-23).
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
@@ -217,7 +237,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `Modf` and model `archCeil` (or `haveArchCeil = false` with a trusted equivalence: `ceil`'s Go body is exact),
   with a spec (the least integral float `≥ x`; NaN, `±Inf`, `±0` unchanged). Until then `math.Ceil.wp_proof` stays
   an axiom (its spec, some `float64`, is true: `Ceil` never panics).
-- **Status.** Not started (to be filed by the claim's coordinator).
+- **Status.** Not started (to be filed by the claim's coordinator). `ExponentialBuckets`: worked around locally
+  (small-leaves-2, 2026-11-23, claim #35): the doubling law and what it rests on (`pow2_add`, `pow2_lt`,
+  `floorLog2_eq`: `pow2 e ≤ a < pow2 (e + 1) → floorLog2 a = e`, `roundHalfEven_nat`, the bits of `pack`) are
+  private lemmas of `Proof/github_com/prometheus/client_golang/prometheus/ExponentialBuckets.lean`, whose
+  `wp_proof` is now a theorem over the translated body. They are proved from Perennial's definitions (no
+  assumption), so moving them to Perennial's `Theory/Float.lean` is still the proposal; the proof file then
+  drops its copies.
 
 ### Float facts: `FloatOps` has no laws, so no float-dependent panic can be excluded (2026-11-20, prove-promdeep)
 
@@ -385,7 +411,11 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Who needs it.** The maintainers' checker in the k8s etcd3 driver (k8s 7g,
   `notes/k8s-7g-scope.md` Q8): `slices.Sorted(maps.Keys(s.Items))` in `Model.list`/`listItems`, and
   the D30g patch's `maps.Clone`/`maps.Equal` of `NeedsRewrite`. Any later Go code ranging over
-  sorted map keys (a common idiom since Go 1.23) needs the same.
+  sorted map keys (a common idiom since Go 1.23) needs the same. (2026-11-23, claim #36) etcd's
+  `featuregate.New` (`known := maps.Clone(defaultFeatures)`, a `map[Feature]FeatureSpec`), and its `Add`/
+  `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
+  axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
+  only; a second local instance would be a new trust-boundary axiom, for approval).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go

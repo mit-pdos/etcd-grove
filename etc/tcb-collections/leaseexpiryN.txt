@@ -53,7 +53,6 @@ axiom auth.NewAuthStore.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bytes.Buffer.Write.wp_proof
-axiom ccDecodeV2_nil
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
@@ -62,7 +61,6 @@ axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
-axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
@@ -184,7 +182,6 @@ axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof

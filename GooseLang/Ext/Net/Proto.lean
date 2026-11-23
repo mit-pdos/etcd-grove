@@ -22,12 +22,13 @@ The vocabulary (`[π : NetProtoGS]`, the library's global ghost names, made once
   from `s`: it has written `W`, which meets `P` up to extension), `recvTok cn s P R` (the reader of
   the direction towards `s`: it has read `R`, which was written and meets `P` up to extension:
   `recvTok_proto`, `recvTok_sentLb`), `connEnd cn s Pout Pin W R` (both), `sentLb cn s W`
-  (persistent: the direction from `s` was written at least `W`), `connFresh cn s` (exclusive, once
-  per end: `connFresh_excl`), `connIs cn` (persistent: the connection is the library's; what
-  `Close`, `CloseWrite`, the deadlines and the socket options need).
+  (persistent: the direction from `s` was written at least `W`; `sentLb_le`, `sentLb_agree`),
+  `connFresh cn s` (exclusive, once per end: `connFresh_excl`), `connIs cn` (persistent: the
+  connection is the library's; what `Close`, `CloseWrite`, the deadlines and the socket options
+  need).
 * `recvTokL cn s P R`: `recvTok` with its protocol fact one step later (`▷ protoPrefix`), what a
   `Read` gives (`read_au`): the fact comes out of an invariant. A later credit or any program step
-  turns it back into `recvTok` (`recvTokL_elim`, `recvTokL_later`).
+  turns it back into `recvTok` (`recvTokL_elim`, `recvTokL_later`); `recvTokL_sentLb`.
 * `lisInv l a` (persistent): this node's listener `l` at `a`, shared between threads (the lab's
   persistent listener), for `accept_shared_au` and `lisClose_au`.
 * D21, a listener at `la`, a wildcard (`":p"`, `"0.0.0.0:p"`, `"[::]:p"`) or a valid address:
@@ -912,6 +913,34 @@ theorem sendTok_sentLb_prefix (cn : Nat) (s : Bool) (P : Proto GF) (W W0 : List 
   icases connElem_agree cn γ γ' $$ He He' with %h
   subst h
   iapply wHalf_wLb_prefix $$ Hw Hlb
+
+/-- A prefix of what was written was written (`wLb_le`). -/
+theorem sentLb_le (cn : Nat) (s : Bool) {W : List w8} (W' : List w8) (h : W' <+: W) :
+    sentLb (Gg := Gg) cn s W ⊢ sentLb cn s W' := by
+  unfold sentLb
+  iintro ⟨%γ, #He, #Hlb⟩
+  iexists γ
+  iframe He
+  iapply wLb_le _ W' h $$ Hlb
+
+/-- Two lower bounds of what the direction from `s` was written are comparable. -/
+theorem sentLb_agree (cn : Nat) (s : Bool) (A B : List w8) :
+    sentLb (Gg := Gg) cn s A ∗ sentLb cn s B ⊢ ⌜A <+: B ∨ B <+: A⌝ := by
+  unfold sentLb wLb
+  iintro ⟨⟨%γ1, #He1, #H1⟩, ⟨%γ2, #He2, #H2⟩⟩
+  icases connElem_agree cn γ1 γ2 $$ He1 He2 with %h
+  subst h
+  iapply mono_list_lb_valid $$ H1 H2
+
+/-- What a reader has read was written (`recvTok_sentLb`, for `recvTokL`, keeping it: dsv-rabia,
+#24, with `bufio.ownBufReader_fact`). -/
+theorem recvTokL_sentLb (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
+    recvTokL (Gg := Gg) cn s P R ⊢ recvTokL cn s P R ∗ sentLb cn (!s) R := by
+  refine persistent_entails_left ?_
+  unfold recvTokL recvCore sentLb connH
+  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, -⟩, -, -, #Hlb⟩, -⟩
+  iexists γ
+  iframe He Hlb
 
 theorem recvTok_L (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
     recvTok (Gg := Gg) cn s P R ⊢ recvTokL cn s P R := by
