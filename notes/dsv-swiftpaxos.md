@@ -82,9 +82,9 @@ The list asked for. They are named after the lab's specs, with the reason each i
 - **gob:** the lab's model (`Encoder{w}`, `Decoder{r}`, a `codec` variable holding the kit's functions) is replaced by abstract `SwiftLibs` fields: `gobEncoder`, `gobDecoder`, `gobCodecSet C`. The specs' frame format is the lab's (`sp.gobFrame`). Real gob writes type descriptors before the first value, so a hypothesis stated in the lab's frame format is not true of the real `encoding/gob`. A finding: the gob hypotheses must be restated over an abstract stream format before they can be realized.
 - **`NetProtoGS`** (`Net/`'s ghost names) is a parent of `SwiftLibs`, so every file with `SwiftNetPkgState` has it without a variable change.
 - **dsv-bufio** (origin/dsv-bufio `bb18c0f3ef`, under review) has the real specs. The lab's bufio hypotheses map onto it:
-  - `EtcdGrove.bufio.NewReader.specOk`, `NewWriter.spec`, `Reader.ReadByte.spec`, `Writer.{Write,WriteByte,Flush}.spec`, over `ownBufReader`/`ownBufWriter` (`io.readerOk`/`io.writerOk`);
+  - `EtcdGrove.bufio.NewReader.specOk`, `NewWriter.spec`, `Reader.ReadByte.spec`, `Writer.{Write,WriteByte,Flush}.spec`, over `ownBufReader`/`ownBufWriter` (`io.readerOk`/`io.streamWriterOk`);
   - `ownBufReader_readerOk` and Perennial's `io.wp_ReadFull`/`ReadAtLeast`;
-  - `Net/Proof/net/ConnIo.lean` `conn_readerOk`/`conn_writerOk`.
+  - `Net/Proof/net/ConnIo.lean` `conn_readerOk`/`conn_streamWriterOk`.
 
   Once it lands, each `bufio_*` field of `SwiftHyps` is to be derived from these (a bridge from the lab's `ownReader`/`ownWriter` to `ownBufReader`/`ownBufWriter`), or the vocabulary switched outright.
 - **Generated `sorry`s:** goose's names-only types (`os/signal`'s `stopping`, gob's) get `sorry -- axiomatized type` instances in `Dsverify/GeneratedProof`, as `Net/`'s and the main tree's do. They count only if used; `#print axioms` checks this.
@@ -117,23 +117,24 @@ The list asked for. They are named after the lab's specs, with the reason each i
 
 ## State (2026-11-23, fourth session; resume here)
 
-Merged **`origin/dsv-bufio` `a13fdfe356`** (round 2 of its review; Perennial pin unchanged,
-`7b2259a12`). `lean`'s head (`1b2fd95b30`) and `models-rpc-server` (`040ef5e808`) as before;
+Merged **`origin/dsv-bufio` `a13fdfe356`**, then its rename **`361ca5c7b7`** (`io.writerOk` →
+`io.streamWriterOk`, `net.conn_writerOk` → `net.conn_streamWriterOk`, `Proof/io/StreamWriterOk.lean`;
+our two uses renamed). Perennial pin unchanged, `7b2259a12`. `lean`'s head (`1b2fd95b30`) and `models-rpc-server` (`040ef5e808`) as before;
 `models-rpc-http` (the HTTP path's shapes) is not pushed yet (`origin/models-rpc-http` is an old,
 unrelated branch: no `rpcAddrP`).
 
 **bufio (the coordinator's decision: use dsv-bufio's specs, never unfold its predicates).**
 - **Writer half: derived, no hypotheses.** `lib/Bufio.lean`: the lab's `writerOk wr J Q` is
-  `∃ wi Ew, ⌜wr = ok wi ∧ wi.ty ≠ *bufio.Writer⌝ ∗ prefixClosed Q ∗ io.writerOk wi J Q Ew` (dsv-bufio's
-  `io.writerOk`, with the lab's stronger `prefixClosed` kept beside it), and `ownWriter bw wr J Q sent
+  `∃ wi Ew, ⌜wr = ok wi ∧ wi.ty ≠ *bufio.Writer⌝ ∗ prefixClosed Q ∗ io.streamWriterOk wi J Q Ew` (dsv-bufio's
+  `io.streamWriterOk`, with the lab's stronger `prefixClosed` kept beside it), and `ownWriter bw wr J Q sent
   pend err` is `∃ wi Ew sz, ⌜wr = ok wi⌝ ∗ bufio.ownBufWriter bw wi J Q Ew sz sent pend err`.
   `NewWriter/Flush/WriteByte/Write/WriteByte_err/Write_err.labProof` derive the lab's six statements
   from `EtcdGrove.bufio.{NewWriter,Writer.Flush,Writer.WriteByte,Writer.Write}.wp_proof` (the `_err`
   ones from the new `err ≠ nil → e = err ∧ sent' = sent ∧ pend' = pend` clauses); `Hyps.lean`'s
   lab names point at them, and the six fields are gone from `SwiftHyps`. `lib/BufioNet.lean`'s
-  `writerOk_conn` proves the new `writerOk` for a connection (`io.writerOk`'s contract, the error
+  `writerOk_conn` proves the new `writerOk` for a connection (`io.streamWriterOk`'s contract, the error
   evidence `wrErr` = `errAny ∗ ⌜errWf⌝`, from `Net/`'s `Conn.Write`; not dsv-bufio's
-  `net.conn_writerOk`, which needs `ProtoPrefixClosed P` for every connection where the callers
+  `net.conn_streamWriterOk`, which needs `ProtoPrefixClosed P` for every connection where the callers
   have `prefixClosed (P cid)` for one). `replica/Writers.lean`'s five `writerOk` destructurings take
   the extra `%Ew`.
 - **For review: one unfold of dsv-bufio's `ownBufWriter`.** `bufio.ownWriter_excl_heap`
@@ -184,6 +185,32 @@ depends on the codec: `(C := kitCodec)` dropped), sections missing `[SwiftHyps n
 `DescArms`; scratch `fixvars.py` reads a build log's "failed to synthesize" errors). Note:
 `NetProtoGS` is not found from `SwiftNetPkgState netDistGF` (its parent class has no `GF`), so a
 section that has `SwiftNetPkgState` and needs `NetProtoGS` takes `[π : NetProtoGS]` as well.
+
+**Frontier at the end of the fourth session** (build 17 + the targeted builds after it; Perennial
+`7b2259a12`): about **401 of the 474 copied modules build** (296 before). What remains unbuilt, by cause:
+- **The lab kit (step 5, to be replaced, not ported)**: `examples.swiftnet.{Interface (36 waiting),
+  registerRPC (19), codec.Prim (18), CodecFns (12), NameOkFor (11), PkgState (9), OrchAddr, OrchGen}`.
+- **The HTTP path (blocked on `models-rpc-http`)**: `master.Master__Run` (Spec: `net.http.muxOwner`,
+  `kitNameOk`; 11 waiting), `client.Client__dialMaster` (`net.rpc.DialHTTP.wp`). A hypothesis returning
+  `Net/`'s current `isClient` would be false of the model (its protocol has no `CONNECT` head), so none
+  is added: these wait for `rpc.DialHTTP.spec`/`rpcAddrP` and the server-side `HandleHTTP`/`http.Serve` specs.
+- **The transport port**: `replica.Conn` (8 waiting; `waitForPeerConnections.spec` in
+  `replica/ConnSpecs.lean` still takes the lab's `addrTok a ∗ nodeIp ip ∗ addrProto a inP outQ` and
+  `Conn.lean:154` uses the lab's `net.ListenWild`). To do: restate it over `lisProto ("0.0.0.0:"+port)
+  inP outQ` (`listen_lis_au` for `Listen.spec`, `accept_lis_shared_au` for `Listener.Accept.spec`,
+  `lisAccepts`), and have the deployment's boot make the `lisProto` (`lis_set_proto` from `lisUnset`).
+  `ConnectToPeers`, `Serve`, `ConnLink`, `replica.Link`'s users wait on it.
+- `swift.TableAllocH` (3 waiting): line 70, `iframe` cannot frame `encoding.gob.codecSet` against the
+  context's `Hgcs` (an implicit argument, probably the `RpcCodec` instance, differs); to look at with
+  `etc/lean-check.py --goal 70`.
+- `frontier.py` (scratch) uses mtimes and reports some replayed modules (`slices.SortFuncOn.*`) as
+  unbuilt; they build.
+
+**Next, in order.** (1) `TableAllocH`; (2) the transport port above; (3) the reader half of bufio (above);
+(4) the HTTP path once `models-rpc-http` is pushed (`lib/NetRpc.lean`'s `rpcHttpAddr` becomes an instance
+of `rpcAddrP`); (5) step 5 (the kit onto remote), the package inits (`InitHyp` for gob, signal, uuid;
+`mutGlobalsInit` to the boot thread), `swiftpaxos_remote_robust` with every `SwiftHyps`/`InitHyp` a visible
+premise, `etc/theorem-loc.py`, the TCB collection.
 
 ## State (2026-11-23, third session)
 

@@ -74,13 +74,13 @@ def readerOk (rd : GoInterface) (I : List w8 → IProp GF) : IProp GF :=
           Φ (PairV #(W64 data.length) #err)) -∗
       WP (App (Val #(methods e.ty go!"Read" e.v)) (Val #b)) {{ Φ }})
 
-/-- The underlying `io.Writer` `wr`: dsv-bufio's `io.writerOk` (`Proof/io/WriterOk.lean`) at some
+/-- The underlying `io.Writer` `wr`: dsv-bufio's `io.streamWriterOk` (`Proof/io/StreamWriterOk.lean`) at some
 error evidence `Ew`, with the lab's (stronger) `prefixClosed Q` (persistent). -/
 def writerOk (wr : GoInterface) (J : List w8 → IProp GF) (Q : List w8 → IProp GF) :
     IProp GF :=
   iprop(∃ (e : GoInterfaceOk) (Ew : GoInterface → IProp GF),
     ⌜wr = interface.ok e ∧ e.ty ≠ go.GoType.PointerType bufio.Writer.ty⌝ ∗
-    prefixClosed Q ∗ EtcdGrove.io.writerOk e J Q Ew)
+    prefixClosed Q ∗ EtcdGrove.io.streamWriterOk e J Q Ew)
 
 instance prefixClosed_persistent (Q : List w8 → IProp GF) :
     Persistent (prefixClosed (GF := GF) Q) := by

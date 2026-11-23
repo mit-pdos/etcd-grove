@@ -222,7 +222,7 @@ theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
   isplitr
   · ipureintro; exact ⟨rfl, tcpConn_ne_writer⟩
   iframe Hpc
-  unfold EtcdGrove.io.writerOk
+  unfold EtcdGrove.io.streamWriterOk
   isplitr
   · iapply prefixClosed_io $$ Hpc
   imodintro
