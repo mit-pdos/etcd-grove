@@ -46,7 +46,7 @@ theorem resp_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNa
   icases Hpp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
   · exact absurd Hnil hR
   iunfold respProto at HP
-  icases HP with ⟨%γ', %Rs, #Hrpc', #Hels, ⟨%HRs, %Hpre⟩⟩
+  icases HP with ⟨%γ', %Rs, #Hrpc', #Hels, ⟨%HRs, %Hpre⟩, -⟩
   iunfold isRpcConn at Hrpc Hrpc'
   icases Hrpc with ⟨#He, -⟩
   icases Hrpc' with ⟨#He', -⟩

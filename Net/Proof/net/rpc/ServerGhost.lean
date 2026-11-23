@@ -499,11 +499,11 @@ theorem answer (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoStr
 connection `γ`, recorded) meet the acceptor's protocol, and the record grows by `x`. -/
 theorem resp_step (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (Rs : List Ans)
     (x : Ans) (hok : ∀ y ∈ Rs ++ [x], ansOk y) :
-    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ sentLb (Gg := hG.goose_globalGS) cn false (W.hs a) ∗
       ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)) ∗ ansRec W a cn Rs ⊢
     (□ respProto (Gg := hG.goose_globalGS) W a cn (W.hsAns a ++ respsWire (Rs ++ [x]))) ∗
       ansRec W a cn (Rs ++ [x]) := by
-  iintro ⟨#Hrpc, #Hel, Hrec⟩
+  iintro ⟨#Hrpc, #Hsl, #Hel, Hrec⟩
   ihave #Hels : ([∗list] y ∈ Rs ++ [x], ghostMapElem γ.ans y.idx .discard (some (y.msg, y.reply)) :
       IProp GF) $$ [Hrec]
   · iunfold ansRec at Hrec
@@ -520,8 +520,10 @@ theorem resp_step (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
     iunfold respProto
     iexists γ, Rs ++ [x]
     iframe Hrpc Hels
-    ipureintro
-    exact ⟨hok, List.prefix_refl _⟩
+    isplitr
+    · ipureintro
+      exact ⟨hok, List.prefix_refl _⟩
+    iright; iexact Hsl
   · iunfold ansRec
     iright
     iexists γ

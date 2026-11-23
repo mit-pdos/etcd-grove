@@ -365,6 +365,63 @@ noncomputable instance Client_access_store_shutdown (l : Loc) (v : net.rpc.Clien
 end def_
 end Client
 
+namespace connectReader
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.rpc.Assumptions]
+
+noncomputable instance connectReader_typed_pointsto :
+    TypedPointsto (GF := GF) net.rpc.connectReader where
+  typedPointstoDef l v dq := iprop(
+    "r" ∷ typedPointsto (structFieldRef net.rpc.connectReader go!"r" l) v.r' dq ∗
+    "failed" ∷ typedPointsto (structFieldRef net.rpc.connectReader go!"failed" l) v.failed' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance connectReader_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) net.rpc.connectReader net.rpc.connectReader.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance connectReader_access_load_r (l : Loc) (v : net.rpc.connectReader) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"r" l) v.r' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance connectReader_access_store_r (l : Loc) (v : net.rpc.connectReader) (r' : io.Reader) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"r" l) v.r' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"r" l) r' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := r' } : net.rpc.connectReader) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance connectReader_access_load_failed (l : Loc) (v : net.rpc.connectReader) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"failed" l) v.failed' dq)
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"failed" l) v.failed' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance connectReader_access_store_failed (l : Loc) (v : net.rpc.connectReader) (failed' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"failed" l) v.failed' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.rpc.connectReader go!"failed" l) failed' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with failed' := failed' } : net.rpc.connectReader) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end connectReader
+
 namespace Method
 section def_
 

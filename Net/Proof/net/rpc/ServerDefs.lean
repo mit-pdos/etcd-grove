@@ -257,6 +257,7 @@ def srvSendInv (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF
   iprop(∃ (w0 : GoInterface) (Wd : List w8) (Rs : List Ans),
     structFieldRef net.rpc.serverCodec go!"werr" sc ↦ w0 ∗
     sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) Wd ∗ ansRec W a cn Rs ∗
+    sentLb (Gg := hG.goose_globalGS) cn false (W.hs a) ∗
     ⌜(∀ x ∈ Rs, ansOk x) ∧ Wd <+: W.hsAns a ++ respsWire Rs ∧
       (w0 = interface.nil → Wd = W.hsAns a ++ respsWire Rs)⌝)
 

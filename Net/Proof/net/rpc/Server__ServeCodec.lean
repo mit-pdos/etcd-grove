@@ -59,6 +59,8 @@ theorem Server.ServeCodec.wp_proof
   iunfold rpcAccepted at Hacc
   icases Hacc with ⟨Hsend, Hrecv, Hfresh⟩
   ihave #Hci := sendTok_connIs $$ Hsend
+  icases recvTok_keep_sentLb (Gg := hG.goose_globalGS) cn true false rfl _ _ $$ Hrecv
+    with ⟨Hrecv, #Hsl⟩
   ihave #Henv0 := Henv
   iunfold srvEnv at Henv0
   icases Henv0 with ⟨#Hcli, #Hir⟩
@@ -76,7 +78,7 @@ theorem Server.ServeCodec.wp_proof
   · inext
     iunfold srvSendInv
     iexists interface.nil, W.hsAns a, []
-    iframe Hwerr Hsend
+    iframe Hwerr Hsend Hsl
     isplitr
     · iunfold ansRec; ileft; ipureintro; rfl
     ipureintro

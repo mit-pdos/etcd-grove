@@ -87,7 +87,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
     icases Hpk with ⟨%body, reply, Hresp, Hbody⟩
     wp_apply +noauto wp_Lock _ _ $$ [$Hsync $Hmu] as ⟨Hlk, Hinv⟩
     iunfold srvSendInv at Hinv
-    icases Hinv with ⟨%w0, %Wd, %Rs, Hwerr, Hsend, Hrec, ⟨%HRs, %HWd, %Hw0⟩⟩
+    icases Hinv with ⟨%w0, %Wd, %Rs, Hwerr, Hsend, Hrec, #Hsl, ⟨%HRs, %HWd, %Hw0⟩⟩
     wp_auto_lc 1
     cases w0 with
     | ok e =>
@@ -100,7 +100,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         wp_apply wp_Unlock _ (srvSendInv W a cn sc) $$ [$Hsync $Hmu $Hlk Hwerr Hsend Hrec]
         · iunfold srvSendInv
           iexists _, Wd, Rs
-          iframe Hwerr Hsend Hrec
+          iframe Hwerr Hsend Hrec Hsl
           ipureintro; exact ⟨HRs, HWd, Hw0⟩
         wp_apply wp_freeResponse s γs resp _ $$ [$Hsrv $Hresp]
         iapply HΦ; iexact Hreq
@@ -124,7 +124,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         icases resp_step W a cn γ Rs (k, rqv.ServiceMethod', errmsg, eb) (fun y hy => by
             rcases List.mem_append.1 hy with h | h
             · exact HRs y h
-            · simp at h; subst h; exact hx) $$ [$Hrpc $Hel $Hrec] with ⟨#HP, Hrec⟩
+            · simp at h; subst h; exact hx) $$ [$Hrpc $Hsl $Hel $Hrec] with ⟨#HP, Hrec⟩
         imodintro
         rw [hwf eb]
         dsimp only
@@ -147,7 +147,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         wp_apply wp_Unlock _ (srvSendInv W a cn sc) $$ [$Hsync $Hmu $Hlk Hwerr Hsend Hrec]
         · iunfold srvSendInv
           iexists _, _, _
-          iframe Hwerr Hsend Hrec
+          iframe Hwerr Hsend Hrec Hsl
           ipureintro
           exact ⟨hRs', by rw [hw]; exact List.prefix_refl _, fun _ => hw.symm⟩
         wp_apply wp_freeResponse s γs resp _ $$ [$Hsrv $Hresp]
@@ -158,7 +158,7 @@ theorem Server.sendResponse.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) 
         wp_apply wp_Unlock _ (srvSendInv W a cn sc) $$ [$Hsync $Hmu $Hlk Hwerr Hsend Hrec]
         · iunfold srvSendInv
           iexists _, _, _
-          iframe Hwerr Hsend Hrec
+          iframe Hwerr Hsend Hrec Hsl
           ipureintro
           refine ⟨hRs', by rw [hw]; exact (List.prefix_append_right_inj _).2 Hw, fun h => ?_⟩
           exact absurd h (by simp [interface.mkOk])

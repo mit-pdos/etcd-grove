@@ -47,7 +47,9 @@ none (`rpcAddr W a := rpcAddrP W a [] []`); over HTTP (`DialHTTPPath`, `Server.S
 dialer's is its `CONNECT` request and the acceptor's the `200` answer. A dialer writes nothing after
 its handshake until it has read the answer (`reqProto`: beyond `W.hs a` only with `sentLb` of
 `W.hsAns a`), so a server that reads ahead (net/http's buffered reader) sees no request byte before
-it has answered.
+it has answered; an acceptor writes nothing before the dialer's handshake is written (`respProto`:
+`sentLb` of `W.hs a`), so a dialer that reads an answer has written its whole handshake (its own
+write's error notwithstanding: `DialHTTPPath` ignores it).
 -/
 module
 
@@ -77,6 +79,20 @@ def lastDotIdx (s : GoString) : Option Nat :=
 /-- `"Service.Method"` split at its last dot (`Server.readRequestHeader`). -/
 def splitSM (sm : GoString) : Option (GoString × GoString) :=
   (lastDotIdx sm).map fun i => (sm.take i, sm.drop (i + 1))
+
+/-! ## The HTTP handshake -/
+
+/-- `DefaultRPCPath`, where `HandleHTTP` registers the server and `DialHTTP` connects. -/
+def defaultRPCPath : GoString := go!"/_goRPC_"
+
+/-- The `CONNECT` request a dialer of the path `path` writes first (`DialHTTPPath`). -/
+def connectReq (path : GoString) : List w8 := go!"CONNECT " ++ path ++ go!" HTTP/1.0\n\n"
+
+/-- The server's answer to it (`ServeHTTP`'s `"HTTP/1.0 " + connected + "\n\n"`). -/
+def connectAns : List w8 := go!"HTTP/1.0 200 Connected to Go RPC\n\n"
+
+/-- The status `DialHTTPPath` requires (net/rpc's `connected`). -/
+def connectedStatus : GoString := go!"200 Connected to Go RPC"
 
 /-! ## Requests and answers -/
 
@@ -328,11 +344,13 @@ def reqProto (W : RpcWorld GF) (a : GoString) : Proto GF := fun cn bs =>
     (⌜bs <+: W.hs a⌝ ∨ sentLb (Gg := Gg) cn true (W.hsAns a)))
 
 /-- What an acceptor at `a` writes: a prefix of the handshake's answer `W.hsAns a` followed by the
-wire of answers of the connection, each with its persistent answer and fitting its frames. -/
+wire of answers of the connection, each with its persistent answer and fitting its frames; and
+nothing before the dialer has written its handshake `W.hs a` (the acceptor answers it). -/
 def respProto (W : RpcWorld GF) (a : GoString) : Proto GF := fun cn bs =>
   iprop(∃ (γ : RpcConnNames) (Rs : List Ans), isRpcConn W a cn γ ∗
     ([∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply))) ∗
-    ⌜(∀ x ∈ Rs, ansOk x) ∧ bs <+: W.hsAns a ++ respsWire Rs⌝)
+    ⌜(∀ x ∈ Rs, ansOk x) ∧ bs <+: W.hsAns a ++ respsWire Rs⌝ ∗
+    (⌜bs = []⌝ ∨ sentLb (Gg := Gg) cn false (W.hs a)))
 
 /-- Address `a` serves rpc in world `W` after the handshake `hs` (the dialer's) and `hsAns` (the
 acceptor's answer): its protocols, and the registry (persistent). -/
