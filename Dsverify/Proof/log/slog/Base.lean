@@ -27,7 +27,7 @@ open Iris Iris.BI
 namespace log.slog
 
 section def_
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics] [package_sem : log.slog.Assumptions]
 

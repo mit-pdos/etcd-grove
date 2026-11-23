@@ -52,7 +52,33 @@ excluded `Event.FromReader` by a goose configuration; here it is translated).
 
 ## State
 
-### Round 4 (2026-11-23 evening; the current handoff; the older rounds below are history)
+### Round 5 (2026-11-23 night; the current handoff; Round 4 and older are history)
+
+Branch merged with `origin/lean` `af67426be3` (Perennial pin unchanged, `160fcf12a`).
+
+**log/slog proved** (no premise left):
+- Translation: `log/slog` is the landed model `models/log/slog` translated with its bodies
+  (`std_models += ["log/slog"]`, `Dsverify/Code/log/slog.toml` translate-all; `goose --check` clean).
+- Specs, one canonical copy: `Dsverify/Spec/log/slog/Logger.lean` (`isLogger`, `argOk`,
+  `NoFmtArg`, `New.spec`, `DiscardHandler.load_spec`, `Logger.{Debug,Info,Warn,Error}.spec`,
+  `Debug.spec`); vr's `Spec/sloglib.lean`, `Proof/replica/LibHyps.lean`, `Proof/network/LibHyps.lean`
+  deleted (importers now import the canonical module). Nothing in Net/ or the main tree had slog specs.
+- **Narrowed to Go's truth:** `New.spec` is at `dhV` (DiscardHandler's value,
+  `interface.mkOk discardHandler.ty #(zero_val discardHandler)`, `Dsverify/Proof/log/slog/Base.lean`)
+  only: Go's `New(nil)` panics. `DiscardHandler.load_spec` returns `h = dhV`; `isLogger l` is
+  `l`'s handler field `↦□ dhV` (was: some handler). `argOk` on the logging calls stays (the vr call
+  sites state it); the proofs do not use it (a discard handler formats nothing).
+- Proofs: `Dsverify/Proof/log/slog/Logger.lean` (`DiscardHandler.load_proof`, `New.wp_proof`,
+  `Logger.{Debug,Info,Warn,Error}.wp_proof`: `Enabled` of `discardHandler` is false;
+  `Debug.wp_proof`: the default logger's `defaultHandler` is enabled from `LevelInfo` up).
+- Init: `log.slog` left `HYP_INITS` (now `['encoding.json']`) for `PKGS`; its fact `pkgState`
+  (`Base.lean`: `DiscardHandler ↦□ dhV`, `defaultLogger ↦□ dl`, `dl`'s handler `↦□ defHV`); its
+  `Init.lean` generated (`etc/dsv/vr.py` `SPECIAL['log.slog']`). `log.slog.InitHyp` is gone: the
+  statement lost the premise `∀ G L, log.slog.InitHyp remoteGF`.
+- `LibHyps` keeps only `connReaderOk` (docstring: true of Go; waits on Perennial's
+  readatleast-prefix, mit-pdos/perennial#688). `Link.lean` passes the slog proofs.
+
+### Round 4 (2026-11-23 evening; history)
 
 Branch merged with `origin/lean` `76c00a8d81` (Perennial pin `160fcf12a`, `/shared/perennial-160fcf12a`);
 PkgTables regenerated (`etc/gen-init.py`, PERENNIAL_DIR set; `--check` clean); `goose.py --check
