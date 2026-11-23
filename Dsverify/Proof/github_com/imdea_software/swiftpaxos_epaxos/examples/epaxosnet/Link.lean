@@ -37,6 +37,7 @@ public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
 public import Proof.bufio.NewWriter
 public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewWriterSizeRep
 public import Proof.bufio.NewReaderOk
 public import Proof.bufio.NewReaderSize
 public import Proof.bufio.Writer__WriteByte
@@ -116,7 +117,8 @@ theorem wp_Op : examples.epaxosnet.Op.spec (GF := GF) (hG := hG) :=
   Op.wp_proof state.NIL.wp_proof replica.defs.Propose.Marshal.wp_proof
     replica.defs.ProposeReplyTS.Unmarshal.wp_proof net.DialTimeout.wp_proof net.Conn.Read.wp_proof
     net.Conn.Write.wp_proof net.Conn.Close.wp_proof
-    (EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof)
+    (EtcdGrove.bufio.NewWriter.wp_proof
+      (EtcdGrove.bufio.NewWriterSize.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep))
     (EtcdGrove.bufio.NewReader.wp_proofOk
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
     (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
