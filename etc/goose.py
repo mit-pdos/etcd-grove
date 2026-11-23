@@ -953,7 +953,7 @@ PROJECTS = [
                     "github.com/orcaman/concurrent-map=Dsverify", "encoding/gob=Dsverify",
                     "os/signal=Dsverify",
                     "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
-                    "bufio=", "encoding/hex=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
+                    "bufio=", "encoding/hex=", "encoding/json=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
                     "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
         packages=["github.com/emirpasic/gods/utils", "github.com/emirpasic/gods/maps/treemap",
                   "github.com/google/uuid", "github.com/orcaman/concurrent-map", "encoding/gob",
