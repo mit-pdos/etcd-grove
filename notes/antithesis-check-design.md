@@ -367,7 +367,11 @@ lines, so the proof follows the Go function by function. Decided here:
 
 **Validated against TLC and the Go** (`check/cmd/leanexport` writes the fixtures with the streams as
 the Go reader parsed them, TLC's and the Go's verdicts; `check/testdata/LeanDiff.lean`, run by
-`lake env lean --run`, compares as `diff_test.go`'s `agrees`): RESULTS-PENDING.
+`lake env lean --run`, compares as `diff_test.go`'s `agrees`; `check/testdata/lean-diff.sh`): **512 of 512 agree** with TLC
+(and so with the Go): Antithesis's 14 recorded traces, their 60 validator mutations, the 144 simulator
+streams, the 257 random perturbations (15 of them TLC ERRORs, where the Lean errs too) and the 37
+targeted negative streams. Not part of the trust argument (the spec's proof is what ties the Lean to
+the Go), but evidence that the Lean transcription decides what TLC does on these streams.
 
 **`check.Run`'s spec** (`Spec/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Run.lean`,
 over `Rep.lean`'s persistent representation predicates):
