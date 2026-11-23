@@ -22,7 +22,7 @@ section generic
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [bufio.Assumptions] [io.Assumptions] [encoding.binary.Assumptions]
+variable [sem : go.Semantics] [bufio.Assumptions] [io.Assumptions] [encoding.binary.Assumptions] [wire.BufioSpecs GF]
 variable [wire.BinaryVarintHyps GF]
 variable [src.state.Assumptions] [src.gryffproto.Assumptions] [src.epaxosproto.Assumptions]
 variable [src.clientproto.Assumptions] [src.genericsmrproto.Assumptions]

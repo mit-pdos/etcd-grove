@@ -15,15 +15,13 @@ Ported from dsverify-lab examples/gryff/proof/GryffProof/Wire/Proof/Lemmas.lean 
 module
 
 public import Dsverify.Proof.gryff.Wire.Enc
-public import Proof.bufio.Writer__Write
-public import Proof.bufio.Writer__Flush
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.NewWriter
-public import Proof.bufio.NewWriterSize
-public import Proof.bufio.NewReaderSize
-public import Proof.bufio.NewReaderOk
+public import Spec.bufio.Writer__Write
+public import Spec.bufio.Writer__Flush
+public import Spec.bufio.Writer__WriteByte
+public import Spec.bufio.NewWriter
+public import Spec.bufio.NewReaderOk
 public import Proof.bufio.ReaderLaws
-public import Proof.bufio.Reader__ReadOk
+public import Spec.bufio.Reader__ReadOk
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.encoding.binary.Results
 
@@ -383,6 +381,20 @@ structure WSt [GooseExts] (GF : BundledGFunctors) where
   Ew : GoInterface → IProp GF
   sz : Nat
 
+/-- dsv-bufio's specs the wire layer calls, as one hypothesis (the import tiers: a defs module sees
+its callees through their specs). Discharged by the linking module from dsv-bufio's `wp_proof`s
+(`Writer.Write.wp_proof Writer.Flush.wp_proof`, ..., `NewReader.wp_proofOk (NewReader.wp_proofE
+NewReaderSize.wp_proofE)`). -/
+class BufioSpecs [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [bufio.Assumptions] :
+    Prop where
+  write : EtcdGrove.bufio.Writer.Write.spec (GF := GF) (hG := hG)
+  flush : EtcdGrove.bufio.Writer.Flush.spec (GF := GF) (hG := hG)
+  writeByte : EtcdGrove.bufio.Writer.WriteByte.spec (GF := GF) (hG := hG)
+  newWriter : EtcdGrove.bufio.NewWriter.spec (GF := GF) (hG := hG)
+  newReader : EtcdGrove.bufio.NewReader.specOk (GF := GF) (hG := hG)
+  read : EtcdGrove.bufio.Reader.Read.specOk (GF := GF) (hG := hG)
+
 section writer
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -426,7 +438,7 @@ theorem wst_done (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF) (sent pen
       ownWriter bw wr J Q sent' pend' err' := by
   unfold wst; exact .rfl
 
-variable [bufio.Assumptions]
+variable [bufio.Assumptions] [BufioSpecs GF]
 
 set_option goose.wp.extras true
 
@@ -455,7 +467,7 @@ theorem wp_wire_Write (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)
     iapply EtcdGrove.bufio.Q_of_prefix Q (sent' ++ pend' ++ ps) (sent ++ pend ++ E0)
       (by rw [hs, List.append_assoc (sent ++ pend)]
           exact (List.prefix_append_right_inj _).mpr Hpre) $$ Hpc HQ
-  wp_apply EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof bw wr.wi J Q wr.Ew wr.sz sent' pend' err' p dq ps
+  wp_apply BufioSpecs.write (GF := GF) bw wr.wi J Q wr.Ew wr.sz sent' pend' err' p dq ps
     $$ [$Hown $HQ' $Hp] as %nn %e2 ⟨%k2, %sent'', %pend'', %Hk2, Hp, Hown⟩
   obtain ⟨-, hk2, hs2, hpre2, hnil2, herr2, -⟩ := Hk2
   iapply HΦ
@@ -531,7 +543,7 @@ theorem wp_Flush (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)
         ⌜k ≤ pend.length ∧ (e = interface.nil → k = pend.length) ∧
           (err ≠ interface.nil → e = err ∧ k = 0)⌝ ∗
         ownWriter bw wr J Q (sent ++ pend.take k) (pend.drop k) e }} :=
-  EtcdGrove.bufio.Writer.Flush.wp_proof bw wr.wi J Q wr.Ew wr.sz sent pend err
+  BufioSpecs.flush (GF := GF) bw wr.wi J Q wr.Ew wr.sz sent pend err
 
 /-- `WriteByte(c)` (the lab's `bufio.wp_WriteByte`, with dsv-bufio's stronger post: a failed
 writer keeps its state; a byte that fits is not sent). -/
@@ -545,7 +557,7 @@ theorem wp_WriteByte (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)
           (err ≠ interface.nil → e = err ∧ sent' = sent ∧ pend' = pend) ∧
           (err = interface.nil ∧ pend.length + 1 ≤ wr.sz → e = interface.nil ∧ sent' = sent)⌝ ∗
         ownWriter bw wr J Q sent' pend' e }} :=
-  EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof bw wr.wi J Q
+  BufioSpecs.writeByte (GF := GF) bw wr.wi J Q
     wr.Ew wr.sz sent pend err c
 
 /-- `bufio.NewWriter(w)` (the lab's `bufio.wp_NewWriter`): a writer of size 4096. -/
@@ -555,7 +567,7 @@ theorem wp_NewWriter (wr : WSt GF) (J Q : List w8 → IProp GF) (W : List w8) (h
       (App (Val (@! bufio.NewWriter)) (Val #(GoInterface.ok wr.wi)))
     {{ (bw : Loc), RET #bw; ownWriter bw wr J Q W [] interface.nil }} := by
   iintro %Φ ⟨#Hpkg, #Hwr, HJ, #HQ⟩ HΦ
-  iapply EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof wr.wi J Q wr.Ew W
+  iapply BufioSpecs.newWriter (GF := GF) wr.wi J Q wr.Ew W
     $$ [HJ]
   · iframe Hpkg Hwr HJ HQ; ipureintro; exact hty
   iintro !> %bw Hown
@@ -627,7 +639,7 @@ theorem wp_load_byte (p : Loc) (n c : w64) (i : Int) (vs : List w8) (dq : DFrac)
     simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hlt]
   iapply HΦ $$ Hs
 
-variable [bufio.Assumptions] [io.Assumptions]
+variable [bufio.Assumptions] [io.Assumptions] [BufioSpecs GF]
 
 /-- `io.ReadAtLeast(wire, bs, len(bs))` on the `*bufio.Reader` `br` (as an `io.Reader`): all of
 `bs` read (`err = nil`), or an error (`rdErr`) with some bytes read. -/
@@ -652,7 +664,7 @@ theorem wp_wire_ReadAtLeast (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF)
   icases HSB with ⟨%sbl, #Hsb, -⟩
   icases HEOF with ⟨%eofl, #Heof, -⟩
   icases HUE with ⟨%ueofl, #Hueof, -⟩
-  ihave #HrOk := EtcdGrove.bufio.ownBufReader_readerOk EtcdGrove.bufio.Reader.Read.wp_proofOk br
+  ihave #HrOk := EtcdGrove.bufio.ownBufReader_readerOk (BufioSpecs.read (GF := GF)) br
     rd.ri (fun _ m => 0 < m) I rd.E
   rw [show interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br =
     GoInterface.ok (EtcdGrove.bufio.readerIface br) from rfl]
@@ -713,7 +725,7 @@ theorem wp_wire_ReadFull (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF)
   iunfold errors.newVar at HEOF HUE
   icases HEOF with ⟨%eofl, #Heof, -⟩
   icases HUE with ⟨%ueofl, #Hueof, -⟩
-  ihave #HrOk := EtcdGrove.bufio.ownBufReader_readerOk EtcdGrove.bufio.Reader.Read.wp_proofOk br
+  ihave #HrOk := EtcdGrove.bufio.ownBufReader_readerOk (BufioSpecs.read (GF := GF)) br
     rd.ri (fun _ m => 0 < m) I rd.E
   rw [show interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br =
     GoInterface.ok (EtcdGrove.bufio.readerIface br) from rfl]
@@ -873,8 +885,7 @@ theorem wp_NewReader (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
       (App (Val (@! bufio.NewReader)) (Val #(GoInterface.ok rd.ri)))
     {{ (br : Loc), RET #br; ownReader br rd I R }} := by
   iintro %Φ ⟨#Hpkg, #Hrd, HI⟩ HΦ
-  iapply EtcdGrove.bufio.NewReader.wp_proofOk
-    (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE) rd.ri
+  iapply BufioSpecs.newReader (GF := GF) rd.ri
     (fun _ m => 0 < m) I rd.E R $$ [HI] HΦ
   iframe Hpkg Hrd HI
   isplitr

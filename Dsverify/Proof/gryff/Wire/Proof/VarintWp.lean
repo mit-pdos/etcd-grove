@@ -92,7 +92,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-variable [bufio.Assumptions] [io.Assumptions] [encoding.binary.Assumptions]
+variable [bufio.Assumptions] [io.Assumptions] [encoding.binary.Assumptions] [wire.BufioSpecs GF]
 set_option goose.wp.extras true
 
 theorem wp_ReadUvarint [h : BinaryVarintHyps GF] (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8) :

@@ -68,7 +68,7 @@ theorem wp_ShouldDelayNextRPC (gR : Loc) (dS : GoSlice) (dms : List Loc) (q : Na
     iapply HΦ $$ Hmp
 
 section bufio
-variable [bufio.Assumptions]
+variable [bufio.Assumptions] [wire.BufioSpecs GF]
 
 /-- `WriteByte(c)` on a writer with a sticky error: returns it, writes nothing. -/
 theorem wp_WriteByte_sticky (bw : Loc) (wr : wire.WSt GF) (J Q : List w8 → IProp GF)
