@@ -29,7 +29,7 @@ GOOSE = dict(
              + ["./examples/vsrnet/cmd/server%d" % s for s in range(1, 6)],
     owned=[os.path.join("github_com", "tangledbytes"), os.path.join("log", "slog"),
            os.path.join("encoding", "json")],
-    std_models=["encoding/json"],
+    std_models=["encoding/json", "log/slog"],
 )
 
 # etc/gen-init.py: go-vsr's packages, the kit and its twelve machines' commands. The names-only
@@ -42,10 +42,10 @@ NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in ran
 PKGS = [f'{VR}.pkg.{p}' for p in ['assert', 'log', 'ipv4port', 'events', 'queue', 'time',
                                   'network', 'client', 'replica']] + \
     [f'{VR}.examples.{p}' for p in ['vsrwire', 'vsrkv', 'vsrnet']] + \
-    [f'{VR}.examples.vsrnet.cmd.{n}' for n in NODES]
+    [f'{VR}.examples.vsrnet.cmd.{n}' for n in NODES] + ['log.slog']
 PROGRAMS = {f'{VR}.examples.vsrnet.cmd.{n}':
             f'Proof/{VR.replace(".", "/")}/examples/vsrnet/cmd/{n}/PkgTable.lean' for n in NODES}
-HYP_INITS = ['encoding.json', 'log.slog']
+HYP_INITS = ['encoding.json']
 
 
 def special(g):
@@ -87,4 +87,14 @@ Its initializer allocates `ErrNoConn` (an `errors.New` call) and initializes its
         'try wp_auto',
         'wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoConn ⟨#SErrNoConn, #MErrNoConn⟩']
 
+    # log/slog (the model, translated with its bodies): its two variables, `DiscardHandler`
+    # (`discardHandler{}` as a `Handler`) and `defaultLogger` (a new `Logger` over `defaultHandler{}`)
+    SPECIAL['log.slog'] = dict(
+        doc='''Its fact (`pkgState`, `Base.lean`): `DiscardHandler` holds `dhV` and `defaultLogger`
+points to a `Logger` whose handler is `defHV`, both read-only for good. Its initializer allocates
+the two variables, initializes its imports and runs their translated initializers (a conversion to
+`Handler`; a new `Logger`).''',
+        alloc_types={'DiscardHandler': 'GoInterface', 'defaultLogger': 'Loc'},
+        finish=['try wp_auto', 'done'],
+    )
     return SPECIAL

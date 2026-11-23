@@ -9,14 +9,14 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.client.Base
 public import Perennial.Proof.io.Link
-public import Dsverify.Proof.log.slog.Init
 public import Perennial.Proof.sort.Link
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.events.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.network.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.queue.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.time.Init
-public import Dsverify.Proof.runtime.PkgInitDsv
+public import Dsverify.Proof.log.slog.Init
+public import Net.Proof.runtime.PkgInitExt
 public import Dsverify.Proof.encoding.json.Init
 
 @[expose] public section
@@ -40,7 +40,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [_root_.Perennial.log.slog.InitHyp GF]
 variable [_root_.Perennial.encoding.json.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.client.Assumptions]
 
@@ -64,8 +63,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
       EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.log.slog _root_.Perennial.log.slog.initialize'
-      _root_.Perennial.log.slog.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.log.slog.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown

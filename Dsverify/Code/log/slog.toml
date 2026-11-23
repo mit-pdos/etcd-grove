@@ -1,6 +1,2 @@
-# Types and names only (project dsv-vr, notes/dsv-vr.md): go-vsr logs through log/slog, which no
-# translation here or in Perennial models; its functions are names, and the proof takes the specs
-# of the ones go-vsr calls as hypotheses (notes/dsv-vr.md, "Hypotheses").
-translate = ["!*"]
-imports = ["!*"]
-translate_types = true
+# The log/slog model (models/log/slog, std_models; notes/dsv-vr.md), translated with its bodies:
+# its specs (Dsverify/Proof/log/slog/) are proved from them.
