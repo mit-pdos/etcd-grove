@@ -11,7 +11,8 @@ may only add ghost code (the rule as widened by Upamanyu, #24; the exact checks:
 `notes/proph-patch-rule.md`):
 - ghost-only declarations, with names the package does not use: a `primitive.ProphId` field (unexported, of a
   struct the program never compares with `==`, uses in a map key or reflects on) or package
-  variable (`var NAME = primitive.NewProph()`) initialized only by `NewProph`, and helper functions (or unexported
+  variable initialized only by `NewProph` (`var NAME = primitive.NewProph()`, or, as Goose needs,
+  `var NAME primitive.ProphId` and `func init() { p := primitive.NewProph(); NAME = p }`), and helper functions (or unexported
   methods) without results whose bodies hold only read-only computation (locals, counted loops,
   `if`s) plus `ResolveBool`/`ResolveU64` and calls of other helpers (not recursive);
 - statements: `NAME := primitive.NewProph()`, resolutions of a ghost prophecy, calls of the

@@ -11,6 +11,8 @@
 // (the package; "fresh"):
 //
 //	var NAME = primitive.NewProph()                      a ghost variable
+//	var NAME primitive.ProphId                           a ghost variable, with its ghost
+//	func init() { L := primitive.NewProph(); NAME = L }  initializer (Goose's form)
 //	type T struct { ...; NAME primitive.ProphId; ... }   a ghost field (in a struct type of ORIG)
 //	func NAME(PARAMS) { BODY }                           a ghost helper
 //	func (R RT) NAME(PARAMS) { BODY }                    a ghost helper method (NAME unexported)
@@ -93,6 +95,7 @@ type pkgGhost struct {
 	fields       map[string]string        // ghost field -> its struct type
 	helpers      map[string]*ast.FuncDecl // ghost helpers (functions and methods) by name
 	calls        map[string]map[string]bool
+	inits        map[*ast.FuncDecl]string // ghost initializers -> the ghost variable they set
 }
 
 type checker struct {
@@ -655,7 +658,10 @@ func collect(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)
 		switch d := d.(type) {
 		case *ast.FuncDecl:
 			if d.Name.Name == "init" && d.Recv == nil {
-				continue // an added init is not a ghost helper: erasure leaves it, and the check fails
+				// a ghost initializer, `func init() { L := primitive.NewProph(); V = L }`, is
+				// recognized below (after the ghost variables); any other added init is not ghost
+				// code: erasure leaves it, and the comparison fails
+				continue
 			}
 			if !fresh(d.Name.Name) {
 				continue
@@ -702,6 +708,60 @@ func collect(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)
 	}
 }
 
+// collectInits records the ghost initializers of pf (after every file's ghost variables).
+func collectInits(pf *ast.File, pkg *pkgGhost, errorf func(token.Pos, string, ...any)) {
+	for _, d := range pf.Decls {
+		if f, ok := d.(*ast.FuncDecl); ok && f.Name.Name == "init" && f.Recv == nil {
+			if v, ok := ghostInit(f, pkg); ok {
+				for _, w := range pkg.inits {
+					if w == v {
+						errorf(f.Pos(), "the ghost variable %s has two initializers", v)
+					}
+				}
+				pkg.inits[f] = v
+			}
+		}
+	}
+}
+
+// ghostInit reports whether f is `func init() { L := primitive.NewProph(); V = L }` (or
+// `func init() { V = primitive.NewProph() }`) for a ghost variable V (Goose refuses a package
+// variable's initializer that calls NewProph, and an assignment of its call), and V.
+func ghostInit(f *ast.FuncDecl, pkg *pkgGhost) (string, bool) {
+	if f.Body == nil || f.Type.Params.NumFields() != 0 {
+		return "", false
+	}
+	l := f.Body.List
+	assignV := func(s ast.Stmt) (*ast.AssignStmt, string, bool) {
+		a, ok := s.(*ast.AssignStmt)
+		if !ok || a.Tok != token.ASSIGN || len(a.Lhs) != 1 || len(a.Rhs) != 1 {
+			return nil, "", false
+		}
+		v, ok := a.Lhs[0].(*ast.Ident)
+		if !ok || !pkg.vars[v.Name] {
+			return nil, "", false
+		}
+		return a, v.Name, true
+	}
+	switch len(l) {
+	case 1:
+		a, v, ok := assignV(l[0])
+		return v, ok && isNewProph(a.Rhs[0])
+	case 2:
+		local, ok := isNewProphStmt(l[0])
+		if !ok || pkg.vars[local] {
+			return "", false
+		}
+		a, v, ok := assignV(l[1])
+		if !ok {
+			return "", false
+		}
+		r, ok := a.Rhs[0].(*ast.Ident)
+		return v, ok && r.Name == local
+	}
+	return "", false
+}
+
 // eraseDecls checks pf's ghost declarations and removes them (and the ghost fields) from pf.
 func (c *checker) eraseDecls(pf *ast.File) {
 	keep := pf.Decls[:0:0]
@@ -710,6 +770,9 @@ func (c *checker) eraseDecls(pf *ast.File) {
 		case *ast.FuncDecl:
 			if c.pkg.helpers[d.Name.Name] == d {
 				c.checkHelper(d)
+				continue
+			}
+			if _, ok := c.pkg.inits[d]; ok {
 				continue
 			}
 		case *ast.GenDecl:
@@ -725,10 +788,14 @@ func (c *checker) eraseDecls(pf *ast.File) {
 						specs = append(specs, sp)
 						continue
 					}
-					if len(vs.Names) != 1 || len(vs.Values) != 1 || !isNewProph(vs.Values[0]) ||
-						(vs.Type != nil && !isProphType(vs.Type)) {
+					byValue := len(vs.Values) == 1 && isNewProph(vs.Values[0]) &&
+						(vs.Type == nil || isProphType(vs.Type))
+					byInit := len(vs.Values) == 0 && vs.Type != nil && isProphType(vs.Type) &&
+						c.pkg.initialized(vs.Names[0].Name)
+					if len(vs.Names) != 1 || !(byValue || byInit) {
 						c.errorf(vs.Pos(), "a ghost variable must be declared alone, as "+
-							"`var NAME = primitive.NewProph()`")
+							"`var NAME = primitive.NewProph()`, or as `var NAME primitive.ProphId` "+
+							"with a ghost initializer `func init() { L := primitive.NewProph(); NAME = L }`")
 					}
 				}
 				if len(specs) == 0 && len(d.Specs) > 0 {
@@ -767,6 +834,16 @@ func (c *checker) eraseDecls(pf *ast.File) {
 		keep = append(keep, d)
 	}
 	pf.Decls = keep
+}
+
+// initialized reports whether a ghost initializer sets the ghost variable v.
+func (p *pkgGhost) initialized(v string) bool {
+	for _, w := range p.inits {
+		if w == v {
+			return true
+		}
+	}
+	return false
 }
 
 // checkHelper checks a ghost helper's signature and body.
@@ -863,7 +940,8 @@ func check(pairs [][2]string) []string {
 		if pkg == nil {
 			pkg = &pkgGhost{origDir: dir, dir: filepath.Dir(pr[1]), origNames: map[string]bool{},
 				shadowed: map[string]bool{}, vars: map[string]bool{}, fields: map[string]string{},
-				helpers: map[string]*ast.FuncDecl{}, calls: map[string]map[string]bool{}}
+				helpers: map[string]*ast.FuncDecl{}, calls: map[string]map[string]bool{},
+				inits: map[*ast.FuncDecl]string{}}
 			origPackage(dir, pkg.origNames, pkg.shadowed)
 			pkgs[dir] = pkg
 			order = append(order, dir)
@@ -872,6 +950,9 @@ func check(pairs [][2]string) []string {
 	}
 	for _, p := range ps {
 		collect(p.pf, p.pkg, errorf)
+	}
+	for _, p := range ps {
+		collectInits(p.pf, p.pkg, errorf)
 	}
 	for _, p := range ps {
 		c := &checker{fset: fset, pkg: p.pkg, declared: map[string]bool{}, origNames: map[string]bool{}}
