@@ -172,16 +172,24 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    - `etc/dsv-epaxos/port.py --bufio` does the call-site rewrites (argument bundles, dropped
      conjuncts and error facts, `imod` after `nextIs_read`, `(GF := GF)` on statements whose
      only `GF` is inside a spec): the 18 `wire/Marshal/*` files needed no hand edit.
-3f. **The epaxos code proofs that need no marshal/bufio/net (started 2026-11-23).** The ghost
-   chain `epaxos/{GhostLib,GhostDefs,GhostLaws,GhostStep,ExecFacts}` (then `GhostBasic`,
-   `GhostRep`, `GhostSimple`, `GhostSend`, `GhostExec`, the `Exec*` files, `FindSCC`) imports only
-   the ported `Interface/Client` and `Model/*`: the next files to port. Only `epaxos/BigOpExtra`
-   is in. `port.py` now rewrites the lab's ghost sections (`[G : GooseGlobalGS .hasLC
-   netDistGF]` to the generic `{GF} [G : GooseGlobalGS .hasLC GF]` with the extension classes,
-   `NetConn` to `Net`, drops `open OFE`). What remains by hand in `GhostLib`: with `GF` generic,
-   statements whose only `GF` is inside a defined predicate (`Timeless (rsAuth γ q l)`,
-   `Persistent (rsLb γ l)`, ...) need `(GF := GF)` (as `Interface/Client.lean` does), about 13
-   places in `GhostLib`, and the same kind in the rest of the chain.
+3f. **The ghost chain: DONE (2026-11-23)**: `epaxos/{GhostLib,GhostDefs,GhostLaws,GhostStep,
+   ExecFacts,NoReply,GhostDeliver,GhostBasic,GhostRep,GhostSimple,GhostSend,GhostExec}` and the
+   model-side facts `epaxos/{ModelFacts,PAModel,PARModel,PRModel,PRDecide,RecModel}` (`lake build`
+   of the leaves passes; no `sorry`). Changed against the lab:
+   - **Connection ids are `Nat`** (`Net/`'s connection numbers), not the lab net model's `w64`:
+     `Model/State.lean` `Proposal.cid : Nat`, `Model/Sys.lean` `Sys.fired : Nat → …` (the model
+     proofs needed no other change: the cid is only compared); the escrow/fired maps are
+     `GMap Nat KvO` (`Interface/Client.lean`).
+   - **The escrow fires under remote's mask**: `ep_execCmdB` (`GhostExec`) takes
+     `(hEc : ⊤ ∖ epEop ⊆ E)` and `(hNc : ↑N ⊆ epEop)` (the replicas' invariant `N` inside `epN`)
+     in place of the lab's `↑clientN ⊆ E`, `N ## clientN`; callers (the executor's proofs) pass
+     these.
+   - `iinv`'s side-condition solver (`simp [*]`) loops on `ep_execCmdB`'s hypotheses with a
+     generic `GF`; they are hidden across it (`hideP`, a FIXUP).
+   - `port.py` now: `(GF := GF)` on the first ghost predicate of a statement with no other `GF`
+     (`gf_preds`/`gf_annotate`, scanning every ported file's `def … : IProp GF`); the lab's section
+     headers to the generic world with `[π : NetProtoGS]`; `kit.pre` → `inPre`; per-file hand
+     edits in `FIXUPS` (re-running the port reproduces them; `GhostSend`, `GhostExec` have some).
 3d. **`Interface/Misc.lean`** (dlog's non-verbose `Println`/`Printf`/`Fatal`, config's
    `IsProxy` on an empty `ProxyInfo`) and its proofs `wire/Misc/{Dlog,IsProxy}.lean`: ported, check
    with 0 errors (2026-11-23). The lab's import of `Top/PkgState` is dropped (not needed).
@@ -256,7 +264,7 @@ through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (n
 State at handoff (2026-11-23): done are the Go, the translation, the inits, the pure model,
 `Interface/{Names,Net,Client,PeerWire,Wire,Treemap,State,Misc,Varint,Marshal,RpcHttpHyps}`, the
 proofs of the `state` package (`wire/State`), of `wire/Misc` and the whole marshal layer
-(`wire/**`, `wire/Link`). Next: (2) the ghost chain (3f), (3) the replica/master/epaxos code proofs,
+(`wire/**`, `wire/Link`), the ghost chain (3f). Next: (3) the replica/master/epaxos code proofs,
 (4) the model proof, the mains, `epaxos_remote_robust`, the TCB baseline. Library pieces:
 
 0. **Wildcard listen (coordinator, 2026-11-23): `net-wildcard-listen` LANDED on `lean`
