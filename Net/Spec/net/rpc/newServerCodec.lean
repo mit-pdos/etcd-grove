@@ -1,5 +1,5 @@
 /-
-`newServerCodec(conn)` (`codec.go`): a new server codec over `conn`, no write error yet, not closed. Proved
+`newServerCodec(conn)` (`codec.go`): a new server codec over `conn`, no write or read error yet, not closed. Proved
 in `Net/Proof/net/rpc/newServerCodec.lean`.
 -/
 module
@@ -28,7 +28,9 @@ abbrev newServerCodec.spec : Prop :=
   {{ (True : IProp GF) }}
     (App (Val (@! net.rpc.newServerCodec)) (Val #conn))
   {{ (cc : Loc), RET #cc; structFieldRef net.rpc.serverCodec go!"rwc" cc ↦ conn ∗
-      structFieldRef net.rpc.serverCodec go!"werr" cc ↦ interface.nil }}
+      structFieldRef net.rpc.serverCodec go!"werr" cc ↦ interface.nil ∗
+      structFieldRef net.rpc.serverCodec go!"rerr" cc ↦ interface.nil ∗
+      structFieldRef net.rpc.serverCodec go!"closed" cc ↦ false }}
 
 end spec
 

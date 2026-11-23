@@ -66,9 +66,14 @@ namespace net.rpc
 def srvN : Namespace := rpcN.@"server"
 def srvWgN : Namespace := srvN.@"wg"
 
+/-- The payloads of the requests `L` on the wire, the first numbered `n`: for each its header and
+its body. -/
+def reqPlsFrom : Nat → List RpcReq → List (List w8)
+  | _, [] => []
+  | n, r :: L => reqHdr (W64 n) r.sm :: r.body :: reqPlsFrom (n + 1) L
+
 /-- The payloads of the requests `L` on the wire: for the `i`-th its header and its body. -/
-def reqPls (L : List RpcReq) : List (List w8) :=
-  (L.mapIdx fun i r => [reqHdr (W64 i) r.sm, r.body]).flatten
+def reqPls (L : List RpcReq) : List (List w8) := reqPlsFrom 0 L
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -215,7 +220,7 @@ instance srvServes_persistent (γ : GName) (C : CodecSpec GF) (W : RpcWorld GF) 
 /-- The package's variables the server reads: the client's (`cliEnv`) and the placeholder
 `invalidRequest`. -/
 def srvEnv : IProp GF :=
-  iprop(cliEnv ∗ ∃ ir : GoInterface, globalAddr net.rpc.invalidRequest ↦□ ir)
+  iprop(cliEnv ∗ globalAddr net.rpc.invalidRequest ↦□ ())
 
 instance srvEnv_persistent : Persistent (srvEnv (GF := GF)) := by
   unfold srvEnv; infer_instance
@@ -247,14 +252,16 @@ def ansPend (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString
     ghostMapElem γ.ans k (DFrac.own 1) (none : Option (GoString × List w8)) ∗
     savedPredOwn r.post .discard (fun p : List w8 × GoString => Φ p.1 p.2))
 
-/-- The reader of `cn` has read the frames of the payloads `ps`: at first nothing, with the
-acceptor's fresh token; then the frames of the first `k` requests of the connection, `k` its count
-in `ctr`. -/
-def readerSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)) : IProp GF :=
-  iprop((⌜ps = []⌝ ∗ connFresh (Gg := hG.goose_globalGS) cn true) ∨
-    ∃ (γ : RpcConnNames) (L : List RpcReq) (k : Nat),
-      isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ ghostVar γ.ctr (1 : Qp).half k ∗
-      monoListLbOwn γ.reqs L ∗ ⌜k ≤ L.length ∧ ps = reqPls (L.take k)⌝)
+/-- The reader of `cn` has read the frames of the payloads `ps` (each fitting a frame) and taken
+`k` requests of the connection: none at first, with the acceptor's fresh token; then the reader's
+half of `ctr`, at `k`. -/
+def readerSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (ps : List (List w8)) (k : Nat) :
+    IProp GF :=
+  iprop(recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) (framesOf ps) ∗
+    ⌜∀ q ∈ ps, q.length < 2 ^ 63⌝ ∗
+    ((⌜k = 0⌝ ∗ connFresh (Gg := hG.goose_globalGS) cn true) ∨
+      ∃ γ : RpcConnNames, isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
+        ghostVar γ.ctr (1 : Qp).half k))
 
 /-- A connection just accepted at `a` (`Accept`'s): the acceptor's end of `cn`, its tokens
 (nothing written or read yet) and its fresh token, and the world's registry. -/
@@ -262,6 +269,76 @@ def rpcAccepted (W : RpcWorld GF) (a : GoString) (cn : Nat) : IProp GF :=
   iprop(sendTok (Gg := hG.goose_globalGS) cn true (respProto W a) [] ∗
     recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) [] ∗
     connFresh (Gg := hG.goose_globalGS) cn true)
+
+/-! ## The request loop's pieces -/
+
+/-- The server codec `sc` on the acceptor's end of `cn` (the `*TCPConn` `t`) (persistent). -/
+def srvCodecAt (sc t : Loc) (cn : Nat) (a : GoString) (la ra : GoInterface) : IProp GF :=
+  iprop(structFieldRef net.rpc.serverCodec go!"rwc" sc ↦□
+      interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
+    net.connAt (GF := GF) t cn true a la ra)
+
+instance srvCodecAt_persistent (sc t : Loc) (cn : Nat) (a : GoString) (la ra : GoInterface) :
+    Persistent (srvCodecAt (GF := GF) sc t cn a la ra) := by
+  unfold srvCodecAt; infer_instance
+
+/-- What answering with the message `errmsg` and the reply `reply` needs, for the continuation `Φ`:
+the reply's encoding into `Φ eb ""` for a success (`errmsg = ""`), else `Φ [] errmsg`. -/
+def ansRes (C : CodecSpec GF) (errmsg : GoString) (reply : GoInterface)
+    (Φ : List w8 → GoString → IProp GF) : IProp GF :=
+  if errmsg = [] then C.enc reply (fun eb => Φ eb []) else Φ [] errmsg
+
+/-- The continuation's error answers: `Φ [] msg` for a message not empty (the deposit spent by
+the service's `errOk`). -/
+def errCont (Φ : List w8 → GoString → IProp GF) : IProp GF :=
+  iprop(∀ msg : GoString, ⌜msg ≠ []⌝ ={⊤}=∗ Φ [] msg)
+
+/-- A sticky read error of the server codec (persistent): an error with a message not empty
+(`errNE`), and a pointer (which `==` compares). -/
+def rdErr (e : GoInterface) : IProp GF :=
+  iprop(errNE e ∗ ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝)
+
+instance rdErr_persistent (e : GoInterface) : Persistent (rdErr (GF := GF) e) := by
+  unfold rdErr; infer_instance
+
+/-- The reader's resources at the top of the loop, on the codec `sc` (its `rerr`): no read failed,
+and it has read the frames of the first `k` requests (`readerSt`); or a read failed, `rerr` holding
+its error, and the reader reads no more. -/
+def rdrOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
+  iprop(∃ r0 : GoInterface, structFieldRef net.rpc.serverCodec go!"rerr" sc ↦ r0 ∗
+    ((⌜r0 = interface.nil⌝ ∗ ∃ (ps : List (List w8)) (k : Nat), readerSt W a cn ps k ∗
+        ⌜ps.length = 2 * k⌝) ∨
+      (⌜r0 ≠ interface.nil⌝ ∗ rdErr r0 ∗ ∃ R : List w8,
+        recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a) R)))
+
+/-- The reader mid-request: it has read the frames `ps` of the first `k` requests and the header of
+request `k` (`r`, the `k`-th of the connection's lower bound `L`), and taken it. -/
+def rdrMid (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (r : RpcReq) : IProp GF :=
+  iprop(∃ (γ : RpcConnNames) (L : List RpcReq) (ps : List (List w8)),
+    recvTok (Gg := hG.goose_globalGS) cn true (reqProto W a)
+      (framesOf (ps ++ [reqHdr (W64 k) r.sm])) ∗
+    isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ monoListLbOwn γ.reqs L ∗
+    ghostVar γ.ctr (1 : Qp).half (k + 1) ∗
+    ⌜L[k]? = some r ∧ ps.length = 2 * k ∧ (∀ q ∈ ps, q.length < 2 ^ 63) ∧ reqOk r⌝)
+
+/-- A request read and ready to run (`service.call`'s): the service's receiver `rcvr`, the method
+`mt` (its `Method` `v`, its counter's mutex), and the call of `v` on the argument `argv` and the
+reply `replyv`, answering the continuation `Φ` (`callRet`). -/
+def callReady (C : CodecSpec GF) (svc mt : Loc) (argv replyv : GoInterface)
+    (Φ : List w8 → GoString → IProp GF) : IProp GF :=
+  iprop(∃ (rcvr : GoInterface) (mm : Loc) (v : net.rpc.Method),
+    structFieldRef net.rpc.service go!"rcvr" svc ↦□ rcvr ∗
+    structFieldRef net.rpc.methodType go!"m" mt ↦□ mm ∗ mm ↦□ v ∗
+    sync.isMutex (structFieldRef net.rpc.methodType go!"Mutex" mt)
+      (∃ n : w64, structFieldRef net.rpc.methodType go!"numCalls" mt ↦ n) ∗
+    WP (App (App (App (Val #v.Call') (Val #rcvr)) (Val #argv)) (Val #replyv))
+      {{ fun r' => iprop(∃ e : GoInterface, ⌜r' = #e⌝ ∗ callRet C replyv Φ e) }})
+
+/-- The codec's state a served connection starts with, and the acceptor's tokens. -/
+def srvCodecOwn (W : RpcWorld GF) (a : GoString) (cn : Nat) (sc : Loc) : IProp GF :=
+  iprop(structFieldRef net.rpc.serverCodec go!"werr" sc ↦ interface.nil ∗
+    structFieldRef net.rpc.serverCodec go!"rerr" sc ↦ interface.nil ∗
+    structFieldRef net.rpc.serverCodec go!"closed" sc ↦ false ∗ rpcAccepted W a cn)
 
 end defs
 

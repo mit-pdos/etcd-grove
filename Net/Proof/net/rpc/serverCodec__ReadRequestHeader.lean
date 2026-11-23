@@ -31,8 +31,17 @@ theorem serverCodec.ReadRequestHeader.wp_proof (wp_readFrame : readFrame.spec (G
     (wp_getU64 : getU64.spec (GF := GF) (hG := hG))
     (wp_getString : getString.spec (GF := GF) (hG := hG)) :
     serverCodec.ReadRequestHeader.spec (GF := GF) (hG := hG) := by
-  intro c t cn s a la ra r rv P eof ueof ed ef
-  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, Hr, HP, #Hacc⟩
+  intro c t cn s a la ra r rv r0 P eof ueof ed ef
+  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, Hr, HP, Hrerr, #Hacc⟩
+  wp_auto
+  cases r0 with
+  | ok e0 =>
+    wp_auto
+    iapply HΦ
+    ileft
+    iframe HP Hr Hrerr
+    ipureintro; exact ⟨by simp, rfl⟩
+  | nil =>
   wp_auto
   wp_apply wp_readFrame t cn s a la ra P eof ueof ed ef
       $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc]
@@ -48,26 +57,39 @@ theorem serverCodec.ReadRequestHeader.wp_proof (wp_readFrame : readFrame.spec (G
     | ok e =>
       wp_auto
       iapply HΦ
+      iright
+      isplitr
+      · ipureintro; first | rfl | trivial
       iexists got
       iframe HP
       iright
       iframe Hr
       isplitr
       · ipureintro; exact Hne
-      iexact HE
+      iframe HE
+      iexists _
+      iframe Hrerr
+      ipureintro; right; rfl
   subst Hnil
   wp_auto
   ihave %Hlen := ownSlice_len $$ Hp
   wp_if_destruct
   · -- shorter than 8 bytes
     iapply HΦ
+    iright
+    isplitr
+    · ipureintro; first | rfl | trivial
     iexists got
     iframe HP
     iright
     iframe Hr
     isplitr
     · ipureintro; simp [interface.mkOk]
-    ileft; ipureintro; rfl
+    isplitr
+    · ileft; ipureintro; first | rfl | trivial
+    iexists _
+    iframe Hrerr
+    ipureintro; left; rfl
   rename_i Hge8
   have hb8 : 8 ≤ pl.length := by
     have : sint.Z (W64 8) = 8 := by decide
@@ -93,13 +115,20 @@ theorem serverCodec.ReadRequestHeader.wp_proof (wp_readFrame : readFrame.spec (G
     icases Hres1 with %Hno
     (try wp_auto)
     iapply HΦ
+    iright
+    isplitr
+    · ipureintro; first | rfl | trivial
     iexists got
     iframe HP
     iright
     iframe Hr
     isplitr
     · ipureintro; simp [interface.mkOk]
-    ileft; ipureintro; rfl
+    isplitr
+    · ileft; ipureintro; first | rfl | trivial
+    iexists _
+    iframe Hrerr
+    ipureintro; left; rfl
   simp only [ite_true]
   icases Hres1 with ⟨%r1, %Hr1, Hrest⟩
   ihave %Hl1 := ownSlice_len $$ Hrest
@@ -111,11 +140,14 @@ theorem serverCodec.ReadRequestHeader.wp_proof (wp_readFrame : readFrame.spec (G
     rw [hz]
     (try wp_auto)
     iapply HΦ
+    iright
+    isplitr
+    · ipureintro; first | rfl | trivial
     iexists got
     iframe HP
     ileft
     iexists (leToU64 (pl.take 8)), sm
-    iframe Hr
+    iframe Hr Hrerr
     ipureintro
     have hlen8 : (pl.take 8).length = 8 := by rw [List.length_take, Nat.min_eq_left hb8]
     have hpl : reqHdr (leToU64 (pl.take 8)) sm = pl := by
@@ -130,13 +162,20 @@ theorem serverCodec.ReadRequestHeader.wp_proof (wp_readFrame : readFrame.spec (G
     rw [decide_eq_false hnz]
     (try wp_auto)
     iapply HΦ
+    iright
+    isplitr
+    · ipureintro; first | rfl | trivial
     iexists got
     iframe HP
     iright
     iframe Hr
     isplitr
     · ipureintro; simp [interface.mkOk]
-    ileft; ipureintro; rfl
+    isplitr
+    · ileft; ipureintro; first | rfl | trivial
+    iexists _
+    iframe Hrerr
+    ipureintro; left; rfl
 
 end proof
 

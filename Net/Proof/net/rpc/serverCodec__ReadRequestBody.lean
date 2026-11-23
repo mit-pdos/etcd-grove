@@ -28,8 +28,17 @@ variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG)) :
     serverCodec.ReadRequestBody.spec (GF := GF) (hG := hG) := by
-  intro c t cn s a la ra body C D Θ P eof ueof ed ef
-  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hacc⟩
+  intro c t cn s a la ra body r0 C D Θ P eof ueof ed ef
+  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, Hrerr, #Hacc⟩
+  wp_auto
+  cases r0 with
+  | ok e0 =>
+    wp_auto
+    iapply HΦ
+    ileft
+    iframe HP HD Hrerr
+    ipureintro; exact ⟨by simp, rfl⟩
+  | nil =>
   wp_auto
   wp_apply wp_readFrame t cn s a la ra P eof ueof ed ef
       $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc]
@@ -41,10 +50,13 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
     | ok e =>
       wp_auto
       iapply HΦ
+      iright
+      isplitr
+      · ipureintro; first | rfl | trivial
       iexists got
       iframe HP
       iright
-      iframe HD
+      iframe HD Hrerr
       isplitr
       · ipureintro; exact Hne
       iexact HE
@@ -54,12 +66,15 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
   | nil =>
     wp_auto
     iapply HΦ
+    iright
+    isplitr
+    · ipureintro; first | rfl | trivial
     iexists got
     iframe HP
     ileft
     iexists pl
     simp only [bodyRes]
-    iframe HD
+    iframe HD Hrerr
     ipureintro; exact ⟨Hgot, Hpl⟩
   | ok b =>
     unfold bodyDec
@@ -78,10 +93,14 @@ theorem serverCodec.ReadRequestBody.wp_proof (wp_readFrame : readFrame.spec (GF 
     iintro %err %ok Hp %Hiff HΘ Herr
     wp_auto
     iapply HΦ
+    iright
+    isplitr
+    · ipureintro; first | rfl | trivial
     iexists got
     iframe HP
     ileft
     iexists pl
+    iframe Hrerr
     isplitr
     · ipureintro; exact ⟨Hgot, Hpl⟩
     unfold bodyRes
