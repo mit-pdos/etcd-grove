@@ -57,15 +57,15 @@ The list asked for. They are named after the lab's specs, with the reason each i
 |---|---|---|---|
 | gods treemap | `treemap.wp_NewWith`, `Map.wp_Put`, `Map.wp_Get` (`Proof/treemap/{NewWith,Map__Put,Map__Get}`; statements in `Dsverify/Proof/.../treemap/Specs.lean`) | 3 | gods |
 | concurrent-map | `concurrent_map.wp_NewV`; `ConcurrentMap.{wp_GetV, wp_HasV, wp_SetV, wp_RemoveV, wp_RemoveL, wp_UpsertVL, wp_IterCbV, wp_IterCbOwnN, IterCbVN.wp_proof, IterCbVP.wp_proof}` (`Proof/cmap/*`) | 27 | concurrent-map |
-| uuid | `uuid.wp_New`, `uuid.wp_ID` (`Harness/Proof/uuid/Specs`) | 2 | uuid |
 | encoding/gob | `gob.{NewEncoder, NewDecoder, Encoder.EncodeW, Decoder.Decode, SetCodec, getCodec}.wp_proof` (`Spec/gob/*`, `Proof/gob/*`) | 8 | gob (the lab's gob model) |
-| bufio | `bufio.{wp_NewReader, wp_NewWriter, wp_ReadByte, wp_ReadByte_wf, wp_ReadAtLeast, wp_ReadFull, wp_Write, wp_Write_err, wp_WriteByte, wp_WriteByte_err, wp_Flush}` (`Harness/Proof/bufio/{Reader,Writer,ReadFull}`). The vocabulary `readerOk`/`writerOk`/`ownReader`/`ownWriter`/`prefixClosed`/`readsOk` is from `Harness/Proof/bufio/Defs` and is concrete over the real `bufio` struct. | 50 | bufio's reader/writer proofs (the dsv-bufio session) |
-| net/rpc client | `net.rpc.{DialHTTP.wp, Client.Call.wp, Client.Close.wp}` (`Harness/Proof/net/rpc/ClientDefs`, `Results`) | 13 | `DialHTTP` (the HTTP path); `Call`/`Close` exist in `Net/` on `origin/lean` but over a different vocabulary (`CodecSpec`, not the lab's `RpcWorld`/`RpcCodec`) |
+| bufio (reader half) | `bufio.{wp_NewReader, wp_ReadByte, wp_ReadByte_wf, wp_Read, wp_ReadAtLeast, wp_ReadFull}` (`Harness/Proof/bufio/{Reader,ReadFull}`), over the lab's `readerOk`/`ownReader`/`readsOk` (`lib/Bufio.lean`). The **writer half is derived** from dsv-bufio's specs (fourth session, below): no longer hypotheses. | 50 | see "bufio" below |
+| net/rpc client | `net.rpc.DialHTTP.wp` (`Harness/Proof/net/rpc`): the HTTP path, waits for `models-rpc-http`'s `rpc.DialHTTP.spec` (`rpcAddrP`). `Client.Call`/`Close` are `Net/`'s proofs (`lib/RpcClient.lean`, `Results.lean`'s client half), not hypotheses. | 13 | the HTTP path |
 | net/rpc server | `net.rpc.{Register, HandleHTTP, SetCodec}.wp_proof` (`Harness/Proof/net/rpc/{ServerDefs,HandleHTTP,Codec}`) | 6 | the net/rpc server and HTTP path |
 | net/http | `net.http.Serve.wp_proof` (`Harness/Proof/net/http/Serve`) | 2 | the net/http server |
-| net | `net.ListenWild.wp_proof`: a `Listen` at a wildcard address. Replicas listen at `"0.0.0.0:"+port`, the master at `":port"`. | 3 | the extension allows it (D21); `Net/Spec/net/Listen` does not cover it |
-| os/signal | `os.signal.Notify.wp_proof` (`Harness/Proof/os/signal`) | 1 | os/signal (names only) |
-| math/rand | `math.rand.{Intn, New, NewSource}.wp_proof` (`Harness/Proof/math/rand`) | 10 | the main tree proves `Int63n`/`Float64` only. To check: whether `Intn` follows. |
+| net | none: wildcard `Listen` is `Net/`'s (`net-wildcard-listen`, landed); `TCPConn.{Close,RemoteAddr}` and `TCPAddr.String` are proved lab-shaped wrappers (`lib/NetConn.lean`), `DialTimeout` too (`lib/NetLab.lean`) | | |
+| os/signal | `os.signal.Notify.wp_proof` (`Harness/Proof/os/signal`): **an assumption of the deployment** (no signal is delivered: `hook.HookUser1`'s proof needs the channel to stay empty). For review. | 1 | os/signal (names only) |
+| math/rand | `math.rand.{NewSource, New, Intn}.wp_proof` (`Harness/Proof/math/rand`), in `SwiftHyps` | 10 | Perennial's `math/rand` translation is names only |
+| uuid | `uuid.wp_New`, `uuid.wp_ID` (results: some `UUID`, some `w32`; the lab's `isV4`/`idOf` are unused), in `SwiftHyps` | 2 | uuid (names only) |
 
 **To prove, not hypotheses:**
 - the bufio/net bridge `bufio.readerOk_conn`, `writerOk_conn`, `readsOk_conn`, `connErr_errOrNil` (`Harness/Proof/bufio/Net`), over `Net/Spec/net/Conn__{Read,Write}` and `Proto.lean`'s `recvTok`/`sendTok`, as dsv-paxos's `NetProof`;
@@ -101,7 +101,91 @@ The list asked for. They are named after the lab's specs, with the reason each i
 - **gods:** dsv-epaxos and this branch translate it into the same files under `Dsverify/Code/github_com/emirpasic`, and both projects own the directory.
 - **Package inits:** the lab's `SwiftNetPkgState` (one class of package-state predicates) needs widening here. It also needs `go/token`, `path`, `net/textproto`, `vendor/.../httpguts`, `crypto/tls`, `internal/bytealg`, `encoding/{hex,json}` and the gods packages, because the net/rpc and net/http models import them and nothing in the imported parts gives them an `IsPkgInit`.
 
-## State (2026-11-23, third session; resume here)
+## For review (items the coordinator flagged or that go beyond a library's stated spec)
+
+1. **`log.Println` (`swift/SyncTail`, `swift.wp_PrintlnT`).** Proved from Perennial's trusted
+   `log.Println` model beyond `Net/Spec/log/Println`'s `ArgsWf` precondition: for `swift.printable`
+   arguments (`fmt.ArgWf`, or a type with no `Error`/`String`/`Format` method, the quorum values
+   `handleSync` prints). Within the model's stated faithfulness claim ("no formatting method runs"),
+   but it relies on the trusted model directly. Kept at the coordinator's word; to be reviewed.
+2. **`bufio.ownWriter_excl_heap` (`lib/Bufio.lean`) unfolds dsv-bufio's `ownBufWriter`/`writerRep`**,
+   the only unfold of a dsv-bufio predicate here: an exclusivity law (`ownBufWriter_excl`) belongs in
+   dsv-bufio's `Own.lean`; then this lemma becomes a one-line use of it.
+3. **`os.signal.Notify`'s hypothesis is an assumption about the deployment** (no signal is ever
+   delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
+   to stay empty (the lab's model made it so).
+
+## State (2026-11-23, fourth session; resume here)
+
+Merged **`origin/dsv-bufio` `a13fdfe356`** (round 2 of its review; Perennial pin unchanged,
+`7b2259a12`). `lean`'s head (`1b2fd95b30`) and `models-rpc-server` (`040ef5e808`) as before;
+`models-rpc-http` (the HTTP path's shapes) is not pushed yet (`origin/models-rpc-http` is an old,
+unrelated branch: no `rpcAddrP`).
+
+**bufio (the coordinator's decision: use dsv-bufio's specs, never unfold its predicates).**
+- **Writer half: derived, no hypotheses.** `lib/Bufio.lean`: the lab's `writerOk wr J Q` is
+  `∃ wi Ew, ⌜wr = ok wi ∧ wi.ty ≠ *bufio.Writer⌝ ∗ prefixClosed Q ∗ io.writerOk wi J Q Ew` (dsv-bufio's
+  `io.writerOk`, with the lab's stronger `prefixClosed` kept beside it), and `ownWriter bw wr J Q sent
+  pend err` is `∃ wi Ew sz, ⌜wr = ok wi⌝ ∗ bufio.ownBufWriter bw wi J Q Ew sz sent pend err`.
+  `NewWriter/Flush/WriteByte/Write/WriteByte_err/Write_err.labProof` derive the lab's six statements
+  from `EtcdGrove.bufio.{NewWriter,Writer.Flush,Writer.WriteByte,Writer.Write}.wp_proof` (the `_err`
+  ones from the new `err ≠ nil → e = err ∧ sent' = sent ∧ pend' = pend` clauses); `Hyps.lean`'s
+  lab names point at them, and the six fields are gone from `SwiftHyps`. `lib/BufioNet.lean`'s
+  `writerOk_conn` proves the new `writerOk` for a connection (`io.writerOk`'s contract, the error
+  evidence `wrErr` = `errAny ∗ ⌜errWf⌝`, from `Net/`'s `Conn.Write`; not dsv-bufio's
+  `net.conn_writerOk`, which needs `ProtoPrefixClosed P` for every connection where the callers
+  have `prefixClosed (P cid)` for one). `replica/Writers.lean`'s five `writerOk` destructurings take
+  the extra `%Ew`.
+- **For review: one unfold of dsv-bufio's `ownBufWriter`.** `bufio.ownWriter_excl_heap`
+  (`lib/Bufio.lean`): two writers at one location give two full points-tos of the `bufio.Writer`
+  struct (what `replica/WriterExcl.lean`'s `writer_excl` needs: a client writer's first
+  registration is fresh). dsv-bufio has no exclusivity law; it belongs in its `Own.lean`
+  (`ownBufWriter_excl`). It is the only place here that unfolds a dsv-bufio predicate.
+- **Reader half: still the lab's six hypotheses** (`NewReader`, `ReadByte`, `ReadByte_wf`, `Read`,
+  `io.ReadAtLeast`, `io.ReadFull`). The shapes do not allow the derivation without changing the
+  proof: dsv-bufio's `ownBufReader … S …` holds the stream state `S` in the form the underlying
+  `Read` returns it, so over a connection `S` is `recvTokL` and the protocol fact of what was read
+  comes a step later (`net.connReader_proto`: `▷ protoPrefix`). The lab's `ownReader … I …` holds
+  `I = recvTok` now (the lab's reader specs step past the `▷`), and the swift proof uses the fact
+  at once, in a postcondition (`sp.ownReader_proto`/`sp.cw.rd_stOk`: `replica/ClientListener.lean`
+  ×4, `replica/Conn.lean`, `swift/client/{Readers,Unmarshal}.lean` ×4), and `io.ReadFull`'s
+  lab post gives `I (R ++ data)` without a later. The switch: define the lab's `ownReader` as
+  `ownBufReader` at `S := recvTokL` (and `readsOk` as `io.readerOk`), and at each of those sites take
+  the fact under the `▷` and strip it at the next program step before the postcondition. Not done.
+- `bufio.ownReader_not_null` (`swift/client/Readers.lean`) and `sp.ownReader_proto`
+  (`replica/Stream.lean`, `swift/client/ClientStream.lean`) still unfold the lab's (concrete)
+  `ownReader`: they go with the reader switch (`ownBufReader_fact`/`net.connReader_proto`; a
+  not-null law is missing in dsv-bufio too).
+
+**Other library hypotheses added to `SwiftHyps`** (`lib/LibSpecs.lean`, statements copied from the
+lab's harness; the lab proved them from its own models): `math.rand.{NewSource, New, Intn}`,
+`os.signal.Notify` (**an assumption of the deployment**: no signal is delivered; the lab's model
+never delivered one and `hook.HookUser1`'s proof relies on it), `uuid.New`, `UUID.ID` (results
+weakened to some value: the proof does not use the lab's `isV4`/`idOf`).
+
+**net/rpc client.** `lib/RpcClient.lean`: `Net/Proof/net/rpc/Results.lean`'s client half copied
+under `net.rpc.swiftClient` (Results itself imports the server's `Server__Accept`, broken on `lean`
+until `models-rpc-server` merges it). `client/Client__call` uses `swiftClient.Client.Call.wp` at
+`RpcCodec.spec` (the lab's `kitCodecOk` argument dropped). Drop the file for `Results` once it builds.
+
+**Transport wrappers** (`lib/NetConn.lean`, proved, no hypothesis): the lab's
+`net.TCPConn.RemoteAddr.spec` (post `⌜isTCPAddr ad⌝`, from `connAt`'s `netAddr ra`),
+`net.TCPConn.Close.spec` (post `True`: every caller drops the error; from `Conn.Close` and
+`close_au`), `net.wp_TCPAddr_String` (`AnyString`). `cid : Nat`. `replica/ClientListener` and
+`client/BufferClient__Disconnect` import it (they take these specs as parameters, as in the lab;
+the link instantiates them with `*.labProof`).
+
+**Fixes this session.** `swift/AcceptL` (a deferred `Unlock` now inlines to `internal/sync`'s:
+`internal.sync.Mutex.wp_Unlock`), `swift/MarshalSync` (gob's `EncodeW` no longer takes
+`kitCodecOk`), `swift/RunLoop` (Perennial models `float64` arithmetic now: two
+`wp_float64_mul` before the conversion's `ArbitraryInt`), `client/CodecG` (`failedG` no longer
+depends on the codec: `(C := kitCodec)` dropped), sections missing `[SwiftHyps netDistGF]` /
+`[π : NetProtoGS]` (`swift/client/Unmarshal`, `TableFixed`, `MarshalAckN`, `HandleProposeProof`,
+`DescArms`; scratch `fixvars.py` reads a build log's "failed to synthesize" errors). Note:
+`NetProtoGS` is not found from `SwiftNetPkgState netDistGF` (its parent class has no `GF`), so a
+section that has `SwiftNetPkgState` and needs `NetProtoGS` takes `[π : NetProtoGS]` as well.
+
+## State (2026-11-23, third session)
 
 Merges: `origin/dsv-infra` `884cb306c9` (InitHyp rule, etc/dsv/README.md) and, at the
 coordinator's word, **`origin/models-rpc-server` `040ef5e808`** (the net/rpc server proved on

@@ -417,7 +417,7 @@ theorem swift.MSync.marshal_proofP [C : net.rpc.RpcCodec netDistGF] [KitLike C]
       (fun bs => iprop(⌜∃ m', swift.syncCands me bl M (.sync m') ∧
         bs = (sp.KitVal.msync m').encode⌝))
       $$ [Henc HS Hown] as %err ⟨%bs, %Hbs, Henc, HS⟩
-  · iframe Hcs Hko Henc HS
+  · iframe Hcs Henc HS
     isplitr
     · unfold encoding.gob.writeSink; iexact Hw
     rw [KitLike.enc_eq]

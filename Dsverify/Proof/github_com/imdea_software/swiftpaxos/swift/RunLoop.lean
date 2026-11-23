@@ -174,6 +174,9 @@ theorem swift.Replica.run.wp_proof (X : Type)
       exact ⟨_, List.getElem?_eq_getElem (by omega)⟩
     wp_apply wp_load_slice_index lsl (sint.Z iv) ls _ x Hi $$ [Hlsl] as Hlsl
     · iframe Hlsl; ipureintro; exact hx
+    wp_apply wp_float64_mul as %f1 _
+    wp_apply wp_float64_mul as %f2 _
+    try wp_auto
     wp_apply wp_ArbitraryInt as %x' _
     try wp_auto
     wp_if_destruct

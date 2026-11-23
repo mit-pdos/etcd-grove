@@ -195,6 +195,17 @@ theorem readerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
     · simp only [List.append_nil]; iexact HP
     iapply HΦ' $$ Hb HP He
 
+/-- The error evidence of a connection as a writer: an error with some message (`errOrNil`'s). -/
+def wrErr (err : GoInterface) : IProp GF :=
+  iprop(models_lab.errAny err ∗ ⌜errWf err⌝)
+
+theorem errOrNil_werrAt (err : GoInterface) :
+    errOrNil (GF := GF) err ⊢ EtcdGrove.io.werrAt wrErr err := by
+  unfold errOrNil EtcdGrove.io.werrAt wrErr
+  iintro (%h | ⟨#Ha, %Hw⟩)
+  · ileft; ipureintro; exact h
+  · iright; imodintro; iframe Ha; ipureintro; exact Hw
+
 /-- A connection is an underlying writer of `bufio`, with the end's writer token, for a
 prefix-closed protocol. -/
 theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :
@@ -207,12 +218,15 @@ theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
   icases Hc with ⟨%t, %a, %la, %ra, %Hcv, #Hat, -⟩
   subst Hcv
   iunfold writerOk
-  iexists ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩
+  iexists ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩, wrErr
   isplitr
   · ipureintro; exact ⟨rfl, tcpConn_ne_writer⟩
   iframe Hpc
+  unfold EtcdGrove.io.writerOk
+  isplitr
+  · iapply prefixClosed_io $$ Hpc
   imodintro
-  iintro %b %dq %bs %W %Φ HJ #HQ Hb HΦ
+  iintro %W %b %dq %bs !> %Φ ⟨HJ, #HQ, Hb⟩ HΦ
   dsimp only
   ihave HJ0 := writeP_init cid side P W $$ HJ
   ihave #Hacc := write_acc cid side P W bs $$ HQ
@@ -234,10 +248,14 @@ theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
   · cases res with
     | none => unfold errOrNil; ileft; ipureintro; exact Hres.1 rfl
     | some k => iapply resErr_errOrNil $$ HE
-  rw [show BitVec.ofNat 64 w.length = W64 (w.length : Int) from by simp]
-  ihave HΦ' := HΦ $$ %w.length %err %hk2
+  iapply HΦ
+  iexists w.length
+  isplitr
+  · ipureintro
+    exact ⟨by simp, hk2.1, hk2.2⟩
   rw [htake]
-  iapply HΦ' $$ Hb HJ He
+  iframe Hb HJ
+  iapply errOrNil_werrAt $$ He
 
 /-- A connection's `Read` spec over the end's reader token (`readerOk_conn`). -/
 theorem readsOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :

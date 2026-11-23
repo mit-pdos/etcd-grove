@@ -170,7 +170,7 @@ local macro "writeframe" : tactic => `(tactic| (
   icases Hop with ⟨%cv, %cid, %W, #Hwr, Hs, #HQ, Hclose⟩
   ihave #Hwr' := Hwr
   iunfold bufio.writerOk at Hwr'
-  icases Hwr' with ⟨%e, -, #Hpc0, -⟩
+  icases Hwr' with ⟨%e, %Ew, -, #Hpc0, -⟩
   ihave #Hpc := Hpc0
   iunfold bufio.prefixClosed at Hpc
   have hfr : W ++ [m.code] ++ m.body = W ++ m.frame := by simp [sp.Msg.frame]
@@ -256,7 +256,7 @@ theorem replica.Replica.ReplyBeacon.wp_proof
     icases sp.wrSt_open γ γc γm w _ _ hk $$ [$Hw $Hm] with ⟨%cv, %cid, %W, #Hwr, Hs, #HQ, Hclose⟩
     ihave #Hwr' := Hwr
     iunfold bufio.writerOk at Hwr'
-    icases Hwr' with ⟨%e, -, #Hpc, -⟩
+    icases Hwr' with ⟨%e, %Ew, -, #Hpc, -⟩
     iunfold bufio.prefixClosed at Hpc
     have hfr : (sp.Msg.beaconReply ts).frame = [W8 7] ++ sp.le64 ts := rfl
     rw [hfr] at *
@@ -337,7 +337,7 @@ theorem replica.Replica.SendBeacon.wp_proof
     icases sp.wrSt_open_gen γ γc γm w _ $$ Hw with ⟨%cv, %cid, %W, #Hwr, Hs, #HQall, Hclose⟩
     ihave #Hwr' := Hwr
     iunfold bufio.writerOk at Hwr'
-    icases Hwr' with ⟨%e, -, #Hpc0, -⟩
+    icases Hwr' with ⟨%e, %Ew, -, #Hpc0, -⟩
     ihave #Hpc := Hpc0
     iunfold bufio.prefixClosed at Hpc
     ihave #HQ0 := HQall $$ %(sp.Msg.beacon 0) %(hk 0) []
@@ -431,7 +431,7 @@ theorem replica.Replica.SendMsg.wp_proof
     icases Hop with ⟨%cv, %cid, %W, #Hwr, Hs, #HQ, Hclose⟩
     ihave #Hwr' := Hwr
     iunfold bufio.writerOk at Hwr'
-    icases Hwr' with ⟨%e, -, #Hpc0, -⟩
+    icases Hwr' with ⟨%e, %Ew, -, #Hpc0, -⟩
     ihave #Hpc := Hpc0
     iunfold bufio.prefixClosed at Hpc
     have hfr : W ++ [m.code] ++ m.body = W ++ m.frame := by simp [sp.Msg.frame]
@@ -524,7 +524,7 @@ local macro "writeframeP" : tactic => `(tactic| (
   icases sp.wrSt_open_gen γ γc γm w _ $$ Hw with ⟨%cv, %cid, %W, #Hwr, Hs, #HQall, Hclose⟩
   ihave #Hwr' := Hwr
   iunfold bufio.writerOk at Hwr'
-  icases Hwr' with ⟨%e, -, #Hpc0, -⟩
+  icases Hwr' with ⟨%e, %Ew, -, #Hpc0, -⟩
   ihave #Hpc := Hpc0
   iunfold bufio.prefixClosed at Hpc
   ihave #Hms' := Hms

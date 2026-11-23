@@ -34,7 +34,7 @@ theorem client.NewClientLog.wp_proof : client.NewClientLog.spec (hG := hG) := by
   rw [decide_eq_false Hlg]
   wp_auto
   wp_apply github_com.google.uuid.wp_New as %u -
-  wp_apply github_com.google.uuid.wp_ID
+  wp_apply github_com.google.uuid.wp_ID as %x -
   iapply HΦ
   iexists _
   iapply (client.fresh_unfold _ _ _ _).2

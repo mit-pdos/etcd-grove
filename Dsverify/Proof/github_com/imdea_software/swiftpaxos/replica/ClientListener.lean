@@ -10,6 +10,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClientSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetConn
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WriterExcl
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Perennial.Spec.strings.Split
@@ -31,7 +32,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [config.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [net.rpc.Assumptions]
   [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [state.Assumptions] [strings.Assumptions] [sync.Assumptions]
 
@@ -90,7 +91,9 @@ theorem replica.Replica.clientListener.wp_proof
   try wp_auto
   ihave #Hc2 := Hc
   iunfold net.rpc.connIface at Hc2
-  icases Hc2 with ⟨%cl0, %Hcv, #Hown⟩
+  icases Hc2 with ⟨%cl0, %a0, %la0, %ra0, %Hcv, #Hat0, #Hcs0⟩
+  ihave #Hown : net.ownTCPConn (GF := netDistGF) cl0 cid true $$ []
+  · unfold net.ownTCPConn; iexists a0, la0, ra0; iframe Hat0 Hcs0
   ipersist conn
   ipersist r
   ipersist reader

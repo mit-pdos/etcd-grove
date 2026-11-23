@@ -10,6 +10,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcClient
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.time.Link
@@ -68,9 +69,11 @@ theorem client.Client.call.wp_proof
   ipersist errs
   wp_apply (lc := 4) wp_fork $$ [Henc HD]
   · wp_auto
-    wp_apply net.rpc.Client.Call.wp r W a sm svc M S args reply Φc Rargs D Θ
-      $$ [$Hcs $Hko $Hrc $Henc $HD $HDw] as %err Hres
-    · ipureintro; exact HS
+    wp_apply net.rpc.swiftClient.Client.Call.wp r W a sm svc M S args reply Φc Rargs D Θ
+      net.rpc.RpcCodec.spec $$ [$Hcs $Hrc Henc $HD $HDw] as %err Hres
+    · isplitr
+      · ipureintro; exact HS
+      iexact Henc
     wp_apply wp_bag_send γ ch err (client.cn.callP Rargs Φc Θ) $$ [$Hbag Hres]
     · unfold client.cn.callP
       icases Hres with (⟨%He, HR, %rep, HΦ, HΘ⟩ | ⟨%msg, ⟨%Hm, %He⟩, -, -, -, -⟩ | ⟨⟨%He, -⟩, -, -⟩)

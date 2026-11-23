@@ -19,6 +19,12 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Net.Proof.models_lab.Errors
+public import Proof.bufio.Own
+public import Proof.bufio.NewWriter
+public import Proof.bufio.NewWriterSize
+public import Proof.bufio.Writer__Write
+public import Proof.bufio.Writer__WriteByte
+public import Proof.bufio.Writer__Flush
 
 @[expose] public section
 
@@ -68,19 +74,13 @@ def readerOk (rd : GoInterface) (I : List w8 → IProp GF) : IProp GF :=
           Φ (PairV #(W64 data.length) #err)) -∗
       WP (App (Val #(methods e.ty go!"Read" e.v)) (Val #b)) {{ Φ }})
 
-/-- The underlying `io.Writer` `wr`: see the file header (persistent). -/
+/-- The underlying `io.Writer` `wr`: dsv-bufio's `io.writerOk` (`Proof/io/WriterOk.lean`) at some
+error evidence `Ew`, with the lab's (stronger) `prefixClosed Q` (persistent). -/
 def writerOk (wr : GoInterface) (J : List w8 → IProp GF) (Q : List w8 → IProp GF) :
     IProp GF :=
-  iprop(∃ e : GoInterfaceOk,
+  iprop(∃ (e : GoInterfaceOk) (Ew : GoInterface → IProp GF),
     ⌜wr = interface.ok e ∧ e.ty ≠ go.GoType.PointerType bufio.Writer.ty⌝ ∗
-    prefixClosed Q ∗
-    □ ∀ (b : GoSlice) (dq : DFrac) (bs : List w8) (W : List w8) (Φ : val → IProp GF),
-      J W -∗ □ Q (W ++ bs) -∗ b ↦*{dq} bs -∗
-      ▷ (∀ (k : Nat) (err : GoInterface),
-          ⌜k ≤ bs.length ∧ (err = interface.nil → k = bs.length)⌝ -∗
-          b ↦*{dq} bs -∗ J (W ++ bs.take k) -∗ errOrNil err -∗
-          Φ (PairV #(W64 k) #err)) -∗
-      WP (App (Val #(methods e.ty go!"Write" e.v)) (Val #b)) {{ Φ }})
+    prefixClosed Q ∗ EtcdGrove.io.writerOk e J Q Ew)
 
 instance prefixClosed_persistent (Q : List w8 → IProp GF) :
     Persistent (prefixClosed (GF := GF) Q) := by
@@ -108,18 +108,25 @@ def ownReader (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) (R : List
     IProp GF :=
   iprop(∃ (pend : List w8) (perr : GoInterface), I (R ++ pend) ∗ readerRep br rd pend perr)
 
-/-- The `*bufio.Writer` `bw` over `wr` buffers `pend` and has the error `err`: its fields, its
-buffer `buf` (`len(buf) > 0`) holding `pend` at `[0, n)`. -/
-def writerRep (bw : Loc) (wr : GoInterface) (pend : List w8) (err : GoInterface) : IProp GF :=
-  iprop(∃ (buf : GoSlice) (n : w64) (rest : List w8),
-    bw ↦ bufio.Writer.mk err buf n wr ∗ buf ↦* (pend ++ rest) ∗
-    ⌜sint.Z n = pend.length ∧ 0 < (pend ++ rest).length⌝ ∗ errOrNil err)
-
-/-- The `*bufio.Writer` `bw` over `wr` (with `J`, `Q`) has sent `sent` and buffers `pend`;
-its sticky error is `err`: see the file header. -/
+/-- The `*bufio.Writer` `bw` over `wr` (with `J`, `Q`) has sent `sent` and buffers `pend`; its
+sticky error is `err`: dsv-bufio's `ownBufWriter` at some error evidence and buffer size. -/
 def ownWriter (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF)
     (sent pend : List w8) (err : GoInterface) : IProp GF :=
-  iprop(J sent ∗ □ Q (sent ++ pend) ∗ writerRep bw wr pend err)
+  iprop(∃ (e : GoInterfaceOk) (Ew : GoInterface → IProp GF) (sz : Nat), ⌜wr = interface.ok e⌝ ∗
+    EtcdGrove.bufio.ownBufWriter bw e J Q Ew sz sent pend err)
+
+/-- The lab's `prefixClosed` gives `io`'s. -/
+theorem prefixClosed_io (Q : List w8 → IProp GF) :
+    prefixClosed Q ⊢ EtcdGrove.io.prefixClosed Q := by
+  unfold prefixClosed EtcdGrove.io.prefixClosed
+  iintro #H !> %x %y #HQ
+  iapply H $$ HQ
+
+theorem writerOk_prefixClosed (wr : GoInterface) (J Q : List w8 → IProp GF) :
+    writerOk wr J Q ⊢ prefixClosed Q := by
+  unfold writerOk
+  iintro ⟨%e, %Ew, -, #H, -⟩
+  iexact H
 
 /-- The `Read` spec of the `io.Reader` `rd` over `I`: see the file header (persistent). -/
 def readsOk (rd : GoInterface) (I : List w8 → IProp GF) : IProp GF :=
@@ -277,6 +284,131 @@ abbrev Reader.ReadByte_wf.labSpec : Prop :=
         (⌜err ≠ interface.nil ∧ errWf err⌝ ∗ models_lab.errAny err ∗ ownReader br rd I R) }}
 
 end specs
+
+/-! ### The writer's lab specs, from dsv-bufio's -/
+
+section writerProofs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [bufio.Assumptions] [io.Assumptions]
+
+theorem NewWriter.labProof : NewWriter.labSpec (GF := GF) := by
+  intro wr J Q W
+  iintro %Φ ⟨#Hpkg, #Hwr, HJ, #HQ⟩ HΦ
+  iunfold writerOk at Hwr
+  icases Hwr with ⟨%e, %Ew, %He, -, #Hio⟩
+  obtain ⟨rfl, hty⟩ := He
+  wp_apply (EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof)
+    e J Q Ew W $$ [HJ] as %bw Hown
+  · iframe Hpkg Hio HJ HQ; ipureintro; exact hty
+  iapply HΦ
+  unfold ownWriter
+  iexists e, Ew, 4096
+  iframe Hown; ipureintro; rfl
+
+theorem Writer.Flush.labProof : Writer.Flush.labSpec (GF := GF) := by
+  intro bw wr J Q sent pend err
+  iintro %Φ ⟨-, -, Hown⟩ HΦ
+  iunfold ownWriter at Hown
+  icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
+  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof bw e J Q Ew sz sent pend err $$ [Hown]
+    as %e' ⟨%k, %Hk, Hown⟩
+  · iexact Hown
+  iapply HΦ
+  iexists k
+  isplitr
+  · ipureintro; exact Hk
+  unfold ownWriter
+  iexists e, Ew, sz
+  iframe Hown; ipureintro; exact He
+
+theorem Writer.WriteByte.labProof : Writer.WriteByte.labSpec (GF := GF) := by
+  intro bw wr J Q sent pend err c
+  iintro %Φ ⟨-, -, Hown, #HQ⟩ HΦ
+  iunfold ownWriter at Hown
+  icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
+  wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+    bw e J Q Ew sz sent pend err c $$ [Hown] as %e' ⟨%sent', %pend', %Hk, Hown⟩
+  · iframe Hown; iintro %_; iexact HQ
+  iapply HΦ
+  iexists sent', pend'
+  isplitr
+  · ipureintro
+    obtain ⟨h1, h2, h3, h4, -⟩ := Hk
+    exact ⟨h1, h2, h3, fun h => (h4 h).1⟩
+  unfold ownWriter
+  iexists e, Ew, sz
+  iframe Hown; ipureintro; exact He
+
+theorem Writer.Write.labProof : Writer.Write.labSpec (GF := GF) := by
+  intro bw wr J Q sent pend err p dq ps
+  iintro %Φ ⟨-, -, Hown, #HQ, Hp⟩ HΦ
+  iunfold ownWriter at Hown
+  icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
+  wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+    bw e J Q Ew sz sent pend err p dq ps $$ [Hown Hp]
+    as %nn %e' ⟨%k, %sent', %pend', %Hk, Hp, Hown⟩
+  · iframe Hown Hp; iintro %_; iexact HQ
+  iapply HΦ
+  iexists k, sent', pend'
+  isplitr
+  · ipureintro
+    obtain ⟨h1, h2, h3, h4, h5, h6, -⟩ := Hk
+    exact ⟨h1, h2, h3, h4, h5, fun h => ⟨(h6 h).1, (h6 h).2.1⟩⟩
+  iframe Hp
+  unfold ownWriter
+  iexists e, Ew, sz
+  iframe Hown; ipureintro; exact He
+
+theorem Writer.WriteByte_err.labProof : Writer.WriteByte_err.labSpec (GF := GF) := by
+  intro bw wr J Q sent pend err c herr
+  iintro %Φ Hown HΦ
+  iunfold ownWriter at Hown
+  icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
+  wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+    bw e J Q Ew sz sent pend err c $$ [Hown] as %e' ⟨%sent', %pend', %Hk, Hown⟩
+  · iframe Hown; iintro %h; exact absurd h herr
+  obtain ⟨-, -, -, h4, -⟩ := Hk
+  obtain ⟨rfl, rfl, rfl⟩ := h4 herr
+  iapply HΦ
+  unfold ownWriter
+  iexists e, Ew, sz
+  iframe Hown; ipureintro; exact He
+
+theorem Writer.Write_err.labProof : Writer.Write_err.labSpec (GF := GF) := by
+  intro bw wr J Q sent pend err p dq ps herr
+  iintro %Φ ⟨Hown, Hp⟩ HΦ
+  iunfold ownWriter at Hown
+  icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
+  wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+    bw e J Q Ew sz sent pend err p dq ps $$ [Hown Hp]
+    as %nn %e' ⟨%k, %sent', %pend', %Hk, Hp, Hown⟩
+  · iframe Hown Hp; iintro %h; exact absurd h herr
+  obtain ⟨-, -, -, -, -, h6, -⟩ := Hk
+  obtain ⟨rfl, -, rfl, rfl⟩ := h6 herr
+  iapply HΦ
+  iframe Hp
+  unfold ownWriter
+  iexists e, Ew, sz
+  iframe Hown; ipureintro; exact He
+
+/-- Two writers at one location exclude each other. (The one place that unfolds dsv-bufio's
+`ownBufWriter`: a law for dsv-bufio's `Own.lean`; notes/dsv-swiftpaxos.md, "For review".) -/
+theorem ownWriter_excl_heap (bw : Loc) (wr wr' : GoInterface) (J Q J' Q' : List w8 → IProp GF)
+    (s p s' p' : List w8) (e e' : GoInterface) :
+    ownWriter bw wr J Q s p e ∗ ownWriter bw wr' J' Q' s' p' e' ⊢
+      ∃ (b1 b2 : GoSlice) (n1 n2 : w64) (w1 w2 : GoInterfaceOk),
+        bw ↦ bufio.Writer.mk e b1 n1 (interface.ok w1) ∗
+        bw ↦ bufio.Writer.mk e' b2 n2 (interface.ok w2) := by
+  unfold ownWriter EtcdGrove.bufio.ownBufWriter EtcdGrove.bufio.writerRep
+  iintro ⟨⟨%i1, %E1, %z1, -, -, -, -, -, %b1, %n1, %r1, H1, -⟩,
+    ⟨%i2, %E2, %z2, -, -, -, -, -, %b2, %n2, %r2, H2, -⟩⟩
+  iexists b1, b2, n1, n2, i1, i2
+  iframe H1 H2
+
+end writerProofs
 
 end bufio
 

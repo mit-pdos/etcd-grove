@@ -29,7 +29,7 @@ section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [net.rpc.Assumptions]
   [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]
   [state.Assumptions]
 
@@ -212,7 +212,7 @@ theorem replica.Replica.replicaListener.wp_proof
             try wp_auto
             rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hrid.1, by omega⟩)]
             wp_auto
-            rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hrid.1, by omega⟩)]
+            try rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hrid.1, by omega⟩)]
             wp_auto
             wp_for_post
             iframe

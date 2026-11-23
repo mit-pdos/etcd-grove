@@ -5,6 +5,7 @@ module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.BufferClient__Disconnect
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetConn
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.CodecG
 
 -- PORT: lab imports dropped: Harness.Spec.net.TCPConn__Close
@@ -68,12 +69,14 @@ theorem client.BufferClient.Disconnect.wp_proofG
       iframe
       ipureintro; word
     · iunfold net.rpc.connIface at Hconn
-      icases Hconn with ⟨%tc, %Htc, #Hown⟩
+      icases Hconn with ⟨%tc, %a0, %la0, %ra0, %Htc, #Hat0, #Hcs0⟩
+      ihave #Hown : net.ownTCPConn (GF := netDistGF) tc cn side $$ []
+      · unfold net.ownTCPConn; iexists a0, la0, ra0; iframe Hat0 Hcs0
       subst Htc
       wp_auto
       wp_apply wp_TCPClose tc cn side $$ [$Hown] as %err -
       ihave Hss := Hback $$ []
-      · iright; iexists cn, side; iunfold net.rpc.connIface; iexists tc; iframe #; ipureintro; rfl
+      · iright; iexists cn, side; iunfold net.rpc.connIface; iexists tc, a0, la0, ra0; iframe #; ipureintro; rfl
       rw [list_set_lookup_self srvs (sint.nat i) _ Hsv_lookup]
       wp_for_post
       iframe

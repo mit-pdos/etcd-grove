@@ -37,7 +37,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
 variable [swift.Assumptions]
 
 theorem swift.pt_halves {V : Type} [TypedPointsto (GF := netDistGF) V] (l : Loc) (v : V) :

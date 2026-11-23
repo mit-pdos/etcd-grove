@@ -403,7 +403,7 @@ theorem swift.Replica.depsAccepted.wp_proof (str : swift.CommandId → GoString)
         try wp_auto
         wp_for_post
         simp only [sync.isMutex_unseal, sync.isMutexDef, sync.ownMutex_unseal, sync.ownMutexDef]
-        wp_apply wp_lock_unlock $$ [$HacL $Hlk Haf HAm Hwf HWm HWents Ha Hws Hwscap Hrk]
+        wp_apply internal.sync.Mutex.wp_Unlock $$ [$HacL $Hlk Haf HAm Hwf HWm HWents Ha Hws Hwscap Hrk]
         · iunfold swift.acceptInv
           iexists am, wm, A, _, bA
           iframe

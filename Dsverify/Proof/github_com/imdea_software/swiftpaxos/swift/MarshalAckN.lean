@@ -44,7 +44,7 @@ theorem le32x3_sbytes (x y z : w32) :
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [swift.Assumptions]
 
 set_option goose.wp.extras true

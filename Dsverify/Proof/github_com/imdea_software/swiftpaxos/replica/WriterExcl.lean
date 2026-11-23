@@ -3,7 +3,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/WriterExcl.lean
 -/
 /-
 Two owners of one `*bufio.Writer` are contradictory (what makes a client writer's first
-registration fresh). Unfolds the harness's `ownWriter`/`writerRep` (a missing `bufio` law).
+registration fresh), from `bufio.ownWriter_excl_heap` (lib/Bufio.lean).
 -/
 module
 
@@ -71,8 +71,9 @@ theorem iface_excl (l : Loc) (v1 v2 : GoInterface) :
 theorem writer_excl (w : Loc) (cv cv' : GoInterface) (J Q J' Q' : List w8 → IProp netDistGF)
     (s p s' p' : List w8) (e e' : GoInterface) :
     bufio.ownWriter w cv J Q s p e ∗ bufio.ownWriter w cv' J' Q' s' p' e' ⊢ False := by
-  unfold bufio.ownWriter bufio.writerRep
-  iintro ⟨⟨-, -, %b, %n, %rest, H1, -⟩, ⟨-, -, %b', %n', %rest', H2, -⟩⟩
+  iintro H
+  icases bufio.ownWriter_excl_heap w cv cv' J Q J' Q' s p s' p' e e' $$ H with
+    ⟨%b, %b', %n, %n', %w1, %w2, H1, H2⟩
   iStructNamed H1
   iStructNamedSuffix H2 "'"
   iapply iface_excl _ e e'

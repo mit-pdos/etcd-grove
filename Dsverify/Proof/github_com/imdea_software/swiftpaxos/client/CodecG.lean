@@ -56,8 +56,9 @@ end failed
 
 /-- At the kit's codec, `failedG` is the frozen `failed`. -/
 theorem failed_of_G [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF]
-    [sem : go.Semantics] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
-    (b : Loc) : failedG (C := kitCodec) b ⊣⊢ client.failed b := by
+    [sem : go.Semantics] [SwiftNetPkgState netDistGF] [net.Assumptions]
+    [net.FieldAssumptions] [net.rpc.Assumptions]
+    (b : Loc) : failedG b ⊣⊢ client.failed b := by
   exact (failedG_unfold b).trans (failed_unfold b).symm
 
 end client
@@ -94,7 +95,7 @@ variable [client.Assumptions] [examples.swiftnet.Assumptions]
 
 /-- The frozen `Connect` statement from its form at `kitCodec`. -/
 theorem client.BufferClient.Connect.spec_of_G
-    (h : client.BufferClient.Connect.specG (C := kitCodec)) :
+    (h : client.BufferClient.Connect.specG) :
     client.BufferClient.Connect.spec (hG := hG) := by
   intro b cid maddr mport W γ γc γm γl
   iintro %Φ Hpre HΦ
@@ -136,7 +137,7 @@ variable [client.Assumptions]
 
 /-- The frozen `Disconnect` statement from its form at `kitCodec`. -/
 theorem client.BufferClient.Disconnect.spec_of_G
-    (h : client.BufferClient.Disconnect.specG (C := kitCodec)) :
+    (h : client.BufferClient.Disconnect.specG) :
     client.BufferClient.Disconnect.spec (hG := hG) := by
   intro b
   iintro %Φ ⟨Hpkg, Hf⟩ HΦ
