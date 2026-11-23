@@ -24,10 +24,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- Of a read-only status of code `c` (`statusAt`): whether `c` is one of `restrictedCodes`. -/
+/-- Of a status whose `Code()` returns `c` (as `status.FromError`'s post gives it; until 2026-11-23 a
+read-only status, `statusAt`, which `FromError` does not give): whether `c` is one of
+`restrictedCodes`. -/
 abbrev istatus.IsRestrictedControlPlaneCode.spec : Prop :=
-  ∀ (s : Loc) (c : w32) (m : GoString),
-  {{ EtcdGrove.status.statusAt (GF := GF) s c m }}
+  ∀ (s : Loc) (c : w32),
+  {{ □ (∀ Φ : val → IProp GF, ▷ Φ #c -∗
+      WP (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Code"))
+        (Val #())) {{ Φ }}) }}
     (App (Val (@! google_golang_org.grpc.internal.status.IsRestrictedControlPlaneCode)) (Val #s))
   {{ RET #(decide (c ∈ grpcHdr.restrictedCodes)); True }}
 

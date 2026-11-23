@@ -14,7 +14,8 @@ fields are stated for some enumeration `keys` of the map's keys (`enumKeys`), an
 `grpcFieldsMd` (`InvGrpcWire`) needs: it reads each key's values in order, and a key's values are
 contiguous here.
 
-**The credentials** (`hdrCredsOk pc Ok Q`): `pc.GetRequestMetadata` returns, given a resource of the
+**The credentials** (`hdrCredsOk pc Ok Q`): `pc` is not `nil` (grpc calls its method), and
+`pc.GetRequestMetadata` returns, given a resource of the
 family `Ok` (the connection's, `perRPCCredsOk`), either an error that grpc's `status` accepts (grpc
 returns it, or a status error made of it: the attempt's error arm) or a map (`nil` for none,
 `credsMapAt`) whose keys are lower case and no pseudo-header (`credKeysOk`: `ValidateKey` skips
@@ -165,11 +166,10 @@ instance credsMapAt_persistent (mp : Loc) (cm : GMap GoString GoString) :
 header). -/
 def hdrCredsOk (pc : GoInterface) (Ok : IProp GF → Prop) (Q : GMap GoString GoString → IProp GF) :
     IProp GF :=
-  iprop(□ ∀ (ctx : GoInterface) (sl : GoSlice) (R : IProp GF),
+  iprop(∃ pci : GoInterfaceOk, ⌜pc = GoInterface.ok pci⌝ ∗
+    □ ∀ (ctx : GoInterface) (sl : GoSlice) (R : IProp GF),
     {{ ⌜Ok R⌝ ∗ R }}
-      (App (App (App (Val (GoInstruction (MethodResolve
-          google_golang_org.grpc.credentials.PerRPCCredentials.ty go!"GetRequestMetadata")))
-        (Val #pc)) (Val #ctx)) (Val #sl))
+      (App (App (Val #(methods pci.ty go!"GetRequestMetadata" pci.v)) (Val #ctx)) (Val #sl))
     {{ (mp : Loc) (err : GoInterface), RET (PairV #mp #err); R ∗
         ((⌜err ≠ GoInterface.nil⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
             ∃ (m : GoString) (c : w32), go_etcd_io.etcd.cache.v3.descIs err m ∗

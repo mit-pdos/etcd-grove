@@ -5,7 +5,6 @@ The proof of `Spec/google_golang_org/grpc/internal/status/IsRestrictedControlPla
 module
 
 public import Spec.google_golang_org.grpc.internal.status.IsRestrictedControlPlaneCode
-public import Spec.google_golang_org.grpc.status.Status__Code
 
 @[expose] public section
 
@@ -26,14 +25,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : google_golang_org.grpc.internal.status.Assumptions]
 
-theorem istatus.IsRestrictedControlPlaneCode.wp_proof
-    (wp_Code : status.Status.Code.spec (GF := GF) (hG := hG)) :
+theorem istatus.IsRestrictedControlPlaneCode.wp_proof :
     istatus.IsRestrictedControlPlaneCode.spec (GF := GF) (hG := hG) := by
-  intro s c m
+  intro s c
   wp_start as #Hs
   wp_auto
-  wp_apply (wp_Code s c m) $$ [Hs]
-  · iexact Hs
+  wp_apply Hs
   by_cases hm : c ∈ grpcHdr.restrictedCodes
   · rw [show decide (c ∈ grpcHdr.restrictedCodes) = true by simp [hm]]
     simp only [grpcHdr.restrictedCodes, List.mem_cons, List.not_mem_nil, _root_.or_false] at hm

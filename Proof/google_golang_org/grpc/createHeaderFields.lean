@@ -164,7 +164,92 @@ theorem grpc.createHeaderFields.wp_proof
     wp_for IH
     by_cases hlt : sint.Z n < sint.Z pcsl.len
     · rw [ite_eq_left (by simp [hlt])]
-      sorry
+      have Hlt : sint.nat n < pcs.length := by
+        obtain ⟨hl, _⟩ := Hpcsl; clear Hif; word
+      obtain ⟨pc, Hpc⟩ : ∃ pc, pcs[sint.nat n]? = some pc := ⟨_, List.getElem?_eq_getElem Hlt⟩
+      have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z pcsl.len := ⟨Hn.1, hlt⟩
+      wp_auto
+      (try rw [ite_eq_left Hbnd])
+      wp_apply wp_load_slice_index pcsl (sint.Z n) _ dqc pc Hn.1 $$ [$Hpcs] as Hpcs
+      · ipureintro; exact Hpc
+      ihave #Hpc1 := (BigSepL.bigSepL_lookup (Φ := fun _ pc => hdrCredsOk (GF := GF) pc Ok Q)
+        Hpc) $$ Hpcok
+      iunfold hdrCredsOk at Hpc1
+      icases Hpc1 with ⟨%pci, %Hpci, #Hgrm⟩
+      subst Hpci
+      wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.string))))
+        (Val (LiteralValueV _)))
+      iapply wp_slice_literal (V := GoString) (t := go.string) [aud]
+      wp_auto
+      isplitl []
+      · ipureintro; rfl
+      iintro %asl ⟨Hasl, -⟩
+      wp_auto
+      wp_apply Hgrm $$ [HR] as %mp %err ⟨HR, Herr⟩
+      · iframe; ipureintro; exact HOk
+      icases Herr with (⟨%Hne, #Hse, %m, %c, #Hd, #Hc⟩ | ⟨%Heq, %cm, #Hcm, %Hck, #HQcm⟩)
+      · -- the credentials' error
+        obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
+          cases err with
+          | nil => exact absurd rfl Hne
+          | ok e => exact ⟨e, rfl⟩
+        dsimp only
+        wp_auto
+        wp_apply (wp_FromError (GoInterface.ok e) m c) $$ [$Hse $Hd $Hc]
+          as %s %ok ⟨-, #Hcode, -, -, -⟩
+        wp_if_destruct
+        · -- not a status error: `Unauthenticated`
+          wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
+            (Val (LiteralValueV _)))
+          iapply wp_slice_literal (V := GoInterface) (t := go.any) [GoInterface.ok e]
+          wp_auto
+          isplitl []
+          · ipureintro; rfl
+          iintro %asl2 -
+          wp_apply (wp_Errorf (W32 16)) as %e2 %He2
+          · ipureintro
+            simp only [google_golang_org.grpc.codes.OK]
+            exact fun h => absurd (go.intoVal_inj h) (by decide)
+          wp_for_post
+          iright
+          isplitr
+          · itrivial
+          iexists e2, _
+          iframe
+          ipureintro; exact He2
+        · wp_apply (wp_IsRestricted s c) $$ [Hcode]
+          · iexact Hcode
+          by_cases hr : c ∈ grpcHdr.restrictedCodes
+          · rw [decide_eq_true hr]
+            wp_auto
+            wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
+              (Val (LiteralValueV _)))
+            iapply wp_slice_literal (V := GoInterface) (t := go.any) [GoInterface.ok e]
+            wp_auto
+            isplitl []
+            · ipureintro; rfl
+            iintro %asl2 -
+            wp_apply (wp_Errorf (W32 13)) as %e2 %He2
+            · ipureintro
+              simp only [google_golang_org.grpc.codes.OK]
+              exact fun h => absurd (go.intoVal_inj h) (by decide)
+            wp_for_post
+            iright
+            isplitr
+            · itrivial
+            iexists e2, _
+            iframe
+            ipureintro; exact He2
+          · rw [decide_eq_false hr]
+            wp_auto
+            wp_for_post
+            iright
+            isplitr
+            · itrivial
+            iexists GoInterface.ok e, _
+            iframe
+            ipureintro; exact Hne
+      · sorry
     · have hn : sint.nat n = pcs.length := by
         obtain ⟨_, hle, _⟩ := Hn; obtain ⟨hl, _⟩ := Hpcsl; word
       rw [ite_eq_right (by simp [hlt]), ite_eq_right (by simp [hlt])]
