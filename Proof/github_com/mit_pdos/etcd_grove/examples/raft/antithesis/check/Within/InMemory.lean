@@ -154,7 +154,7 @@ theorem ld1_within (hW : x.s.Within b E) (hN : x.ev.NumsOk) {l : List LeaderRec}
     · subst h'; exact T_bigOk hN ht
     · exact hW.leaders r h'
 
-theorem lc1_within (hW : x.s.Within b E) (hN : x.ev.NumsOk) {l : TermFn Conf} (h : x.lc1 = .ok l) :
+theorem lc1_bounds (hW : x.s.Within b E) (hN : x.ev.NumsOk) {l : TermFn Conf} (h : x.lc1 = .ok l) :
     l.length ≤ b + 1 ∧ ∀ q ∈ l, bigOk q.1 ∧ confWithin x.s.cfg.initVoters.length b E q.2 := by
   unfold InMem.lc1 at h
   obtain ⟨w, -, h⟩ := bind_ok h
@@ -315,7 +315,7 @@ theorem State.inMemory_within : InMemoryWithin := by
   subst h
   have hld' := InMem.ld1_within (x := { s := s, n := n, ev := ev }) hW hN hld
   have hl2' := InMem.ll2_within (x := { s := s, n := n, ev := ev }) hW hN hC hl2
-  have hlc' := InMem.lc1_within (x := { s := s, n := n, ev := ev }) hW hN hlc
+  have hlc' := InMem.lc1_bounds (x := { s := s, n := n, ev := ev }) hW hN hlc
   dsimp only at hld' hl2' hlc'
   refine ⟨?_, hld'.2, ?_,
     fun p hp => ⟨(hl2'.2 p hp).1, (hl2'.2 p hp).2.mono' (by omega) (Nat.le_refl _)⟩, ?_,
