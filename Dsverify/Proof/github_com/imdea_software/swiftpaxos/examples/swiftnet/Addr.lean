@@ -23,8 +23,10 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Net Dsv
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
-/-- Node `i`'s first port, as text (`"700k"`). -/
-def portStr (i : Nat) : GoString := go!"700" ++ [W8 (48 + (nodePort i - 7000))]
+/-- Node `i`'s first port, as text (four digits). -/
+def portStr (i : Nat) : GoString :=
+  [W8 (48 + nodePort i / 1000), W8 (48 + nodePort i / 100 % 10), W8 (48 + nodePort i / 10 % 10),
+   W8 (48 + nodePort i % 10)]
 
 theorem split_addr (i : Nat) (a : GoString) (ha : addrs[i]? = some a) :
     strings.split a go!":" = [nodeHost i, portStr i] := by

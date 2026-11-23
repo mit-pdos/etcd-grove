@@ -28,6 +28,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Base
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Slot
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 
 @[expose] public section
 
@@ -190,11 +191,12 @@ variable [SwiftNetPkgState netDistGF]
 
 /-- The services of each rpc address: the master's (`"Master"` at `masterAddr`) and each
 replica node's (`"Replica"` at its rpc port). The method specs are the SwiftPaxos slot's
-(`sp.masterSpec`, `sp.replicaRpcSpec`, over the codec's encodings, `Spec/swift/Inv.lean`). -/
+(`sp.masterSpec`, `sp.replicaRpcSpec`, over the codec's encodings, `Spec/swift/Inv.lean`),
+accepting error answers too (`withErr`: `Net/`'s server answers undecodable arguments so). -/
 def services (γconf γmem : GName) :
     GoString → GoString → Option (net.rpc.MethodSpec netDistGF) := fun a svc =>
-  if a = masterAddr ∧ svc = go!"Master" then some (sp.masterSpec γconf γmem)
-  else if a ∈ replicaRpcAddrs ∧ svc = go!"Replica" then some (sp.replicaRpcSpec γconf γmem)
+  if a = masterAddr ∧ svc = go!"Master" then some (withErr (sp.masterSpec γconf γmem))
+  else if a ∈ replicaRpcAddrs ∧ svc = go!"Replica" then some (withErr (sp.replicaRpcSpec γconf γmem))
   else none
 
 end services

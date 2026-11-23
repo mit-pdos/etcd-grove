@@ -12,8 +12,8 @@ master's address through their instances (hypotheses: the adapter's `host`/`port
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientOp
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeDefs
+public import Perennial.Proof.time
 
 @[expose] public section
 
@@ -82,9 +82,9 @@ end specs
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [C : net.rpc.RpcCodec netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] [client.Assumptions]
-variable [examples.swiftnet.Assumptions] [swift.Assumptions]
+variable [examples.swiftnet.Assumptions] [swift.Assumptions] [log.Assumptions] [net.http.Assumptions]
+variable [H : RpcHttpHyp netDistGF]
 
 set_option goose.wp.extras true
 
@@ -113,9 +113,9 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     (wp_Disconnect : client.BufferClient.Disconnect.specG)
     (wp_NewClient : swift.NewClient.spec) :
     Sys.connect.spec γ c := fun s => by
-  wp_start as ⟨#Hs, Hb, Hseq, #Hreg⟩
+  wp_start as ⟨#Hs, Hb, Hseq⟩
   iunfold isSysL at Hs
-  icases Hs with ⟨%conf, %asl, #Haddrs, #Hasl, #Hconf, #Hconfis, #Hmu, #Henv, #Hgok⟩
+  icases Hs with ⟨%conf, %asl, #Haddrs, #Hasl, #Hconf, #Hconfis, #Hmu, -, #Henv, #Hgok, #Hreg⟩
   ihave %Hasl_len := ownSlice_len $$ Hasl
   have hb1 : 0 ≤ sint.Z (W64 6 + W64 1) ∧ sint.Z (W64 6 + W64 1) < sint.Z asl.len := by
     obtain ⟨h1, h2⟩ := Hasl_len
@@ -123,6 +123,7 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     constructor <;> word
   have ha1 : addrs[(sint.Z (W64 6 + W64 1)).toNat]? = some go!"127.0.0.1:7001" := rfl
   wp_auto
+  wp_apply time.wp_Sleep
   simp only [hb1, and_self, ↓reduceIte]
   wp_apply wp_load_slice_index asl (sint.Z (W64 6 + W64 1)) addrs _ _ hb1.1 $$ [] as -
   · iframe Hasl; ipureintro; exact ha1

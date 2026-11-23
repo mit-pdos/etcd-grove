@@ -1,26 +1,26 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swiftnet/ClientLeaders.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
--/
-/-
-`s.changeLeaders(cs)` (`kit.go`), client node `c`'s leader changes' goroutine: for each of the
-node's planned changes, it waits (under `s.mu`) for its number of returned operations, then asks
-the replica at its rpc port (`at(addrs, NC+Node, RPCOff)`) to become the leader
-(`Replica.BeTheLeader` over the rpc model, the frozen `replicaRpcSpec`'s law): any answer, error
-or none is fine (safety only).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swiftnet/ClientLeaders.lean (lab master
+915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md), onto `RpcHttpHyp`'s `DialHTTP` and the
+generated codec (`callBtl.spec`, the master's `wp_call_btl`).
+
+`s.changeLeaders(cs)` (`kit.go`): for each planned change, wait (under `mu`) until enough of the
+client's operations returned, log it, dial the replica's rpc port over HTTP and call
+`Replica.BeTheLeader`, then close; a failed dial or call is not retried. It never panics.
 -/
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeDefs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.replica.defs.NewBeTheLeaderReply
+public import Net.Spec.net.rpc.Client__Close
 public import Perennial.Proof.fmt
 public import Perennial.Proof.time
-
--- PORT: lab imports dropped: Harness.Proof.log, Harness.Proof.net.rpc.Results
+public import Perennial.Proof.log
 
 @[expose] public section
 
 noncomputable section
+
+set_option linter.unusedSectionVars false
 
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
@@ -30,51 +30,28 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp netSh
 
 namespace cnode
 
-section specs
-variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [C : net.rpc.RpcCodec netDistGF]
-
-local notation "swiftnetPkg" => pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet
-
-/-- `at(addrs, NC+node, RPCOff)`: server node `node`'s rpc port (an instance of the adapter's
-`at` spec; `node` a replica's server node, 2..6). -/
-abbrev atRpc.spec : Prop :=
-  ∀ (sl : GoSlice) (dq : DFrac) (node : w64), 2 ≤ uint.nat node → uint.nat node ≤ 6 →
-  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ sl ↦*{dq} addrs }}
-    (App (App (App (Val (@! examples.swiftnet.«at»)) (Val #sl)) (Val #(W64 6 + node)))
-      (Val #(W64 1000)))
-  {{ RET #(replicaRpcAddrs.getD (uint.nat node - 2) go!""); sl ↦*{dq} addrs }}
-
-/-- `s.changeLeaders(cs)` (the leader changes' goroutine), each change at a replica's server
-node: never panics. -/
-abbrev Sys.changeLeaders.spec (γ : SwiftNames netDistGF) (c : Nat) : Prop :=
-  ∀ (s : Loc) (sl : GoSlice) (cs : List examples.swiftnet.change),
-  (∀ ch ∈ cs, 2 ≤ uint.nat ch.Node' ∧ uint.nat ch.Node' ≤ 6) →
-  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ isSysL γ c s ∗ sl ↦*□ cs }}
-    (App (Val (s @!! go.GoType.PointerType examples.swiftnet.Sys.ty @!! go!"changeLeaders"))
-      (Val #sl))
-  {{ RET #(); True }}
-
-end specs
-
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
-variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [net.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions]
+  [net.http.Assumptions] [client.Assumptions] [examples.swiftnet.Assumptions]
+variable [H : RpcHttpHyp netDistGF]
 
 set_option goose.wp.extras true
 
 theorem Sys.changeLeaders.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (wp_at : atRpc.spec)
-    (wp_NewBTLReply : replica.defs.NewBeTheLeaderReply.spec) :
+    (wp_NewBTLReply : replica.defs.NewBeTheLeaderReply.spec)
+    (wp_callBtl : callBtl.spec (hG := hG))
+    (wp_Close : net.rpc.Client.Close.spec (GF := netDistGF) (hG := hG)) :
     Sys.changeLeaders.spec γ c := by
   intro s sl cs hcs
   wp_start as ⟨#Hs, #Hsl⟩
   iunfold isSysL at Hs
-  icases Hs with ⟨%conf, %asl, #Haddrs, #Hasl, #Hconf, #Hconfis, #Hmu, #Henv, -⟩
+  icases Hs with ⟨%conf, %asl, #Haddrs, #Hasl, #Hconf, #Hconfis, #Hmu, -, #Henv, -, -⟩
   iunfold nodeEnv at Henv
   icases Henv with ⟨-, #Hrpc, %HSS, #HcodecSet, #HcodecOk, -, -⟩
+  ihave #Hrpcp : isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc $$ []
+  · iPkgInit
   wp_auto
   ihave %Hsllen := ownSlice_len $$ Hsl
   ihave HI : (∃ (i : w64) (chv : examples.swiftnet.change), "i" ∷ i_ptr ↦ i ∗
@@ -124,10 +101,9 @@ theorem Sys.changeLeaders.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (wp_at 
       have hra : replicaRpcAddrs.getD (uint.nat chx.Node' - 2) go!"" = ra := by
         simp [List.getD_eq_getElem?_getD, hidx]
       rw [hra]
-      ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => net.rpc.rpcAddr (GF := netDistGF) γ.W a)
+      ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => rpcHttp (GF := netDistGF) γ.W a)
         hidx $$ Hrpc
-      wp_apply net.rpc.DialHTTP.wp γ.W _ $$ [] as %cli %err Hd
-      · iexact Hra
+      wp_apply DialHTTP_tcp γ.W _ $$ [$Hra] as %cli %err Hd
       icases Hd with (⟨%Herr, #Hcl⟩ | ⟨%Herr, -⟩)
       rotate_left
       · cases err with
@@ -144,68 +120,19 @@ theorem Sys.changeLeaders.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (wp_at 
       wp_alloc ap as Hap
       wp_auto
       wp_apply wp_NewBTLReply as %rp Hrp
-      have hS : γ.W.SS (ra) go!"Replica" =
-          some (sp.replicaRpcSpec γ.conf γ.mem) := by
+      have hS : γ.W.SS ra go!"Replica" = some (withErr (sp.replicaRpcSpec γ.conf γ.mem)) := by
         rw [HSS]; unfold services
-        have hm : ra ∈ replicaRpcAddrs :=
-          List.mem_of_getElem? hidx
+        have hm : ra ∈ replicaRpcAddrs := List.mem_of_getElem? hidx
         have hne : ¬ (ra = masterAddr ∧ go!"Replica" = go!"Master") :=
           fun h => by have := h.2; simp at this
         rw [if_neg hne, if_pos ⟨hm, rfl⟩]
-      ihave %Hapnn := typedPointsto_not_null $$ Hap
-      ihave %Hrpnn := typedPointsto_not_null $$ Hrp
-      ihave HD : kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.BeTheLeaderReply.ty)
-          #rp) (DFrac.own 1) (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1))) $$ [Hrp]
-      · unfold kitValOwn structOwn
-        iexists replica.defs.BeTheLeaderReply.ty, rp
+      wp_apply wp_callBtl cli γ.W ra γ.conf γ.mem conf ap rp $$ [Hap Hrp] as %err2 -
+      · iframe HcodecSet HcodecOk Hcl Hap Hrp
         isplitr
-        · ipureintro; exact ⟨rfl, Hrpnn⟩
-        isplitr
-        · ipureintro; rfl
-        iexact Hrp
-      wp_apply net.rpc.Client.Call.wp cli γ.W _ go!"Replica.BeTheLeader" go!"Replica"
-        go!"BeTheLeader" (sp.replicaRpcSpec γ.conf γ.mem) _ _ (fun _ _ => iprop(True)) iprop(True)
-        (kitValOwn (interface.mkOk (go.GoType.PointerType replica.defs.BeTheLeaderReply.ty) #rp)
-          (DFrac.own 1) (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1))))
-        (fun _ _ => iprop(True)) $$ [$HcodecSet $HcodecOk $Hcl HD Hap] as %err Hres
-      · isplitr
-        · ipureintro; exact ⟨by decide, hS⟩
-        isplitl [Hap]
-        · iapply enc_of C
-          simp only [net.rpc.RpcCodec.enc]
-          iexists DFrac.own 1, sp.KitVal.beTheLeaderArgs
-          isplitl [Hap]
-          · unfold kitValOwn structOwn
-            iexists replica.defs.BeTheLeaderArgs.ty, ap
-            isplitr
-            · ipureintro; exact ⟨rfl, Hapnn⟩
-            isplitr
-            · ipureintro; rfl
-            iexists _
-            iexact Hap
-          iintro %x' %Heq -
-          simp only [sp.KitVal.equiv] at Heq
-          subst Heq
-          isplitl
-          rotate_left
-          · itrivial
-          iapply (sp.replicaRpcSpec_beTheLeader (γc := γ.conf) (γm := γ.mem) _ _).2
-          isplitr
-          · ipureintro; rfl
-          iintro %ld %nl -
-          itrivial
-        iframe HD
-        iintro !> HD %rep
-        iapply KitLike.dec_intro
-        unfold decT
-        iexists _
-        iframe HD
-        isplitr
-        · ipureintro; trivial
-        isplit
-        · iintro %y %Hy -; itrivial
-        · iintro %Hn %ok -; itrivial
-      wp_apply net.rpc.Client.Close.wp cli γ.W _ $$ [$Hcl] as %e2 -
+        · ipureintro; exact hS
+        iunfold swiftpaxos.conf.is at Hconfis
+        iexact Hconfis
+      wp_apply wp_Close cli γ.W ra $$ [$Hcl] as %e2 -
       wp_for_post
       iframe
       iexists i + W64 1, chx

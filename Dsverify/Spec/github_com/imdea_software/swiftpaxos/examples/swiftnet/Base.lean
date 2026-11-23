@@ -120,6 +120,12 @@ format. Server node `k + 2` is "node `k`" of the SwiftPaxos slot (`k < 5`). -/
 def replicaAddrs : List GoString :=
   [go!"127.0.0.1:7002", go!"127.0.0.1:7003", go!"127.0.0.1:7004", go!"127.0.0.1:7005",
    go!"127.0.0.1:7006"]
+/-- Every node's first address (`Addrs()`), by node id. -/
+def addrs : List GoString :=
+  [go!"127.0.0.1:6100", go!"127.0.0.1:6101", go!"127.0.0.1:6102", go!"127.0.0.1:6103",
+   go!"127.0.0.1:6104", go!"127.0.0.1:6105", go!"127.0.0.1:6106", go!"127.0.0.1:7001",
+   go!"127.0.0.1:7002", go!"127.0.0.1:7003", go!"127.0.0.1:7004", go!"127.0.0.1:7005",
+   go!"127.0.0.1:7006"]
 /-- The rpc addresses (the rpc world's: `rpcAddr_set`). -/
 def rpcAddrs : List GoString := masterAddr :: replicaRpcAddrs
 /-- The other addresses the run sets (`addrs_set_proto`): all but the rpc addresses and the

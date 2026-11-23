@@ -29,19 +29,15 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Net Dsv
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
--- The codec of the linked results (decision D6, HUB-REQUEST 2, Proof/swiftnet/KitLike.lean):
--- `kitCodecC`, whose `kitCodecOk` holds (`kitCodecOkC_holds`).
-attribute [local instance 2000] examples.swiftnet.kitCodecC
 
 /-! ## The deployment's addresses, as kit.go computes them -/
 
 /-- Node `i`'s host, `"10.77.0.(10+i)"` (`i < 13`: two digits). -/
-def nodeHost (i : Nat) : GoString :=
-  go!"10.77.0." ++ [W8 (48 + (10 + i) / 10), W8 (48 + (10 + i) % 10)]
+def nodeHost (_i : Nat) : GoString := go!"127.0.0.1"
 
-/-- Node `i`'s first port: 7000 for the orchestrator and the client nodes (`i ≤ 6`), `7000 + k`
-for server node `k = i - 6`. -/
-def nodePort (i : Nat) : Nat := if i ≤ 6 then 7000 else 6994 + i
+/-- Node `i`'s first port: `6100 + i` for the orchestrator and the client nodes (`i ≤ 6`),
+`7000 + k` for server node `k = i - 6`. -/
+def nodePort (i : Nat) : Nat := if i ≤ 6 then 6100 + i else 6994 + i
 
 /-- `at(addrs, i, off)`: node `i`'s host and its first port plus `off`. -/
 def atStr (i : Nat) (off : w64) : GoString :=
@@ -61,7 +57,14 @@ theorem atStr_rpc : ∀ k, k < 5 → replicaRpcAddrs[k]? = some (atStr (8 + k) (
   | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ =>
     simp [atStr, nodeHost, nodePort, fmt.decimal, fmt.decimalNat, fmt.digitByte, replicaRpcAddrs]
 
-/-- Client node `c`'s configuration port (node `1 + c`, port 9000). -/
+/-- Client node `c`'s start port (node `1 + c`, port `9101 + c`). -/
+theorem atStr_cstart : ∀ c, c < 6 → clientStartAddrs[c]? = some (atStr (1 + c) (W64 3000)) := by
+  intro c h
+  match c, h with
+  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ =>
+    simp [atStr, nodeHost, nodePort, fmt.decimal, fmt.decimalNat, fmt.digitByte, clientStartAddrs]
+
+/-- Client node `c`'s configuration port (node `1 + c`, port `8101 + c`). -/
 theorem atStr_cconf : ∀ c, c < 6 → clientConfAddrs[c]? = some (atStr (1 + c) (W64 2000)) := by
   intro c h
   match c, h with
