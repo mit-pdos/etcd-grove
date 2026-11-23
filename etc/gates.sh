@@ -196,6 +196,13 @@ if python3 etc/gen-init.py --check > "$tmp/init.log" 2>&1; then
 else
   echo "gen-init: FAILED"; tail -10 "$tmp/init.log"; fail=1
 fi
+# SpecPlan's generated package-init specs (SpecPlan/Spec/PkgInit/, etc/gen-specs-pkginit.py): a
+# stale one can still build, so only this check sees it (putget-dist, 2026-11-23)
+if python3 etc/gen-specs-pkginit.py --check > "$tmp/specpkginit.log" 2>&1; then
+  echo "gen-specs-pkginit: ok"
+else
+  echo "gen-specs-pkginit: FAILED (run etc/gen-specs-pkginit.py)"; head -10 "$tmp/specpkginit.log"; fail=1
+fi
 # the k8s API objects' deep values and deep copies, and the Goose configuration they translate
 # (Proof/k8s_io/api/Deep.lean, Proof/k8s_io/api/DeepCopy/, the generated blocks of the tomls)
 if python3 etc/gen-k8s-deep.py --check > "$tmp/k8sdeep.log" 2>&1; then
@@ -232,6 +239,8 @@ fail=0
 # the built .oleans, so only after a successful build
 # (its Lean runs are cached across worktrees by a content hash of their inputs; `--no-cache` to bypass)
 python3 etc/model-param-check.py || fail=1
+# phase 7 S2 (O2): the specs a service table holds reach no HeapGS (etc/heapfree-check.py)
+python3 etc/heapfree-check.py || fail=1
 python3 etc/pbschema-check.py || fail=1
 # raft-entsize: etcd's bootstrapped raft configuration has MaxSizePerMsg = 2^20 (`rnStartCfg`'s
 # `maxMsg`, a field of the bootstrap contract; examples/entsize, about a second)
@@ -240,10 +249,11 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
-# protobuf stage S1 (#37): the wire codecs' vectors module EntryWireVectors.lean (whose #guards the
-# build checks against the Lean codecs) is what examples/pbschema/wirevectors_test.go generates from
-# protobuf-go (examples/go.mod's pin)
-if (cd examples && GOWORK=off gotest -run '^TestWireVectors$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
+# protobuf stages S1/S2 (#37): the wire codecs' vectors modules EntryWireVectors.lean,
+# MessageWireVectors.lean, RecordWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
+# codecs) are what examples/pbschema/wirevectors{,_s2}_test.go generate from protobuf-go
+# (examples/go.mod's pin); TestMessageDepthLimit checks the decoder's recursion limit in Go
+if (cd examples && GOWORK=off gotest -run '^(TestWireVectors|TestMessageWireVectors|TestRecordWireVectors|TestIrrWireVectors|TestMessageDepthLimit)$' ./pbschema/ > "$tmp/wirevec.log" 2>&1); then
   echo "wirevectors: ok"
 else
   echo "wirevectors: FAILED"; tail -10 "$tmp/wirevec.log"; fail=1

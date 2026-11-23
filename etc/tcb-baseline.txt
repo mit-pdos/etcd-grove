@@ -34,7 +34,6 @@ axiom Perennial.k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecke
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
-axiom Perennial.net.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
@@ -42,9 +41,9 @@ axiom Perennial.runtime.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
+axiom addrClaim
 axiom addrUnclaimed
 axiom apimeta.GetItemsPtr.wp_proof
-axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom appslisters.wp_Errorf_labelArgs
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
@@ -86,12 +85,10 @@ axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
-axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfSlice.wp_proof
@@ -172,7 +169,6 @@ axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.Background.wp_proof
 axiom klog.Errorf.wp_proof
-axiom klog.V.wp_proof
 axiom klog.Verbose.InfoS.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom klog.Warningf.wp_proof
@@ -181,8 +177,6 @@ axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
-axiom maps.Clone.wp_proof_strBool
-axiom maps.Equal.wp_proof_strBool
 axiom maps.Keys.wp_proof_objMap
 axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof
@@ -203,11 +197,7 @@ axiom metrics.RecordEtcdRequest.wp_proof
 axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
-axiom net.Listen.wp_proof
-axiom netAddrFree
-axiom netListenerAt
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
@@ -299,12 +289,10 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Limiter.Wait.wp_proof
-axiom recEncC_ok
 axiom reflect.Append.wp_proof
 axiom reflect.Copy.wp_proof
 axiom reflect.DeepEqual.wp_proof_k8s
 axiom reflect.DeepEqual.wp_proof_pgidSet
-axiom reflect.KindCompare.wp_proof
 axiom reflect.MakeSlice.wp_proof
 axiom reflect.New.wp_proof
 axiom reflect.Type.Elem.wp_proof
@@ -320,16 +308,12 @@ axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom reflect.Zero.wp_proof
 axiom reflectM.reflNew_pointsto
-axiom reflectM.value_intoVal_inj
-axiom reflectM.value_into_val_typed
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.LessThan.wp_proof
-axiom semver.Version.String.wp_proof
 axiom semver.semverValid_simple
 axiom slices.Clone.wp_proof
 axiom slices.Concat.wp_proof
@@ -379,6 +363,5 @@ axiom wait.Jitter.wp_proof
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof

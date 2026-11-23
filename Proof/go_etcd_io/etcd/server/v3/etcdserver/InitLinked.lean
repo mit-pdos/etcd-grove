@@ -28,7 +28,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.logutil.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.contention.Init
-public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
@@ -51,7 +51,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.features.Init
+public import Proof.go_etcd_io.etcd.server.v3.features.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.lease.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.InitLinked

@@ -3,6 +3,11 @@ What `errors.Is` needs of a context's error (`context.isCtxErr`): a leaf error w
 method, of a comparable type, `Canceled`'s `*errorString` (a pointer) or `DeadlineExceeded`'s
 `deadlineExceededError{}` (a field-less struct, whose `==` is `true`: `ComparableErr` at the
 target, perennial#677). Lean-first (errors-is-axioms, 2026-11-22), for `Proof/errors/IsCtxErr.lean`.
+
+And (errors-is-deadline, 2026-11-23, for `Proof/errors/IsDeadlineExceeded.lean`) what Go's typing
+gives of the errors of a tree compared with `context.DeadlineExceeded`, which the model, with no
+typing of interface values, does not: those of type `deadlineExceededError` hold
+`deadlineExceededError{}` (`deTypedErr`, `deTyped`).
 -/
 module
 
@@ -20,10 +25,94 @@ namespace EtcdGrove
 
 open Iris Iris.BI
 
+section typing
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext] [GoLocalContext]
+variable [sem : go.Semantics]
+
+/-- An error of dynamic type `deadlineExceededError` holds `deadlineExceededError{}`. Go guarantees
+this by typing (the type's only value). The model has no typing of interface values, so it is
+stated. -/
+def deTypedErr (ii : GoInterfaceOk) : Prop :=
+  ii.ty = _root_.Perennial.context.deadlineExceededError.ty →
+    ii.v = #(zero_val _root_.Perennial.context.deadlineExceededError)
+
+/-- Every error of the tree `S` of type `deadlineExceededError` holds `deadlineExceededError{}`
+(`deTypedErr`): what Go's `==` with the target `context.DeadlineExceeded` needs
+(`deadlineExceededError_comparable`). -/
+def deTyped (S : GoError → Prop) : Prop :=
+  ∀ ii : GoInterfaceOk, S (interface.ok ii) → deTypedErr ii
+
+/-- An error of a type other than `deadlineExceededError` (a pointer error, say) meets `deTypedErr`
+vacuously. -/
+theorem deTypedErr_of_ty (ii : GoInterfaceOk)
+    (h : ii.ty ≠ _root_.Perennial.context.deadlineExceededError.ty) : deTypedErr ii :=
+  fun h' => absurd h' h
+
+/-- A pointer error meets `deTypedErr`. -/
+theorem deTypedErr_ptr (ii : GoInterfaceOk) (h : _root_.Perennial.errors.IsPointerError ii) :
+    deTypedErr ii := by
+  obtain ⟨T, l, hT, -⟩ := h
+  apply deTypedErr_of_ty
+  rw [hT]
+  unfold _root_.Perennial.context.deadlineExceededError.ty
+  nofun
+
+/-- `deadlineExceededError{}` itself meets `deTypedErr`. -/
+theorem deTypedErr_zero :
+    deTypedErr ⟨_root_.Perennial.context.deadlineExceededError.ty,
+      #(zero_val _root_.Perennial.context.deadlineExceededError)⟩ :=
+  fun _ => rfl
+
+/-- A one-error tree is `deTyped` if its error is `deTypedErr`. -/
+theorem deTyped_single (ii : GoInterfaceOk) (h : deTypedErr ii) :
+    deTyped (· = interface.ok ii) := by
+  intro ii' hS
+  cases hS
+  exact h
+
+end typing
+
+section value
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [ctx_sem : _root_.Perennial.context.Assumptions]
+
+open Iris.ProofMode in
+/-- `context.DeadlineExceeded` holds `deadlineExceededError{}` once `context` is initialized
+(`isInit`'s `"#HDeadlineExceededTy"`; at any `HasLC`, unlike `context.isCtxErr_of_DeadlineExceeded`). -/
+theorem deadlineExceeded_value (e : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ⊢
+      globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ e -∗
+      ⌜e = interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
+        #(zero_val _root_.Perennial.context.deadlineExceededError)⌝ := by
+  iintro #Hpkg #He
+  ihave #Hi : (_root_.Perennial.context.isInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hi with ⟨-, -, -, -, -, -, #Hdv, -⟩
+  icombine He Hdv gives %h
+  ipureintro; exact h
+
+open Iris.ProofMode in
+/-- `context.DeadlineExceeded`'s value meets `deTypedErr`. -/
+theorem deadlineExceeded_deTypedErr (ii : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ⊢
+      globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ GoInterface.ok ii -∗
+      ⌜deTypedErr ii⌝ := by
+  iintro #Hpkg #He
+  ihave %h := deadlineExceeded_value _ $$ Hpkg He
+  ipureintro
+  cases h
+  exact deTypedErr_zero
+
+end value
+
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
@@ -95,6 +184,17 @@ theorem isCtxErr_shape (e : GoInterface) :
     obtain ⟨hl, hi⟩ := deadlineExceededError_leaf (GF := GF)
       (#(zero_val _root_.Perennial.context.deadlineExceededError))
     exact ⟨_, hv, hl, hi, Or.inr rfl⟩
+
+/-- A context's error meets `deTypedErr`: `Canceled`'s is a pointer, and `DeadlineExceeded`'s is
+`deadlineExceededError{}`. -/
+theorem isCtxErr_deTypedErr (ii : GoInterfaceOk) :
+    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ ⌜deTypedErr ii⌝ := by
+  iintro #He
+  ihave %Hs := isCtxErr_shape (GoInterface.ok ii) $$ He
+  ipureintro
+  obtain ⟨ii', h, -, -, hp | rfl⟩ := Hs
+  · cases h; exact deTypedErr_ptr ii hp
+  · cases h; exact deTypedErr_zero
 
 end shape
 

@@ -74,6 +74,9 @@ it; all 230 modules under `Dsverify/{Proof,Spec}/rabia` and the libraries' build
    `os.Signal` values `SigListen`'s literal makes) and gives it back: Go's `Notify(c)` with no
    signals relays every signal, the runtime's `SIGURG` included. `NoSignals` stays the environment
    assumption, over exactly those two. `os.signal.Hyps` (`Notify`, `Stop`) was unused: removed.
+   (2026-11-23, dsv-swiftpaxos review fix 3: one `NotifyQuiet.spec (sigs : List os.Signal)`, with
+   `sigs ≠ []`, and one class `NoSignals sigs`, shared with swiftpaxos (`[SIGUSR1]`); rabia's
+   premise is `os.signal.NoSignals quietSigs`.)
 2. gogo `proto`'s `InitHyp` holds only its `wp_initialize'` (`etc/dsv/README.md`'s rule); the three
    `Register*` specs are a premise of their own, `github_com.gogo.protobuf.proto.Hyps`
    (`proto/Spec.lean`): each holds the package state `ownGoState σ` (registrations are made by
@@ -95,7 +98,8 @@ it; all 230 modules under `Dsverify/{Proof,Spec}/rabia` and the libraries' build
    token `ownRand r`, `Rand.Intn` takes the latter (`Hyps.rands : ∃ isSource ownRand, RandSpecs`):
    a zero `Rand` (nil source) is not covered. The consensus's `coinOk`/`exCoinOk` hold `∃ R, R r ∗
    ⌜Rand.Intn.spec R⌝` instead of `r ↦ v`.
-5. `log.Hyps` is gone: `log.Println.wp_proof` (`Dsverify/Proof/log/Println.lean`) is proved from
+5. `log.Hyps` is gone: `log.Println.wp_proof` (`Net/Proof/log/Println.lean`, Net's, shared with the epaxos kit; rabia's own copy
+   `Dsverify/Proof/log/` was dropped, its names clashing with Net's when both kits are loaded) is proved from
    Perennial's trusted `log.Println.impl` (it does nothing), its spec requiring `fmt.ArgsWf` of the
    arguments as Perennial's `log.Printf.spec` does (`send` passes one string); `KitNetDeps.println`.
 The statement's premises are now: the six `InitHyp`s, `proto.Hyps`, `zerolog.Hyps`, `math.rand.Hyps`,
@@ -114,7 +118,7 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
 
 | | here |
 |---|---|
-| Go | `examples/dsverify/rabia/` (module `rabia`, the fork's path): the fork's packages `internal/{config,message,queue,ledger,tcp,logger,system}`, `roles/server` (with `layers/{network,consensus,proxy}`), their tests, over the **real** zerolog v1.23.0, gogo/protobuf v1.3.2, go-redis v8.8.2 (the lab replaced these by its models, `harness/rpcmodel/{zerolog,gogoprotobuf,goredis}`); the kit `examples/rabianet` (rewritten onto remote, below) and its twelve commands `cmd/{orch,client0..5,server1..5}`. `go vet`, `go test ./...` pass (the deployment test 8 runs in a row, random configurations, 40-48 of 48 operations answered). Not copied: Rabia's client, controller, `main.go`, deployment scripts, `redis-raft`, the lab's `cmd/dsrig` |
+| Go | `examples/dsverify/rabia/` (module `rabia`, the fork's path): the fork's packages `internal/{config,message,queue,ledger,tcp,logger,system}`, `roles/server` (with `layers/{network,consensus,proxy}`), their tests, over the **real** zerolog v1.23.0, gogo/protobuf v1.3.2, go-redis v8.11.5 (the fork pins v8.8.2; bumped 2026-11-23, issue #24, so that rabia and QuePaxa share one go-redis translation, the version QuePaxa needs: below) (the lab replaced these by its models, `harness/rpcmodel/{zerolog,gogoprotobuf,goredis}`); the kit `examples/rabianet` (rewritten onto remote, below) and its twelve commands `cmd/{orch,client0..5,server1..5}`. `go vet`, `go test ./...` pass (the deployment test 8 runs in a row, random configurations, 40-48 of 48 operations answered). Not copied: Rabia's client, controller, `main.go`, deployment scripts, `redis-raft`, the lab's `cmd/dsrig` |
 | translation | `etc/goose.py` project `dsv-rabia` into the part `Dsverify/` (`Dsverify/{Code,GeneratedProof}/rabia/...`): rabia's packages with bodies; zerolog, gogo `proto`/`gogoproto`, go-redis (and its `internal/proto`) and `os/signal` **names only** with their types (`Dsverify/Code/**.toml`); remote and `net` the part `Net/`'s; lintest, porcupine, `bufio`, `container/heap`, `path`, `os`, `syscall` the main tree's; the rest Perennial's. Identical to the lab's translation but for the imports' module roots (checked file by file). Builds (`lake build Dsverify.GeneratedProof.rabia.examples.rabianet` and the twelve commands) |
 | initializers | `etc/gen-init.py` `dsv_inits`: `DSV_PKGS`/`DSV_PROGRAMS` extended with rabia's packages and programs; `DSV_MAIN` (`bufio`, `container.heap`, `path`, `internal.bytealg`: their `Init.lean` generated into the part over `Net/`'s `PkgInitExt`, the last three with instances of the part's own, `Dsverify/Proof/{container/heap,path,internal/bytealg}/Base.lean`, since the main tree declares them in etcd's packages); `DSV_HYP_INITS` (dsv-vr's mechanism, `dsv_hyp_fix`, copied verbatim; math/rand as dsv-quepaxa: the names-only libraries' and math/rand's `wp_initialize'` are hypotheses, below); `SPECIAL['rabia.internal.config']` (`Conf`'s invariant) and `SPECIAL['rabia.internal.message']` (its errors, maps, descriptor and the `Register*` calls). Package facts: `Dsverify/Proof/**/Base.lean`, `True` but `config`'s |
 | proofs | `Dsverify/Proof/rabia/Lib/OrdChan.lean` (the lab's ordered multi-producer channel); `Dsverify/Proof/rabia/Core/`: `Model` (pure: values, wire format, the key-value map `kv` restated from the lab's `Harness.Model`), `Protocol` (pure, unchanged), `Ghost` (the record of facts and `rabiaInv`; the client's update is remote's, below), `Proto` (the protocols onto `GooseLang/Ext/Net/Proto.lean`), `PkgState` (`confClaim`) |
@@ -153,8 +157,8 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
   goose converts to go-redis's `internal/proto.RedisError` without importing it
   (`notes/perennial-changes.md`, 2026-11-23); the kit never uses Redis (`StorageMode` 0).
 - **Names-only libraries bring generated `sorry -- axiomatized type` instances** into
-  `Dsverify/GeneratedProof/` (zerolog 14, gogo `proto` 26, `gogoproto` 2, go-redis 88 over its
-  chunks, `internal/proto` 4, `os/signal` 4): types of those libraries goose cannot translate (their
+  `Dsverify/GeneratedProof/` (zerolog 14, gogo `proto` 26, `gogoproto` 2, go-redis 102 over its
+  chunks (88 at v8.8.2), `internal/proto` 4, `os/signal` 4): types of those libraries goose cannot translate (their
   own dependencies are not translated), none of them a type rabia's code stores. As in the main tree
   (CLAUDE.md, "The Goose translations"), no linked result should reach them; models of the libraries
   (the lab's cut-down copies) would remove them. **The gates accept them** (checked 2026-11-23): `etc/tcb-report.py` counts a `sorry`
@@ -197,6 +201,15 @@ equal states allowed different configurations, so `Equal`'s spec was false); `ge
   `Dsverify/` (`path/Init.lean` mentions `opaqueInitsOk` in its doc only).
 - **OrdChan:** the channel idioms' atomic updates are crash-aware at Perennial `9c3b81f3`
   (`notCrashed ={⊤,∅}=∗ notCrashed ∗ …`): `ncfupd_of_fupd` at the start of each update's proof.
+- **go-redis v8.11.5, not the fork's v8.8.2** (2026-11-23, issue #24): the QuePaxa kit builds with
+  go-redis v8.11.5 and cannot take v8.8.2 (v8.8.2 imports otel v0.19's `metric/global`, which the otel
+  v1 that QuePaxa's grpc v1.84 requires no longer has), and two goose projects cannot own one module
+  path, so this project's go.mod moved to v8.11.5 (go.mod and go.sum only, the fork's code unchanged:
+  `go vet`, `go test ./...` pass, `TestDeployment` included) and the one names-only go-redis
+  translation in `Dsverify/` is v8.11.5's, the version both kits run. Rabia reaches go-redis only in
+  `roles/server/layers/proxy/redis.go` (`redis.NewClient`, `redis.Options`, `redis.Nil`), all
+  present in v8.11.5. Before, QuePaxa's theorem (`github_com.go_redis.redis.v8.InitHyp`) named
+  v8.8.2's translation while v8.11.5 ran.
 
 ## Design findings
 
@@ -252,8 +265,8 @@ statement; no instance anywhere):
   RandSpecs`: `NewSource`, `New`, `Rand.Intn` with exclusive tokens;
 - `os.signal.NoSignals` (`os/signal/Spec.lean`): the environment assumption.
 
-**Proved** from a model: `log.Println` (Perennial's trusted `log` model, `Dsverify/Proof/log/
-Println.lean`; until review #24 the premise `log.Hyps`); bufio (the shared change on #24: the
+**Proved** from a model: `log.Println` (Perennial's trusted `log` model, Net's
+`Net/Proof/log/Println.lean`; until review #24 the premise `log.Hyps`); bufio (the shared change on #24: the
 main tree's `Spec/bufio/`, `Proof/bufio/`).
 
 ## State, in detail

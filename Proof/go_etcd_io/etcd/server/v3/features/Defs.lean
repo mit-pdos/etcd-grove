@@ -1,6 +1,9 @@
 /-
-**The server's feature gate** (`featuregate.FeatureGate`, names-only: the trust boundary, a
-contract), as the server's proofs see it. Lean-first (no Rocq counterpart).
+**The server's feature gate** (`featuregate.FeatureGate`, a contract), as the server's proofs see
+it. Lean-first (no Rocq counterpart). (Until 2026-11-23 the trust boundary; since featuregate-3
+`NewDefaultServerFeatureGate` is proved to return a gate meeting it, over featuregate's own specs,
+`Spec/go_etcd_io/etcd/pkg/v3/featuregate/`.) Also the package fact `featuresInit` and the server's
+features' specs `serverFeatureSpecs`.
 
 * `serverFeatures`: the features `features.NewDefaultServerFeatureGate` registers (the keys of
   `DefaultEtcdServerFeatureGates`, `server/features/etcd_features.go`).
@@ -20,6 +23,8 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Golang.Theory
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Defs
+public import GeneratedProof.go_etcd_io.etcd.server.v3.features
 
 @[expose] public section
 
@@ -28,7 +33,40 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI map
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- `DefaultEtcdServerFeatureGates` (`server/features/etcd_features.go`), in the initializer's
+insertion order (featuregate-3, 2026-11-23). -/
+def serverFeatureSpecs [GooseExts] : GMap GoString go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec :=
+  <[go!"NonBlockingDefrag" := featuregate.spec true go!"BETA"]>
+  (<[go!"PriorityRequest" := featuregate.spec false go!"ALPHA"]>
+  (<[go!"FastLeaseKeepAlive" := featuregate.spec true go!"BETA"]>
+  (<[go!"SetMemberLocalAddr" := featuregate.spec false go!"ALPHA"]>
+  (<[go!"LeaseCheckpointPersist" := featuregate.spec false go!"ALPHA"]>
+  (<[go!"LeaseCheckpoint" := featuregate.spec false go!"ALPHA"]>
+  (<[go!"TxnModeWriteWithSharedBuffer" := featuregate.spec true go!"BETA"]>
+  (<[go!"CompactHashCheck" := featuregate.spec false go!"ALPHA"]>
+  (<[go!"InitialCorruptCheck" := featuregate.spec false go!"ALPHA"]>
+  (<[go!"StopGRPCServiceOnDefrag" := featuregate.spec false go!"ALPHA"]> ∅)))))))))
+
+/-- **`server/v3/features`' package fact** (featuregate-3, 2026-11-23; until then `True`):
+`DefaultEtcdServerFeatureGates` holds a read-only map of `serverFeatureSpecs`, for good (nothing
+writes it after the initializer; `NewDefaultServerFeatureGate` passes it to `Add`, which only
+reads it). -/
+def featuresInit : IProp GF :=
+  iprop(∃ m : Loc, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.features.DefaultEtcdServerFeatureGates)
+    m DFrac.discard ∗ m ↦$□ serverFeatureSpecs)
+
+instance featuresInit_persistent : Persistent (featuresInit (GF := GF)) := by
+  unfold featuresInit; infer_instance
+
+end init
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -43,8 +81,8 @@ def serverFeatures : List GoString :=
    go!"SetMemberLocalAddr", go!"FastLeaseKeepAlive", go!"PriorityRequest",
    go!"NonBlockingDefrag"]
 
-/-- **The feature gate** `fg` (`featuregate.FeatureGate`, names-only: the trust boundary, a
-contract): `Enabled(f)` of a registered feature returns some boolean. -/
+/-- **The feature gate** `fg` (`featuregate.FeatureGate`, a contract): `Enabled(f)` of a registered
+feature returns some boolean. -/
 def isFeatureGate (fg : GoInterface) : IProp GF :=
   iprop(∃ fi : GoInterfaceOk, ⌜fg = GoInterface.ok fi⌝ ∗
     □ (∀ f : GoString,

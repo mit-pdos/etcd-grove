@@ -1,8 +1,9 @@
 /-
 **CRC-32C (Castagnoli) as a pure function** (the vocabulary of `hash/crc32`'s and `pkg/v3/crc`'s
 specs, and the WAL's `WalCodec.crc32c`): `crc32c c p` is `crc32.Update(c, MakeTable(Castagnoli), p)`,
-table-driven as the trusted model computes it (`TrustedCode/hash/crc32.lean`, the table of
-the reflected polynomial `0x82F63B78`, bitwise). `crc32cBits` is the bitwise definition, the same on
+table-driven as Go's `simpleUpdate` computes it over the table of the reflected polynomial
+`0x82F63B78`, bitwise (`TrustedCode/hash/crc32.lean`; since 2026-11-22 the trusted claim is only that
+`archUpdateCastagnoli` computes it). `slicingTableArr` is `slicingMakeTable`'s eight tables. `crc32cBits` is the bitwise definition, the same on
 the standard check vector (`crc32c_check`, `crc32cBits_check`: "123456789" gives `0xE3069283`).
 -/
 module
@@ -28,6 +29,14 @@ def crc32c (c : w32) (p : List w8) : w32 := crcUpdate (crcTableOf castagnoliPoly
 /-- The bitwise CRC-32C: each byte xored into the low bits, then 8 reflected steps. -/
 def crc32cBits (c : w32) (p : List w8) : w32 :=
   ~~~(p.foldl (fun c v => crcBits castagnoliPoly 8 (c ^^^ v.zeroExtend 32)) (~~~c))
+
+/-- Entry `i` of table `j` of `slicingMakeTable(poly)` (`crc32_generic.go:60-72`): `8 (j + 1)`
+reflected steps from `uint32(i)` (table `0` is `crcTableOf poly`). -/
+def slicingEntry (poly : w32) (j i : Nat) : w32 := crcBits poly (8 * (j + 1)) (BitVec.ofNat 32 i)
+
+/-- **The slicing-by-8 table** of `poly` (what `slicingMakeTable(poly)` returns a pointer to). -/
+def slicingTableArr (poly : w32) : GoArray (GoArray w32 256) 8 :=
+  array.mk 8 ((List.range 8).map fun j => array.mk 256 ((List.range 256).map (slicingEntry poly j)))
 
 /-- The ASCII bytes "123456789". -/
 def checkInput : List w8 := [0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39]

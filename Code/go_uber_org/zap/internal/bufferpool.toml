@@ -1,0 +1,7 @@
+# (zap-z1, 2026-11-23) the package variables, translated (`zap.Logger.check` reads `Get` on its
+# stack-annotation path, which no proof reaches): `_pool = buffer.NewPool()`, `Get = _pool.Get`.
+translate = ["!*", "_pool", "Get"]
+imports = ["!*", "go.uber.org/zap/buffer"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

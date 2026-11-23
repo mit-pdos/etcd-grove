@@ -22,8 +22,6 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^RaftTla/Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results\.lean$
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link\.lean$
-axiom DescribeConfChange.wp_proof
-axiom msgEncC_ok
 axiom pbEntryC_reg
 axiom pbMessageC_reg
 axiom proto.CloneConfState.wp_proof

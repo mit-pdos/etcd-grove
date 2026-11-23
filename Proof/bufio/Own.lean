@@ -33,6 +33,10 @@ is buffered, not sent (`pend.length ≤ sz`); `□ Q (sent ++ pend)` (what the b
 allowed); `err` is the writer's sticky error (`nil` while healthy, else with `Ew`'s evidence; once
 not `nil`, every later `Write`, `WriteByte` and `Flush` returns it and sends nothing). Clients
 reason about `J sent` through `bufio.ownBufWriter_fact`.
+
+**Laws for clients** (so that none unfolds the predicates): `bufio.ownBufWriter_excl` (two writers
+at one location are contradictory), `bufio.ownBufWriter_not_null`, `bufio.ownBufReaderE_not_null`,
+`bufio.ownBufReader_not_null`.
 Lean-first.
 -/
 module
@@ -223,6 +227,65 @@ theorem bufio.ownBufWriter_err (bw : Loc) (wi : GoInterfaceOk) (J Q : List w8 �
   unfold bufio.ownBufWriter bufio.writerRep
   iintro ⟨-, -, -, -, %buf, %n, %rest, -, -, -, #H⟩
   iexact H
+
+/-- Two full points-tos of one interface-typed location are contradictory (the writer's `err`
+field, `bufio.ownBufWriter_excl`). -/
+theorem bufio.iface_pointsto_excl (l : Loc) (v1 v2 : GoInterface) :
+    (l ↦ v1 : IProp GF) ∗ l ↦ v2 ⊢ False := by
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %He
+  subst He
+  ihave H := (typedPointsto_frac_add (GF := GF) l v1 1 1).2 $$ [H1 H2]
+  · iframe
+  ihave H := typedPointsto_split l v1 _ $$ H
+  have hh : (typedPointstoDef (GF := GF) l v1 (DFrac.own (1 + 1)) : IProp GF) ⊢
+      heapPointsto l (DFrac.own (1 + 1)) #v1 := .rfl
+  ihave H := hh $$ H
+  ihave %Hv := heapPointsto_frac_valid l (1 + 1) #v1 $$ H
+  exfalso
+  rw [Qp.val_add] at Hv
+  have h1 : (1 : Qp).val = 1 := rfl
+  rw [h1] at Hv
+  grind
+
+/-- **Two writers at one location exclude each other** (what makes a writer's first registration
+fresh in the kits). The contracts, sizes and states may differ. -/
+theorem bufio.ownBufWriter_excl (bw : Loc) (wi wi' : GoInterfaceOk)
+    (J Q J' Q' : List w8 → IProp GF) (Ew Ew' : GoInterface → IProp GF) (sz sz' : Nat)
+    (sent pend sent' pend' : List w8) (err err' : GoInterface) :
+    bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
+      bufio.ownBufWriter bw wi' J' Q' Ew' sz' sent' pend' err' ⊢ False := by
+  unfold bufio.ownBufWriter bufio.writerRep
+  iintro ⟨⟨-, -, -, -, %b1, %n1, %r1, H1, -⟩, ⟨-, -, -, -, %b2, %n2, %r2, H2, -⟩⟩
+  iStructNamed H1
+  iStructNamedSuffix H2 "'"
+  iapply bufio.iface_pointsto_excl _ err err'
+  isplitl [err]
+  · iexact err
+  · iexact err'
+
+/-- A writer's location is not `nil`. -/
+theorem bufio.ownBufWriter_not_null (bw : Loc) (wi : GoInterfaceOk) (J Q : List w8 → IProp GF)
+    (Ew : GoInterface → IProp GF) (sz : Nat) (sent pend : List w8) (err : GoInterface) :
+    bufio.ownBufWriter bw wi J Q Ew sz sent pend err ⊢ ⌜bw ≠ null⌝ := by
+  unfold bufio.ownBufWriter bufio.writerRep
+  iintro ⟨-, -, -, -, %buf, %n, %rest, Hb, -⟩
+  iapply typedPointsto_not_null $$ Hb
+
+/-- A reader's location is not `nil`. -/
+theorem bufio.ownBufReaderE_not_null (br : Loc) (ri : GoInterfaceOk)
+    (Pre : List w8 → Nat → Prop) (S : List w8 → IProp GF) (E Eb : List w8 → GoInterface → IProp GF)
+    (szOk : Nat → Prop) (R : List w8) :
+    bufio.ownBufReaderE br ri Pre S E Eb szOk R ⊢ ⌜br ≠ null⌝ := by
+  unfold bufio.ownBufReaderE bufio.readerRep
+  iintro ⟨-, -, %pend, %perr, -, %buf, %r, %w, %lb, %lrs, %pre, %post, Hb, -⟩
+  iapply typedPointsto_not_null $$ Hb
+
+/-- See `bufio.ownBufReaderE_not_null`. -/
+theorem bufio.ownBufReader_not_null (br : Loc) (ri : GoInterfaceOk) (Pre : List w8 → Nat → Prop)
+    (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF) (R : List w8) :
+    bufio.ownBufReader br ri Pre S E R ⊢ ⌜br ≠ null⌝ :=
+  bufio.ownBufReaderE_not_null br ri Pre S E _ _ R
 
 /-- `bufio` initialized `io`. -/
 theorem bufio.io_init_of_bufio :

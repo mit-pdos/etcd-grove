@@ -1,16 +1,18 @@
-// Package crc32 checks the trusted model of hash/crc32 (LinuxFs/TrustedCode/hash/crc32.lean)
-// against Go: MakeTable(Castagnoli) and Update, which the WAL (crcTable, pkg/v3/crc) calls.
+// Package crc32 checks the trusted model of hash/crc32 (TrustedCode/hash/crc32.lean) against Go.
+// Since 2026-11-22 (etcd-grove#14) the model is only the Castagnoli fast path's arch hooks; its one
+// claim about values is archUpdateCastagnoli(crc, p) = crc32c crc p, the Lean CRC-32C. On amd64 with
+// SSE4.2, Go's MakeTable(Castagnoli) and Update take exactly that hook (castagnoliSSE42), so the
+// tests below check the claim through the public API. (Until 2026-11-22 the model was MakeTable and
+// Update themselves, as Go's portable code.)
 //
-// The model is Go's portable code (crc32_generic.go): the table of
-// simplePopulateTable(Castagnoli) and simpleUpdate over it. The functions below transcribe the
-// Lean definitions (crcBit, crcBits, crcTableEntry, crcUpdByte, crcUpdate) one for one; the tests
-// compare them with Go's MakeTable and Update (on amd64 the SSE4.2 assembly path) on the whole
-// table, on the check vector whose value the Lean file proves (crc32c_check: "123456789" gives
+// The functions below transcribe the Lean definitions (crcBit, crcBits, crcTableEntry, crcUpdByte,
+// crcUpdate) one for one; the tests compare them with Go's MakeTable and Update on the whole table,
+// on the check vector whose value the Lean file proves (crc32c_check: "123456789" gives
 // 0xE3069283, by kernel evaluation of the Lean definitions), and on random inputs and splits
 // (Update chains: Update(Update(c, t, p), t, q) = Update(c, t, p++q), crc32c_append).
 //
-// Decision (the model's docstring): outcome allowed, Update(c, MakeTable(Castagnoli), p) is the
-// table-driven CRC-32C; evidence: measured (this test, go1.27.3 linux/amd64).
+// Decision (the hook's docstring): outcome allowed, archUpdateCastagnoli(c, p) is the table-driven
+// CRC-32C; evidence: measured (this test, go1.27.3 linux/amd64), and Go's own TestArchCastagnoli.
 package crc32
 
 import (

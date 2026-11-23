@@ -35,6 +35,7 @@ public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
 public import Proof.go_uber_org.zap.PkgInit
 public import Proof.math.rand.Base
+public import Net.Proof.net.Base
 public import Proof.google_golang_org.grpc.status.StatusRO
 
 @[expose] public section
@@ -194,12 +195,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
 
 end google_golang_org.grpc.metadata
 
--- `net` (names only; unit P3a: the type of grpc's `peer.Peer`'s fields; item 5: grpc's
--- `credentials` imports it, for `TransportCredentials`'s handshakes).
-instance net_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.net :=
-  define_is_pkg_init iprop(True)
-instance net_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net :=
-  build_get_is_pkg_init_wf
+-- `net`: the part `Net/`'s translation since the net swap (etcd-dist D2, 2026-11-22), its instance
+-- `Net/Proof/net/Base.lean`'s (`isInit`, imported above).
 
 instance grpc_credentials_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.credentials :=
   define_is_pkg_init iprop(True)

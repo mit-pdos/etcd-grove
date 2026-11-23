@@ -2,7 +2,9 @@
 
 # `etcd/all`: the definitions its top-level statement is written in
 
-The program the one closed etcd theorem (`etcd_safe`, `notes/etcd-unified-scope.md`) is about, and the
+The program the single-process closed etcd theorem (`etcd_safe_single_process`, `notes/etcd-unified-scope.md`;
+retired at the net swap as `etcd_safe`, restored 2026-11-23 over the net extension, `notes/single-process-restore.md`)
+is about, and the
 other definitions its statement names: the ghost-state bundle (partition's `linkvGF`, renamed: the
 superset of the eleven drivers' used slots), the program's metric names, and the eleven clusters'
 addresses and data directories, in the order of the program's parts: KV (txnlinfaultsN's `k₁` members,
@@ -22,7 +24,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.De
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Dir
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 
@@ -44,8 +46,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 /-- The functors: putget's (the universal camera `AllG` at slot 0, then invariants, later credits,
 GooseLang's heap, prophecies and package state), a ghost variable at slot 7, and iris-lean's
@@ -89,8 +91,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 section adequacy
 

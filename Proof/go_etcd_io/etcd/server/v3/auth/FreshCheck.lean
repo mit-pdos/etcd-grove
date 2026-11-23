@@ -44,6 +44,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- The view's four states recorded at indices at least `n` (persistent). -/
 def recordedVFrom (γa : AuthNames) (n : Nat) (v : AuthView) : IProp GF :=
   iprop((∃ i : Nat, authStateAt γa i v.flag ∗ ⌜n ≤ i⌝) ∗ (∃ i : Nat, authStateAt γa i v.rev ∗ ⌜n ≤ i⌝) ∗
@@ -52,6 +62,16 @@ def recordedVFrom (γa : AuthNames) (n : Nat) (v : AuthView) : IProp GF :=
 instance recordedVFrom_persistent (γa : AuthNames) (n : Nat) (v : AuthView) :
     Persistent (recordedVFrom (GF := GF) γa n v) := by
   unfold recordedVFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
 
 theorem recordedVFrom_intro (γa : AuthNames) (n i j k l : Nat) (a b c d : AuthState)
     (h : n ≤ i ∧ n ≤ j ∧ n ≤ k ∧ n ≤ l) :
@@ -72,6 +92,16 @@ theorem recordedVFrom_diag (γa : AuthNames) (n i : Nat) (st : AuthState) (h : n
   iintro #H
   iapply (recordedVFrom_intro γa n i i i i st st st st ⟨h, h, h, h⟩) $$ H H H H
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A permission check's verdict no older than the index `n`** in the mode `M` (persistent):
 `permVerdict`, each of its recorded states at an index at least `n`. -/
 def permVerdictFrom (M : AuthMode) (n : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
@@ -91,6 +121,16 @@ instance permVerdictFrom_persistent (M : AuthMode) (n : Nat)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (key rangeEnd : GoString) (op : PermType)
     (err : GoInterface) : Persistent (permVerdictFrom (GF := GF) M n info key rangeEnd op err) := by
   unfold permVerdictFrom; cases M <;> infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
+
 
 
 /-- **Why `isOpPermitted` refused, at states no older than `n`** (persistent; auth-guard-completeness,

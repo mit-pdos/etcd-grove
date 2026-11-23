@@ -30,6 +30,7 @@ public import Perennial.Code.internal.stringslite
 public import Perennial.Code.io
 public import Perennial.Code.iter
 public import Perennial.Code.log
+public import Perennial.Code.maps
 public import Perennial.Code.math
 public import Perennial.Code.math.big
 public import Perennial.Code.reflect
@@ -70,6 +71,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
   | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'
+  | maps : ExternalInit pkg_id.maps _root_.Perennial.maps.initialize'
   | math : ExternalInit pkg_id.math _root_.Perennial.math.initialize'
   | math_big : ExternalInit pkg_id.math.big _root_.Perennial.math.big.initialize'
   | reflect : ExternalInit pkg_id.reflect _root_.Perennial.reflect.initialize'

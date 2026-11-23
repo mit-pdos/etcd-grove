@@ -292,7 +292,7 @@ theorem run.wp_proof
     ihave #H := akHist_setupAu ρ₁.rd.kv k hk $$ Hhist
     iexact H
   ihave #Hput : isGrpcRpcMd a₁ go!"/etcdserverpb.KV/Put"
-      (client.etcdPutSpecOn s₁ E₁ { ρ₁ with wait := γw₁ } cid₁ mid₁) $$ []
+      (client.etcdPutSpecOn (srvTLSId s₁) E₁ { ρ₁ with wait := γw₁ } cid₁ mid₁) $$ []
   · iunfold akKVOn at HKV₁
     icases HKV₁ with ⟨#H, -, -, -⟩
     iexact H

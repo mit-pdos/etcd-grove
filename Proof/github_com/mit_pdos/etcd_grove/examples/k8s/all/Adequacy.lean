@@ -2,7 +2,7 @@
 
 # `k8s/all`: the one closed Kubernetes theorem over the operational semantics
 
-`k8s_adequate` (`notes/k8s-unified-scope.md`, §3.3; restated as `k8s_safe` in `Results.lean`): every
+`k8s_adequate` (`notes/k8s-unified-scope.md`, §3.3; restated as `k8s_safe_single_process` in `Results.lean`): every
 real execution of `k8sProgram k₁ clients ops watchers wops steps₁ k₂ steps₂` (`TopLevelDefs.lean`:
 the package's initialization, then `Main` with the two member counts and the two schedules built as
 slice literals) from a fresh
@@ -19,7 +19,7 @@ authority with no endpoint claimed. The proof of the body: `k8sall`'s `wp_initia
 schedules' slice literals, and `k8s_all.wp_Main` (`MainLinked.lean`).
 
 Its premises are the two retired partition theorems' (`k8s_etcd3_partition_adequate`,
-`k8s_compactor_partition_adequate`), once where they coincide; `Hlow` (`k8s_safe`'s, the condition of
+`k8s_compactor_partition_adequate`), once where they coincide; `Hlow` (`k8s_safe_single_process`'s, the condition of
 idutil's trusted model) is not used by the proof and is stated in `Results.lean`.
 -/
 module
@@ -30,7 +30,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.Disjoint
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 
@@ -47,8 +47,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
 
@@ -59,7 +59,7 @@ instance k8sGF_gooseGpreS : GooseGpreS k8sGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨k8sGF_allG⟩, ⟨k8sGF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨k8sGF_allG⟩, ⟨k8sGF_allG⟩, ⟨k8sGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := k8sGF_allG
 
@@ -133,7 +133,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
@@ -161,7 +161,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₁ n ids ps ctxs boot)
     (Hprem₂ : ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_compactorN.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₂ n ids' ps' ctxs' boot')
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (σ : state) (g : GlobalState) (Hg : extsInitGlobal g) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -174,7 +174,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   refine etcd_adequate_alloc_members_below (GF := k8sGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hmsL := fun m hm => (List.mem_append.1 hm).elim (k8s_etcd3N.startAddrs_names_len k₁ m)
       (k8s_compactorN.startAddrs_names_len k₂ m))
-    (hAsLit := k8s_all.k8sAddrs_lit k₁ k₂ hk₁ hk₂) (HEnv := HEnv)
+    (hAsLit := k8s_all.k8sAddrs_lit k₁ k₂ hk₁ hk₂) (hAsOk := k8s_all.k8sAddrs_ok k₁ k₂ hk₁ hk₂) (HEnv := HEnv)
     github_com.mit_pdos.etcd_grove.examples.k8s.all.initialize'
     (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.all.Main))
@@ -186,7 +186,7 @@ theorem k8s_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (k8s_etcd3N.startAddrs k₁ ++ k8s_compactorN.startAddrs k₂)
     (k8s_etcd3N.bridges k₁ ++ k8s_compactorN.bridges k₂)
     (k8s_all.k8sAddrs_perm k₁ k₂) (k8s_all.k8sDirs_perm k₁ k₂)
-    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC k8sGF := k8sHeapAt hG lctx
   -- the compactor registry, allocated before the program's proof is chosen (as the compactor
@@ -237,7 +237,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
@@ -265,7 +265,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₁ n ids ps ctxs boot)
     (Hprem₂ : ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_compactorN.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₂ n ids' ps' ctxs' boot')
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (σ : state) (g : GlobalState) (Hg : extsInitGlobal g) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -277,7 +277,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_adequate_below Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 hk₂ ids' ps'
     ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul
-    steps₁ steps₂ Hsteps₁ Hsteps₂ HNs HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hfs HWal Hlctx Hinit Hthreads
+    steps₁ steps₂ Hsteps₁ Hsteps₂ HNs HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal Hlctx Hinit Hthreads
     κs t2 σ2 ((RealNstepsBelow.of_one Hsteps' Hthreads).mono (by omega)) (by omega)
 
 end adequacy

@@ -2,7 +2,7 @@
 
 # `k8s/all`: the definitions its top-level statement is written in
 
-The program the one closed Kubernetes theorem (`k8s_safe`, `notes/k8s-unified-scope.md`) is about, and
+The program the one closed Kubernetes theorem (`k8s_safe_single_process`, `notes/k8s-unified-scope.md`) is about, and
 the other definitions its statement names: the ghost-state bundle (the k8s etcd3 driver's, with
 iris-lean's non-atomic invariants for porcupine), the read package's metric names, and the two
 clusters' addresses and data directories, the store's (`k8s_etcd3N`, `k₁` members) then the
@@ -15,7 +15,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.DirN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.all.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 
@@ -37,8 +37,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 /-- The functors: putget's (the universal camera `AllG` at slot 0, then invariants, later credits,
 GooseLang's heap, prophecies and package state), and iris-lean's non-atomic invariants at slot 11
@@ -81,8 +81,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 section adequacy
 

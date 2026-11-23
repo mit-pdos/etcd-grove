@@ -1,0 +1,5 @@
+# QuePaxa's replica (the lab's goose.sh's config): everything but protoc-gen-go's descriptor plumbing
+# (the generated `Reset`/`String`/`ProtoReflect`/`Descriptor` methods and the file descriptor's
+# variables), whose `init` is a trusted no-op (as the lab's; TrustedCode/raxos/replica/src.lean).
+translate = ["*", "!*.Reset", "!*.String", "!*.ProtoReflect", "!*.Descriptor", "!file_replica_src_consensus_proto_*", "!File_replica_src_consensus_proto", "!init.0"]
+trusted = ["init.0", "file_replica_src_consensus_proto_rawDesc", "file_replica_src_consensus_proto_rawDescData", "file_replica_src_consensus_proto_msgTypes", "file_replica_src_consensus_proto_goTypes", "file_replica_src_consensus_proto_depIdxs", "File_replica_src_consensus_proto", "file_replica_src_consensus_proto_rawDescOnce"]

@@ -2,7 +2,7 @@
 
 # `etcd/leaseexpiryN`: the top-level robustness result, proved
 
-`etcd_leaseexpiryN_robust`, stated in
+`etcd_leaseexpiryN_robust_single_process`, stated in
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean`,
 from the example's closed theorem (`Results.lean`).
 -/
@@ -31,21 +31,21 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 section adequacy
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 variable [go_gctx : GoGlobalContext]
 
-/-- `etcd_leaseexpiryN_robust.spec`
+/-- `etcd_leaseexpiryN_robust_single_process.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/TopLevelRobustness.lean`). -/
-theorem etcd_leaseexpiryN_robust : etcd_leaseexpiryN_robust.spec := by
-  intro lctx sem package_sem cache_sem _ _ Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Hap Haf Hbuq
+theorem etcd_leaseexpiryN_robust_single_process : etcd_leaseexpiryN_robust_single_process.spec := by
+  intro lctx sem package_sem cache_sem _ _ _ Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Hap Haf Hbuq
     Hrf Hdbo Hlp HNs HAs HDs HEnv Hprem σ g Hfs HWal
   exact
-    Robustness.Robust.of_single_below fun hf n κs t2 σ2 hn Hsteps =>
-      (etcd_leaseexpiryN_safe
+    robust_of_single_below_init fun hf hg _ n κs t2 σ2 hn Hsteps =>
+      (etcd_leaseexpiryN_safe_single_process
         Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Hap Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs HEnv n
-        (Hprem n) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
+        (Hprem n) σ g hg Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 end EtcdGrove

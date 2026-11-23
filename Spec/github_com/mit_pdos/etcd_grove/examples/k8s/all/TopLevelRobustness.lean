@@ -2,7 +2,7 @@
 
 # `k8s/all`: the one closed Kubernetes theorem, stated
 
-`k8s_robust`: the closed theorem of `examples/k8s/all` (`notes/k8s-unified-scope.md`, the user's
+`k8s_robust_single_process`: the closed theorem of `examples/k8s/all` (`notes/k8s-unified-scope.md`, the user's
 decisions of 2026-11-20) as an instance of the generic robustness statement (`Robustness/Statement.lean`,
 `Robust crashing stable g threads bound`: in every execution of the machines that may crash and restart and of
 those that never crash, each a fresh Go process, of fewer than `bound` steps, no thread is stuck and
@@ -30,6 +30,11 @@ checked for every `k₁ ≤ 1000` and `k₂ ≤ 600` by `examples/k8s/all`'s `Te
 The proof does not use it: it
 states the condition under which that trusted model is faithful (each cluster's own `BootFacts` states
 it for that cluster, `BootCore.lowNodup`).
+
+(2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
+`single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
+name; against the tag the statement gains the instance argument `[net.FieldAssumptions]`, and its
+semantics the net extension; the network's initial state is `Robust`'s own premise.)
 -/
 module
 
@@ -60,24 +65,24 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 section adequacy
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 variable [go_gctx : GoGlobalContext]
 
-/-- **`k8s_safe` as a robustness statement** (`Robustness.Robust`, `Robustness/Statement.lean`; see
+/-- **`k8s_safe_single_process` as a robustness statement** (`Robustness.Robust`, `Robustness/Statement.lean`; see
 the file header): the program alone on one machine that never crashes, a fresh Go process (`Robust`'s
-premise), under `k8s_safe`'s other hypotheses (its boot premises `Hprem₁`/`Hprem₂` at every `n` with
+premise), under `k8s_safe_single_process`'s other hypotheses (its boot premises `Hprem₁`/`Hprem₂` at every `n` with
 `n + 1 ≤ 2 ^ 48`, as `etcd_robust`'s): in every execution of fewer than `2 ^ 48` steps along
 which fewer than `2 ^ 28` threads are live, no thread is stuck and none has an unrecovered panic. -/
-def k8s_robust.spec : Prop :=
+def k8s_robust_single_process.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,

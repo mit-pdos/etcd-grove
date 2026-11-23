@@ -5,7 +5,9 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.go_uber_org.zap.internal
+public import GeneratedProof.go_uber_org.zap.internal.bufferpool
 public import GeneratedProof.go_uber_org.zap.internal.pool
+public import GeneratedProof.go_uber_org.zap.internal.stacktrace
 public import GeneratedProof.go_uber_org.zap.zapcore
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.math

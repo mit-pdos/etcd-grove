@@ -15,7 +15,13 @@ translate = ["!*", "DebugLevel", "InfoLevel", "WarnLevel", "ErrorLevel",
   "_levelToLowercaseColorString", "_levelToCapitalColorString", "init.0",
   "Level.String", "Level.CapitalString",
   # (prove-initleft, 2026-11-21) what `zap.NewNop` calls (zap's `_globalL = NewNop()`)
-  "NewNopCore", "AddSync"]
+  "NewNopCore", "AddSync",
+  # (zap-z1, 2026-11-23) what `zap.Logger.check` runs (until then the trust boundary): the no-op
+  # core's methods, the level enabler and the system clock. (`CheckedEntry.Write` stays names only:
+  # its `putCheckedEntry` reaches zap's generic `pool.Pool[T].Put`, whose translation passes `x : T` to
+  # `sync.Pool.Put(any)` without converting it to an interface, notes/perennial-changes.md.)
+  "nopCore.Enabled", "nopCore.With", "nopCore.Check", "nopCore.Write", "nopCore.Sync",
+  "Level.Enabled", "systemClock.Now"]
 imports = ["!*", "time", "io", "errors", "fmt", "sync", "go.uber.org/zap/internal/pool",
   "go.uber.org/zap/internal/color"]
 

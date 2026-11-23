@@ -47,17 +47,18 @@ theorem wp_main (wp_Orch : rabianet.Orch.spec (GF := GF) (hG := hG)) (γ : Names
         ([∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := hG.goose_globalGS) (kvR γ) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
         pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init) ∗
+        pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
+        [∗list] a ∈ (List.range nC).map cliAddr, budUnits (Gg := hG.goose_globalGS) a 24) ∗
         ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨⟨Hcore, #Has, #Hmap, #Hpend, Hlib⟩, -⟩
+  wp_start as ⟨⟨Hcore, #Has, #Hmap, #Hpend, Hlib, Hbud⟩, -⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch γ γp hrb $$ [Hcore Hlib]
+  wp_apply wp_Orch γ γp hrb $$ [Hcore Hlib Hbud]
   · iframe #
-    iframe Hcore Hlib
+    iframe Hcore Hlib Hbud
   iapply HΦ
   itrivial
 

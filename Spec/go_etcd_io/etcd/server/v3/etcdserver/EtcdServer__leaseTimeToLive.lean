@@ -106,7 +106,14 @@ calls `errors.Is(err, lease.ErrLeaseNotFound)` on it (fork `673da07c8f`
 `server/etcdserver/v3_server.go:686`); `cctx` is a `*timerCtx` over `ctx`, whose causes are its own
 (`Canceled`, `DeadlineExceeded`) or `ctx`'s. Without it, a context made by `WithDeadlineCause` with a
 cause whose `Is` method panics met the premise, and the call panicked
-(`TestLeaseTimeToLiveFollowerCausePanics`). -/
+(`TestLeaseTimeToLiveFollowerCausePanics`).
+(errors-is-deadline, 2026-11-23) Since then the post's `applyErrIs` also says that the error tree's
+errors of type `context.deadlineExceededError` hold `deadlineExceededError{}` (`deTyped`). Go's
+typing makes this true of every Go error: `deadlineExceededError` is a field-less struct type, whose
+only value is `deadlineExceededError{}`. The model does not type interface values, and `togRPCError`
+compares the error with `context.DeadlineExceeded`, so the fact is stated. It was accepted by the
+coordinator under the user's approval of the same typing class (2026-11-23), and review was
+requested on #31. -/
 abbrev EtcdServer.leaseTimeToLive.spec : Prop :=
   leasePeersOk →
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (γl : GName)

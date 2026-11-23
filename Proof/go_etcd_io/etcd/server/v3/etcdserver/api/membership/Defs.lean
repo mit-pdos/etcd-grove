@@ -18,6 +18,9 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Proof.sync
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
+public import Proof.github_com.Masterminds.semver.v3.Str
+public import Perennial.Ghost.MonoNat
 
 @[expose] public section
 
@@ -58,6 +61,8 @@ abbrev membership.rcRemovedAddr (c : Loc) : Loc :=
 abbrev membership.rcLgAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"lg" c
 abbrev membership.rcBeAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"be" c
 abbrev membership.rcCidAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"cid" c
+abbrev membership.rcVersionAddr (c : Loc) : Loc :=
+  structFieldRef membership.RaftCluster go!"version" c
 
 end addrs
 
@@ -163,6 +168,20 @@ instance membership.rcLocalIn_persistent (c : Loc) (ms : GMap w64 Loc) :
     Persistent (membership.rcLocalIn (GF := GF) c ms) := by
   unfold membership.rcLocalIn; infer_instance
 
+/-- **The cluster `c`'s version slot at the ghost name `γcv`** (prove-ps2-bootstage1, 2026-11-23, #34
+stage 1, `notes/bootstrap-proof-plan.md` §7.1 I1): `c.version` is `vp`, and the slot holds the whole
+authority of the monotone counter `γcv` at `n`: either `vp` is nil and `n = 0` (the version not yet
+known), or `n = 1` and `vp` points read-only to a version `x` whose rendering parses
+(`semverValid (semver.render x)`: `Version`'s `semver.MustParse(c.version.String())` does not panic). A
+reader that saw a version holds `monoNatLbOwn γcv 1`, so a later `Version()` returns non-nil
+(`clusterVersionMono`). The writers of `c.version`: `NewCluster`'s literal (nil, `rcLockInv_boot`),
+`SetVersion` (a parsed version) and `Recover`/`UnsafeLoad` (`ClusterVersionFromBackend`: nil, or
+`MustParse` of the stored string), both under the lock. -/
+def membership.rcVerSlot (c : Loc) (γcv : GName) : IProp GF :=
+  iprop(∃ (vp : Loc) (n : Nat), membership.rcVersionAddr c ↦ vp ∗ monoNatAuthOwn γcv 1 n ∗
+    (⌜vp = null ∧ n = 0⌝ ∨ ⌜n = 1⌝ ∗ ∃ x : github_com.Masterminds.semver.v3.Version,
+      vp ↦□ x ∗ ⌜apply.semverValid (semver.render x)⌝))
+
 /-- What `c`'s mutex guards (of it, what `Members`, `IsLocalMemberLearner` and `IsIDRemoved`
 read): the members map, its members (since D43 M5b, 2026-10-26, half of the map and of each member,
 `memAt`: the apply thread's `clusterMem` holds the other half, which its writers combine with this
@@ -170,16 +189,27 @@ one under the lock; owned whole until then), the local member among them (`rcLoc
 `membership.localKept`); and (D21 M2, 2026-10-19) the removed members' map, empty: a static
 cluster booted once removes none (`removed`'s writers, `RemoveMember` and `UnsafeLoad` from
 `Recover` -- a restart or an applied snapshot -- are outside the run; `NewClusterFromURLsMap`
-makes it empty). -/
-def membership.rcLockInv (c : Loc) : IProp GF :=
+makes it empty); and (#34 stage 1, 2026-11-23) the version slot (`rcVerSlot c γcv`). -/
+def membership.rcLockInv (c : Loc) (γcv : GName) : IProp GF :=
   iprop(∃ (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM),
     membership.memAt c (1 : Qp).half ms mem ∗ ⌜GMap.size ms ≤ 2 ^ 62⌝ ∗
     membership.rcLocalIn c ms ∗
-    ∃ rp : Loc, membership.rcRemovedAddr c ↦ rp ∗ rp ↦$ (∅ : GMap w64 Bool))
+    ∃ rp : Loc, membership.rcRemovedAddr c ↦ rp ∗ rp ↦$ (∅ : GMap w64 Bool) ∗
+      membership.rcVerSlot c γcv)
 
-/-- **The cluster `c`** (persistent): its mutex, guarding `rcLockInv c`. -/
+/-- **The cluster `c` at the version name `γcv`** (persistent): its mutex, guarding
+`rcLockInv c γcv`. -/
+def membership.isRaftClusterV (c : Loc) (γcv : GName) : IProp GF :=
+  sync.isMutex (membership.rcMutexAddr c) (membership.rcLockInv c γcv)
+
+instance membership.isRaftClusterV_persistent (c : Loc) (γcv : GName) :
+    Persistent (membership.isRaftClusterV (GF := GF) c γcv) := by
+  unfold membership.isRaftClusterV; infer_instance
+
+/-- **The cluster `c`** (persistent): its mutex, guarding `rcLockInv c γcv` at some version name
+`γcv` (#34 stage 1: `isRaftClusterV`). -/
 def membership.isRaftCluster (c : Loc) : IProp GF :=
-  sync.isMutex (membership.rcMutexAddr c) (membership.rcLockInv c)
+  iprop(∃ γcv : GName, membership.isRaftClusterV c γcv)
 
 instance membership.isRaftCluster_persistent (c : Loc) :
     Persistent (membership.isRaftCluster (GF := GF) c) := by
@@ -216,15 +246,16 @@ abbrev membership.RcSide (GF : BundledGFunctors) := w64 → GMap w64 Loc → GMa
 condition `RM` of the local id (`c.localID`, read-only: `SetID` writes it at bootstrap), the
 members map and the removed map (`rcLockInv` is the static instance, `rcStatic`; the dynamic one
 tracks the removed map, `rcDyn`); half of the members (`memAt`, D43 M5b, as `rcLockInv`). -/
-def membership.rcLockInvG (c : Loc) (RM : membership.RcSide GF) : IProp GF :=
+def membership.rcLockInvG (c : Loc) (RM : membership.RcSide GF) (γcv : GName) : IProp GF :=
   iprop(∃ (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM),
     membership.memAt c (1 : Qp).half ms mem ∗ ⌜GMap.size ms ≤ 2 ^ 62⌝ ∗
     ∃ (lid : w64) (rp : Loc) (rm : GMap w64 Bool), membership.rcLocalIDAddr c ↦□ lid ∗
-      membership.rcRemovedAddr c ↦ rp ∗ rp ↦$ rm ∗ RM lid ms rm)
+      membership.rcRemovedAddr c ↦ rp ∗ rp ↦$ rm ∗ RM lid ms rm ∗ membership.rcVerSlot c γcv)
 
-/-- **The cluster `c`, generally** (persistent): its mutex, guarding `rcLockInvG c RM`. -/
+/-- **The cluster `c`, generally** (persistent): its mutex, guarding `rcLockInvG c RM γcv` at some
+version name `γcv` (#34 stage 1). -/
 def membership.isRaftClusterG (c : Loc) (RM : membership.RcSide GF) : IProp GF :=
-  sync.isMutex (membership.rcMutexAddr c) (membership.rcLockInvG c RM)
+  iprop(∃ γcv : GName, sync.isMutex (membership.rcMutexAddr c) (membership.rcLockInvG c RM γcv))
 
 instance membership.isRaftClusterG_persistent (c : Loc) (RM : membership.RcSide GF) :
     Persistent (membership.isRaftClusterG (GF := GF) c RM) := by
@@ -244,19 +275,19 @@ def membership.rcRemovedOwn (γ : GName) (rm : GMap w64 Bool) : IProp GF :=
   dghostVar γ (DFrac.own (1 : Qp).half) rm
 
 /-- `rcLockInv` is the static instance. -/
-theorem membership.rcLockInv_static (c : Loc) :
-    membership.rcLockInv (GF := GF) c ⊣⊢ membership.rcLockInvG c membership.rcStatic := by
+theorem membership.rcLockInv_static (c : Loc) (γcv : GName) :
+    membership.rcLockInv (GF := GF) c γcv ⊣⊢ membership.rcLockInvG c membership.rcStatic γcv := by
   unfold membership.rcLockInv membership.rcLockInvG membership.rcStatic membership.rcLocalIn
   constructor
-  · iintro ⟨%ms, %mem, Hmems, %Hsz, ⟨%lid, #Hlid, %Hin⟩, %rp, Hrf, Hrm⟩
+  · iintro ⟨%ms, %mem, Hmems, %Hsz, ⟨%lid, #Hlid, %Hin⟩, %rp, Hrf, Hrm, Hver⟩
     iexists ms, mem
     iframe Hmems
     isplitr
     · ipureintro; exact Hsz
     iexists lid, rp, ∅
-    iframe Hrf Hrm Hlid
+    iframe Hrf Hrm Hlid Hver
     ipureintro; exact ⟨Hin, rfl⟩
-  · iintro ⟨%ms, %mem, Hmems, %Hsz, %lid, %rp, %rm, #Hlid, Hrf, Hrm, %Hside⟩
+  · iintro ⟨%ms, %mem, Hmems, %Hsz, %lid, %rp, %rm, #Hlid, Hrf, Hrm, %Hside, Hver⟩
     obtain ⟨Hin, Hrm0⟩ := Hside
     subst Hrm0
     iexists ms, mem
@@ -271,9 +302,50 @@ theorem membership.rcLockInv_static (c : Loc) :
 /-- `isRaftCluster` is the static instance. -/
 theorem membership.isRaftCluster_static (c : Loc) :
     membership.isRaftCluster (GF := GF) c ⊣⊢ membership.isRaftClusterG c membership.rcStatic := by
-  unfold membership.isRaftCluster membership.isRaftClusterG
-  rw [(membership.rcLockInv_static c).to_eq]
-  exact .rfl
+  unfold membership.isRaftCluster membership.isRaftClusterV membership.isRaftClusterG
+  constructor
+  · iintro ⟨%γcv, H⟩
+    iexists γcv
+    rw [(membership.rcLockInv_static c γcv).to_eq]
+    iexact H
+  · iintro ⟨%γcv, H⟩
+    iexists γcv
+    rw [(membership.rcLockInv_static c γcv).to_eq]
+    iexact H
+
+/-- **The version slot at boot** (#34 stage 1, I2): `NewCluster`'s literal leaves `c.version` nil;
+a fresh counter at `0` makes the slot. -/
+theorem membership.rcVerSlot_boot (c : Loc) :
+    membership.rcVersionAddr c ↦ (null : Loc) ⊢ |==> ∃ γcv : GName, membership.rcVerSlot (GF := GF) c γcv := by
+  iintro Hv
+  imod mono_nat_own_alloc 0 with ⟨%γcv, Ha, -⟩
+  imodintro
+  iexists γcv
+  unfold membership.rcVerSlot
+  iexists null, 0
+  iframe Hv Ha
+  ileft
+  ipureintro; exact ⟨rfl, rfl⟩
+
+/-- **The lock invariant at boot** (#34 stage 1, `notes/bootstrap-proof-plan.md` §7.1 I2): the
+other fields as before, and `c.version` nil. -/
+theorem membership.rcLockInv_boot (c : Loc) (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM)
+    (rp : Loc) (hsz : GMap.size ms ≤ 2 ^ 62) :
+    membership.memAt (GF := GF) c (1 : Qp).half ms mem ∗ membership.rcLocalIn c ms ∗
+      membership.rcRemovedAddr c ↦ rp ∗ rp ↦$ (∅ : GMap w64 Bool) ∗
+      membership.rcVersionAddr c ↦ (null : Loc) ⊢
+    |==> ∃ γcv : GName, membership.rcLockInv c γcv := by
+  iintro ⟨Hmem, #Hloc, Hrf, Hrm, Hv⟩
+  imod membership.rcVerSlot_boot c $$ Hv with ⟨%γcv, Hslot⟩
+  imodintro
+  iexists γcv
+  unfold membership.rcLockInv
+  iexists ms, mem
+  iframe Hmem Hloc
+  isplitr
+  · ipureintro; exact hsz
+  iexists rp
+  iframe
 
 end defs
 
