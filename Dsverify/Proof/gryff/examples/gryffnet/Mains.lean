@@ -17,7 +17,7 @@ public import Dsverify.Proof.gryff.examples.gryffnet.cmd.server2.Base
 public import Dsverify.Proof.gryff.examples.gryffnet.cmd.server3.Base
 public import Dsverify.Proof.gryff.examples.gryffnet.cmd.server4.Base
 public import Dsverify.Proof.gryff.examples.gryffnet.KitSpecs
-public import Dsverify.Proof.gryff.examples.gryffnet.KitServer
+public import Dsverify.Proof.gryff.examples.gryffnet.ServerSpec
 
 @[expose] public section
 

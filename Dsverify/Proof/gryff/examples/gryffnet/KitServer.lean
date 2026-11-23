@@ -22,6 +22,7 @@ public import Dsverify.Proof.gryff.B.Register
 public import Dsverify.Proof.gryff.Server.SpecsReq
 public import Dsverify.Proof.gryff.Server.RpcEnv
 public import Dsverify.Proof.gryff.Client.Defs
+public import Dsverify.Proof.gryff.examples.gryffnet.ServerSpec
 
 @[expose] public section
 
@@ -379,18 +380,6 @@ theorem wp_ServerAddrs' :
   wp_auto
   iapply HΦ
   iexact Hsl
-
-/-- **`Server(id)`**, server machine `id = i + 1` (`i < 4`: the master at `i = 0`, replica node
-`i - 1` else): from what its machine's boot hands its `main` (the file header). -/
-abbrev Server.spec : Prop :=
-  ∀ (γ : GryffNames GF) (i : Nat), i < 4 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗
-      isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-      serverBoot (GF := GF) ∗
-      ⌜threadBound GF ≤ 2 ^ 31 ∧ receiptBound GF ≤ 2 ^ 64⌝ ∗ serverShare γ i ∗
-      (if i = 0 then iprop(True) else iprop(gryffGlobals ∗ bootProph)) }}
-    (App (Val (@! gryff.examples.gryffnet.Server)) (Val #(W64 ((i + 1 : Nat) : Int))))
-  {{ RET #(); True }}
 
 include wp_rfl L RL wp_Call wp_DialHTTP wp_SetCodec in
 theorem Server.wp_proof : Server.spec (GF := GF) (hG := hG) := by
