@@ -455,6 +455,37 @@ errors (`status.FromError`, `IsRestrictedControlPlaneCode`, `status.Errorf`), `V
 `Write`/`reader`; `grpcInit` gains, once, what the client proof needs (`metadataFromOutgoingContextRaw`
 holding `fromOutgoingContextRaw`, `errStreamDone` non-nil, `transportFailureCodes`' contents).
 
+**Built in the session's sixth part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **`createHeaderFields` translated with its body and proved** (`Spec/google_golang_org/grpc/createHeaderFields.lean`,
+  `Proof/google_golang_org/grpc/createHeaderFields.lean`, vocabulary `Proof/google_golang_org/grpc/InvHeader.lean`). The
+  post: on `nil`, `hfPairs hs = callHdrFields ch acc ua ++ tfs ++ afs ++ ofs` with `timeoutFieldsOk tfs` (`grpc-timeout` at
+  `encodeDurationOf d` for some positive `d`, or nothing), `credsFieldsOk cms afs` (the maps `cms` the per-RPC credentials
+  returned, one per credential, each `□ Q cm`, merged with a later map's value winning, `credsLookup`, in some order of the
+  keys, `enumKeys`) and `outFieldsOk o ofs` (none without a `rawMD`; else the map's keys in some order, each key's values
+  unless reserved, then the `added` rows' pairs, `rowFields`); on an error, only `err ≠ nil` (the credentials' own error, a
+  status error made of it, `ValidatePair`'s refusal as `Internal`, `DeadlineExceeded`). Premises: `ch.Creds' = nil` (the
+  model sets call credentials only from a `PerRPCCredsCallOption`, which `grpcOptOk` excludes), the credentials' contract
+  `hdrCredsOk pc Ok Q` (non-nil; `GetRequestMetadata` with the resource `R` returns a `status`-accepted error or a map with
+  `credKeysOk`: lower-case keys, no `:` prefix, §0a's pseudo-header finding), `ctxDeadline ctx`, and `outRawIs ctx o` (the
+  `rawMD` the context holds at `mdOutgoingKey{}`, read-only, rows' keys lower case). Taken as hypotheses: the callees' specs,
+  `credentials.NewContextWithRequestInfo.spec` (unchanged, pending the `context.WithValue` decision) and
+  `grpc.outRawFn.law` (`isPkgInit grpc ⊢ metadataFromOutgoingContextRaw ↦□ fromOutgoingContextRaw`, a defs-module law; it
+  becomes provable when `grpcInit` gains that cell, the batched `grpcInit` change). The proof needs
+  `[context.Assumptions]` (`deadlineExceededError.Error`'s unfolding).
+- **`metadata.fromOutgoingContextRaw` proved** over a named `rawMD` (`ro : Option rawMD`: GooseLang's interface values do not say
+  that a value of dynamic type `rawMD` is one, and struct values have no `IntoValInj`).
+- **`istatus.IsRestrictedControlPlaneCode`'s spec restated** over a `Code()` WP (what `status.FromError`'s post gives) in place of
+  `statusAt` (which it does not); its proof no longer needs `Status.Code.spec`.
+- **Open, for the user (not a bug):** the head's metadata is stated over what the transport reads (`outRawIs`, the `rawMD`'s heap
+  contents), not over `metadata.outMD ctx om`: `outMD`'s `builtRawMDRaw` is a trusted opaque with no law, so nothing relates the
+  two; likewise `grpcAttemptMd`'s `credsYield` is opaque. The client attempt's proof needs a law (or a definition) for each:
+  `builtRawMDRaw v f ⊢ ∃ r ms rsl, v = mkOk rawMD #r ∗ …` with `f` the merged view, and `credsYield` replaced by the maps the
+  credentials returned (`hdrCredsOk`'s `Q`).
+
+Next: `newClientTransportStream` (`headerListTooLarge`, `appendHeaderBlock` under `headerListOk`, the head's write), the stream's
+`Write` and `reader`; then the batched `grpcInit` change (`metadataFromOutgoingContextRaw`, `errStreamDone`,
+`transportFailureCodes`), which proves `grpc.outRawFn.law`.
+
 ### 1. The vocabulary
 
 #### 1.1 Deposit slots (net library, neutral: `GooseLang/Ext/Net/Slot.lean`)
