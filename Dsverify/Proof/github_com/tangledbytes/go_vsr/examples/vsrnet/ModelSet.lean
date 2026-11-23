@@ -486,5 +486,138 @@ theorem stepG_bounds (Cur : List (GoString × GoString)) (Pend : List KIn) (i : 
 
 end pure
 
+
+section dec
+variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext] [GoSemanticsFunctions]
+variable [sem : go.Semantics] [bvi : go.BasicIntoValInj]
+variable [package_sem : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions]
+
+/-- `Out`'s values are injective (each field is read off by a deterministic step). -/
+theorem out_intoVal_inj {x y : Out} (h : (#x : val) = #y) : x = y := by
+  have hV := (Out.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (Out.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hU := (Out.TypeAssumptions.get_Unknown x).isGoStep_det_internal.isGoStep_pure_det
+  have hU' := (Out.TypeAssumptions.get_Unknown y).isGoStep_det_internal.isGoStep_pure_det
+  have hD := (Out.TypeAssumptions.get_Done x).isGoStep_det_internal.isGoStep_pure_det
+  have hD' := (Out.TypeAssumptions.get_Done y).isGoStep_det_internal.isGoStep_pure_det
+  have hF := (Out.TypeAssumptions.get_Found x).isGoStep_det_internal.isGoStep_pure_det
+  have hF' := (Out.TypeAssumptions.get_Found y).isGoStep_det_internal.isGoStep_pure_det
+  rw [h, hV'] at hV
+  rw [h, hU'] at hU
+  rw [h, hD'] at hD
+  rw [h, hF'] at hF
+  have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl
+  have eU : Val #x.Unknown' = Val #y.Unknown' := (congrFun hU (Val #y.Unknown')) ▸ rfl
+  have eD : Val #x.Done' = Val #y.Done' := (congrFun hD (Val #y.Done')) ▸ rfl
+  have eF : Val #x.Found' = Val #y.Found' := (congrFun hF (Val #y.Found')) ▸ rfl
+  injection eV with eV
+  injection eU with eU
+  injection eD with eD
+  injection eF with eF
+  have eV' := go.intoVal_inj eV
+  have eU' := GoGlobalContext.intoVal_inj_bool eU
+  have eD' := GoGlobalContext.intoVal_inj_bool eD
+  have eF' := GoGlobalContext.intoVal_inj_bool eF
+  cases x; cases y
+  simp only at eV' eU' eD' eF'
+  subst eV' eU' eD' eF'
+  rfl
+
+/-- `In`'s values are injective. -/
+theorem in_intoVal_inj {x y : In} (h : (#x : val) = #y) : x = y := by
+  have hV := (In.TypeAssumptions.get_V x).isGoStep_det_internal.isGoStep_pure_det
+  have hV' := (In.TypeAssumptions.get_V y).isGoStep_det_internal.isGoStep_pure_det
+  have hK := (In.TypeAssumptions.get_K x).isGoStep_det_internal.isGoStep_pure_det
+  have hK' := (In.TypeAssumptions.get_K y).isGoStep_det_internal.isGoStep_pure_det
+  have hP := (In.TypeAssumptions.get_Put x).isGoStep_det_internal.isGoStep_pure_det
+  have hP' := (In.TypeAssumptions.get_Put y).isGoStep_det_internal.isGoStep_pure_det
+  rw [h, hV'] at hV
+  rw [h, hK'] at hK
+  rw [h, hP'] at hP
+  have eV : Val #x.V' = Val #y.V' := (congrFun hV (Val #y.V')) ▸ rfl
+  have eK : Val #x.K' = Val #y.K' := (congrFun hK (Val #y.K')) ▸ rfl
+  have eP : Val #x.Put' = Val #y.Put' := (congrFun hP (Val #y.Put')) ▸ rfl
+  injection eV with eV
+  injection eK with eK
+  injection eP with eP
+  have eV' := go.intoVal_inj eV
+  have eK' := go.intoVal_inj eK
+  have eP' := GoGlobalContext.intoVal_inj_bool eP
+  cases x; cases y
+  simp only at eV' eK' eP'
+  subst eV' eK' eP'
+  rfl
+
+theorem outVal_inj {u d f v u' d' f' v'} (h : outVal u d f v = outVal u' d' f' v') :
+    u = u' ∧ d = d' ∧ f = f' ∧ v = v' := by
+  simp only [outVal, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+    _root_.true_and] at h
+  have := out_intoVal_inj h
+  simp only [Out.mk.injEq] at this
+  exact this
+
+theorem inV_inj {a b : KvInI} (h : inV a = inV b) : a = b := by
+  simp only [inV, interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq,
+    _root_.true_and] at h
+  have := in_intoVal_inj h
+  simp only [In.mk.injEq] at this
+  obtain ⟨h1, h2, h3⟩ := this
+  cases a <;> cases b <;> simp_all [inFields]
+
+theorem outFields_inj {a b : KvOutI} (h : outFields a = outFields b) : a = b := by
+  rcases a with (_ | _) | _ <;> rcases b with (_ | _) | _ <;> simp_all [outFields]
+
+theorem ansV_inj {a b : Ans KOut} (h : ansV a = ansV b) : a = b := by
+  cases a <;> cases b <;> simp only [ansV, outV, unkV] at h
+  · obtain ⟨-, h2, h3, h4⟩ := outVal_inj h
+    rename_i x y
+    have := outFields_inj (a := x.1) (b := y.1) (by rw [Prod.ext_iff, Prod.ext_iff]; exact ⟨h2, h3, h4⟩)
+    rw [Subtype.ext this]
+  · exact absurd (outVal_inj h).1 (by simp)
+  · exact absurd (outVal_inj h).1 (by simp)
+  · rfl
+
+/-- `kvDec` on a boxed input and a boxed answer. -/
+theorem kvDec_box (i : KIn) (a : Ans KOut) : kvDec (inV i.1, ansV a) = some (i, a) := by
+  unfold kvDec
+  split
+  · next h =>
+    have hs := Classical.choose_spec (Classical.choose_spec h)
+    obtain ⟨h1, h2⟩ := Prod.mk.inj hs
+    have e1 := Subtype.ext (inV_inj h1)
+    have e2 := ansV_inj h2
+    rw [← e2, ← e1]
+  · next hn => exact absurd ⟨i, a, rfl⟩ hn
+
+/-- A short `Out`'s bytes. -/
+theorem encOutV_outVal (u d f : Bool) (v : GoString) (hv : v.length < 2 ^ 16) :
+    encOutV (outVal u d f v) = encOutB u d f v := by
+  unfold encOutV
+  split
+  · rename_i h
+    obtain ⟨h1, h2, h3, h4⟩ := outVal_inj (Classical.choose_spec h).2
+    rw [← h1, ← h2, ← h3, ← h4]
+  · rename_i h
+    exact absurd ⟨(u, d, f, v), hv, rfl⟩ h
+
+theorem outFields_bnd (o : KOut) : (outFields o.1).2.2.length < 2 ^ 16 := by
+  rcases o with ⟨(_ | _) | _, h⟩ <;> simp only [outFields, KOutOk] at h ⊢ <;> first | exact h | decide
+
+/-- **Outputs encode apart** (remote's `hinj`). -/
+theorem encOut_inj (o o' : KOut) (h : encOutV (outV o.1) = encOutV (outV o'.1)) : o = o' := by
+  simp only [outV] at h
+  rw [encOutV_outVal _ _ _ _ (outFields_bnd o), encOutV_outVal _ _ _ _ (outFields_bnd o')] at h
+  simp only [encOutB, List.cons.injEq] at h
+  obtain ⟨-, h2, h3, h4⟩ := h
+  apply Subtype.ext
+  apply outFields_inj
+  have e2 : (outFields o.1).1 = (outFields o'.1).1 := by
+    revert h2; cases (outFields o.1).1 <;> cases (outFields o'.1).1 <;> simp
+  have e3 : (outFields o.1).2.1 = (outFields o'.1).2.1 := by
+    revert h3; cases (outFields o.1).2.1 <;> cases (outFields o'.1).2.1 <;> simp
+  exact Prod.ext e2 (Prod.ext e3 h4)
+
+end dec
+
 end github_com.tangledbytes.go_vsr.examples.vsrnet
 end Perennial

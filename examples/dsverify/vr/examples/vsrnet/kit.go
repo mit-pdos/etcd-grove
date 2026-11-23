@@ -349,11 +349,13 @@ type State struct {
 	Pend []Pair
 }
 
-// lookup is k's value in p, if it has one.
+// lookup is k's value in p, if it has one. (The helpers read each element into a local first:
+// a whole element's load, which the proofs take from the read-only slice.)
 func lookup(p []Pair, k string) (string, bool) {
 	for i := 0; i < len(p); i++ {
-		if p[i].K == k {
-			return p[i].V, true
+		e := p[i]
+		if e.K == k {
+			return e.V, true
 		}
 	}
 	return "", false
@@ -364,11 +366,12 @@ func set(p []Pair, k string, v string) []Pair {
 	q := make([]Pair, 0, len(p)+1)
 	found := false
 	for i := 0; i < len(p); i++ {
-		if p[i].K == k {
+		e := p[i]
+		if e.K == k {
 			q = append(q, Pair{K: k, V: v})
 			found = true
 		} else {
-			q = append(q, p[i])
+			q = append(q, e)
 		}
 	}
 	if !found {
@@ -380,7 +383,8 @@ func set(p []Pair, k string, v string) []Pair {
 // has reports whether x is in p.
 func has(p []Pair, x Pair) bool {
 	for i := 0; i < len(p); i++ {
-		if p[i] == x {
+		e := p[i]
+		if e.K == x.K && e.V == x.V {
 			return true
 		}
 	}
@@ -392,10 +396,11 @@ func erase(p []Pair, x Pair) []Pair {
 	q := make([]Pair, 0, len(p))
 	found := false
 	for i := 0; i < len(p); i++ {
-		if !found && p[i] == x {
+		e := p[i]
+		if !found && e.K == x.K && e.V == x.V {
 			found = true
 		} else {
-			q = append(q, p[i])
+			q = append(q, e)
 		}
 	}
 	return q
@@ -448,7 +453,9 @@ func equalPairs(a []Pair, b []Pair) bool {
 		return false
 	}
 	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
+		x := a[i]
+		y := b[i]
+		if x.K != y.K || x.V != y.V {
 			return false
 		}
 	}
