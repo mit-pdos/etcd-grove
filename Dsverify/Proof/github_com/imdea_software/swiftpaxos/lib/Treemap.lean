@@ -44,12 +44,15 @@ theorem isTreeMap_sorted (tm : Loc) (enc : w64 → GoInterface)
   obtain ⟨hs, hes, hrb⟩ := Hp
   isplitl
   · iexists tr
-    iframe
-    iapply (github_com.emirpasic.gods.trees.redblacktree.isTree_of tr enc cmp T h D es
-      ⟨hs, hes, hrb⟩)
+    isplitl [Hm]
+    · iexact Hm
+    iunfold github_com.emirpasic.gods.trees.redblacktree.isTree
+    iexists cmp, T, h, D
     isplitl [Hraw]
     · iexact Hraw
-    iexact Hcmp
+    isplitr
+    · iexact Hcmp
+    ipureintro; exact ⟨hs, hes, hrb⟩
   · ipureintro; rw [← hes]; exact hs
 
 end defs
