@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (78)
+## Not reported (79)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -78,6 +78,7 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [DaemonSet controller creates a second pod on a node after a pod create that is committed but returns an error](k8s-daemonset-ambiguous-create-duplicate-pod.md) | no | kubernetes/kubernetes#86140 pr merged; kubernetes/kubernetes#138181 pr merged; kubernetes/kubernetes#139657 pr open; kubernetes/enhancements#5647 issue open |
 | [apiserver etcd3: a list at a resource version of 2^63 or more returns the current objects instead of a "too large resource version" error](k8s-etcd3-list-exact-rv-above-int64.md) | no |  |
 | [client-go: the exponential failure rate limiter returns a negative delay when the backoff reaches exactly 2^63 ns](k8s-workqueue-exponential-backoff-2to63.md) | no |  |
+| [klog: Infof, Warningf and Errorf panic on an empty message when a logger is set](klog-printf-empty-with-logger.md) | no | kubernetes/klog#272 pr merged |
 | [clientv3/leasing: a `WithFromKey` delete does not make other leasing clients drop the keys they cache](leasing-delete-fromkey-skips-revoke.md) | no | etcd-io/etcd#22083 issue open; etcd-io/etcd#22118 pr open; etcd-io/etcd#20704 issue closed |
 | [raft: with `AsyncStorageWrites`, entries applied after a snapshot that includes them diverge the state machine](raft-async-snapshot-during-apply-divergence.md) | no | etcd-io/raft#8 pr merged |
 | [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | no | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
