@@ -116,7 +116,88 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, eleventh session; resume here)
+## State (2026-11-23, twelfth session; resume here)
+
+Read with the eleventh session's state below (accurate where this does not say otherwise).
+
+**Done.**
+- **The ghost bundle** (`Base.lean`): `Dsv.netDistGF` is now the kit's own `def` (was `abbrev :=
+  netGF`): remote's `remoteGF` slots (non-atomic invariants at slot 8, `netDistGF_naInvG`, which
+  `remote`'s linked `wp_Check` needs, `[NaInvG GF]`) **over `netShaExts`'s values**: the heap's
+  and the prophecies' slots name `val`, which depends on the extension list, so neither `netGF` nor
+  `remoteGF` (both over `netExts`) admits a `GooseGpreS` for `netShaExts` (finding: the kit's
+  proofs had typechecked at `netGF` because nothing asked for its slots before the bridge).
+  `netShaGpreS : GooseGpreS netDistGF` (both extensions in slot 0).
+- **`SwiftLibs`' heap predicates indexed by the machine heap** (premise-strength fix):
+  `isTreeMap`, `gobEncoder`, `gobDecoder` now take a `HeapGS HasLC.hasLC GF` first (the wrappers
+  `treemap.isTreeMap`, `encoding.gob.ownEncoder/ownDecoder` pass the ambient `hG`). Before, they
+  were heap-independent predicates over a *global* class, which no real points-to representation
+  could instantiate (a premise with no true instance). `gobFmt` is pure and stays.
+- **`RpcHttpAddr.httpW_reg`** (`lib/RpcHttpHyps.lean`, dsv-epaxos's law: `(httpW W).reg = W.reg`,
+  true of models-rpc-http's `{W with hs, hsAns}`): the start allocates `regInv (httpW W₀)`.
+- **The bridge** (`examples/swiftnet/Bridge.lean`, kit-local, to move to `Net/Statement`):
+  `robust_of_distProtoLisRBT_sha` = dsv-epaxos's `robust_of_distProtoLisRBT` over `netShaExts`
+  (`netSha_globalStart` by `sep_elim_left`; `goose_dist_adequacy`'s `Hinitg` is
+  `⟨Hconns, hig.2.1, trivial⟩`: the hash's "nothing hashed" comes from `Robust`'s own
+  `extsInitGlobal g`, so no extra premise beyond `DistDeploy`). Checked (lean-check, 0 errors).
+- **The ghost start** (`examples/swiftnet/Start.lean`, 0 errors): `swStartAddrs` (plain addresses
+  ++ replicas' rpc ports), `swAddrs` (++ remote's `clientAddrs`), `masterLis = ":7001"`,
+  `swLas = masterLis :: replicaLis`, with `swAddrs_nodup/_ok`, `swLas_pairwise` (`wild_disj`),
+  `swLas_disj`; `addrUnset_lisUnset`, `addrToks_of`; **`sw_start`**: `regCtx -∗ swStartAddrs
+  unset -∗ swLas unset ={⊤}=∗ ∃ γ γk, common γ ∗ conf.writer γ ∗ linkInv γ γk ∗ sysK γk swB.init ∗
+  [∗list] c ∈ range 6, clientNodeShare γ c ∗ [∗list] i ∈ range 6, serverShare γ i`, the world
+  `γ.W = httpW ⟨services γc γm, γw⟩`, `rpcLisP_set`'s handshake premise from `httpW_hs/_hsAns`.
+- `TopLevelDefs.lean` (written, not yet checked): `boot`, `system` (13 machines: orch, client0..5,
+  server1..6), `heapAt`, `libsAt l π` (the premise `l : SwiftNetPkgState netDistGF` with the
+  start's `π` in place of its `NetProtoGS` parent: how the statement gets a libraries instance at
+  the bridge's `π`).
+- **Landing lesson applied**: the sub-package `Link.lean`s (`dlog`, `master`, `swift`, `client`,
+  `state`, `replica`, `replica/defs`) are now `Results.lean`; `concurrent_map/Link.lean` is
+  `Linked.lean` (it already has a `Results.lean`). `proof_roots.namespace()` prints
+  `Perennial.EtcdGrove.`. The kit's top-level `Link.lean` (to write) must open
+  `Perennial.EtcdGrove.dsvswiftpaxos`.
+- Deleted the lab's `ClaimLink`, `ServersLink`, `Start` (old), `NameOkFor`, `registerRPC` (Spec and
+  Proof), `codec/*` (copies of `ServersLink`/`ClaimLink`/old `Start` in the scratchpad only; git
+  history has them). Kept as the boot's material, not built: `SrvInit`, `ClientInit`,
+  `ClientPkgInits`, `InitFirst`, `PkgState`.
+- A full rebuild of the kit's ~500 modules is needed after the `Base.lean` change (418 importers):
+  started this session (build list: every `.lean` under `Dsverify/{Proof,Spec}/github_com/
+  {imdea_software/swiftpaxos,orcaman,emirpasic}`, `Dsverify/{Proof,Spec}/encoding`, minus the five
+  boot-material files above).
+
+**Next.**
+1. Check the rebuild's result (any module that relied on `netDistGF` reducing to `netGF`, or on
+   the heap-free `isTreeMap`/`ownEncoder`).
+2. **The boot** (coordinator: owned first-run boot proofs, as gryff's `wp_initialize'_own`; never
+   premises from nothing). Per machine, from `ownGoState ∅`: `ownInitializing getIsPkgInit ∗
+   isPkgInit cmd ∗ R` with `R` the machine's boot part: clients `client.ghostFresh ∗ codecFresh ∗
+   cliBoot`; servers `srvBoot i` (codecFresh, cliBoot, srvEnv, `muxOwner []`, `∃ γs,
+   defaultServer γs`, and on a replica `client.ghostFresh ∗ swift.mutGlobals`). Two sources:
+   (a) the kit's translated packages whose first run allocates owned globals (`concurrent-map`'s
+   `SHARD_COUNT`, `swift`'s `MaxDescRoutines`/`useFastAckPool`, `client`'s node ghost): prove, as
+   the lab's `SrvInit.lean` (`init_cmap_first`, `init_client_first`, `init_swift_first`,
+   `swiftnetInitSrv_first` over `InitFirst.lean`'s `wp_package_init_first` = gryff's
+   `wp_package_init_gen`), retargeted at the kit-over-remote's import closure (the lab's
+   `harness.remote`/`check` are gone; `Net`'s remote, lintest, porcupine instead); needs
+   `etc/dsv/swiftpaxos.py`'s `PROGRAMS` (the 13 commands' `PkgTable.lean`) so the `GetIsPkgInitProp`
+   facts exist, as rabia's/gryff's. (b) net/rpc's and net/http's owned globals (codec registry,
+   `DefaultServer`, `DefaultServeMux`): their initializers are `InitHyp`s (post: `isPkgInit` only),
+   so a first-run hypothesis is needed: state it as the initializer's first run (package not yet
+   initialized, `ownInitializing g` with `g net.rpc ⊢ False`) returning `rpcBootRes`, a visible
+   premise of the statement, never from `True`; to agree with the coordinator before landing
+   (dsv-epaxos's `RpcBoot` is the whole command's initializer instead).
+3. `Mains.lean` (one `DistBootWpGT` obligation per machine, from `sw_start`'s shares and the boot),
+   `Link.lean` (namespace `Perennial.EtcdGrove.dsvswiftpaxos`; the callee list in the eleventh
+   session's state), `Spec/.../TopLevelRobustness.lean` (`swiftpaxos_remote_robust.spec`: premises
+   `SwiftHyps`, `SwiftNoSignals`, `SwiftOsRandom`, `ra : ∀ G π, RpcHttpAddr`, `rh : ∀ G L π,
+   RpcHttpHyp`, the libraries `l`, every `InitHyp`, the net/rpc boot hypothesis; conclusion
+   `DistDeploy swAddrs (system σ) g → Robust [] (system σ) g threads (2^31 - 1)`), the proof
+   via `robust_of_distProtoLisRBT_sha` (GF := netDistGF), `sw_start`, `mapCtx_alloc`,
+   `addrs_set_proto` at `clientAddrs` (remote's `reqP`/`repP`), `pend_alloc` from `sysK γk
+   swB.init`. Then `#print axioms`, `etc/theorem-loc.py`, `etc/tcb-collections/dsv-swiftpaxos.txt`.
+4. Delete the boot-material lab files once the boot is done.
+
+## State (2026-11-23, eleventh session; superseded where the twelfth says so)
 
 Read with the tenth session's state below (accurate where this does not say otherwise).
 
