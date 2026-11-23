@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.apiserver.pkg.storage.value
 
 @[expose] public section
 
@@ -376,6 +377,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   DefaultContext_instance : DefaultContext.TypeAssumptions
   PrefixTransformer_instance : PrefixTransformer.TypeAssumptions
   prefixTransformers_instance : prefixTransformers.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.gRPCError_instance
   Assumptions.Context_instance
@@ -386,6 +388,7 @@ attribute [instance] Assumptions.gRPCError_instance
   Assumptions.DefaultContext_instance
   Assumptions.PrefixTransformer_instance
   Assumptions.prefixTransformers_instance
+  Assumptions.«init.0_unfold»
 
 end k8s_io.apiserver.pkg.storage.value
 

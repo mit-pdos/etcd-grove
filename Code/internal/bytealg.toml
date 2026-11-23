@@ -6,3 +6,6 @@ imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+# (etcd-grove#32, 2026-11-22) the `init` function trusted: a model that does nothing
+# (TrustedCode/internal/bytealg.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0"]

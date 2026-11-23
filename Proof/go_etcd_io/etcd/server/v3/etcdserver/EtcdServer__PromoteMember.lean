@@ -300,7 +300,7 @@ theorem EtcdServer.PromoteMember.wp_proof
     · iPkgInit
     ihave Hmi : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Pmb
-    icases Hmi with ⟨-, #HMV⟩
+    icases Hmi with ⟨-, #HMV, -⟩
     ihave #HvINF := errorsNewVars_mem
       (X := go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound)
       (m := go!"membership: ID not found")

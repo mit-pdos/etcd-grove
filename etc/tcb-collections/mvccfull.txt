@@ -9,9 +9,8 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update. (2026-11-10: no baseline yet,
 # the build of record not up to date when the collection was added.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.lean$
-axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
-axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
+axiom Perennial.github_com.prometheus.client_model.go.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init

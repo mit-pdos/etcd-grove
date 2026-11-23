@@ -15,6 +15,9 @@ translate = ["!*", "New", "Version.Major", "Version.Minor", "MustParse", "Versio
 imports = ["!*", "strings", "strconv"]
 
 # translate the definitions of all type declarations goose supports
+# (etcd-grove#32, 2026-11-22) the `init` functions trusted: a model that does nothing
+# (TrustedCode/github_com/Masterminds/semver/v3.lean; until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.0", "init.1"]
 translate_types = true
 
 # --- skipped package variables (mit-pdos/etcd-grove#23) ---

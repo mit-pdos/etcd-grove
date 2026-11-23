@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import TrustedCode.k8s_io.client_go.util.watchlist
 
 @[expose] public section
 
@@ -75,8 +76,10 @@ attribute [instance] unSupportedWatchListSemantics.TypeAssumptions.underlying
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   unSupportedWatchListSemantics_instance : unSupportedWatchListSemantics.TypeAssumptions
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.unSupportedWatchListSemantics_instance
+  Assumptions.«init.0_unfold»
 
 end k8s_io.client_go.util.watchlist
 

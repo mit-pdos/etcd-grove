@@ -169,7 +169,7 @@ theorem errVars.law_holds : errVars.law (GF := GF) := by
   ihave Hmi : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    -, -, -, #N1, #N2, #N3, -, #C1, #C2, -, -, -, -, -, -, ⟨#N4, #C3, #C4⟩⟩
+    -, -, -, #N1, #N2, #N3, -, #C1, #C2, -, -, -, -, -, -, ⟨#N4, #C3, #C4, -⟩⟩
   iframe N1 N2 N3 N4
   imodintro
   iintro %X %Y %hm

@@ -17,6 +17,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
+
+- **Limitation.** goose emits `Convert go.untypedInt go.float64` for a unary untyped-integer constant in a
+  float context (`g.Add(-1)` in `gauge.Dec`, `val * -1` in `gauge.Sub`), and `Float64Semantics` had no rule
+  for it: the translation was stuck. `gauge.Set`/`Add`/`Sub` and `counter.Add` call `math.Float64bits`/
+  `Float64frombits`, names-only at the pin.
+- **Work-around here.** None: the branch `prove-ps2-metrics/2026-11-22` is built against Perennial
+  `680fbbc03` and waits for the pin to reach it.
+- **Proposed (general).** mit-pdos/perennial#682 (the int-to-float conversions, through #676's `ratToFloat64`)
+  and mit-pdos/perennial#675 (the bit casts). **Status.** Both merged (#675 in the pin `1a0322fc6`, #682 as
+  `680fbbc03`); waits for the pin bump (#9).
 ### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
 
 - **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a
@@ -1568,7 +1579,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   now false of the struct literal: unused, declared still) and `newQueue` no longer needs
   `MutexLitSemantics`'s step (still taken as an instance); #16 deletes both.
 
-### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
+### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue) -- DONE (Perennial `680fbbc03`, perennial#682; class deleted on `prove-ps2-metrics/2026-11-22`)
 
 - **Missing.** `backoff > math.MaxInt64` with `backoff : float64` is emitted as `Convert
   go.untypedInt go.float64 #c` at run time, and `UntypedIntSemantics` converts untyped integers to
@@ -1578,7 +1589,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`, in `SEM_PREMISES`): it steps to
   an uninterpreted float of the integer, as `float64(n)` of a typed integer does.
 - **Proposed.** Goose folding the constant conversion, or the step in `UntypedIntSemantics`.
-- **Status.** Not started.
+- **Done.** mit-pdos/perennial#682 (`680fbbc03`): the step, to `ratToFloat64 c` (one rounding, #676's).
+  The local class and `UntypedIntToFloat.lean` are deleted (branch `prove-ps2-metrics/2026-11-22`, with the
+  pin that brings it): `When.wp_proof` and the work queue's Links lose the instance premise (a stronger
+  statement).
 
 ### Specs: `container/heap` (2026-10-27, client-go workqueue)
 
