@@ -7,7 +7,9 @@ resources are the extension's state, piece by piece, and nothing else (no histor
 * `netLisTok a` (exclusive, one per valid address, from the start resources): the right to listen
   at `a`, which `Listen` of `a` takes (`wp_net_Listen`, by an atomic update, so that the token may
   live in an invariant: a node that re-listens at its address after every restart keeps it there),
-  so that a proof can show that only its holder ever listens at `a`.
+  so that a proof can show that only its holder ever listens at `a`. `Listen` of a wildcard (D21)
+  takes the tokens of every valid address with its port (`lisToks la`: those of the addresses `la`
+  takes, `lisAccepts`; `la`'s own alone for a valid address, `lisToks_addrOk`).
 * `netPend a S` (exclusive, one per valid address, `addrOk`, from the start resources: the valid
   addresses are finitely many, `Deploy.lean`'s `addrSpace`): `S` is the set of the
   connections dialed to `a` and not yet accepted. `Dial` adds to it and `Accept` takes from it, as
@@ -25,9 +27,10 @@ resources are the extension's state, piece by piece, and nothing else (no histor
   A connection's ghost names are in a ghost map from connection numbers (persistent entries).
 
 **The node's resources** (local): `netLis l a o`, the listener `l` at `a`, open if `o`
-(exclusive); `netLisAt l a` (persistent), the listener `l` exists, at `a`, which is what an `Accept`
-or a `Close` needs to step while `netLis` is elsewhere (in an invariant: a listener shared between
-threads).
+(exclusive); `netLisOn l a` (persistent), the listener `l` exists, at `a` (a valid address or a
+wildcard, `listenOk`), which is what an `Accept` or a `Close` needs to step while `netLis` is
+elsewhere (in an invariant: a listener shared between threads); `netLisAt l a`, the same at a valid
+address (`addrOk`).
 
 **Crashes**: the network's resources are global and survive a crash, as the network does. The
 listeners' ghost maps are the node's, made anew at a crash (no listener survives).
@@ -221,12 +224,23 @@ def netLisTok (hG : NetGS GF) (a : GoString) : IProp GF :=
 def netLis (hL : NetLocalGS GF) (l : w64) (a : GoString) (o : Bool) : IProp GF :=
   letI := hL.allG; ghostMapElem hL.γlis l (.own 1) (a, o)
 
-/-- The listener `l` of this node exists, at the valid address `a` (persistent: what an `Accept`
-or `Close` of `l` needs to take a step, whoever holds `netLis`; `Listen` gives it for a valid
-address, `addrOk`, not for a wildcard, whose `Accept` takes connections dialed to other
-addresses). -/
+/-- The listener `l` of this node exists, at the valid address `a` (persistent: `netLisOn` at an
+`addrOk` address, `netLisAt_on`, `netLisOn_at`, which a listener at a valid address takes only the
+connections dialed to, `lisAccepts_addrOk`). -/
 def netLisAt (hL : NetLocalGS GF) (l : w64) (a : GoString) : IProp GF :=
   letI := hL.allG; iprop(ghostMapElem hL.γat l .discard a ∗ ⌜addrOk a = true⌝)
+
+/-- The listener `l` of this node exists, at `a`, a valid address or a wildcard (`listenOk`, D21):
+what `Listen` gives (persistent, as `netLisAt`, which is it at a valid address: `netLisAt_on`,
+`netLisOn_at`). -/
+def netLisOn (hL : NetLocalGS GF) (l : w64) (a : GoString) : IProp GF :=
+  letI := hL.allG; iprop(ghostMapElem hL.γat l .discard a ∗ ⌜listenOk a = true⌝)
+
+/-- D21. The right to listen at `la` (a valid address or a wildcard): the listening tokens of the
+valid addresses it takes (`lisAccepts`), `la`'s alone for a valid address (`lisToks_addrOk`), every
+valid address with its port for a wildcard. -/
+def lisToks (hG : NetGS GF) (la : GoString) : IProp GF :=
+  [∗map] a ↦ _u ∈ addrSpace (), iprop(⌜lisAccepts la a⌝ → netLisTok hG a)
 
 instance netNames_persistent (hG : NetGS GF) c γ : Persistent (netNames hG c γ) := by
   unfold netNames; letI := hG.allG; infer_instance
@@ -251,6 +265,57 @@ instance netLisAt_persistent (hL : NetLocalGS GF) l a : Persistent (netLisAt hL 
   unfold netLisAt; letI := hL.allG; infer_instance
 instance netLisTok_timeless (hG : NetGS GF) a : Timeless (netLisTok hG a) := by
   unfold netLisTok; letI := hG.allG; infer_instance
+instance netLisOn_timeless (hL : NetLocalGS GF) l a : Timeless (netLisOn hL l a) := by
+  unfold netLisOn; letI := hL.allG; infer_instance
+instance netLisOn_persistent (hL : NetLocalGS GF) l a : Persistent (netLisOn hL l a) := by
+  unfold netLisOn; letI := hL.allG; infer_instance
+instance lisToks_timeless (hG : NetGS GF) la : Timeless (lisToks hG la) := by
+  unfold lisToks; letI := hG.allG; infer_instance
+
+theorem netLisAt_on (hL : NetLocalGS GF) (l : w64) (a : GoString) :
+    netLisAt hL l a ⊢ netLisOn hL l a := by
+  letI := hL.allG
+  unfold netLisAt netLisOn
+  iintro ⟨H, %h⟩
+  iframe H
+  ipureintro; simp [listenOk, h]
+
+theorem netLisOn_at (hL : NetLocalGS GF) (l : w64) {a : GoString} (h : addrOk a = true) :
+    netLisOn hL l a ⊢ netLisAt hL l a := by
+  letI := hL.allG
+  unfold netLisAt netLisOn
+  iintro ⟨H, -⟩
+  iframe H
+  ipureintro; exact h
+
+/-- At a valid address, the right to listen is its listening token. -/
+theorem lisToks_addrOk (hG : NetGS GF) {la : GoString} (h : addrOk la = true) :
+    lisToks hG la ⊣⊢ netLisTok hG la := by
+  letI := hG.allG
+  have hl : PartialMap.get? (addrSpace ()) la = some () := by
+    rw [gmap_get?_eq]; exact addrSpace_lookup_ok () h
+  unfold lisToks
+  constructor
+  · refine (BigSepM.bigSepM_lookup_acc hl).1.trans ?_
+    iintro ⟨H, -⟩
+    iapply H
+    ipureintro; exact Or.inl rfl
+  · have key : ∀ {k : GoString} {v : Unit}, PartialMap.get? (Std.delete (addrSpace ()) la) k = some v →
+        (iprop(□ True) : IProp GF) ⊢ iprop(⌜lisAccepts la k⌝ → netLisTok hG k) := by
+      intro k v hk
+      iintro - %hacc
+      have hk' : la = k := (lisAccepts_addrOk h).mp hacc
+      subst hk'
+      rw [gmap_get?_eq] at hk
+      have : (GMap.delete la (addrSpace ())) !! la = none := GMap.lookup_delete _ _
+      rw [show Std.delete (addrSpace ()) la = GMap.delete la (addrSpace ()) from rfl, this] at hk
+      cases hk
+    refine Entails.trans ?_ (BigSepM.bigSepM_delete hl).2
+    iintro Ht
+    isplitl [Ht]
+    · iintro %_; iexact Ht
+    · iapply (BigSepM.bigSepM_intro key)
+      imodintro; itrivial
 
 theorem netLisTok_excl (hG : NetGS GF) (a : GoString) :
     netLisTok hG a ∗ netLisTok hG a ⊢ (False : IProp GF) := by
