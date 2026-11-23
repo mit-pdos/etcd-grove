@@ -18,6 +18,7 @@ public import Proof.internal.poll.PkgInit
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.internal.oserror.Base
+public import Perennial.Proof.internal.testlog.Base
 public import Spec.fmt.ErrorOk
 
 @[expose] public section

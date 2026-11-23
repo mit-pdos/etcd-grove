@@ -93,6 +93,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.newQuotaApplierV3
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.noSideEffect
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.MustUnmarshalMessage
+public import Proof.go_uber_org.zap.internal.pool.Pool__Get
+public import Proof.go_uber_org.zap.internal.pool.Pool__Put
 public import Proof.github_com.prometheus.client_golang.prometheus.GaugeVec__WithLabelValues
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__LeaseGrant
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__Put
@@ -151,9 +153,13 @@ theorem zap.Logger.wp_check :
     EtcdGrove.zap.Logger.check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.Logger.check.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Put :
+    EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
 theorem zapcore.CheckedEntry.wp_Write :
     EtcdGrove.zapcore.CheckedEntry.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof
+  EtcdGrove.zapcore.CheckedEntry.Write.wp_proof zap.internal.pool.Pool.wp_Put
 
 theorem zap.Logger.wp_Debug :
     EtcdGrove.zap.Logger.Debug.spec (GF := GF) (hG := hG) :=
@@ -271,6 +277,10 @@ theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.Is.wp_proof
 
+theorem zap.internal.pool.Pool.wp_Get :
+    EtcdGrove.zap.internal.pool.Pool.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.internal.pool.Pool.Get.wp_proof
+
 theorem txn.wp_WarnOfExpensiveRequest :
     EtcdGrove.txn.WarnOfExpensiveRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.WarnOfExpensiveRequest.wp_proof
@@ -281,7 +291,7 @@ theorem txn.wp_WarnOfFailedRequest :
 
 theorem zap.Logger.wp_Panic :
     EtcdGrove.zap.Logger.Panic.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.zap.Logger.Panic.wp_proof
+  EtcdGrove.zap.Logger.Panic.wp_proof zap.internal.pool.Pool.wp_Get
 
 end links
 

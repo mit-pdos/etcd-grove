@@ -86,7 +86,7 @@ noncomputable instance metadataSupplier_access_load_metadata (l : Loc) (v : go_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance metadataSupplier_access_store_metadata (l : Loc) (v : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier) (metadata' : google_golang_org.grpc.metadata.MD) :
+noncomputable instance metadataSupplier_access_store_metadata (l : Loc) (v : go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier) (metadata' : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go!"metadata" l) v.metadata' (DFrac.own 1))
       (typedPointsto (structFieldRef go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.metadataSupplier go!"metadata" l) metadata' (DFrac.own 1))

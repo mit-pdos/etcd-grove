@@ -3583,8 +3583,26 @@ _ZCL = f'{_ZC}.Level.ty'
 _ZCC = '_root_.Perennial.go_uber_org.zap.internal.color.Color.ty'
 def _zc_pool(h):
     return ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]',
-            f'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %{h} -',
+            f'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %{h} -',
             'try wp_auto']
+# (zap-z2, 2026-11-23) `_cePool`: the pool `New` returns becomes an `isPool` of owned entries (zapcore's fact)
+_zc_ce_pool = ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]',
+    'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pce Hpce',
+    'imod (EtcdGrove.zap.internal.pool.ownPool_init _ pce _ EtcdGrove.zapcore.pooledEntry ⊤) $$ [$Hpce] with #Hpce',
+    '· unfold EtcdGrove.zap.internal.pool.fnSpec',
+    '  imodintro',
+    '  iintro %Φ - HΦ',
+    '  wp_auto',
+    '  wp_apply wp_slice_make2 (V := GoInterface) as %sc ⟨Hsc, Hscap⟩',
+    '  · ipureintro',
+    '    word',
+    '  iapply HΦ',
+    '  unfold EtcdGrove.zapcore.pooledEntry',
+    '  iexists _',
+    '  iframe',
+    '  iexists []',
+    '  iapply ownSlice_nil',
+    'try wp_auto']
 SPECIAL[_ZC] = newvars_cfg(dict(
     doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
 their translated initializers and its translated `init` (prove-misc, 2026-11-20; until then the
@@ -3596,7 +3614,7 @@ around its name (`color.Add`, `fmt.Sprintf`; `Level.String`/`CapitalString` of t
                  '_errArrayElemPool': 'Loc', '_jsonPool': 'Loc', 'nullLiteralBytes': 'GoSlice',
                  '_levelToColor': 'Loc', '_unknownLevelColor': 'w8',
                  '_levelToLowercaseColorString': 'Loc', '_levelToCapitalColorString': 'Loc'},
-    before={'_sliceEncoderPool': _zc_pool('psl'), '_cePool': _zc_pool('pce'),
+    before={'_sliceEncoderPool': _zc_pool('psl'), '_cePool': _zc_ce_pool,
             '_errArrayElemPool': _zc_pool('pea'), '_jsonPool': _zc_pool('pjs'),
             'nullLiteralBytes': ['try wp_auto', 'wp_apply wp_string_to_bytes _ as %snull ⟨Hsnull, -⟩', 'try wp_auto'],
             '_levelToColor': map_lit_steps('Hlc', 'w8', 'w8', _ZCL, _ZCC, 7),
@@ -3669,14 +3687,39 @@ translated initializers (zap-z1, 2026-11-23: zap's `Logger.check` reads `Get`): 
     alloc_types={'_pool': '_root_.Perennial.go_uber_org.zap.buffer.Pool', 'Get': 'GoFunc'},
     before={'_pool': ['try wp_auto', 'wp_func_call', 'wp_call', 'try wp_auto',
                       'rw [recv_eq_func_mk BAnon BAnon]',
-                      'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) (V := Loc)) as %pbuf -',
+                      'wp_apply (EtcdGrove.zap.internal.pool.New.wp_proof (GF := GF) (hG := hG) _) as %pbuf -',
                       'try wp_auto']},
     imports=['Proof.go_uber_org.zap.internal.pool.New'],
 )
+# (zap-z2, 2026-11-23) zap's `internal/exit`: `_exit = os.Exit`, held by its fact (`zapcore.WriteThenFatal`'s
+# hook calls `With`, which calls it)
+SPECIAL['go_uber_org.zap.internal.exit'] = dict(
+    doc='''Its fact: `_exit` holds `os.Exit` for good (zap-z2, 2026-11-23: `zap.Logger.Fatal` reaches `With`, which
+calls it; only the test helpers `Stub`/`WithStub`/`Unstub`, not translated, write it). Its initializer allocates
+`_exit`, initializes `os` and stores the function value.''',
+    alloc_types={'_exit': 'GoFunc'},
+    before={'$end': ['try wp_auto']},
+    finish=['ipersist H_exit'] + FIN_PRE[:6],
+)
+# (zap-z2, 2026-11-23) `multierr` (zapcore's `CheckedEntry.Write` names its `Append`): its variables
+_ME_BYTES = ['try wp_auto', 'wp_apply wp_string_to_bytes _ as %_ ⟨_, -⟩', 'try wp_auto']
+SPECIAL['go_uber_org.multierr'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables, initializes `bytes` and `sync` and runs their
+translated initializers (zap-z2, 2026-11-23: zapcore imports it): the separators (`[]byte` of string
+constants) and `_bufferPool` (a `sync.Pool` literal whose `New` is a function literal, not called).''',
+    alloc_types={'_singlelineSeparator': 'GoSlice', '_multilinePrefix': 'GoSlice',
+                 '_multilineSeparator': 'GoSlice', '_multilineIndent': 'GoSlice',
+                 '_bufferPool': '_root_.Perennial.sync.Pool'},
+    before={'_singlelineSeparator': _ME_BYTES, '_multilinePrefix': _ME_BYTES,
+            '_multilineSeparator': _ME_BYTES, '_multilineIndent': _ME_BYTES,
+            '_bufferPool': ['try wp_auto', 'rw [recv_eq_func_mk BAnon BAnon]', 'try wp_auto'],
+            '$end': ['try wp_auto']},
+)
 # (prove-initleft, 2026-11-21) zapcore's fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop` loads it)
-SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`).")
-SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock'] + FIN_PRE[:6] + [
-    'imodintro', f'iexists (zero_val {_ZC}.systemClock)', 'itrivial']
+SPECIAL[_ZC]['doc'] = SPECIAL[_ZC]['doc'].replace("Its fact is `True`.", "Its fact: `DefaultClock` holds a fixed `systemClock` (zap's `NewNop`, which zap's\ninitializer runs, loads it; prove-initleft, 2026-11-21: until then `True`), and `_cePool` a fixed pool of\nowned entries (zap-z2, 2026-11-23: `CheckedEntry.Write` and `After` use it).")
+SPECIAL[_ZC]['finish'] = ['ipersist HDefaultClock', 'ipersist H_cePool'] + FIN_PRE[:6] + [
+    'imodintro', 'isplitl []', f'· iexists (zero_val {_ZC}.systemClock)', '  itrivial',
+    'iexists pce', 'iframe #']
 # (prove-initleft, 2026-11-21) zap's package variables, translated but `_minTimeInt64`/`_maxTimeInt64`
 # (Perennial's `time.Unix` is names only) and `_sinkRegistry`; (prove-srvloops2, 2026-11-21)
 # `_minTimeInt64`/`_maxTimeInt64` translated (`time.Unix`), held by zap's fact (`zap.Time` reads them)
@@ -3743,10 +3786,8 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  · iapply isPkgInit_access $$ Hpkg',
         '  iNamed IO',
         '  icases HDiscard with ⟨%wd, #HDiscard⟩',
-        '  ihave #ZC : (iprop(∃ c : _root_.Perennial.go_uber_org.zap.zapcore.systemClock, typedPointsto (globalAddr',
-        '      _root_.Perennial.go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) : IProp GF) $$ []',
-        '  · iapply isPkgInit_access $$ Hpkg2',
-        '  icases ZC with ⟨%dc, #HDC⟩',
+        '  ihave #ZC := _root_.Perennial.go_uber_org.zap.zapcore.isInit_access $$ Hpkg2',
+        '  icases ZC with ⟨⟨%dc, #HDC⟩, -⟩',
         '  wp_auto',
         '  wp_func_call',
         '  wp_call',
@@ -3757,7 +3798,7 @@ zapcore's fact), `_globalS = _globalL.Sugar()` (a copy of the logger) and the in
         '  iexists _',
         '  iframe',
         '  ipureintro',
-        '  exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
+        '  exact ⟨rfl, rfl, rfl, rfl, rfl, dc, rfl⟩',
         '',
         '/-- (prove-initleft) `l.Sugar()` on a `Logger`: a copy of it (`clone`), its caller skip plus 2. -/',
         'theorem EtcdGrove.zap_wp_Sugar_init (l : Loc) (v : _root_.Perennial.go_uber_org.zap.Logger) :',

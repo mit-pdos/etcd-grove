@@ -23,7 +23,7 @@ zap_Uint64:
 zap_Duration:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Info: zap_Logger__check zapcore_CheckedEntry__Write
 # The read package (read.go, util.go).
@@ -45,3 +45,6 @@ traceutil_Trace__IsEmpty:
 traceutil_newTrace:
 traceutil_Trace__LogWithStepThreshold:
 context_WithValue:
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:

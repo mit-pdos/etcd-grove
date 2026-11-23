@@ -4,9 +4,12 @@ module
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
+public import GeneratedProof.go_uber_org.multierr
 public import GeneratedProof.go_uber_org.zap.internal.color
+public import GeneratedProof.go_uber_org.zap.internal.exit
 public import GeneratedProof.go_uber_org.zap.internal.pool
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -674,7 +677,7 @@ noncomputable instance Entry_access_load_Time (l : Loc) (v : go_uber_org.zap.zap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_Time (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (Time' : time.Time) :
+noncomputable instance Entry_access_store_Time (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (Time' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) Time' (DFrac.own 1))
@@ -1219,7 +1222,7 @@ noncomputable instance lazyWithCore_access_load_Once (l : Loc) (v : go_uber_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance lazyWithCore_access_store_Once (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (Once' : sync.Once) :
+noncomputable instance lazyWithCore_access_store_Once (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (Once' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) Once' (DFrac.own 1))
@@ -1428,7 +1431,7 @@ noncomputable instance sampler_access_load_tick (l : Loc) (v : go_uber_org.zap.z
  by
   solve_pointsto_access_struct
 
-noncomputable instance sampler_access_store_tick (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (tick' : time.Duration) :
+noncomputable instance sampler_access_store_tick (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (tick' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) tick' (DFrac.own 1))
@@ -1517,7 +1520,7 @@ noncomputable instance lockedWriteSyncer_access_load_Mutex (l : Loc) (v : go_ube
  by
   solve_pointsto_access_struct
 
-noncomputable instance lockedWriteSyncer_access_store_Mutex (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (Mutex' : sync.Mutex) :
+noncomputable instance lockedWriteSyncer_access_store_Mutex (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (Mutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) Mutex' (DFrac.own 1))
@@ -1573,7 +1576,7 @@ noncomputable instance writerWrapper_access_load_Writer (l : Loc) (v : go_uber_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance writerWrapper_access_store_Writer (l : Loc) (v : go_uber_org.zap.zapcore.writerWrapper) (Writer' : io.Writer) :
+noncomputable instance writerWrapper_access_store_Writer (l : Loc) (v : go_uber_org.zap.zapcore.writerWrapper) (Writer' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) Writer' (DFrac.own 1))

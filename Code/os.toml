@@ -50,9 +50,15 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   # structs (method-set wrappers: `MethodUnfold`s that resolve through the embedded `*File`):
   # `genericReadFrom`'s loop reads `fileWithoutWriteTo` and writes `fileWithoutReadFrom`, and
   # `spliceToFile`'s `getPollFDAndNetwork` calls `fileWithoutWriteTo`'s `SyscallConn`
-  "fileWithoutWriteTo.Read", "fileWithoutWriteTo.SyscallConn", "fileWithoutReadFrom.Write"]
+  "fileWithoutWriteTo.Read", "fileWithoutWriteTo.SyscallConn", "fileWithoutReadFrom.Write",
+  # (zap-z2, 2026-11-23, as Perennial's os.toml since `ca6df841b`) `Exit` (zap's `internal/exit`,
+  # `zap.Logger.Fatal`), over the trusted `syscall.Exit` (`AngelicExit`) and `runtime_beforeExit`
+  # (below); it reads `internal/testlog`'s flag (Perennial's translation)
+  "Exit"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
-imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll"]
+imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll",
+  # (zap-z2) what `Exit` calls (`testlog.PanicOnExit0`)
+  "internal/testlog"]
 # The functions and methods minibolt calls, modeled by the Linux file extension fsExt
 # (TrustedCode/os.lean, GooseLang/Ext/Fs/Impl.lean); `file` (its `poll.FD`) and `fileStat` (its
 # `syscall.Stat_t`) with the layouts the models need.
@@ -77,7 +83,10 @@ trusted = ["file", "fileStat", "OpenFile", "File.WriteAt", "File.ReadAt", "File.
   # rounds on the two files' offsets (TrustedCode/os.lean)
   "File.readFrom", "File.copyFileRange", "File.spliceToFile",
   # (rawconn.go) `c.file.pfd.RawControl/RawRead/RawWrite`: not modelled (a panic)
-  "rawConn.Control", "rawConn.Read", "rawConn.Write"]
+  "rawConn.Control", "rawConn.Read", "rawConn.Write",
+  # (zap-z2, 2026-11-23, as Perennial's os.toml) `runtime_beforeExit` (a `go:linkname` into the
+  # runtime's `os_beforeExit`, which `Exit` calls): nothing (TrustedCode/os.lean)
+  "runtime_beforeExit"]
 
 # (2026-11-07) every type declaration goose supports, as Perennial's: the `var _ I = ...`
 # assertions convert to interface types

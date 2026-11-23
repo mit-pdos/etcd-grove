@@ -69,7 +69,7 @@ noncomputable instance info_access_load_CommonAuthInfo (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance info_access_store_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (CommonAuthInfo' : google_golang_org.grpc.credentials.CommonAuthInfo) :
+noncomputable instance info_access_store_CommonAuthInfo (l : Loc) (v : google_golang_org.grpc.credentials.insecure.info) (CommonAuthInfo' : _root_.Perennial.google_golang_org.grpc.credentials.CommonAuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) v.CommonAuthInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.credentials.insecure.info go!"CommonAuthInfo" l) CommonAuthInfo' (DFrac.own 1))
