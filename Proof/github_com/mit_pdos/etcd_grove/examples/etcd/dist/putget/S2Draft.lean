@@ -8,7 +8,7 @@ start and client need. Until his branch lands, this module carries **the same na
 form that adds no axiom and no `opaque`: the pure types (`ProtoWire`, `GrpcEntry`, `GrpcSvc`) as he writes
 them, and the rest as the fields of one structure, `S2Draft`, which the skeleton takes as a hypothesis (a
 proof of it is S2 itself). When S2 lands, each field is replaced by his definition or theorem of the same
-name and the structure goes; nothing outside `examples/etcd/dist/putget` imports this module.
+name and the structure goes; nothing outside `examples/etcd/dist` imports this module (D7's `dist/ClusterStart.lean` does).
 
 His names, by section of the draft: §1.2 `grpcAddrAt`, `grpc_addr_set` (spends `addrUnset a`), the slot
 map `depSlotsCtx` (§1.1, `depSlots_alloc`); §1.3 `EnvView`, `etcdEnvOf`, `envPubTok`, `envAt`,

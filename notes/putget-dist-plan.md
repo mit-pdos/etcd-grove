@@ -428,7 +428,7 @@ proved (`member_boot`, `Proof/.../dist/putget/AdequacyMember.lean`) from `S2Hold
   the client's putget invariant from the bootstrap log's KV state, `Serve` in S2's form (`S2Draft.Serve_s2`),
   publishing the view with `Pub`, then `holdForever` (`holdForever.wp_proof`, a `time.Sleep` loop).
 - `member_boot`: `DistBootWpSL srvLevelK (2^28-1) (bootMember peer client) σm (memberShare S client γE id
-  (putgetPub S))`: the file extension's start on a machine of `etcdNetExts` (`etcdNetFs_start`, new in
+  (putgetPub S))`: the file extension's start on a machine of `etcdNetExts` (`etcdNetFs_start`, single-process-restore's, in
   `etcdstart/NetExts.lean`), the member's WAL area from `MemberFiles` (`wp_walAreas`), `putget`'s
   `wp_initialize'`, `Member.wp_proof` at its linked callees.
 - `Pub` is fixed: `putgetPub S ν := ∃ γf, ∀ L, client.putGetInv (hG := heapAt G L lctx) (viewRd ν) γf k v`

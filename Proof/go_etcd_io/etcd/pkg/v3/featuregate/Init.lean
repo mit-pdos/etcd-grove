@@ -1,14 +1,23 @@
 /-
 Package initialization of `go_etcd_io.etcd.pkg.v3.featuregate`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports (it has no initialized
-variable).
+Its fact (`featuregateInit`, `featuregate/Defs.lean`; featuregate-3, 2026-11-23, until then `True`):
+`defaultFeatures` holds a read-only map of `AllAlpha` and `AllBeta` (`defaultKnown`), `specialFeatures`
+some map, both for good. Its initializer initializes its imports, allocates the two and runs their
+translated initializers, map literals of constants and function values.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
-public import Proof.runtime.PkgInitExt
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.PkgInit
+public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.maps.Link
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.sync.atomic.Link
+public import Proof.flag.Init
+public import Proof.go_uber_org.zap.Init
 
 @[expose] public section
 
@@ -25,42 +34,5 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions]
-
-namespace go_etcd_io.etcd.pkg.v3.featuregate
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.featuregate get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iframe Hown
-  is_pkg_init_finish
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.pkg.v3.featuregate get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.featuregate }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end go_etcd_io.etcd.pkg.v3.featuregate
-
-end init
 
 end Perennial

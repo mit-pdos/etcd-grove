@@ -108,7 +108,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit (GF := putgetGF)) $$ Hgs
   ihave Hns := HM.names
   ihave Hdd := HM.dataDir
-  imod etcdNetFs_start σm $$ Hls with ⟨#Hos, Htree⟩
+  imod etcdNetFs_start σm Hm.1 $$ Hls with ⟨#Hos, -, Htree⟩
   imodintro
   -- the member's WAL area, from its machine's files
   iapply (wp_walAreas ⟨putgetGF_allG⟩ etcdFsExts_sat etcdFsExts_satL (extLocal Fs.fsExt σm.world) Hm.1
