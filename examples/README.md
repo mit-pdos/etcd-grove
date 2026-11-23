@@ -38,7 +38,7 @@ names).
 | `etcd/txnlin` | `linkvtxn` | porcupine over the KV API with transactions, as etcd's robustness tester drives it | – (retired 2026-11-21: the single-process `etcd_safe`, itself retired 2026-11-22, tag `single-process-final`) |
 | `etcd/partition` | `linkv3p` | `txnlin` on three members under network partitions, and a watch | – (retired 2026-11-21: the single-process `etcd_safe`, itself retired 2026-11-22, tag `single-process-final`) |
 | `etcd/all` | – | the twelve drivers at once in one process (txnlinfaultsN, partition's `MainWatch`, compactwatch, compacted, cache, authN, authlease, leaseN, leasecatchup, restartN, restart1; `notes/etcd-unified-scope.md`); the other `etcd/` drivers' closed theorems retired into it | – (retired 2026-11-22 at the net swap, tag `single-process-final`; the distributed `etcd_safe`, `etcd/dist`, is to replace it) |
-| `etcd/leaseexpiryN` | – | `leaseexpiry` on `k` members (not in `etcd/all`: its expiry contradicts the lease premise of authlease and leasecatchup) | – (retired 2026-11-22 at the net swap, tag `single-process-final`; the distributed `etcd_safe`, `etcd/dist`, is to replace it) |
+| `etcd/leaseexpiryN` | – | `leaseexpiry` on `k` members (not in `etcd/all`: its expiry contradicts the lease premise of authlease and leasecatchup) | `etcd_leaseexpiryN_safe_single_process` (`etcd_leaseexpiryN_robust_single_process`; retired 2026-11-22 at the net swap, tag `single-process-final`, restored 2026-11-23 over the net extension, `notes/single-process-restore.md`) |
 | `etcd/bugs` | `etcdbugs` | reproductions of bugs found (`issues/`); not translated | – |
 
 ## `k8s/`: Kubernetes over etcd
