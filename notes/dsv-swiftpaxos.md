@@ -141,14 +141,50 @@ Done this session (each builds; the counts are of the 474 copied modules under
 - `swift/SyncFits` takes `[C : net.rpc.RpcCodec netDistGF]` (gob's `codecSet` is over the kit
   codec here); add the same where a file fails on `RpcCodec`.
 
-**Frontier** (scratch `frontier.py`: unbuilt modules whose imports all build, by how many
-modules wait on them). Before this session's last build: 187 of 474 build; the frontier was
-`codec.Base` (fixed), `replica.ConnSpecs` (132 waiting), `examples.swiftnet.Interface` (36),
-`registerRPC` (19), `state.Link` (17), `CodecFns` (12), `ReplicaListener`, `ClientListener`
-(both: `bufio.readerOk_conn`, now proved), `OrchAddr`, `OrchGen`, and `slices.SortFuncOn.*`
-(missing `Spec` files of the lab's `slices` proofs). Missing files: the lab's gob proofs
-(`Proof/encoding/gob/*`: hypotheses now, importers to point at `Hyps`), `treemap.Link`,
-`netrpc.rpc.LocalRegister` (the lab's library proofs, removed).
+Later in the session:
+- **`net-wildcard-listen` merged** (`origin/net-wildcard-listen` `da324b2763`, queued to land;
+  it brought `lean`'s Perennial bump to **`7b2259a12`**: `.lake/packages` now link to
+  `/shared/perennial-7b2259a12`). `Listen.spec` covers wildcards (`listenOk`), `Listener.Accept.spec`
+  takes `lisAccepts la a`; laws `lisUnset`, `lisProto la P Q`, `lis_set_proto`, `listen_lis_au`,
+  `accept_lis_au`, `accept_lis_shared_au`, `addrs_lis_start`. Use them for the replicas'
+  `"0.0.0.0:"+port` and the master's `":"+port` (no `ListenWild` hypothesis). Each node has its
+  own ports here (7600+i, +1000, +2000), as the wildcard specs need. **Not yet rebuilt after the
+  bump at the time of writing**: expect Perennial drift.
+- `lib/NetLab.lean`: the lab's `net.ownListener` (over `lisAt` + `lisInv`; to revisit with
+  `lisProto`), `nodeIp := True` (no node IP in `Net/`), `net.ownTCPConn`, `net.newConnResult` (the
+  error case no longer says `cv = nil`), and **`net.DialTimeout.labProof`** (the lab's DialTimeout
+  spec, proved from `Net/`'s with `dial_au`). `client.dial` uses it. The same is to be done for
+  `Close` (`close_au`), `RemoteAddr`, `Accept` (`accept_lis_shared_au`), `Dial`, `Listen`
+  (`listen_lis_au`), and the replicas' hello `Write` (`write_acc`) in `replica/{Conn,
+  ConnectToPeers,ClientListener,Serve}`, `client/BufferClient__Disconnect`, `master/Run`.
+- `swift/ShInv`: Perennial's `sync.Mutex` is a struct (`mu` the lock): `isMutex_own_false` over
+  `isLock_own_false`.
+- `client/Pkg`: as `swift/Pkg`, no node IP and no exclusive address token (`Net/`'s `addrTok`
+  is persistent): every node's boot thread gets `client.ghostFresh` (`client.freshAt`);
+  `client.ghostFresh_take` is gone.
+- `Spec/.../examples/swiftnet/Codec`, `KitLike`: the lab kit's kitgen codec proofs are not
+  imported (`kitCodecOk_holds`, `kitCodecC` gone); `kitCodec.rcv := False` and the `RpcKit`
+  instance are placeholders until the kit's codec is related to rpcgen's (step 5).
+- `codecSet` is `Net/`'s `codecSet RpcCodec.spec`; `bufio.bufioReadsOk` is derived in `Hyps.lean`.
+- Sections whose definitions use a library predicate (`isCMap`, ...) need
+  `[SwiftNetPkgState netDistGF]` (not just `π`), e.g. `swift/RunSpecs`.
+- **Revised dsv-bufio** (`origin/dsv-bufio` `75ef5881aa`, under re-review): NOT merged yet. Its
+  table (last section of `notes/dsv-bufio.md` there) gives the shapes: `Write`/`WriteByte` take
+  `⌜err=nil⌝ -∗ □ Q` (replaces the lab's `BufioErr` unfold), `err ≠ nil` keeps `sent`/`pend`,
+  `ownBufWriter` has a size index, `preUpTo` is an IProp, `Read` takes `⌜0<xs.length → Pre R
+  xs.length⌝`; laws `ownBufReader_fact`, `ownBufWriter_fact`, `ownBufWriter_size`,
+  `Net.recvTokL_proto`, `net.connReader_proto`. Next: merge it and derive the `bufio_*` fields of
+  `SwiftHyps` from it (or switch the vocabulary), never unfolding its predicates.
+
+**Frontier** before the Perennial bump (build 8: 239 of 474 build; `frontier.py`): `swift.RunSpecs`
+(fixed after: 139 waiting), `examples.swiftnet.Interface` (36), `swift.client.Unmarshal` (23;
+`bufioReadsOk`, fixed after), `registerRPC` (19), `codec.Prim` (18, the lab kit's: drop),
+`client.CodecG` (17), `state.Link` (17, fixed after), `CodecFns` (12), `NameOkFor` (11),
+`master.Master__Run` (11: `net.http.muxOwner`, the HTTP path), `PkgState` (9), `replica.Conn` (8),
+`ReplicaListener`, `ClientListener`, `client.{Client__dialMaster, NewBufferClient (math/rand),
+Client__call, NewClientLog (uuid)}`, `slices.SortFuncOn.*` (missing `Spec` files).
+Missing: `Spec/Proof/encoding/gob/SetCodec`, `netrpc/rpc/LocalRegister` (kit files only).
+
 - **`replica.ConnSpecs`** is the transport port proper: `net.ownListener ll lid a` (the lab's
   persistent listener) → `Net/`'s `lisAt` + `lisInv l a` (`accept_shared_au`); `nodeIp ip` and
   `ip ++ ":" <+: a` go (no node IP; the wildcard `Listen` is the hypothesis `net.ListenWild`,
