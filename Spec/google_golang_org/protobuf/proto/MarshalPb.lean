@@ -30,9 +30,18 @@ the instance's encoder axiom), not from this spec.
 
 Against protobuf-go v1.36.12 (`proto/encode.go:105`, `:174`): `Marshal` sizes, allocates and
 appends the encoding (`internal/impl/encode.go`); it fails only on a missing required field,
-invalid UTF-8 in a proto3 string or a message changed while it is encoded, which `marshals` and
-the frozen `roC` exclude; an allocation above `maxAlloc` panics, which the size premise excludes;
-an empty encoding is a non-nil empty slice. -/
+invalid UTF-8 in a proto3 string (both excluded by `marshals`) or a size mismatch: its size pass
+recomputes every level and stores size + 1 in each size cache, ignoring what they held
+(`proto/encode.go:184-188`, `internal/impl/encode.go:118-129`), then its marshal pass reads them back
+as nested length prefixes and checks each (`proto/encode.go:193`, `internal/impl/codec_field.go:163-172`,
+`:432`), so it fails only if a nested cache changes between the two passes: a write to the message
+(the frozen `roC` excludes it), or a concurrent `UseCachedSize` sizing or marshal of it storing a size
+derived from a stale nested cache (a cache stored before the message was last written:
+`models/internal/pbcachetest`, `TestCachedZeroReadsChildren`). No spec of this repository offers such a
+call at a type with message fields (`proto.MarshalAppendCachedRecord` is at `walpb.Record` only);
+etcd-grove #37's S3 design states the cache instead. Sequentially, stale caches never make it fail
+(`TestDefaultMarshalIgnoresStaleCaches`). An allocation above `maxAlloc` panics, which the size
+premise excludes; an empty encoding is a non-nil empty slice. -/
 abbrev proto.MarshalPb.spec : Prop :=
   ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I →
   ∀ (l : Loc) (c : I.data.C), I.data.marshals (I.data.modelOf c) → I.data.size c < 2 ^ 48 →
