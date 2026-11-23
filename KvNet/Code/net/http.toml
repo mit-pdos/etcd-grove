@@ -27,7 +27,7 @@ translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessa
 imports = ["!*", "errors", "fmt", "io", "bufio", "net", "net/url", "net/textproto", "strings",
            "strconv", "sync", "sync/atomic", "time", "context", "path", "runtime",
            "crypto/tls", "vendor/golang.org/x/net/http/httpguts", "golang.org/x/net/http/httpguts",
-           "mime/multipart", "log"]
+           "mime/multipart", "log", "net/http/internal/ascii"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
