@@ -177,6 +177,54 @@ to the hijack, handlers as `handlerOk` per path). Gryff's hypotheses must match 
 shapes exactly (gryff's clients do not pipeline after `CONNECT`: `DialHTTPPath` waits for the
 answer).
 
+## The trace prophecy as a prophecy patch: blocked by prophcheck's grammar
+
+Coordinator's decision (2026-11-23): move the fork's ghost prophecy code into
+`etc/proph-patches/dsv-gryff/*.patch` (CLAUDE.md, `etc/proph-patches/README.md`,
+`notes/decisions.md` "Prophecies as patches of the Go code"), checked by `etc/prophcheck`, so that
+`examples/dsverify/gryff` is the lab's fork minus its ghost code. **It cannot be done as
+prophcheck stands.** The ghost code (lines marked `(ghost code`; checked 2026-11-23):
+- `src/gryff/proph.go` (294 lines, a whole new file): a package variable `traceProph
+  primitive.ProphId` set by `init()` (`primitive.NewProph()`), the event codes, and 28 helper
+  methods `(r *Replica) resolve<Event>(m)` that resolve the event's fields through the struct
+  field `r.proph` (`resolveCmds`/`resolveDeps` with `for` loops over the command slice and the
+  `[5]int32` array);
+- `src/gryff/tupaq.go`: the `primitive` import, the `Replica` field `proph primitive.ProphId`,
+  `proph := traceProph` in `NewReplica` and the positional composite literal's extra element;
+- `src/gryff/epaxosrmwhandler.go` (26 sites) and `epaxos-exec.go` (1): calls
+  `e.R.resolve<Event>(msg)` before each handled event, under the replica's lock.
+
+prophcheck accepts only `NAME := primitive.NewProph()` (a local, declared in the same function),
+`NAME.Resolve{Bool,U64}(E)` and `if` statements of those, with read-only `E`. It rejects a new
+file, a package variable, `init()`, a struct field (and the positional literal's element), helper
+methods and calls to them, and `for` loops: run on the three files' pairs (the fork minus the
+`(ghost code` lines vs the fork; scratch copy, `go build ./src/...` of the stripped fork is
+green), it reports for each "with its prophecy statements erased, it is not orig". The design is
+one prophecy per replica (the stage-2 trace prophecy, the lab's D9/D13), created once and resolved
+by every goroutine of the replica through the struct; prophcheck's prophecies are per function
+invocation. A choice of where it is created (init, main or the node's start) does not help: the
+resolutions are in other functions.
+
+Options (decision for the coordinator / the prophcheck owner; nothing changed in the Go yet, the
+fork still carries the ghost code):
+1. **Extend prophcheck** with what the trace prophecy needs, each effect-free (the soundness
+   argument stays "the patched program may fail more, never behave more"): a struct field of type
+   `primitive.ProphId` added by the patch (keyed composite literals only, or the positional
+   literal's extra element at the end); its initialisation from a patch-declared prophecy;
+   resolutions through field selections (`r.proph.ResolveU64(E)`); helper functions/methods whose
+   bodies are prophecy statements only, and calls to them as statements with read-only arguments;
+   `for` loops with read-only bounds whose bodies are prophecy statements; a new file of only such
+   declarations. A struct field changes the type's size and its `reflect` view (the `Replica` is
+   registered with net/rpc, which reflects on its methods, not its fields; the generated codec
+   names no `Replica` field).
+2. **Restructure the proof** onto per-event local prophecies (one `NewProph` per handled event,
+   resolved in the same function): a redesign of the lab's stage 2 (`Proto2*`, `Replica2`, D9,
+   D13), not a port.
+3. Keep the ghost code in the fork (as dsv-paxos kept its fork's), recorded as a deviation.
+
+Until then gen-init's configuration for the `gryff` package (its `init()` and `traceProph`) waits
+on this choice; `dlog.DLOG`, `gryff.stack` and the kit's `var _ = fmt.Sprint` are ordinary.
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
