@@ -101,7 +101,7 @@ The list asked for. They are named after the lab's specs, with the reason each i
 - **gods:** dsv-epaxos and this branch translate it into the same files under `Dsverify/Code/github_com/emirpasic`, and both projects own the directory.
 - **Package inits:** the lab's `SwiftNetPkgState` (one class of package-state predicates) needs widening here. It also needs `go/token`, `path`, `net/textproto`, `vendor/.../httpguts`, `crypto/tls`, `internal/bytealg`, `encoding/{hex,json}` and the gods packages, because the net/rpc and net/http models import them and nothing in the imported parts gives them an `IsPkgInit`.
 
-## State (2026-11-23, third session)
+## State (2026-11-23, third session; resume here)
 
 Merges: `origin/dsv-infra` `884cb306c9` (InitHyp rule, etc/dsv/README.md) and, at the
 coordinator's word, **`origin/models-rpc-server` `040ef5e808`** (the net/rpc server proved on
@@ -176,14 +176,32 @@ Later in the session:
   `Net.recvTokL_proto`, `net.connReader_proto`. Next: merge it and derive the `bufio_*` fields of
   `SwiftHyps` from it (or switch the vocabulary), never unfolding its predicates.
 
-**Frontier** before the Perennial bump (build 8: 239 of 474 build; `frontier.py`): `swift.RunSpecs`
-(fixed after: 139 waiting), `examples.swiftnet.Interface` (36), `swift.client.Unmarshal` (23;
-`bufioReadsOk`, fixed after), `registerRPC` (19), `codec.Prim` (18, the lab kit's: drop),
-`client.CodecG` (17), `state.Link` (17, fixed after), `CodecFns` (12), `NameOkFor` (11),
-`master.Master__Run` (11: `net.http.muxOwner`, the HTTP path), `PkgState` (9), `replica.Conn` (8),
-`ReplicaListener`, `ClientListener`, `client.{Client__dialMaster, NewBufferClient (math/rand),
-Client__call, NewClientLog (uuid)}`, `slices.SortFuncOn.*` (missing `Spec` files).
-Missing: `Spec/Proof/encoding/gob/SetCodec`, `netrpc/rpc/LocalRegister` (kit files only).
+**Merged `origin/lean`** (`1b2fd95b30`: net-wildcard-listen landed, Perennial `7b2259a12`; the
+bump broke nothing of ours seen so far). **Finding**: `models-rpc-server`'s
+`Net/Proof/net/rpc/Server__Accept.lean` no longer builds on that `lean` (the new
+`Listener.Accept.spec` takes `lisAccepts`; its line 55 passes a `GoString` where a `Nat` is
+expected): that branch must merge `lean`. Workaround here: `lib/NetRpc` imports the rpc client's
+proof modules, not `Net/Proof/net/rpc/Results`.
+
+**Frontier** (build 11, Perennial `7b2259a12`: **296 of 474** copied modules build; `frontier.py`,
+unbuilt modules whose imports build, by how many wait on them; the error of each):
+- `swift.AcceptL` (62 waiting; line 406, a `wp_apply` shape: Perennial drift or a changed spec),
+  `swift.MarshalSync` (15; `kitCodecOk` framing: drop `kitCodecOk`, `True` here),
+  `swift.RunLoop` (3; line 177), `swift.HookUser1` (3; `math/rand` hypothesis missing),
+  `swift.client.Unmarshal` (23; instance at 385).
+- the client: `client.CodecG` (17; argument `C`), `Client__call` (`net.rpc.Client.Call.wp`: the
+  lab's name; `Net/`'s is `Client.Call.wp_proof` over `isClient`), `Client__dialMaster`
+  (`DialHTTP`: the HTTP path, see below), `NewBufferClient` (`math/rand`), `NewClientLog` (uuid).
+- the transport: `replica.Conn` (8; `nodeIp`/wildcard `Listen`: port onto
+  `listen_lis_au`/`accept_lis_shared_au`), `ReplicaListener`, `ClientListener`
+  (`TCPConn.RemoteAddr/Close` → `NetLab` lab-shaped wrappers, as `DialTimeout.labProof`).
+- the master: `master.Master__Run` (11; `net.http.muxOwner`: the HTTP path).
+- the lab kit (step 5, to be replaced, not ported): `examples.swiftnet.{Interface (36),
+  registerRPC, codec.Prim, CodecFns, NameOkFor, PkgState, OrchAddr, OrchGen}`.
+- `slices.SortFuncOn.*` (missing `Spec` files of the lab's `slices` proofs: copy them).
+- Hypotheses still to add to `SwiftHyps`: uuid, math/rand (`Intn`, `New`, `NewSource`),
+  concurrent-map, os/signal, gob `SetCodec`/`getCodec`, the HTTP path (upamanyus's shapes,
+  above), `rpc.Register` (DefaultServer).
 
 - **`replica.ConnSpecs`** is the transport port proper: `net.ownListener ll lid a` (the lab's
   persistent listener) → `Net/`'s `lisAt` + `lisInv l a` (`accept_shared_au`); `nodeIp ip` and
