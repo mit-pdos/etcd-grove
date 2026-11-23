@@ -93,7 +93,7 @@ def replica.Replica.ReplyBeacon.specI : Prop :=
   {{ RET #(); b ↦{dq} replica.defs.GBeacon.mk (W32 t) ts }}
 
 theorem replica.Replica.ReplyBeacon.specI_holds (hPrintf : dlog.Logger.Printf.spec (GF := GF))
-    (hM : replica.defs.BeaconReply.Marshal.spec (GF := GF)) (hNN : BufWriterNotNull (GF := GF)) :
+    (hM : replica.defs.BeaconReply.Marshal.spec (GF := GF)) :
     replica.Replica.ReplyBeacon.specI (GF := GF) := by
   intro γ r id L p Rext b dq t ts
   wp_start as ⟨%Ht, #Hrun, #Hph1, Hb⟩
@@ -162,7 +162,7 @@ theorem replica.Replica.ReplyBeacon.specI_holds (hPrintf : dlog.Logger.Printf.sp
     unfold slotConn
     icases Hconn with ⟨%sent, %pend, %err, %wsm, %tc, %la, %ra, %ed, %eof, #Hci, #Hpc, #Hrole, Hw,
       %Hpure, Hfr⟩
-    ihave ⟨Hw, %Hnn⟩ := hNN _ _ _ _ _ _ _ _ _ $$ Hw
+    ihave ⟨Hw, %Hnn⟩ := bufWriterNotNull _ _ _ _ _ _ _ _ _ $$ Hw
     rw [show decide (ws.getD t null = null) = false by
       simp only [decide_eq_false_iff_not]; exact Hnn]
     wp_auto
@@ -240,20 +240,20 @@ theorem replica.Replica.ReplyBeacon.specI_holds (hPrintf : dlog.Logger.Printf.sp
   done
 
 theorem replica.Replica.ReplyBeacon.spec_holds (hPrintf : dlog.Logger.Printf.spec (GF := GF))
-    (hM : replica.defs.BeaconReply.Marshal.spec (GF := GF)) (hNN : BufWriterNotNull (GF := GF)) :
+    (hM : replica.defs.BeaconReply.Marshal.spec (GF := GF)) :
     replica.Replica.ReplyBeacon.spec (GF := GF) := by
   intro γ r id L p Rext b dq t ts
   wp_start as ⟨%Ht, #Hfw, Hb⟩
   ihave #Hfw' := isReplicaFw_def $$ Hfw
   iunfold isReplicaFwDef at Hfw'
   icases Hfw' with ⟨#Hro, #Hfz, #Hmu, #Hph1, #Hph2⟩
-  wp_apply (replica.Replica.ReplyBeacon.specI_holds hPrintf hM hNN γ r id L p Rext b dq t ts) $$ [Hb] as Hb
+  wp_apply (replica.Replica.ReplyBeacon.specI_holds hPrintf hM γ r id L p Rext b dq t ts) $$ [Hb] as Hb
   · unfold fwRun0; iframe; iframe #; ipureintro; exact Ht
   iapply HΦ; iexact Hb
 
 theorem replica.Replica.SendBeacon.spec_holds (hPrintf : dlog.Logger.Printf.spec (GF := GF))
     (hM : replica.defs.Beacon.Marshal.spec (GF := GF)) (hNow : time.Now.spec (GF := GF))
-    (hNano : time.Time.UnixNano.spec (GF := GF)) (hNN : BufWriterNotNull (GF := GF)) :
+    (hNano : time.Time.UnixNano.spec (GF := GF)) :
     replica.Replica.SendBeacon.spec (GF := GF) := by
   intro γ r id L p Rext t
   wp_start as ⟨%Ht, #Hfw⟩
@@ -319,7 +319,7 @@ theorem replica.Replica.SendBeacon.spec_holds (hPrintf : dlog.Logger.Printf.spec
     unfold slotConn
     icases Hconn with ⟨%sent, %pend, %err, %wsm, %tc, %la, %ra, %ed, %eof, #Hci, #Hpc, #Hrole, Hw,
       %Hpure, Hfr⟩
-    ihave ⟨Hw, %Hnn⟩ := hNN _ _ _ _ _ _ _ _ _ $$ Hw
+    ihave ⟨Hw, %Hnn⟩ := bufWriterNotNull _ _ _ _ _ _ _ _ _ $$ Hw
     rw [show decide (ws.getD t null = null) = false by
       simp only [decide_eq_false_iff_not]; exact Hnn]
     wp_auto

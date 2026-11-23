@@ -121,7 +121,7 @@ theorem send_stream_eq (hdr old : List w8) (code : w8) (body : List w8)
   simp [List.append_assoc]
 
 theorem replica.Replica.SendMsg.spec_holds (hPrintf : dlog.Logger.Printf.spec (GF := GF))
-    (hM : Serializable.Marshal.spec (GF := GF)) (hNN : BufWriterNotNull (GF := GF)) :
+    (hM : Serializable.Marshal.spec (GF := GF)) :
     replica.Replica.SendMsg.spec (GF := GF) := by
   intro γ r id L p Rext t msg m dq dq1 dq2 Ψ Ψnil
   wp_start as ⟨%Ht, #Hfw, Hmsg, Hupd⟩
@@ -188,7 +188,7 @@ theorem replica.Replica.SendMsg.spec_holds (hPrintf : dlog.Logger.Printf.spec (G
     unfold slotConn
     icases Hconn with ⟨%sent, %pend, %err, %wsm, %tc, %la, %ra, %ed, %eof, #Hci, #Hpc, #Hrole, Hw,
       %Hpure, Hfr⟩
-    ihave ⟨Hw, %Hnn⟩ := hNN _ _ _ _ _ _ _ _ _ $$ Hw
+    ihave ⟨Hw, %Hnn⟩ := bufWriterNotNull _ _ _ _ _ _ _ _ _ $$ Hw
     rw [show decide (ws.getD t null = null) = false by
       simp only [decide_eq_false_iff_not]; exact Hnn]
     wp_auto

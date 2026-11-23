@@ -372,7 +372,7 @@ def writer_conv(t):
     # `Writer.WriteByte`/`Flush` proofs and the kit's `marshalTriple` on `connWr` writers
     t = t.replace('icases Hconn with ⟨%sent, %pend, %err, %wsm, #Hci, #Hpc, #Hrole, Hw, %Hpure, Hfr⟩',
                   'icases Hconn with ⟨%sent, %pend, %err, %wsm, %tc, %la, %ra, %ed, %eof, #Hci, #Hpc, #Hrole, Hw,\n      %Hpure, Hfr⟩')
-    t = t.replace('ihave ⟨Hw, %Hnn⟩ := ownWriter_not_null $$ Hw', 'ihave ⟨Hw, %Hnn⟩ := hNN _ _ _ _ _ _ _ _ _ $$ Hw')
+    t = t.replace('ihave ⟨Hw, %Hnn⟩ := ownWriter_not_null $$ Hw', 'ihave ⟨Hw, %Hnn⟩ := bufWriterNotNull _ _ _ _ _ _ _ _ _ $$ Hw')
     t = re.sub(r'(?m)^(\s*)ihave #Hpcl := peerPX_prefixClosed γ id L t side cid\n\s*ihave #Hwok := bufio\.writerOk_conn .*\n\s*\$\$ \[Hci Hpcl\]\n\s*· iframe #; iPkgInit\n',
                r'\1have hppc := peerPX_ppc (GF := GF) γ id L t side\n', t)
     t = re.sub(r'wp_apply bufio\.wp_WriteByte\' (\(ws\.getD t null\)) \(cs\.getD t interface\.nil\) _ _ sent pend err (\S+|\([^)]*\))\n(\s*)\$\$ \[\$Hwok \$Hw\]',
@@ -381,7 +381,6 @@ def writer_conv(t):
                lambda m: '\n'.join(m.group(1) + x for x in ['have h1 := hst He', 'rw [h1]', 'simp only [connWr]',
                    'have hd : (if side = true then t else id) = dialerOf id t side := rfl', 'rw [hd]',
                    'iapply hppc.pre cid _ _ (prefix_of_eq ' + m.group(2) + ') $$ ' + m.group(3)]), t)
-    t = t.replace('specI_holds hPrintf hM γ', 'specI_holds hPrintf hM hNN γ')
     if 'Proof.bufio.Writer__WriteByte' not in t:
         t = t.replace('public import', 'public import Proof.bufio.Writer__WriteByte\npublic import Proof.bufio.Writer__Flush\npublic import', 1)
     t = re.sub(r'(\(hM [^\n]*?\(ws\.getD t null\)) _ _ _ (sent1 pend1 e1\))\n(\s*)\$\$ \[\$Hwok \$Hw ([^\]]*)\]((?:\n.*)?)\n(\s*)· iframe\n',
@@ -393,13 +392,7 @@ def writer_conv(t):
     t = t.replace(' hst Hw1 Hw2 Hk3', ' hst ⟨Hw1.1, Hw1.2.1, Hw1.2.2.1, fun h => (Hw1.2.2.2.1 h).1⟩ Hw2 Hk3')
     t = re.sub(r'(?m)^(\s*)(iexists sent2 \+\+ pend2\.take k, pend2\.drop k, e3, [^\n]*)\n\s*iframe; iframe #',
                r'\1\2, tc, la, ra, ed, eof\n\1simp only [wrOwn, connWr]\n\1iframe; iframe #', t)
-    # theorems that use the not-null hypothesis take it
-    out = []
-    for blk in re.split(r'(?m)^(?=theorem )', t):
-        if 'hNN _ _' in blk or ' hNN γ' in blk:
-            blk = re.sub(r'\) : ([\w.]+\.spec\w*) \(GF := GF\) := by', r') (hNN : BufWriterNotNull (GF := GF)) :\n    \1 (GF := GF) := by', blk, count=1)
-        out.append(blk)
-    return ''.join(out)
+    return t
 
 BUFIO = '--bufio' in sys.argv
 _texts = []
