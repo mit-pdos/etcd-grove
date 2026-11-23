@@ -232,6 +232,14 @@ This generalizes `remote`'s slot (`Net/Proof/.../examples/lib/remote/Defs.lean`:
 `slotInv`, `slot_register`, `slot_claim`, `slot_done`, `slot_take`) so that grpc and remote share
 it. remote can move onto it later; that is not part of S2.
 
+**On `lean` ahead of S2's core** (2026-11-23, branch `s2-vocab`, for etcd-dist's interim axioms over
+`grpcSvcAt`/`grpcAddrAt`): this file and `Proof/google_golang_org/grpc/InvGrpcWire.lean` (§1.2) as
+built on `phase7-s2-core`, with base64's `rawStdEnc` (pure); definitions and proved laws, no axiom.
+How they amend §1.1 and §1.2 (the deposit with the data frame, per-connection refusal, `msgReady`,
+`ProtoWire.enc`, `grpcFieldsMd`) is §0a on `phase7-s2-core`, which lands with the rest of S2's
+core. `headerListOk` and `SrvFrame.oversized` are F1's (§0a), whose model fix is on that branch too:
+until it lands, `lean`'s model does not yet check `headerListOk` before writing a block.
+
 There is one slot per connection, keyed by what the dialer's bytes say. grpc's transparent retries
 need two laws that remote does not use:
 - the acceptor **refuses**: it gives the deposit back;
