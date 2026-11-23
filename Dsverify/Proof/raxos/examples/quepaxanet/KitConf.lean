@@ -13,6 +13,7 @@ public import Dsverify.Proof.raxos.Proposer.Strings
 public import Dsverify.Proof.raxos.Hyp
 public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.log.Base
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 
@@ -72,6 +73,56 @@ theorem cconfAddr_eq (c : Nat) : cconfAddr c = portAddr (7640 + (1 + c)) := by
 
 theorem confAddr_eq (k : Nat) : confAddr k = portAddr (7640 + (6 + k)) := by
   unfold confAddr; congr 1; omega
+
+/-- The proxies' addresses (`Addrs()`), node `n`'s at index `n`. -/
+def addrsL : List GoString := (List.range 12).map (fun n => portAddr (7600 + n))
+
+/-- The recorders' addresses (`RecAddrs()`), node `n`'s at index `n`. -/
+def recAddrsL : List GoString := (List.range 12).map (fun n => portAddr (7620 + n))
+
+theorem addrsL_lit : addrsL = [go!"127.0.0.1:7600", go!"127.0.0.1:7601",
+    go!"127.0.0.1:7602", go!"127.0.0.1:7603", go!"127.0.0.1:7604", go!"127.0.0.1:7605",
+    go!"127.0.0.1:7606", go!"127.0.0.1:7607", go!"127.0.0.1:7608", go!"127.0.0.1:7609",
+    go!"127.0.0.1:7610", go!"127.0.0.1:7611"] := by
+  simp only [addrsL, List.range_succ, List.range_zero, List.nil_append, List.map_append,
+    List.map_cons, List.map_nil, List.cons_append, portAddr]
+  rw [decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega),
+    decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega),
+    decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega),
+    decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega)]
+
+theorem recAddrsL_lit : recAddrsL = [go!"127.0.0.1:7620", go!"127.0.0.1:7621",
+    go!"127.0.0.1:7622", go!"127.0.0.1:7623", go!"127.0.0.1:7624", go!"127.0.0.1:7625",
+    go!"127.0.0.1:7626", go!"127.0.0.1:7627", go!"127.0.0.1:7628", go!"127.0.0.1:7629",
+    go!"127.0.0.1:7630", go!"127.0.0.1:7631"] := by
+  simp only [recAddrsL, List.range_succ, List.range_zero, List.nil_append, List.map_append,
+    List.map_cons, List.map_nil, List.cons_append, portAddr]
+  simp only [show ∀ n, 7620 + n = 7600 + (20 + n) from fun n => by omega]
+  rw [decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega),
+    decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega),
+    decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega),
+    decStr_76 _ (by omega), decStr_76 _ (by omega), decStr_76 _ (by omega)]
+
+theorem addrsL_get (n : Nat) (hn : n < 12) : addrsL[n]? = some (portAddr (7600 + n)) := by
+  simp [addrsL, hn]
+
+theorem recAddrsL_get (n : Nat) (hn : n < 12) : recAddrsL[n]? = some (portAddr (7620 + n)) := by
+  simp [recAddrsL, hn]
+
+theorem digit_ne_colon (m : Nat) (hm : m < 10) : BitVec.ofNat 8 (48 + m) ≠ (58#8 : w8) := by
+  intro h
+  have := congrArg BitVec.toNat h
+  simp at this
+  omega
+
+/-- `strings.Split` of a port address at `":"`: the IP and the port's digits. -/
+theorem split_portAddr (m : Nat) (hm : m < 100) :
+    strings.split (portAddr (7600 + m)) go!":" = [go!"127.0.0.1", decStr (7600 + m)] := by
+  unfold portAddr
+  rw [decStr_76 m hm]
+  have h1 := digit_ne_colon (m / 10) (by omega)
+  have h2 := digit_ne_colon (m % 10) (by omega)
+  simp [strings.split, strings.splitAux, h1, h2, Ne.symm h1, Ne.symm h2]
 
 /-! ## The configuration's value -/
 
