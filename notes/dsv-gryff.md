@@ -482,6 +482,15 @@ stay on `07268ddb57`/`7b2259a12`). **When merging `lean`/`dsv-protolaws`:** dele
 `Net.sentLb_agree`, `Net.sentLb_le`, `Net.recvTokL_sentLb` (callers: `ownReader_sentLb`,
 `dial_reader` in N/ConnLaws; grep the N/ and Client/ files).
 
+**Coordinator (later): models-rpc-http `e6b232b2f6`** (merged with lean, not landed) proves
+`rpcLisP W la hs hsAns` (`Net/Proof/net/rpc/Proto.lean`, over `lisProtoD`) with
+`rpcLisP_addr/_addrOk/_lis/_ok/_set`, `Server.Accept.spec` for wildcards (`specAddr` exact), and
+`rpc.Server.ServeHTTP.spec` (taking `hijackOk`). `RpcHttpHyp`'s `rpcLisP_lis` (now `Listen.spec`'s
+update), `rpcLisP_ok` (new) and `rpcLisP_set` (premises `listenOk la`, `∀ a, addrOk a ∧ lisAccepts
+la a → W.hs a = hs ∧ …`) are aligned to those shapes. **When it lands, merge it**: drop
+`rpcLisP*` and `Server_ServeHTTP_spec` from `RpcHttpHyp` for Net's (the class keeps net/http's
+server up to the hijack and `HandleHTTP`). dsv-protolaws is queued to land too.
+
 **Design (1), the connections on `Net/` (decided, in `Replica2/Specs.lean` and `N/ConnLaws.lean`):**
 - A replica listens at the wildcard `lisAddrOf a0` (`a0[strings.Index(a0, ":"):]`, `":7502"` for
   `portAddr 0`) of its node address `a0 ∈ replicaAddrs` (`Proto/Wire.lean`). The start sets, once,

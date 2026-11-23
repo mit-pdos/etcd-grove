@@ -70,12 +70,17 @@ class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
   rpcLisP_addr : ∀ W la hs hsAns a, addrOk a = true → lisAccepts la a →
     rpcLisP W la hs hsAns ⊢ rpcAddrP (Gg := hG.goose_globalGS) W a hs hsAns
-  /-- They include the right to listen at `la` with some protocols (`Listen.spec`'s). -/
+  /-- The right to listen at `la` (`net.Listen.spec`'s update; models-rpc-http `e6b232b2f6`'s
+  shape). -/
   rpcLisP_lis : ∀ W la hs hsAns,
-    rpcLisP W la hs hsAns ⊢ ∃ P Q, lisProto (Gg := hG.goose_globalGS) la P Q
-  /-- The start sets them once, from the addresses `la` takes, unset. -/
+    rpcLisP W la hs hsAns ⊢
+      |={⊤,∅}=> lisToks (extGlobalGS netExt (G := hG.goose_globalGS)) la ∗
+        (lisToks (extGlobalGS netExt (G := hG.goose_globalGS)) la ={∅,⊤}=∗ True)
+  rpcLisP_ok : ∀ W la hs hsAns, rpcLisP W la hs hsAns ⊢ ⌜listenOk la = true⌝
+  /-- The start sets them once, from the addresses `la` takes, unset (`e6b232b2f6`'s premises). -/
   rpcLisP_set : ∀ (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8),
-    listenOk la = true → (∀ a, lisAccepts la a → W.hs a = hs ∧ W.hsAns a = hsAns) →
+    listenOk la = true →
+    (∀ a, addrOk a = true ∧ lisAccepts la a → W.hs a = hs ∧ W.hsAns a = hsAns) →
     regCtx (Gg := hG.goose_globalGS) -∗ inv regN' (regInv (Gg := hG.goose_globalGS) W) -∗
       lisUnset (Gg := hG.goose_globalGS) la ={E}=∗ rpcLisP W la hs hsAns
   /-- `h` is a net/http handler of `path` serving `W` at the addresses `A`. -/
