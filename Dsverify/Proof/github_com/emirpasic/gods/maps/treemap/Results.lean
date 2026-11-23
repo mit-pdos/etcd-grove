@@ -73,7 +73,7 @@ theorem Map.Put.wp_linked : Map.Put.spec (GF := GF) isTreeMapR :=
 
 /-- **The treemap specs hold of gods' code** (the file header): the shared `Hyps` at the concrete
 predicates. -/
-def hyps_true : Hyps GF where
+@[instance_reducible] def hyps_true : Hyps GF where
   isTreeMap := isTreeMapR
   iterVal := iterValR
   ownIter := ownIterR

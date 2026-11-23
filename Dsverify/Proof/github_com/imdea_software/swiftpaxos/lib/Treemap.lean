@@ -1,13 +1,16 @@
 /-
 The swiftpaxos kit's representation of gods' treemap (lab `Proof/treemap/Specs.lean`'s
-`treemap.isTreeMap`): the libraries' choice `SwiftLibs.isTreeMap` (Base.lean), over which the
-kit's `SwiftHyps` states the shared treemap specs
-(`Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`).
+`treemap.isTreeMap`): gods' own, `treemap.isTreeMapR`
+(`Dsverify/Proof/github_com/emirpasic/gods/maps/treemap/Rep.lean`), over which the shared treemap
+specs (`Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`) are proved
+(`treemap.hyps_true`; notes/gods-verified.md). Until gods was verified, a libraries' choice
+(`SwiftLibs`) with the specs among the kit's hypotheses (`SwiftHyps`).
 -/
 module
 
 public import Dsverify.Spec.github_com.emirpasic.gods.maps.treemap.Specs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
+public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Rep
 
 @[expose] public section
 
@@ -23,18 +26,27 @@ section defs
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
-/-- The `*Map` at `tm` holds the sorted entries `es` (keys encoded by `enc`): the libraries'
-choice (`SwiftLibs.isTreeMap`; the lab's was over its model's slice of entries). -/
-def isTreeMap [l : SwiftLibs GF] (tm : Loc) (enc : w64 → GoInterface)
+/-- The `*Map` at `tm` holds the sorted entries `es` (keys encoded by `enc`): gods' own
+representation (`treemap.isTreeMapR`; the lab's was over its model's slice of entries). -/
+def isTreeMap (tm : Loc) (enc : w64 → GoInterface)
     (es : github_com.emirpasic.gods.maps.treemap.Entries) : IProp GF :=
-  l.isTreeMap hG tm enc es
+  github_com.emirpasic.gods.maps.treemap.isTreeMapR tm enc es
 
-/-- A map's entries are sorted (`SwiftLibs.isTreeMap_sorted`). -/
-theorem isTreeMap_sorted [l : SwiftLibs GF] (tm : Loc) (enc : w64 → GoInterface)
+/-- A map's entries are sorted (lab `treemap.isTreeMap_sorted`). -/
+theorem isTreeMap_sorted (tm : Loc) (enc : w64 → GoInterface)
     (es : github_com.emirpasic.gods.maps.treemap.Entries) :
     isTreeMap (GF := GF) tm enc es ⊢
-      isTreeMap tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝ :=
-  l.isTreeMap_sorted hG tm enc es
+      isTreeMap tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝ := by
+  unfold isTreeMap github_com.emirpasic.gods.maps.treemap.isTreeMapR
+    github_com.emirpasic.gods.trees.redblacktree.isTree
+  iintro ⟨%tr, Hm, %cmp, %T, %h, %D, Hraw, #Hcmp, %Hp⟩
+  obtain ⟨hs, hes, hrb⟩ := Hp
+  isplitl
+  · iexists tr; iframe; iexists cmp, T, h, D; iframe
+    isplitr
+    · iexact Hcmp
+    ipureintro; exact ⟨hs, hes, hrb⟩
+  · ipureintro; rw [← hes]; exact hs
 
 end defs
 
