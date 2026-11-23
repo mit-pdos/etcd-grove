@@ -16,6 +16,7 @@ module
 public import Dsverify.Proof.rabia.internal.tcp.ProxyTCP__sendLoop
 public import Dsverify.Proof.rabia.internal.tcp.ProxyTCP__recvLoop
 public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.AtAddr
 public import Net.Proof.net.Conn__Close
 
 @[expose] public section
@@ -151,7 +152,7 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
     ipureintro; unfold nC; constructor <;> word
   wp_for HI
   wp_if_destruct
-  · wp_apply net.Listener.Accept.wp_proof t l x (proxyAddr k)
+  · wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) t l x (proxyAddr k)
         (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l (proxyAddr k) true)
         (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l (proxyAddr k) true ∗
           connEnd (Gg := hG.goose_globalGS) cn true (proxyQ γ k) (proxyP γ k) [] [] ∗
