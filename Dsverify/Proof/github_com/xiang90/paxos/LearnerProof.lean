@@ -16,17 +16,14 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 
 namespace github_com.xiang90.paxos
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 section proofs
-variable [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]

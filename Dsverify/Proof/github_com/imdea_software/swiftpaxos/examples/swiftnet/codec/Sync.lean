@@ -15,13 +15,10 @@ noncomputable section
 
 namespace Perennial.github_com.imdea_software.swiftpaxos.examples.swiftnet
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section wps
-
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : examples.swiftnet.Assumptions]
@@ -164,7 +161,7 @@ end Perennial.github_com.imdea_software.swiftpaxos.examples.swiftnet
 namespace Perennial.github_com.imdea_software.swiftpaxos.examples.swiftnet
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 section wps2
-
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : examples.swiftnet.Assumptions]

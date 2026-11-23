@@ -24,10 +24,7 @@ set_option linter.unusedSectionVars false
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode BigSepL Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode BigSepL
 
 section pure_bigops
 variable {PROP : Type _} [BI PROP] [BIAffine PROP]
@@ -80,7 +77,7 @@ theorem bigSepL_exists_range {X : Type} (Φ : Nat → X → PROP) (n : Nat) :
 end pure_bigops
 
 section lemmas
-
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [GoSemanticsFunctions] [preSem : go.PreSemantics]

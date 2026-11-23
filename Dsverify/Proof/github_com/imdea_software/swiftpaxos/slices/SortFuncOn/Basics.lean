@@ -19,10 +19,7 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 namespace slices
 
@@ -46,7 +43,7 @@ theorem allOn_perm_lookup {xs xs' : List E} {i : Nat} {x : E} (H : AllOn φ xs)
 end pure
 
 section proof
-
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

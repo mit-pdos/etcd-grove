@@ -26,10 +26,7 @@ noncomputable section
 
 namespace Perennial.github_com.orcaman.concurrent_map
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 set_option linter.unusedSectionVars false
 
@@ -49,7 +46,7 @@ structure PinD where
 end pind
 
 section defs
-variable [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
 /-- **A pinned entry** `k ↦ v` of the map with view `γ` (see the file header). -/
@@ -60,7 +57,7 @@ def cmapPin (γ : GName) (k : GoString) (v : GoInterface) (π : PinD) : IProp GF
 end defs
 
 section steps
-variable [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 
 /-- With a pin, the client's view has the pinned entry. -/
@@ -98,7 +95,7 @@ theorem cmapPin_lookup (γ : GName) (k : GoString) (v : GoInterface) (π : PinD)
 end steps
 
 section spec
-variable [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [concurrent_map.Assumptions] [sync.Assumptions]
 variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
@@ -127,7 +124,7 @@ abbrev ConcurrentMap.IterCbVP.spec : Prop :=
 end spec
 
 section proof
-variable [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [concurrent_map.Assumptions] [sync.Assumptions]
 variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]

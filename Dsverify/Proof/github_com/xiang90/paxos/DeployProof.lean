@@ -17,10 +17,7 @@ noncomputable section
 
 namespace Perennial
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 
 namespace github_com.xiang90.paxos
 
@@ -63,7 +60,7 @@ theorem prop_ids (c : w64) (hc : uint.nat c < 4) :
   rcases w64_lt4 c hc with rfl | rfl | rfl | rfl <;> decide
 
 section proofs
-variable [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]
@@ -101,7 +98,7 @@ theorem wp_netBoxId (c : w64) :
   wp_end
 
 section ghost
-
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] 
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 
 /-- What a message to client `c`'s box means. -/
@@ -361,7 +358,7 @@ theorem agentMap_in : MapIn agentMap := by
   repeat (first | exact mapIn_empty | refine mapIn_insert ?_ _ (by decide))
 
 section ghost
-
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] 
 variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
 
 theorem allProtos_map (Γ : Names) (m : GMap w64 GoString) (hm : MapIn m) :

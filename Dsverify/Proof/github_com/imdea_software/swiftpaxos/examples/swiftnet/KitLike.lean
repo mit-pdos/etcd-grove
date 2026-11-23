@@ -30,13 +30,10 @@ noncomputable section
 
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net
 
 section kitlike
-
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 

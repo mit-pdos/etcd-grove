@@ -22,10 +22,7 @@ set_option linter.unusedSectionVars false
 
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net wire Dsv
-
-attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
-  GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net wire
 
 theorem w8_sint32 (y : w32) : W8 (sint.Z y) = y.setWidth 8 := by
   have : W8 (sint.Z y) = W8 (uint.Z y) := by word
@@ -101,7 +98,7 @@ local macro "store8" : tactic => `(tactic| (
   (try wp_auto)))
 
 section proofs
-
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
