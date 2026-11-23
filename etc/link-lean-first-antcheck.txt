@@ -118,12 +118,37 @@ State__Acked: SetAdd
 # --- own header only (the headers keep the groups' hunks apart for git).
 
 # W1 (the binding's operators)
+VoteFact: Msg__from Msg__term Msg__index Msg__logTerm
+ToAppendFact: Msg__from Msg__to Msg__term Msg__index Msg__logTerm Msg__entries Msg__commit
+AckFact:
+IsReq: Msg__typ
+SnapOk: Msg__typ Msg__term Msg__index Msg__logTerm TermLogs__Has TermLogs__Get TermAt
+ReqFactIn: Msg__typ Msg__term Msg__index Msg__from Msg__to TermLogs__Has TermLogs__Get SubSeq ToAppendFact
+State__BootTerm:
+State__VoteOf: State__BootTerm
+State__Vote: State__VoteOf
+RecordedIn: SubSeq EntriesEqual
+SendableIn: leadersHas TermLogs__Has TermLogs__Get TermAt SubSeq EntriesEqual RecordedIn
+State__Sendable: SendableIn
+Comparable: IsPrefix
+Matching: Min Entry__Equal
+State__MemCommit: Event__commit
+SameConf: Event__has Event__voters Event__outgoing SetOf Set__Equal
+State__EffTerm: Min
+State__Over: State__EffTerm
+Recovered: Event__term Event__vote Event__commit Event__lastIndex Event__lastTerm TermAt
+Lowest: Min
+validBy:
+isForwarded:
+isUnmodelled:
+State__queued: Event__by
 
 # W2 (the small actions)
 
 # W3 (InMemory)
 
 # W4a (onDisk's methods)
+onDisk__w:
 
 # W4b (OnDisk)
 
