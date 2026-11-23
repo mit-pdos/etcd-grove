@@ -12,7 +12,8 @@ The server's hijack (2026-11-23): `response.Hijack` (`hijackOk` from `hjPre`, wh
 when it calls the handler) over `conn.hijackLocked`, `connReader.abortPendingRead`, the net
 extension's `Conn.SetDeadline`/`SetReadDeadline` and bufio's `Writer.Reset`; and the background
 read, `connReader.backgroundRead`, over `Conn.Read` and `OpError.Timeout`, and its start,
-`connReader.startBackgroundRead` (over `Conn.SetReadDeadline`); `connReader.releaseConn`.
+`connReader.startBackgroundRead` (over `Conn.SetReadDeadline`); `connReader.releaseConn`; and the
+head's read, `connReader.Read` in the head phase (`crHead`, over `Conn.Read`).
 -/
 module
 
@@ -44,6 +45,8 @@ public import Net.Proof.net.http.connReader__abortPendingRead
 public import Net.Proof.net.http.connReader__backgroundRead
 public import Net.Proof.net.http.connReader__startBackgroundRead
 public import Net.Proof.net.http.connReader__releaseConn
+public import Net.Proof.net.http.connReader__Read
+public import Net.Proof.net.http.ConnReaderStream
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__SetDeadline
 public import Net.Proof.net.Conn__SetReadDeadline
@@ -109,6 +112,9 @@ theorem connReader.startBackgroundRead.wp :
     connReader.startBackgroundRead.spec (GF := GF) (hG := hG) :=
   connReader.startBackgroundRead.wp_proof net.Conn.SetReadDeadline.wp_proof connReader.backgroundRead.wp
 
+theorem connReader.Read.wp : connReader.Read.spec (GF := GF) (hG := hG) :=
+  connReader.Read.wp_proof net.Conn.Read.wp_proof
+
 theorem connReader.releaseConn.wp : connReader.releaseConn.spec (GF := GF) (hG := hG) :=
   connReader.releaseConn.wp_proof
 
@@ -133,3 +139,4 @@ end Perennial
 #print axioms Perennial.net.http.response.Hijack.wp
 #print axioms Perennial.net.http.connReader.startBackgroundRead.wp
 #print axioms Perennial.net.http.connReader.releaseConn.wp
+#print axioms Perennial.net.http.connReader.Read.wp
