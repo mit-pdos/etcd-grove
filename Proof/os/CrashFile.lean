@@ -235,6 +235,10 @@ def CfWf : CFile → Prop
   | none => True
   | some (_, m, bs, _) => bs.length = m.size ∧ m.maps = ∅
 
+/-- The fd `open(O_RDWR|O_CREAT|O_CLOEXEC)` gives: readable and writable. -/
+theorem openFd_rw (i : Ino) : openFd i (W64 0x80042) = ⟨i, true, true, none, none⟩ := by
+  simp [openFd, O_WRONLY, O_RDONLY]
+
 /-- What `b` names now (the claim's `cur`): nothing, or the state's file. -/
 def PathOk (b : GoString) (s : CFile) (h : NamesH) : Prop :=
   match s with
@@ -349,9 +353,9 @@ instance cfInv_persistent (N : Namespace) (p : GoString) (R : Roots) (γ : GName
 /-- The caller's part of the file at `p` in the state `s`: the other halves, of the state and of
 the claim. -/
 def cfOwn (p : GoString) (R : Roots) (γ : GName) (s : CFile) : IProp GF :=
-  iprop(∃ (j : Ino) (b : GoString) (h : NamesH), ⌜FileAt R p j b⌝ ∗
-    ghostVar γ (1 : Qp).half s ∗ thrRes (L := L) s ∗
-    osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗ ⌜CfWf s ∧ PathOk b s h⌝)
+  iprop(∃ (j : Ino) (b : GoString) (h : NamesH), ghostVar γ (1 : Qp).half s ∗ thrRes (L := L) s ∗
+    osNames (L := L) j (.only [b]) (DFrac.own (1 : Qp).half) h ∗
+    ⌜CfWf s ∧ PathOk b s h ∧ FileAt R p j b⌝)
 
 theorem osMeta_halves (i : Ino) (m : OsMeta) :
     osMeta (L := L) i (DFrac.own 1) m ⊣⊢
@@ -433,9 +437,7 @@ theorem cfInv_alloc (N : Namespace) (p : GoString) (R : Roots) (j : Ino) (b : Go
   iframe Hinv
   iexists j, b, h
   iframe Hv2 Hth Ht2
-  isplitr
-  · ipureintro; exact hfa
-  ipureintro; exact ⟨hwf, hp⟩
+  ipureintro; exact ⟨hwf, hp, hfa⟩
 
 /-- **A generation's claim on a root's name** (and the root's whole call permission), out of its
 start resources (`osShared`), the tree well formed: the claim's history is the tree's
