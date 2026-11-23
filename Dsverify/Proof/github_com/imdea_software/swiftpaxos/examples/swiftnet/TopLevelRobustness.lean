@@ -137,8 +137,8 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
   unfold swAddrs
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hss, Hsc⟩
   imod sw_start_at l π (ra G π) $$ Hreg Hss Hl with ⟨%γ, %γk, #Hcom, Hw, #Hli, Hsys, Hcs, Hss⟩
-  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ with ⟨%ρ, #Hmap⟩
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) (RBase.svc (swRK (G := G) γk)))
+  imod mapCtx_alloc (Gg := G) (I := KIn) ⊤ clientAddrs 24 (by decide) with ⟨%ρ, -, #Hmap, Hbud⟩
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (swRK (G := G) γk)) a)
     (fun _ => repP (Gg := G) (RBase.svc (swRK (G := G) γk))) clientAddrs $$ Hreg Hsc with #Hpc
   haveI : ∀ st, Timeless ((swRK (G := G) γk).sysState st) := fun st => by
     unfold swRK swR; dsimp only; infer_instance
@@ -176,7 +176,7 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs5, Hss⟩
   imodintro
   iexists fun i =>
-      if i = 0 then iprop(conf.writer γ ∗ common γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (swRK (G := G) γk) a) ∗ mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (swRK (G := G) γk) (swS0 (GF := netDistGF)) γp ∗ pendLib (Gg := G) (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init)
+      if i = 0 then iprop(conf.writer γ ∗ common γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (swRK (G := G) γk) a) ∗ mapCtx (Gg := G) (I := KIn) ∗ pendCtx (Gg := G) (swRK (G := G) γk) (swS0 (GF := netDistGF)) γp ∗ pendLib (Gg := G) (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G) (ρ := ρ) a 24)
       else if i = 1 then iprop(clientNodeShare γ 0 ∗ cnode.linkInv (G := G) γ γk ∗ remoteAddr (Gg := G) (swRK (G := G) γk) (clientAddrs.getD 0 go!"") ∗ mapCtx (Gg := G) (I := KIn))
       else if i = 2 then iprop(clientNodeShare γ 1 ∗ cnode.linkInv (G := G) γ γk ∗ remoteAddr (Gg := G) (swRK (G := G) γk) (clientAddrs.getD 1 go!"") ∗ mapCtx (Gg := G) (I := KIn))
       else if i = 3 then iprop(clientNodeShare γ 2 ∗ cnode.linkInv (G := G) γ γk ∗ remoteAddr (Gg := G) (swRK (G := G) γk) (clientAddrs.getD 2 go!"") ∗ mapCtx (Gg := G) (I := KIn))
@@ -220,11 +220,11 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
       iapply wp_bootR cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit bootRes
-          cmd.orch.wp_boot (P := iprop(conf.writer γ ∗ common γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (swRK (G := G') γk) a) ∗ mapCtx (Gg := G') (I := KIn) ∗ pendCtx (Gg := G') (swRK (G := G') γk) (swS0 (GF := netDistGF)) γp ∗ pendLib (Gg := G') (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init))
+          cmd.orch.wp_boot (P := iprop(conf.writer γ ∗ common γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (swRK (G := G') γk) a) ∗ mapCtx (Gg := G') (I := KIn) ∗ pendCtx (Gg := G') (swRK (G := G') γk) (swS0 (GF := netDistGF)) γp ∗ pendLib (Gg := G') (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G') (ρ := ρ) a 24))
           (by
-            iintro %Φ ⟨#Hpkg, ⟨Hw, #Hc, #Has, #Hm, #Hp, Hlib⟩, -⟩ HΦ
-            iapply (cmd.orch.wp_main (ρ := ρ) EtcdGrove.dsvswiftpaxos.wp_Orch γ γk γp hrb') $$ [Hw Hlib] HΦ
-            iframe Hw Hlib
+            iintro %Φ ⟨#Hpkg, ⟨Hw, #Hc, #Has, #Hm, #Hp, Hlib, Hbud⟩, -⟩ HΦ
+            iapply (cmd.orch.wp_main (ρ := ρ) EtcdGrove.dsvswiftpaxos.wp_Orch γ γk γp hrb') $$ [Hw Hlib Hbud] HΦ
+            iframe Hw Hlib Hbud
             iframe #) $$ HP Hgs
     | 1, hm =>
       cases hm
@@ -408,9 +408,9 @@ theorem swiftpaxos_remote_robust : swiftpaxos_remote_robust.spec := by
             iframe Hsh HB) $$ HP Hgs
   unfold system
   iapply BigSepL.bigSepL_cons.2
-  isplitl [Hw Hlib]
+  isplitl [Hw Hlib Hbud]
   · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
-    iframe Hw Hlib
+    iframe Hw Hlib Hbud
     try iframe #
   iapply BigSepL.bigSepL_cons.2
   isplitl [Hc0]

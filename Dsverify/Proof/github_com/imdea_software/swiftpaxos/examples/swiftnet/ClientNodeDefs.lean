@@ -308,7 +308,8 @@ abbrev Orch.spec [RpcHttpAddr netDistGF] : Prop :=
         remoteAddr (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
       pendCtx (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk) (swS0 (GF := netDistGF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init ∗
+      [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 24 }}
     (App (Val (@! examples.swiftnet.Orch)) (Val #()))
   {{ RET #(); True }}
 

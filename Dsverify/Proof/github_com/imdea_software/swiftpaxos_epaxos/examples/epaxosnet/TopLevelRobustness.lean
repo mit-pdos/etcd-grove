@@ -140,8 +140,8 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
   unfold epLas
   icases BigSepL.bigSepL_cons.1 $$ Hl with ⟨Hml, -⟩
   imod ep_start (G := G) $$ Hreg Hss Hml with ⟨%γ, %W, %HW, Hown, Hmr, Hrr, #Hci⟩
-  imod mapCtx_alloc (Gg := G) (I := EIn) ⊤ with ⟨%ρ, #Hmap⟩
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) (RBase.svc (epR γ)))
+  imod mapCtx_alloc (Gg := G) (I := EIn) ⊤ clientAddrs 6 (by decide) with ⟨%ρ, -, #Hmap, Hbud⟩
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (epR γ)) a)
     (fun _ => repP (Gg := G) (RBase.svc (epR γ))) epClientAddrs $$ Hreg Hsc with #Hpc
   have hv : own_state (G := G) γ (kvScan w8).init ⊢
       (epR (Gg := G) γ).sysState (epR (Gg := G) γ).B.init := .rfl
@@ -177,7 +177,7 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
   icases BigSepL.bigSepL_cons.1 $$ Hrr with ⟨Hr5, Hrr⟩
   icases BigSepL.bigSepL_cons.1 $$ Hrr with ⟨Hr6, -⟩
   imodintro
-  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (epR γ) a) ∗ mapCtx (Gg := G) (I := EIn) ∗ pendCtx (Gg := G) (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init)
+  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (epR γ) a) ∗ mapCtx (Gg := G) (I := EIn) ∗ pendCtx (Gg := G) (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G) a 6)
       else if i = 1 then iprop(clientInvs (G := G) γ ∗ remoteAddr (Gg := G) (epR γ) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G) (I := EIn))
       else if i = 2 then iprop(clientInvs (G := G) γ ∗ remoteAddr (Gg := G) (epR γ) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G) (I := EIn))
       else if i = 3 then iprop(clientInvs (G := G) γ ∗ remoteAddr (Gg := G) (epR γ) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G) (I := EIn))
@@ -219,12 +219,12 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
       iapply wp_bootR cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit iprop(True)
-          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (epR γ) a) ∗ mapCtx (Gg := G') (I := EIn) ∗ pendCtx (Gg := G') (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init))
+          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (epR γ) a) ∗ mapCtx (Gg := G') (I := EIn) ∗ pendCtx (Gg := G') (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G') a 6))
           (by
-            iintro %Φ ⟨#Hpkg, ⟨#Has, #Hm, #Hp, Hlib⟩, -⟩ HΦ
-            iapply (cmd.orch.wp_main EtcdGrove.dsvepaxos.wp_Orch γ γp hrb') $$ [Hlib] HΦ
+            iintro %Φ ⟨#Hpkg, ⟨#Has, #Hm, #Hp, Hlib, Hbud⟩, -⟩ HΦ
+            iapply (cmd.orch.wp_main EtcdGrove.dsvepaxos.wp_Orch γ γp hrb') $$ [Hlib Hbud] HΦ
             iframe #
-            iframe Hlib) $$ HP Hgs
+            iframe Hlib Hbud) $$ HP Hgs
     | 1, hm =>
       cases hm
       dsimp only
@@ -457,10 +457,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
             iexact Hr) $$ HP Hgs
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hlib]
+    isplitl [Hlib Hbud]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
       iframe #
-      iframe Hlib
+      iframe Hlib Hbud
     iapply BigSepL.bigSepL_cons.2
     isplitl []
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
