@@ -175,6 +175,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
+  import_log_Assumption : _root_.Perennial.log.Assumptions
   import_url_Assumption : _root_.Perennial.net.url.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -182,6 +183,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_httpguts_Assumption : _root_.Perennial.vendor.golang_org.x.net.http.httpguts.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
+  import_multipart_Assumption : _root_.Perennial.mime.multipart.Assumptions
   import_textproto_Assumption : _root_.Perennial.net.textproto.Assumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
   import_path_Assumption : _root_.Perennial.path.Assumptions
@@ -343,6 +345,7 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_io_Assumption
+  Assumptions.import_log_Assumption
   Assumptions.import_url_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption
@@ -350,6 +353,7 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.import_time_Assumption
   Assumptions.import_httpguts_Assumption
   Assumptions.import_net_Assumption
+  Assumptions.import_multipart_Assumption
   Assumptions.import_textproto_Assumption
   Assumptions.import_strconv_Assumption
   Assumptions.import_path_Assumption
