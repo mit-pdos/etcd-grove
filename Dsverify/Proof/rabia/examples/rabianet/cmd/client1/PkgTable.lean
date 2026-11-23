@@ -152,34 +152,34 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.rabia.examples.rabianet.cmd.cl
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h5, h1, h9, True.intro⟩
-  have h11 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h5, True.intro⟩
-  have h12 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
+  have h11 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, True.intro⟩
+  have h12 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, h0, h11, True.intro⟩
   have h13 : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h9, h12, h0, h6, True.intro⟩
+    exact ⟨h9, h11, h0, h6, True.intro⟩
   have h14 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h11, True.intro⟩
+    exact ⟨h12, True.intro⟩
   have h15 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h14, h5, h11, h0, True.intro⟩
+    exact ⟨h14, h5, h12, h0, True.intro⟩
   have h16 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h13, h5, h11, h15, h0, True.intro⟩
+    exact ⟨h6, h13, h5, h12, h15, h0, True.intro⟩
   have h17 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h10, h0, h11, h16, h9, h6, h15, True.intro⟩
+    exact ⟨h10, h0, h12, h16, h9, h6, h15, True.intro⟩
   have h18 : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -307,7 +307,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.rabia.examples.rabianet.cmd.cl
   have h49 : GetIsPkgInitProp pkg_id.rabia.internal.system (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h16, h48, h11, True.intro⟩
+    exact ⟨h16, h48, h12, True.intro⟩
   have h50 : GetIsPkgInitProp pkg_id.container.heap (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
