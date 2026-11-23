@@ -2674,7 +2674,7 @@ theorem State.OnDisk.wp_proof
       wp_join_done
       simp only [ite_true]
       iexists _; iframe; iexact Hvl
-  wp_apply wp_set_viol q S7 vl5 _ $$ [Hq Hvl5] as Hq
+  wp_apply wp_set_viol q S7 vl5 (if cb then setAdd viol4 go!"CommitBeyondConfirmed" else viol4) $$ [Hq Hvl5] as Hq
   · iframe Hq Hvl5
   try wp_auto
   subst hoeq
@@ -2682,6 +2682,9 @@ theorem State.OnDisk.wp_proof
   iunfold succOwn
   isplitr
   · ipureintro; rfl
+  -- TODO: `Hq`'s state and the goal's are the same record built in two ways (`iexact` fails to
+  -- unify them, `dsimp only` here takes ~30 min and still fails): state their equality as a Lean `have`.
+  subst hS7 hS6 hS5 hS4 hS3 hS2
   iexact Hq
 
 end proof
