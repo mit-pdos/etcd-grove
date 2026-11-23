@@ -144,6 +144,58 @@ theorem pathS_unchild (R : Roots) (d b : GoString) (j J : Ino) (e a : Qp) (hb : 
   iframe
   ipureintro; exact hJ
 
+theorem init_cur (m : Tree) (j : Ino) (N : NameSet) (b : GoString) (hb : N.Mem b) :
+    (NamesH.init m j N).cur !! b = m.entry j b := by
+  show restrictN N (entsOf m j) !! b = _
+  rw [restrictN_lookup _ _ _ hb, entsOf_lookup]
+
+theorem tmpRes_none {ht : NamesH} (hd : ∀ T, ht.cur !! wtB ≠ some (.dir T)) :
+    ⊢ tmpRes (L := L) ht := by
+  unfold tmpRes
+  split
+  · next T hT => exact absurd hT (hd T)
+  · iempintro
+
+/-- A fresh generation's claims below `wal.tmp` (`ds_start`) are what `Create` needs there. -/
+theorem tmpRes_init (m : Tree) (j : Ino) :
+    optClaim (L := L) (m, []) (dirOf m j wtB) ∗ optClaim (L := L) (m, []) (segDir m j) ⊢
+      tmpRes (L := L) (NamesH.init m j (.only [wtB])) := by
+  have hc : (NamesH.init m j (.only [wtB])).cur !! wtB = m.entry j wtB :=
+    init_cur _ _ _ _ (by simp [NameSet.Mem])
+  unfold segDir
+  cases hT : dirOf m j wtB with
+  | none =>
+    iintro -
+    iapply tmpRes_none
+    intro T h
+    rw [hc] at h
+    unfold dirOf at hT; rw [h] at hT; cases hT
+  | some T =>
+    have he := dirOf_some hT
+    refine Entails.trans ?_ (tmpRes_dir (L := L) (hc.trans he)).2
+    have hs : (NamesH.init m T (.except [])).cur !! segB = m.entry T segB :=
+      init_cur _ _ _ _ (by simp [NameSet.Mem])
+    simp only [Option.bind]
+    cases hK : dirOf m T segB with
+    | none =>
+      unfold optClaim
+      dsimp only
+      rw [namesOf_nil]
+      iintro ⟨HT, -⟩
+      iexists _
+      iframe HT
+      iapply subRes_noDir
+      intro K h; rw [hs] at h; unfold dirOf at hK; rw [h] at hK; cases hK
+    | some K =>
+      unfold optClaim
+      dsimp only
+      rw [namesOf_nil, namesOf_nil]
+      iintro ⟨HT, HK⟩
+      iexists _
+      iframe HT
+      iapply (subRes_dir (L := L) (hs.trans (dirOf_some hK))).2
+      iexists _; iexact HK
+
 end res
 
 /-! ## `Create` -/
@@ -399,6 +451,195 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   (try wp_auto)
   iapply HΦ
   itrivial
+
+/-- `checkDir(w)`, `w` the directory `J` (a spine to it), its `seg` the file `k` (a fraction of the
+claim on `J`'s `seg`), with half of the file's `OsMeta` and of its data, `CheckOk`: it does not
+panic. -/
+theorem wp_checkDir (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (R : Roots) (w : GoString) (dq : DFrac) (J : Ino) (dqn : DFrac) (hs : NamesH) (qc : Qp) (k : Ino)
+    (hk : hs.cur !! segB = some (.file k)) (m : OsMeta) (bs : List ByteG) (hok : CheckOk m bs) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R w dq J ∗ osCallPerm (callKey R w) qc ∗
+        osNames J sN dqn hs ∗
+        osMeta (GF := GF) k (DFrac.own (1 : Qp).half) m ∗
+        osBytes (GF := GF) k 0 (DFrac.own (1 : Qp).half) bs }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.checkDir)) (Val #w))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hm, Hb⟩
+  (try wp_auto)
+  wp_apply wp_readNamesS w R J dq qc sN dqn hs $$ [Hp Hperm Hn] as %sl %ok ⟨Hp, Hperm, Hn, Hr⟩
+  · iframe; iframe #
+  icases Hr with (%hok' | ⟨%names, %hn, Hsl⟩)
+  · subst hok'
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  obtain ⟨rfl, -, hmem, -⟩ := hn
+  (try wp_auto)
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+  ihave IH : iprop(∃ (i : w64) (nv : GoString),
+      "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ nv ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ names.length ∧ segB ∉ names.take (sint.nat i)⌝)
+      $$ [i n]
+  · iexists W64 0, _
+    iframe
+    ipureintro
+    refine ⟨by decide, ?_, ?_⟩ <;> rw [show sint.nat (W64 0) = 0 from rfl] <;> simp
+  wp_for IH
+  obtain ⟨hi0, hil, hns⟩ := Hi
+  wp_if_destruct
+  · have Hlt : sint.nat i < names.length := by word
+    have Hbnd : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨hi0, Hif⟩
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    obtain ⟨b, hb⟩ : ∃ b, names[sint.nat i]? = some b := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    wp_apply wp_load_slice_index sl (sint.Z i) names (DFrac.own 1) b hi0 $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact hb
+    have htake : names.take (sint.nat (i + W64 1)) = names.take (sint.nat i) ++ [b] := by
+      rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word]
+      rw [List.take_add_one, hb]; rfl
+    (try wp_auto)
+    by_cases hbs : b = segB
+    · subst hbs
+      rw [decide_eq_true (show segB = go!"seg" from rfl)]
+      (try wp_auto)
+      wp_apply wp_check wp_ReadAt wp_Close R w dq J sN dqn hs qc k sN_seg hk m bs hok
+        $$ [Hp Hn Hperm Hm Hb]
+      · iframe; iframe #
+      (try wp_auto)
+      wp_for_post
+      iapply HΦ
+      itrivial
+    rw [decide_eq_false (show ¬ b = go!"seg" from hbs)]
+    (try wp_auto)
+    wp_for_post
+    iframe
+    iexists i + W64 1, b
+    iframe
+    ipureintro
+    refine ⟨by word, by word, ?_⟩
+    rw [htake]; simp [hns, Ne.symm hbs]
+  · -- the loop is done: `seg` was not among the names, which it is
+    exfalso
+    have hie : sint.nat i = names.length := by word
+    rw [hie, List.take_length] at hns
+    apply hns
+    exact (hmem segB sN_seg).1 (by rw [hk]; rfl)
+
+/-- `BootDir(dir)`, `dir` the root of `j`, in a fresh generation of the tree `m`, `SafeT` with the
+invariant's key `ko`: with what `ds_start` hands out (the program's half of the invariant's claims,
+the claim on `wal.tmp`, the claims of `wal.tmp`'s directory and of its `seg`'s) and the program's
+half of the key's file (`segRes`), it does not panic. -/
+theorem wp_BootDir (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+    (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
+    (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
+    (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (γ : GName)
+    (m : Tree) (ko : Option Ino) (hs : SafeT j ko m) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ dsInv (GF := GF) j γ ∗ osCallPerm (callKey R dir) 1 ∗
+        dsHalf (GF := GF) j γ ko false (NamesH.init m j wO) (initSeg m j) ∗
+        osNames j (.only [wtB]) (DFrac.own 1) (NamesH.init m j (.only [wtB])) ∗
+        optClaim (GF := GF) (m, []) (dirOf m j wtB) ∗ optClaim (GF := GF) (m, []) (segDir m j) ∗
+        segRes (GF := GF) ko }}
+      (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.BootDir)) (Val #dir))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hos, #Hsi, #Hinv, Hperm, Hh, Ht, HT, HK, Hs⟩
+  have hwc : (NamesH.init m j wO).cur !! walB = m.entry j walB := init_cur _ _ _ _ wO_wal
+  imod osPathS_root R dir j (DFrac.own (1 : Qp).half) hrj CoPset.subseteq_top $$ Hsi with Hp
+  unfold dsHalf
+  icases Hh with ⟨Hv, Hw, Hcl⟩
+  (try wp_auto)
+  wp_apply wp_readNamesS dir R j _ 1 wO _ _ $$ [Hp Hperm Hw] as %sl %ok ⟨Hp, Hperm, Hw, Hr⟩
+  · iframe; iframe #
+  icases Hr with (%hok | ⟨%names, %hn, Hsl⟩)
+  · subst hok
+    (try wp_auto)
+    iapply HΦ
+    itrivial
+  obtain ⟨rfl, -, hmem, -⟩ := hn
+  (try wp_auto)
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
+  ihave IH : iprop(∃ (i : w64) (nv : GoString),
+      "i" ∷ i_ptr ↦ i ∗ "n" ∷ n_ptr ↦ nv ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ names.length ∧ walB ∉ names.take (sint.nat i)⌝)
+      $$ [i n]
+  · iexists W64 0, _
+    iframe
+    ipureintro
+    refine ⟨by decide, ?_, ?_⟩ <;> rw [show sint.nat (W64 0) = 0 from rfl] <;> simp
+  wp_for IH
+  obtain ⟨hi0, hil, hns⟩ := Hi
+  wp_if_destruct
+  · have Hlt : sint.nat i < names.length := by word
+    have Hbnd : 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len := ⟨hi0, Hif⟩
+    simp only [Hbnd, _root_.and_self, ↓reduceIte]
+    obtain ⟨b, hb⟩ : ∃ b, names[sint.nat i]? = some b := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    wp_apply wp_load_slice_index sl (sint.Z i) names (DFrac.own 1) b hi0 $$ [Hsl] as Hsl
+    · iframe; ipureintro; exact hb
+    have htake : names.take (sint.nat (i + W64 1)) = names.take (sint.nat i) ++ [b] := by
+      rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word]
+      rw [List.take_add_one, hb]; rfl
+    (try wp_auto)
+    by_cases hbs : b = walB
+    · subst hbs
+      rw [decide_eq_true (show walB = go!"wal" from rfl)]
+      (try wp_auto)
+      -- `wal` is there: a directory, its `seg` the file of the key
+      have hW : (m.entry j walB).isSome := by
+        rw [← hwc]; exact (hmem walB wO_wal).2 (List.mem_of_getElem? hb)
+      obtain ⟨J, hWd⟩ : ∃ J, m.entry j walB = some (.dir J) := by
+        cases h : m.entry j walB with
+        | none => rw [h] at hW; cases hW
+        | some x =>
+          cases x with
+          | dir J => exact ⟨J, rfl⟩
+          | file k => exact absurd h (hs.1 k)
+      obtain ⟨k, rfl, hk⟩ := hs.2 J hWd
+      have hseg : initSeg m j = some (J, NamesH.init m J sN) := by unfold initSeg; rw [hWd]
+      rw [hseg]
+      unfold osClaims jcl
+      icases BigSepL.bigSepL_singleton.1 $$ Hcl with Hcl
+      unfold segRes
+      icases Hs with ⟨%mt, %bs, Hm, Hb, %hok⟩
+      -- the spine to `wal`
+      icases osCallPerm_child R dir walB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+      ihave Hpc := osPathS_child R dir walB _ j J _ walB_ok (hwc.trans hWd) $$ Hp Hw
+      try rw [show dir ++ go!"/wal" = child dir walB from rfl]
+      wp_apply wp_checkDir wp_ReadAt wp_Close R (child dir walB) _ J _ _ 1 k
+          (by rw [init_cur _ _ _ _ sN_seg]; exact hk) mt bs hok
+        $$ [Hpc Hperm Hcl Hm Hb]
+      · iframe; iframe #
+      (try wp_auto)
+      wp_for_post
+      iapply HΦ
+      itrivial
+    rw [decide_eq_false (show ¬ b = go!"wal" from hbs)]
+    (try wp_auto)
+    wp_for_post
+    iframe
+    iexists i + W64 1, b
+    iframe
+    ipureintro
+    refine ⟨by word, by word, ?_⟩
+    rw [htake]; simp [hns, Ne.symm hbs]
+  · -- the loop is done: no `wal`
+    have hie : sint.nat i = names.length := by word
+    rw [hie, List.take_length] at hns
+    have hWn : m.entry j walB = none := by
+      cases h : m.entry j walB with
+      | none => rfl
+      | some x => exact absurd ((hmem walB wO_wal).1 (by rw [hwc, h]; rfl)) hns
+    have hseg : initSeg m j = none := by unfold initSeg; rw [hWn]
+    rw [hseg]
+    ihave Htmp := tmpRes_init (L := hG.goose_localGS) m j $$ [HT HK]
+    · iframe
+    (try wp_auto)
+    wp_apply wp_Create wp_Close wp_WriteAt wp_Sync R dir j hrj γ ko (NamesH.init m j wO) _
+        (hwc.trans hWn) $$ [Hperm Hv Hw Hcl Ht Htmp]
+    · iframe; iframe #
+      unfold dsHalf; iframe
+    (try wp_auto)
+    iapply HΦ
+    itrivial
 
 end prog
 
