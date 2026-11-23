@@ -18,6 +18,7 @@ public import Net.Spec.net.Conn__Close
 public import Net.Spec.net.Conn__SetReadDeadline
 public import Net.Spec.net.Conn__SetWriteDeadline
 public import GooseLang.Ext.Net.Stream
+public import Net.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -659,6 +660,8 @@ theorem wp_acceptLoop (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG
       addrProto (Gg := hG.goose_globalGS) a (wireProto Ψ) noProto }}
     (App (Val (nd @!! go.GoType.PointerType tcpNode.ty @!! go!"acceptLoop")) (Val #li))
   {{ RET #(); True }} := by
+  -- the valid-address shape of `Accept` (the wildcard-aware spec's instance, `AtAddr.lean`)
+  have wp_Accept := net.Listener.Accept.spec_addrOk wp_Accept
   wp_start as ⟨#Hnd, #Hli, Hlis, #Hla, #Hp⟩
   unfold net.isListener
   icases Hli with ⟨%t, %x, %Ht, #Hlt⟩
@@ -766,6 +769,8 @@ theorem tcpNode.serve.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG)) :
     tcpNode.serve.spec (GF := GF) (hG := hG) :=
     fun Ψ _ nd amap ids a tries => by
+  -- the valid-address shape of `Listen` (the wildcard-aware spec's instance, `AtAddr.lean`)
+  have wp_Listen := net.Listen.spec_addrOk wp_Listen
   wp_start as ⟨#Hnd, #Hp⟩
   ihave %Hok := addrTok_ok a $$ [Hp]
   · iapply addrProto_tok $$ Hp
