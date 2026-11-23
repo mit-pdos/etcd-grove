@@ -206,6 +206,10 @@ def shadows_perennial(mod):
 def shared_net(m):
     if m in ("Net.Code.net", "Net.TrustedCode.net", "Net.GeneratedProof.net", "Net.ManualProof.net"):
         return True
+    # (2026-11-23) `Net/Statement/`: the distributed statements' vocabulary, over Perennial and the net
+    # extension only (no copy of the main tree's modules): putget's distributed theorem imports it
+    if m.startswith("Net.Statement."):
+        return True
     for d in ("Net.Spec.net.", "Net.Proof.net."):
         if m.startswith(d):
             rest = m[len(d):]

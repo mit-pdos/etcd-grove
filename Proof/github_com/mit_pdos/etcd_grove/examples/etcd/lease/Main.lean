@@ -198,7 +198,7 @@ theorem Main.wp_proof
       (fun m => iprop(⌜m.ids.Nodup⌝)) lctx lcd) as %lsr %lerr Hls
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseLeasesSpecAny
+    iunfold etcdLeaseLeasesSpecAny, etcdLeaseLeasesSpecAnyW
     iintro %m %Hm
     ipureintro; exact Hm
   -- `lcancel()`
@@ -295,7 +295,7 @@ theorem Main.wp_proof
     · iframe #
       isplitl
       · imodintro; inext
-        iunfold etcdLeaseTTLSpec
+        iunfold etcdLeaseTTLSpec, etcdLeaseTTLSpecW
         iintro %m %Hm
         ipureintro; exact Hm
       iunfold leaseOptsAt

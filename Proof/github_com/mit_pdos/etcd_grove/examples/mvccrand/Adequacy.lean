@@ -153,7 +153,8 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy_start (GF := mvccrandGF) (n + 1) T (mvccrandProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
-    ⟨trivial, Hfs, trivial⟩ [] List.nodup_nil
+    ⟨trivial, Hfs, trivial⟩ [] [] List.nodup_nil List.nodup_nil
+    (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)
     ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL
@@ -169,7 +170,7 @@ theorem mvccrand_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   haveI : ReceiptBoundLe mvccrandGF (2 ^ 48) := ⟨by rw [HN]; omega⟩
   iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
-  icases Hrights with ⟨-, #Hvoff⟩
+  icases Hrights with ⟨-, -, -, #Hvoff⟩
   -- (prom-registry, route (b)) the run's registration rights: a fresh ghost map of its packages' IDs,
   -- the run's registry name
   imod (prometheus.regKeys_alloc (GF := mvccrandGF) _ mvccrand_regQsOk) with ⟨%γreg, Hregs⟩

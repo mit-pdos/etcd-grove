@@ -5,9 +5,25 @@
 def Perennial.go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit : IProp GF :=
   iprop(∃ tr, typedPointsto (globalAddr go_etcd_io.etcd.pkg.v3.traceutil.Tracer) (GoInterface.ok tr) DFrac.discard)
 
+def Perennial.go_opentelemetry_io.otel.trace.noop.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
+    pkg_id.go_opentelemetry_io.otel.trace.noop :=
+  {
+    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
+      get_is_pkg_init pkg_id.go_opentelemetry_io.otel.trace.noop = isPkgInit pkg_id.go_opentelemetry_io.otel.trace.noop ∧
+        GetIsPkgInitProp pkg_id.context get_is_pkg_init ∧
+          GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.attribute get_is_pkg_init ∧
+            GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.codes get_is_pkg_init ∧
+              GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace get_is_pkg_init ∧
+                GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace.embedded get_is_pkg_init ∧ True }
+
 def Perennial.go_etcd_io.etcd.pkg.v3.traceutil.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
-  { isPkgInitDeps := iprop(isPkgInit pkg_id.context ∗ isPkgInit pkg_id.time ∗ isPkgInit pkg_id.go_uber_org.zap ∗ True),
+  {
+    isPkgInitDeps :=
+      iprop(isPkgInit pkg_id.context ∗
+          isPkgInit pkg_id.time ∗
+            isPkgInit pkg_id.go_opentelemetry_io.otel.trace ∗
+              isPkgInit pkg_id.go_opentelemetry_io.otel.trace.noop ∗ isPkgInit pkg_id.go_uber_org.zap ∗ True),
     isPkgInitDef := go_etcd_io.etcd.pkg.v3.traceutil.traceutilInit }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.get_isPkgInit_wf_inst [prometheus.PromRegGS GF]
@@ -59,6 +75,9 @@ def Perennial.go_opentelemetry_io.otel.trace.isPkgInit_inst : IsPkgInit (IProp G
 def Perennial.go_opentelemetry_io.otel.trace.embedded.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_opentelemetry_io.otel.trace.embedded :=
   { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
+
+theorem Perennial.go_opentelemetry_io.otel.trace.noop.noopInit_persistent : Persistent
+    go_opentelemetry_io.otel.trace.noop.noopInit
 
 def Perennial.go_opentelemetry_io.otel.codes.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.go_opentelemetry_io.otel.codes :=
@@ -358,10 +377,29 @@ def Perennial.go_opentelemetry_io.otel.attribute.get_isPkgInit_wf_inst : GetIsPk
       get_is_pkg_init pkg_id.go_opentelemetry_io.otel.attribute = isPkgInit pkg_id.go_opentelemetry_io.otel.attribute ∧
         True }
 
+def Perennial.go_opentelemetry_io.otel.trace.noop.isPkgInit_inst : IsPkgInit (IProp GF)
+    pkg_id.go_opentelemetry_io.otel.trace.noop :=
+  {
+    isPkgInitDeps :=
+      iprop(isPkgInit pkg_id.context ∗
+          isPkgInit pkg_id.go_opentelemetry_io.otel.attribute ∗
+            isPkgInit pkg_id.go_opentelemetry_io.otel.codes ∗
+              isPkgInit pkg_id.go_opentelemetry_io.otel.trace ∗
+                isPkgInit pkg_id.go_opentelemetry_io.otel.trace.embedded ∗ True),
+    isPkgInitDef := go_opentelemetry_io.otel.trace.noop.noopInit }
+
+def Perennial.go_opentelemetry_io.otel.trace.noop.noopInit : IProp GF :=
+  iprop(∃ x,
+      typedPointsto (globalAddr go_opentelemetry_io.otel.trace.noop.noopSpanInstance)
+        (interface.mkOk go_opentelemetry_io.otel.trace.noop.Span.ty (intoVal x)) DFrac.discard)
+
 def Perennial.go_etcd_io.etcd.pkg.v3.traceutil.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.go_etcd_io.etcd.pkg.v3.traceutil :=
   {
     get_is_pkg_init_prop_def := fun get_is_pkg_init =>
       get_is_pkg_init pkg_id.go_etcd_io.etcd.pkg.v3.traceutil = isPkgInit pkg_id.go_etcd_io.etcd.pkg.v3.traceutil ∧
         GetIsPkgInitProp pkg_id.context get_is_pkg_init ∧
-          GetIsPkgInitProp pkg_id.time get_is_pkg_init ∧ GetIsPkgInitProp pkg_id.go_uber_org.zap get_is_pkg_init ∧ True }
+          GetIsPkgInitProp pkg_id.time get_is_pkg_init ∧
+            GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace get_is_pkg_init ∧
+              GetIsPkgInitProp pkg_id.go_opentelemetry_io.otel.trace.noop get_is_pkg_init ∧
+                GetIsPkgInitProp pkg_id.go_uber_org.zap get_is_pkg_init ∧ True }

@@ -105,28 +105,32 @@ theorem v3rpc.togRPCError.wp_proof
     have hE := HS0.2.2 ⟨ei, Hl.1, Hl.2.1, Hl.2.2⟩ ii hS0 hor
     rw [hE]
     iexact Hec
-  ihave ⟨%S', %M', #Htree', %HS'⟩ := HIsT $$ %de
+  -- (errors-is-deadline) the tree's `deadlineExceededError`s hold `deadlineExceededError{}`
+  ihave #HIsDE := applyErrIs_treeDE err $$ HIs
+  ihave ⟨%S', %M', #Htree', %HS'⟩ := HIsDE $$ %de
   ihave ⟨%S1, %M1, #Htree1, %HS1⟩ : iprop(∃ (S1 : GoInterface → Prop) (M1 : GoInterfaceOk → Prop),
       _root_.Perennial.errors.errorIsTree (GF := GF) S1 M1 de ∗
       ⌜S1 err ∧ ((∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])) → ∀ ii, S1 (GoInterface.ok ii) →
-          (GoInterface.ok ii = de ∨ M1 ii) → err = de)⌝) $$ []
+          (GoInterface.ok ii = de ∨ M1 ii) → err = de) ∧ deTyped S1⌝) $$ []
   · by_cases hL : (∃ ei : GoInterfaceOk, err = GoInterface.ok ei ∧ _root_.Perennial.errors.isLeafError ei ∧ methodSet ei.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     · obtain ⟨ei, hei, hl, hIs'⟩ := hL
       iexists (fun x : GoInterface => x = GoInterface.ok ei), (fun _ : GoInterfaceOk => False)
       isplitl
       · iapply _root_.Perennial.errors.errorIsTree_leaf ei _ _ hl hIs'
       ipureintro
-      refine ⟨hei, ?_⟩
-      intro _ ii hS1 hor
-      rcases hor with h | h
-      · rw [hei, ← hS1]; exact h
-      · exact h.elim
+      refine ⟨hei, ?_, ?_⟩
+      · intro _ ii hS1 hor
+        rcases hor with h | h
+        · rw [hei, ← hS1]; exact h
+        · exact h.elim
+      · intro ii hS1
+        exact HS'.2 ii (by rw [hS1, ← hei]; exact HS'.1)
     · iexists S', M'
       iframe Htree'
       ipureintro
-      exact ⟨HS'.1, fun h => absurd h hL⟩
+      exact ⟨HS'.1, fun h => absurd h hL, HS'.2⟩
   wp_apply hDE S1 M1 err de $$ [$Htree1] as %b2 %Hw2
-  · iframe #; ipureintro; exact HS1.1
+  · iframe #; ipureintro; exact ⟨HS1.1, HS1.2.2⟩
   wp_if_destruct
   rotate_left
   · iapply HΦ
@@ -143,7 +147,7 @@ theorem v3rpc.togRPCError.wp_proof
     iintro !> %ei %Hl
     iright
     obtain ⟨ii, hS1, hor⟩ := Hw2 (by first | rfl | assumption | simp_all)
-    have hE := HS1.2 ⟨ei, Hl.1, Hl.2.1, Hl.2.2⟩ ii hS1 hor
+    have hE := HS1.2.1 ⟨ei, Hl.1, Hl.2.1, Hl.2.2⟩ ii hS1 hor
     rw [hE]
     iexact Hde
   haveI := Hsafe

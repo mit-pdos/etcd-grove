@@ -43,6 +43,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.PkgInit
+public import Proof.go_etcd_io.etcd.server.v3.features.PkgInit
 
 @[expose] public section
 
@@ -337,15 +338,8 @@ instance get_isPkgInit_wf_inst [EtcdGrove.prometheus.PromRegGS GF] : GetIsPkgIni
 
 end go_etcd_io.etcd.server.v3.etcdserver.read
 
--- `server/v3/features` (names only, with the two feature constants the request path reads)
-namespace go_etcd_io.etcd.server.v3.features
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.features
+-- `server/v3/features`' instance: `Proof/go_etcd_io/etcd/server/v3/features/PkgInit.lean`
+-- (featuregate-3, 2026-11-23: its fact, `featuresInit`, is no longer `True`)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver
 

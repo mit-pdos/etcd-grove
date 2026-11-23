@@ -221,7 +221,7 @@ theorem errors.wp_Is :
 
 theorem errors.wp_IsDeadlineExceeded :
     EtcdGrove.errors.IsDeadlineExceeded.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsDeadlineExceeded.wp_proof
+  EtcdGrove.errors.IsDeadlineExceeded.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem status.wp_Error :
     EtcdGrove.status.Error.spec (GF := GF) (hG := hG) :=

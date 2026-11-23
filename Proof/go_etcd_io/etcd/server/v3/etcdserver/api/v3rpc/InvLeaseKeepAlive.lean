@@ -80,7 +80,7 @@ token `tok`. -/
 def kaDn (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames) (tok : Option GoString)
     (j : Nat) (r : w64 × w64) : IProp GF :=
   iprop(∃ q : KaReqM, upAt (Req := pbLeaseKeepAliveRequest) γs j q ∗ ⌜r.1 = q.id⌝ ∗
-    (⌜r.2 = W64 0⌝ ∨ leaseCheckFrom s E tok q.nb
+    (⌜r.2 = W64 0⌝ ∨ leaseCheckFrom (srvTLSId s) E tok q.nb
       (fun info => leaseKeysVerdictFrom E.authMode q.nb info γl q.mb q.id .write)))
 
 instance kaDn_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamNames)
@@ -105,7 +105,7 @@ the lease `id`: `nil` and the key check's verdict (`.write`), or a non-nil `appl
 (`EtcdServer.LeaseRenew.spec`'s). -/
 def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoString) (n m : Nat)
     (id : w64) (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
+  iprop((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom (srvTLSId s) E tok n
       (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
     (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
 

@@ -51,12 +51,12 @@ lessor `mvccLeases E.γ` (`etcdLeaseGrantSpecOn`, `etcdLeaseRevokeSpecOn`), and 
 metadata-indexed specs at that lessor (`etcdLeaseTTLSpecMd`, `etcdLeaseLeasesSpecMd`). -/
 def etcdLeaseServedOn (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
   iprop(isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant"
-      (client.etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) ∗
-    isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (client.etcdLeaseRevokeSpecOn s E ρ) ∗
+      (client.etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) ∗
+    isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (client.etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) ∗
     isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseTimeToLive"
-      (client.etcdLeaseTTLSpecMd s E (mvcc.api.mvccLeases E.γ)) ∗
+      (client.etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s (mvcc.api.mvccLeases E.γ)) E (mvcc.api.mvccLeases E.γ)) ∗
     isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseLeases"
-      (client.etcdLeaseLeasesSpecMd s E (mvcc.api.mvccLeases E.γ)))
+      (client.etcdLeaseLeasesSpecMd (srvTLSId s) E (mvcc.api.mvccLeases E.γ)))
 
 instance etcdLeaseServedOn_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF)
     (ρ : ReqNames) : Persistent (etcdLeaseServedOn addr s E ρ) := by

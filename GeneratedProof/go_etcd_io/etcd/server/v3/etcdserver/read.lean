@@ -92,7 +92,7 @@ noncomputable instance Read_access_load_mux (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Read_access_store_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (mux' : sync.RWMutex) :
+noncomputable instance Read_access_store_mux (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.read.Read) (mux' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) v.mux' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.read.Read go!"mux" l) mux' (DFrac.own 1))

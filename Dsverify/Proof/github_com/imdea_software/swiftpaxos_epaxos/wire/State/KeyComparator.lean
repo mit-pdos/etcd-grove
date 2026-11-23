@@ -29,7 +29,6 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-  [TH : TreemapHyp GF]
 
 theorem state.wp_KeyComparator (a b : w64) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.state }}
@@ -49,6 +48,31 @@ theorem state.wp_KeyComparator (a b : w64) :
   · have h2 : ¬ sint.Z a < sint.Z b := by simpa using Hif
     rw [show keyCmp a b = W64 0 by unfold keyCmp; simp only [h1, h2, ite_false]]
     wp_end
+
+/-- `KeyComparator` compares the treemap's keys (gods' `cmpOk`, for `StateTreemap.ofGods`). -/
+theorem state.keyComparator_cmpOk :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.state ⊢
+      github_com.emirpasic.gods.maps.treemap.cmpOk (GF := GF)
+        (functions state.KeyComparator []) keyIface := by
+  iintro #Hst
+  iunfold github_com.emirpasic.gods.maps.treemap.cmpOk
+  iintro !> %a %b %Φ HΦ
+  wp_apply state.wp_KeyComparator a b
+  iapply HΦ
+  ipureintro
+  by_cases h1 : sint.Z b < sint.Z a
+  · rw [keyCmp_gt a b h1]
+    have hne : a ≠ b := by rintro rfl; omega
+    exact ⟨⟨fun h => absurd h (by decide), fun h => by omega⟩,
+      ⟨fun h => absurd h (by decide), fun h => absurd h hne⟩⟩
+  · by_cases h2 : sint.Z a < sint.Z b
+    · rw [keyCmp_lt a b h2]
+      have hne : a ≠ b := by rintro rfl; omega
+      exact ⟨⟨fun _ => h2, fun _ => by decide⟩, ⟨fun h => absurd h (by decide), fun h => absurd h hne⟩⟩
+    · have hab : a = b := BitVec.eq_of_toInt_eq (Int.le_antisymm (Int.not_lt.mp h1) (Int.not_lt.mp h2))
+      subst hab
+      rw [keyCmp_self]
+      exact ⟨⟨fun h => absurd h (by decide), fun h => absurd h h2⟩, ⟨fun _ => rfl, fun _ => rfl⟩⟩
 
 end heap
 end Perennial.github_com.imdea_software.swiftpaxos_epaxos

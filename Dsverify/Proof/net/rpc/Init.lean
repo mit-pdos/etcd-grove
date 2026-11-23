@@ -1,7 +1,10 @@
 /-
 The initializer of `net/rpc` as a **hypothesis** of the part's EPaxos proofs (notes/dsv-epaxos.md,
 "Hypotheses"; `etc/gen-init.py`'s `DSV_HYP_INITS`): `Net/`'s model of net/rpc has no initializer proof (its closure reaches net/http's untranslated initializers; notes/dsverify-net-port-plan.md, 5.2 item 5). The class `net.rpc.InitHyp GF` says that
-it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/rpc`);
+it establishes the package's fact (`True` here: no proof of the part reads a variable of `net/rpc`) and those of
+every package its initializer reaches (its imports' initializers run first: the well-formedness
+condition `GetIsPkgInitProp pkg_id.net.rpc` constrains the table at each of them, net/http's
+closure included; a package with no fact elsewhere has a `True` one in the part);
 generated initializers take it as an instance (dsv-vr's mechanism, `dsv_hyp_fix`). To discharge:
 prove `net.rpc.wp_initialize'` (a generated `Init.lean` without axioms) and replace this module by it.
 -/
@@ -9,6 +12,9 @@ module
 
 public import Net.GeneratedProof.net.rpc
 public import Net.Proof.runtime.PkgInitExt
+public import Dsverify.Proof.net.http.Init
+public import Dsverify.Proof.go.token.Base
+public import Perennial.Proof.log.Base
 
 @[expose] public section
 
@@ -28,14 +34,14 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The package's fact, `True`, written by hand (not `define_is_pkg_init`, which needs the facts of
-all its imports, some of which have none in the part): no importer reads the imports' facts
-through it. -/
+/-- The package's fact: `True`, with its imports' facts (`define_is_pkg_init`). -/
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.net.rpc :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
-/-- Its well-formedness: `get_is_pkg_init` gives its fact (its imports' are not constrained). -/
+  define_is_pkg_init iprop(True)
+/-- Its well-formedness: `get_is_pkg_init` gives its fact and, recursively, the facts of every
+package its initializer reaches (its `PkgInfo` imports, which are the packages whose initializers
+`initialize'` runs: `build_get_is_pkg_init_wf`). -/
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.net.rpc :=
-  { get_is_pkg_init_prop_def := fun g => g pkg_id.net.rpc = isPkgInit pkg_id.net.rpc ∧ True }
+  build_get_is_pkg_init_wf
 
 end def_
 

@@ -1,7 +1,8 @@
 # prometheus's default registry, route (b): the final trusted diff (for Upamanyu's sign-off, #15)
 
 Branch `prom-registry` (notes/prom-registry.md, "Route (b)"). **Status: final** (2026-11-23, on `lean` at `82847d941b` with net-swap
-landed, Perennial `70706ce5e`: the full build passes; `etc/tcb-report.py --check --update`). Parts 1-2 are as of
+landed, Perennial `70706ce5e`: the full build passes; `etc/tcb-report.py --check --update`; signed off on #15). Re-merged
+onto `lean` `e6f16339c2` (Perennial `ccfeb3895`, single-process-restore landed): parts 4 and 5 updated (section 6). Parts 1-2 are as of
 step 1 (commit `8168da033b`), but point 1, which `lean` has since settled; parts 3-5 are step 2's. Nothing lands
 before sign-off.
 
@@ -346,3 +347,58 @@ placeholders `serverNames`/`clientNames` are deleted.
 The generic etcdstart theorems that survive net-swap (`init_adequate_below`, `init_adequate`,
 `init_adequate_start`) never took names. The WAL tester (`WalTester/`) has no closed adequacy theorem over its
 initializer (its crash obligation, `tester_crash`, does not run initialization), so it needs no allocation.
+
+## 6. After single-process-restore (re-merge onto `lean` `e6f16339c2`, 2026-11-23)
+
+`single-process-restore` (#28) restored the address part of `Start.lean` (`addrClaim`/`httpProtoFree` for `As`,
+`hAs`, `hAsLit`, `hAsFree : addrsUnclaimed e As`, the axiom `addrUnclaimed`) and three closed theorems over
+`etcdstart/AdequacyMembers.lean`, all still with the names part. The merge keeps the address part and removes
+the names part, as in part 4; nothing else changes in the axiom. The merged statement:
+
+```lean
+def startRights {GF : BundledGFunctors} [GooseExts] (As Ds : List GoString) : IProp GF :=
+  iprop(([∗list] a ∈ As, addrClaim a) ∗
+    ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
+    envVerifyOff)
+
+axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
+    (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
+    (As Ds : List GoString) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (hAsFree : addrsUnclaimed e As)
+    (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (Hwp : ∀ [hG : HeapGS .hasLC GF],
+      receiptBound GF = N →
+      threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
+        extsLocalStart (GF := GF) σ.world -∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) As Ds ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
+```
+
+(`goose_adequacy_start_all`: the same binders, with `RealNsteps` and `Hlive` for `Hsteps`, as before.)
+
+The restored theorems lose exactly the binder `HNs` and gain nothing:
+- `etcd_safe_single_process`, `etcd_adequate_of` and `etcd_robust_single_process.spec` (`examples/etcd/all`) lose
+  `(HNs : prometheus.namesUnclaimed (etcdProgram ...) etcdNames)`;
+- `k8s_safe_single_process`, both `k8s/all` adequacy theorems and `k8s_robust_single_process.spec` lose
+  `(HNs : prometheus.namesUnclaimed (k8sProgram ...) k8sNames)`;
+- `etcd_leaseexpiryN_safe_single_process`, its adequacy theorem and its robustness spec lose
+  `(HNs : prometheus.namesUnclaimed (leaseexpiryNProgram k) leaseexpiryNNames)`;
+- the name lists `etcdNames`, `k8sNames`, `leaseexpiryNNames` (`TopLevelDefs.lean`) are deleted, unused.
+
+Their proofs allocate the rights in `etcdstart`'s `etcd_adequate_alloc_below`: `etcd_adequate_*_below` take
+`(qs) (hqs : prometheus.regQsOk qs)` for `{Ns} (HNs) (hNs)`, and their `Hprog` is at every `[PromRegGS GF]`
+with the initializer's resource `regsFree qs` for `namesFree Ns`; each example passes its package's `regQs`
+and `<ex>_regQsOk` (decided over the 84 IDs as literals, `<ex>RegKeys`, as `mvccfull_regQsOk`).
+
+The distributed `putget_safe.spec` (`examples/etcd/dist/putget`, new on `lean`, stated, not proved) loses
+`(HNs : prometheus.namesUnclaimed (bootMember peer client) initNames ∧ prometheus.namesUnclaimed (bootClient client)
+initNames)` (and `PutgetBoot`/`PutgetBootS2` their `_HNs`): each machine's boot proof will allocate its rights.

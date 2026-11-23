@@ -111,10 +111,10 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
 
 ## Proof port: progress
 
-1. **Initializers: done** (`01ac72f60b`, `c7617216ca`). Notes: `gen-init`'s closure stops at a
-   hypothesis package (its `imports=[]` and `pkginfo_imports` → `[]`: its `GetIsPkgInitWf` is
-   hand-written, `g p = isPkgInit p ∧ True`), so a program's table does not need facts of net/http's
-   untranslated closure. `epaxos`' initializer: `deferMap` is `make(map[uint64]uint64)`
+1. **Initializers: done** (`01ac72f60b`, `c7617216ca`). Notes: `gen-init`'s closure stopped at a
+   hypothesis package (its `imports=[]` and `pkginfo_imports` → `[]`: its `GetIsPkgInitWf` was
+   hand-written, `g p = isPkgInit p ∧ True`), so a program's table did not need facts of net/http's
+   untranslated closure; that made the `InitHyp`s false, fixed by dsv-inithyp-fix ("Hypotheses"). `epaxos`' initializer: `deferMap` is `make(map[uint64]uint64)`
    (`wp_map_make1`), `errVarintOverflow` an `errors.New`. The facts the lab proves
    (`Epaxos/Top/PkgState.lean`: `errVarintOverflow`, `deferMap` ↦□, `LatencyConf` ↦□ "") are not
    yet in `Base.lean`: add them (gen-init `finish` steps) when a code proof reads them.
@@ -148,6 +148,13 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    Every theorem that uses the store takes `[TreemapHyp GF]`. (dsv-tpmodels' Go model
    `models/gods` has landed but no spec of it is proved; once one is, translate gods through
    `module_models` and discharge the class.)
+   **(2026-11-23, dsv-swiftpaxos review fix 4):** the premise is now the treemap spec set shared with
+   swiftpaxos, `github_com.emirpasic.gods.maps.treemap.Hyps`
+   (`Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`: the same predicates and
+   specs, generic in the comparator `cmpOk cmp enc` and the stored values); `TreemapHyp` is renamed
+   `StateTreemap` and derived from it (`StateTreemap.ofGods`, `Interface/Treemap.lean`: `enc =
+   keyIface`, `state.keyComparator_cmpOk`, entries `valE`). The proofs over `StateTreemap` are
+   unchanged.
 3c. **The `state` package's proofs: done** (`wire/State/*.lean`, the lab's files via
    `etc/dsv-epaxos/port.py`, which now also rewrites the proof-file headers to the generic `GF`):
    `InitState`, `NIL`, `NOOP`, `Conflict`, `ConflictBatch`, `concat`, `formatUint10`,
@@ -373,6 +380,20 @@ that needs it):
 - `net.rpc.InitHyp GF` (`Dsverify/Proof/net/rpc/Init.lean`): net/rpc's initializer.
 - `net.http.InitHyp GF` (`Dsverify/Proof/net/http/Init.lean`): net/http's initializer.
 - `encoding.json.InitHyp GF` (`Dsverify/Proof/encoding/json/Init.lean`, dsv-vr's): encoding/json's.
+  **Gone (2026-11-23, branch `dsv-json-main`, notes/dsv-json-main.md)**: the kit uses the main tree's
+  `encoding/json` (J1 of #24); its `wp_initialize'` is proved, so the statement lost this premise.
+
+**The `InitHyp`s' conditions (dsv-inithyp-fix, review of #24, finding 1):** net/rpc's and net/http's
+were false as landed: their `GetIsPkgInitWf` (`g p = isPkgInit p ∧ True`) constrained the table only
+at the package, but their initializers run their imports' (net/rpc: bufio, errors, io, log, net,
+net/http, sync, go/token; net/http 17), so with `g bufio := False` the pre held and the post
+(`ownInitializing g` with bufio initialized: `□ False`) did not. Now `build_get_is_pkg_init_wf` (and
+`define_is_pkg_init iprop(True)`), over every package the initializer reaches (net/http's closure,
+36 packages; net/rpc's, 39); the four of that closure with no fact anywhere the part can import
+(`crypto/tls`, `go/token`, `net/textproto`, the vendored `httpguts`) have a `True` one,
+`Dsverify/Proof/<pkg>/Base.lean`; `etc/dsv/epaxos.py`'s `HYP_IMPORTS` is `'all'`, so the 17 tables
+hold that closure and prove the conditions. encoding/json's was true (names only: `PkgInfo` imports
+`[]`, its initializer runs none).
 
 - **Premise soundness (2026-11-23, review of #24):** `RpcHttpAddr.rpcLisP_set` lacked
   models-rpc-http's handshake premise (e6b232b2f6 `Net/Proof/net/rpc/Proto.lean`; without it the
@@ -412,7 +433,8 @@ that needs it):
   `Put`/`Get` take `keyIface`/`valIface` (a `state.Key`, a `state.Value`: no comparator panic on a
   foreign key type); `Select` needs `f`'s triple; `Iterator` consumes the map's ownership (no
   modification while iterating); `Next`/`Value` need `ownIter`. No spec holds where Go panics or
-  races. The `InitHyp`s assert only that the initializer runs (package fact `True`).
+  races. The `InitHyp`s assert only that the initializer runs (package fact `True`, with the facts of
+  the packages it reaches, which their own initializers establish).
 
 To be stated when the code proofs reach them (the library specs below, named after the lab's):
 

@@ -131,6 +131,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.sync.atomic, isPkgInit pkg_id.sync.atomic),
    (pkg_id.encoding.binary, isPkgInit pkg_id.encoding.binary),
    (pkg_id.slices, isPkgInit pkg_id.slices),
+   (pkg_id.iter, isPkgInit pkg_id.iter),
    (pkg_id.math.bits, isPkgInit pkg_id.math.bits),
    (pkg_id.«unsafe», isPkgInit pkg_id.«unsafe»),
    (pkg_id.cmp, isPkgInit pkg_id.cmp),

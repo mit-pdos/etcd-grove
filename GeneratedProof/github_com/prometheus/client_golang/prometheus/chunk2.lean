@@ -455,7 +455,7 @@ noncomputable instance metricMap_access_load_mtx (l : Loc) (v : github_com.prome
  by
   solve_pointsto_access_struct
 
-noncomputable instance metricMap_access_store_mtx (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricMap) (mtx' : sync.RWMutex) :
+noncomputable instance metricMap_access_store_mtx (l : Loc) (v : github_com.prometheus.client_golang.prometheus.metricMap) (mtx' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricMap go!"mtx" l) v.mtx' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.metricMap go!"mtx" l) mtx' (DFrac.own 1))

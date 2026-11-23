@@ -67,7 +67,7 @@ theorem wp_newClient : newClient.spec (GF := GF) :=
     ProxyAddrs.wp_proof EtcdGrove.dsvrabia.wp_ClientTcpInit EtcdGrove.dsvrabia.wp_ClientTCP_Connect
 
 -- the machines
-theorem wp_Server [github_com.rs.zerolog.Hyps GF] [os.signal.NoSignals GF] :
+theorem wp_Server [github_com.rs.zerolog.Hyps GF] [os.signal.NoSignals os.signal.quietSigs GF] :
     Server.spec (GF := GF) :=
   Server.wp_proof EtcdGrove.dsvrabia.wp_ServerInit EtcdGrove.dsvrabia.wp_Prologue
     EtcdGrove.dsvrabia.wp_ServerMain wp_configure_linked ProxyAddrs.wp_proof NetAddrs.wp_proof

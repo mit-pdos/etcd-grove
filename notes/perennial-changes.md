@@ -17,6 +17,65 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Slice` is names-only: `mvcc.hashStorage.Store` stays an axiom (2026-11-23, ps2-crc32-merge, claim #18)
+
+- **Limitation.** Perennial's `sort` translates `sort.Sort` and `pdqsort` over a `sort.Interface`
+  (`zsortinterface.go`), but not `sort.Slice` (`slice.go`) nor `pdqsort_func` and its helpers
+  (`zsortfunc.go`): `Slice` swaps through `internal/reflectlite.Swapper(x)`, which has no model.
+  `Spec/sort/Slice.lean` is stated for `[]int64` only and is a hypothesis (`?`) of mvccrand's results.
+- **Needed by.** `mvcc.hashStorage.Store` (`hash.go`): it logs (`zap.Logger.Info` over `zap.Uint32`/
+  `zap.Int64`, specified here), appends under `hashMu`, then `sort.Slice(s.hashes, func(i, j int) bool
+  { return s.hashes[i].Revision < s.hashes[j].Revision })` and keeps the last `hashStorageMaxSize`.
+  Its axiom was thought to wait only on `hash/crc32` (`hash.go`'s hasher): crc32 is now translated and
+  proved (etcd-grove#14), but `Store` never calls crc32; `sort.Slice` is the one callee with no spec
+  that can be proved (with `hashStorageOk` carrying `hashMu`'s lock invariant over `hashes`, which
+  `NewHashStorage` would establish, every other step is provable over existing specs).
+- **Workaround.** None here: the axiom `mvcc.hashStorage.Store.wp_proof` stays (an axiom for
+  `sort.Slice` at `[]KeyValueHash` would trade one axiom for another, and a `?` hypothesis would add a
+  premise to every result reaching `store.compact`).
+- **Proposed change.** In Perennial: translate `slice.go` (`Slice`, `SliceStable`, `SliceIsSorted`) and
+  `zsortfunc.go` (`pdqsort_func` and the `_func` helpers, the same code as the interface ones over
+  `lessSwap`), with a trusted model of `reflectlite.Swapper` for slices (swap two elements of the slice
+  the interface holds; panics on a non-slice), and prove `sort.Slice` generically in the element type
+  (the order of `less` not required, as `sort.Sort.wp_anyLess`). A trusted-model change: a PR for
+  upamanyus's review.
+
+### Goose drops the implicit conversion of a type-parameter value to an interface (2026-11-23, zap-z1, claim #40)
+
+- **Limitation.** Where Go converts a value of a type parameter `T` to an interface implicitly (an
+  argument, a result, an assignment), Goose emits no `Convert T <iface>`: zap's
+  `internal/pool` (`pool.go`), `func (p *Pool[T]) Put(x T) { p.pool.Put(x) }`, is translated as
+  `MethodResolve (*sync.Pool) "Put" ... (![T] "x")`, passing the raw `T` value where `sync.Pool.Put`
+  takes an `any`; `New`'s closure `func() any { return fn() }` stores the raw result at type `any`.
+  Instantiated at `T = *zapcore.CheckedEntry`, Perennial's `Pool.Put.impl` compares `x =⟨go.any⟩ nil`
+  on a `Loc`, which has no step: the model is stuck where Go runs (incomplete, not unsound).
+- **Who needs it.** `zapcore.CheckedEntry.Write.wp_proof` (its last step, `putCheckedEntry`, is
+  `_cePool.Put(ce)`); any proof through a generic wrapper over an interface (zap's buffer and stack pools).
+- **Workaround.** `CheckedEntry.Write` stays a trust-boundary axiom (its entry `zapcore.zapEntry` is now
+  defined: not dirty, no hooks, no cores). zap-z1 had the rest of the proof (the entry's fields, the two
+  empty range loops, `putCheckedEntry`, zapcore's package fact giving `_cePool` an `isPool` with `R :=
+  False` through `pool.New`'s post, Perennial's `sync.Pool.wp_Put`) working up to that call.
+- **Proposed change.** Goose: at an assignability conversion whose source type is a type parameter and
+  whose target is an interface, emit `Convert T <iface>` (as for a non-generic `T`); `Convert` of a type
+  parameter instantiated with a non-interface type is then `interface.mkOk T v`.
+
+### klog's printf path: `bytes.Buffer.WriteByte`, `fmt` over `[]string`, `fmt.Fprint` (2026-11-23, klog-leaves, #25)
+
+- **Limitation.** klog's `printfDepth` (`klog.go:764`: `Errorf`, `Warningf`, `Verbose.Infof`) ends
+  with `buf.WriteByte('\n')` on its `*buffer.Buffer` (which embeds `bytes.Buffer`); Perennial's
+  `bytes` translates `Buffer.Write`, `Bytes`, `Len`, `String`, ... but not `WriteByte` (names-only).
+  The compactor's `Errorf`/`Infof` calls pass `[]string` arguments (`c.client.Endpoints()`), on which
+  Perennial's `fmt` model is stuck (reflection into a slice; here `fmt.SprintfSlice`/`ErrorfSlice` are
+  axioms for that reason), so `fmt.wp_Fprintf` does not cover `klog.argsOk`. `Verbose.InfoS`'s
+  `printS` also calls `fmt.Fprint` (of a `*bytes.Buffer`, a `Stringer`) and `strconv.AppendQuote`,
+  neither with a spec.
+- **Who needs it.** The axioms `klog.Errorf`, `klog.Warningf`, `klog.Verbose.Infof`,
+  `klog.Verbose.InfoS` (`Proof/k8s_io/klog/v2/`); `klog.V` is proved without them.
+- **Workaround.** The four stay trust-boundary axioms.
+- **Proposed change.** `bytes.Buffer.WriteByte` translated and proved (as `Write`); `fmt`'s model
+  printing a slice of basic-typed elements by reflection (`%v`/`%s`); `fmt.Fprint`'s spec;
+  `strconv.AppendQuote`'s. With the first two, the three printf axioms become proofs over trusted
+  models of klog's sink only (`loggingT.header`, `loggingT.output`, the `sync.Pool` buffer pool).
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
@@ -75,6 +134,35 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (below, "Generic maps and slices iterators"); `init_0_ok`'s input map is built by `version.MustParse`
   (`regexp`) and `DefaultMutableFeatureGate_init` states nothing of the gate's state; `addFeatureGateMetrics`'s
   spec is unprovable as stated (ledger, 2026-11-23).
+  (2026-11-23, branch `maps-featuregate`) With `maps.Clone` now specified, `NewDefaultServerFeatureGate`
+  is blocked one step further: etcd's `featuregate.MutableFeatureGate` (what `New` returns and
+  `NewDefaultServerFeatureGate` calls `Add` on) names `*flag.FlagSet` in `AddFlag`, and no project
+  translates the standard library's `flag`, so goose leaves the interface's `underlying` opaque; the
+  conversion `*featureGate -> MutableFeatureGate` and the method call need `t ≤u InterfaceType ...`
+  (`InterfaceSemantics.method_interface_ok`). Translating `flag` names-only (tried: etcd project,
+  `flag=`, `Code/flag.toml`) brings its untranslated initializers (`ErrHelp`, `errParse`, `errRange`
+  via `errors.New`; `CommandLine = NewFlagSet(os.Args[0], ...)`; `Usage`, a func literal) and its
+  `init` function (`CommandLine.Usage = commandLineUsage`). The four variables can be `[[skip]]`ped as
+  pflag's are; the `init` function cannot, so it needs either a new trust-boundary axiom
+  `flag.initFuncsOk` (**for approval**) or `CommandLine`/`NewFlagSet`/`FlagSet`/`init` translated
+  with bodies and proved (`os.Args[0]` needs `os.Args` non-empty, a fact of `os`'s package). The rest
+  of the proof is unblocked: `New`/`Add`/`Enabled`/`defaultFeatures`/`specialFeatures` translate
+  (`featuregate.toml` translate list `New`, `featureGate.Add`, `featureGate.Enabled`,
+  `defaultFeatures`, `specialFeatures`, `setUnsetAlphaGates`, `setUnsetBetaGates`, `allAlphaGate`,
+  `allBetaGate`; imports `flag`, `fmt`, `maps`, `sync`, `sync/atomic`, `go.uber.org/zap`), the struct
+  `featureGate` is then translated, and what remains is a local spec of `maps.Copy` (translated in
+  Perennial, no spec), the facts of `featuregate`/`features` (`apply/Base.lean`/`BaseApply.lean`), and
+  the proofs.
+  (2026-11-23, branch `featuregate-3`) **Done, without a Perennial change and without an axiom:**
+  `features.NewDefaultServerFeatureGate.wp_proof` is a theorem. go1.27's `flag.init` handles an empty
+  `os.Args` itself (`if len(os.Args) == 0 { CommandLine = NewFlagSet("", ExitOnError) }`), so no
+  non-empty fact of `os.Args` is needed: `os`'s fact only records `Args`' slice read-only. `flag` is
+  translated here (project etcd, `flag=`, `Code/flag.toml`), as `os` is, because a Perennial `flag`
+  would import Perennial's `os`, which must never meet this repository's. `maps.Copy`'s spec is proved
+  here (`Spec/maps/Copy.lean`, generic, over Perennial's translation), and the same spec is in
+  Perennial `6965e6194` (`maps` below). `featureGate.Add`'s `Store` into the filled `known` uses
+  `71de6f043`'s `sameTypeOrNil` (same map type). Still open from this entry: `init_0_ok`,
+  `DefaultMutableFeatureGate_init` (k8s `component-base/featuregate`, `regexp`), `addFeatureGateMetrics`.
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
@@ -412,6 +500,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
   axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
   only; a second local instance would be a new trust-boundary axiom, for approval).
+  (2026-11-23, `featuregate-3`) Perennial's `maps` (`70706ce5e`) specifies `Clone` and `Equal`
+  generically; `Copy` is translated with no spec. This repository proves one (`Spec/maps/Copy.lean`,
+  `maps.Copy.spec`, at any `M1 M2 ↓u map[Kt]Vt` with safe keys: `dst ↦$ D ∗ src ↦${dq} S` to
+  `dst ↦$ (S ∪ D)`, by `wp_map_for_range`; its loop state `maps.copyPrefix`, `Proof/maps/CopyPrefix.lean`).
+  **Landed in Perennial** `6965e6194` (2026-11-23, the same spec and proof: `Perennial/Spec/maps/Copy.lean`,
+  `maps.wp_Copy`, `maps.copyPrefix` in `Proof/maps/Base.lean`), not yet in the pin; this repository's
+  copy (`Spec/maps/Copy.lean`, `Proof/maps/{Copy,CopyPrefix}.lean`) goes at the pin bump that brings it
+  (requested on #9).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
@@ -431,6 +527,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
      `Clone` (`m ↦$ M` fresh, or `nil` for `nil`).
 - **Status (2026-11-17).** Proposed only (no Perennial branch). To be designed and reviewed on a
   branch off Perennial's `lean` when the user wants it.
+- **Status (2026-11-23).** Item 1 done in Perennial `70706ce5e` (in the pin): `maps` translated with
+  bodies (`clone` over the semantics instruction `InternalMapClone`), with proved generic specs of
+  `Clone` and `Equal` (`maps.wp_Clone`, `maps.wp_Equal`). Here (branch `maps-featuregate`) the
+  names-only `Code/maps` is gone and `maps.Clone.wp_proof_strBool`/`maps.Equal.wp_proof_strBool` are
+  theorems from them (trust base -2). Still open: iterator specs (`Keys`, `slices.Sorted`/`Collect`,
+  item 3's protocol), so `maps.Keys.wp_proof_objMap` stays an axiom; and a spec of `maps.Copy`
+  (translated, no spec), which `featuregate.Add` needs.
 
 
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
@@ -1730,32 +1833,6 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   needs a points-to the package's fact (`True`) does not give; they stay names only until a model
   of `encoding/base64` (and of `golang.org/x/crypto/bcrypt`'s `GenerateFromPassword`) exists.
 
-### `reflect.Value` held in a variable: its typed points-to is `sorry`
-
-- **Limitation.** `reflect` is names-only, and its axiomatized types' generated instances
-  (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
-  `sorry -- axiomatized type`. Any function that stores a `reflect.Value` in a variable (a
-  parameter is one: Goose allocates it) needs them, so a proof of it rests on a `sorry`.
-- **Needed by.** The k8s etcd3 store's `Delete` and `GuaranteedUpdate`: `v, _ :=
-  conversion.EnforcePtr(out)` is passed to `conditionalDelete`, `deleteOnce`, `updateOnce`,
-  `getCurrentState`, `stateFromEtcdResponse`, which make a fresh object with
-  `reflect.New(v.Type()).Interface().(runtime.Object)` (`notes/k8s-etcd3-plan.md`, "What blocks
-  where"). `Get` and `Create` do not use it.
-- **Proposed.** An opaque `reflect.Value` with real instances (a translated struct whose fields
-  are not modelled, or a hand-written typed points-to that only allows moving the value), plus
-  specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
-  values. Designed and reviewed on its own (Perennial's trusted base).
-- **Workaround here** (the user's choice, 2026-10-22: axioms here now, a trusted model with proved
-  reasoning principles later). `Proof/reflect/Values.lean`: the two instances as axioms of higher
-  priority than the generated `sorry`s; opaque predicates relating a `Value` to a Go type and a
-  location (`reflElem`, `reflPtr`, `reflType`) and `reflect.New`'s allocation (`reflNew`, with
-  `reflNew_pointsto`); the specs of `reflect.New`, `Value.Addr`/`Type`/`Interface` and
-  `conversion.EnforcePtr` as axioms (`Spec/reflect/`, `Spec/k8s_io/apimachinery/pkg/conversion/`).
-  Go's `reflect` works on the runtime's representation (type descriptors, `unsafe.Pointer`,
-  interfaces as two words), outside the semantics, so the model will be trusted, its principles
-  proved from it.
-- **Status.** Not started in Perennial.
-
 ### `reflect.Type` in a struct field: the struct's instances rest on a `sorry` (2026-10-27, client-go reflector)
 
 - **Limitation.** `reflect` is names-only (`Perennial/Code/reflect.toml`: `translate = ["!*"]`), so
@@ -2063,6 +2140,54 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Status.** Recorded only.
 
 ## Landed
+
+### `reflect.Value` held in a variable: its typed points-to is `sorry` (2026-10-22, k8s etcd3; landed: Perennial `3eae9cd1f`, PR #672, in the pin `078ceec6f`; workaround dropped 2026-11-23, branch `reflect-r0`)
+
+- **Limitation.** `reflect` is names-only, and its axiomatized types' generated instances
+  (`GeneratedProof/reflect.lean`: `Value_typed_pointsto`, `Value_into_val_typed`) are
+  `sorry -- axiomatized type`. Any function that stores a `reflect.Value` in a variable (a
+  parameter is one: Goose allocates it) needs them, so a proof of it rests on a `sorry`.
+- **Needed by.** The k8s etcd3 store's `Delete` and `GuaranteedUpdate`: `v, _ :=
+  conversion.EnforcePtr(out)` is passed to `conditionalDelete`, `deleteOnce`, `updateOnce`,
+  `getCurrentState`, `stateFromEtcdResponse`, which make a fresh object with
+  `reflect.New(v.Type()).Interface().(runtime.Object)` (`notes/k8s-etcd3-plan.md`, "What blocks
+  where"). `Get` and `Create` do not use it.
+- **Proposed.** An opaque `reflect.Value` with real instances (a translated struct whose fields
+  are not modelled, or a hand-written typed points-to that only allows moving the value), plus
+  specs of `Value.Addr`/`Type`/`Interface`/`Elem`/`Set` and `reflect.New` for pointer-to-struct
+  values. Designed and reviewed on its own (Perennial's trusted base).
+- **Workaround here** (the user's choice, 2026-10-22: axioms here now, a trusted model with proved
+  reasoning principles later). `Proof/reflect/Values.lean`: the two instances as axioms of higher
+  priority than the generated `sorry`s; opaque predicates relating a `Value` to a Go type and a
+  location (`reflElem`, `reflPtr`, `reflType`) and `reflect.New`'s allocation (`reflNew`, with
+  `reflNew_pointsto`); the specs of `reflect.New`, `Value.Addr`/`Type`/`Interface` and
+  `conversion.EnforcePtr` as axioms (`Spec/reflect/`, `Spec/k8s_io/apimachinery/pkg/conversion/`).
+  Go's `reflect` works on the runtime's representation (type descriptors, `unsafe.Pointer`,
+  interfaces as two words), outside the semantics, so the model will be trusted, its principles
+  proved from it.
+- **Status.** Landed for the variable: Perennial translates `reflect.Value` as its struct (`typ_ *abi.Type`,
+  `ptr`, `flag`), and the generated `Value_typed_pointsto`/`Value_into_val_typed` are real. The axioms
+  `reflectM.value_intoVal_inj` and `reflectM.value_into_val_typed` and the high-priority instances of
+  `Proof/reflect/Values.lean` are deleted (branch `reflect-r0`, etcd-grove #40 stage R0). The rest
+  (the specs of `reflect.New`, `Value.*`, still axioms here) is stage R1 of #40, a trusted model of
+  `reflect`'s `Value` primitives in Perennial.
+
+### `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2; landed: Perennial `3eae9cd1f`, in the pin `078ceec6f`; axiom retired 2026-11-23, branch `reflect-r0`)
+
+- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
+  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
+  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
+- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
+- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
+  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
+  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
+  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
+  below would remove it.
+- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
+  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
+- **Status.** Landed: Perennial translates `Kind` as `w64` with `Kind.underlying := go.uint` (reducible), so
+  `reflect.KindCompare.wp_proof` is now a theorem (`uint`'s `go_eq_uint`); the axiom is retired (etcd-grove
+  #40 stage R0).
 
 ### `strings.NewReplacer` and `Replacer` not translated (2026-11-21, prove-k8s4; landed 2026-11-21, Perennial `60800ea5e`, in the pin since the ncfupd bump)
 
@@ -3168,21 +3293,6 @@ name in the macro (`_root_.decide_true`), and consider failing loudly instead of
   a sealed postcondition in `wp_for`'s style and a panicking-body case; a `wp_for_range` tactic.
 - **Status.** Candidate; not started in Perennial.
 
-## `reflect.Kind` is an axiomatized type: `v.Kind() != reflect.Slice` cannot step (2026-11-10, k8s 7e-2)
-
-- **Missing.** Perennial's `reflect` translation declares `Kind` (Go: `type Kind uint`) as an
-  axiomatized type (`axiom Kind : Type`, `Kind.underlying` an axiom), so `GoOp GoEquals reflect.Kind.ty`
-  has no semantics; the trusted `reflect.Value.Kind.spec` (this repository) returns `#(W64 23)`.
-- **Needed by.** `store.GetList`'s `if err != nil || v.Kind() != reflect.Slice` (`store.go:780`).
-- **Workaround here.** `store.GetList.wp_proof` takes the hypothesis `reflect.KindCompare.spec`
-  (`Spec/reflect/KindCompare.lean`: `go.IsStrictlyComparable reflect.Kind.underlying w64`), a
-  trust-boundary axiom since 2026-11-10 (`Proof/reflect/KindCompare.lean`, decided by etcd-grove-81
-  after the review; Go test `TestKindIsUint`, `examples/k8s7e2attack/attack_test.go`). The change
-  below would remove it.
-- **Proposed change.** Translate `reflect.Kind` as `type Kind uint` (it is a plain named integer
-  type), so its comparison is the translated one; or a reflect model fact stating the underlying.
-- **Status.** Recorded; not started in Perennial (the axiom here stands in for it).
-
 ## An `RWMutex` can be made a lock only unlocked (2026-11-10, mvccfull F1's B3)
 
 - **What happened.** `mvcc.NewStore` locks `s.mu` while the store is still private memory and, in
@@ -3858,6 +3968,53 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Proposed (general).** `wp_apply` re-raises its post-processing's error instead of admitting the
   goal. **Status.** Recorded only.
 
+## 2026-11-22: `sync.OnceFunc`'s spec says nothing of calling the function it returns (`hash/crc32`'s arch hooks, etcd-grove#14)
+
+- **The gap.** `Perennial/Spec/sync/OnceFunc.lean` (the pins `d648cfe22` and `c14cca87a`, and Perennial
+  `lean`'s head on 2026-11-22): `OnceFunc(f)` returns some `g` with postcondition `True`, and no spec says what calling `g`
+  does (nor for `OnceValue`/`OnceValues`). `Once.Do` (`isOnce o P Q`) and `atomic.Bool.Load`/`Store`
+  (`ownBool`) have specs; `OnceFunc` is translated with its body (`Once`, `wrapDeferRecover`).
+- **Who needs it.** The fix of etcd-grove#14 that upamanyus approved: translate crc32's `MakeTable`,
+  `update`, `castagnoliInitOnce`, `slicingMakeTable`, `slicingUpdate` and the package state, and trust
+  only `archAvailableCastagnoli`/`archInitCastagnoli`/`archUpdateCastagnoli`. At go1.27.3,
+  `castagnoliInitOnce` is `sync.OnceFunc(func() {...})` (`crc32.go:83`) and `MakeTable(Castagnoli)`
+  calls it (`crc32.go:122`), so `MakeTable`'s proof needs what that call does.
+- **Workaround here.** None: the work stopped on this gap (branch `crc32-arch-hooks/2026-11-22`, notes
+  only). The trusted `MakeTable`/`update` of `0c72a382a7` stay, with the deviation their file header
+  documents (a fresh table per `MakeTable`).
+- **Proposed (general).** A spec of the returned function in `Once.Do`'s style: given `P` and
+  `{P} f() {Q}` with `Q` persistent, `OnceFunc(f)` returns `g` with a persistent `isOnceFunc g Q`, and
+  `{isOnceFunc g Q} g() {Q}` (a panicking `f` is excluded by `f`'s triple); proved over the translated
+  `OnceFunc`. The same for `OnceValue(s)`, with the value.
+- **The crc32 plan once it lands** (worked out statically, 2026-11-22):
+  (a) The real code reads package globals (`castagnoliInitOnce`, `haveCastagnoli`, `castagnoliTable`,
+  `IEEETable`), so the specs of `MakeTable`, `update`, `Update` and `digest.Write` gain the premise
+  `isPkgInit pkg_id.hash.crc32`; their callers (the WAL's initializer, `pkg/v3/crc`'s `digest.Write`, mvcc's
+  `newKVHasher` and `kvHasher.WriteKeyValue`) have to supply it. Otherwise the statements stay unchanged. (kaashoek
+  on #14: the WAL proofs use crc32 only through these specs, so the WAL proofs are affected only by this
+  premise.)
+  (b) crc32's fact gains an invariant: `haveCastagnoli`'s `ownBool`, and, once it is true,
+  `castagnoliTable ↦□ t ∗ t ↦□ castagnoliTableArr` plus `updateCastagnoli ↦□ u` with `u`'s WP computing
+  `crc32c`. The once's `P` is the cells of `castagnoliTable`, `castagnoliTable8` and `updateCastagnoli`.
+  `update` reads `castagnoliTable` only after `haveCastagnoli.Load()` is true (Go's `&&`).
+  (c) The `tab == IEEETable` branch is impossible: `tab ↦□ castagnoliTableArr` agrees with `IEEETable`'s
+  `↦□ ieeeTableArr`, which differs (`ieeeTableArr_ne`). The default branch is `simpleUpdate`, which has
+  to be translated as well.
+  (d) `slicingUpdate` equals `crcUpdate` of `t[0]` only by the slicing-by-8 identity, which follows from
+  the table's linearity (`crcBit (a ^^^ b) = crcBit a ^^^ crcBit b`, for `bv_decide`).
+  (e) Goose translates the hooks from `crc32_amd64.go` (`trusted` in `Code/hash/crc32.toml`). In Go,
+  `archInitCastagnoli` is not a no-op: it fills `castagnoliSSE42TableK1/K2`, which only
+  `archUpdateCastagnoli` reads. That is harmless because the model's `archUpdateCastagnoli` reads no
+  table.
+- **Status.** Resolved by Perennial #679 (`101637598`, the pin since 2026-11-22): `sync.OnceFunc.spec`
+  returns a single-use update that, given `{P} f() {Q}` with `Q` persistent, gives the persistent
+  `{True} g() {Q}`. The crc32 plan above is carried out on branch `crc32-hooks2/2026-11-22`, with two
+  changes: (b)'s once has `Q = castagnoliReady` (the table set up) and `haveInv` is a separate
+  invariant, opened by `update`'s `Load` and the once's `Store`; and (a)'s premise reaches past
+  `pkg/v3/crc`'s `Write` (whose spec gains it) into the WAL's `walCrcTable` and `ownDecCrc`, which now
+  hold `isPkgInit hash/crc32`. `internal/byteorder.LEUint32` is translated (project k8s-apiserver's
+  `byteorder.toml`) for `slicingUpdate`.
+
 ## 2026-11-22: `math.Float64bits` is names-only (`zap.Float64`, `Client.roundRobinQuorumBackoff`)
 
 - **The gap.** Perennial's `math` translation has `Float64bits` (and presumably `Float64frombits`) as names
@@ -3963,6 +4120,27 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
 - **Status.** Not filed yet.
 
+## 2026-11-23: `os.Unsetenv` has no model (the environment as machine-local state; `putget_safe`, branch `putget-dist`)
+
+`examples/etcd/dist/env.ClearProxy` (called first by `etcd_safe`'s and `putget_safe`'s machine programs) unsets the
+proxy variables and `ETCD_VERIFY` with `os.Unsetenv`, which Perennial's `os` translation has names only
+(`Perennial/Code/os.lean`): no WP for a call to it. With a model of the process environment as machine-local state
+(`Getenv`/`Setenv`/`Unsetenv` over it; upamanyus's note on #24 that the environment is an `os` model question),
+`ClearProxy`'s spec gives `envVerifyOff` (and "no proxy variable", which net/http's and grpc's proxy readers need) as
+a fact of the program, where today only the single-process start axiom `goose_adequacy_start` hands out
+`envVerifyOff`. Local workaround: `env.ClearProxy.spec` is a hypothesis of the member's boot WP
+(`notes/putget-dist-plan.md`, section 3). General fix: an `os` environment model in Perennial, designed on its own.
+
+## 2026-11-23: distributed adequacy's thread bound over every execution (`putget_safe`, branch `putget-dist`)
+
+`goose_dist_adequacy` takes `DistThreadsBelow T n` (every execution of up to `n` steps keeps fewer than `T`
+threads), not the bound along the given execution (`Robust`'s `DistCrashNstepsBelow`); the bridge
+(`Net/Statement/DistBridgeExts.lean`) meets it with `T = n + 2`, so `threadBound GF = receiptBound GF + 1` and a
+proof that needs `threadBound ≤ 2 ^ 28` (etcd's server) bounds the statement's steps by `2 ^ 28 - 1`. The general
+fix is the distributed analogue of `goose_adequacy_below` (`AdequacyAlong.lean`): the thread bound along the
+execution. Also local, for Perennial: `Exts.globalStart`'s projection at an extension's position
+(`extIn_globalStart_get`, `hasExt_globalStart`, proved in `DistBridgeExts.lean`), beside
+`ExtIn.globalCtx_acc`.
 ## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
 
 - **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body

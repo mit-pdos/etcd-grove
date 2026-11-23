@@ -281,7 +281,7 @@ noncomputable instance eventLog_access_load_firstTimestamp (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance eventLog_access_store_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (firstTimestamp' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance eventLog_access_store_firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (firstTimestamp' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) firstTimestamp' (DFrac.own 1))

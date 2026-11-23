@@ -60,7 +60,14 @@ bucket's entries, a handful); `c.members` now holds the members the buckets deco
 members' peer URLs are those of the image: what the cluster's `Members()` returns afterwards is the
 boot contract's (the members of the static cluster, the directory's URLs: `bootOk`'s `Hmembers`,
 true for good because every image a member of the static cluster applies holds the same members,
-which `clusterImageOk` includes). -/
+which `clusterImageOk` includes). (prove-ps2-bootstage1, 2026-11-23, #34 stage 1) `UnsafeLoad`'s
+`c.version = ClusterVersionFromBackend()` is nil (no `clusterVersion` key) or `MustParse` of the
+stored string (a fresh version, whose rendering parses), which keeps the lock's version slot
+(`rcVerSlot`): nil only if the slot was at `0`, because the image's `cluster` bucket holds a version
+whenever the cluster's is set (`memBucketsOk`); the slot's counter then moves to `1` with a version.
+Still an axiom: its post `clusterMem c mem'` needs every member's whole record, which
+`MustReadMembersFromBackend`'s spec (`membersRead`: the peer URLs only) does not give, and
+`DowngradeInfoFromBackend` is a `json.Unmarshal` (#24). -/
 abbrev membership.RaftCluster.Recover.spec : Prop :=
   ∀ (c : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (r : GMap GoString backend.BktData)
     (mem mem' : GMap w64 apply.MemberM),

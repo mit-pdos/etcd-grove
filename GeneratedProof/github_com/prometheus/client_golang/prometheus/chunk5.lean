@@ -200,7 +200,7 @@ noncomputable instance batchHistogram_access_load_mu (l : Loc) (v : github_com.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance batchHistogram_access_store_mu (l : Loc) (v : github_com.prometheus.client_golang.prometheus.batchHistogram) (mu' : sync.Mutex) :
+noncomputable instance batchHistogram_access_store_mu (l : Loc) (v : github_com.prometheus.client_golang.prometheus.batchHistogram) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.batchHistogram go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.batchHistogram go!"mu" l) mu' (DFrac.own 1))
@@ -410,7 +410,7 @@ noncomputable instance histogram_access_load_mtx (l : Loc) (v : github_com.prome
  by
   solve_pointsto_access_struct
 
-noncomputable instance histogram_access_store_mtx (l : Loc) (v : github_com.prometheus.client_golang.prometheus.histogram) (mtx' : sync.Mutex) :
+noncomputable instance histogram_access_store_mtx (l : Loc) (v : github_com.prometheus.client_golang.prometheus.histogram) (mtx' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.histogram go!"mtx" l) v.mtx' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.histogram go!"mtx" l) mtx' (DFrac.own 1))
@@ -554,7 +554,7 @@ noncomputable instance histogram_access_load_nativeHistogramMinResetDuration (l 
  by
   solve_pointsto_access_struct
 
-noncomputable instance histogram_access_store_nativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.histogram) (nativeHistogramMinResetDuration' : time.Duration) :
+noncomputable instance histogram_access_store_nativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.histogram) (nativeHistogramMinResetDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.histogram go!"nativeHistogramMinResetDuration" l) v.nativeHistogramMinResetDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.histogram go!"nativeHistogramMinResetDuration" l) nativeHistogramMinResetDuration' (DFrac.own 1))
@@ -570,7 +570,7 @@ noncomputable instance histogram_access_load_lastResetTime (l : Loc) (v : github
  by
   solve_pointsto_access_struct
 
-noncomputable instance histogram_access_store_lastResetTime (l : Loc) (v : github_com.prometheus.client_golang.prometheus.histogram) (lastResetTime' : time.Time) :
+noncomputable instance histogram_access_store_lastResetTime (l : Loc) (v : github_com.prometheus.client_golang.prometheus.histogram) (lastResetTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.histogram go!"lastResetTime" l) v.lastResetTime' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.histogram go!"lastResetTime" l) lastResetTime' (DFrac.own 1))
