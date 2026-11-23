@@ -78,13 +78,15 @@ theorem replica.Replica.WaitForClientConnections.wp_proof
     try wp_auto
     wp_apply wp_fork $$ [Hp]
     · unfold replica.pendingOk
-      icases Hp with ⟨%cid, #Hci, Hrd, %Hf, Hsend⟩
+      icases Hp with ⟨%cid, #Hci, Hrd, #Hpp, %Hf, Hsend⟩
       wp_apply wp_cl r γ γc γm γw N me al p.conn' cid p.reader' p.first' true $$ [Hrd $Hsend]
       · isplitr; · iexact Hrep
         isplitr; · iexact HAlias
         isplitr; · iexact Hci
         isplitl [Hrd]
         · simp only [↓reduceIte]; iexact Hrd
+        isplitr
+        · simp only [↓reduceIte]; iexact Hpp
         ipureintro; intro _; exact Hf
       ipureintro; exact isPanic_intoVal ()
     try wp_auto
@@ -131,6 +133,8 @@ theorem replica.Replica.WaitForClientConnections.wp_proof
           isplitr; · iexact Hci
           isplitl [Hrd]
           · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hrd
+          isplitr
+          · simp only [Bool.false_eq_true, ↓reduceIte]; unfold protoPrefix; ileft; ipureintro; rfl
           ipureintro; intro h; cases h
         ipureintro; exact isPanic_intoVal ()
       try wp_auto

@@ -3,9 +3,12 @@ The lab's `net` vocabulary the replica's and the master's transport specs name (
 `harness/lean/Harness/Proof/net/Base.lean`, `GooseLang/Ext/NetConn/Specs.lean`), restated over
 `Net/`'s (`Net/Proof/net/Base.lean`, `GooseLang/Ext/Net/Proto.lean`):
 
-* `net.ownListener l lid a` (persistent): the `*TCPListener` `l` is this node's listener `lid`, shared
-  between threads at `a` (`lisAt` and `lisInv`, what `accept_shared_au` takes; the lab's persistent
-  listener).
+* `net.ownListener l lid la` (persistent): the `*TCPListener` `l` is this node's listener `lid` at
+  `la` (a valid address or a wildcard, D21), shared between threads (`lisAt`, `netLisOn` and
+  `lisInv`, what `accept_lis_shared_au` takes; the lab's persistent listener).
+* `net.Listen.labProof`, `net.TCPListener.Accept.labProof`: the lab's `ListenWild`/`Accept` over
+  `Net/`'s `Listen.spec`/`Listener.Accept.spec`, a listener's protocols given by `lisProto la P Q`
+  (`listen_lis_au`, `accept_lis_shared_au`; the deployment's boot makes it, `lis_set_proto`).
 * `net.ownTCPConn c cid side` (persistent): the lab's connection end, `connAt` and `connIs`.
 * `net.newConnResult op side Pout Pin cv err`: a new end with its tokens, or an error (an
   `*OpError`; the lab's also said `cv = nil`, which `Net/`'s specs do not).
@@ -22,6 +25,8 @@ module
 public import Net.Proof.net.Base
 public import GooseLang.Ext.Net.Proto
 public import Net.Proof.net.DialTimeout
+public import Net.Proof.net.Listen
+public import Net.Proof.net.Listener__Accept
 public import Net.Proof.net.Conn__Close
 public import Net.Proof.net.Conn__RemoteAddr
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
@@ -43,9 +48,10 @@ variable [sem : go.Semantics]
 variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 
 /-- See the file header. -/
-def net.ownListener (l : Loc) (lid : w64) (a : GoString) : IProp GF :=
+def net.ownListener (l : Loc) (lid : w64) (la : GoString) : IProp GF :=
   iprop(∃ x : GoInterface, net.lisAt l lid x ∗
-    lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) lid a)
+    netLisOn (extLocalGS netExt (L := hG.goose_localGS)) lid la ∗
+    lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) lid la)
 
 instance net.ownListener_persistent (l : Loc) (lid : w64) (a : GoString) :
     Persistent (net.ownListener (GF := GF) l lid a) := by
@@ -143,6 +149,90 @@ theorem net.DialTimeout.labProof (a : GoString) (d : w64) (P Q : Proto GF) :
   · iright
     ihave %Hn := net.opErr_netErr _ _ _ _ _ $$ Herr
     obtain ⟨pe, rfl⟩ := Hn
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    ipureintro; exact ⟨pe, rfl⟩
+
+/-- The lab's wildcard `Listen` (`net.ListenWild`), over `lisProto` (D21): `Listen("tcp", la)` at a
+listener address `la` whose protocols are `P`, `Q`. -/
+theorem net.Listen.labProof (la : GoString) (P Q : Proto GF) :
+    {{ lisProto (Gg := hG.goose_globalGS) la P Q }}
+      (App (App (Val (@! net.Listen)) (Val #(go!"tcp"))) (Val #la))
+    {{ (lv er : GoInterface), RET (PairV #lv #er);
+        (∃ (ll : Loc) (lid : w64),
+          ⌜lv = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #ll ∧
+            er = interface.nil⌝ ∗ net.ownListener ll lid la) ∨
+        (∃ i, ⌜er = interface.ok i⌝) }} := by
+  iintro %Φ #Hlp HΦ
+  ihave #Hlp' := Hlp
+  iunfold lisProto at Hlp'
+  icases Hlp' with ⟨-, -, %Hok⟩
+  iapply wp_fupd
+  iapply net.Listen.wp_proof go!"tcp" net.tcpNet_tcp la $$ []
+  · isplitr
+    · ipureintro; exact Hok
+    iapply listen_lis_au la P Q $$ Hlp
+  iintro !> %lv %er Hres
+  icases Hres with (⟨%Her, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, -, #Herr⟩)
+  · subst Her
+    imod lisInv_alloc ⊤ _ l la true $$ Hnl with #Hinv
+    imodintro
+    iapply HΦ
+    ileft
+    unfold net.isListener
+    icases Hli with ⟨%t, %x, %Hlt, #Hat⟩
+    iexists t, l
+    isplitr
+    · ipureintro; exact ⟨Hlt, rfl⟩
+    unfold net.ownListener
+    iexists x
+    iframe Hat Hon Hinv
+  · ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hn.2 (by simp)
+    imodintro
+    iapply HΦ
+    iright
+    iexists _
+    ipureintro; rfl
+
+/-- The lab's `TCPListener.Accept` (shared listener), over `lisProto` (D21): a new end, the acceptor
+writing `Q`, reading `P`. -/
+theorem net.TCPListener.Accept.labProof (ll : Loc) (lid : w64) (la : GoString) (P Q : Proto GF) :
+    {{ net.ownListener ll lid la ∗ lisProto (Gg := hG.goose_globalGS) la P Q }}
+      (App (Val #(methods (go.GoType.PointerType net.TCPListener.ty) go!"Accept" #ll)) (Val #()))
+    {{ (cv err : GoInterface), RET (PairV #cv #err);
+        net.newConnResult go!"accept" true Q P cv err }} := by
+  iintro %Φ ⟨#Hl, #Hlp⟩ HΦ
+  iunfold net.ownListener at Hl
+  icases Hl with ⟨%x, #Hat, #Hon, #Hinv⟩
+  iapply net.Listener.Accept.wp_proof ll lid x la (fun _ => iprop(True))
+    (fun _ cn => iprop(connEnd (Gg := hG.goose_globalGS) cn true Q P [] [] ∗
+      connFresh (Gg := hG.goose_globalGS) cn true)) $$ []
+  · iframe Hat Hon
+    iapply accept_lis_shared_au la P Q _ lid $$ Hlp Hinv
+  iintro !> %cv %err Hres
+  iapply HΦ
+  unfold net.newConnResult
+  icases Hres with (⟨%Herr, %cn, %a, -, #Hc, Hend, Hfr⟩ | ⟨%k, -, #Herr⟩)
+  · subst Herr
+    unfold net.isConn
+    icases Hc with ⟨%t, %la', %ra, %Hct, #Hca⟩
+    ileft
+    iexists t, cn
+    isplitr
+    · ipureintro; exact ⟨Hct, rfl⟩
+    ihave #Hcs : connIs (Gg := hG.goose_globalGS) cn $$ [Hend]
+    · iunfold connEnd at Hend
+      icases Hend with ⟨Hs, -⟩
+      iapply sendTok_connIs $$ Hs
+    iframe Hend Hfr
+    unfold net.ownTCPConn
+    iexists a, la', ra
+    iframe Hca Hcs
+  · iright
+    ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hn.2 (by simp)
     iexists _
     isplitr
     · ipureintro; rfl
