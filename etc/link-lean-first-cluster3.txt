@@ -13,7 +13,7 @@
 etcdstart_NewMember: @
 EtcdServer__Start: @
 v3rpc_Server: @
-net_Listen:
+net_Listen: =_root_.Perennial.net.Listen.wp_proof
 # (per-type stage B) `Serve` is the trusted model (`Server.Serve.impl := model.Serve`), proved over
 # its leaves' axioms (model-only names, `google.golang.org/grpc#model.*`)
 grpc_Server__Serve: model_Serve

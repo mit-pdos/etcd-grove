@@ -70,6 +70,15 @@ def srvLessorRd (s : Loc) (γl : GName) : IProp GF :=
 instance srvLessorRd_persistent (s : Loc) (γl : GName) : Persistent (srvLessorRd (GF := GF) s γl) := by
   unfold srvLessorRd; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The keys of the lease `l` of `id` at an index no older than `m`, each permitted** (persistent):
 its keys `ks` there (`leaseKeysFrom`), the operation `op` on each permitted to `info` at a state no
 older than `n`. -/
@@ -97,6 +106,24 @@ instance leaseKeysVerdictFrom_persistent (M : auth.AuthMode) (n : Nat)
     (op : auth.PermType) : Persistent (leaseKeysVerdictFrom (GF := GF) M n info γl m id op) := by
   unfold leaseKeysVerdictFrom; infer_instance
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **What a passed lease check establishes** of a request carrying the token `tok` on the server
 `s`, for the keys `K` (persistent): auth disabled at a state no older than `n`; or the request's
 principal, with auth on bound to the token (`principalBound`: the user its token was issued to, or the server's TLS
@@ -105,17 +132,26 @@ keys' verdicts). (auth-lease S1, 2026-11-14: until then `infoBoundM`, which with
 the empty user unbound; every lease check refuses a context without a user, `ErrUserEmpty`.) By the
 token (perheap C1a, 2026-11-18; until then by the context through the pure `auth.ctxTokenOf`, with
 v3rpc's `leaseCheckT` its form over the token, merged into it). -/
-def leaseCheckFrom (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
+def leaseCheckFrom (T : IProp GF) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
     (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) : IProp GF :=
   iprop(auth.enabledVerdictFrom E.authMode n false ∨
     ∃ info : go_etcd_io.etcd.server.v3.auth.AuthInfo,
-      □ (⌜E.authOn = true⌝ → principalBound s E.authMode tok (some info)) ∗
+      □ (⌜E.authOn = true⌝ → principalBound T E.authMode tok (some info)) ∗
       (adminVerdictFrom E.authMode n info GoInterface.nil ∨ K info))
 
-instance leaseCheckFrom_persistent (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
+instance leaseCheckFrom_persistent (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
     (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) [hK : ∀ info, Persistent (K info)] :
-    Persistent (leaseCheckFrom (GF := GF) s E tok n K) := by
+    Persistent (leaseCheckFrom (GF := GF) T E tok n K) := by
   unfold leaseCheckFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 end defs
 
@@ -133,7 +169,7 @@ the lease checks' `leaseCheckFrom`): `infoBoundM_of_ctxBound` without the empty 
 theorem principalBoundOn_of_ctxBound (on : Bool) (s : Loc) (E : apply.AEnv GF) (tok : Option GoString)
     (a : Loc) (user : GoString) (rev : w64) :
     (⌜on = true⌝ → ctxBoundOrTLS s E.authMode tok a) ∗ authInfoIs a user rev ⊢
-      □ (⌜on = true⌝ → principalBound (GF := GF) s E.authMode tok (some ⟨user, rev⟩)) := by
+      □ (⌜on = true⌝ → principalBound (GF := GF) (srvTLSId s) E.authMode tok (some ⟨user, rev⟩)) := by
   iintro ⟨Hb, #Hai⟩
   cases on
   · iintro !> %h; cases h
@@ -144,7 +180,7 @@ theorem principalBoundOn_of_ctxBound (on : Bool) (s : Loc) (E : apply.AEnv GF) (
 /-- **The bridge to the lease checks** (auth-lease S4, Freeze §4.4, R3-6): `authedFrom` is
 `leaseCheckFrom … (fun _ => True)`'s content. -/
 theorem leaseCheckFrom_of_authedFrom (s : Loc) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat) :
-    authedFrom s E.authMode n tok ⊢ leaseCheckFrom s E tok n (fun _ => iprop(True)) := by
+    authedFrom s E.authMode n tok ⊢ leaseCheckFrom (srvTLSId s) E tok n (fun _ => iprop(True)) := by
   unfold authedFrom leaseCheckFrom
   iintro (#H | ⟨%info, #Hb⟩)
   · ileft; iexact H
@@ -155,6 +191,33 @@ theorem leaseCheckFrom_of_authedFrom (s : Loc) (E : apply.AEnv GF) (tok : Option
       iapply Hb
       ipureintro; exact h
     · iright; itrivial
+
+section monoT
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+open Iris.ProofMode in
+/-- `leaseCheckFrom` is monotone in the TLS fact (O2, 2026-11-23). -/
+theorem leaseCheckFrom_monoT (T1 T2 : IProp GF) (E : apply.AEnv GF) (tok : Option GoString) (n : Nat)
+    (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) :
+    iprop(□ (T1 -∗ T2)) ∗ leaseCheckFrom T1 E tok n K ⊢ leaseCheckFrom T2 E tok n K := by
+  unfold leaseCheckFrom
+  iintro ⟨#HT, H⟩
+  icases H with (H | ⟨%info, #Hb, H⟩)
+  · ileft; iexact H
+  · iright
+    iexists info
+    iframe H
+    imodintro
+    iintro %h
+    iapply principalBound_mono T1 T2
+    iframe HT
+    iapply Hb $$ %h
+
+end monoT
 
 end lemmas
 

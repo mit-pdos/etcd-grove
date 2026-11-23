@@ -4,7 +4,7 @@ Proof of `Spec/path/Split.lean`. Lean-first.
 module
 
 public import Spec.path.Split
-public import Spec.internal.bytealg.LastIndexByteString
+public import Perennial.Spec.internal.bytealg.LastIndexByteString
 
 @[expose] public section
 
@@ -24,12 +24,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.path.Assumptions]
 
-theorem path.Split.wp_proof (hLast : bytealg.LastIndexByteString.spec (GF := GF) (hG := hG)) :
+theorem path.Split.wp_proof (hLast : _root_.Perennial.internal.bytealg.LastIndexByteString.spec (GF := GF) (hG := hG)) :
     path.Split.spec (GF := GF) (hG := hG) := by
   intro p
   wp_start
-  ihave #Hb : isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg $$ []
-  · iPkgInit
   try wp_auto
   wp_apply hLast p (W8 47) as %Hl
   try wp_auto

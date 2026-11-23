@@ -2,7 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom DescribeConfChange.wp_proof : DescribeConfChange.spec
+theorem DescribeConfChange.wp_proof [package_sem : Assumptions] (hAsV2 :
+    raftpb.ConfChange.AsV2.spec) (hAsV2' : raftpb.ConfChangeV2.AsV2.spec) (hTr :
+    raftpb.ConfChangeV2.GetTransition.spec) (hCh : raftpb.ConfChangeV2.GetChanges.spec) (hTy :
+    raftpb.ConfChangeSingle.GetType.spec) (hNid : raftpb.ConfChangeSingle.GetNodeId.spec) (hTyS :
+    raftpb.ConfChangeType.String.spec) (hTrS : raftpb.ConfChangeTransition.String.spec) :
+    DescribeConfChange.spec
   -- `Perennial.EtcdGrove.DescribeConfChange.spec`, unfolded:
   (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
       ⊢

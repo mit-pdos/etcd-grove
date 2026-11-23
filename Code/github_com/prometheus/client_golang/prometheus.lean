@@ -1000,6 +1000,74 @@ noncomputable def gauge.Sub.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType gauge.ty) go!"Add"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType gauge.ty)))) (Var "g"))) (Var "$a0")))))))
   (Val #()))))
 
+/-- ExponentialBuckets creates 'count' regular buckets, where the lowest bucket
+    has an upper bound of 'start' and each following bucket's upper bound is
+    'factor' times the previous bucket's upper bound. The final +Inf bucket is
+    not counted and not included in the returned slice. The returned slice is
+    meant to be used for the Buckets field of HistogramOpts.
+
+    The function panics if 'count' is 0 or negative, if 'start' is 0 or negative,
+    or if 'factor' is less than or equal 1.
+
+    go: histogram.go:315:6 -/
+noncomputable def ExponentialBuckets.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "start"
+  (Lam "factor"
+  (Lam "count"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.float64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.float64)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "count" (App (Val (GoInstruction (GoAlloc go.int))) (Var "count"))
+  (Let "factor" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "factor"))
+  (Let "start" (App (Val (GoInstruction (GoAlloc go.float64))) (Var "start"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.float64)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (Var "count")))
+  (Let "buckets" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.float64)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.float64)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.float64)))) (Var "buckets"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.float64)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.float64)))) (Var "buckets"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val (slice.forRange go.float64)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.float64))) (Var "start"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (Var "start") (App (Val (GoInstruction (GoOp GoMul go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "start")) (App (Val (GoInstruction (GoLoad go.float64))) (Var "factor")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.float64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.float64)))) (Var "buckets")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.float64)))) (Pair (Var "buckets") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "factor")) (Val #(W64 4607182418800017408)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"ExponentialBuckets needs a factor greater than 1")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLe go.float64))) (Pair (App (Val (GoInstruction (GoLoad go.float64))) (Var "start")) (Val #(W64 0)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"ExponentialBuckets needs a positive start value")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "count")) (Val #(W64 1)))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"ExponentialBuckets needs a positive count")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.float64)))) (Var "$res0")))))))
+
 /-- The package variables goose does not translate (the `skip` entries of the package's
 goose config): no Lean name, allocation or initialization step, so no translated code names
 them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
@@ -3869,6 +3937,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   wrappingRegisterer_instance : wrappingRegisterer.TypeAssumptions
   wrappingCollector_instance : wrappingCollector.TypeAssumptions
   wrappingMetric_instance : wrappingMetric.TypeAssumptions
+  ExponentialBuckets_unfold : FuncUnfold ExponentialBuckets [] ExponentialBuckets.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_math_Assumption : _root_.Perennial.math.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
@@ -3963,6 +4032,7 @@ attribute [instance] Assumptions.Collector_instance
   Assumptions.wrappingRegisterer_instance
   Assumptions.wrappingCollector_instance
   Assumptions.wrappingMetric_instance
+  Assumptions.ExponentialBuckets_unfold
   Assumptions.import_errors_Assumption
   Assumptions.import_math_Assumption
   Assumptions.import_atomic_Assumption

@@ -10,7 +10,7 @@ module
 
 public import Dsverify.Proof.path.Base
 public import Perennial.Proof.errors.Link
-public import Dsverify.Proof.internal.bytealg.Init
+public import Perennial.Proof.internal.bytealg.Link
 public import Perennial.Proof.errors.NewVar
 public import Net.Proof.runtime.PkgInitExt
 
@@ -51,7 +51,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrBadPattern _ as HErrBadPattern
-  wp_apply (_root_.Perennial.internal.bytealg.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
+      EtcdGrove.ExternalInit.internal_bytealg _root_.Perennial.internal.bytealg.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
       EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrBadPattern))

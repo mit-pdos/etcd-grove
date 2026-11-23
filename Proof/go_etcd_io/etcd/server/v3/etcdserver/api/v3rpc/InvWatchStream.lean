@@ -329,7 +329,7 @@ def watchAuthed (tag : GName) (s : Loc) (tok : Option GoString) (n : Nat)
     (key rangeEnd : GoString) : IProp GF :=
   iprop(∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
     auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
-    □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+    □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info) ∗
     ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝)
 
 instance watchAuthed_persistent (tag : GName) (s : Loc) (tok : Option GoString) (n : Nat)
@@ -346,7 +346,7 @@ theorem watchAuthed_elim (tag : GName) (s : Loc) (tok : Option GoString) (n : Na
     watchAuthed (GF := GF) tag s tok n key rangeEnd ⊢
       ∃ (M : auth.AuthMode) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo),
         auth.modeTag tag M ∗ apply.watchClassFrom M n info key rangeEnd ∗
-        □ (⌜M.isOn = true⌝ → infoBoundT s M tok info) ∗
+        □ (⌜M.isOn = true⌝ → infoBoundT (srvTLSId s) M tok info) ∗
         ⌜auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
   unfold watchAuthed; iintro H; iexact H
 

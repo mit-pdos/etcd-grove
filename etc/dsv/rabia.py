@@ -11,6 +11,9 @@ GOOSE = dict(
     # (module `rabia`). Into the part `Dsverify/`, with remote and `net` the part `Net/`'s,
     # lintest, porcupine, bufio, container/heap and path the main tree's; zerolog, gogo/protobuf,
     # go-redis and os/signal names only into the part (no model here: notes/dsv-rabia.md).
+    # go-redis is v8.11.5 (the fork pins v8.8.2), the version the QuePaxa kit builds with: this
+    # project owns the one go-redis translation in `Dsverify/`, which both kits' theorems use
+    # (issue #24).
     repo=None,
     rev=None,
     local=os.path.join("examples", "dsverify", "rabia"),
@@ -48,9 +51,9 @@ PROGRAMS = {f'rabia.examples.rabianet.cmd.{n}':
             f'Proof/rabia/examples/rabianet/cmd/{n}/PkgTable.lean' for n in RABIA_NODES}
 # the main tree's packages the kit imports beside `NET_MAIN`'s (bufio, container/heap, path)
 # (their `Init.lean` generated into the part, over `Net/`'s `PkgInitExt`, as `Net/`'s `NET_MAIN`; the
-# instances of `container.heap`, `path` and `internal.bytealg`, which the main tree declares in etcd's
-# packages, the part's own `Base.lean`)
-MAIN = ['bufio', 'container.heap', 'path', 'internal.bytealg']
+# instances of `container.heap` and `path`, which the main tree declares in etcd's packages, the
+# part's own `Base.lean`; `internal.bytealg` is Perennial's)
+MAIN = ['bufio', 'container.heap', 'path']
 # the names-only libraries are external here, as dsv-vr's: their `wp_initialize'` is a hypothesis
 # (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`), which every generated theorem initializing
 # them takes as an instance; math/rand too (Perennial leaves its initializers untranslated)

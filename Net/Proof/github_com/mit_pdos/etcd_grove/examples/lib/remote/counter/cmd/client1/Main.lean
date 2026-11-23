@@ -27,7 +27,8 @@ variable [sem : go.Semantics]
 variable [package_sem' : cmd.client1.Assumptions] [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem wp_main (wp_Client : counter.Client.spec (GF := GF) (hG := hG)) (γs : GName) :
+theorem wp_main (wp_Client : counter.Client.spec (GF := GF) (hG := hG)) (γs : GName)
+    (hsa : ρ.bud go!"127.0.0.1:7301" = none) :
     {{ isPkgInit (PROP := IProp GF)
           pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.cmd.client1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (cR (GF := GF) γs) go!"127.0.0.1:7303" ∗
@@ -42,7 +43,7 @@ theorem wp_main (wp_Client : counter.Client.spec (GF := GF) (hG := hG)) (γs : G
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Client γs (W64 1) go!"127.0.0.1:7303" go!"127.0.0.1:7301" $$ [] as ⟨⟩
+  wp_apply wp_Client γs (W64 1) go!"127.0.0.1:7303" go!"127.0.0.1:7301" hsa $$ [] as ⟨⟩
   iframe #
 
 end proof

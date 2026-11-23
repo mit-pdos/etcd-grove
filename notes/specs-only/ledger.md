@@ -46,6 +46,156 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   through unchanged.
 - **Decision.** Approved for claim #34 by the coordinator (2026-11-23); applied on branch
   `bootstrap-proof/2026-11-23`.
+## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
+
+- **Spec.** `Spec/go_uber_org/zap/Defs.lean`: `zapLoggerOk` (until now `⌜l ≠ null⌝ ∗ □ zap.loggerRaw l`,
+  `loggerRaw := nopLogger ∨ loggerOther`, `loggerOther` opaque), `zap.nopLoggerVal`/`zap.nopLogger` (core some
+  value of type `nopCore`) and `zapcore.zapEntry` (opaque). The two trust-boundary axioms over them,
+  `zap.Logger.check.wp_proof` and `zapcore.CheckedEntry.Write.wp_proof`
+  (`Spec/go_uber_org/zap/{Logger__check,zapcore/CheckedEntry__Write}.lean`): their statements do not change.
+  The spec plan's zap specs (`SpecPlan/Spec/go_uber_org/zap/`) keep their opaque predicates.
+- **Defect.** None in what callers rely on; the vocabulary was opaque only because zap's cores were not
+  translated. No spec produces `loggerOther` (only `Defs.lean` names it): every proved example builds its
+  logger with `zap.NewNop()`, so its case is dead weight that keeps `check` an axiom. `nopLogger`'s core was
+  `interface.mkOk nopCore.ty w` for some `w : val`, which a proof cannot call a method on (`wp_call` needs the
+  receiver not to be a panic value).
+- **Evidence.** `grep loggerOther`: `Defs.lean` and `NewNop.lean` only; no top-level statement names zap.
+  zap v1.28.0 `logger.go:330-343`: below `DPanicLevel`, `check` returns `nil` when `log.core.Enabled(lvl)` is
+  false, which `nopCore.Enabled` always is (`zapcore/core.go:51`); the rest of `check` (clock, caller, stack)
+  is never reached on a `NewNop` logger at those levels. `CheckedEntry.Write` (`zapcore/entry.go:243-290`) on
+  an entry that is not dirty, has no `before` hooks, no cores and no `after` hook marks it dirty and returns
+  it to `_cePool`. `NewNop`'s core is `nopCore{}` (`zap_wp_NewNop_init` proves the field `rfl`).
+- **Proposed change.** `zapLoggerOk l := ⌜l ≠ null⌝ ∗ □ zap.nopLogger l` (`loggerOther`, `loggerRaw` deleted);
+  `nopLoggerVal`'s and `nopLogger`'s core is `interface.mkOk nopCore.ty #nopCore.mk` (the other fields
+  unchanged: `check` below `DPanicLevel` reads only `core`). `zapcore.zapEntry ce` := `ce` points to a
+  `CheckedEntry` (owned) that is not dirty, with no `before` hooks, no cores and no `after` hook (its `Entry`
+  and `ErrorOutput` any): what `Write` writes without effect, and the only entries a `NewNop` logger could
+  hand out (none: `check` returns `nil` below `DPanicLevel`). Still exclusive. `Logger.check` is proved;
+  `CheckedEntry.Write` stays an axiom, now over this entry: its proof reaches zap's generic
+  `pool.Pool[T].Put`, whose Goose translation omits the conversion of `x : T` to `any`
+  (`notes/perennial-changes.md`). A non-`NewNop` logger (Z3, #40) brings `loggerOther` back with its cores'
+  specs.
+- **Decision.** Z0 decided by the coordinator on #40 (2026-11-23); applied on branch `zap-z1`.
+
+## 2026-11-23: six server-side trust-boundary axioms -- their errors' `deadlineExceededError`s hold `deadlineExceededError{}` (errors-is-deadline, #31)
+
+- **Spec.** Five axioms whose posts promise `applyErrIs`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Base.lean`). The first four promise it directly,
+  `NewAuthStore` through its auth checks' `authApplyErrIs`:
+  - `leasehttp.RenewHTTP.spec`
+  - `EtcdServer.leaseTimeToLive.spec`
+  - `EtcdServer.rangeStream.spec`
+  - `proto.MarshalIRR.spec`
+  - `auth.NewAuthStore.spec`
+
+  And `bcrypt.GenerateFromPassword.spec`, whose non-pointer error `UserAdd` makes an `applyErrIs`
+  (`applyErrIs_valLeaf`). No spec-plan counterparts.
+- **Defect.** Too weak for `togRPCError`'s `errors.Is(err, context.DeadlineExceeded)`, which every
+  handler error reaches (`srvErrIs` ⊇ `applyErrIs`). Perennial's `errors.Is` needs the tree's errors
+  of the target's type to hold a value of it (`errors.ComparableErr`), and the model does not type
+  interface values.
+- **Evidence.** `errors.IsDeadlineExceeded.spec`'s `⌜deTyped S⌝` (entry below), at `togRPCError`'s
+  tree for `context.DeadlineExceeded` (`applyErrIs_treeDE`).
+- **Proposed change.** `applyErrIs`'s tree (and `errTreeOk`) gains `deTyped S`. This strengthens what
+  the five axioms post, and their docstrings say so. Go's typing makes it true of every Go error:
+  `deadlineExceededError` is a field-less struct, whose only value is `deadlineExceededError{}`.
+  `bcrypt.GenerateFromPassword`'s non-pointer branch gains `ei.ty ≠ deadlineExceededError.ty`: it
+  is an `InvalidCostError`, a named type of bcrypt's own. The proved constructors of `applyErrIs`
+  discharge it: `nil`; pointer leaves; `%w` wraps; `applyErrIs_valLeaf`, which takes
+  `deTypedErr e`, given by the context errors (`deadlineExceeded_deTypedErr`) and bcrypt's new
+  conjunct.
+- **Decision.** Accepted by the coordinator under the user's approval of the same typing class
+  (2026-11-23); review requested on #31.
+
+## 2026-11-23: grpc's `ctxErrsErr` (and the client's `ctxErrClient`) -- an error of type `deadlineExceededError` holds `deadlineExceededError{}` (errors-is-deadline, #31)
+
+- **Spec.** `ctxErrsErr` (`Proof/google_golang_org/grpc/InvGrpc.lean`, the trust boundary's contract
+  of a context's `Err()` outside Perennial's model), and `ctxErrClient`
+  (`Proof/go_etcd_io/etcd/client/v3/InvKVConn.lean`), which is `rfl`-equal to it
+  (`ctxErrClient_eq_errs`). No spec-plan counterpart.
+- **Defect.** Too weak for `errors.IsDeadlineExceeded`'s proof. The model does not type interface
+  values: an error whose dynamic type is `deadlineExceededError` may hold any value. Perennial's
+  `errors.Is` compares the target `context.DeadlineExceeded` with the tree's errors of its type, and
+  for that it needs them to hold a value of the type (`errors.ComparableErr`).
+- **Evidence.** `deadlineExceededError_comparable` (`Proof/errors/CtxErr.lean`) needs
+  `∀ ii ∈ S, ii.ty = deadlineExceededError.ty → ii.v = #(zero_val deadlineExceededError)`. The
+  client's `contextErrToGRPCErr` passes `errors.Is` the error `Err()` returned (`ctxErrLeaf`), and
+  nothing says what it holds.
+- **Proposed change.** The non-nil disjunct's pure conjunct gains, at its end, `e.ty =
+  deadlineExceededError.ty → e.v = #(zero_val deadlineExceededError)`. Go guarantees this by typing:
+  the field-less struct's only value. Producers: Perennial's contexts (`ctxErrClientAllW_of`:
+  `Canceled` is a pointer, `DeadlineExceeded` holds the zero value, by `context`'s `isInit`), k8s's
+  `channelContext` (`Canceled`), and the quiet contexts (no non-nil error). `ctxErrLeaf` carries the
+  fact (`ctxErrLeaf_of_isCtxErr`, `ctxErrLeaf_of_errs`).
+- **Decision.** Accepted by the user 2026-11-23 (a trust-boundary contract, relayed by the
+  coordinator; #24 notified).
+
+## 2026-11-23: `errors.IsDeadlineExceeded` takes `isPkgInit context` and the tree's typing (errors-is-deadline, #31)
+
+- **Spec.** `errors.IsDeadlineExceeded.spec` (`Spec/errors/IsDeadlineExceeded.lean`); no spec-plan
+  counterpart.
+- **Defect.** Unprovable once it is no longer an axiom, for two reasons.
+  - The precondition gives of `target` only the cell `context.DeadlineExceeded` it was read from.
+  - Go's `err == target` on the tree's errors of `target`'s type, a field-less struct, needs those
+    errors to hold `deadlineExceededError{}`. The model does not type interface values
+    (`errors.ComparableErr`, perennial#677).
+- **Evidence.** The proof over `errors.wp_Is` needs `ComparableTarget S target`. Its
+  `deadlineExceededError_comparable` (`Proof/errors/CtxErr.lean`) takes the typing of `S`.
+- **Proposed change.** The precondition gains `isPkgInit pkg_id.context`, which pins `target` to
+  `deadlineExceededError{}` (`isInit`'s `"#HDeadlineExceededTy"`). It also gains `⌜deTyped S⌝`
+  (`Proof/errors/CtxErr.lean`): every error of `S` whose type is `deadlineExceededError` holds
+  `deadlineExceededError{}`.
+  - Server's `togRPCError`: `applyErrIs`'s tree carries `deTyped` (`apply/Base.lean`).
+    `applyErrIs_valLeaf` takes it of its leaf. Its callers pass context errors, and `isCtxErr_deTypedErr`
+    gives it for them.
+  - Client's `contextErrToGRPCErr`: `ctxErrLeaf` carries it, from `ctxErrsErr`'s new conjunct
+    (entry above).
+  - The post is unchanged.
+- **Decision.** Accepted (internal: premises both callers meet; the spec stops being a trust
+  boundary, and the axiom `errors.IsDeadlineExceeded.wp_proof` is retired), upamanyus-agent
+  2026-11-23. The server's side needs the typing fact of six trust-boundary axioms (entry above).
+## 2026-11-23: `DescribeConfChange` proved; `ConfChangeType.String`/`ConfChangeTransition.String` trusted models with exact specs (builder-fprintf-leaves, #25)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/DescribeConfChange.lean` (unchanged; `DescribeConfChange.wp_proof` an
+  axiom until this change, now a theorem); new: `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`,
+  `ConfChangeTransition__String.lean` (exact: `raftpb.ccTypeString`/`ccTransitionString`, the name table's
+  entry else the decimal), against the plan's `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`
+  (assumed, some string). raftpb's package fact (`Proof/go_etcd_io/raft/v3/Base.lean`) grows by the two tables.
+- **Defect.** None in a statement: the axiom's triple was unprovable only for want of models. `%v` of the
+  transition and of each change's type calls their `String()`, which raftpb translated names-only, and
+  Perennial's `fmt` admits such an argument only with a `stringMethodSpec`.
+- **Evidence.** `Proof/go_etcd_io/raft/v3/DescribeConfChange.lean`, over Perennial `9da0efb89`'s
+  `strings.Builder` and `7b2259a12`'s `fmt.wp_Fprintf`/`wp_Fprintf_bytes`. Go test
+  `TestConfChangeEnumStringIsNameTable` (`examples/raft/tracecheck/msgtype_string_test.go`).
+- **Proposed change.** The two methods trusted (`Code/go_etcd_io/raft/v3/raftpb.toml`; models in
+  `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, `MessageType.String`'s precedent, Q9), their specs exact as
+  `MessageType.String`'s (stronger than the plan's; the plan's follows when its raftpb is next reworked).
+  Trust base: -1 axiom (`DescribeConfChange.wp_proof`), +2 trusted models.
+- **Decision.** Trusted models approved by the coordinator under the user's delegation (2026-11-23); review
+  requested on etcd-grove#25. Applied (builder-fprintf-leaves).
+## 2026-11-23: `addFeatureGateMetrics.spec` -- `isFeatureGate` does not give what the body needs (featuregate-2, claim #36)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean`, `addFeatureGateMetrics.spec`
+  (the premise `isFeatureGate fg`, `Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`); the plan's
+  `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean` (over `Features.serverGate`).
+- **Defect.** Unprovable over the real body (`server.go:2496-2506`) as stated. `isFeatureGate fg` is only a
+  contract on `Enabled(f)` for `f ∈ serverFeatures`. The body calls `fg.(MutableFeatureGate).GetAll()`, which
+  loads `f.known`: the premise owns nothing of the gate's fields, so the load cannot be stepped (and in the
+  logic a `*featureGate` whose `enabled` holds the server's features but whose `known` is empty meets the
+  premise, and `GetAll`'s type assertion of `nil` panics). And `GetAll` returns `known`, which holds
+  `featuregate`'s own `AllAlpha` and `AllBeta` (`defaultFeatures`, cloned by `New`), not in `serverFeatures`:
+  the loop's `fg.Enabled("AllAlpha")` is outside the contract.
+- **Evidence.** The body read against the predicate; no proof attempted (the gate's provider,
+  `features.NewDefaultServerFeatureGate.wp_proof`, is still an axiom: its post states `isFeatureGate`).
+- **Proposed change.** `isFeatureGate fg` also gives `GetAll`'s contract: it returns a fresh map whose keys
+  are features `Enabled` answers (the contract's feature set widened from `serverFeatures` to a set `S ⊇
+  serverFeatures` the gate's `known` has, `AllAlpha`/`AllBeta` included) and whose `PreRelease` strings are
+  valid UTF-8 (`labelMapOk` for `serverFeatureEnabled`'s `With`). The five proofs that destructure the
+  predicate (`EtcdServer__{FeatureEnabled,NewUberApplier,Txn}`, `NewServer`, `NewServerR`) take one more
+  component. Made after `NewDefaultServerFeatureGate` is proved (until then the change strengthens that
+  axiom's post, a trust-boundary spec).
+- **Decision.** Pending: waits for `NewDefaultServerFeatureGate`'s proof (blocked on `maps.Clone`,
+  `notes/perennial-changes.md`).
 
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
@@ -5239,3 +5389,64 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above; callers updated (`readRequest`'s and `ReadRequestBody`'s proofs). The client
   is unchanged. At-most-once and the other guarantees unchanged.
 - **Decision.** Applied (branch `models-rpc-server`); closes the previous entry's open item.
+
+## 2026-11-23: `remote.ServeClient`'s `newClient` is a persistent triple, and no call budget reaches the far side (#28, #24)
+
+- **Spec.** `Net/Spec/.../lib/remote/ServeClient.lean`: the premise `{{ True }} newClient(c) {{ sys, RET #sys;
+  tok sys }}` (persistent). `Net/Proof/.../lib/remote/Defs.lean`: `reqP S`, `svcOp S tok op`, `opMaybe R tok op`
+  carried no bound on the number of calls a node serves.
+- **Defect.** (1) `ServeClient` calls `newClient` once, but the triple's `□` forbids it to consume anything, so the
+  client machine's system cannot hold exclusive per-client state (VR's request numbers and ghost state; rabia's
+  kit worked around it with a mutex). (2) The kits rely on a per-client operation budget (rabia's `SeqBudget`,
+  VR's request numbers), but nothing told a client machine it serves at most `ops`-many calls.
+- **Evidence.** `ServeClient`'s proof uses the premise once (`wp_apply HnewClient`). The orchestrator makes
+  `ops` operations per client (`perclient.Run`), each at most `ReadTries` attempts (`Do`), one connection each.
+- **Proposed change.** (a) The premise becomes the caller's one-shot WP `∀ Φ, ▷ (∀ sys, tok sys -∗ Φ #sys) -∗
+  WP newClient(c) {{ Φ }}`. (b) Call budgets in ghost state (`notes/remote-port-plan.md`, "`ServeClient`'s
+  one-shot `newClient` and call budgets"): `RemoteGS.bud`, a unit `budUnit a` per call in `reqP S a`'s slot,
+  handed to `svcOp S a`/`opMaybe R a`; `budUsed_add` bounds the count; `Check`/`Run` take `nb ≥ ops * readTries`
+  units per client address. Go unchanged.
+- **Decision.** Approved by the user (Upamanyu agreed on #24); applied on branch `remote-serveclient` for review on #28.
+## 2026-11-23: the TLS fallback and the lease-TTL row as parameters of the auth-on table specs (phase 7 S2, O2)
+
+- **Spec.** The client-facing auth vocabulary took the server's location `s : Loc` only to state `srvTLSId s`
+  (its config's `ClientCertAuthEnabled ↦□ true`) and, for `LeaseTimeToLive`, `leaseTTLRow s γl`. It now takes
+  the facts themselves, `T : IProp GF` (TLS) and `R : IProp GF` (row): `v3rpc.infoBoundT`, `principalBound`,
+  `v3rpc.{hdrBoundT, rangeAuthed, txnAuthed, writeGrantOn, opGrantT, kvOpAuOn, kvOpAuM, leaseGrantResT,
+  leaseRevokeResT, adminReplied, userAddReplied, authHistAuT}`, `leaseCheckFrom`, `client.txnAuthOn`, and the
+  table specs `client.etcd{Put,Delete,Range,Txn}Spec{On,M}`, `client.etcdLease{TTL,Leases}SpecMd`,
+  `client.etcdLease{Grant,Revoke}SpecOn`, `v3rpc.etcd{UserAdd,UserGrantRole,RoleAdd,RoleGrantPermission,
+  AuthEnable}Spec` (`T`) and `etcdLeaseTTLSpecLive`, `client.etcdLeaseTTLSpecMd` (`R`). Each table spec is a
+  heap-free `…W` over the message models plus its old name at the message types (as the auth-off batch,
+  `ae188a5c42`); every server-side statement passes `T := srvTLSId s`, `R := leaseTTLRow s γl`, so it says
+  what it said.
+- **Defect.** None in meaning: `srvTLSId s` and `leaseTTLRow s γl` name a machine's heap (the server's config
+  struct, its raft node), so a service table, which holds no machine's heap (#24, O2), could not state the
+  auth-on specs.
+- **Evidence.** Mechanical: the definitions' bodies used `s` only through `srvTLSId s` (and `leaseTTLRow s γl`);
+  every call site rewritten to `(srvTLSId s)`/`(leaseTTLRow s γl)`; `etc/heapfree-check.py` checks the `…W`s;
+  full build green with no new axiom or `sorry`.
+- **Proposed change.** As above, with one-way monotonicity laws for the bridge at `Serve`: each table spec
+  `S T R` satisfies `□ (T1 -∗ T2) ∗ □ (R2 -∗ R1) ∗ S T2 R2 ⊢ S T1 R1` (`…W_mono`; a registration at the
+  server's facts serves a caller at the table's, `isGrpcRpc_mono_with`), and `srvTLSId_iff`:
+  `srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ tls ⊢ (srvTLSId s ∗-∗ ⌜tls = true⌝)`. A table takes
+  `T := ⌜tls = true⌝`, `R := ⌜row = true⌝`.
+- **Decision.** Applied (branch `prove-ps2-s2flags/2026-11-23`), as agreed with upamanyus-agent on #24
+  (parameters, not a `Bool` through the server's specs).
+
+## 2026-11-23: the client side of the auth-on KV and lease calls over the TLS fact `T` (phase 7 S2, O2, #24 item 3)
+
+- **Spec.** Following the previous entry, the client's auth-on vocabulary and results take `T : IProp GF` for the
+  server's `s : Loc`, which they used only as `srvTLSId s`: `client.clientGrant`, `clientOpAuOn`, `txnUpdAtOn`,
+  `clientHistAu` and their lemmas (`clientOpAuOn_attempt`, `clientOpAuOn_of_au1`, `txnUpdAtOn_write`,
+  `clientHistAu_attempt`, `txnAuthOn_write`, `kvOpAuM_of_au1`, `kvOpAuM_of_on`, `etcd{Put,Delete,Range,Txn}SpecM_
+  {true,false}`, `etcdRangeSpecE_M`, `kvOpAuOn_lease{Grant,Revoke}`), and `ResultsOn`'s `client_put_on`,
+  `client_put_on_nil`, `client_range_on`, `client_delete_on`, `client_txn_on`, `client_lease_{grant,revoke}_on`
+  (each with `[Persistent T]`). Every use (the examples', the server's linking modules) passes `srvTLSId s`.
+- **Defect.** None: the statements are generalized (at `T := srvTLSId s` they are the old ones), so that a client
+  can take its registrations from a service table at `T := ⌜tls = true⌝`.
+- **Evidence.** Mechanical; `kvOpAuM_of_au1`/`kvOpAuM_of_on` were proved through the server's `kvDepOwnM_*`
+  (which take `s`) and are now proved directly. Full build green; no axiom or `sorry`.
+- **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
+  the table.
+- **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).

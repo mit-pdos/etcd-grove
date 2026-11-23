@@ -13,7 +13,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.ConnRead
 public import Dsverify.Proof.rabia.roles.server.Spec
 public import Dsverify.Proof.rabia.internal.config.Spec
 public import Dsverify.Proof.math.rand.Spec
-public import Dsverify.Proof.log.Spec
+public import Net.Spec.log.Println
 public import Net.Spec.net.Dial
 public import Net.Spec.net.Listen
 public import Net.Spec.net.Listener__Accept
@@ -158,7 +158,8 @@ variable [ρ : RemoteGS]
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- `Orch()`: the orchestrator, from its share and remote's: the client machines' addresses'
-protocols, the map of operations, the pending library over the key-value map; it returns
+protocols, the map of operations, the pending library over the key-value map, and the client
+addresses' call units (`K` operations of `readTries` attempts each); it returns
 (porcupine accepts the history). -/
 abbrev Orch.spec : Prop :=
   ∀ (γ : Names) (γp : PendNames), receiptBound GF ≤ 2 ^ 63 →
@@ -166,7 +167,8 @@ abbrev Orch.spec : Prop :=
       ([∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := hG.goose_globalGS) (kvR γ) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
       pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init ∗
+      [∗list] a ∈ (List.range nC).map cliAddr, budUnits (Gg := hG.goose_globalGS) a 24 }}
     (App (Val (@! rabia.examples.rabianet.Orch)) (Val #()))
   {{ RET #(); True }}
 

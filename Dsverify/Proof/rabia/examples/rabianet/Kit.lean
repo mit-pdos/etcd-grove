@@ -16,9 +16,9 @@ The rabia kit's shared definitions and the specs of its configuration protocol a
   with client `c`'s channels, the shared state, the recorded configuration and `Conf` configured at
   it, and the mutex `mu` that guards the endpoint's mutable state (`clientAt`: the next sequence
   number, the send channel's producer token, client `c`'s key set). The lab kept that state in an
-  invariant opened by the harness's exclusive client token; remote's `ServeClient` hands its
-  `newClient` nothing (a triple with precondition `True`), so the kit's `Op` locks `mu`
-  (notes/dsv-rabia.md).
+  invariant opened by the harness's exclusive client token; remote's `ServeClient` handed its
+  `newClient` nothing (a triple with precondition `True`; now a one-shot WP, which could take
+  exclusive state), so the kit's `Op` locks `mu` (notes/dsv-rabia.md).
 * `Op` (`op1` under the lock): a sequence number below the budget `SeqBudget = opBudget`
   registers the request with the caller's update `opAU` and sends it; the reply with that number
   answers the update's output (`kvOutV`); a timeout, or a sequence number past the budget, answers

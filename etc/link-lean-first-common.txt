@@ -28,7 +28,7 @@ etcdstart_StartCompactingServer: etcdstart_newServerMode EtcdServer__Start
 etcdstart_StartPeriodicServer: etcdstart_newServerMode EtcdServer__Start
 # `NewMember` and `StartMember`: a cluster's member, its raft handler served (`net.Listen`'s,
 # `RaftHandler`'s and `http.Serve`'s trust-boundary axioms), then started
-net_Listen:
+net_Listen: =_root_.Perennial.net.Listen.wp_proof
 # (2026-10-24, rafthttp stage 6d/6f) `RaftHandler` linked in the server's `Link.lean`; the HTTP
 # boundary's `Serve` (`http.Serve_ok`) used by `NewMember`'s proof directly
 EtcdServer__RaftHandler: @

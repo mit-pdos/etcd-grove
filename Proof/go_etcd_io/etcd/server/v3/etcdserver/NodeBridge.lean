@@ -132,7 +132,11 @@ theorem applyErrIs_of_ctxErr (cd : context.ContextDesc (IProp GF)) (err : GoInte
       icombine Hcv HeD gives %Hce
       cases Hce
       obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
-      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
+      -- (errors-is-deadline) `DeadlineExceeded`'s value is `deadlineExceededError{}`
+      ihave #PctxD : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+      · iPkgInit
+      ihave %HdeD := deadlineExceeded_deTypedErr _ $$ PctxD HeD
+      iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF HdeD $$ HDm
 
 /-- **The error of a `node` call that hands a message to `run`** (`nodeErr`: `nil`, `ErrStopped`,
 or the context's), as the gRPC layer takes it (`applyErrIs`). -/

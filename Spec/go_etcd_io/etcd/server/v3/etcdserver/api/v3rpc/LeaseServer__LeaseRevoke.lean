@@ -49,12 +49,12 @@ abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorRevokeOkM on s E ρ S ∗ S ∗
       auth.authPubLbM E.authMode n ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ v3rpc.leaseRevokeReqIs r m ∗
-      leaseRevokePermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode tok) m Q }}
+      leaseRevokePermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT (srvTLSId s) E.authMode tok) m Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseRevoke"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err ∗
-      (⌜err ≠ GoInterface.nil⌝ ∨ (v3rpc.leaseRevokeResT on s E ρ tok m Q ∗
-        leaseCheckFrom s E tok n (fun _ => iprop(True)))) ∗
+      (⌜err ≠ GoInterface.nil⌝ ∨ (v3rpc.leaseRevokeResT on (srvTLSId s) E ρ tok m Q ∗
+        leaseCheckFrom (srvTLSId s) E tok n (fun _ => iprop(True)))) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
