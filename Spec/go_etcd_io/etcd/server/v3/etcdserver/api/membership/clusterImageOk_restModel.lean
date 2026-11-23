@@ -91,6 +91,14 @@ unchanged, and `cluster.go` changes only in `IsLocalMemberLearner`, which no bul
   S4, 2026-11-07: until then that step was the argument, not a premise, and the statement was
   stronger than it: `notes/axiom-review/membership-alarm.md`, attack 8.)
 
+* *The cluster version is present once `c`'s is set* (prove-ps2-bootstage1, 2026-11-23, #34 stage 1:
+  `memBucketsOk`'s widened meaning). `c.version` is written only by `SetVersion` (applying a
+  `ClusterVersionSet` of the applied log `L`, which, `c0 = 0`, also saves it: `restSetVersion true`)
+  and by `Recover` (from an earlier image's `cluster` bucket, the model's at an earlier committed log,
+  which the applied log then extends). `restModel` never removes the `clusterVersion` key (`restEntry`
+  writes `cluster` only through `restSetVersion`), so the model at `L'`, extending `L`, holds a
+  version.
+
 Not true for a cluster that changes membership (a `RemoveNode`, an added member), for a log
 shorter than the boot log (its image misses boot members `mem` already has), or across binaries
 of different versions; the premises exclude the first two, the deployment the third. -/

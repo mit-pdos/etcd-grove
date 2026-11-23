@@ -67,7 +67,7 @@ noncomputable instance cacheEntry_access_load_lock {T' : Type} [TypedPointsto (G
  by
   solve_pointsto_access_struct
 
-noncomputable instance cacheEntry_access_store_lock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.cacheEntry T')) (lock' : sync.RWMutex) :
+noncomputable instance cacheEntry_access_store_lock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.cacheEntry T')) (lock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.cacheEntry T') go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.cacheEntry T') go!"lock" l) lock' (DFrac.own 1))
@@ -140,7 +140,7 @@ noncomputable instance Lazy_access_load_cache {T' : Type} [TypedPointsto (GF := 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Lazy_access_store_cache {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.Lazy T')) (cache' : (sync.atomic.Pointer (k8s_io.client_go.tools.cache.synctrack.cacheEntry T'))) :
+noncomputable instance Lazy_access_store_cache {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.Lazy T')) (cache' : (_root_.Perennial.sync.atomic.Pointer (k8s_io.client_go.tools.cache.synctrack.cacheEntry T'))) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.Lazy T') go!"cache" l) v.cache' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.Lazy T') go!"cache" l) cache' (DFrac.own 1))
@@ -201,7 +201,7 @@ noncomputable instance AsyncTracker_access_load_upstreamHasSynced {T' : Type} [T
  by
   solve_pointsto_access_struct
 
-noncomputable instance AsyncTracker_access_store_upstreamHasSynced {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (upstreamHasSynced' : sync.atomic.Bool') :
+noncomputable instance AsyncTracker_access_store_upstreamHasSynced {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (upstreamHasSynced' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"upstreamHasSynced" l) v.upstreamHasSynced' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"upstreamHasSynced" l) upstreamHasSynced' (DFrac.own 1))
@@ -217,7 +217,7 @@ noncomputable instance AsyncTracker_access_load_lock {T' : Type} [TypedPointsto 
  by
   solve_pointsto_access_struct
 
-noncomputable instance AsyncTracker_access_store_lock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (lock' : sync.Mutex) :
+noncomputable instance AsyncTracker_access_store_lock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (lock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"lock" l) lock' (DFrac.own 1))
@@ -233,7 +233,7 @@ noncomputable instance AsyncTracker_access_load_waiting {T' : Type} [TypedPoints
  by
   solve_pointsto_access_struct
 
-noncomputable instance AsyncTracker_access_store_waiting {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (waiting' : (k8s_io.apimachinery.pkg.util.sets.Set' T')) :
+noncomputable instance AsyncTracker_access_store_waiting {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (waiting' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' T')) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"waiting" l) v.waiting' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"waiting" l) waiting' (DFrac.own 1))
@@ -249,7 +249,7 @@ noncomputable instance AsyncTracker_access_load_synced {T' : Type} [TypedPointst
  by
   solve_pointsto_access_struct
 
-noncomputable instance AsyncTracker_access_store_synced {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (synced' : context.Context) :
+noncomputable instance AsyncTracker_access_store_synced {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T')) (synced' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"synced" l) v.synced' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.tools.cache.synctrack.AsyncTracker T') go!"synced" l) synced' (DFrac.own 1))
@@ -341,7 +341,7 @@ noncomputable instance SingleFileTracker_access_load_upstreamHasSynced (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance SingleFileTracker_access_store_upstreamHasSynced (l : Loc) (v : k8s_io.client_go.tools.cache.synctrack.SingleFileTracker) (upstreamHasSynced' : sync.atomic.Bool') :
+noncomputable instance SingleFileTracker_access_store_upstreamHasSynced (l : Loc) (v : k8s_io.client_go.tools.cache.synctrack.SingleFileTracker) (upstreamHasSynced' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.synctrack.SingleFileTracker go!"upstreamHasSynced" l) v.upstreamHasSynced' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.synctrack.SingleFileTracker go!"upstreamHasSynced" l) upstreamHasSynced' (DFrac.own 1))
@@ -357,7 +357,7 @@ noncomputable instance SingleFileTracker_access_load_synced (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance SingleFileTracker_access_store_synced (l : Loc) (v : k8s_io.client_go.tools.cache.synctrack.SingleFileTracker) (synced' : context.Context) :
+noncomputable instance SingleFileTracker_access_store_synced (l : Loc) (v : k8s_io.client_go.tools.cache.synctrack.SingleFileTracker) (synced' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.synctrack.SingleFileTracker go!"synced" l) v.synced' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.synctrack.SingleFileTracker go!"synced" l) synced' (DFrac.own 1))

@@ -73,7 +73,7 @@ noncomputable instance kvHasher_access_load_hash (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance kvHasher_access_store_hash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (hash' : hash.Hash32) :
+noncomputable instance kvHasher_access_store_hash (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher) (hash' : _root_.Perennial.hash.Hash32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"hash" l) v.hash' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.kvHasher go!"hash" l) hash' (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance hashStorage_access_load_hashMu (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance hashStorage_access_store_hashMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage) (hashMu' : sync.RWMutex) :
+noncomputable instance hashStorage_access_store_hashMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage) (hashMu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage go!"hashMu" l) v.hashMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.hashStorage go!"hashMu" l) hashMu' (DFrac.own 1))
@@ -328,7 +328,7 @@ noncomputable instance treeIndex_access_load_RWMutex (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance treeIndex_access_store_RWMutex (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex) (RWMutex' : sync.RWMutex) :
+noncomputable instance treeIndex_access_store_RWMutex (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex) (RWMutex' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex go!"RWMutex" l) v.RWMutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex go!"RWMutex" l) RWMutex' (DFrac.own 1))
@@ -924,7 +924,7 @@ noncomputable instance StoreConfig_access_load_CompactionSleepInterval (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance StoreConfig_access_store_CompactionSleepInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (CompactionSleepInterval' : time.Duration) :
+noncomputable instance StoreConfig_access_store_CompactionSleepInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig) (CompactionSleepInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"CompactionSleepInterval" l) v.CompactionSleepInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.StoreConfig go!"CompactionSleepInterval" l) CompactionSleepInterval' (DFrac.own 1))
@@ -1025,7 +1025,7 @@ noncomputable instance store_access_load_mu (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance store_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (mu' : sync.RWMutex) :
+noncomputable instance store_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"mu" l) mu' (DFrac.own 1))
@@ -1041,7 +1041,7 @@ noncomputable instance store_access_load_b (l : Loc) (v : go_etcd_io.etcd.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance store_access_store_b (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (b' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+noncomputable instance store_access_store_b (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (b' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"b" l) v.b' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"b" l) b' (DFrac.own 1))
@@ -1073,7 +1073,7 @@ noncomputable instance store_access_load_le (l : Loc) (v : go_etcd_io.etcd.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance store_access_store_le (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (le' : go_etcd_io.etcd.server.v3.lease.Lessor) :
+noncomputable instance store_access_store_le (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (le' : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"le" l) v.le' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"le" l) le' (DFrac.own 1))
@@ -1089,7 +1089,7 @@ noncomputable instance store_access_load_revMu (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance store_access_store_revMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (revMu' : sync.RWMutex) :
+noncomputable instance store_access_store_revMu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (revMu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"revMu" l) v.revMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"revMu" l) revMu' (DFrac.own 1))
@@ -1137,7 +1137,7 @@ noncomputable instance store_access_load_fifoSched (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance store_access_store_fifoSched (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (fifoSched' : go_etcd_io.etcd.pkg.v3.schedule.Scheduler) :
+noncomputable instance store_access_store_fifoSched (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.store) (fifoSched' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.schedule.Scheduler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"fifoSched" l) v.fifoSched' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.store go!"fifoSched" l) fifoSched' (DFrac.own 1))
@@ -1319,7 +1319,7 @@ noncomputable instance storeTxnCommon_access_load_tx (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeTxnCommon_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon) (tx' : go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader) :
+noncomputable instance storeTxnCommon_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon) (tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnCommon go!"tx" l) tx' (DFrac.own 1))
@@ -1424,7 +1424,7 @@ noncomputable instance storeTxnRead_access_load_tx (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeTxnRead_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead) (tx' : go_etcd_io.etcd.server.v3.storage.backend.ReadTx) :
+noncomputable instance storeTxnRead_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead) (tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnRead go!"tx" l) tx' (DFrac.own 1))
@@ -1483,7 +1483,7 @@ noncomputable instance storeTxnWrite_access_load_tx (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance storeTxnWrite_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite) (tx' : go_etcd_io.etcd.server.v3.storage.backend.BatchTx) :
+noncomputable instance storeTxnWrite_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite) (tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.storeTxnWrite go!"tx" l) tx' (DFrac.own 1))
@@ -1738,7 +1738,7 @@ noncomputable instance watcherGroup_access_load_ranges (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance watcherGroup_access_store_ranges (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (ranges' : go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
+noncomputable instance watcherGroup_access_store_ranges (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup) (ranges' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"ranges" l) v.ranges' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watcherGroup go!"ranges" l) ranges' (DFrac.own 1))
@@ -1817,7 +1817,7 @@ noncomputable instance watchableStore_access_load_mu (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchableStore_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore) (mu' : sync.RWMutex) :
+noncomputable instance watchableStore_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"mu" l) mu' (DFrac.own 1))
@@ -1913,7 +1913,7 @@ noncomputable instance watchableStore_access_load_wg (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchableStore_access_store_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore) (wg' : sync.WaitGroup) :
+noncomputable instance watchableStore_access_store_wg (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore) (wg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"wg" l) wg' (DFrac.own 1))
@@ -2332,7 +2332,7 @@ noncomputable instance watchStream_access_load_mu (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchStream_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watchStream) (mu' : sync.Mutex) :
+noncomputable instance watchStream_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.mvcc.watchStream) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchStream go!"mu" l) mu' (DFrac.own 1))

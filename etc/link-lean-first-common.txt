@@ -7,7 +7,17 @@
 # (the server's results, linked in its `Link.lean`; the feature gate's trust-boundary axiom)
 etcdserver_NewServer: @
 EtcdServer__Start: @
-features_NewDefaultServerFeatureGate:
+# (featuregate-3, 2026-11-23) the feature gate, proved (until then the trust-boundary axiom
+# `features.NewDefaultServerFeatureGate.wp_proof`): featuregate's `New`, `Add`, `Enabled` over
+# `maps.Copy` (Spec/maps/Copy.lean) and zap's `NewNop`
+zap_NewNop:
+maps_Copy:
+featuregate_New: zap_NewNop
+featureGate__Add: maps_Copy
+featureGate__Enabled:
+# (featuregate-4, 2026-11-23) `GetAll`, for `isFeatureGate`'s contract (`addFeatureGateMetrics`)
+featureGate__GetAll: maps_Copy
+features_NewDefaultServerFeatureGate: featuregate_New featureGate__Add featureGate__Enabled featureGate__GetAll
 # (periodic mode, 2026-11-02) `newServer` is `newServerMode` in revision mode
 etcdstart_newServerMode: features_NewDefaultServerFeatureGate etcdserver_NewServer
 etcdstart_newServer: etcdstart_newServerMode

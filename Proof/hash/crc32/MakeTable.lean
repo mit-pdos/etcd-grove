@@ -1,11 +1,15 @@
 /-
-The proof of `Spec/hash/crc32/MakeTable.lean`: the trusted model's allocation, frozen.
+The proof of `Spec/hash/crc32/MakeTable.lean` over the translated switch (`crc32.go:122-133`): the
+`Castagnoli` case calls `castagnoliInitOnce` (the package's fact: it returns with `castagnoliTable`
+set up, `castagnoliReady`) and returns `castagnoliTable`.
 -/
 module
 
 public import Spec.hash.crc32.MakeTable
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -23,14 +27,17 @@ variable [hash.crc32.Assumptions]
 
 theorem hash.crc32.MakeTable.wp_proof : hash.crc32.MakeTable.spec (GF := GF) (hG := hG) := by
   wp_start as -
-  iapply wp_fupd
-  wp_apply IntoValTyped.wp_alloc (t := go.ArrayType 256 go.uint32) hash.crc32.castagnoliTableArr
-    as %l Hl
-  imod (typedPointsto_dfractional (GF := GF) _ hash.crc32.castagnoliTableArr).dfractional_persist _ $$ Hl
-    with #Hl
-  imodintro
+  ihave #Hf : (hash.crc32.crc32Init : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  iunfold hash.crc32.crc32Init at Hf
+  icases Hf with ⟨-, ⟨%g, #Hg, #Hgs⟩, -⟩
+  wp_auto
+  wp_apply Hgs as Hready
+  iunfold hash.crc32.castagnoliReady at Hready
+  icases Hready with ⟨%t, #Hct, #Htt⟩
+  try wp_auto
   iapply HΦ
-  iexact Hl
+  iexact Htt
 
 end proof
 

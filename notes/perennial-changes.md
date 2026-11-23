@@ -17,6 +17,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Slice` is names-only: `mvcc.hashStorage.Store` stays an axiom (2026-11-23, ps2-crc32-merge, claim #18)
+
+- **Limitation.** Perennial's `sort` translates `sort.Sort` and `pdqsort` over a `sort.Interface`
+  (`zsortinterface.go`), but not `sort.Slice` (`slice.go`) nor `pdqsort_func` and its helpers
+  (`zsortfunc.go`): `Slice` swaps through `internal/reflectlite.Swapper(x)`, which has no model.
+  `Spec/sort/Slice.lean` is stated for `[]int64` only and is a hypothesis (`?`) of mvccrand's results.
+- **Needed by.** `mvcc.hashStorage.Store` (`hash.go`): it logs (`zap.Logger.Info` over `zap.Uint32`/
+  `zap.Int64`, specified here), appends under `hashMu`, then `sort.Slice(s.hashes, func(i, j int) bool
+  { return s.hashes[i].Revision < s.hashes[j].Revision })` and keeps the last `hashStorageMaxSize`.
+  Its axiom was thought to wait only on `hash/crc32` (`hash.go`'s hasher): crc32 is now translated and
+  proved (etcd-grove#14), but `Store` never calls crc32; `sort.Slice` is the one callee with no spec
+  that can be proved (with `hashStorageOk` carrying `hashMu`'s lock invariant over `hashes`, which
+  `NewHashStorage` would establish, every other step is provable over existing specs).
+- **Workaround.** None here: the axiom `mvcc.hashStorage.Store.wp_proof` stays (an axiom for
+  `sort.Slice` at `[]KeyValueHash` would trade one axiom for another, and a `?` hypothesis would add a
+  premise to every result reaching `store.compact`).
+- **Proposed change.** In Perennial: translate `slice.go` (`Slice`, `SliceStable`, `SliceIsSorted`) and
+  `zsortfunc.go` (`pdqsort_func` and the `_func` helpers, the same code as the interface ones over
+  `lessSwap`), with a trusted model of `reflectlite.Swapper` for slices (swap two elements of the slice
+  the interface holds; panics on a non-slice), and prove `sort.Slice` generically in the element type
+  (the order of `less` not required, as `sort.Sort.wp_anyLess`). A trusted-model change: a PR for
+  upamanyus's review.
+
 ### Goose drops the implicit conversion of a type-parameter value to an interface (2026-11-23, zap-z1, claim #40)
 
 - **Limitation.** Where Go converts a value of a type parameter `T` to an interface implicitly (an
@@ -130,6 +153,16 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `featureGate` is then translated, and what remains is a local spec of `maps.Copy` (translated in
   Perennial, no spec), the facts of `featuregate`/`features` (`apply/Base.lean`/`BaseApply.lean`), and
   the proofs.
+  (2026-11-23, branch `featuregate-3`) **Done, without a Perennial change and without an axiom:**
+  `features.NewDefaultServerFeatureGate.wp_proof` is a theorem. go1.27's `flag.init` handles an empty
+  `os.Args` itself (`if len(os.Args) == 0 { CommandLine = NewFlagSet("", ExitOnError) }`), so no
+  non-empty fact of `os.Args` is needed: `os`'s fact only records `Args`' slice read-only. `flag` is
+  translated here (project etcd, `flag=`, `Code/flag.toml`), as `os` is, because a Perennial `flag`
+  would import Perennial's `os`, which must never meet this repository's. `maps.Copy`'s spec is proved
+  here (`Spec/maps/Copy.lean`, generic, over Perennial's translation), and the same spec is in
+  Perennial `6965e6194` (`maps` below). `featureGate.Add`'s `Store` into the filled `known` uses
+  `71de6f043`'s `sameTypeOrNil` (same map type). Still open from this entry: `init_0_ok`,
+  `DefaultMutableFeatureGate_init` (k8s `component-base/featuregate`, `regexp`), `addFeatureGateMetrics`.
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
@@ -467,6 +500,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
   axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
   only; a second local instance would be a new trust-boundary axiom, for approval).
+  (2026-11-23, `featuregate-3`) Perennial's `maps` (`70706ce5e`) specifies `Clone` and `Equal`
+  generically; `Copy` is translated with no spec. This repository proves one (`Spec/maps/Copy.lean`,
+  `maps.Copy.spec`, at any `M1 M2 ↓u map[Kt]Vt` with safe keys: `dst ↦$ D ∗ src ↦${dq} S` to
+  `dst ↦$ (S ∪ D)`, by `wp_map_for_range`; its loop state `maps.copyPrefix`, `Proof/maps/CopyPrefix.lean`).
+  **Landed in Perennial** `6965e6194` (2026-11-23, the same spec and proof: `Perennial/Spec/maps/Copy.lean`,
+  `maps.wp_Copy`, `maps.copyPrefix` in `Proof/maps/Base.lean`), not yet in the pin; this repository's
+  copy (`Spec/maps/Copy.lean`, `Proof/maps/{Copy,CopyPrefix}.lean`) goes at the pin bump that brings it
+  (requested on #9).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
@@ -493,6 +534,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   theorems from them (trust base -2). Still open: iterator specs (`Keys`, `slices.Sorted`/`Collect`,
   item 3's protocol), so `maps.Keys.wp_proof_objMap` stays an axiom; and a spec of `maps.Copy`
   (translated, no spec), which `featuregate.Add` needs.
+- **Status (2026-11-23, maps-keys).** The iterator specs are in Perennial `ccfeb3895` (in the pin):
+  `maps.wp_Sorted_Keys_string`. `maps.Keys.wp_proof_objMap` is a theorem from it (trust base -1), with
+  its premise `GMap.size M ≤ 2^62` added to `spec_objMap` (ledger, 2026-11-23) and supplied by the
+  k8s checker's model invariant (`itemsRO`).
 
 
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
@@ -3927,6 +3972,53 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Proposed (general).** `wp_apply` re-raises its post-processing's error instead of admitting the
   goal. **Status.** Recorded only.
 
+## 2026-11-22: `sync.OnceFunc`'s spec says nothing of calling the function it returns (`hash/crc32`'s arch hooks, etcd-grove#14)
+
+- **The gap.** `Perennial/Spec/sync/OnceFunc.lean` (the pins `d648cfe22` and `c14cca87a`, and Perennial
+  `lean`'s head on 2026-11-22): `OnceFunc(f)` returns some `g` with postcondition `True`, and no spec says what calling `g`
+  does (nor for `OnceValue`/`OnceValues`). `Once.Do` (`isOnce o P Q`) and `atomic.Bool.Load`/`Store`
+  (`ownBool`) have specs; `OnceFunc` is translated with its body (`Once`, `wrapDeferRecover`).
+- **Who needs it.** The fix of etcd-grove#14 that upamanyus approved: translate crc32's `MakeTable`,
+  `update`, `castagnoliInitOnce`, `slicingMakeTable`, `slicingUpdate` and the package state, and trust
+  only `archAvailableCastagnoli`/`archInitCastagnoli`/`archUpdateCastagnoli`. At go1.27.3,
+  `castagnoliInitOnce` is `sync.OnceFunc(func() {...})` (`crc32.go:83`) and `MakeTable(Castagnoli)`
+  calls it (`crc32.go:122`), so `MakeTable`'s proof needs what that call does.
+- **Workaround here.** None: the work stopped on this gap (branch `crc32-arch-hooks/2026-11-22`, notes
+  only). The trusted `MakeTable`/`update` of `0c72a382a7` stay, with the deviation their file header
+  documents (a fresh table per `MakeTable`).
+- **Proposed (general).** A spec of the returned function in `Once.Do`'s style: given `P` and
+  `{P} f() {Q}` with `Q` persistent, `OnceFunc(f)` returns `g` with a persistent `isOnceFunc g Q`, and
+  `{isOnceFunc g Q} g() {Q}` (a panicking `f` is excluded by `f`'s triple); proved over the translated
+  `OnceFunc`. The same for `OnceValue(s)`, with the value.
+- **The crc32 plan once it lands** (worked out statically, 2026-11-22):
+  (a) The real code reads package globals (`castagnoliInitOnce`, `haveCastagnoli`, `castagnoliTable`,
+  `IEEETable`), so the specs of `MakeTable`, `update`, `Update` and `digest.Write` gain the premise
+  `isPkgInit pkg_id.hash.crc32`; their callers (the WAL's initializer, `pkg/v3/crc`'s `digest.Write`, mvcc's
+  `newKVHasher` and `kvHasher.WriteKeyValue`) have to supply it. Otherwise the statements stay unchanged. (kaashoek
+  on #14: the WAL proofs use crc32 only through these specs, so the WAL proofs are affected only by this
+  premise.)
+  (b) crc32's fact gains an invariant: `haveCastagnoli`'s `ownBool`, and, once it is true,
+  `castagnoliTable ↦□ t ∗ t ↦□ castagnoliTableArr` plus `updateCastagnoli ↦□ u` with `u`'s WP computing
+  `crc32c`. The once's `P` is the cells of `castagnoliTable`, `castagnoliTable8` and `updateCastagnoli`.
+  `update` reads `castagnoliTable` only after `haveCastagnoli.Load()` is true (Go's `&&`).
+  (c) The `tab == IEEETable` branch is impossible: `tab ↦□ castagnoliTableArr` agrees with `IEEETable`'s
+  `↦□ ieeeTableArr`, which differs (`ieeeTableArr_ne`). The default branch is `simpleUpdate`, which has
+  to be translated as well.
+  (d) `slicingUpdate` equals `crcUpdate` of `t[0]` only by the slicing-by-8 identity, which follows from
+  the table's linearity (`crcBit (a ^^^ b) = crcBit a ^^^ crcBit b`, for `bv_decide`).
+  (e) Goose translates the hooks from `crc32_amd64.go` (`trusted` in `Code/hash/crc32.toml`). In Go,
+  `archInitCastagnoli` is not a no-op: it fills `castagnoliSSE42TableK1/K2`, which only
+  `archUpdateCastagnoli` reads. That is harmless because the model's `archUpdateCastagnoli` reads no
+  table.
+- **Status.** Resolved by Perennial #679 (`101637598`, the pin since 2026-11-22): `sync.OnceFunc.spec`
+  returns a single-use update that, given `{P} f() {Q}` with `Q` persistent, gives the persistent
+  `{True} g() {Q}`. The crc32 plan above is carried out on branch `crc32-hooks2/2026-11-22`, with two
+  changes: (b)'s once has `Q = castagnoliReady` (the table set up) and `haveInv` is a separate
+  invariant, opened by `update`'s `Load` and the once's `Store`; and (a)'s premise reaches past
+  `pkg/v3/crc`'s `Write` (whose spec gains it) into the WAL's `walCrcTable` and `ownDecCrc`, which now
+  hold `isPkgInit hash/crc32`. `internal/byteorder.LEUint32` is translated (project k8s-apiserver's
+  `byteorder.toml`) for `slicingUpdate`.
+
 ## 2026-11-22: `math.Float64bits` is names-only (`zap.Float64`, `Client.roundRobinQuorumBackoff`)
 
 - **The gap.** Perennial's `math` translation has `Float64bits` (and presumably `Float64frombits`) as names
@@ -4174,3 +4266,22 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
   (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
   beside `Printf`'s. Not filed yet.
+
+## 2026-11-23: `runtime.Version` has no name (etcdserver's `init.0`, claim #39, branch `etcd-small-3`)
+
+- **Limitation.** Perennial's `runtime.toml` translates nothing but `Gosched` (trusted), so `runtime.Version`
+  has no Lean name: goose emits `FuncResolve _root_.Perennial.runtime.Version` for a call to it, which does
+  not elaborate. etcdserver's first `init` (`metrics.go:167`, etcd `edc800c6f262`) ends with
+  `currentGoVersion.With(prometheus.Labels{"server_go_version": goruntime.Version()}).Set(1)`, so it cannot
+  be translated, and its metric registrations stay under the trust-boundary axiom `initFuncsOk` (narrowed
+  on this branch to `init.«0»`: `init.«1»`/`init.«2»`, the `expvar.Publish`es, are trusted no-op models).
+- **Proposed.** In Perennial: `runtime.Version` trusted, as a GooseLang model reading `buildVersion` (a
+  package variable the linker sets: the toolchain's version, e.g. `go1.27.3`, or `devel ...`), with a spec
+  returning an ASCII string (what `GaugeVec.With`'s `labelMapOk` premise needs: valid UTF-8). The value is
+  fixed by the build, so the model can read a variable whose initial value is any ASCII string.
+- **Then here.** Translate `init.0` (`etcdserver.toml`) and prove it in `etc/gen-init.py` over
+  `MustRegister`'s spec with the metric-name rights (`register(SPECIAL[etcdserver], ...)`, etcdserver joins
+  `PRE_RES`; the coordinator approved adding its 19 names to the closed theorems' `namesUnclaimed`, claim #39),
+  plus `GaugeVec.With`/`Set` for the two version gauges (`version.Version` from api/version's fact). After
+  `prom-registry` (#15) lands, on its `reg_steps`.
+- **Status.** Not filed.

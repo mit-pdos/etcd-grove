@@ -170,7 +170,7 @@ noncomputable instance transfers_access_load_mu (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance transfers_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kv.transfers) (mu' : sync.Mutex) :
+noncomputable instance transfers_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kv.transfers) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kv.transfers go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kv.transfers go!"mu" l) mu' (DFrac.own 1))
@@ -307,7 +307,7 @@ noncomputable instance KV_access_load_node (l : Loc) (v : github_com.mit_pdos.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance KV_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kv.KV) (node' : go_etcd_io.raft.v3.Node) :
+noncomputable instance KV_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kv.KV) (node' : _root_.Perennial.go_etcd_io.raft.v3.Node) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kv.KV go!"node" l) v.node' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kv.KV go!"node" l) node' (DFrac.own 1))
@@ -339,7 +339,7 @@ noncomputable instance KV_access_load_mu (l : Loc) (v : github_com.mit_pdos.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance KV_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kv.KV) (mu' : sync.Mutex) :
+noncomputable instance KV_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kv.KV) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kv.KV go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kv.KV go!"mu" l) mu' (DFrac.own 1))

@@ -522,7 +522,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramMinResetDuration
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (NativeHistogramMinResetDuration' : time.Duration) :
+noncomputable instance HistogramOpts_access_store_NativeHistogramMinResetDuration (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (NativeHistogramMinResetDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMinResetDuration" l) v.NativeHistogramMinResetDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramMinResetDuration" l) NativeHistogramMinResetDuration' (DFrac.own 1))
@@ -570,7 +570,7 @@ noncomputable instance HistogramOpts_access_load_NativeHistogramExemplarTTL (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance HistogramOpts_access_store_NativeHistogramExemplarTTL (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (NativeHistogramExemplarTTL' : time.Duration) :
+noncomputable instance HistogramOpts_access_store_NativeHistogramExemplarTTL (l : Loc) (v : github_com.prometheus.client_golang.prometheus.HistogramOpts) (NativeHistogramExemplarTTL' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramExemplarTTL" l) v.NativeHistogramExemplarTTL' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.HistogramOpts go!"NativeHistogramExemplarTTL" l) NativeHistogramExemplarTTL' (DFrac.own 1))
@@ -716,7 +716,7 @@ noncomputable instance timestampedMetric_access_load_t (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance timestampedMetric_access_store_t (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (t' : time.Time) :
+noncomputable instance timestampedMetric_access_store_t (l : Loc) (v : github_com.prometheus.client_golang.prometheus.timestampedMetric) (t' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"t" l) v.t' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.timestampedMetric go!"t" l) t' (DFrac.own 1))
@@ -847,7 +847,7 @@ noncomputable instance Exemplar_access_load_Timestamp (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Exemplar_access_store_Timestamp (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (Timestamp' : time.Time) :
+noncomputable instance Exemplar_access_store_Timestamp (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Exemplar) (Timestamp' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Timestamp" l) v.Timestamp' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Exemplar go!"Timestamp" l) Timestamp' (DFrac.own 1))
@@ -1106,7 +1106,7 @@ noncomputable instance SummaryOpts_access_load_MaxAge (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance SummaryOpts_access_store_MaxAge (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (MaxAge' : time.Duration) :
+noncomputable instance SummaryOpts_access_store_MaxAge (l : Loc) (v : github_com.prometheus.client_golang.prometheus.SummaryOpts) (MaxAge' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"MaxAge" l) v.MaxAge' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.SummaryOpts go!"MaxAge" l) MaxAge' (DFrac.own 1))
@@ -1195,7 +1195,7 @@ noncomputable instance Timer_access_load_begin (l : Loc) (v : github_com.prometh
  by
   solve_pointsto_access_struct
 
-noncomputable instance Timer_access_store_begin (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (begin' : time.Time) :
+noncomputable instance Timer_access_store_begin (l : Loc) (v : github_com.prometheus.client_golang.prometheus.Timer) (begin' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"begin" l) v.begin' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.Timer go!"begin" l) begin' (DFrac.own 1))

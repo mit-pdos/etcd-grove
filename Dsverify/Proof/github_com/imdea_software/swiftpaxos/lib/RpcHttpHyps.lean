@@ -258,7 +258,8 @@ theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
   ipureintro; exact Hb
 
 /-- A method spec that also accepts error answers: `Net/`'s server answers a request whose
-arguments do not decode with an error (`srvServes` asks `errOk` of each service). A caller's `Φ`
+arguments do not decode with an error (`srvServes` asks `errOk` of each service, for the server's
+own messages, `srvErrMsg`, which are not empty). A caller's `Φ`
 of the form `⌜msg ≠ []⌝ ∨ …` meets the second half. -/
 def withErr (S : MethodSpec GF) : MethodSpec GF := fun m args Φ =>
   iprop(S m args Φ ∧ ∀ msg : GoString, ⌜msg ≠ []⌝ -∗ Φ [] msg)
@@ -268,7 +269,7 @@ theorem withErr_errOk (S : MethodSpec GF) : ⊢ errOk (withErr S) := by
   iintro !> %m %args %Φ %msg %Hmsg HS
   icases HS with ⟨-, Herr⟩
   imodintro
-  iapply Herr $$ %msg %Hmsg
+  iapply Herr $$ %msg %(net.rpc.srvErrMsg_ne msg Hmsg)
 
 end use
 

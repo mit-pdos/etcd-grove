@@ -334,7 +334,7 @@ noncomputable instance ProxyTCP_access_load_Listener (l : Loc) (v : rabia.intern
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_Listener (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (Listener' : net.Listener) :
+noncomputable instance ProxyTCP_access_store_Listener (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (Listener' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"Listener" l) Listener' (DFrac.own 1))
@@ -398,7 +398,7 @@ noncomputable instance ProxyTCP_access_load_ConnsLock (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProxyTCP_access_store_ConnsLock (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (ConnsLock' : sync.Mutex) :
+noncomputable instance ProxyTCP_access_store_ConnsLock (l : Loc) (v : rabia.internal.tcp.ProxyTCP) (ConnsLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ConnsLock" l) v.ConnsLock' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.ProxyTCP go!"ConnsLock" l) ConnsLock' (DFrac.own 1))
@@ -544,7 +544,7 @@ noncomputable instance NetTCP_access_load_Listener (l : Loc) (v : rabia.internal
  by
   solve_pointsto_access_struct
 
-noncomputable instance NetTCP_access_store_Listener (l : Loc) (v : rabia.internal.tcp.NetTCP) (Listener' : net.Listener) :
+noncomputable instance NetTCP_access_store_Listener (l : Loc) (v : rabia.internal.tcp.NetTCP) (Listener' : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Listener" l) v.Listener' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.tcp.NetTCP go!"Listener" l) Listener' (DFrac.own 1))

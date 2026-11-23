@@ -66,7 +66,7 @@ theorem watchDescOk_of_init :
   iintro #Hp
   ihave Hi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hp
-  icases Hi with ⟨-, -, -, ⟨%mds, %sds, Hd, %Hs⟩, -⟩
+  icases Hi with ⟨-, -, -, -, ⟨%mds, %sds, Hd, %Hs⟩, -⟩
   iunfold pbDescIs at Hd
   icases Hd with ⟨%msl, %ssl, -, -, -, -, #Hst, #Hsds⟩
   unfold v3rpc.watchDescOk

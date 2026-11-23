@@ -128,7 +128,7 @@ noncomputable instance ObjectMeta_access_load_UID (l : Loc) (v : k8s_io.apimachi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ObjectMeta_access_store_UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (UID' : k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance ObjectMeta_access_store_UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (UID' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) UID' (DFrac.own 1))

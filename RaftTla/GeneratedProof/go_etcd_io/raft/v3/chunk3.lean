@@ -71,7 +71,7 @@ noncomputable instance MemoryStorage_access_load_Mutex (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance MemoryStorage_access_store_Mutex (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (Mutex' : sync.Mutex) :
+noncomputable instance MemoryStorage_access_store_Mutex (l : Loc) (v : go_etcd_io.raft.v3.MemoryStorage) (Mutex' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) v.Mutex' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.MemoryStorage go!"Mutex" l) Mutex' (DFrac.own 1))

@@ -359,7 +359,7 @@ noncomputable instance Writes_access_load_Mu (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writes_access_store_Mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes) (Mu' : sync.Mutex) :
+noncomputable instance Writes_access_store_Mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes) (Mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" l) v.Mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writes go!"Mu" l) Mu' (DFrac.own 1))

@@ -12,7 +12,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.le
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -25,6 +24,8 @@ axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
 axiom Perennial.runtime.opaqueInitsOk
+axiom addrClaim
+axiom addrUnclaimed
 axiom backend.newBoltLoggerZap.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
@@ -32,6 +33,7 @@ axiom dataDirsApart
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
+axiom httpProtoFree
 axiom lease.Lease.expired.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
@@ -51,7 +53,6 @@ axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.String.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof
