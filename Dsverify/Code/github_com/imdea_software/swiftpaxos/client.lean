@@ -7,6 +7,7 @@ public import Net.Code.net
 public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Dsverify.Code.github_com.google.uuid
+public import Perennial.Code.github_com.goose_lang.primitive
 public import Dsverify.Code.github_com.imdea_software.swiftpaxos.replica.defs
 public import Dsverify.Code.github_com.imdea_software.swiftpaxos.state
 public import Code.bufio
@@ -16,7 +17,6 @@ public import Net.Code.net.rpc
 public import Perennial.Code.strings
 public import Dsverify.Code.github_com.imdea_software.swiftpaxos.dlog
 public import Dsverify.Code.github_com.imdea_software.swiftpaxos.rpc
-public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -51,16 +51,20 @@ noncomputable def Client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Client.ty
 
-noncomputable def Ghost.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"github.com/imdea-software/swiftpaxos/client.Ghost" [])
-
-attribute [irreducible] Ghost.ty
-
-noncomputable def nodeGhost [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/imdea-software/swiftpaxos/client.nodeGhost"
+noncomputable def nodeProph [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/imdea-software/swiftpaxos/client.nodeProph"
 
 noncomputable def NewBufferClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos/client.NewBufferClient"
+
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/imdea-software/swiftpaxos/client.init.0"
+
+noncomputable def resolveInvoke [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/imdea-software/swiftpaxos/client.resolveInvoke"
+
+noncomputable def resolveAccept [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/imdea-software/swiftpaxos/client.resolveAccept"
 
 noncomputable def NewClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos/client.NewClient"
@@ -68,16 +72,7 @@ noncomputable def NewClient [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewClientLog [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos/client.NewClientLog"
 
-noncomputable def NewGhost [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/imdea-software/swiftpaxos/client.NewGhost"
-
-noncomputable def theGhost [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/imdea-software/swiftpaxos/client.theGhost"
-
-noncomputable def GhostStep [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/imdea-software/swiftpaxos/client.GhostStep"
-
-/-- go: buffer.go:42:6 -/
+/-- go: buffer.go:43:6 -/
 noncomputable def NewBufferClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "reqNum"
@@ -126,7 +121,7 @@ noncomputable def NewBufferClient.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType BufferClient.ty)))) (Pair (Var "bc") (Var "$r0"))))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "$res0"))))))))))
 
-/-- go: buffer.go:62:24 -/
+/-- go: buffer.go:63:24 -/
 noncomputable def BufferClient.Pipeline.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "syncFreq"
@@ -148,7 +143,7 @@ noncomputable def BufferClient.Pipeline.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"seq"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))) (Var "$r0"))))))))))
   (Val #())))))
 
-/-- go: buffer.go:68:24 -/
+/-- go: buffer.go:69:24 -/
 noncomputable def BufferClient.RegisterReply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "val"
@@ -171,7 +166,7 @@ noncomputable def BufferClient.RegisterReply.impl [GooseExts] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "t") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: buffer.go:77:24 -/
+/-- go: buffer.go:78:24 -/
 noncomputable def BufferClient.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -180,9 +175,6 @@ noncomputable def BufferClient.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType BufferClient.ty)))) (Var "c"))
   (Let "val" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "val"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "key"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve theGhost []))) (Val #())) (Val #()))
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Ghost.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -193,7 +185,7 @@ noncomputable def BufferClient.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"seqnum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))))))
   (Let "$a2" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Ghost.ty) go!"Accept"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve resolveAccept []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (App (Val doExecute)
   (Fst (App (Val (chan.receive (go.GoType.PointerType ReqReply.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType ReqReply.ty))))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Reply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))))))))))
   (App (Val doExecute)
@@ -206,9 +198,7 @@ noncomputable def BufferClient.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a2" (App (Val (GoInstruction (GoOp GoPlus go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"seqnum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c")))))) (Val #(W32 1))))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.int64))) (Var "key"))
   (Let "$a4" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val"))
-  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Ghost.ty) go!"Invoke"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Ghost.ty)))) (Pair (Var "g") (Var "$r0")))))))))))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve resolveInvoke []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))
   (Val #())))))
 
 /-- go: buffer.go:86:24 -/
@@ -219,9 +209,6 @@ noncomputable def BufferClient.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType BufferClient.ty)))) (Var "c"))
   (Let "key" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "key"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve theGhost []))) (Val #())) (Val #()))
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Ghost.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Fst (App (Val (chan.receive (go.GoType.PointerType ReqReply.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.PointerType ReqReply.ty))))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Reply"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))))))
@@ -238,7 +225,7 @@ noncomputable def BufferClient.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"seqnum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))))))
   (Let "$a2" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value.ty))) (App (Val (GoInstruction (StructFieldRef ReqReply.ty go!"Val"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ReqReply.ty)))) (Var "r"))))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Ghost.ty) go!"Accept"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g"))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
+  (App (App (App (App (Val (GoInstruction (FuncResolve resolveAccept []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ReqReply.ty)))) (Pair (Var "r") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -249,13 +236,11 @@ noncomputable def BufferClient.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"ClientId"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c"))))))
   (Let "$a2" (App (Val (GoInstruction (GoOp GoPlus go.int32))) (Pair (App (Val (GoInstruction (GoLoad go.int32))) (App (Val (GoInstruction (StructFieldRef Client.ty go!"seqnum"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Client.ty)))) (App (Val (GoInstruction (StructFieldRef BufferClient.ty go!"Client"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType BufferClient.ty)))) (Var "c")))))) (Val #(W32 1))))
   (Let "$a3" (App (Val (GoInstruction (GoLoad go.int64))) (Var "key"))
-  (Let "$a4" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.imdea_software.swiftpaxos.state.NIL []))) (Val #())) (Val #()))
-  (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Ghost.ty) go!"Invoke"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Ghost.ty)))) (Pair (Var "g") (Var "$r0"))))))))))
+  (Let "$a4" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve resolveInvoke []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4"))))))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: buffer.go:95:24 -/
+/-- go: buffer.go:94:24 -/
 noncomputable def BufferClient.Scan.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "key"
@@ -285,7 +270,7 @@ noncomputable def BufferClient.Scan.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Assumed to be connected
 
-    go: buffer.go:102:24 -/
+    go: buffer.go:101:24 -/
 noncomputable def BufferClient.Loop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -487,7 +472,7 @@ noncomputable def BufferClient.Loop.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.int64]))))) (Pair (Var "getKey") (Var "$r0")))))))))
   (Val #()))))
 
-/-- go: buffer.go:181:24 -/
+/-- go: buffer.go:180:24 -/
 noncomputable def BufferClient.WaitReplies.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "waitFrom"
@@ -567,7 +552,7 @@ noncomputable def BufferClient.WaitReplies.impl [GooseExts] [GoGlobalContext] : 
   (App (Var "$go") (Val #()))))))))
   (Val #()))))
 
-/-- go: buffer.go:205:24 -/
+/-- go: buffer.go:204:24 -/
 noncomputable def BufferClient.genGetKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -622,7 +607,7 @@ noncomputable def BufferClient.genGetKey.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "key") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [] false [go.int64]))))) (Var "$res0"))))))
 
-/-- go: buffer.go:219:24 -/
+/-- go: buffer.go:218:24 -/
 noncomputable def BufferClient.randomTrue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "prob"
@@ -658,6 +643,171 @@ noncomputable def BufferClient.randomTrue.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: buffer.go:235:6 -/
+noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.NewProph []))) (Val #())) (Val #()))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Var "p"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #())) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty))) (Pair (Var "p") (Var "$r0"))))))))
+  (Val #())))
+
+/-- resolveInvoke: client cl invokes command seq, (op, key, val) (prophecy-only). The words: op, cl,
+    seq, key, len(val), val's bytes.
+
+    go: buffer.go:242:6 -/
+noncomputable def resolveInvoke.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "op"
+  (Lam "cl"
+  (Lam "seq"
+  (Lam "key"
+  (Lam "val"
+  (Seq (App (Val exceptionDo)
+  (Let "val" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "val"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "key"))
+  (Let "seq" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "seq"))
+  (Let "cl" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "cl"))
+  (Let "op" (App (Val (GoInstruction (GoAlloc go.uint8))) (Var "op"))
+  (Let "$r0" (Val #(go!""))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint8 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint8))) (Var "op")))
+  (Let "w" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "cl"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "seq"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "key")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"Resolve"))) (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #()))) (Var "$a0"))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127)))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))))
+  (Val #())))))))
+
+/-- resolveAccept: client cl accepts command seq's result val (prophecy-only). The words: 3, cl,
+    seq, len(val), val's bytes.
+
+    go: buffer.go:263:6 -/
+noncomputable def resolveAccept.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "cl"
+  (Lam "seq"
+  (Lam "val"
+  (Seq (App (Val exceptionDo)
+  (Let "val" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "val"))
+  (Let "seq" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "seq"))
+  (Let "cl" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "cl"))
+  (Let "$r0" (Val #(go!""))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 3))
+  (Let "w" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "cl"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "seq"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"Resolve"))) (App (Val (GoInstruction (GlobalVarAddr nodeProph))) (Val #()))) (Var "$a0"))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127)))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (Val #(W64 127)))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(7 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(14 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(21 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(28 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(35 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(42 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(49 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int))))) (Val #(W64 127)))))))) (App (Val (GoInstruction (Convert go.byte go.string))) (App (Val (GoInstruction (Convert go.uint64 go.byte))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(63 : Int))))) (Val #(W64 127))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))
+  (Val #())))))
 
 /-- go: client.go:46:6 -/
 noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
@@ -1928,198 +2078,8 @@ noncomputable def Client.callMaster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- NewGhost allocates the ghost (GHOST).
-
-    go: ghost.go:24:6 -/
-noncomputable def NewGhost.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Ghost.ty)))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc Ghost.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.goose_lang.primitive.NewProph []))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Ghost.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"p")) (ElementExpression _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty (Var "$v0")))]))))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Ghost.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "$res0")))))
-
-/-- go: ghost.go:31:6 -/
-noncomputable def theGhost.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Ghost.ty)))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (App (Val (GoInstruction (GlobalVarAddr nodeGhost))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Ghost.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "$res0")))))
-
-/-- resolveBytes resolves a byte string: its length, then each byte (GHOST).
-
-    go: ghost.go:36:17 -/
-noncomputable def Ghost.resolveBytes.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "g"
-  (Lam "bs"
-  (Seq (App (Val exceptionDo)
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (Var "g"))
-  (Let "bs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "bs"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "bs"))
-  (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
-  (App (App (Val (slice.forRange go.byte)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0"))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "b") (Var "$value"))))))))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "bs"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0"))))))))
-  (Val #()))))
-
-/-- Invoke records that client cl invokes command seq (op, key, val) (GHOST). The words: op
-    (state.PUT = 1, state.GET = 2), cl, seq, key, len(val), val's bytes.
-
-    go: ghost.go:45:17 -/
-noncomputable def Ghost.Invoke.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "g"
-  (Lam "op"
-  (Lam "cl"
-  (Lam "seq"
-  (Lam "key"
-  (Lam "val"
-  (Seq (App (Val exceptionDo)
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (Var "g"))
-  (Let "val" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "val"))
-  (Let "key" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "key"))
-  (Let "seq" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "seq"))
-  (Let "cl" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "cl"))
-  (Let "op" (App (Val (GoInstruction (GoAlloc go.uint8))) (Var "op"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Ghost.ty) go!"resolveBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g"))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "key")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "seq"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "cl"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.uint8 go.uint64))) (App (Val (GoInstruction (GoLoad go.uint8))) (Var "op")))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Val #())))))))))))
-  (Val #()))))))))
-
-/-- Accept records that client cl accepts command seq's result val (GHOST). The words: 3, cl,
-    seq, len(val), val's bytes.
-
-    go: ghost.go:57:17 -/
-noncomputable def Ghost.Accept.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "g"
-  (Lam "cl"
-  (Lam "seq"
-  (Lam "val"
-  (Seq (App (Val exceptionDo)
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (Var "g"))
-  (Let "val" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "val"))
-  (Let "seq" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "seq"))
-  (Let "cl" (App (Val (GoInstruction (GoAlloc go.int32))) (Var "cl"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Val #())))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "val"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Ghost.ty) go!"resolveBytes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g"))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "seq"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.uint32 go.uint64))) (App (Val (GoInstruction (Convert go.int32 go.uint32))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "cl"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (Let "$a0" (Val #(W64 3))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0")))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Val #())))))))))
-  (Val #()))))))
-
-/-- Step records one protocol event of this node, given as its words (GHOST; a replica's
-    events: the words' first is the event's kind, 4 and up, see the Lean project's encoding).
-
-    go: ghost.go:68:17 -/
-noncomputable def Ghost.Step.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "g"
-  (Lam "ws"
-  (Seq (App (Val exceptionDo)
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (Var "g"))
-  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (Var "ws"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Val #())))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "ws"))
-  (Let "w" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
-  (App (App (Val (slice.forRange go.uint64)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "w"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty) go!"ResolveU64"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"p"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Var "$a0"))))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "w") (Var "$value")))))))))))))
-  (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Ghost.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g")))) (Val #())))))))
-  (Val #()))))
-
-/-- GhostStep records one protocol event of this node (GHOST): the node's ghost's Step.
-
-    go: ghost.go:77:6 -/
-noncomputable def GhostStep.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "ws"
-  (Seq (App (Val exceptionDo)
-  (Let "ws" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.uint64)))) (Var "ws"))
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve theGhost []))) (Val #())) (Val #()))
-  (Let "g" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Ghost.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Ghost.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "ws"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Ghost.ty) go!"Step"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Ghost.ty)))) (Var "g"))) (Var "$a0"))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Ghost.ty)))) (Pair (Var "g") (Var "$r0")))))))))
-  (Val #())))
-
 noncomputable instance info' : PkgInfo pkg_id.github_com.imdea_software.swiftpaxos.client where
-  pkgImportedPkgs := [pkg_id.errors, pkg_id.math.rand, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.google.uuid, pkg_id.github_com.imdea_software.swiftpaxos.replica.defs, pkg_id.github_com.imdea_software.swiftpaxos.state, pkg_id.bufio, pkg_id.encoding.binary, pkg_id.fmt, pkg_id.net.rpc, pkg_id.strings, pkg_id.github_com.imdea_software.swiftpaxos.dlog, pkg_id.github_com.imdea_software.swiftpaxos.rpc, pkg_id.github_com.goose_lang.primitive]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.math.rand, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.google.uuid, pkg_id.github_com.goose_lang.primitive, pkg_id.github_com.imdea_software.swiftpaxos.replica.defs, pkg_id.github_com.imdea_software.swiftpaxos.state, pkg_id.bufio, pkg_id.encoding.binary, pkg_id.fmt, pkg_id.net.rpc, pkg_id.strings, pkg_id.github_com.imdea_software.swiftpaxos.dlog, pkg_id.github_com.imdea_software.swiftpaxos.rpc]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2142,9 +2102,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve NewGhost []))) (Val #())) (Val #()))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Ghost.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr nodeGhost))) (Val #())) (Var "$r0")))))))
+  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2157,6 +2116,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.google.uuid.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2176,9 +2137,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.github_com.goose_lang.primitive.initialize') (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (go.GlobalAlloc nodeGhost (go.GoType.PointerType Ghost.ty))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc nodeProph _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty)) (Val #()))))))))
 
 structure ReqReply [GooseExts] where
   mk ::
@@ -2651,72 +2610,23 @@ attribute [instance] Client.TypeAssumptions.type_repr
   Client.TypeAssumptions.ptr_dialMaster_unfold
   Client.TypeAssumptions.ptr_findClosest_unfold
 
-structure Ghost [GooseExts] where
-  mk ::
-  mu' : _root_.Perennial.sync.Mutex
-  p' : _root_.Perennial.github_com.goose_lang.primitive.ProphId
-
-noncomputable instance Ghost.zero_val [GooseExts] : ZeroVal Ghost :=
-  ⟨Ghost.mk zeroValDef zeroValDef⟩
-
-@[reducible] noncomputable def Ghost.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
-(go.field_decl.FieldDecl go!"p" _root_.Perennial.github_com.goose_lang.primitive.ProphId.ty)]
-
-@[irreducible] noncomputable def Ghost.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  Ghost.fieldsUnsealed
-
-noncomputable instance equals_unfold_Ghost [GooseExts] [GoGlobalContext] :
-    EqualsUnfold Ghost.fields Ghost.fieldsUnsealed :=
-  ⟨by unfold Ghost.fields; rfl⟩
-
-@[reducible] noncomputable def Ghost.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType Ghost.fields)
-
-class Ghost.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Ghost.underlying Ghost
-  underlying : go.UnderlyingDirectedEq Ghost.ty Ghost.underlying
-  get_mu : ∀ (x : Ghost), go.IsGoStepPureDetTagged under (StructFieldGet Ghost.underlying go!"mu") #x (Val #(x.mu'))
-  set_mu : ∀ (x : Ghost) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Ghost.underlying go!"mu") (PairV #x #y) (Val #(({ x with mu' := y } : Ghost)))
-  get_p : ∀ (x : Ghost), go.IsGoStepPureDetTagged under (StructFieldGet Ghost.underlying go!"p") #x (Val #(x.p'))
-  set_p : ∀ (x : Ghost) (y : _root_.Perennial.github_com.goose_lang.primitive.ProphId), go.IsGoStepPureDetTagged under (StructFieldSet Ghost.underlying go!"p") (PairV #x #y) (Val #(({ x with p' := y } : Ghost)))
-  method_set : go.MethodSetIs Ghost.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Ghost.ty) [(go!"Accept", (some (go.signature.Signature [go.int32, go.int32, (go.GoType.SliceType go.byte)] false []))), (go!"Invoke", (some (go.signature.Signature [go.uint8, go.int32, go.int32, go.int64, (go.GoType.SliceType go.byte)] false []))), (go!"Step", (some (go.signature.Signature [(go.GoType.SliceType go.uint64)] false []))), (go!"github.com/imdea-software/swiftpaxos/client.resolveBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])))]
-  ptr_Accept_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Accept" Ghost.Accept.impl
-  ptr_Invoke_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Invoke" Ghost.Invoke.impl
-  ptr_Step_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"Step" Ghost.Step.impl
-  ptr_resolveBytes_unfold : MethodUnfold (go.GoType.PointerType Ghost.ty) go!"resolveBytes" Ghost.resolveBytes.impl
-
-attribute [instance] Ghost.TypeAssumptions.type_repr
-  Ghost.TypeAssumptions.underlying
-  Ghost.TypeAssumptions.get_mu
-  Ghost.TypeAssumptions.set_mu
-  Ghost.TypeAssumptions.get_p
-  Ghost.TypeAssumptions.set_p
-  Ghost.TypeAssumptions.method_set
-  Ghost.TypeAssumptions.ptr_method_set
-  Ghost.TypeAssumptions.ptr_Accept_unfold
-  Ghost.TypeAssumptions.ptr_Invoke_unfold
-  Ghost.TypeAssumptions.ptr_Step_unfold
-  Ghost.TypeAssumptions.ptr_resolveBytes_unfold
-
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ReqReply_instance : ReqReply.TypeAssumptions
   BufferClient_instance : BufferClient.TypeAssumptions
   Client_instance : Client.TypeAssumptions
-  Ghost_instance : Ghost.TypeAssumptions
   NewBufferClient_unfold : FuncUnfold NewBufferClient [] NewBufferClient.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  resolveInvoke_unfold : FuncUnfold resolveInvoke [] resolveInvoke.impl
+  resolveAccept_unfold : FuncUnfold resolveAccept [] resolveAccept.impl
   NewClient_unfold : FuncUnfold NewClient [] NewClient.impl
   NewClientLog_unfold : FuncUnfold NewClientLog [] NewClientLog.impl
-  NewGhost_unfold : FuncUnfold NewGhost [] NewGhost.impl
-  theGhost_unfold : FuncUnfold theGhost [] theGhost.impl
-  GhostStep_unfold : FuncUnfold GhostStep [] GhostStep.impl
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_rand_Assumption : _root_.Perennial.math.rand.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_uuid_Assumption : _root_.Perennial.github_com.google.uuid.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_defs_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.Assumptions
   import_state_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Assumptions
   import_bufio_Assumption : _root_.Perennial.bufio.Assumptions
@@ -2726,24 +2636,23 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_dlog_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions
   import_swiftpaxos_rpc_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Assumptions
-  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
 attribute [instance] Assumptions.ReqReply_instance
   Assumptions.BufferClient_instance
   Assumptions.Client_instance
-  Assumptions.Ghost_instance
   Assumptions.NewBufferClient_unfold
+  Assumptions.«init.0_unfold»
+  Assumptions.resolveInvoke_unfold
+  Assumptions.resolveAccept_unfold
   Assumptions.NewClient_unfold
   Assumptions.NewClientLog_unfold
-  Assumptions.NewGhost_unfold
-  Assumptions.theGhost_unfold
-  Assumptions.GhostStep_unfold
   Assumptions.import_errors_Assumption
   Assumptions.import_rand_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_uuid_Assumption
+  Assumptions.import_primitive_Assumption
   Assumptions.import_defs_Assumption
   Assumptions.import_state_Assumption
   Assumptions.import_bufio_Assumption
@@ -2753,7 +2662,6 @@ attribute [instance] Assumptions.ReqReply_instance
   Assumptions.import_strings_Assumption
   Assumptions.import_dlog_Assumption
   Assumptions.import_swiftpaxos_rpc_Assumption
-  Assumptions.import_primitive_Assumption
 
 end github_com.imdea_software.swiftpaxos.client
 

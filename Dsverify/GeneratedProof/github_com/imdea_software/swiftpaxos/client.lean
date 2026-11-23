@@ -696,63 +696,6 @@ noncomputable instance Client_access_store_replicas (l : Loc) (v : github_com.im
 end def_
 end Client
 
-namespace Ghost
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.imdea_software.swiftpaxos.client.Assumptions]
-
-noncomputable instance Ghost_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.client.Ghost where
-  typedPointstoDef l v dq := iprop(
-    "mu" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"mu" l) v.mu' dq ∗
-    "p" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"p" l) v.p' dq ∗
-    "_" ∷ True)
-  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
-  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
-  typedPointsto_agree := by solve_typed_pointsto_agree
-
-noncomputable instance Ghost_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.client.Ghost github_com.imdea_software.swiftpaxos.client.Ghost.underlying := by
-  solve_into_val_typed_struct
-
-noncomputable instance Ghost_access_load_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.client.Ghost) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"mu" l) v.mu' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Ghost_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.client.Ghost) (mu' : _root_.Perennial.sync.Mutex) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.imdea_software.swiftpaxos.client.Ghost) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Ghost_access_load_p (l : Loc) (v : github_com.imdea_software.swiftpaxos.client.Ghost) (dq : DFrac) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"p" l) v.p' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"p" l) v.p' dq)
-      (typedPointsto l v dq) (typedPointsto l v dq) :=
- by
-  solve_pointsto_access_struct
-
-noncomputable instance Ghost_access_store_p (l : Loc) (v : github_com.imdea_software.swiftpaxos.client.Ghost) (p' : _root_.Perennial.github_com.goose_lang.primitive.ProphId) :
-    AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"p" l) v.p' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"p" l) p' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with p' := p' } : github_com.imdea_software.swiftpaxos.client.Ghost) (DFrac.own 1)) :=
- by
-  solve_pointsto_access_struct
-
-end def_
-end Ghost
-
 end github_com.imdea_software.swiftpaxos.client
 end
 end Perennial

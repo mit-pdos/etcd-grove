@@ -124,17 +124,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   cmdIdCmp_unfold : FuncUnfold cmdIdCmp [] cmdIdCmp.impl
   cmdIdLess_unfold : FuncUnfold cmdIdLess [] cmdIdLess.impl
   SHashesEq_unfold : FuncUnfold SHashesEq [] SHashesEq.impl
-  ghostId_unfold : FuncUnfold ghostId [] ghostId.impl
-  ghostIds_unfold : FuncUnfold ghostIds [] ghostIds.impl
-  ghostCmd_unfold : FuncUnfold ghostCmd [] ghostCmd.impl
-  ghostHandle_unfold : FuncUnfold ghostHandle [] ghostHandle.impl
-  ghostPreaccept_unfold : FuncUnfold ghostPreaccept [] ghostPreaccept.impl
-  ghostAccept_unfold : FuncUnfold ghostAccept [] ghostAccept.impl
-  ghostCommit_unfold : FuncUnfold ghostCommit [] ghostCommit.impl
-  ghostNewBallot_unfold : FuncUnfold ghostNewBallot [] ghostNewBallot.impl
-  ghostReport_unfold : FuncUnfold ghostReport [] ghostReport.impl
-  ghostComputeSync_unfold : FuncUnfold ghostComputeSync [] ghostComputeSync.impl
-  ghostTakeSync_unfold : FuncUnfold ghostTakeSync [] ghostTakeSync.impl
   newFullKeyInfo_unfold : FuncUnfold newFullKeyInfo [] newFullKeyInfo.impl
   keysOf_unfold : FuncUnfold keysOf [] keysOf.impl
   newLightKeyInfo_unfold : FuncUnfold newLightKeyInfo [] newLightKeyInfo.impl
@@ -143,6 +132,15 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   recOrder_unfold : FuncUnfold recOrder [] recOrder.impl
   sortedProposes_unfold : FuncUnfold sortedProposes [] sortedProposes.impl
   syncOrder_unfold : FuncUnfold syncOrder [] syncOrder.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  resolveHandle_unfold : FuncUnfold resolveHandle [] resolveHandle.impl
+  resolvePreaccept_unfold : FuncUnfold resolvePreaccept [] resolvePreaccept.impl
+  resolveAccept_unfold : FuncUnfold resolveAccept [] resolveAccept.impl
+  resolveCommit_unfold : FuncUnfold resolveCommit [] resolveCommit.impl
+  resolveNewBallot_unfold : FuncUnfold resolveNewBallot [] resolveNewBallot.impl
+  resolveReport_unfold : FuncUnfold resolveReport [] resolveReport.impl
+  resolveComputeSync_unfold : FuncUnfold resolveComputeSync [] resolveComputeSync.impl
+  resolveTakeSync_unfold : FuncUnfold resolveTakeSync [] resolveTakeSync.impl
   NewReplyChan_unfold : FuncUnfold NewReplyChan [] NewReplyChan.impl
   New_unfold : FuncUnfold New [] New.impl
   getFastAndSlowAcksHandler_unfold : FuncUnfold getFastAndSlowAcksHandler [] getFastAndSlowAcksHandler.impl
@@ -166,6 +164,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_slices_Assumption : _root_.Perennial.slices.Assumptions
   import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
   import_log_Assumption : _root_.Perennial.log.Assumptions
+  import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
   import_cmap_Assumption : _root_.Perennial.github_com.orcaman.concurrent_map.Assumptions
   import_atomic_Assumption : _root_.Perennial.sync.atomic.Assumptions
   import_config_Assumption : _root_.Perennial.github_com.imdea_software.swiftpaxos.config.Assumptions
@@ -277,17 +276,6 @@ attribute [instance] Assumptions.Batcher_instance
   Assumptions.cmdIdCmp_unfold
   Assumptions.cmdIdLess_unfold
   Assumptions.SHashesEq_unfold
-  Assumptions.ghostId_unfold
-  Assumptions.ghostIds_unfold
-  Assumptions.ghostCmd_unfold
-  Assumptions.ghostHandle_unfold
-  Assumptions.ghostPreaccept_unfold
-  Assumptions.ghostAccept_unfold
-  Assumptions.ghostCommit_unfold
-  Assumptions.ghostNewBallot_unfold
-  Assumptions.ghostReport_unfold
-  Assumptions.ghostComputeSync_unfold
-  Assumptions.ghostTakeSync_unfold
   Assumptions.newFullKeyInfo_unfold
   Assumptions.keysOf_unfold
   Assumptions.newLightKeyInfo_unfold
@@ -296,6 +284,15 @@ attribute [instance] Assumptions.Batcher_instance
   Assumptions.recOrder_unfold
   Assumptions.sortedProposes_unfold
   Assumptions.syncOrder_unfold
+  Assumptions.«init.0_unfold»
+  Assumptions.resolveHandle_unfold
+  Assumptions.resolvePreaccept_unfold
+  Assumptions.resolveAccept_unfold
+  Assumptions.resolveCommit_unfold
+  Assumptions.resolveNewBallot_unfold
+  Assumptions.resolveReport_unfold
+  Assumptions.resolveComputeSync_unfold
+  Assumptions.resolveTakeSync_unfold
   Assumptions.NewReplyChan_unfold
   Assumptions.New_unfold
   Assumptions.getFastAndSlowAcksHandler_unfold
@@ -319,6 +316,7 @@ attribute [instance] Assumptions.Batcher_instance
   Assumptions.import_slices_Assumption
   Assumptions.import_binary_Assumption
   Assumptions.import_log_Assumption
+  Assumptions.import_primitive_Assumption
   Assumptions.import_cmap_Assumption
   Assumptions.import_atomic_Assumption
   Assumptions.import_config_Assumption
