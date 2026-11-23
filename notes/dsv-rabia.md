@@ -9,14 +9,15 @@ a slot's wake channel), Perennial `3afd77e35`; the lab's statement `dsv_goal_che
 `CheckOperations.wp_proof`. The lab's proof is 40.6k lines under `proof/Proof/` (plus its harness
 pieces under `proof/Harness/`).
 
-**State (2026-11-23, night, second agent): Go, translation, initializers done; ported and checked
-with `etc/lean-check.py -a` (not yet `lake build`): the foundation (`Core/{Model,Protocol,Ghost,
-Proto,PkgState,Chans}`, `Lib/OrdChan`), queue, ledger, logger, system, config, message's wire format
-and Marshal/Unmarshal, the whole consensus layer, tcp's interface (`Defs`, `Spec`, `Enc`, `Frames`,
-`Wg`, `ClientSendChan`, `NumConns`), network (`Spec`, `Basics`, `MsgRouter`, `MsgSerializer`), proxy
-(`Spec`, `Basics`, `CmdReceiver`, `naiveExecuteCmd`, `singleExecuteAndReply`, `KVSExecutor`). Not
-ported: message's bufio half, tcp's transport proofs, the layers' prologues/inits, server, the kit,
-the statement (Next steps). The revised dsv-bufio (`75ef5881aa`) is merged.**
+**State (2026-11-23, third agent):** done and checked: everything the second agent ported (all
+built with `lake build` of the leaves, 2026-11-23 ~04:40: ok), plus message's bufio half (`Spec`,
+`FrameDeps`, `BufWrite`, `WriteFlush`, `MarshalWriteFlush`, `BufRead`, `ReadUnmarshal`, onto the
+revised bufio, `lean-check`) and tcp's transport base (`Basics`, `ProtoLemmas`, `Hub`). In
+progress (third agent's forks, one file group each): tcp's client (`ClientTcpInit`,
+`ClientTCP__Connect`), proxy (`ProxyLemmas`, `ProxyTcpInit`, `ProxyTCP__{Connect,recvLoop,sendLoop}`)
+and network endpoints (`NetLemmas`, `NetTCPInit`, `NetTCP__{Connect,RecvHandler,SendHandler}`); the
+server layers (network `Prologue`, proxy `ProxyInit`/`Prologue`, `roles/server`) with tcp's specs as
+hypothesis arguments, and `os.signal.NoSignals`. Then: the kit and the statement (Next steps).
 
 ## What is where
 
@@ -167,23 +168,26 @@ an axiom; the closed statement carries it until the shared change (bufio, #24) o
 
 ## Next steps
 
-1. message's bufio half onto the revised bufio (`notes/dsv-bufio.md`'s table; never unfold its
-   predicates): the lab's `Spec.lean` part (`frameBound`, `frameIs`, `BufWrite`/`WriteFlush`/
-   `*.MarshalWriteFlush`/`BufRead`/`*.ReadUnmarshal` specs) over `bufio.ownBufReader br ri Pre S E R`
-   (`S` = the connection's `recvTokL cn s P`, `ri = net.connIface t`, `Pre` from `net.conn_readerOk`)
-   and `bufio.ownBufWriter bw wi J Q Ew sz sent pend err`; `BufRead` reads with Perennial's
-   `io.wp_ReadFull` through `bufio.ownBufReader_readerOk`; a frame's protocol fact with
-   `net.connReader_proto`; `FrameDeps` needs message's package fact (`errFrameTooLarge`,
-   `errFrameTooLong` non-nil: the lab's `msgState`, into `message/Base.lean` via `etc/dsv/rabia.py`'s
-   `special` for `rabia.internal.message`, `finish`).
-2. tcp's transport (lab `Base`, `ProtoLemmas`, `ProxyLemmas`, `NetLemmas`, `Hub`, `ClientTCP__Connect`,
-   `ClientTcpInit`, `ProxyTcpInit`, `ProxyTCP__{Connect,recvLoop,sendLoop}`, `NetTCPInit`,
-   `NetTCP__{Connect,RecvHandler,SendHandler}`): over `Net/Spec/net/*` and `Proto.lean`'s laws as
-   paxos's `NetProof.lean` (`dial_au`, `accept_au`, `listen_au`, `write_acc`, `read_au`); the
-   `TCPConn.Set*` calls of `GetReaderWriter` have Net specs.
-3. network `Prologue`, proxy `ProxyInit`/`Prologue`, server (`Alloc`, `ServerInit`, `Server__*`).
+1. (done) message's bufio half. Design: the read specs fix the reader's condition to a connection's
+   (`connPre`, a non-empty buffer); `BufRead` is generic in the stream `S`, the `ReadUnmarshal`s are
+   over a connection end (`S = recvTokL cn s P`), their payload premise `frameIs P cn R D` is over the
+   protocol (`protoPrefix P cn (R ++ frame bs) -∗ ⌜D bs⌝`), reached through the reader by
+   `net.connReader_proto` with a later credit; the write specs take `io.writerOk wi J Q Ew` (its
+   prefix closure: the header's write). `message`'s fact is `msgFact` (`errFrameTooLarge`,
+   `errFrameTooLong` non-`nil`; `etc/dsv/rabia.py`'s `finish`).
+2. tcp's transport: base done (`Basics.lean`: a connection end's reader/writer `rdOwn br cn s P R`,
+   `wrOwn bw cn s P W pend err` (existentials over the bufio predicates' contract parameters),
+   `wp_GetReaderWriter` (socket options through `sockopt_au`, readers/writers from
+   `net.conn_readerOk`/`conn_writerOk`), message's specs over them; `ProtoLemmas.lean`
+   (`ProtoPrefixClosed` of the protocols, `sentLb_prefix`/`sentLb_agree`/`recvTokL_sentLb`: missing
+   laws of `Proto.lean`, proved from its definitions); `Hub.lean`). **The framed protocols `proxyP`,
+   `proxyQ`, `netP` allow the empty stream outright** (`⌜W = []⌝ ∨ …`, `Core/Proto.lean`): the
+   revised `bufio.NewWriterSize` asks `□ Q W` when the writer is made, and the proxy makes its writer
+   before it reads the client's handshake (the lab made `ownWriter` later). The endpoints: in
+   progress (above).
+3. network `Prologue`, proxy `ProxyInit`/`Prologue`, server: in progress (above).
 4. The kit (`Configure` with `confClaim`, `NewClient`, `Op` with `opAU`/`lin_opAU`, `Server`, the
-   porcupine model's proof as paxos's `ModelSet`/`ModelProof`, `gens()`'s `genSpec`), mains,
-   `TopLevelDefs`, `TopLevelRobustness` (`rabia_remote_robust`; every `InitHyp` and `Hyps` class a
-   visible premise; confirm `etc/theorem-loc.py` counts them), `#print axioms`, the collection's
-   baseline, then `lake build` of the leaves (so far only `lean-check`).
+   porcupine model's proof as paxos's `ModelSet`/`ModelProof`, `gens()`'s `genSpec`), mains, a
+   `Link`, `TopLevelDefs`, `TopLevelRobustness` (`rabia_remote_robust`; every `InitHyp` and `Hyps`
+   class and `os.signal.NoSignals` a visible premise; confirm `etc/theorem-loc.py` counts them),
+   `#print axioms`, the collection's baseline, `lake build` of everything new.
