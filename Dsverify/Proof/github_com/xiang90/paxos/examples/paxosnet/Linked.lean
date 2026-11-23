@@ -36,9 +36,9 @@ variable [package_sem : github_com.xiang90.paxos.examples.paxosnet.Assumptions]
 variable [bvi : go.BasicIntoValInj]
 
 theorem wp_Server : Server.spec (GF := GF) (hG := hG) :=
-  Server.wp_proof github_com.xiang90.paxos.wp_RunServer
+  Server.wp_proof EtcdGrove.dsvpaxos.wp_RunServer
 theorem wp_Client : Client.spec (GF := GF) (hG := hG) :=
-  Client.wp_proof github_com.xiang90.paxos.wp_NewNetCluster github_com.xiang90.paxos.wp_Propose Codec.wp_proof
+  Client.wp_proof EtcdGrove.dsvpaxos.wp_NewNetCluster EtcdGrove.dsvpaxos.wp_Propose Codec.wp_proof
     EtcdGrove.remote.wp_ServeClient
 theorem wp_Orch : Orch.spec (GF := GF) (hG := hG) :=
   Orch.wp_proof Model.wp_proof Codec.wp_proof Gen.wp_proof EtcdGrove.remote.wp_Check
