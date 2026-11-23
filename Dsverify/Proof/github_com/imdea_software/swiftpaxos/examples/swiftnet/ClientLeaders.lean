@@ -49,7 +49,7 @@ theorem Sys.changeLeaders.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (wp_at 
   iunfold isSysL at Hs
   icases Hs with ⟨%conf, %asl, #Haddrs, #Hasl, #Hconf, #Hconfis, #Hmu, -, #Henv, -, -⟩
   iunfold nodeEnv at Henv
-  icases Henv with ⟨-, #Hrpc, %HSS, #HcodecSet, #HcodecOk, -, -⟩
+  icases Henv with ⟨-, #Hrpc, %HSS, #HcodecSet, #HcodecOk, -, -, -⟩
   ihave #Hrpcp : isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc $$ []
   · iPkgInit
   wp_auto

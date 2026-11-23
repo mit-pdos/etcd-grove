@@ -35,7 +35,8 @@ abbrev swift.NewClient.spec : Prop :=
   ∀ (b : Loc) (γ : sp.Names) (γc γm γl : GName) (cid : w32) (N : Nat),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
       client.connected b γ γc γm cid N ∗ sp.inv γ γc γm γl ∗ sp.clientSeq γ cid 0 ∗
-      client.nodeGhostOk γ (sp.PNode.cl (cid.toNat - 1)) ∗ sp.allPredsReg γ γc }}
+      client.nodeGhostOk γ (sp.PNode.cl (cid.toNat - 1)) ∗ sp.allPredsReg γ γc ∗
+      globalAddr swift.useFastAckPool ↦□ false }}
     (App (App (Val (@! swift.NewClient)) (Val #b)) (Val #(W64 N)))
   {{ (c : Loc), RET #c; client.ready b γ γc γm γl cid 0 }}
 

@@ -35,6 +35,33 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Results
 
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Results
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Claim
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunLoop
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientMachine
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientLeaders
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientConnect
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientOp
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeAddr
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.AwaitConf
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchSend
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchNew
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Register
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.RegisterCodec
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ServeProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ModelProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecProof
+public import Net.Proof.net.rpc.Results
+public import Net.Proof.net.Listen
+public import Net.Proof.net.Dial
+public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.Conn__Read
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.Conn__Close
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
+public import Dsverify.Proof.rabia.examples.rabianet.ConnReadFull
+
 @[expose] public section
 
 noncomputable section
@@ -45,6 +72,7 @@ namespace Perennial.EtcdGrove.dsvswiftpaxos
 
 open Perennial Perennial.github_com.imdea_software.swiftpaxos
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Net Dsv
+open Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
@@ -261,5 +289,73 @@ theorem wp_swiftNew : swift.New.spec (hG := hG) := by
         (swift.copyFastAck.wp_proofP (swift.newFastAck.wp_proofP srv_pool_fact)))
 
 end srv
+
+section machines
+variable [go_gctx : GoGlobalContext]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+  [SwiftHyps netDistGF] [SwiftNoSignals netDistGF] [SwiftOsRandom netDistGF]
+variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
+
+/-- The client node's package facts (`ClientPkgFacts`), from `swift.pkgSt` and `defs.pkgSt`. -/
+theorem client_pkg_facts : swift.handler.ClientPkgFacts (hG := hG) := by
+  refine ⟨?_, ?_⟩
+  · have h : isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ⊢ swift.pkgSt := by
+      with_unfolding_all exact isPkgInit_access (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift
+    refine h.trans ?_
+    iintro #Hs
+    ihave ⟨-, -, #H3⟩ := swift.pkgSt_hooks $$ Hs
+    ihave ⟨%x, #Hx, %Hxn⟩ := swift.pkgSt_errVarint $$ Hs
+    iframe H3
+    iexists x
+    iframe Hx
+    ipureintro; exact Hxn
+  · exact (srv_pkg_facts (hG := hG)).dfs
+
+/-- The net callees (`SwNetDeps`), Net's. -/
+theorem swNetDeps : SwNetDeps (hG := hG) :=
+  ⟨net.Dial.wp_proof, net.Listen.wp_proof, net.Listener.Accept.wp_proof, net.Conn.Read.wp_proof,
+    net.Conn.Write.wp_proof, net.Conn.Close.wp_proof, rabia.examples.rabianet.io.ReadFull.wp_proofLt⟩
+
+/-- **Client machine `c`** (`Client(c)`), linked. -/
+theorem wp_Client [ρ : RemoteGS] : cnode.Client.spec (hG := hG) :=
+  cnode.Client.wp_proof
+    (fun γ γk c hc => cnode.clientNode.wp_proof γ γk c hc
+      (cnode.newClient.wp_proof γ c hc (awaitConf.wp_proof swNetDeps) cnode.atConf_proof
+        cnode.atStart_proof client.claimGhost.wp_proof (cnode.Register.wp_proof net.rpc.SetCodec.wp)
+        (cnode.Sys.changeLeaders.wp_proof γ c cnode.atRpc_proof replica.defs.wp_NewBeTheLeaderReply
+          (fun c W a γc γm cc pa btl => master.wp_call_btl c W a γc γm cc pa btl)
+          net.rpc.Client.Close.wp))
+      (cnode.op.wp_proof γ γk c
+        (cnode.Sys.connect.wp_proof γ c hc cnode.hostMaster_proof cnode.portMaster_proof
+          client.wp_NewClientLog client.wp_NewBufferClient
+          (client.BufferClient.wp_ConnectG client_pkg_facts) client.BufferClient.wp_DisconnectG
+          (swift.wp_NewClient client_pkg_facts))
+        (client.BufferClient.wp_Write dlog.Logger.wp_Println)
+        (client.BufferClient.wp_Read dlog.Logger.wp_Println))
+      examples.swiftnet.Codec.wp_proof
+      EtcdGrove.remote.wp_ServeClient)
+    cnode.Addrs_proof cnode.ClientAddrs_proof
+
+/-- **The orchestrator** (`Orch()`), linked. -/
+theorem wp_Orch [ρ : RemoteGS] : cnode.Orch.spec (hG := hG) :=
+  cnode.Orch.wp_proof (fun γ => orch.New.wp_proof γ (sendConf.wp_proof swNetDeps) net.rpc.log.Println.wp)
+    cnode.Addrs_proof cnode.ClientAddrs_proof examples.swiftnet.Model.wp_proof
+    examples.swiftnet.Codec.wp_proof
+    (examples.swiftnet.Gen.wp_proof github_com.goose_lang.primitive.wp_RandomUint64)
+    EtcdGrove.remote.wp_Check
+
+/-- **Server machine `i + 1`** (`Server(id)`), linked. -/
+theorem wp_Server : Server.spec (hG := hG) :=
+  Server.wp_proof
+    (fun γ i hi => serve.wp_proof swNetDeps γ i hi (awaitConf.wp_proof swNetDeps)
+      client.claimGhost.wp_proof (cnode.Register.wp_proof net.rpc.SetCodec.wp) master.wp_New
+      (master.Master.wp_Run dlog.Logger.wp_Printf dlog.Logger.wp_Fatal
+        replica.defs.wp_NewBeTheLeaderReply)
+      (register.wp_proof swiftCodecLaws net.rpc.Client.Call.wp net.rpc.Client.Close.wp)
+      setMaxDesc.wp_proof wp_swiftNew)
+    cnode.Addrs_proof
+
+end machines
 
 end Perennial.EtcdGrove.dsvswiftpaxos

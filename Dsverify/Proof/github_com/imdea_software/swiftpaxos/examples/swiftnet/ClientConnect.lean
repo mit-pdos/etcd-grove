@@ -124,7 +124,7 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
   · iframe Hfresh
     ipureintro; constructor <;> decide
   iunfold nodeEnv at Henv
-  icases Henv with ⟨#Hmaster, #Hrpcs, %HSS, #HcodecSet, #HcodecOk, #Hprotos, #Hinv⟩
+  icases Henv with ⟨#Hmaster, #Hrpcs, %HSS, #HcodecSet, #HcodecOk, #Hprotos, #Hinv, #Hpool⟩
   wp_apply wp_Connect b (cidOf c) go!"127.0.0.1" (W64 7001) γ.W γ.sp γ.conf γ.mem γ.lin $$ [Hbuf]
     as %err Herr
   · iframe Hbuf Hmaster HcodecSet HcodecOk Hprotos Hinv
@@ -148,7 +148,7 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     wp_apply wp_NewClient b γ.sp γ.conf γ.mem γ.lin (cidOf c) conf.n $$ [Hconn Hseq] as %cl' Hready
     · rw [cidOf_pnode c hc]
       iframe
-      iframe Hinv Hgok Hreg
+      iframe Hinv Hgok Hreg Hpool
     ihave ⟨Hready, %Hbnn⟩ := ready_ne_null $$ Hready
     iapply HΦ
     simp only [↓reduceIte]

@@ -113,7 +113,7 @@ theorem newClient.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     (wp_changeLeaders : Sys.changeLeaders.spec γ c) :
     newClient.spec γ c := by
   intro asl
-  wp_start as ⟨Hasl, Hsh, Hfr, Hcfr, #Hboot⟩
+  wp_start as ⟨Hasl, Hsh, Hfr, Hcfr, #Hboot, #Hpool⟩
   ihave ⟨#Hcp, #Hsp, Hseq, Hpt, #Hm, #Hrpcs, %HSS, #Hreps, #Hinv⟩ :=
     clientNodeShare_split γ c hc $$ Hsh
   ihave #Hcpkg : isPkgInit (PROP := IProp netDistGF)
@@ -217,7 +217,7 @@ theorem newClient.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     iunfold nodeEnv
     iunfold cliBoot at Hboot
     icases Hboot with ⟨%Hrb, #Hce, #Hde⟩
-    iframe HcodecSet Hreps Hinv
+    iframe HcodecSet Hreps Hinv Hpool
     isplitr
     · iunfold rpcHttp; iframe Hce Hde Hm; ipureintro; exact Hrb
     isplitr
@@ -242,7 +242,7 @@ theorem clientNode.wp_proof (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) 
   intro asl
   wp_start as ⟨Hasl, Hres⟩
   iunfold clientRes at Hres
-  icases Hres with ⟨Hsh, Hfr, Hcfr, #Hboot, #Hlink, #Hra, #Hmap⟩
+  icases Hres with ⟨Hsh, Hfr, Hcfr, #Hboot, #Hpool, #Hlink, #Hra, #Hmap⟩
   ihave #Hrp : isPkgInit (PROP := IProp netDistGF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
   · iPkgInit

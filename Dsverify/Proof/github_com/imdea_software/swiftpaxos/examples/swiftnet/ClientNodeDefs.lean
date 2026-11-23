@@ -83,7 +83,7 @@ def nodeEnv (γ : SwiftNames netDistGF) : IProp netDistGF :=
     ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
     net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
     ([∗list] a ∈ replicaAddrs, addrProto a (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem)) ∗
-    sp.inv γ.sp γ.conf γ.mem γ.lin)
+    sp.inv γ.sp γ.conf γ.mem γ.lin ∗ globalAddr swift.useFastAckPool ↦□ false)
 
 instance nodeEnv_persistent (γ : SwiftNames netDistGF) : Persistent (nodeEnv γ) := by
   unfold nodeEnv; infer_instance
@@ -259,7 +259,7 @@ fresh ghost, net/rpc's fresh codec state and client state): the node's system. -
 abbrev newClient.spec (γ : SwiftNames netDistGF) (c : Nat) : Prop :=
   ∀ (asl : GoSlice),
   {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ asl ↦* addrs ∗ clientNodeShare γ c ∗
-      client.ghostFresh ∗ codecFresh ∗ cliBoot }}
+      client.ghostFresh ∗ codecFresh ∗ cliBoot ∗ globalAddr swift.useFastAckPool ↦□ false }}
     (App (App (Val (@! examples.swiftnet.newClient)) (Val #asl)) (Val #(W64 (c : Int))))
   {{ (s : Loc), RET #s; isSysL γ c s }}
 
@@ -274,6 +274,7 @@ net/rpc's fresh codec state and client state), the link invariant, remote's prot
 request address and remote's map of inputs. -/
 def clientRes (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) : IProp netDistGF :=
   iprop(clientNodeShare γ c ∗ client.ghostFresh ∗ codecFresh ∗ cliBoot ∗
+    globalAddr swift.useFastAckPool ↦□ false ∗
     linkInv (G := hG.goose_globalGS) γ γk ∗
     remoteAddr (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk)
       (clientAddrs.getD c go!"") ∗

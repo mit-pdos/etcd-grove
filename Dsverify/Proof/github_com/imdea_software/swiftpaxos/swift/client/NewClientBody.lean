@@ -46,7 +46,7 @@ theorem NewClient.wp_proofI (facts : ClientPkgFacts)
     (wp_tq : replica.quorum.NewThreeQuartersOf.specI (hG := hG)) :
     swift.NewClient.spec (hG := hG) := by
   intro b γ γc γm γl cid N
-  wp_start as ⟨Hconn, #Hinv, Hseq, #Hgok, #Hreg⟩
+  wp_start as ⟨Hconn, #Hinv, Hseq, #Hgok, #Hreg, #Hpool⟩
   icases (client.connected_unfold _ _ _ _ _ _).1 $$ Hconn with ⟨%bv, %v, %l, %fr, %srvs, %rds, %wrs,
     #Hb, Hv, #Hq, #Hcfg, Hl, Hsrvs, Hrds, Hwrs, %Hpure, Hends, %γch, #Hch, Hoch⟩
   haveI := cmdId_intoValInj (sem := sem)
@@ -81,7 +81,7 @@ theorem NewClient.wp_proofI (facts : ClientPkgFacts)
   imod ghost_map_alloc_empty (GF := netDistGF) (K := Nat) (V := Unit) with ⟨%γd, Hγd⟩
   imod mono_list_own_alloc (GF := netDistGF) (A := sp.CmdId × w32) [] with ⟨%γr, Hγr, -⟩
   -- the package-level facts (change log C6)
-  ihave ⟨#Hhook, #Hpool, %ov, #Hov, %Hovn⟩ := facts.pkgFacts $$ Hpkg
+  ihave ⟨#Hhook, %ov, #Hov, %Hovn⟩ := facts.pkgFacts $$ Hpkg
   -- the reply channel's protocol
   imod start_bag (client.replyP γ cid γd) (ChanState.Buffered []) bv.Reply' γch (by trivial) $$
     Hch Hoch with #HbReply

@@ -30,14 +30,14 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 
 /-- **Change log C6**: the package-level variables the client node reads, as facts of the swift
 package's state on the client node: `ReplyHook` is nil (set only under the `swiftexeclog` build
-tag), the fast-ack pool is off (only `swift.New`, never called on the client node, sets it), and
+tag), and
 `errVarintOverflow` holds an error (its initializer's `errors.New`); and of the defs package's
 state: `defs.LatencyConf` is `""` (only a replica's flags set it; `Connect` then leaves the
 client's latency table nil). Owner: the package states (`SwiftNetPkgState`); until they are
 proved, `NewClient`'s and `Connect`'s proofs take this record as a marked hypothesis. -/
 structure ClientPkgFacts : Prop where
   pkgFacts : (isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ⊢
-    globalAddr swift.ReplyHook ↦□ func.nil ∗ globalAddr swift.useFastAckPool ↦□ false ∗
+    globalAddr swift.ReplyHook ↦□ func.nil ∗
     ∃ ov : GoInterface, globalAddr swift.errVarintOverflow ↦□ ov ∗ ⌜ov ≠ interface.nil⌝)
   latencyConf : (isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.replica.defs ⊢
     typedPointsto (globalAddr replica.defs.LatencyConf) (go!"" : GoString) DFrac.discard)
