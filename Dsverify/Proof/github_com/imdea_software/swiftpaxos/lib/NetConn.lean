@@ -27,6 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF]
 
 /-- The lab's `net.isTCPAddr`: a non-`nil` `*TCPAddr`. -/
 def net.isTCPAddr (ad : GoInterface) : Prop :=
@@ -56,7 +57,7 @@ theorem net.TCPConn.RemoteAddr.labProof : net.TCPConn.RemoteAddr.spec (GF := GF)
   icases Hat' with ⟨%nw, -, -, -, #Hra, -⟩
   iunfold net.netAddr at Hra
   icases Hra with ⟨%p, %v, %Hra, -⟩
-  iapply net.Conn.RemoteAddr.wp_proof c cid side a la ra $$ Hat
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connRemoteAddr (GF := GF)) c cid side a la ra $$ Hat
   iintro !> -
   iapply HΦ
   ipureintro; exact ⟨p, Hra⟩
@@ -66,7 +67,7 @@ theorem net.TCPConn.Close.labProof : net.TCPConn.Close.spec (GF := GF) := by
   iintro %Φ ⟨-, Hc⟩ HΦ
   unfold net.ownTCPConn
   icases Hc with ⟨%a, %la, %ra, #Hat, #Hcs⟩
-  iapply net.Conn.Close.wp_proof c cid side a la ra (fun _ => iprop(True)) $$ [Hcs]
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connClose (GF := GF)) c cid side a la ra (fun _ => iprop(True)) $$ [Hcs]
   · iframe Hat
     imod close_au cid side $$ Hcs with ⟨%st, %d, Hend, Hdir, Hk⟩
     imodintro

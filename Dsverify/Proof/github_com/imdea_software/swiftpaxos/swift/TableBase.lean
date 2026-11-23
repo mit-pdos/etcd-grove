@@ -16,7 +16,7 @@ part and the fixed-size messages.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MsgRep
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.Unmarshal
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.UnmarshalDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.StreamLaw
 
 @[expose] public section

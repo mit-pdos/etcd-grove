@@ -10,6 +10,7 @@ module
 
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumDefs
 
 @[expose] public section
 
@@ -26,20 +27,8 @@ namespace replica.quorum
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions]
-
-abbrev NewMajorityOf.specI : Prop :=
-  ∀ (N : Nat), N < 2 ^ 62 →
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.replica }}
-    (App (Val (@! replica.NewMajorityOf)) (Val #(W64 N)))
-  {{ RET #(W64 ((N / 2 + 1 : Nat) : Int)); True }}
-
-abbrev NewThreeQuartersOf.specI : Prop :=
-  ∀ (N : w64),
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.replica }}
-    (App (Val (@! replica.NewThreeQuartersOf)) (Val #N))
-  {{ (q : w64), RET #q; True }}
 
 set_option goose.wp.extras true
 

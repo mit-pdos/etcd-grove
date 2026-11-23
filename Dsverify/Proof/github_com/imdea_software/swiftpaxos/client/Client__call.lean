@@ -10,7 +10,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ConnectSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Net.Proof.net.rpc.Results
+public import Net.Spec.net.rpc.Client__Call
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.time.Link
@@ -43,7 +43,7 @@ end client.cn
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [dlog.Assumptions] [errors.Assumptions] [time.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,
@@ -53,7 +53,8 @@ variable [C : net.rpc.RpcCodec netDistGF]
 set_option goose.wp.extras true
 
 theorem client.Client.call.wp_proof
-    (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG)) :
+    (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG))
+    (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF) (hG := hG)) :
     client.Client.call.specI (hG := hG) := by
   intro cl v r W a sm svc M S args reply Φc Rargs D Θ
   wp_start as ⟨Hcl, #Hq, #Hcs, #Hko, #Hrc, %HS, Henc, HD, #HDw⟩
@@ -71,7 +72,7 @@ theorem client.Client.call.wp_proof
   ipersist errs
   wp_apply (lc := 4) wp_fork $$ [Henc HD]
   · wp_auto
-    wp_apply net.rpc.Client.Call.wp r W a sm svc M S args reply Φc Rargs D Θ
+    wp_apply wp_Call r W a sm svc M S args reply Φc Rargs D Θ
       net.rpc.RpcCodec.spec $$ [$Hcs $Hrc Henc $HD] as %err Hres
     · dsimp only [net.rpc.RpcCodec.spec]
       isplitr

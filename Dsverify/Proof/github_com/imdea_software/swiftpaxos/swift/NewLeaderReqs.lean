@@ -68,7 +68,7 @@ def swift.coverOk (N r c : Nat) (st : sp.RState) (s : sp.Seq) (B : List sp.CmdId
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -141,7 +141,7 @@ end defs
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
 
 /-- `repEntW` is `sp.entryWit` at the replica's node state (`sp.preacc_own`). -/
@@ -182,7 +182,7 @@ end lemmas
 
 section reqs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

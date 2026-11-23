@@ -19,7 +19,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [client.Assumptions]
 
 theorem client.Client.SendWrite.wp_proof

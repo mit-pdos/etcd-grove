@@ -133,7 +133,7 @@ end client.cn
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
@@ -508,7 +508,7 @@ end proof
 
 section frozen
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]

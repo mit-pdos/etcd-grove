@@ -20,12 +20,12 @@ returning:
 module
 
 public import Perennial.Proof.fmt
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunVocab
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecSrvProof
-public import Net.Proof.net.rpc.Results
+public import Net.Spec.net.rpc.Client__Call
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.replica.defs.NewBeTheLeaderReply
 
 @[expose] public section
@@ -42,7 +42,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.FieldAssumptions] [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean)
@@ -76,7 +76,8 @@ theorem master.tagOk_tagged (t body : List w8) (ht : t.length < 2 ^ 64) :
 /-- The master's `c.Call("Replica.BeTheLeader", &BeTheLeaderArgs{}, btl)` with `btl` the initial
 reply: no error and the reply's fields in `btlOk`'s range (by `replicaRpcSpec`'s law), or an
 error. -/
-theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
+theorem master.wp_call_btl (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF) (hG := hG))
+    (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
     (γc γm : GName) (cc : Conf) (pa btl : Loc) :
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
         net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (withErr (sp.replicaRpcSpec γc γm))⌝ ∗
@@ -100,7 +101,7 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
           nl = mergeI32 (W32 (-1)) nl'⌝)
     else iprop(∃ v : replica.defs.BeTheLeaderReply, btl ↦ v ∗
         ⌜∀ l' nl', rep ≠ netrpcw.encBtlReply l' nl'⌝)
-  wp_apply net.rpc.Client.Call.wp c W a go!"Replica.BeTheLeader" go!"Replica" go!"BeTheLeader"
+  wp_apply wp_Call c W a go!"Replica.BeTheLeader" go!"Replica" go!"BeTheLeader"
     (withErr (sp.replicaRpcSpec γc γm)) _ rp (fun rep msg => iprop(⌜msg ≠ []⌝ ∨ Φr rep msg))
     iprop(True)
     (btl ↦ replica.defs.BeTheLeaderReply.mk (W32 (-1)) (W32 (-1)))
@@ -178,7 +179,8 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
   · iright; ipureintro; exact Hne.1
 
 /-- `c.Call("Replica.Ping", &PingArgs{}, &PingReply{})`: returns (any error). -/
-theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
+theorem master.wp_call_ping (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF) (hG := hG))
+    (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoString)
     (γc γm : GName) (pa pr : Loc) :
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
         net.rpc.isClient c W a ∗ ⌜W.SS a go!"Replica" = some (withErr (sp.replicaRpcSpec γc γm))⌝ ∗
@@ -190,7 +192,7 @@ theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoSt
     {{ (err : GoInterface), RET #err; True }} := by
   wp_start_folded as ⟨#Hcs, #Hko, #Hc, %HSS, Hpa, Hpr⟩
   let rp := interface.mkOk (go.GoType.PointerType replica.defs.PingReply.ty) #pr
-  wp_apply net.rpc.Client.Call.wp c W a go!"Replica.Ping" go!"Replica" go!"Ping"
+  wp_apply wp_Call c W a go!"Replica.Ping" go!"Replica" go!"Ping"
     (withErr (sp.replicaRpcSpec γc γm)) _ rp
     (fun rep msg => iprop(⌜msg ≠ [] ∨ rep = netrpcw.encPingReply⌝)) iprop(True)
     (pr ↦ replica.defs.PingReply.mk) (fun _ _ => iprop(True))
@@ -265,7 +267,8 @@ set_option maxHeartbeats 4000000 in
 theorem master.Master.run.wp_proof
     (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
     (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
-    (wp_NBR : replica.defs.NewBeTheLeaderReply.spec) :
+    (wp_NBR : replica.defs.NewBeTheLeaderReply.spec)
+    (wp_Call : net.rpc.Client.Call.spec (GF := netDistGF) (hG := hG)) :
     master.Master.run.spec := fun m γc γm N W nodesS0 nl => by
   wp_start as ⟨#Hm, #HnodesP, Hns, HnlF, Haddrs, %HSS, #Hcs⟩
   ihave #Hko : net.rpc.kitCodecOk (GF := netDistGF) $$ []
@@ -408,7 +411,7 @@ theorem master.Master.run.wp_proof
           simp only [List.length_set] at Hcsl'; have := Hj.2.2.1; word)]
         wp_apply wp_load_slice_index _ (sint.Z j) _ _ c Hj.1 $$ [Hns] as Hns
         · iframe; ipureintro; rw [List.getElem?_set_self (by have := Hj.2.2.1; word)]
-        wp_apply master.wp_call_btl (C := kitCodec) c W _ γc γm _ pa btl $$ [$Hc $Hconf $Hpa $Hbtl] as %berr Hbr
+        wp_apply master.wp_call_btl (C := kitCodec) wp_Call c W _ γc γm _ pa btl $$ [$Hc $Hconf $Hpa $Hbtl] as %berr Hbr
         · iframe Hcs Hko; ipureintro; exact HSS.1 _ ha
         wp_join iprop(∃ (p : Loc) (l n : w32), btlReply_ptr ↦ p ∗
             p ↦ replica.defs.BeTheLeaderReply.mk l n ∗ ⌜master.btlR N l n⌝)
@@ -603,7 +606,7 @@ theorem master.Master.run.wp_proof
       try wp_auto
       wp_alloc pr as Hpr
       try wp_auto
-      wp_apply master.wp_call_ping (C := kitCodec) cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
+      wp_apply master.wp_call_ping (C := kitCodec) wp_Call cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
       · iframe Hcs Hko
         isplitr
         · ipureintro; exact HSS.1 _ Hacn
@@ -725,7 +728,7 @@ theorem master.Master.run.wp_proof
           rw [if_pos (show 0 ≤ sint.Z t ∧ sint.Z t < sint.Z nodesS0.len by rw [Hcs'] at htc; word)]
           wp_apply wp_load_slice_index _ (sint.Z t) _ _ cn Htn.1 $$ [Hns] as Hns
           · iframe; ipureintro; exact Hcn_lookup
-          wp_apply master.wp_call_btl (C := kitCodec) cn W acn γc γm _ pa btl $$ [$Hcn $Hconf $Hpa $Hbtl] as %berr Hbr
+          wp_apply master.wp_call_btl (C := kitCodec) wp_Call cn W acn γc γm _ pa btl $$ [$Hcn $Hconf $Hpa $Hbtl] as %berr Hbr
           · iframe Hcs Hko; ipureintro; exact HSS.1 _ Hacn
           icases Hbr with (⟨%He, %l, %n, Hb, %Hok⟩ | %He)
           · subst He
@@ -822,7 +825,7 @@ theorem master.Master.run.wp_proof
         try wp_auto
         wp_alloc pr as Hpr
         try wp_auto
-        wp_apply master.wp_call_ping (C := kitCodec) cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
+        wp_apply master.wp_call_ping (C := kitCodec) wp_Call cn W acn γc γm pa pr $$ [$Hcn Hpa Hpr] as %perr _
         · iframe Hcs Hko
           isplitr
           · ipureintro; exact HSS.1 _ Hacn

@@ -26,7 +26,7 @@ namespace swift.handler
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 
 /-- **Change log C6**: the package-level variables the client node reads, as facts of the swift
 package's state on the client node: `ReplyHook` is nil (set only under the `swiftexeclog` build

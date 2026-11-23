@@ -27,7 +27,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [dlog.Assumptions] [fmt.Assumptions] [errors.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean): `kitCodec` for the frozen statements,

@@ -19,12 +19,11 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.Bufio
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
-public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.ConnIo
-public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.rpc.Errs
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import Perennial.Proof.io.Base
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 
 @[expose] public section
 
@@ -44,6 +43,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] [π : NetProtoGS]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF]
 
 theorem tcpConn_ne_reader :
     go.GoType.PointerType net.TCPConn.ty ≠ go.GoType.PointerType bufio.Reader.ty := by
@@ -128,7 +128,7 @@ theorem readerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
       ihave #Ha' := net.rpc.errAny_resErr _ _ _ _ _ _ _ $$ H
       iframe Ha'
       ipureintro; exact errWf_of_ptrTyped (net.netErr_ptrTyped (Hn.2 (by simp)))
-  iapply net.conn_readerOk net.Conn.Read.wp_proof t cid side a la ra eof ed P $$ [$Hio $Hat $Heof $Hed]
+  iapply net.conn_readerOk (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connRead (GF := GF)) t cid side a la ra eof ed P $$ [$Hio $Hat $Heof $Hed]
 
 /-- The error evidence of a connection as a writer: an error with some message (`errOrNil`'s). -/
 def wrErr (err : GoInterface) : IProp GF :=
@@ -165,7 +165,7 @@ theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
   dsimp only
   ihave HJ0 := writeP_init cid side P W $$ HJ
   ihave #Hacc := write_acc cid side P W bs $$ HQ
-  iapply net.Conn.Write.wp_proof t cid side a la ra b bs dq ed (writeP cid side P W)
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connWrite (GF := GF)) t cid side a la ra b bs dq ed (writeP cid side P W)
     $$ [HJ0 Hb]
   · iframe Hat Hb Hed HJ0 Hacc
   iintro !> %n %err ⟨%w, %res, HJ, Hb, %Hw, #HE⟩
@@ -208,7 +208,7 @@ theorem _root_.Perennial.net.TCPConn.Write.labProof (c : Loc) (cid : Nat) (side 
   icases Hc with ⟨%a, %la, %ra, #Hat, -⟩
   ihave HJ0 := writeP_init cid side P W $$ HJ
   ihave #Hacc := write_acc cid side P W bs $$ HQ
-  iapply net.Conn.Write.wp_proof c cid side a la ra b bs dq ed (writeP cid side P W)
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.connWrite (GF := GF)) c cid side a la ra b bs dq ed (writeP cid side P W)
     $$ [HJ0 Hb]
   · iframe Hat Hb Hed HJ0 Hacc
   iintro !> %n %err ⟨%w, %res, HJ, Hb, %Hw, #HE⟩

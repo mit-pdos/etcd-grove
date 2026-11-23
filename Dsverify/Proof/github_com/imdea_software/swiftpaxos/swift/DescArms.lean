@@ -11,8 +11,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunInvD
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GetDescWith
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GetDescWithVocab
 @[expose] public section
 
 noncomputable section
@@ -26,13 +25,13 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [π : NetProtoGS]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [SwiftHyps netDistGF] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
+omit [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
   [sync.Assumptions] in
 /-- A fast ack's run-loop witness (`runAckW`): its sender's and ballot's wire bounds, and its
 sender is not its ballot's leader or it has a fast ack's witness (an `MOptAcks` fast entry's

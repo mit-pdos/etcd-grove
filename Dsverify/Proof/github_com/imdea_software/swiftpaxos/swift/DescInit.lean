@@ -14,10 +14,9 @@ disjunct: the row is empty, no proposal, phase not `COMMIT`; G7). Round 35 (tabl
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandlePropose
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposeDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDesc
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDescDefs
 @[expose] public section
 
 noncomputable section
@@ -33,7 +32,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [hook.Assumptions]
 
 /-- **The raw descriptor's owner state** (see the file header). -/

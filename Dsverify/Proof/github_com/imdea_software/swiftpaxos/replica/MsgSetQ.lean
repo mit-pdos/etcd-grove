@@ -3,9 +3,10 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/MsgSetQ.lean (l
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumMaps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumMapsDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArith
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArithDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.InternalDeps
 
 @[expose] public section
 
@@ -43,7 +44,7 @@ end defs
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 
 theorem quorumIs_ok (q : GoInterface) (sz : Nat) (mem : w32 → Prop) :
     quorumIs q sz mem ⊢ ⌜∃ i, q = GoInterface.ok i⌝ := by
@@ -66,12 +67,12 @@ theorem wp_qSize (i : GoInterfaceOk) (sz : Nat) (mem : w32 → Prop) :
   iintro %Φ ⟨%Hsz, Hq⟩ HΦ
   icases Hq with (⟨%Hq, -⟩ | ⟨%ql, %s, ⟨%Hq, %Hs, %Hnd, %Hlt, -⟩, #Hql⟩)
   · rcases Hq with h | h <;> cases h
-    · wp_apply replica.Majority.Size.wp_proof
+    · wp_apply SwiftKitDeps.majSize
       iapply HΦ; itrivial
-    · wp_apply replica.ThreeQuarters.Size.wp_proof
+    · wp_apply SwiftKitDeps.tqSize
       iapply HΦ; itrivial
   · cases Hq; subst Hs
-    wp_apply replica.Quorum.Size.wp_proof $$ [$Hql] as -
+    wp_apply SwiftKitDeps.qSize $$ [$Hql] as -
     · ipureintro; exact ⟨Hnd, Hlt⟩
     iapply HΦ; itrivial
 
@@ -83,12 +84,12 @@ theorem wp_qContains (i : GoInterfaceOk) (sz : Nat) (mem : w32 → Prop) (r : w3
   iintro %Φ ⟨%Hsz, Hq⟩ HΦ
   icases Hq with (⟨%Hq, %Hm⟩ | ⟨%ql, %s, ⟨%Hq, %Hs, %Hnd, %Hlt, %Hm⟩, #Hql⟩)
   · rcases Hq with h | h <;> cases h
-    · wp_apply replica.Majority.Contains.wp_proof
+    · wp_apply SwiftKitDeps.majContains
       iapply HΦ; ipureintro; intro _; exact Hm r
-    · wp_apply replica.ThreeQuarters.Contains.wp_proof
+    · wp_apply SwiftKitDeps.tqContains
       iapply HΦ; ipureintro; intro _; exact Hm r
   · cases Hq
-    wp_apply replica.Quorum.Contains.wp_proof $$ [$Hql] as -
+    wp_apply SwiftKitDeps.qContains $$ [$Hql] as -
     iapply HΦ; ipureintro; intro h; exact (Hm r).2 (by simpa using h)
 
 end specs

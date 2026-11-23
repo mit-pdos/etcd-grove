@@ -11,7 +11,8 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AnyFlag
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArith
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArithDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BeTheLeaderDefs
 
 @[expose] public section
 
@@ -26,55 +27,15 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-
-/-- `r.BeTheLeader(args, reply)` (see the file header): no error, a reply `btlOk` admits. -/
-abbrev swift.Replica.BeTheLeader.spec : Prop :=
-  ∀ (r : Loc) (γc γm : GName) (args reply : Loc) (rv : replica.defs.BeTheLeaderReply),
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      swift.rcvrRes r γc γm ∗ reply ↦ rv }}
-    (App (App (Val (r @!! go.GoType.PointerType swift.Replica.ty @!! go!"BeTheLeader"))
-      (Val #args)) (Val #reply))
-  {{ RET #(interface.nil : GoInterface); ∃ (ld nl : w32),
-      reply ↦ replica.defs.BeTheLeaderReply.mk ld nl ∗
-      ∃ N fr l, sp.cfg γc γm N fr l ∗ ⌜sp.btlOk N ld nl⌝ }}
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 
 end spec
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [sync.atomic.Assumptions]
-
-/-- Go's `b % N` of a non-negative ballot is in `[0, N)`. -/
-theorem swift.srem_nonneg (b : w32) (N : Nat) (hN : 1 ≤ N ∧ N ≤ 7) (hb : 0 ≤ sint.Z b) :
-    0 ≤ sint.Z (BitVec.srem b (W32 (sint.Z (W64 (N : Int))))) ∧
-      sint.Z (BitVec.srem b (W32 (sint.Z (W64 (N : Int))))) < N := by
-  have hN' : sint.Z (W64 (N : Int)) = N := by word
-  rw [hN', replica.quorum.leader_val b N (by omega) hb]
-  exact ⟨Int.emod_nonneg _ (by omega), Int.emod_lt_of_pos _ (by omega)⟩
-
-/-- The leader of ballot `-1` (`BallotAt(1)` without a quorum file): `-1`, or `0` for `N = 1`. -/
-theorem swift.srem_m1 (N : Nat) (h : 1 ≤ N ∧ N ≤ 7) :
-    BitVec.srem (W32 (-1)) (W32 (sint.Z (W64 (N : Int)))) = W32 (-1) ∨
-      BitVec.srem (W32 (-1)) (W32 (sint.Z (W64 (N : Int)))) = W32 0 := by
-  obtain ⟨h1, h2⟩ := h
-  have : N = 1 ∨ N = 2 ∨ N = 3 ∨ N = 4 ∨ N = 5 ∨ N = 6 ∨ N = 7 := by omega
-  rcases this with rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
-
-/-- `btlOk` of the answers. -/
-theorem swift.btlOk_of (N : Nat) (_hN : 1 ≤ N ∧ N ≤ 7) (ld nl : w32)
-    (hld : ld = W32 (-2) ∨ (1 ≤ sint.Z ld ∧ sint.Z ld < N))
-    (hnl : nl = W32 (-2) ∨ nl = W32 (-1)) : sp.btlOk N ld nl := by
-  unfold sp.btlOk
-  refine ⟨?_, ?_⟩
-  · rcases hld with h | h
-    · exact Or.inl h
-    · exact Or.inr h
-  · rcases hnl with h | h
-    · exact Or.inl h
-    · exact Or.inr (Or.inl h)
 
 theorem swift.Replica.BeTheLeader.wp_proof
     (wp_Load : sync.atomic.Bool.Load.spec (GF := netDistGF) (hG := hG))

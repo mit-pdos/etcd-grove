@@ -15,7 +15,7 @@ their encodings (the stream law), and the table's entry 17.
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableOptAcks
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableOptAcksDefs
 
 @[expose] public section
 
@@ -324,7 +324,7 @@ end zip
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
@@ -583,7 +583,7 @@ end proofs
 
 section proofs2
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] [replica.defs.Assumptions] [state.Assumptions]
 

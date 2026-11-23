@@ -15,8 +15,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunArmRec
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSetDefs
 @[expose] public section
 
 noncomputable section
@@ -32,7 +31,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 set_option goose.wp.extras true

@@ -8,7 +8,7 @@ Pure lemmas for `recoveredSync`'s proof (Proof/swift/RecSyncProof.lean): the rep
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSync
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArith
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArithDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumModel
 
 @[expose] public section

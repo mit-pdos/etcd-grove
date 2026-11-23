@@ -14,13 +14,13 @@ row pre-accepted, `swift.preacc_row`, hence `propose ≠ nil`, `rowAcc`).
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksCommon
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksCommonDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcceptL
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcceptLDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckLemmas
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCallees
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Batcher
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCalleesDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BatcherDefs
 import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section
@@ -72,11 +72,11 @@ end defs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [sync.Assumptions] [hook.Assumptions]
   [github_com.orcaman.concurrent_map.Assumptions]
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions] [sync.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [swift.Assumptions] [replica.Assumptions] [sync.Assumptions]
   [hook.Assumptions] [github_com.orcaman.concurrent_map.Assumptions] in
 /-- A listed quorum (`replica.Quorum`, ids below `2^31`) does not have every replica. -/
 theorem swift.qAll_noList (s : List Nat) (mem : w32 → Prop) (hm : ∀ k, mem k)

@@ -18,7 +18,7 @@ lab's rounds 14-18 (C17, C18) are superseded where they were about that frame.
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderAckNs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderAckNsDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 public import Dsverify.Spec.encoding.gob.NewEncoder
@@ -142,7 +142,7 @@ end pure
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [net.rpc.Assumptions] [net.rpc.RpcKit]

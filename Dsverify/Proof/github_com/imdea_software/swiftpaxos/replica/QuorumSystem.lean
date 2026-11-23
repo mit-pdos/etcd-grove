@@ -7,7 +7,8 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/replica/QuorumSystem.le
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSet
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumLemmas
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArithDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
@@ -26,7 +27,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proofs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF]
-variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [sem : go.Semantics] [replica.Assumptions] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 
 set_option goose.wp.extras true
 

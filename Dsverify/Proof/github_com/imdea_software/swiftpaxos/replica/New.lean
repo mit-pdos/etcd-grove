@@ -8,8 +8,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.NewSpec
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Table
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.TableDefs
 @[expose] public section
 
 noncomputable section
@@ -23,7 +22,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [state.Assumptions]
 
 set_option goose.wp.extras true

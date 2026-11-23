@@ -32,7 +32,7 @@ theorem code_cases : ∀ c : w8, 9 ≤ c.toNat → c.toNat ≤ 22 →
 
 section alloc
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
 
 /-- An entry of `tableIs`: its `entryOk` from its `newOk` and its bag. -/

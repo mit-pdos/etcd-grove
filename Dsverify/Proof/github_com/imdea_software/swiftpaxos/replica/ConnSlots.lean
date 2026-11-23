@@ -34,7 +34,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section slots
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- The four elements of index `i`. -/

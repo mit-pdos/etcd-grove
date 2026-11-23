@@ -17,6 +17,7 @@ public import Dsverify.Proof.github_com.orcaman.concurrent_map.ConcurrentMap__Co
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.ConcurrentMap__IsEmpty
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.ConcurrentMap__IterCb
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.New
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.UpsertL
 
 @[expose] public section
 
@@ -75,6 +76,8 @@ theorem ConcurrentMap.wp_IsEmpty : ConcurrentMap.IsEmpty.spec (GF := GF) :=
   ConcurrentMap.IsEmpty.wp_proof ConcurrentMap.wp_IsEmptyV
 theorem ConcurrentMap.wp_IterCb : ConcurrentMap.IterCb.spec (GF := GF) :=
   ConcurrentMap.IterCb.wp_proof ConcurrentMap.wp_IterCbV
+theorem ConcurrentMap.wp_UpsertVL : ConcurrentMap.UpsertVL.spec (GF := GF) :=
+  ConcurrentMap.UpsertVL.wp_proof ConcurrentMap.wp_GetShardV
 
 end link
 

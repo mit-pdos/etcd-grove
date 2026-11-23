@@ -34,7 +34,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ShInv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Cell
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AqQuorum
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.InitCs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.InitCsDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.NewSpec
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WriterSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnSpecs
@@ -61,7 +61,7 @@ instance swift.BatcherOp_countableC [GooseExts] : Pos.Countable swift.BatcherOp 
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
 
 /-- The `cs` codes `initCs` registers (table ids from 9, in registration order: the model's
@@ -370,7 +370,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
 
 /-- `initCs(&r.cs, r.RPC)` on the replica's empty table: the fourteen fresh channels, their

@@ -34,11 +34,11 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncTail
 -- round N3: gob's encoder proofs, for `MSync.marshal_proofG` at the link (the set's handler)
 -- round N3: the ack's `Marshal`
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalAckN
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarint
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarintDefs
 -- round N3: item 4's report order (pure)
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FillOrder
 -- round N4: `fillNewLeaderAckN`'s walk
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FillAckN
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FillAckNDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps2
 
 @[expose] public section
@@ -56,7 +56,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -87,7 +87,7 @@ end defs
 
 section plumbing
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -264,7 +264,7 @@ end ghost
 
 section arms
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [examples.swiftnet.Assumptions]
 
@@ -567,7 +567,7 @@ end arms
 
 section main
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [examples.swiftnet.Assumptions]
 
@@ -1064,7 +1064,7 @@ end main
 
 section ackdefs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -1114,7 +1114,7 @@ end ackdefs
 
 section handler
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [examples.swiftnet.Assumptions]
 
@@ -1348,7 +1348,7 @@ end handler
 
 section arm
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [examples.swiftnet.Assumptions]
 
@@ -1596,9 +1596,6 @@ theorem swift.Replica.handleNewLeaderAckN.wp_proofN (rp : Loc) (γ : sp.Names) (
       ipureintro; intro _; exact hlead
     ipureintro; intro _; rfl
 
-/-- `(*MNewLeaderAckN).Marshal`. -/
-theorem swift.MNewLeaderAckN.marshal_proof : swift.MNewLeaderAckN.marshalH (hG := hG) :=
-  swift.MNewLeaderAckN.marshal_proofP swift.PutVarint.wp_proof
 
 end arm
 

@@ -182,7 +182,7 @@ theorem swift.eqInv_end {l1 l2 : List swift.CommandId} {s1 s2 : GMap swift.Comma
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 
 /-- `state.Conflict(gamma, delta)` for commands that are not `SCAN`s: the model's
 `Cmd.conflict`. -/

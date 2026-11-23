@@ -18,7 +18,7 @@ replica group; not frozen).
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeaf
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeafDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLogKey
 
 @[expose] public section

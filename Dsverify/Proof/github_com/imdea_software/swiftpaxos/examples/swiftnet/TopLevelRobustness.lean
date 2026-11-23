@@ -37,6 +37,10 @@ open EtcdGrove EtcdGrove.linkv github_com.mit_pdos.etcd_grove.examples.lib.remot
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp netShaExts_has
   netShaExts_hasSha256 GooseGlobalGS.gooseInvGS
 
+/-- The kit's hypotheses on its callees, closed (`lib/LibDepsLinked.lean`,
+`InternalDepsLinked.lean`; CLAUDE.md, "Import tiers"). -/
+attribute [local instance] swiftBufioDeps_holds swiftNetDeps_holds swiftKitDeps_holds
+
 section boot
 variable [GoGlobalContext] {GF : BundledGFunctors}
 

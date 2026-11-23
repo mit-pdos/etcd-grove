@@ -19,16 +19,16 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunArmRe
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunArmSync
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderProof
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewLeaderDesc
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncLinkD
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncDLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunArmsDesc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DrainRechecks
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposalProof
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDescLink
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDescLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepHash
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CmdStr
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAllocH
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAllocLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
@@ -61,6 +61,14 @@ public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Dsverify.Proof.rabia.examples.rabianet.ConnReadFull
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchParts
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOnLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.UpdateLogsLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepHashLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarint
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDepsLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.InternalDepsLinked
 
 @[expose] public section
 
@@ -76,6 +84,10 @@ open Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote
 
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
+
+/-- The kit's hypotheses on its callees, closed (`lib/LibDepsLinked.lean`,
+`InternalDepsLinked.lean`; CLAUDE.md, "Import tiers"). -/
+attribute [local instance] swiftBufioDeps_holds swiftNetDeps_holds swiftKitDeps_holds
 
 section srv
 variable [go_gctx : GoGlobalContext]
@@ -181,7 +193,7 @@ theorem wp_swiftNew : swift.New.spec (hG := hG) := by
                     -- round N4: the walk's callees
                     github_com.orcaman.concurrent_map.ConcurrentMap.IterCbVN.wp_proof
                     github_com.orcaman.concurrent_map.ConcurrentMap.wp_GetV swift.wp_cmapHasV
-                    swift.CommandId.String.wp_proof slices.SortFunc.wp_proofOn)
+                    swift.CommandId.String.wp_proof slices.wp_SortFuncOn)
                   (swift.Replica.handleNewLeaderAckN.wp_proofN rp γ γc γm x
                     replica.mset.MsgSet.Add.wp_proofQ
                     -- round N3: the set's handler, `handleNewLeaderAckNs` at the descriptors' state
@@ -207,7 +219,7 @@ theorem wp_swiftNew : swift.New.spec (hG := hG) := by
                         (swift.Replica.handleMsg.seqSpecD.wp_linked γ γc γm x hstr hDL)
                         (swift.Replica.newDesc.wp_linked x γ γc γm hstr)
                         (swift.Replica.handleDesc.wp_linked γ γc γm x hstr hDL))))
-                  replica.Sender.wp_SendTo swift.MNewLeaderAckN.marshal_proof) l r b
+                  replica.Sender.wp_SendTo (swift.MNewLeaderAckN.marshal_proofP swift.PutVarint.wp_proof)) l r b
               -- round 25: the descriptor side's arms (DescArms.lean) over `wp_coreD` at
               -- `x.str = cmdStr` (D22 (1), `runInv_str`)
               getDesc := fun xid s => swift.runArm_getDescS rp γ γc γm x
@@ -339,7 +351,9 @@ theorem wp_Client [ρ : RemoteGS] : cnode.Client.spec (hG := hG) :=
 
 /-- **The orchestrator** (`Orch()`), linked. -/
 theorem wp_Orch [ρ : RemoteGS] : cnode.Orch.spec (hG := hG) :=
-  cnode.Orch.wp_proof (fun γ => orch.New.wp_proof γ (sendConf.wp_proof swNetDeps) net.rpc.log.Println.wp)
+  cnode.Orch.wp_proof (fun γ => orch.New.wp_proof γ (sendConf.wp_proof swNetDeps) net.rpc.log.Println.wp
+    orch.Conf.String.wp_proof orch.Conf.encode.wp_proof orch.mine.wp_proof orch.choose.wp_proof
+    orch.plan.wp_proof)
     cnode.Addrs_proof cnode.ClientAddrs_proof examples.swiftnet.Model.wp_proof
     examples.swiftnet.Codec.wp_proof
     (examples.swiftnet.Gen.wp_proof github_com.goose_lang.primitive.wp_RandomUint64)

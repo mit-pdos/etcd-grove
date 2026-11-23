@@ -12,7 +12,7 @@ premise; `Ping`, the embedded `*replica.Replica`'s, which does nothing), whose r
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BeTheLeader
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BeTheLeaderDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.New
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.Bind
@@ -34,7 +34,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [examples.swiftnet.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions]

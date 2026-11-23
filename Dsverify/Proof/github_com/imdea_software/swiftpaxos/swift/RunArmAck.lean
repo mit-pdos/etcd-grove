@@ -12,10 +12,10 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunInvD
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecordLeaderHash
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecordLeaderHashDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.LeaderM
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Leader
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BeTheLeader
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.LeaderDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BeTheLeaderDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandlerInv
 
 @[expose] public section
@@ -31,7 +31,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
 
 /-- One path's hashes: one hash, its start hash. -/
@@ -121,7 +121,7 @@ end lemmas
 
 section arm
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- **The `ackHash` arm** (change log C22, M3): `r.leaderAckHash(f)`: an acknowledgement of this

@@ -18,6 +18,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WireWf
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.replica.defs
 public import Perennial.Proof.encoding.binary
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.UnmarshalDefs
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.ReadFull
 
@@ -39,31 +40,9 @@ section specs
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF] [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 variable [replica.defs.Assumptions] [state.Assumptions] [io.Assumptions]
   [errors.Assumptions]
-
-/-- `(*Beacon).Unmarshal(rd)`: the next 8 bytes, the timestamp. -/
-abbrev replica.defs.Beacon.Unmarshal.spec : Prop :=
-  ∀ (t : Loc) (v : replica.defs.Beacon) (rd : GoInterface) (I : List w8 → IProp GF)
-    (R : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ bufio.readsOk rd I ∗ I R ∗ t ↦ v }}
-    (App (Val (t @!! go.GoType.PointerType replica.defs.Beacon.ty @!! go!"Unmarshal")) (Val #rd))
-  {{ (err : GoInterface), RET #err; ∃ data : List w8, I (R ++ data) ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ ts : w64, ⌜data = sp.le64 ts⌝ ∗
-          t ↦ replica.defs.Beacon.mk ts) ∨
-        (⌜err ≠ interface.nil⌝ ∗ ∃ v' : replica.defs.Beacon, t ↦ v')) }}
-
-/-- `(*BeaconReply).Unmarshal(rd)`: the next 8 bytes, the timestamp. -/
-abbrev replica.defs.BeaconReply.Unmarshal.spec : Prop :=
-  ∀ (t : Loc) (v : replica.defs.BeaconReply) (rd : GoInterface) (I : List w8 → IProp GF)
-    (R : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ bufio.readsOk rd I ∗ I R ∗ t ↦ v }}
-    (App (Val (t @!! go.GoType.PointerType replica.defs.BeaconReply.ty @!! go!"Unmarshal")) (Val #rd))
-  {{ (err : GoInterface), RET #err; ∃ data : List w8, I (R ++ data) ∗
-      ((⌜err = interface.nil⌝ ∗ ∃ ts : w64, ⌜data = sp.le64 ts⌝ ∗
-          t ↦ replica.defs.BeaconReply.mk ts) ∨
-        (⌜err ≠ interface.nil⌝ ∗ ∃ v' : replica.defs.BeaconReply, t ↦ v')) }}
 
 end specs
 
@@ -72,7 +51,7 @@ section proofs
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF] [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 variable [replica.defs.Assumptions] [state.Assumptions] [io.Assumptions]
   [errors.Assumptions]
 

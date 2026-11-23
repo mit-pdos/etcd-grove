@@ -97,6 +97,7 @@ variable [h : github_com.imdea_software.swiftpaxos.SwiftHyps GF]
 
 namespace bufio
 variable [bufio.Assumptions] [io.Assumptions]
+  [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 theorem wp_NewReader : NewReader.labSpec (GF := GF) := NewReader.labProof
 theorem wp_ReadByte : Reader.ReadByte.labSpec (GF := GF) := Reader.ReadByte.labProof
 theorem wp_Read : Reader.Read.labSpec (GF := GF) := Reader.Read.labProof

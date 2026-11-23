@@ -60,7 +60,7 @@ end laws
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] [client.Assumptions]
 variable [examples.swiftnet.Assumptions] [swift.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]

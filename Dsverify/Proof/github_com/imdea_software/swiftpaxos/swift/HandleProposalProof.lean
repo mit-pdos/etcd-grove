@@ -11,15 +11,14 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSte
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposal
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Fatal
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Conn
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.LeaderM
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleStep
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SeqBound
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.IdBound
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecordLeaderHash
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecordLeaderHashDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleStepN
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Leader
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.LeaderDefs
 @[expose] public section
 
 noncomputable section
@@ -33,7 +32,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions]
 

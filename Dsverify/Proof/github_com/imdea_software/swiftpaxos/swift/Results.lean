@@ -21,19 +21,19 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyCha
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Batcher
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PoolFns
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ClientChecksum
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLogLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLogLinked
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.InitCsR
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CmapBridge
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.New
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Results
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalOpt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalFac
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarint
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncLinked
 
 @[expose] public section
 
@@ -48,7 +48,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [examples.swiftnet.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
 
@@ -65,7 +65,7 @@ end link
 
 section newLink
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
   [sync.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions] [hook.Assumptions]
   [time.Assumptions] [config.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]

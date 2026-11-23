@@ -13,8 +13,9 @@ public import Perennial.Spec.slices.choosePivotCmpFunc
 public import Perennial.Spec.slices.medianAdjacentCmpFunc
 public import Perennial.Spec.slices.medianCmpFunc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.Basics
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.medianAdjacentCmpFunc
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.medianCmpFunc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.medianAdjacentCmpFuncDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.medianCmpFuncDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.choosePivotCmpFuncDefs
 
 @[expose] public section
 
@@ -34,21 +35,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : slices.Assumptions]
-
-abbrev slices.choosePivotCmpFunc.specOn : Prop :=
-  ∀ {E : Type} [ZeroVal E] [TypedPointsto (GF := GF) E] {Et : go.GoType}
-    [IntoValTyped (GF := GF) E Et] (R : E → E → Prop) [StrictWeakOrder R] (φ : E → Prop) (data : GoSlice)
-    (a b : w64) (cmp_code : GoFunc) (xs : List E) (Hφ : AllOn φ xs),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.slices ∗
-        "Hxs" ∷ data ↦* xs ∗
-        "#Hcmp" ∷ cmpOn R φ cmp_code ∗
-        "%Hab_bound" ∷ ⌜0 ≤ sint.Z a ∧ sint.Z a < sint.Z b ∧ sint.Z b ≤ xs.length ∧
-          xs.length ≤ 2 ^ 62⌝ }}
-      (App (App (App (App (Val #(functions choosePivotCmpFunc [Et])) (Val #data)) (Val #a))
-        (Val #b)) (Val #cmp_code))
-    {{ (r : w64) (hint : slices.sortedHint), RET (PairV #r #hint);
-        data ↦* xs ∗
-        "%Hr_bound" ∷ ⌜sint.Z a ≤ sint.Z r ∧ sint.Z r < sint.Z b⌝ }}
 
 end spec
 

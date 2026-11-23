@@ -43,11 +43,10 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunInv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSpecs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandlePropose
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDesc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposeDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewDescDefs
 public import Perennial.Proof.sync.WaitGroupJoin
-public import Dsverify.Proof.github_com.orcaman.concurrent_map.RemoveL
-
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.RemoveLDefs
 @[expose] public section
 
 noncomputable section
@@ -66,7 +65,7 @@ def swift.descN : Namespace := ndot nroot "swiftpaxos.descs"
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -794,7 +793,7 @@ end defs
 
 section poolLaws
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

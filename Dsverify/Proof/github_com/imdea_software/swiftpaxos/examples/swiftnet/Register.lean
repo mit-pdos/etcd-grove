@@ -31,7 +31,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
-variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [examples.swiftnet.Assumptions]
+variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [examples.swiftnet.Assumptions]
   [net.FieldAssumptions]
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF]

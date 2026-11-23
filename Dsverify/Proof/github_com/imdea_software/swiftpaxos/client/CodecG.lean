@@ -66,7 +66,7 @@ end client
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
@@ -91,7 +91,7 @@ end spec
 
 section frozen
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions] [examples.swiftnet.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
@@ -116,7 +116,7 @@ end frozen
 
 section disconnect
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions]
 variable [C : net.rpc.RpcCodec netDistGF]
@@ -134,7 +134,7 @@ end disconnect
 
 section disconnectFrozen
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [client.Assumptions]
 

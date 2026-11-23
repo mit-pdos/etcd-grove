@@ -26,9 +26,20 @@ Specs stated here:
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunArmSync
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncLinkD
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalSpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.pkg.TimeInit
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepHashPure
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncTail
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecOrderDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSyncPure3
+public import Perennial.Proof.slices.SortFunc
+public import Perennial.Proof.math.bits.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.pdqsortCmpFuncDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.KeyDefs
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Println
+public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.dlog.Logger__Fatal
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalSync
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalBase
 
 @[expose] public section
 
@@ -45,7 +56,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 
@@ -149,7 +160,7 @@ end defs
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions]
 

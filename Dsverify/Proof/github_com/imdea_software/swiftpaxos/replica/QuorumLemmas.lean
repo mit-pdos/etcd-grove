@@ -7,8 +7,7 @@ to one leader's list in a quorum set, and the pure facts of `addL` and of the qu
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumMaps
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumMapsDefs
 @[expose] public section
 
 noncomputable section

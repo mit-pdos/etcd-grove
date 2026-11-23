@@ -11,10 +11,10 @@ reply `swiftSrvCodecLaws`' `enc_*` encodes into the method spec's success answer
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Register
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RegisterDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Methods
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.MethodsDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunVocab
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.Bind
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NetRpc.CodecSrvProof
 
@@ -34,7 +34,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.rpc.Assumptions] [net.FieldAssumptions]
 
@@ -58,7 +58,8 @@ theorem master.masterSpec_Reg_args (γc γm : GName) (args : List w8)
     iintro ⟨%ip, %port, %c, %k, ⟨%h, -⟩, -⟩
     ipureintro; exact ⟨ip, port, h⟩)
 
-theorem master.newArg_GetLeader (γc γm : GName) (N : Nat) (m : Loc) :
+theorem master.newArg_GetLeader (wp_GL : master.Master.GetLeader.spec (hG := hG))
+    (γc γm : GName) (N : Nat) (m : Loc) :
     net.rpc.codecSet swiftCodec ∗ master.isMaster m γc γm N ⊢
     newArgOk swiftCodec (ptrIface master.Master.ty m)
       (withErr (sp.masterSpec γc γm) go!"GetLeader")
@@ -109,7 +110,7 @@ theorem master.newArg_GetLeader (γc γm : GName) (N : Nat) (m : Loc) :
   wp_func_call
   wp_call
   wp_auto
-  wp_apply (master.Master.GetLeader.wp_proof m γc γm N p «$r0_ptr» _) $$ [$Hpm $HM $«$r0»]
+  wp_apply (wp_GL m γc γm N p «$r0_ptr» _) $$ [$Hpm $HM $«$r0»]
     as ⟨%id, Hr⟩
   (try wp_auto)
   iexists _
@@ -126,7 +127,7 @@ theorem master.newArg_GetLeader (γc γm : GName) (N : Nat) (m : Loc) :
   iapply HS
 
 theorem master.newArg_GetReplicaList
-    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
+    (wp_GRL : master.Master.GetReplicaList.spec (hG := hG))
     (γc γm : GName) (N : Nat) (m : Loc) :
     net.rpc.codecSet swiftCodec ∗ master.isMaster m γc γm N ⊢
     newArgOk swiftCodec (ptrIface master.Master.ty m)
@@ -180,7 +181,7 @@ theorem master.newArg_GetReplicaList
   wp_func_call
   wp_call
   wp_auto
-  wp_apply (master.Master.GetReplicaList.wp_proof wp_Printf m γc γm N p «$r0_ptr» _)
+  wp_apply (wp_GRL m γc γm N p «$r0_ptr» _)
     $$ [$Hpm $HM $«$r0»] as ⟨%s1, %s2, %nodes, %alive, Hr, Hs1, Hs2, #Hcfg, %Hal⟩
   (try wp_auto)
   iexists _
@@ -199,7 +200,7 @@ theorem master.newArg_GetReplicaList
   ipureintro; exact Hal
 
 theorem master.newArg_Register
-    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
+    (wp_Reg : master.Master.Register.spec (hG := hG))
     (γc γm : GName) (N : Nat) (m : Loc) :
     net.rpc.codecSet swiftCodec ∗ master.isMaster m γc γm N ⊢
     newArgOk swiftCodec (ptrIface master.Master.ty m)
@@ -271,7 +272,7 @@ theorem master.newArg_Register
   wp_func_call
   wp_call
   wp_auto
-  wp_apply (master.Master.Register.wp_proof wp_Printf m γc γm N p «$r0_ptr» addr port' c k _)
+  wp_apply (wp_Reg m γc γm N p «$r0_ptr» addr port' c k _)
     $$ [$Hpm $HM $Hp $«$r0» $Hc] as ⟨%rv', Hr, Hready⟩
   · ipureintro; exact ⟨Hk, Hkc⟩
   (try wp_auto)
@@ -313,7 +314,9 @@ theorem master.newArg_Register
 
 set_option maxHeartbeats 4000000 in
 theorem master.rcvr.wp_proof
-    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG)) :
+    (wp_GL : master.Master.GetLeader.spec (hG := hG))
+    (wp_GRL : master.Master.GetReplicaList.spec (hG := hG))
+    (wp_Reg : master.Master.Register.spec (hG := hG)) :
     master.rcvr.spec := by
   intro m γc γm N
   rw [rpcCodec_spec_eq]
@@ -352,7 +355,7 @@ theorem master.rcvr.wp_proof
   isplitr
   · iapply methodOk_of
     iframe H2
-    iapply master.newArg_Register wp_Printf γc γm N m
+    iapply master.newArg_Register wp_Reg γc γm N m
     iframe Hcs HM
   iapply (BI.BigSepM.bigSepM_insert (Φ := fun k mm => net.rpc.methodOk swiftCodec
     (ptrIface master.Master.ty m) (withErr (sp.masterSpec γc γm) k) mm) ?_).2
@@ -360,7 +363,7 @@ theorem master.rcvr.wp_proof
   isplitr
   · iapply methodOk_of
     iframe H1
-    iapply master.newArg_GetReplicaList wp_Printf γc γm N m
+    iapply master.newArg_GetReplicaList wp_GRL γc γm N m
     iframe Hcs HM
   iapply (BI.BigSepM.bigSepM_insert (Φ := fun k mm => net.rpc.methodOk swiftCodec
     (ptrIface master.Master.ty m) (withErr (sp.masterSpec γc γm) k) mm) ?_).2
@@ -368,7 +371,7 @@ theorem master.rcvr.wp_proof
   isplitr
   · iapply methodOk_of
     iframe H0
-    iapply master.newArg_GetLeader γc γm N m
+    iapply master.newArg_GetLeader wp_GL γc γm N m
     iframe Hcs HM
   iapply BI.BigSepM.bigSepM_empty.2
   itrivial

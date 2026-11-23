@@ -15,8 +15,7 @@ unchanged; the result is the varint's length.
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Batcher
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BatcherDefs
 @[expose] public section
 
 noncomputable section

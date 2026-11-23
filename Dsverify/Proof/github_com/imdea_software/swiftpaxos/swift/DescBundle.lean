@@ -10,7 +10,7 @@ owner forks `handleDesc`, `wp_coreO`). Then `handleDesc.specD` (`specD_of`) and 
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleDescProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleDescProofDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 
 @[expose] public section
@@ -28,7 +28,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section bundle
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [hook.Assumptions]
 

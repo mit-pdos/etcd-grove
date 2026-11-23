@@ -26,7 +26,7 @@ section link
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-variable [sync.Assumptions] [SwiftNetPkgState GF] [SwiftHyps GF]
+variable [sync.Assumptions] [SwiftNetPkgState GF] [SwiftHyps GF] [SwiftBufioDeps GF]
 
 theorem state.wp_KeyComparator : state.KeyComparator.spec (GF := GF) :=
   state.KeyComparator.wp_proof

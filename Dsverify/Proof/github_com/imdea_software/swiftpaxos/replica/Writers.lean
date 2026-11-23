@@ -27,7 +27,7 @@ section marshal
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF] [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 variable [replica.defs.Assumptions]
 
 set_option goose.wp.extras true
@@ -126,7 +126,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [dlog.Assumptions]
   [time.Assumptions]

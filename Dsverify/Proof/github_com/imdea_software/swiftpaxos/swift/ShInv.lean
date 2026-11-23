@@ -24,7 +24,7 @@ use them): `swift.dfld`, `swift.succInv`, `swift.descDF`, `swift.descPooled`, `s
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Defs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSetDefs
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.hook
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.sync.PoolDefs

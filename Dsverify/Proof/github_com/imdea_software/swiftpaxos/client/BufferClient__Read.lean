@@ -7,7 +7,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.ISpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.BufferClient__Read
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.AuLemmas
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Ghost
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.GhostDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Marshal
 
 @[expose] public section
@@ -23,7 +23,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [client.Assumptions]
 
 theorem client.BufferClient.Read.wp_proofI

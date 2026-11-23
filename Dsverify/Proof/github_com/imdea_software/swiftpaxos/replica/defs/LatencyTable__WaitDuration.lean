@@ -9,6 +9,7 @@ internal spec of the `defs` package, proved from its code; the client's readers 
 module
 
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.replica.defs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.LatencyTable__WaitDurationDefs
 
 @[expose] public section
 
@@ -23,14 +24,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [replica.defs.Assumptions]
-
-/-- `WaitDuration` on a nil table: no wait. -/
-abbrev replica.defs.LatencyTable.WaitDuration.specNil : Prop :=
-  ∀ (addr : GoString),
-  {{ (True : IProp GF) }}
-    (App (Val (null @!! go.GoType.PointerType replica.defs.LatencyTable.ty @!! go!"WaitDuration"))
-      (Val #addr))
-  {{ RET #(W64 0); True }}
 
 set_option goose.wp.extras true
 

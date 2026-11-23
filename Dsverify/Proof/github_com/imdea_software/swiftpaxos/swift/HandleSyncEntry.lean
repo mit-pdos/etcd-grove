@@ -27,10 +27,10 @@ T24, plan R11.4 (4) 4; D61 (2), D64): every Go statement of the sync-entry case 
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleDescProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleDescProofDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncEntryTok
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposeProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleProposeProofDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSeq
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps
 
@@ -116,7 +116,7 @@ end lemmas
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [sync.Assumptions] [hook.Assumptions] [github_com.orcaman.concurrent_map.Assumptions]
 

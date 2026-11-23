@@ -14,7 +14,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ReplicaListener
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.WaitDuration
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Results
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLink
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLinked
 
 @[expose] public section
 
@@ -29,7 +29,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [state.Assumptions]
 variable [github_com.emirpasic.gods.maps.treemap.Assumptions] [sync.Assumptions]
 variable [io.Assumptions] [errors.Assumptions]

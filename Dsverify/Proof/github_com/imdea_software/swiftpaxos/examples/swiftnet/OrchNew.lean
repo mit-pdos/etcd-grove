@@ -14,7 +14,7 @@ it). `sendConf` is a callee (`sendConf.spec`, `OrchSend.lean`).
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchParts
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.OrchPartsDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Addr
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitDeps
 public import Perennial.Proof.time
@@ -39,7 +39,7 @@ namespace orch
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions]
 
 set_option goose.wp.extras true
@@ -70,12 +70,14 @@ abbrev configure.spec (γ : SwiftNames netDistGF) : Prop :=
   {{ RET #(); sp.allPredsReg γ.sp γ.conf }}
 
 theorem configure.wp_proof (γ : SwiftNames netDistGF) (wp_send : sendConf.spec (hG := hG))
-    (wp_Println : log.Println.spec (GF := netDistGF) (hG := hG)) :
+    (wp_Println : log.Println.spec (GF := netDistGF) (hG := hG))
+    (wp_String : Conf.String.spec (hG := hG)) (wp_encode : Conf.encode.spec (hG := hG))
+    (wp_mine : mine.spec (hG := hG)) :
     configure.spec γ := by
   intro asl csl c cs hc hcs hok
   wp_start as ⟨#Hasl, Hcsl, #Hconfis, #Henv⟩
   wp_auto
-  wp_apply Conf.String.wp_proof conf_ptr (confV c) (DFrac.own 1) $$ [conf] as %str conf
+  wp_apply wp_String conf_ptr (confV c) (DFrac.own 1) $$ [conf] as %str conf
   · iexact conf
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType (go.GoType.InterfaceType [])))))
     (Val (LiteralValueV _)))
@@ -110,7 +112,7 @@ theorem configure.wp_proof (γ : SwiftNames netDistGF) (wp_send : sendConf.spec 
       as -
     · iexact Hasl
     ihave Hnil := ownSlice_nil (V := examples.swiftnet.change) (GF := netDistGF) (DFrac.own 1)
-    wp_apply Conf.encode.wp_proof conf_ptr c (DFrac.own 1) slice.nil (DFrac.own 1) [] hc
+    wp_apply wp_encode conf_ptr c (DFrac.own 1) slice.nil (DFrac.own 1) [] hc
       (by simp) $$ [conf Hnil] as %bsl ⟨Hb, conf, -⟩
     · iframe conf Hnil
     have hk : uint.nat id - 1 < 6 := by omega
@@ -187,10 +189,10 @@ theorem configure.wp_proof (γ : SwiftNames netDistGF) (wp_send : sendConf.spec 
       wp_apply wp_at asl DFrac.discard (W64 1 + cv) (W64 2000) (by word) $$ []
         as -
       · iexact Hasl
-      wp_apply mine.wp_proof csl (DFrac.own 1) cs cv $$ [Hcsl] as %msl ⟨Hm, Hcsl⟩
+      wp_apply wp_mine csl (DFrac.own 1) cs cv $$ [Hcsl] as %msl ⟨Hm, Hcsl⟩
       · iexact Hcsl
       have hmok := mineL_ok c cs cv hcs hok
-      wp_apply Conf.encode.wp_proof conf_ptr c (DFrac.own 1) msl (DFrac.own 1) (mineL cs cv) hc
+      wp_apply wp_encode conf_ptr c (DFrac.own 1) msl (DFrac.own 1) (mineL cs cv) hc
         (by simpa using hmok.1) $$ [conf Hm] as %bsl ⟨Hb, conf, -⟩
       · iframe conf Hm
       have hidx := atStr_cconf (uint.nat cv) hcv
@@ -254,7 +256,7 @@ theorem configure.wp_proof (γ : SwiftNames netDistGF) (wp_send : sendConf.spec 
         wp_apply wp_at asl DFrac.discard (W64 1 + cv) (W64 3000) (by word) $$ [] as -
         · iexact Hasl
         ihave Hnil := ownSlice_nil (V := examples.swiftnet.change) (GF := netDistGF) (DFrac.own 1)
-        wp_apply Conf.encode.wp_proof conf_ptr c (DFrac.own 1) slice.nil (DFrac.own 1) [] hc
+        wp_apply wp_encode conf_ptr c (DFrac.own 1) slice.nil (DFrac.own 1) [] hc
           (by simp) $$ [conf Hnil] as %bsl ⟨Hb, conf, -⟩
         · iframe conf Hnil
         have hidx := atStr_cstart (uint.nat cv) hcv
@@ -300,16 +302,19 @@ theorem configure.wp_proof (γ : SwiftNames netDistGF) (wp_send : sendConf.spec 
 
 theorem New.wp_proof [RpcHttpAddr netDistGF] (γ : SwiftNames netDistGF)
     (wp_send : sendConf.spec (hG := hG))
-    (wp_Println : log.Println.spec (GF := netDistGF) (hG := hG)) : New.spec γ := by
+    (wp_Println : log.Println.spec (GF := netDistGF) (hG := hG))
+    (wp_String : Conf.String.spec (hG := hG)) (wp_encode : Conf.encode.spec (hG := hG))
+    (wp_mine : mine.spec (hG := hG)) (wp_choose : choose.spec (hG := hG))
+    (wp_plan : plan.spec (hG := hG)) : New.spec γ := by
   intro sl
   wp_start as ⟨Hw, #Hcommon, #Hsl⟩
   ihave #Henv := common_confEnv γ $$ Hcommon
   wp_auto
-  wp_apply choose.wp_proof as %c %hc
+  wp_apply wp_choose as %c %hc
   imod conf.write γ c $$ [Hw] with #Hconfis
   · iframe Hw; ipureintro; exact hc
-  wp_apply plan.wp_proof c hc as %csl %cs ⟨Hcsl, %hcs⟩
-  wp_apply configure.wp_proof γ wp_send wp_Println sl csl c cs hc hcs.1 hcs.2 $$ [Hcsl] as #Hall
+  wp_apply wp_plan c hc as %csl %cs ⟨Hcsl, %hcs⟩
+  wp_apply configure.wp_proof γ wp_send wp_Println wp_String wp_encode wp_mine sl csl c cs hc hcs.1 hcs.2 $$ [Hcsl] as #Hall
   · iframe Hsl Hcsl Hconfis Henv
   iapply HΦ
   iexact Hall

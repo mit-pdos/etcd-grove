@@ -10,6 +10,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandlerState
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.FastAckObjDefs
 
 @[expose] public section
 
@@ -26,27 +27,14 @@ namespace swift.handler
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
-
-abbrev newFastAck.specI : Prop :=
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      globalAddr swift.useFastAckPool ↦□ false }}
-    (App (Val (@! swift.newFastAck)) (Val #()))
-  {{ (l : Loc), RET #l; l ↦ (zero_val swift.MFastAck) }}
 
 theorem newFastAck.wp_proof : newFastAck.specI (hG := hG) := by
   wp_start as #Hpool
   wp_auto
   iapply HΦ
   iframe
-
-abbrev copyFastAck.specI : Prop :=
-  ∀ (l : Loc) (fa : swift.MFastAck),
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      globalAddr swift.useFastAckPool ↦□ false ∗ l ↦□ fa }}
-    (App (Val (@! swift.copyFastAck)) (Val #l))
-  {{ (l' : Loc), RET #l'; l' ↦ fa }}
 
 theorem copyFastAck.wp_proof (wp_new : newFastAck.specI (hG := hG)) :
     copyFastAck.specI (hG := hG) := by

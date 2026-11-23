@@ -168,7 +168,7 @@ theorem swift.syncFits_of (me bl : w32) (M : sp.SyncMsg) (hn : M.length ≤ 6 * 
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [swift.Assumptions]
 
 /-- **`MSync.Marshal`** with gob's package (proved over the real gob's specs:

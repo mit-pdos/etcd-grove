@@ -21,8 +21,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ShInv
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleStep
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeaf
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeafDefs
 @[expose] public section
 
 noncomputable section

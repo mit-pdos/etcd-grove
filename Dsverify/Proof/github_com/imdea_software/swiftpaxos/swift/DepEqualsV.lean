@@ -8,8 +8,9 @@ round 23, sv-swb): some Boolean, the lists kept. The proof is `Dep.Equals.wp_pro
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCallees
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCalleesDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepEqualsVDefs
 
 @[expose] public section
 
@@ -26,22 +27,14 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
-
-/-- `dep1.Equals(dep2)` (value receiver) on any lists: some Boolean. -/
-abbrev swift.Dep.Equals.specAnyV : Prop :=
-  ∀ (d1 d2 : GoSlice) (dq1 dq2 : DFrac) (l1 l2 : List swift.CommandId),
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      d1 ↦*{dq1} l1 ∗ d2 ↦*{dq2} l2 }}
-    (App (Val (d1 @!! swift.Dep.ty @!! go!"Equals")) (Val #d2))
-  {{ (bb : Bool), RET #bb; d1 ↦*{dq1} l1 ∗ d2 ↦*{dq2} l2 }}
 
 end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
 
 theorem swift.Dep.Equals.wp_proofAnyV : swift.Dep.Equals.specAnyV (hG := hG) := by

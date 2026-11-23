@@ -12,8 +12,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunLoopSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChan
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChanDefs
 @[expose] public section
 
 noncomputable section
@@ -27,12 +26,12 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [swift.Assumptions] [replica.Assumptions]
+omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [swift.Assumptions] [replica.Assumptions]
   [replica.defs.Assumptions] [rpc.Assumptions] in
 /-- `IsNilDepOfCmdId(a.CmdId, a.Dep)` on an `MOptAcks` entry, as the model's `dep = [id]`. -/
 theorem swift.nilDep_iff (D : List sp.CmdId) (c : swift.CommandId) (y : sp.CmdId)

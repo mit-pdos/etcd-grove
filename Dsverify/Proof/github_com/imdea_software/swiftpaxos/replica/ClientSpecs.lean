@@ -57,7 +57,7 @@ end generic
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [config.Assumptions]
 
 /-- `(*LatencyTable)(nil).WaitDuration(addr)`: no delay. -/

@@ -50,7 +50,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CntL
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunCtx
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CmdStr
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.CmdStrDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSync
 
 @[expose] public section
@@ -115,7 +115,7 @@ def swift.RunX.epN (x : swift.RunX) (rp : Loc) : swift.EpN :=
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- `historyL`'s lock invariant (round 13): the history's slots (`r.history[i]`, written by a

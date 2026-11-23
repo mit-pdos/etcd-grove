@@ -12,8 +12,8 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RepsOkInv
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecKept
-public import Dsverify.Proof.github_com.orcaman.concurrent_map.IterCbN
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecKeptDefs
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.IterCbNDefs
 import all Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Inv
 
 @[expose] public section

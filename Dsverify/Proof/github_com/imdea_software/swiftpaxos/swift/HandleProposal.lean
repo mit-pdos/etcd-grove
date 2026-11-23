@@ -27,7 +27,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions]
 
 /-- `r.getCmdDescWith(x, &proposeMsg{gp, dep, hs, sq}, seq)` for a proposal the run loop handled

@@ -8,9 +8,10 @@ closures, whose specs (`replica.mset.closuresOk`) are proved here over the handl
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleAcks
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleAcksDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.SHashes
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.SHashesDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.InitMsgSetsDefs
 
 @[expose] public section
 
@@ -27,18 +28,9 @@ namespace swift.handler
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions]
-
-/-- The internal spec of `c.initMsgSets(cmdId)`. -/
-abbrev initMsgSets.specI : Prop :=
-  ∀ (H : HC) (x : swift.CommandId),
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.replica ∗
-      ctxOk H ∗ quorumsOk H ∗ pathsOwn H true (fun _ => True) ∗ pathsOwn H false (fun _ => True) }}
-    (App (Val (H.c @!! go.GoType.PointerType swift.Client.ty @!! go!"initMsgSets")) (Val #x))
-  {{ RET #(); pathsOwn H true (hasSet x) ∗ pathsOwn H false (hasSet x) }}
 
 theorem initMsgSets.wp_proof
     (wp_Reinit : replica.mset.MsgSet.ReinitMsgSet.specI (hG := hG))

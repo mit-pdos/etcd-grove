@@ -8,10 +8,10 @@ replica end into the reader's part (`rdEnd`) and the writer's part (`wrOk`).
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleMsgs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleMsgsDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.InitCs
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Quorum
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.InitCsDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.PkgFacts
 
 -- PORT: lab imports dropped: Harness.Proof.bufio.Net
@@ -46,7 +46,7 @@ end laws
 
 section split
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 

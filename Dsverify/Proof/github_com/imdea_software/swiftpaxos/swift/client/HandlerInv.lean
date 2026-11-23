@@ -26,8 +26,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.Decide
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSetDefs
 @[expose] public section
 
 noncomputable section

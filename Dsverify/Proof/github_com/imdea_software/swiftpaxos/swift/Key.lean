@@ -8,6 +8,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/Key.lean (lab mas
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.KeySpecs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.KeyDefs
 
 @[expose] public section
 
@@ -103,20 +104,6 @@ theorem lightKeyInfo.add.wp_proof : lightKeyInfo.add.spec := by
     have hl : sint.nat lc.len = C.length := by omega
     simp only [List.length_replicate, hl, List.take_length, List.drop_eq_nil_of_le (Nat.le_of_eq (List.length_replicate ..)), List.append_nil]
     imodintro; iexact Hs'
-
-theorem dropIf_cons (x y : swift.CommandId) (L : List swift.CommandId) :
-    dropIf x (y :: L) = if y = x then [] else y :: L := by
-  unfold dropIf; simp
-
-theorem dropIf_cons_eq (x y : swift.CommandId) (L : List swift.CommandId) (h : y = x) :
-    dropIf x (y :: L) = [] := by
-  subst h; unfold dropIf; simp
-
-theorem dropIf_cons_ne (x y : swift.CommandId) (L : List swift.CommandId) (h : y ≠ x) :
-    dropIf x (y :: L) = y :: L := by
-  unfold dropIf; simp [h]
-
-theorem dropIf_nil (x : swift.CommandId) : dropIf x [] = [] := rfl
 
 set_option hygiene false in
 /-- The guard `y == x` on command ids, as goose compiles it (field by field): the case split

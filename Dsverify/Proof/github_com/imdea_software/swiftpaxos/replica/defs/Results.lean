@@ -24,7 +24,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.defs.Assumptions]
 
 theorem replica.defs.wp_NewBeTheLeaderReply : replica.defs.NewBeTheLeaderReply.spec :=

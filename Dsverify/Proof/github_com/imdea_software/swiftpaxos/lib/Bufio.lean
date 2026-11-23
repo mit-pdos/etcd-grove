@@ -20,15 +20,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Net.Proof.models_lab.Errors
 public import Proof.bufio.Own
-public import Proof.bufio.NewWriter
-public import Proof.bufio.NewWriterSize
-public import Proof.bufio.Writer__Write
-public import Proof.bufio.Writer__WriteByte
-public import Proof.bufio.Writer__Flush
-public import Proof.bufio.NewReaderOk
-public import Proof.bufio.NewReaderSize
-public import Proof.bufio.Reader__ReadOk
-public import Proof.bufio.Reader__ReadByte
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 public import Proof.bufio.ReaderLaws
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.io.Link
@@ -285,6 +277,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [bufio.Assumptions] [io.Assumptions]
+variable [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 
 theorem NewWriter.labProof : NewWriter.labSpec (GF := GF) := by
   intro wr J Q W
@@ -292,7 +285,7 @@ theorem NewWriter.labProof : NewWriter.labSpec (GF := GF) := by
   iunfold writerOk at Hwr
   icases Hwr with ⟨%e, %Ew, %He, -, #Hio⟩
   obtain ⟨rfl, hty⟩ := He
-  wp_apply (EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof)
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.newWriter (GF := GF))
     e J Q Ew W $$ [HJ] as %bw Hown
   · iframe Hpkg Hio HJ HQ; ipureintro; exact hty
   iapply HΦ
@@ -305,7 +298,7 @@ theorem Writer.Flush.labProof : Writer.Flush.labSpec (GF := GF) := by
   iintro %Φ ⟨-, -, Hown⟩ HΦ
   iunfold ownWriter at Hown
   icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
-  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof bw e J Q Ew sz sent pend err $$ [Hown]
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.flush (GF := GF)) bw e J Q Ew sz sent pend err $$ [Hown]
     as %e' ⟨%k, %Hk, Hown⟩
   · iexact Hown
   iapply HΦ
@@ -321,7 +314,7 @@ theorem Writer.WriteByte.labProof : Writer.WriteByte.labSpec (GF := GF) := by
   iintro %Φ ⟨-, -, Hown, #HQ⟩ HΦ
   iunfold ownWriter at Hown
   icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
-  wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.writeByte (GF := GF))
     bw e J Q Ew sz sent pend err c $$ [Hown] as %e' ⟨%sent', %pend', %Hk, Hown⟩
   · iframe Hown; iintro %_; iexact HQ
   iapply HΦ
@@ -339,7 +332,7 @@ theorem Writer.Write.labProof : Writer.Write.labSpec (GF := GF) := by
   iintro %Φ ⟨-, -, Hown, #HQ, Hp⟩ HΦ
   iunfold ownWriter at Hown
   icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
-  wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.write (GF := GF))
     bw e J Q Ew sz sent pend err p dq ps $$ [Hown Hp]
     as %nn %e' ⟨%k, %sent', %pend', %Hk, Hp, Hown⟩
   · iframe Hown Hp; iintro %_; iexact HQ
@@ -359,7 +352,7 @@ theorem Writer.WriteByte_err.labProof : Writer.WriteByte_err.labSpec (GF := GF) 
   iintro %Φ Hown HΦ
   iunfold ownWriter at Hown
   icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
-  wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.writeByte (GF := GF))
     bw e J Q Ew sz sent pend err c $$ [Hown] as %e' ⟨%sent', %pend', %Hk, Hown⟩
   · iframe Hown; iintro %h; exact absurd h herr
   obtain ⟨-, -, -, h4, -⟩ := Hk
@@ -374,7 +367,7 @@ theorem Writer.Write_err.labProof : Writer.Write_err.labSpec (GF := GF) := by
   iintro %Φ ⟨Hown, Hp⟩ HΦ
   iunfold ownWriter at Hown
   icases Hown with ⟨%e, %Ew, %sz, %He, Hown⟩
-  wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof)
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.write (GF := GF))
     bw e J Q Ew sz sent pend err p dq ps $$ [Hown Hp]
     as %nn %e' ⟨%k, %sent', %pend', %Hk, Hp, Hown⟩
   · iframe Hown Hp; iintro %h; exact absurd h herr
@@ -411,6 +404,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [bufio.Assumptions] [io.Assumptions]
+variable [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 
 theorem errWf_of_ptrTyped {e : GoInterface} (h : io.ptrTyped e) : errWf e :=
   fun ii hi T hT => h ii T hi hT
@@ -482,8 +476,7 @@ theorem NewReader.labProof : NewReader.labSpec (GF := GF) := by
   iunfold readerOk at Hrd
   icases Hrd with ⟨%ri, %E, %He, #HE, #Hok⟩
   obtain ⟨rfl, hty⟩ := He
-  wp_apply (EtcdGrove.bufio.NewReader.wp_proofOk
-      (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.newReaderOk (GF := GF))
     ri (fun _ m => 0 < m) I E R $$ [HI] as %br Hown
   · isplitr
     · ipureintro; exact hty
@@ -532,7 +525,7 @@ theorem Reader.ReadByte_wf.labProof : Reader.ReadByte_wf.labSpec (GF := GF) := b
   ihave #Hio := EtcdGrove.bufio.io_init_of_bufio $$ Hpkg
   iunfold ownReader at Hown
   icases Hown with ⟨%ri, %E, %hrd, #HE, Hown⟩
-  wp_apply EtcdGrove.bufio.Reader.ReadByte.wp_proof br ri (fun _ m => 0 < m) I E R $$ [Hown]
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.readByte (GF := GF)) br ri (fun _ m => 0 < m) I E R $$ [Hown]
     as %c %err Hr
   · iexact Hown
   iapply HΦ
@@ -553,7 +546,7 @@ theorem Reader.Read.labProof : Reader.Read.labSpec (GF := GF) := by
   ihave #Hio := EtcdGrove.bufio.io_init_of_bufio $$ Hpkg
   iunfold ownReader at Hown
   icases Hown with ⟨%ri, %E, %hrd, #HE, Hown⟩
-  wp_apply EtcdGrove.bufio.Reader.Read.wp_proofOk br ri (fun _ m => 0 < m) I E R p ps
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.readOk (GF := GF)) br ri (fun _ m => 0 < m) I E R p ps
     $$ [Hown Hp] as %n %err ⟨%ys, %Hys, Hp, Hown, #He, %hp⟩
   · iframe Hown Hp; ipureintro; exact id
   ihave #HE' := errsOk_errE E $$ [$Hio $HE]
@@ -589,7 +582,7 @@ theorem bufioReadsOk (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) :
   dsimp only
   iunfold ownReader at Hown
   icases Hown with ⟨%ri, %E, %hrd, #HE, Hown⟩
-  wp_apply EtcdGrove.bufio.Reader.Read.wp_proofOk br ri (fun _ m => 0 < m) I E R p xs
+  wp_apply (github_com.imdea_software.swiftpaxos.SwiftBufioDeps.readOk (GF := GF)) br ri (fun _ m => 0 < m) I E R p xs
     $$ [Hown Hp] as %n %err ⟨%ys, %Hys, Hp, Hown, #He, %hp⟩
   · iframe Hown Hp; ipureintro; exact id
   ihave #HE' := errsOk_errE E $$ [$Hio $HE]

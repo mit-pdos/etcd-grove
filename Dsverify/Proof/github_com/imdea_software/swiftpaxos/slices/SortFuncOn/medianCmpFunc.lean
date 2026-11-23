@@ -12,7 +12,8 @@ public import Perennial.Proof.slices.PartitionBasics
 public import Perennial.Spec.slices.medianCmpFunc
 public import Perennial.Spec.slices.order2CmpFunc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.Basics
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.order2CmpFunc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.order2CmpFuncDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.medianCmpFuncDefs
 
 @[expose] public section
 
@@ -32,24 +33,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : slices.Assumptions]
-
-abbrev slices.medianCmpFunc.specOn : Prop :=
-  ∀ {E : Type} [ZeroVal E] [TypedPointsto (GF := GF) E] {Et : go.GoType}
-    [IntoValTyped (GF := GF) E Et] (R : E → E → Prop) [StrictWeakOrder R] (φ : E → Prop) (data : GoSlice)
-    (a b c : w64) (swaps_l : Loc) (cmp_code : GoFunc) (dq : DFrac) (xs : List E) (swaps : w64) (Hφ : AllOn φ xs),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.slices ∗
-        "Hxs" ∷ data ↦*{dq} xs ∗
-        "%Hbounds" ∷ ⌜(0 ≤ sint.Z a ∧ sint.Z a < (xs.length : Int)) ∧
-                      (0 ≤ sint.Z b ∧ sint.Z b < (xs.length : Int)) ∧
-                      (0 ≤ sint.Z c ∧ sint.Z c < (xs.length : Int))⌝ ∗
-        "Hswaps" ∷ swaps_l ↦ swaps ∗
-        "#Hcmp" ∷ cmpOn R φ cmp_code }}
-      (App (App (App (App (App (App (Val #(functions medianCmpFunc [Et])) (Val #data)) (Val #a))
-        (Val #b)) (Val #c)) (Val #swaps_l)) (Val #cmp_code))
-    {{ (r : w64) (swaps' : w64), RET #r;
-        data ↦*{dq} xs ∗
-        ⌜r = a ∨ r = b ∨ r = c⌝ ∗
-        swaps_l ↦ swaps' }}
 
 end spec
 

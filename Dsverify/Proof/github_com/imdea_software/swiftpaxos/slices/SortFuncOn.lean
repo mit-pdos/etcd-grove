@@ -15,7 +15,7 @@ public import Perennial.Proof.slices.SortFunc
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.math.bits.Link
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.pdqsortCmpFunc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOn.pdqsortCmpFuncDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecSync
 
 @[expose] public section
@@ -89,60 +89,6 @@ theorem slices.SortFunc.wp_proofPhi
 
 end proof
 
-section link
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : slices.Assumptions]
-
-theorem slices.wp_insertionSortCmpFuncOn : slices.insertionSortCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.insertionSortCmpFunc.wp_proofOn
-
-theorem slices.wp_siftDownCmpFuncOn : slices.siftDownCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.siftDownCmpFunc.wp_proofOn
-
-theorem slices.wp_heapSortCmpFuncOn : slices.heapSortCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.heapSortCmpFunc.wp_proofOn slices.wp_siftDownCmpFuncOn
-
-theorem slices.wp_breakPatternsCmpFuncOn : slices.breakPatternsCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.breakPatternsCmpFunc.wp_proofOn slices.wp_nextPowerOfTwo slices.xorshift.wp_Next
-
-theorem slices.wp_order2CmpFuncOn : slices.order2CmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.order2CmpFunc.wp_proofOn
-
-theorem slices.wp_medianCmpFuncOn : slices.medianCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.medianCmpFunc.wp_proofOn slices.wp_order2CmpFuncOn
-
-theorem slices.wp_medianAdjacentCmpFuncOn : slices.medianAdjacentCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.medianAdjacentCmpFunc.wp_proofOn slices.wp_medianCmpFuncOn
-
-theorem slices.wp_choosePivotCmpFuncOn : slices.choosePivotCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.choosePivotCmpFunc.wp_proofOn slices.wp_medianCmpFuncOn slices.wp_medianAdjacentCmpFuncOn
-
-theorem slices.wp_reverseRangeCmpFuncOn : slices.reverseRangeCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.reverseRangeCmpFunc.wp_proofOn
-
-theorem slices.wp_partialInsertionSortCmpFuncOn :
-    slices.partialInsertionSortCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.partialInsertionSortCmpFunc.wp_proofOn
-
-theorem slices.wp_partitionEqualCmpFuncOn : slices.partitionEqualCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.partitionEqualCmpFunc.wp_proofOn
-
-theorem slices.wp_partitionCmpFuncOn : slices.partitionCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.partitionCmpFunc.wp_proofOn
-
-theorem slices.wp_pdqsortCmpFuncOn : slices.pdqsortCmpFunc.specOn (GF := GF) (hG := hG) :=
-  slices.pdqsortCmpFunc.wp_proofOn slices.wp_insertionSortCmpFuncOn slices.wp_heapSortCmpFuncOn
-    slices.wp_breakPatternsCmpFuncOn slices.wp_choosePivotCmpFuncOn slices.wp_reverseRangeCmpFuncOn
-    slices.wp_partialInsertionSortCmpFuncOn slices.wp_partitionEqualCmpFuncOn
-    slices.wp_partitionCmpFuncOn
-
-theorem slices.wp_SortFuncPhi : slices.SortFunc.specPhi (GF := GF) (hG := hG) :=
-  slices.SortFunc.wp_proofPhi math.bits.wp_Len slices.wp_pdqsortCmpFuncOn
-
-end link
 
 end Perennial
 
@@ -155,12 +101,13 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section bridge
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [slices.Assumptions]
 
 /-- **`slices.SortFunc.specOn`** (Proof/swift/RecSync.lean): `specPhi` with `φ x := x ∈ xs`;
 the comparator's spec on two elements of the input from the persistent `P` of each. -/
-theorem slices.SortFunc.wp_proofOn : slices.SortFunc.specOn (hG := hG) := by
+theorem slices.SortFunc.wp_proofOn (wp_phi : slices.SortFunc.specPhi (GF := netDistGF) (hG := hG)) :
+    slices.SortFunc.specOn (hG := hG) := by
   intro E _ _ Et _ R P _ S _ data cmp_code xs SWO
   haveI : Persistent (slices.cmpImplementsOn (Et := Et) R P cmp_code) := by
     unfold slices.cmpImplementsOn; infer_instance
@@ -174,7 +121,7 @@ theorem slices.SortFunc.wp_proofOn : slices.SortFunc.specOn (hG := hG) := by
     unfold slices.cmpImplementsOn
     iapply Hcmp $$ [] HΨ
     isplitl [] <;> iassumption
-  iapply (slices.wp_SortFuncPhi (E := E) (Et := Et) R (fun x => x ∈ xs) (S := S) data cmp_code xs
+  iapply (wp_phi (E := E) (Et := Et) R (fun x => x ∈ xs) (S := S) data cmp_code xs
     SWO (fun _ h => h)) $$ [Hxs]
   · iframe Hxs; iframe #; ipureintro; exact Hlen
   iintro %xs' !> ⟨Hxs, %Hperm, %Hsorted⟩

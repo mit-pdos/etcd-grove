@@ -46,7 +46,7 @@ theorem cwInv_reg (cw : GMap w32 Loc) (ws : GMap Loc w32) (cl : w32) (w : Loc)
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 theorem iface_excl (l : Loc) (v1 v2 : GoInterface) :

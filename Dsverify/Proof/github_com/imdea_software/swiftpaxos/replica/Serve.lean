@@ -9,8 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ServeSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Conn
-
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnDefs
 @[expose] public section
 
 noncomputable section
@@ -24,7 +23,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [net.rpc.Assumptions]
   [errors.Assumptions] [dlog.Assumptions] [time.Assumptions]

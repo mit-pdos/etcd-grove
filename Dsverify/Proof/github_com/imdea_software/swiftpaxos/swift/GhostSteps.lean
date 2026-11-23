@@ -12,8 +12,9 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Steps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Ghost
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeaf
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.GhostDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.InternalDeps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HashLeafDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunCtx
 
@@ -40,7 +41,7 @@ end defs
 
 section proof
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [client.Assumptions]
 
 set_option goose.wp.extras true
@@ -69,7 +70,7 @@ theorem swift.ghostStep_slice (γ : sp.Names) (k : Nat) (e : sp.PEv) (Q : IProp 
     WP (App (Val (@! client.GhostStep)) (Val #sl)) {{ Φ }} := by
   iintro ⟨#Hpkg, #Hok, Hsl, Hupd, HΦ⟩
   imod ownSlice_persist $$ Hsl with #Hsl
-  iapply (client.GhostStep.wp_proof (hG := hG) γ (sp.PNode.rep k) e sl Q) $$ [Hupd]
+  iapply (SwiftKitDeps.ghostStep (hG := hG) γ (sp.PNode.rep k) e sl Q) $$ [Hupd]
   · iframe Hpkg Hok Hsl
     iapply (swift.ghostUpd_step γ k e Q he) $$ Hupd
   inext

@@ -24,13 +24,8 @@ module
 
 public import Net.Proof.net.Base
 public import GooseLang.Ext.Net.Proto
-public import Net.Proof.net.DialTimeout
-public import Net.Proof.net.Dial
-public import Net.Proof.net.Listen
-public import Net.Proof.net.Listener__Accept
-public import Net.Proof.net.Conn__Close
-public import Net.Proof.net.Conn__RemoteAddr
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDeps
 
 @[expose] public section
 
@@ -92,6 +87,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF]
 
 /-- `net`'s `errTimeout` and `poll.ErrDeadlineExceeded`'s values, from `net`'s initialization. -/
 theorem net.et_ed_init :
@@ -119,7 +115,7 @@ theorem net.DialTimeout.labProof (a : GoString) (d : w64) (P Q : Proto GF) :
   icases net.et_ed_init $$ Hpkg with ⟨%et, %ed, #Het, #Hed⟩
   ihave %Hok := addrTok_ok a $$ [Ha]
   · iapply addrProto_tok $$ Ha
-  iapply net.DialTimeout.wp_proof go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.dialTimeout (GF := GF)) go!"tcp" net.tcpNet_tcp a d et ed iprop(True)
     (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false P Q [] [] ∗
       connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
   · iframe Het Hed
@@ -164,7 +160,7 @@ theorem net.Dial.labProof (a : GoString) (P Q : Proto GF) :
   iintro %Φ #Ha HΦ
   ihave %Hok := addrTok_ok a $$ [Ha]
   · iapply addrProto_tok $$ Ha
-  iapply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp a iprop(True)
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.dial (GF := GF)) go!"tcp" net.tcpNet_tcp a iprop(True)
     (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false P Q [] [] ∗
       connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
   · isplitr
@@ -214,7 +210,7 @@ theorem net.Listen.labProof (la : GoString) (P Q : Proto GF) :
   iunfold lisProto at Hlp'
   icases Hlp' with ⟨-, -, %Hok⟩
   iapply wp_fupd
-  iapply net.Listen.wp_proof go!"tcp" net.tcpNet_tcp la $$ []
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.listen (GF := GF)) go!"tcp" net.tcpNet_tcp la $$ []
   · isplitr
     · ipureintro; exact Hok
     iapply listen_lis_au la P Q $$ Hlp
@@ -254,7 +250,7 @@ theorem net.Listen.labProofU (la : GoString) (hok : listenOk la = true) :
         (∃ i, ⌜er = interface.ok i⌝) }} := by
   iintro %Φ Hu HΦ
   iapply wp_fupd
-  iapply net.Listen.wp_proof go!"tcp" net.tcpNet_tcp la $$ [Hu]
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.listen (GF := GF)) go!"tcp" net.tcpNet_tcp la $$ [Hu]
   · isplitr
     · ipureintro; exact hok
     iexact Hu
@@ -291,7 +287,7 @@ theorem net.TCPListener.Accept.labProof (ll : Loc) (lid : w64) (la : GoString) (
   iintro %Φ ⟨#Hl, #Hlp⟩ HΦ
   iunfold net.ownListener at Hl
   icases Hl with ⟨%x, #Hat, #Hon, #Hinv⟩
-  iapply net.Listener.Accept.wp_proof ll lid x la (fun _ => iprop(True))
+  iapply (github_com.imdea_software.swiftpaxos.SwiftNetDeps.accept (GF := GF)) ll lid x la (fun _ => iprop(True))
     (fun _ cn => iprop(connEnd (Gg := hG.goose_globalGS) cn true Q P [] [] ∗
       connFresh (Gg := hG.goose_globalGS) cn true)) $$ []
   · iframe Hat Hon

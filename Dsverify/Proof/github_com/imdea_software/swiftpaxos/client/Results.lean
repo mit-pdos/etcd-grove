@@ -24,9 +24,11 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Client_
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Client__callMaster
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Client__findClosest
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleReply
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.NewClient
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.NewClientLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Perennial.Proof.bytes.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.Unmarshal
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.LatencyTable__WaitDuration
 
 -- PORT: lab imports dropped: Harness.Proof.net.rpc.Client, Harness.Proof.net.TCPConn__Close
 
@@ -43,7 +45,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section link
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
   [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 variable [bufio.Assumptions] [state.Assumptions] [encoding.binary.Assumptions]
@@ -98,7 +100,7 @@ end link
 
 section handler
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
   [SwiftOsRandom netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions]
@@ -142,7 +144,7 @@ end handler
 
 section newclient
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
   [SwiftOsRandom netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
@@ -150,7 +152,9 @@ variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.As
   [errors.Assumptions] [bufio.Assumptions]
 
 theorem swift.rd.wp_RegisterRPCTable : swift.rd.RegisterRPCTable.specI (hG := hG) :=
-  swift.rd.RegisterRPCTable.wp_proof
+  swift.rd.RegisterRPCTable.wp_proof swift.rd.MLightSlowAck.Unmarshal.wp_proof
+    swift.rd.MFastAckClient.Unmarshal.wp_proof swift.rd.MReply.Unmarshal.wp_proof
+    replica.defs.LatencyTable.WaitDuration.wp_proofNil
 
 /-- `swift.NewClient`, linked; it rests on the change log C6 record (`facts`: the swift
 package's state on the client node, owned by the swift prover). -/
@@ -166,7 +170,7 @@ end newclient
 
 section connect
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
   [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
@@ -174,7 +178,7 @@ variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumpt
 variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF] [RpcHttpHyp netDistGF]
 
 theorem client.Client.wp_call : client.Client.call.specI (hG := hG) :=
-  client.Client.call.wp_proof dlog.Logger.wp_Println
+  client.Client.call.wp_proof dlog.Logger.wp_Println net.rpc.Client.Call.wp
 
 /-- `Connect`, linked; it rests on the change log C6 record (`facts`: `defs.LatencyConf` is
 `""`, the defs package's state on the client node). -/
@@ -193,7 +197,7 @@ end connect
 
 section connectC
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
   [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
@@ -202,7 +206,7 @@ variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttp
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 
 theorem client.Client.wp_callG : client.Client.call.specI (hG := hG) :=
-  client.Client.call.wp_proof dlog.Logger.wp_Println
+  client.Client.call.wp_proof dlog.Logger.wp_Println net.rpc.Client.Call.wp
 
 theorem client.BufferClient.wp_ConnectG (facts : swift.handler.ClientPkgFacts (hG := hG)) :
     client.BufferClient.Connect.specG (hG := hG) :=

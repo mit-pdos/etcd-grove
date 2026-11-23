@@ -31,7 +31,7 @@ public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.client.NodeGhos
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MsgRep
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AqQuorum
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PoolFns
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PoolFnsDefs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ConnSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ServeSpecs
@@ -51,7 +51,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [swift.Assumptions]
 
 /-- The table's entries, once the channels are bags (the swift messages' `New`/`Unmarshal`),
@@ -86,7 +86,7 @@ end defs
 
 section defs2
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 
 /-- What the `select` loop starts from (see the file header): `runPre` with the connection
