@@ -1,11 +1,12 @@
 /-
 `Member(peer, client)` (`examples/etcd/dist/putget/putget.go`): the member machine's program of
-`putget_safe` -- `env.ClearProxy()`, the one member of a new cluster (`etcdstart.StartServer(Name, peer,
+`putget_safe` -- the one member of a new cluster (`etcdstart.StartServer(Name, peer,
 client, zap.NewNop())`), etcd's gRPC API served at `client` (`etcdstart.Serve`), then `holdForever()`; an
 error from a step returns. Lean-first (no Rocq counterpart); `notes/putget-dist-plan.md`, section 10.
 
 **The triple:** from the package's `isPkgInit`, the main thread's token, the member's named Iris premises
-(`etcdstart.premises`, the in-process putget's), its data directory fresh (`dataDirFresh`) and its WAL area
+(`etcdstart.premises`, the in-process putget's), `ETCD_VERIFY` off (`envVerifyOff`, the statement's
+`HEnvTok`), its data directory fresh (`dataDirFresh`) and its WAL area
 fresh (`memberAreasFresh`), its share of the distributed start against phase 7 S2's draft names
 (`memberShare`: its client address set to serve etcd's table at the publication name `γE` and its member id
 `id`, its half of the publication token, the publication invariant at `Pub`) and the obligation on `Pub`
@@ -25,6 +26,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Env
 
 @[expose] public section
 
@@ -56,7 +58,7 @@ abbrev Member.spec : Prop :=
   v3rpc.ServerMethodSets →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget ∗
       threadTok ∗ etcdstart.premises (GF := GF) name peer client (2 ^ 28) id ctxs boot ∗
-      dataDirFresh (GF := GF) (memberDataDir name) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
+      envVerifyOff (GF := GF) ∗ dataDirFresh (GF := GF) (memberDataDir name) ∗ memberAreasFresh (GF := GF) (memberDataDir name) ∗
       memberShare (G := hG.goose_globalGS) S client γE id Pub ∗ memberPubOk S Pub }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member)) (Val #peer))
       (Val #client))
