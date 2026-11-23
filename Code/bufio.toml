@@ -8,6 +8,8 @@
 #   rest of the reader's byte path (and, net/http's `ReadResponse`, 2026-11-23, `Peek`), `(*Reader).fill`, `ReadByte`, `Size`, and `ReadString` with
 #   what it runs (`collectFragments`, `ReadSlice`); the writer, `NewWriter`, `NewWriterSize`,
 #   `(*Writer).{Write,WriteByte,WriteString,Flush,Available,Buffered,Size}`; `NewReadWriter`;
+# * (net/http server, 2026-11-23: its pools of readers and writers, `Hijack`) `(*Reader).Reset`,
+#   `(*Writer).Reset`;
 # the constants they use, and the package's error variables (`errors.New` calls). Specs in
 # `Spec/bufio/`, proofs in `Proof/bufio/` (generic over an `io.Reader`/`io.Writer` contract).
 translate = ["!*", "Reader", "Writer", "ReadWriter",
@@ -16,6 +18,7 @@ translate = ["!*", "Reader", "Writer", "ReadWriter",
   "Reader.collectFragments", "Reader.ReadString",
   "NewWriter", "NewWriterSize", "Writer.Flush", "Writer.Available", "Writer.Buffered",
   "Writer.Size", "Writer.Write", "Writer.WriteByte", "Writer.WriteString", "NewReadWriter",
+  "Reader.Reset", "Writer.Reset",
   "defaultBufSize", "minReadBufferSize", "maxConsecutiveEmptyReads",
   "errNegativeRead", "ErrInvalidUnreadByte", "ErrInvalidUnreadRune", "ErrBufferFull",
   "ErrNegativeCount", "errNegativeWrite", "ErrTooLong", "ErrNegativeAdvance", "ErrAdvanceTooFar",
