@@ -16,6 +16,8 @@ E = 'Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos'
 
 def modmap(m):
     # lab module -> ours
+    # the lab's `Proof/epaxos/Base.lean` (shared defs) is `epaxos/EpBase` (`epaxos/Base` is the package fact)
+    if m == 'Epaxos.Proof.epaxos.Base': return E + '.epaxos.EpBase'
     if m.startswith('Epaxos.Model.'): return E + '.Model.' + m[len('Epaxos.Model.'):]
     if m.startswith('Epaxos.Interface.'): return E + '.Interface.' + m[len('Epaxos.Interface.'):]
     if m.startswith('Epaxos.Proof.'): return E + '.' + m[len('Epaxos.Proof.'):]
@@ -83,7 +85,8 @@ def conv(t):
     t = t.replace('''have hEc' : ↑clientN ⊆ E \\ ↑N := fun q hq =>
       CoPset.in_diff.2 ⟨hEc q hq, fun h => hNc q ⟨h, hq⟩⟩''', '''have hEc' : ⊤ \\ epEop ⊆ E \\ ↑N := fun q hq =>
       CoPset.in_diff.2 ⟨hEc q hq, fun h => (CoPset.in_diff.1 hq).2 (hNc q h)⟩''')
-    t = re.sub(r'(?m)^(theorem \S+\.spec_holds : \S+\.spec) :=', r'\1 (GF := GF) :=', t)
+    t = re.sub(r'(?m)^(theorem \S+ : [\w.]+\.spec[A-Za-z]*) :=', r'\1 (GF := GF) :=', t)
+    t = re.sub(r'\{\{ (pkgInit_\w+) (?!\(GF)', r'{{ \1 (GF := GF) ', t)
     return t
 
 PROOF = os.path.join(DST, E.replace('.', '/'))
@@ -95,7 +98,7 @@ def gf_preds(texts):
         for m in re.finditer(r'(?m)^(?:@\[[^\]]*\]\s*)?(?:noncomputable )?(?:abbrev|def) ([\w.]+)', s):
             k = s.find(':=', m.end())
             if k < 0 or k - m.end() > 600: continue
-            if re.search(r':\s*IProp GF\s*$', s[m.end():k]): names.add(m.group(1))
+            if re.search(r':\s*(?:[^:=]*→\s*)?IProp GF\s*$', s[m.end():k]): names.add(m.group(1))
     return names
 
 def gf_annotate(t, names):
@@ -104,7 +107,7 @@ def gf_annotate(t, names):
     pat = re.compile(r'(?<![\w.])(' + '|'.join(sorted((re.escape(n) for n in names), key=len, reverse=True)) + r')(?![\w.])')
     out = []; ls = t.split('\n'); i = 0
     while i < len(ls):
-        if re.match(r'^(theorem|instance|lemma) ', ls[i]):
+        if re.match(r'^(theorem|instance|lemma) ', ls[i]) or re.match(r'^\s+have \w+ : ', ls[i]):
             # the statement ends at the first `:=` outside brackets (or a `|` alternative)
             j = i; depth = 0; done = False
             while j < len(ls) and j - i < 30 and not done:
@@ -132,10 +135,16 @@ def generic_conv(t):
     # (`TreemapHyp GF` only where the store is used: a section instance whose dependencies are
     # included is included in every declaration that mentions `GF`)
     TS = ('\nvariable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]'
-          ' [TH : TreemapHyp GF]') if 'isState' in t else ''
+          ' [TH : TreemapHyp GF]') if ('isState' in t or 'examples.epaxosnet.Assumptions' in t) else ''
     t = re.sub(r'(?m)^(variable \[.*)\[net\.model\.Assumptions\](.*)$',
                lambda m: m.group(1) + '[HasExt netExt] [π : NetProtoGS]' + m.group(2) + TS, t)
     t = t.replace('[io.ExtraAssumptions]', '[io.Assumptions]')
+    # the epaxos package's proofs: the lab's kit-wide `examples.epaxosnet.Assumptions` -> the
+    # package's own (the kit's Server proof is not a dependency of the package's interface)
+    t = t.replace('[examples.epaxosnet.Assumptions]', '[epaxos.Assumptions]')
+    # the lab net model's `connFreshG_excl _ cn s` is `Proto.lean`'s `connFresh_excl cn s`
+    t = re.sub(r'connFreshG_excl _ (\S+) (\S+)', r'(connFresh_excl (Gg := G) \1 \2)', t)
+    t = t.replace('public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Server\n', '')
     # `have h := thm γ …` (no expected type): nothing determines the theorem's `GF`
     t = re.sub(r'(have \w+ := )(?!outOkB_of_toks)([a-zA-Z][\w.]*) γ ', r'\1\2 (GF := GF) γ ', t)
     # a spec taken as a hypothesis: its `GF` is not determined by anything else
@@ -199,6 +208,31 @@ def bufio_conv(t):
 
 # hand fixes after the mechanical port, by lab path: (old, new) replacements, each must apply
 FIXUPS = {
+    'Epaxos/Proof/epaxos/HCtx.lean': [
+        ("      | none => iprop(⌜pt = null⌝)\n      | some w => ownInst γ i",
+         "      | none => iprop(⌜pt = null⌝)\n      | some w => ownInst (GF := GF) γ i"),
+    ],
+    'Epaxos/Interface/EpaxosRep.lean': [
+        # `efld` over the local context only (as `Interface/Replica`'s `fld`): with `HeapGS`'s `GF`
+        # in it nothing determines `GF` at a use ("stuck go.Semantics")
+        ("""section heap
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]""", """section fld
+variable [GooseExts] [GoLocalContext] [GoGlobalContext] [go.Semantics]
+
+/-- A field of `*epaxos.Replica`. -/
+abbrev efld (r : Loc) (f : GoString) : Loc := structFieldRef epaxos.Replica f r
+
+end fld
+
+section heap
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]"""),
+        ("""
+/-- A field of `*epaxos.Replica`. -/
+abbrev efld (r : Loc) (f : GoString) : Loc := structFieldRef epaxos.Replica f r
+
+/-! ## Pieces -/""", """
+/-! ## Pieces -/"""),
+    ],
     'Epaxos/Proof/replica/Stream.lean': [
         # a connection's reader is `connRd` (Interface/ConnBuf): its stream fact is
         # `▷ protoPrefix`, bufio's `ownBufReader_fact` (the lab's `ownReader_proto` is not needed)
