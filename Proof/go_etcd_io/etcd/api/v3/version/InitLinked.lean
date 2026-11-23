@@ -81,47 +81,47 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of GitSHA))
   -- translated initializer of V3_0))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_0 ⟨%NV3_0, %oV3_0, #PV3_0⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_0 ⟨%NV3_0, %oV3_0, #PV3_0⟩
   try wp_auto
   -- translated initializer of V3_1))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_1 ⟨%NV3_1, %oV3_1, #PV3_1⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_1 ⟨%NV3_1, %oV3_1, #PV3_1⟩
   try wp_auto
   -- translated initializer of V3_2))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_2 ⟨%NV3_2, %oV3_2, #PV3_2⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_2 ⟨%NV3_2, %oV3_2, #PV3_2⟩
   try wp_auto
   -- translated initializer of V3_3))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_3 ⟨%NV3_3, %oV3_3, #PV3_3⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_3 ⟨%NV3_3, %oV3_3, #PV3_3⟩
   try wp_auto
   -- translated initializer of V3_4))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_4 ⟨%NV3_4, %oV3_4, #PV3_4⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_4 ⟨%NV3_4, %oV3_4, #PV3_4⟩
   try wp_auto
   -- translated initializer of V3_5))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_5 ⟨%NV3_5, %oV3_5, #PV3_5⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_5 ⟨%NV3_5, %oV3_5, #PV3_5⟩
   try wp_auto
   -- translated initializer of V3_6))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_6 ⟨%NV3_6, %oV3_6, #PV3_6⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_6 ⟨%NV3_6, %oV3_6, #PV3_6⟩
   try wp_auto
   -- translated initializer of V3_7))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_7 ⟨%NV3_7, %oV3_7, #PV3_7⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_7 ⟨%NV3_7, %oV3_7, #PV3_7⟩
   try wp_auto
   -- translated initializer of V3_8))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_8 ⟨%NV3_8, %oV3_8, #PV3_8⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_8 ⟨%NV3_8, %oV3_8, #PV3_8⟩
   try wp_auto
   -- translated initializer of V3_9))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV3_9 ⟨%NV3_9, %oV3_9, #PV3_9⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV3_9 ⟨%NV3_9, %oV3_9, #PV3_9⟩
   try wp_auto
   -- translated initializer of V4_0))
   try wp_auto
-  wp_apply (EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof) as %pV4_0 ⟨%NV4_0, %oV4_0, #PV4_0⟩
+  wp_apply (EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf)) as %pV4_0 ⟨%NV4_0, %oV4_0, #PV4_0⟩
   try wp_auto
   -- translated initializer of AllVersions))
   try wp_auto

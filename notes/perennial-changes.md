@@ -17,6 +17,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sort.Slice` is names-only: `mvcc.hashStorage.Store` stays an axiom (2026-11-23, ps2-crc32-merge, claim #18)
+
+- **Limitation.** Perennial's `sort` translates `sort.Sort` and `pdqsort` over a `sort.Interface`
+  (`zsortinterface.go`), but not `sort.Slice` (`slice.go`) nor `pdqsort_func` and its helpers
+  (`zsortfunc.go`): `Slice` swaps through `internal/reflectlite.Swapper(x)`, which has no model.
+  `Spec/sort/Slice.lean` is stated for `[]int64` only and is a hypothesis (`?`) of mvccrand's results.
+- **Needed by.** `mvcc.hashStorage.Store` (`hash.go`): it logs (`zap.Logger.Info` over `zap.Uint32`/
+  `zap.Int64`, specified here), appends under `hashMu`, then `sort.Slice(s.hashes, func(i, j int) bool
+  { return s.hashes[i].Revision < s.hashes[j].Revision })` and keeps the last `hashStorageMaxSize`.
+  Its axiom was thought to wait only on `hash/crc32` (`hash.go`'s hasher): crc32 is now translated and
+  proved (etcd-grove#14), but `Store` never calls crc32; `sort.Slice` is the one callee with no spec
+  that can be proved (with `hashStorageOk` carrying `hashMu`'s lock invariant over `hashes`, which
+  `NewHashStorage` would establish, every other step is provable over existing specs).
+- **Workaround.** None here: the axiom `mvcc.hashStorage.Store.wp_proof` stays (an axiom for
+  `sort.Slice` at `[]KeyValueHash` would trade one axiom for another, and a `?` hypothesis would add a
+  premise to every result reaching `store.compact`).
+- **Proposed change.** In Perennial: translate `slice.go` (`Slice`, `SliceStable`, `SliceIsSorted`) and
+  `zsortfunc.go` (`pdqsort_func` and the `_func` helpers, the same code as the interface ones over
+  `lessSwap`), with a trusted model of `reflectlite.Swapper` for slices (swap two elements of the slice
+  the interface holds; panics on a non-slice), and prove `sort.Slice` generically in the element type
+  (the order of `less` not required, as `sort.Sort.wp_anyLess`). A trusted-model change: a PR for
+  upamanyus's review.
+
 ### Goose drops the implicit conversion of a type-parameter value to an interface (2026-11-23, zap-z1, claim #40)
 
 - **Limitation.** Where Go converts a value of a type parameter `T` to an interface implicitly (an
