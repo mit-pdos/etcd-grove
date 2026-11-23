@@ -57,6 +57,8 @@ theorem client.Client.call.wp_proof
     client.Client.call.specI (hG := hG) := by
   intro cl v r W a sm svc M S args reply Φc Rargs D Θ
   wp_start as ⟨Hcl, #Hq, #Hcs, #Hko, #Hrc, %HS, Henc, HD, #HDw⟩
+  obtain ⟨HS1, HS2, Hreply⟩ := HS
+  have HS : _ ∧ _ := ⟨HS1, HS2⟩
   wp_auto
   wp_apply (chan.wp_make2 (V := GoInterface) (t := go.error) (W64 1)) as %ch %γ ⟨#Hch, %Hcap, Hown⟩
   · ipureintro; decide
@@ -70,10 +72,13 @@ theorem client.Client.call.wp_proof
   wp_apply (lc := 4) wp_fork $$ [Henc HD]
   · wp_auto
     wp_apply net.rpc.swiftClient.Client.Call.wp r W a sm svc M S args reply Φc Rargs D Θ
-      net.rpc.RpcCodec.spec $$ [$Hcs $Hrc Henc $HD $HDw] as %err Hres
-    · isplitr
-      · ipureintro; exact HS
-      iexact Henc
+      net.rpc.RpcCodec.spec $$ [$Hcs $Hrc Henc $HD] as %err Hres
+    · dsimp only [net.rpc.RpcCodec.spec]
+      isplitr
+      · ipureintro; exact ⟨HS.1, HS.2, Hreply⟩
+      isplitl [Henc]
+      · iexact Henc
+      iexact HDw
     wp_apply wp_bag_send γ ch err (client.cn.callP Rargs Φc Θ) $$ [$Hbag Hres]
     · unfold client.cn.callP
       icases Hres with (⟨%He, HR, %rep, HΦ, HΘ⟩ | ⟨%msg, ⟨%Hm, %He⟩, -, -, -, -⟩ | ⟨⟨%He, -⟩, -, -⟩)
@@ -81,7 +86,7 @@ theorem client.Client.call.wp_proof
       · iright; ipureintro; subst He; simp [net.rpc.serverErr, interface.mkOk]
       · iright; ipureintro; exact He
     itrivial
-  wp_apply time.wp_After as %ach %γa #Hafter
+  wp_apply (time.After.spec_pkgInit time.wp_After) as %ach %γa #Hafter
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
   isplit

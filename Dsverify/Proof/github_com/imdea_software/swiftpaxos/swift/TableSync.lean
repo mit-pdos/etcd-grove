@@ -143,7 +143,7 @@ theorem MSync.Unmarshal.wp_proof (wp_ND : encoding.gob.NewDecoder.spec (GF := ne
   wp_apply wp_Dec dec (DFrac.own 1) _ (bufio.ownReader br rd I) R
     (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l)
     (kitValOwn (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (DFrac.own 1) syncX0)
-    (syncPsi l) $$ [$Hgob $Hcs $Hko $Hio $Hrs $Hown $Hdec $HD] as %e ⟨Hdec, %data, Hown, Hres⟩
+    (syncPsi l) $$ [$Hgob $Hcs $Hio $Hrs $Hown $Hdec $HD] as %e ⟨Hdec, %data, Hown, Hres⟩
   · imodintro
     iintro HD %bs
     iapply KitLike.dec_intro

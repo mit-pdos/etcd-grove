@@ -212,8 +212,14 @@ theorem replica.Replica.replicaListener.wp_proof
             try wp_auto
             rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hrid.1, by omega⟩)]
             wp_auto
+            wp_apply wp_float64_mul as %f1 _
+            try wp_auto
+            wp_apply wp_float64_mul as %f2 _
+            try wp_auto
+            wp_apply wp_float64_add as %f3 _
+            try wp_auto
             try rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨Hrid.1, by omega⟩)]
-            wp_auto
+            try wp_auto
             wp_for_post
             iframe
             iexists (R ++ W8 7 :: sp.le64 ts), done ++ [.beaconReply ts], _, _, _, _, _

@@ -114,7 +114,7 @@ theorem client.Client.callMasterRL.wp_proof (wp_call : client.Client.call.specI 
         (DFrac.own 1) client.cn.rlX0) (client.cn.rlTheta rp)
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
-      · ipureintro; exact ⟨rfl, HS⟩
+      · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
       isplitl [«$r0»]
       · iapply enc_of C
         simp only [net.rpc.RpcCodec.enc]
@@ -243,7 +243,7 @@ theorem client.Client.callMasterL.wp_proof (wp_call : client.Client.call.specI (
         (DFrac.own 1) client.cn.glX0) (client.cn.glTheta rp)
       $$ [$Hcl $Hq $Hcs $Hko $Hmc HD «$r0»] as %err ⟨Hcl, Hres⟩
     · isplitr
-      · ipureintro; exact ⟨rfl, HS⟩
+      · ipureintro; exact ⟨rfl, HS, by simp [interface.mkOk]⟩
       isplitl [«$r0»]
       · iapply enc_of C
         simp only [net.rpc.RpcCodec.enc]

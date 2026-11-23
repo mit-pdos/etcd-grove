@@ -158,7 +158,8 @@ abbrev client.Client.call.specI : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       cl ↦ v ∗ dlog.quiet v.Logger' ∗
       net.rpc.codecSet (GF := netDistGF) net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk ∗
-      net.rpc.isClient r W a ∗ ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S⌝ ∗
+      net.rpc.isClient r W a ∗
+      ⌜net.rpc.splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
       net.rpc.RpcCodec.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, net.rpc.RpcCodec.dec rep reply (Θ rep)) }}
     (App (App (App (App (Val (cl @!! go.GoType.PointerType client.Client.ty @!! go!"call"))
