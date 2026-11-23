@@ -5,7 +5,7 @@ listeners unset: `robust_of_distProtoLisRBT_sha`, over the kit's two extensions)
 (`sw_start`: the names, the rpc world, remote's store's ghost variable, the machines' shares),
 remote's map of operations, the client addresses' remote protocols, remote's pending library over
 the store `swRK γk`, and each machine's boot: its command's first initialization
-(`BootCmds.lean`, `wp_boot`: `bootRes`) and its `main` (`Mains.lean`) over the linked machine
+(`BootCmdsLinked.lean`, `wp_boot`: `bootRes`) and its `main` (`Mains.lean`) over the linked machine
 specs (`Link.lean`).
 -/
 module
@@ -14,7 +14,7 @@ public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftn
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Mains
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Bridge
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.BootCmds
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.BootCmdsLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Start
 
 @[expose] public section

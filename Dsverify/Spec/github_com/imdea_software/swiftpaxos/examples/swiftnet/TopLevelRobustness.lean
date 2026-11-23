@@ -27,7 +27,7 @@ and the start's net protocol names `π`):
   specs (`RpcHttpHyp`, per heap);
 * net/rpc's first initialization on a machine (`RpcFirstInit`, `lib/RpcBoot.lean`): it returns
   net/rpc's boot resources (`rpcBootRes`). The kit's own packages' first initializations are
-  proved (`BootLinked.lean`, `BootCmds.lean`).
+  proved (`BootLinked.lean`, `BootCmdsLinked.lean`).
 Proved in `Dsverify/Proof/github_com/imdea_software/swiftpaxos/examples/swiftnet/TopLevelRobustness.lean`.
 -/
 module

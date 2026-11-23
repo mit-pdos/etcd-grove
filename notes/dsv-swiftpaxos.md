@@ -120,6 +120,8 @@ The list asked for. They are named after the lab's specs, with the reason each i
 
 Read with the twelfth session's state below (accurate where this does not say otherwise).
 
+**The statement closes** (`swiftpaxos_remote_robust`, Lean's three axioms).
+
 **Done (pushed, all `lean-check -a` clean).**
 - **The boot, proved** (coordinator's decision: the kit's own packages' first runs are proved;
   `RpcFirstInit` is the approved visible per-heap premise for net/rpc's initializer only, stands
@@ -160,25 +162,42 @@ Read with the twelfth session's state below (accurate where this does not say ot
   `libsAt l π`), `ra : RpcHttpAddr`, `rh : RpcHttpHyp`, `RpcFirstInit`; conclusion
   `DistDeploy swAddrs (system σ) g → Robust [] (system σ) g threads (2 ^ 31 - 1)`.
 
-**Next.**
-1. `Link.lean` (namespace `Perennial.EtcdGrove.dsvswiftpaxos`): `wp_Orch`, `wp_Client`,
-   `wp_Server` from the machine proofs' callees (list in the eleventh session's state). The
-   deep part is `swift.New`'s link: the lab's `ServersLink.lean` (ported copy before its
-   deletion: `git show 871bdf6501^:Dsverify/Proof/github_com/imdea_software/swiftpaxos/examples/swiftnet/ServersLink.lean`)
-   links `swift.wp_New` (`swift/Results.lean`) over `SrvPkgFacts`, the batcher, the reply
-   channel, `HookUser1`, `run.wp_proof'` with `runLoopOk_of` and the arms; its pkg facts
-   (`srv_pkg_facts`, `srv_errvarint_fact`, `srv_pool_fact`, `srv_hooks_fact`) come now from
-   `isPkgInit_access` of `swift.pkgSt`/`replica.pkgSt`/`defs.pkgSt` (no `pkgStates`). Names
-   changed since (gob: `*.wp_hyp` → the `SwiftHyps` fields; `kitCodecOkC_holds` gone): adapt.
-   Client side: `swift.wp_NewClient` and `Connect.wp_proofG` take `ClientPkgFacts` (the same
-   kind of facts); `client.claimGhost.wp_proof` (Claim.lean); `master.wp_call_btl`.
-2. `TopLevelRobustness.lean` (proof), as dsv-epaxos's: `robust_of_distProtoLisRBT_sha`,
-   `sw_start`, `mapCtx_alloc`, `addrs_set_proto` at `clientAddrs`, `pend_alloc` from
-   `sysK γk swB.init`; per machine `wp_bootR` with `cmd.<n>.wp_boot` and `cmd.<n>.wp_main`
-   (`bootRes` → `clientRes`'s `client.ghostFresh`, `codecFresh` (from `rpcBootRes`), `cliBoot`
-   (`receiptBound`, `net.rpc.cliEnv` from `srvEnv`, `dialEnv`); `srvBoot` likewise, `swift.mutGlobals`
-   from `mutGlobalsInit_mutGlobals`).
-3. `#print axioms`, `etc/theorem-loc.py`, `etc/tcb-collections/dsv-swiftpaxos.txt`.
+- `BootCmds.lean` was renamed `BootCmdsLinked.lean` (it imports `BootLinked`: a linking module).
+- **`Link.lean`** (`examples/swiftnet/Link.lean`, namespace `Perennial.EtcdGrove.dsvswiftpaxos`,
+  the kit's only `Link.lean`): `srv_pkg_facts`, `srv_errvarint_fact`, `srv_pool_fact`,
+  `srv_hooks_fact` (from `isPkgInit_access` of `replica.pkgSt`/`defs.pkgSt`/`swift.pkgSt`),
+  `wp_swiftNew` (the lab's `ServersLink.lean` `snew` case, ported: gob through `SwiftHyps`'
+  `*.wp_hyp`), `client_pkg_facts`, `swNetDeps` (Net's `net.*.wp_proof`, rabia's
+  `io.ReadFull.wp_proofLt`), `wp_Client`, `wp_Orch`, `wp_Server`.
+- **Port change for the client's fast-ack pool**: `swift.pkgSt` no longer holds
+  `useFastAckPool ↦□ false` (the mutable globals are the boot thread's), so
+  `swift.handler.ClientPkgFacts.pkgFacts` dropped it; the client node's boot persists it
+  (`bootRes` → `swift.mutGlobalsInit`), and it travels in `clientRes`, `newClient.spec`'s pre,
+  `nodeEnv`, and `swift.NewClient.spec`'s pre (`NewClientBody`, `ClientMachine`,
+  `ClientConnect`, `ClientLeaders` adjusted).
+- **`swiftpaxos_remote_robust`, proved** (`examples/swiftnet/TopLevelRobustness.lean`):
+  `robust_of_distProtoLisRBT_sha`; `sw_start_at` (`sw_start` at `libsAt l π`, its `regCtx` at
+  `π`); `mapCtx_alloc`; `addrs_set_proto` at `clientAddrs`; `pend_alloc` from `sysK γk
+  swB.init`; per machine `wp_bootR cmd.<n>.initialize' cmd.<n>.main _ getIsPkgInit bootRes
+  cmd.<n>.wp_boot` and `cmd.<n>.wp_main` over `Link.lean`'s specs (`bootRes_client`,
+  `bootRes_server`). `libsAt` is now an `abbrev` (else the start's `NetProtoGS` `π` and
+  `(libsAt l π).toNetProtoGS` do not unify in `iframe`).
+  **`#print axioms swiftpaxos_remote_robust`: `propext`, `Classical.choice`, `Quot.sound`**
+  (`lake build` of the top module, 3492 jobs; all 493 kit modules build).
+- **TCB** (`etc/tcb-collections/dsv-swiftpaxos.txt`, roots `^Dsverify/Proof/github_com/imdea_software/swiftpaxos/`,
+  baseline none). `etc/tcb-report.py --check` needs every repository root built (`proof_roots.check_built`
+  runs `lake build --no-build` over all `Link` modules): not run (no full build allowed here).
+  `etc/theorem-loc.py --collection etc/tcb-collections/dsv-swiftpaxos.txt swiftpaxos_remote_robust`:
+  TCB 729 lines, all premises (`tcb_axioms` 0); `--list-tcb` lists the seven `InitHyp`s,
+  `SwiftHyps`, `SwiftNoSignals`, `SwiftOsRandom`, `RpcFirstInit`, `RpcHttpHyp`, `RpcHttpAddr`.
+  `proof_roots.namespace()` prints `Perennial.EtcdGrove.`.
+- Tier violations under the kit: 230 (down from 232).
+
+**Remaining (for landing).** Merge `origin/lean` (Perennial pin), rerun `etc/gen-init.py` and
+`etc/dsv/_swiftpaxos_boot.py`; the tier restructuring (230 violations, mostly the lab's
+proof→proof imports); `tcb-report --check` after a full build; when models-rpc-http lands, replace
+`RpcHttpAddr`/`RpcHttpHyp` by its specs; when `Net/` provides the per-machine net/rpc boot
+resource, replace `RpcFirstInit`.
 
 ## State (2026-11-23, twelfth session; superseded where the thirteenth says so)
 

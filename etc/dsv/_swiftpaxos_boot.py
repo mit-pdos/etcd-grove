@@ -206,7 +206,7 @@ first, through `swiftnet`'s (`BootLinked.lean`, `boot_swiftnet`), at the command
 def main():
     chain = table()
     files = {os.path.join(P, 'BootTable.lean'): boot_table(chain),
-             os.path.join(P, 'BootCmds.lean'): boot_cmds()}
+             os.path.join(P, 'BootCmdsLinked.lean'): boot_cmds()}
     bad = False
     for f, txt in files.items():
         path = os.path.join(ROOT, f)
