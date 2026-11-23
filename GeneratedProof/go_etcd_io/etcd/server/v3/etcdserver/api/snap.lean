@@ -5,6 +5,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.errors
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import GeneratedProof.go_uber_org.zap
 public import Perennial.GeneratedProof.io
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.api.snap
@@ -120,12 +121,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
 noncomputable instance Snapshotter_typed_pointsto :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter where
+  typedPointstoDef l v dq := iprop(
+    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" l) v.lg' dq ∗
+    "dir" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" l) v.dir' dq ∗
+    "fsyncDir" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"fsyncDir" l) v.fsyncDir' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Snapshotter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Snapshotter_access_load_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" l) v.lg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Snapshotter_access_store_lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (lg' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"lg" l) lg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := lg' } : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Snapshotter_access_load_dir (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" l) v.dir' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" l) v.dir' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Snapshotter_access_store_dir (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (dir' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" l) v.dir' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"dir" l) dir' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dir' := dir' } : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Snapshotter_access_load_fsyncDir (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"fsyncDir" l) v.fsyncDir' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"fsyncDir" l) v.fsyncDir' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Snapshotter_access_store_fsyncDir (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (fsyncDir' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"fsyncDir" l) v.fsyncDir' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go!"fsyncDir" l) fsyncDir' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fsyncDir' := fsyncDir' } : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Snapshotter
