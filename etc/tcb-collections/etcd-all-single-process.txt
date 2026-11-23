@@ -1,0 +1,13 @@
+# The single-process closed etcd theorem (examples/etcd/all; notes/etcd-unified-scope.md, the user's
+# decisions D1-D6 and N1-N7 of 2026-11-21): the results of
+# Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/Results.lean (`etcd_all_Main`,
+# `etcd_adequate_of`, `etcd_safe_single_process`: eleven etcd examples, each on a cluster of its own, at
+# once in one process) and MainLinked.lean, over the eleven drivers' linked `Main` results. Retired at
+# the net swap (2026-11-22, collection etcd-all.txt, tag single-process-final) and restored over the net
+# extension (2026-11-23, etcd-grove#28, notes/single-process-restore.md).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/etcd-all-single-process.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/(Results|MainLinked)\.lean$
