@@ -377,9 +377,10 @@ end pure2
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The server's half of its log of requested entries** `L` (exclusive; the KV invariant's).
 (2026-10-27: until then raft's `rLog`, the client's half of the whole committed log.) -/
@@ -407,17 +408,6 @@ theorem srvRLogLb_idx (γ : ServerRaftNames) (L : List EntryModel) :
     srvRLogLb (GF := GF) γ L ⊢ ⌜srvIdxOkW γ.ai0 L⌝ := by
   unfold srvRLogLb; iintro ⟨-, %H⟩; ipureintro; exact H
 
-/-- **The cluster's storage model** (raft's storage API at the `MemoryStorage` registry `reg`):
-the instance the node API's node predicates are stated at, for the server. -/
-abbrev srvStor (γ : SrvRaft) : StorageModel GF :=
-  letI : MemStorReg GF := ⟨γ.reg⟩
-  inferInstance
-
-/-- Any storage model (the node API's laws take one, unused). -/
-abbrev srvAnyStor : StorageModel GF :=
-  letI : MemStorReg GF := ⟨default⟩
-  inferInstance
-
 /-- Two prefixes of the committed log are comparable. -/
 theorem srvRLogLb_prefix (γ : ServerRaftNames) (A B : List EntryModel) :
     srvRLogLb (GF := GF) γ A ∗ srvRLogLb γ B ⊢ ⌜A <+: B ∨ B <+: A⌝ := by
@@ -439,7 +429,38 @@ theorem srvRLogLb_mono (γ : ServerRaftNames) (A B : List EntryModel) (h : A <+:
   · iapply isCommittedLogLb_mono γ.raft.cl _ _ (srvLE_prefix_of γ A B h) $$ HB
   · ipureintro; exact srvIdxOkW_prefix γ.ai0 A B hB h
 
+/-- **A prefix of the server's log of requested entries** (persistent; the auth-mode merge's step 5,
+2026-10-29): a lower bound in the view of the KV invariant's log (`srvRLog`), which holds no raft
+fillers; `srvRLogLb` bounds raft's committed log, fillers included, and converts to it
+(`srvReqLogLb_of_rlogLb`). -/
+def srvReqLogLb (γ : ServerRaftNames) (L : List EntryModel) : IProp GF :=
+  monoListLbOwn γ.raft.log L
+
+instance srvReqLogLb_persistent (γ : ServerRaftNames) (L : List EntryModel) :
+    Persistent (srvReqLogLb (GF := GF) γ L) := by
+  unfold srvReqLogLb; infer_instance
+
 end ghost
+
+section ghostHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The cluster's storage model** (raft's storage API at the `MemoryStorage` registry `reg`):
+the instance the node API's node predicates are stated at, for the server. -/
+abbrev srvStor (γ : SrvRaft) : StorageModel GF :=
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  inferInstance
+
+/-- Any storage model (the node API's laws take one, unused). -/
+abbrev srvAnyStor : StorageModel GF :=
+  letI : MemStorReg GF := ⟨default⟩
+  inferInstance
+
+end ghostHeap
 
 /-! ## The conf-change policy (pure) -/
 
@@ -1251,17 +1272,6 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
     simp only [EntryModel.toLE] at h1 h2
     rw [← h1, ← h2]; exact ht
 
-
-/-- **A prefix of the server's log of requested entries** (persistent; the auth-mode merge's step 5,
-2026-10-29): a lower bound in the view of the KV invariant's log (`srvRLog`), which holds no raft
-fillers; `srvRLogLb` bounds raft's committed log, fillers included, and converts to it
-(`srvReqLogLb_of_rlogLb`). -/
-def srvReqLogLb (γ : ServerRaftNames) (L : List EntryModel) : IProp GF :=
-  monoListLbOwn γ.raft.log L
-
-instance srvReqLogLb_persistent (γ : ServerRaftNames) (L : List EntryModel) :
-    Persistent (srvReqLogLb (GF := GF) γ L) := by
-  unfold srvReqLogLb; infer_instance
 
 /-- The empty prefix. -/
 theorem srvReqLogLb_nil (γ : ServerRaftNames) : ⊢ |==> srvReqLogLb (GF := GF) γ [] := by

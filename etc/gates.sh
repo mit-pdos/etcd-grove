@@ -232,6 +232,8 @@ fail=0
 # the built .oleans, so only after a successful build
 # (its Lean runs are cached across worktrees by a content hash of their inputs; `--no-cache` to bypass)
 python3 etc/model-param-check.py || fail=1
+# phase 7 S2 (O2): the specs a service table holds reach no HeapGS (etc/heapfree-check.py)
+python3 etc/heapfree-check.py || fail=1
 python3 etc/pbschema-check.py || fail=1
 # raft-entsize: etcd's bootstrapped raft configuration has MaxSizePerMsg = 2^20 (`rnStartCfg`'s
 # `maxMsg`, a field of the bootstrap contract; examples/entsize, about a second)

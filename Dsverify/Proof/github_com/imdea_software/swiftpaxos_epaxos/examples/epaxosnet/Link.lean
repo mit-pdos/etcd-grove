@@ -8,7 +8,7 @@ the wire's (`wire/Link.lean`), dlog's, Net's (`Listen`, `DialTimeout`, `Conn.*`,
 `SetCodec`, `Client.Call`, `Client.Close`), bufio's, `time.Sleep`, primitive's `RandomUint64`, and
 remote's `ServeClient`/`Check`; then the kit's `Server`, `Client`, `Orch`. What is not proved stays
 an instance argument: net/rpc over HTTP (`RpcHttpAddr`, `RpcHttpHyp`, `Interface/RpcHttpHyps.lean`)
-and gods' treemap (`TreemapHyp`, `Interface/Treemap.lean`), which the statement takes.
+and gods' treemap (`StateTreemap`, `Interface/Treemap.lean`), which the statement takes.
 -/
 module
 
@@ -68,7 +68,7 @@ variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
 variable [master.Assumptions] [epaxos.Assumptions] [log.Assumptions] [net.http.Assumptions]
 variable [io.Assumptions] [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
 variable [replica.Assumptions] [replica.defs.Assumptions] [bufio.Assumptions]
-variable [bvi : go.BasicIntoValInj] [NaInvG GF] [TH : TreemapHyp GF]
+variable [bvi : go.BasicIntoValInj] [NaInvG GF] [TH : StateTreemap GF]
 
 /-- `nodeConfig`, over `digit`. -/
 theorem wp_nodeConfig : nodeConfig.spec (GF := GF) (hG := hG) :=

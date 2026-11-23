@@ -1813,6 +1813,16 @@ theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel)
 
 /-! ### A client's view of the auth history (the auth-mode merge's 5b, 2026-10-29) -/
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A client's view of the auth history** (the auth-mode merge's 5b): half of the mono-list
 authority of the history along the requested log (`admStates`; `kvInvOn` holds the other half).
 Its holder is the only one who can give the update an admin request recorded in the history needs
@@ -1823,6 +1833,16 @@ def authHistView (γk : KVNames) (hs : List auth.AuthState) : IProp GF :=
 /-- **A lower bound of the auth history** (persistent). -/
 def authHistLb (γk : KVNames) (hs : List auth.AuthState) : IProp GF :=
   monoListLbOwn γk.hist hs
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- The namespace of a client's freezable view (`authHistCell`). -/
 def authHistN : Namespace := nroot .@ "auth_hist"
@@ -1849,6 +1869,16 @@ def authHistCell (γk : KVNames) (γz : GName) : IProp GF :=
 def authHistFrozen (γk : KVNames) (γz : GName) (hs : List auth.AuthState) : IProp GF :=
   iprop(authHistCell γk γz ∗ authHistMark γz hs)
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 instance authHistView_timeless (γk : KVNames) (hs : List auth.AuthState) :
     Timeless (authHistView (GF := GF) γk hs) := by
   unfold authHistView; infer_instance
@@ -1860,6 +1890,16 @@ instance authHistLb_persistent (γk : KVNames) (hs : List auth.AuthState) :
 instance authHistLb_timeless (γk : KVNames) (hs : List auth.AuthState) :
     Timeless (authHistLb (GF := GF) γk hs) := by
   unfold authHistLb; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 instance authHistMark_persistent (γz : GName) (hs : List auth.AuthState) :
     Persistent (authHistMark (GF := GF) γz hs) := by

@@ -58,7 +58,7 @@ abbrev EtcdServer.checkLeaseRenew.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseRenew"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (err : GoInterface), RET #err; E.RD ∗ levelTok lease.lessorLvl ∗ applyErrIs err ∗
-      (∀ _ : err = GoInterface.nil, leaseCheckFrom s E tok n
+      (∀ _ : err = GoInterface.nil, leaseCheckFrom (srvTLSId s) E tok n
         (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) }}
 
 end spec

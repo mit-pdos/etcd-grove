@@ -1,0 +1,14 @@
+# Types and constants only (klog-leaves, 2026-11-23): klog's `settings` names `severity.Severity`
+# (`severityValue`) and `[severity.NumSeverity]io.Writer` (`file`), so `loggingT` translates only
+# with them (Code/k8s_io/klog/v2.toml).
+translate = ["!*", "Severity", "InfoLog", "WarningLog", "ErrorLog", "FatalLog", "NumSeverity", "Char"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+
+[[skip]]
+names = ["Name"]
+reason = """
+A literal: a `[]string` composite literal of constants, with no call. It terminates, cannot panic
+and has no effect beyond its variable."""

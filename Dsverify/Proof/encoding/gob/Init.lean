@@ -1,7 +1,8 @@
 /-
-**A hypothesis**: `encoding/gob`'s initializer meets Perennial's initialization spec (notes/dsv-quepaxa.md,
-"Hypotheses"; dsv-vr's pattern, `Dsverify/Proof/encoding/json/Init.lean` there). `encoding/gob` is
-names only in the part (`common.GetRealSizeOf`), its variables' initializers and `init` functions untranslated, so its `initialize'` cannot be proved here, and the rule is no new axiom and no trusted code:
+**A hypothesis**: `encoding/gob`'s initializer meets Perennial's initialization spec (notes/dsv-quepaxa.md and
+notes/dsv-swiftpaxos.md, "Hypotheses"; dsv-vr's pattern, `Dsverify/Proof/encoding/json/Init.lean` there). `encoding/gob` is
+names and types only in the part (quepaxa's `common.GetRealSizeOf`; swiftpaxos's codec, whose
+gob specs are hypotheses), its variables' initializers and `init` functions untranslated, so its `initialize'` cannot be proved here, and the rule is no new axiom and no trusted code:
 the spec is the class `InitHyp` (a `Prop`), which every theorem whose proof initializes `encoding/gob` takes
 as an instance argument (`etc/gen-init.py`'s `dsv_inits` adds the section variable, `dsv_hyp_fix`),
 up to the kit's closed statement. Replace by a proved `wp_initialize'` when the package's
