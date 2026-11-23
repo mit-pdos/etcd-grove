@@ -71,7 +71,7 @@ theorem etcd_leasecatchup.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etc
 /-- **The multi-member lease example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/leasecatchup/Main.lean`), under `run`'s
 semantic premises. -/
-theorem etcd_leasecatchup.wp_Main [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem etcd_leasecatchup.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_leasecatchup.Main.spec (GF := GF) (hG := hG) :=
   etcd_leasecatchup.Main.wp_proof zap.NewNop.wp_proof etcd_leasecatchup.wp_run

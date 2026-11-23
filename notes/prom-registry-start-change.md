@@ -1,9 +1,8 @@
 # prometheus's default registry, route (b): the final trusted diff (for Upamanyu's sign-off, #15)
 
-Branch `prom-registry` (notes/prom-registry.md, "Route (b)"). **Status: draft.** Parts 1-3 are final as of step 1
-(commit `8168da033b` and after). Part 4 (`Start.lean`) and part 5 (the closed statements) are filled in once step 2
-lands: step 2 proves `Register`/`MustRegister` over the real code and moves the closed proofs to rights each run
-allocates itself. Nothing lands before sign-off.
+Branch `prom-registry` (notes/prom-registry.md, "Route (b)"). **Status: final** (step 2, milestone 3, 2026-11-22:
+everything builds; `@@TCB@@`). Parts 1-2 are as of step 1 (commit `8168da033b`); parts 3-5 are step 2's (milestones 2
+and 3). Nothing lands before sign-off.
 
 ## 1. Points for the sign-off
 
@@ -211,25 +210,50 @@ constants with the maps of the real default registry, and of a new registry with
 (`cd examples && GOTOOLCHAIN=go1.27.3 go test ./lib/prombuiltins/`). The test passes, and fails when a constant is
 changed.
 
-## 3. Trust-boundary axioms (step 1)
+## 3. Trust-boundary axioms (route (b) overall: steps 1 and 2)
 
-- Removed: prometheus's `initFuncsOk` (its `init.«0»`, now the trusted code above, stepped in its initializer's
-  proof); `defaultRegistry.init`, `DefaultRegisterer.init` and `DefaultGatherer.init` out of prometheus's
-  `opaqueInitsOk` (translated).
-- Added: `dto`'s `opaqueInitsOk` and `initFuncsOk` (point 1).
-- Still axioms until step 2: `EtcdGrove.prometheus.MustRegister.wp_proof`, `Register.wp_proof`,
-  `collectorName`, `nameFree`.
+Removed:
+- prometheus's `initFuncsOk` (its `init.«0»`, now the trusted code above, stepped in its initializer's proof), and
+  `defaultRegistry.init`, `DefaultRegisterer.init`, `DefaultGatherer.init` out of prometheus's `opaqueInitsOk`
+  (translated) (step 1). Since lean's #23 (`d760b6e42a`) prometheus's other variables are goose `[[skip]]` entries
+  and its `opaqueInitsOk` is gone; this branch takes the three registry variables off that skip list, since it
+  translates their initializers;
+- `EtcdGrove.prometheus.collectorName` (now a definition, `RegInv.lean`), `prometheus.MustRegister.wp_proof`,
+  `prometheus.Register.wp_proof` (theorems over the real `(*Registry).MustRegister`/`Register`) (step 2, milestone 2);
+- `EtcdGrove.prometheus.nameFree` (`Registry.lean`) and `EtcdGrove.prometheus.nameUnclaimed` (`Start.lean`)
+  (milestone 3). With them the definitions `prometheus.namesUnclaimed`, `prometheus.namesFree`,
+  `prometheus.descIdsDistinct` and `read.readRegPerm` are deleted.
 
-## 4. `Proof/runtime/Start.lean`: removal only (step 2's last commit)
+Added:
+- client_model `dto`'s `opaqueInitsOk` and `initFuncsOk` (point 1; step 1).
 
-Removed, and nothing added:
-- `prometheus.nameFree n` from `startRights` (which becomes `startRights As Ds`);
-- `goose_adequacy_start`'s `Ns`, `hNs` and `hNsFree`, and `goose_adequacy_start_all`'s `hNsIds`;
-- the axiom `prometheus.nameUnclaimed` and the definition `prometheus.namesUnclaimed`.
+Changed:
+- `goose_adequacy_start` (part 4);
+- `grpc_prometheus.NewServerMetrics.wp_proof`: its post gains `∃ ps ds, describes ⟨*ServerMetrics, m⟩ ps ∗
+  ps ↦□ ds ∗ ⌜srvDescsOk (!os.isEmpty) ds⌝` (what providers/prometheus v1.1.0's `Describe` sends: the server
+  metrics' descriptors, their names, IDs and validity) (milestone 2);
+- the seven constructor axioms (`NewCounter`, `NewCounterVec`, `NewGauge`, `NewGaugeFunc`, `NewGaugeVec`,
+  `NewHistogram`, `NewHistogramVec`): their posts' `⌜collectorName c n⌝` becomes `collectorName c n`, now a
+  persistent `IProp` (`NewGaugeFunc`'s `⌜nameOk → collectorName⌝` becomes `(⌜nameOk⌝ → collectorName)`)
+  (milestone 2).
 
-The old text (`lean`, today) follows. Each closed proof makes its rights itself: inside its `Hwp`, it allocates a
-ghost map of the IDs its program's packages register. The registry's invariant, built by that run's prometheus
-initializer, owns every registered ID's element.
+## 4. `Proof/runtime/Start.lean`: removal only
+
+net-swap (etcd-dist D2, branch `net-swap`, merged here before it is on `lean`) removed the address part; this
+branch removes the names part. Nothing is added to the statements (the file header gains a sentence saying the
+names part is gone). Removed by this branch:
+- `prometheus.nameFree n` from `startRights` (which becomes `startRights Ds`);
+- `goose_adequacy_start`'s `Ns`, `hNs` and `hNsFree`, and `goose_adequacy_start_all`'s `hNsIds` (and its `Ns`,
+  `hNs`, `hNsFree`);
+- the axiom `prometheus.nameUnclaimed` and the definition `prometheus.namesUnclaimed` (and the file's import of
+  `Registry.lean`).
+
+Each closed proof makes its rights itself: inside its `Hwp`, it allocates a ghost map of the IDs its program's
+packages register (`prometheus.regKeys_alloc`, `Proof/runtime/PkgInitRes.lean`, from the decided `regQsOk regQs`)
+and makes its name the run's `PromRegGS`. The registry's invariant, built by that run's prometheus initializer,
+owns every registered ID's element.
+
+**Before** (`lean` at `aa1eb4da33`, both parts):
 
 ```lean
 def startRights {GF : BundledGFunctors} [GooseExts] (Ns As Ds : List GoString) : IProp GF :=
@@ -237,13 +261,89 @@ def startRights {GF : BundledGFunctors} [GooseExts] (Ns As Ds : List GoString) :
     ([∗list] a ∈ As, httpProtoFree a) ∗ ([∗list] d ∈ Ds, dataDirFresh d) ∗
     envVerifyOff)
 
-axiom goose_adequacy_start ... (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
-    (hAsLit : ...) (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As) ...
-    (Hwp : ∀ [hG], ... -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗ WP e ...) ...
+axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
+    (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
+    (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
+    (hAsLit : ∀ a ∈ As, netAddrLit a = true)
+    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
+    (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (Hwp : ∀ [hG : HeapGS .hasLC GF],
+      receiptBound GF = N →
+      threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
+        extsLocalStart (GF := GF) σ.world -∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
+
+theorem goose_adequacy_start_all ... -- the same binders, but
+    (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1)
+    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState)))
+    (hNsIds : prometheus.descIdsDistinct Ns := by decide +kernel) : ...
+
+axiom prometheus.nameUnclaimed [GooseExts] (e : Expr) (n : GoString) : Prop
+def prometheus.namesUnclaimed [GooseExts] (e : Expr) (Ns : List GoString) : Prop :=
+  ∀ n ∈ Ns, prometheus.nameUnclaimed e n
+-- (InvNet.lean, net-swap's part) axiom addrUnclaimed, def addrsUnclaimed
 ```
 
-## 5. The closed statements (filled in with step 2)
+**After** (this branch):
 
-Expected: each closed theorem that passes names loses `HNs`/`Ns` (the `namesUnclaimed` premise:
-`mvccfull_adequate`, `mvccrand_adequate`, the etcdstart family, the k8s and etcd examples' `TopLevelRobustness`)
-and gains nothing. The exact before and after of each will be listed here.
+```lean
+def startRights {GF : BundledGFunctors} [GooseExts] (Ds : List GoString) : IProp GF :=
+  iprop(([∗list] d ∈ Ds, dataDirFresh d) ∗
+    envVerifyOff)
+
+axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
+    (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
+    (Ds : List GoString) (hDs : Ds.Nodup)
+    (hDsFree : dataDirsAbsent e Ds) (hEnv : verifyEnvOff e)
+    (Hwp : ∀ [hG : HeapGS .hasLC GF],
+      receiptBound GF = N →
+      threadBound GF = T →
+      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
+      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
+        extsLocalStart (GF := GF) σ.world -∗
+        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ds ={⊤}=∗
+        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNstepsBelow T n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
+
+theorem goose_adequacy_start_all ... -- the same binders, but
+    (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hbound : n < N) (Hthreads : σ.threads = 1)
+    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) : ...
+```
+
+## 5. The closed statements
+
+The closed theorems that reached `namesUnclaimed` after net-swap (which retired `etcd/all`'s, `k8s/all`'s and
+leaseexpiryN's) are mvccrand's and mvccfull's. Each loses exactly the binder
+`(HNs : prometheus.namesUnclaimed (<program> r) <names>)` and gains nothing:
+
+- `mvccrand_adequate`, `mvccrand_adequate_below` (`Proof/.../examples/mvccrand/Adequacy.lean`) and
+  `mvccrand_robust.spec` (`Spec/.../examples/mvccrand/TopLevelRobustness.lean`) lose
+  `(HNs : prometheus.namesUnclaimed (mvccrandProgram r) mvccrandNames)`;
+- `mvccfull_adequate`, `mvccfull_adequate_below`, `Results.lean`'s `mvccfull_safe` and `mvccfull_robust.spec` lose
+  `(HNs : prometheus.namesUnclaimed (mvccfullProgram r) mvccfullMetricNames)`;
+- the name lists `mvccrandNames`, `mvccfullMetricNames` (`TopLevelDefs.lean`) are deleted, unused.
+
+The distributed draft `etcd_robust.spec` (`examples/etcd/dist`, net-swap's rename of `etcd_dist_safe`; stated, not
+proved) loses `(HNs : (∀ m ∈ d.members, prometheus.namesUnclaimed (serverProg d m) serverNames) ∧ ∀ w ∈
+d.workloads, prometheus.namesUnclaimed (clientProg w (d.members.map Member.client)) clientNames)`, and its
+placeholders `serverNames`/`clientNames` are deleted.
+
+The generic etcdstart theorems that survive net-swap (`init_adequate_below`, `init_adequate`,
+`init_adequate_start`) never took names. The WAL tester (`WalTester/`) has no closed adequacy theorem over its
+initializer (its crash obligation, `tester_crash`, does not run initialization), so it needs no allocation.

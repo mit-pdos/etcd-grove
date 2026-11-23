@@ -55,7 +55,7 @@ theorem etcd_authN.wp_StartMemberAuth [_root_.Perennial.net.FieldAssumptions] :
     server_new_auth_on etcdstart.net.wp_Listen EtcdServer.wp_RaftHandler server_Start
 
 /-- **The `k` members started with auth on** (`StartMembersAuth.lean`). -/
-theorem etcd_authN.wp_StartMembersAuth :
+theorem etcd_authN.wp_StartMembersAuth [_root_.Perennial.net.FieldAssumptions] :
     etcdstart.StartMembersAuth.spec (GF := GF) (hG := hG) :=
   etcdstart.StartMembersAuth.wp_proof etcd_authN.wp_StartMemberAuth
 
@@ -86,7 +86,7 @@ theorem etcd_authN.wp_run [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.et
 
 /-- **authN's `Main(k)` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authN/Main.lean`). -/
-theorem etcd_authN.wp_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+theorem etcd_authN.wp_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     etcd_authN.Main.spec (GF := GF) (hG := hG) :=
   etcd_authN.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_Members
     etcd_authN.wp_StartMembersAuth etcd_authN.wp_run

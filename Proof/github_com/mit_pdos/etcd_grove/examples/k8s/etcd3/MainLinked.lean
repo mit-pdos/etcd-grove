@@ -60,7 +60,7 @@ theorem wp_startCluster [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd
 /-- **The driver's `MainCluster` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainCluster.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the `k`-member start's). -/
-theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem wp_MainCluster [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainCluster.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainCluster.wp_proof zap.wp_NewNop wp_startCluster wp_newStore context.wp_ErrAny
@@ -69,7 +69,7 @@ theorem wp_MainCluster [go_etcd_io.etcd.cache.v3.Assumptions]
 /-- **The driver's `MainPartition` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`MainCluster`'s, and the cluster's `Partitioner`). -/
-theorem wp_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem wp_MainPartition [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.MainPartition.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.MainPartition.wp_proof zap.wp_NewNop wp_startCluster

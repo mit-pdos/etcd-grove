@@ -55,7 +55,6 @@ def mvccrand_robust.spec : Prop :=
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (r : GoString)
-    (HNs : prometheus.namesUnclaimed (mvccrandProgram r) mvccrandNames)
     (HEnv : verifyEnvOff (mvccrandProgram r)) (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
     (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)

@@ -3,7 +3,7 @@ Package initialization with several packages' resources (mustreg, 2026-11-20): t
 `PkgInit.lean`'s `ownInitRes` (decision D19e), for programs whose import closure has several
 packages whose initializers need a resource (`etc/gen-init.py`'s `PRE_RES`: each package whose
 `init()` registers metrics with prometheus's default registry takes the right to register their
-names, `prometheus.nameFree`, decision D16).
+IDs, `prometheus.idToks`; until prom-registry, 2026-11-22, `prometheus.nameFree`, decision D16).
 
 * `ownInitResL g L`: `ownInitializing g` with, for each `(q, R)` of `L`, `R` unless the package
   `q` is initialized. A package's initializer passes the list on (`wp_package_init_resL`), or, if
@@ -18,7 +18,7 @@ names, `prometheus.nameFree`, decision D16).
   `wp_init_of_regResL`, the standard form whose precondition is all of them (`regsFree qs`).
   (prom-registry, route (b), 2026-11-22: keyed by ID, the rights are elements of the run's ghost map,
   which the default registry's invariant owns once registered; until then `namesFree Ns`, `nameFree`
-  of each name, an abstract resource.)
+  of each name, an abstract resource, which program start handed out.)
 * `regQsOk qs` (decidable): the packages' IDs pairwise distinct, none a built-in's, no name a built-in's:
   what a closed proof decides of its program to allocate the rights (`regKeysOf qs`) itself.
 
@@ -41,11 +41,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-/-- **The rights to register the names `Ns`** with prometheus's default registry: `nameFree` of
-each (D16). -/
-def prometheus.namesFree {GF : BundledGFunctors} (Ns : List GoString) : IProp GF :=
-  iprop([∗list] n ∈ Ns, prometheus.nameFree n)
 
 theorem pkgInitLe_initLe {σ0 σ : GMap GoString Bool} (h : pkgInitLe σ0 σ) : initLe σ0 σ := h
 
@@ -418,6 +413,16 @@ def prometheus.regQsOk (qs : List (GoString × List GoString × List w64)) : Pro
 instance (qs : List (GoString × List GoString × List w64)) : Decidable (prometheus.regQsOk qs) := by
   unfold prometheus.regQsOk; infer_instance
 
+/-- `regQsOk` from the keys computed as a literal `L` (`hL`, decided once: deciding `regQsOk` directly
+recomputes each key for every pair `Nodup` compares) and `L ++ builtinKeys` distinct (decided over
+literals; `∀ k ∈ L, k ∉ builtinKeys` as such times out in the elaborator's `whnf`). -/
+theorem prometheus.regQsOk_of_keys (qs : List (GoString × List GoString × List w64)) (L : List w64)
+    (hL : prometheus.regKeysOf qs = L) (hnd : (L ++ prometheus.builtinKeys).Nodup)
+    (hn : ∀ e ∈ qs, ∀ n ∈ e.2.1, n ∉ prometheus.builtinNames) : prometheus.regQsOk qs := by
+  subst hL
+  refine ⟨hnd.sublist (List.sublist_append_left _ _), fun k hk hb => ?_, hn⟩
+  exact (List.nodup_append.1 hnd).2.2 k hk k hb rfl
+
 section alloc
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [GoGlobalContext]
@@ -445,6 +450,61 @@ theorem prometheus.idToks_regsFree [prometheus.PromRegGS GF]
     · unfold prometheus.regRes; iexact He
     · unfold prometheus.regsFree at ih
       iapply ih $$ Hqs
+
+/-- The elements of the keys `ks` (distinct), inserted into a ghost map that has none of them. -/
+theorem prometheus.ghost_map_insert_list (γ : GName) (ks : List w64) (m : GMap w64 Unit)
+    (hks : ks.Nodup) (hm : ∀ k ∈ ks, m !! k = none) :
+    ghostMapAuth (GF := GF) γ 1 m ⊢
+      |==> [∗list] k ∈ ks, ghostMapElem (K := w64) (V := Unit) γ k (DFrac.own 1) () := by
+  induction ks generalizing m with
+  | nil => iintro -; imodintro; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons k ks ih =>
+    have hk : m !! k = none := hm k (List.mem_cons_self ..)
+    obtain ⟨hkn, hnd⟩ := List.nodup_cons.mp hks
+    iintro Ha
+    imod ghost_map_insert k () hk $$ Ha with ⟨Ha, Hk⟩
+    imod (ih (<[k := ()]> m) hnd (fun k' hk' => by
+      have hne : k ≠ k' := fun h => hkn (h ▸ hk')
+      rw [GMap.lookup_insert_ne m () hne]; exact hm k' (List.mem_cons_of_mem _ hk'))) $$ Ha with Hks
+    imodintro
+    iapply BigSepL.bigSepL_cons.2
+    iframe
+
+/-- Elements of non-built-in keys are rights. -/
+theorem prometheus.idToks_of_elems (γ : GName) (ks : List w64)
+    (hb : ∀ k ∈ ks, k ∉ prometheus.builtinKeys) :
+    ([∗list] k ∈ ks, ghostMapElem (K := w64) (V := Unit) γ k (DFrac.own 1) ()) ⊢
+      prometheus.idToks (GF := GF) γ ks := by
+  induction ks with
+  | nil => iintro -; unfold prometheus.idToks; iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons k ks ih =>
+    iintro Hs
+    icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨Hk, Hs⟩
+    iapply (prometheus.idToks_cons (GF := GF) γ k ks).2
+    isplitl [Hk]
+    · unfold prometheus.idTok
+      isplitr
+      · ipureintro; exact hb k (List.mem_cons_self ..)
+      · iexact Hk
+    · iapply (ih (fun k' hk' => hb k' (List.mem_cons_of_mem _ hk'))) $$ Hs
+
+/-- **A run's registration rights, allocated** (prom-registry, route (b), 2026-11-22): a fresh ghost map
+`γ` with the elements of the distinct, non-built-in keys `ks`. Each closed proof allocates its program's
+(`regKeysOf regQs`) inside its run, and makes `γ` the run's `PromRegGS`. -/
+theorem prometheus.idToks_alloc (ks : List w64) (hks : ks.Nodup)
+    (hb : ∀ k ∈ ks, k ∉ prometheus.builtinKeys) :
+    ⊢ |==> ∃ γ, prometheus.idToks (GF := GF) γ ks := by
+  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit)) with ⟨%γ, Ha⟩
+  imod (prometheus.ghost_map_insert_list γ ks ∅ hks (fun _ _ => rfl)) $$ Ha with Hs
+  imodintro
+  iexists γ
+  iapply prometheus.idToks_of_elems γ ks hb $$ Hs
+
+/-- **The rights of the packages `qs`, allocated**: `idToks_alloc` of their keys, when `regQsOk qs`. -/
+theorem prometheus.regKeys_alloc (qs : List (GoString × List GoString × List w64))
+    (hok : prometheus.regQsOk qs) :
+    ⊢ |==> ∃ γ, prometheus.idToks (GF := GF) γ (prometheus.regKeysOf qs) :=
+  prometheus.idToks_alloc _ hok.1 hok.2.1
 
 end alloc
 
