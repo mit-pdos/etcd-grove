@@ -98,8 +98,12 @@ NumSteps, ScanSteps, ScanBounds, ScanIdx, Enc, ScanLemmas, ScanTop, Facts, Inj, 
 the wire `Wire/{LineBound,Basic}.lean` (`protoOf γ : Proto GF`, connection ids `Nat`; `protos γ` over
 `addrProto` of `VsrWire.addrs`, a second hand copy of `Addrs()`: merge with `ipv4port.addrs` and prove
 `Addrs()` returns it; the configuration section moved to `examples/vsrnet/Conf.lean`).
-In progress (helper agents; absent files not yet done): `examples/vsrnet/Conf.lean` (the configuration
-protocol: `confBytes`, `ConfOk`, `cfgAddrs`, `confProto`, `ackProto`; `choose`, `encode`, `decode`,
+Done too: `examples/vsrnet/Conf.lean` (the configuration protocol, 859 lines, lean-check clean, Lean's
+three axioms over its hypotheses `net.{Dial,Listen,Listener.Accept,Conn.Write,Conn.Close}.spec` and
+`conn_readerOk` (finding 5); `CfgAddrs.wp_proof`, `wp_choose`, `wp_Conf_encode`, `wp_decode`,
+`wp_sendConf`, `Configure.wp_proof`, `conf_size` (the orchestrator's `ghost_size`), `conf_learn`,
+`wp_awaitConf`, `waitConf.wp_proof`; `confProtos γ` covers all 12 cfg addresses, the orchestrator's
+unused one too: the start sets it). Was in progress: `confBytes`, `ConfOk`, `cfgAddrs`, `confProto`, `ackProto`; `choose`, `encode`, `decode`,
 `sendConf`, `Configure`, `awaitConf`, `waitConf`; `io.ReadFull` over a connection through a hypothesis
 `conn_readerOk` mirroring dsv-bufio's `Net/Proof/net/ConnIo.lean`), and the spec hubs
 `Spec/{json,log,events,vsrwire,network,client,replica}.lean` (+ `Proof/network/Defs`, `Proof/log/*`).
@@ -220,6 +224,15 @@ hypothesis of the kit's theorems named after the lab's spec, until the piece lan
    `json.RawMessage` (`Unknown identifier encoding.json.jsontext.Value`); the port translates the
    model's names instead (its `RawMessage` is its own `[]byte` type), which is also what the
    eventual Lean half will be.
+5. **`io.ReadFull` over a connection needs a reader contract at length 0.** Perennial's
+   `io.ReadFull.spec` (and `ReadAtLeast`) asks the reader's `Pre` for every remaining length up to and
+   including `len(buf)`, so at 0, which dsv-bufio's `conn_readerOk` (`Pre := 0 < m`) rules out. So
+   `examples/vsrnet/Conf.lean` takes the hypothesis `conn_readerOk : connReaderOk` with
+   `Pre := fun _ _ => True`, which today's `net.Conn.Read.spec` does not give (`ReadOut` gives only
+   `sint.nat k = 0` for an empty read: the count could be negative, #24 item 4). To discharge it, one
+   of: Perennial's `ReadFull`/`ReadAtLeast` premise to `ys.length < xs.length` (ReadAtLeast only reads
+   while bytes remain); `Conn.Read`'s count exact (`sint.Z k = …`); a `conn_readerOk` variant on
+   dsv-bufio allowing `m = 0`. Not decided here (a Perennial or Net/ change).
 4. `ServeClient`'s `newClient` (paxos's finding) applies here as well; the kit sidesteps it the same
    way.
 
