@@ -300,8 +300,41 @@ protocol requires every head well formed (`headOk` in `grpcCliP`), so the client
 needs either the model to refuse such a head before writing it (proposed: `newClientTransportStream`
 fails the attempt when `len(b) > maxHeaderBlock + 5`, without a transparent retry, as grpc-go's
 server would answer it with a connection error), or a premise bounding the metadata. The same holds
-for the server's header and trailer blocks (a handler's `SetHeader`/`SetTrailer` metadata). Decision
-for the model's owner; not changed here.
+for the server's header and trailer blocks (a handler's `SetHeader`/`SetTrailer` metadata).
+
+**F1, fixed in the model (2026-11-23, `phase7-s2-core`; a trusted-model change for the user's review).**
+Measured against grpc-go v1.84.0 (`models/internal/grpcdifftest/headerlimit_test.go`): grpc-go's
+server does **not** advertise `SETTINGS_MAX_HEADER_LIST_SIZE` unless `grpc.MaxHeaderListSize` is set
+(`http2_server.go:205`), so its client's `checkForHeaderListSize` passes and the *receiver's* framer
+refuses a list over 16 MiB (x/net's count, name + value + 32 per field). The outcomes: client
+metadata just over the limit, Internal "stream terminated by RST_STREAM with error code:
+FRAME_SIZE_ERROR"; a value over it, Unavailable "error reading from server: EOF" (connection
+error); a server header or trailer over it, Unavailable "error reading from server: connection error:
+COMPRESSION_ERROR" after the handler ran; the handler of a refused head never runs, and a stream
+with such metadata is created (`NewStream` succeeds, `Recv` fails). The model (`MODEL:` notes on
+`headerListTooLarge`, `model_wire.go`) now checks the list before writing: the client's
+`newClientTransportStream` ends the stream unsent with one of the first two outcomes (`modelChoose`,
+no transparent retry); the server's `writeHeaderBlock` writes the marker `appendOversizedBlock` (a
+block length over the limit, no fields), which the client's reader refuses with one of grpc-go's three
+outcomes (`headerListTooLarge`, `modelChooseN(3)`). In Lean: `headerListOk`, `headOk_of_listOk`,
+`SrvFrame.oversized` (`srvFrameOk` says nothing). Left as before (a gap of the claim, now stated in
+`models/README.md`): the `MaxHeaderListSize` options are ignored, so a program that sets a limit is
+outside the claim.
+
+**Built in the session's second part** (`phase7-s2-core`): `Code/google_golang_org/grpc.toml` translates
+the frame writers with bodies (`headerListTooLarge`, `appendHeaderBlock`, `appendOversizedBlock`,
+`appendData`, `appendReset`, the frame-kind constants, `maxHeaderBlock`, `clientPreface`) and imports
+`encoding/binary` (its package fact imported in `cache/v3/Base`); `errHeaderListTooLarge` is
+skipped. Proved, no axiom: `binary.bigEndian.AppendUint32` (`Spec/encoding/binary/`, from Perennial's
+translated body; a candidate for Perennial) and `grpc.headerListTooLarge` (`false` iff
+`headerListOk (hfPairs hs)`; the model's sum now adds one length at a time, so it cannot overflow in
+GooseLang, where only `len` bounds a string below `2 ^ 63`). Not linked yet (no grpc Link holds them).
+Next, in order: `appendData` and `appendHeaderBlock` (bytes `dataFrame`, `headerBlock kind (hfPairs
+hs)` under `headerListOk`); then `newClientTransportStream`'s callees, which need the skipped error
+variables' initializers translated (`errMalformedFrame`, `transportFailureCodes`, `http2ErrConvTab`,
+`errStreamDone`, `metadataFromOutgoingContextRaw`, `ErrClientConnClosing`; goose refuses a
+reference to a skipped variable) and specs of `credentials`, `grpcutil`, `strings`, `strconv`,
+`time.Until` for `createHeaderFields`.
 
 ### 1. The vocabulary
 

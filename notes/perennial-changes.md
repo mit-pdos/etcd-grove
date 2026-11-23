@@ -17,6 +17,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `encoding/binary`'s `AppendUint32` has no spec (2026-11-23, phase7-s2-core)
+
+Perennial translates `bigEndian` with its bodies but specifies only `Uint32`/`Uint64`/`PutUint32`/
+`PutUint64`. The grpc model's frame writers call `binary.BigEndian.AppendUint32`; proved here from the
+translated body (`Spec/encoding/binary/bigEndian__AppendUint32.lean`, its proof: load the global, a
+four-byte slice literal, `wp_slice_append`). Proposed: the `Append*` methods of both byte orders in
+Perennial (`Perennial/Spec/encoding/binary/`), with the pointer-method lifts of `PtrMethods.lean`.
+
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
