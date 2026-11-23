@@ -35,6 +35,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 variable [package_sem : rabia.examples.rabianet.Assumptions]
 variable [math.rand.Hyps GF] [log.Hyps GF]
 variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [sync.Assumptions] [_root_.Perennial.bufio.Assumptions]
+variable [tcp_sem : rabia.internal.tcp.Assumptions] [msg_sem : rabia.internal.message.Assumptions]
 
 set_option goose.wp.extras true
 
@@ -334,6 +336,128 @@ theorem Op.wp_proof : Op.spec (GF := GF) := by
   icases Hres with (%h | ⟨%σ, %σ', %out, %hp, HQ⟩)
   · ileft; ipureintro; exact h
   · iright; iexists σ, σ', out; iframe HQ; ipureintro; exact hp
+
+theorem take_peers (cf : RCfg) (h : cf.n ≤ maxS) :
+    ((List.range maxS).map netAddr).take cf.n = peerStrs cf := by
+  unfold peerStrs
+  rw [← List.map_take, List.take_range, Nat.min_eq_left h]
+
+/-- `Conf`'s points-to, claimed with the machine's package state (`confClaim`). -/
+theorem conf_claim (σ : GMap GoString Bool) (E : CoPset) (hE : ↑confN ⊆ E) :
+    isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗
+      ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ⊢
+      |={E}=> (globalAddr rabia.internal.config.Conf ↦ (zeroValDef : rabia.internal.config.Config)) := by
+  iintro ⟨#Hpkg, Hσ⟩
+  ihave #Hcfg : isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.config $$ []
+  · iPkgInit
+  ihave #Hcinv : inv confN (confInv (GF := GF) (hG := hG)) $$ []
+  · have hcfg : (isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.config : IProp GF) ⊢
+        inv confN (confInv (GF := GF) (hG := hG)) := by
+      with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.rabia.internal.config
+    iapply hcfg $$ Hcfg
+  iapply confClaim E hE σ $$ [$Hcinv $Hσ]
+
+/-- `newClient(c)` (`newClient.spec`). -/
+theorem newClient.wp_proof : newClient.spec (GF := GF) := by
+  intro γ c σ hc
+  have hc6 : c < 6 := hc
+  wp_start as ⟨Hcore, Hσ⟩
+  unfold cliCore
+  icases Hcore with ⟨#Hsh, HK, Hest, -⟩
+  ihave #Hproto := shared_cliCfgProto γ c hc $$ Hsh
+  wp_auto
+  wp_apply ClientConfAddrs.wp_proof as %sl ⟨%L, Hsl, %HL⟩
+  subst HL
+  ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
+  have hcw : sint.Z (W64 (c : Int)) = (c : Int) := by word
+  have hsl : sint.Z sl.len = (nC : Int) := by
+    obtain ⟨h1, h2⟩ := Hsl0
+    rw [List.length_map, List.length_range] at h1
+    rw [h1]; exact (Int.toNat_of_nonneg h2).symm
+  rw [ite_eq_left (by rw [hcw, hsl]; omega)]
+  wp_apply wp_load_slice_index sl _ _ _ (cliCfgAddr c) (by omega) $$ [$Hsl] as -
+  · ipureintro; rw [hcw]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hc
+  wp_apply waitConf.wp_proof γ (cliCfgAddr c) $$ [] as %v ⟨%cf, %Hv, #Hcfg⟩
+  · iframe #
+  subst Hv
+  ihave %Hok := cfgIs_ok' γ.rab cf $$ Hcfg
+  have hn5 : cf.n ≤ maxS := by have := Hok; unfold RCfg.Ok at this; unfold maxS; omega
+  have hn1 : 1 ≤ cf.n := by have := Hok; unfold RCfg.Ok at this; omega
+  wp_apply NetAddrs.wp_proof as %ns ⟨%L, Hns, %HL⟩
+  subst HL
+  ihave %Hns0 := ownSlice_len _ _ _ $$ Hns
+  ihave %Hnwf := ownSlice_wf _ _ _ $$ Hns
+  have hnsl : sint.Z ns.len = (maxS : Int) := by
+    obtain ⟨h1, h2⟩ := Hns0
+    rw [List.length_map, List.length_range] at h1
+    rw [h1]; exact (Int.toNat_of_nonneg h2).symm
+  have hnz : sint.Z (W64 (cf.n : Int)) = (cf.n : Int) := by unfold maxS at hn5; word
+  rw [ite_eq_left (by rw [hnz, show sint.Z (W64 0) = 0 from rfl]; have := Hnwf; omega)]
+  ihave ⟨Hps, -⟩ := (ownSlice_split_all (W64 (cf.n : Int)) ns _ _ ⟨by rw [hnz]; omega, by omega⟩).1 $$ Hns
+  rw [show sint.nat (W64 (cf.n : Int)) = cf.n by unfold maxS at hn5; word, take_peers cf hn5]
+  iapply fupd_wp
+  imod ownSlice_persist _ _ _ $$ Hps with #Hps
+  imod conf_claim σ ⊤ (by simp) $$ [$Hpkg $Hσ] with HC
+  imodintro
+  wp_auto
+  wp_apply configure.wp_proof _ cf $$ [$Hpkg $HC $Hps] as #Hconf
+  · ipureintro; exact Hok
+  wp_apply ProxyAddrs.wp_proof as %ps2 ⟨%L, Hps2, %HL⟩
+  subst HL
+  ihave %Hps20 := ownSlice_len _ _ _ $$ Hps2
+  have hps2 : sint.Z ps2.len = (maxS : Int) := by
+    obtain ⟨h1, h2⟩ := Hps20
+    rw [List.length_map, List.length_range] at h1
+    rw [h1]; exact (Int.toNat_of_nonneg h2).symm
+  have hm : c % cf.n < cf.n := Nat.mod_lt _ (by omega)
+  have hnz' : uint.Z (W64 (cf.n : Int)) = cf.n := by unfold maxS at hn5; word
+  rw [ite_eq_right_iff.mpr (fun h => absurd (h.symm.trans hnz') (by omega))]
+  wp_auto
+  have hmod : sint.Z (W64 (c : Int) % W64 (cf.n : Int)) = ((c % cf.n : Nat) : Int) := by
+    unfold maxS at hn5
+    have e1 : (W64 (c : Int)).toNat = c := by simp; omega
+    have e2 : (W64 (cf.n : Int)).toNat = cf.n := by simp; omega
+    have e3 : (W64 (c : Int) % W64 (cf.n : Int)).toNat = c % cf.n := by
+      rw [BitVec.toNat_umod, e1, e2]
+    have e4 : c % cf.n < 5 := by omega
+    word
+  rw [ite_eq_left (by rw [hmod, hps2]; unfold maxS at hn5 ⊢; omega)]
+  wp_apply wp_load_slice_index ps2 _ _ _ (proxyAddr (c % cf.n)) (by omega) $$ [$Hps2] as -
+  · ipureintro; rw [hmod]; simp only [Int.toNat_natCast]
+    exact range_map_get _ _ _ (by unfold maxS at hn5 ⊢; omega)
+  ihave #Htcp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp) $$ []
+  · iPkgInit
+  have hc32 : (W32 (uint.Z (W64 (c : Int)))).toNat = c := by word
+  wp_apply (ClientTcpInit.wp_proof γ cf (W32 (uint.Z (W64 (c : Int)))) (proxyAddr (c % cf.n))
+    (by rw [hc32]; exact hc)) $$ [$Htcp $Hconf] as %t ⟨%γc, #Hchs, Hprod, Hown⟩
+  rw [hc32]
+  ihave Hest1 := (BigSepL.bigSepL_lookup (i := c % cf.n)
+    (by rw [List.getElem?_range (by unfold maxS at hn5 ⊢; omega)])) $$ Hest
+  try wp_auto
+  try wp_auto
+  iapply wp_fupd
+  wp_apply (ClientTCP.Connect.wp_proof γ cf c γc t hc) $$ [$Htcp $Hconf $Hsh $Hcfg $Hown $Hest1]
+  try wp_auto
+  iStructNamed «$r0»
+  irename t => Htf
+  irename mu => Hmuf
+  ipersist Htf
+  ipersist Hmuf
+  ihave Hat : clientAt γ c «$r0_ptr» γc $$ [next Hprod HK]
+  · unfold clientAt
+    iexists 0, [], []
+    iframe Hprod HK
+    isplitr
+    · ipureintro; exact ⟨rfl, by unfold opBudget; omega, fun m hm => absurd hm (by simp)⟩
+    rw [show (W32 ((0 : Nat) : Int) : w32) = 0 from rfl]
+    iexact next
+  imod sync.init_Mutex (clientAt γ c «$r0_ptr» γc) ⊤ _ $$ «$v2» [Hat] with #Hlock
+  · inext; iexact Hat
+  imodintro
+  iapply HΦ
+  unfold is_sys
+  iexists t, «$v2_ptr», γc, cf
+  iframe #
 
 end proof
 
