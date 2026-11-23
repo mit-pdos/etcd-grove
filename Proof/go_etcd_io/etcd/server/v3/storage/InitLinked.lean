@@ -28,6 +28,10 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Inc
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Dec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
@@ -134,7 +138,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.1))
     $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of quotaBackendBytes))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cquotaBackendBytes ⟨#CquotaBackendBytes, #DquotaBackendBytes, %NquotaBackendBytes⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cquotaBackendBytes ⟨#RquotaBackendBytes, %NquotaBackendBytes⟩
+  ihave #CquotaBackendBytes : (EtcdGrove.prometheus.metric.gaugeSpec cquotaBackendBytes : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals iassumption
+  ihave #DquotaBackendBytes : (EtcdGrove.prometheus.metric.gaugeSetSpec cquotaBackendBytes : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals iassumption
   try wp_auto
   -- translated initializer of DefaultQuotaSize))
   try wp_auto

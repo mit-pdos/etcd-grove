@@ -65,6 +65,9 @@ translate = ["!*",
   # until then the trust-boundary axiom `opaqueInitsOk`
   "totalEventsCounter", "hashSec", "hashRevSec", "dbTotalSize", "dbTotalSizeInUse", "dbOpenReadTxN",
   "currentRev", "compactRev", "_",
+  # (prove-ps2-metrics, 2026-11-22) the watch path's metric update, over prometheus's proved gauge
+  # `Sub` and counter `Add` (until then the trust-boundary axiom `ReportEventReceived.wp_proof`)
+  "ReportEventReceived",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go
