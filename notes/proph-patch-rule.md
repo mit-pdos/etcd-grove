@@ -119,3 +119,40 @@ variable without initializer, with an initializer that does more, with two initi
 field's struct compared (`==`, and `!=` on an array of it), a map key (directly, and an array of it in
 a struct's field type), converted to `any` (as a result, an argument, a slice element), switched
 on, a type argument, `unsafe.Sizeof`.
+
+## Ports onto the rule
+
+**gryff** (branch `dsv-gryff`): its trace prophecy is `etc/proph-patches/dsv-gryff/01-trace-prophecy.patch`
+(the project's name is `dsv-gryff`, and patches are found by project name): a ghost variable
+`traceProph` with its ghost initializer, 24 event helpers and 5 field helpers (methods of
+`*Replica`, resolving `traceProph`; the lab's 24 `ev*` constants inlined as literals with the
+name in a comment) at the end of `src/gryff/epaxosrmwhandler.go` (it has every import they need;
+`proph.go` was a new file), and the 27 calls (26 in `epaxosrmwhandler.go`'s run loop, 1 in
+`epaxos-exec.go`). What changed from the fork's ghost code to fit: no `Replica.proph` field (it
+was a copy of `traceProph`, not initialized by `NewProph`: the resolutions read `traceProph`
+directly; the proofs' `r.proph ↦□ p` became `globalAddr traceProph ↦□ p`), no constants, no new
+file. The fork is the lab's minus the ghost code (`proph.go` deleted, 4 lines of `tupaq.go` and
+the 27 call lines removed).
+
+**swiftpaxos** (landed): its ghost code does not fit the widened rule, and stays in the fork
+(`examples/dsverify/swiftpaxos/client/ghost.go`, `swift/ghost.go` and their 15 call lines):
+- `client/ghost.go`: `type Ghost struct { mu sync.Mutex; p primitive.ProphId }` is a new type
+  (the rule admits a `ProphId` field of an existing struct or a package variable);
+  `var nodeGhost = NewGhost()` is a package variable initialized by another call; `NewGhost` and
+  `theGhost` return values (and `NewGhost` allocates); and **`Invoke`, `Accept` and `Step` take
+  and release the ghost mutex `g.mu`** around a multi-word resolution, which is neither read-only
+  computation nor `Resolve*` (it blocks and writes the heap);
+- `swift/ghost.go`: `ghostId`, `ghostIds`, `ghostCmd` return slices built with `append` and slice
+  literals (allocation, results); every `ghost*` helper calls `client.GhostStep`, another
+  package's helper;
+- `client/buffer.go`: `g := theGhost()` defines a local from a call.
+All but the mutex could be rewritten to fit (resolving words directly instead of building
+slices; a ghost variable with an initializer; counted loops). The mutex cannot: a replica's
+events are resolved from several goroutines (the run loop and descriptor goroutines, under
+different locks: `ballotL`, `acceptL`, `execL`, `cntL`, `M`) and a client's from the caller and
+the reply path, and the L2 proof (`client/Ghost.lean`, `GhostDefs.lean`, `L2Laws.lean`) relies on
+each event's words being resolved atomically under it. Fitting it needs either a further
+widening (a ghost `sync.Mutex` variable whose `Lock`/`Unlock` bracket only resolutions: such a
+section terminates and has only ghost effects, so an execution of the original is one of the
+patched program in which each section runs without interleaving) or a redesign of the L2 proof
+(one event per resolution); a decision for Upamanyu / the coordinator.
