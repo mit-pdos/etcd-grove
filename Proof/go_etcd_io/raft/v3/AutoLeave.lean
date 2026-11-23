@@ -1,7 +1,7 @@
 /-
 The automatic leave of a joint configuration (2026-10-29, stage U5): the proposal `raft.appliedTo`
 steps (`confChangeToMsg(nil)`), the step it takes (`LeaveStep`, `raft.appliedTo.spec`'s post), and
-that its entry decodes (`ccEntsOk_leave`, from the trust-base fact `ccDecodeV2_nil`).
+that its entry decodes (`ccEntsOk_leave`, from `ccDecodeV2_nil`).
 -/
 module
 
@@ -55,7 +55,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
 /-- The leave's entry decodes: `stepLeader` `Unmarshal`s its empty data into the empty
-`ConfChangeV2` (`ccDecodeV2_nil`, the trust-base fact). -/
+`ConfChangeV2` (`ccDecodeV2_nil`). -/
 theorem ccEntsOk_leave :
     ⊢ ccEntsOk (GF := GF) [leaveEntM] [some (.v2 ConfChangeV2M.empty)] := by
   unfold ccEntsOk
