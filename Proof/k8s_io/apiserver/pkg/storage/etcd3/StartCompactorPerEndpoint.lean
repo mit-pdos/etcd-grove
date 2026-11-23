@@ -143,10 +143,10 @@ theorem StartCompactorPerEndpoint.wp_proof
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       (try wp_auto)
-      wp_apply wp_V as %vb -
+      wp_apply wp_V as %vb %hvb
       (try wp_auto)
       -- the endpoints: a fresh `[]string`, owned
-      wp_apply wp_Infof _ _ _ _ _ $$ [$Hasl Hesl2] as -
+      wp_apply (wp_Infof _ _ _ _ _ hvb) $$ [$Hasl Hesl2] as -
       · iframe #
         klog_args_intro
         isplitl [Hesl2]

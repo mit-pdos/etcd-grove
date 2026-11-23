@@ -3,8 +3,10 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.k8s_io.klog.v2
+public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.github_com.go_logr.logr
 public import Perennial.GeneratedProof.io
+public import GeneratedProof.k8s_io.klog.v2.internal.buffer
 public import GeneratedProof.k8s_io.klog.v2.internal.severity
 public import Perennial.GeneratedProof.runtime
 public import Perennial.GeneratedProof.sync

@@ -16,7 +16,13 @@ strings_Contains:
 RecordEtcdRequest:
 TypeOf:
 v2_V:
-Verbose__Infof:
+# (klog-printf, 2026-11-23, #25) klog's printf path, translated over Perennial's fmt and bytes; header
+# and output proved over trusted models (TrustedCode/k8s_io/klog/v2.lean)
+loggingT__header:
+loggingT__output:
+loggingT__printfDepth: loggingT__header loggingT__output
+loggingT__printf: loggingT__printfDepth
+Verbose__Infof: loggingT__printf
 # the trust boundary: reflect's reasoning principles (Proof/reflect/Values.lean) and apimachinery's
 # conversion.EnforcePtr, which uses them
 reflect_New:
@@ -108,11 +114,11 @@ v3_Compare: Cmp__Clone Cmp__ensureCompare mustInt64 mustInt64orLeaseID
 Version:
 ResponseOp__GetResponseRange:
 Client__Endpoints:
-# the trust boundary: strconv's (U2), klog's Errorf (logging); clock.RealClock.After a named
+# the trust boundary: strconv's (U2); klog's Errorf (logging, proved since klog-printf); clock.RealClock.After a named
 # hypothesis, as in client-go's link
 strconv_FormatInt:
 strconv_ParseInt:
-v2_Errorf:
+v2_Errorf: loggingT__printf
 clock_RealClock__After: ?
 # k8s.io/apimachinery/pkg/util/wait (`wait.go`, translated): the loop's context
 ContextForChannel:
@@ -201,7 +207,7 @@ store__GetList: reflect_KindCompare store__prepareKey store__pagedChunks store__
 # their callees. The trust boundary (approved: T5-d `wait.Jitter`, T5-f the metrics recorders and the
 # pointer `String`, klog's restricted `Warningf`, T5-g `Verbose.InfoS`, E1 `Status.Code`, AsLeafTy)
 Jitter:
-v2_Warningf:
+v2_Warningf: loggingT__printf
 Verbose__InfoS:
 time_Duration__Seconds:
 RecordEtcdEvent:

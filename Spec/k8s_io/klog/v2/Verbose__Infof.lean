@@ -1,6 +1,9 @@
 /-
-`v.Infof(format, args...)` (names-only): logging, a no-op for the store's results. The trust
-boundary: an axiom, `Proof/k8s_io/klog/v2/Verbose__Infof.lean`. Lean-first (no Rocq counterpart).
+`v.Infof(format, args...)`: logging, a no-op for the store's results. Proved over its translated body
+(`Proof/k8s_io/klog/v2/Verbose__Infof.lean`: when `v` is enabled, `logging.printf` at `InfoLog`;
+klog-printf, 2026-11-23, etcd-grove#25; until then names-only, a trust-boundary axiom), for a `v` with
+no logger (`v.logger` is `nil`, which `klog.V`'s post gives: ledger, 2026-11-23). Lean-first (no Rocq
+counterpart).
 
 **Restricted to the arguments klog formats returning** (klog-args-fix, 2026-11-14,
 `notes/klog-args-fix.md`), as `klog.Errorf`'s (`Spec/k8s_io/klog/v2/Errorf.lean`): an enabled
@@ -32,7 +35,7 @@ variable [sem : go.Semantics]
 /-- See the file header. -/
 abbrev klog.Verbose.Infof.spec : Prop :=
   ∀ (v : k8s_io.klog.v2.Verbose) (f : GoString) (args : GoSlice) (xs : List GoInterface)
-    (dq : DFrac),
+    (dq : DFrac), v.logger' = null →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.klog.v2 ∗ args ↦*{dq} xs ∗ klog.argsOk f xs }}
     (App (App (Val (v @!! k8s_io.klog.v2.Verbose.ty @!! go!"Infof")) (Val #f)) (Val #args))
   {{ RET #(); args ↦*{dq} xs ∗ klog.argsOk f xs }}

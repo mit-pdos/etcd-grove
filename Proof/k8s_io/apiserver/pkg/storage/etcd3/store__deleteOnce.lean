@@ -141,10 +141,10 @@ theorem store.deleteOnce.wp_proof
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       (try wp_auto)
-      wp_apply wp_V as %vb -
+      wp_apply wp_V as %vb %hvb
       (try wp_auto)
       -- the key: a `string`
-      wp_apply wp_Infof _ _ _ _ _ $$ [$Hasl] as -
+      wp_apply (wp_Infof _ _ _ _ _ hvb) $$ [$Hasl] as -
       · iframe #
         klog_args_intro
         isplitl []

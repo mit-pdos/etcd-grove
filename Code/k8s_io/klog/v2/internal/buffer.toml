@@ -1,0 +1,28 @@
+# Types only (klog-printf, 2026-11-23, etcd-grove#25): klog's printf path (`loggingT.printfDepth`,
+# Code/k8s_io/klog/v2.toml) formats into a `*buffer.Buffer` (which embeds `bytes.Buffer`: its
+# `Write`, `Bytes`, `Len` and `WriteByte` are `bytes.Buffer`'s, promoted: listed so that goose emits
+# their method-set wrappers, which call Perennial's translated `bytes.Buffer` methods), which klog's trusted
+# `loggingT.header` allocates; `GetBuffer`/`PutBuffer` (the `sync.Pool`) are names only, called by
+# the translated code only when a logger is installed, which klog's fact excludes.
+translate = ["!*", "Buffer", "Buffer.Write", "Buffer.Bytes", "Buffer.Len", "Buffer.WriteByte"]
+imports = ["!*", "bytes"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+
+[[skip]]
+names = ["Pid"]
+reason = """
+Its initializer calls, besides literals of constants and other variables' values: `os.Getpid` reads
+the process id. So it terminates, cannot panic and has no effect beyond its variable."""
+
+[[skip]]
+names = ["Time"]
+reason = """
+No initializer: a nil `*time.Time`. Nothing to run."""
+
+[[skip]]
+names = ["buffers"]
+reason = """
+A literal: a `sync.Pool` composite literal holding a function value (built, not called), with no
+call. It terminates, cannot panic and has no effect beyond its variable."""

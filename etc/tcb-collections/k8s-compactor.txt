@@ -19,8 +19,6 @@ axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
-axiom klog.Errorf.wp_proof
-axiom klog.Verbose.Infof.wp_proof
 axiom pbCompactionRequestT_reg
 axiom pbCompactionResponseT_reg
 axiom pbDeleteRangeRequestT_reg

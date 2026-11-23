@@ -6,9 +6,15 @@
 # `klog.loggingOk`, Proof/k8s_io/klog/v2/Base.lean). For `loggingT` to translate (so that `logging`
 # and its fields have a type), the packages its fields' types name are imported (`sync`, `io`,
 # `time`, `sync/atomic` and `runtime` for `VDepth`'s calls, klog's `internal/severity`, names only).
-translate = ["!*", "V", "VDepth", "newVerbose", "Level.get", "logging"]
+# (klog-printf, 2026-11-23, etcd-grove#25) with bodies also the printf path: `Errorf`, `Warningf`,
+# `Verbose.Infof`, `loggingT.printf` and `loggingT.printfDepth`, over Perennial's `fmt.Fprintf` and
+# `bytes.Buffer`; klog's output side is trusted (`loggingT.header`, `loggingT.output`: models in
+# TrustedCode/k8s_io/klog/v2.lean), and its buffer package translated types only
+# (Code/k8s_io/klog/v2/internal/buffer.toml).
+translate = ["!*", "V", "VDepth", "newVerbose", "Level.get", "logging",
+  "Errorf", "Warningf", "Verbose.Infof", "loggingT.printf", "loggingT.printfDepth"]
 imports = ["!*", "github.com/go-logr/logr", "sync", "sync/atomic", "io", "time", "runtime",
-  "k8s.io/klog/v2/internal/severity"]
+  "k8s.io/klog/v2/internal/severity", "fmt", "k8s.io/klog/v2/internal/buffer"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -20,7 +26,10 @@ translate_types = true
 # initializer is unobservable.
 # (etcd-grove#32, 2026-11-22) the `init` functions trusted: a model that does nothing
 # (TrustedCode/k8s_io/klog/v2.lean; until then names-only, the axiom `initFuncsOk`)
-trusted = ["init.0", "init.1"]
+trusted = ["init.0", "init.1",
+  # (klog-printf, 2026-11-23) the output side of the printf path: models in
+  # TrustedCode/k8s_io/klog/v2.lean, each docstring says why it is faithful
+  "loggingT.header", "loggingT.output"]
 
 [[skip]]
 names = ["klogLogger"]

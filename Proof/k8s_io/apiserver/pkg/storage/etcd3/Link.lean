@@ -125,6 +125,10 @@ public import Proof.encoding.json.Marshal
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Get
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Has
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.logWatchChannelErr
+public import Proof.k8s_io.klog.v2.loggingT__header
+public import Proof.k8s_io.klog.v2.loggingT__output
+public import Proof.k8s_io.klog.v2.loggingT__printf
+public import Proof.k8s_io.klog.v2.loggingT__printfDepth
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
@@ -445,9 +449,25 @@ theorem klog.wp_V :
     EtcdGrove.klog.V.spec (GF := GF) (hG := hG) :=
   EtcdGrove.klog.V.wp_proof
 
+theorem klog.loggingT.wp_header :
+    EtcdGrove.klog.loggingT.header.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.header.wp_proof
+
+theorem klog.loggingT.wp_output :
+    EtcdGrove.klog.loggingT.output.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.output.wp_proof
+
+theorem klog.loggingT.wp_printfDepth :
+    EtcdGrove.klog.loggingT.printfDepth.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.printfDepth.wp_proof klog.loggingT.wp_header klog.loggingT.wp_output
+
+theorem klog.loggingT.wp_printf :
+    EtcdGrove.klog.loggingT.printf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.loggingT.printf.wp_proof klog.loggingT.wp_printfDepth
+
 theorem klog.Verbose.wp_Infof :
     EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.klog.Verbose.Infof.wp_proof
+  EtcdGrove.klog.Verbose.Infof.wp_proof klog.loggingT.wp_printf
 
 theorem wp_Compact :
     EtcdGrove.k8s.Compact.spec (GF := GF) (hG := hG) :=
@@ -547,7 +567,7 @@ theorem compactor.wp_UpdateCompactRevision :
 
 theorem klog.wp_Errorf :
     EtcdGrove.klog.Errorf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.klog.Errorf.wp_proof
+  EtcdGrove.klog.Errorf.wp_proof klog.loggingT.wp_printf
 
 theorem compactor.wp_getCompactRev :
     EtcdGrove.k8s.compactor.getCompactRev.spec (GF := GF) (hG := hG) :=
@@ -883,7 +903,7 @@ theorem wp_parseEvent :
 
 theorem klog.wp_Warningf :
     EtcdGrove.klog.Warningf.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.klog.Warningf.wp_proof
+  EtcdGrove.klog.Warningf.wp_proof klog.loggingT.wp_printf
 
 theorem wp_logWatchChannelErr :
     EtcdGrove.k8s.logWatchChannelErr.spec (GF := GF) (hG := hG) :=

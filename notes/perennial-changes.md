@@ -76,6 +76,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   printing a slice of basic-typed elements by reflection (`%v`/`%s`); `fmt.Fprint`'s spec;
   `strconv.AppendQuote`'s. With the first two, the three printf axioms become proofs over trusted
   models of klog's sink only (`loggingT.header`, `loggingT.output`, the `sync.Pool` buffer pool).
+- **Status.** The first two landed in Perennial `e6b47abfd` (fmt-slices, 2026-11-23:
+  `bytes.Buffer.wp_WriteByte`, `fmt.wp_Fprintf_bytes` lending `[]string`s as `fmt.Lent.strings`).
+  klog-printf (2026-11-23) proves `Errorf`, `Warningf` and `Verbose.Infof` over them, with trusted
+  models of `loggingT.header` and `loggingT.output` only (the pool needed no model: the `header` model
+  allocates a fresh buffer, and the translated path reaches `GetBuffer`/`PutBuffer` only with a
+  logger); it builds only once etcd-grove's pin includes `e6b47abfd`. `fmt.Fprint` and
+  `strconv.AppendQuote` (for `Verbose.InfoS`): not proposed yet.
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's

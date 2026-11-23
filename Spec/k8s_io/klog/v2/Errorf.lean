@@ -1,7 +1,9 @@
 /-
-`klog.Errorf(format, args...)` (names-only; 2026-11-04, K4 of `notes/k8s-compactor-plan.md`:
-Kubernetes' compactor loop logs a failed round): logging, a no-op for the compactor's results. The
-trust boundary: an axiom, `Proof/k8s_io/klog/v2/Errorf.lean`. Lean-first (no Rocq counterpart).
+`klog.Errorf(format, args...)` (2026-11-04, K4 of `notes/k8s-compactor-plan.md`: Kubernetes'
+compactor loop logs a failed round): logging, a no-op for the compactor's results. Proved over its
+translated body (`Proof/k8s_io/klog/v2/Errorf.lean`: `logging.printf` at `ErrorLog` with klog's global
+logger and filter, both `nil` by its fact; klog-printf, 2026-11-23, etcd-grove#25; until then
+names-only, a trust-boundary axiom). Lean-first (no Rocq counterpart).
 
 **Restricted to the arguments klog formats returning** (klog-args-fix, 2026-11-14,
 `notes/klog-args-fix.md`): until then the spec took any format and any arguments, which Go refutes
@@ -10,7 +12,8 @@ argument whose `Error()` panics with a value whose `String()` panics escapes, an
 concurrently makes the runtime throw. Now the arguments' slice, at any fraction, and the arguments
 `klog.argsOk` under the format (`Spec/k8s_io/klog/v2/Args.lean`), both given back. What klog does
 beyond formatting (with its default flags, `logtostderr`, and no `SetLogFilter`: the line written
-to standard error, a failed write ignored) is the boundary's assumption, as before.
+to standard error, a failed write ignored) is now the trusted models' of klog's output side
+(`loggingT.header`, `loggingT.output`, `TrustedCode/k8s_io/klog/v2.lean`).
 -/
 module
 

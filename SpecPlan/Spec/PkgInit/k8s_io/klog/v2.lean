@@ -4,11 +4,13 @@ module
 public import GeneratedProof.k8s_io.klog.v2
 public import SpecPlan.Spec.PkgInit.Base
 public import SpecPlan.Spec.PkgInit.github_com.go_logr.logr
+public import Perennial.Proof.fmt.Base
 public import Perennial.Proof.time.Base
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.runtime.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.sync.atomic.Base
+public import SpecPlan.Spec.PkgInit.k8s_io.klog.v2.internal.buffer
 public import SpecPlan.Spec.PkgInit.k8s_io.klog.v2.internal.severity
 
 @[expose] public section

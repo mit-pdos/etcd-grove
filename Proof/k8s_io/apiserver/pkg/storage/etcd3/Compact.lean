@@ -504,8 +504,8 @@ theorem Compact.wp_proof
       · ipureintro; rfl
       iintro %sl5 ⟨Hsl5, -⟩
       wp_auto
-      wp_apply wp_V (W32 4) as %vb -
-      wp_apply wp_Infof vb _ _ _ _ $$ [$Hsl5 Hesl] as -
+      wp_apply wp_V (W32 4) as %vb %hvb
+      wp_apply (wp_Infof vb _ _ _ _ hvb) $$ [$Hsl5 Hesl] as -
       · iframe #
         klog_args_intro
         isplitl []

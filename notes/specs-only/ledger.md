@@ -25,6 +25,25 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `klog.Verbose.Infof.spec` -- needs the `Verbose`'s logger `nil`; `klog.V.spec` gives it (klog-printf, #25)
+
+- **Spec.** `Spec/k8s_io/klog/v2/Verbose__Infof.lean`, `klog.Verbose.Infof.spec`, and
+  `Spec/k8s_io/klog/v2/V.lean`, `klog.V.spec` (no SpecPlan counterpart).
+- **Defect.** `Verbose.Infof.spec` took any `v : Verbose`, too strong once proved: an enabled `v`
+  whose `logger` is not `nil` makes `printfDepth` read `v.logger.writeKlogBuffer` and `output` run
+  the installed logger's code (and an empty message then panics,
+  `issues/klog-printf-empty-with-logger.md`). `V.spec`'s post (`True`) was too weak to say which
+  `Verbose`s the callers hold.
+- **Evidence.** The proof of `Verbose.Infof` over its translated body (klog v2.140.0,
+  `klog.go:1480-1484`, `printfDepth`, `klog.go:764-784`): with `v.logger ≠ nil` it reads memory the
+  spec gives no ownership of. `V`'s code (`newVerbose`, `klog.go:1371-1377`) builds
+  `Verbose{b, nil}` when `logging.logger` is `nil`, which klog's fact (`klogInit`) holds.
+- **Proposed change.** `V.spec`'s post: `⌜v.logger' = null⌝`. `Verbose.Infof.spec`: the Lean premise
+  `v.logger' = null`. The four callers (`Compact`, `StartCompactorPerEndpoint`, `store.deleteOnce`,
+  `store.updateOnce`) pass `V`'s post on; `blockLogger.recordWait` drops it.
+- **Decision.** Accepted (klog-printf, 2026-11-23): a premise the only source of `Verbose`s meets,
+  and a stronger post of a proved function; no trusted contract changes.
+
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
 - **Spec.** `Spec/go_uber_org/zap/Defs.lean`: `zapLoggerOk` (until now `⌜l ≠ null⌝ ∗ □ zap.loggerRaw l`,
