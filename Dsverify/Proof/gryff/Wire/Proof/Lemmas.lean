@@ -22,6 +22,7 @@ public import Spec.bufio.NewWriter
 public import Spec.bufio.NewReaderOk
 public import Proof.bufio.ReaderLaws
 public import Spec.bufio.Reader__ReadOk
+public import Spec.bufio.Reader__ReadByte
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.encoding.binary.Results
 
@@ -394,6 +395,7 @@ class BufioSpecs [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
   newWriter : EtcdGrove.bufio.NewWriter.spec (GF := GF) (hG := hG)
   newReader : EtcdGrove.bufio.NewReader.specOk (GF := GF) (hG := hG)
   read : EtcdGrove.bufio.Reader.Read.specOk (GF := GF) (hG := hG)
+  readByte : EtcdGrove.bufio.Reader.ReadByte.spec (GF := GF) (hG := hG)
 
 section writer
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -891,6 +893,32 @@ theorem wp_NewReader (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
   isplitr
   · ipureintro; exact hty
   iapply EtcdGrove.bufio.preUpTo_trivial
+
+/-- `ReadByte()` (the lab's `bufio.wp_ReadByte`): dsv-bufio's `Reader.ReadByte.spec`, its error
+as `rdErr`. -/
+theorem wp_ReadByte (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8) :
+    {{ readerOk rd I ∗ ownReader br rd I R }}
+      (App (Val (br @!! go.GoType.PointerType bufio.Reader.ty @!! go!"ReadByte")) (Val #()))
+    {{ (c : w8) (err : GoInterface), RET (PairV #c #err);
+        (⌜err = interface.nil⌝ ∗ ownReader br rd I (R ++ [c])) ∨
+        (⌜err ≠ interface.nil⌝ ∗ rdErr rd err ∗ ownReader br rd I R) }} := by
+  iintro %Φ ⟨-, Hown⟩ HΦ
+  iapply BufioSpecs.readByte (GF := GF) br rd.ri (fun _ m => 0 < m) I rd.E R $$ [Hown]
+  · iexact Hown
+  iintro !> %c %err Hr
+  iapply HΦ
+  icases Hr with (⟨%he, Hown⟩ | ⟨%he, #HE, -, Hown⟩)
+  · ileft; iframe Hown; ipureintro; exact he
+  · iright
+    iframe Hown
+    isplitr
+    · ipureintro; exact he
+    unfold rdErr
+    isplitr
+    · ipureintro; exact he
+    imodintro
+    ileft
+    iexists R; iexact HE
 
 end reader
 

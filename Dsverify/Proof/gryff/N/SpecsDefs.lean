@@ -28,11 +28,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem 
 
 /-- `peerReaderAt`'s body: the reader `rd` (over `rdi`, `I`) has returned `hdr` and the encodings
 `V` of `ms`; what the underlying stream delivers after `hdr` is a prefix of `q`'s stream to `k`
-(once it delivered a byte: the dialer's reader learns `q`'s prediction from `q`'s bytes). -/
+(once it delivered a byte: the dialer's reader learns `q`'s prediction from `q`'s bytes). Port:
+the lab stated the last fact of the reader's state `I` and peeked through the reader; dsv-bufio's
+reader is not unfolded, so it is stated of the reader resource (`wire.readNext`'s shape, from
+`net.connReader_proto` where the reader is made). -/
 def peerReaderB (γ : GryffNames GF) (q k : Fin 3) (rd : Loc) (ms : List Msg) : IProp GF :=
   iprop(∃ (rdi : wire.RSt GF) (I : List w8 → IProp GF) (hdr V : List w8),
     wire.readerOk rdi I ∗ wire.ownReader rd rdi I (hdr ++ V) ∗ ⌜msgsWire ms V⌝ ∗
-    □ (∀ Y, ⌜Y ≠ []⌝ -∗ I (hdr ++ Y) -∗ I (hdr ++ Y) ∗
+    □ (∀ Y, ⌜Y ≠ []⌝ -∗ wire.ownReader rd rdi I (hdr ++ Y) ={⊤}=∗ wire.ownReader rd rdi I (hdr ++ Y) ∗
       ∃ W, peerStreamOk γ.proto q k W ∗ ⌜Y <+: W⌝))
 
 /-- `PreferredPeerOrder[m]` as `NewReplicaDurable` sets it: `int32((int(r.Id) + 1 + m) % r.N)`
