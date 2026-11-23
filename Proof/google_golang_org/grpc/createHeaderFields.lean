@@ -451,6 +451,75 @@ theorem grpc.createHeaderFields.wp_proof
   append_hf
   append_hf
   append_hf
+  wp_join iprop(∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField),
+      headerFields_ptr ↦ hsl ∗ hsl ↦* fs ∗
+      ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+      ⌜hfPairs fs = grpcHdr.baseFields ch.Method' ch.Host' ch.ContentSubtype' ua ++
+        grpcHdr.prevFields ch.PreviousAttempts'⌝ ∗
+      callHdr_ptr ↦ chp ∗
+      chp.[google_golang_org.grpc.callHdr, go!"PreviousAttempts"] ↦{dq} ch.PreviousAttempts')
+    with [headerFields Hhf Hcap callHdr PreviousAttempts]
+    as ⟨%hsl1, %fs1, headerFields, Hhf, Hcap, %Hfs1, callHdr, PreviousAttempts⟩
+  · wp_apply wp_Itoa as %istr %Histr
+    append_hf
+    isplitr
+    · itrivial
+    iexists _, _
+    iframe
+    ipureintro
+    subst Histr
+    have hpos : 0 < sint.Z ch.PreviousAttempts' := by simpa using Hif
+    simp [hfPairs, grpcHdr.baseFields, grpcHdr.prevFields, hpos]
+  · iexists _, _
+    iframe
+    ipureintro
+    have hpos : ¬ 0 < sint.Z ch.PreviousAttempts' := by simpa using Hif
+    simp [hfPairs, grpcHdr.baseFields, grpcHdr.prevFields, hpos]
+  wp_join iprop(∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField),
+      headerFields_ptr ↦ hsl ∗ hsl ↦* fs ∗
+      ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+      ⌜hfPairs fs = grpcHdr.baseFields ch.Method' ch.Host' ch.ContentSubtype' ua ++
+        grpcHdr.prevFields ch.PreviousAttempts' ++ grpcHdr.encFields ch.SendCompress'⌝ ∗
+      registeredCompressors_ptr ↦ grpcHdr.regCompOf acc ch.SendCompress' ∗
+      callHdr_ptr ↦ chp ∗
+      chp.[google_golang_org.grpc.callHdr, go!"SendCompress"] ↦{dq} ch.SendCompress')
+    with [headerFields Hhf Hcap callHdr SendCompress registeredCompressors]
+    as ⟨%hsl2, %fs2, headerFields, Hhf, Hcap, %Hfs2, registeredCompressors, callHdr, SendCompress⟩
+  · iexists _, _
+    iframe
+    isplitl []
+    · ipureintro
+      simp only [hfPairs] at Hfs1 ⊢
+      simp [Hfs1, grpcHdr.encFields, Hif]
+    simp only [grpcHdr.regCompOf, Hif, ↓reduceIte]
+    iframe
+  · append_hf
+    wp_apply wp_IsCompressorNameRegistered
+    by_cases hacc : acc = []
+    · subst hacc
+      wp_auto
+      isplitr
+      · itrivial
+      iexists _, _
+      iframe
+      isplitl []
+      · ipureintro
+        simp only [hfPairs] at Hfs1 ⊢
+        simp [Hfs1, grpcHdr.encFields, Hif]
+      simp [grpcHdr.regCompOf, Hif]
+      iframe
+    · rw [decide_eq_false hacc]
+      wp_auto
+      isplitr
+      · itrivial
+      iexists _, _
+      iframe
+      isplitl []
+      · ipureintro
+        simp only [hfPairs] at Hfs1 ⊢
+        simp [Hfs1, grpcHdr.encFields, Hif]
+      simp [grpcHdr.regCompOf, Hif, hacc]
+      iframe
   sorry
 
 end proof
