@@ -6,15 +6,19 @@ Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `le
 **`gryff-bump-1`**, the final verified run: clients on nodes of their own, Perennial `3afd77e35`;
 proof `21ef7d6` tag `final`, fork `ef17c2d`; read only, nothing in the lab changed).
 
-**State (2026-11-23, resumed under the coordinator's rule "missing library specs become
-hypotheses"):** Go and translation done (`lake build` of the gryffnet modules green; `etc/goose.py
---check --project dsv-gryff` clean); **the protocol proof is being ported by editing**, bottom-up:
-the library-free layers (`Model/`, `Kahn/`, the tag order, `Pure*`, `Proto/` pure parts, `B.Pure`,
-`Wire.Enc`/`Varint`) build, over `Names.lean` split from the lab's rpc/http vocabulary (it imports
-`Net/`'s `Net.Proof.net.rpc.Proto`, `RpcWorld`, only). The library-facing layers (NetConn -> `Net/`,
-bufio/rpc/http as hypotheses), the client on remote, the model's proof, Mains, Linked and
-`gryff_remote_robust` are not done. No `sorry`, no axiom under `Dsverify/` (the missing pieces are
-hypothesis classes, below).
+**State (2026-11-23, second resumed session; branch merged with `dsv-infra` `884cb306c9` and
+`models-rpc-server` `040ef5e808`):** Go and translation done (`etc/goose.py --check --project
+dsv-gryff` clean). **Ported by editing and building** (`lake build` of every module under
+`Dsverify/Proof/gryff/`, 186 files, green): the library-free layers (`Model/`, `Kahn/`, the tag
+order, `Pure*`, `Proto/`, `Proto2/`, `Proto2P/`, `B.Pure`, `Wire.Enc`/`Varint`), and the first
+`Net/`-facing layer, **the wire protocols** (`N/Wire{Defs,Inj,Laws}`, `Proto2/Wire`,
+`Proto/Wire{Defs,,Laws}`, `WS/Ports`: `gryffWireP`/`gryffWireQ` over `Net/`'s `Proto`,
+`sentLb`, `connFresh`; see "What changed against the lab (proof)"). **The kit's porcupine model,
+pure** (`examples/gryffnet/ModelSet.lean`: `stepG_pSeq`, `cfgSet_init`). Of the lab's 369
+`GryffProof` modules, 186 remain (below, "Next"). Not done: the library-facing layers above the
+wire (N, B, Rpc, Server, Client, H1-H3, X, Replica2, Start, Shares, Top), the kit's Go-level model
+proof, the package initializers, the client on remote, Mains, Linked, `gryff_remote_robust`, the
+TCB collection. No `sorry`, no axiom under `Dsverify/`.
 
 ## What is where
 
@@ -25,6 +29,7 @@ hypothesis classes, below).
 | translation | `etc/goose.py` project `dsv-gryff` (its entry in `etc/dsv/gryff.py`, dsv-infra's per-kit file) into the part `Dsverify/` (`Dsverify/{Code,GeneratedProof}/gryff/`), std_models `net/rpc`, `net/http` (as project `models-net`); remote, `net` and the models `Net/`'s, lintest, porcupine, `bufio`, `os` the main tree's, the rest Perennial's. `Dsverify/Code/gryff/src/stats.toml`: `StatsMap.Export` names only (JSON to a file; never called: no statistics file) |
 | the protocol's proof | `Dsverify/Proof/gryff/` (modules `Dsverify.Proof.gryff.*`, namespaces the lab's): ported by `port.py`'s mechanical renames then edited; the lab's `Harness` vocabulary the proof keeps, its pure parts only, under `Lab/` (`Model`, `ModelsCas`'s `casRegister`, `ClientSpec`'s `clientN`/`opAwp`/`opAwpMaybe`); `Slots.lean` holds the packages' states (the lab's generated `GryffNetPkgState`) |
 | the statement | not written yet (`gryff_remote_robust.spec`, `DistDeploy … → Robust [] …`, as `paxos_remote_robust`) |
+| the kit's model | `Dsverify/Proof/gryff/examples/gryffnet/ModelSet.lean` (pure, done): `casB` (linkv's `PendSpec` of the register with CAS: `applyG`, `isWriteG`), `cfgSet` (a list of `Cfg`s stands for the configurations reachable from them), `AReach` (kit.go's `reach`: pending operations applied by index, `without`), `knownCfgs` (what `step`'s second loop collects), `stepG_pSeq`, `cfgSet_init`. The Go proofs (`ModelProof.lean`: `apply`, `isWrite`, `without`, `with`, `sameCfg`, `hasCfg`, `reach`, `step`, `equal`, `Model`) are not written: they need the kit package's `Init` (below) |
 | trust base | `etc/tcb-collections/dsv-gryff.txt` not written yet (no roots) |
 
 ## What changed against the lab (Go)
@@ -180,10 +185,56 @@ clients ++ servers) gryffNetCfg`, axioms Lean's three and porcupine's `CheckOper
 
 ## Next
 
-1. The library-facing layers of the protocol proof: the lab's NetConn vocabulary at its fixed
-   `netDistGF` becomes `Net/`'s `Proto.lean` at a generic `GF` (as dsv-paxos and dsv-vr;
-   `addrProtoG` -> `addrProto`, `sentLbG` -> `sentLb`, `connFreshG` -> `connFresh`, ...; the
-   connection ids are `w64` there, `Nat` here), bufio/rpc/http/log as the hypotheses above.
-2. The client on remote (`Op(sys, in)` with remote's `lin` update, as paxos's `opAU`), the model's
-   proof (kit.go's `Model` against linkv's `PendSpec`), `Mains`, `Linked`, `gryff_remote_robust`,
-   `dsv_inits` entries, `etc/tcb-collections/dsv-gryff.txt`.
+Remaining lab modules (as of `858378e8aa`, by directory): B 16, Client 12, H1 32, H2 6, H2a 9,
+H2b 3, H2c 7, H2c2 5, H3 6, N 26, Proto2/Replica 1, Replica 2, Replica2 3, Rpc 6, S 1, Server 16,
+Shares, Start, Top, Wire 11 (`Wire/Specs`, `Wire/Proof/*`), X 15. The port helper used this
+session copies a lab file with the mechanical renames (header line, `GryffProof.` ->
+`Dsverify.Proof.gryff.`, `Gryff.{GeneratedProof,Code}.` -> `Dsverify.{GeneratedProof,Code}.`,
+`unusedSectionVars`); then by hand: `attribute [local instance] netConnExts ...` ->
+`attribute [local instance] GooseGlobalGS.gooseInvGS`, the section variables (paxos's, above),
+`netDistGF` -> `GF`, `open ... NetConn Dsv` -> `Net`, `connFreshG netDistGS` -> `connFresh`,
+`sentLbG netDistGS` -> `sentLb`, `addrProtoG netDistGS` -> `addrProto`, `addrTokG` ->
+`addrTok`, connection ids `w64` -> `Nat`, `[GooseExts]` on defs that used `netConnExts`
+implicitly. The order (the frontier of modules whose imports are ported):
+
+1. **Package initializers** (unblocks every Go-level proof, the kit's `ModelProof` first):
+   `etc/dsv/gryff.py` has no gen-init configuration yet. Model it on `origin/dsv-epaxos`'s
+   `etc/dsv/epaxos.py` (same codebase family: `PKGS`, `PROGRAMS` for the eleven commands, `MAIN =
+   ['bufio', ...]`, `MAIN_GEN`, `HYP_INITS = ['net.rpc', 'net.http', 'math.rand'?]`, `HYP_IMPORTS =
+   'none'`, `special(g)`). Gryff's package variables: `dlog.DLOG` (bool), `gryff.stack`
+   (`make([]*Instance, 0, 100)`) and `gryff.traceProph` with `gryff`'s `init()` (`proph.go`:
+   `primitive.NewProph()`, the trace prophecy, ghost code D13), `gryffnet`'s `var _ = fmt.Sprint`.
+   The prophecy is the hard part: the lab's hand-written init proof (`GryffProof/Client/Init.lean`,
+   `Server/...`) hands the node its prophecy resource (`nodeProph`, `pred_set`), which a
+   persistent `Init` fact cannot carry; decide with the coordinator (the repository's rule is
+   prophecy patches, `etc/proph-patches/`, not ghost code in the fork). Every `[<pkg>.InitHyp GF]`
+   must stay a visible premise of the statement (etc/dsv/README.md); confirm `etc/theorem-loc.py`
+   counts them when the statement exists.
+2. **The kit's model, Go-level** (`ModelProof.lean`, as paxos's): the representation is a
+   read-only slice of `Cfg{V, Pend}` structs, each `Pend` a read-only slice of `In`; `reach`'s
+   loop invariant: `out` holds the start, every element `AReach`-reachable from it, and every
+   element below `k` has all its successors (`without`) in `out`; at the end it is closed, so its
+   members are exactly the `AReach`-reachable ones; `step`'s second loop builds a `cs'` with
+   `knownCfgs`' members (`hasCfg` dedups by exact equality). Then the `ModelSpec` (as paxos's
+   `woS0`/`woS`) and `Model()`'s spec.
+3. **bufio**: wait for the revised `dsv-bufio` (review in the coordinator's scratchpad,
+   `bufio-review.md`: R1-R3, W1-W4, `ownBufReader_fact`, `ownBufWriter_fact`, `recvTokL_proto`),
+   or mirror its revised shapes as hypotheses; the lab's uses: `bufio.ownReader`/`ownWriter`,
+   `readerOk_conn`/`writerOk_conn`, `wp_NewReader`, `wp_ReadByte`, `wp_Read`, `wp_ReadFull`,
+   `wp_NewWriter`, `wp_Write`, `wp_WriteByte`, `wp_Flush`, the lab's own `writerRoom`/
+   `wp_WriteByte_room`/`wp_Write_room` (= the review's W2) and `ownReader_proto` (= R2 + C2).
+   Then `N/NetDefs` and the rest of N (the replica's connections), `Wire/Specs` and
+   `Wire/Proof/*` (the messages' Marshal/Unmarshal over bufio).
+4. **net/rpc**: `Rpc/Defs` -> `Net/`'s vocabulary: the lab's `RpcCodec` (`enc`, `dec`, `call`,
+   `methods`) is `Net/`'s `CodecSpec` (`enc`, `dec`, `rcv`) plus the server's method specs
+   (`Net/Spec/net/rpc/Server__Register.lean`, `service__call.lean`; read how the server dispatches
+   before porting `gryffCall`); the master's and replicas' addresses become the kit's
+   (`127.0.0.1:7501`, replicas' net/rpc at `127.0.0.1:850x`); `Rpc/Codec*` (the generated codec's
+   proofs, 2.6k lines) against `Net/`'s `encOk`/`decOk`/`rcvOk`. The HTTP transport
+   (`HandleHTTP`, `DialHTTP`, `http.Serve`) as hypotheses named and shaped after
+   `models-rpc-http`'s intended specs (above).
+5. Server (master, registration), Replica2/B/H*/X (the replica), Client on remote (`Op(sys, in)`
+   with remote's `lin` update in place of the lab's `opAU` at `clientN`, as paxos's `opAU`;
+   `Proto/ClientLaws`' `opAU` is the lab's shape and must change), Start/Shares (the start's
+   resources over remote's), Mains, Linked, `gryff_remote_robust` (`DistDeploy … → Robust [] …`),
+   `etc/tcb-collections/dsv-gryff.txt`.
