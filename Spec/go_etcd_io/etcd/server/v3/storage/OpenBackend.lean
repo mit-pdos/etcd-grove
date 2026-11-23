@@ -27,6 +27,9 @@ separate wand
 is unchanged: `OpenBackend`'s goroutine pays `New`'s `threadTok` with its own.
 (S5, 2026-11-18) The pre is the concrete `fileHolds` (`backend.New`'s), the post `New`'s with the
 claim on the name (`bPath γ.db`): the axiom creates nothing (`notes/bbolt-integration-plan.md`, S5).
+(#30, 2026-11-22, ledger 2026-11-22) Under `[ReceiptBoundLe GF (2 ^ 60)]`, `New`'s receipt bound
+(bbolt's `2 ^ 62` since S3e, the backend's buffers' `2 ^ 60` since #30's step 2): until then the axiom
+gave `New`'s post at any receipt bound, which `New`'s proof does not (false above that bound).
 -/
 module
 
@@ -52,7 +55,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- `OpenBackend(cfg, hooks)` of the file holding `D`: the backend `backend.New` makes. -/
 abbrev storage.OpenBackend.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
       fileHolds (config.backendPathOf cfg.DataDir') D ∗ openPre cfg h P D W Pk K }}

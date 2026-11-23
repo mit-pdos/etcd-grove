@@ -608,7 +608,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.wp_proofPinne
         ihave #Hde2 := Hde
         iunfold decEnv at Hde2
         icases Hde2 with ⟨-, -, #Hfmt, -, -, #Heof2, -, -, -, ⟨%ecm, #Hcm, #Hcmok, #Hcmnot, #Hcmt⟩, -⟩
-        wp_apply wp_Validate rcp r c' ecm _ eof $$ [Hr] as %verr ⟨Hr, Hv⟩
+        ihave %heofT := decEnv_eof_target _ _ _ $$ Hde
+        wp_apply wp_Validate rcp r c' ecm eof heofT $$ [Hr] as %verr ⟨Hr, Hv⟩
         · iframe Hr; iframe #
         icases Hv with (⟨%hv1, %hv2⟩ | ⟨%hne, %ei, %hei, -, -, -⟩)
         · subst hv1

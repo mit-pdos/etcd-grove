@@ -72,6 +72,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatchableStore
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.newWatcherGroup
 public import Proof.os.Getenv
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Sub
 public import Proof.google_golang_org.protobuf.proto.Marshal
 public import Proof.google_golang_org.protobuf.proto.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.rangeEvents
@@ -483,9 +485,17 @@ theorem traceutil.Trace.wp_Step :
     traceutil.Trace.Step.spec (GF := GF) (hG := hG) :=
   traceutil.Trace.Step.wp_proof
 
+theorem prometheus.gauge.wp_Add :
+    prometheus.gauge.Add.spec (GF := GF) (hG := hG) :=
+  prometheus.gauge.Add.wp_proof
+
+theorem prometheus.gauge.wp_Sub :
+    prometheus.gauge.Sub.spec (GF := GF) (hG := hG) :=
+  prometheus.gauge.Sub.wp_proof prometheus.gauge.wp_Add
+
 theorem mvcc.wp_ReportEventReceived :
     mvcc.ReportEventReceived.spec (GF := GF) (hG := hG) :=
-  mvcc.ReportEventReceived.wp_proof
+  mvcc.ReportEventReceived.wp_proof prometheus.gauge.wp_Sub
 
 theorem mvcc.wp_SetFinishedCompact :
     mvcc.SetFinishedCompact.spec (GF := GF) (hG := hG) :=

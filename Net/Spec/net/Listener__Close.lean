@@ -1,6 +1,6 @@
 /-
 `li.Close()` on a `Listener` `li` that is this node's listener `l` at `a` (`isListener`: a
-`*TCPListener` `t` with `lisAt t l x`; `netLisAt`), through the interface (stated on the resolved
+`*TCPListener` `t` with `lisAt t l x`; `netLisOn`: `a` a valid address or a wildcard), through the interface (stated on the resolved
 method) (`TCPListener.Close.impl`, `Net/TrustedCode/net.lean`): the extension's `LisClose` (D9,
 D17), by a logically atomic update over the listener's state (`netLis l a o`, which may be in an
 invariant: a listener shared with a thread blocked in `Accept`): the listener is closed, and the
@@ -31,7 +31,7 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 /-- See the file header. -/
 abbrev Listener.Close.spec : Prop :=
   ∀ (t : Loc) (l : w64) (x : GoInterface) (a : GoString) (Q : Option NetErr → IProp GF),
-  {{ lisAt (GF := GF) t l x ∗ netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a ∗
+  {{ lisAt (GF := GF) t l x ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l a ∗
       (|={⊤,∅}=> ∃ o, netLis (extLocalGS netExt (L := hG.goose_localGS)) l a o ∗
         ∀ res, ⌜LisCloseOutcome o res false⌝ -∗ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a false ={∅,⊤}=∗ Q res) }}
     (App (Val #(methods (go.GoType.PointerType TCPListener.ty) go!"Close" #t)) (Val #()))

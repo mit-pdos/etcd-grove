@@ -1,6 +1,6 @@
 /-
 The definitions and lemmas of `TouchDirAll.lean`'s proofs (`touchC`, `wp_existAnc`, `merged_cur`, ...), in
-a module of their own so that `TouchDirAllDir.lean` imports them without the proofs (import tiers, 2026-11-18).
+a module of their own (import tiers, 2026-11-18; `TouchDirAllDir.lean`, which imported them, retired 2026-11-22).
 -/
 module
 

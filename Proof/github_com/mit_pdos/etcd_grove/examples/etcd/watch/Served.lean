@@ -71,11 +71,11 @@ theorem wk_served_nd (Hp : mvcc.api.persistent.law (GF := GF)) (V : client.WEnv 
           ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
         (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-        srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
+        srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
-        srvStreamInterceptorWOk is iprop(True) ∗
+        srvStreamInterceptorWOk is (levelTok 0) ∗
         client.srvKVFacts V ∗ client.eofOk ∗ v3rpc.srvWOk V.W V.R.wsl v3rpc.wsN ∗
         v3rpc.srvOnce V.W ⊢
       |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗
