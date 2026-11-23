@@ -453,6 +453,44 @@ follow the rule (a proof file sees callees through their specs only).
 
 ## Next (for a successor)
 
+**STATE (2026-11-23, end of agent 3, head after `237e22869c`): `epaxos_remote_robust` IS PROVED.**
+`Dsverify/Spec/github_com/imdea_software/swiftpaxos_epaxos/examples/epaxosnet/TopLevelRobustness.lean`
+(`epaxos_remote_robust.spec`), proof in `Dsverify/Proof/.../examples/epaxosnet/TopLevelRobustness.lean`;
+`lake build` green (3220 jobs); `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
+Conclusion: `DistDeploy epAddrs (system σ) g → Robust [] (system σ) g threads (2 ^ 31 - 1)`.
+**Premises (all visible in the `.spec`; `etc/theorem-loc.py --list-tcb` counts them: TCB 514
+lines, all premises):** the commands' `Assumptions`, `net.FieldAssumptions`,
+`go.BasicIntoValInj`; for every `G L` at `heapAt G L`: `net.rpc.InitHyp`, `net.http.InitHyp`,
+`encoding.json.InitHyp`, `TreemapHyp`; `∀ G π, RpcHttpAddr remoteGF`; `∀ G L π, RpcHttpHyp
+remoteGF`; for server1..6 `RpcBoot` (the command's initializer from `ownGoState ∅` also returns
+`rpcBootRes = codecFresh ∗ net.rpc.srvEnv ∗ muxOwner []`: net/rpc's package fact is `True` in this
+part, so `srvEnv` (incl. `cliEnv`) is in the boot resource, unlike craq's). No `instance` of a
+hypothesis class; no `sorry`/axiom under the kit. Tier check: no new violations from the kit's new
+files; the 34 old `defs->proof` ones (`replica/*`, `wire/*`) remain (restructure before landing).
+`etc/tcb-collections/dsv-epaxos.txt`: roots `^Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/`,
+empty baseline (`tcb-report --check` not run: it needs a full build).
+
+**Findings / open points (for the report and the next agent):**
+1. **Step bound `2^31 - 1`, not `2^63`**: Net's net/rpc server (`ServeCodec`/`ServeConn`/`Accept`,
+   hence `HandleHTTP_spec`/`Serve_spec`) needs `threadBound GF ≤ 2^31`, and the bridge's thread
+   bound is the step count + 2 (`Bridge.lean`'s `robust_of_distProtoLisRBT` keeps that fact).
+   Getting `2^63` back needs a dist adequacy whose thread bound is the run's `threads`.
+2. **Wildcard listener at the top** (Net/remote): `robust_of_distProtoLisRB(T)` is a local copy of
+   Net's bridge over `addrs_lis_start`; Net could offer it.
+3. **models-rpc-http** (e6b232b2f6, not landed): when it lands, merge it and discharge
+   `RpcHttpAddr` (its `rpcLisP` etc.; `rpcLisP_set` then needs the world's handshake: build `W`
+   with `hs := fun _ => connectReq defaultRPCPath`, `hsAns := fun _ => connectAns`) and the client
+   fields of `RpcHttpHyp`; the net/http server part (`HandleHTTP`, `Serve`, `muxOwner`) stays a
+   hypothesis until Net has it.
+4. Kit Go changed against the lab (tests pass): `model.go`'s `Equal` always false; `kit.go`'s
+   client op waits until `start(c)` after `t0 := time.Now()` (no mutable `first`).
+5. `origin/lean` moved (`460021f946`, Perennial `940c686dd`): merge it next (repoint overrides,
+   reseed, regenerate PkgTables, `gen-init --check`, `goose --check`), then the 34-violation tier
+   restructuring (specs as hypotheses of `spec_holds`, closed in the Links), `EpaxosNewSpecEp` into
+   `epaxos/New.lean` (drop `ServeDefs`' copy `epaxosNew.spec`).
+
+**History of agent 3's session (older paragraphs):**
+
 **State (2026-11-23, resumed agent 3):** **Merged `origin/lean` `c4e044df92`** (models-rpc-server
 landed; Perennial **`c95e92207`**: `.lake/package-overrides.json` points at
 `/shared/perennial-c95e92207`, `PERENNIAL_DIR` likewise; the build seeded by `rsync` from
