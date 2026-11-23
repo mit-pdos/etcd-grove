@@ -141,7 +141,13 @@ the shared piece lands; none is an axiom.
   `step` on the decoded answer, `Kit.lean`'s `decAns`) is, and the next set is bracketed by `goStep`'s
   next state. Values are bounded (`Str8`, < 256 bytes: `encStr`'s length byte), so the store `kvB` is
   over `St = GoString → Option Str8`; `Kit.lean`'s `lift` maps it to the protocol's `KvM.State`.
-- **P4. Next steps** (2026-11-23): (1) `ModelProof.lean`: kit.go's `copyMap`, `set`, `pushPend`,
+- **P4. Next steps** (2026-11-23): (1) `ModelProof.lean` (started: `wp_pushPend` done, paxos's
+  `wp_push` with `V := pend`; for `findPend`, paxos's `wp_has` does not carry over as is: the loop
+  condition's `Hif` is `#(decide (i < len)) = #true` (`of_decide_eq_true (go.intoVal_inj Hif)`), the
+  test `p[i].K == k && p[i].V == v` loads the element's **fields** through `sliceIndexRef`
+  (`StructFieldRef pend.ty`), so it needs the field-load lemma of a slice element, not
+  `wp_load_slice_index`; `pend` has no `DecidableEq`: state the result as `b = true ↔ pend.mk k v ∈
+  P` with the first index (`pend.mk k v ∉ P.take i`), which `erasePend`'s `List.erase` needs): kit.go's `copyMap`, `set`, `pushPend`,
   `findPend`, `erasePend`, `step` (= `goStep` of `decAns`, over `kvRep`), `Model` (`isModel kvS`,
   `Equal` trivially), as paxos's `ModelProof.lean` (maps: `wp_map_for_range`, `wp_map_lookup2`,
   `wp_map_insert`, `ownMap mp DFrac.discard`); (2) `KitProof.lean`: `Codec` (`codecOk (kvR γ)`),
