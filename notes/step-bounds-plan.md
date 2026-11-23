@@ -115,7 +115,11 @@ session 2) are in this chain.
 - **Statements**: `etcd_robust`, `k8s_robust`, `leaseexpiryN`'s at `2 ^ 48` steps (was `2 ^ 40 - 11`),
   their closed theorems at `n + 1 ≤ 2 ^ 48` (the receipt bound `NewServer` needs; the budget no
   longer binds), per-`n` premises over the same range.
-- **Not raised (follow-up)**: `mvccrand`/`mvccfull` stay at `2 ^ 38`: their own operation count is
+- **Raised after step 2** (2026-11-23, branch `step-bounds-mvcc`): `mvccrand`/`mvccfull` at `2 ^ 48`
+  steps: their `2 ^ 38` was a convention passed along their own specs (`ReceiptBoundLe GF (2 ^ 38)`,
+  `Hn`), the limit being mvcc's `ReceiptBoundLe GF (2 ^ 48)`; `Ops < 2 ^ 38` (the program's
+  operation count, `12000`) unchanged. Past `2 ^ 48` needs mvcc's specs (about 130 files). Before:
+  `mvccrand`/`mvccfull` stayed at `2 ^ 38`: their own operation count is
   tied to `2 ^ 38` across about 30 spec files (`Ops < 2 ^ 38`, the store's receipt-paid supply); the
   budget no longer limits them.
 - **Finding (trusted text, for the user)**: `storage.OpenBackend.wp_proof`'s spec takes no
