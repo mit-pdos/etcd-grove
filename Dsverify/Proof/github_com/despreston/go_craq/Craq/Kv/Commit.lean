@@ -53,7 +53,8 @@ theorem wp_Commit (p : Loc) (γs : GName) (k : GoString) (v : w64) :
   icases Hk with ⟨Hsl0, Hcap0, Hits⟩
   wp_apply wp_lookup p mp m k (l0.map Prod.fst) (fun h => by simpa using Hl0.2.1 h)
     $$ [$Hitems $Hm $Hsl0] as ⟨Hm, Hsl0⟩
-  unfold errNotFound
+  ihave #Herr' := Herr
+  iunfold errNotFound at Herr
   icases Herr with ⟨%xe, %Hxe, #HeA, #HeS, #HeM⟩
   cases hks : (m !! k).isSome
   · -- absent key

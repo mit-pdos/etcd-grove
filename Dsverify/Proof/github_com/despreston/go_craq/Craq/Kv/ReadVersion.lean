@@ -56,7 +56,7 @@ theorem wp_ReadVersion (p : Loc) (γs : GName) (k : GoString) (v : w64) :
   wp_apply wp_lookup p mp m k (l0.map Prod.fst) (fun h => by simpa using Hl0.2.1 h)
     $$ [$Hitems $Hm $Hsl0] as ⟨Hm, Hsl0⟩
   ihave #Herr' := Herr
-  unfold errNotFound
+  iunfold errNotFound at Herr
   icases Herr with ⟨%xe, %Hxe, #HeA, #HeS, #HeM⟩
   have hr := map_restore (hG := hG) m S0 k
   cases hks : (m !! k).isSome
@@ -111,7 +111,6 @@ theorem wp_ReadVersion (p : Loc) (γs : GName) (k : GoString) (v : w64) :
   wp_if_destruct
   · -- loop body
     simp only [Hi.1, Hif, _root_.and_self, ↓reduceIte]
-    have Hlt : sint.Z i < sint.Z slk.len := of_decide_eq_true (go.intoVal_inj Hif)
     list_elem l0 (sint.nat i) as e
     wp_apply wp_load_slice_index slk (sint.Z i) (l0.map Prod.fst) _ e.1 Hi.1 $$ [Hsl0] with Hsl0
     · iframe; ipureintro
