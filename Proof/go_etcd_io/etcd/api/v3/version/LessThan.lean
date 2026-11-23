@@ -1,6 +1,6 @@
 /-
 The proof of `version.LessThan` (`api/v3/version`: `ver1.LessThan(&ver2)`, the arguments passed
-by value, so both receivers are fresh allocations, owned), over `semver.Version.LessThan`'s
+by value, so both receivers are fresh allocations, not nil), over `semver.Version.LessThan`'s
 spec (until 2026-11-19 a trust-boundary axiom). Lean-first.
 -/
 module
@@ -34,8 +34,12 @@ theorem version.LessThan.wp_proof
   ihave #Hsv : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_LessThan ver1_ptr ver2_ptr _ _ a b $$ [ver1 ver2] as -
-  · iframe
+  ihave %h1 := typedPointsto_not_null _ _ _ $$ ver1
+  ihave %h2 := typedPointsto_not_null _ _ _ $$ ver2
+  wp_apply wp_LessThan
+  · ipureintro; exact ⟨h1, h2⟩
+  iintro %r -
+  wp_auto
   iapply HΦ
   itrivial
 

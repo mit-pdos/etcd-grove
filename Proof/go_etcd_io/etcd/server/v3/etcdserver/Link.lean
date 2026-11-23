@@ -1051,33 +1051,9 @@ theorem semver.Version.wp_Minor :
     semver.Version.Minor.spec (GF := GF) (hG := hG) :=
   semver.Version.Minor.wp_proof
 
-theorem semver.Version.wp_Patch :
-    semver.Version.Patch.spec (GF := GF) (hG := hG) :=
-  semver.Version.Patch.wp_proof
-
-theorem semver.Version.wp_Prerelease :
-    semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
-  semver.Version.Prerelease.wp_proof
-
-theorem semver.wp_compareSegment :
-    semver.compareSegment.spec (GF := GF) (hG := hG) :=
-  semver.compareSegment.wp_proof
-
-theorem semver.wp_comparePrePart :
-    semver.comparePrePart.spec (GF := GF) (hG := hG) :=
-  semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
-
-theorem semver.wp_comparePrerelease :
-    semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
-  semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
-
-theorem semver.Version.wp_Compare :
-    semver.Version.Compare.spec (GF := GF) (hG := hG) :=
-  semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
-
 theorem semver.Version.wp_LessThan :
     semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
-  semver.Version.LessThan.wp_proof semver.Version.wp_Compare
+  semver.Version.LessThan.wp_proof
 
 theorem types.ID.wp_String_ptr :
     types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
@@ -1830,6 +1806,30 @@ theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
 theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
   storage.NewBackendHooks.wp_proof
+
+theorem semver.Version.wp_Patch :
+    semver.Version.Patch.spec (GF := GF) (hG := hG) :=
+  semver.Version.Patch.wp_proof
+
+theorem semver.Version.wp_Prerelease :
+    semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
+  semver.Version.Prerelease.wp_proof
+
+theorem semver.wp_compareSegment :
+    semver.compareSegment.spec (GF := GF) (hG := hG) :=
+  semver.compareSegment.wp_proof
+
+theorem semver.wp_comparePrePart :
+    semver.comparePrePart.spec (GF := GF) (hG := hG) :=
+  semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem semver.wp_comparePrerelease :
+    semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
+  semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
+
+theorem semver.Version.wp_Compare :
+    semver.Version.Compare.spec (GF := GF) (hG := hG) :=
+  semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
 
 end links
 
