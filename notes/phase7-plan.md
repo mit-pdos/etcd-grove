@@ -224,6 +224,56 @@ There is also one scope cut: **streams stay on the old pair in S2** (§2.6). The
 registration (`isGrpcStreamAt`, a WP of the handler) still depends on the server's heap, so it is
 used only within one machine until S3.
 
+### 0a. Amendment (2026-11-23, S2 core, branch `phase7-s2-core`): three corrections
+
+This supersedes the parts of §1.1, §1.2 (`headReady`, `grpcAttemptSlot`, `grpcCliP`, the
+"How a unary call travels" steps 2-3, "At most once" (a)) and §4 (O1, O2) that it names.
+
+1. **The unary deposit travels with the message, to the server's `dec`, not with the head.**
+   - grpc-go v1.84 runs the unary handler as soon as the stream's headers arrive (`server.go:1446-1450`),
+     and its `dec` is `stream.RecvMsg`. The client queues HEADERS in `newClientStream`
+     (`call.go:70`, `http2_client.go:915`) and only then marshals the request, in
+     `SendMsg`/`prepareMsg` (`stream.go:1072`), which can fail.
+   - The model does the same (checked): `invoke` (`models/grpc/call.go`) runs `newClientStream`,
+     whose `newClientTransportStream` (`model_transport.go`) writes the head frame in one write,
+     before `SendMsg` runs `prepareMsg` and `csAttempt.sendMsg` writes the data frame and the close
+     frame together (`Write(hdr, payld, Last: true)`, one write). On the server, `HandleStreams`
+     reads the head, `operateHeaders` refuses (`REFUSED_STREAM`, `drainReads` after it) or
+     dispatches, and `handle(s)` starts the handler before any data frame is read; the unary
+     handler is `wrapUnaryHandler`'s, whose `df` is `stream.RecvMsg`.
+   - So the deposit cannot be in the head's protocol fact: a marshal failure would leave it there
+     after a head the server dispatched. The client **registers the slot just before it writes
+     the data frame** (the marshal has succeeded, the bytes `bs` are known), and the data frame's
+     protocol fact is the slot. The server **claims when its `dec` has read a whole data frame**:
+     the handler gets the caller's `spec md m Φ Ψe` only from a `dec` that returned nil (the shape
+     of dsverify's quepaxa kit: `dec` returning nil gives `∃ m Φ, spec … ∗ Got Φ ∗ <decoded>`;
+     the handler is proved for any receipt `Got`). `headReady fs` becomes
+     `msgReady fs bs W := clientPrefaceBytes ++ headFrame fs ++ dataFrame bs <+: W`.
+   - **Refusal is per connection, not per slot.** The model refuses after the head, before reading
+     any data, possibly before the client registered its slot (the client writes its data without
+     waiting). So the server cannot give a deposit back from a slot it may not see. Instead it
+     spends its `connFresh cn true` into the slot map's invariant (`conn_refuse`, giving the
+     persistent `connRefused cn`), and the `REFUSED_STREAM` reset carries `connRefused cn`. A
+     claim needs that same `connFresh cn true`, so a refused connection's slot is never claimed,
+     and the client takes its deposit back with `connRefused cn` and its token
+     (`depSlot_takeRefused`), before the transparent retry's buffered `sendMsg` re-deposits it on
+     the new attempt's connection. `SlotOut.refused` goes: the slot's outcome type is the user's
+     (grpc: `.ok bs`, `.err d`).
+   - **Withdraw** stays as the draft has it (the dialer's `sendTok` frozen at a `W` with
+     `¬ ready W`), and the claimed states keep the claim's `sentLb cn false W'` with `ready W'`,
+     which is what refutes a withdraw after a claim. The model never needs it (a head write that
+     fails registered no slot; a data write that fails allows no retry: `shouldRetry` retries only
+     an unprocessed stream), but the library has it for other users.
+   - `depSlotInv` loses its `P` parameter (the frozen `sendTok` is at an existential protocol), so
+     `grpcCliP` and the slot are not mutually defined.
+2. **O1, decided** (kaashoek's answer on #24): `envAt γE ν` over a countable view `ν` = (`γs`,
+   `γrev`, `authOn`, the read names, `cid`); `etcdEnvOf ν` sets
+   `Nx := srvApi.kvNx (viewRd ν) false` and `Cp := kvCpOk (viewRd ν).kv`.
+3. **O2, decided**: the service table's specs are re-sectioned over
+   `[GooseGlobalGS]`/`[GoLocalContext]` (no heap). That restatement (about 30 defs modules) and the
+   etcd-side users are proving session 2's part, on its own branch; S2's core builds on its
+   interface when it lands (#24), and touches none of those modules.
+
 ### 1. The vocabulary
 
 #### 1.1 Deposit slots (net library, neutral: `GooseLang/Ext/Net/Slot.lean`)
