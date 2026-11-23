@@ -107,6 +107,24 @@ unused one too: the start sets it). Was in progress: `confBytes`, `ConfOk`, `cfg
 `sendConf`, `Configure`, `awaitConf`, `waitConf`; `io.ReadFull` over a connection through a hypothesis
 `conn_readerOk` mirroring dsv-bufio's `Net/Proof/net/ConnIo.lean`), and the spec hubs
 `Spec/{json,log,events,vsrwire,network,client,replica}.lean` (+ `Proof/network/Defs`, `Proof/log/*`).
+**Hubs done** (`525da02193`, clean): `Spec/{log,events,json,vsrwire,network,client,replica}.lean`,
+vocabulary `Spec/jsonlib.lean` (the repository's `models_lab.jsoncodec.JsonCodec`/`marshalOk`/…;
+`encoding.json.kitFn` = the kit package's `jsonMarshal`/`jsonUnmarshal` (check against jsongen's names
+when it exists); `kitCodecOk`, `codecFns`, `codecSet`; **`class encoding.json.DecoderRep GF`**, a data
+class (`decOk dec rd I R U`, `decErr dec rd`) standing for the model's `Decoder` fields (names-only
+translation): no instance, a section variable of the hubs from events on — at the statement it must be
+a premise like the InitHyps, or be replaced by the model's real `Decoder` representation when its Lean
+half lands) and `Spec/sloglib.lean` (`log.slog.isLogger`); `Proof/network/Defs`, `Proof/replica/Inv`,
+`Proof/jsoncodec/{Codec,Valid,Stream}`, `Proof/log/Logs` (NewLogs, Len, OpAt, ClientIDAt, RequestIDAt,
+After, Add, Merge proved). Changed against the lab: connections are `net.isConn c cn s a` (Nat ids),
+`events.{w,r}stream` take `c : GoInterface`, `rstream` over `DecoderRep`; the hook predicates are
+`events.hookLockInvFull`/`hookKnownFull` (Base's weaker `hookKnown` to be strengthened);
+`events.initialize'.spec` dropped (generated Init); the lab's theorem `codec_ok` is the hypothesis
+statement `vsrnet.codecOk : Prop` (finding 2); `vsrnet.jsonCodec` a local instance. Left of log:
+`Proof/log/{Json,Results}` (need Marshal/Unmarshal hypotheses).
+**Now in progress (helper agents, parallel):** `Proof/replica/*`, `Proof/client/*`, `Proof/network/*`,
+`Proof/{events,vsrwire}/*`, each ending with `Results.lean` over hypotheses for library specs
+(`Proof/<p>/LibHyps.lean`).
 After the hubs, the package proofs are independent of each other (each imports only hubs):
 `events`+`vsrwire`, `network`, `client`, `replica` (31 files, ~7k lines), then `Top/` (kit specs
 `Orch`/`Client`/`Server`, mains, `Linked`, `TopLevelRobustness`). The Go JSON codec proofs
