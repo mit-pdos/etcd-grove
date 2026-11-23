@@ -59,6 +59,23 @@ theorem forall₂_filter {A B : Type} {R : A → B → Prop} {l1 : List A} {l2 :
     · exact .cons hab ih
     · exact ih
 
+theorem fold_length_le {α : Type} {f : α → EvalM Bool} :
+    ∀ {xs acc r : List α}, xs.foldlM (fstep f) acc = .ok r → r.length ≤ acc.length + xs.length
+  | [], acc, r, h => by simp at h; subst h; simp
+  | x :: xs, acc, r, h => by
+    rw [List.foldlM_cons] at h
+    obtain ⟨o, ho, h⟩ := bind_ok h
+    have := fold_length_le h
+    unfold fstep at ho
+    obtain ⟨c, -, ho⟩ := bind_ok ho
+    cases c <;> simp only [Bool.false_eq_true, ite_false, ite_true, pure_ok, Except.ok.injEq] at ho <;>
+      subst ho <;> simp at this ⊢ <;> omega
+
+/-- `filterM`'s result is no longer than its list. -/
+theorem filterM_length_le {α : Type} {xs ys : List α} {f : α → EvalM Bool} (h : filterM xs f = .ok ys) :
+    ys.length ≤ xs.length := by
+  have := fold_length_le (f := f) h; simpa using this
+
 end W6Laws
 
 end AntCheck
