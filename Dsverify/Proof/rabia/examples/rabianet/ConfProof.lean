@@ -22,6 +22,7 @@ public import Net.Proof.net.Conn__Write
 public import Net.Proof.net.Conn__Close
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import Perennial.Proof.time
+public import Perennial.Proof.sync.Base
 
 @[expose] public section
 
@@ -515,6 +516,232 @@ theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) 
     · icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
       exact absurd (Hne.2 (by simp)) (by intro h; obtain ⟨_, h⟩ := h; cases h)
 
+set_option goose.wp.extras true in
+/-- `ProxyAddrs()`. -/
+theorem ProxyAddrs.wp_proof :
+    {{ (True : IProp GF) }}
+      (App (Val (@! rabia.examples.rabianet.ProxyAddrs)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; ∃ L, sl ↦* L ∗ ⌜L = (List.range maxS).map proxyAddr⌝ }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_slice_literal (V := GoString) (t := go.string) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  wp_auto
+  iapply HΦ
+  iexists _
+  iframe Hsl
+  ipureintro; rfl
+
+set_option goose.wp.extras true in
+/-- `NetAddrs()`. -/
+theorem NetAddrs.wp_proof :
+    {{ (True : IProp GF) }}
+      (App (Val (@! rabia.examples.rabianet.NetAddrs)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; ∃ L, sl ↦* L ∗ ⌜L = (List.range maxS).map netAddr⌝ }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_slice_literal (V := GoString) (t := go.string) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  wp_auto
+  iapply HΦ
+  iexists _
+  iframe Hsl
+  ipureintro; rfl
+
+set_option goose.wp.extras true in
+/-- `ServerConfAddrs()`. -/
+theorem ServerConfAddrs.wp_proof :
+    {{ (True : IProp GF) }}
+      (App (Val (@! rabia.examples.rabianet.ServerConfAddrs)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; ∃ L, sl ↦* L ∗ ⌜L = (List.range maxS).map cfgAddr⌝ }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_slice_literal (V := GoString) (t := go.string) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  wp_auto
+  iapply HΦ
+  iexists _
+  iframe Hsl
+  ipureintro; rfl
+
+set_option goose.wp.extras true in
+/-- `ClientAddrs()`. -/
+theorem ClientAddrs.wp_proof :
+    {{ (True : IProp GF) }}
+      (App (Val (@! rabia.examples.rabianet.ClientAddrs)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; ∃ L, sl ↦* L ∗ ⌜L = (List.range nC).map cliAddr⌝ }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_slice_literal (V := GoString) (t := go.string) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  wp_auto
+  iapply HΦ
+  iexists _
+  iframe Hsl
+  ipureintro; rfl
+
+set_option goose.wp.extras true in
+/-- `ClientConfAddrs()`. -/
+theorem ClientConfAddrs.wp_proof :
+    {{ (True : IProp GF) }}
+      (App (Val (@! rabia.examples.rabianet.ClientConfAddrs)) (Val #()))
+    {{ (sl : GoSlice), RET #sl; ∃ L, sl ↦* L ∗ ⌜L = (List.range nC).map cliCfgAddr⌝ }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_slice_literal (V := GoString) (t := go.string) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, -⟩
+  wp_auto
+  iapply HΦ
+  iexists _
+  iframe Hsl
+  ipureintro; rfl
+
+theorem range_map_get {A : Type} (f : Nat → A) (n i : Nat) (h : i < n) :
+    ((List.range n).map f)[i]? = some (f i) := by
+  simp [List.getElem?_range h]
+
+theorem send_step1 (j : w64) (hj : uint.nat j < nC) : uint.nat (j + W64 1) ≤ nC := by
+  unfold nC at hj ⊢; word
+
+theorem send_step2 (j : w64) (n : Nat) (hn : n ≤ 5) (h1 : 1 ≤ uint.nat j) (h2 : uint.nat j ≤ n) :
+    1 ≤ uint.nat (j + W64 1) ∧ uint.nat (j + W64 1) ≤ n + 1 := by
+  constructor <;> word
+
+theorem send_init2 (n : Nat) (hn : 1 ≤ n) : 1 ≤ uint.nat (W64 1) ∧ uint.nat (W64 1) ≤ n + 1 := by
+  constructor <;> word
+
+set_option goose.wp.extras true in
+/-- `send(conf)` of the recorded configuration: it returns once every client machine and servers
+`1..n` acknowledged it. -/
+theorem send.wp_proof (γ : Names) (cf : RCfg) (hc : cf.Ok) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗ shared γ ∗ cfgIs γ.rab cf }}
+      (App (Val (@! rabia.examples.rabianet.send)) (Val #(confV cf)))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hsh, #Hcfg⟩
+  ihave #Hlog : (isPkgInit (PROP := IProp GF) pkg_id.log) $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply String.wp_proof conf_ptr cf hc $$ [$conf] as %str conf
+  wp_apply wp_slice_literal (V := GoInterface) (t := go.any) _
+  isplitr
+  · ipureintro; rfl
+  iintro %ls ⟨Hls, -⟩
+  wp_apply log.Println.wp_proof $$ [$Hlog $Hls] as -
+  have hn5 : cf.n ≤ 5 := by have := hc; unfold RCfg.Ok at this; omega
+  have hn1 : 1 ≤ cf.n := by have := hc; unfold RCfg.Ok at this; omega
+  ihave HI : (∃ j : w64, "c" ∷ c_ptr ↦ j ∗ "conf" ∷ conf_ptr ↦ confV cf ∗
+      "%Hj" ∷ ⌜uint.nat j ≤ nC⌝ : IProp GF) $$ [c conf]
+  · iexists W64 0; iframe; ipureintro; simp [nC]
+  wp_for HI
+  wp_if_destruct
+  · have hj : uint.nat j < nC := by unfold nC; word
+    ihave #Hproto := shared_cliCfgProto γ (uint.nat j) hj $$ Hsh
+    ihave HJ : ("conf" ∷ conf_ptr ↦ confV cf : IProp GF) $$ [conf]
+    · iframe
+    wp_for HJ
+    wp_apply ClientConfAddrs.wp_proof as %sl ⟨%L, Hsl, %HL⟩
+    subst HL
+    ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
+    have hjz : sint.Z j = (uint.nat j : Nat) := by word
+    have hsl : sint.Z sl.len = (nC : Int) := by
+      obtain ⟨h1, h2⟩ := Hsl0
+      rw [List.length_map, List.length_range] at h1
+      rw [h1]; exact (Int.toNat_of_nonneg h2).symm
+    rw [ite_eq_left (by rw [hjz, hsl]; omega)]
+    wp_apply wp_load_slice_index sl _ _ _ (cliCfgAddr (uint.nat j)) (by omega) $$ [$Hsl] as -
+    · ipureintro; rw [hjz]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hj
+    wp_apply encode.wp_proof conf_ptr cf hc $$ [$conf] as %b ⟨conf, Hb⟩
+    wp_apply sendConf.wp_proof γ _ cf b $$ [$Hb] as %ok -
+    · iframe #
+    rcases ok with _ | _
+    · simp only [Bool.not_false, _root_.decide_true, ↓reduceIte]
+      wp_auto
+      wp_apply time.wp_Sleep
+      wp_for_post
+      iframe
+    · simp only [Bool.not_true, intoVal_eq_iff, Bool.false_eq_true, decide_false, ↓reduceIte]
+      try simp only [_root_.decide_true, ↓reduceIte]
+      wp_for_post
+      iframe
+      iexists j + W64 1
+      iframe
+      ipureintro; exact send_step1 j hj
+  ihave HI : (∃ j : w64, "id" ∷ id_ptr ↦ j ∗ "conf" ∷ conf_ptr ↦ confV cf ∗
+      "%Hj" ∷ ⌜1 ≤ uint.nat j ∧ uint.nat j ≤ cf.n + 1⌝ : IProp GF) $$ [id conf]
+  · iexists W64 1; iframe; ipureintro; exact send_init2 cf.n hn1
+  wp_for HI
+  try cleanup_bool_decide
+  wp_if_destruct
+  · have hjn : uint.nat j ≤ cf.n := by
+      have h2 : uint.Z (W64 (cf.n : Int)) = cf.n := by word
+      simp [confV] at Hif; word
+    have hk : uint.nat j - 1 < maxS := by unfold maxS; omega
+    ihave #Hproto := shared_cfgProto γ (uint.nat j - 1) hk $$ Hsh
+    ihave HJ : ("conf" ∷ conf_ptr ↦ confV cf : IProp GF) $$ [conf]
+    · iframe
+    wp_for HJ
+    wp_apply ServerConfAddrs.wp_proof as %sl ⟨%L, Hsl, %HL⟩
+    subst HL
+    ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
+    have hjz : sint.Z (j - W64 1) = ((uint.nat j - 1 : Nat) : Int) := by word
+    have hsl : sint.Z sl.len = (maxS : Int) := by
+      obtain ⟨h1, h2⟩ := Hsl0
+      rw [List.length_map, List.length_range] at h1
+      rw [h1]; exact (Int.toNat_of_nonneg h2).symm
+    rw [ite_eq_left (by rw [hjz, hsl]; omega)]
+    wp_apply wp_load_slice_index sl _ _ _ (cfgAddr (uint.nat j - 1)) (by omega) $$ [$Hsl] as -
+    · ipureintro; rw [hjz]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hk
+    wp_apply encode.wp_proof conf_ptr cf hc $$ [$conf] as %b ⟨conf, Hb⟩
+    wp_apply sendConf.wp_proof γ _ cf b $$ [$Hb] as %ok -
+    · iframe #
+    rcases ok with _ | _
+    · simp only [Bool.not_false, _root_.decide_true, ↓reduceIte]
+      wp_auto
+      wp_apply time.wp_Sleep
+      wp_for_post
+      iframe
+    · simp only [Bool.not_true, intoVal_eq_iff, Bool.false_eq_true, decide_false, ↓reduceIte]
+      try simp only [_root_.decide_true, ↓reduceIte]
+      wp_for_post
+      iframe
+      iexists j + W64 1
+      iframe
+      ipureintro; exact send_step2 j cf.n hn5 Hj.1 hjn
+  try wp_auto
+  iapply HΦ; itrivial
+
+set_option goose.wp.extras true in
+/-- `New()` (`New.spec`). -/
+theorem New.wp_proof : New.spec (GF := GF) := by
+  intro γ
+  wp_start as ⟨#Hsh, HK⟩
+  try wp_auto
+  wp_apply choose.wp_proof as %cf %hc
+  ihave #Hrab : isRabia γ.rab $$ [Hsh]
+  · unfold shared; icases Hsh with ⟨#H, -⟩; iexact H
+  iapply fupd_wp
+  imod (setCfg γ.rab ⊤ (by simp) cf []) $$ [Hrab HK] with ⟨-, #Hcfg⟩
+  · iframe #; iframe; ipureintro; exact ⟨by simp, hc⟩
+  imodintro
+  wp_apply send.wp_proof γ cf hc $$ []
+  · iframe #
+  iapply HΦ
+  iexists cf
+  iframe #
+
 end proof
 
 end Perennial.rabia.examples.rabianet
+
+
+
