@@ -122,16 +122,22 @@ structure GrpcVocab [GooseExts] (GF : BundledGFunctors) where
   /-- an error a handler may return, which the server turns into a status (persistent) -/
   handlerErr : GoInterface → IProp GF
 
+section addr
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [π : NetProtoGS]
+
+/-- Address `a` serves grpc in world `W`: its protocols, and the registry (persistent). -/
+def grpcAddr (V : GrpcVocab GF) (W : GrpcWorld GF) (a : GoString) : IProp GF :=
+  iprop(addrProto a (V.reqProto W a) (V.respProto W a) ∗ V.worldOk W)
+
+end addr
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]
 variable (V : GrpcVocab GF) [cd : PbCodec GF]
-
-/-- Address `a` serves grpc in world `W`: its protocols, and the registry (persistent). -/
-def grpcAddr (W : GrpcWorld GF) (a : GoString) : IProp GF :=
-  iprop(addrProto (Gg := hG.goose_globalGS) a (V.reqProto W a) (V.respProto W a) ∗ V.worldOk W)
 
 /-- A handler's reply gives the continuation of its encoding: a nil reply is the empty message;
 another is encoded by the codec (an encoding failure is an error answer, which needs nothing). -/
@@ -212,7 +218,7 @@ abbrev Server.Serve.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ V.isServer s γs W a ∗
       (V.srvOwn γs R ∨ V.srvServed γs) ∗ net.isListener li l ∗
       netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
-      netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a ∗ grpcAddr V W a }}
+      netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a ∗ grpcAddr (Gg := hG.goose_globalGS) V W a }}
     (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.Server.ty @!! go!"Serve"))
       (Val #li))
   {{ (err : GoInterface), RET #err; ⌜err ≠ interface.nil⌝ ∗ V.srvServed γs }}
@@ -227,7 +233,7 @@ abbrev WithInsecure.spec : Prop :=
 options (as QuePaxa's): a client connection, or an error. -/
 abbrev Dial.spec : Prop :=
   ∀ (W : GrpcWorld GF) (a : GoString) (opts : GoSlice) (dq : DFrac) (os : List GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcAddr V W a ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ grpcAddr (Gg := hG.goose_globalGS) V W a ∗
       opts ↦*{dq} os }}
     (App (App (Val (@! google_golang_org.grpc.Dial)) (Val #a)) (Val #opts))
   {{ (cc : Loc) (err : GoInterface), RET (PairV #cc #err);
@@ -284,7 +290,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS]
 variable (V : GrpcVocab GF) [cd : PbCodec GF] [GrpcHyp V]
 
-instance grpcAddr_persistent (W : GrpcWorld GF) (a : GoString) : Persistent (grpcAddr V W a) := by
+instance grpcAddr_persistent (W : GrpcWorld GF) (a : GoString) :
+    Persistent (grpcAddr (Gg := hG.goose_globalGS) V W a) := by
   unfold grpcAddr; infer_instance
 instance decOk_persistent (dec : GoFunc) (bs : List w8) : Persistent (decOk V dec bs) := by
   unfold decOk; infer_instance
