@@ -4,8 +4,8 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
 
 * `isSnapshotter ss sd` (persistent): `ss` is a `*snap.Snapshotter` of the directory `sd`
   (`snap.New(lg, dir)`: its fields, the logger and the snapshot directory, set once and read-only
-  after): the persistent cells of its `lg` and `dir` fields (`snapLgAddr`, `snapDirAddr`), the rest
-  an opaque predicate (`snapshotterRO`). (wal-link, 2026-11-19, approved by the user via
+  after): the persistent cells of its `lg` and `dir` fields (`snapLgAddr`, `snapDirAddr`), and of its
+  `fsyncDir` field, `fsyncSnapDir` (`snapshotterRO`; opaque until claim #34, 2026-11-23). (wal-link, 2026-11-19, approved by the user via
   etcd-grove-03: the directory is the `dir` field's cell, so it is fixed per execution by the heap;
   until then a pure opaque function of the location, `snapDBPath ss`, which the bootstrap contracts
   pinned per run: `notes/snapdir-crossworld.md`.)
@@ -97,8 +97,18 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `ss`'s fields, read-only (opaque; see the file header). -/
-opaque snapshotterRO (ss : Loc) : IProp GF
+/-- **`ss`'s remaining field, read-only** (claim #34, 2026-11-23, approved by the owner via the
+coordinator, option (a): defined, until then opaque): the `fsyncDir` field holds the package function
+`fsyncSnapDir`, the value `snap.New` stores (`snapshotter.go:34-43`: `&Snapshotter{lg, dir, fsyncDir:
+fsyncSnapDir}`) and `SaveDBFrom` calls on the directory (`s.fsyncDir(s.dir)`, `db.go`). Nothing writes the
+field after `New` (it is unexported, and the package writes it nowhere else). -/
+def snapshotterRO (ss : Loc) : IProp GF :=
+  iprop(structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter
+      go!"fsyncDir" ss ↦□
+    functions _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.fsyncSnapDir [])
+
+instance snapshotterRO_persistent (ss : Loc) : Persistent (snapshotterRO (GF := GF) ss) := by
+  unfold snapshotterRO; infer_instance
 
 /-- **`ss` is a snapshotter of the directory `sd`** (persistent; see the file header): its `dir`
 field `sd` (wal-link, 2026-11-19), a snapshot directory of etcd's (`cfg.SnapDir()` of some data
