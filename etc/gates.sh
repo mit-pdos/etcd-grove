@@ -249,6 +249,14 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
+# the net extension's sticky read errors (D1 v3.5, notes/net-sticky-read.md): the loopback tests
+# of examples/net/semantics/sticky_test.go, the evidence of ReadAvail's `sys` clause, measured on
+# the gates' Linux (the network-namespace test, sticky_netns_test.go, needs root: it skips here)
+if (cd examples && GOWORK=off gotest -count=1 -run '^TestSticky' ./net/semantics/ > "$tmp/sticky.log" 2>&1); then
+  echo "net-sticky: ok"
+else
+  echo "net-sticky: FAILED"; tail -10 "$tmp/sticky.log"; fail=1
+fi
 # protobuf stages S1/S2 (#37): the wire codecs' vectors modules EntryWireVectors.lean,
 # MessageWireVectors.lean, RecordWireVectors.lean and apply/IrrWireVectors.lean (whose #guards the build checks against the Lean
 # codecs) are what examples/pbschema/wirevectors{,_s2}_test.go generate from protobuf-go
