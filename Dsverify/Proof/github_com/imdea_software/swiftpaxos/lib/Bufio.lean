@@ -5,6 +5,15 @@ swiftpaxos proof uses (`*.labSpec`, hypotheses here: notes/dsv-swiftpaxos.md, "H
 main tree's own `bufio` vocabulary is `EtcdGrove.bufio`, a different one). The definitions are over
 the real `bufio` structs (the main tree's translation, whose fields are the lab's); errors with a
 message are `models_lab.errAny` (`Net/`'s, the lab's `models_lab.errAny`).
+
+**Port changes** (`readerOk`, `readsOk`): only reads into a non-empty buffer are specified (the
+real `bufio` and `io.ReadAtLeast` never pass an empty one; `Net/`'s `Read` spec does not fix the
+count of an empty read, as dsv-bufio's `conn_readerOk`); and the underlying reader's `Read` gives its stream state one
+step later (`▷ I (R ++ data)`; the lab's gave it now). Over `Net/` a connection's read gives
+`recvTokL`, whose protocol fact is a step later (`GooseLang/Ext/Net/Proto.lean`, `read_au`), and
+`recvTokL ⊢ ▷ recvTok` (`recvTokL_later`). The hypotheses over these (`*.labSpec`) stay true of the
+real `bufio`/`io` code, which takes steps after each underlying `Read` (dsv-bufio's revised reader
+law, `recvTokL_proto`, is the same idea).
 -/
 module
 
@@ -53,9 +62,9 @@ def readerOk (rd : GoInterface) (I : List w8 → IProp GF) : IProp GF :=
   iprop(∃ e : GoInterfaceOk,
     ⌜rd = interface.ok e ∧ e.ty ≠ go.GoType.PointerType bufio.Reader.ty⌝ ∗
     □ ∀ (b : GoSlice) (bs : List w8) (R : List w8) (Φ : val → IProp GF),
-      I R -∗ b ↦* bs -∗
+      ⌜0 < bs.length⌝ -∗ I R -∗ b ↦* bs -∗
       ▷ (∀ (data : List w8) (err : GoInterface), ⌜data.length ≤ bs.length⌝ -∗
-          b ↦* (data ++ bs.drop data.length) -∗ I (R ++ data) -∗ errOrNil err -∗
+          b ↦* (data ++ bs.drop data.length) -∗ ▷ I (R ++ data) -∗ errOrNil err -∗
           Φ (PairV #(W64 data.length) #err)) -∗
       WP (App (Val #(methods e.ty go!"Read" e.v)) (Val #b)) {{ Φ }})
 
@@ -116,9 +125,9 @@ def ownWriter (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF)
 def readsOk (rd : GoInterface) (I : List w8 → IProp GF) : IProp GF :=
   iprop(∃ e : GoInterfaceOk, ⌜rd = interface.ok e⌝ ∗
     □ ∀ (b : GoSlice) (bs : List w8) (R : List w8) (Φ : val → IProp GF),
-      I R -∗ b ↦* bs -∗
+      ⌜0 < bs.length⌝ -∗ I R -∗ b ↦* bs -∗
       ▷ (∀ (data : List w8) (err : GoInterface), ⌜data.length ≤ bs.length⌝ -∗
-          b ↦* (data ++ bs.drop data.length) -∗ I (R ++ data) -∗ errOrNil err -∗
+          b ↦* (data ++ bs.drop data.length) -∗ ▷ I (R ++ data) -∗ errOrNil err -∗
           Φ (PairV #(W64 data.length) #err)) -∗
       WP (App (Val #(methods e.ty go!"Read" e.v)) (Val #b)) {{ Φ }})
 

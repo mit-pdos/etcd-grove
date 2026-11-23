@@ -13,6 +13,7 @@ each field quantifies over the packages' `Assumptions` it needs, and the gob spe
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.BufioNet
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Specs
 public import Dsverify.Spec.encoding.gob.NewEncoder
 public import Dsverify.Spec.encoding.gob.NewDecoder

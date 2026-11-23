@@ -136,6 +136,67 @@ instance rpcHttpAddr_persistent (W : RpcWorld GF) (a : GoString) :
 
 end http
 
+/-! ## Slice lemmas (the lab's `Harness/NetLib.lean`, `Harness/Proof/net/rpc/Wire.lean`; pure
+heap facts the kit's codec proofs use) -/
+
+section bounds
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+/-- `W64 n` of a length below `2^63` is `n`, signed. -/
+theorem sint_Z_W64_length {n : Nat} (h : n < 2 ^ 63) : sint.Z (W64 n) = n := by
+  have : ((n : Int) : w64).toInt = (n : Int) := by
+    rw [BitVec.toInt_intCast]; apply Int.bmod_eq_of_le <;> omega
+  exact this
+
+/-- Split a slice holding `data ++ rest` at `len(data)`: its suffix `b[len(data):len(b)]` holds
+`rest`, and gives back the whole slice with any `rest'` of `rest`'s length. -/
+theorem ownSlice_drop_acc {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (b : GoSlice) (dq : DFrac) (data rest : List V) :
+    (b ↦*{dq} (data ++ rest) : IProp GF) ⊢
+      ⌜sint.Z (W64 data.length) = data.length ∧ sint.Z b.len = data.length + rest.length⌝ ∗
+      slice.slice b V (W64 data.length) b.len ↦*{dq} rest ∗
+      (∀ rest' : List V, ⌜rest'.length = rest.length⌝ -∗
+        slice.slice b V (W64 data.length) b.len ↦*{dq} rest' -∗ b ↦*{dq} (data ++ rest')) := by
+  iintro Hb
+  ihave %Hl := ownSlice_len _ _ _ $$ Hb
+  have h63 : sint.Z b.len < 2 ^ 63 := by word
+  have hlen : data.length + rest.length = (sint.Z b.len).toNat := by
+    rw [← List.length_append]; exact Hl.1
+  have hZ : sint.Z (W64 data.length) = data.length := sint_Z_W64_length (by omega)
+  have hN : sint.nat (W64 data.length) = data.length := by
+    show (sint.Z (W64 data.length)).toNat = _; rw [hZ]; rfl
+  have h0 : sint.Z (W64 0) = 0 := rfl
+  ihave Hsplit := (ownSlice_split_all (W64 data.length) b dq _
+    ⟨by rw [hZ]; omega, by rw [hZ]; omega⟩).1 $$ Hb
+  rw [hN, List.take_left' rfl, List.drop_left' rfl]
+  icases Hsplit with ⟨Hpre, Hrest⟩
+  isplitr
+  · ipureintro; exact ⟨hZ, by omega⟩
+  iframe Hrest
+  iintro %rest' %Hr Hrest
+  iapply ownSlice_trivial_slice_2
+  iapply ownSlice_combine (W64 data.length) b dq data rest' (W64 0) b.len
+    ⟨by rw [hN]; rfl, by rw [h0]; omega, by rw [h0, hZ]; omega, by rw [hZ]; omega⟩ $$ Hpre Hrest
+
+/-- A sub-slice `p[lo:hi]` of a slice, and the way back. -/
+theorem ownSlice_sub_acc {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (lo hi : w64) (p : GoSlice) (dq : DFrac) (vs : List V)
+    (hb : 0 ≤ sint.Z lo ∧ sint.Z lo ≤ sint.Z hi ∧ sint.Z hi ≤ sint.Z p.len) :
+    (p ↦*{dq} vs : IProp GF) ⊢
+      slice.slice p V lo hi ↦*{dq} subslice (sint.nat lo) (sint.nat hi) vs ∗
+      (slice.slice p V lo hi ↦*{dq} subslice (sint.nat lo) (sint.nat hi) vs -∗ p ↦*{dq} vs) := by
+  iintro Hp
+  icases (ownSlice_slice lo hi p dq vs hb).1 $$ Hp with ⟨H0, H1, H2⟩
+  iframe H1
+  iintro H1
+  iapply (ownSlice_slice lo hi p dq vs hb).2
+  iframe
+
+end bounds
+
 end net.rpc
 
 namespace bufio
