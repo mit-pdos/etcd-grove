@@ -3,6 +3,9 @@
 Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/ by the mechanical renames
 (notes/dsv-epaxos.md, "Proof port: progress"). Usage: etc/dsv-epaxos/port.py [--bufio] LABPATH...
 (--bufio: also the bufio call-site rewrites of the marshal layer, `bufio_conv`.)
+Hand-maintained after their port (do not re-port; notes/dsv-epaxos.md): Interface/Marshal.lean,
+wire/{WProg,RProg,Link}.lean, wire/Varint/{ReadUvarint,ReadVarint}.lean. Every other ported file is
+`port.py`'s output (with `FIXUPS`).
 (LAB: the lab's proof directory, read only; DSVLAB_EPAXOS overrides it.) Hand edits after the port
 are listed in the notes."""
 import os, re, sys
@@ -52,6 +55,17 @@ def conv(t):
     t = re.sub(r'(?m)^attribute \[local instance\] netConnExts netConnExtsSemantics netConnExtsInterp\n',
                'variable [GooseExts]\n', t)
     t = re.sub(r'\bkit\.pre\b', 'inPre', t)
+    # sealed definitions' unseal equations: `@X (GF := GF) = @XDef` (now with more instance args)
+    t = re.sub(r'@(\w+) \(GF := GF\) = @(\w+)', r'\1 (GF := GF) = \2', t)
+    t = re.sub(r'@(\w+) \(hG := hG\) = @(\w+)', r'\1 (GF := GF) = \2', t)
+    # the lab's protocol namespace was disjoint from its `clientN`; here it is inside `epEop`
+    t = t.replace('''theorem protoN_clientN_disj : (↑protoN : CoPset) ## ↑clientN := by
+  unfold protoN epN clientN; solve_ndisj''', '''theorem protoN_epEop : (↑protoN : CoPset) ⊆ epEop := by
+  unfold protoN epEop; exact nclose_subseteq _ _''')
+    t = t.replace('''theorem protoN_escrowN_disj : (↑protoN : CoPset) ## ↑escrowN := by
+  unfold protoN escrowN; solve_ndisj''', '''theorem protoN_escrowN_disj : (↑protoN : CoPset) ## ↑escrowN := by
+  unfold protoN escrowN; exact ndot_ne_disjoint _ (by decide)''')
+    t = t.replace('protoN_clientN_disj', 'protoN_epEop')
     t = re.sub(r'(?m)^((?:def|theorem) \S+) \[GoGlobalContext\]',
                lambda m: m.group(0) if 'variable [GooseExts]' in t[:m.start()]
                else m.group(1) + ' [GooseExts] [GoGlobalContext]', t)
@@ -88,10 +102,18 @@ def gf_annotate(t, names):
     out = []; ls = t.split('\n'); i = 0
     while i < len(ls):
         if re.match(r'^(theorem|instance|lemma) ', ls[i]):
-            j = i
-            while (j < len(ls) and not re.search(r':=\s*(by)?\s*$|:= by\b|:=$', ls[j]) and j - i < 25
-                   and not (j > i and (not ls[j].strip() or re.match(r'^\s*\| ', ls[j])))): j += 1
-            if j < len(ls) and j > i and (not ls[j].strip() or re.match(r'^\s*\| ', ls[j])): j -= 1
+            # the statement ends at the first `:=` outside brackets (or a `|` alternative)
+            j = i; depth = 0; done = False
+            while j < len(ls) and j - i < 30 and not done:
+                if j > i and (not ls[j].strip() or re.match(r'^\s*\| ', ls[j])): j -= 1; break
+                l = ls[j]; k = 0
+                while k < len(l):
+                    c = l[k]
+                    if c in '([{⟨': depth += 1
+                    elif c in ')]}⟩': depth -= 1
+                    elif l.startswith(':=', k) and depth <= 0: done = True; break
+                    k += 1
+                if not done: j += 1
             blk = '\n'.join(ls[i:j + 1])
             if 'GF' not in blk:
                 blk = pat.sub(lambda m: m.group(1) + ' (GF := GF)', blk, count=1)
@@ -164,6 +186,64 @@ FIXUPS = {
   imodintro
   iframe Hh'''),
     ],
+    'Epaxos/Interface/Registry.lean': [
+        # the kit's deployment (`examples/epaxosnet/kit.go`), not the lab harness's 10.77.0.x nodes
+        ('''* **The addresses** of the deployment''', '''* **The final node list**''', '''* **The addresses** of the deployment (`ServerAddrs()`, `examples/epaxosnet/kit.go`):
+  server `k` (`Server(k)`; k = 1 the master, 2..6 the replicas) is at `127.0.0.1:(7500+k)`;
+  replica `k` registers `("127.0.0.1", 7500 + k)`, i.e. its peer/client address `peerAddrOf k`
+  (`serverAddrs[k - 1]`), and serves rpc on `rpcAddrOf k` (`127.0.0.1:(8500+k)`); the master is
+  `masterAddr` (`127.0.0.1:7501`, listening on the wildcard `":7501"`).
+'''),
+        ('''/-! ## The addresses -/''', '''/-- A final node list''', '''/-! ## The addresses -/
+
+/-- The replica servers (`Server(k)`). -/
+def replicaNodes : List Nat := [2, 3, 4, 5, 6]
+
+/-- The master's address (server 1's). -/
+def masterAddr : GoString := go!"127.0.0.1:7501"
+
+/-- The servers' IP (`host(addrs[id-1])`, what `serve` passes to `register`). -/
+def masterIp : GoString := go!"127.0.0.1"
+
+theorem masterAddr_eq : masterAddr = masterIp ++ go!":" ++ go!"7501" := rfl
+
+theorem masterAddr_server : serverAddrs[0]? = some masterAddr := rfl
+
+/-- Replica `k`'s IP (`host(addrs[k-1])`). -/
+def replicaIp (_k : Nat) : GoString := go!"127.0.0.1"
+
+/-- Replica `k`'s peer/client address (`ServerAddrs()[k - 1]`, port `7500 + k`): what it
+registers with the master and what its peers and clients dial. -/
+def peerAddrOf (k : Nat) : GoString := serverAddrs.getD (k - 1) []
+
+/-- Replica `k`'s rpc address (`ip:(port + 1000)`, `serve`). -/
+def rpcAddrOf (k : Nat) : GoString := replicaIp k ++ go!":" ++ fmt.decimal (8500 + k)
+
+/-- The replicas' rpc addresses. -/
+def replicaRpcAddrs : List GoString := replicaNodes.map rpcAddrOf
+
+theorem replicaAddrs_eq : replicaAddrs = replicaNodes.map peerAddrOf := by decide
+
+/-- What `Register` formats (`fmt.Sprintf("%s:%d", Addr, Port)`) for node `k`'s arguments is
+its peer address. -/
+theorem peerAddrOf_fmt (k : Nat) (hk : k ∈ replicaNodes) :
+    peerAddrOf k = replicaIp k ++ go!":" ++ fmt.decimal (7500 + k) := by
+  simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, or_false] at hk
+  rcases hk with rfl | rfl | rfl | rfl | rfl <;>
+    simp [fmt.decimal, fmt.decimalNat_of_ge, fmt.decimalNat_of_lt, fmt.digitByte, peerAddrOf,
+      replicaIp, serverAddrs]
+
+theorem peerAddrOf_inj (k k' : Nat) (hk : k ∈ replicaNodes) (hk' : k' ∈ replicaNodes)
+    (h : peerAddrOf k = peerAddrOf k') : k = k' := by
+  simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, or_false] at hk hk'
+  rcases hk with rfl | rfl | rfl | rfl | rfl <;> rcases hk' with rfl | rfl | rfl | rfl | rfl <;>
+    first | rfl | (exfalso; revert h; decide)
+
+'''),
+    ],
+    'Epaxos/Interface/EpaxosGhost.lean': [
+        ('have : ∀ o, outOk γ i o = outOkB γ i o', 'have : ∀ o, outOk (GF := GF) γ i o = outOkB γ i o'),
+    ],
     'Epaxos/Proof/epaxos/GhostExec.lean': [
         # `iinv`'s side-condition solver (`simp [*]`) loops on `hw`/`hidx` here: hide them across it
         ('''theorem ep_execCmdB''', '''/-- A fact hidden from `simp [*]` (`iinv`'s side-condition solver). -/
@@ -190,7 +270,13 @@ theorem ep_execCmdB'''),
 }
 
 def fixup(p, s):
-    for old, new in FIXUPS.get(p, []):
+    for fx in FIXUPS.get(p, []):
+        if len(fx) == 3:  # (start, end, new): replace the span from `start` up to `end`
+            a, b, new = fx
+            i = s.index(a); j = s.index(b, i)
+            s = s[:i] + new + s[j:]
+            continue
+        old, new = fx
         assert old in s, (p, old[:60])
         s = s.replace(old, new, 1)
     return s
@@ -207,6 +293,8 @@ for p in [a for a in sys.argv[1:] if a != '--bufio']:
     s = conv(open(src).read())
     if BUFIO: s = bufio_conv(s)
     s = gf_annotate(s, gf_preds(_texts + [s]))
+    # sealed definitions' unseal equations (`@X = @XDef`; more instance arguments here)
+    s = re.sub(r'(_unseal : )@(\w+)(?: \(GF := GF\))? = @(\w+)', r'\1\2 (GF := GF) = \3', s)
     s = fixup(p, s)
     open(out, 'w').write(s)
     print(out[len(DST) + 1:])
