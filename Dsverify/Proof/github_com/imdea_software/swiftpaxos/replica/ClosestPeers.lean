@@ -28,7 +28,7 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
 variable [dlog.Assumptions] [time.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [io.Assumptions] [net.rpc.Assumptions]
   [errors.Assumptions] [strings.Assumptions] [encoding.binary.Assumptions]
 
 set_option goose.wp.extras true
@@ -631,6 +631,8 @@ theorem replica.Replica.ComputeClosestPeers.wp_proof
         clear hndn
         wp_apply wp_load_slice_index _ _ _ _ lv hndr'.1 $$ [Hls] as Hls
         · iframe Hls; ipureintro; exact hlv
+        try wp_auto
+        wp_apply wp_float64_div as %fq _
         try wp_auto
         wp_apply wp_slice_literal (V := GoInterface)
         isplitr

@@ -35,7 +35,7 @@ variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] [replica.defs.Assumptions] [state.Assumptions] [replica.Assumptions]
   [rpc.Assumptions]
-variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
+-- no codec variable: `swift.tableAllocH`'s `codecSet` is at the kit's codec instance (`kitCodec`)
 
 /-- `errVarintOverflow` from `swift`'s package state (`swift.pkgSt`; at the link,
 `isPkgInit_access` as `srv_pool_fact`). -/
