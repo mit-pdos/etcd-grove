@@ -93,10 +93,17 @@ def link_modules():
     return [m for m in root_modules() if m.endswith((".Link", ".MainLinked"))]
 
 
+# Every Link's namespace is under this one; `namespace()` refuses a Link that is not: a Link
+# outside it shortens the common prefix, which silently renames every trust-base entry
+# (dsv-paxos and dsv-epaxos each failed the land queue on it, #24, 2026-11-23).
+LINK_NAMESPACE = ["Perennial", "EtcdGrove"]
+
+
 def namespace():
     """The namespace this repository's declarations are in (`A.B.`: the longest common
     prefix of the namespaces the `Link.lean` files open before their first theorem),
-    stripped from the names shown."""
+    stripped from the names shown. Exits, naming the file, if a Link's namespace is not
+    under `LINK_NAMESPACE`."""
     common = None
     for m in link_modules():
         with open(path_of(m), encoding="utf-8") as f:
@@ -104,6 +111,11 @@ def namespace():
         first = re.search(r"^theorem\b", text, re.M)
         ns = [c for n in NAMESPACE.findall(text[: first.start() if first else None])
               for c in n.split(".")]
+        if ns[: len(LINK_NAMESPACE)] != LINK_NAMESPACE:
+            want = ".".join(LINK_NAMESPACE)
+            sys.exit(f"proof_roots: {path_of(m)}: its namespace {'.'.join(ns) or '(none)'} is "
+                     f"not under {want}; put the Link's results in `namespace {want}...` (a Link "
+                     f"outside it shortens the common prefix and renames every trust-base entry)")
         if common is None:
             common = ns
         else:
