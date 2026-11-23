@@ -21,6 +21,8 @@ package grpc
 //
 //	frame   = kind:u8 body
 //	head, header, trailer: length:u32be fields     (a header block; length bounded before reading)
+//	header, trailer:       length:u32be            (a length over maxHeaderBlock, no fields: a block
+//	                                                the server did not send, over the client's limit)
 //	fields  = count:u32be (nameLen:u32be name valueLen:u32be value)*
 //	data:    flag:u8 length:u32be message           (one gRPC length-prefixed message, as on HTTP/2)
 //	reset:   code:u32be                             (an HTTP/2 error code)
@@ -74,6 +76,10 @@ type headerField struct {
 
 var errMalformedFrame = errors.New("grpc: malformed frame")
 
+// errHeaderListTooLarge is a header block over the reader's limit (http2.ConnectionError's message
+// for the hpack decoder's string length limit, which a field over the limit hits first).
+var errHeaderListTooLarge = errors.New("connection error: COMPRESSION_ERROR")
+
 // readFull reads exactly len(b) bytes from c (io.ReadFull's contract: io.ErrUnexpectedEOF if the
 // connection ends inside them, io.EOF if before any).
 func readFull(c net.Conn, b []byte) error {
@@ -103,7 +109,42 @@ func readFrameKind(c net.Conn) (byte, error) {
 	return k[0], nil
 }
 
-// appendHeaderBlock appends a head, header or trailer frame carrying fields.
+// MODEL: a header list's size bounds what is sent (finding F1, notes/phase7-plan.md, section 0a:
+// appendHeaderBlock writes lengths as uint32s, so a block of 4 GiB or more would be misframed). A
+// receiver of grpc-go v1.84.0 refuses a header list over its limit (defaultClientMaxHeaderListSize,
+// defaultServerMaxHeaderListSize: 16 MiB) as x/net/http2 counts it (hpack.HeaderField.Size: name,
+// value and 32 per field; Framer.readMetaFrame): such a list never reaches the receiving program,
+// whichever way it fails (a FRAME_SIZE_ERROR reset of a truncated list, a COMPRESSION_ERROR or
+// PROTOCOL_ERROR connection error of a field or a continuation over it; measured,
+// internal/grpcdifftest/headerlimit_test.go). So the model's writers check the list's size before
+// writing: the client ends its stream unsent (newClientTransportStream), the server writes the
+// over-limit marker instead (appendOversizedBlock), on which the client's reader fails the stream as
+// grpc-go's does. A peer's smaller limit (the MaxHeaderListSize options) is not modelled: the options
+// are ignored, as before.
+
+// headerListTooLarge reports whether fields' header list is over the receiver's limit (its size
+// counted as HTTP/2 does, stopping once over the limit, so the sum cannot overflow).
+func headerListTooLarge(fields []headerField) bool {
+	var sz uint64
+	for _, f := range fields {
+		sz += 32 + uint64(len(f.Name)) + uint64(len(f.Value))
+		if sz > maxHeaderBlock {
+			return true
+		}
+	}
+	return false
+}
+
+// appendOversizedBlock appends the marker of a header or trailer block over the receiver's limit,
+// which is not sent: its kind and a length over maxHeaderBlock, which the reader refuses before
+// reading any field.
+func appendOversizedBlock(b []byte, kind byte) []byte {
+	b = append(b, kind)
+	return binary.BigEndian.AppendUint32(b, maxHeaderBlock+1)
+}
+
+// appendHeaderBlock appends a head, header or trailer frame carrying fields, whose list is not over
+// the limit (every caller checks headerListTooLarge first), so that every length fits its uint32.
 func appendHeaderBlock(b []byte, kind byte, fields []headerField) []byte {
 	n := 4
 	for _, f := range fields {
@@ -129,7 +170,10 @@ func readHeaderBlock(c net.Conn) ([]headerField, error) {
 		return nil, err
 	}
 	n := binary.BigEndian.Uint32(lb[:])
-	if n < 4 || n > maxHeaderBlock {
+	if n > maxHeaderBlock {
+		return nil, errHeaderListTooLarge
+	}
+	if n < 4 {
 		return nil, errMalformedFrame
 	}
 	p := make([]byte, n)

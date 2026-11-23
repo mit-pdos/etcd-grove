@@ -43,7 +43,8 @@ map exists; set once from `addrUnset a` (`grpc_addr_set`). `grpcSvcAt a name Wq 
 (persistent, heap-free): the table `a` serves has an entry for `name` at the wire parts `Wq`, `Wp`,
 and a caller of `Spec` meets it after an update (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`).
 
-**Parsing.** A well-formed head (`headOk`: its block's length fits its `uint32`) and a data
+**Parsing.** A well-formed head (`headOk`: its block's length fits its `uint32`; the model's
+check before it writes a block, `headerListOk`, gives it: `headOk_of_listOk`, F1 of §0a) and a data
 frame of a message below `2 ^ 32` bytes are determined by their bytes (`head_prefix_inj`,
 `dataFrame_prefix_inj`), so: a server that read the preface, a unary head and a data frame has the
 attempt's slot (`cli_read_slot`); a client on its unary attempt's connection that reads a server's
@@ -51,8 +52,8 @@ data frame or a trailer with a handler's description has its slot's answer
 (`srv_data_answered`, `srv_trailer_answered`; `streamConn_unary`).
 
 **Not yet** (S2's later steps): the parse of the server's frame sequence (a client's read of
-`settingsBytes` and whole frames gives each frame's `srvFrameOk`; it needs the server's header
-blocks well formed too, finding F1 of §0a), the client attempt's proof (`newClientTransportStream`,
+`settingsBytes` and whole frames gives each frame's `srvFrameOk`; the server's blocks are within
+the limit, or the marker `.oversized`, since F1's fix), the client attempt's proof (`newClientTransportStream`,
 `createHeaderFields`), the codec's laws relating `ProtoWire.enc` to the store (O7), and
 `ProtoMsg.wire` (O3: here a message's wire part has its bytes `enc`, not a tree).
 -/
@@ -122,20 +123,33 @@ def cancelFrame : List w8 := [frameCancel]
 /-- HTTP/2's `REFUSED_STREAM` error code (`errCodeRefusedStream`). -/
 def errCodeRefusedStream : Nat := 7
 
+/-- `maxHeaderBlock`: the receivers' limit on a header list (16 MiB). -/
+def maxHeaderBlock : Nat := 16 * 2 ^ 20
+
+/-- **A header list within the receiver's limit** (`¬ headerListTooLarge(fs)`, the model's check
+before it writes a block: `model_wire.go`, F1 of `notes/phase7-plan.md` §0a), counted as HTTP/2
+does: name, value and 32 per field. -/
+def headerListOk (fs : List (GoString × GoString)) : Prop :=
+  (fs.map fun f => 32 + f.1.length + f.2.length).sum ≤ maxHeaderBlock
+
 /-- A frame the server writes. -/
 inductive SrvFrame where
   | header (fs : List (GoString × GoString))
   | data (bs : List w8)
   | trailer (fs : List (GoString × GoString))
   | reset (code : Nat)
+  /-- The marker of a header (`kind = frameHeader`) or trailer block over the client's limit, which
+  the server did not send (`appendOversizedBlock`). -/
+  | oversized (kind : w8)
 
-/-- A server frame's bytes (`writeHeaderLocked`, `Write`, `WriteStatus`/`writeEarlyAbort`,
+/-- A server frame's bytes (`writeHeaderBlock`, `Write`, `WriteStatus`/`writeEarlyAbort`,
 `appendReset`). -/
 def srvFrameBytes : SrvFrame → List w8
   | .header fs => headerBlock frameHeader fs
   | .data bs => dataFrame bs
   | .trailer fs => headerBlock frameTrailer fs
   | .reset c => frameReset :: be32 c
+  | .oversized k => k :: be32 (maxHeaderBlock + 1)
 
 /-! ## Header fields -/
 
@@ -263,6 +277,19 @@ theorem fieldsBytes_append_inj : ∀ {fs fs' : List (GoString × GoString)} {x y
     obtain ⟨rfl, rfl⟩ := fieldsBytes_append_inj (by simpa using hl)
       (fun g hg => hb g (by simp [hg])) (fun g hg => hb' g (by simp [hg])) h2
     exact ⟨rfl, rfl⟩
+
+/-- **The model's check makes a head well formed**: a list within the limit has a block whose
+length fits its `uint32` (F1). -/
+theorem headOk_of_listOk {fs : List (GoString × GoString)} (h : headerListOk fs) : headOk fs := by
+  unfold headerListOk maxHeaderBlock at h
+  unfold headOk
+  have : (fs.map fun f => 8 + f.1.length + f.2.length).sum ≤
+      (fs.map fun f => 32 + f.1.length + f.2.length).sum := by
+    clear h
+    induction fs with
+    | nil => simp
+    | cons f fs ih => simp only [List.map_cons, List.sum_cons]; omega
+  omega
 
 theorem headOk_length {fs : List (GoString × GoString)} (h : headOk fs) : fs.length < 2 ^ 32 := by
   unfold headOk at h
@@ -433,6 +460,7 @@ def srvFrameOk (Svc : GrpcSvc GF) (cn : Nat) : SrvFrame → IProp GF
         ∃ (γ : SlotNames) (k : GrpcKey), depSlotOf (Gg := Gg) cn γ k ∗
           slotDone (Gg := Gg) γ (GrpcOut.err (grpcMsgDecode v)))
   | .reset c => iprop(⌜c = errCodeRefusedStream⌝ -∗ connRefused (Gg := Gg) cn)
+  | .oversized _ => iprop(True)
 
 /-- **What a server writes** on a connection to an address serving `Svc`. -/
 def grpcSrvP (Svc : GrpcSvc GF) : Proto GF := fun cn W =>
