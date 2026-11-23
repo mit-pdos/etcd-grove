@@ -31,11 +31,15 @@ change each.
 
 - **The deployment is remote's** (as paxos): the orchestrator (`Orch`: `New`, a wait of `StartMs`,
   then `remote.Check`) checks the history against **the kit's key-value map with pending puts**
-  (`model.go`: per key the known value and the values of puts of unknown outcome; an answered get
-  may fire one pending put; a get of unknown outcome changes nothing). No porcupine partition (the
-  verified porcupine has none): the state is a list of per-key entries. Exact (not only sound): a get
-  that sees the current value keeps every pending put, one that sees a pending value fires that one
-  only; any other configuration's future is included in the kept one's. `TestModel` checks cases.
+  (`model.go`): per key the known state (`Found`, `V`) and the values of puts of unknown outcome,
+  `Old` (made pending before the known state was learned) and `New` (after). An answered put makes
+  its value known and every pending put `Old`; an answered get that sees the known state changes
+  nothing, one that sees a pending value makes it known (that put took effect last) and the others
+  `Old`; a get of unknown outcome changes nothing. No porcupine partition (the verified porcupine has
+  none): the state is a list of per-key entries. The `Old`/`New` split makes the entry's set of
+  linkv configurations exact (`Pure/ModelSet.lean`): with the known state, every `New` put is still
+  pending but any `Old` one may have taken effect before (overwritten). (A single pending list, the
+  first version, accepted the same histories but its set was not exact.) `TestModel` checks cases.
   The lab used its own driver, recorder and `check.KV` over `models.KvIn/KvOut`, an unknown
   outcome being porcupine's pending operation (output `nil`); here `Out{Unknown: true}`, remote's.
 - Inputs/outputs are the kit's `In`/`Out` (in place of the lab's `models.KvIn/KvOut`), with the

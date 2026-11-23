@@ -20,15 +20,19 @@ type Out struct {
 	V       string
 }
 
-// Entry is one key's state in the model: whether a value is known to be the key's (Found, V), and
-// the values of the puts of unknown outcome on the key (Pend; each may still take effect, once, or
-// never). It stands for the configurations in which some of Pend took effect after the known
-// state, the last one's value the key's, and the others are still pending.
+// Entry is one key's state in the model: the key's known state (Found, V: the last answered put's
+// value, or the value an answered get saw; nothing known yet: Found false, V ""), and the values of
+// the puts of unknown outcome on the key, Old (made pending before the known state was learned) and
+// New (made pending after). Each pending put may still take effect, once, or never. It stands for
+// the configurations in which either the key's state is the known one, every New put still pending
+// and any of the Old ones taken effect before (which the known state then overwrote); or some
+// pending put x took effect last (the key's value is x's) and any of the others before it.
 type Entry struct {
 	K     string
 	Found bool
 	V     string
-	Pend  []string
+	Old   []string
+	New   []string
 }
 
 // State is the model's state: an entry per key touched (in the order first touched; a key without
@@ -51,6 +55,14 @@ func has(p []string, v string) bool {
 		}
 	}
 	return false
+}
+
+// cat is p followed by q, in a new slice.
+func cat(p []string, q []string) []string {
+	r := make([]string, len(p)+len(q))
+	copy(r, p)
+	copy(r[len(p):], q)
+	return r
 }
 
 // erase is p without its first v, in a new slice.
@@ -89,14 +101,14 @@ func set(s State, i int, e Entry) State {
 	return t
 }
 
-// stepE is the model's step on one key's entry: a put of unknown outcome is pending, a get of
-// unknown outcome changes nothing; an answered put makes its value the key's; an answered get that
-// saw (Found, V) is one at a configuration where that is the key's state (already, or by one
-// pending put of V taking effect first).
+// stepE is the model's step on one key's entry: a put of unknown outcome is pending (New), a get of
+// unknown outcome changes nothing; an answered put makes its value the key's known state, every
+// pending put Old; an answered get that saw the known state changes nothing, one that saw a pending
+// put's value V makes it the known state (that put took effect last), the other pending puts Old.
 func stepE(e Entry, in In, o Out) (bool, Entry) {
 	if o.Unknown {
 		if in.Put {
-			return true, Entry{K: e.K, Found: e.Found, V: e.V, Pend: push(e.Pend, in.V)}
+			return true, Entry{K: e.K, Found: e.Found, V: e.V, Old: e.Old, New: push(e.New, in.V)}
 		}
 		return true, e
 	}
@@ -104,13 +116,14 @@ func stepE(e Entry, in In, o Out) (bool, Entry) {
 		if o.Found || o.V != "" {
 			return false, e
 		}
-		return true, Entry{K: e.K, Found: true, V: in.V, Pend: e.Pend}
+		return true, Entry{K: e.K, Found: true, V: in.V, Old: cat(e.Old, e.New), New: nil}
 	}
 	if o.Found == e.Found && o.V == e.V {
 		return true, e
 	}
-	if o.Found && has(e.Pend, o.V) {
-		return true, Entry{K: e.K, Found: true, V: o.V, Pend: erase(e.Pend, o.V)}
+	all := cat(e.Old, e.New)
+	if o.Found && has(all, o.V) {
+		return true, Entry{K: e.K, Found: true, V: o.V, Old: erase(all, o.V), New: nil}
 	}
 	return false, e
 }
@@ -125,17 +138,23 @@ func step(s State, in In, o Out) (bool, State) {
 	return true, set(s, i, e2)
 }
 
-// equalE reports whether two entries are the same (as values: the same pending list).
-func equalE(a Entry, b Entry) bool {
-	if a.K != b.K || a.Found != b.Found || a.V != b.V || len(a.Pend) != len(b.Pend) {
+// equalS reports whether two lists of values are the same.
+func equalS(a []string, b []string) bool {
+	if len(a) != len(b) {
 		return false
 	}
-	for i := 0; i < len(a.Pend); i++ {
-		if a.Pend[i] != b.Pend[i] {
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
 			return false
 		}
 	}
 	return true
+}
+
+// equalE reports whether two entries are the same (as values: the same pending lists).
+func equalE(a Entry, b Entry) bool {
+	return a.K == b.K && a.Found == b.Found && a.V == b.V && equalS(a.Old, b.Old) &&
+		equalS(a.New, b.New)
 }
 
 // equal reports whether a and b are the same state (as values).

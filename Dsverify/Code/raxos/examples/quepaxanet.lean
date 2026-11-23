@@ -225,6 +225,9 @@ noncomputable def push [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def has [GooseExts] [GoGlobalContext] : GoString :=
   go!"raxos/examples/quepaxanet.has"
 
+noncomputable def cat [GooseExts] [GoGlobalContext] : GoString :=
+  go!"raxos/examples/quepaxanet.cat"
+
 noncomputable def erase [GooseExts] [GoGlobalContext] : GoString :=
   go!"raxos/examples/quepaxanet.erase"
 
@@ -239,6 +242,9 @@ noncomputable def stepE [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def step [GooseExts] [GoGlobalContext] : GoString :=
   go!"raxos/examples/quepaxanet.step"
+
+noncomputable def equalS [GooseExts] [GoGlobalContext] : GoString :=
+  go!"raxos/examples/quepaxanet.equalS"
 
 noncomputable def equalE [GooseExts] [GoGlobalContext] : GoString :=
   go!"raxos/examples/quepaxanet.equalE"
@@ -2067,7 +2073,7 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- push is p with v added, in a new slice (states are never written).
 
-    go: model.go:39:6 -/
+    go: model.go:43:6 -/
 noncomputable def push.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "v"
@@ -2101,7 +2107,7 @@ noncomputable def push.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- has reports whether v is in p.
 
-    go: model.go:47:6 -/
+    go: model.go:51:6 -/
 noncomputable def has.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "v"
@@ -2138,9 +2144,46 @@ noncomputable def has.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- cat is p followed by q, in a new slice.
+
+    go: model.go:61:6 -/
+noncomputable def cat.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "q"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "q" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "q"))
+  (Let "p" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "p"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.string)]))) (Val #())) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "q"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "r"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.string)))) (Pair (Pair (Var "$s") (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$s")))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "q"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "r"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "p"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "r") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0"))))))
+
 /-- erase is p without its first v, in a new slice.
 
-    go: model.go:57:6 -/
+    go: model.go:69:6 -/
 noncomputable def erase.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "v"
@@ -2191,7 +2234,7 @@ noncomputable def erase.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- lookup is key k's entry in s (its index, or len(s) and the empty entry).
 
-    go: model.go:71:6 -/
+    go: model.go:83:6 -/
 noncomputable def lookup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "k"
@@ -2241,7 +2284,7 @@ noncomputable def lookup.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- set is s with key e.K's entry at index i (len(s): a new one) e, in a new slice.
 
-    go: model.go:81:6 -/
+    go: model.go:93:6 -/
 noncomputable def set.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -2285,12 +2328,12 @@ noncomputable def set.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))
   (App (Val (GoInstruction (GoLoad State.ty))) (Var "$res0")))))))
 
-/-- stepE is the model's step on one key's entry: a put of unknown outcome is pending, a get of
-    unknown outcome changes nothing; an answered put makes its value the key's; an answered get that
-    saw (Found, V) is one at a configuration where that is the key's state (already, or by one
-    pending put of V taking effect first).
+/-- stepE is the model's step on one key's entry: a put of unknown outcome is pending (New), a get of
+    unknown outcome changes nothing; an answered put makes its value the key's known state, every
+    pending put Old; an answered get that saw the known state changes nothing, one that saw a pending
+    put's value V makes it the known state (that put took effect last), the other pending puts Old.
 
-    go: model.go:96:6 -/
+    go: model.go:108:6 -/
 noncomputable def stepE.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam "in"
@@ -2304,6 +2347,11 @@ noncomputable def stepE.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Old"))) (Var "e")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"New"))) (Var "e")))
+  (App (App (App (Val (GoInstruction (FuncResolve cat []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "all" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #false)
   (Let "$r1" (App (Val (GoInstruction (GoLoad Entry.ty))) (Var "e"))
@@ -2315,17 +2363,18 @@ noncomputable def stepE.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Entry.ty))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
-  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Out.ty go!"Found"))) (Var "o"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "e")))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Out.ty go!"Found"))) (Var "o"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "all"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Out.ty go!"V"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve has []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
   (Let "$r0" (Val #true)
   (Let "$r1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"K"))) (Var "e")))
   (Let "$v1" (Val #true)
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Out.ty go!"V"))) (Var "o")))
-  (Let "$v3" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "e")))
+  (Let "$v3" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "all"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Out.ty go!"V"))) (Var "o")))
   (App (App (App (Val (GoInstruction (FuncResolve erase []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"K")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Found")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"V")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Pend")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v3")))]))))))
+  (Let "$v4" (Val UntypedNil)
+  (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"K")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Found")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"V")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Old")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v3"))), (KeyedElement (some (KeyField go!"New")) (ElementExpression go.untypedNil (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2336,6 +2385,8 @@ noncomputable def stepE.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val doExecute)
   (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "all") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Out.ty go!"Found"))) (Var "o"))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Found"))) (Var "e"))))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Out.ty go!"V"))) (Var "o"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"V"))) (Var "e"))))) (Val #false)))
   (Let "$r0" (Val #true)
   (Let "$r1" (App (Val (GoInstruction (GoLoad Entry.ty))) (Var "e"))
@@ -2355,8 +2406,11 @@ noncomputable def stepE.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"K"))) (Var "e")))
   (Let "$v1" (Val #true)
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef In.ty go!"V"))) (Var "in")))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "e")))
-  (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"K")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Found")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"V")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Pend")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v3")))]))))))
+  (Let "$v3" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Old"))) (Var "e")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"New"))) (Var "e")))
+  (App (App (App (Val (GoInstruction (FuncResolve cat []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v4" (Val UntypedNil)
+  (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"K")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Found")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"V")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Old")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v3"))), (KeyedElement (some (KeyField go!"New")) (ElementExpression go.untypedNil (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2397,10 +2451,11 @@ noncomputable def stepE.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r1" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"K"))) (Var "e")))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Found"))) (Var "e")))
   (Let "$v2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"V"))) (Var "e")))
-  (Let "$v3" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "e")))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Old"))) (Var "e")))
+  (Let "$v4" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"New"))) (Var "e")))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef In.ty go!"V"))) (Var "in")))
   (App (App (App (Val (GoInstruction (FuncResolve push []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"K")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Found")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"V")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Pend")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v3")))]))))))
+  (App (Val (GoInstruction (CompositeLiteral Entry.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"K")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Found")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"V")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Old")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v3"))), (KeyedElement (some (KeyField go!"New")) (ElementExpression (go.GoType.SliceType go.string) (Var "$v4")))])))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2417,7 +2472,7 @@ noncomputable def stepE.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- step is the model's step: stepE on the input's key.
 
-    go: model.go:119:6 -/
+    go: model.go:132:6 -/
 noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "in"
@@ -2488,16 +2543,16 @@ noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad State.ty))) (Var "$res1")))))))))
 
-/-- equalE reports whether two entries are the same (as values: the same pending list).
+/-- equalS reports whether two lists of values are the same.
 
-    go: model.go:129:6 -/
-noncomputable def equalE.impl [GooseExts] [GoGlobalContext] : val :=
+    go: model.go:142:6 -/
+noncomputable def equalS.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc Entry.ty))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc Entry.ty))) (Var "a"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "b"))
+  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "a"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #true)
@@ -2510,9 +2565,9 @@ noncomputable def equalE.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "a")))
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "a"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "b"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "b")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2526,9 +2581,9 @@ noncomputable def equalE.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"K"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"K"))) (Var "b")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Found"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Found"))) (Var "b"))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"V"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"V"))) (Var "b"))))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Pend"))) (Var "b")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "a"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "b"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")))))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -2539,9 +2594,31 @@ noncomputable def equalE.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- equalE reports whether two entries are the same (as values: the same pending lists).
+
+    go: model.go:155:6 -/
+noncomputable def equalE.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "a"
+  (Lam "b"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc Entry.ty))) (Var "b"))
+  (Let "a" (App (Val (GoInstruction (GoAlloc Entry.ty))) (Var "a"))
+  (Let "$r0" (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"K"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"K"))) (Var "b"))))) (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Found"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Found"))) (Var "b"))))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"V"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"V"))) (Var "b"))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Old"))) (Var "a")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"Old"))) (Var "b")))
+  (App (App (App (Val (GoInstruction (FuncResolve equalS []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"New"))) (Var "a")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef Entry.ty go!"New"))) (Var "b")))
+  (App (App (App (Val (GoInstruction (FuncResolve equalS []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- equal reports whether a and b are the same state (as values).
 
-    go: model.go:142:6 -/
+    go: model.go:161:6 -/
 noncomputable def equal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
@@ -2596,7 +2673,7 @@ noncomputable def equal.impl [GooseExts] [GoGlobalContext] : val :=
     a write, a get a read), as a porcupine model (no partition: the verified porcupine checks the
     history whole). Inputs are Ins, outputs Outs.
 
-    go: model.go:157:6 -/
+    go: model.go:176:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -2672,7 +2749,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- appendStr is b with s appended: its length (8 bytes, little-endian), then its bytes.
 
-    go: model.go:169:6 -/
+    go: model.go:188:6 -/
 noncomputable def appendStr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "s"
@@ -2710,7 +2787,7 @@ noncomputable def appendStr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- takeStr is the string at the front of b (appendStr's encoding) and the rest of b.
 
-    go: model.go:177:6 -/
+    go: model.go:196:6 -/
 noncomputable def takeStr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -2795,7 +2872,7 @@ noncomputable def takeStr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- flag is a boolean's byte.
 
-    go: model.go:192:6 -/
+    go: model.go:211:6 -/
 noncomputable def flag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
@@ -2821,7 +2898,7 @@ noncomputable def flag.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- EncIn is in's encoding: Put (one byte), then K and V (appendStr).
 
-    go: model.go:200:6 -/
+    go: model.go:219:6 -/
 noncomputable def EncIn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -2852,7 +2929,7 @@ noncomputable def EncIn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- DecIn decodes EncIn's encoding.
 
-    go: model.go:207:6 -/
+    go: model.go:226:6 -/
 noncomputable def DecIn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc In.ty))) (App (Val (GoInstruction (GoZeroVal In.ty))) (Val #())))
@@ -2961,7 +3038,7 @@ noncomputable def DecIn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- EncOut is o's encoding: Unknown and Found (a byte each), then V's bytes.
 
-    go: model.go:223:6 -/
+    go: model.go:242:6 -/
 noncomputable def EncOut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "o"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -2988,7 +3065,7 @@ noncomputable def EncOut.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- DecOut decodes EncOut's encoding.
 
-    go: model.go:229:6 -/
+    go: model.go:248:6 -/
 noncomputable def DecOut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Out.ty))) (App (Val (GoInstruction (GoZeroVal Out.ty))) (Val #())))
@@ -3029,7 +3106,7 @@ noncomputable def DecOut.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Codec is the map's codec (EncIn/DecIn, EncOut/DecOut); a get is a read; the unknown output is
     Out{Unknown: true}.
 
-    go: model.go:238:6 -/
+    go: model.go:257:6 -/
 noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (Val #())))
@@ -3535,16 +3612,18 @@ structure Entry [GooseExts] where
   K' : GoString
   Found' : Bool
   V' : GoString
-  Pend' : GoSlice
+  Old' : GoSlice
+  New' : GoSlice
 
 noncomputable instance Entry.zero_val [GooseExts] : ZeroVal Entry :=
-  ⟨Entry.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨Entry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def Entry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"K" go.string),
 (go.field_decl.FieldDecl go!"Found" go.bool),
 (go.field_decl.FieldDecl go!"V" go.string),
-(go.field_decl.FieldDecl go!"Pend" (go.GoType.SliceType go.string))]
+(go.field_decl.FieldDecl go!"Old" (go.GoType.SliceType go.string)),
+(go.field_decl.FieldDecl go!"New" (go.GoType.SliceType go.string))]
 
 @[irreducible] noncomputable def Entry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Entry.fieldsUnsealed
@@ -3565,8 +3644,10 @@ class Entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Found : ∀ (x : Entry) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Found") (PairV #x #y) (Val #(({ x with Found' := y } : Entry)))
   get_V : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"V") #x (Val #(x.V'))
   set_V : ∀ (x : Entry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"V") (PairV #x #y) (Val #(({ x with V' := y } : Entry)))
-  get_Pend : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Pend") #x (Val #(x.Pend'))
-  set_Pend : ∀ (x : Entry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Pend") (PairV #x #y) (Val #(({ x with Pend' := y } : Entry)))
+  get_Old : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Old") #x (Val #(x.Old'))
+  set_Old : ∀ (x : Entry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Old") (PairV #x #y) (Val #(({ x with Old' := y } : Entry)))
+  get_New : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"New") #x (Val #(x.New'))
+  set_New : ∀ (x : Entry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"New") (PairV #x #y) (Val #(({ x with New' := y } : Entry)))
   method_set : go.MethodSetIs Entry.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Entry.ty) []
 
@@ -3578,8 +3659,10 @@ attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.set_Found
   Entry.TypeAssumptions.get_V
   Entry.TypeAssumptions.set_V
-  Entry.TypeAssumptions.get_Pend
-  Entry.TypeAssumptions.set_Pend
+  Entry.TypeAssumptions.get_Old
+  Entry.TypeAssumptions.set_Old
+  Entry.TypeAssumptions.get_New
+  Entry.TypeAssumptions.set_New
   Entry.TypeAssumptions.method_set
   Entry.TypeAssumptions.ptr_method_set
 
@@ -3636,11 +3719,13 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Server_unfold : FuncUnfold Server [] Server.impl
   push_unfold : FuncUnfold push [] push.impl
   has_unfold : FuncUnfold has [] has.impl
+  cat_unfold : FuncUnfold cat [] cat.impl
   erase_unfold : FuncUnfold erase [] erase.impl
   lookup_unfold : FuncUnfold lookup' [] lookup.impl
   set_unfold : FuncUnfold set [] set.impl
   stepE_unfold : FuncUnfold stepE [] stepE.impl
   step_unfold : FuncUnfold step [] step.impl
+  equalS_unfold : FuncUnfold equalS [] equalS.impl
   equalE_unfold : FuncUnfold equalE [] equalE.impl
   equal_unfold : FuncUnfold equal [] equal.impl
   Model_unfold : FuncUnfold Model [] Model.impl
@@ -3705,11 +3790,13 @@ attribute [instance] Assumptions.Conf_instance
   Assumptions.Server_unfold
   Assumptions.push_unfold
   Assumptions.has_unfold
+  Assumptions.cat_unfold
   Assumptions.erase_unfold
   Assumptions.lookup_unfold
   Assumptions.set_unfold
   Assumptions.stepE_unfold
   Assumptions.step_unfold
+  Assumptions.equalS_unfold
   Assumptions.equalE_unfold
   Assumptions.equal_unfold
   Assumptions.Model_unfold

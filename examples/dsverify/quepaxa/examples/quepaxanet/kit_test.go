@@ -246,6 +246,12 @@ func TestModel(t *testing.T) {
 		{[]porcupine.Operation{op(0, p("a"), unk, 0, 1), op(1, g, Out{}, 2, 3)}, true},
 		// keys are independent
 		{[]porcupine.Operation{op(0, p("a"), Out{}, 0, 1), op(1, In{K: "j"}, Out{}, 2, 3)}, true},
+		// a pending put seen after a later known put took effect last: the known put is gone
+		{[]porcupine.Operation{op(0, p("a"), unk, 0, 1), op(1, p("b"), Out{}, 2, 3), op(1, g, got("a"), 4, 5),
+			op(1, g, got("b"), 6, 7)}, false},
+		// a put pending after the known state is still pending when the known state is seen again
+		{[]porcupine.Operation{op(1, p("b"), Out{}, 0, 1), op(0, p("a"), unk, 2, 3), op(1, g, got("b"), 4, 5),
+			op(1, g, got("a"), 6, 7)}, true},
 		// an unknown get changes nothing
 		{[]porcupine.Operation{op(0, g, unk, 0, 1), op(1, g, Out{}, 2, 3)}, true},
 	}

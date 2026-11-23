@@ -584,7 +584,8 @@ noncomputable instance Entry_typed_pointsto :
     "K" ∷ typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"K" l) v.K' dq ∗
     "Found" ∷ typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Found" l) v.Found' dq ∗
     "V" ∷ typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"V" l) v.V' dq ∗
-    "Pend" ∷ typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Pend" l) v.Pend' dq ∗
+    "Old" ∷ typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) v.Old' dq ∗
+    "New" ∷ typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) v.New' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -642,19 +643,35 @@ noncomputable instance Entry_access_store_V (l : Loc) (v : raxos.examples.quepax
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_load_Pend (l : Loc) (v : raxos.examples.quepaxanet.Entry) (dq : DFrac) :
+noncomputable instance Entry_access_load_Old (l : Loc) (v : raxos.examples.quepaxanet.Entry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Pend" l) v.Pend' dq)
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Pend" l) v.Pend' dq)
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) v.Old' dq)
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) v.Old' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_Pend (l : Loc) (v : raxos.examples.quepaxanet.Entry) (Pend' : GoSlice) :
+noncomputable instance Entry_access_store_Old (l : Loc) (v : raxos.examples.quepaxanet.Entry) (Old' : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Pend" l) v.Pend' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Pend" l) Pend' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pend' := Pend' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) v.Old' (DFrac.own 1))
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) Old' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Old' := Old' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Entry_access_load_New (l : Loc) (v : raxos.examples.quepaxanet.Entry) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) v.New' dq)
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) v.New' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Entry_access_store_New (l : Loc) (v : raxos.examples.quepaxanet.Entry) (New' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) v.New' (DFrac.own 1))
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) New' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with New' := New' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
