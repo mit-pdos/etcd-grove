@@ -9,7 +9,7 @@ extension's single shared view (`notes/fs-interp-state-determined.md`) a generat
 view and needs no switch. It also took `errors.IsPathErrnoNotExist.spec`, proved since 2026-11-22,
 `Proof/errors/IsPathErrnoNotExist.lean`.)
 
-`raft_kvnet_robust_of_errors` assembles it (`notes/kvnet-part.md`, the handoffs) at `GF := kvnetGF`:
+`raft_kvnet_robust` assembles it (`notes/kvnet-part.md`, the handoffs) at `GF := kvnetGF`:
 
 * the start (`Hstart` of the bridge): the protocol registry (`netProto_alloc`), the store
   (`kvnet_store_alloc`: raft's cluster, the store's invariant, every replica's durable state and
@@ -20,7 +20,7 @@ view and needs no switch. It also took `errors.IsPathErrnoNotExist.spec`, proved
   storage registry by `kdStor_alloc`, then `kvRep_gen`);
 * the client (`kvClient_stable`, from `kvcheck_wp_program`).
 
-`raft_kvnet_robust_example_of_errors` is the example's corollary, and `raft_kvnet_example_premises`
+`raft_kvnet_robust_example` is the example's corollary, and `raft_kvnet_example_premises`
 says the example's premises can all hold (with a file system as on disk, `FsInit`).
 -/
 module
@@ -254,7 +254,7 @@ section top
 variable [go_gctx : GoGlobalContext]
 
 /-- **kvnet is robust** (`raft_kvnet_robust.spec`; see the file header). -/
-theorem raft_kvnet_robust_of_errors :
+theorem raft_kvnet_robust :
     raft_kvnet_robust.spec := by
   intro lctx sem package_sem field_sem os_file_sem os_stat_sem log_sem cl dir replicas σc g
     hcl hn hdir hnd hrep addrs hfresh hig hil
@@ -321,7 +321,7 @@ theorem raft_kvnet_robust_of_errors :
     · iapply BigSepL.bigSepL_nil.2
       iempintro
 
-#print axioms raft_kvnet_robust_of_errors
+#print axioms raft_kvnet_robust
 
 /-- **The example from the theorem**: `raft_kvnet_robust_example.spec` from `raft_kvnet_robust.spec`,
 its premises by computation. -/
@@ -347,11 +347,11 @@ theorem raft_kvnet_robust_example_of (H : raft_kvnet_robust.spec) :
     · exact ⟨by decide, hfs _ (by simp)⟩
 
 /-- **kvnet is robust, the example**. -/
-theorem raft_kvnet_robust_example_of_errors :
+theorem raft_kvnet_robust_example :
     raft_kvnet_robust_example.spec :=
-  raft_kvnet_robust_example_of raft_kvnet_robust_of_errors
+  raft_kvnet_robust_example_of raft_kvnet_robust
 
-#print axioms raft_kvnet_robust_example_of_errors
+#print axioms raft_kvnet_robust_example
 
 end top
 

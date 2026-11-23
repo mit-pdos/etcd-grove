@@ -1,5 +1,5 @@
 # kvnet (examples/raft/kvnet, notes/kvnet-part.md; the part KvNet/): the top-level robustness theorem
-# `raft_kvnet_robust_of_errors`, its example `raft_kvnet_robust_example_of_errors` and the example's
+# `raft_kvnet_robust`, its example `raft_kvnet_robust_example` and the example's
 # premises' non-vacuity `raft_kvnet_example_premises`
 # (KvNet/Proof/.../raft/kvnet/TopLevelRobustness.lean), with no hypothesis: `RobustOfNetFsBootG` (the
 # bridge over mit-pdos/perennial#683) was one until the file extension's single shared view
