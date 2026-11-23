@@ -934,6 +934,84 @@ theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []
           have := hL y hy
           simp [f]; omega
 
+theorem wp_equal (a b : State) (A B : List Cfg) (LA LB : List GCfg) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ a.Cfgs' ↦*□ A ∗ cfgsOk A LA ∗ b.Cfgs' ↦*□ B ∗
+        cfgsOk B LB }}
+      (App (App (Val (@! gryff.examples.gryffnet.equal)) (Val #a)) (Val #b))
+    {{ (r : Bool), RET #r; ⌜r = true → LA = LB⌝ }} := by
+  wp_start as ⟨#Ha, #HA, #Hb, #HB⟩
+  ihave %HaL := ownSlice_len _ _ _ $$ Ha
+  ihave %HbL := ownSlice_len _ _ _ $$ Hb
+  ihave %HAL : ⌜A.length = LA.length⌝ $$ []
+  · unfold cfgsOk; icases HA with ⟨%h, -⟩; ipureintro; exact h
+  ihave %HBL : ⌜B.length = LB.length⌝ $$ []
+  · unfold cfgsOk; icases HB with ⟨%h, -⟩; ipureintro; exact h
+  wp_auto
+  by_cases h3 : ¬ a.Cfgs'.len = b.Cfgs'.len
+  · simp only [h3, _root_.decide_false, Bool.not_false]
+    wp_auto
+    iapply HΦ
+    ipureintro; intro h; cases h
+  have h3 := Classical.not_not.mp h3
+  simp only [h3, _root_.decide_true, Bool.not_true]
+  wp_auto
+  have hAB : LA.length = LB.length := by rw [← HAL, ← HBL, HaL.1, HbL.1, h3]
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z a.Cfgs'.len ∧
+        LA.take (sint.nat i) = LB.take (sint.nat i)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Ht⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z a.Cfgs'.len := Hif
+    obtain ⟨x, Hx_lookup⟩ : ∃ x, A[sint.nat i]? = some x :=
+      ⟨A[sint.nat i]'(by rw [HaL.1]; word), List.getElem?_eq_getElem _⟩
+    obtain ⟨y, Hy_lookup⟩ : ∃ y, B[sint.nat i]? = some y :=
+      ⟨B[sint.nat i]'(by rw [HbL.1, ← h3]; word), List.getElem?_eq_getElem _⟩
+    ihave ⟨%xg, %Hxg, #Hx⟩ := cfgsOk_get A LA (sint.nat i) x Hx_lookup $$ HA
+    ihave ⟨%yg, %Hyg, #Hy⟩ := cfgsOk_get B LB (sint.nat i) y Hy_lookup $$ HB
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z a.Cfgs'.len from ⟨Hi0, hlt⟩)]
+    wp_apply wp_load_slice_index a.Cfgs' (sint.Z i) A _ x Hi0 $$ [Ha] as -
+    · iframe Ha; ipureintro; exact Hx_lookup
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z b.Cfgs'.len from ⟨Hi0, h3 ▸ hlt⟩)]
+    wp_apply wp_load_slice_index b.Cfgs' (sint.Z i) B _ y Hi0 $$ [Hb] as -
+    · iframe Hb; ipureintro; exact Hy_lookup
+    unfold cfgOk
+    icases Hx with ⟨%HxV, #HxP⟩
+    icases Hy with ⟨%HyV, #HyP⟩
+    wp_apply wp_sameCfg x y xg.pend yg.pend $$ [$HxP $HyP]
+    have hdec : decide (x.V' = y.V' ∧ xg.pend = yg.pend) = decide (xg = yg) := by
+      rw [HxV, HyV]; exact decide_eq_decide.2 (gcfg_eq xg yg).symm
+    rw [hdec]
+    by_cases hxy : xg = yg
+    · subst hxy
+      simp only [_root_.decide_true, Bool.not_true]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1
+      iframe
+      ipureintro
+      have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+      refine ⟨by word, by word, ?_⟩
+      rw [hs, List.take_add_one, List.take_add_one, Ht, Hxg, Hyg]
+    · simp only [hxy, _root_.decide_false, Bool.not_false]
+      wp_auto
+      wp_for_post
+      iapply HΦ
+      ipureintro; intro h; cases h
+  · have hn : sint.nat i = LA.length := by
+      have h1 := Hil; rw [← HAL, HaL.1]; word
+    have e : LA = LB := by
+      rw [hn, List.take_length, hAB, List.take_length] at Ht
+      exact Ht
+    iapply HΦ
+    ipureintro; intro _; exact e
+
 end proof
 
 end gryff.examples.gryffnet
