@@ -9,9 +9,12 @@ offset, `fallocate` growing the file and keeping its size, `fdatasync`, a shrink
 `Read` at the offset, `unlink` and `rmdir`) is one the extension's trusted models cover, so that
 their "not modelled" panics never fire and no run is stuck, however often the node crashes
 (each crash keeping a set of the logged metadata operations closed under the journal order; a
-process restart is a machine crash under the semantics' "Restarts" assumption). The crash invariant is `SegLogOps.lean`'s `logInv`, half of the tree's
-history: the boot program removes whatever is at `seg.log` and makes a new segment, so it needs
-nothing of what a crash left.
+process restart is a machine crash under the semantics' "Restarts" assumption). There is no crash
+invariant: the boot program removes whatever is at `seg.log` and makes a new segment, so it needs
+nothing of what a crash left. Each generation starts from the shared view's resources of its durable
+tree (`osShared R (m, [])`, `m` well formed), takes the whole claim on `seg.log` from them
+(`log_start`), and runs `Run`; after a crash, the next generation's resources come from the old
+generation's `osSharedInv` (`crashRest_treeS'`).
 
 **What is assumed**, as for `segdir` (`Results.lean`): the package initializer (`Hinit_wp`), the
 hand-written `os.file` field facts, and the Goose-generated package facts of `os` and
@@ -51,11 +54,11 @@ def bootLog [GoGlobalContext] (dir : GoString) : Expr :=
 section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
 
-/-- The precondition of `seglog`'s boot program in the generation `L`, the roots `R`: the whole
-of the tree's history. -/
+/-- The precondition of `seglog`'s boot program in the generation `L`, the roots `R`: the shared
+view's resources of a well-formed durable tree. -/
 def bootPreLog [G : GooseGlobalGS .hasLC GF] (R : Roots) (L : GooseLocalGS GF) : IProp GF :=
   iprop(osInv (L := L) ∗ ownGoState (hG := L.goose_go_stateGS) ∅ ∗
-    ∃ V : Hist, osTree (L := L) (DFrac.own 1) R V)
+    ∃ m : Tree, osShared (L := L) R (m, []) ∗ ⌜TreeWf R m⌝)
 
 /-- `seglog_crash_safety` for executions of fewer than `N` steps along which fewer than `T`
 threads are live. -/
@@ -93,43 +96,44 @@ theorem seglog_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics]
     imodintro
     iframe Hos Hgs
     iexists _
-    iexact Hh
-  · -- every generation: the invariant, the boot program, and the next generation's
+    iframe Hh
+    ipureintro; rw [← hRdef]; exact Hinit.2.2.2.2.1
+  · -- every generation: the program's claim, the boot program, and the next generation's
     intro hG _ _ Hlctx'
     rw [Hlctx] at Hlctx'
     obtain ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
     subst Hlctx'
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     unfold bootPreLog
-    iintro ⟨#Hos, Hgs, %V0, Hh⟩ _
-    icases (tree_halves (L := hG.goose_localGS) 1 R V0).1 $$ Hh with ⟨Hh1, Hh2⟩
-    imod inv_alloc logN ⊤ (iprop(∃ V : Hist,
-        osTree (L := hG.goose_localGS) (DFrac.own (1 : Qp).half) R V)) $$ [Hh2]
-      with #Hinv
-    · inext; iexists V0; iexact Hh2
+    iintro ⟨#Hos, Hgs, %m, Hsh, %hwf⟩ _
+    imod log_start (L := hG.goose_localGS) R hR dir j hrj m hwf ⊤ CoPset.subseteq_top $$ Hsh
+      with ⟨#Hsi, Hh, Hsub⟩
     imodintro
-    isplitl [Hgs Hh1]
+    isplitl [Hgs Hh Hsub]
     · -- the boot program
       unfold bootLog
       wp_apply Hinit_wp $$ Hgs
       wp_pures
       wp_apply wp_Run os.File.Close.wp_proof os.File.WriteAt.wp_proof os.File.Fd.wp_proof
-          syscall.Fdatasync.wp_proof R hR dir j hrj V0 $$ [Hh1]
-      · iframe; iframe #; unfold logInv; iexact Hinv
+          syscall.Fdatasync.wp_proof R dir j hrj _ $$ [Hh Hsub]
+      · iframe; iframe #
       ipureintro; rfl
-    · -- after a crash: the tree from the old generation's invariant
-      iintro %L' %V' _ #Hos' Hr Hgs'
-      imod inv_acc (E := ⊤) (show ↑logN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
-        with ⟨Hi, Hclose⟩
-      icases Hi with ⟨%V, >Hh⟩
-      icases osTreeCrash_take (fun _ _ => True) hG.goose_localGS L' [] V' _ R V $$ Hr Hh
-        with ⟨-, Hh', -, Hh⟩
-      imod Hclose $$ [Hh] with -
-      · inext; iexists V; iexact Hh
+    · -- after a crash: the next generation's resources from the old generation's `osSharedInv`
+      iintro %L' %V' _ #Hos' Hr Hgs' -
+      imod crashRest_treeWf' (fun _ _ => True) hG.goose_localGS L' [] false V' R ⊤ CoPset.subseteq_top
+        $$ Hsi Hr with ⟨%hwf', Hr⟩
+      imod crashRest_treeS' (fun _ _ => True) hG.goose_localGS L' [] V' R ⊤ CoPset.subseteq_top
+        $$ Hsi Hr with ⟨%hV, Hsh', -⟩
+      obtain ⟨m', l⟩ := V'
+      simp only at hV
+      subst hV
+      have hnow : Hist.now ((m', []) : Hist) = m' := by simp [Hist.now, Hist.ops, replay]
+      rw [hnow] at hwf'
       imodintro
       iframe Hos' Hgs'
-      iexists V'
-      iexact Hh'
+      iexists m'
+      iframe Hsh'
+      ipureintro; exact hwf'
 
 /-- **Crash safety of `examples/osfs/walfs`'s `seglog.Run`.** In every execution with crashes of
 the boot program (`RealCrashNsteps`, the real semantics), from a state whose Go context satisfies
