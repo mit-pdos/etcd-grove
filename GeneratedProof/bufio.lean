@@ -2,8 +2,10 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.bytes
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.strings
 public import Perennial.Golang.Theory
 public import Code.bufio
 
