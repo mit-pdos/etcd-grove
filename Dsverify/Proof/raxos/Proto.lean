@@ -32,7 +32,7 @@ recorders. Node 0 is the orchestrator, node `1 + c` client `c`'s (c < 6), node `
 
 Changed against the lab (notes/dsv-quepaxa.md): the addresses are distinct ports of `127.0.0.1`
 (`portAddr`); the protocols are `Net/`'s (`GooseLang/Ext/Net/Proto.lean`, connections numbered
-by the extension); gRPC's vocabulary is the hypotheses' (`Hyp.lean`), `netProtos` takes it; the
+by the extension); gRPC's vocabulary is the hypotheses' (`Hyp.lean`'s `QpVocab` instance); the
 unused ports of the address lists are silent.
 -/
 module
@@ -192,13 +192,13 @@ def consensusMS (γ : QNames) (a fm : GoString) : Option (UnarySpec GF) :=
 /-- The gRPC world of the deployment. -/
 def world (γ : QNames) : GrpcWorld GF := ⟨consensusMS γ, γ.grpc⟩
 
-variable [go_gctx : GoGlobalContext] [π : NetProtoGS] (V : GrpcVocab GF)
+variable [go_gctx : GoGlobalContext] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 
 /-! ## Every address's protocols -/
 
 /-- The protocols of every configured address but the request addresses (persistent): node 0's
 port (silent), the clients', the proxies' and the configuration ports' as above, the recorders'
-gRPC's (`grpcAddr` of the vocabulary `V` of the gRPC hypotheses), the unused ones silent. -/
+gRPC's (`grpcAddr` of the deployment's vocabulary `QpVocab`), the unused ones silent. -/
 def netProtos (γ : QNames) : IProp GF :=
   iprop(addrProto orchAddr silentProto silentProto ∗
     ([∗list] a ∈ unusedAddrs, addrProto a silentProto silentProto) ∗
@@ -206,11 +206,11 @@ def netProtos (γ : QNames) : IProp GF :=
     ([∗list] c ∈ List.range 6, addrProto (cconfAddr c) (confInProto γ) ackProto) ∗
     ([∗list] k ∈ [1, 2, 3, 4, 5], addrProto (proxyAddr k) (proxyInProto γ k) silentProto) ∗
     ([∗list] k ∈ [1, 2, 3, 4, 5], addrProto (confAddr k) (confInProto γ) ackProto) ∗
-    ([∗list] r ∈ [1, 2, 3, 4, 5], grpcAddr V (world γ) (recAddr r)))
+    ([∗list] r ∈ [1, 2, 3, 4, 5], grpcAddr qv.grpc (world γ) (recAddr r)))
 
 omit go_gctx in
-instance netProtos_persistent (γ : QNames) [∀ W, Persistent (V.worldOk W)] :
-    Persistent (netProtos V γ) := by
+instance netProtos_persistent (γ : QNames) :
+    Persistent (netProtos (GF := GF) γ) := by
   unfold netProtos grpcAddr; infer_instance
 
 end protos

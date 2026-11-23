@@ -13,6 +13,11 @@ for rel in sys.argv[1:]:
     s=re.sub(r"\nopen Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode([^\n]*)\n", r"\nopen Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode\1 Net\n", s, count=1)
     s=re.sub(r"(\nvariable \{GF : BundledGFunctors\} \[G : GooseGlobalGS)", r"\nvariable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]\1", s)
     s=re.sub(r"\nvariable \[go_gctx : GoGlobalContext\]", r"\nvariable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]", s)
+    s=re.sub(r"public import Quepaxa\.GeneratedProof\.", "public import Dsverify.GeneratedProof.", s)
+    s=re.sub(r"public import Harness\.Proof\.(grpc|sync\.Map)[^\n]*\n", "public import Dsverify.Proof.raxos.Hyp\n", s)
+    s=re.sub(r"public import Quepaxa\.Proof\.StoreInst\n", "", s)
+    s=re.sub(r"(\nopen [^\n]*) NetConn\b", r"\1 Net", s)
+    s=s.replace("google_golang_org.grpc.isClientConn ", "V.isClientConn ")
     s=s.replace("KvInput GoString GoString","KIn").replace("KvOutput GoString","KOut")
     import os
     os.makedirs(os.path.dirname(DST+rel),exist_ok=True)

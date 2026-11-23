@@ -91,7 +91,7 @@ end cfg
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [π : NetProtoGS] (V : GrpcVocab GF)
+variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 
 /-- An `InstanceConfig` value holding the configuration of `n` replicas (its slices
 persistent). -/
@@ -107,7 +107,7 @@ def replicaRes (γ : QNames) (c : QConf) (k : Nat) : IProp GF :=
   iprop(⌜c.ok ∧ 1 ≤ k ∧ k ≤ c.n⌝ ∗ confIs γ c ∗
     addrTok (proxyAddr k) ∗ addrTok (recAddr k) ∗
     recHalf γ k ∅ ∗ initFront γ k 1 ∗
-    inv consN (consInv γ) ∗ inv smrN (smrInv γ) ∗ netProtos V γ ∗
+    inv consN (consInv γ) ∗ inv smrN (smrInv γ) ∗ netProtos γ ∗
     batchReg γ go!"nil" nilBatch ∗ spentLb γ 0)
 
 /-! ## The channels' elements -/
@@ -169,7 +169,7 @@ def peersP (γ : QNames) (n : Nat) (sl : GoSlice) : IProp GF :=
       ∃ (l cc : Loc), ⌜p.client' = interface.mkOk (go.GoType.PointerType consensusClient.ty) #l⌝ ∗
         l ↦□ (consensusClient.mk
           (interface.mkOk (go.GoType.PointerType google_golang_org.grpc.ClientConn.ty) #cc)) ∗
-        V.isClientConn cc (world γ) (recAddr (j + 1)))
+        qv.grpc.isClientConn cc (world γ) (recAddr (j + 1)))
 
 end defs
 

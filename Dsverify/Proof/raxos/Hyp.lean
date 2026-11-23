@@ -22,8 +22,8 @@ premises, to be discharged when each piece comes as one shared change:
   vocabulary). `grpcAddr W a` is `Net/`'s `addrProto a (reqProto W a) (respProto W a)` with the
   world's registry: the recorders' addresses get those protocols in the deployment.
 * **`sync.Map`** (the lab's `Harness/Proof/sync/Map.lean`; Perennial has no spec): the vocabulary
-  `ownSyncMap m M` (abstract) and the class `SyncMapHyp` of its laws (`ownSyncMap_zero` from the
-  zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
+  `own m M` (`MapVocab`, abstract) and the class `MapHyp` of its laws (`own_timeless`, `own_zero`
+  from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
   string keys.
 -/
 module
@@ -121,6 +121,13 @@ structure GrpcVocab [GooseExts] (GF : BundledGFunctors) where
   isClientConn : Loc → GrpcWorld GF → GoString → IProp GF
   /-- an error a handler may return, which the server turns into a status (persistent) -/
   handlerErr : GoInterface → IProp GF
+  worldOk_persistent : ∀ W, Persistent (worldOk W)
+  isServer_persistent : ∀ s γ W a, Persistent (isServer s γ W a)
+  isClientConn_persistent : ∀ cc W a, Persistent (isClientConn cc W a)
+  handlerErr_persistent : ∀ err, Persistent (handlerErr err)
+
+attribute [instance] GrpcVocab.worldOk_persistent GrpcVocab.isServer_persistent
+  GrpcVocab.isClientConn_persistent GrpcVocab.handlerErr_persistent
 
 section addr
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
@@ -267,10 +274,6 @@ end defs
 class GrpcHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [NetProtoGS]
     (V : GrpcVocab GF) [PbCodec GF] : Prop where
-  worldOk_persistent : ∀ W, Persistent (V.worldOk W)
-  isServer_persistent : ∀ s γ W a, Persistent (V.isServer s γ W a)
-  isClientConn_persistent : ∀ cc W a, Persistent (V.isClientConn cc W a)
-  handlerErr_persistent : ∀ err, Persistent (V.handlerErr err)
   /-- a world's registry, for the method specs `MS` -/
   world_alloc : ∀ (MS : GoString → GoString → Option (UnarySpec GF)) (E : CoPset),
     ⊢ |={E}=> ∃ reg : GName, V.worldOk ⟨MS, reg⟩
@@ -281,14 +284,11 @@ class GrpcHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlob
   Dial : Dial.spec V
   Invoke : ClientConn.Invoke.spec V
 
-attribute [instance] GrpcHyp.worldOk_persistent GrpcHyp.isServer_persistent
-  GrpcHyp.isClientConn_persistent GrpcHyp.handlerErr_persistent
-
 section inst
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS]
-variable (V : GrpcVocab GF) [cd : PbCodec GF] [GrpcHyp V]
+variable (V : GrpcVocab GF) [cd : PbCodec GF]
 
 instance grpcAddr_persistent (W : GrpcWorld GF) (a : GoString) :
     Persistent (grpcAddr (Gg := hG.goose_globalGS) V W a) := by
@@ -302,6 +302,12 @@ instance handlerOk_persistent (impl : GoInterface) (h : GoFunc) (S : UnarySpec G
 end inst
 
 end grpc
+
+/-- **The deployment's gRPC vocabulary**, as an instance (data only: the vocabulary the protocol
+proof's definitions mention, `netProtos` and the replicas' gRPC clients; the hypotheses about it,
+`GrpcHyp QpVocab.grpc`, are premises of the theorems that use them). -/
+class QpVocab [GooseExts] (GF : BundledGFunctors) where
+  grpc : grpc.GrpcVocab GF
 
 /-! ## `sync.Map` -/
 
@@ -355,10 +361,13 @@ end defs
 /-- **The `sync.Map` hypotheses**: a zero map holds nothing, and the specs. -/
 class MapHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] (V : MapVocab GF) : Prop where
+  own_timeless : ∀ m M, Timeless (V.own m M)
   own_zero : ∀ m : Loc, ⊢ (m ↦ (zero_val Perennial.sync.Map) : IProp GF) ==∗ V.own m ∅
   Load : Map.Load.spec V
   Store : Map.Store.spec V
   Delete : Map.Delete.spec V
+
+attribute [instance] MapHyp.own_timeless
 
 end sync
 
