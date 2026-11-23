@@ -3852,4 +3852,10 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   substring, `Index`-style; or `LastIndexByte` translated and `LastIndex` of a one-byte `substr` modelled on it)
   and a spec (`strings.LastIndex.spec`: the largest `i` with `substr` at `i`, or `-1`); `Print` trusted as
   `Println` is (`λ: "vs", #()`), with a spec like `log.Printf.spec`'s (`fmt.ArgsWf` arguments).
-- **Status.** Not filed yet.
+- **Status.** Not needed by this repository any more (2026-11-23): the net/rpc model replaced both by code
+  Perennial models (commit `e84c1d63c9`: `strings.LastIndex(sm, ".")` as a backwards byte loop, the same
+  index; `log.Print` of one string as `log.Println`, the same output), and the request loop and `Accept` are
+  proved over them. The general change (models of `LastIndex` and `Print`) stays proposed for other users.
+  Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
+  (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
+  beside `Printf`'s. Not filed yet.

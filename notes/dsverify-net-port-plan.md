@@ -834,15 +834,45 @@ tests kept as differential tests against the real library, a "not modelled" pani
    or decode with `err.Error()`, and `""` would send a success response encoding `invalidRequest`, which no
    generated codec lists; `CodecSpec` gains `rcv` (`codecIs` holds `rcvOk`); `register`'s three logging errors
    are excluded by premises (`regNameOk`, at least one method), since Perennial has no model of `log.Print`.
-   *Left* (in order): the request loop. `readRequestHeader` calls `strings.LastIndex`, which Perennial neither
-   translates nor models (`notes/perennial-changes.md`, 2026-11-23): its proof needs that model, or is proved
-   over a stated `strings.LastIndex.spec` left unlinked. Then the server's ghost lemmas (dsverify's
-   `ServerGhost.lean` over the two-frame wire: `claim_role`, `take_req`, a request-header parse `req_next` over
-   `reqPls`, the answer made at write time inside `respUpd` from `ansPend`), `sendResponse` (under `sending`,
-   `srvSendInv`), `service.call` (the `methodType` counter, `callObl`, `wg.Done` of Perennial's `tokJoin`),
-   `readRequest`, `ServeCodec` (the loop over `readerSt`; `wg.Add` with the reader's thread token, the fork by
-   `wp_fork_tok_self`; `wg.Wait`, `Close` by `close_au`), `ServeConn`; `Accept` (over `Listener.Accept` with
-   `accept_shared_au`; its error path calls `log.Print`, so it waits for that model too); then the HTTP path.
+   *The blocker removed in the model* (commit `e84c1d63c9`): `readRequestHeader`'s `strings.LastIndex` is a
+   backwards byte loop and `log.Print` is `log.Println` (Perennial models `Println`; its spec is stated and
+   proved here, `Net/Spec/log/Println.lean`, as `log.Printf.spec`).
+   **The request loop and `Accept` proved and linked (2026-11-23, same branch):** `Results.lean`, `#print axioms`
+   of every result Lean's three; `lake build Net.Proof.net.rpc.Results` green, `etc/tier-check.py --check`,
+   `etc/copy-part.py --check`, `etc/gen-init.py --check`, `goose.py --check --project models-net` clean,
+   `models/internal/rpcdifftest/run.sh` passes. *The ghost lemmas* (`ServerGhost.lean`): `req_hdr` (after the
+   frames of the first `k` requests, a header frame is request `k`'s: `req_next` over `reqPls`, the role
+   claimed with the acceptor's fresh token at the first, the request taken once: its deposit and
+   `ans k ↦ none`), `req_body` (its body frame is the request's argument bytes: the two lower bounds agree),
+   `answer` (the answer recorded, the continuation's `Φ reply msg` escrowed for the client), `resp_step`
+   (the response written extends `respsWire` of the answers recorded, `ansRec`, and gives `respProto`'s fact),
+   `lastDotIdx_of`/`lastDotIdx_some` (the loop's dot). *The specs*: `sendResponse` (answers request `k`
+   once, `ansPend`, with `ansRes`: the reply's encoding or `Φ [] msg`; under `sending`'s `srvSendInv`, its
+   `respUpd` makes the answer at write time), `service.call` (`callReady`: the method's call obligation, run;
+   `wg.Done()` deferred, by Perennial's thread-token join at `srvWgN`, returns the slot's thread token),
+   `readRequestHeader`/`readRequest` (over the reader's `rdrOwn`: a failed header read ends the loop; else
+   request `k` taken, with `ansPend` and either the request ready to run or an error, message not empty,
+   with the deposit spent on the service's `errOk`, `errCont`), `ServeCodec` (`srvCodecOwn`: a connection
+   just accepted; the loop invariant `rdrOwn`, the join's adder, the reader's thread token; a run forked
+   with `wp_fork_tok_self` after `Add(1)` with that token; after the loop `Wait` and `Close` by
+   `close_au`), `ServeConn`, `Accept` (`accept_shared_au` over the shared listener `lisInv`; each
+   connection served by `ServeConn` in a goroutine with its `go` statement's fresh token,
+   `wp_fork_tok_body`; a failure logged). So the server's guarantee: every method run is on a request
+   a client deposited, at most once per request (`take_req`), under the method's registered spec, and
+   every response is in the protocol's wire order (`srvSendInv`).
+   **Found, and settled in the model (ledger, 2026-11-23):** after a request's body read fails, Go's
+   `ServeCodec` answers it and reads on, from the middle of that request (gob keeps no read error), so a
+   later read that returns bytes would be decoded as new requests, and a method could run on arguments no
+   client sent. The net extension's semantics allows bytes after a read error (a `sys` error on a cut
+   direction with unread bytes kept); Linux does not, but for a read deadline's timeout (measured:
+   `examples/net/semantics`). The model's server codec now makes a frame read's error sticky
+   (`serverCodec.rerr`, `codec.go`'s doc: Go's behavior over Linux without read deadlines; a program that
+   sets a read deadline on a served connection is outside the model's claim), and the server codec's
+   read specs take `rerr` (`nonissues/go-netrpc-server-reads-on-after-body-read-error.md`).
+   *Left*: the HTTP path (`ServeHTTP`, `HandleHTTP`, `DialHTTP`); `ServeRequest`; `register`'s logging
+   premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
+   not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
+   `invalidRequest` at `()`) and `isPkgInit log` (item 5).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

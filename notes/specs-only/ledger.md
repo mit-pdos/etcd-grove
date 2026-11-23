@@ -25,6 +25,37 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
+
+- **Spec.** `models/net/rpc/codec.go` (the model, trusted): `serverCodec` gains `rerr`, the first frame read
+  error, which every later `ReadRequestHeader`/`ReadRequestBody` returns without reading.
+  `Net/Spec/net/rpc/serverCodec__{ReadRequestHeader,ReadRequestBody}.lean`: a premise `rerr ↦ r0`; with `r0`
+  not `nil` the read returns `r0` and reads nothing, otherwise as before, `rerr` then holding a frame read's
+  error (`nil` after a success or a header that does not parse). `newServerCodec.spec` gives `rerr ↦ nil` and
+  `closed ↦ false` too. `Net/Proof/net/rpc/ServerDefs.lean`: `readerSt` (prepared, unused) redefined over
+  the frames read and the count `k` (`reqPls` via `reqPlsFrom`); `srvEnv`'s `invalidRequest` is the unit
+  `struct{}{}` value (it was an interface value, of the wrong type for the load); new `rdrOwn`, `rdrMid`,
+  `callReady`, `ansRes`, `errCont`, `rdErr`, `srvCodecAt`, `srvCodecOwn`.
+- **Defect.** Found proving `ServeCodec`. Go's `ServeCodec` answers a request whose body read failed and reads
+  on (`readRequest` returns `keepReading` true); gob's decoder keeps no read error, so the next header is
+  read from the middle of the failed request. The net extension's semantics lets a read return bytes after a
+  read error (a `sys` error on a cut direction with unread bytes kept), so the reader could decode bytes no
+  client wrote as a request, and run a method on them without a deposit: the server's guarantee (each run
+  answers a request a client deposited) is unprovable over the unchanged model.
+- **Evidence.** `models/net/rpc/server.go` (`ServeCodec`, `readRequest`); Go 1.27.3's `encoding/gob`
+  (`DecodeValue` resets `dec.err`); `GooseLang/Ext/Net/Impl.lean` (`ReadAvail`'s `sys` case, `ReadOutcome`'s
+  break keeping a prefix); Linux: a read error comes once the unread bytes are read, then EOF
+  (`examples/net/semantics`' `TestResetInNetwork`, `TestKilledWithUnreadInput`, `TestTimeoutOnBreak`), but for
+  a read deadline's timeout. `nonissues/go-netrpc-server-reads-on-after-body-read-error.md`.
+- **Proposed change.** As above: the model's codec, Go's behavior over Linux when the program sets no read
+  deadline on a served connection (the model's claim says so, `codec.go`'s doc);
+  `models/internal/rpcdifftest/run.sh` still passes. The client codec is unchanged (its reader stops at the
+  first error). Not done: `Register`/`RegisterName`'s premises excluding the logging paths (entry below) could
+  now go, `log.Println` being modelled and specified (`Net/Spec/log/Println.lean`).
+- **Decision.** Applied (branch `models-rpc-server`) for the sticky error and the specs; the premises' removal
+  pending. The sticky error narrows the model's trusted claim (no read deadlines on served connections): for
+  the user to confirm.
+
 ## 2026-11-23: net/rpc model's server -- `decErr` gains a non-empty message; `CodecSpec` gains `rcv`; the net model's `OpError.Error` is never empty
 
 - **Spec.** `Net/Proof/net/rpc/Codec.lean`: `decErr err` (a decoding error) now also says its message is not
