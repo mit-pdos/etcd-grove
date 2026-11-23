@@ -195,6 +195,9 @@ structure QNames where
   rd : GName
   /-- the credits spent (mono-list of tickets) -/
   spent : GName
+  /-- proxy `k` ↦ `()`: the right to start proxy `k`'s network side, once (exclusive elements;
+  in place of the lab's exclusive `addrTok (proxyAddr k)`) -/
+  net : GName
 
 /-! ## Definitions -/
 
@@ -209,6 +212,19 @@ def consN : Namespace := ndot raxosN "cons"
 def smrN : Namespace := ndot raxosN "smr"
 
 /-! ### The configuration -/
+
+/-- The right to start proxy `k`'s network side (`Proxy.NetworkInit`), once (exclusive:
+`netTok_excl`). -/
+def netTok (γ : QNames) (k : Nat) : IProp GF := ghostMapElem γ.net k (DFrac.own 1) ()
+
+instance netTok_timeless (γ : QNames) (k : Nat) : Timeless (netTok (GF := GF) γ k) := by
+  unfold netTok; infer_instance
+
+theorem netTok_excl (γ : QNames) (k : Nat) : netTok (GF := GF) γ k ∗ netTok γ k ⊢ False := by
+  unfold netTok
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %H
+  exact absurd (DFrac.valid_own_op H.1) (by have : (1 : Qp).val = 1 := rfl; grind)
 
 /-- The orchestrator chose the configuration `c` (persistent). -/
 def confIs (γ : QNames) (c : QConf) : IProp GF := ghostMapElem γ.conf () .discard c

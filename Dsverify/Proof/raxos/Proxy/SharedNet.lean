@@ -4,10 +4,10 @@ Package `proxy`: the network side of the proxy's shared state (`sharedNet`, part
 
 **What `NewProxy` must establish** (all persistent once made; the lemmas at the end help):
 * `pr.serverAddress ↦□ "0.0.0.0:" ++ decStr (7606 + k)` (`proxy.go`: the wildcard host, replica `k`'s proxy port);
-* `pr.incomingClientReaders ↦□ rm` and the invariant `inv netN (netOwn pr rm ∨ addrTok (proxyAddr k))`
+* `pr.incomingClientReaders ↦□ rm` and the invariant `inv netN (netOwn pr rm ∨ netTok γ k)`
   holding, on the left, the accept routine's exclusive state: the `Listener` field and the readers'
   map `rm ↦$ M` (`netOwn_inv_alloc`). The routine (`waitForConnections`) Listens with the caller's
-  `addrTok`, then swaps it for `netOwn` (a second caller cannot: the token is exclusive);
+  `netTok γ k`, then swaps it for `netOwn` (a second caller cannot: the token is exclusive);
 * `pr.outgoingClientWriters ↦□ wm` and `isMutex pr.clientWritersMutex (writersR γ k BM γw wm)`
   (initially `wm ↦$ ∅`);
 * `pr.buffioWriterMutexes ↦□ bm`, `bm ↦$□ BM` with keys `21..26` (the clients), each mutex
@@ -98,7 +98,7 @@ def sharedNet (γ : QNames) (k : Nat) (pr : Loc) : IProp GF :=
       (CM : GMap w64 GoString) (RT : GMap w8 Loc),
     pr.[Proxy, go!"serverAddress"] ↦□ (go!"0.0.0.0:" ++ decStr (7606 + k)) ∗
     pr.[Proxy, go!"incomingClientReaders"] ↦□ rm ∗
-    inv netN iprop(netOwn pr rm ∨ addrTok (proxyAddr k)) ∗
+    inv netN iprop(netOwn pr rm ∨ netTok γ k) ∗
     pr.[Proxy, go!"outgoingClientWriters"] ↦□ wm ∗
     sync.isMutex (pr.[Proxy, go!"clientWritersMutex"]) (writersR γ k BM γw wm) ∗
     pr.[Proxy, go!"buffioWriterMutexes"] ↦□ bm ∗ bm ↦$□ BM ∗
@@ -133,11 +133,11 @@ theorem peerR_alloc (γ : QNames) (k c : Nat) : ⊢ |==> ∃ γp, peerR (GF := G
   itrivial
 
 /-- For `NewProxy`: the accept routine's invariant, from its state. -/
-theorem netOwn_inv_alloc (k : Nat) (pr rm : Loc) (lv : GoInterface) (E : CoPset) :
+theorem netOwn_inv_alloc (γ : QNames) (k : Nat) (pr rm : Loc) (lv : GoInterface) (E : CoPset) :
     ⊢ (pr.[Proxy, go!"Listener"] ↦ lv : IProp GF) -∗ rm ↦$ (∅ : GMap w64 Loc) ={E}=∗
-      inv netN iprop(netOwn pr rm ∨ addrTok (proxyAddr k)) := by
+      inv netN iprop(netOwn pr rm ∨ netTok γ k) := by
   iintro Hl Hm
-  imod inv_alloc netN E iprop(netOwn pr rm ∨ addrTok (proxyAddr k)) $$ [Hl Hm] with #Hi
+  imod inv_alloc netN E iprop(netOwn pr rm ∨ netTok γ k) $$ [Hl Hm] with #Hi
   · inext; ileft; unfold netOwn; iexists lv, ∅; iframe Hl Hm
   imodintro; iexact Hi
 

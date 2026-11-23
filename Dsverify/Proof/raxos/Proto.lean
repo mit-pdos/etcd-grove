@@ -80,6 +80,10 @@ def recAddr (r : Nat) : GoString := portAddr (7626 + r)
 wildcard with `recAddr r`'s port, D21). -/
 def recLis (r : Nat) : GoString := go!"0.0.0.0:" ++ decStr (7626 + r)
 
+/-- Proxy `k`'s listening address (`proxy.go`'s `serverAddress`, `"0.0.0.0:" + port`: the
+wildcard with `proxyAddr k`'s port, D21). -/
+def proxyLis (k : Nat) : GoString := go!"0.0.0.0:" ++ decStr (7606 + k)
+
 /-- Server node `k`'s configuration address (`CfgAddrs()[6+k]`). -/
 def confAddr (k : Nat) : GoString := portAddr (7646 + k)
 
@@ -221,7 +225,7 @@ def netProtos (γ : QNames) : IProp GF :=
     ([∗list] a ∈ unusedAddrs, addrProto a silentProto silentProto) ∗
     ([∗list] c ∈ List.range 6, addrProto (clientAddr c) (clientInProto γ c) silentProto) ∗
     ([∗list] c ∈ List.range 6, addrProto (cconfAddr c) (confInProto γ) ackProto) ∗
-    ([∗list] k ∈ [1, 2, 3, 4, 5], addrProto (proxyAddr k) (proxyInProto γ k) silentProto) ∗
+    ([∗list] k ∈ [1, 2, 3, 4, 5], lisProto (proxyLis k) (proxyInProto γ k) silentProto) ∗
     ([∗list] k ∈ [1, 2, 3, 4, 5], addrProto (confAddr k) (confInProto γ) ackProto) ∗
     ([∗list] r ∈ [1, 2, 3, 4, 5], recLisP qv.grpc (world γ) r))
 

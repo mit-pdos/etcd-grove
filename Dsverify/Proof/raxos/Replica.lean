@@ -93,7 +93,7 @@ abbrev NewProxy.spec : Prop :=
 abbrev Proxy.NetworkInit.spec : Prop :=
   ∀ (γ : QNames) (c : QConf) (k : Nat) (pr : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.raxos.replica.src ∗ proxyShared γ c k pr ∗
-      addrTok (proxyAddr k) }}
+      netTok γ k }}
     (App (Val (pr @!! go.GoType.PointerType Proxy.ty @!! go!"NetworkInit")) (Val #()))
   {{ RET #(); True }}
 
