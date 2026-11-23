@@ -19,6 +19,7 @@ public import Net.Spec.net.Conn__Write
 public import Net.Spec.net.Conn__Close
 public import Net.Proof.net.AtAddr
 public import GooseLang.Ext.Net.Decide
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 
 @[expose] public section
 
@@ -180,6 +181,64 @@ theorem ackQP_reg [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF] (γ : Swift
   · subst He; simp at h
   · iexact H
 
+
+section netlemmas
+variable [go_gctx : GoGlobalContext]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
+variable [SwiftNetPkgState netDistGF] [examples.swiftnet.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [io.Assumptions]
+
+/-- `poll.ErrDeadlineExceeded`'s value, from the kit's initialization. -/
+theorem kit_ed_init :
+    isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet ⊢
+      ∃ ed : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed := by
+  iintro #Hpkg
+  ihave #Hpoll : (isPkgInit (PROP := IProp netDistGF) pkg_id.internal.poll) $$ []
+  · iPkgInit
+  iapply github_com.mit_pdos.etcd_grove.examples.net.wire.ed_of_poll $$ Hpoll
+
+/-- `c.Close()` of a connection's end: it returns. -/
+theorem wp_closeConn (D : SwNetDeps (hG := hG)) (t : Loc) (cn : Nat) (s : Bool) (a : GoString)
+    (la ra : GoInterface) :
+    {{ net.connAt t cn s a la ra ∗ connIs (Gg := hG.goose_globalGS) cn }}
+      (App (Val #(methods (go.GoType.PointerType net.TCPConn.ty) go!"Close" #t)) (Val #()))
+    {{ (err : GoInterface), RET #err; True }} := by
+  iintro %Φ ⟨#Hca, #Hconn⟩ HΦ
+  iapply D.close t cn s a la ra (fun _ => iprop(True)) $$ []
+  · iframe Hca
+    imod close_au cn s $$ Hconn with ⟨%st, %dd, Hst, Hdd, Hcl⟩
+    imodintro
+    iexists st, dd
+    iframe Hst Hdd
+    iintro %res %st' %d' %Hd' Hst Hdd
+    imod Hcl $$ %res %st' %d' %Hd' Hst Hdd with -
+    imodintro
+    itrivial
+  inext
+  iintro %err -
+  iapply HΦ; itrivial
+
+/-- `c.Write(ls)` of the acknowledgment on an accepted end whose acceptor protocol allows it. -/
+theorem wp_ack (D : SwNetDeps (hG := hG)) (t : Loc) (cn : Nat) (a : GoString)
+    (la ra ed : GoInterface) (Q : Proto netDistGF) (ls : GoSlice) :
+    {{ net.connAt t cn true a la ra ∗
+        globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
+        □ Q cn ([] ++ [W8 107]) ∗ sendTok (Gg := hG.goose_globalGS) cn true Q [] ∗
+        ls ↦* [W8 107] }}
+      (App (Val #(methods (go.GoType.PointerType net.TCPConn.ty) go!"Write" #t)) (Val #ls))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err); True }} := by
+  iintro %Φ ⟨#Hca, #Hed, #HQ, Hsend, Hls⟩ HΦ
+  iapply D.write t cn true a la ra ls [W8 107] (DFrac.own 1) ed
+    (writeP cn true Q []) $$ [Hls Hsend]
+  · iframe Hca Hls Hed
+    isplitl [Hsend]
+    · iapply writeP_init $$ Hsend
+    · iapply write_acc cn true Q [] [W8 107] $$ HQ
+  inext
+  iintro %n %err -
+  iapply HΦ; itrivial
+
+end netlemmas
 
 section spec
 variable [go_gctx : GoGlobalContext]

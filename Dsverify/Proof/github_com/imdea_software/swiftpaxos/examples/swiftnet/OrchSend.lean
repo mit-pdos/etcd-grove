@@ -11,7 +11,7 @@ registered).
 -/
 module
 
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.AwaitConf
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitDeps
 
 @[expose] public section
 

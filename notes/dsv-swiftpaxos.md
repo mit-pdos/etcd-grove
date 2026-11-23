@@ -225,7 +225,7 @@ listeners: `":7001"` (`rpcLisP_set`) and `replicaLis` (`lis_set_proto`).
 `Start`, `NameOkFor`, `registerRPC` (Spec + Proof), `codec/*`, `Decode`? (no: `wp_decode` is
 used), `KitLike`'s lab fields).
 
-Tier: new files import only specs/defs except `OrchNew`→`Addr` (defs-tier `wp_at`), `Register`→
+Tier (eleventh session): 240 violations under the kit (`etc/tier-check.py | grep -c swiftpaxos`); of the new files only `OrchNew`→`OrchParts` (choose/plan/encode proofs: to take as callees). New files import otherwise only specs/defs: `OrchNew`→`Addr` (defs-tier `wp_at`), `Register`→
 `NetRpc/CodecSrvProof` (`getTag_tagged`), `KitDeps`→rabia's `ConnRead` (defs).
 
 ## State (2026-11-23, tenth session; superseded where the eleventh says so)
