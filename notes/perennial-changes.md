@@ -17,6 +17,32 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
+
+- **Limitation.** `glang/lean.go`'s `leanComment` keeps a Go doc comment's tabs; a doc comment
+  whose lines start with a tab (Rabia's, indented with tabs throughout) fails to parse ("tabs are not
+  allowed").
+- **Who needs it.** dsv-rabia (`notes/dsv-rabia.md`): every package of the fork.
+- **Workaround.** `etc/goose.py`'s `Project.expand_comment_tabs` (set for `dsv-rabia`): the tabs in
+  the translation's comments become four spaces (the lab's `goose.sh` did the same); the Go source
+  stays the fork's.
+- **Proposed change.** `leanComment` expands tabs.
+- **Status.** Not proposed yet.
+
+### Goose converts to another package's constant type without importing its module (2026-11-23, dsv-rabia)
+
+- **Limitation.** `err == redis.Nil` (go-redis v8: `const Nil = proto.Nil`, of type
+  `internal/proto.RedisError`) is translated as a `Convert` to
+  `github_com.go_redis.redis.v8.internal.proto.RedisError.ty`, but the translation of the calling
+  package (`rabia/roles/server/layers/proxy`) does not import that package's module: "Unknown
+  identifier".
+- **Who needs it.** `Proxy.redisExecuteCmd` (dsv-rabia, `notes/dsv-rabia.md`).
+- **Workaround.** `Dsverify/Code/rabia/roles/server/layers/proxy.toml` leaves `Proxy.redisExecuteCmd`
+  names only (the kit never uses Redis: `Conf.StorageMode` 0).
+- **Proposed change.** goose imports the package of every named type it emits, a constant's type
+  included.
+- **Status.** Not proposed yet.
+
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
 - **Limitation.** goose emits `Convert go.untypedInt go.float64` for a unary untyped-integer constant in a
@@ -3925,6 +3951,16 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
   callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
   WAL uses its own `Spec/io/ReadFull.lean`.
+
+## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia)
+
+- **Problem.** The rabia kit's `sendConf`/`awaitConf` call `io.ReadFull(conn, buf)` on a `net.Conn`
+  (no `bufio`). Perennial's `io.ReadFull.spec` asks the reader's condition `Pre` at every
+  `ys.length ≤ len(buf)`, the full buffer included (`m = 0`), which a connection's contract
+  (`net.conn_readerOk`, `0 < m`) does not give: the entry above (`readatleast-prefix`).
+- **Workaround (local).** `Dsverify/Proof/rabia/examples/rabianet/ConnReadFull.lean`: a copy of
+  Perennial's `ReadAtLeast`/`ReadFull` proof with the premise asked only below the buffer's length,
+  as the `readatleast-prefix` branch states it. To delete when that branch lands (then use Perennial's).
 
 ## 2026-11-23: `make([]byte, size)` at sizes Go refuses (dsv-bufio, #24 review W6; a question)
 
