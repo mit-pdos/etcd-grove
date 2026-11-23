@@ -75,7 +75,12 @@ marked `MODEL:`, and its difference from grpc-go is computed, never stored: `dif
 **The trusted claim:** every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it
 (what handlers run with which requests, metadata, deadlines and contexts; what calls and streams
 return; which program callbacks run: dialers, resolvers, credentials, interceptors, codecs), is a
-behavior of the model. Not wire compatibility: both ends run the model. Its choice points are
+behavior of the model. Not wire compatibility: both ends run the model. **The claim is for runs with no
+proxy variable set** (`HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` and their lower-case forms): with
+`HTTPS_PROXY` set, grpc-go's dialer sends an HTTP `CONNECT` to the proxy for a non-loopback target instead
+of dialing it (`examples/premisefix/proxyenv`, `TestGrpcProxy`), while the model never reads those
+variables and always dials the target (the `useProxy` dial option is kept but has no effect). Found by
+etcd-dist on #24, 2026-11-23. Its choice points are
 `modelChoose`/`modelChooseN`/`modelChooseLength` (`model_choose.go`, the only declarations with a
 hand-written GooseLang body: any value; in Go the common side, or random with `GRPC_MODEL_CHOOSE=random`;
 `modelChooseLength` is the wire length the model reports where grpc-go reports an HPACK size, a
