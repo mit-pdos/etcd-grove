@@ -5,7 +5,7 @@ Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/ by the mechanical re
 (--bufio: also the bufio call-site rewrites of the marshal layer, `bufio_conv`.)
 Hand-maintained after their port (do not re-port; notes/dsv-epaxos.md): Interface/Marshal.lean,
 wire/{WProg,RProg,Link}.lean, wire/Varint/{ReadUvarint,ReadVarint}.lean,
-Interface/{Replica,ReplicaSpec}.lean, replica/PrefixReader.lean. Every other ported file is
+Interface/{Replica,ReplicaSpec}.lean, replica/{PrefixReader,SendMsg}.lean. Every other ported file is
 `port.py`'s output (with `FIXUPS`).
 (LAB: the lab's proof directory, read only; DSVLAB_EPAXOS overrides it.) Hand edits after the port
 are listed in the notes."""
@@ -139,6 +139,7 @@ def generic_conv(t):
     # `have h := thm γ …` (no expected type): nothing determines the theorem's `GF`
     t = re.sub(r'(have \w+ := )(?!outOkB_of_toks)([a-zA-Z][\w.]*) γ ', r'\1\2 (GF := GF) γ ', t)
     # a spec taken as a hypothesis: its `GF` is not determined by anything else
+    t = re.sub(r'\) : ([\w.]+\.spec) := by', r') : \1 (GF := GF) := by', t)
     t = re.sub(r'\((h\w* : [\w.]+\.spec)\)', r'(\1 (GF := GF))', t)
     t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
                r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',

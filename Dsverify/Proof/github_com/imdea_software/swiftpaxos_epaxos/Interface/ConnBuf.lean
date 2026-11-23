@@ -112,6 +112,16 @@ def connRd (t : Loc) (cn : Nat) (s : Bool) (eof la ra ed : GoInterface) (P : Pro
   F_pre := fun x y => later_mono (protoPrefix_le (List.prefix_append x y))
   Pre_pos := fun _ _ h => h
 
+/-- **A hypothesis** (dsv-bufio states no such law of `ownBufWriter` yet): a `*bufio.Writer`'s
+pointer is not nil. The lab's `ownWriter_not_null` (its proof unfolded the writer's points-to);
+`SendMsg` needs it for its `PeerWriters[t] != nil` test. To be discharged by a bufio law (from
+`writerRep`'s `bw ↦ Writer.mk …`); a premise of the theorems that use it, never an instance. -/
+def BufWriterNotNull : Prop :=
+  ∀ (bw : Loc) (wi : GoInterfaceOk) (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF)
+    (sz : Nat) (sent pend : List w8) (err : GoInterface),
+    EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ⊢
+      EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗ ⌜bw ≠ null⌝
+
 /-- The `net.Conn` `c` is the end `s` of connection `cn` (a `*TCPConn`, `net.isConn`, at some
 address; persistent). The lab's `net.rpc.connIface c cn s`. -/
 def connIf (c : GoInterface) (cn : Nat) (s : Bool) : IProp GF :=
