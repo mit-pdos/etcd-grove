@@ -772,6 +772,49 @@ derives the pure `GlobalOk` for `S` plus the new items (agreement laws, `commitI
 lemma, records the new facts, closes. This keeps the refinement independent of Iris and testable by
 `decide` on small states.
 
+### 3.5 Statements as written (2026-11-23)
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/Sim/` (namespace `AntSim`, defs tier, pure):
+`Abs.lean` (§3.1's abstractions and the five reports, `evBoot evRecv evReady evSend evApply`, as
+`harness.go` builds them), `Rel.lean` (`NodeView`, `AntSim` = `Shape ∧ BindingOk ∧ NetOk ∧ NodeOk`,
+`RaftFacts`/`RaftLaws`/`GlobalOk`, `Prefix`, and `Prefix.accepts`, proved), `Stmts.lean` (the
+statements `antSim_{init,boot,recv,quiet,ready,send,apply,gc}.stmt`), `Smoke.lean` (a 51-report
+schedule built with `Abs`'s functions: election, replication, commit through an ack and through a
+heartbeat, a forwarded proposal; `smoke_accepts : Accepts cfg3 stream` by `decide +kernel`, and a
+mutant rejected; a real harness run's stream has the same shapes). Where the sketch above differs:
+
+- **Numbers** are `uint.Z` (Go's `int(x)` is `sint.Z x`): equal below `2^63`, which the harness's
+  specs carry (S4); the lemmas need no bound.
+- **`NodeView`** is `ps`, `delivered` (not the `RNState`, which is not pure), and the drain's
+  `qs pend ce` (the `Ready`'s self-messages, unreported messages, unreported committed entries),
+  `byE cause` (the drain's `by` and handled message) and `told` (its `recv` reported, so
+  `pending[n] = [msgOf m id]`). An input is noted in the view (`noteInput`, a `Quiet` step) before
+  the `recv` report, which can come after a `Ready` (when the first report is a `send`).
+- **`antSim_quiet`** is one statement over `Quiet`: an input noted, a state with no `Ready`
+  (`PIdle`'s content), a `Ready` whose write and role are not reported. How the node got to the
+  `Ready`'s state is `Reach` (an input from `Idle`, or `AdvanceEnd` once the `Ready` is reported).
+- **`ReadyOutP`** (`ReadyOut` over `PState`) needs two facts §2.2's `ReadyOut` does not state: the
+  first entry of `Entries` conflicts with the durable log at its index or is past its end (raft's
+  unstable entries start there: a leader's `first = Len(L0) + 1`, B 378, and a follower's
+  `L0[first].term # es[1].term`, B 387, reject a `Ready` that rewrites a stored entry), and the
+  log's indices are its positions (`LogIdx`, for `TermAt` and an `apply`'s `first`, B 600).
+  **The RawNode side's `ReadyOut` must provide both.**
+- **C1** adds `LogIdx` and `delivered ++ ce` a prefix of the log within the commit; **C2** is two
+  ack conditions (at every index of the leader's term within a `Match`, for `cmt`; at the `Match`
+  itself for another voter, for a heartbeat's commit) plus the drain's `PendOk` (each unreported
+  message as raft made it, at the `Ready`'s state) and `QsOk` (self-messages' facts recorded).
+- **C4**: `net` is every message sent (monotone, the S4 note's `γ.sent`); each fact a message needs
+  (`Sendable`, the vote request's, the grant's, the ack's) is stated while its receiver's term is at
+  most the message's, the form GC keeps (B 696-709). `isMessage`/`rnTermLB` stay in the harness's
+  Iris invariant.
+- **C5** is pure data: `RaftFacts` (leaders, votes, certified logs, campaign logs, the committed log,
+  commits by term) with `RaftLaws` (uniqueness, log matching, leader completeness), and `GlobalOk S
+  net G` (everything in `S`/`net` certified by `G`). A report's new facts are premises that `G`
+  already has them (`ReadyFacts`, `MsgFacts`): the harness adds them before the lemma.
+- **`antSim_gc`** states `gcLoop (gcFuel S) S = .ok (S', none)` with the relation after it.
+- `cfg3` is `setOf (namesL 3)` as `Main` builds it (`cfg3_server : cfg3.server = namesL 3`);
+  `evBoot` reports `names(3)`; a proposal is `RawNode.Propose`'s message (`propMsg`).
+
 ---
 
 ## 4. Where the refinement could be false, and the evidence
