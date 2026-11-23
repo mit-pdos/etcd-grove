@@ -370,7 +370,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h63 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.client (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h9, h18, h5, h10, h46, h60, h59, h33, h50, h7, h39, h24, h61, h62, h45, True.intro⟩
+    exact ⟨h0, h9, h18, h5, h10, h46, h45, h60, h59, h33, h50, h7, h39, h24, h61, h62, True.intro⟩
   have h64 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.config (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -406,7 +406,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h72 : GetIsPkgInitProp pkg_id.github_com.imdea_software.swiftpaxos.swift (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h62, h63, h66, h60, h59, h33, h67, h7, h6, h5, h10, h32, h68, h42, h50, h8, h69, h1, h64, h61, h71, h0, True.intro⟩
+    exact ⟨h62, h63, h66, h60, h59, h33, h67, h7, h6, h5, h10, h32, h68, h42, h50, h8, h45, h69, h1, h64, h61, h71, h0, True.intro⟩
   have h73 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
