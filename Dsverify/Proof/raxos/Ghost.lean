@@ -411,6 +411,10 @@ instance leadEv_persistent (γ : QNames) (c : QConf) (i me : Int) :
   unfold leadEv decided evIn; infer_instance
 instance confIs_persistent (γ : QNames) (c : QConf) : Persistent (confIs (GF := GF) γ c) := by
   unfold confIs; infer_instance
+instance netFresh_timeless (c : Nat) (b : Bool) :
+    Timeless (netFresh (GF := GF) (extGlobalGS netExt) c b) := by
+  unfold netFresh; infer_instance
+
 instance ownState_timeless (γ : QNames) (σ : GoString → Option GoString) :
     Timeless (ownState (GF := GF) γ σ) := by
   unfold ownState; infer_instance
