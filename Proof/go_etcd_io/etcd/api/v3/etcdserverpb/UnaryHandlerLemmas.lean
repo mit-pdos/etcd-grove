@@ -172,7 +172,7 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+      grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -212,10 +212,14 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
       ipureintro; rw [hRep]
     · cases ics with
       | nil =>
+        iunfold grpcSrvChainAll at Hchain
+        ihave Hchain := Hchain $$ %iprop(True)
         iunfold grpcSrvChain at Hchain
         icases Hchain with %Hc
         exact absurd Hc Hif
       | cons ic ics' =>
+        iunfold grpcSrvChainAll at Hchain
+        ihave #Hchain := Hchain $$ %iprop(True)
         iunfold grpcSrvChain at Hchain
         icases Hchain with ⟨-, #Hchain⟩
         iStructNamed «$r0»
@@ -227,7 +231,10 @@ theorem wp_unaryHandlerOwnMd (h : GoString) (srvTy reqTy repTy : go.GoType) (met
           iexists _
           iexact FullMethod
         wp_bind (App (App (App (App (Val #ui) _) _) _) _)
-        iapply Hchain
+        iapply wp_true_sep
+        iapply Hchain $$ [-] []
+        rotate_left
+        · itrivial
         iapply srvChainWP_of_ok
         iframe #
         iframe
@@ -305,7 +312,7 @@ theorem wp_unaryHandlerMd (h : GoString) (srvTy reqTy repTy : go.GoType) (meth f
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+      grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -346,7 +353,7 @@ theorem wp_unaryHandlerOwn (h : GoString) (srvTy reqTy repTy : go.GoType) (meth 
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      grpcSrvChainAll ics ui ∗ Spec m Φ }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -391,7 +398,7 @@ theorem wp_unaryHandler (h : GoString) (srvTy reqTy repTy : go.GoType) (meth ful
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType reqTy) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ Spec m Φ }}
+      grpcSrvChainAll ics ui ∗ Spec m Φ }}
     (methodHandlerCall (@! h) #(GoInterface.ok srv) #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗
       (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),

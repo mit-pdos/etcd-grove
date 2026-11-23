@@ -11,6 +11,7 @@ module
 
 public import Spec.os.RenameS
 public import GooseLang.Ext.Fs.NoErrSpecsRename
+public import GooseLang.Ext.Fs.NoErrSpecsRenameDir
 @[expose] public section
 
 noncomputable section
@@ -218,7 +219,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
   wp_auto
   ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (renDirOut j J N bs bt h (DFrac.own r) lb) Q ∗
       osNames j N (DFrac.own q) h) ∨
-    (∃ xs, Q (some xs) ∗ renDirOut j J N bs bt h (DFrac.own q) lb (some xs)))
+    (∃ xs, ⌜¬ (FsNoErrOn (· = child d bt) ∧ PathFits (child d bs) ∧ PathFits (child d bt))⌝ ∗ Q (some xs) ∗ renDirOut j J N bs bt h (DFrac.own q) lb (some xs)))
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
@@ -226,15 +227,15 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
   wp_apply +noauto wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
+  icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, %hnW, HQ, Hout⟩)
   · wp_apply +noauto (wp_aunc_step "Rename" _ (osNames j N (DFrac.own r) h)
       (renDirOut j J N bs bt h (DFrac.own r) lb) Q) $$ Hau [Hn Hk Hp HΦ]
     iintro Hr
     ihave Hw := (osNames_join j N q r h hq).1 $$ [Hn Hr]
     · iframe
-    iapply wp_osRenameDirS R d bs bt j J N (DFrac.own qd) h t s0 hbs hbt hN hN' hne hsrc htgt
+    iapply wp_osRenameDirSW R d bs bt j J N (DFrac.own qd) h t s0 hbs hbt hN hN' hne hsrc htgt
       osN_sub_au osShN_sub_au $$ Hos Hsi Hp Hw Hk
-    iintro %e Hperm Hp Hres
+    iintro %e Hperm Hp Hres %hnw
     unfold osNamesAfter
     icases Hres with (⟨%he, Hw⟩ | ⟨%x, Hlog, Hw⟩)
     · icases (osNames_join j N q r h hq).2 $$ Hw with ⟨Hn, Hr⟩
@@ -261,7 +262,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
         iapply HΦ
         iframe
         isplitr
-        · ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
+        · ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩, fun _ => hnw he⟩
         unfold renDirOut logOut claimOut; iframe
     · icases (osNames_join j N q r _ hq).2 $$ Hw with ⟨Hn, Hr⟩
       unfold osLogged
@@ -281,6 +282,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
         wp_auto
         iapply IH $$ Hperm Hp [HQ Hout] HΦ
         iright; iexists (x, s0); iframe
+        ipureintro; exact hnw (by rw [he4]; decide)
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
       wp_auto
       by_cases he0 : e = W64 0
@@ -288,14 +290,14 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
         wp_auto
         iapply HΦ
         iframe
-        ipureintro; exact ⟨fun _ => rfl, Or.inl rfl⟩
+        ipureintro; exact ⟨fun _ => rfl, Or.inl rfl, fun hc => absurd rfl hc⟩
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
       wp_apply wp_linkError
       iintro %le
       iapply HΦ
       iframe
-      ipureintro; exact ⟨fun _ => rfl, Or.inr ⟨le, rfl⟩⟩
+      ipureintro; exact ⟨fun _ => rfl, Or.inr ⟨le, rfl⟩, fun _ => hnw he0⟩
   · obtain ⟨x, sx⟩ := xs
     isimp only [renDirOut, logOut, claimOut] at Hout
     icases Hout with ⟨⟨%hlo, Hlo⟩, Hn⟩
@@ -325,6 +327,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
       wp_auto
       iapply IH $$ Hperm Hp [HQ Hout] HΦ
       iright; iexists (x, sx); iframe
+      ipureintro; exact hnW
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
@@ -333,7 +336,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     iintro %le
     iapply HΦ
     iframe
-    ipureintro; exact ⟨fun _ => rfl, Or.inr ⟨le, rfl⟩⟩
+    ipureintro; exact ⟨fun _ => rfl, Or.inr ⟨le, rfl⟩, fun _ => hnW⟩
 
 /-- `specDirS` from `specDirSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Rename.wp_proofDirS : os.Rename.specDirS (GF := GF) (hG := hG) := by

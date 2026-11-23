@@ -46,6 +46,14 @@ def tWalPathsOk (area : GoString) : Prop :=
   InArea area (tWalDir area) go!"wal" ∧ NameOk go!"wal" ∧ cleanAbsPath area ∧
     (tWalDir area).length < 2 ^ 59
 
+/-- **The file system does not fail on the WAL's name, its `.tmp` and the area, and the WAL directory
+and its `.tmp` fit** (`wal.Create.spec`'s premise, ledgers 2026-11-21 and 2026-11-22: `Create`'s rename
+then succeeds, and its `Exist`/`RemoveAll` of a leftover `.tmp` are exact). From the closed theorem's
+semantics (`NoIoErr` of every path) and its world premise that the area's `wal` and `wal.tmp` paths fit. -/
+def tWalFsOk [ExtSemantics fsExt] (area : GoString) : Prop :=
+  FsNoErrOn (fun p => p = tWalDir area ∨ p = tWalDir area ++ go!".tmp" ∨ p = area) ∧
+    PathFits (tWalDir area ++ go!".tmp") ∧ PathFits (tWalDir area)
+
 /-! ## The pending opens -/
 
 /-- The oracle with the opens `l` appended (`restartRead`'s stores). -/

@@ -26,7 +26,6 @@ axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -55,7 +54,6 @@ axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
-axiom api.IsCapabilityEnabled.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
@@ -86,7 +84,6 @@ axiom endpoint.RequiresCredentials.wp_proof
 axiom entryEncC_ok
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
@@ -177,11 +174,9 @@ axiom maps.Keys.wp_proof_objMap
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
-axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom membership.setIsLearnerMetric.wp_proof
 axiom meta.SetList.wp_proof_objList
 axiom metadata.FromIncomingContext.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
@@ -193,7 +188,6 @@ axiom metrics.RecordListLatency.wp_proof
 axiom metrics.RecordStorageListMetrics.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
-axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom mvccpb.Event_EventType.StringPtr.wp_proof
 axiom net.Listen.wp_proof

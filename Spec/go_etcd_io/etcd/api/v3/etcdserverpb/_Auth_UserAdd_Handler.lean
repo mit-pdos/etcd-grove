@@ -29,7 +29,7 @@ implements `AuthServer` (a method-set fact) and whose `UserAdd` meets `Spec` wit
 what it owns of the decoded request (`grpcHandlerOwnOkMd`, at the run's metadata), for messages whose types are
 `*AuthUserAddRequest`/`*AuthUserAddResponse` (a zero `*AuthUserAddRequest` is the request's blank), under the chain `ics` of transparent interceptors with
 their resources `Rs`, for requests with `Q` (which the decoded request has;
-`srvInterceptorsOk`, given `grpcSrvChain ics interceptor`), with grpc's
+`srvInterceptorsOk`, given `grpcSrvChainAll ics interceptor`), with grpc's
 `dec` for the request at `m` and `Spec` at the run's incoming metadata: decodes a new `*AuthUserAddRequest` and runs `srv.UserAdd`
 through the chain; the resources come back, and on success the response (as `any`) is at some
 `m'` with `Φ m'`. -/
@@ -46,7 +46,7 @@ abbrev etcdserverpb._Auth_UserAdd_Handler.spec : Prop :=
       (□ ∀ l : Loc, Req.recv l m -∗
         Q (interface.mkOk (go.GoType.PointerType etcdserverpb.AuthUserAddRequest.ty) #l)) ∗
       S ∗ ([∗list] R ∈ Rs, R) ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-      grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
+      grpcSrvChainAll ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
     (methodHandlerCall (@! etcdserverpb._Auth_UserAdd_Handler) #(GoInterface.ok srv)
       #(GoInterface.ok ci) dec ui)
   {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗ ([∗list] R ∈ Rs, R) ∗

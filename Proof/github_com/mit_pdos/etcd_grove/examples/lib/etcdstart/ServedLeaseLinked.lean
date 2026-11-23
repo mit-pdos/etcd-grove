@@ -54,7 +54,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         (∃ (pw : Loc) (ims is : GoFunc) (sregs : List (GoString × GoFunc × GoInterface)),
           ⌜v3rpc.watchSReg pw ∈ sregs ∧ R.s = s ∧ R.E = E⌝ ∗
           grpcStreamServerAt addr [ims, is] sregs γ ∗ v3rpc.isWatchServer pw R ∗
-          srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
+          srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
           srvRevokeBuilt s E ∗ srvRunPool s E γr) ∗
         client.etcdLeaseReadAt addr ∗ etcdLeaseServedAt m addr s E ρ γr cid mid := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
@@ -66,11 +66,11 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   -- the one gRPC slot, a run's bundle with its level-0 token
   have h1 : srvRunBundle s E γr ⊢
-      iprop(client.etcdGrpcSlot s E γr ∗ levelTok 0) ∗ iprop(True) := by
+      (client.etcdGrpcSlot s E γr) ∗ iprop(True) := by
     iintro H
     ihave H := (client.etcdGrpcSlot_bundle s E γr).1 $$ H
     iframe
-  have h2 : iprop(client.etcdGrpcSlot s E γr ∗ levelTok 0) ∗ iprop(True) ⊢
+  have h2 : (client.etcdGrpcSlot s E γr) ∗ iprop(True) ⊢
       srvRunBundle s E γr := by
     iintro ⟨H, -⟩
     iapply (client.etcdGrpcSlot_bundle s E γr).2
@@ -123,7 +123,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         (by rw [HCA]; rfl) $$ []
     · iframe #
     ihave #Hks := client.srvRunOks_of_slot s E γr [il, im, iu]
-        iprop(client.etcdGrpcSlot s E γr ∗ levelTok 0) iprop(True) h1 h2 HL
+        (client.etcdGrpcSlot s E γr) iprop(True) h1 h2 HL
         (client.etcdLeaseReadMethods ql) $$ []
     · iframe #
     rw [HCA]
@@ -179,7 +179,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         (by rw [HCA]; rfl) Hoff hNx $$ []
     · iframe #
     ihave #Hks := client.srvRunOks_of_slot s E γr [il, im, iu]
-        iprop(client.etcdGrpcSlot s E γr ∗ levelTok 0) iprop(True) h1 h2 HL
+        (client.etcdGrpcSlot s E γr) iprop(True) h1 h2 HL
         (client.etcdLeaseGrantMethods ql E γr) $$ []
     · iframe #
     rw [HCA]
@@ -238,7 +238,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
         (by rw [HCA]; rfl) Hoff hNx $$ []
     · iframe #
     ihave #Hks := client.srvRunOks_of_slot s E γr [il, im, iu]
-        iprop(client.etcdGrpcSlot s E γr ∗ levelTok 0) iprop(True) h1 h2 HL
+        (client.etcdGrpcSlot s E γr) iprop(True) h1 h2 HL
         (client.etcdLeaseGrantLiveMethods ql s E γr) $$ []
     · iframe #
     rw [HCA]

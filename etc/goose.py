@@ -369,7 +369,8 @@ PROJECTS = [
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
-                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
+                    "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
+                    "github.com/prometheus/client_model=", "net/http=",
                     "github.com/jonboulle/clockwork=",
                     "net=", "hash=", "path=", "internal/bytealg=", "internal/nettrace=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
@@ -524,6 +525,11 @@ PROJECTS = [
             "github.com/dustin/go-humanize",
             # names only: the metrics mvcc's transactions and key index update
             "github.com/prometheus/client_golang/prometheus",
+            # (prove-ps2-metrics, 2026-11-22) names only: the package of the type of prometheus's
+            # `gauge`'s field `labelPairs` (`[]*dto.LabelPair`), so that the struct is translated (its
+            # methods are, with their bodies). (`counter` also needs `timestamppb`, whose names-only
+            # initializer would add two trust-boundary axioms: not taken.)
+            "github.com/prometheus/client_model/go",
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
             "net/http",

@@ -10,7 +10,8 @@ functions stand in for gob and reflection.
   bytes `bs` with `Ψ bs`; `dec bs ptr Ψ` is what `Decode(bs, ptr)` needs, and it returns `nil`
   with `Ψ true` or an error (some error, `errAny`) with `Ψ false`.
 * `codecIs C c` (persistent): `c` holds a `Codec` whose `Encode` and `Decode` meet `C`
-  (`encOk`, `decOk`). The `Receiver`'s obligations are the server's (not yet stated:
+  (`encOk`, `decOk`; a decoding error is an `errors.New` error, `decErr`, as the generated codec's
+  `rpcErrDecode()`). The `Receiver`'s obligations are the server's (not yet stated:
   `notes/dsverify-net-port-plan.md`, phase 5.2).
 * The registry: `codecMu`'s invariant `codecInv` holds half of `codec`'s points-to; the other half
   is `codecUnset` (at `nil`, the package's initial state) until `SetCodec` writes it and keeps it
@@ -23,6 +24,7 @@ module
 public import Net.Proof.net.rpc.Base
 public import Net.Proof.models_lab.Errors
 public import Perennial.Proof.sync.Base
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 
@@ -39,6 +41,28 @@ structure CodecSpec [GooseExts] (GF : BundledGFunctors) where
   enc : GoInterface → (List w8 → IProp GF) → IProp GF
   dec : List w8 → GoInterface → (Bool → IProp GF) → IProp GF
 
+section errs
+variable [GooseExts] [go_gctx : GoGlobalContext]
+
+/-- The `error` `rpc.ServerError(msg)` (Goose converts a value of the named string type to an
+interface as `interface.mkOk ServerError.ty #msg`). -/
+def serverErr (msg : GoString) : GoInterface :=
+  interface.mkOk net.rpc.ServerError.ty #msg
+
+/-- `err`'s dynamic type is not `net/rpc.ServerError` (`nil` is not one either): a comma-ok
+assertion `err.(rpc.ServerError)` fails. -/
+def notServerErr (err : GoInterface) : Prop :=
+  ∀ e : GoInterfaceOk, err = interface.ok e → e.ty ≠ net.rpc.ServerError.ty
+
+theorem serverErr_ne_nil (msg : GoString) : serverErr msg ≠ interface.nil := by
+  unfold serverErr interface.mkOk; simp
+
+theorem notServerErr_serverErr (msg : GoString) : ¬ notServerErr (serverErr msg) := by
+  intro h
+  exact h _ rfl rfl
+
+end errs
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
@@ -53,13 +77,28 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
         Φ #sl) -∗
     WP (App (Val #fe) (Val #v)) {{ Φ }})
 
-/-- `Decode`'s function `fd` meets `C.dec`; its errors are some error (`errAny`). -/
+/-- A decoding error: a fresh `errors.New` error (an `*errors.errorString`) whose `Error()` returns
+its message `msg`, persistently. The generated codec's `Decode` fails only with
+`rpcErrDecode()`, `errors.New("net/rpc model: malformed value")` (`models/net/rpc/rpcgen_core.py`).
+What the client needs of it: not a `ServerError`, an `Error()`, and a pointer, which `==` compares
+(`input`'s `err == io.EOF`). -/
+def decErr (err : GoInterface) : IProp GF :=
+  iprop(∃ (x : Loc) (msg : GoString),
+    ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x⌝ ∗
+    □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
+        (Val #())) {{ Φ }})
+
+instance decErr_persistent (err : GoInterface) : Persistent (decErr (GF := GF) err) := by
+  unfold decErr; infer_instance
+
+/-- `Decode`'s function `fd` meets `C.dec`; its errors are decoding errors (`decErr`). -/
 def decOk (C : CodecSpec GF) (fd : GoFunc) : IProp GF :=
   iprop(□ ∀ (data : GoSlice) (dq : DFrac) (bs : List w8) (ptr : GoInterface)
       (Ψ : Bool → IProp GF) (Φ : val → IProp GF),
     data ↦*{dq} bs -∗ C.dec bs ptr Ψ -∗
     ▷ (∀ (err : GoInterface) (ok : Bool), data ↦*{dq} bs -∗ ⌜err = interface.nil ↔ ok = true⌝ -∗
-        Ψ ok -∗ (if ok then iprop(True) else models_lab.errAny err) -∗ Φ #err) -∗
+        Ψ ok -∗ (if ok then iprop(True) else decErr err) -∗ Φ #err) -∗
     WP (App (App (Val #fd) (Val #data)) (Val #ptr)) {{ Φ }})
 
 /-- `c` holds a `Codec` whose `Encode` and `Decode` meet `C` (persistent). -/

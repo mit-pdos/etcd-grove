@@ -314,14 +314,14 @@ etcdserver_isConnectedToQuorumSince: numConnectedSince quorum
 config_ServerConfig__ReqTimeout:
 membership_RaftCluster__ID:
 proto_MarshalIRR:
-# Two more trust-boundary axioms of the request path (unit 2, 2026-10-12): a context's
-# `Value` at `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at
-# `&cancelCtxKey`), and `errors.Is` of a context's error against `context.Canceled` /
-# `DeadlineExceeded` (no error tree for a context's `Err`; `DeadlineExceeded` is not a pointer).
+# A trust-boundary axiom of the request path (unit 2, 2026-10-12): a context's `Value` at
+# `traceutil.StartTimeKey` (Perennial's `isContext` specifies `Value` only at `&cancelCtxKey`).
+# `errors.Is` of a context's error against `context.Canceled` / `DeadlineExceeded` was another until
+# errors-is-axioms (2026-11-22): now proved over Perennial's `errors.Is` at comparable targets.
 # And (unit 3a) a done context's `Err()` is `Canceled` or `DeadlineExceeded` (Go's contract of
 # `Context.Err`; Perennial's `isContext` says only "a typed error").
 context_ValueStartTime:
-errors_IsCtxErr:
+errors_IsCtxErr: =_root_.Perennial.errors.wp_Is
 context_ErrDone:
 # (reused from the Links that define them: mvcc's span, the apply package's `WithValue`)
 trace_SpanFromContext:
@@ -814,13 +814,15 @@ RaftCluster__IsIDRemoved:
 EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
 # (D43 M4, 2026-10-26) the cluster's writer of a removal (`RemoveMember`, with its body; the
-# backend's delete a triple its caller gives); the trust boundary: its metric update
-# (`updateMembershipMetric`, a prometheus gauge).
-RaftCluster__updateMembershipMetric:
+# backend's delete a triple its caller gives); its metric update (`updateMembershipMetric`, a
+# prometheus gauge; until 2026-11-22 the trust boundary, now with its body, prove-ps2-metrics, over the
+# gauge's proved `Set`).
+prometheus_gauge__Set:
+RaftCluster__updateMembershipMetric: types_ID__String_ptr prometheus_GaugeVec__WithLabelValues prometheus_gauge__Set
 RaftCluster__RemoveMember: RaftCluster__updateMembershipMetric types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String zap_Strings zap_Bool
 # (D43 M5b, 2026-10-26) the cluster's writer of an addition (`AddMember`, with its body; the
-# backend's save a triple its caller gives); the trust boundary: its learner metric
-# (`setIsLearnerMetric`, a prometheus gauge).
+# backend's save a triple its caller gives); its learner metric (`setIsLearnerMetric`, a
+# prometheus gauge; until 2026-11-22 the trust boundary, now with its body: prove-ps2-metrics).
 setIsLearnerMetric:
 RaftCluster__AddMember: RaftCluster__updateMembershipMetric setIsLearnerMetric types_ID__String_ptr zap_Logger__Info zap_String zap_Strings zap_Bool
 # (D43 M4, 2026-10-26) the validation of a conf change (`ValidateConfigurationChange`, with its

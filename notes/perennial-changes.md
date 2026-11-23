@@ -17,6 +17,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
+
+- **Limitation.** goose emits `Convert go.untypedInt go.float64` for a unary untyped-integer constant in a
+  float context (`g.Add(-1)` in `gauge.Dec`, `val * -1` in `gauge.Sub`), and `Float64Semantics` had no rule
+  for it: the translation was stuck. `gauge.Set`/`Add`/`Sub` and `counter.Add` call `math.Float64bits`/
+  `Float64frombits`, names-only at the pin.
+- **Work-around here.** None: the branch `prove-ps2-metrics/2026-11-22` is built against Perennial
+  `680fbbc03` and waits for the pin to reach it.
+- **Proposed (general).** mit-pdos/perennial#682 (the int-to-float conversions, through #676's `ratToFloat64`)
+  and mit-pdos/perennial#675 (the bit casts). **Status.** Both merged (#675 in the pin `1a0322fc6`, #682 as
+  `680fbbc03`); waits for the pin bump (#9).
 ### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
 
 - **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a
@@ -489,6 +500,13 @@ rebuilds everything; no bump of its own).
 - **Status.** `HasSuffix` done (2026-11-20, Perennial `e9988b5cd`): `stringslite.HasSuffix`/`TrimSuffix`
   and `strings.HasSuffix`/`TrimSuffix` translated and proved, the axiom here a theorem.
   `stringslite.HasPrefix` (and `IsAbs`) still open.
+  (2026-11-22, wal-safe session 8) `stringslite.HasPrefix`: drafted on Perennial branch `stringslite-hasprefix`
+  (`d508df6ff`, off `lean` at `04ed1c622`, worktree `/shared/perennial-stringslite-hasprefix`, **not pushed**: the
+  user pushes Perennial): `HasPrefix` translated with its body (from go1.26.3's source, as the committed
+  `HasSuffix`), `internal.stringslite.HasPrefix.spec`/`wp_proof`, linked; its modules build. Here
+  `filepathlite.IsAbs.spec` is proved (`Proof/internal/filepathlite/IsAbs.lean`) over the callee spec
+  `stringslite.HasPrefix.spec` (`Spec/internal/stringslite/HasPrefix.lean`, a hypothesis with Perennial's
+  statement), which goes once the pin reaches the branch.
 
 ### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
 
@@ -1568,7 +1586,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   now false of the struct literal: unused, declared still) and `newQueue` no longer needs
   `MutexLitSemantics`'s step (still taken as an instance); #16 deletes both.
 
-### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
+### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue) -- DONE (Perennial `680fbbc03`, perennial#682; class deleted on `prove-ps2-metrics/2026-11-22`)
 
 - **Missing.** `backoff > math.MaxInt64` with `backoff : float64` is emitted as `Convert
   go.untypedInt go.float64 #c` at run time, and `UntypedIntSemantics` converts untyped integers to
@@ -1578,7 +1596,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`, in `SEM_PREMISES`): it steps to
   an uninterpreted float of the integer, as `float64(n)` of a typed integer does.
 - **Proposed.** Goose folding the constant conversion, or the step in `UntypedIntSemantics`.
-- **Status.** Not started.
+- **Done.** mit-pdos/perennial#682 (`680fbbc03`): the step, to `ratToFloat64 c` (one rounding, #676's).
+  The local class and `UntypedIntToFloat.lean` are deleted (branch `prove-ps2-metrics/2026-11-22`, with the
+  pin that brings it): `When.wp_proof` and the work queue's Links lose the instance premise (a stronger
+  statement).
 
 ### Specs: `container/heap` (2026-10-27, client-go workqueue)
 
@@ -3709,6 +3730,43 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
 - **Proposed (general).** Map the predeclared alias `rune` to `int32` (and `byte` to `uint8`, if not already)
   in `basicLeanType`. **Status.** Recorded only.
 
+## 2026-11-21: extension state access at generation start (`goose_crash_adequacy`; the WAL tester, branch `wal-safe`)
+
+- **Missing.** `goose_crash_adequacy`'s `Hwp` (`Perennial/GooseLang/CrashAdequacy.lean`) makes each
+  generation's WP and crash frame from `P` and `threadTok` alone. It cannot touch the extensions' local
+  interpretation before the WP, though the adequacy proof holds the state interpretation there (after
+  `goose_init`, and after `goose_crash_step`). The Linux file extension's switch to its shared mode
+  (`wp_osShareE`) needs that interpretation, so a program switches at its first step. Its crash frame
+  is fixed before that, gets no later (crashes need not be separated by steps), and so can take nothing
+  the switch made: not the invariants a client allocates in the shared mode (the WAL tester's `TInv`,
+  `walInv`, `durInv`). A crash between generation start and the switch is unprovable for such a client.
+- **Worked around locally.** `GooseLang/Ext/Fs/CrashAdequacyAcc.lean`: a copy of `goose_crash_adequacy`
+  (with `_blang` and `goose_crash_preservation`, at Perennial `d648cfe22`) whose `Hwp` is given
+  `∀ w, extsLocalCtx w ={⊤}=∗ extsLocalCtx w ∗ (WP ∗ crash frame)`, one update of the extensions' local
+  interpretation (`bstate_extsLocal_acc`). Over it, `GooseLang/Ext/Fs/AdequacyShared.lean`'s
+  `fsSQ_crash_adequacyShared` switches every generation before its WP. Untrusted, and `#print axioms` is
+  standard. No statement of any closed theorem changes.
+- **Proposed (general).** The same change in Perennial's `goose_crash_adequacy`, and likewise
+  `goose_adequacy`: `Hwp` takes the extensions' local interpretation for one update. Existing callers
+  adapt by ignoring it (`Hwp … $$ HP Htok` under an `iintro %w Hext; iframe Hext`). The repository's copy
+  then goes.
+- **Status.** Worked around locally (2026-11-21); proposed only. The Perennial branch is for later (the
+  coordinator's (b3)).
+
+## 2026-11-22: `errors-facts` re-cut as `errors-facts-2` (wal-safe session 11)
+
+- **What.** The two `errors` commits of the 2026-11-14 entries above (`58e04c5c0`: `newVar` keeps the `errorString`'s
+  field, `errors` records `ErrUnsupported`; `601b7fb5d`: `errors.Is`/`is` at comparable targets), cherry-picked onto
+  Perennial `lean` `0e10295a1` as branch `errors-facts-2` (`94d5c61e5`, `98a9ca318`; worktree
+  `/shared/perennial-errors-facts-2`), without the `errors.As` commit `7533cf64a` (#26/#29's area: the conflicts in
+  `Proof/errors/Base.lean`/`Results.lean` were resolved by dropping its `AsFirst`/`wp_As_first`). The touched modules
+  and the ten package Links that import them build (2107 jobs). **Not pushed** (the user pushes Perennial).
+- **What it costs here.** Against a d648-based copy of the same two commits (`errors-facts-2-d648`, local only,
+  manifest `/shared/tmp/manifest-ef2d.json`) the WAL cone breaks in three places, all `newVar`'s/`wp_New_errorString`'s
+  extra conjunct (`x.[errorString, "s"] ↦□ msg`): `etc/gen-init.py`'s io/fs initializer, `errOk_newVar`, `closeAll`.
+  Fixed on the local branch `wal-safe-errors`; the pin move must do the same across the tree (every `newVar`
+  destructuring and every `as %x #M` of `wp_New_errorString` that uses `#M` as the `Error()` WP).
+- **Status.** Branch ready for the user's push and Perennial's landing workflow; the pin move then goes through #9.
 ## 2026-11-21: no `Timeless` instance of `ownSliceCap` (the lessor's expiry notifier cell)
 
 - **The gap.** `Perennial/Golang/Theory/Slice.lean` has `ownSlice_timeless` but no instance for
@@ -3795,3 +3853,30 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 `crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
+
+## 2026-11-22: two facts of Perennial's channel idioms proved locally (net/rpc client, branch `models-rpc-client`)
+
+- **Limitation.** The future idiom (`Golang/Theory/Chan/Idioms/Future.lean`) fulfils a promise only
+  by a blocking send (`future_fulfill_au`, `wp_future_fulfill`); Go's `net/rpc` `Call.done` fulfils it
+  by a non-blocking one (`select` with a `default`). And nothing says two `isChan` of one channel
+  agree on its capacity (a channel made then turned into a future by `start_future` loses its names).
+- **Workaround here.** `future_fulfill_nb` (`Net/Proof/net/rpc/Call__done.lean`: the future's
+  fulfilment as `nonblockingSendAuInner`, the `Buffered` and `RcvPending` cases of
+  `future_fulfill_au`) and `isChan_cap_agree` (`Net/Proof/net/rpc/Client__Call.lean`, from the
+  `cap` field's persistent points-to).
+- **Proposed.** Both in Perennial, next to `future_fulfill_au` and `isChan_not_null`; or
+  `start_future` stating the future's channel names (`γmf.chanName = γ`).
+- **Status.** Not filed yet.
+
+## 2026-11-23: `errors.New.spec` does not say its result implements `error` (net/rpc client, branch `models-rpc-client`)
+
+- **Limitation.** `errors.New.spec` (`Perennial/Spec/errors/New.lean`) returns some `err : GoInterfaceOk` with
+  `IsPointerError err` (a pointer type, any `T`) and its `Error()`. A caller that passes the error on as
+  `errAny` (`models_lab/Errors.lean`: its dynamic type in `error`'s type set,
+  `go.typeSetContains err.ty go.error`) cannot show it: the spec leaves the type open.
+- **Workaround here.** `wp_errors_New'` (`Net/Proof/net/rpc/Client__input.lean`): the same triple with the
+  result `interface.mkOk (*errorString) #x`, proved from `errors.New`'s body as `errors.New.wp_proof` is (no
+  axiom); `Client.input.wp_proof` uses it instead of taking `errors.New.spec`.
+- **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
+  `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
+- **Status.** Not filed yet.

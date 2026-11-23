@@ -33,6 +33,9 @@ translate = ["!*",
   # (mustreg, 2026-11-20) metrics.go's `init.0` (`prometheus.MustRegister` of the metrics), translated:
   # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
   "init.0",
+  # (prove-ps2-metrics, 2026-11-22) the metric updates of the membership writers, over prometheus's
+  # proved gauge `Set` (until then the trust-boundary axioms of their specs)
+  "setIsLearnerMetric", "RaftCluster.updateMembershipMetric",
   # (prove-ps2-members, 2026-11-22) the backend's setter (`applySnapshot`'s), proved
   "RaftCluster.SetBackend"]
 imports = ["!*", "errors", "path", "sort", "sync", "go.uber.org/zap", "go.etcd.io/raft/v3/raftpb", "encoding/json", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version",
