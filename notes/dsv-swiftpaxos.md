@@ -160,11 +160,52 @@ Read with the tenth session's state below (accurate where this does not say othe
   `ClientNode`, `ClientNodeNew`, `ClientInit`, `ClientLink`, `ClientNodeLink`, `ClientPkgInits`
   (but reuse its `init_*` for the boot), `Client.lean`.
 
-**Next.** (2) the orchestrator: `New`/`configure` (three loops now; the third sends with
-`conf.startP`, which needs `allPredsReg` gathered from the acks: lab `OrchNew`), `sendConf` over
-`SwNetDeps` (rabia's `sendConf.wp_proof` shape), `orch`/`Orch` with `pend_alloc` *after* or at
-the start (sysState is `sysK γk`, half of `γk` at `("","")`); (3) the servers; (4)-(5) as the
-tenth session lists, with the client machine's boot resources above and `httpW`.
+- **The orchestrator, proved**: `OrchSend.lean` (`sendConf.wp_proof D`; spec in `KitDeps`),
+  `OrchNew.lean` (`configure.wp_proof` with the third loop over `conf.startP`, `New.wp_proof`;
+  `New.spec` in `KitDeps`, from `conf.writer γ ∗ common γ`, returns `allPredsReg`), `OrchProof.lean`
+  (`Orch.wp_proof`: `New`, `Sleep`, remote's `Check` at `swRK γk`/`swS`; masks `pendN_sw`,
+  `lintestN_sw`). `Orch.spec` (in `ClientNodeDefs`) takes `conf.writer γ`, `common γ`,
+  `remoteAddr (swRK γk)` of `clientAddrs`, `mapCtx`, `pendCtx`/`pendLib` (allocated at the start
+  by `pend_alloc` from `sysK γk init`, as epaxos's TopLevelRobustness).
+- **The replicas' peer ports** are now behind their wildcard listeners `replicaLis`
+  (`0.0.0.0:7002..`, = `replica.wildOf replicaAddrs`): `plainAddrs` no longer lists
+  `replicaAddrs`; `common` holds `[∗list] la ∈ replicaLis, lisProto la inP outQ` (the start sets
+  them by `lis_set_proto` from `lisUnset`); clients derive `addrProto` by `lis_replicaAddrs`
+  (`ClientNodeShare`). `services` gives the master's spec at every address `":7001"` takes
+  (`lisAcceptsB`, as `master.worldOk` needs).
+- **`register`, proved** (`Register.lean`: `wp_call_register` over `L : CodecLaws`, Net's
+  `Client.Call.spec`; `register.wp_proof L wp_Call wp_Close`; `register.spec` in
+  `ServersSpecs` now over `rpcHttp γ.W masterAddr`).
+- Deleted the lab's orchestrator/client-node files (`Orch*` but `OrchParts`/`OrchSend`/`OrchNew`,
+  `ClientNode`, `ClientNodeNew`, `ClientLink`, `ClientNodeLink`, `Client`, `Parts`).
+
+**Next.**
+(3) **The servers** (`serve`, `Server`; the lab's `Serve.lean`/`ServeShare.lean`/`Servers.lean`
+are still the lab's and broken): rewrite `serve` as dsv-epaxos's `ServerProof`/`ServeReplica`
+(read them on origin/dsv-epaxos): `awaitConf.wp_proof` at `confAddrs[i]` (master: `conf.ackQ`,
+Pre/A/R/X `True`; replica `k`: `conf.ackQP (rep k)`, Pre = `sp.inv ∗ predTok ∗ ghostFresh`,
+hclaim from `client.claimGhost.spec` as `ClientMachine`'s), `Register()` (`Register.spec`,
+`codecFresh`), `nodeConfig` (`wp_nodeConfig`, Addr.lean), master branch: `master.New.spec`,
+`master.Master.Run.spec` (needs `muxOwner []`, `∃ γs, defaultServer γs`, `srvEnv`, threadBound,
+`rpcLisP W ":7001"` (common's `rpcLis` head), the replicas' `rpcHttp` (`rpcHttp_all`,
+ClientMachine), `master.worldOk` from `services`); replica branch: `register.spec`,
+`setMaxDesc.spec` (mutable global, boot resource), `swift.New.spec` (needs `lisProto
+(replica.wildOf a)` = common's `replicaLis[k]`, the replica addrProtos, the three mutable globals'
+points-to, `nodeGhostOk` from the future), `RpcHttpHyp.Register_spec` (+ `swift.rcvr.spec` via
+`swift.New`'s post), `HandleHTTP_spec`, `net.Listen.spec` at the rpc port via
+`RpcHttpAddr.rpcLisP_lis` (common's `rpcLis`), `Serve_spec`. The server's boot resources:
+`codecFresh`, `cliBoot`, `srvEnv`, `muxOwner []`, `∃ γs, defaultServer γs`, threadBound,
+`client.ghostFresh`, `swift.mutGlobals` points-to.
+(4)-(5) bridge, start (`γk` ghost var at `("","")` half to `sysK`, half + `γ.lin` half into
+`linkInv`; `httpW` world; `lis_set_proto` for `replicaLis`; `rpcLisP_set` for `rpcLis`;
+`addrs_set_proto` for `plainAddrs`; `pend_alloc`), boot (first-run inits returning the boot
+resources above: `ClientPkgInits.lean`'s `init_*` are the lab's material), Mains, Link
+(namespace `Perennial.EtcdGrove.dsvswiftpaxos`; passes `awaitConf.wp_proof D`, `sendConf.wp_proof
+D`, `register.wp_proof`, `master.wp_call_btl (C := kitCodec)` as `callBtl.spec`, the address
+`*_proof`s, Net's net/rpc/remote proofs, rabia's `io.ReadFull.wp_proofLt`), TopLevelRobustness.
+
+Tier: new files import only specs/defs except `OrchNew`→`Addr` (defs-tier `wp_at`), `Register`→
+`NetRpc/CodecSrvProof` (`getTag_tagged`), `KitDeps`→rabia's `ConnRead` (defs).
 
 ## State (2026-11-23, tenth session; superseded where the eleventh says so)
 
