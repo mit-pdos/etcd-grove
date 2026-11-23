@@ -1016,6 +1016,30 @@ tests kept as differential tests against the real library, a "not modelled" pani
    unreachable; contexts by Perennial's specs first; `url.ParseRequestURI` and the `strings` functions by local
    proofs first). Not yet merged: `origin/lean`'s Perennial bump (`71de6f043`, `strings.Builder` and
    `bytealg`), which rebuilds the whole tree.
+   **The pools (2026-11-23, same branch).** `origin/lean` merged (Perennial `71de6f043`; nothing regenerated
+   changed, `Net.Proof.net.{rpc,http}.Results` rebuilt without drift). *Proved*: bufio's `Reader.Reset`
+   (main tree, `Spec/bufio/Reader__Reset.lean`: from `bufio.rawReader`, a reader with a buffer of 1 to 4096
+   bytes, to `bufio.freshReader b rd`; `Proof/bufio/RawReader.lean`: `freshReader_own`, a fresh reader over a
+   stream in the state `S r` is `bufio.ownReader … r`); `bufio.NewWriterSize.specRep` (generic: a fresh
+   writer's fields `bufio.writerRep … [] nil` over any destination not a `*bufio.Writer`, nothing asked of
+   it), of which `NewWriterSize.spec` is now an instance (one proof of the body; `wp_proof` takes
+   `wp_proofRep`, the rabia server's `Link` passes it), and `bufio.writerRep_raw` (`RawWriter.lean`). In
+   `ServerConnLemmas.lean`: `wp_newBufioReader` (a pooled reader reset, or `NewReader`: `ownReader … r`
+   over the stream reader) and `wp_newBufioWriterSize` (2048 or 4096: `rawWriter bw sz`, the destination
+   not recorded, as the server writes nothing before the hijack). The reader pool `rPool`
+   (`ServerConn.lean`, like `wPools`) is a premise, as `wPools` is: net/http's initialization gives both,
+   not proved. No spec of a client changed, no model change.
+   *`readRequest`, what it needs first* (found 2026-11-23, nothing done yet): the translation lacks bodies
+   that the `CONNECT path HTTP/1.0` head reaches: `isToken` (`validMethod`'s body) over httpguts'
+   `ValidHeaderFieldName` (httpguts translates only `HeaderValuesContainsToken`), `Server.maxHeaderValueCount`
+   (`conn.readRequest`), and `url.ParseRequestURI` (main tree's `net/url`, project etcd, names-only;
+   `parse`/`getScheme`/`setPath` call `strings.ToLower`/`Count`/`Cut`/`Index`, names-only in Perennial).
+   Plan: add the first two to `Net/Code/net/http.toml` and httpguts' `.toml`; for `url.ParseRequestURI`,
+   bodies over a path in a safe alphabet (`/`-initial, no `?`, `%`, `//` prefix, control bytes), or a
+   minimal model stand-in for review if `strings`' gaps block it. `conn.readRequest` also needs
+   `context.WithCancel` (Perennial spec), `time.Now`, the read limit (`setReadLimit`, translated), the
+   request-body type switch (`readTransfer` on a request: its spec is the response's), and the response's
+   allocation (`newBufioWriterSize(&w.cw, 2048)`, now proved).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

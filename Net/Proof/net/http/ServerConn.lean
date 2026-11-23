@@ -13,6 +13,8 @@ connection reader's (`ConnReader.lean`):
 * `wPool sz` (persistent): `bufioWriter2kPool` (`sz = 2048`) or `bufioWriter4kPool` (`4096`) holds
   `*bufio.Writer`s holding nothing with a buffer of `sz` bytes (`bufio.rawWriter`); its `New` is
   `nil` (Go's zero `sync.Pool`). Given by net/http's initialization (not proved yet: a premise).
+* `rPool` (persistent): `bufioReaderPool` holds `*bufio.Reader`s with a buffer (`bufio.rawReader`),
+  `New` `nil`; a premise likewise (`newBufioReader`, `ServerConnLemmas.lean`).
 * `hjPre ...`: what `response.Hijack` needs (`response.Hijack.spec`), which `conn.serve` has when it
   calls the handler on a `CONNECT` request whose head `hs` it read; `hjDone ...`: what it gives
   back to the serving thread through the handler (`hijackOk`'s `D`).
@@ -21,6 +23,7 @@ module
 
 public import Net.Proof.net.http.ConnReader
 public import Proof.bufio.RawWriter
+public import Proof.bufio.RawReader
 public import Perennial.Proof.sync.PoolDefs
 
 @[expose] public section
@@ -74,6 +77,18 @@ def wPools : IProp GF :=
 
 instance wPools_persistent : Persistent (wPools (GF := GF)) := by
   unfold wPools; infer_instance
+
+/-- See the file header. -/
+def rPoolP (v : GoAny) : IProp GF :=
+  iprop(∃ br : Loc, ⌜v = interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br⌝ ∗
+    EtcdGrove.bufio.rawReader br)
+
+/-- See the file header. -/
+def rPool : IProp GF :=
+  iprop(sync.isPool (globalAddr net.http.bufioReaderPool) func.nil iprop(True) rPoolP)
+
+instance rPool_persistent : Persistent (rPool (GF := GF)) := by
+  unfold rPool; infer_instance
 
 /-- The names and places of a connection being served, up to its hijack (`hjPre`). -/
 structure HjNames where

@@ -81,6 +81,7 @@ public import Proof.bufio.Writer__Write
 public import Proof.bufio.Writer__Flush
 public import Proof.bufio.NewReaderSize
 public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewWriterSizeRep
 public import Perennial.Proof.fmt.Printf
 
 @[expose] public section
@@ -141,7 +142,7 @@ theorem tcpDeps : TcpDeps (GF := GF) where
   dial := net.Dial.wp_proof
   accept := net.Listener.Accept.wp_proof
   newReaderSize := EtcdGrove.bufio.NewReaderSize.wp_proof
-  newWriterSize := EtcdGrove.bufio.NewWriterSize.wp_proof
+  newWriterSize := EtcdGrove.bufio.NewWriterSize.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
   cmdReadUnmarshal := wp_Command_ReadUnmarshal
   msgReadUnmarshal := wp_Msg_ReadUnmarshal
   cmdMarshalWriteFlush := wp_Command_MarshalWriteFlush

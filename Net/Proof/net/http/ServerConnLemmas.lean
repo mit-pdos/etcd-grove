@@ -9,6 +9,9 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Spec.bufio.Writer__Reset
+public import Spec.bufio.Reader__Reset
+public import Spec.bufio.NewReader
+public import Spec.bufio.NewWriterSizeRep
 
 @[expose] public section
 
@@ -190,6 +193,105 @@ theorem wp_putBufioWriter [bufio.Assumptions]
       wp_apply sync.Pool.wp_Put $$ [$H4 Hraw]
       · iunfold wPoolP; iexists bw; iframe Hraw; ipureintro; rfl
       iapply HΦ; itrivial
+
+/-- `newBufioReader(r)` of a stream reader `ri` (not a `*bufio.Reader`) in the state `S r`: a pooled
+reader reset to `ri`, or a fresh one; either way a buffered reader that has delivered `r`. -/
+theorem wp_newBufioReader [bufio.Assumptions]
+    (wp_Reset : EtcdGrove.bufio.Reader.Reset.spec (GF := GF) (hG := hG))
+    (wp_NewReader : EtcdGrove.bufio.NewReader.spec (GF := GF) (hG := hG))
+    (ri : GoInterfaceOk) (S : List w8 → IProp GF) (E : List w8 → GoInterface → IProp GF)
+    (r : List w8) (hty : ri.ty ≠ go.GoType.PointerType bufio.Reader.ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗
+        rPool ∗ EtcdGrove.io.readerStream ri S E ∗
+        (□ ∀ r', S r' -∗ ⌜r'.length + 2 ^ 12 < 2 ^ 62⌝) ∗ S r }}
+      (App (Val (@! net.http.newBufioReader)) (Val #(GoInterface.ok ri)))
+    {{ (b : Loc), RET #b; EtcdGrove.bufio.ownReader b ri S E r }} := by
+  wp_start as ⟨#Hpool, #Hrs, #Hbd, HS⟩
+  wp_auto
+  iunfold rPool at Hpool
+  wp_apply sync.Pool.wp_Get $$ [$Hpool] as %x ⟨Hx, -⟩
+  icases Hx with (Hx | %Hx)
+  · iunfold rPoolP at Hx
+    icases Hx with ⟨%br, %Hx, Hraw⟩
+    subst Hx
+    wp_auto
+    wp_apply wp_Reset br (GoInterface.ok ri) $$ [$Hraw] as Hfr
+    · ipureintro; right; exact ⟨ri, rfl, hty⟩
+    iapply HΦ
+    iapply EtcdGrove.bufio.freshReader_own $$ [$Hpkg2 $Hfr $HS]
+  · obtain ⟨-, rfl⟩ := Hx
+    wp_auto
+    wp_apply wp_NewReader ri S E r hty $$ [$Hrs $Hbd $HS] as %b Hb
+    iapply HΦ
+    iexact Hb
+
+/-- `newBufioWriterSize(w, sz)` for `sz` 2048 or 4096 and a destination `wi` not a `*bufio.Writer`:
+a pooled writer reset to `wi`, or a fresh one; either way a writer holding nothing with a buffer of
+`sz` bytes (its destination not recorded: the server writes nothing through it before a hijack,
+which resets it). -/
+theorem wp_newBufioWriterSize [bufio.Assumptions]
+    (wp_Reset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG))
+    (wp_NewWriterSize : EtcdGrove.bufio.NewWriterSize.specRep (GF := GF) (hG := hG))
+    (wi : GoInterfaceOk) (sz : Nat) (hsz : sz = 2048 ∨ sz = 4096)
+    (hty : wi.ty ≠ go.GoType.PointerType bufio.Writer.ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗
+        wPools }}
+      (App (App (Val (@! net.http.newBufioWriterSize)) (Val #(GoInterface.ok wi))) (Val #(W64 sz)))
+    {{ (bw : Loc), RET #bw; EtcdGrove.bufio.rawWriter bw sz }} := by
+  wp_start as #Hpools
+  wp_auto
+  iunfold wPools at Hpools
+  icases Hpools with ⟨#H2, #H4⟩
+  wp_apply wp_bufioWriterPool (W64 sz) as %p %Hp
+  rcases hsz with rfl | rfl
+  · rw [Hp.1 rfl]
+    wp_if_destruct
+    rotate_left
+    · wp_apply sync.Pool.wp_Get $$ [$H2] as %x ⟨Hx, -⟩
+      icases Hx with (Hx | %Hx)
+      · iunfold wPoolP at Hx
+        icases Hx with ⟨%bw, %Hx, Hraw⟩
+        subst Hx
+        wp_auto
+        wp_apply wp_Reset bw 2048 (GoInterface.ok wi) $$ [$Hraw] as Hraw
+        · ipureintro; right; exact ⟨wi, rfl, hty⟩
+        iapply HΦ; iexact Hraw
+      · obtain ⟨-, rfl⟩ := Hx
+        wp_auto
+        wp_apply wp_NewWriterSize wi (fun _ => iprop(True)) (W64 2048) as %bw Hrep
+        · first | (ipureintro; exact hty) | (iframe Hpkg2; ipureintro; exact hty)
+        ihave Hraw := EtcdGrove.bufio.writerRep_raw bw wi _ _ _ $$ Hrep
+        first | rw [show EtcdGrove.bufio.writerSize (W64 2048) = 2048 by decide] | rw [show EtcdGrove.bufio.writerSize (W64 4096) = 4096 by decide]
+        iapply HΦ; iexact Hraw
+    · wp_apply wp_NewWriterSize wi (fun _ => iprop(True)) (W64 2048) as %bw Hrep
+      · first | (ipureintro; exact hty) | (iframe Hpkg2; ipureintro; exact hty)
+      ihave Hraw := EtcdGrove.bufio.writerRep_raw bw wi _ _ _ $$ Hrep
+      first | rw [show EtcdGrove.bufio.writerSize (W64 2048) = 2048 by decide] | rw [show EtcdGrove.bufio.writerSize (W64 4096) = 4096 by decide]
+      iapply HΦ; iexact Hraw
+  · rw [Hp.2 rfl]
+    wp_if_destruct
+    rotate_left
+    · wp_apply sync.Pool.wp_Get $$ [$H4] as %x ⟨Hx, -⟩
+      icases Hx with (Hx | %Hx)
+      · iunfold wPoolP at Hx
+        icases Hx with ⟨%bw, %Hx, Hraw⟩
+        subst Hx
+        wp_auto
+        wp_apply wp_Reset bw 4096 (GoInterface.ok wi) $$ [$Hraw] as Hraw
+        · ipureintro; right; exact ⟨wi, rfl, hty⟩
+        iapply HΦ; iexact Hraw
+      · obtain ⟨-, rfl⟩ := Hx
+        wp_auto
+        wp_apply wp_NewWriterSize wi (fun _ => iprop(True)) (W64 4096) as %bw Hrep
+        · first | (ipureintro; exact hty) | (iframe Hpkg2; ipureintro; exact hty)
+        ihave Hraw := EtcdGrove.bufio.writerRep_raw bw wi _ _ _ $$ Hrep
+        first | rw [show EtcdGrove.bufio.writerSize (W64 2048) = 2048 by decide] | rw [show EtcdGrove.bufio.writerSize (W64 4096) = 4096 by decide]
+        iapply HΦ; iexact Hraw
+    · wp_apply wp_NewWriterSize wi (fun _ => iprop(True)) (W64 4096) as %bw Hrep
+      · first | (ipureintro; exact hty) | (iframe Hpkg2; ipureintro; exact hty)
+      ihave Hraw := EtcdGrove.bufio.writerRep_raw bw wi _ _ _ $$ Hrep
+      first | rw [show EtcdGrove.bufio.writerSize (W64 2048) = 2048 by decide] | rw [show EtcdGrove.bufio.writerSize (W64 4096) = 4096 by decide]
+      iapply HΦ; iexact Hraw
 
 end lemmas
 
