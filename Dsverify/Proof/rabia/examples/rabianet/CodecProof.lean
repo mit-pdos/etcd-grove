@@ -125,6 +125,21 @@ theorem encInB_shape (i : KIn) : ∃ (p : Bool) (k v : GoString),
     refine ⟨false, k, [], ?_, rfl, hi.1, by simp⟩
     simp [encInB, u64le_eq]
 
+variable [GooseExts] [GoGlobalContext] in
+/-- An output the codec encodes: its kind byte `c` (at most 3) decides its flags. -/
+theorem outOk_shape (x : Out)
+    (hx : (∃ o : KOut, x = outVal o.1) ∨ x = Out.mk true false false []) :
+    ∃ c : w8, encOutB x = c :: x.V' ∧ uint.Z c ≤ 3 ∧
+      x = Out.mk (decide (c = W8 3)) (decide (c = W8 2)) (decide (c = W8 1)) x.V' := by
+  rcases hx with ⟨⟨o, _⟩, rfl⟩ | rfl
+  · cases o with
+    | done => exact ⟨W8 2, rfl, by word, by simp [outVal]⟩
+    | got w =>
+      cases w with
+      | none => exact ⟨W8 0, rfl, by word, by simp [outVal]⟩
+      | some y => exact ⟨W8 1, rfl, by word, by simp [outVal]⟩
+  · exact ⟨W8 3, rfl, by word, by simp⟩
+
 end lemmas
 
 section proof
@@ -448,7 +463,95 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
       simp only [encOutB, Bool.false_eq_true, Bool.true_eq_false, ↓reduceIte,
         List.cons_append, List.nil_append, List.set_cons_zero]
       iexact Hb'
-  sorry
+  isplitr
+  · -- DecOut
+    iintro %v %b %dq %Hv
+    obtain ⟨x, rfl, hx, hxs⟩ : ∃ x : Out, v = interface.mkOk Out.ty #x ∧
+        x.V'.length + 9 < 2 ^ 63 ∧
+        ((∃ o : KOut, x = outVal o.1) ∨ x = Out.mk true false false []) := by
+      rcases Hv with ⟨o, h⟩ | ⟨_, h⟩
+      · exact ⟨_, h, outVal_len o, .inl ⟨o, rfl⟩⟩
+      · exact ⟨_, h, by simp, .inr rfl⟩
+    obtain ⟨c, hc, hc3, hcx⟩ := outOk_shape x hxs
+    iintro !> %Φ' Hb HΦ'
+    rw [encOutV_out x hx, hc]
+    ihave %Hlen := ownSlice_len _ _ _ $$ Hb
+    ihave %Hwf := ownSlice_wf _ _ _ $$ Hb
+    have hb1 : 1 ≤ sint.Z b.len := by
+      obtain ⟨h1, h2⟩ := Hlen; simp only [List.length_cons] at h1
+      have h3 : ((sint.nat b.len : Nat) : Int) = sint.Z b.len := Int.toNat_of_nonneg h2
+      omega
+    have h0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z b.len := by
+      constructor <;> word
+    wp_auto
+    have hl1 : ¬ sint.Z b.len < sint.Z (W64 1) := by
+      rw [show sint.Z (W64 1) = 1 from rfl]; omega
+    rw [decide_eq_false hl1]
+    wp_auto
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq c (by word) $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    wp_if_destruct
+    · exfalso; word
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq c (by word) $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq c (by word) $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    rw [ite_eq_left h0]
+    wp_apply wp_load_slice_index b (sint.Z (W64 0)) _ dq c (by word) $$ [Hb] as Hb
+    · iframe Hb; ipureintro; rfl
+    wp_auto
+    rw [ite_eq_left (show 0 ≤ sint.Z (W64 1) ∧ sint.Z (W64 1) ≤ sint.Z b.len ∧
+      sint.Z b.len ≤ sint.Z b.cap from ⟨by word, by word, Hwf.2⟩)]
+    icases (ownSlice_split_all (W64 1) b dq _ ⟨by word, by word⟩).1 $$ Hb with ⟨Hb1, Hb2⟩
+    rw [show sint.nat (W64 1) = 1 from rfl, List.drop_one, List.tail_cons]
+    wp_apply wp_bytes_to_string $$ [Hb2] as Hb2
+    · iexact Hb2
+    iapply HΦ'
+    ipureintro
+    intro _
+    exact (congrArg (fun y : Out => interface.mkOk Out.ty #y) hcx).symm
+  isplitr
+  · -- IsRead
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    rcases i with ⟨i, hi⟩
+    cases i with
+    | put k v =>
+      simp only [inV, inVal]
+      wp_auto
+      rw [show (!kvB.isWrite ⟨KvInput.put k v, hi⟩) = false from rfl]
+      iapply HΦ'
+      itrivial
+    | get k =>
+      simp only [inV, inVal]
+      wp_auto
+      rw [show (!kvB.isWrite ⟨KvInput.get k, hi⟩) = true from rfl]
+      iapply HΦ'
+      itrivial
+  isplitr
+  · -- Unknown
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    iapply HΦ'
+    itrivial
+  isplitr
+  · -- IsUnknown, an output
+    iintro %o
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    rw [outVal_unknown o]
+    iapply HΦ'
+    itrivial
+  · -- IsUnknown, an unknown output
+    iintro %i
+    iintro !> %Φ' - HΦ'
+    wp_auto
+    iapply HΦ'
+    itrivial
 
 end proof
 
