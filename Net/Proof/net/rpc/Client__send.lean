@@ -63,7 +63,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
     (wp_WriteRequest : clientCodec.WriteRequest.spec (GF := GF) (hG := hG))
     (wp_done : Call.done.spec (GF := GF) (hG := hG)) :
     Client.send.spec (GF := GF) (hG := hG) := by
-  intro c W a γ pc sm svc M S args reply ch γt γf K Φm Rargs D Θ C e0
+  intro c W a γ pc sm svc M S args reply ch γt γf K Φm Rargs D Θ C
   wp_start as ⟨#Hcl, %Hsv, #Hset, Henc, HD, #Hdec, Hγt, #Hf, Herr, Hdone⟩
   unfold isClientN clientAt
   icases Hcl with ⟨%cc, %t, %cn, %la, %ra, #Hcodec, #Hrwc, #Hconn, #Hci, #Hrpc, #Henv,
@@ -160,7 +160,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
     simp only [Bool.false_eq_true, ite_false]
     iapply BigSepM.bigSepM_insert_elim $$ [Herr Hdone HD Hcol] Hrest
     iunfold callRes
-    iexists sm, args, reply, ch, γt, γf, K, Φm, Θ, D, C, post, col, ap, e0
+    iexists sm, args, reply, ch, γt, γf, K, Φm, Θ, D, C, post, col, ap
     rw [hu]
     iframe Hf Herr Htk Hdone Hpost Hcol Hnmn HD
     isplitr
@@ -252,7 +252,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
         iexact Hrest2
       iunfold callRes at Hcr
       icases Hcr with ⟨%sm', %args', %reply', %ch', %γt', %γf', %K', %Φ', %Θ', %D', %C', %post',
-        %col', %ap', %e0', #Hf2, Herr2, #Htk2, Hdone2, -, -, -, HD2, -, ⟨%Hrep', %Hpc'⟩⟩
+        %col', %ap', #Hf2, Herr2, #Htk2, Hdone2, -, -, -, HD2, -, ⟨%Hrep', %Hpc'⟩⟩
       rw [decide_eq_false Hpc']
       simp only [Option.getD_some]
       wp_auto
@@ -409,7 +409,7 @@ theorem Client.send.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := h
           iexact Hrest2
         iunfold callRes at Hcr
         icases Hcr with ⟨%sm', %args', %reply', %ch', %γt', %γf', %K', %Φ', %Θ', %D', %C', %post',
-          %col', %ap', %e0', #Hf2, Herr2, #Htk2, Hdone2, -, -, -, HD2, -, ⟨%Hrep', %Hpc'⟩⟩
+          %col', %ap', #Hf2, Herr2, #Htk2, Hdone2, -, -, -, HD2, -, ⟨%Hrep', %Hpc'⟩⟩
         rw [decide_eq_false Hpc']
         simp only [Option.getD_some]
         wp_auto

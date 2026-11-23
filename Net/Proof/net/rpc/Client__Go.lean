@@ -53,7 +53,7 @@ theorem Client.Go.wp_proof (wp_send : Client.send.spec (GF := GF) (hG := hG)) :
   ihave #Hf : callFields «$r0_ptr» sm args reply done $$ []
   · iunfold callFields
     iframe ServiceMethod Args Reply Done
-  wp_apply wp_send c W a γ «$r0_ptr» sm svc M S args reply done γt γf K Φm Rargs D Θ C _
+  wp_apply wp_send c W a γ «$r0_ptr» sm svc M S args reply done γt γf K Φm Rargs D Θ C
       $$ [$Hcl $Hset $Henc $HD $Hdec $Hγt $Hf $Error Hfut Hful HK] as ⟨%o, #Ho, Hres⟩
   · isplitr
     · ipureintro; exact ⟨Hsv.1, Hsv.2.1, Hsv.2.2, Hpc⟩

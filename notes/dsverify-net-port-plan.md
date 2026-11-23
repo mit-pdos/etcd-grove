@@ -792,11 +792,23 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `gen-init.py --check`, `copy-part.py --check` clean. The reader's ghost lemmas are proved
    (`ClientRead.lean`: `resp_hdr`, `resp_body` identify the answer a header and body read are, by
    `ans_next`, `respHdr_inj` and the connection's registry; `ans_trade` trades the pending call's
-   `col` for `Φ reply msg` and gives `reqSent`, two later credits). `input`'s proof itself is not
-   written: its loop invariant (the `err` cell `nil` with `readerOwn`, or a pointer error with
-   `errAny`, `notServerErr` and the shutdown quarter), the three response cases over those lemmas,
-   and the end (both locks, `down` set from all its fractions, `err == io.EOF` on pointer errors,
-   `wp_map_for_range` over `pending` with its entries' `callRes` as the range's resource).
+   `col` for `Φ reply msg` and gives `reqSent`, two later credits).
+   **`Client.input` proved and linked (2026-11-23, same branch):** `Net/Proof/net/rpc/Client__input.lean`,
+   linked in `Results.lean` with `NewClientWithCodec`, `NewClient`, `Dial` (`net.Dial`'s proof); `#print
+   axioms` of all four Lean's three; `lake build Net.Proof.net.rpc.Results` green, `etc/tier-check.py
+   --check` and `etc/copy-part.py --check` clean. As planned: the loop invariant (`err` `nil` with
+   `readerOwn`, or `inErr`: not `nil`, not a `ServerError`, a pointer, `errAny`; with the shutdown
+   quarter), the three response cases over the ghost lemmas (four later credits an iteration), and the
+   end (both locks, `down` set from its three fractions, the pointer comparison `err == io.EOF`,
+   `wp_map_for_range` over `pending` with the entries not yet visited as its resource). The `break`
+   and the loop's false condition share one proof of the code after the loop (`all_goals`). The
+   lemmas the proof needed changed (ledger, 2026-11-23): `ReadResponseHeader.spec`'s success gives
+   the header's frame bound (`respHdr_inj` needs its strings below `2 ^ 62`); `Client.send.spec` and
+   `callRes` hold the call's `Error` at `nil` (`input` calls `done` on a decoded reply without writing
+   `Error`; `Go` makes it `nil`); `resp_hdr`/`resp_body` take the persistent `protoPrefix` instead of
+   consuming `recvTok`. Worked around locally: `errors.New.spec` says its result is a pointer error but
+   not that its type implements `error` (`errAny` needs it), so `input` uses `wp_errors_New'`, proved
+   from `errors.New`'s body in the proof file (a Perennial strengthening: `notes/perennial-changes.md`).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

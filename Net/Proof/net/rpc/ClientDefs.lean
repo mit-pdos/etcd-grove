@@ -165,8 +165,8 @@ def callDone (γ : RpcConnNames) (γt : GName) (sm : GoString) (args reply : GoI
 def callRes (γ : RpcConnNames) (s : w64) (pc : Loc) : IProp GF :=
   iprop(∃ (sm : GoString) (args reply : GoInterface) (ch : Loc) (γt : GName) (γf : FutureNames)
       (K : Loc → IProp GF) (Φ : List w8 → GoString → IProp GF) (Θ : List w8 → Bool → IProp GF)
-      (D : IProp GF) (C : CodecSpec GF) (post col ap : GName) (e0 : GoInterface),
-    callFields pc sm args reply ch ∗ structFieldRef net.rpc.Call go!"Error" pc ↦ e0 ∗
+      (D : IProp GF) (C : CodecSpec GF) (post col ap : GName),
+    callFields pc sm args reply ch ∗ structFieldRef net.rpc.Call go!"Error" pc ↦ interface.nil ∗
     ticket γt (some (uint.nat s)) ∗ callDone γ γt sm args reply ch γf K Φ Θ D ∗
     savedPredOwn post .discard (fun p : List w8 × GoString => Φ p.1 p.2) ∗ token col ∗
     ghostMapElem γ.nm (uint.nat s) .discard (post, col, ap) ∗

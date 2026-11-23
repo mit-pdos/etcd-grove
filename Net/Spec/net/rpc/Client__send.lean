@@ -34,13 +34,13 @@ abbrev Client.send.spec : Prop :=
   ∀ (c : Loc) (W : RpcWorld GF) (a : GoString) (γ : ClientNames) (pc : Loc) (sm svc M : GoString)
     (S : MethodSpec GF) (args reply : GoInterface) (ch : Loc) (γt : GName) (γf : FutureNames)
     (K : Loc → IProp GF) (Φ : List w8 → GoString → IProp GF) (Rargs D : IProp GF)
-    (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF) (e0 : GoInterface),
+    (Θ : List w8 → Bool → IProp GF) (C : CodecSpec GF),
   {{ isClientN c W a γ ∗
       ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil ∧ pc ≠ null⌝ ∗
       codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
       □ (D -∗ ∀ rep, C.dec rep reply (Θ rep)) ∗
       ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
-      callFields pc sm args reply ch ∗ structFieldRef net.rpc.Call go!"Error" pc ↦ e0 ∗
+      callFields pc sm args reply ch ∗ structFieldRef net.rpc.Call go!"Error" pc ↦ interface.nil ∗
       callDone γ.conn γt sm args reply ch γf K Φ Θ D }}
     (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"send")) (Val #pc))
   {{ RET #(); ∃ o, ticket γt o ∗

@@ -33,15 +33,15 @@ variable [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- The answers a reader's bytes `R` meet: some `Rs` of the connection `γ`, with their elements. -/
+/-- The answers a reader's bytes `R` meet (their protocol fact, `recvTok_proto`): some `Rs` of the
+connection `γ`, with their elements. -/
 theorem resp_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
     (R : List w8) (hR : R ≠ []) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
-      recvTok (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a) R ⊢
+      protoPrefix (respProto (Gg := hG.goose_globalGS) W a) cn R ⊢
     ∃ Rs : List Ans, ⌜(∀ x ∈ Rs, ansOk x) ∧ R <+: respsWire Rs⌝ ∗
       [∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)) := by
-  iintro ⟨#Hrpc, Htok⟩
-  icases recvTok_proto (Gg := hG.goose_globalGS) $$ Htok with ⟨-, #Hpp⟩
+  iintro ⟨#Hrpc, #Hpp⟩
   iunfold protoPrefix at Hpp
   icases Hpp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
   · exact absurd Hnil hR
@@ -61,7 +61,7 @@ theorem resp_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNa
 theorem resp_hdr (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (C : List Ans)
     (hdr : List w8) (hC : ∀ x ∈ C, ansOk x) (hh : hdr.length < 2 ^ 63) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
-      recvTok (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
+      protoPrefix (respProto (Gg := hG.goose_globalGS) W a) cn
         (framesOf (C.flatMap ansPls) ++ frameOf hdr) ⊢
     ∃ x : Ans, ⌜(ansPls x)[0]? = some hdr ∧ ansOk x⌝ ∗
       ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply)) := by
@@ -82,7 +82,7 @@ theorem resp_body (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
     (hdr b : List w8) (hC : ∀ x ∈ C, ansOk x) (hh : hdr.length < 2 ^ 63)
     (hb : b.length < 2 ^ 63) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
-      recvTok (Gg := hG.goose_globalGS) cn false (respProto (Gg := hG.goose_globalGS) W a)
+      protoPrefix (respProto (Gg := hG.goose_globalGS) W a) cn
         (framesOf (C.flatMap ansPls) ++ frameOf hdr ++ frameOf b) ⊢
     ∃ y : Ans, ⌜ansPls y = [hdr, b] ∧ ansOk y⌝ ∗
       ghostMapElem γ.ans y.idx .discard (some (y.msg, y.reply)) := by

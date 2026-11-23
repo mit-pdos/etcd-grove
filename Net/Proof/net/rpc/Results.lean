@@ -15,10 +15,10 @@ reached by these).
 * the codec registry: `SetCodec`, `getCodec` (`Codec.lean`: `CodecSpec`, `codecIs`, `codecSet`).
 
 * the client (`ClientDefs.lean`, over the protocol `Proto.lean`): `newClientCodec`, `Call.done`,
-  `Client.Close`, `Client.send`, `Client.Go`, `Client.Call` (dsverify-lab's statement).
+  `Client.Close`, `Client.send`, `Client.Go`, `Client.Call` (dsverify-lab's statement), the reader
+  `Client.input`, and `NewClientWithCodec`, `NewClient`, `Dial` (`net.Dial`'s proof).
 
-Proved but not linked: `NewClientWithCodec`, `NewClient`, `Dial`, over `Client.input.spec`, whose
-proof is not written yet. Not yet stated (the plan note, phase 5.2, lists what remains): the server
+Not yet stated (the plan note, phase 5.2, lists what remains): the server
 codec's methods, `DialHTTP(Path)`, the Server (`Register(Name)`, `ServeConn`/`ServeCodec`,
 `ServeHTTP`, `HandleHTTP`) and the generated `Codec`'s `Receiver`.
 -/
@@ -44,6 +44,11 @@ public import Net.Proof.net.rpc.Client__send
 public import Net.Proof.net.rpc.Client__Go
 public import Net.Proof.net.rpc.Client__Call
 public import Net.Proof.net.rpc.newClientCodec
+public import Net.Proof.net.rpc.Client__input
+public import Net.Proof.net.rpc.NewClientWithCodec
+public import Net.Proof.net.rpc.NewClient
+public import Net.Proof.net.rpc.Dial
+public import Net.Proof.net.Dial
 public import Net.Proof.net.Conn__Close
 public import Net.Proof.net.Conn__Read
 public import Perennial.Proof.sync.Link
@@ -130,6 +135,19 @@ theorem Client.Go.wp : Client.Go.spec (GF := GF) (hG := hG) := Client.Go.wp_proo
 
 theorem Client.Call.wp : Client.Call.spec (GF := GF) (hG := hG) := Client.Call.wp_proof Client.Go.wp
 
+theorem Client.input.wp [errors.Assumptions] : Client.input.spec (GF := GF) (hG := hG) :=
+  Client.input.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.ReadResponseHeader.wp
+    clientCodec.ReadResponseBody.wp Call.done.wp
+
+theorem NewClientWithCodec.wp [errors.Assumptions] : NewClientWithCodec.spec (GF := GF) (hG := hG) :=
+  NewClientWithCodec.wp_proof Client.input.wp
+
+theorem NewClient.wp [errors.Assumptions] : NewClient.spec (GF := GF) (hG := hG) :=
+  NewClient.wp_proof newClientCodec.wp NewClientWithCodec.wp
+
+theorem Dial.wp [errors.Assumptions] : Dial.spec (GF := GF) (hG := hG) :=
+  Dial.wp_proof net.Dial.wp_proof NewClient.wp
+
 end client
 
 section results'
@@ -158,3 +176,7 @@ end Perennial
 #print axioms Perennial.net.rpc.Client.send.wp
 #print axioms Perennial.net.rpc.Client.Go.wp
 #print axioms Perennial.net.rpc.Client.Call.wp
+#print axioms Perennial.net.rpc.Client.input.wp
+#print axioms Perennial.net.rpc.NewClientWithCodec.wp
+#print axioms Perennial.net.rpc.NewClient.wp
+#print axioms Perennial.net.rpc.Dial.wp

@@ -4797,3 +4797,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `MustDeleteMemberFromBackend`'s spec has no caller that instantiates it (`applyConfChange` takes it unused).
 - **Decision.** Applied: the two contract clauses approved by the user (2026-11-22, relayed by proving session 2);
   the intermediate premises under the approved ownership-premise rule (2026-11-21).
+
+## 2026-11-23: `clientCodec.ReadResponseHeader.spec` bounds the header it read; `Client.send.spec` and `callRes` take the call's `Error` at `nil` (net/rpc model)
+
+- **Spec.** `Net/Spec/net/rpc/clientCodec__ReadResponseHeader.lean`: the success case's pure part gains
+  `(respHdr seq sm e).length ≤ maxFrameN` (as `ReadResponseBody`'s `pl.length ≤ maxFrameN`).
+  `Net/Spec/net/rpc/Client__send.lean`: the pre's `structFieldRef Call "Error" pc ↦ e0` (any `e0`, a parameter)
+  becomes `↦ interface.nil`; `callRes` (`Net/Proof/net/rpc/ClientDefs.lean`, a pending call in `mutex`'s
+  invariant) likewise holds `Error ↦ interface.nil` (its `∃ e0` dropped).
+- **Defect.** Found proving `Client.input`. (1) To identify the answer a header heads (`ans_next`, `respHdr_inj`)
+  the reader needs the header's strings shorter than `2 ^ 62`; the spec gave no bound on what was read. (2) For a
+  successful reply `input` calls `call.done()` without writing `call.Error`, so the outcome `done` carries is the
+  field's old value; `callPost`'s `nil` case needs it `nil`, which an arbitrary `e0` does not give.
+- **Evidence.** `Net/Proof/net/rpc/Client__input.lean` (`hdr_match`; the default case of the switch).
+- **Why true of the code.** (1) `readFrame` refuses a frame over `maxFrameN` (its spec already says so), and the
+  header is that frame's payload (`ReadResponseHeader`'s proof: `pl = respHdr ...`). (2) `Go` makes the call with
+  `new(Call)`, `Error` `nil` (`Client.Go`'s proof passes the zero value); only `send`'s failure path and `input`
+  write it, each after removing the entry from `pending`.
+- **Proposed change.** As above; callers updated (`Client.send`'s, `Client.Go`'s, `ReadResponseHeader`'s proofs).
+- **Decision.** Applied (callee strengthenings an existing proof discharges; no top-level statement changes).

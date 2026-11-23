@@ -3809,3 +3809,16 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 - **Proposed.** Both in Perennial, next to `future_fulfill_au` and `isChan_not_null`; or
   `start_future` stating the future's channel names (`γmf.chanName = γ`).
 - **Status.** Not filed yet.
+
+## 2026-11-23: `errors.New.spec` does not say its result implements `error` (net/rpc client, branch `models-rpc-client`)
+
+- **Limitation.** `errors.New.spec` (`Perennial/Spec/errors/New.lean`) returns some `err : GoInterfaceOk` with
+  `IsPointerError err` (a pointer type, any `T`) and its `Error()`. A caller that passes the error on as
+  `errAny` (`models_lab/Errors.lean`: its dynamic type in `error`'s type set,
+  `go.typeSetContains err.ty go.error`) cannot show it: the spec leaves the type open.
+- **Workaround here.** `wp_errors_New'` (`Net/Proof/net/rpc/Client__input.lean`): the same triple with the
+  result `interface.mkOk (*errorString) #x`, proved from `errors.New`'s body as `errors.New.wp_proof` is (no
+  axiom); `Client.input.wp_proof` uses it instead of taking `errors.New.spec`.
+- **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
+  `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
+- **Status.** Not filed yet.
