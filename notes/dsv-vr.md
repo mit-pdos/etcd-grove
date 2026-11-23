@@ -86,6 +86,21 @@ test against real encoding/json, and kit_test) ok; the same-package methods' gen
 (`go test -tags netmodel -overlay`, jsonmodel_forks.py's step 3 for vr's roots; scratchpad script
 `vr_jsonmodel_test.py`) ok for events, log, vsrwire.
 
+**Fallout fixed:** `Proof/network/Ghost.lean`'s `network.opErr_errOrNil` now over Net's
+`net.wp_OpError_Error` (lean's `OpError.Error` builds Go's message form); `Base.lean` of `log`,
+`events`, `vsrwire` import `Net.Proof.models_lab.jsoncodec.Base` (their `JSONModel*` methods import
+`models.lab/jsoncodec`); `KitLib.wp_RegisterJSON` (the placeholder's empty body; unused) deleted.
+
+**Checks (round 6).** fk-lean1, head a734ce736c with the scratch module `Dsverify/Scratch/Axioms.lean`
+(dropped after): `Build completed successfully (5077 jobs)`; `#print axioms` of `vr_remote_robust`,
+`swiftpaxos_remote_robust`, `rabia_remote_robust`, `epaxos_remote_robust`, `quepaxa_remote_robust`,
+`paxos_remote_robust`, `counter_remote_robust`: each `[propext, Classical.choice, Quot.sound]`.
+Here: `tier-check --check` ok, 227 known (as lean); `gen-init --check` 274 up to date;
+`goose --check` dsv-vr, dsv-epaxos, dsv-swiftpaxos up to date; `_swiftpaxos_boot.py --check` ok;
+`copy-part --check` 0 differ; `proof_roots.namespace()` `Perennial.EtcdGrove.`; dups.py 4 hits, the
+known regex false positives; `jsongen --check` 0; `git diff origin/lean -- etc/goose.py
+etc/gen-init.py` empty; no landed `TopLevelRobustness` spec differs from lean.
+
 **Goals 3-4: what the landed J2/J3 change in vr's premises (stopped: a statement decision).**
 - `codecOk` (`⊢ kitCodecOk scanF` at `vsrnet.jsonCodec`) is now **false of the code for good**:
   the registered codec covers only `[]log.Log` and the unnamed frame (`jsonMarshal(*Event)` reaches
