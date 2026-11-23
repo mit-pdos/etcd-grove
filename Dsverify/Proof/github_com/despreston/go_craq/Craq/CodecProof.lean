@@ -562,6 +562,142 @@ theorem wp_rpcEnc_t4 (mp : Loc) (dq : DFrac) (req : GMap GoString w64) (b : GoSl
       rw [show req !! k' = req.lookup k' from rfl] at this
       cases h' : req.lookup k' <;> simp_all
 
+theorem enc_EmptyArgs : enc_EmptyArgs.spec (GF := GF) := by
+  intro p dq Ψ
+  iintro ⟨Hp, HΨ⟩
+  unfold craqCodec
+  iintro %Φ HΦ
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+  wp_func_call
+  wp_call
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
+  (try wp_auto)
+  wp_apply wp_rpcEnc_t22 _ _ $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap, -⟩
+  (try wp_auto)
+  iapply HΦ $$ Hb Hcap
+  isimp only [encEmptyArgs, tagged] at HΨ
+  iapply HΨ $$ Hp
+
+theorem enc_NodeMeta : enc_NodeMeta.spec (GF := GF) := by
+  intro p dq m Ψ
+  unfold metaPtr
+  iintro ⟨Hp, HΨ⟩
+  unfold craqCodec
+  iintro %Φ HΦ
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+  wp_func_call
+  wp_call
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
+  (try wp_auto)
+  wp_apply wp_rpcEnc_t28 m _ _ $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap, -⟩
+  (try wp_auto)
+  iapply HΦ $$ Hb Hcap
+  isimp only [encMeta, tagged] at HΨ
+  iapply HΨ $$ Hp
+
+theorem enc_CommitArgs : enc_CommitArgs.spec (GF := GF) := by
+  intro p dq k v Ψ
+  iintro ⟨Hp, HΨ⟩
+  unfold craqCodec
+  iintro %Φ HΦ
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+  wp_func_call
+  wp_call
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
+  (try wp_auto)
+  wp_apply wp_rpcEnc_t18 k v _ _ $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap, -⟩
+  (try wp_auto)
+  iapply HΦ $$ Hb Hcap
+  isimp only [encCommitArgs, tagged] at HΨ
+  iapply HΨ $$ Hp
+
+theorem enc_WriteArgs : enc_WriteArgs.spec (GF := GF) := by
+  intro p dq k sl dqs x v Ψ
+  iintro ⟨Hp, Hsl, HΨ⟩
+  unfold craqCodec
+  iintro %Φ HΦ
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+  wp_func_call
+  wp_call
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
+  (try wp_auto)
+  wp_apply wp_rpcEnc_t31 k sl dqs x v _ _ $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb, Hcap, Hsl⟩
+  (try wp_auto)
+  iapply HΦ $$ Hb Hcap
+  isimp only [encWriteArgs, tagged] at HΨ
+  iapply HΨ $$ Hp Hsl
+
+theorem enc_ClientWriteArgs : enc_ClientWriteArgs.spec (GF := GF) := by
+  intro p dq k sl dqs x Ψ
+  iintro ⟨Hp, Hsl, HΨ⟩
+  unfold craqCodec
+  iintro %Φ HΦ
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+  wp_func_call
+  wp_call
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
+  (try wp_auto)
+  wp_apply wp_rpcEnc_t14 k sl dqs x _ _ $$ [$Hb $Hcap $Hsl] as %b' ⟨Hb, Hcap, Hsl⟩
+  (try wp_auto)
+  iapply HΦ $$ Hb Hcap
+  isimp only [encClientWriteArgs, tagged] at HΨ
+  iapply HΨ $$ Hp Hsl
+
+theorem enc_string : enc_string.spec (GF := GF) := by
+  intro s Ψ
+  iintro HΨ
+  unfold craqCodec
+  iintro %Φ HΦ
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
+  (try wp_auto)
+  wp_apply wp_rpcEnc_t5 s _ _ $$ [$Hb $Hcap] as %b' ⟨Hb, Hcap, -⟩
+  (try wp_auto)
+  iapply HΦ $$ Hb Hcap
+  isimp only [encString, tagged] at HΨ
+  iexact HΨ
+
+theorem enc_PropagateRequest : enc_PropagateRequest.spec (GF := GF) := by
+  intro p dq req Ψ
+  unfold reqPtr
+  iintro ⟨⟨%mp, Hp, Hm⟩, HΨ⟩
+  unfold craqCodec
+  iintro %Φ HΦ
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hp
+  wp_func_call
+  wp_call
+  wp_auto
+  rw [decide_eq_false Hnn]
+  wp_auto
+  wp_apply wp_rpcPutTag _ as %b ⟨Hb, Hcap⟩
+  (try wp_auto)
+  wp_apply wp_rpcEnc_t4 mp dq req $$ [$Hb $Hcap $Hm] as %b' ⟨%es, %Hes, Hb, Hcap, Hm⟩
+  (try wp_auto)
+  iapply HΦ $$ Hb Hcap
+  iapply HΨ $$ [Hp Hm]
+  · iexists mp
+    iframe
+  ipureintro
+  refine ⟨es, Hes, ?_⟩
+  simp only [encPropReqL, tagged, encU64, List.append_assoc]
+
 end proof
 
 end github_com.despreston.go_craq
