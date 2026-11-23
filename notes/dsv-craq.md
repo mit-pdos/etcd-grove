@@ -196,12 +196,16 @@ P4 (d)); when they are, recheck that their tables list these packages.
 - **P4. Next steps** (2026-11-23, second agent; the coordinator's order: (a) H5, (b) ModelProof,
   (c) KitProof, (d) Mains/TopLevelDefs/TopLevelRobustness/`craq_remote_robust` + `etc/theorem-loc.py`,
   (e) `etc/tcb-collections/dsv-craq.txt`). State:
-  (a) **Decoders**: `dec_*` restated (H5); `Netrpc/` moved onto `wp_Call_tag` (Net's fixed Call) (built: `lake build
-  ...Craq.Netrpc.New` green, 2026-11-23). The decoder proofs in `CodecProof.lean` were delegated to
-  a sub-agent (third agent's session); see the git log / the file for which `dec_*` and
-  `craqCodecLaws` are proved. Plan if unfinished: pure decoders with round-trip lemmas against
-  `Wire.lean`; `wp_rpcGetTag`, `wp_rpcDec_t{5,6,12,11,29,16,20,24,28,10,9,8}` in `wp_rpcGetU64`'s
-  style; each `dec_*` through `rpcDecode`'s type switch (`tagOk` rules out the panic).
+  (a) **Done.** `CodecProof.lean` proves `dec_EmptyReply`, `dec_VersionResponse`, `dec_Item`,
+  `dec_NodeMeta`, `dec_PropagateResponse` and **`craqCodecLaws : CodecLaws`** (`lake build`
+  green; axioms Lean's three): pure decoders with round trips `decX (encX v ++ rest) = some (v,
+  rest)` (length bounds from `rep.length < 2^63`), `wp_rpcGetTag`, `wp_rpcDec_t{5,6,12,29,16,20,
+  24,28,10,11,9,8}`, `wp_rpcErrDecode`; PropagateResponse via `respL_eq` (uses `entriesOf`'s
+  `Nodup`). Local copies `getU64_enc'`, `getTag_encStr'` (the `Codec.lean` ones carry that
+  section's instance variables); `wp_rpcDec_t28` needs `maxHeartbeats 4000000`. `Netrpc/`'s
+  clients still take the `enc_*`/`dec_*` as arguments: instantiate them with `craqCodecLaws`'s
+  fields where the kit uses them. Server side (the bindings' argument decoders, reply encoders)
+  not yet: P4 (c).
   (b) **Done** (`examples/craqnet/ModelProof.lean`, `lake build` green): `kvDec_box` (from
   `out_intoVal_inj`, `in_intoVal_inj`, `outV_inj`, `ivK_inj`), `ivK_inOf`, `Model.wp_proof`
   (Init: `sim_init`; Step: `wp_step`, `linkv.pM_step … (kvDec_box …)`, `sim_step`; Equal: always
