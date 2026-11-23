@@ -101,27 +101,32 @@ The list asked for. They are named after the lab's specs, with the reason each i
 - **gods:** dsv-epaxos and this branch translate it into the same files under `Dsverify/Code/github_com/emirpasic`, and both projects own the directory.
 - **Package inits:** the lab's `SwiftNetPkgState` (one class of package-state predicates) needs widening here. It also needs `go/token`, `path`, `net/textproto`, `vendor/.../httpguts`, `crypto/tls`, `internal/bytealg`, `encoding/{hex,json}` and the gods packages, because the net/rpc and net/http models import them and nothing in the imported parts gives them an `IsPkgInit`.
 
-## State (2026-11-23)
+## State (2026-11-23, second session)
 
-- **Done:**
-  - Go: system, kit, codec, tests.
-  - Translation; it builds.
-  - `Base`.
-  - The lab's pure model (`Spec/swift/Model/*`, `Wire`, …).
-  - Treemap over hypotheses.
-  - 109 of the 481 copied modules build. The rest wait on the eight failing ones below.
-- **Failing frontier.** Each needs the lab-library vocabulary, which is not written yet:
-  - `client/BufioErr`, `replica/defs/{Unmarshal,Link}`: bufio;
-  - `Spec/encoding/gob/Defs`, `examples/swiftnet/{codec/Base,CodecFns,Spec Base}`, `OrchGen`: the lab's net/rpc `RpcKit`/`RpcCodec` and `Wire`.
-- **Next steps:**
-  1. Write the vocabulary: `Dsverify/Proof/github_com/imdea_software/swiftpaxos/lib/{Bufio,NetRpc,Http}.lean` with the lab harness's definitions (not proofs) and the spec statements. Move its model-internal predicates into `SwiftLibs`.
-  2. Write `Hyps.lean`.
-  3. Fix tier by tier.
-  4. Port the transport onto `Net/Spec/net/*` and `Proto.lean`, as dsv-paxos's `NetProof` did.
-  5. Write the kit proofs over remote (orchestrator, client node, model, as dsv-paxos's `ModelSet`/`ModelProof`).
-  6. Write the two-extension bridge and `swiftpaxos_remote_robust`.
-  7. Write the TCB collection.
-- **Not started:** the TCB collection `etc/tcb-collections/dsv-swiftpaxos.txt`, `swiftpaxos_remote_robust`.
+- Branch merged with `lean` (rpcgen's import fix, `660918251a`: `gen-rpc.sh` no longer edits)
+  and migrated onto `dsv-infra` (`a1046d9c4f`): the goose project is `etc/dsv/swiftpaxos.py`;
+  `encoding/json` is the part's names-only one (as dsv-epaxos), so `Dsverify/{Code,GeneratedProof}/
+  github_com/emirpasic` is byte-identical with dsv-epaxos's.
+- Steps 1–2 done: the vocabulary (`lib/Bufio`, `lib/NetRpc`, `lib/Model`), `Hyps.lean`, the
+  variable lines; the ported files that use a hypothesis are on `netShaExts`
+  (`etc/dsv-swiftpaxos/fixext.py`).
+- Step 3 in progress: 130 of 476 copied modules build. **Frontier:**
+  - `Spec/.../swift/Inv.lean` (the protocol invariant, which most of the rest imports): the
+    transport port proper. The lab's connection ids are `w64` (`cid`), `Net/`'s `Nat` (`cn`);
+    `connKind γ cid`, `connIface`, `recvTok`/`sendTok` move to `Net/`'s `Proto.lean`; it needs
+    `lib/NetRpc`'s import (`MethodSpec`). This is step 4 started early: Inv must be ported onto
+    `Proto.lean` before the tiers above it build.
+  - `swift/Pkg.lean` (package facts, lab's harness `net` init facts → `Net/`'s, as dsv-paxos's
+    `Pkg.lean`).
+  - The lab kit's files (`examples/swiftnet/{OrchGen,OrchAddr,codec/*}`, `Spec/.../CodecFns`,
+    `registerRPC`): to be replaced (step 5): the kit's codec is rpcgen's here (`Net/`'s
+    `CodecSpec`/`codecSet`, proved by the model's codec lemmas), its addresses `127.0.0.1:76xx`,
+    and its checker remote's `Model` (the invariant's `kv` state related to remote's pending-puts
+    model, as dsv-paxos's `ModelSet`).
+- Steps 4–7 not started beyond the above. Hypotheses still to add to `SwiftHyps` as their users
+  build: concurrent-map, uuid, net/rpc server + HTTP path (`DialHTTP`, `Register`, `HandleHTTP`,
+  `http.Serve`), `net.ListenWild`, os/signal, math/rand, and the two-extension bridge (as a
+  hypothesis, per the coordinator, with wildcard `Listen`).
 
 ## How to resume
 
