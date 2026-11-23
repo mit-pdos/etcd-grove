@@ -19,6 +19,13 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
+/-- Step through the calls left after `wp_auto` (function and method values, `context.Background`
+and the logger's and handler's methods), unfolding each with its `FuncUnfold`/`MethodUnfold`. -/
+local macro "slog_steps" : tactic =>
+  `(tactic| repeat (first
+    | (wp_method_call; wp_call; try wp_auto)
+    | (wp_func_call; wp_call; try wp_auto)))
+
 namespace log.slog
 
 section proof
@@ -56,9 +63,7 @@ theorem Logger.Debug.wp_proof : Logger.Debug.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
-  wp_func_call
-  wp_call
-  try wp_auto
+  slog_steps
   iapply HΦ
   iexact Harg
 
@@ -67,9 +72,7 @@ theorem Logger.Info.wp_proof : Logger.Info.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
-  wp_func_call
-  wp_call
-  try wp_auto
+  slog_steps
   iapply HΦ
   iexact Harg
 
@@ -78,9 +81,7 @@ theorem Logger.Warn.wp_proof : Logger.Warn.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
-  wp_func_call
-  wp_call
-  try wp_auto
+  slog_steps
   iapply HΦ
   iexact Harg
 
@@ -89,9 +90,7 @@ theorem Logger.Error.wp_proof : Logger.Error.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hl, Harg, -⟩
   iunfold isLogger at Hl
   wp_auto
-  wp_func_call
-  wp_call
-  try wp_auto
+  slog_steps
   iapply HΦ
   iexact Harg
 
@@ -104,9 +103,7 @@ theorem Debug.wp_proof : Debug.spec (GF := GF) (hG := hG) := by
   iunfold pkgState at Hst
   icases Hst with ⟨-, %dl, #Hdl, #Hh⟩
   wp_auto
-  wp_func_call
-  wp_call
-  try wp_auto
+  slog_steps
   iapply HΦ
   iexact Harg
 
