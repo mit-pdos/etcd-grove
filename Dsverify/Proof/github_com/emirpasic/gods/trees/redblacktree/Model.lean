@@ -117,6 +117,25 @@ theorem fill_locs_perm (f : Frame α) (t : RB α) : (f.fill t).locs.Perm (t.locs
     refine List.Perm.trans ?_ (List.perm_middle).symm
     exact List.Perm.cons _ List.perm_append_comm
 
+/-- The frame's other subtree (beside the hole). -/
+def sib : Frame α → RB α
+  | L _ _ _ r => r
+  | R _ _ _ l => l
+
+theorem sib_locs_sub (f : Frame α) : ∀ x ∈ f.sib.locs, x ∈ f.locs := by
+  cases f <;> simp only [sib, locs, List.mem_cons] <;> intro x hx <;> exact Or.inr hx
+
+theorem mem_fill_left (f : Frame α) (t : RB α) {x : Loc} (hx : x ∈ t.locs) :
+    x ∈ (f.fill t).locs :=
+  (fill_locs_perm f t).symm.subset (List.mem_append_left _ hx)
+
+theorem mem_fill_right (f : Frame α) (t : RB α) {x : Loc} (hx : x ∈ f.locs) :
+    x ∈ (f.fill t).locs :=
+  (fill_locs_perm f t).symm.subset (List.mem_append_right _ hx)
+
+theorem loc_mem_locs (f : Frame α) : f.loc ∈ f.locs := by
+  cases f <;> simp [loc, locs]
+
 end Frame
 
 /-- A context: the frames from the hole up to the root, innermost first. -/

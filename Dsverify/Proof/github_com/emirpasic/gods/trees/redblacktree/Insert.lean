@@ -458,6 +458,249 @@ theorem Tree.insertCase4.wp_proof (wp_gp : Node.grandparent.spec (GF := GF))
       iapply HΦ
       iexact Hfix
 
+theorem Tree.insertCase1.wp_proof (wp_nc : nodeColor.spec (GF := GF))
+    (wp_uncle : Node.uncle.spec (GF := GF)) (wp_gp : Node.grandparent.spec (GF := GF))
+    (wp_ic4 : Tree.insertCase4.spec (GF := GF)) :
+    Tree.insertCase1.spec (GF := GF) := by
+  intro tr enc cmp C h D n k v L R
+  iloeb as IH generalizing %C %h %n %k %v %L %R
+  wp_start as ⟨Hraw, %Hpre⟩
+  ihave ⟨Hraw, %Hp⟩ := treeRaw_pure tr enc cmp _ h D $$ Hraw
+  obtain ⟨hrep, hperm, hnd⟩ := Hp
+  have hndT := hperm.nodup_iff.mp hnd
+  have hrep0 := hrep
+  obtain ⟨hhn, hnn, hL, hR, hC⟩ := Rep_plug_node hrep0
+  have hnD : n ∈ D := hperm.symm.subset (mem_plug (by simp))
+  iunfold treeRaw at Hraw
+  icases Hraw with ⟨%sz, Htr, Hns, -⟩
+  ihave ⟨Hn, Hback⟩ := ownNodes_read' h D n _ hnD hhn $$ Hns
+  wp_auto
+  wp_if_destruct
+  · -- the root: black
+    have hC0 : C = [] := by
+      cases C with
+      | nil => rfl
+      | cons f C' => exact absurd Hif (RepC_parent_ne_null hC (by simp))
+    subst hC0
+    ihave Hns := Hback $$ Hn
+    ihave ⟨Hn, Hback⟩ := ownNodes_acc h D n hnD hnd $$ Hns
+    dsimp only [black]
+    wp_auto
+    ihave Hns := Hback $$ Hn
+    iapply HΦ
+    iunfold fixPost
+    iexists _, _
+    isplitl
+    · iapply (treeRaw_of tr enc cmp _ _ D sz ⟨Rep_recolor n true hrep, hperm, hnd⟩)
+      iframe
+    ipureintro
+    refine ⟨rfl, Or.inr ?_⟩
+    simp
+  · ihave Hns := Hback $$ Hn
+    wp_method_call
+    wp_call
+    wp_auto
+    cases C with
+    | nil => exact absurd rfl Hif
+    | cons f1 C' =>
+    have hrb : rootBlack h (Ctx.plug (f1 :: C') (.node n k v L R)) :=
+      Hpre.resolve_right (by simp)
+    obtain ⟨hf1, hC'⟩ := hC
+    simp only [Ctx.parent_cons] at hhn Hif
+    have hpD : f1.loc ∈ D :=
+      hperm.symm.subset (mem_plug_ctx (frame_loc_mem (C := f1 :: C') rfl))
+    have hpn : f1.loc ≠ null := Hif
+    ihave ⟨Hn, Hback⟩ := ownNodes_read' h D n _ hnD hhn $$ Hns
+    wp_auto
+    ihave Hns := Hback $$ Hn
+    wp_apply (wp_nc h D f1.loc) $$ [$Hns]
+    · ipureintro; exact Or.inr hpD
+    iintro Hns
+    rw [if_neg hpn]
+    dsimp only [black]
+    wp_auto
+    wp_if_destruct
+    · -- a black parent: done
+      iapply HΦ
+      iunfold fixPost
+      iexists _, h
+      isplitl
+      · iapply (treeRaw_of tr enc cmp _ h D sz ⟨hrep, hperm, hnd⟩); iframe
+      ipureintro; exact ⟨rfl, hrb⟩
+    · -- a red parent: not the root, so a grandparent
+      have hpr : (h f1.loc).color' = false := by simpa using Hif
+      cases C' with
+      | nil =>
+        exfalso
+        rcases hrb with h0 | h0
+        · exact hpn (by simpa [Ctx.plug] using h0)
+        · simp [Ctx.plug] at h0; rw [hpr] at h0; exact Bool.false_ne_true h0
+      | cons f2 C'' =>
+      obtain ⟨hf2, hC''⟩ := hC'
+      wp_method_call
+      wp_call
+      wp_auto
+      have hnP : (h n).Parent' = f1.loc := by rw [hhn]
+      have hpP : (h f1.loc).Parent' = f2.loc := by
+        cases f1 with
+        | L => obtain ⟨-, hh, -⟩ := hf1; exact congrArg Node.Parent' hh
+        | R => obtain ⟨-, hh, -⟩ := hf1; exact congrArg Node.Parent' hh
+      have hgD : f2.loc ∈ D := hperm.symm.subset (mem_plug_ctx (by
+        simp only [Ctx.locs, List.mem_append]; right; left; cases f2 <;> simp [Frame.locs, Frame.loc]))
+      have hgn : f2.loc ≠ null := by cases f2 <;> exact hf2.1
+      obtain ⟨hndt, hndC, hdis⟩ := nodup_plug hndT
+      have hf1m : f1.loc ∈ f1.locs := by cases f1 <;> simp [Frame.locs, Frame.loc]
+      have hf2m : f2.loc ∈ f2.locs := by cases f2 <;> simp [Frame.locs, Frame.loc]
+      simp only [Ctx.locs, List.nodup_append] at hndC
+      have hpf2 : f1.loc ∉ f2.locs := fun hm => hndC.2.2 _ hf1m _ (by simp [hm]) rfl
+      have hu := uncle_loc hf2 hpn hpf2
+      wp_apply (wp_uncle h D n) $$ [$Hns]
+      · ipureintro; rw [hnP, hpP]; exact ⟨hnD, hnn, hpD, hpn, hgD, hgn⟩
+      iintro Hns
+      rw [hnP, hpP, hu]
+      wp_auto
+      have huD : f2.sib.loc = null ∨ f2.sib.loc ∈ D := by
+        rcases loc_null_or_mem f2.sib with h0 | h0
+        · left; exact h0
+        · right
+          exact hperm.symm.subset (mem_plug_ctx (by
+            simp only [Ctx.locs, List.mem_append]; right; left; exact Frame.sib_locs_sub f2 _ h0))
+      wp_apply (wp_nc h D f2.sib.loc) $$ [$Hns]
+      · ipureintro; exact huD
+      iintro Hns
+      dsimp only [red]
+      wp_auto
+      wp_if_destruct
+      · -- a red uncle: recolor, then up to the grandparent
+        have hun : f2.sib.loc ≠ null := by intro e; rw [if_pos e] at Hif; exact Bool.noConfusion Hif
+        have hucol : (h f2.sib.loc).color' = false := by rw [if_neg hun] at Hif; exact Hif
+        have huD' : f2.sib.loc ∈ D := huD.resolve_left hun
+        have hun_mem : f2.sib.loc ∈ f2.sib.locs := (loc_null_or_mem f2.sib).resolve_left hun
+        have hu_f2 : f2.sib.loc ∈ f2.locs := Frame.sib_locs_sub f2 _ hun_mem
+        have hpu : f1.loc ≠ f2.sib.loc := fun e => hpf2 (e ▸ hu_f2)
+        have hpg : f1.loc ≠ f2.loc := fun e => hpf2 (e ▸ hf2m)
+        have hug : f2.sib.loc ≠ f2.loc := by
+          have hnd2 : f2.locs.Nodup := by
+            have h0 := (nodup_plug hndT).2.1
+            simp only [Ctx.locs] at h0
+            exact (List.nodup_append.mp (List.nodup_append.mp h0).2.1).1
+          cases f2 with
+          | L g kg vg U =>
+            simp only [Frame.locs, List.nodup_cons] at hnd2
+            intro e; simp only [Frame.sib, Frame.loc] at e hun_mem; exact hnd2.1 (e ▸ hun_mem)
+          | R g kg vg U =>
+            simp only [Frame.locs, List.nodup_cons] at hnd2
+            intro e; simp only [Frame.sib, Frame.loc] at e hun_mem; exact hnd2.1 (e ▸ hun_mem)
+        have hnC : ∀ x ∈ Ctx.locs (f1 :: f2 :: C''), n ≠ x := fun x hx e => hdis n (by simp) (e ▸ hx)
+        have hnp : n ≠ f1.loc := hnC _ (by simp [Ctx.locs, hf1m])
+        have hnu : n ≠ f2.sib.loc := hnC _ (by simp [Ctx.locs, hu_f2])
+        have hng : n ≠ f2.loc := hnC _ (by simp [Ctx.locs, hf2m])
+        dsimp only [black]
+        ihave ⟨Hn, Hback⟩ := ownNodes_read' h D n _ hnD hhn $$ Hns
+        wp_auto
+        ihave Hns := Hback $$ Hn
+        ihave ⟨Hp, Hback⟩ := ownNodes_acc h D f1.loc hpD hnd $$ Hns
+        wp_auto
+        ihave Hns := Hback $$ Hp
+        have hrep1 := Rep_recolor (enc := enc) f1.loc true hrep
+        have hP1 := parent_recolor h f1.loc true
+        have hc1 := color_recolor_ne h f1.loc true
+        generalize hh1 : upd h f1.loc { h f1.loc with color' := true } = h1 at hrep1 hP1 hc1 ⊢
+        ihave ⟨Hu, Hback⟩ := ownNodes_acc h1 D f2.sib.loc huD' hnd $$ Hns
+        wp_auto
+        ihave Hns := Hback $$ Hu
+        have hrep2 := Rep_recolor (enc := enc) f2.sib.loc true hrep1
+        have hP2 := parent_recolor h1 f2.sib.loc true
+        have hc2 := color_recolor_ne h1 f2.sib.loc true
+        generalize hh2 : upd h1 f2.sib.loc { h1 f2.sib.loc with color' := true } = h2
+          at hrep2 hP2 hc2 ⊢
+        have hP2' : ∀ x, (h2 x).Parent' = (h x).Parent' := fun x => (hP2 x).trans (hP1 x)
+        wp_apply (wp_gp h2 D n) $$ [$Hns]
+        · ipureintro; simp only [hP2', hnP]; exact ⟨hnD, hnn, hpD, hpn⟩
+        iintro Hns
+        simp only [hP2', hnP, hpP]
+        ihave ⟨Hg, Hback⟩ := ownNodes_acc h2 D f2.loc hgD hnd $$ Hns
+        wp_auto
+        ihave Hns := Hback $$ Hg
+        have hrep3 := Rep_recolor (enc := enc) f2.loc false hrep2
+        have hP3 := parent_recolor h2 f2.loc false
+        have hc3 := color_recolor_ne h2 f2.loc false
+        generalize hh3 : upd h2 f2.loc { h2 f2.loc with color' := false } = h3 at hrep3 hP3 hc3 ⊢
+        have hP3' : ∀ x, (h3 x).Parent' = (h x).Parent' := fun x => (hP3 x).trans (hP2' x)
+        wp_apply (wp_gp h3 D n) $$ [$Hns]
+        · ipureintro; simp only [hP3', hnP]; exact ⟨hnD, hnn, hpD, hpn⟩
+        iintro Hns
+        simp only [hP3', hnP, hpP]
+        -- the grandparent's fix-up: the root is still black, unless it is the grandparent
+        have hrbIH : rootBlack h3 (Ctx.plug C'' (f2.fill (f1.fill (.node n k v L R)))) ∨ C'' = [] := by
+          cases C'' with
+          | nil => right; rfl
+          | cons f3 C3 =>
+            left
+            have hT3 : Ctx.plug (f1 :: f2 :: f3 :: C3) (.node n k v L R) =
+              Ctx.plug (f3 :: C3) (f2.fill (f1.fill (.node n k v L R))) := rfl
+            have hm := Ctx.plug_loc_mem (C := f3 :: C3) (f2.fill (f1.fill (.node n k v L R))) (by simp)
+            have hdis3 := (nodup_plug (C := f3 :: C3) (t := f2.fill (f1.fill (.node n k v L R)))
+              (hT3 ▸ hndT)).2.2
+            have hpm : f1.loc ∈ (f2.fill (f1.fill (.node n k v L R))).locs :=
+              Frame.mem_fill_left _ _ (Frame.mem_fill_right _ _ (Frame.loc_mem_locs f1))
+            have hum : f2.sib.loc ∈ (f2.fill (f1.fill (.node n k v L R))).locs :=
+              Frame.mem_fill_right _ _ hu_f2
+            have hgm : f2.loc ∈ (f2.fill (f1.fill (.node n k v L R))).locs :=
+              Frame.mem_fill_right _ _ (Frame.loc_mem_locs f2)
+            have hrep3' : Rep enc h (Ctx.plug (f3 :: C3) (f2.fill (f1.fill (.node n k v L R)))) null :=
+              hT3 ▸ hrep
+            have hrl : (Ctx.plug (f3 :: C3) (f2.fill (f1.fill (.node n k v L R)))).loc ≠ null :=
+              Rep_locs_ne_null _ _ hrep3' _ (mem_plug_ctx hm)
+            right
+            rw [hc3 _ (fun e => hdis3 _ hgm (e ▸ hm)), hc2 _ (fun e => hdis3 _ hum (e ▸ hm)),
+              hc1 _ (fun e => hdis3 _ hpm (e ▸ hm))]
+            rcases hrb with h0 | h0
+            · exact absurd h0 hrl
+            · exact h0
+        cases f2 with
+        | L g kg vg U =>
+          simp only [Frame.loc] at hgD hgn ⊢
+          have hTg : Ctx.plug (f1 :: .L g kg vg U :: C'') (.node n k v L R) =
+            Ctx.plug C'' (.node g kg vg (f1.fill (.node n k v L R)) U) := rfl
+          rw [hTg] at hrep3 hperm ⊢
+          try wp_auto
+          wp_method_call
+          wp_apply IH $$ %C'' %h3 %g %kg %vg %(f1.fill (.node n k v L R)) %U [Htr Hns]
+          · isplitl
+            · iapply (treeRaw_of tr enc cmp _ h3 D sz ⟨hrep3, hperm, hnd⟩); iframe
+            ipureintro; exact hrbIH
+          iintro Hfix
+          wp_auto
+          iapply HΦ
+          iexact Hfix
+        | R g kg vg U =>
+          simp only [Frame.loc] at hgD hgn ⊢
+          have hTg : Ctx.plug (f1 :: .R g kg vg U :: C'') (.node n k v L R) =
+            Ctx.plug C'' (.node g kg vg U (f1.fill (.node n k v L R))) := rfl
+          rw [hTg] at hrep3 hperm ⊢
+          try wp_auto
+          wp_method_call
+          wp_apply IH $$ %C'' %h3 %g %kg %vg %U %(f1.fill (.node n k v L R)) [Htr Hns]
+          · isplitl
+            · iapply (treeRaw_of tr enc cmp _ h3 D sz ⟨hrep3, hperm, hnd⟩); iframe
+            ipureintro; exact hrbIH
+          iintro Hfix
+          wp_auto
+          iapply HΦ
+          iexact Hfix
+      · -- a black uncle
+        have wp4 := wp_ic4 tr enc cmp f1 f2 C'' h D (.node n k v L R)
+        simp only [RB.loc_node] at wp4
+        wp_apply wp4 $$ [Htr Hns]
+        · isplitl
+          · iapply (treeRaw_of tr enc cmp _ h D sz ⟨hrep, hperm, hnd⟩); iframe
+          ipureintro; exact ⟨by simp, hrb⟩
+        iintro Hfix
+        wp_auto
+        iapply HΦ
+        iexact Hfix
+
 end proof
 
 end Perennial.github_com.emirpasic.gods.trees.redblacktree

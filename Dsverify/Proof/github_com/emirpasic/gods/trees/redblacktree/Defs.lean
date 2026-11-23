@@ -598,6 +598,37 @@ theorem rootBlack_congr {h h' : Loc → Node} {T T' : RB GoInterface}
   unfold rootBlack at *
   rw [hloc, hcol]; exact hrb
 
+/-- The uncle: the grandparent's child that is not the parent, i.e. the grandparent frame's other
+subtree. -/
+theorem uncle_loc {f : Frame GoInterface} {hole q : Loc} (hf : RepF enc h f hole q)
+    (hn : hole ≠ null) (hnf : hole ∉ f.locs) :
+    (if hole = (h f.loc).Left' then (h f.loc).Right' else (h f.loc).Left') = f.sib.loc := by
+  cases f with
+  | L fn fk fv fr =>
+    obtain ⟨-, hhf, -⟩ := hf
+    have hl : (h fn).Left' = hole := by rw [hhf]
+    have hr : (h fn).Right' = fr.loc := by rw [hhf]
+    simp only [Frame.loc, Frame.sib, hl, hr, if_true]
+  | R fn fk fv fl =>
+    obtain ⟨-, hhf, -⟩ := hf
+    have hne : hole ≠ fl.loc := by
+      intro e
+      rcases loc_null_or_mem fl with h0 | h0
+      · exact hn (e.trans h0)
+      · exact hnf (by simp [Frame.locs, e, h0])
+    have hl : (h fn).Left' = fl.loc := by rw [hhf]
+    simp only [Frame.loc, Frame.sib, hl, hne, if_false]
+
+theorem parent_recolor (h : Loc → Node) (l : Loc) (c : Bool) (x : Loc) :
+    (upd h l { h l with color' := c } x).Parent' = (h x).Parent' := by
+  by_cases hx : x = l
+  · subst hx; rw [upd_same]
+  · rw [upd_ne h l x _ hx]
+
+theorem color_recolor_ne (h : Loc → Node) (l : Loc) (c : Bool) (x : Loc) (hx : x ≠ l) :
+    (upd h l { h l with color' := c } x).color' = (h x).color' := by
+  rw [upd_ne h l x _ hx]
+
 end heapfn
 
 /-! ## The points-tos -/
