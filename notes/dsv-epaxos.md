@@ -233,7 +233,7 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `connEnd cn true Q P [] [] ∗ connFresh cn true`; `Stream`'s `ownReader_proto` is dropped
    (bufio's `ownBufReader_fact`), `listener_nextIs` is over `connRd t cid side eof la ra ed (peerPin …)`
    (its stream fact `▷ protoPrefix`, stripped with `inext`).
-   **`replica/{PrefixReader,SendMsg,ReplyPropose}` (hand-maintained after the port; 0 errors,
+   **`replica/{PrefixReader,SendMsg,ReplyPropose}` (hand-maintained after the port; build,
    no `sorry`):** `PrefixReader`: `prI` over `recvTokL`, `prefixReader_readerOk` (Perennial's
    `io.readerOk (prIface pr) (0 < ·) (prI …) (connReadE …)` from `net.conn_readerOk`; the copy
    branch by `wp_slice_copy_int`), `prRd` (the `BufRd`, stream fact `▷ protoPrefix`).
@@ -245,10 +245,30 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    null⌝`, the lab's `ownWriter_not_null` (SendMsg's `PeerWriters[t] != nil`); dsv-bufio has no
    such law and its predicates may not be unfolded here: a premise of `SendMsg.spec_holds`, to be
    discharged by a one-line bufio law (from `writerRep`'s `bw ↦ Writer.mk …`). **Ask for it.**
-   **Next:** `ReplicaListener`, `ClientListener` (with `prRd`), `Dial`, `ConnectGhost`, `Connect`,
-   `ServeConn`, `WaitPeers`, `WaitClients`, `Beacon`, `ClosestPeers`, `New`, `Link` (lab ~4.1k
-   lines): `port.py Epaxos/Proof/replica/X.lean`, then the same rewrites (connIn/connWr/connRd,
-   accept/dial laws `accept_au`/`dial_au` of `Proto.lean` in place of the lab's harness).
+   **`replica/Beacon`: done** by `port.py`'s new **`writer_conv`** (applied to every file that
+   mentions the lab's `bufio.writerOk_conn`): the peer writer's message write (`icases Hconn`
+   with the connection's `tc la ra ed eof`, `hNN` for the not-null test, `hppc := peerPX_ppc`,
+   `WriteByte.wp_proof`/`Flush.wp_proof`, the marshal call on `connWr … hppc 4096`, the
+   obligations by `hppc.pre cid _ _ (prefix_of_eq hfull)`, WriteByte's outcome adapted for
+   `send_stream_eq`, the slot repacked after `simp only [wrOwn, connWr]`) and `(hNN :
+   BufWriterNotNull)` added to the theorems that use it. `lake build` of
+   `replica.{Beacon,ReplyPropose,PrefixReader,Quorum,DelayChan,Stream,Defs}` and
+   `Interface.ReplicaSpec` passes (2026-11-23; `etc/lean-check.py` may return after the first
+   clean declaration, so build a file before calling it done).
+   **Next (in this order):** `ReplicaListener` (403 lines; it had 1 error after the port and
+   was removed from the tree: the reader side wants a `reader_conv` like `writer_conv`: its loop
+   invariant's `bufio.ownReader rd c (recvTok …) R` → `rdOwn rd (connRd tc cid side eof la ra ed
+   (peerPin γ id L j side)) R` (the connection's `t la ra ed eof` from `lisRes`'s `connIn`);
+   `bufio.readerOk_conn`/`Hrdok` dropped (the contract is inside `ownBufReader`);
+   `bufio.wp_ReadByte` → dsv-bufio's `Reader.ReadByte.spec` proof; `ownReader_proto` →
+   `EtcdGrove.bufio.ownBufReader_fact` with `rd.F_of` (gives `▷ protoPrefix`, strip with `inext`
+   or `imod` in a WP goal); `listener_nextIs` takes `tc eof la ra ed` after `cid`; the unmarshal
+   calls `hBU gbeacon_ptr gb rd c _ _` → `… br (connRd …)` with manual framing; `hRB`'s
+   `ReplyBeacon.specI` now has `hNN`), then `ClientListener` (with `prRd`, `prefixReader_readerOk`
+   and dsv-bufio's `NewReader`; `net.ownTCPConn`/`TCPConn.RemoteAddr.wp_String` → `Net/`'s
+   `connAt`/`Conn.RemoteAddr.spec`), `Dial`, `ConnectGhost`, `Connect`, `ServeConn` (accept/dial
+   by `Proto.lean`'s `accept_au`/`dial_au`, `Listen.spec` via `listen_au` from `clientInvs`'
+   `addrProto`), `WaitPeers`, `WaitClients`, `ClosestPeers`, `New`, `Link` (lab ~3.4k lines).
    - **port.py** has three layers: `conv` (renames), `generic_conv` (every port: section headers,
      `(GF := GF)` on spec statements, spec hypotheses `(hP : X.spec)` and `have h := thm γ …`,
      `Dsv.` names, unseal equations, `clientN` → `epEop` masks, `[net.model.Assumptions]` →
@@ -337,7 +357,7 @@ through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (n
 
 ## Next (for a successor)
 
-State at handoff (2026-11-23): done are the Go, the translation, the inits, the pure model,
+State at handoff (2026-11-23, later): see 3h for the replica layer (Interface/Replica(Spec), replica/{Core,Specs,Quorum,Defs,Log,DelayChan,Stream,PrefixReader,SendMsg,ReplyPropose,Beacon} done). Earlier: done are the Go, the translation, the inits, the pure model,
 `Interface/{Names,Net,Client,PeerWire,Wire,Treemap,State,Misc,Varint,Marshal,RpcHttpHyps}`, the
 proofs of the `state` package (`wire/State`), of `wire/Misc` and the whole marshal layer
 (`wire/**`, `wire/Link`), the ghost chain (3f), part of the layer above it (3h). Next:
