@@ -172,63 +172,19 @@ attribute [irreducible] GobDecoder.ty
 
 opaque decHelper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque decoderState.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque decBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque decOp.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque decInstr.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque decEngine.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque emptyStruct.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque encHelper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque encoderState.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque encBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque encOp.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque encInstr.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque encEngine.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque gobError.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque userTypeInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque typeId.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque gobType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque CommonType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque arrayType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque gobEncoderType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque mapType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque sliceType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque fieldType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque structType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque wireType.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque typeInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque GobEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque GobDecoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque intBits [GooseExts] [GoGlobalContext] : val
 
@@ -1065,41 +1021,97 @@ attribute [instance] decHelper.TypeAssumptions.type_repr
   decHelper.TypeAssumptions.method_set
   decHelper.TypeAssumptions.ptr_method_set
 
-opaque decoderState.nonempty_type : NonemptyType.{0}
-def decoderState : Type := decoderState.nonempty_type.type
-instance decoderState.nonempty : Nonempty decoderState := decoderState.nonempty_type.property
-opaque decoderState.zero_val : ZeroVal decoderState := ⟨Classical.ofNonempty⟩
-attribute [instance] decoderState.zero_val
+structure decoderState [GooseExts] where
+  mk ::
+  dec' : Loc
+  b' : Loc
+  fieldnum' : w64
+  next' : Loc
+
+noncomputable instance decoderState.zero_val [GooseExts] : ZeroVal decoderState :=
+  ⟨decoderState.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def decoderState.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"dec" (go.GoType.PointerType Decoder.ty)),
+(go.field_decl.FieldDecl go!"b" (go.GoType.PointerType decBuffer.ty)),
+(go.field_decl.FieldDecl go!"fieldnum" go.int),
+(go.field_decl.FieldDecl go!"next" (go.GoType.PointerType decoderState.ty))]
+
+@[irreducible] noncomputable def decoderState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  decoderState.fieldsUnsealed
+
+noncomputable instance equals_unfold_decoderState [GooseExts] [GoGlobalContext] :
+    EqualsUnfold decoderState.fields decoderState.fieldsUnsealed :=
+  ⟨by unfold decoderState.fields; rfl⟩
+
+@[reducible] noncomputable def decoderState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType decoderState.fields)
 
 class decoderState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decoderState.underlying decoderState
   underlying : go.UnderlyingDirectedEq decoderState.ty decoderState.underlying
-  isUnderlying : go.IsUnderlying decoderState.underlying decoderState.underlying
+  get_dec : ∀ (x : decoderState), go.IsGoStepPureDetTagged under (StructFieldGet decoderState.underlying go!"dec") #x (Val #(x.dec'))
+  set_dec : ∀ (x : decoderState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet decoderState.underlying go!"dec") (PairV #x #y) (Val #(({ x with dec' := y } : decoderState)))
+  get_b : ∀ (x : decoderState), go.IsGoStepPureDetTagged under (StructFieldGet decoderState.underlying go!"b") #x (Val #(x.b'))
+  set_b : ∀ (x : decoderState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet decoderState.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : decoderState)))
+  get_fieldnum : ∀ (x : decoderState), go.IsGoStepPureDetTagged under (StructFieldGet decoderState.underlying go!"fieldnum") #x (Val #(x.fieldnum'))
+  set_fieldnum : ∀ (x : decoderState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decoderState.underlying go!"fieldnum") (PairV #x #y) (Val #(({ x with fieldnum' := y } : decoderState)))
+  get_next : ∀ (x : decoderState), go.IsGoStepPureDetTagged under (StructFieldGet decoderState.underlying go!"next") #x (Val #(x.next'))
+  set_next : ∀ (x : decoderState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet decoderState.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : decoderState)))
   method_set : go.MethodSetIs decoderState.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoderState.ty) [(go!"encoding/gob.decodeInt", (some (go.signature.Signature [] false [go.int64]))), (go!"encoding/gob.decodeUint", (some (go.signature.Signature [] false [go.uint64]))), (go!"encoding/gob.getLength", (some (go.signature.Signature [] false [go.int, go.bool])))]
 
 attribute [instance] decoderState.TypeAssumptions.type_repr
   decoderState.TypeAssumptions.underlying
-  decoderState.TypeAssumptions.isUnderlying
+  decoderState.TypeAssumptions.get_dec
+  decoderState.TypeAssumptions.set_dec
+  decoderState.TypeAssumptions.get_b
+  decoderState.TypeAssumptions.set_b
+  decoderState.TypeAssumptions.get_fieldnum
+  decoderState.TypeAssumptions.set_fieldnum
+  decoderState.TypeAssumptions.get_next
+  decoderState.TypeAssumptions.set_next
   decoderState.TypeAssumptions.method_set
   decoderState.TypeAssumptions.ptr_method_set
 
-opaque decBuffer.nonempty_type : NonemptyType.{0}
-def decBuffer : Type := decBuffer.nonempty_type.type
-instance decBuffer.nonempty : Nonempty decBuffer := decBuffer.nonempty_type.property
-opaque decBuffer.zero_val : ZeroVal decBuffer := ⟨Classical.ofNonempty⟩
-attribute [instance] decBuffer.zero_val
+structure decBuffer [GooseExts] where
+  mk ::
+  data' : GoSlice
+  offset' : w64
+
+noncomputable instance decBuffer.zero_val [GooseExts] : ZeroVal decBuffer :=
+  ⟨decBuffer.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def decBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"offset" go.int)]
+
+@[irreducible] noncomputable def decBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  decBuffer.fieldsUnsealed
+
+noncomputable instance equals_unfold_decBuffer [GooseExts] [GoGlobalContext] :
+    EqualsUnfold decBuffer.fields decBuffer.fieldsUnsealed :=
+  ⟨by unfold decBuffer.fields; rfl⟩
+
+@[reducible] noncomputable def decBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType decBuffer.fields)
 
 class decBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decBuffer.underlying decBuffer
   underlying : go.UnderlyingDirectedEq decBuffer.ty decBuffer.underlying
-  isUnderlying : go.IsUnderlying decBuffer.underlying decBuffer.underlying
+  get_data : ∀ (x : decBuffer), go.IsGoStepPureDetTagged under (StructFieldGet decBuffer.underlying go!"data") #x (Val #(x.data'))
+  set_data : ∀ (x : decBuffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet decBuffer.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : decBuffer)))
+  get_offset : ∀ (x : decBuffer), go.IsGoStepPureDetTagged under (StructFieldGet decBuffer.underlying go!"offset") #x (Val #(x.offset'))
+  set_offset : ∀ (x : decBuffer) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decBuffer.underlying go!"offset") (PairV #x #y) (Val #(({ x with offset' := y } : decBuffer)))
   method_set : go.MethodSetIs decBuffer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType decBuffer.ty) [(go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Drop", (some (go.signature.Signature [go.int] false []))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadByte", (some (go.signature.Signature [] false [go.byte, go.error]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetBytes", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])))]
 
 attribute [instance] decBuffer.TypeAssumptions.type_repr
   decBuffer.TypeAssumptions.underlying
-  decBuffer.TypeAssumptions.isUnderlying
+  decBuffer.TypeAssumptions.get_data
+  decBuffer.TypeAssumptions.set_data
+  decBuffer.TypeAssumptions.get_offset
+  decBuffer.TypeAssumptions.set_offset
   decBuffer.TypeAssumptions.method_set
   decBuffer.TypeAssumptions.ptr_method_set
 
@@ -1122,60 +1134,127 @@ attribute [instance] decOp.TypeAssumptions.type_repr
   decOp.TypeAssumptions.method_set
   decOp.TypeAssumptions.ptr_method_set
 
-opaque decInstr.nonempty_type : NonemptyType.{0}
-def decInstr : Type := decInstr.nonempty_type.type
-instance decInstr.nonempty : Nonempty decInstr := decInstr.nonempty_type.property
-opaque decInstr.zero_val : ZeroVal decInstr := ⟨Classical.ofNonempty⟩
-attribute [instance] decInstr.zero_val
+structure decInstr [GooseExts] where
+  mk ::
+  op' : decOp
+  field' : w64
+  index' : GoSlice
+  ovfl' : GoError
+
+noncomputable instance decInstr.zero_val [GooseExts] : ZeroVal decInstr :=
+  ⟨decInstr.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def decInstr.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"op" decOp.ty),
+(go.field_decl.FieldDecl go!"field" go.int),
+(go.field_decl.FieldDecl go!"index" (go.GoType.SliceType go.int)),
+(go.field_decl.FieldDecl go!"ovfl" go.error)]
+
+@[irreducible] noncomputable def decInstr.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  decInstr.fieldsUnsealed
+
+noncomputable instance equals_unfold_decInstr [GooseExts] [GoGlobalContext] :
+    EqualsUnfold decInstr.fields decInstr.fieldsUnsealed :=
+  ⟨by unfold decInstr.fields; rfl⟩
+
+@[reducible] noncomputable def decInstr.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType decInstr.fields)
 
 class decInstr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decInstr.underlying decInstr
   underlying : go.UnderlyingDirectedEq decInstr.ty decInstr.underlying
-  isUnderlying : go.IsUnderlying decInstr.underlying decInstr.underlying
+  get_op : ∀ (x : decInstr), go.IsGoStepPureDetTagged under (StructFieldGet decInstr.underlying go!"op") #x (Val #(x.op'))
+  set_op : ∀ (x : decInstr) (y : decOp), go.IsGoStepPureDetTagged under (StructFieldSet decInstr.underlying go!"op") (PairV #x #y) (Val #(({ x with op' := y } : decInstr)))
+  get_field : ∀ (x : decInstr), go.IsGoStepPureDetTagged under (StructFieldGet decInstr.underlying go!"field") #x (Val #(x.field'))
+  set_field : ∀ (x : decInstr) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decInstr.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : decInstr)))
+  get_index : ∀ (x : decInstr), go.IsGoStepPureDetTagged under (StructFieldGet decInstr.underlying go!"index") #x (Val #(x.index'))
+  set_index : ∀ (x : decInstr) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet decInstr.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : decInstr)))
+  get_ovfl : ∀ (x : decInstr), go.IsGoStepPureDetTagged under (StructFieldGet decInstr.underlying go!"ovfl") #x (Val #(x.ovfl'))
+  set_ovfl : ∀ (x : decInstr) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet decInstr.underlying go!"ovfl") (PairV #x #y) (Val #(({ x with ovfl' := y } : decInstr)))
   method_set : go.MethodSetIs decInstr.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType decInstr.ty) []
 
 attribute [instance] decInstr.TypeAssumptions.type_repr
   decInstr.TypeAssumptions.underlying
-  decInstr.TypeAssumptions.isUnderlying
+  decInstr.TypeAssumptions.get_op
+  decInstr.TypeAssumptions.set_op
+  decInstr.TypeAssumptions.get_field
+  decInstr.TypeAssumptions.set_field
+  decInstr.TypeAssumptions.get_index
+  decInstr.TypeAssumptions.set_index
+  decInstr.TypeAssumptions.get_ovfl
+  decInstr.TypeAssumptions.set_ovfl
   decInstr.TypeAssumptions.method_set
   decInstr.TypeAssumptions.ptr_method_set
 
-opaque decEngine.nonempty_type : NonemptyType.{0}
-def decEngine : Type := decEngine.nonempty_type.type
-instance decEngine.nonempty : Nonempty decEngine := decEngine.nonempty_type.property
-opaque decEngine.zero_val : ZeroVal decEngine := ⟨Classical.ofNonempty⟩
-attribute [instance] decEngine.zero_val
+structure decEngine [GooseExts] where
+  mk ::
+  instr' : GoSlice
+  numInstr' : w64
+
+noncomputable instance decEngine.zero_val [GooseExts] : ZeroVal decEngine :=
+  ⟨decEngine.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def decEngine.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"instr" (go.GoType.SliceType decInstr.ty)),
+(go.field_decl.FieldDecl go!"numInstr" go.int)]
+
+@[irreducible] noncomputable def decEngine.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  decEngine.fieldsUnsealed
+
+noncomputable instance equals_unfold_decEngine [GooseExts] [GoGlobalContext] :
+    EqualsUnfold decEngine.fields decEngine.fieldsUnsealed :=
+  ⟨by unfold decEngine.fields; rfl⟩
+
+@[reducible] noncomputable def decEngine.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType decEngine.fields)
 
 class decEngine.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decEngine.underlying decEngine
   underlying : go.UnderlyingDirectedEq decEngine.ty decEngine.underlying
-  isUnderlying : go.IsUnderlying decEngine.underlying decEngine.underlying
+  get_instr : ∀ (x : decEngine), go.IsGoStepPureDetTagged under (StructFieldGet decEngine.underlying go!"instr") #x (Val #(x.instr'))
+  set_instr : ∀ (x : decEngine) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet decEngine.underlying go!"instr") (PairV #x #y) (Val #(({ x with instr' := y } : decEngine)))
+  get_numInstr : ∀ (x : decEngine), go.IsGoStepPureDetTagged under (StructFieldGet decEngine.underlying go!"numInstr") #x (Val #(x.numInstr'))
+  set_numInstr : ∀ (x : decEngine) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet decEngine.underlying go!"numInstr") (PairV #x #y) (Val #(({ x with numInstr' := y } : decEngine)))
   method_set : go.MethodSetIs decEngine.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType decEngine.ty) []
 
 attribute [instance] decEngine.TypeAssumptions.type_repr
   decEngine.TypeAssumptions.underlying
-  decEngine.TypeAssumptions.isUnderlying
+  decEngine.TypeAssumptions.get_instr
+  decEngine.TypeAssumptions.set_instr
+  decEngine.TypeAssumptions.get_numInstr
+  decEngine.TypeAssumptions.set_numInstr
   decEngine.TypeAssumptions.method_set
   decEngine.TypeAssumptions.ptr_method_set
 
-opaque emptyStruct.nonempty_type : NonemptyType.{0}
-def emptyStruct : Type := emptyStruct.nonempty_type.type
-instance emptyStruct.nonempty : Nonempty emptyStruct := emptyStruct.nonempty_type.property
-opaque emptyStruct.zero_val : ZeroVal emptyStruct := ⟨Classical.ofNonempty⟩
-attribute [instance] emptyStruct.zero_val
+structure emptyStruct [GooseExts] where
+  mk ::
+
+noncomputable instance emptyStruct.zero_val [GooseExts] : ZeroVal emptyStruct :=
+  ⟨emptyStruct.mk⟩
+
+@[reducible] noncomputable def emptyStruct.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  []
+
+@[irreducible] noncomputable def emptyStruct.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  emptyStruct.fieldsUnsealed
+
+noncomputable instance equals_unfold_emptyStruct [GooseExts] [GoGlobalContext] :
+    EqualsUnfold emptyStruct.fields emptyStruct.fieldsUnsealed :=
+  ⟨by unfold emptyStruct.fields; rfl⟩
+
+@[reducible] noncomputable def emptyStruct.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType emptyStruct.fields)
 
 class emptyStruct.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying emptyStruct.underlying emptyStruct
   underlying : go.UnderlyingDirectedEq emptyStruct.ty emptyStruct.underlying
-  isUnderlying : go.IsUnderlying emptyStruct.underlying emptyStruct.underlying
   method_set : go.MethodSetIs emptyStruct.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType emptyStruct.ty) []
 
 attribute [instance] emptyStruct.TypeAssumptions.type_repr
   emptyStruct.TypeAssumptions.underlying
-  emptyStruct.TypeAssumptions.isUnderlying
   emptyStruct.TypeAssumptions.method_set
   emptyStruct.TypeAssumptions.ptr_method_set
 
@@ -1217,41 +1296,109 @@ attribute [instance] encHelper.TypeAssumptions.type_repr
   encHelper.TypeAssumptions.method_set
   encHelper.TypeAssumptions.ptr_method_set
 
-opaque encoderState.nonempty_type : NonemptyType.{0}
-def encoderState : Type := encoderState.nonempty_type.type
-instance encoderState.nonempty : Nonempty encoderState := encoderState.nonempty_type.property
-opaque encoderState.zero_val : ZeroVal encoderState := ⟨Classical.ofNonempty⟩
-attribute [instance] encoderState.zero_val
+structure encoderState [GooseExts] where
+  mk ::
+  enc' : Loc
+  b' : Loc
+  sendZero' : Bool
+  fieldnum' : w64
+  buf' : (GoArray w8 9)
+  next' : Loc
+
+noncomputable instance encoderState.zero_val [GooseExts] : ZeroVal encoderState :=
+  ⟨encoderState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def encoderState.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"enc" (go.GoType.PointerType Encoder.ty)),
+(go.field_decl.FieldDecl go!"b" (go.GoType.PointerType encBuffer.ty)),
+(go.field_decl.FieldDecl go!"sendZero" go.bool),
+(go.field_decl.FieldDecl go!"fieldnum" go.int),
+(go.field_decl.FieldDecl go!"buf" (go.GoType.ArrayType 9 go.byte)),
+(go.field_decl.FieldDecl go!"next" (go.GoType.PointerType encoderState.ty))]
+
+@[irreducible] noncomputable def encoderState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  encoderState.fieldsUnsealed
+
+noncomputable instance equals_unfold_encoderState [GooseExts] [GoGlobalContext] :
+    EqualsUnfold encoderState.fields encoderState.fieldsUnsealed :=
+  ⟨by unfold encoderState.fields; rfl⟩
+
+@[reducible] noncomputable def encoderState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType encoderState.fields)
 
 class encoderState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encoderState.underlying encoderState
   underlying : go.UnderlyingDirectedEq encoderState.ty encoderState.underlying
-  isUnderlying : go.IsUnderlying encoderState.underlying encoderState.underlying
+  get_enc : ∀ (x : encoderState), go.IsGoStepPureDetTagged under (StructFieldGet encoderState.underlying go!"enc") #x (Val #(x.enc'))
+  set_enc : ∀ (x : encoderState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet encoderState.underlying go!"enc") (PairV #x #y) (Val #(({ x with enc' := y } : encoderState)))
+  get_b : ∀ (x : encoderState), go.IsGoStepPureDetTagged under (StructFieldGet encoderState.underlying go!"b") #x (Val #(x.b'))
+  set_b : ∀ (x : encoderState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet encoderState.underlying go!"b") (PairV #x #y) (Val #(({ x with b' := y } : encoderState)))
+  get_sendZero : ∀ (x : encoderState), go.IsGoStepPureDetTagged under (StructFieldGet encoderState.underlying go!"sendZero") #x (Val #(x.sendZero'))
+  set_sendZero : ∀ (x : encoderState) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet encoderState.underlying go!"sendZero") (PairV #x #y) (Val #(({ x with sendZero' := y } : encoderState)))
+  get_fieldnum : ∀ (x : encoderState), go.IsGoStepPureDetTagged under (StructFieldGet encoderState.underlying go!"fieldnum") #x (Val #(x.fieldnum'))
+  set_fieldnum : ∀ (x : encoderState) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet encoderState.underlying go!"fieldnum") (PairV #x #y) (Val #(({ x with fieldnum' := y } : encoderState)))
+  get_buf : ∀ (x : encoderState), go.IsGoStepPureDetTagged under (StructFieldGet encoderState.underlying go!"buf") #x (Val #(x.buf'))
+  set_buf : ∀ (x : encoderState) (y : (GoArray w8 9)), go.IsGoStepPureDetTagged under (StructFieldSet encoderState.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : encoderState)))
+  get_next : ∀ (x : encoderState), go.IsGoStepPureDetTagged under (StructFieldGet encoderState.underlying go!"next") #x (Val #(x.next'))
+  set_next : ∀ (x : encoderState) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet encoderState.underlying go!"next") (PairV #x #y) (Val #(({ x with next' := y } : encoderState)))
   method_set : go.MethodSetIs encoderState.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoderState.ty) [(go!"encoding/gob.encodeInt", (some (go.signature.Signature [go.int64] false []))), (go!"encoding/gob.encodeUint", (some (go.signature.Signature [go.uint64] false []))), (go!"encoding/gob.update", (some (go.signature.Signature [(go.GoType.PointerType encInstr.ty)] false [])))]
 
 attribute [instance] encoderState.TypeAssumptions.type_repr
   encoderState.TypeAssumptions.underlying
-  encoderState.TypeAssumptions.isUnderlying
+  encoderState.TypeAssumptions.get_enc
+  encoderState.TypeAssumptions.set_enc
+  encoderState.TypeAssumptions.get_b
+  encoderState.TypeAssumptions.set_b
+  encoderState.TypeAssumptions.get_sendZero
+  encoderState.TypeAssumptions.set_sendZero
+  encoderState.TypeAssumptions.get_fieldnum
+  encoderState.TypeAssumptions.set_fieldnum
+  encoderState.TypeAssumptions.get_buf
+  encoderState.TypeAssumptions.set_buf
+  encoderState.TypeAssumptions.get_next
+  encoderState.TypeAssumptions.set_next
   encoderState.TypeAssumptions.method_set
   encoderState.TypeAssumptions.ptr_method_set
 
-opaque encBuffer.nonempty_type : NonemptyType.{0}
-def encBuffer : Type := encBuffer.nonempty_type.type
-instance encBuffer.nonempty : Nonempty encBuffer := encBuffer.nonempty_type.property
-opaque encBuffer.zero_val : ZeroVal encBuffer := ⟨Classical.ofNonempty⟩
-attribute [instance] encBuffer.zero_val
+structure encBuffer [GooseExts] where
+  mk ::
+  data' : GoSlice
+  scratch' : (GoArray w8 64)
+
+noncomputable instance encBuffer.zero_val [GooseExts] : ZeroVal encBuffer :=
+  ⟨encBuffer.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def encBuffer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"data" (go.GoType.SliceType go.byte)),
+(go.field_decl.FieldDecl go!"scratch" (go.GoType.ArrayType 64 go.byte))]
+
+@[irreducible] noncomputable def encBuffer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  encBuffer.fieldsUnsealed
+
+noncomputable instance equals_unfold_encBuffer [GooseExts] [GoGlobalContext] :
+    EqualsUnfold encBuffer.fields encBuffer.fieldsUnsealed :=
+  ⟨by unfold encBuffer.fields; rfl⟩
+
+@[reducible] noncomputable def encBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType encBuffer.fields)
 
 class encBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encBuffer.underlying encBuffer
   underlying : go.UnderlyingDirectedEq encBuffer.ty encBuffer.underlying
-  isUnderlying : go.IsUnderlying encBuffer.underlying encBuffer.underlying
+  get_data : ∀ (x : encBuffer), go.IsGoStepPureDetTagged under (StructFieldGet encBuffer.underlying go!"data") #x (Val #(x.data'))
+  set_data : ∀ (x : encBuffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encBuffer.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : encBuffer)))
+  get_scratch : ∀ (x : encBuffer), go.IsGoStepPureDetTagged under (StructFieldGet encBuffer.underlying go!"scratch") #x (Val #(x.scratch'))
+  set_scratch : ∀ (x : encBuffer) (y : (GoArray w8 64)), go.IsGoStepPureDetTagged under (StructFieldSet encBuffer.underlying go!"scratch") (PairV #x #y) (Val #(({ x with scratch' := y } : encBuffer)))
   method_set : go.MethodSetIs encBuffer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType encBuffer.ty) [(go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteString", (some (go.signature.Signature [go.string] false []))), (go!"encoding/gob.writeByte", (some (go.signature.Signature [go.byte] false [])))]
 
 attribute [instance] encBuffer.TypeAssumptions.type_repr
   encBuffer.TypeAssumptions.underlying
-  encBuffer.TypeAssumptions.isUnderlying
+  encBuffer.TypeAssumptions.get_data
+  encBuffer.TypeAssumptions.set_data
+  encBuffer.TypeAssumptions.get_scratch
+  encBuffer.TypeAssumptions.set_scratch
   encBuffer.TypeAssumptions.method_set
   encBuffer.TypeAssumptions.ptr_method_set
 
@@ -1274,41 +1421,91 @@ attribute [instance] encOp.TypeAssumptions.type_repr
   encOp.TypeAssumptions.method_set
   encOp.TypeAssumptions.ptr_method_set
 
-opaque encInstr.nonempty_type : NonemptyType.{0}
-def encInstr : Type := encInstr.nonempty_type.type
-instance encInstr.nonempty : Nonempty encInstr := encInstr.nonempty_type.property
-opaque encInstr.zero_val : ZeroVal encInstr := ⟨Classical.ofNonempty⟩
-attribute [instance] encInstr.zero_val
+structure encInstr [GooseExts] where
+  mk ::
+  op' : encOp
+  field' : w64
+  index' : GoSlice
+  indir' : w64
+
+noncomputable instance encInstr.zero_val [GooseExts] : ZeroVal encInstr :=
+  ⟨encInstr.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def encInstr.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"op" encOp.ty),
+(go.field_decl.FieldDecl go!"field" go.int),
+(go.field_decl.FieldDecl go!"index" (go.GoType.SliceType go.int)),
+(go.field_decl.FieldDecl go!"indir" go.int)]
+
+@[irreducible] noncomputable def encInstr.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  encInstr.fieldsUnsealed
+
+noncomputable instance equals_unfold_encInstr [GooseExts] [GoGlobalContext] :
+    EqualsUnfold encInstr.fields encInstr.fieldsUnsealed :=
+  ⟨by unfold encInstr.fields; rfl⟩
+
+@[reducible] noncomputable def encInstr.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType encInstr.fields)
 
 class encInstr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encInstr.underlying encInstr
   underlying : go.UnderlyingDirectedEq encInstr.ty encInstr.underlying
-  isUnderlying : go.IsUnderlying encInstr.underlying encInstr.underlying
+  get_op : ∀ (x : encInstr), go.IsGoStepPureDetTagged under (StructFieldGet encInstr.underlying go!"op") #x (Val #(x.op'))
+  set_op : ∀ (x : encInstr) (y : encOp), go.IsGoStepPureDetTagged under (StructFieldSet encInstr.underlying go!"op") (PairV #x #y) (Val #(({ x with op' := y } : encInstr)))
+  get_field : ∀ (x : encInstr), go.IsGoStepPureDetTagged under (StructFieldGet encInstr.underlying go!"field") #x (Val #(x.field'))
+  set_field : ∀ (x : encInstr) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet encInstr.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : encInstr)))
+  get_index : ∀ (x : encInstr), go.IsGoStepPureDetTagged under (StructFieldGet encInstr.underlying go!"index") #x (Val #(x.index'))
+  set_index : ∀ (x : encInstr) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encInstr.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : encInstr)))
+  get_indir : ∀ (x : encInstr), go.IsGoStepPureDetTagged under (StructFieldGet encInstr.underlying go!"indir") #x (Val #(x.indir'))
+  set_indir : ∀ (x : encInstr) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet encInstr.underlying go!"indir") (PairV #x #y) (Val #(({ x with indir' := y } : encInstr)))
   method_set : go.MethodSetIs encInstr.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType encInstr.ty) []
 
 attribute [instance] encInstr.TypeAssumptions.type_repr
   encInstr.TypeAssumptions.underlying
-  encInstr.TypeAssumptions.isUnderlying
+  encInstr.TypeAssumptions.get_op
+  encInstr.TypeAssumptions.set_op
+  encInstr.TypeAssumptions.get_field
+  encInstr.TypeAssumptions.set_field
+  encInstr.TypeAssumptions.get_index
+  encInstr.TypeAssumptions.set_index
+  encInstr.TypeAssumptions.get_indir
+  encInstr.TypeAssumptions.set_indir
   encInstr.TypeAssumptions.method_set
   encInstr.TypeAssumptions.ptr_method_set
 
-opaque encEngine.nonempty_type : NonemptyType.{0}
-def encEngine : Type := encEngine.nonempty_type.type
-instance encEngine.nonempty : Nonempty encEngine := encEngine.nonempty_type.property
-opaque encEngine.zero_val : ZeroVal encEngine := ⟨Classical.ofNonempty⟩
-attribute [instance] encEngine.zero_val
+structure encEngine [GooseExts] where
+  mk ::
+  instr' : GoSlice
+
+noncomputable instance encEngine.zero_val [GooseExts] : ZeroVal encEngine :=
+  ⟨encEngine.mk zeroValDef⟩
+
+@[reducible] noncomputable def encEngine.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"instr" (go.GoType.SliceType encInstr.ty))]
+
+@[irreducible] noncomputable def encEngine.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  encEngine.fieldsUnsealed
+
+noncomputable instance equals_unfold_encEngine [GooseExts] [GoGlobalContext] :
+    EqualsUnfold encEngine.fields encEngine.fieldsUnsealed :=
+  ⟨by unfold encEngine.fields; rfl⟩
+
+@[reducible] noncomputable def encEngine.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType encEngine.fields)
 
 class encEngine.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encEngine.underlying encEngine
   underlying : go.UnderlyingDirectedEq encEngine.ty encEngine.underlying
-  isUnderlying : go.IsUnderlying encEngine.underlying encEngine.underlying
+  get_instr : ∀ (x : encEngine), go.IsGoStepPureDetTagged under (StructFieldGet encEngine.underlying go!"instr") #x (Val #(x.instr'))
+  set_instr : ∀ (x : encEngine) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encEngine.underlying go!"instr") (PairV #x #y) (Val #(({ x with instr' := y } : encEngine)))
   method_set : go.MethodSetIs encEngine.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType encEngine.ty) []
 
 attribute [instance] encEngine.TypeAssumptions.type_repr
   encEngine.TypeAssumptions.underlying
-  encEngine.TypeAssumptions.isUnderlying
+  encEngine.TypeAssumptions.get_instr
+  encEngine.TypeAssumptions.set_instr
   encEngine.TypeAssumptions.method_set
   encEngine.TypeAssumptions.ptr_method_set
 
@@ -1331,22 +1528,38 @@ attribute [instance] Encoder.TypeAssumptions.type_repr
   Encoder.TypeAssumptions.method_set
   Encoder.TypeAssumptions.ptr_method_set
 
-opaque gobError.nonempty_type : NonemptyType.{0}
-def gobError : Type := gobError.nonempty_type.type
-instance gobError.nonempty : Nonempty gobError := gobError.nonempty_type.property
-opaque gobError.zero_val : ZeroVal gobError := ⟨Classical.ofNonempty⟩
-attribute [instance] gobError.zero_val
+structure gobError [GooseExts] where
+  mk ::
+  err' : GoError
+
+noncomputable instance gobError.zero_val [GooseExts] : ZeroVal gobError :=
+  ⟨gobError.mk zeroValDef⟩
+
+@[reducible] noncomputable def gobError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"err" go.error)]
+
+@[irreducible] noncomputable def gobError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  gobError.fieldsUnsealed
+
+noncomputable instance equals_unfold_gobError [GooseExts] [GoGlobalContext] :
+    EqualsUnfold gobError.fields gobError.fieldsUnsealed :=
+  ⟨by unfold gobError.fields; rfl⟩
+
+@[reducible] noncomputable def gobError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType gobError.fields)
 
 class gobError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gobError.underlying gobError
   underlying : go.UnderlyingDirectedEq gobError.ty gobError.underlying
-  isUnderlying : go.IsUnderlying gobError.underlying gobError.underlying
+  get_err : ∀ (x : gobError), go.IsGoStepPureDetTagged under (StructFieldGet gobError.underlying go!"err") #x (Val #(x.err'))
+  set_err : ∀ (x : gobError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet gobError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : gobError)))
   method_set : go.MethodSetIs gobError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType gobError.ty) []
 
 attribute [instance] gobError.TypeAssumptions.type_repr
   gobError.TypeAssumptions.underlying
-  gobError.TypeAssumptions.isUnderlying
+  gobError.TypeAssumptions.get_err
+  gobError.TypeAssumptions.set_err
   gobError.TypeAssumptions.method_set
   gobError.TypeAssumptions.ptr_method_set
 
@@ -1369,193 +1582,395 @@ attribute [instance] userTypeInfo.TypeAssumptions.type_repr
   userTypeInfo.TypeAssumptions.method_set
   userTypeInfo.TypeAssumptions.ptr_method_set
 
-opaque typeId.nonempty_type : NonemptyType.{0}
-def typeId : Type := typeId.nonempty_type.type
-instance typeId.nonempty : Nonempty typeId := typeId.nonempty_type.property
-opaque typeId.zero_val : ZeroVal typeId := ⟨Classical.ofNonempty⟩
-attribute [instance] typeId.zero_val
+abbrev typeId [GooseExts] : Type := w32
+
+@[reducible] noncomputable def typeId.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.int32
 
 class typeId.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying typeId.underlying typeId
   underlying : go.UnderlyingDirectedEq typeId.ty typeId.underlying
-  isUnderlying : go.IsUnderlying typeId.underlying typeId.underlying
   method_set : go.MethodSetIs typeId.ty [(go!"encoding/gob.gobType", (some (go.signature.Signature [] false [gobType.ty]))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType typeId.ty) [(go!"encoding/gob.gobType", (some (go.signature.Signature [] false [gobType.ty]))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
-attribute [instance] typeId.TypeAssumptions.type_repr
-  typeId.TypeAssumptions.underlying
-  typeId.TypeAssumptions.isUnderlying
+attribute [instance] typeId.TypeAssumptions.underlying
   typeId.TypeAssumptions.method_set
   typeId.TypeAssumptions.ptr_method_set
 
-opaque gobType.nonempty_type : NonemptyType.{0}
-def gobType : Type := gobType.nonempty_type.type
-instance gobType.nonempty : Nonempty gobType := gobType.nonempty_type.property
-opaque gobType.zero_val : ZeroVal gobType := ⟨Classical.ofNonempty⟩
-attribute [instance] gobType.zero_val
+abbrev gobType [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def gobType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"encoding/gob.id" (go.signature.Signature [] false [typeId.ty])), (go.InterfaceElem.MethodElem go!"encoding/gob.name" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.MethodElem go!"encoding/gob.safeString" (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string])), (go.InterfaceElem.MethodElem go!"encoding/gob.setId" (go.signature.Signature [typeId.ty] false [])), (go.InterfaceElem.MethodElem go!"encoding/gob.string" (go.signature.Signature [] false [go.string]))])
 
 class gobType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying gobType.underlying gobType
   underlying : go.UnderlyingDirectedEq gobType.ty gobType.underlying
-  isUnderlying : go.IsUnderlying gobType.underlying gobType.underlying
   method_set : go.MethodSetIs gobType.ty [(go!"encoding/gob.id", (some (go.signature.Signature [] false [typeId.ty]))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.safeString", (some (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string]))), (go!"encoding/gob.setId", (some (go.signature.Signature [typeId.ty] false []))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType gobType.ty) []
 
-attribute [instance] gobType.TypeAssumptions.type_repr
-  gobType.TypeAssumptions.underlying
-  gobType.TypeAssumptions.isUnderlying
+attribute [instance] gobType.TypeAssumptions.underlying
   gobType.TypeAssumptions.method_set
   gobType.TypeAssumptions.ptr_method_set
 
-opaque CommonType.nonempty_type : NonemptyType.{0}
-def CommonType : Type := CommonType.nonempty_type.type
-instance CommonType.nonempty : Nonempty CommonType := CommonType.nonempty_type.property
-opaque CommonType.zero_val : ZeroVal CommonType := ⟨Classical.ofNonempty⟩
-attribute [instance] CommonType.zero_val
+structure CommonType [GooseExts] where
+  mk ::
+  Name' : GoString
+  Id' : typeId
+
+noncomputable instance CommonType.zero_val [GooseExts] : ZeroVal CommonType :=
+  ⟨CommonType.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def CommonType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Id" typeId.ty)]
+
+@[irreducible] noncomputable def CommonType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  CommonType.fieldsUnsealed
+
+noncomputable instance equals_unfold_CommonType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold CommonType.fields CommonType.fieldsUnsealed :=
+  ⟨by unfold CommonType.fields; rfl⟩
+
+@[reducible] noncomputable def CommonType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType CommonType.fields)
 
 class CommonType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CommonType.underlying CommonType
   underlying : go.UnderlyingDirectedEq CommonType.ty CommonType.underlying
-  isUnderlying : go.IsUnderlying CommonType.underlying CommonType.underlying
+  get_Name : ∀ (x : CommonType), go.IsGoStepPureDetTagged under (StructFieldGet CommonType.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : CommonType) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet CommonType.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : CommonType)))
+  get_Id : ∀ (x : CommonType), go.IsGoStepPureDetTagged under (StructFieldGet CommonType.underlying go!"Id") #x (Val #(x.Id'))
+  set_Id : ∀ (x : CommonType) (y : typeId), go.IsGoStepPureDetTagged under (StructFieldSet CommonType.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : CommonType)))
   method_set : go.MethodSetIs CommonType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CommonType.ty) [(go!"encoding/gob.id", (some (go.signature.Signature [] false [typeId.ty]))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.safeString", (some (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string]))), (go!"encoding/gob.setId", (some (go.signature.Signature [typeId.ty] false []))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] CommonType.TypeAssumptions.type_repr
   CommonType.TypeAssumptions.underlying
-  CommonType.TypeAssumptions.isUnderlying
+  CommonType.TypeAssumptions.get_Name
+  CommonType.TypeAssumptions.set_Name
+  CommonType.TypeAssumptions.get_Id
+  CommonType.TypeAssumptions.set_Id
   CommonType.TypeAssumptions.method_set
   CommonType.TypeAssumptions.ptr_method_set
 
-opaque arrayType.nonempty_type : NonemptyType.{0}
-def arrayType : Type := arrayType.nonempty_type.type
-instance arrayType.nonempty : Nonempty arrayType := arrayType.nonempty_type.property
-opaque arrayType.zero_val : ZeroVal arrayType := ⟨Classical.ofNonempty⟩
-attribute [instance] arrayType.zero_val
+structure arrayType [GooseExts] where
+  mk ::
+  CommonType' : CommonType
+  Elem' : typeId
+  Len' : w64
+
+noncomputable instance arrayType.zero_val [GooseExts] : ZeroVal arrayType :=
+  ⟨arrayType.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def arrayType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"CommonType" CommonType.ty),
+(go.field_decl.FieldDecl go!"Elem" typeId.ty),
+(go.field_decl.FieldDecl go!"Len" go.int)]
+
+@[irreducible] noncomputable def arrayType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  arrayType.fieldsUnsealed
+
+noncomputable instance equals_unfold_arrayType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold arrayType.fields arrayType.fieldsUnsealed :=
+  ⟨by unfold arrayType.fields; rfl⟩
+
+@[reducible] noncomputable def arrayType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType arrayType.fields)
 
 class arrayType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying arrayType.underlying arrayType
   underlying : go.UnderlyingDirectedEq arrayType.ty arrayType.underlying
-  isUnderlying : go.IsUnderlying arrayType.underlying arrayType.underlying
+  get_CommonType : ∀ (x : arrayType), go.IsGoStepPureDetTagged under (StructFieldGet arrayType.underlying go!"CommonType") #x (Val #(x.CommonType'))
+  set_CommonType : ∀ (x : arrayType) (y : CommonType), go.IsGoStepPureDetTagged under (StructFieldSet arrayType.underlying go!"CommonType") (PairV #x #y) (Val #(({ x with CommonType' := y } : arrayType)))
+  get_Elem : ∀ (x : arrayType), go.IsGoStepPureDetTagged under (StructFieldGet arrayType.underlying go!"Elem") #x (Val #(x.Elem'))
+  set_Elem : ∀ (x : arrayType) (y : typeId), go.IsGoStepPureDetTagged under (StructFieldSet arrayType.underlying go!"Elem") (PairV #x #y) (Val #(({ x with Elem' := y } : arrayType)))
+  get_Len : ∀ (x : arrayType), go.IsGoStepPureDetTagged under (StructFieldGet arrayType.underlying go!"Len") #x (Val #(x.Len'))
+  set_Len : ∀ (x : arrayType) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet arrayType.underlying go!"Len") (PairV #x #y) (Val #(({ x with Len' := y } : arrayType)))
   method_set : go.MethodSetIs arrayType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType arrayType.ty) [(go!"encoding/gob.id", (some (go.signature.Signature [] false [typeId.ty]))), (go!"encoding/gob.init", (some (go.signature.Signature [gobType.ty, go.int] false []))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.safeString", (some (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string]))), (go!"encoding/gob.setId", (some (go.signature.Signature [typeId.ty] false []))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] arrayType.TypeAssumptions.type_repr
   arrayType.TypeAssumptions.underlying
-  arrayType.TypeAssumptions.isUnderlying
+  arrayType.TypeAssumptions.get_CommonType
+  arrayType.TypeAssumptions.set_CommonType
+  arrayType.TypeAssumptions.get_Elem
+  arrayType.TypeAssumptions.set_Elem
+  arrayType.TypeAssumptions.get_Len
+  arrayType.TypeAssumptions.set_Len
   arrayType.TypeAssumptions.method_set
   arrayType.TypeAssumptions.ptr_method_set
 
-opaque gobEncoderType.nonempty_type : NonemptyType.{0}
-def gobEncoderType : Type := gobEncoderType.nonempty_type.type
-instance gobEncoderType.nonempty : Nonempty gobEncoderType := gobEncoderType.nonempty_type.property
-opaque gobEncoderType.zero_val : ZeroVal gobEncoderType := ⟨Classical.ofNonempty⟩
-attribute [instance] gobEncoderType.zero_val
+structure gobEncoderType [GooseExts] where
+  mk ::
+  CommonType' : CommonType
+
+noncomputable instance gobEncoderType.zero_val [GooseExts] : ZeroVal gobEncoderType :=
+  ⟨gobEncoderType.mk zeroValDef⟩
+
+@[reducible] noncomputable def gobEncoderType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"CommonType" CommonType.ty)]
+
+@[irreducible] noncomputable def gobEncoderType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  gobEncoderType.fieldsUnsealed
+
+noncomputable instance equals_unfold_gobEncoderType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold gobEncoderType.fields gobEncoderType.fieldsUnsealed :=
+  ⟨by unfold gobEncoderType.fields; rfl⟩
+
+@[reducible] noncomputable def gobEncoderType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType gobEncoderType.fields)
 
 class gobEncoderType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gobEncoderType.underlying gobEncoderType
   underlying : go.UnderlyingDirectedEq gobEncoderType.ty gobEncoderType.underlying
-  isUnderlying : go.IsUnderlying gobEncoderType.underlying gobEncoderType.underlying
+  get_CommonType : ∀ (x : gobEncoderType), go.IsGoStepPureDetTagged under (StructFieldGet gobEncoderType.underlying go!"CommonType") #x (Val #(x.CommonType'))
+  set_CommonType : ∀ (x : gobEncoderType) (y : CommonType), go.IsGoStepPureDetTagged under (StructFieldSet gobEncoderType.underlying go!"CommonType") (PairV #x #y) (Val #(({ x with CommonType' := y } : gobEncoderType)))
   method_set : go.MethodSetIs gobEncoderType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType gobEncoderType.ty) [(go!"encoding/gob.id", (some (go.signature.Signature [] false [typeId.ty]))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.safeString", (some (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string]))), (go!"encoding/gob.setId", (some (go.signature.Signature [typeId.ty] false []))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] gobEncoderType.TypeAssumptions.type_repr
   gobEncoderType.TypeAssumptions.underlying
-  gobEncoderType.TypeAssumptions.isUnderlying
+  gobEncoderType.TypeAssumptions.get_CommonType
+  gobEncoderType.TypeAssumptions.set_CommonType
   gobEncoderType.TypeAssumptions.method_set
   gobEncoderType.TypeAssumptions.ptr_method_set
 
-opaque mapType.nonempty_type : NonemptyType.{0}
-def mapType : Type := mapType.nonempty_type.type
-instance mapType.nonempty : Nonempty mapType := mapType.nonempty_type.property
-opaque mapType.zero_val : ZeroVal mapType := ⟨Classical.ofNonempty⟩
-attribute [instance] mapType.zero_val
+structure mapType [GooseExts] where
+  mk ::
+  CommonType' : CommonType
+  Key' : typeId
+  Elem' : typeId
+
+noncomputable instance mapType.zero_val [GooseExts] : ZeroVal mapType :=
+  ⟨mapType.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def mapType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"CommonType" CommonType.ty),
+(go.field_decl.FieldDecl go!"Key" typeId.ty),
+(go.field_decl.FieldDecl go!"Elem" typeId.ty)]
+
+@[irreducible] noncomputable def mapType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  mapType.fieldsUnsealed
+
+noncomputable instance equals_unfold_mapType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold mapType.fields mapType.fieldsUnsealed :=
+  ⟨by unfold mapType.fields; rfl⟩
+
+@[reducible] noncomputable def mapType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType mapType.fields)
 
 class mapType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mapType.underlying mapType
   underlying : go.UnderlyingDirectedEq mapType.ty mapType.underlying
-  isUnderlying : go.IsUnderlying mapType.underlying mapType.underlying
+  get_CommonType : ∀ (x : mapType), go.IsGoStepPureDetTagged under (StructFieldGet mapType.underlying go!"CommonType") #x (Val #(x.CommonType'))
+  set_CommonType : ∀ (x : mapType) (y : CommonType), go.IsGoStepPureDetTagged under (StructFieldSet mapType.underlying go!"CommonType") (PairV #x #y) (Val #(({ x with CommonType' := y } : mapType)))
+  get_Key : ∀ (x : mapType), go.IsGoStepPureDetTagged under (StructFieldGet mapType.underlying go!"Key") #x (Val #(x.Key'))
+  set_Key : ∀ (x : mapType) (y : typeId), go.IsGoStepPureDetTagged under (StructFieldSet mapType.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : mapType)))
+  get_Elem : ∀ (x : mapType), go.IsGoStepPureDetTagged under (StructFieldGet mapType.underlying go!"Elem") #x (Val #(x.Elem'))
+  set_Elem : ∀ (x : mapType) (y : typeId), go.IsGoStepPureDetTagged under (StructFieldSet mapType.underlying go!"Elem") (PairV #x #y) (Val #(({ x with Elem' := y } : mapType)))
   method_set : go.MethodSetIs mapType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType mapType.ty) [(go!"encoding/gob.id", (some (go.signature.Signature [] false [typeId.ty]))), (go!"encoding/gob.init", (some (go.signature.Signature [gobType.ty, gobType.ty] false []))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.safeString", (some (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string]))), (go!"encoding/gob.setId", (some (go.signature.Signature [typeId.ty] false []))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] mapType.TypeAssumptions.type_repr
   mapType.TypeAssumptions.underlying
-  mapType.TypeAssumptions.isUnderlying
+  mapType.TypeAssumptions.get_CommonType
+  mapType.TypeAssumptions.set_CommonType
+  mapType.TypeAssumptions.get_Key
+  mapType.TypeAssumptions.set_Key
+  mapType.TypeAssumptions.get_Elem
+  mapType.TypeAssumptions.set_Elem
   mapType.TypeAssumptions.method_set
   mapType.TypeAssumptions.ptr_method_set
 
-opaque sliceType.nonempty_type : NonemptyType.{0}
-def sliceType : Type := sliceType.nonempty_type.type
-instance sliceType.nonempty : Nonempty sliceType := sliceType.nonempty_type.property
-opaque sliceType.zero_val : ZeroVal sliceType := ⟨Classical.ofNonempty⟩
-attribute [instance] sliceType.zero_val
+structure sliceType [GooseExts] where
+  mk ::
+  CommonType' : CommonType
+  Elem' : typeId
+
+noncomputable instance sliceType.zero_val [GooseExts] : ZeroVal sliceType :=
+  ⟨sliceType.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def sliceType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"CommonType" CommonType.ty),
+(go.field_decl.FieldDecl go!"Elem" typeId.ty)]
+
+@[irreducible] noncomputable def sliceType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  sliceType.fieldsUnsealed
+
+noncomputable instance equals_unfold_sliceType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold sliceType.fields sliceType.fieldsUnsealed :=
+  ⟨by unfold sliceType.fields; rfl⟩
+
+@[reducible] noncomputable def sliceType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType sliceType.fields)
 
 class sliceType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying sliceType.underlying sliceType
   underlying : go.UnderlyingDirectedEq sliceType.ty sliceType.underlying
-  isUnderlying : go.IsUnderlying sliceType.underlying sliceType.underlying
+  get_CommonType : ∀ (x : sliceType), go.IsGoStepPureDetTagged under (StructFieldGet sliceType.underlying go!"CommonType") #x (Val #(x.CommonType'))
+  set_CommonType : ∀ (x : sliceType) (y : CommonType), go.IsGoStepPureDetTagged under (StructFieldSet sliceType.underlying go!"CommonType") (PairV #x #y) (Val #(({ x with CommonType' := y } : sliceType)))
+  get_Elem : ∀ (x : sliceType), go.IsGoStepPureDetTagged under (StructFieldGet sliceType.underlying go!"Elem") #x (Val #(x.Elem'))
+  set_Elem : ∀ (x : sliceType) (y : typeId), go.IsGoStepPureDetTagged under (StructFieldSet sliceType.underlying go!"Elem") (PairV #x #y) (Val #(({ x with Elem' := y } : sliceType)))
   method_set : go.MethodSetIs sliceType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType sliceType.ty) [(go!"encoding/gob.id", (some (go.signature.Signature [] false [typeId.ty]))), (go!"encoding/gob.init", (some (go.signature.Signature [gobType.ty] false []))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.safeString", (some (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string]))), (go!"encoding/gob.setId", (some (go.signature.Signature [typeId.ty] false []))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] sliceType.TypeAssumptions.type_repr
   sliceType.TypeAssumptions.underlying
-  sliceType.TypeAssumptions.isUnderlying
+  sliceType.TypeAssumptions.get_CommonType
+  sliceType.TypeAssumptions.set_CommonType
+  sliceType.TypeAssumptions.get_Elem
+  sliceType.TypeAssumptions.set_Elem
   sliceType.TypeAssumptions.method_set
   sliceType.TypeAssumptions.ptr_method_set
 
-opaque fieldType.nonempty_type : NonemptyType.{0}
-def fieldType : Type := fieldType.nonempty_type.type
-instance fieldType.nonempty : Nonempty fieldType := fieldType.nonempty_type.property
-opaque fieldType.zero_val : ZeroVal fieldType := ⟨Classical.ofNonempty⟩
-attribute [instance] fieldType.zero_val
+structure fieldType [GooseExts] where
+  mk ::
+  Name' : GoString
+  Id' : typeId
+
+noncomputable instance fieldType.zero_val [GooseExts] : ZeroVal fieldType :=
+  ⟨fieldType.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def fieldType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Name" go.string),
+(go.field_decl.FieldDecl go!"Id" typeId.ty)]
+
+@[irreducible] noncomputable def fieldType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  fieldType.fieldsUnsealed
+
+noncomputable instance equals_unfold_fieldType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold fieldType.fields fieldType.fieldsUnsealed :=
+  ⟨by unfold fieldType.fields; rfl⟩
+
+@[reducible] noncomputable def fieldType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType fieldType.fields)
 
 class fieldType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fieldType.underlying fieldType
   underlying : go.UnderlyingDirectedEq fieldType.ty fieldType.underlying
-  isUnderlying : go.IsUnderlying fieldType.underlying fieldType.underlying
+  get_Name : ∀ (x : fieldType), go.IsGoStepPureDetTagged under (StructFieldGet fieldType.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : fieldType) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet fieldType.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : fieldType)))
+  get_Id : ∀ (x : fieldType), go.IsGoStepPureDetTagged under (StructFieldGet fieldType.underlying go!"Id") #x (Val #(x.Id'))
+  set_Id : ∀ (x : fieldType) (y : typeId), go.IsGoStepPureDetTagged under (StructFieldSet fieldType.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : fieldType)))
   method_set : go.MethodSetIs fieldType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fieldType.ty) []
 
 attribute [instance] fieldType.TypeAssumptions.type_repr
   fieldType.TypeAssumptions.underlying
-  fieldType.TypeAssumptions.isUnderlying
+  fieldType.TypeAssumptions.get_Name
+  fieldType.TypeAssumptions.set_Name
+  fieldType.TypeAssumptions.get_Id
+  fieldType.TypeAssumptions.set_Id
   fieldType.TypeAssumptions.method_set
   fieldType.TypeAssumptions.ptr_method_set
 
-opaque structType.nonempty_type : NonemptyType.{0}
-def structType : Type := structType.nonempty_type.type
-instance structType.nonempty : Nonempty structType := structType.nonempty_type.property
-opaque structType.zero_val : ZeroVal structType := ⟨Classical.ofNonempty⟩
-attribute [instance] structType.zero_val
+structure structType [GooseExts] where
+  mk ::
+  CommonType' : CommonType
+  Field' : GoSlice
+
+noncomputable instance structType.zero_val [GooseExts] : ZeroVal structType :=
+  ⟨structType.mk zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def structType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.EmbeddedField go!"CommonType" CommonType.ty),
+(go.field_decl.FieldDecl go!"Field" (go.GoType.SliceType fieldType.ty))]
+
+@[irreducible] noncomputable def structType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  structType.fieldsUnsealed
+
+noncomputable instance equals_unfold_structType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold structType.fields structType.fieldsUnsealed :=
+  ⟨by unfold structType.fields; rfl⟩
+
+@[reducible] noncomputable def structType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType structType.fields)
 
 class structType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying structType.underlying structType
   underlying : go.UnderlyingDirectedEq structType.ty structType.underlying
-  isUnderlying : go.IsUnderlying structType.underlying structType.underlying
+  get_CommonType : ∀ (x : structType), go.IsGoStepPureDetTagged under (StructFieldGet structType.underlying go!"CommonType") #x (Val #(x.CommonType'))
+  set_CommonType : ∀ (x : structType) (y : CommonType), go.IsGoStepPureDetTagged under (StructFieldSet structType.underlying go!"CommonType") (PairV #x #y) (Val #(({ x with CommonType' := y } : structType)))
+  get_Field : ∀ (x : structType), go.IsGoStepPureDetTagged under (StructFieldGet structType.underlying go!"Field") #x (Val #(x.Field'))
+  set_Field : ∀ (x : structType) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet structType.underlying go!"Field") (PairV #x #y) (Val #(({ x with Field' := y } : structType)))
   method_set : go.MethodSetIs structType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType structType.ty) [(go!"encoding/gob.id", (some (go.signature.Signature [] false [typeId.ty]))), (go!"encoding/gob.name", (some (go.signature.Signature [] false [go.string]))), (go!"encoding/gob.safeString", (some (go.signature.Signature [(go.GoType.MapType typeId.ty go.bool)] false [go.string]))), (go!"encoding/gob.setId", (some (go.signature.Signature [typeId.ty] false []))), (go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] structType.TypeAssumptions.type_repr
   structType.TypeAssumptions.underlying
-  structType.TypeAssumptions.isUnderlying
+  structType.TypeAssumptions.get_CommonType
+  structType.TypeAssumptions.set_CommonType
+  structType.TypeAssumptions.get_Field
+  structType.TypeAssumptions.set_Field
   structType.TypeAssumptions.method_set
   structType.TypeAssumptions.ptr_method_set
 
-opaque wireType.nonempty_type : NonemptyType.{0}
-def wireType : Type := wireType.nonempty_type.type
-instance wireType.nonempty : Nonempty wireType := wireType.nonempty_type.property
-opaque wireType.zero_val : ZeroVal wireType := ⟨Classical.ofNonempty⟩
-attribute [instance] wireType.zero_val
+structure wireType [GooseExts] where
+  mk ::
+  ArrayT' : Loc
+  SliceT' : Loc
+  StructT' : Loc
+  MapT' : Loc
+  GobEncoderT' : Loc
+  BinaryMarshalerT' : Loc
+  TextMarshalerT' : Loc
+
+noncomputable instance wireType.zero_val [GooseExts] : ZeroVal wireType :=
+  ⟨wireType.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def wireType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"ArrayT" (go.GoType.PointerType arrayType.ty)),
+(go.field_decl.FieldDecl go!"SliceT" (go.GoType.PointerType sliceType.ty)),
+(go.field_decl.FieldDecl go!"StructT" (go.GoType.PointerType structType.ty)),
+(go.field_decl.FieldDecl go!"MapT" (go.GoType.PointerType mapType.ty)),
+(go.field_decl.FieldDecl go!"GobEncoderT" (go.GoType.PointerType gobEncoderType.ty)),
+(go.field_decl.FieldDecl go!"BinaryMarshalerT" (go.GoType.PointerType gobEncoderType.ty)),
+(go.field_decl.FieldDecl go!"TextMarshalerT" (go.GoType.PointerType gobEncoderType.ty))]
+
+@[irreducible] noncomputable def wireType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  wireType.fieldsUnsealed
+
+noncomputable instance equals_unfold_wireType [GooseExts] [GoGlobalContext] :
+    EqualsUnfold wireType.fields wireType.fieldsUnsealed :=
+  ⟨by unfold wireType.fields; rfl⟩
+
+@[reducible] noncomputable def wireType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType wireType.fields)
 
 class wireType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying wireType.underlying wireType
   underlying : go.UnderlyingDirectedEq wireType.ty wireType.underlying
-  isUnderlying : go.IsUnderlying wireType.underlying wireType.underlying
+  get_ArrayT : ∀ (x : wireType), go.IsGoStepPureDetTagged under (StructFieldGet wireType.underlying go!"ArrayT") #x (Val #(x.ArrayT'))
+  set_ArrayT : ∀ (x : wireType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet wireType.underlying go!"ArrayT") (PairV #x #y) (Val #(({ x with ArrayT' := y } : wireType)))
+  get_SliceT : ∀ (x : wireType), go.IsGoStepPureDetTagged under (StructFieldGet wireType.underlying go!"SliceT") #x (Val #(x.SliceT'))
+  set_SliceT : ∀ (x : wireType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet wireType.underlying go!"SliceT") (PairV #x #y) (Val #(({ x with SliceT' := y } : wireType)))
+  get_StructT : ∀ (x : wireType), go.IsGoStepPureDetTagged under (StructFieldGet wireType.underlying go!"StructT") #x (Val #(x.StructT'))
+  set_StructT : ∀ (x : wireType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet wireType.underlying go!"StructT") (PairV #x #y) (Val #(({ x with StructT' := y } : wireType)))
+  get_MapT : ∀ (x : wireType), go.IsGoStepPureDetTagged under (StructFieldGet wireType.underlying go!"MapT") #x (Val #(x.MapT'))
+  set_MapT : ∀ (x : wireType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet wireType.underlying go!"MapT") (PairV #x #y) (Val #(({ x with MapT' := y } : wireType)))
+  get_GobEncoderT : ∀ (x : wireType), go.IsGoStepPureDetTagged under (StructFieldGet wireType.underlying go!"GobEncoderT") #x (Val #(x.GobEncoderT'))
+  set_GobEncoderT : ∀ (x : wireType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet wireType.underlying go!"GobEncoderT") (PairV #x #y) (Val #(({ x with GobEncoderT' := y } : wireType)))
+  get_BinaryMarshalerT : ∀ (x : wireType), go.IsGoStepPureDetTagged under (StructFieldGet wireType.underlying go!"BinaryMarshalerT") #x (Val #(x.BinaryMarshalerT'))
+  set_BinaryMarshalerT : ∀ (x : wireType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet wireType.underlying go!"BinaryMarshalerT") (PairV #x #y) (Val #(({ x with BinaryMarshalerT' := y } : wireType)))
+  get_TextMarshalerT : ∀ (x : wireType), go.IsGoStepPureDetTagged under (StructFieldGet wireType.underlying go!"TextMarshalerT") #x (Val #(x.TextMarshalerT'))
+  set_TextMarshalerT : ∀ (x : wireType) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet wireType.underlying go!"TextMarshalerT") (PairV #x #y) (Val #(({ x with TextMarshalerT' := y } : wireType)))
   method_set : go.MethodSetIs wireType.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType wireType.ty) [(go!"encoding/gob.string", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] wireType.TypeAssumptions.type_repr
   wireType.TypeAssumptions.underlying
-  wireType.TypeAssumptions.isUnderlying
+  wireType.TypeAssumptions.get_ArrayT
+  wireType.TypeAssumptions.set_ArrayT
+  wireType.TypeAssumptions.get_SliceT
+  wireType.TypeAssumptions.set_SliceT
+  wireType.TypeAssumptions.get_StructT
+  wireType.TypeAssumptions.set_StructT
+  wireType.TypeAssumptions.get_MapT
+  wireType.TypeAssumptions.set_MapT
+  wireType.TypeAssumptions.get_GobEncoderT
+  wireType.TypeAssumptions.set_GobEncoderT
+  wireType.TypeAssumptions.get_BinaryMarshalerT
+  wireType.TypeAssumptions.set_BinaryMarshalerT
+  wireType.TypeAssumptions.get_TextMarshalerT
+  wireType.TypeAssumptions.set_TextMarshalerT
   wireType.TypeAssumptions.method_set
   wireType.TypeAssumptions.ptr_method_set
 
@@ -1578,41 +1993,31 @@ attribute [instance] typeInfo.TypeAssumptions.type_repr
   typeInfo.TypeAssumptions.method_set
   typeInfo.TypeAssumptions.ptr_method_set
 
-opaque GobEncoder.nonempty_type : NonemptyType.{0}
-def GobEncoder : Type := GobEncoder.nonempty_type.type
-instance GobEncoder.nonempty : Nonempty GobEncoder := GobEncoder.nonempty_type.property
-opaque GobEncoder.zero_val : ZeroVal GobEncoder := ⟨Classical.ofNonempty⟩
-attribute [instance] GobEncoder.zero_val
+abbrev GobEncoder [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def GobEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GobEncode" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))])
 
 class GobEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying GobEncoder.underlying GobEncoder
   underlying : go.UnderlyingDirectedEq GobEncoder.ty GobEncoder.underlying
-  isUnderlying : go.IsUnderlying GobEncoder.underlying GobEncoder.underlying
   method_set : go.MethodSetIs GobEncoder.ty [(go!"GobEncode", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GobEncoder.ty) []
 
-attribute [instance] GobEncoder.TypeAssumptions.type_repr
-  GobEncoder.TypeAssumptions.underlying
-  GobEncoder.TypeAssumptions.isUnderlying
+attribute [instance] GobEncoder.TypeAssumptions.underlying
   GobEncoder.TypeAssumptions.method_set
   GobEncoder.TypeAssumptions.ptr_method_set
 
-opaque GobDecoder.nonempty_type : NonemptyType.{0}
-def GobDecoder : Type := GobDecoder.nonempty_type.type
-instance GobDecoder.nonempty : Nonempty GobDecoder := GobDecoder.nonempty_type.property
-opaque GobDecoder.zero_val : ZeroVal GobDecoder := ⟨Classical.ofNonempty⟩
-attribute [instance] GobDecoder.zero_val
+abbrev GobDecoder [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def GobDecoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GobDecode" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))])
 
 class GobDecoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying GobDecoder.underlying GobDecoder
   underlying : go.UnderlyingDirectedEq GobDecoder.ty GobDecoder.underlying
-  isUnderlying : go.IsUnderlying GobDecoder.underlying GobDecoder.underlying
   method_set : go.MethodSetIs GobDecoder.ty [(go!"GobDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType GobDecoder.ty) []
 
-attribute [instance] GobDecoder.TypeAssumptions.type_repr
-  GobDecoder.TypeAssumptions.underlying
-  GobDecoder.TypeAssumptions.isUnderlying
+attribute [instance] GobDecoder.TypeAssumptions.underlying
   GobDecoder.TypeAssumptions.method_set
   GobDecoder.TypeAssumptions.ptr_method_set
 

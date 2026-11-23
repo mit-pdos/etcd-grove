@@ -5337,3 +5337,47 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above; callers updated (`readRequest`'s and `ReadRequestBody`'s proofs). The client
   is unchanged. At-most-once and the other guarantees unchanged.
 - **Decision.** Applied (branch `models-rpc-server`); closes the previous entry's open item.
+
+## 2026-11-23: the TLS fallback and the lease-TTL row as parameters of the auth-on table specs (phase 7 S2, O2)
+
+- **Spec.** The client-facing auth vocabulary took the server's location `s : Loc` only to state `srvTLSId s`
+  (its config's `ClientCertAuthEnabled ↦□ true`) and, for `LeaseTimeToLive`, `leaseTTLRow s γl`. It now takes
+  the facts themselves, `T : IProp GF` (TLS) and `R : IProp GF` (row): `v3rpc.infoBoundT`, `principalBound`,
+  `v3rpc.{hdrBoundT, rangeAuthed, txnAuthed, writeGrantOn, opGrantT, kvOpAuOn, kvOpAuM, leaseGrantResT,
+  leaseRevokeResT, adminReplied, userAddReplied, authHistAuT}`, `leaseCheckFrom`, `client.txnAuthOn`, and the
+  table specs `client.etcd{Put,Delete,Range,Txn}Spec{On,M}`, `client.etcdLease{TTL,Leases}SpecMd`,
+  `client.etcdLease{Grant,Revoke}SpecOn`, `v3rpc.etcd{UserAdd,UserGrantRole,RoleAdd,RoleGrantPermission,
+  AuthEnable}Spec` (`T`) and `etcdLeaseTTLSpecLive`, `client.etcdLeaseTTLSpecMd` (`R`). Each table spec is a
+  heap-free `…W` over the message models plus its old name at the message types (as the auth-off batch,
+  `ae188a5c42`); every server-side statement passes `T := srvTLSId s`, `R := leaseTTLRow s γl`, so it says
+  what it said.
+- **Defect.** None in meaning: `srvTLSId s` and `leaseTTLRow s γl` name a machine's heap (the server's config
+  struct, its raft node), so a service table, which holds no machine's heap (#24, O2), could not state the
+  auth-on specs.
+- **Evidence.** Mechanical: the definitions' bodies used `s` only through `srvTLSId s` (and `leaseTTLRow s γl`);
+  every call site rewritten to `(srvTLSId s)`/`(leaseTTLRow s γl)`; `etc/heapfree-check.py` checks the `…W`s;
+  full build green with no new axiom or `sorry`.
+- **Proposed change.** As above, with one-way monotonicity laws for the bridge at `Serve`: each table spec
+  `S T R` satisfies `□ (T1 -∗ T2) ∗ □ (R2 -∗ R1) ∗ S T2 R2 ⊢ S T1 R1` (`…W_mono`; a registration at the
+  server's facts serves a caller at the table's, `isGrpcRpc_mono_with`), and `srvTLSId_iff`:
+  `srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ tls ⊢ (srvTLSId s ∗-∗ ⌜tls = true⌝)`. A table takes
+  `T := ⌜tls = true⌝`, `R := ⌜row = true⌝`.
+- **Decision.** Applied (branch `prove-ps2-s2flags/2026-11-23`), as agreed with upamanyus-agent on #24
+  (parameters, not a `Bool` through the server's specs).
+
+## 2026-11-23: the client side of the auth-on KV and lease calls over the TLS fact `T` (phase 7 S2, O2, #24 item 3)
+
+- **Spec.** Following the previous entry, the client's auth-on vocabulary and results take `T : IProp GF` for the
+  server's `s : Loc`, which they used only as `srvTLSId s`: `client.clientGrant`, `clientOpAuOn`, `txnUpdAtOn`,
+  `clientHistAu` and their lemmas (`clientOpAuOn_attempt`, `clientOpAuOn_of_au1`, `txnUpdAtOn_write`,
+  `clientHistAu_attempt`, `txnAuthOn_write`, `kvOpAuM_of_au1`, `kvOpAuM_of_on`, `etcd{Put,Delete,Range,Txn}SpecM_
+  {true,false}`, `etcdRangeSpecE_M`, `kvOpAuOn_lease{Grant,Revoke}`), and `ResultsOn`'s `client_put_on`,
+  `client_put_on_nil`, `client_range_on`, `client_delete_on`, `client_txn_on`, `client_lease_{grant,revoke}_on`
+  (each with `[Persistent T]`). Every use (the examples', the server's linking modules) passes `srvTLSId s`.
+- **Defect.** None: the statements are generalized (at `T := srvTLSId s` they are the old ones), so that a client
+  can take its registrations from a service table at `T := ⌜tls = true⌝`.
+- **Evidence.** Mechanical; `kvOpAuM_of_au1`/`kvOpAuM_of_on` were proved through the server's `kvDepOwnM_*`
+  (which take `s`) and are now proved directly. Full build green; no axiom or `sorry`.
+- **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
+  the table.
+- **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).

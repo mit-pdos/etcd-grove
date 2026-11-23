@@ -52,7 +52,7 @@ abbrev EtcdServer.checkLeaseLeases.spec : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #sl))
   {{ (err : GoInterface), RET #err; E.RD ∗ levelTok lease.leaseLvl ∗ sl ↦*{dq} ls.map Prod.fst ∗
       ⌜E.authOn = false → err = GoInterface.nil⌝ ∗ authApplyErrIs err ∗
-      (∀ _ : err = GoInterface.nil, leaseCheckFrom s E tok n
+      (∀ _ : err = GoInterface.nil, leaseCheckFrom (srvTLSId s) E tok n
         (fun info => iprop([∗list] x ∈ ls,
           leaseOfKeysVerdictFrom E.authMode n info γl m x.2 x.1 .read))) }}
 

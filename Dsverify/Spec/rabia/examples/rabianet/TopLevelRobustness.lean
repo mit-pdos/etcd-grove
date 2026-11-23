@@ -19,7 +19,7 @@ without panicking) and functions (`zerolog.Hyps`: a logger's five non-panicking 
 non-`nil` logger, an exclusive event token through the field methods and `Msg`; gogo `proto.Hyps`:
 `message`'s `Register*` calls during initialization, `RegisterEnum` once; `math.rand.Hyps`:
 `NewSource`/`New`/`Rand.Intn` with exclusive tokens, the package-level `Intn`) have no model here,
-and the environment assumption `os.signal.NoSignals` (nobody sends SIGINT or SIGTERM to the
+and the environment assumption `os.signal.NoSignals quietSigs` (nobody sends SIGINT or SIGTERM to the
 deployment's processes; `Notify(c, SIGINT, SIGTERM)` registers a channel that never receives).
 `log.Println` is proved from Perennial's trusted model of `log`. Proved in
 `Dsverify/Proof/rabia/examples/rabianet/TopLevelRobustness.lean`.
@@ -89,7 +89,7 @@ def rabia_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; math.rand.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; github_com.rs.zerolog.Hyps remoteGF) →
     (∀ G L, letI := heapAt G L; math.rand.Hyps remoteGF) →
-    (∀ G L, letI := heapAt G L; os.signal.NoSignals remoteGF) →
+    (∀ G L, letI := heapAt G L; os.signal.NoSignals os.signal.quietSigs remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy rabiaKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g threads (2 ^ 63)

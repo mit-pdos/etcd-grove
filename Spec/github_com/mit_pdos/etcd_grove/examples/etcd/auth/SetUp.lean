@@ -83,12 +83,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth.Assump
 methods registered with etcd's specs (`v3rpc.etcd*Spec`, what an auth-on member's
 `etcd_kv_auth_served_on` gives). -/
 def setupAuthServed (ep : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) : IProp GF :=
-  iprop(isGrpcRpcMd ep go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec s E ρ) ∗
-    isGrpcRpcMd ep go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec s E ρ) ∗
-    isGrpcRpcMd ep go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec s E ρ) ∗
+  iprop(isGrpcRpcMd ep go!"/etcdserverpb.Auth/UserAdd" (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ) ∗
+    isGrpcRpcMd ep go!"/etcdserverpb.Auth/UserGrantRole" (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ) ∗
+    isGrpcRpcMd ep go!"/etcdserverpb.Auth/RoleAdd" (v3rpc.etcdRoleAddSpec (srvTLSId s) E ρ) ∗
     isGrpcRpcMd ep go!"/etcdserverpb.Auth/RoleGrantPermission"
-      (v3rpc.etcdRoleGrantPermissionSpec s E ρ) ∗
-    isGrpcRpcMd ep go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec s E ρ))
+      (v3rpc.etcdRoleGrantPermissionSpec (srvTLSId s) E ρ) ∗
+    isGrpcRpcMd ep go!"/etcdserverpb.Auth/AuthEnable" (v3rpc.etcdAuthEnableSpec (srvTLSId s) E ρ))
 
 instance setupAuthServed_persistent (ep : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     Persistent (setupAuthServed ep s E ρ) := by
@@ -113,7 +113,7 @@ abbrev SetUp.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.auth ∗
       isNewClient cl [ep] V ∗ clientTokAt cl [ep] (fun _ => iprop(False)) ∗
-      isGrpcRpcMd ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpecOn s E ρ cid mid) ∗
+      isGrpcRpcMd ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
       iprop(□ ∀ k : GoString, ⌜k ∈ setupKeys⌝ -∗
         kvOpAu1 ρ.rd.kv (.put (client.putKeyOp k go!"setup")) (fun _ => iprop(True))) ∗
       setupAuthServed ep s E ρ ∗ □ (srvTLSId s -∗ False) ∗

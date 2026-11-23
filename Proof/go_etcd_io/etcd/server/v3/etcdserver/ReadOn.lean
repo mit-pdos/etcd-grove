@@ -325,6 +325,16 @@ theorem txnReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mv
     (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) :
     txnReadOkM (GF := GF) false E γr c F t Q resp = txnReadOk E γr c F t Q resp := rfl
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A read-only transaction's checks passed no older than `m`** (persistent; E3v): the wire
 transaction `tw` whose model `t` is, every permission its checks see (`apply.txnChecked`) granted at
 states recorded at indices at least `m` (`apply.verdictsFrom`, E3m's `CheckTxnAuth.specLb`). -/
@@ -337,6 +347,16 @@ instance txnClassFrom_persistent (M : auth.AuthMode) (m : Nat)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (t : TxnModel) :
     Persistent (txnClassFrom (GF := GF) M m info t) := by
   unfold txnClassFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- Every comparison list has its checked reads (each range end as the model's). -/
 theorem cmpsChecked_exists (cs : List CmpModel) : ∃ L, apply.cmpsChecked cs L := by
@@ -399,6 +419,16 @@ instance appliedPubFrom_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNa
     Persistent (appliedPubFrom (GF := GF) on E γr c) := by
   unfold appliedPubFrom; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A floor of a linearizable read's auth check** (persistent; the auth plan's E3u): in the mode
 `on γa`, the model's auth state at a committed raft log through an index at least the read index `c`
 is recorded in the store's history at an index at most `m`; so a check whose verdict comes from
@@ -414,6 +444,16 @@ def authFloorAt (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) : IPro
 instance authFloorAt_persistent (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) :
     Persistent (authFloorAt (GF := GF) M γr c m) := by
   cases M <;> unfold authFloorAt <;> infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 theorem authFloorAt_off (γr : ReadNames) (c : w64) (m : Nat) :
     authFloorAt (GF := GF) .off γr c m = iprop(True) := rfl

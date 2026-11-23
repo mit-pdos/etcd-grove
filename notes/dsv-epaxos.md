@@ -148,6 +148,13 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    Every theorem that uses the store takes `[TreemapHyp GF]`. (dsv-tpmodels' Go model
    `models/gods` has landed but no spec of it is proved; once one is, translate gods through
    `module_models` and discharge the class.)
+   **(2026-11-23, dsv-swiftpaxos review fix 4):** the premise is now the treemap spec set shared with
+   swiftpaxos, `github_com.emirpasic.gods.maps.treemap.Hyps`
+   (`Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`: the same predicates and
+   specs, generic in the comparator `cmpOk cmp enc` and the stored values); `TreemapHyp` is renamed
+   `StateTreemap` and derived from it (`StateTreemap.ofGods`, `Interface/Treemap.lean`: `enc =
+   keyIface`, `state.keyComparator_cmpOk`, entries `valE`). The proofs over `StateTreemap` are
+   unchanged.
 3c. **The `state` package's proofs: done** (`wire/State/*.lean`, the lab's files via
    `etc/dsv-epaxos/port.py`, which now also rewrites the proof-file headers to the generic `GF`):
    `InitState`, `NIL`, `NOOP`, `Conflict`, `ConflictBatch`, `concat`, `formatUint10`,

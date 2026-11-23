@@ -76,9 +76,31 @@ theorem logOk_of_receipt (log : mvcc.Log) (hrb : receiptBound GF ≤ 2 ^ 62) :
   refine ⟨Hp.1, by omega, ?_⟩
   unfold txn.LogSmall txn.logChanges; unfold mvcc.logCh at Hm; omega
 
+end server
+
+section serverHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The compactor's revision lower bound** (`srvRevLb`, restated): raft-only. -/
 def srvRevLbA (γr : ReadNames) (on : Bool) (n : Int) : IProp GF :=
   iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜n < (kvModelM on γr.kv A).length⌝)
+
+end serverHF
+
+section server
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
 
 end server
 
