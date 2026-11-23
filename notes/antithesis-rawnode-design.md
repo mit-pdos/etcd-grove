@@ -418,8 +418,10 @@ state, so `InputEnd` would still need the close.
 ### 2.5 The second change: no snapshot at a never-compacted node (revision 1, F3)
 
 **The gap.** Every broadcast `StepEnd` describes is `ReplSends` (`Defs.lean:1584`): `ReplOk = AppOk ∨
-SnapOk`, with `m.ty = .snap → s.gh.ns = false`, and `NGhost.ns` is `false` at every node since U8 v2
-(`Defs.lean:1140`). So nothing proved says a leader of the harness's cluster sends no `MsgSnap`; and a
+SnapOk`, with `m.ty = .snap → s.gh.ns = false`, and the no-snapshot mode `NGhost.ns` (off at raft's level since U8
+v2, revived for auth-lease S4 on 2026-11-16, `InvRaftPhys.lean:967`) is only for a cluster with a
+bootstrap log (`RaftNames.reNoSnap_ok`; its leaders keep `Next ≥ 2`, `PrLo`), which the empty-log harness
+is not (S3a's `emptyStartSpec` takes `¬ clusterNoSnap γ`). So nothing proved says a leader of the harness's cluster sends no `MsgSnap`; and a
 `MsgSnap` reaching a follower gives it a snapshot `Ready`, on which the harness panics (`harness.go`
 `drain`), with `ps.base ≠ base0` and C1 broken. Raft's Go sends none: the harness never compacts its
 `MemoryStorage`, whose first index stays 1 with the dummy entry at 0, and a leader's `Next ≥ 1`
@@ -448,9 +450,10 @@ clause from `PrvalsOk`'s `PrOkN`; the `nc` clause from `maybeSendAppend`'s post)
 conjunct (kept by every step: the flag is constant, the storage's cap persistent). Estimated 800-1,500
 lines, and the most uncertain item of S3c: a **probe first** (Q7), proving `maybeSendAppend`'s widened
 spec before anything else. Alternatives: (b) the harness handles snapshots (the binding has `snap` and
-`restore`; S2 and S3b change, and §4's risk 6 of `antithesis-check-design.md` applies); (c) revive
-`ns` (its machinery, `PrLo`'s `Next ≥ 2`, is for a bootstrap log and would need `Next ≥ 1` for an empty
-one).
+`restore`; S2 and S3b change, and §4's risk 6 of `antithesis-check-design.md` applies); (c) widen
+`ns` to empty-log clusters (`reNoSnap_ok` in `Protocol/Ghost.lean`, `PrLo`'s `Next ≥ 2` to `Next ≥ 1 +
+[bootLen ≠ 0]`, the rejection hint's `RejHintOk`): more files, and the protocol's ghost names, so a larger
+rebuild than (a).
 
 ---
 
@@ -724,5 +727,5 @@ trace check's rule). (b) Replaced by the new ones, every caller updated (`node__
 no `MsgSnap`, and the harness panics on one. (a) A no-compaction flag at raft's level (`NGhost.nc`), the
 traced proof's `TrNoSnap` argument made available untraced, the client promising never to compact
 (`storCapF st 0`); probe first. (b) The harness handles snapshots (`snap`/`restore` reports): S2 and S3b
-change, and the binding's known divergence on a snapshot's configuration is near. (c) Revive the old `ns`
-mode, whose `Next ≥ 2` machinery is for a bootstrap log. **Recommend (a)**, after the probe.
+change, and the binding's known divergence on a snapshot's configuration is near. (c) Widen the `ns` mode
+(revived for auth-lease) to empty-log clusters: its `Next ≥ 2` machinery and `reNoSnap_ok` change. **Recommend (a)**, after the probe.
