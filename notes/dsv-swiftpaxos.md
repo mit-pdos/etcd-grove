@@ -59,9 +59,9 @@ The list asked for. They are named after the lab's specs, with the reason each i
 | concurrent-map | none: the lab's proofs (`Proof/cmap/*`, copied to `Dsverify/Proof/github_com/orcaman/concurrent_map/`) build over the translated code (`Dsverify/Code/github_com/orcaman/concurrent_map.lean` has the bodies, `fnv32.impl` etc.), e.g. `ConcurrentMap.wp_IterCbOwn`: Lean's three axioms. To check: `concurrent-map.toml` says names only (`translate = ["!*"]`), which the generated file does not match; rerun `etc/goose.py` for the project before landing. | 27 | |
 | encoding/gob | `gob.{NewEncoder, NewDecoder, Encoder.EncodeW, Decoder.Decode, SetCodec, getCodec}.wp_proof` (`Spec/gob/*`, `Proof/gob/*`) | 8 | gob (the lab's gob model) |
 | bufio | none (fifth session): both halves are derived from dsv-bufio's specs and Perennial's `io.ReadFull`/`ReadAtLeast` (`lib/Bufio.lean`, `*.labProof`); see "State (fifth session)". | 50 | |
-| net/rpc client | `net.rpc.DialHTTP.wp` (`Harness/Proof/net/rpc`): the HTTP path, waits for `models-rpc-http`'s `rpc.DialHTTP.spec` (`rpcAddrP`). `Client.Call`/`Close` are `Net/`'s proofs (`Net/Proof/net/rpc/Results.lean`), not hypotheses. | 13 | the HTTP path |
-| net/rpc server | `net.rpc.{Register, HandleHTTP, SetCodec}.wp_proof` (`Harness/Proof/net/rpc/{ServerDefs,HandleHTTP,Codec}`) | 6 | the net/rpc server and HTTP path |
-| net/http | `net.http.Serve.wp_proof` (`Harness/Proof/net/http/Serve`) | 2 | the net/http server |
+| net/rpc client | `RpcHttpHyp.DialHTTP_spec` (`lib/RpcHttpHyps.lean`; Upamanyu's shape over `rpcAddrP … (connectReq defaultRPCPath) connectAns`), used through `DialHTTP_tcp`. `Client.Call`/`Close` are `Net/`'s proofs. | 13 | models-rpc-http |
+| net/rpc server | `RpcHttpHyp.{Register_spec, HandleHTTP_spec, Server_HandleHTTP_spec, Server_ServeHTTP_spec, defaultServer_init}` (lab: `net.rpc.{Register, HandleHTTP}`); the codec is `Net/`'s `codecSet` (SetCodec proved) | 6 | models-rpc-http |
+| net/http | `RpcHttpHyp.{Serve_spec, ServeMux_ServeHTTP_spec}` and the wildcard rpc protocols `rpcLisP` (`_addr`, `_lis`, `_set`) | 2 | models-rpc-http (+ the wildcard finding) |
 | net | none: wildcard `Listen` is `Net/`'s (`net-wildcard-listen`, landed); `TCPConn.{Close,RemoteAddr}` and `TCPAddr.String` are proved lab-shaped wrappers (`lib/NetConn.lean`), `DialTimeout`, `Dial`, `Listen` and `TCPListener.Accept` too (`lib/NetLab.lean`, over `lisProto`), `TCPConn.Write` (`lib/BufioNet.lean`) | | |
 | os/signal | `os.signal.Notify.wp_proof` (`Harness/Proof/os/signal`): **an assumption of the deployment** (no signal is delivered: `hook.HookUser1`'s proof needs the channel to stay empty). For review. | 1 | os/signal (names only) |
 | math/rand | `math.rand.{NewSource, New, Intn}.wp_proof` (`Harness/Proof/math/rand`), in `SwiftHyps` | 10 | Perennial's `math/rand` translation is names only |
@@ -116,7 +116,100 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, fifth session; resume here)
+## State (2026-11-23, sixth session; resume here)
+
+Read with the fifth session's state below (still accurate where this does not say otherwise).
+
+**Done this session (commits `5dfd63bc00`, `c11156f096`, and the RunLoop commit after them).**
+- **`lib/RpcHttpHyps.lean`: the class `RpcHttpHyp GF`** (a `Type`-valued class with
+  `[SwiftNetPkgState GF]`, like `SwiftHyps`; never an `instance`). Copied from dsv-epaxos's
+  `Interface/RpcHttpHyps.lean` with Upamanyu's names and shapes (`rpc-http-shapes.md`):
+  `rpcAddrP W a hs hsAns` (+ `rpcAddrP_raw` to `Net/`'s `rpcAddr`), `connectReq`, `connectAns`,
+  `defaultRPCPath`, `handlerOk`, `muxHas`, `defaultServer` (+ `defaultServer_init`),
+  `DialHTTPPath_spec`, `DialHTTP_spec`, `Server_ServeHTTP_spec`, `Server_HandleHTTP_spec`,
+  `HandleHTTP_spec`, `Register_spec` (package-level, on `DefaultServer`),
+  `ServeMux_ServeHTTP_spec`, `Serve_spec`. models-rpc-http (`7cfdfb0f3e`) now defines the real
+  `rpcAddrP` (`Net/Proof/net/rpc/Proto.lean` there: `RpcWorld.hs/hsAns` per address); its shape
+  matches the field's.
+  **Changed against epaxos's copy, wildcard listeners** (a design finding, below): `rpcLisP W la hs
+  hsAns` (persistent) with `rpcLisP_addr` (each valid address `la` takes is `rpcAddrP`),
+  `rpcLisP_lis` (`∃ P Q, lisProto la P Q`: the right to listen), `rpcLisP_set` (the boot makes
+  it from `regCtx`, `inv regN' (regInv W)`, `lisUnset la`); `handlerOk`/`muxHas` take a set of
+  addresses `A` (for a wildcard `lisAccepts la`), and `HandleHTTP`/`ServeHTTP` ask
+  `□ ∀ a, ⌜A a⌝ → srvServes γ C W a`; `Serve_spec` is over a listener at `la` (`netLisOn`, a
+  wildcard is allowed) with `rpcLisP` and `muxHas W (lisAccepts la)`.
+  Also there: `rpcHttp W a` (DialHTTP's whole precondition, persistent), `DialHTTP_tcp`, and
+  **`withErr S`** (a method spec that also accepts error answers, `S ∧ ∀ msg ≠ [], Φ [] msg`) with
+  `withErr_errOk`: `Net/`'s `srvServes` asks `errOk` of each service, which `sp.masterSpec`
+  (answers only `msg = []`) does not meet.
+- **`client/Client__dialMaster`: proved** over `DialHTTP_tcp`. `dialMaster.specI`'s precondition
+  is `rpcHttp W masterAddr`; so are `BufferClient.Connect.spec`'s and `CodecG`'s (built).
+- **`Spec/master/Master__Run.lean` restated and `master/Run.lean` proved** (`lake build` passes):
+  precondition `created`, `isPkgInit` of net/rpc and net/http, `threadBound ≤ 2^31`, `srvEnv`,
+  `rpcLisP W ":7001" (connectReq defaultRPCPath) connectAns`, the replicas' `rpcHttp`,
+  `master.worldOk γc γm W` (every address `":7001"` takes offers only
+  `"Master" ↦ withErr masterSpec`; every replica rpc port `"Replica" ↦ replicaRpcSpec`),
+  `codecSet RpcCodec.spec`. The lab's `addrTok`/`nodeIp`/`muxOwner`/`kitNameOk`/`kitCodecOk` are
+  gone. **The post is `True`, not the lab's `False`**: `http.Serve`'s spec returns (on a listener
+  error), and the Go then returns. `master.rcvr.spec` (premise of the proof) is now `Register`'s
+  obligation `RpcCodec.spec.rcv (mkOk *Master m) (rcvrIs RpcCodec.spec … (withErr masterSpec)
+  "Master" false)` from `isMaster`: to be proved of the kit's rpcgen codec in step 5
+  (`master/Rcvr.lean` is the lab's kitgen dispatch proof, to be replaced). `run.spec` takes
+  `rpcHttp` of the replicas' rpc ports and no `kitCodecOk`.
+- **`master/RunLoop.lean`: partly adapted, 4 errors left** (it was unbuilt before, 7 errors).
+  Done: DialHTTP over `rpcHttp`/`DialHTTP_tcp`; both Call helpers (`wp_call_btl`, the Ping one)
+  on `Net/`'s current `Client.Call.spec` (Θ keeps `Φr rep []`, as `callMasterRL`; `RpcCodec.spec`
+  projections unfolded before `enc_of`/`dec_intro`). Left: lines ~440 and ~757 `iframe Hcs`
+  fails: the goal's `net.rpc.codecSet net.rpc.RpcCodec.spec` does not unify with the context's
+  syntactically identical one (an implicit-instance mismatch between the helper's statement and
+  `run.spec`'s; inspect with `set_option pp.explicit true` at that line); ~622 an unsolved
+  goal and ~697 a `wp_if_destruct` shape (`#(decide …) = #false`, the Perennial drift noted in
+  the fifth session). All of RunLoop's codec steps are the lab kitgen codec's (`KitLike`), so it
+  is re-done anyway when step 5 switches to rpcgen's codec.
+- **`slices.SortFuncOn.*`: all 15 build** (`lake build` of them, 1529 jobs, no `sorry`):
+  `frontier.py`'s count is wrong for them. So the real frontier is 82 − 15 − 3 (dialMaster,
+  Master__Run, Run) = **64 unbuilt**, all behind the lab kit (step 5), `master.{RunLoop,Rcvr,Link}`,
+  `swift.{Rcvr,CodecFns,…Link}`, `client.Link`, `replica.ConnLink`.
+- **Import tiers** (coordinator, 2026-11-23: `etc/tier-check.py --check` is a land gate whose
+  baseline only shrinks): **503 violations in this kit's modules** (of 508 in the tree):
+  defs→proof 255, proof→proof 219, spec→proof 15, defs→linking 15, proof→linking 3. Most are
+  imports of `Hyps.lean`, which is a *proof* module only because it restates the lab's names as
+  `theorem X.wp_proof := h.field`: renaming those (e.g. `X.hyp`) or moving them to a linking
+  module would remove most. New files here are written tier-clean (`RpcHttpHyps` is a defs
+  module); restructuring the ported files waits for the landing step.
+
+**Design findings (new).**
+- **net/rpc on a wildcard listener.** `Net/`'s rpc protocols are per address (`reqProto W a`
+  names `a` in `isRpcConn W a`), but a wildcard listener's addresses share one protocol pair
+  (`lis_set_proto`). The master listens at `":7001"` (and models-rpc-server's `Server.Accept` is
+  over `spec_addrOk`, a valid address). models-rpc-http needs an rpc protocol per *listener*
+  (here `rpcLisP W la`, `rpcLisP_addr`, `rpcLisP_set`), e.g. dialer protocols quantifying over
+  the dialed address.
+- **Method specs must accept error answers** (`errOk` in `srvServes`): the lab's
+  `masterSpec`/`replicaRpcSpec` do not; served as `withErr S`. A caller's `Φ` must then hold of
+  `([], msg)` for `msg ≠ []`: e.g. `fun rep msg => ⌜msg ≠ []⌝ ∨ Φ rep msg` (Call gives the client
+  `∃ rep, Φ rep msg` on a `ServerError` and nothing else needs it).
+
+**Next, in order.**
+1. Client side of `withErr`: `BufferClient.Connect.spec`/`CodecG`/`ConnectSpecs` say
+   `W.SS masterAddr "Master" = some (sp.masterSpec …)`; change to `withErr` (so it matches
+   `master.worldOk`) and in `client/Client__callMaster` call with `S := withErr masterSpec` and
+   `Φ := fun rep msg => ⌜msg ≠ []⌝ ∨ rlPhi rep msg` (and `glPhi`), giving the second conjunct
+   trivially. Likewise `replicaRpcSpec` → `withErr` in `run.spec`/RunLoop's helpers and the
+   replicas' serving (the kit).
+2. RunLoop's 4 errors (above) — or do it together with step 5's codec switch.
+3. **Step 5** as in the fifth session's list, now with: the kit's codec is rpcgen's
+   (`examples/swiftnet/rpc_gen.go`), so `RpcCodec`/`KitLike`/`kitCodec` and the lab codec proofs
+   (`examples/swiftnet/codec/*`, `swift/CodecFns`, `master/Rcvr`, `swift/Rcvr`) are replaced by a
+   `CodecSpec` of the generated functions as dsv-craq does (`Craq/Codec.lean` on origin/dsv-craq:
+   each transformer is the generated function's WP, so `encOk`/`decOk`/`rcvOk` hold by
+   definition; the facts the proofs need are per-type lemmas); `master.rcvr.spec` and the
+   replica's `rcvr` are then proved of `rpcReceiver`. The boot makes `rpcLisP` with
+   `rpcLisP_set` (master `":7001"`, replicas' rpc ports at full addresses) after allocating the
+   rpc world's registry (`inv regN' (regInv W)`: ghost-map alloc, provable here).
+   `swiftpaxos_remote_robust` takes `[RpcHttpHyp netDistGF]` visibly, as the `InitHyp`s.
+
+## State (2026-11-23, fifth session; superseded where the sixth says so)
 
 **Merges.** `origin/models-rpc-server` `2a6b4e5d12` and then `36728bd8ed` (Client.Call's decoding is
 asked only of the method's answers; methodOk's `argDec`; `Server.Accept` over `spec_addrOk`).

@@ -23,6 +23,8 @@ public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunDefs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
+public import Net.Proof.net.rpc.Results
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.replica.defs.NewBeTheLeaderReply
 
 @[expose] public section
@@ -44,6 +46,7 @@ variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
 variable [net.FieldAssumptions] [replica.defs.Assumptions]
 -- the codec (decision D6, Proof/swiftnet/KitLike.lean)
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [H : RpcHttpHyp netDistGF]
 
 /-- `defs.UpdateBeTheLeaderReply(p)` (the defs package's; the master group proves its call,
 stage plan: "the master group calls defs' two small functions itself"). -/
@@ -90,15 +93,17 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
         (∀ y : sp.KitVal, y.tag = 10 → sp.KitVal.wf y → rep ≠ y.encode)⌝)
   wp_apply net.rpc.Client.Call.wp c W a go!"Replica.BeTheLeader" go!"Replica" go!"BeTheLeader"
     (sp.replicaRpcSpec γc γm) _ rp Φr iprop(True)
-    (kitValOwn rp (DFrac.own 1) (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1)))) Θ
+    (kitValOwn rp (DFrac.own 1) (sp.KitVal.beTheLeaderReply (W32 (-1)) (W32 (-1))))
+    (fun rep ok => iprop(Φr rep [] ∗ Θ rep ok))
     $$ [$Hc Hpa Hbtl] as %err Hres
   · ihave %Hpan := typedPointsto_not_null _ _ _ $$ Hpa
     ihave %Hbn := typedPointsto_not_null _ _ _ $$ Hbtl
-    iframe Hcs Hko
+    iframe Hcs
     isplitr
-    · ipureintro; exact ⟨by decide, HSS⟩
+    · ipureintro; exact ⟨by decide, HSS, by simp [rp, interface.mkOk]⟩
     isplitl [Hpa]
-    · iapply enc_of C
+    · simp only [net.rpc.RpcCodec.spec]
+      iapply enc_of C
       unfold net.rpc.RpcCodec.enc kitCodec
       simp only
       iexists DFrac.own 1, sp.KitVal.beTheLeaderArgs
@@ -132,7 +137,8 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
       · ipureintro; rfl
       iexact Hbtl
     imodintro
-    iintro HD %rep
+    iintro HD %rep HΦr
+    simp only [net.rpc.RpcCodec.spec]
     iapply KitLike.dec_intro
     unfold decT
     iexists _
@@ -141,11 +147,15 @@ theorem master.wp_call_btl (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoStr
     · ipureintro; trivial
     isplit
     · iintro %y %Hy Hown
+      isplitl [HΦr]
+      · iexact HΦr
       iexists _
       iframe Hown
       ipureintro
       intro _; left; exact ⟨y, Hy.1, Hy.2.1, rfl⟩
     · iintro %Hno %ok ⟨%x1, %Htag, Hown⟩
+      isplitl [HΦr]
+      · iexact HΦr
       iexists x1
       iframe Hown
       ipureintro
@@ -202,11 +212,12 @@ theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoSt
     $$ [$Hc Hpa Hpr] as %err -
   · ihave %Hpan := typedPointsto_not_null _ _ _ $$ Hpa
     ihave %Hprn := typedPointsto_not_null _ _ _ $$ Hpr
-    iframe Hcs Hko
+    iframe Hcs
     isplitr
-    · ipureintro; exact ⟨by decide, HSS⟩
+    · ipureintro; exact ⟨by decide, HSS, by simp [rp, interface.mkOk]⟩
     isplitl [Hpa]
-    · iapply enc_of C
+    · simp only [net.rpc.RpcCodec.spec]
+      iapply enc_of C
       unfold net.rpc.RpcCodec.enc kitCodec
       simp only
       iexists DFrac.own 1, sp.KitVal.pingArgs (W8 0)
@@ -237,7 +248,8 @@ theorem master.wp_call_ping (c : Loc) (W : net.rpc.RpcWorld netDistGF) (a : GoSt
       · ipureintro; rfl
       iexists _; iexact Hpr
     imodintro
-    iintro HD %rep
+    iintro HD %rep -
+    simp only [net.rpc.RpcCodec.spec]
     iapply KitLike.dec_intro
     unfold decT
     iexists _
@@ -283,7 +295,9 @@ theorem master.Master.run.wp_proof
     (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
     (wp_NBR : replica.defs.NewBeTheLeaderReply.spec) :
     master.Master.run.spec := fun m γc γm N W nodesS0 nl => by
-  wp_start as ⟨#Hm, #HnodesP, Hns, HnlF, Haddrs, %HSS, #Hcs, #Hko⟩
+  wp_start as ⟨#Hm, #HnodesP, Hns, HnlF, Haddrs, %HSS, #Hcs⟩
+  ihave #Hko : net.rpc.kitCodecOk (GF := netDistGF) $$ []
+  · unfold net.rpc.kitCodecOk; itrivial
   ihave #HisM := Hm
   unfold master.isMaster
   iNamed Hm
@@ -380,9 +394,9 @@ theorem master.Master.run.wp_proof
       (IntArgValue.int _) ArgsWf.nil)) $$ [$Hasl] as %str ⟨-, %Hstr⟩
     rw [master.sprintf_str_d _ _ _ Hstr]
     rw [if_pos (show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nodesS0.len by have := Hj.2.2.1; word)]
-    ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => net.rpc.rpcAddr W a) hra $$ Haddrs
+    ihave #Hra := BigSepL.bigSepL_lookup (Φ := fun _ a => rpcHttp W a) hra $$ Haddrs
     wp_auto
-    wp_apply net.rpc.DialHTTP.wp W _ $$ [$Hra] as %c %derr Hd
+    wp_apply DialHTTP_tcp W _ $$ [$Hra] as %c %derr Hd
     wp_apply wp_store_slice_index $$ [$Hns] as Hns
     · ipureintro; have := Hj.2.2.1; word
     icases Hd with (⟨%Hd, #Hc⟩ | ⟨%Hd, #He⟩)
