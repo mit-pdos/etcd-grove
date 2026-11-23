@@ -29,12 +29,10 @@ axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
-axiom Perennial.net.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
 axiom Perennial.runtime.opaqueInitsOk
-axiom addrUnclaimed
 axiom backend.newBoltLoggerZap.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
@@ -42,10 +40,8 @@ axiom dataDirsApart
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
-axiom httpProtoFree
 axiom lease.Lease.expired.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom netAddrFree
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
 axiom prometheus.ExponentialBuckets.wp_proof

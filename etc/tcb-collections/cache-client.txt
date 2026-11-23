@@ -11,6 +11,7 @@
 roots \b(cache_end_to_end_(client|new)|etcd_cache_served)$
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
+axiom addrClaim
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
@@ -30,7 +31,6 @@ axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom mvcc.ReportEventReceived.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom netListenerAt
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
 axiom pbCompactionResponseT_reg
