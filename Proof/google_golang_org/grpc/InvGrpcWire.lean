@@ -132,6 +132,10 @@ does: name, value and 32 per field. -/
 def headerListOk (fs : List (GoString × GoString)) : Prop :=
   (fs.map fun f => 32 + f.1.length + f.2.length).sum ≤ maxHeaderBlock
 
+/-- The fields of a slice of the model's `headerField`s. -/
+def hfPairs [GooseExts] (hs : List google_golang_org.grpc.headerField) : List (GoString × GoString) :=
+  hs.map fun h => (h.Name', h.Value')
+
 /-- A frame the server writes. -/
 inductive SrvFrame where
   | header (fs : List (GoString × GoString))

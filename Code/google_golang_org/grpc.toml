@@ -23,7 +23,12 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   "MaxSendMsgSize", "MaxConcurrentStreams", "ChainUnaryInterceptor", "ChainStreamInterceptor",
   # (phase 7 S1, dial side, 2026-11-22) the dial options etcd's client sets, and their holder
   "newFuncDialOption", "funcDialOption.apply", "WithTransportCredentials", "WithPerRPCCredentials",
-  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers"]
+  "WithUnaryInterceptor", "WithStreamInterceptor", "WithResolvers",
+  # (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) the client attempt's wire, bottom-up:
+  # the model's frame writers (`model_wire.go`) and the header list's limit (F1)
+  "headerListTooLarge", "appendHeaderBlock", "appendOversizedBlock", "appendData", "appendReset",
+  "maxHeaderBlock", "frameHead", "frameData", "frameClose", "frameCancel", "frameHeader",
+  "frameTrailer", "frameReset", "frameSettings", "clientPreface", "errCodeRefusedStream"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
@@ -31,7 +36,9 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver",
   # (phase 7 S2, 2026-11-22) the types of `Server`'s fields (`cv`, `serveWG`, `quit`), so that it
   # is a translated struct
-  "sync", "google.golang.org/grpc/internal/grpcsync"]
+  "sync", "google.golang.org/grpc/internal/grpcsync",
+  # (phase 7 S2 core, 2026-11-23) the frame writers' `binary.BigEndian.AppendUint32`
+  "encoding/binary"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -72,7 +79,8 @@ each terminates, cannot panic and has no effect beyond its variable."""
 [[skip]]
 names = ["errConnDrain", "errConnClosing", "errConnIdling", "errNoTransportSecurity",
   "errTransportCredsAndBundle", "errNoTransportCredsInBundle", "errTransportCredentialsMissing",
-  "ErrClientConnTimeout", "errStreamDone", "errMalformedFrame", "ErrServerStopped"]
+  "ErrClientConnTimeout", "errStreamDone", "errMalformedFrame", "ErrServerStopped",
+  "errHeaderListTooLarge"]
 reason = """
 Their initializers call, besides literals of constants and other variables' values: `errors.New` of
 a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond

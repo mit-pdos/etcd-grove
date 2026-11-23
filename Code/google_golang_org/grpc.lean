@@ -11,6 +11,7 @@ public import Net.Code.net
 public import Code.google_golang_org.grpc.credentials
 public import Code.google_golang_org.grpc.stats
 public import Code.google_golang_org.grpc.metadata
+public import Perennial.Code.encoding.binary
 public import Code.google_golang_org.grpc.peer
 public import Code.google_golang_org.grpc.internal.grpcsync
 public import Perennial.Golang.Defn
@@ -727,23 +728,40 @@ opaque streamReadDone [GooseExts] [GoGlobalContext] : val
 
 opaque streamDone [GooseExts] [GoGlobalContext] : val
 
-opaque frameHead [GooseExts] [GoGlobalContext] : val
+/-- client: the request's header fields -/
+@[reducible] noncomputable def frameHead [GooseExts] [GoGlobalContext] : val :=
+  #(W8 1)
 
-opaque frameData [GooseExts] [GoGlobalContext] : val
+/-- either: one gRPC message -/
+@[reducible] noncomputable def frameData [GooseExts] [GoGlobalContext] : val :=
+  #(W8 2)
 
-opaque frameClose [GooseExts] [GoGlobalContext] : val
+/-- client: no more request messages -/
+@[reducible] noncomputable def frameClose [GooseExts] [GoGlobalContext] : val :=
+  #(W8 3)
 
-opaque frameCancel [GooseExts] [GoGlobalContext] : val
+/-- client: the client gave the stream up -/
+@[reducible] noncomputable def frameCancel [GooseExts] [GoGlobalContext] : val :=
+  #(W8 4)
 
-opaque frameHeader [GooseExts] [GoGlobalContext] : val
+/-- server: the response's header fields -/
+@[reducible] noncomputable def frameHeader [GooseExts] [GoGlobalContext] : val :=
+  #(W8 5)
 
-opaque frameTrailer [GooseExts] [GoGlobalContext] : val
+/-- server: the trailer fields; the stream's end -/
+@[reducible] noncomputable def frameTrailer [GooseExts] [GoGlobalContext] : val :=
+  #(W8 6)
 
-opaque frameReset [GooseExts] [GoGlobalContext] : val
+/-- server: RST_STREAM with an HTTP/2 error code; the stream's end -/
+@[reducible] noncomputable def frameReset [GooseExts] [GoGlobalContext] : val :=
+  #(W8 7)
 
-opaque frameSettings [GooseExts] [GoGlobalContext] : val
+/-- server: its preface (HTTP/2's SETTINGS), right after the client's -/
+@[reducible] noncomputable def frameSettings [GooseExts] [GoGlobalContext] : val :=
+  #(W8 8)
 
-opaque maxHeaderBlock [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def maxHeaderBlock [GooseExts] [GoGlobalContext] : val :=
+  #(16777216 : Int)
 
 opaque errCodeNo [GooseExts] [GoGlobalContext] : val
 
@@ -751,11 +769,13 @@ opaque errCodeProtocol [GooseExts] [GoGlobalContext] : val
 
 opaque errCodeStreamClosed [GooseExts] [GoGlobalContext] : val
 
-opaque errCodeRefusedStream [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def errCodeRefusedStream [GooseExts] [GoGlobalContext] : val :=
+  #(W32 7)
 
 opaque errCodeCancel [GooseExts] [GoGlobalContext] : val
 
-opaque clientPreface [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def clientPreface [GooseExts] [GoGlobalContext] : val :=
+  #(go!"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
 
 opaque compressionNone [GooseExts] [GoGlobalContext] : val
 
@@ -1108,6 +1128,12 @@ noncomputable def readFull [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def readFrameKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.readFrameKind"
+
+noncomputable def headerListTooLarge [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.headerListTooLarge"
+
+noncomputable def appendOversizedBlock [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.appendOversizedBlock"
 
 noncomputable def appendHeaderBlock [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.appendHeaderBlock"
@@ -1626,6 +1652,254 @@ noncomputable def WithResolvers.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore DialOption.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad DialOption.ty))) (Var "$res0")))))
 
+/-- headerListTooLarge reports whether fields' header list is over the receiver's limit (its size
+    counted as HTTP/2 does, stopping once over the limit: each addition is of one length to a sum
+    within the limit, so the sum cannot overflow).
+
+    go: model_wire.go:128:6 -/
+noncomputable def headerListTooLarge.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fields"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType headerField.ty)))) (Var "fields"))
+  (Let "sz" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType headerField.ty)))) (Var "fields"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc headerField.ty))) (App (Val (GoInstruction (GoZeroVal headerField.ty))) (Val #())))
+  (App (App (Val (slice.forRange headerField.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sz")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val maxHeaderBlock)))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "sz") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sz")) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Value"))) (Var "f")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sz")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val maxHeaderBlock)))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "sz") (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "sz")) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (Val #(W64 32)) (App (Val (GoInstruction (Convert go.int go.uint64))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Name"))) (Var "f")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore headerField.ty))) (Pair (Var "f") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- appendOversizedBlock appends the marker of a header or trailer block over the receiver's limit,
+    which is not sent: its kind and a length over maxHeaderBlock, which the reader refuses before
+    reading any field.
+
+    go: model_wire.go:146:6 -/
+noncomputable def appendOversizedBlock.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "kind"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "kind" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "kind"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "kind"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (Val #(W32 16777217))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
+
+/-- appendHeaderBlock appends a head, header or trailer frame carrying fields, whose list is not over
+    the limit (every caller checks headerListTooLarge first), so that every length fits its uint32.
+
+    go: model_wire.go:153:6 -/
+noncomputable def appendHeaderBlock.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "kind"
+  (Lam "fields"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType headerField.ty)))) (Var "fields"))
+  (Let "kind" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "kind"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$r0" (Val #(W64 4))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "kind"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.int go.uint32))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.int go.uint32))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType headerField.ty)))) (Var "fields"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType headerField.ty)]))) (Val #())) (Var "$a0"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType headerField.ty)))) (Var "fields"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc headerField.ty))) (App (Val (GoInstruction (GoZeroVal headerField.ty))) (Val #())))
+  (App (App (Val (slice.forRange headerField.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.int go.uint32))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Name"))) (Var "f")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Name"))) (Var "f"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.int go.uint32))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Value"))) (Var "f")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Value"))) (Var "f"))))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore headerField.ty))) (Pair (Var "f") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType headerField.ty)))) (Var "fields"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc headerField.ty))) (App (Val (GoInstruction (GoZeroVal headerField.ty))) (Val #())))
+  (App (App (Val (slice.forRange headerField.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "n")) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Val #(W64 8)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Name"))) (Var "f")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef headerField.ty go!"Value"))) (Var "f")))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore headerField.ty))) (Pair (Var "f") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))))
+
+/-- appendData appends a data frame: the message's 5-byte gRPC header and its payload.
+
+    go: model_wire.go:222:6 -/
+noncomputable def appendData.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "hdr"
+  (Lam "payload"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "payload" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "payload"))
+  (Let "hdr" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "hdr"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (Let "$sl0" (Val frameData)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "hdr"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "payload"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))))
+
+/-- appendReset appends a reset frame.
+
+    go: model_wire.go:298:6 -/
+noncomputable def appendReset.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Lam "code"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "code" (App (Val (GoInstruction (GoAlloc go.uint32))) (Var "code"))
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (Let "$sl0" (Val frameReset)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint32))) (Var "code"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"AppendUint32"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
+
 /-- StaticMethod returns a CallOption which specifies that a call is being made
     to a method that is static, which means the method is known at compile time
     and doesn't change at runtime. This can be used as a signal to stats plugins
@@ -2122,6 +2396,9 @@ has no effect beyond its variable.
 - `errMalformedFrame` (`var errMalformedFrame = errors.New("grpc: malformed frame")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
 a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
 its variable.
+- `errHeaderListTooLarge` (`var errHeaderListTooLarge = errors.New("connection error: COMPRESSION_ERROR")`): Their initializers call, besides literals of constants and other variables' values: `errors.New` of
+a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
+its variable.
 - `http2ErrCodeNames` (`var http2ErrCodeNames = []string{"NO_ERROR", "PROTOCOL_ERROR", "INTERNAL_ERROR", "FLOW_CONTROL_ERROR", "SETTINGS_TIMEOUT … [sha256:5ad9f0056e461157]`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.
 Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
@@ -2194,6 +2471,7 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc.errTransportClosing", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var // errConnClosing is transport.ErrConnClosing. errTransportClosing = connectionError{Desc: \"transport is closing\"}"⟩,
   ⟨"google.golang.org/grpc.transportFailureCodes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var transportFailureCodes = []codes.Code{ codes.Unavailable, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes … [sha256:f9e600427b6a4a95]"⟩,
   ⟨"google.golang.org/grpc.errMalformedFrame", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errMalformedFrame = errors.New(\"grpc: malformed frame\")"⟩,
+  ⟨"google.golang.org/grpc.errHeaderListTooLarge", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var errHeaderListTooLarge = errors.New(\"connection error: COMPRESSION_ERROR\")"⟩,
   ⟨"google.golang.org/grpc.http2ErrCodeNames", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var http2ErrCodeNames = []string{\"NO_ERROR\", \"PROTOCOL_ERROR\", \"INTERNAL_ERROR\", \"FLOW_CONTROL_ERROR\", \"SETTINGS_TIMEOUT … [sha256:5ad9f0056e461157]"⟩,
   ⟨"google.golang.org/grpc.http2ErrConvTab", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var http2ErrConvTab = []codes.Code{codes.Internal, codes.Internal, codes.Internal, codes.ResourceExhausted, codes.Intern … [sha256:40bfc6fadbf46f27]"⟩,
   ⟨"google.golang.org/grpc.errContextCanceled", "Their initializers call, besides literals of constants and other variables' values:\n`status.New`/`status.Error` of a constant code and message allocate a status (and its error);\n`context.Canceled.Error()`/`DeadlineExceeded.Error()` return constant strings. So each terminates,\ncannot panic and has no effect beyond its variable.", "var errContextCanceled = status.Error(codes.Canceled, context.Canceled.Error())"⟩,
@@ -2212,12 +2490,13 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.sync, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.internal.grpcsync]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.sync, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.internal.grpcsync]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2262,6 +2541,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.stats.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.metadata.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.encoding.binary.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.peer.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3814,7 +4095,7 @@ class clientTransportStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq clientTransportStream.ty clientTransportStream.underlying
   isUnderlying : go.IsUnderlying clientTransportStream.underlying clientTransportStream.underlying
   method_set : go.MethodSetIs clientTransportStream.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientTransportStream.ty) [(go!"BytesReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"TrailersOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Unprocessed", (some (go.signature.Signature [] false [go.bool]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error, go.bool, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), (go.GoType.MapType go.string (go.GoType.SliceType go.string))] false []))), (go!"google.golang.org/grpc.gotMessage", (some (go.signature.Signature [recvMsg.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.handleRSTStream", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [(go.GoType.SliceType headerField.ty), go.bool] false [go.bool]))), (go!"google.golang.org/grpc.readFailed", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.reader", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.waitOnHeader", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientTransportStream.ty) [(go!"BytesReceived", (some (go.signature.Signature [] false [go.bool]))), (go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Context", (some (go.signature.Signature [] false [_root_.Perennial.context.Context.ty]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Header", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.error]))), (go!"Read", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), go.error]))), (go!"ReadMessageHeader", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"RecvCompress", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))]))), (go!"Trailer", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty]))), (go!"TrailersOnly", (some (go.signature.Signature [] false [go.bool]))), (go!"Unprocessed", (some (go.signature.Signature [] false [go.bool]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"google.golang.org/grpc/mem.BufferSlice" []), (go.GoType.PointerType writeOptions.ty)] false [go.error]))), (go!"google.golang.org/grpc.closeStream", (some (go.signature.Signature [go.error, go.bool, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), (go.GoType.MapType go.string (go.GoType.SliceType go.string))] false []))), (go!"google.golang.org/grpc.gotMessage", (some (go.signature.Signature [recvMsg.ty, (go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.handleRSTStream", (some (go.signature.Signature [go.uint32] false []))), (go!"google.golang.org/grpc.headerListTooLarge", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [(go.GoType.SliceType headerField.ty), go.bool] false [go.bool]))), (go!"google.golang.org/grpc.readFailed", (some (go.signature.Signature [go.error] false []))), (go!"google.golang.org/grpc.reader", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.waitOnHeader", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] clientTransportStream.TypeAssumptions.type_repr
   clientTransportStream.TypeAssumptions.underlying
@@ -3884,7 +4165,7 @@ class serverTransport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   get_stream : ∀ (x : serverTransport), go.IsGoStepPureDetTagged under (StructFieldGet serverTransport.underlying go!"stream") #x (Val #(x.stream'))
   set_stream : ∀ (x : serverTransport) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet serverTransport.underlying go!"stream") (PairV #x #y) (Val #(({ x with stream' := y } : serverTransport)))
   method_set : go.MethodSetIs serverTransport.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransport.ty) [(go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Drain", (some (go.signature.Signature [go.string] false []))), (go!"HandleStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))] false []))), (go!"Peer", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)]))), (go!"google.golang.org/grpc.drainReads", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType headerField.ty)] false [(go.GoType.PointerType serverTransportStream.ty), go.bool]))), (go!"google.golang.org/grpc.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.writeEarlyAbort", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), go.uint32] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverTransport.ty) [(go!"Close", (some (go.signature.Signature [go.error] false []))), (go!"Drain", (some (go.signature.Signature [go.string] false []))), (go!"HandleStreams", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType serverTransportStream.ty)] false []))] false []))), (go!"Peer", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.peer.Peer.ty)]))), (go!"google.golang.org/grpc.drainReads", (some (go.signature.Signature [] false []))), (go!"google.golang.org/grpc.operateHeaders", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType headerField.ty)] false [(go.GoType.PointerType serverTransportStream.ty), go.bool]))), (go!"google.golang.org/grpc.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"google.golang.org/grpc.writeEarlyAbort", (some (go.signature.Signature [go.string, (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])), go.uint32] false []))), (go!"google.golang.org/grpc.writeHeaderBlock", (some (go.signature.Signature [go.byte, (go.GoType.SliceType headerField.ty)] false [go.error])))]
 
 attribute [instance] serverTransport.TypeAssumptions.type_repr
   serverTransport.TypeAssumptions.underlying
@@ -6780,6 +7061,11 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   WithUnaryInterceptor_unfold : FuncUnfold WithUnaryInterceptor [] WithUnaryInterceptor.impl
   WithStreamInterceptor_unfold : FuncUnfold WithStreamInterceptor [] WithStreamInterceptor.impl
   WithResolvers_unfold : FuncUnfold WithResolvers [] WithResolvers.impl
+  headerListTooLarge_unfold : FuncUnfold headerListTooLarge [] headerListTooLarge.impl
+  appendOversizedBlock_unfold : FuncUnfold appendOversizedBlock [] appendOversizedBlock.impl
+  appendHeaderBlock_unfold : FuncUnfold appendHeaderBlock [] appendHeaderBlock.impl
+  appendData_unfold : FuncUnfold appendData [] appendData.impl
+  appendReset_unfold : FuncUnfold appendReset [] appendReset.impl
   StaticMethod_unfold : FuncUnfold StaticMethod [] StaticMethod.impl
   Peer_unfold : FuncUnfold Peer [] Peer.impl
   WaitForReady_unfold : FuncUnfold WaitForReady [] WaitForReady.impl
@@ -6802,6 +7088,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_credentials_Assumption : _root_.Perennial.google_golang_org.grpc.credentials.Assumptions
   import_stats_Assumption : _root_.Perennial.google_golang_org.grpc.stats.Assumptions
   import_metadata_Assumption : _root_.Perennial.google_golang_org.grpc.metadata.Assumptions
+  import_binary_Assumption : _root_.Perennial.encoding.binary.Assumptions
   import_peer_Assumption : _root_.Perennial.google_golang_org.grpc.peer.Assumptions
   import_grpcsync_Assumption : _root_.Perennial.google_golang_org.grpc.internal.grpcsync.Assumptions
 
@@ -6934,6 +7221,11 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.WithUnaryInterceptor_unfold
   Assumptions.WithStreamInterceptor_unfold
   Assumptions.WithResolvers_unfold
+  Assumptions.headerListTooLarge_unfold
+  Assumptions.appendOversizedBlock_unfold
+  Assumptions.appendHeaderBlock_unfold
+  Assumptions.appendData_unfold
+  Assumptions.appendReset_unfold
   Assumptions.StaticMethod_unfold
   Assumptions.Peer_unfold
   Assumptions.WaitForReady_unfold
@@ -6956,6 +7248,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_credentials_Assumption
   Assumptions.import_stats_Assumption
   Assumptions.import_metadata_Assumption
+  Assumptions.import_binary_Assumption
   Assumptions.import_peer_Assumption
   Assumptions.import_grpcsync_Assumption
 

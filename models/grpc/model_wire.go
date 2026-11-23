@@ -123,11 +123,16 @@ func readFrameKind(c net.Conn) (byte, error) {
 // are ignored, as before.
 
 // headerListTooLarge reports whether fields' header list is over the receiver's limit (its size
-// counted as HTTP/2 does, stopping once over the limit, so the sum cannot overflow).
+// counted as HTTP/2 does, stopping once over the limit: each addition is of one length to a sum
+// within the limit, so the sum cannot overflow).
 func headerListTooLarge(fields []headerField) bool {
 	var sz uint64
 	for _, f := range fields {
-		sz += 32 + uint64(len(f.Name)) + uint64(len(f.Value))
+		sz += 32 + uint64(len(f.Name))
+		if sz > maxHeaderBlock {
+			return true
+		}
+		sz += uint64(len(f.Value))
 		if sz > maxHeaderBlock {
 			return true
 		}

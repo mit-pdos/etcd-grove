@@ -13,6 +13,7 @@ public import SpecPlan.Spec.PkgInit.net
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.credentials
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.stats
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.metadata
+public import Perennial.Proof.encoding.binary.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.peer
 public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.internal.grpcsync
 

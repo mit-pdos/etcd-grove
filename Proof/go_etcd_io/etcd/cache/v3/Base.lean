@@ -29,6 +29,8 @@ public import Perennial.Proof.fmt
 public import Perennial.Proof.sync
 public import Perennial.Proof.time
 public import Perennial.Proof.io
+-- (phase 7 S2 core) grpc imports `encoding/binary` (the model's frame writers): its package fact
+public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.strings.Base
 public import Proof.k8s_io.utils.third_party.forked.golang.btree.Init
 public import Spec.fmt.ErrorfWrap
