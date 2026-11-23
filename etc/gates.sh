@@ -280,11 +280,24 @@ done
 # jsongen's random-type differential test and refusals run in models' go test (internal/jsongenrand)
 jsoninputs="models/internal/jsondifftest/json.toml:models/internal/jsondifftest/codec:codec
 models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec
-examples/models/jsonetcd/json.toml:examples/models/jsonetcd:jsonetcd"
+examples/models/jsonetcd/json.toml:examples/models/jsonetcd:jsonetcd
+models/internal/jsonpkgtest/json.toml:models/internal/jsonpkgtest:jsonpkgtest"
 for x in $jsoninputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/json/jsongen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
 done
+# (#24 J3) jsongen's same-package methods (JSONModel*, which the encoding/json model's dispatch calls
+# by a value's method set) are reserved: no Go code but the generated json_model_gen*.go files and
+# the model's dispatch (models/encoding/json) names them; the generated methods against the real
+# encoding/json (the netmodel build's test of internal/jsonpkgtest), and in the forks' packages of
+# etc/goose.py's jsonmodel_roots (examples/models/jsonetcd/jsonmodel_forks.py, which also checks the
+# names in the forks at the pins)
+if git grep -nE '\bJSONModel[A-Za-z]*' -- '*.go' ':!old/' ':!**/json_model_gen.go' ':!**/json_model_gen_test.go' \
+     ':!models/encoding/json/' >> "$tmp/nm.log" 2>&1; then
+  echo "models: Go code other than the generated methods names JSONModel* (above)" >> "$tmp/nm.log"; nm=1
+fi
+(cd models && GOWORK=off gotest -tags netmodel ./internal/jsonpkgtest/) >> "$tmp/nm.log" 2>&1 || nm=1
+python3 examples/models/jsonetcd/jsonmodel_forks.py >> "$tmp/nm.log" 2>&1 || nm=1
 for t in $(git grep -l '^\[json\]' -- '*.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$jsoninputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
 done

@@ -23,7 +23,11 @@ export PATH="$GO127/bin:$PATH" GOWORK=off GOTOOLCHAIN=local
 python3 json/jsongen.py internal/jsonvsr/json.toml internal/jsonvsr/codec --pkg codec --check
 ov=$(python3 goroot.py overlay "$M/../.lake/models/overlay-json.json" --pkg encoding/json)
 echo "== real encoding/json"
-go test -count=1 "$@" ./internal/jsonstreamtest/ ./internal/jsonvsr/...
+go test -count=1 "$@" ./internal/jsonstreamtest/ ./internal/jsonvsr/... ./internal/jsonpkgtest/
 echo "== the model (models/encoding/json)"
-go vet -overlay "$ov" -tags netmodel ./internal/jsonstreamtest/ ./internal/jsonvsr/... ./internal/jsondifftest/...
+go vet -overlay "$ov" -tags netmodel ./internal/jsonstreamtest/ ./internal/jsonvsr/... ./internal/jsondifftest/... ./internal/jsonpkgtest/
 go test -count=1 -overlay "$ov" -tags netmodel "$@" ./internal/jsonstreamtest/
+# jsongen's same-package mode under the model's dispatch (its generated json_model_gen_test.go compares
+# the methods with the real encoding/json, so it runs in the real build's netmodel test only: the
+# gates' `go test -tags netmodel` of the package)
+go test -count=1 -overlay "$ov" -tags netmodel -run '^TestDispatch' "$@" ./internal/jsonpkgtest/

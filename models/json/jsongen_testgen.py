@@ -381,6 +381,15 @@ func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any
 		if !reflect.DeepEqual(a, b) {
 			t.Fatalf("Unmarshal(%q) into %s: the real one decoded on a syntax error:\n %#v", data, name, a)
 		}
+		if jtSamePackage {
+			// the method checks validity itself: an error, nothing decoded, no method called
+			var gerr error
+			glog, p := jtCalls(func() { gerr = jsonUnmarshal(data, b) })
+			if p != nil || gerr == nil || len(glog) != 0 || !reflect.DeepEqual(a, b) {
+				t.Fatalf("Unmarshal(%q) into %s: the method on invalid JSON: panic %v, error %v, calls %q, %#v",
+					data, name, p, gerr, glog, b)
+			}
+		}
 		st.decSyntax++
 		return
 	}
@@ -410,9 +419,11 @@ func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any
 func TestJSONEncode(t *testing.T) {
 	r := rand.New(rand.NewSource(jtSeed()))
 	var st jtStats
-	jtCheckEncode(t, &st, nil)
+	if !jtSamePackage {
+		jtCheckEncode(t, &st, nil)
+	}
 	for it := 0; it < 300*jtScale(); it++ {
-		for _, ty := range jtTypes {
+		for _, ty := range jtTest {
 			v := jtRnd(r, ty.t, 0)
 			jtCheckEncode(t, &st, v.Interface())
 			p := reflect.New(ty.t)
@@ -429,7 +440,7 @@ func TestJSONDecode(t *testing.T) {
 	var st jtStats
 	var samples [][]byte
 	for len(samples) < 300 {
-		ty := jtTypes[r.Intn(len(jtTypes))]
+		ty := jtTest[r.Intn(len(jtTest))]
 		if b, err := json.Marshal(jtRnd(r, ty.t, 0).Interface()); err == nil {
 			samples = append(samples, b)
 		}
@@ -437,7 +448,7 @@ func TestJSONDecode(t *testing.T) {
 	samples = append(samples, []byte("null"), []byte("[]"), []byte("{}"), []byte(`"x"`), []byte("7"),
 		[]byte("-7"), []byte("true"), []byte(" [ 1 , 2 ] "), []byte(`{"a":{"b":[]}}`))
 	for it := 0; it < 3000*jtScale(); it++ {
-		ty := jtTypes[r.Intn(len(jtTypes))]
+		ty := jtTest[r.Intn(len(jtTest))]
 		data := samples[r.Intn(len(samples))]
 		if r.Intn(2) == 0 {
 			// the real encoding of a value of the target's type
@@ -460,8 +471,13 @@ func TestJSONDecode(t *testing.T) {
 		jtCheckDecode(t, &st, ty.name, data, mk(), mk())
 	}
 	// not a non-nil pointer: an error from both
-	for _, ty := range jtTypes {
-		for _, v := range []any{nil, reflect.Zero(reflect.PointerTo(ty.t)).Interface(), reflect.Zero(ty.t).Interface()} {
+	for _, ty := range jtTest {
+		vs := []any{nil, reflect.Zero(reflect.PointerTo(ty.t)).Interface(), reflect.Zero(ty.t).Interface()}
+		if jtSamePackage {
+			// the methods: a nil *T only (nil and a non-pointer T go to the registered codec)
+			vs = vs[1:2]
+		}
+		for _, v := range vs {
 			werr := json.Unmarshal([]byte("null"), v)
 			gerr := jsonUnmarshal([]byte("null"), v)
 			if werr == nil || gerr == nil {
@@ -474,7 +490,33 @@ func TestJSONDecode(t *testing.T) {
 '''
 
 
+SAME_PACKAGE = r'''
+// jtSamePackage: the codec is the same-package methods (jsongen_core.py, THE SAME-PACKAGE
+// METHODS); jsonMarshal and jsonUnmarshal dispatch to them as the encoding/json model does.
+const jtSamePackage = true
+
+func jsonMarshal(v any) ([]byte, error) {
+	if m, ok := v.(interface{ JSONModelMarshalPtr(v any) ([]byte, error) }); ok {
+		return m.JSONModelMarshalPtr(v)
+	}
+	if m, ok := v.(interface{ JSONModelMarshal(v any) ([]byte, error) }); ok {
+		return m.JSONModelMarshal(v)
+	}
+	panic(fmt.Sprintf("jsonMarshal: %T has no model method", v))
+}
+
+func jsonUnmarshal(data []byte, v any) error {
+	if u, ok := v.(interface{ JSONModelUnmarshal(data []byte, v any) error }); ok {
+		return u.JSONModelUnmarshal(data, v)
+	}
+	panic(fmt.Sprintf("jsonUnmarshal: %T has no model method", v))
+}
+'''
+
+
 def gen_test_go(S, header, pkg):
+    """json_gen_test.go (program-wide codec, a real build) or, in the same-package mode,
+    json_model_gen_test.go (build tag netmodel: the methods beside the real encoding/json)."""
     rows = []
     for i in S.closure:
         if S.kind(i) == "interface":
@@ -482,10 +524,20 @@ def gen_test_go(S, header, pkg):
         rows.append(f"\t{{{go_str(S.go(i))}, reflect.TypeFor[{S.go(i)}]()}},")
     table = ("// jtTypes: the codec's types.\n"
              "var jtTypes = []struct {\n\tname string\n\tt    reflect.Type\n}{\n" + "\n".join(rows) + "\n}\n")
+    if S.home is None:
+        table += "\n// jtTest: the types tested (all of them).\nvar jtTest = jtTypes\n\nconst jtSamePackage = false\n"
+    else:
+        rows = [f"\t{{{go_str(S.go(i))}, reflect.TypeFor[{S.go(i)}]()}}," for _, i in S.roots]
+        table += ("\n// jtTest: the types tested: the roots (the types with the methods).\n"
+                  "var jtTest = []struct {\n\tname string\n\tt    reflect.Type\n}{\n" + "\n".join(rows) + "\n}\n")
+        table += SAME_PACKAGE
     text = table + STATIC
-    imps = jsongen_core.imports(S, text, ['\t"math/rand"', '\t"os"', '\t"reflect"', '\t"strconv"',
-                                          '\t"strings"', '\t"testing"', ""])
+    extra = ['\t"math/rand"', '\t"os"', '\t"reflect"', '\t"strconv"', '\t"strings"', '\t"testing"', ""]
+    if S.home is not None:
+        extra = ['\t"fmt"'] + extra
+    imps = jsongen_core.imports(S, text, extra)
     if not any("encoding/json" in l for l in imps):
         imps.insert(1, '\tjson "encoding/json"')
-    return (header.rstrip("\n") + "\n\n//go:build !netmodel && !goose\n\n" + f"package {pkg}\n\n" +
+    tag = "!netmodel && !goose" if S.home is None else "netmodel && !goose"
+    return (header.rstrip("\n") + f"\n\n//go:build {tag}\n\n" + f"package {pkg}\n\n" +
             "\n".join(imps) + "\n" + text)

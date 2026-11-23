@@ -11,6 +11,7 @@ public import GeneratedProof.go_etcd_io.etcd.pkg.v3.notify
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.version
 public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_uber_org.zap
+public import Net.GeneratedProof.models_lab.jsoncodec
 public import GeneratedProof.path
 public import Perennial.GeneratedProof.sort
 public import Perennial.GeneratedProof.sync

@@ -142,6 +142,18 @@ class Project:
     # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
     # writes it.
     expand_comment_tabs: bool = False
+    # (mit-pdos/etcd-grove#24, J3) named Go types "import/path.Type" whose same-package JSON methods
+    # (models/json/jsongen.py's same-package mode, jsongen_core.py "THE SAME-PACKAGE METHODS":
+    # `json_model_gen.go`, build tag `goose || netmodel`, methods `JSONModel*`, which the
+    # encoding/json model's Marshal/Unmarshal/Encode/Decode call by the value's method set) the
+    # project's own translation (module root `root`, not its parts) sees. As #37's pbmodel_roots, by
+    # the one mechanism of model files over real packages (`model_overlay`): generated afresh on every
+    # run (so `--check` regenerates them) from the types' reflection dump into the scratch directory,
+    # and handed to goose and proofgen in the project's one `-overlay` file (Perennial 078ceec6f), so
+    # the fork stays upstream's; `models.lab` (the generated code's `jsoncodec`, models/) joins the
+    # workspace. The Go side builds the same program with `-tags netmodel` and that overlay
+    # (examples/models/jsonetcd/jsonmodel_forks.py tests the methods against encoding/json).
+    jsonmodel_roots: list = None
 
     @property
     def env(self):
@@ -370,9 +382,15 @@ PROJECTS = [
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
         module_models={"google.golang.org/grpc": "models/grpc"},
+        # (#24 J3, 2026-11-23) membership's records with the encoding/json model's same-package methods
+        # (`JSONModel*`, over models.lab/jsoncodec: the part Net/'s translation, `models.lab=Net`):
+        # the member records the backend, the v2 store and the conf-change contexts hold
+        jsonmodel_roots=["go.etcd.io/etcd/server/v3/etcdserver/api/membership." + t
+                         for t in ("Member", "RaftAttributes", "Attributes", "ConfigChangeContext")],
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
+                    "models.lab=Net",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=", "os=", "io/fs=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=",
                     "github.com/prometheus/client_model=",
@@ -2344,20 +2362,33 @@ def std_models_env(proj):
                 PATH=os.path.join(farm, "bin") + os.pathsep + os.environ.get("PATH", ""))
 
 
+# The module the generated model files import (`models.lab/jsoncodec`, `models.lab/pbcodec`):
+# Project.jsonmodel_roots (and #37's pbmodel_roots).
+MODEL_MODULE = ("models.lab", "models")
+
+
+def model_files_roots(proj):
+    """Whether the project has model files over its real packages (`model_overlay`)."""
+    return bool(proj.jsonmodel_roots)
+
+
 def module_models_env(proj, src, env, tmp):
     """`env` with the project's module models put in place (Project.module_models): a copy of
     `src`'s go.work (its paths made absolute) or go.mod, in `tmp`, with a `replace` of each modelled
-    module by its model, named by GOWORK or GOFLAGS' -modfile. `env` itself if there are none."""
-    if not proj.module_models:
+    module by its model, named by GOWORK or GOFLAGS' -modfile; and, for a project with model files
+    (`model_files_roots`), models.lab added (a `use` of models/ in a workspace, else a `require` and
+    `replace`). `env` itself if there are none."""
+    if not proj.module_models and not model_files_roots(proj):
         return env
     env = dict(os.environ if env is None else env)
-    reps = {m: os.path.join(ROOT, d) for m, d in sorted(proj.module_models.items())}
+    reps = {m: os.path.join(ROOT, d) for m, d in sorted((proj.module_models or {}).items())}
+    uses = [os.path.join(ROOT, MODEL_MODULE[1])] if model_files_roots(proj) else []
     if os.path.exists(os.path.join(src, "go.work")):
         j = json.loads(subprocess.run(["go", "work", "edit", "-json", "go.work"], cwd=src,
                                       check=True, capture_output=True, text=True).stdout)
         lines = ["go " + j["Go"]] + (["toolchain " + j["Toolchain"]] if j.get("Toolchain") else [])
         lines += ["use ("] + ["\t" + os.path.normpath(os.path.join(src, u["DiskPath"]))
-                              for u in j["Use"]] + [")"]
+                              for u in j["Use"]] + ["\t" + u for u in uses] + [")"]
         for r in j.get("Replace") or []:
             if r["Old"]["Path"] in reps:
                 continue
@@ -2388,9 +2419,69 @@ def module_models_env(proj, src, env, tmp):
             old = r["Old"]["Path"] + ("@" + r["Old"]["Version"] if r["Old"].get("Version") else "")
             edits.append(f"-replace={old}={os.path.normpath(os.path.join(src, new))}")
     edits += [f"-replace={m}={d}" for m, d in reps.items()]
+    if uses:
+        edits += [f"-require={MODEL_MODULE[0]}@v0.0.0-00010101000000-000000000000",
+                  f"-replace={MODEL_MODULE[0]}={uses[0]}"]
     subprocess.run(["go", "mod", "edit"] + edits + [modfile], check=True)
     env["GOFLAGS"] = (env.get("GOFLAGS", "") + " -modfile=" + modfile).strip()
     return env
+
+
+def jsonmodel_entries(proj, src, env, tmp):
+    """Project.jsonmodel_roots: {path in `src`: generated file in `tmp`}, jsongen's same-package
+    `json_model_gen.go` of each package of the roots."""
+    if not proj.jsonmodel_roots:
+        return {}
+    sys.path.insert(0, os.path.join(ROOT, "models", "json"))
+    import jsongen
+    header = (f"// Code generated by jsongen.py (etc/goose.py, project {proj.name}). DO NOT EDIT.\n\n")
+    # the dump (reflection) runs on the toolchain's own standard library, not the models' (std_models:
+    # the encoding/json model's MarshalIndent is not modelled); the workspace with models.lab
+    dtmp = os.path.join(tmp, "jsonmodel-env")
+    os.makedirs(dtmp, exist_ok=True)
+    denv = module_models_env(proj, src, None, dtmp)
+    try:
+        out = jsongen.pkgmodel_files(proj.jsonmodel_roots, src, header, denv, test=False)
+    except jsongen.InputError as e:
+        sys.exit(f"goose.py: {proj.name}: jsongen (same-package mode) failed: {e}")
+    except jsongen.jsongen_core.JsonRefused as e:
+        sys.exit(f"goose.py: {proj.name}: jsongen refused: {e.reasons}")
+    rep = {}
+    for home, (pdir, fs) in sorted(out.items()):
+        for f, c in fs.items():
+            target = os.path.join(pdir, f)
+            if os.path.exists(target):
+                sys.exit(f"goose.py: {proj.name}: {target} exists in the source (the model files are "
+                         "the overlay's only)")
+            o = os.path.join(tmp, "jsonmodel", home.replace("/", "_"), f)
+            os.makedirs(os.path.dirname(o), exist_ok=True)
+            with open(o, "w") as fh:
+                fh.write(c)
+            rep[target] = o
+    return rep
+
+
+# The generators of model files over real packages, merged into the project's one -overlay
+# (`model_overlay`): jsongen's same-package methods here, #37's pbgen pbmodel methods beside them.
+MODEL_FILE_GENERATORS = [jsonmodel_entries]
+
+
+def model_overlay(proj, src, env, tmp):
+    """The project's overlay file (goose's and proofgen's `-overlay`, `go build -overlay`'s JSON):
+    every model file over its real packages (MODEL_FILE_GENERATORS), merged into one; None if
+    there are none. Two generators writing one path is an error."""
+    rep = {}
+    for gen in MODEL_FILE_GENERATORS:
+        for target, f in gen(proj, src, env, tmp).items():
+            if target in rep:
+                sys.exit(f"goose.py: {proj.name}: two model files at {target}")
+            rep[target] = f
+    if not rep:
+        return None
+    overlay = os.path.join(tmp, "model-overlay.json")
+    with open(overlay, "w") as f:
+        json.dump({"Replace": rep}, f, indent=1, sort_keys=True)
+    return overlay
 
 
 def pieces(proj):
@@ -2491,6 +2582,7 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
         # path relative to ROOT -> (new content or None, old content or None)
         new, old = {}, {}
         env = module_models_env(proj, src, std_models_env(proj), out)
+        overlay = model_overlay(proj, src, env, out)
         for i, (root, lean_roots, packages, owned) in enumerate(pieces(proj)):
             lib_dir = os.path.join(ROOT, root)
             piece_out = os.path.join(out, str(i))
@@ -2498,6 +2590,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
             if proj.tags:
                 roots = ["-tags", ",".join(proj.tags)] + roots
+            if overlay and i == 0:
+                roots = ["-overlay", overlay] + roots
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
                 run([os.path.join(bindir, tool)] + roots +
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]

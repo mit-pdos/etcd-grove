@@ -202,6 +202,38 @@ error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else panics,
   - `any`: panics (NotModelled);
   - a pointer, a type with UnmarshalJSON: POINTERS, OWN METHODS.
 
+THE SAME-PACKAGE METHODS (`Schema(..., home=PATH)`, `pkgmodel_go`; mit-pdos/etcd-grove#24, J3). The
+encoding/json model dispatches per type (`models/encoding/json/model.go`): Marshal, Unmarshal,
+Encoder.Encode and Decoder.Decode call a value's own methods JSONModelMarshalPtr, JSONModelMarshal,
+JSONModelUnmarshal when its dynamic type has them, and the registered codec otherwise. In this mode
+the code is emitted into the package PATH itself, as one file `json_model_gen.go` under the build tag
+`goose || netmodel` (a model build only; etc/goose.py hands it to goose by -overlay, so the package's
+source stays upstream's). Its roots are named non-interface types of PATH (unexported ones too: the
+code names PATH's types unqualified); the types they reach in other packages are named through
+aliases of their own (pN_<last element>). It holds the functions above for the roots' closure
+(jencAny, jenc_/jencA_/jdec_ and the helpers, with no jsonMarshal, jsonUnmarshal or registration:
+jencAny's default is a panic, NotModelled) and, per root T:
+  - `func (T) JSONModelMarshal(v any) ([]byte, error)`: for v of dynamic type exactly T, jsonMarshal's
+    case T: `jenc_T(make([]byte, 0), v, 0)`, nil and the error on an error;
+  - `func (*T) JSONModelMarshalPtr(v any) ([]byte, error)`: for v of dynamic type exactly *T,
+    jsonMarshal's case *T: nil gives `null`, else the pointee's encoding, addressable
+    (`jencA_T(.., x, 0)`) where that matters (`Schema.sensitive`), else `jenc_T(.., *x, 0)`; the
+    model asserts this method first, since a nil *T has T's value-receiver method too, which Go's
+    wrapper would dereference;
+  - `func (*T) JSONModelUnmarshal(data []byte, v any) error`: for v of dynamic type exactly *T, the
+    model's Unmarshal with jsonUnmarshal's case *T: a syntax error, nothing decoded, unless
+    jsoncodec.Valid(data) (the model's own check before a codec, `valid`: the same scan); an error
+    for a nil pointer; else `jdec_T(data, 0, p, &err)` and its error.
+  Any other v panics (NotModelled): a type that embeds T (or *T) has T's methods by promotion, and
+  real encoding/json would encode it by its own structure, which these methods do not know. So the
+  methods are exactly the program-wide codec's cases for T and *T, reached by T's method set instead
+  of a type switch: the same emitted functions, the same claim. A non-pointer T given to Unmarshal
+  has no JSONModelUnmarshal (pointer receiver) and goes to the registered codec (an error there, or
+  a panic if it has none), as nil does. The names JSONModel* are reserved: a root (or its pointer)
+  that already has a method of such a name is refused, and the gates check that no other code
+  declares or calls one. A clash of the emitted identifiers (j*, JSONModel*, the aliases) with the
+  package's own is a compile error, never a different program.
+
 WHERE THE CLAIM STOPS (documented deviations, outside "behaves as encoding/json"):
   - error values: only error-or-not is the real one's (*jsoncodec.Error, or a method's own error
     unwrapped, not *SyntaxError, *UnmarshalTypeError, *InvalidUnmarshalError, *MarshalerError, ...). A program that inspects an error's type or
@@ -299,10 +331,19 @@ IFACE_METHOD = {"Marshaler": "MarshalJSON", "Unmarshaler": "UnmarshalJSON", "Tex
 class Schema:
     """The accepted types (by dump id) and roots."""
 
-    def __init__(self, dump, aliases):
+    def __init__(self, dump, aliases, home=None):
         self.t = {e["id"]: e for e in dump["table"]}
         self.reasons = []
+        # the same-package mode (THE SAME-PACKAGE METHODS): the import path of the package the code
+        # is emitted into (its types named unqualified, unexported ones too), or None
+        self.home = home
         self.alias = {"encoding/json": "json"}   # import path -> alias in the generated code
+        if home is not None:
+            # every other package of the dump gets an alias of its own (pN_<last element>)
+            aliases = {a: p for a, p in aliases.items() if p != home}
+            for p in sorted({e["pkg_path"] for e in dump["table"] if e.get("pkg_path")}):
+                if p not in (home, "encoding/json") and p not in aliases.values():
+                    aliases["p%d_%s" % (len(aliases), re.sub(r"\W", "_", p.rsplit("/", 1)[-1]))] = p
         for a, p in aliases.items():
             if p == "encoding/json":
                 self.reasons.append(f"imports: {a} = \"encoding/json\": name encoding/json's types as json.X")
@@ -346,6 +387,8 @@ class Schema:
         """A named type of a package: the codec can name it (alias.Name)."""
         if "[" in e["name"]:
             return self.refuse(where, f"{e['string']} is a generic type (not nameable)")
+        if self.home is not None and e["pkg_path"] == self.home:
+            return True               # the code's own package: named unqualified, unexported too
         if not e["name"][0].isupper():
             return self.refuse(where, f"{e['string']} is unexported (the codec cannot name it)")
         if e["pkg_name"] == "main":
@@ -658,6 +701,12 @@ class Schema:
         where = f"root {expr}"
         if e["kind"] == "ptr":
             return self.refuse(where, "a pointer type (name the type: the codec covers T and *T)")
+        if self.home is not None:
+            if not e["name"] or e["pkg_path"] != self.home or e["kind"] == "interface" or "[" in e["name"]:
+                return self.refuse(where, f"the same-package mode's roots are the non-interface, "
+                                          f"non-generic named types of {self.home}")
+            if any(m.startswith("JSONModel") for m in e.get("method_names", [])):
+                return self.refuse(where, f"{e['string']} already has a JSONModel* method (reserved)")
         if e["kind"] == "struct" and not e["name"]:
             self.unnamed[i] = re.sub(r"\b(\w+)\.", lambda m: self.alias.get(self.alias_in.get(m.group(1), ""),
                                                                             m.group(1)) + ".", expr)
@@ -705,6 +754,8 @@ class Schema:
             return "json.RawMessage"
         if e["kind"] == "interface":
             return "any"
+        if e["name"] and e["pkg_path"] == self.home:
+            return e["name"]
         if e["name"] and e["pkg_path"]:
             return f"{self.alias[e['pkg_path']]}.{e['name']}"
         if e["name"]:
@@ -1075,8 +1126,16 @@ def imports(S, text, extra=()):
 
 
 def codec_go(S, header, pkg):
-    """json_gen.go: the codec of the named types (Goose's)."""
+    """json_gen.go: the codec of the named types (Goose's); in the same-package mode, the body of
+    json_model_gen.go (pkgmodel_go)."""
     ids = [i for i in S.closure if S.goose(i)]
+    body = codec_entry(S, ids) + codec_body(S, ids)
+    text = "\n".join(body)
+    return "\n".join([header.rstrip("\n"), "", f"package {pkg}", ""] + imports(S, text)) + "\n" + text
+
+
+def codec_entry(S, ids):
+    """The program-wide codec's entry points: jsonMarshal, jsonUnmarshal."""
     body = [
         "// jsonMarshal is the codec's Marshal: v's encoding as real encoding/json's Marshal writes it,",
         "// for v nil, a value of one of the codec's types or a basic type, or a pointer to one; any",
@@ -1098,14 +1157,22 @@ def codec_go(S, header, pkg):
     if uc:
         body += ["\tvar err error", "\tswitch p := v.(type) {"] + ["\t" + l for l in uc] + ["\t}"]
     body += ["\tif v == nil {", "\t\treturn &jsoncodec.Error{Msg: \"Unmarshal(nil)\"}", "\t}",
-             "\treturn jsonUnmarshalExtra(data, v)", "}", "",
-             "// jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and",
+             "\treturn jsonUnmarshalExtra(data, v)", "}", ""]
+    return body
+
+
+def codec_body(S, ids):
+    """The codec's functions of the types ids: jencAny, the helpers, jenc_/jencA_/jdec_ per type."""
+    body = ["// jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and",
              "// objects; a type the codec does not know panics (NotModelled).",
              "func jencAny(b []byte, v any, d uint64) ([]byte, error) {",
              "\tif v == nil {", "\t\treturn jsoncodec.AppendRaw(b, \"null\"), nil", "\t}",
              "\tswitch x := v.(type) {"]
     body += ["\t" + l for l in any_cases(S, ids, ANY_BASICS)]
-    body += ["\t}", "\treturn jencAnyExtra(b, v, d)", "}", ""]
+    if S.home is None:
+        body += ["\t}", "\treturn jencAnyExtra(b, v, d)", "}", ""]
+    else:
+        body += ["\t}", "\t" + nm("encoding a value of a type the codec does not know"), "}", ""]
     for g in ANY_BASICS:
         if g in INTS:
             enc = f"jsoncodec.{'AppendInt' if INTS[g][0] else 'AppendUint'}(b, {'int64' if INTS[g][0] else 'uint64'}(*x))"
@@ -1182,8 +1249,55 @@ def codec_go(S, header, pkg):
     for i in ids:
         if S.kind(i) != "interface":
             body += gen_encoder(S, i) + gen_decoder(S, i)
+    return body
+
+
+def model_methods(S, i):
+    """The same-package methods of root i (THE SAME-PACKAGE METHODS)."""
+    g, I = S.go(i), S.idents[i]
+    deref = f"jencA_{I}(make([]byte, 0), x, 0)" if S.sensitive(i) else f"jenc_{I}(make([]byte, 0), *x, 0)"
+    other = lambda m: nm(f"{m} of a value of another type than {g} (a method promoted through embedding)")
+    return [
+        f"// JSONModelMarshal is encoding/json's Marshal of a {g} (the encoding/json model's per-type",
+        "// dispatch, model.go; a model build only).",
+        f"func (jr {g}) JSONModelMarshal(v any) ([]byte, error) {{",
+        f"\tx, ok := v.({g})",
+        "\tif !ok {", "\t\t" + other("JSONModelMarshal"), "\t}",
+        f"\tb, err := jenc_{I}(make([]byte, 0), x, 0)",
+        "\tif err != nil {", "\t\treturn nil, err", "\t}",
+        "\treturn b, nil", "}", "",
+        f"// JSONModelMarshalPtr is encoding/json's Marshal of a *{g} (nil: null).",
+        f"func (jr *{g}) JSONModelMarshalPtr(v any) ([]byte, error) {{",
+        f"\tx, ok := v.(*{g})",
+        "\tif !ok {", "\t\t" + other("JSONModelMarshalPtr"), "\t}",
+        "\tif x == nil {", "\t\treturn jsoncodec.AppendRaw(make([]byte, 0), \"null\"), nil", "\t}",
+        f"\tb, err := {deref}",
+        "\tif err != nil {", "\t\treturn nil, err", "\t}",
+        "\treturn b, nil", "}", "",
+        f"// JSONModelUnmarshal is encoding/json's Unmarshal into a *{g}: a syntax error, nothing decoded,",
+        "// unless data is one valid JSON value with whitespace around it (as the model's Unmarshal",
+        "// checks before a codec); an error for a nil pointer; else the decoding.",
+        f"func (jr *{g}) JSONModelUnmarshal(data []byte, v any) error {{",
+        f"\tp, ok := v.(*{g})",
+        "\tif !ok {", "\t\t" + other("JSONModelUnmarshal"), "\t}",
+        "\tif !jsoncodec.Valid(data) {", "\t\treturn &jsoncodec.Error{Msg: \"invalid JSON input\"}", "\t}",
+        "\tif p == nil {", f"\t\treturn &jsoncodec.Error{{Msg: {go_str('Unmarshal(nil *' + g + ')')}}}", "\t}",
+        "\tvar err error",
+        f"\tjdec_{I}(data, 0, p, &err)",
+        "\treturn err", "}", ""]
+
+
+def pkgmodel_go(S, header, pkg):
+    """json_model_gen.go of the same-package mode: the roots' methods and the codec's functions of
+    their closure, in the package itself, for a model build only (tag goose or netmodel)."""
+    ids = list(S.closure)
+    body = []
+    for _, i in S.roots:
+        body += model_methods(S, i)
+    body += codec_body(S, ids)
     text = "\n".join(body)
-    return "\n".join([header.rstrip("\n"), "", f"package {pkg}", ""] + imports(S, text)) + "\n" + text
+    return "\n".join([header.rstrip("\n"), "", "//go:build goose || netmodel", "", f"package {pkg}", ""]
+                     + imports(S, text)) + "\n" + text
 
 
 def extra_go(S, header, pkg):

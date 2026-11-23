@@ -30,6 +30,21 @@ noncomputable def notModelled.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] notModelled.ty
 
+noncomputable def modelMarshalerPtr.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.modelMarshalerPtr" [])
+
+attribute [irreducible] modelMarshalerPtr.ty
+
+noncomputable def modelMarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.modelMarshaler" [])
+
+attribute [irreducible] modelMarshaler.ty
+
+noncomputable def modelUnmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.modelUnmarshaler" [])
+
+attribute [irreducible] modelUnmarshaler.ty
+
 noncomputable def Unmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Unmarshaler" [])
 
@@ -145,6 +160,9 @@ noncomputable def codec [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def SetCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.SetCodec"
+
+noncomputable def marshalAny [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.marshalAny"
 
 noncomputable def getCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.getCodec"
@@ -302,6 +320,48 @@ class notModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
 attribute [instance] notModelled.TypeAssumptions.underlying
   notModelled.TypeAssumptions.method_set
   notModelled.TypeAssumptions.ptr_method_set
+
+abbrev modelMarshalerPtr [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def modelMarshalerPtr.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"JSONModelMarshalPtr" (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))])
+
+class modelMarshalerPtr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq modelMarshalerPtr.ty modelMarshalerPtr.underlying
+  method_set : go.MethodSetIs modelMarshalerPtr.ty [(go!"JSONModelMarshalPtr", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType modelMarshalerPtr.ty) []
+
+attribute [instance] modelMarshalerPtr.TypeAssumptions.underlying
+  modelMarshalerPtr.TypeAssumptions.method_set
+  modelMarshalerPtr.TypeAssumptions.ptr_method_set
+
+abbrev modelMarshaler [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def modelMarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"JSONModelMarshal" (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))])
+
+class modelMarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq modelMarshaler.ty modelMarshaler.underlying
+  method_set : go.MethodSetIs modelMarshaler.ty [(go!"JSONModelMarshal", (some (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType modelMarshaler.ty) []
+
+attribute [instance] modelMarshaler.TypeAssumptions.underlying
+  modelMarshaler.TypeAssumptions.method_set
+  modelMarshaler.TypeAssumptions.ptr_method_set
+
+abbrev modelUnmarshaler [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def modelUnmarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"JSONModelUnmarshal" (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error]))])
+
+class modelUnmarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq modelUnmarshaler.ty modelUnmarshaler.underlying
+  method_set : go.MethodSetIs modelUnmarshaler.ty [(go!"JSONModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType modelUnmarshaler.ty) []
+
+attribute [instance] modelUnmarshaler.TypeAssumptions.underlying
+  modelUnmarshaler.TypeAssumptions.method_set
+  modelUnmarshaler.TypeAssumptions.ptr_method_set
 
 abbrev Unmarshaler [GooseExts] : Type := GoInterface
 
@@ -632,6 +692,9 @@ attribute [instance] Delim.TypeAssumptions.underlying
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Codec_instance : Codec.TypeAssumptions
   notModelled_instance : notModelled.TypeAssumptions
+  modelMarshalerPtr_instance : modelMarshalerPtr.TypeAssumptions
+  modelMarshaler_instance : modelMarshaler.TypeAssumptions
+  modelUnmarshaler_instance : modelUnmarshaler.TypeAssumptions
   Unmarshaler_instance : Unmarshaler.TypeAssumptions
   UnmarshalTypeError_instance : UnmarshalTypeError.TypeAssumptions
   UnmarshalFieldError_instance : UnmarshalFieldError.TypeAssumptions
@@ -652,6 +715,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
 
 attribute [instance] Assumptions.Codec_instance
   Assumptions.notModelled_instance
+  Assumptions.modelMarshalerPtr_instance
+  Assumptions.modelMarshaler_instance
+  Assumptions.modelUnmarshaler_instance
   Assumptions.Unmarshaler_instance
   Assumptions.UnmarshalTypeError_instance
   Assumptions.UnmarshalFieldError_instance

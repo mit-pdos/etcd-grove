@@ -263,6 +263,13 @@ inst = instances()
 # part's copies of `os`'s initializers). `@` marks a full module name.
 inv['net'] = inventory('Net/Code')['net']
 inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
+# (#24 J3, 2026-11-23) the encoding/json model's same-package methods in membership
+# (`json_model_gen.go`, `etc/goose.py`'s overlay) call `models.lab/jsoncodec`, the part `Net/`'s
+# translation (`models.lab=Net`), with its `IsPkgInit` instance in
+# `Net/Proof/models_lab/jsoncodec/Base.lean` (`True`); its main-tree `Init.lean` is generated here
+# over the main tree's imports, as `net`'s (and as #37's `models_lab.pbcodec`).
+inv['models_lab.jsoncodec'] = inventory('Net/Code')['models_lab.jsoncodec']
+inst['models_lab.jsoncodec'] = [('@Net.Proof.models_lab.jsoncodec.Base', 'iprop(True)')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
