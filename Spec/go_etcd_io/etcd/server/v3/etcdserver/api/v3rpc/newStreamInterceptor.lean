@@ -32,7 +32,9 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- **`newStreamInterceptor(s)`** starts the leader monitor (`monitorLeader`) and returns a stream
-interceptor that weakens the context (`srvStreamInterceptorWOk`, no resource; k8s 7f-4 item 7): it
+interceptor that weakens the context (`srvStreamInterceptorWOk`; k8s 7f-4 item 7), whose resource is
+a level-0 thread token (prove-ps2-cap, 2026-11-23; until then none: `api.IsCapabilityEnabled`
+borrows `enableMapMu`'s reader slot with it, before the handler's call, and gives it back): it
 answers an error without calling the handler if the v3 RPC capability is off, if the member is a
 learner and the method is not `Maintenance/Snapshot`, if the client's API version is not UTF-8, or
 if the client requires a leader and there is none (`ErrGRPCNoLeader`); otherwise it counts the call
@@ -42,8 +44,8 @@ leader, on a `serverStreamWithCtx` whose context is a `cancellableContext` over
 metadata), removed and cancelled when the handler returns. Premises: `newUnaryInterceptor.spec`'s
 (the member id, `lead`, the cluster with the local member kept), `monitorLeader.spec`'s
 (`GoAttach`'s slots, returned; the `stopping` channel; the two configuration fields),
-and `newCancellableContext.spec`'s bound on threads (`runsNoRequireLeader`, unused since item 7, deleted
-at step 6). -/
+and the bound on threads of `newCancellableContext.spec` (`runsNoRequireLeader`, unused since item 7,
+deleted at step 6) and of `IsCapabilityEnabled`'s pool. -/
 abbrev v3rpc.newStreamInterceptor.spec : Prop :=
   ∀ (s c ch : Loc) (mid tm et : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -55,7 +57,7 @@ abbrev v3rpc.newStreamInterceptor.spec : Prop :=
       ⌜threadBound GF ≤ 2 ^ 30⌝ }}
     (App (Val (@! v3rpc.newStreamInterceptor)) (Val #s))
   {{ (ic : GoFunc), RET #ic;
-      srvStreamInterceptorWOk ic iprop(True) ∗ srvGoRes s ∗ srvLgReader s }}
+      srvStreamInterceptorWOk ic (levelTok 0) ∗ srvGoRes s ∗ srvLgReader s }}
 
 end spec
 

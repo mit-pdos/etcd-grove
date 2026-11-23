@@ -2,8 +2,11 @@
 `(*WAL).renameWAL(tmpdirpath)` over `fsExt` (S/wal.go:321-342; W4 of `notes/wal-fsext-plan.md`,
 twelfth session): `Create`'s commit. `os.RemoveAll(w.dir)` (a no-op: `nm` is absent), the rename of
 `nm.tmp` onto `nm` (`os.Rename.specDirSnc`, the update given), then `w.fp = newFilePipeline(w.lg, w.dir,
-SegmentSizeBytes)` and `w.dirFile, err = fileutil.OpenDir(w.dir)`; a failed rename goes to
-`renameWALUnlock` (`os.Rename`'s errors are all `*os.LinkError`).
+SegmentSizeBytes)` and `w.dirFile, err = fileutil.OpenDir(w.dir)`. A failed rename would go to
+`renameWALUnlock` (`os.Rename`'s errors are all `*os.LinkError`); the premise that the file system does not
+fail on the WAL's name and that both names fit (`FsNoErrOn (· = child r nm) ∧ PathFits …`, with
+`os.Rename.specDirSnc`'s error witness) makes that branch unreachable (ledger 2026-11-21: `renameWALUnlock.spec`
+was false as stated). Arm 2 of the post (the retry's reopened WAL) is therefore never taken.
 
 Generic in the update, as `os.Rename.specDirSnc` is: `Create` builds it (`walCreate_osAUnc`, result
 `walCreateQ`); the spec needs of it only that an aborted update's result `U none` rebuilds it (for
@@ -87,7 +90,8 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 /-- **What `renameWAL` needs of its parameters** (see the file header): `dir = r/nm` (of length below
 `2^59`: `newFilePipeline`'s paths); `nm.tmp`
 (`tmp`) holding `J` and `nm` absent in the creating claim `(jr, N, h)`, both names of it; the spine
-law (`Sp` and the program's half of the claim after the rename give two spines to `dir` and `SpR`); an
+law (`Sp` and the program's half of the claim after the rename give two spines to `dir` and `SpR`, and
+the WAL invariant with the new WAL's key, which the pipeline keeps: `newFilePipeline`); an
 aborted update's result rebuilds the update. -/
 def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet) (h : NamesH)
     (lb : Nat) (dq : DFrac) (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF)
@@ -97,7 +101,9 @@ def RenameWALOk (R : Roots) (jr J : Ino) (r dir nm tmp : GoString) (N : NameSet)
   (⊢ ∀ x : Nat × Nat, Sp -∗ notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ U (some x) -∗
       renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb (some x) ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ U (some x) ∗
-      osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x) ∧
+      osPathS R dir dq J ∗ osPathS R dir dq J ∗ SpR x ∗
+      (∃ (C : WalCodec) (Mr : WalMarshal) (jr' : Ino) (r' : GoString) (X : List GoString),
+        walInv (W := W) C Mr R jr' r' ∗ walDirKey (W := W) dir J X)) ∧
   (⊢ U none -∗ osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
       (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb) U)
 
@@ -156,6 +162,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (P : WalPbIn GF)
     (snapi enti : w64) (fd : w64) (fname : GoString) (d : OsFd) (c : w32) (off : w64)
     (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR UH : Nat × Nat → IProp GF),
   RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
+  FsNoErrOn (· = child r nm) ∧ PathFits (child r tmp) ∧ PathFits (child r nm) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
       osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗ osLogLb lb ∗
       osNames jr N (DFrac.own (1 : Qp).half) h ∗

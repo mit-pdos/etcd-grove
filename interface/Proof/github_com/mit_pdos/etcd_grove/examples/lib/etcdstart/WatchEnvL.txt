@@ -30,7 +30,7 @@ theorem etcdstart.watchEnvL_conn [srv_sem :
     [∗list] m ∈ ms, isGrpcStreamMd m.fst go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp m.snd.fst)
     fun md => v3rpc.watchSpec m.snd.fst m.snd.snd (auth.mdTokenOf md)) ∗ □ ∀ i, ⌜i < ms.length⌝ -∗
     client.watchMemberFacts ((etcdstart.watchEnvL m0 ms γr pfx).atIdx i)) ⊢ □ ∀ conn ics, grpcConn
-    conn (List.map (fun x => x.fst) ms) ics [] -∗ client.watchConnFacts (have __src :=
+    conn (List.map (fun x => x.fst) ms) ics [] anyRes -∗ client.watchConnFacts (have __src :=
     etcdstart.watchEnvL m0 ms γr pfx; { R := __src.R, addr := __src.addr, ics := ics, conn := conn,
     wc := __src.wc, pfx := __src.pfx, lg := __src.lg, WM := __src.WM, WL := __src.WL, mem :=
     __src.mem, nm := __src.nm, kv := __src.kv, W := __src.W, memW := __src.memW })
