@@ -302,6 +302,117 @@ theorem wp_erasePend (p : GoSlice) (P : List pend) (i : w64) (hi : 0 ≤ sint.Z 
     iapply HΦ
     rw [hn, List.take_length]
     iframe
+/-- The Go map `m` holds the store state `a`. -/
+def mrep (m : GMap GoString GoString) (a : St) : Prop := ∀ x, m.lookup x = (a x).map Subtype.val
+
+theorem map_eraseIdx' {α β : Type} (g : α → β) (l : List α) (j : Nat) :
+    (l.eraseIdx j).map g = (l.map g).eraseIdx j := by
+  induction l generalizing j with
+  | nil => simp
+  | cons x l ih => cases j <;> simp_all [List.eraseIdx]
+
+theorem erase_first {α : Type} [DecidableEq α] (l : List α) (x : α) (j : Nat)
+    (hj : l[j]? = some x) (hlt : ∀ i < j, l[i]? ≠ some x) : l.erase x = l.eraseIdx j := by
+  induction l generalizing j with
+  | nil => simp at hj
+  | cons y l ih =>
+    cases j with
+    | zero =>
+      simp only [List.getElem?_cons_zero, Option.some.injEq] at hj
+      subst hj; simp
+    | succ j =>
+      have hy : y ≠ x := fun h => hlt 0 (by omega) (by simp [h])
+      rw [List.erase_cons_tail (by simpa using hy), List.eraseIdx_cons_succ,
+        ih j (by simpa using hj) (fun i hi => by simpa using hlt (i + 1) (by omega))]
+
+/-- A put's `pend` determines it. -/
+theorem pendOf_put {y : KIn} (hy : isPut y = true) {k v : GoString} (h : pendOf y = pend.mk k v) :
+    ∃ hk, y = ⟨.put k v, hk⟩ := by
+  obtain ⟨_ | ⟨k', v'⟩, hk'⟩ := y
+  · simp [isPut] at hy
+  · simp only [pendOf, pend.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact ⟨hk', rfl⟩
+
+theorem lookup_mrep {m : GMap GoString GoString} {a : St} (hm : mrep m a) (k : GoString) :
+    m !! k = (a k).map Subtype.val := hm k
+
+theorem mrep_set {m : GMap GoString GoString} {a : St} (hm : mrep m a) (k : GoString) (w : Str8) :
+    mrep (<[k := w.1]> m) (upd a k w) := by
+  intro x
+  by_cases hx : x = k
+  · subst hx; rw [show (<[x := w.1]> m).lookup x = (<[x := w.1]> m) !! x from rfl,
+      GMap.lookup_insert]; simp [upd]
+  · rw [show (<[k := w.1]> m).lookup x = (<[k := w.1]> m) !! x from rfl,
+      GMap.lookup_insert_ne _ _ (Ne.symm hx)]
+    simp [upd, hx]; exact hm x
+
+/-- kit.go's `In` of a store input. -/
+def inOf : KIn → In
+  | ⟨.get k, _⟩ => In.mk false k []
+  | ⟨.put k x, _⟩ => In.mk true k x
+
+/-- What `step` returns: the verdict of `goStep` on the decoded answer, and when it allows the
+step, a state holding `goStep`'s next state. -/
+def stepPost (a : St) (P : List KIn) (i : KIn) (u f : Bool) (w : Str8) (ok : Bool) (s' : State) :
+    IProp GF :=
+  iprop(⌜ok = (goStep a P i (decAns i u f w)).isSome⌝ ∗
+    if ok then ∃ (mp' : Loc) (sl' : GoSlice) (m' : GMap GoString GoString) (a' : St) (P' : List KIn),
+      ⌜s' = State.mk mp' sl' ∧ goStep a P i (decAns i u f w) = some (a', P') ∧ mrep m' a' ∧
+        (∀ x ∈ P', isPut x = true) ∧ P'.length ≤ P.length + 1⌝ ∗
+      ownMap mp' DFrac.discard m' ∗ sl' ↦*□ P'.map pendOf
+    else True)
+
+theorem wp_step (mp : Loc) (sl : GoSlice) (m : GMap GoString GoString) (a : St) (P : List KIn)
+    (hm : mrep m a) (hP : ∀ x ∈ P, isPut x = true) (hlen : P.length < 2 ^ 60)
+    (i : KIn) (u f : Bool) (w : Str8) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ ownMap mp DFrac.discard m ∗ sl ↦*□ P.map pendOf }}
+      (App (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.step))
+        (Val #(State.mk mp sl))) (Val #(inOf i))) (Val #(Out.mk u f w.1)))
+    {{ (ok : Bool) (s' : State), RET (PairV #ok #s'); stepPost a P i u f w ok s' }} := by
+  wp_start as ⟨#Hm, #Hsl⟩
+  have hpm : (P.map pendOf).length < 2 ^ 60 := by simpa using hlen
+  obtain ⟨k | ⟨k, x⟩, hi⟩ := i <;> cases u
+  all_goals simp only [inOf]
+  all_goals wp_auto
+  · -- a get, its answer known
+    sorry
+  · -- a get, unknown
+    iapply HΦ
+    unfold stepPost
+    simp only [decAns, goStep, isPut, ite_true, Option.isSome_some, Bool.false_eq_true, ↓reduceIte]
+    isplitr
+    · ipureintro; first | rfl | trivial
+    iexists mp, sl, m, a, P
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, hm, hP, by omega⟩
+    isplit
+    · iexact Hm
+    · iexact Hsl
+  · -- a put, its answer known
+    sorry
+  · -- a put, unknown
+    wp_apply +noauto wp_pushPend sl (P.map pendOf) k x hpm $$ [$Hsl] as %q Hq
+    iapply fupd_wp
+    imod ownSlice_persist _ _ _ $$ Hq with #Hq
+    imodintro
+    wp_auto
+    iapply HΦ
+    unfold stepPost
+    simp only [decAns, goStep, isPut, ite_true, Option.isSome_some, ↓reduceIte]
+    isplitr
+    · ipureintro; first | rfl | trivial
+    iexists mp, q, m, a, P ++ [⟨.put k x, hi⟩]
+    simp only [List.map_append, List.map_cons, List.map_nil, pendOf]
+    isplitr
+    · ipureintro
+      refine ⟨by simp, by simp, hm, fun y hy => ?_, by simp⟩
+      rcases List.mem_append.1 hy with h | h
+      · exact hP y h
+      · simp only [List.mem_singleton] at h; subst h; rfl
+    isplit
+    · iexact Hm
+    · iexact Hq
 
 end proof
 
