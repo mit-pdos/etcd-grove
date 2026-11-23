@@ -101,3 +101,16 @@ Built on fk-lean1: `Net.Proof.net.rpc.service__call`, `Net.Proof.net.rpc.Results
 `/shared/perennial-160fcf12a`) 271 files up to date; `proof_roots.namespace()`
 `Perennial.EtcdGrove.`; `etc/goose.py`, `etc/gen-init.py` unchanged against the branch's lean base
 76c00a8d81 (origin/lean has since moved on: af67426be3; not merged).
+
+## Landing prep (2026-11-23)
+
+Both sign-offs given by Upamanyu (#8): the trusted commit 3d0cc4bc8b (`OpError.Error`'s Go form)
+and the #8 point (`HandleHTTP_spec`'s premise claims more in meaning; no statement text changes).
+Merged origin/lean 6710e40411 (Perennial ccfeb3895, `/shared/perennial-ccfeb3895`; includes
+dsv-json-main); PkgTables regenerated with gen-init (no changes). Built on fk-lean1 (9122e5cc1f):
+`Net.Proof.net.rpc.service__call`, `Net.Proof.net.rpc.Results` and a scratch module importing the
+six `TopLevelRobustness` (swiftnet, rabianet, epaxosnet, quepaxanet, paxosnet, remote's counter),
+4819 jobs green; `#print axioms` of the six: `propext`, `Classical.choice`, `Quot.sound` each
+(net/rpc's `Results` likewise). Scratch dropped in the next commit. Here: tier-check ok;
+gen-init `--check` up to date; `proof_roots.namespace()` `Perennial.EtcdGrove.`; `etc/goose.py`,
+`etc/gen-init.py` and every `TopLevelRobustness` file equal origin/lean's.
