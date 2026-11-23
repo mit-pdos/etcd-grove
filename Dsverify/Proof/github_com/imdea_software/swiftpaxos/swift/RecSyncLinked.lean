@@ -18,6 +18,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SortedId
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.Key
 public import Perennial.Proof.slices.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.slices.SortFuncOnLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RecKept
 
 @[expose] public section
 

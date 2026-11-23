@@ -26,6 +26,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.hook.OptCondF
 public import Perennial.Proof.sync.atomic.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AllocDesc
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepEqualsV
 
 @[expose] public section
 

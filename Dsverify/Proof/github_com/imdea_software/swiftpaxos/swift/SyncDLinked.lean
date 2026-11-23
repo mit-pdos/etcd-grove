@@ -14,6 +14,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DescFresh
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChan
 
 @[expose] public section
 

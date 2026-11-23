@@ -34,6 +34,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RunAlloc
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.slices.Link
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.ReplyChan
 
 @[expose] public section
 

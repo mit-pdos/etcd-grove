@@ -20,6 +20,7 @@ module
 
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Specs
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.UpsertLDefs
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.ConcurrentMap__UpsertDefs
 
 @[expose] public section
 

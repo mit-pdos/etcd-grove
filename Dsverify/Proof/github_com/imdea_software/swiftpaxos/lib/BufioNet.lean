@@ -43,7 +43,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions] [π : NetProtoGS]
-variable [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF]
 
 theorem tcpConn_ne_reader :
     go.GoType.PointerType net.TCPConn.ty ≠ go.GoType.PointerType bufio.Reader.ty := by
@@ -103,7 +102,7 @@ theorem net_facts :
 
 /-- A connection is an underlying reader of `bufio`, with the end's reader token `recvTokL`
 (the protocol fact of what was read a step later): dsv-bufio's `net.conn_readerOk`. -/
-theorem readerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :
+theorem readerOk_conn [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :
     (isPkgInit (PROP := IProp GF) pkg_id.net ∗ net.rpc.connIface cv cid side) ⊢
       readerOk cv (recvTokL (Gg := hG.goose_globalGS) cid side P) := by
   iintro ⟨#Hpkg, #Hc⟩
@@ -143,7 +142,7 @@ theorem errOrNil_werrAt (err : GoInterface) :
 
 /-- A connection is an underlying writer of `bufio`, with the end's writer token, for a
 prefix-closed protocol. -/
-theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :
+theorem writerOk_conn [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF) :
     (isPkgInit (PROP := IProp GF) pkg_id.net ∗ net.rpc.connIface cv cid side ∗
       prefixClosed (P cid)) ⊢
       writerOk cv (sendTok (Gg := hG.goose_globalGS) cid side P) (P cid) := by
@@ -194,7 +193,7 @@ theorem writerOk_conn (cv : GoInterface) (cid : Nat) (side : Bool) (P : Proto GF
 
 /-- The lab's `net.TCPConn.Write.spec` (`Harness/Spec/net/TCPConn__Write.lean`; its error code
 dropped: no caller here uses it), from `Net/`'s `Conn.Write` and `write_acc`. -/
-theorem _root_.Perennial.net.TCPConn.Write.labProof (c : Loc) (cid : Nat) (side : Bool)
+theorem _root_.Perennial.net.TCPConn.Write.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (c : Loc) (cid : Nat) (side : Bool)
     (b : GoSlice) (bs : List w8) (dq : DFrac) (P : Proto GF) (W : List w8) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ net.ownTCPConn (GF := GF) c cid side ∗
         sendTok (Gg := hG.goose_globalGS) cid side P W ∗ □ P cid (W ++ bs) ∗ b ↦*{dq} bs }}

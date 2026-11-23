@@ -21,6 +21,9 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAck
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableFastAck
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAck
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.ProposeUnmarshal
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableFixed
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.TableAcks
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.Unmarshal
 
 @[expose] public section
 
@@ -78,7 +81,7 @@ theorem tableOk_alloc_h (wp_FA : MFastAck.Unmarshal.specS (hG := hG))
   · intro o; exact (ctxTbl_FA v).trans (newOk_fastAck wp_FA wp_newFA v o)
   · intro o; exact (ctxTbl_V v).trans (newOk_fastAckClient o)
   · intro o; iintro -; iapply newOk_MSlowAck o
-  · intro o; exact (ctxTbl_IO v).trans (newOk_lightSlowAck o)
+  · intro o; exact (ctxTbl_IO v).trans (newOk_lightSlowAck swift.rd.MLightSlowAck.Unmarshal.wp_proof o)
   · intro o; exact (ctxTbl_V v).trans (newOk_acks wp_FA o)
   · intro o; exact (ctxTbl_V v).trans (newOk_optAcks wp_Ack o)
   · intro o; exact (ctxTbl_V v).trans (newOk_reply o)

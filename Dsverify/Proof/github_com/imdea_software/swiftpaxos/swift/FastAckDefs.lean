@@ -100,9 +100,9 @@ theorem swift.wp_qContains_all (i : GoInterfaceOk) (sz : Nat) (mem : w32 → Pro
   iintro %Φ ⟨%Hsz, Hq⟩ HΦ
   icases Hq with (⟨%Hq, -⟩ | ⟨%ql, %s, ⟨%Hq, %Hs, %Hnd, %Hlt, %Hm⟩, -⟩)
   · rcases Hq with h | h <;> cases h
-    · wp_apply replica.Majority.Contains.wp_proof
+    · wp_apply SwiftKitDeps.majContains
       iapply HΦ; itrivial
-    · wp_apply replica.ThreeQuarters.Contains.wp_proof
+    · wp_apply SwiftKitDeps.tqContains
       iapply HΦ; itrivial
   · exact (swift.qAll_noList s mem hm Hlt Hm).elim
 

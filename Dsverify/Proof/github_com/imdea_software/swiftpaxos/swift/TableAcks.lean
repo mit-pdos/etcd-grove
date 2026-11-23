@@ -41,10 +41,6 @@ variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
-  [bufio.Assumptions] in
-omit go_gctx hG sem [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
-  [bufio.Assumptions] in
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem MAcks.Unmarshal.wp_proof (wp_FA : MFastAck.Unmarshal.specS (hG := hG)) :

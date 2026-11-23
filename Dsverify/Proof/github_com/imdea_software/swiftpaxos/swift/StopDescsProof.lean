@@ -176,7 +176,7 @@ theorem swift.Replica.stopDescs.wp_specD
   wp_for HL
   wp_method_call
   try wp_auto
-  wp_apply (github_com.orcaman.concurrent_map.ConcurrentMap.IterCbVP.wp_proof dm1 g.γdc
+  wp_apply (SwiftKitDeps.iterCbVP dm1 g.γdc
       (swift.descR x.γd) _ (swift.roundI g wgs_ptr))
     $$ [Hrd HS Hb Hst wgs] as ⟨Hrd, %nsh, %obs, %vis, -, HR, -⟩
   · iframe Hrd

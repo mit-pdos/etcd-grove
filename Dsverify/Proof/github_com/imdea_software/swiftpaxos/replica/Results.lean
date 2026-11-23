@@ -15,6 +15,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Replic
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.WaitDuration
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WritersLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.Unmarshal
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Table
 
 @[expose] public section
 

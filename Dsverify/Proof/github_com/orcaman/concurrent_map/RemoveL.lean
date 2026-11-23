@@ -106,8 +106,6 @@ theorem ConcurrentMap.RemoveL.wp_proof (wp_GetShardV : ConcurrentMap.GetShardV.s
     iapply HR $$ %k %v' %Hk.2
   iapply HΦ; iexact HQ
 
-theorem ConcurrentMap.wp_RemoveL : ConcurrentMap.RemoveL.spec (GF := GF) :=
-  ConcurrentMap.RemoveL.wp_proof ConcurrentMap.wp_GetShardV
 
 end spec
 

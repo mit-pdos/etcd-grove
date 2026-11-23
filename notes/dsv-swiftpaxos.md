@@ -116,7 +116,57 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, thirteenth session; resume here)
+## State (2026-11-23, fourteenth session: landing preparation; resume here)
+
+Read with the thirteenth session's state below (accurate where this does not say otherwise).
+
+**Merged `origin/lean`** (`d1c432a3ca`, Perennial pin `70706ce5e`; clean merge; `.lake/build` seeded
+from `/shared/etcd-grove-remoteserve`, `.lake/package-overrides.json` at `/shared/perennial-70706ce5e`).
+`etc/gen-init.py` and `etc/dsv/_swiftpaxos_boot.py`: nothing to regenerate.
+`git diff origin/lean -- etc/goose.py etc/gen-init.py`: empty.
+
+**Import tiers: the kit's 230 violations are gone** (`etc/tier-check.py --check`: ok, no new entry,
+baseline and `etc/tier-linking.txt` untouched). Scripts (scratchpad, `swp-*`): `swp-split.py`,
+`swp-phase1.py`, `swp-movelink.py`, `swp-addvars.py`, `swp-lowimports.py`, `swp-prune.py`.
+- **Splits** (mechanical, 83 modules): a proof module `M` imported by a non-linking module became
+  `M` (its `wp_proof*` theorems and what refers to them) + `MDefs` (`MVocab` where `MDefs` existed:
+  `master.RunVocab`, `swift.GetDescWithVocab`) with the rest; importers that use no proof of `M`
+  import `MDefs`. Names and statements unchanged; `private` dropped in the moved part.
+- **Renamed to linking modules** (they compose proofs): `replica.{Conn,Quorum,Writers}Link` ->
+  `*Linked`, `swift.{Desc,NewDesc,HashLog,RecSync,Sync,Table}Link` -> `*Linked`,
+  `swift.SyncLinkD` -> `SyncDLinked`, `swift.TableAllocH` -> `TableAllocLinked`,
+  `swift.client.NewClient` -> `NewClientLinked`.
+- **Linked compositions moved out of proof files**: `slices/SortFuncOnLinked.lean` (the `link`
+  section; `slices.wp_SortFuncOn` = `SortFunc.wp_proofOn` over `wp_SortFuncPhi`, now its hypothesis),
+  `swift/DepHashLinked.lean` (`wp_getDepAndHashes`), `swift/UpdateLogsLinked.lean`
+  (`wp_updateLogs`, `wp_recordLeaderHash`); `MNewLeaderAckN.marshal_proof` inlined in `Link.lean`;
+  cmap's `wp_UpsertVL` into `concurrent_map/Linked.lean`.
+- **Callees as explicit hypotheses** (`(wp_X : X.spec)`, passed by the linking module):
+  `orch.configure`/`orch.New` (`Conf.String`, `Conf.encode`, `mine`, `choose`, `plan`),
+  `master.rcvr` and its `newArg_*` (`GetLeader`, `GetReplicaList`, `Register`),
+  `master.Master.run` and `wp_call_btl`/`wp_call_ping`, `client.Client.call` (`net.rpc.Client.Call.spec`),
+  `swift.Replica.handlePropose` (`Batcher.SendFastAck{,Client}`), `swift.rd.RegisterRPCTable`
+  (three `Unmarshal`s, `WaitDuration.specNil`).
+- **Callees as instance hypotheses** (Prop classes, defs tier, as dsv-epaxos's `Interface/LibDeps`;
+  no `instance` anywhere; closed as local instances in `examples/swiftnet/Link.lean` and
+  `TopLevelRobustness.lean`):
+  - `lib/LibDeps.lean`: `SwiftBufioDeps` (bufio's 7 specs used by `lib/Bufio.lean`) and
+    `SwiftNetDeps` (net's 8, used by `lib/{BufioNet,NetLab,NetConn}.lean`); closed by
+    `lib/LibDepsLinked.lean` (`swiftBufioDeps_holds`, `swiftNetDeps_holds`) from dsv-bufio's and
+    `Net/`'s proofs. They are not premises of the statement.
+  - `InternalDeps.lean`: `SwiftKitDeps` (`client.GhostStep`, the quorums' `Size`/`Contains`, used by
+    the defs modules `swift/GhostSteps.lean` and `replica/MsgSetQ.lean`); closed by
+    `InternalDepsLinked.lean` (`swiftKitDeps_holds`).
+  - The variables are added beside `[SwiftHyps netDistGF]` in every kit Proof module that imports
+    the class module (`[SwiftKitDeps]` only above the modules proving its fields), by `swp-addvars.py`.
+
+**Duplicate names** (dsverify-lab `dups.py` over all Dsverify roots, which load together in the tcb
+gates): the kit's `math.rand.{NewSource,New,Intn}.spec` and `os.signal.NotifyQuiet.spec` clashed with
+dsv-rabia's (`Dsverify/Proof/{math/rand,os/signal}/Spec.lean`). Now `math.rand.NewSource.labSpec`,
+`math.rand.New.labSpec`, `os.signal.NotifyQuietUsr1.spec` (`.wp_hyp` likewise); `Intn.spec` is
+rabia's (the same statement). The remaining hits are docstring words and Perennial's own.
+
+## State (2026-11-23, thirteenth session; superseded where the fourteenth says so)
 
 Read with the twelfth session's state below (accurate where this does not say otherwise).
 

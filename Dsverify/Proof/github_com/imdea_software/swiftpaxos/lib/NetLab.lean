@@ -87,7 +87,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF]
 
 /-- `net`'s `errTimeout` and `poll.ErrDeadlineExceeded`'s values, from `net`'s initialization. -/
 theorem net.et_ed_init :
@@ -106,7 +105,7 @@ theorem net.et_ed_init :
   iframe Het Hed
 
 /-- The lab's `net.DialTimeout.spec` (`"tcp"`), from `Net/`'s and `dial_au`. -/
-theorem net.DialTimeout.labProof (a : GoString) (d : w64) (P Q : Proto GF) :
+theorem net.DialTimeout.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (a : GoString) (d : w64) (P Q : Proto GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.net ∗ addrProto (Gg := hG.goose_globalGS) a P Q }}
       (App (App (App (Val (@! net.DialTimeout)) (Val #(go!"tcp"))) (Val #a)) (Val #d))
     {{ (cv err : GoInterface), RET (PairV #cv #err);
@@ -152,7 +151,7 @@ theorem net.DialTimeout.labProof (a : GoString) (d : w64) (P Q : Proto GF) :
     ipureintro; exact ⟨pe, rfl⟩
 
 /-- The lab's `net.Dial.spec` (`"tcp"`), from `Net/`'s and `dial_au`. -/
-theorem net.Dial.labProof (a : GoString) (P Q : Proto GF) :
+theorem net.Dial.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (a : GoString) (P Q : Proto GF) :
     {{ addrProto (Gg := hG.goose_globalGS) a P Q }}
       (App (App (Val (@! net.Dial)) (Val #(go!"tcp"))) (Val #a))
     {{ (cv err : GoInterface), RET (PairV #cv #err);
@@ -197,7 +196,7 @@ theorem net.Dial.labProof (a : GoString) (P Q : Proto GF) :
 
 /-- The lab's wildcard `Listen` (`net.ListenWild`), over `lisProto` (D21): `Listen("tcp", la)` at a
 listener address `la` whose protocols are `P`, `Q`. -/
-theorem net.Listen.labProof (la : GoString) (P Q : Proto GF) :
+theorem net.Listen.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (la : GoString) (P Q : Proto GF) :
     {{ lisProto (Gg := hG.goose_globalGS) la P Q }}
       (App (App (Val (@! net.Listen)) (Val #(go!"tcp"))) (Val #la))
     {{ (lv er : GoInterface), RET (PairV #lv #er);
@@ -239,7 +238,7 @@ theorem net.Listen.labProof (la : GoString) (P Q : Proto GF) :
 
 /-- `Listen("tcp", la)` at a listener address `la` (`listenOk`), with the right to listen there as
 `Net/`'s `Listen.spec` takes it (the update; models-rpc-http's `rpcLisP_lis` gives it). -/
-theorem net.Listen.labProofU (la : GoString) (hok : listenOk la = true) :
+theorem net.Listen.labProofU [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (la : GoString) (hok : listenOk la = true) :
     {{ |={⊤,∅}=> lisToks (NG (Gg := hG.goose_globalGS)) la ∗
         (lisToks (NG (Gg := hG.goose_globalGS)) la ={∅,⊤}=∗ True) }}
       (App (App (Val (@! net.Listen)) (Val #(go!"tcp"))) (Val #la))
@@ -279,7 +278,7 @@ theorem net.Listen.labProofU (la : GoString) (hok : listenOk la = true) :
 
 /-- The lab's `TCPListener.Accept` (shared listener), over `lisProto` (D21): a new end, the acceptor
 writing `Q`, reading `P`. -/
-theorem net.TCPListener.Accept.labProof (ll : Loc) (lid : w64) (la : GoString) (P Q : Proto GF) :
+theorem net.TCPListener.Accept.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] (ll : Loc) (lid : w64) (la : GoString) (P Q : Proto GF) :
     {{ net.ownListener ll lid la ∗ lisProto (Gg := hG.goose_globalGS) la P Q }}
       (App (Val #(methods (go.GoType.PointerType net.TCPListener.ty) go!"Accept" #ll)) (Val #()))
     {{ (cv err : GoInterface), RET (PairV #cv #err);

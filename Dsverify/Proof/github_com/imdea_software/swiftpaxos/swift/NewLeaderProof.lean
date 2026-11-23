@@ -603,7 +603,8 @@ theorem swift.Replica.handleNewLeader.wp_proofN (rp : Loc) (γ : sp.Names) (γc 
       (swift.descEpS γ γc γm x rp) (fun b => swift.descDF (x.DR γ b)) (swift.stopPS x) γ γc γm x.γl x.γw x.γv x.γd x.γe x.γo
       x.syncN rp x.rr (swift.descPC γ γc γm x rp))
     (wp_SendTo : replica.Sender.SendTo.spec (hG := hG))
-    (hmarsh : swift.MNewLeaderAckN.marshalH (hG := hG)) :
+    (hmarsh : swift.MNewLeaderAckN.marshalH (hG := hG))
+    (wp_stop : swift.replyChan.stop.specR (hG := hG)) :
     swift.Replica.handleNewLeader.specN (hG := hG) rp γ γc γm x := by
   intro l r b s
   iloeb as IH generalizing %l %r %b %s
@@ -703,7 +704,7 @@ theorem swift.Replica.handleNewLeader.wp_proofN (rp : Loc) (γ : sp.Names) (γc 
       icases Hrf with ⟨%t, %fq, %rc, %nl, %bsN, %ppsl, %pp, Ft, FFQ, Frc, Fnl, Fbs, Hnl, FPP, Hpp,
         %Hpp, %Hnlr⟩
       try wp_auto
-      wp_apply (swift.epR_stop_ofD swift.replyChan.stop.wp_proof γ γc γm x rp rc v.propsM)
+      wp_apply (swift.epR_stop_ofD wp_stop γ γc γm x rp rc v.propsM)
         $$ [$Hep $Frc] as ⟨HepH, Frc⟩
       try wp_auto
       wp_apply (swift.Replica.stopDescs.wp_specI γ x rp v.propsM) $$ [$HepH] as Hstp

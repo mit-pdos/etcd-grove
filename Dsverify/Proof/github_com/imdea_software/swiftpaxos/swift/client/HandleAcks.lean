@@ -34,8 +34,6 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps]
 variable [swift.Assumptions] [client.Assumptions] [time.Assumptions] [dlog.Assumptions]
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [swift.Assumptions] [client.Assumptions] [time.Assumptions]
-  [dlog.Assumptions] in
 theorem handleFastAndSlowAcks.wp_proof
     (wp_RegisterReply : client.BufferClient.RegisterReply.specI (hG := hG))
     (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG)) :

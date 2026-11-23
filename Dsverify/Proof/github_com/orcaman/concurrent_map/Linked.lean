@@ -18,6 +18,7 @@ public import Dsverify.Proof.github_com.orcaman.concurrent_map.ConcurrentMap__Is
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.ConcurrentMap__IterCb
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.New
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.UpsertL
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.RemoveL
 
 @[expose] public section
 
@@ -78,6 +79,8 @@ theorem ConcurrentMap.wp_IterCb : ConcurrentMap.IterCb.spec (GF := GF) :=
   ConcurrentMap.IterCb.wp_proof ConcurrentMap.wp_IterCbV
 theorem ConcurrentMap.wp_UpsertVL : ConcurrentMap.UpsertVL.spec (GF := GF) :=
   ConcurrentMap.UpsertVL.wp_proof ConcurrentMap.wp_GetShardV
+theorem ConcurrentMap.wp_RemoveL : ConcurrentMap.RemoveL.spec (GF := GF) :=
+  ConcurrentMap.RemoveL.wp_proof ConcurrentMap.wp_GetShardV
 
 end link
 

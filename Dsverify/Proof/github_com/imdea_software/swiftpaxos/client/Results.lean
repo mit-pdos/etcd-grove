@@ -29,6 +29,20 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Perennial.Proof.bytes.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.Unmarshal
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.LatencyTable__WaitDuration
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.BufferClient__RegisterReply
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Ghost
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Leader
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.MsgSet
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Quorum
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.FastAckObj
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleAcks
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleFastAck
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleLightSlowAck
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.HandleMsgs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.InitCs
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.InitMsgSets
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.Readers
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.client.SHashes
 
 -- PORT: lab imports dropped: Harness.Proof.net.rpc.Client, Harness.Proof.net.TCPConn__Close
 

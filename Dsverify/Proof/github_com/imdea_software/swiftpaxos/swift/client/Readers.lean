@@ -64,15 +64,6 @@ variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.As
 
 set_option goose.wp.extras true
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
-  [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
-  [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF] [SwiftKitDeps] [replica.Assumptions] [client.Assumptions]
-  [time.Assumptions] [dlog.Assumptions] [bytes.Assumptions] [io.Assumptions]
-  [errors.Assumptions] [bufio.Assumptions] [rpc.Assumptions] [replica.defs.Assumptions] in
 theorem RegisterRPCTable.wp_proof
     (wp_LSA : MLightSlowAck.Unmarshal.specI (hG := hG))
     (wp_FAC : MFastAckClient.Unmarshal.specI (hG := hG))

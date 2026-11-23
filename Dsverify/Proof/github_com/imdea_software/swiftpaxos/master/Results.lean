@@ -16,6 +16,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.RunLoop
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Methods
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Register
 public import Net.Proof.net.rpc.Results
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Run
 
 @[expose] public section
 

@@ -246,12 +246,12 @@ theorem swift.wp_qContainsIff [replica.Assumptions] [SwiftNetPkgState netDistGF]
   iintro %Φ ⟨%Hsz, Hq⟩ HΦ
   icases Hq with (⟨%Hq, %Hm⟩ | ⟨%ql, %s, ⟨%Hq, %Hs, %Hnd, %Hlt, %Hm⟩, #Hql⟩)
   · rcases Hq with h | h <;> cases h
-    · wp_apply replica.Majority.Contains.wp_proof
+    · wp_apply SwiftKitDeps.majContains
       iapply HΦ; ipureintro; exact ⟨fun _ => Hm r, fun _ => rfl⟩
-    · wp_apply replica.ThreeQuarters.Contains.wp_proof
+    · wp_apply SwiftKitDeps.tqContains
       iapply HΦ; ipureintro; exact ⟨fun _ => Hm r, fun _ => rfl⟩
   · cases Hq
-    wp_apply replica.Quorum.Contains.wp_proof $$ [$Hql] as -
+    wp_apply SwiftKitDeps.qContains $$ [$Hql] as -
     iapply HΦ; ipureintro; rw [Hm r]; simp
 
 end lemmas

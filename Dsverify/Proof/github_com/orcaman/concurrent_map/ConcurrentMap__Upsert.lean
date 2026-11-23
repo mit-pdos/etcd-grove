@@ -4,6 +4,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/cmap/ConcurrentMap__Ups
 module
 
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Specs
+public import Dsverify.Proof.github_com.orcaman.concurrent_map.ConcurrentMap__UpsertDefs
 
 @[expose] public section
 
@@ -22,10 +23,6 @@ variable [concurrent_map.Assumptions] [sync.Assumptions]
 variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 
 set_option goose.wp.extras true
-
-theorem upsert_old (o : Option GoInterface) (Mk : Option GoInterface) (h : Mk = o) :
-    Mk = (if (decide (o.isSome = true)) = true then some (o.getD interface.nil) else none) := by
-  subst h; cases Mk <;> simp
 
 theorem ConcurrentMap.UpsertV.wp_proof (wp_GetShardV : ConcurrentMap.GetShardV.spec (GF := GF)) :
     ConcurrentMap.UpsertV.spec (GF := GF) := fun m γ R key v cb Q => by

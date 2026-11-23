@@ -69,6 +69,10 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarin
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibDepsLinked
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.InternalDepsLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumOk
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AliveQuorum
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FillAckN
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GetDescWith
 
 @[expose] public section
 
@@ -85,8 +89,8 @@ open Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote
 attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
   GooseGlobalGS.gooseInvGS netShaExts_has netShaExts_hasSha256
 
-/-- The kit's hypotheses on its callees, closed (`lib/LibDepsLinked.lean`,
-`InternalDepsLinked.lean`; CLAUDE.md, "Import tiers"). -/
+-- The kit's hypotheses on its callees, closed (`lib/LibDepsLinked.lean`,
+-- `InternalDepsLinked.lean`; CLAUDE.md, "Import tiers").
 attribute [local instance] swiftBufioDeps_holds swiftNetDeps_holds swiftKitDeps_holds
 
 section srv
@@ -219,7 +223,8 @@ theorem wp_swiftNew : swift.New.spec (hG := hG) := by
                         (swift.Replica.handleMsg.seqSpecD.wp_linked γ γc γm x hstr hDL)
                         (swift.Replica.newDesc.wp_linked x γ γc γm hstr)
                         (swift.Replica.handleDesc.wp_linked γ γc γm x hstr hDL))))
-                  replica.Sender.wp_SendTo (swift.MNewLeaderAckN.marshal_proofP swift.PutVarint.wp_proof)) l r b
+                  replica.Sender.wp_SendTo (swift.MNewLeaderAckN.marshal_proofP swift.PutVarint.wp_proof)
+                  swift.replyChan.stop.wp_proof) l r b
               -- round 25: the descriptor side's arms (DescArms.lean) over `wp_coreD` at
               -- `x.str = cmdStr` (D22 (1), `runInv_str`)
               getDesc := fun xid s => swift.runArm_getDescS rp γ γc γm x
@@ -336,7 +341,7 @@ theorem wp_Client [ρ : RemoteGS] : cnode.Client.spec (hG := hG) :=
       (cnode.newClient.wp_proof γ c hc (awaitConf.wp_proof swNetDeps) cnode.atConf_proof
         cnode.atStart_proof client.claimGhost.wp_proof (cnode.Register.wp_proof net.rpc.SetCodec.wp)
         (cnode.Sys.changeLeaders.wp_proof γ c cnode.atRpc_proof replica.defs.wp_NewBeTheLeaderReply
-          (fun c W a γc γm cc pa btl => master.wp_call_btl c W a γc γm cc pa btl)
+          (fun c W a γc γm cc pa btl => master.wp_call_btl net.rpc.Client.Call.wp c W a γc γm cc pa btl)
           net.rpc.Client.Close.wp))
       (cnode.op.wp_proof γ γk c
         (cnode.Sys.connect.wp_proof γ c hc cnode.hostMaster_proof cnode.portMaster_proof

@@ -21,6 +21,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.P
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClosestPeers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetConn
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Conn
 
 @[expose] public section
 

@@ -88,7 +88,8 @@ theorem MNewLeader.Unmarshal.wp_proof : MNewLeader.Unmarshal.specI (hG := hG) :=
 
 /-! ## The entries -/
 
-theorem unmarshalOk_lightSlowAck (l : Loc) (v : swift.MLightSlowAck) :
+theorem unmarshalOk_lightSlowAck (wp_LSA : swift.rd.MLightSlowAck.Unmarshal.specI (hG := hG))
+    (l : Loc) (v : swift.MLightSlowAck) :
     ctxIO ∗ l ↦ v ⊢ sp.unmarshalOk (W8 12) (swift.msgRep (W8 12))
       (interface.mkOk (go.GoType.PointerType swift.MLightSlowAck.ty) #l) := by
   unfold ctxIO
@@ -99,7 +100,7 @@ theorem unmarshalOk_lightSlowAck (l : Loc) (v : swift.MLightSlowAck) :
   · ipureintro; rfl
   iintro %br %rd %I %R %Φ #Hrd - Hown HΦ
   ihave #Hrs := bufio.bufioReadsOk br rd I $$ [$Hbuf $Hrd]
-  wp_apply swift.rd.MLightSlowAck.Unmarshal.wp_proof l v _ (bufio.ownReader br rd I) R $$
+  wp_apply wp_LSA l v _ (bufio.ownReader br rd I) R $$
     [$Hio $Hrs $Hown $Hl] as %err ⟨%data, Hown, Hres⟩
   icases Hres with (⟨%He, %s, %Hd, Hl⟩ | ⟨%He, -⟩)
   · iapply HΦ $$ Hown
@@ -147,14 +148,15 @@ theorem unmarshalOk_newLeader (l : Loc) (v : swift.MNewLeader) :
     iright
     ipureintro; exact He
 
-theorem newOk_lightSlowAck (o : Loc) :
+theorem newOk_lightSlowAck (wp_LSA : swift.rd.MLightSlowAck.Unmarshal.specI (hG := hG))
+    (o : Loc) :
     ctxIO ⊢ sp.newOk (W8 12) (swift.msgRep (W8 12))
       (interface.mkOk (go.GoType.PointerType swift.MLightSlowAck.ty) #o) := by
   apply newOk_of _ _ _ o ctxIO (fun l => iprop(l ↦ (zero_val swift.MLightSlowAck)))
   · iintro %Φ - HΦ
     iapply wp_New_MLightSlowAck o $$ [] HΦ
     itrivial
-  · intro l; exact unmarshalOk_lightSlowAck l _
+  · intro l; exact unmarshalOk_lightSlowAck wp_LSA l _
 
 theorem newOk_newLeader (o : Loc) :
     ctxIO ⊢ sp.newOk (W8 16) (swift.msgRep (W8 16))

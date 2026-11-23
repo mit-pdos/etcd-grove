@@ -40,6 +40,14 @@ public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.bytes.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BatcherFast
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Linked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcceptL
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.AcksCommon
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DepEqualsPerm
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.DrainStops
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.FastAckCallees
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleDescProof
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandleMsg
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.HandlePropose
 
 @[expose] public section
 

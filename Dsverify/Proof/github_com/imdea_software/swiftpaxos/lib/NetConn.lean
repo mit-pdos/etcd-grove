@@ -27,7 +27,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
-variable [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF]
 
 /-- The lab's `net.isTCPAddr`: a non-`nil` `*TCPAddr`. -/
 def net.isTCPAddr (ad : GoInterface) : Prop :=
@@ -47,7 +46,7 @@ abbrev net.TCPConn.Close.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType net.TCPConn.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; True }}
 
-theorem net.TCPConn.RemoteAddr.labProof : net.TCPConn.RemoteAddr.spec (GF := GF) := by
+theorem net.TCPConn.RemoteAddr.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] : net.TCPConn.RemoteAddr.spec (GF := GF) := by
   intro c cid side
   iintro %Φ Hc HΦ
   unfold net.ownTCPConn
@@ -62,7 +61,7 @@ theorem net.TCPConn.RemoteAddr.labProof : net.TCPConn.RemoteAddr.spec (GF := GF)
   iapply HΦ
   ipureintro; exact ⟨p, Hra⟩
 
-theorem net.TCPConn.Close.labProof : net.TCPConn.Close.spec (GF := GF) := by
+theorem net.TCPConn.Close.labProof [github_com.imdea_software.swiftpaxos.SwiftNetDeps GF] : net.TCPConn.Close.spec (GF := GF) := by
   intro c cid side
   iintro %Φ ⟨-, Hc⟩ HΦ
   unfold net.ownTCPConn

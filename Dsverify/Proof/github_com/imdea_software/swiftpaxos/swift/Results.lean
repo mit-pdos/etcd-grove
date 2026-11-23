@@ -34,6 +34,8 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalO
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MarshalFac
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.PutVarint
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncLinked
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Table
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.BeTheLeader
 
 @[expose] public section
 

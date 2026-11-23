@@ -277,9 +277,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [bufio.Assumptions] [io.Assumptions]
-variable [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 
-theorem NewWriter.labProof : NewWriter.labSpec (GF := GF) := by
+theorem NewWriter.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : NewWriter.labSpec (GF := GF) := by
   intro wr J Q W
   iintro %Φ ⟨#Hpkg, #Hwr, HJ, #HQ⟩ HΦ
   iunfold writerOk at Hwr
@@ -293,7 +292,7 @@ theorem NewWriter.labProof : NewWriter.labSpec (GF := GF) := by
   iexists e, Ew, 4096
   iframe Hown; ipureintro; rfl
 
-theorem Writer.Flush.labProof : Writer.Flush.labSpec (GF := GF) := by
+theorem Writer.Flush.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Writer.Flush.labSpec (GF := GF) := by
   intro bw wr J Q sent pend err
   iintro %Φ ⟨-, -, Hown⟩ HΦ
   iunfold ownWriter at Hown
@@ -309,7 +308,7 @@ theorem Writer.Flush.labProof : Writer.Flush.labSpec (GF := GF) := by
   iexists e, Ew, sz
   iframe Hown; ipureintro; exact He
 
-theorem Writer.WriteByte.labProof : Writer.WriteByte.labSpec (GF := GF) := by
+theorem Writer.WriteByte.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Writer.WriteByte.labSpec (GF := GF) := by
   intro bw wr J Q sent pend err c
   iintro %Φ ⟨-, -, Hown, #HQ⟩ HΦ
   iunfold ownWriter at Hown
@@ -327,7 +326,7 @@ theorem Writer.WriteByte.labProof : Writer.WriteByte.labSpec (GF := GF) := by
   iexists e, Ew, sz
   iframe Hown; ipureintro; exact He
 
-theorem Writer.Write.labProof : Writer.Write.labSpec (GF := GF) := by
+theorem Writer.Write.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Writer.Write.labSpec (GF := GF) := by
   intro bw wr J Q sent pend err p dq ps
   iintro %Φ ⟨-, -, Hown, #HQ, Hp⟩ HΦ
   iunfold ownWriter at Hown
@@ -347,7 +346,7 @@ theorem Writer.Write.labProof : Writer.Write.labSpec (GF := GF) := by
   iexists e, Ew, sz
   iframe Hown; ipureintro; exact He
 
-theorem Writer.WriteByte_err.labProof : Writer.WriteByte_err.labSpec (GF := GF) := by
+theorem Writer.WriteByte_err.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Writer.WriteByte_err.labSpec (GF := GF) := by
   intro bw wr J Q sent pend err c herr
   iintro %Φ Hown HΦ
   iunfold ownWriter at Hown
@@ -362,7 +361,7 @@ theorem Writer.WriteByte_err.labProof : Writer.WriteByte_err.labSpec (GF := GF) 
   iexists e, Ew, sz
   iframe Hown; ipureintro; exact He
 
-theorem Writer.Write_err.labProof : Writer.Write_err.labSpec (GF := GF) := by
+theorem Writer.Write_err.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Writer.Write_err.labSpec (GF := GF) := by
   intro bw wr J Q sent pend err p dq ps herr
   iintro %Φ ⟨Hown, Hp⟩ HΦ
   iunfold ownWriter at Hown
@@ -404,7 +403,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [bufio.Assumptions] [io.Assumptions]
-variable [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF]
 
 theorem errWf_of_ptrTyped {e : GoInterface} (h : io.ptrTyped e) : errWf e :=
   fun ii hi T hT => h ii T hi hT
@@ -470,7 +468,7 @@ theorem errAt_errOrNil (E : List w8 → GoInterface → IProp GF) (r : List w8) 
     icases HE $$ H with ⟨#Ha, %Hw⟩
     iframe Ha; ipureintro; exact Hw
 
-theorem NewReader.labProof : NewReader.labSpec (GF := GF) := by
+theorem NewReader.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : NewReader.labSpec (GF := GF) := by
   intro rd I R
   iintro %Φ ⟨#Hpkg, #Hrd, HI⟩ HΦ
   iunfold readerOk at Hrd
@@ -519,7 +517,7 @@ theorem readByte_post (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) (
     iframe HE Hown
     ipureintro; exact hrd
 
-theorem Reader.ReadByte_wf.labProof : Reader.ReadByte_wf.labSpec (GF := GF) := by
+theorem Reader.ReadByte_wf.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Reader.ReadByte_wf.labSpec (GF := GF) := by
   intro br rd I R
   iintro %Φ ⟨#Hpkg, -, Hown⟩ HΦ
   ihave #Hio := EtcdGrove.bufio.io_init_of_bufio $$ Hpkg
@@ -531,7 +529,7 @@ theorem Reader.ReadByte_wf.labProof : Reader.ReadByte_wf.labSpec (GF := GF) := b
   iapply HΦ
   iapply readByte_post br rd I R ri E hrd c err $$ [$Hio $HE $Hr]
 
-theorem Reader.ReadByte.labProof : Reader.ReadByte.labSpec (GF := GF) := by
+theorem Reader.ReadByte.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Reader.ReadByte.labSpec (GF := GF) := by
   intro br rd I R
   iintro %Φ ⟨#Hpkg, #Hrd, Hown⟩ HΦ
   wp_apply Reader.ReadByte_wf.labProof br rd I R $$ [$Hpkg $Hrd $Hown] as %c %err Hr
@@ -540,7 +538,7 @@ theorem Reader.ReadByte.labProof : Reader.ReadByte.labSpec (GF := GF) := by
   · ileft; iexact H
   · iright; iframe Ha Hown; ipureintro; exact h
 
-theorem Reader.Read.labProof : Reader.Read.labSpec (GF := GF) := by
+theorem Reader.Read.labProof [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] : Reader.Read.labSpec (GF := GF) := by
   intro br rd I R p ps
   iintro %Φ ⟨#Hpkg, -, Hown, Hp⟩ HΦ
   ihave #Hio := EtcdGrove.bufio.io_init_of_bufio $$ Hpkg
@@ -564,7 +562,7 @@ theorem Reader.Read.labProof : Reader.Read.labSpec (GF := GF) := by
   ipureintro; exact hp
 
 /-- A `*bufio.Reader` (as an `io.Reader`) reads its stream (the lab's `bufio.bufioReadsOk`). -/
-theorem bufioReadsOk (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) :
+theorem bufioReadsOk [github_com.imdea_software.swiftpaxos.SwiftBufioDeps GF] (br : Loc) (rd : GoInterface) (I : List w8 → IProp GF) :
     (isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ readerOk rd I) ⊢
       readsOk (interface.mkOk (go.GoType.PointerType bufio.Reader.ty) #br) (ownReader br rd I) := by
   iintro ⟨#Hpkg, -⟩

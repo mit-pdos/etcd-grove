@@ -11,6 +11,9 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSystem
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSubsets
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumArith
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumMaps
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.QuorumSet
 
 @[expose] public section
 
