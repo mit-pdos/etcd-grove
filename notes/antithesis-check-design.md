@@ -517,6 +517,16 @@ one budget, stated over the Lean state:
   log `L1 = SubSeq(L0, 1, first - 1) \o es` is no longer than the leader log its fact was sendable
   from, a configuration grows by one entry's change per report), so no law needs history.
 - Monotone: `State.Within.mono` (and per part), `State.BoundedFor.bounded` (`StateLaws.lean`).
+- **Reviewed (2026-11-23, one fresh read of the budget and its laws):** one first-tier problem, fixed:
+  `MemResult.Within` and `OnDisk.Within` carried shape (`r.role`/`r.config`/`r.confAt`, `x.ro` one
+  entry per server), which `State.Within` does not give (a one-server config with empty per-server
+  lists made `InMemoryWithin` false). The budget now carries no shape: `ro.length = |server|` is in
+  `onDiskRO` and `State.OnDisk.spec`'s premise (from `stateRO`'s `State.Wf` at the call). Every other
+  law held under attack (`OnDiskWithin`'s new log fits within `b`; facts within `2b`; configurations
+  within `|initVoters| + b·E`; the `±2^62` arithmetic). Notes for the provers: `granted`/`acked` no
+  longer than `server` is `InMemory`'s proof's (not `InMemoryWithin`'s); `ConfOf.Bounded` needs
+  `|l| ≤ b` at each call; `Checker.Next.spec`'s post does not give the budget, so W7 carries it in
+  pure Lean from `c.next ev = .ok c'`.
 
 **Other shared laws added (`StateLaws.lean`)**: `wp_set_i`/`stateFields_with_i` (`Step`'s
 `ns.I = s.I + 1`); lengths `strsRO_len`, `intsRO_len`, `msgsRO_len`, `qitemsRO_len`, `factsRO_len`,

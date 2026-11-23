@@ -233,10 +233,12 @@ def State.BoundedFor (s : State) (ev : Event) : Prop :=
 def InMem.Bounded (x : InMem) : Prop := x.s.BoundedFor x.ev
 
 /-- `OnDisk`'s arguments within budget `b` (`Ready` passes `InMemory`'s result, within
-`b + ev.size + 1`; `Write`, `Flush` the state's own fields and its queued item, within `b`). -/
+`b + ev.size + 1`; `Write`, `Flush` the state's own fields and its queued item, within `b`). No
+shape: `ro`'s length is `onDiskRO`'s and `State.OnDisk`'s own premise. `vi.length ≤ b + 3` is for
+the Go (`violAdd`'s `len + 1`, up to four times), not the laws. -/
 def OnDisk.Within (b E : Nat) (x : OnDisk) : Prop :=
   x.s.Within b E ∧ x.q.ev.Within b E ∧ x.q.m.length ≤ b ∧ (∀ m ∈ x.q.m, m.Within b E) ∧
-  x.ro.length = x.s.cfg.server.length ∧ x.ld.length ≤ b ∧ (∀ l ∈ x.ld, bigOk l.term) ∧
+  x.ld.length ≤ b ∧ (∀ l ∈ x.ld, bigOk l.term) ∧
   x.ll.length ≤ b ∧ (∀ p ∈ x.ll, bigOk p.1 ∧ logWithin b E p.2) ∧ logWithin b E x.ch ∧
   termIntsWithin b x.tl ∧ x.vi.length ≤ b + 3
 
@@ -246,14 +248,13 @@ def OnDisk.Bounded (x : OnDisk) : Prop :=
   ∃ b E : Nat, ((b + 1 : Nat) : Int) < numBound ∧ x.Within b E
 
 /-- `InMemory`'s result within budget `b` (`InMemoryWithin`'s conclusion, `Ready`'s and `Mem`'s
-use of it): per-server lists of one entry per server, the rest as `State.Within`'s, its `viol` at
-most three names more than the state's. -/
+use of it): as `State.Within`'s, its `viol` at most three names more than the state's. No shape
+(per-server lengths): that comes from `stateRO`'s `State.Wf`, in the specs that need it. -/
 def MemResult.Within (b E : Nat) (s : State) (r : MemResult) : Prop :=
-  r.role.length = s.cfg.server.length ∧ r.leaders.length ≤ b ∧ (∀ l ∈ r.leaders, bigOk l.term) ∧
+  r.leaders.length ≤ b ∧ (∀ l ∈ r.leaders, bigOk l.term) ∧
   r.ledLog.length ≤ b ∧ (∀ p ∈ r.ledLog, bigOk p.1 ∧ logWithin b E p.2) ∧
   r.ledConf.length ≤ b ∧ (∀ p ∈ r.ledConf, bigOk p.1 ∧ confWithin s.cfg.initVoters.length b E p.2) ∧
-  r.config.length = s.cfg.server.length ∧ (∀ c ∈ r.config, confWithin s.cfg.initVoters.length b E c) ∧
-  r.confAt.length = s.cfg.server.length ∧ (∀ x ∈ r.confAt, bigOk x) ∧
+  (∀ c ∈ r.config, confWithin s.cfg.initVoters.length b E c) ∧ (∀ x ∈ r.confAt, bigOk x) ∧
   termIntsWithin b r.ledAt ∧ termIntsWithin b r.elAt ∧ termIntsWithin b r.termLen ∧
   logWithin b E r.chain ∧ r.viol.length ≤ s.viol.length + 3
 
@@ -646,11 +647,13 @@ def inMemRO (g : G.inMem) (x : InMem) : IProp GF :=
     ⌜sint.Z g.n' = (x.n : Int) ∧ x.n < x.s.cfg.server.length ∧ x.Bounded⌝)
 
 /-- A Go `onDisk` (a value: `OnDisk`'s `x`) holding `x`: its state, item and arguments read-only,
-its server a position, within budget (`OnDisk.Bounded`). -/
+its server a position, `ro` one role per server (the Go's `ro[n]`), within budget
+(`OnDisk.Bounded`). -/
 def onDiskRO (g : G.onDisk) (x : OnDisk) : IProp GF :=
   iprop(stateRO g.s' x.s ∗ qitemRO g.q' x.q ∗ strsRO g.ro' x.ro ∗ leadersRO g.ld' x.ld ∗
     termLogsRO g.ll' x.ll ∗ logRO g.ch' x.ch ∗ termIntsRO g.tl' x.tl ∗ strsRO g.vi' x.vi ∗
-    ⌜sint.Z g.n' = (x.n : Int) ∧ x.n < x.s.cfg.server.length ∧ g.more' = x.more ∧ x.Bounded⌝)
+    ⌜sint.Z g.n' = (x.n : Int) ∧ x.n < x.s.cfg.server.length ∧ g.more' = x.more ∧
+      x.ro.length = x.s.cfg.server.length ∧ x.Bounded⌝)
 
 /-- A Go `*Checker` holding `c`, owned (`Next` writes it): its state read-only, its verdict. -/
 def checkerOwn (p : Loc) (c : Checker) : IProp GF :=

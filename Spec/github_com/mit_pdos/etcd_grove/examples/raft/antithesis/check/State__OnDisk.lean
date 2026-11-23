@@ -34,7 +34,8 @@ abbrev State.OnDisk.spec : Prop :=
       logRO chl ch ∗
       termIntsRO tll tl ∗
       strsRO vil vi ∗
-      ⌜0 ≤ sint.Z n ∧ sint.Z n < s.cfg.server.length ∧ OnDisk.Bounded { s, n := sint.nat n, q, more, ro, ld, ll, ch, tl, vi } ∧
+      ⌜0 ≤ sint.Z n ∧ sint.Z n < s.cfg.server.length ∧ ro.length = s.cfg.server.length ∧
+        OnDisk.Bounded { s, n := sint.nat n, q, more, ro, ld, ll, ch, tl, vi } ∧
         s.onDisk (sint.nat n) q more ro ld ll ch tl vi = .ok o⌝ }}
     (App (App (App (App (App (App (App (App (App (Val (p @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.ty @!! go!"OnDisk")) (Val #n)) (Val #gq)) (Val #more)) (Val #rol)) (Val #ldl)) (Val #lll)) (Val #chl)) (Val #tll)) (Val #vil))
   {{ (q' : Loc) (ok : Bool), RET (PairV #q' #ok); succOwn q' ok o }}
