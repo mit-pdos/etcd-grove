@@ -637,6 +637,18 @@ owned `S1→S2`, masterproto at `S2`, ends at `gNo`), then `gNo` until `wp_gryff
 The generator asserts the import order it relies on. The master (server1) runs the same boot
 (it also initializes gryff; its `gryffGlobals ∗ bootProph` are dropped).
 
+**`wire.BinaryVarintHyps` vs Perennial #689 (`binary-varint`, 99560b12c; coordinator):** kept as
+a premise until that lands and reaches the pin. The switch is mechanical: `putUvarint`/`putVarint`
+are `encoding.binary.PutUvarint.spec`/`PutVarint.spec` (`buf ↦* xs` ↔ this class's
+`typedPointsto p (array.mk n vs)` of a full slice `slice.mk p n n`; `Wire/Enc.lean`'s `varintEnc x := uvarintEnc (zigzag x)`, as Perennial's; the class's extra
+`0 ≤ x` premise drops); `readUvarint`/
+`readVarint` are `ReadUvarint.spec`/`ReadVarint.spec` at `ri` the `*bufio.Reader`, `S :=
+ownReader br rd I` and `io.byteReaderOk` from dsv-bufio's `Reader.ReadByte.spec` (the error cases
+`uvarintRes` → this class's `rdErr`, overflow included via `errOverflow_of_init`, which replaces
+`errOverflowVar`); `Wire/Enc.lean`'s `uvarintEnc`, `zigzag` and `Wire/Proof/Varint.lean`'s `uvarintDec` are
+textually Perennial's (`Varint.lean` was ported from them; checked), so they are replaced by Perennial's names. Not
+done now: our Perennial pin has neither the definitions nor `io.byteReaderOk`.
+
 **Link files (coordinator's lesson):** only the kit's top-level `Link.lean` (namespace
 `Perennial.EtcdGrove.dsvgryff`) may be named `Link.lean`: `Replica2/Link.lean` and `H2a/Link.lean`
 are now `Results.lean` (linking tier); `proof_roots.namespace()` prints `Perennial.EtcdGrove.`.

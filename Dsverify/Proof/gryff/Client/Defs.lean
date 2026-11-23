@@ -25,6 +25,7 @@ module
 public import Dsverify.Proof.gryff.Shares
 public import Dsverify.Proof.gryff.Client.Bufio
 public import Dsverify.Proof.gryff.N.ConnLaws
+public import Dsverify.Proof.gryff.Proto.WireLaws
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 
 @[expose] public section
@@ -67,9 +68,16 @@ abbrev connWSt (tc : Loc) (la ra ed : GoInterface) : wire.WSt GF :=
 abbrev connRSt (tc : Loc) (la ra eof ed : GoInterface) : wire.RSt GF :=
   ⟨Perennial.net.connIface tc, Perennial.net.connReadE eof la ra ed⟩
 
+/-- `m` is one reply as a replica writes it to a client: an opcode and the message (the lab's
+`Client/Base.lean`). -/
+def replyShape (m : List w8) : Prop :=
+  (∃ r : wire.gryffproto.ReadReply.Msg, m = gryffReadReply :: wire.gryffproto.ReadReply.enc r) ∨
+  (∃ r : wire.gryffproto.WriteReply.Msg, m = gryffWriteReply :: wire.gryffproto.WriteReply.enc r) ∨
+  (∃ r : wire.gryffproto.RMWReply.Msg, m = gryffRMWReply :: wire.gryffproto.RMWReply.enc r)
+
 /-- `R` is whole replies: messages a replica wrote to a client (`clientReplyOk`'s shapes). -/
 def repliesOk (R : List w8) : Prop :=
-  ∃ ms : List (List w8), R = ms.flatten ∧ ∀ m ∈ ms, m ≠ []
+  ∃ ms : List (List w8), R = ms.flatten ∧ ∀ m ∈ ms, replyShape m
 
 /-- Client `c`'s open connection, in its `*client`'s state `v`: see the file header. -/
 def connOk (γ : GryffNames GF) (c : Nat) (v : examples.gryffnet.client) : IProp GF :=
@@ -77,7 +85,7 @@ def connOk (γ : GryffNames GF) (c : Nat) (v : examples.gryffnet.client) : IProp
       (R body sent pend : List w8) (r : Int),
     ⌜v.conn' = interface.mkOk (go.GoType.PointerType Perennial.net.TCPConn.ty) #tc ∧
       a = replicaOf c ∧ 1 ≤ uint.nat v.gen' ∧ v.id' = gid c (uint.nat v.gen' - 1) ∧
-      sent ++ pend = u32Le v.id' ++ body ∧ r ≤ sint.Z v.seq' + 1⌝ ∗
+      sent ++ pend = u32Le v.id' ++ body ∧ r ≤ sint.Z v.seq' + 1 ∧ repliesOk R⌝ ∗
     Perennial.net.connAt tc cn false a la ra ∗ globalAddr io.EOF ↦□ eof ∗
     globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗
     wire.ownReader v.r' (connRSt tc la ra eof ed)
