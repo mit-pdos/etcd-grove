@@ -221,7 +221,18 @@ the state package waits on one of three library pieces:
    ServeHTTP's response) followed by frames: the model's `isClient` over `rpcAddr` (frames from
    byte 0) is false of it. Name such hypotheses after the plan's phase 5.2 specs
    (`notes/dsverify-net-port-plan.md` on origin/lean, ~580-725); the coordinator asked Upamanyu on
-   #24 for that `Net/` piece.
+   #24 for that `Net/` piece. **Upamanyu's intended shapes (#24, 2026-11-23; branch
+   `models-rpc-http`, stacked on models-rpc-server, next after the wildcard listen, no date):**
+   `rpcAddrP a hs …` (client-to-server bytes `hs ++ reqsWire`, server-to-client `hsAns ++
+   ansWire`; raw net/rpc is `rpcAddrP a [] []`; over HTTP `hs := connectReq path`, `hsAns` =
+   `HTTP/1.0 200 Connected to Go RPC\n\n`; `isClient` unchanged, over the frame part);
+   `rpc.DialHTTPPath.spec network addr path`, `rpc.DialHTTP.spec` (at `DefaultRPCPath`);
+   `rpc.Server.ServeHTTP.spec` (a net/http handler: on CONNECT hijack, write `hsAns`, `ServeConn`
+   on the frames; else 405); `rpc.Server.HandleHTTP.spec rpcPath debugPath`, `rpc.HandleHTTP.spec`
+   (the debug path never requested); `http.ListenAndServe.spec`, `http.Serve.spec`,
+   `ServeMux.ServeHTTP.spec` (handlers as `handlerOk` per path). Any hypothesis here must match
+   these names and shapes exactly. The kit's clients (the master's `DialHTTP` to the replicas,
+   `register`'s to the master) send nothing after CONNECT before the answer, as required.
 3. **gods' treemap**: `TreemapHyp` (above) until a spec of `models/gods` is proved.
 
 Then: the lab's `Interface/{Rpc,RpcPure,RpcTable,Registry,MasterSpec,Replica,ReplicaSpec,
