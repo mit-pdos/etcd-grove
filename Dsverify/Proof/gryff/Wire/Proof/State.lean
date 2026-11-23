@@ -8,6 +8,10 @@ module
 
 public import Dsverify.Proof.gryff.Wire.Proof.Lemmas
 public import Dsverify.Proof.gryff.src.state.Base
+public import Dsverify.Proof.gryff.src.gryffproto.Base
+public import Dsverify.Proof.gryff.src.epaxosproto.Base
+public import Dsverify.Proof.gryff.src.clientproto.Base
+public import Dsverify.Proof.gryff.src.genericsmrproto.Base
 
 @[expose] public section
 

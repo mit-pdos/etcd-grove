@@ -520,7 +520,7 @@ The lab's harness `bufio` (`ownReader br rd I R`, `readerOk rd I`) is replaced b
 `Perennial`'s `io.ReadAtLeast`/`io.ReadFull` read through it (`bufio.ownBufReader_readerOk`). An
 error a message's `Unmarshal` returns is `rdErr`: a read error of the reader, or one of the
 `io`/`encoding/binary` errors (`ErrUnexpectedEOF`, `ErrShortBuffer`, `errOverflow`), in place of
-the lab's `net.rpc.errAny err ∗ ⌜errWf err⌝` (the user of a connection proves those from its
+the lab's `rdErr rd err` (the user of a connection proves those from its
 `E`). -/
 
 /-- A `*bufio.Reader`'s fixed parameters (see the section header). -/
@@ -944,8 +944,6 @@ macro "u1_ret_err" mk:term : tactic => `(tactic| (
   iframe Ha
   isplitr
   · ipureintro; exact Hne
-  isplitr
-  · ipureintro; exact Hwf
   iexists $mk, _
   iframe Hown
   iapply typedPointsto_combine _ _ _ Hnn
@@ -959,7 +957,7 @@ macro "u1_read_b" mk:term : tactic => `(tactic| (
   (try simp only [sint_Z_W64_0, go.arrayIndexRef_0, w64_sub_zero, zero_val_arr_w8])
   wp_apply wp_wire_ReadAtLeast_arr $$ [Hown b] as %nr %err ⟨%data, Hown, Hr⟩
   (iframe Hrd Hown b; (try iframe Hpkg2 Hpkg3); ipureintro; refine ⟨by decide, by decide, by decide⟩)
-  icases Hr with (⟨⟨%Hnil, %Hlen⟩, b⟩ | ⟨%Hne, #Ha, %Hwf, %vs', b⟩)
+  icases Hr with (⟨⟨%Hnil, %Hlen⟩, b⟩ | ⟨%Hne, #Ha, %vs', b⟩)
   rotate_left
   · u1_ret_err $mk
   subst Hnil
@@ -983,71 +981,71 @@ set_option hygiene false in
 /-- A nested field's `Unmarshal`, its error returned (the struct put back as `mk`). -/
 macro "u1_unest" mk:term : tactic => `(tactic| first
   | (wp_apply state.Key.wp_Unmarshal_proof $$ [Hown K] as %err
-       (⟨%Hnil, %_, -, K, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, K, Hown⟩)
-     (iframe Hrd Hown K; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, K, Hown⟩ | ⟨%Hne, #Ha, %_, %_, K, Hown⟩)
+     (iframe Hrd Hown K; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply state.Key.wp_Unmarshal_proof $$ [Hown Key] as %err
-       (⟨%Hnil, %_, -, Key, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, Key, Hown⟩)
-     (iframe Hrd Hown Key; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, Key, Hown⟩ | ⟨%Hne, #Ha, %_, %_, Key, Hown⟩)
+     (iframe Hrd Hown Key; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply state.Value.wp_Unmarshal_proof $$ [Hown V] as %err
-       (⟨%Hnil, %_, -, V, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, V, Hown⟩)
-     (iframe Hrd Hown V; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, V, Hown⟩ | ⟨%Hne, #Ha, %_, %_, V, Hown⟩)
+     (iframe Hrd Hown V; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply state.Value.wp_Unmarshal_proof $$ [Hown OldValue] as %err
-       (⟨%Hnil, %_, -, OldValue, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, OldValue, Hown⟩)
-     (iframe Hrd Hown OldValue; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, OldValue, Hown⟩ | ⟨%Hne, #Ha, %_, %_, OldValue, Hown⟩)
+     (iframe Hrd Hown OldValue; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply state.Value.wp_Unmarshal_proof $$ [Hown NewValue] as %err
-       (⟨%Hnil, %_, -, NewValue, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, NewValue, Hown⟩)
-     (iframe Hrd Hown NewValue; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, NewValue, Hown⟩ | ⟨%Hne, #Ha, %_, %_, NewValue, Hown⟩)
+     (iframe Hrd Hown NewValue; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply state.Value.wp_Unmarshal_proof $$ [Hown Value] as %err
-       (⟨%Hnil, %_, -, Value, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, Value, Hown⟩)
-     (iframe Hrd Hown Value; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, Value, Hown⟩ | ⟨%Hne, #Ha, %_, %_, Value, Hown⟩)
+     (iframe Hrd Hown Value; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply state.Command.wp_Unmarshal_proof $$ [Hown Command] as %err
-       (⟨%Hnil, %_, -, Command, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, Command, Hown⟩)
-     (iframe Hrd Hown Command; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, Command, Hown⟩ | ⟨%Hne, #Ha, %_, %_, Command, Hown⟩)
+     (iframe Hrd Hown Command; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply gryffproto.ValTag.wp_Unmarshal_proof $$ [Hown Vt] as %err
-       (⟨%Hnil, %_, -, Vt, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, Vt, Hown⟩)
-     (iframe Hrd Hown Vt; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, Vt, Hown⟩ | ⟨%Hne, #Ha, %_, %_, Vt, Hown⟩)
+     (iframe Hrd Hown Vt; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply gryffproto.ValTag.wp_Unmarshal_proof $$ [Hown Base] as %err
-       (⟨%Hnil, %_, -, Base, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, Base, Hown⟩)
-     (iframe Hrd Hown Base; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, Base, Hown⟩ | ⟨%Hne, #Ha, %_, %_, Base, Hown⟩)
+     (iframe Hrd Hown Base; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
      try wp_auto)
   | (wp_apply gryffproto.Dep.wp_Unmarshal_proof $$ [Hown D] as %err
-       (⟨%Hnil, %_, -, D, Hown⟩ | ⟨%Hne, #Ha, %Hwf, %_, %_, D, Hown⟩)
-     (iframe Hrd Hown D; iintro !> %D HI; iframe HI; ipureintro; trivial)
+       (⟨%Hnil, %_, -, D, Hown⟩ | ⟨%Hne, #Ha, %_, %_, D, Hown⟩)
+     (iframe Hrd Hown D; iapply readNext_true; intro; trivial)
      rotate_left
      u1_ret_err $mk
      subst Hnil
