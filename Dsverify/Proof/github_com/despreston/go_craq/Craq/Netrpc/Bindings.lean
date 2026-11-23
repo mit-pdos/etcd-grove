@@ -176,6 +176,7 @@ theorem newArg_Ping (L : SrvCodecLaws (GF := GF)) (cfg : Cfg GF) (b : Loc) (svc 
     iintro _
     iexact HΦ
   · iright
+    ileft
     iexists msg
     iframe Hem
     rw [if_neg Hmsg]
