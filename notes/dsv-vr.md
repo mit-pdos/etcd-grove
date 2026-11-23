@@ -126,10 +126,38 @@ Links: `examples/vsrnet/Link.lean` (was `Linked.lean`), namespace `Perennial.Etc
 (swiftpaxos's `lib/Bufio.lean` and vr's `Spec/jsonlib.lean` had identical copies; J1's main-tree
 `Proof/bufio/ErrOrNil.lean` will replace it). `dups.py` over all landed kits: no real duplicate left.
 
-**Tier check:** 144 violations, all vr's older files (78 defs→linking, 30 defs→proof, 21
-proof→linking, 15 proof→proof: package proofs importing callees' `Results`, `Mains`/`KitLib`
-importing proofs); the new files (statement, `TopLevelDefs`, `JsonHyps`, `LibHyps`, `Link`) add
-none. Restructure before landing.
+**Tier check: clean** (`etc/tier-check.py --check`: ok, no vr violation; `tier-baseline.txt` and
+`tier-linking.txt` untouched; restructured on `dsv-vr-tier`, `08ded1641d`, merged at `65bd34df70`).
+The 144 (78 defs→linking, 30 defs→proof, 21 proof→linking, 15 proof→proof) went as follows:
+- **Splits** (`M` keeps its `wp_proof`s, `MDefs` the rest; names and statements unchanged):
+  `Proof/network/HandleConn`, `examples/vsrnet/{ModelProof,CodecProof,KitProof,OrchProof,OpProof,
+  MkClientProof,ClientProof,ServerProof,Conf}` (`ConfDefs`). Non-linking importers import the
+  `*Defs`, the packages' `Spec/<pkg>.lean` (not `Proof/<pkg>/Results`, `Proof/log/Logs`) and
+  `Net.Spec.net.*` (not `Net.Proof.net.*`).
+- **Leaf callees in `replica.Hyps`** (`Hyps.lean`, the existing structure): 17 fields for the
+  `assert`, `ipv4port`, `queue`, `time`, `log.Logs` specs the handlers call (`H.wp_Push`, ...);
+  `replica/Results.lean` passes the proofs.
+- **Callees as explicit hypotheses** `(wp_X : X.spec)`: `replica.{New,Replica.Submit}`,
+  `network.{TCP.handleConn,TCP.Send,Network.Send,TCP.serve,TCP.Run,NewTCP,TCP.Recv,Network.Recv}`
+  (leaf specs; `wp_handleConn` for `Send`/`serve`), `client.{New,Client.Request,Client.Run,
+  Client.Submit}`, `Op` (`TCP.Recv`, `CheckResult`), `mkClient` (`NewReal`, `client.New`),
+  `Orch` (`CfgAddrs`, `Configure`, `Model`, `Codec`, `Gen`), `Client` (`CfgAddrs`, `waitConf`,
+  `mkClient`, `Codec`), `runReplica` (the package results it calls), `Server` (`CfgAddrs`,
+  `waitConf`, `runReplica`). The packages' `Results.lean` keep their signatures; `Link.lean`
+  composes the rest (`wp_Orch`, `wp_Server`, `wp_Client` unchanged). No class, no new axiom.
+
+**Checks (round 5, tier restructuring merged; head `65bd34df70`, the commit carrying this note
+on top):**
+- fk-lean1 (`fklean1-check.sh`): vr's `TopLevelRobustness` and the five landed ones (swiftnet,
+  rabianet, epaxosnet, quepaxanet, paxosnet): green (4999 jobs). `#print axioms` of
+  `vr_remote_robust`, `swiftpaxos_remote_robust`, `rabia_remote_robust`, `epaxos_remote_robust`,
+  `quepaxa_remote_robust`, `paxos_remote_robust` (a scratch module on a throwaway branch, not
+  committed here): `propext`, `Classical.choice`, `Quot.sound` only, each.
+- Here: `tier-check.py --check` ok (no vr violation; baseline and tier-linking = `origin/lean`'s);
+  `gen-init.py --check` clean (271 files); `goose.py --check --project dsv-vr` clean;
+  `proof_roots.namespace()` = `Perennial.EtcdGrove.`; `dups.py`: no real duplicate (its 4 hits are
+  parse artifacts: `inductive`, `is`, `of`, `per`). vr's statement byte-identical to `77b42ad9c2`'s;
+  no landed statement changed.
 
 **Checks (round 4, head `22684c5047`):**
 - fk-lean1: `lake build` of vr's `TopLevelRobustness` and the five landed ones (swiftnet, epaxosnet,
