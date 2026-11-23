@@ -291,24 +291,16 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
      Listen.wp_proof` with `listen_au` from the address's `addrProto`, `addrTok_ok`/`addrProto_tok` for
      the valid address; **`waitForPeerConnections.specX` no longer takes `addrTok`**; the loop keeps
      `netLis`; Accept as WaitClients), `replica/ConnectGhost` (port output, checks).
-   **Next (in this order):** `replica/Connect` — **work in progress at
-   `etc/dsv-epaxos/wip/Connect.lean.wip`** (move it back to `replica/Connect.lean`): already rewritten
-   there: `lisRes_not_null` (bufio's `ownBufReader_not_null`), no `addrTok`/`Htok`, the dial by
-   `net.Dial.wp_proof` + `dial_au`, the handshake by `net.Conn.Write.wp_proof` + `write_acc`/`writeP_init`
-   (`resErr_netErr` for `err = nil → res = none`), NewReader/NewWriter on the dialer's end, `connIn`
-   built from `isConn` and `replica_net_errs`. Remaining errors (6, at the last check): l.57 (an
-   `initOrder`/`neg` goal), l.92 (`iframe` of `ghostMapAuth (γ.rep.cwriters id)`: `fwStartDef`'s
-   shape changed in the port, check `Interface/Replica.lean`), l.148 (an `omega` on `p.lat.len`), l.167
-   (`slotConn`'s icases needs `%t', %la', %ra', %ed', %eof'` after `%ws`, as Dial's `pend_null_of_peer`),
-   l.182 (`rw [hkz]`: the goal already reduced; `try`). The original notes on it: `lisRes_not_null` → `bufio.ownBufReader_not_null` (dsv-bufio-laws) on `lisRes`'s
-   `rdOwn`; `hWP` loses its `addrTok` (`Htok` in `fwStart`: check what `fwStartDef` still carries);
-   the dial by `Net/`'s `Dial.spec` (or `DialTimeout`) with `dial_au` (`GooseLang/Ext/Net/Proto.lean`
-   l.1190; paxos's `NetProof.lean` dials the same way); the handshake `conn.Write(b[:4])` by
-   `net.Conn.Write.wp_proof` with `write_acc`/`writeP` (Proto.lean l.962-1018) or through
-   `conn_streamWriterOk`'s contract; `NewReader`/`NewWriter` on the dialer's end (side `false`) as in
-   ServeConn (`connRd`/`connWr` with `repDialP_ppc`); `slotConn`/`lisRes` now carry `t la ra ed eof`
-   (from `isConn` and `replica_net_errs`). Then `Link` (the lab's 117 lines: collects the replica's
-   `spec_holds`; new premises: `TCPAddrStringHyp`, `[net.FieldAssumptions]`).
+   - **`replica/Connect` (done, 2026-11-23 resumed agent 2)**: dial by `net.Dial.wp_proof` + `dial_au`,
+     handshake by `net.Conn.Write.wp_proof` + `write_acc`/`writeP_init`, `PutUint32` by Perennial's
+     `encoding.binary.wp_LittleEndian_PutUint32` (`Results`); `Interface/Registry`'s `repFwStart` map
+     is now `GMap Loc Nat` (cids `Nat`, as `fwCoreDef`). **`replica/Link` (done)**: the replica package
+     closed (`#print axioms` of `ConnectToPeers`/`WaitForClientConnections`/`New.wp_proof`: Lean's three).
+     **`TCPAddrStringHyp` is proved** (`tcpAddrString` in `replica/ClientListener.lean`, from
+     `wp_net_AnyString`, as dsv-swiftpaxos's `net.wp_TCPAddr_String`): no longer a premise.
+     **lean-check caveat:** after many incremental edits of `Connect` the server reported a bogus
+     `(kernel) application type mismatch` (`spec_holds._proof_1_N` applied to the wrong fvars); `lake
+     build` of the module was clean. When a kernel error looks like that, `lake build` the module.
    Then (2) `Interface/{RpcPure,Rpc,MasterSpec,Servers}` over models-rpc-server
    (decode guards: `callfix.txt`/`srvfix.txt` in the coordinator's scratchpad) and `RpcHttpHyp`; (3) the
    epaxos code proofs (`Epaxos/Proof/epaxos`, 71 files, 24k lines) and the codec; (4) the model proof,
@@ -348,7 +340,7 @@ every program (`go list -deps ./cmd/server2`, and the 17 `PkgTable`s) links all 
 linked packages. No vacuous premise of this kind.
 
 - `BufWriterNotNull`: discharged (3h).
-- `TCPAddrStringHyp` (`replica/ClientListener.lean`): `(*net.TCPAddr).String()` returns (no spec in `Net/`).
+- `TCPAddrStringHyp`: discharged (`tcpAddrString`, 3h).
 
 Stated in Lean (no axiom, no `sorry`; each a `Prop` class taken as an instance by every theorem
 that needs it):
@@ -406,6 +398,16 @@ review; `/shared/etcd-grove-dsvbufio/notes/dsv-bufio.md`). Use its names (or mer
 through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (needs
 `ProtoPrefixClosed P`). The lab's `Interface/BufioLocal.lean`, `Proof/wire/BufioSticky` and
 `Harness/Proof/bufio/*` are replaced by these, not ported.
+
+## Import tiers (etc/tier-check.py, a land gate)
+
+2026-11-23: `etc/tier-check.py --check` reports **34 new violations, all `defs->proof`**: the kit's
+proof files are named `<F>.spec_holds` (so tier "defs") and import library proof modules to call
+their `wp_proof`s directly (`Proof.bufio.{Writer__Flush,Writer__WriteByte,NewReaderOk,...}`,
+`Net.Proof.net.{Conn__Read,Conn__Write,Conn__Close,Dial,...}`, in `replica/*` and `wire/{WProg,RProg,
+Varint/ReadUvarint}`). To fix at landing: import the libraries' `Spec` modules, take their specs as
+hypotheses of `spec_holds`, and close them in the `Link` modules (which may import proofs). New files
+follow the rule (a proof file sees callees through their specs only).
 
 ## Next (for a successor)
 
