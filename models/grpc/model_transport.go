@@ -295,7 +295,15 @@ func createHeaderFields(ctx context.Context, cc *ClientConn, authInfo credential
 	if len(perRPCCreds) != 0 || callHdr.Creds != nil {
 		// createAudience: omit port if it is the default one.
 		host := strings.TrimSuffix(callHdr.Host, ":443")
-		pos := strings.LastIndex(callHdr.Method, "/")
+		// MODEL: strings.LastIndex(callHdr.Method, "/"), as a backwards byte loop (Perennial has no
+		// model of LastIndex; for a one-byte separator the same index, -1 if absent)
+		pos := -1
+		for i := len(callHdr.Method) - 1; i >= 0; i-- {
+			if callHdr.Method[i] == '/' {
+				pos = i
+				break
+			}
+		}
 		if pos == -1 {
 			pos = len(callHdr.Method)
 		}

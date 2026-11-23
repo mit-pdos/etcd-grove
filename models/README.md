@@ -71,6 +71,13 @@ marked `MODEL:`, and its difference from grpc-go is computed, never stored: `dif
   a connection of its own; a fail-fast attempt fails with Unavailable when its dial fails.
 - **Removed:** channelz, stats handlers, binary logging, tracing, server workers, retry policies and
   hedging (no service config but round robin's, which has none).
+- **Rewritten for the proof, same behavior** (each a `MODEL:` note): in `createHeaderFields`
+  (`model_transport.go`), the per-RPC credentials' audience takes the method's last `/` with a
+  backwards byte loop in place of `strings.LastIndex(callHdr.Method, "/")` (Perennial has only
+  `LastIndex`'s name; for a one-byte separator the loop gives the same index, `-1` if absent; as in
+  `net/rpc/server.go`'s `readRequestHeader`; phase 7 S2 core, 2026-11-23). Evidence:
+  `internal/grpcdifftest`'s `TestPerRPCCredsAudience` (the audience with and without a `:443`
+  suffix, against grpc-go and the model).
 
 **The trusted claim:** every behavior of grpc-go v1.84.0 over Linux TCP, as the program observes it
 (what handlers run with which requests, metadata, deadlines and contexts; what calls and streams
