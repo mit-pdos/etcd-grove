@@ -15,6 +15,7 @@ public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
 public import Code.github_com.Masterminds.semver.v3
 public import Code.go_etcd_io.etcd.api.v3.version
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.server.v3.storage.schema
 
 @[expose] public section
 
@@ -2923,6 +2924,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   unsafeGetAllRoles_unfold : FuncUnfold unsafeGetAllRoles [] unsafeGetAllRoles.impl
   unsafeGetUser_unfold : FuncUnfold unsafeGetUser [] unsafeGetUser.impl
   unsafeGetAllUsers_unfold : FuncUnfold unsafeGetAllUsers [] unsafeGetAllUsers.impl
+  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   BackendMemberKey_unfold : FuncUnfold BackendMemberKey [] BackendMemberKey.impl
   addNewField_unfold : FuncUnfold addNewField [] addNewField.impl
   UnsafeCreateMetaBucket_unfold : FuncUnfold UnsafeCreateMetaBucket [] UnsafeCreateMetaBucket.impl
@@ -2973,6 +2975,7 @@ attribute [instance] Assumptions.action_instance
   Assumptions.unsafeGetAllRoles_unfold
   Assumptions.unsafeGetUser_unfold
   Assumptions.unsafeGetAllUsers_unfold
+  Assumptions.«init.0_unfold»
   Assumptions.BackendMemberKey_unfold
   Assumptions.addNewField_unfold
   Assumptions.UnsafeCreateMetaBucket_unfold
