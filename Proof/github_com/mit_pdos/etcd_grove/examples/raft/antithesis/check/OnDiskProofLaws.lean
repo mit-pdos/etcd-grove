@@ -110,6 +110,21 @@ theorem v5_ok' {t1 : Int} {ns : State} {viol : SSet} {r : Option State} (h : v5 
   · exact ⟨c1, true, hc1, hcb, by cases h; rfl⟩
   · exact ⟨c1, false, hc1, hcb, by cases h; rfl⟩
 
+/-- `votes` after `u3`, as one term (the vote where `voted`, B 401). -/
+def votes3 (x : OnDisk) (t1 : Int) (voted : Bool) : List VoteRec :=
+  if voted then lset.add x.s.votes { voter := x.s.cfg.server[x.n]!, term := t1, cand := x.w.vote.getD [] }
+  else x.s.votes
+
+theorem u3_ok'' {t1 : Int} {voted : Bool} {K : List VoteRec → EvalM (Option State)} {r : Option State}
+    (h : u3 x t1 voted K = .ok r) :
+    (voted = true → ∃ v, need x.w.vote = .ok v) ∧ K (votes3 x t1 voted) = .ok r := by
+  rcases u3_ok' h with ⟨rfl, h⟩ | ⟨v, rfl, hv, h⟩
+  · exact ⟨fun h => absurd h (by decide), h⟩
+  · refine ⟨fun _ => ⟨v, hv⟩, ?_⟩
+    have : x.w.vote = some v := need_ok hv
+    simp only [votes3, ite_true, this, Option.getD_some]
+    exact h
+
 end OnDiskProofLaws
 end AntCheck
 end EtcdGrove

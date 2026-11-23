@@ -1793,7 +1793,7 @@ theorem State.OnDisk.wp_proof
   generalize hS3 : ({ S2 with confirmed := s.confirmed.set (sint.nat n) cf1 } : State) = S3
   have hcfg3 : S3.cfg = s.cfg := by rw [← hS3]; exact hcfg2
   -- `msgs := s.Msgs; if x.elect() { msgs = factsAdd(msgs, s.VoteRequest(n, x.T1())) }`
-  have hml := HW.1.msgs_len
+  have hml := HW.1.msgs_len; rw [hXs] at hml
   wp_join (v := executeVal) iprop(∃ ml, msgs_ptr ↦ ml ∗
       factsRO ml (if el then lset.add s.msgs (s.voteRequest (sint.nat n) t1) else s.msgs))
     at next with [msgs] as ⟨%ml, msgs, #Hml⟩
@@ -1803,6 +1803,7 @@ theorem State.OnDisk.wp_proof
     cases el
     · try wp_auto
       wp_join_done
+      simp only [Bool.false_eq_true, ite_false]
       iexists _; iframe; iexact HMsgs
     try wp_auto
     odm T1
@@ -1811,12 +1812,13 @@ theorem State.OnDisk.wp_proof
     try wp_auto
     wp_apply wp_SVoteRequest p s n u1 $$ [Hs] as %gvr %Hgvr
     · iframe Hs; ipureintro; exact ⟨Hn, Hlt⟩
+    rw [Hu1] at Hgvr
     try wp_auto
     wp_apply wp_factsAdd g.Msgs' s.msgs gvr _ $$ [HMsgs] as %ml1 #Hml1
     · iframe HMsgs; ipureintro; exact ⟨Hgvr, by unfold numBound at hb; omega⟩
     try wp_auto
     wp_join_done
-    rw [Hu1] at Hml1
+    simp only [ite_true]
     iexists _; iframe; iexact Hml1
   -- u2: `if x.acks() { msgs = factsAdd(msgs, AckFact(me, x.f().Src, x.T1(), x.ackAt())) }`
   obtain ⟨msgs2, Ho, hmsgs2⟩ := u2_ok Ho
@@ -1853,18 +1855,65 @@ theorem State.OnDisk.wp_proof
     icases Hf with ⟨%Hfr, #-⟩
     rw [Hfr.1]
     wp_apply wp_AckFact (s.cfg.server[sint.nat n]!) f.src u1 ua as %gak %Hgak
+    rw [Hu1, Hua] at Hgak
     try wp_auto
     wp_apply wp_factsAdd ml _ gak _ $$ [Hml] as %ml1 #Hml1
     · iframe Hml; ipureintro; exact ⟨Hgak, by unfold numBound at hb; omega⟩
     try wp_auto
     wp_join_done
-    rw [Hu1, Hua] at Hml1
     iexists _; iframe; iexact Hml1
   wp_apply wp_set_msgs q S3 ml2 msgs2 $$ [Hq Hml2] as Hq
   · iframe Hq Hml2
   try wp_auto
   generalize hS4 : ({ S3 with msgs := msgs2 } : State) = S4
   have hcfg4 : S4.cfg = s.cfg := by rw [← hS4]; exact hcfg3
+  -- u3: `votes := s.Votes; if x.voted() { votes = votesAdd(votes, VoteRec{me, x.T1(), w.vote()}) }`
+  obtain ⟨hvv3, Ho⟩ := OnDiskProofLaws.u3_ok'' Ho
+  have hvl := HW.1.votes_len; rw [hXs] at hvl
+  wp_join (v := executeVal) iprop(∃ vl, votes_ptr ↦ vl ∗ votesRO vl (OnDiskProofLaws.votes3 X t1 vd))
+    at next with [votes] as ⟨%vl3, votes, #Hvl3⟩
+  · odm voted
+    wp_apply wp_voted _ X vd $$ [Hx]
+    · iframe Hx; ipureintro; exact hvd
+    cases vd
+    · try wp_auto
+      wp_join_done
+      unfold OnDiskProofLaws.votes3
+      simp only [Bool.false_eq_true, ite_false]
+      rw [hXs]
+      iexists _; iframe; iexact HVotes
+    obtain ⟨v, hv⟩ := hvv3 rfl
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    wp_apply wp_Event_vote pw X.w v $$ [Hw]
+    · iframe Hw; ipureintro; exact hv
+    try wp_auto
+    wp_apply wp_votesAdd g.Votes' s.votes _ { voter := s.cfg.server[sint.nat n]!, term := t1, cand := v } $$ [HVotes]
+      as %vl1 #Hvl1
+    · iframe HVotes; ipureintro
+      refine ⟨⟨rfl, Hu1, rfl⟩, by unfold numBound at hb; omega⟩
+    try wp_auto
+    wp_join_done
+    have hw : X.w.vote = some v := need_ok hv
+    unfold OnDiskProofLaws.votes3
+    simp only [ite_true, hw, Option.getD_some, hXs, hXn]
+    iexists _; iframe; iexact Hvl1
+  wp_apply wp_set_votes q S4 vl3 _ $$ [Hq Hvl3] as Hq
+  · iframe Hq Hvl3
+  try wp_auto
+  wp_apply wp_set_leaders q { S4 with votes := OnDiskProofLaws.votes3 X t1 vd } ldl ld $$ [Hq Hld] as Hq
+  · iframe Hq Hld
+  try wp_auto
+  wp_apply wp_set_ledLog q { { S4 with votes := OnDiskProofLaws.votes3 X t1 vd } with leaders := ld } lll ll
+    $$ [Hq Hll] as Hq
+  · iframe Hq Hll
+  try wp_auto
+  generalize hS5 : ({ { { S4 with votes := OnDiskProofLaws.votes3 X t1 vd } with leaders := ld } with
+    ledLog := ll } : State) = S5
+  have hcfg5 : S5.cfg = s.cfg := by rw [← hS5]; exact hcfg4
   done
 
 end proof
