@@ -8,9 +8,11 @@ over any `GF`, on the net extension. What changed:
 * `rstream`'s decoder state is the `encoding/json` vocabulary's `DecoderRep` (`decOk`/`decErr`,
   `Spec/jsonlib.lean`: the model's `Decoder` is opaque here), not the lab model's fields (`buf`,
   `scanp`, `err`, `rerr`); the read error the lab kept (`net.connErr`) is the representation's;
-* the hook's full lock invariant is `hookLockInvFull γh` / `hookKnownFull` (the lab's
-  `hookLockInv` / `hookKnown`: those names are `pkg/events/Base.lean`'s, whose package fact is still
-  the weaker lock); `frameDecoderSet`, `SetFrameDecoder.spec` are stated over the full one;
+* the hook's lock invariant (`hookLockInvFull γh`), its lock (`hookKnownFull`, the lab's
+  `hookKnown`) and `frameDecoderSet` are package facts, in `pkg/events/Base.lean` (events' and
+  `vsrwire`'s): a set hook holds `vsrwire`'s `decodeFrame` (`kitFrameDecoder`), not any `f` with
+  `frameDecOk f` (the lab's), so that the facts name no class of this file; `SetFrameDecoder.spec`
+  is at `decodeFrame`, and `FromDecoder`'s proof has `frameDecOk` from `decodeFrame`'s spec;
 * `events.initialize'.spec` is gone (the generated `pkg/events/Init.lean` proves initialization);
 * the JSON codec is `models_lab.jsoncodec`'s (`JsonCodec`), `codecSet`/`kitCodecOk`/`bufio.errOrNil`
   `Spec/jsonlib.lean`'s.
@@ -253,38 +255,8 @@ def events.frameDecOk (f : GoFunc) : IProp GF :=
           data ↦* events.encPayload m ∗ ⌜PlainMsg m⌝ ∗ ⌜MsgBound m⌝ ∗ VsrGhost.fact γ (.msg m)
         else bufio.errOrNil err }})
 
-/-- The lock invariant of `frameDecoderMu` (D11), with the flag `γh` (a mono list: `[]` unset,
-`[()]` set): `frameDecoder` holds `nil` (unset), or a non-nil frame decoder (set, for good: the
-flag's lower bound `[()]` rules the unset case out). -/
-def events.hookLockInvFull (γh : GName) : IProp GF :=
-  iprop(∃ f : GoFunc, globalAddr events.frameDecoder ↦ f ∗
-    ((⌜f = func.nil⌝ ∗ monoListAuthOwn γh 1 ([] : List Unit)) ∨
-     (⌜f ≠ func.nil⌝ ∗ events.frameDecOk f ∗ monoListAuthOwn γh 1 [()])))
-
-/-- The hook's lock (persistent): `frameDecoderMu` holds a mutex guarding `frameDecoder`. -/
-def events.hookState (γh : GName) : IProp GF :=
-  iprop(∃ mu : Loc, globalAddr events.frameDecoderMu ↦□ mu ∗
-    sync.isMutex mu (events.hookLockInvFull γh))
-
-/-- `events`' package state (D11; persistent): the hook's lock exists. What `SetFrameDecoder`
-and `vsrwire`'s `init` use. (The lab's `hookKnown`; `pkg/events/Base.lean`'s `hookKnown`, the
-package fact for now, is the weaker lock, to be strengthened to this.) -/
-def events.hookKnownFull : IProp GF :=
-  iprop(∃ γh : GName, events.hookState γh)
-
-/-- The G1 hook is set, for good, to a frame decoder (persistent; D11): the hook's lock and the
-flag's lower bound; `vsrwire`'s package state. -/
-def events.frameDecoderSet : IProp GF :=
-  iprop(∃ γh : GName, events.hookState γh ∗ monoListLbOwn γh [()])
-
-instance events.hookState_persistent (γh : GName) : Persistent (events.hookState (GF := GF) γh) := by
-  unfold events.hookState; infer_instance
-instance events.hookKnownFull_persistent : Persistent (events.hookKnownFull (GF := GF)) := by
-  unfold events.hookKnownFull; infer_instance
 instance events.frameDecOk_persistent (f : GoFunc) : Persistent (events.frameDecOk (GF := GF) f) := by
   unfold events.frameDecOk; infer_instance
-instance events.frameDecoderSet_persistent : Persistent (events.frameDecoderSet (GF := GF)) := by
-  unfold events.frameDecoderSet; infer_instance
 
 end hook
 
@@ -363,13 +335,11 @@ abbrev events.Event.FromDecoder.spec : Prop :=
         events.evCap ev m ∗ VsrGhost.fact γ (.msg m)
       else ∃ e : events.Event, ev ↦ e }}
 
-/-- `SetFrameDecoder(f)` (D11), `f` a non-nil frame decoder, with the hook's lock: the hook is
-set for good (to `f`, or to the decoder set before). -/
+/-- `SetFrameDecoder(decodeFrame)` (D11; `vsrwire`'s `init`, its only caller): the hook is set
+for good (to `decodeFrame`, by this call or an earlier one). -/
 abbrev events.SetFrameDecoder.spec : Prop :=
-  ∀ f : GoFunc, f ≠ func.nil →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.events ∗
-      events.hookKnownFull ∗ events.frameDecOk f }}
-    (App (Val (@! events.SetFrameDecoder)) (Val #f))
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.events }}
+    (App (Val (@! events.SetFrameDecoder)) (Val #events.kitFrameDecoder))
   {{ RET #(); events.frameDecoderSet }}
 
 end spec

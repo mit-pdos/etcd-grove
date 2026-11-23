@@ -1,7 +1,7 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Spec/vsrwire.lean (lab master 915f964;
-notes/dsv-vr.md): over any `GF`, on the net extension; `init0.spec` takes `hookKnownFull` (the lab's
-`hookKnown`, `Spec/events.lean`).
+notes/dsv-vr.md): over any `GF`, on the net extension; `init0.spec` takes events' package fact (the lab's
+`hookKnown` as a precondition).
 -/
 /-
 Cross-package spec of `examples/vsrwire` (the G1 hook): `decodeFrame`, the function its `init`
@@ -38,11 +38,10 @@ abbrev vsrwire.decodeFrame.spec : Prop :=
     pkg.events.frameDecOk (functions vsrwire.decodeFrame [])
 
 /-- `vsrwire`'s `init` (`events.SetFrameDecoder(decodeFrame)`; D11), `events` initialized
-(its state: the hook's lock, `hookKnown`): the hook is set for good (`frameDecoderSet`,
-`vsrwire`'s package state). What the top's `vsrwire.initialize'` proof uses. -/
+(its fact: the hook's lock): the hook is set for good (`frameDecoderSet`, `vsrwire`'s package
+fact; its generated `Init.lean` proves the same from `pkg/events/SetFrameDecoder.lean`). -/
 abbrev vsrwire.init0.spec : Prop :=
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.events ∗
-      pkg.events.hookKnownFull }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.events }}
     (App (Val (@! vsrwire.init.«0»)) (Val #()))
   {{ RET #(); pkg.events.frameDecoderSet }}
 

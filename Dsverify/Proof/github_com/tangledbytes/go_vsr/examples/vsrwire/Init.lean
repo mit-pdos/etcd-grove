@@ -2,9 +2,9 @@
 Package initialization of `github_com.tangledbytes.go_vsr.examples.vsrwire`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True` (for now; the lab's is `frameDecoderSet`, the hook set for good). Its
+Its fact (`events.frameDecoderSet`, `Base.lean`): the hook set for good. Its
 initializer initializes its imports and runs its `init()`, which sets `events`' frame-decoder hook
-(`events.wp_SetFrameDecoder`).
+to `decodeFrame` (`events.wp_SetFrameDecoder`).
 -/
 module
 
@@ -51,6 +51,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.encoding.json _root_.Perennial.encoding.json.initialize'
       _root_.Perennial.encoding.json.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
@@ -58,9 +59,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_func_call
   wp_call
   try wp_auto
-  wp_apply _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.wp_SetFrameDecoder
+  wp_apply _root_.Perennial.github_com.tangledbytes.go_vsr.pkg.events.wp_SetFrameDecoder as #Hset
   try wp_auto
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/

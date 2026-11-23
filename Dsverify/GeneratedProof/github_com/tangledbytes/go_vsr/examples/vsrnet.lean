@@ -6,6 +6,7 @@ public import GeneratedProof.github_com.anishathalye.porcupine
 public import Perennial.GeneratedProof.github_com.goose_lang.primitive
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.lib.remote
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.examples.vsrkv
+public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.examples.vsrwire
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.client
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.network
 public import Dsverify.GeneratedProof.github_com.tangledbytes.go_vsr.pkg.replica

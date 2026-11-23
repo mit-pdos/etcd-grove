@@ -145,15 +145,13 @@ set_option goose.wp.extras true
 /-- `NewTCP(me)`, `me` a configured address: a `*TCP` at `me` (for any `γ`) and its sender
 right. What its connections' readers (`handleConn`: `FromDecoder`) need is given here and kept
 in `isTCP`: the G1 hook set (`events.frameDecoderSet`, D8), the JSON codec registered
-(scanner `F`); `ErrNoConn`'s value (`errors.newVar`, D10: the package's state, which a spec over an
-arbitrary package state cannot derive). -/
+(scanner `F`); `ErrNoConn`'s value (`errors.newVar`, D10) is the package's fact
+(`pkg/network/Base.lean`). -/
 abbrev network.NewTCP.spec : Prop :=
   ∀ (F : List w8 → Bool → w64 × w64) (me : GoString) (γ : VsrGhost.Names), me ∈ VsrWire.addrs →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.network ∗
       events.frameDecoderSet ∗
-      encoding.json.codecSet (GF := GF) ∗ encoding.json.kitCodecOk F ∗
-      errors.newVar (GF := GF) network.ErrNoConn
-        go!"network: no connection to the source address" }}
+      encoding.json.codecSet (GF := GF) ∗ encoding.json.kitCodecOk F }}
     (App (Val (@! network.NewTCP)) (Val #me))
   {{ (tcp : Loc), RET #tcp; network.isTCP tcp γ me ∗ network.tcpSender tcp }}
 

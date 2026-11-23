@@ -2,8 +2,8 @@
 Package initialization of `github_com.tangledbytes.go_vsr.pkg.network`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True` (for now). Its initializer allocates `ErrNoConn` (an `errors.New` call)
-and initializes its imports.
+Its fact (`Base.lean`): `ErrNoConn` holds `errors.New(...)` for good (`errors.newVar`).
+Its initializer allocates `ErrNoConn` (an `errors.New` call) and initializes its imports.
 -/
 module
 
@@ -59,6 +59,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNoConn _ as HErrNoConn
   wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.queue.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply (_root_.Perennial.github_com.tangledbytes.go_vsr.pkg.assert.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
@@ -77,9 +78,19 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of ErrNoConn))
   try wp_auto
-  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoConn ⟨#_, #MErrNoConn⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoConn ⟨#SErrNoConn, #MErrNoConn⟩
+  try wp_auto
+  ipersist HErrNoConn
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  iunfold _root_.Perennial.errors.newVar
+  iexists xErrNoConn
+  iframe HErrNoConn SErrNoConn MErrNoConn
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

@@ -56,11 +56,12 @@ theorem events.Event.ToWriter.wp
   events.Event.ToWriter.wp' wp_NewEncoder wp_Encode codec_ok
 
 theorem events.Event.FromDecoder.wp
+    (wp_Decode_frame : events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
     (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.FromDecoder.spec (GF := GF) (hG := hG) :=
-  events.Event.FromDecoder.wp' wp_Unmarshal codec_ok
+  events.Event.FromDecoder.wp' wp_Decode_frame wp_Unmarshal codec_ok
 
 theorem events.SetFrameDecoder.wp : events.SetFrameDecoder.spec (GF := GF) (hG := hG) :=
   events.SetFrameDecoder.wp'

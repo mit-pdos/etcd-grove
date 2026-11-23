@@ -32,6 +32,10 @@ import (
 	"github.com/goose-lang/primitive"
 	"github.com/mit-pdos/etcd-grove/examples/lib/remote"
 	"github.com/tangledbytes/go-vsr/examples/vsrkv"
+	// vsrwire's init sets events' frame decoder (decoding a frame into vsrwire.Frame); the lab's
+	// kit linked it through its generated JSON codec (json_gen.go, which encodes vsrwire.Frame),
+	// which this port does not have yet (notes/dsv-vr.md, finding 2).
+	_ "github.com/tangledbytes/go-vsr/examples/vsrwire"
 	"github.com/tangledbytes/go-vsr/pkg/client"
 	"github.com/tangledbytes/go-vsr/pkg/network"
 	"github.com/tangledbytes/go-vsr/pkg/replica"

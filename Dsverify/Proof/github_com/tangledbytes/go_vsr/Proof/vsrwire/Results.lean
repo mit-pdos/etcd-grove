@@ -3,9 +3,9 @@ Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/vsrwire/Results.lean (
 notes/dsv-vr.md): over any `GF`, on the net extension.
 -/
 /-
-The results of `vsrwire`: one theorem per spec of `Spec/vsrwire.lean`, over the hub's hypothesis
-`events.Decoder.Decode_frame.spec` (`dec.Decode(&f)` of the model's opaque decoder), taken as an
-argument.
+The results of `vsrwire`: one theorem per spec of `Spec/vsrwire.lean`, `decodeFrame`'s over the hub's
+hypothesis `events.Decoder.Decode_frame.spec` (`dec.Decode(&f)` of the model's opaque decoder),
+taken as an argument; `init0`'s over none.
 -/
 module
 
@@ -36,10 +36,8 @@ theorem vsrwire.decodeFrame.wp
     vsrwire.decodeFrame.spec (GF := GF) (hG := hG) :=
   examples.vsrwire.decodeFrame.wp' wp_Decode_frame
 
-theorem vsrwire.init0.wp
-    (wp_Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG)) :
-    vsrwire.init0.spec (GF := GF) (hG := hG) :=
-  examples.vsrwire.init0.wp' wp_Decode_frame
+theorem vsrwire.init0.wp : vsrwire.init0.spec (GF := GF) (hG := hG) :=
+  examples.vsrwire.init0.wp'
 
 end results
 

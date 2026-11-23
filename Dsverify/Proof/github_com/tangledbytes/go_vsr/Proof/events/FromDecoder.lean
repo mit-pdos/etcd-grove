@@ -9,13 +9,14 @@ hub's `events.Event.FromDecoder.spec` directly (the lab's `wp_FromDecoder'` and 
 `Results.lean` in one).
 -/
 /-
-`ev.FromDecoder(dec)`: the hook `FrameDecoder` (set for good: `frameDecoderSet`, its value a
-frame decoder `frameDecOk`) decodes the next frame; the payload is decoded into its type's zero
+`ev.FromDecoder(dec)`: the hook `FrameDecoder` (set for good: `frameDecoderSet`, its value
+`decodeFrame`, a frame decoder `frameDecOk` by `Proof/vsrwire/Hook.lean`) decodes the next frame; the payload is decoded into its type's zero
 value (`vsrnet.dec_payload`) and stored as `ev`'s event.
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.events.LibHyps
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrwire.Hook
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
 public import Perennial.Spec.sync.Mutex__Lock
 public import Perennial.Spec.sync.Mutex__Unlock
@@ -42,19 +43,21 @@ variable [encoding.json.Assumptions] [C : models_lab.jsoncodec.JsonCodec GF]
 
 set_option goose.wp.extras true
 
-/-- `getFrameDecoder()` with the hook set: a non-nil frame decoder. -/
+/-- `getFrameDecoder()` with the hook set: `decodeFrame`. -/
 theorem events.wp_getFrameDecoder :
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.events ∗
       events.frameDecoderSet }}
     (App (Val (@! events.getFrameDecoder)) (Val #()))
-  {{ (f : GoFunc), RET #f; ⌜f ≠ func.nil⌝ ∗ events.frameDecOk f }} := by
+  {{ (f : GoFunc), RET #f; ⌜f = events.kitFrameDecoder⌝ }} := by
   wp_start as #Hfs
-  unfold events.frameDecoderSet events.hookState
-  icases Hfs with ⟨%γh, ⟨%mu, #Hmu, #Hlock⟩, #Hlb⟩
+  iunfold events.frameDecoderSet at Hfs
+  icases Hfs with ⟨%γh, #Hst, #Hlb⟩
+  iunfold events.hookState at Hst
+  icases Hst with ⟨%mu, #Hmu, #Hlock⟩
   wp_auto
   wp_apply sync.Mutex.wp_Lock mu (events.hookLockInvFull γh) $$ [$Hlock] as ⟨Hown, Hinv⟩
   iunfold events.hookLockInvFull at Hinv
-  icases Hinv with ⟨%f, Hf, (⟨%Hnil, Ha⟩ | ⟨%Hnn, #Hdec, Ha⟩)⟩
+  icases Hinv with ⟨%f, Hf, (⟨%Hnil, Ha⟩ | ⟨%Hk, Ha⟩)⟩
   · ihave %Hv := mono_list_auth_lb_valid γh _ _ _ $$ Ha Hlb
     exact absurd Hv.2 (by simp)
   wp_auto
@@ -65,17 +68,14 @@ theorem events.wp_getFrameDecoder :
     iframe
     iright
     iframe
-    isplitr
-    · ipureintro; exact Hnn
-    · iexact Hdec
+    ipureintro; exact Hk
   iapply HΦ
-  isplitr
-  · ipureintro; exact Hnn
-  iexact Hdec
+  ipureintro; exact Hk
 
-/-- `events.Event.FromDecoder.spec`, over the hypotheses `Unmarshal.spec` (at the kit's codec)
-and `vsrnet.codecOk`. -/
+/-- `events.Event.FromDecoder.spec`, over the hypotheses `Unmarshal.spec` (at the kit's codec),
+`vsrnet.codecOk` and `Decoder.Decode_frame.spec` (what the hook's `decodeFrame` calls). -/
 theorem events.Event.FromDecoder.wp'
+    (wp_Decode_frame : events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
     (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
@@ -85,9 +85,12 @@ theorem events.Event.FromDecoder.wp'
   unfold examples.vsrnet.codecOk at codec_ok
   ihave #Hok := codec_ok
   wp_auto
-  wp_apply events.wp_getFrameDecoder $$ [Hfs] as %f ⟨%Hfnn, #Hf⟩
+  wp_apply events.wp_getFrameDecoder $$ [Hfs] as %f %Hfk
   · iexact Hfs
-  rw [decide_eq_false Hfnn]
+  subst Hfk
+  ihave #Hf := examples.vsrwire.decodeFrame.wp' wp_Decode_frame $$ []
+  · iPkgInit
+  rw [decide_eq_false events.kitFrameDecoder_ne_nil]
   wp_auto
   unfold events.frameDecOk
   wp_apply Hf $$ %F %γ %dec [Hrs] as %t %data %err ⟨Hrs, Hpost⟩

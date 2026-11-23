@@ -68,7 +68,9 @@ theorem network.NewTCP.wp_proof
     (wp_FromDecoder : events.Event.FromDecoder.spec (GF := GF) (hG := hG)) :
     network.NewTCP.spec (GF := GF) (hG := hG) := by
   intro F me γ hme
-  wp_start as ⟨#Hfd, #Hcs, #Hkit, #Hnv⟩
+  wp_start as ⟨#Hfd, #Hcs, #Hkit⟩
+  ihave #Hnv : errors.newVar (GF := GF) network.ErrNoConn network.noConnMsg $$ []
+  · iapply isPkgInit_access $$ Hpkg
   iapply wp_fupd
   wp_auto
   wp_apply ipv4port.IPv4Port.FromHostPort.wp _ _ me (by exact hme) $$ [$ipv4port] as ⟨%ip, ipv4port, #Hcfg⟩

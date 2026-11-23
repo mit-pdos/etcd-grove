@@ -54,24 +54,37 @@ def special(g):
     # their package variables: `events`' error, mutex and frame decoder (`nil` until `vsrwire`'s `init`
     # sets it) and `network`'s error (translated `errors.New` calls; the facts are `True` for now)
     SPECIAL[f'{DSV_VR}.pkg.events'] = newvars_cfg(dict(
-        doc='''Its fact (`hookKnown`, `Base.lean`): the frame-decoder hook's lock. Its initializer
-allocates its variables (`ErrInvalidEventType`, an `errors.New` call; `frameDecoderMu`, a new mutex
-guarding `frameDecoder`, `nil`) and initializes its imports.''',
+        doc='''Its fact (`hookKnownFull`, `Base.lean`): the frame-decoder hook's lock, with its flag.
+Its initializer allocates its variables (`ErrInvalidEventType`, an `errors.New` call;
+`frameDecoderMu`, a new mutex guarding `frameDecoder`, `nil`, and the flag, unset) and
+initializes its imports.''',
+        imports=['Perennial.Ghost.MonoList'],
         alloc_types={'frameDecoderMu': 'Loc', 'frameDecoder': 'GoFunc'},
-        finish=['imod _root_.Perennial.sync.init_Mutex (hookLockInv (GF := GF)) ⊤ _ $$ «$r0» [HframeDecoder] with #Hmu',
-                '· inext; iunfold hookLockInv; iexists _; iexact HframeDecoder',
+        finish=['imod (mono_list_own_alloc (GF := GF) ([] : List Unit)) with ⟨%γh, Ha, -⟩',
+                'imod _root_.Perennial.sync.init_Mutex (hookLockInvFull (GF := GF) γh) ⊤ _ $$ «$r0» [HframeDecoder Ha] with #Hmu',
+                '· inext; iunfold hookLockInvFull; iexists _; iframe HframeDecoder; ileft; iframe Ha; ipureintro; rfl',
                 'imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HframeDecoderMu with #HframeDecoderMu'] +
-               FIN_PRE[:6] + ['imodintro', 'iunfold hookKnown', 'iexists _', 'iframe HframeDecoderMu', 'iexact Hmu']),
+               FIN_PRE[:6] + ['imodintro', 'iunfold hookKnownFull', 'iexists γh', 'iunfold hookState',
+                              'iexists _', 'iframe HframeDecoderMu', 'iexact Hmu']),
         ['ErrInvalidEventType'])
     SPECIAL[f'{DSV_VR}.examples.vsrwire'] = dict(
-        doc='''Its fact is `True` (for now; the lab's is `frameDecoderSet`, the hook set for good). Its
+        doc='''Its fact (`events.frameDecoderSet`, `Base.lean`): the hook set for good. Its
 initializer initializes its imports and runs its `init()`, which sets `events`' frame-decoder hook
-(`events.wp_SetFrameDecoder`).''',
+to `decodeFrame` (`events.wp_SetFrameDecoder`).''',
         imports=[f'Dsverify.Proof.{DSV_VR}.pkg.events.SetFrameDecoder'],
-        after={'init.«0»': [f'wp_apply _root_.Perennial.{DSV_VR}.pkg.events.wp_SetFrameDecoder', 'try wp_auto']},
+        after={'init.«0»': [f'wp_apply _root_.Perennial.{DSV_VR}.pkg.events.wp_SetFrameDecoder as #Hset',
+                            'try wp_auto']},
+        finish=FIN_PRE[:6],
     )
+    net_msg = 'network: no connection to the source address'
     SPECIAL[f'{DSV_VR}.pkg.network'] = newvars_cfg(dict(
-        doc='''Its fact is `True` (for now). Its initializer allocates `ErrNoConn` (an `errors.New` call)
-and initializes its imports.'''), ['ErrNoConn'])
+        doc='''Its fact (`Base.lean`): `ErrNoConn` holds `errors.New(...)` for good (`errors.newVar`).
+Its initializer allocates `ErrNoConn` (an `errors.New` call) and initializes its imports.''',
+        finish=['try wp_auto', 'ipersist HErrNoConn'] + FIN_PRE[:6] +
+               ['imodintro', 'iunfold _root_.Perennial.errors.newVar', 'iexists xErrNoConn',
+                'iframe HErrNoConn SErrNoConn MErrNoConn']), ['ErrNoConn'])
+    SPECIAL[f'{DSV_VR}.pkg.network']['before']['ErrNoConn'] = [
+        'try wp_auto',
+        'wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrNoConn ⟨#SErrNoConn, #MErrNoConn⟩']
 
     return SPECIAL

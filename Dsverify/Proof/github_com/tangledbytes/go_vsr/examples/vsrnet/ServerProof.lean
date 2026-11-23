@@ -8,12 +8,13 @@ notes/dsv-vr.md), ported from dsverify-lab `examples/vr/proof/VsrProof/Top/{Serv
   the ghost layer's invariants, and replica `id - 1`'s initial model state (used only if `id ≤ N`:
   the start gives it to every server machine, N being chosen later by the orchestrator, as the lab).
   No address token: the net extension's `addrTok` is the pure `addrOk`, which `addrProto` holds.
-* `srvLibState`: the packages' state the server's calls need that today's package facts do not
-  give (notes/dsv-vr.md, "Open (events' package facts)" and finding 2): the frame-decoder hook set
-  (`events.frameDecoderSet`, `vsrwire`'s fact in the lab), the kit's codec registered
-  (`encoding.json.codecSet`, the lab's `registerJSON`; here `RegisterJSON` is empty until jsongen
-  writes the codec), `network.ErrNoConn`'s value (`network`'s fact in the lab). Persistent; a
-  precondition of `Server` until the package facts carry them.
+* `srvLibState`: the packages' state the server's calls need that the package facts do not give
+  (notes/dsv-vr.md, finding 2): the kit's codec registered (`encoding.json.codecSet`, the lab's
+  `registerJSON`; here `RegisterJSON` is empty until jsongen writes the codec: blocker (2) on #24).
+  Persistent; a precondition of `Server` until the codec's registration establishes it. The
+  frame-decoder hook set (`events.frameDecoderSet`) and `network.ErrNoConn`'s value are the
+  package facts of `vsrwire` (which the kit links) and `network` (`kit_frameDecoderSet`,
+  `Conf.lean`).
 * The `log/slog` hypotheses (no model here): `log.slog.New.spec` (`New(h)` is a logger) and
   `log.slog.DiscardHandler.load_spec` (reading the package variable `DiscardHandler` returns).
 * `runReplica.spec`/`wp_proof`: replica `id - 1 < N` at `Addrs()[NC + id]`, the configuration's
@@ -99,12 +100,10 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumptions]
 variable [π : NetProtoGS] [encoding.json.DecoderRep GF]
 
-/-- The packages' state the server's calls need beyond today's package facts (see the file
-header; persistent). -/
+/-- The packages' state the server's calls need beyond their package facts (see the file header;
+persistent): the kit's codec registered. -/
 def srvLibState : IProp GF :=
-  iprop(pkg.events.frameDecoderSet ∗ encoding.json.codecSet (GF := GF) ∗
-    errors.newVar (GF := GF) pkg.network.ErrNoConn
-      go!"network: no connection to the source address")
+  iprop(encoding.json.codecSet (GF := GF))
 
 instance srvLibState_persistent : Persistent (srvLibState (GF := GF)) := by
   unfold srvLibState; infer_instance
@@ -209,6 +208,7 @@ theorem runReplica.wp_proof
     (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (wp_RemoteAddr : net.Conn.RemoteAddr.spec (GF := GF) (hG := hG))
     (wp_newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG))
+    (wp_Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
     (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
@@ -219,7 +219,9 @@ theorem runReplica.wp_proof
   intro γ i n h r hconf hi sl
   wp_start as ⟨#Hls, #Hsl, #Hprotos, #HsysI, #HregI, Hrep, #Hsize⟩
   iunfold srvLibState at Hls
-  icases Hls with ⟨#Hfd, #Hset, #Herr⟩
+  icases Hls with #Hset
+  ihave #Hfd := kit_frameDecoderSet $$ []
+  · iPkgInit
   have hk := codec_ok
   unfold examples.vsrnet.codecOk at hk
   ihave #Hkit := hk
@@ -250,7 +252,7 @@ theorem runReplica.wp_proof
     simp
   ihave #Hnet : isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.network $$ []
   · iPkgInit
-  wp_apply (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp wp_Unmarshal codec_ok)
+  wp_apply (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp wp_Decode_frame wp_Unmarshal codec_ok)
       examples.vsrnet.scanF (VsrWire.addrs.getD (7 + i) go!"") γ hmem)
     as %tcp ⟨#Htcp, Hts⟩
   · iframe #
@@ -349,6 +351,7 @@ theorem Server.wp_proof
     (wp_RemoteAddr : net.Conn.RemoteAddr.spec (GF := GF) (hG := hG))
     (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
     (wp_newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG))
+    (wp_Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
     (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG)
       (jc := examples.vsrnet.jsonCodec))
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
@@ -384,7 +387,7 @@ theorem Server.wp_proof
     imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
     imodintro
     wp_apply (runReplica.wp_proof wp_New wp_Discard wp_Debug wp_LDebug wp_LInfo wp_LWarn wp_LError
-      wp_Listen wp_Accept wp_Dial wp_Close wp_RemoteAddr wp_newDecoder wp_Unmarshal wp_NewEncoder
+      wp_Listen wp_Accept wp_Dial wp_Close wp_RemoteAddr wp_newDecoder wp_Decode_frame wp_Unmarshal wp_NewEncoder
       wp_Encode codec_ok γ i n h r hconf hin sl) $$ [Hrep] as %hf
     · iframe; iframe #
     exact hf.elim

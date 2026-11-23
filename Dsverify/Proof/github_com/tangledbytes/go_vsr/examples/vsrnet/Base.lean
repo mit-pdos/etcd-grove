@@ -13,6 +13,7 @@ public import Proof.github_com.anishathalye.porcupine.Base
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrkv.Base
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrwire.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.client.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.network.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.replica.Base

@@ -1,6 +1,6 @@
 /-
-The package fact of `github_com.tangledbytes.go_vsr.pkg.network` (the vr kit, notes/dsv-vr.md): `True` for now (the fact a proof needs
-is added with that proof).
+The package fact of `github_com.tangledbytes.go_vsr.pkg.network` (the vr kit, notes/dsv-vr.md):
+`ErrNoConn` holds `errors.New(noConnMsg)` for good (`errors.newVar`; the lab's `Top/PkgStates.lean`).
 -/
 module
 
@@ -33,8 +33,11 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics] [package_sem : github_com.tangledbytes.go_vsr.pkg.network.Assumptions]
 
+/-- `ErrNoConn`'s message. -/
+abbrev noConnMsg : GoString := go!"network: no connection to the source address"
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.network :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init (errors.newVar (GF := GF) ErrNoConn noConnMsg)
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.network :=
   build_get_is_pkg_init_wf
 

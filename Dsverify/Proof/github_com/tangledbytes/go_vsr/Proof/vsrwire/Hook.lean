@@ -6,8 +6,8 @@ hypothesis `events.Decoder.Decode_frame.spec` (the lab proved it of its model's 
 `kitCodecOk F`), which the frame decoder's precondition gives.
 -/
 /-
-The G1 hook: `decodeFrame` is a frame decoder (`events.frameDecOk`); `vsrwire`'s `init` sets the
-hook to it (`events.SetFrameDecoder`).
+The G1 hook: `decodeFrame` is a frame decoder (`events.frameDecOk`; what `FromDecoder`'s proof
+calls the hook's value by); `vsrwire`'s `init` sets the hook to it (`events.SetFrameDecoder`).
 -/
 module
 
@@ -83,26 +83,10 @@ theorem examples.vsrwire.decodeFrame.wp'
     · ipureintro; exact hmb
     iexact Hfact
 
-theorem examples.vsrwire.decodeFrame_ne_nil :
-    functions examples.vsrwire.decodeFrame [] ≠ func.nil := by
-  intro h
-  have e := (FuncUnfold.func_unfold (f := examples.vsrwire.decodeFrame) (type_args := []))
-  rw [h, go.intoVal_unfold GoFunc] at e
-  simp [func.nil, examples.vsrwire.decodeFrame.impl] at e
-
-/-- `vsrwire.init0.spec`, over the hypothesis `Decoder.Decode_frame.spec`. -/
-theorem examples.vsrwire.init0.wp'
-    (wp_Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG)) :
-    examples.vsrwire.init0.spec (GF := GF) (hG := hG) := by
-  wp_start as #Hk
-  ihave #Hjson : isPkgInit (PROP := IProp GF) pkg_id.encoding.json $$ []
-  · iPkgInit
-  ihave #Hdf := examples.vsrwire.decodeFrame.wp' wp_Decode_frame $$ Hjson
-  wp_apply pkg.events.SetFrameDecoder.wp' (functions examples.vsrwire.decodeFrame [])
-    examples.vsrwire.decodeFrame_ne_nil $$ [] as #Hset
-  · iframe; isplit
-    · iexact Hk
-    · iexact Hdf
+/-- `vsrwire.init0.spec` (no hypothesis: the hook holds `decodeFrame` by name). -/
+theorem examples.vsrwire.init0.wp' : examples.vsrwire.init0.spec (GF := GF) (hG := hG) := by
+  wp_start
+  wp_apply pkg.events.SetFrameDecoder.wp' as #Hset
   iapply HΦ $$ Hset
 
 end proof

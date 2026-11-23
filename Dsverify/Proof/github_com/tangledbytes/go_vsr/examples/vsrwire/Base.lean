@@ -1,6 +1,6 @@
 /-
-The package fact of `github_com.tangledbytes.go_vsr.examples.vsrwire` (the vr kit, notes/dsv-vr.md): `True` for now (the fact a proof needs
-is added with that proof).
+The package fact of `github_com.tangledbytes.go_vsr.examples.vsrwire` (the vr kit, notes/dsv-vr.md): the hook set for good to `decodeFrame` (`events.frameDecoderSet`,
+`pkg/events/Base.lean`; the lab's `frameDecoderSet`): what its `init` does.
 -/
 module
 
@@ -27,7 +27,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics] [package_sem : github_com.tangledbytes.go_vsr.examples.vsrwire.Assumptions]
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrwire :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init (github_com.tangledbytes.go_vsr.pkg.events.frameDecoderSet (GF := GF))
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrwire :=
   build_get_is_pkg_init_wf
 

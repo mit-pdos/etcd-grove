@@ -131,13 +131,12 @@ theorem wp_RegisterJSON :
   iapply HΦ
   itrivial
 
-/-- What a machine running go-vsr needs of the packages' states, which their package facts do not
-give yet (notes/dsv-vr.md, "Open (events' package facts)"; persistent): the frame decoder hook set
-(`vsrwire`'s `init`), the kit's JSON codec registered, `network.ErrNoConn`'s value. -/
+/-- What a machine running go-vsr needs of the packages' states beyond their package facts
+(persistent): the kit's JSON codec registered. Nothing establishes it yet (`RegisterJSON` is empty:
+jsongen refuses go-vsr's `log.Logs`, notes/dsv-vr.md finding 2; blocker (2) on #24); the hook set
+(`vsrwire`'s fact) and `ErrNoConn`'s value (`network`'s) are package facts (`kit_frameDecoderSet`). -/
 def pkgStates : IProp GF :=
-  iprop(pkg.events.frameDecoderSet ∗ encoding.json.codecSet (GF := GF) ∗
-    errors.newVar (GF := GF) pkg.network.ErrNoConn
-      go!"network: no connection to the source address")
+  iprop(encoding.json.codecSet (GF := GF))
 
 instance pkgStates_persistent : Persistent (pkgStates (GF := GF) (hG := hG)) := by
   unfold pkgStates; infer_instance
@@ -161,7 +160,9 @@ theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG :=
   intro γ c sl cf hc
   wp_start as ⟨#Hsl, #Hcf, #Hprotos, #HsysI, #HregI, Hnext, #Hst, #Hkit⟩
   unfold pkgStates
-  icases Hst with ⟨#Hfd, #Hcs, #Herr⟩
+  icases Hst with #Hcs
+  ihave #Hfd := kit_frameDecoderSet $$ []
+  · iPkgInit
   unfold confOk
   icases Hcf with ⟨%n, %h, %r, ⟨%Hcf, %Hok⟩, #Hsize⟩
   subst Hcf

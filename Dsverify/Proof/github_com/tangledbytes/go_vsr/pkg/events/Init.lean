@@ -2,9 +2,10 @@
 Package initialization of `github_com.tangledbytes.go_vsr.pkg.events`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact (`hookKnown`, `Base.lean`): the frame-decoder hook's lock. Its initializer
-allocates its variables (`ErrInvalidEventType`, an `errors.New` call; `frameDecoderMu`, a new mutex
-guarding `frameDecoder`, `nil`) and initializes its imports.
+Its fact (`hookKnownFull`, `Base.lean`): the frame-decoder hook's lock, with its flag.
+Its initializer allocates its variables (`ErrInvalidEventType`, an `errors.New` call;
+`frameDecoderMu`, a new mutex guarding `frameDecoder`, `nil`, and the flag, unset) and
+initializes its imports.
 -/
 module
 
@@ -15,6 +16,7 @@ public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Init
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.log.Init
+public import Perennial.Ghost.MonoList
 public import Perennial.Proof.errors.NewVar
 public import Dsverify.Proof.runtime.PkgInitDsv
 
@@ -73,8 +75,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   try wp_auto
   wp_apply _root_.Perennial.errors.wp_New_errorString as %xErrInvalidEventType ⟨#_, #MErrInvalidEventType⟩
   -- translated initializer of frameDecoderMu))
-  imod _root_.Perennial.sync.init_Mutex (hookLockInv (GF := GF)) ⊤ _ $$ «$r0» [HframeDecoder] with #Hmu
-  · inext; iunfold hookLockInv; iexists _; iexact HframeDecoder
+  imod (mono_list_own_alloc (GF := GF) ([] : List Unit)) with ⟨%γh, Ha, -⟩
+  imod _root_.Perennial.sync.init_Mutex (hookLockInvFull (GF := GF) γh) ⊤ _ $$ «$r0» [HframeDecoder Ha] with #Hmu
+  · inext; iunfold hookLockInvFull; iexists _; iframe HframeDecoder; ileft; iframe Ha; ipureintro; rfl
   imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HframeDecoderMu with #HframeDecoderMu
   iframe Hown
   imodintro
@@ -83,7 +86,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     exact isPanic_intoVal _
   is_pkg_init_finish
   imodintro
-  iunfold hookKnown
+  iunfold hookKnownFull
+  iexists γh
+  iunfold hookState
   iexists _
   iframe HframeDecoderMu
   iexact Hmu
