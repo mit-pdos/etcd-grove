@@ -9,6 +9,7 @@ module
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.listen
 public import Net.Spec.net.Listen
 public import Perennial.Spec.time.Sleep
+public import Net.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -41,7 +42,7 @@ theorem listen.wp_proof
   ihave %Hok := addrTok_ok a $$ [Haddr]
   · iapply addrProto_tok $$ Haddr
   wp_auto
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp a as %li %err HL
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp a as %li %err HL
   · iframe %Hok
     iapply listen_au $$ Haddr
   ihave HI : (∃ (li : GoInterface) (err : GoInterface), "Hl" ∷ l_ptr ↦ li ∗ "Herr" ∷ err_ptr ↦ err ∗
@@ -76,7 +77,7 @@ theorem listen.wp_proof
     cleanup_bool_decide
     (try wp_auto)
     wp_apply wp_Sleep
-    wp_apply wp_Listen go!"tcp" net.tcpNet_tcp a as %li' %err' HL
+    wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp a as %li' %err' HL
     · iframe %Hok
       iapply listen_au $$ Haddr
     wp_for_post

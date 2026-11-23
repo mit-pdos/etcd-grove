@@ -42,6 +42,7 @@ public import Perennial.Spec.sync.WaitGroup__Done
 public import Perennial.Spec.sync.WaitGroup__Wait
 public import Perennial.Proof.io
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
+public import Net.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -162,7 +163,7 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hla0, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
   · iframe %Hla0
     iapply wire.listen_au addrN srvAddr _ $$ HaddrInv
   · -- listening: the accept loop
@@ -175,7 +176,7 @@ theorem wp_Serve
       IProp GF) $$ [Hlis]
     · iexact Hlis
     wp_for HI
-    wp_apply wp_Accept t l xl srvAddr
+    wp_apply (net.Listener.Accept.spec_addrOk wp_Accept) t l xl srvAddr
         (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l srvAddr true)
         (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l srvAddr true ∗
           connProto γm cn)) $$ [Hlis]
