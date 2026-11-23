@@ -79,7 +79,7 @@ noncomputable instance Periodic_access_load_clock (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Periodic_access_store_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (clock' : github_com.jonboulle.clockwork.Clock) :
+noncomputable instance Periodic_access_store_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (clock' : _root_.Perennial.github_com.jonboulle.clockwork.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"clock" l) clock' (DFrac.own 1))
@@ -95,7 +95,7 @@ noncomputable instance Periodic_access_load_period (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Periodic_access_store_period (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (period' : time.Duration) :
+noncomputable instance Periodic_access_store_period (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (period' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"period" l) v.period' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"period" l) period' (DFrac.own 1))
@@ -159,7 +159,7 @@ noncomputable instance Periodic_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Periodic_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (ctx' : context.Context) :
+noncomputable instance Periodic_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"ctx" l) ctx' (DFrac.own 1))
@@ -175,7 +175,7 @@ noncomputable instance Periodic_access_load_cancel (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Periodic_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (cancel' : context.CancelFunc) :
+noncomputable instance Periodic_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (cancel' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"cancel" l) v.cancel' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"cancel" l) cancel' (DFrac.own 1))
@@ -191,7 +191,7 @@ noncomputable instance Periodic_access_load_mu (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Periodic_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (mu' : sync.RWMutex) :
+noncomputable instance Periodic_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic go!"mu" l) mu' (DFrac.own 1))
@@ -271,7 +271,7 @@ noncomputable instance Revision_access_load_clock (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Revision_access_store_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (clock' : github_com.jonboulle.clockwork.Clock) :
+noncomputable instance Revision_access_store_clock (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (clock' : _root_.Perennial.github_com.jonboulle.clockwork.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"clock" l) clock' (DFrac.own 1))
@@ -335,7 +335,7 @@ noncomputable instance Revision_access_load_ctx (l : Loc) (v : go_etcd_io.etcd.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Revision_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (ctx' : context.Context) :
+noncomputable instance Revision_access_store_ctx (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (ctx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"ctx" l) v.ctx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"ctx" l) ctx' (DFrac.own 1))
@@ -351,7 +351,7 @@ noncomputable instance Revision_access_load_cancel (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Revision_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (cancel' : context.CancelFunc) :
+noncomputable instance Revision_access_store_cancel (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (cancel' : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"cancel" l) v.cancel' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"cancel" l) cancel' (DFrac.own 1))
@@ -367,7 +367,7 @@ noncomputable instance Revision_access_load_mu (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Revision_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (mu' : sync.Mutex) :
+noncomputable instance Revision_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Revision go!"mu" l) mu' (DFrac.own 1))

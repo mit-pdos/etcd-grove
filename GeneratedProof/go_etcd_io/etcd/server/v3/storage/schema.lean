@@ -61,7 +61,7 @@ noncomputable instance setKeyAction_access_load_Bucket (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance setKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (Bucket' : go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
+noncomputable instance setKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.setKeyAction) (Bucket' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"Bucket" l) v.Bucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.setKeyAction go!"Bucket" l) Bucket' (DFrac.own 1))
@@ -134,7 +134,7 @@ noncomputable instance deleteKeyAction_access_load_Bucket (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance deleteKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction) (Bucket' : go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
+noncomputable instance deleteKeyAction_access_store_Bucket (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction) (Bucket' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction go!"Bucket" l) v.Bucket' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.deleteKeyAction go!"Bucket" l) Bucket' (DFrac.own 1))
@@ -207,7 +207,7 @@ noncomputable instance alarmBackend_access_load_be (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance alarmBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (be' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+noncomputable instance alarmBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.alarmBackend) (be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l) v.be' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.alarmBackend go!"be" l) be' (DFrac.own 1))
@@ -248,7 +248,7 @@ noncomputable instance authBackend_access_load_be (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance authBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (be' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+noncomputable instance authBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBackend) (be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l) v.be' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" l) be' (DFrac.own 1))
@@ -305,7 +305,7 @@ noncomputable instance authReadTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance authReadTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (tx' : go_etcd_io.etcd.server.v3.storage.backend.ReadTx) :
+noncomputable instance authReadTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authReadTx) (tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx go!"tx" l) tx' (DFrac.own 1))
@@ -362,7 +362,7 @@ noncomputable instance authBatchTx_access_load_tx (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance authBatchTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (tx' : go_etcd_io.etcd.server.v3.storage.backend.BatchTx) :
+noncomputable instance authBatchTx_access_store_tx (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.authBatchTx) (tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"tx" l) v.tx' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx go!"tx" l) tx' (DFrac.own 1))
@@ -420,7 +420,7 @@ noncomputable instance bucket_access_load_id (l : Loc) (v : go_etcd_io.etcd.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance bucket_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (id' : go_etcd_io.etcd.server.v3.storage.backend.BucketID) :
+noncomputable instance bucket_access_store_id (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.bucket) (id' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"id" l) v.id' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.bucket go!"id" l) id' (DFrac.own 1))
@@ -566,7 +566,7 @@ noncomputable instance membershipBackend_access_load_be (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance membershipBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (be' : go_etcd_io.etcd.server.v3.storage.backend.Backend) :
+noncomputable instance membershipBackend_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.membershipBackend) (be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l) v.be' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.membershipBackend go!"be" l) be' (DFrac.own 1))
@@ -607,7 +607,7 @@ noncomputable instance migrationStep_access_load_target (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance migrationStep_access_store_target (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (target' : github_com.Masterminds.semver.v3.Version) :
+noncomputable instance migrationStep_access_store_target (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.schema.migrationStep) (target' : _root_.Perennial.github_com.Masterminds.semver.v3.Version) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"target" l) v.target' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.schema.migrationStep go!"target" l) target' (DFrac.own 1))

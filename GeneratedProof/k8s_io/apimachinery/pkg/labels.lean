@@ -87,7 +87,7 @@ noncomputable instance Requirement_access_load_operator (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Requirement_access_store_operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (operator' : k8s_io.apimachinery.pkg.selection.Operator) :
+noncomputable instance Requirement_access_store_operator (l : Loc) (v : k8s_io.apimachinery.pkg.labels.Requirement) (operator' : _root_.Perennial.k8s_io.apimachinery.pkg.selection.Operator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) v.operator' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.labels.Requirement go!"operator" l) operator' (DFrac.own 1))

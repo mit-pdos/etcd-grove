@@ -738,7 +738,7 @@ noncomputable instance raft_access_load_trk (l : Loc) (v : go_etcd_io.raft.v3.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance raft_access_store_trk (l : Loc) (v : go_etcd_io.raft.v3.raft) (trk' : go_etcd_io.raft.v3.tracker.ProgressTracker) :
+noncomputable instance raft_access_store_trk (l : Loc) (v : go_etcd_io.raft.v3.raft) (trk' : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"trk" l) v.trk' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raft go!"trk" l) trk' (DFrac.own 1))

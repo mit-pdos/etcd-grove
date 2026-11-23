@@ -137,7 +137,7 @@ noncomputable instance Server_access_load_Logger (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_Logger (l : Loc) (v : rabia.roles.server.Server) (Logger' : github_com.rs.zerolog.Logger) :
+noncomputable instance Server_access_store_Logger (l : Loc) (v : rabia.roles.server.Server) (Logger' : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.Server go!"Logger" l) Logger' (DFrac.own 1))

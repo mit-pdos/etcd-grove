@@ -64,7 +64,7 @@ noncomputable instance ConcurrentMapShared_access_load_RWMutex (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConcurrentMapShared_access_store_RWMutex (l : Loc) (v : github_com.orcaman.concurrent_map.ConcurrentMapShared) (RWMutex' : sync.RWMutex) :
+noncomputable instance ConcurrentMapShared_access_store_RWMutex (l : Loc) (v : github_com.orcaman.concurrent_map.ConcurrentMapShared) (RWMutex' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) RWMutex' (DFrac.own 1))

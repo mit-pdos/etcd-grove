@@ -262,7 +262,7 @@ noncomputable instance PutOptions_access_load_LeaseID (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance PutOptions_access_store_LeaseID (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (LeaseID' : go_etcd_io.etcd.client.v3.LeaseID) :
+noncomputable instance PutOptions_access_store_LeaseID (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (LeaseID' : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) LeaseID' (DFrac.own 1))

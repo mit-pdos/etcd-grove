@@ -638,7 +638,7 @@ noncomputable instance lockedRand_access_load_mu (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance lockedRand_access_store_mu (l : Loc) (v : go_etcd_io.raft.v3.lockedRand) (mu' : sync.Mutex) :
+noncomputable instance lockedRand_access_store_mu (l : Loc) (v : go_etcd_io.raft.v3.lockedRand) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.lockedRand go!"mu" l) mu' (DFrac.own 1))
@@ -687,7 +687,7 @@ noncomputable instance WitnessMessage_access_load_Type (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance WitnessMessage_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (Type' : go_etcd_io.raft.v3.raftpb.MessageType) :
+noncomputable instance WitnessMessage_access_store_Type (l : Loc) (v : go_etcd_io.raft.v3.WitnessMessage) (Type' : _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Type" l) v.Type' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.WitnessMessage go!"Type" l) Type' (DFrac.own 1))

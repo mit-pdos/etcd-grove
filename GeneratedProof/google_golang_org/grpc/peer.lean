@@ -49,7 +49,7 @@ noncomputable instance Peer_access_load_Addr (l : Loc) (v : google_golang_org.gr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Peer_access_store_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (Addr' : net.Addr) :
+noncomputable instance Peer_access_store_Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (Addr' : _root_.Perennial.net.Addr) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) Addr' (DFrac.own 1))
@@ -65,7 +65,7 @@ noncomputable instance Peer_access_load_LocalAddr (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Peer_access_store_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (LocalAddr' : net.Addr) :
+noncomputable instance Peer_access_store_LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (LocalAddr' : _root_.Perennial.net.Addr) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) LocalAddr' (DFrac.own 1))
@@ -81,7 +81,7 @@ noncomputable instance Peer_access_load_AuthInfo (l : Loc) (v : google_golang_or
  by
   solve_pointsto_access_struct
 
-noncomputable instance Peer_access_store_AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (AuthInfo' : google_golang_org.grpc.credentials.AuthInfo) :
+noncomputable instance Peer_access_store_AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (AuthInfo' : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) AuthInfo' (DFrac.own 1))

@@ -51,7 +51,7 @@ noncomputable instance Iterator_access_load_iterator (l : Loc) (v : github_com.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Iterator_access_store_iterator (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Iterator) (iterator' : github_com.emirpasic.gods.trees.redblacktree.Iterator) :
+noncomputable instance Iterator_access_store_iterator (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Iterator) (iterator' : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) v.iterator' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) iterator' (DFrac.own 1))

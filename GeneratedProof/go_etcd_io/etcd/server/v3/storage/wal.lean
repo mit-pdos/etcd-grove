@@ -72,7 +72,7 @@ noncomputable instance decoder_access_load_mu (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance decoder_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.decoder) (mu' : sync.Mutex) :
+noncomputable instance decoder_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.decoder) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"mu" l) mu' (DFrac.own 1))
@@ -120,7 +120,7 @@ noncomputable instance decoder_access_load_crc (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance decoder_access_store_crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.decoder) (crc' : hash.Hash32) :
+noncomputable instance decoder_access_store_crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.decoder) (crc' : _root_.Perennial.hash.Hash32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"crc" l) v.crc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.decoder go!"crc" l) crc' (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance encoder_access_load_mu (l : Loc) (v : go_etcd_io.etcd.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoder_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.encoder) (mu' : sync.Mutex) :
+noncomputable instance encoder_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.encoder) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.encoder go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.encoder go!"mu" l) mu' (DFrac.own 1))
@@ -212,7 +212,7 @@ noncomputable instance encoder_access_load_crc (l : Loc) (v : go_etcd_io.etcd.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoder_access_store_crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.encoder) (crc' : hash.Hash32) :
+noncomputable instance encoder_access_store_crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.encoder) (crc' : _root_.Perennial.hash.Hash32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.encoder go!"crc" l) v.crc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.encoder go!"crc" l) crc' (DFrac.own 1))
@@ -658,7 +658,7 @@ noncomputable instance WAL_access_load_mu (l : Loc) (v : go_etcd_io.etcd.server.
  by
   solve_pointsto_access_struct
 
-noncomputable instance WAL_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.WAL) (mu' : sync.Mutex) :
+noncomputable instance WAL_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.WAL) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" l) mu' (DFrac.own 1))

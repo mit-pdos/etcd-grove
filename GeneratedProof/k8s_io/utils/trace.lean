@@ -127,7 +127,7 @@ noncomputable instance traceStep_access_load_stepTime (l : Loc) (v : k8s_io.util
  by
   solve_pointsto_access_struct
 
-noncomputable instance traceStep_access_store_stepTime (l : Loc) (v : k8s_io.utils.trace.traceStep) (stepTime' : time.Time) :
+noncomputable instance traceStep_access_store_stepTime (l : Loc) (v : k8s_io.utils.trace.traceStep) (stepTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"stepTime" l) v.stepTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.trace.traceStep go!"stepTime" l) stepTime' (DFrac.own 1))
@@ -238,7 +238,7 @@ noncomputable instance Trace_access_load_startTime (l : Loc) (v : k8s_io.utils.t
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_startTime (l : Loc) (v : k8s_io.utils.trace.Trace) (startTime' : time.Time) :
+noncomputable instance Trace_access_store_startTime (l : Loc) (v : k8s_io.utils.trace.Trace) (startTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"startTime" l) v.startTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"startTime" l) startTime' (DFrac.own 1))
@@ -270,7 +270,7 @@ noncomputable instance Trace_access_load_lock (l : Loc) (v : k8s_io.utils.trace.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_lock (l : Loc) (v : k8s_io.utils.trace.Trace) (lock' : sync.RWMutex) :
+noncomputable instance Trace_access_store_lock (l : Loc) (v : k8s_io.utils.trace.Trace) (lock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.utils.trace.Trace go!"lock" l) lock' (DFrac.own 1))

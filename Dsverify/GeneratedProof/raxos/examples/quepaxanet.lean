@@ -171,7 +171,7 @@ noncomputable instance replica_access_load_mu (l : Loc) (v : raxos.examples.quep
  by
   solve_pointsto_access_struct
 
-noncomputable instance replica_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.replica) (mu' : sync.Mutex) :
+noncomputable instance replica_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.replica) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"mu" l) mu' (DFrac.own 1))
@@ -219,7 +219,7 @@ noncomputable instance replica_access_load_c (l : Loc) (v : raxos.examples.quepa
  by
   solve_pointsto_access_struct
 
-noncomputable instance replica_access_store_c (l : Loc) (v : raxos.examples.quepaxanet.replica) (c' : net.Conn) :
+noncomputable instance replica_access_store_c (l : Loc) (v : raxos.examples.quepaxanet.replica) (c' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"c" l) v.c' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"c" l) c' (DFrac.own 1))
@@ -347,7 +347,7 @@ noncomputable instance Sys_access_load_mu (l : Loc) (v : raxos.examples.quepaxan
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.Sys) (mu' : sync.Mutex) :
+noncomputable instance Sys_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.Sys) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"mu" l) mu' (DFrac.own 1))
