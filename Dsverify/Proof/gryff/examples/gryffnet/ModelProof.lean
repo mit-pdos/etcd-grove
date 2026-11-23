@@ -793,8 +793,53 @@ theorem wp_stepGo (sl : GoSlice) (cs : List Cfg) (L : List GCfg) (hne : L ≠ []
             iframe #
             ipureintro
             exact ⟨by word, by word, HK', HC', hcov L2 (fun _ h => h) (fun h => absurd h hwo), HB'⟩
-      · sorry
-    · sorry
+      · have hjR : sint.nat jv = R.length := by
+          have h1 := Hjl; rw [← HrR, HrL.1]; word
+        have his : sint.nat (iv + W64 1) = sint.nat iv + 1 := by word
+        wp_for_post
+        iframe
+        iexists iv + W64 1, q, cs2, L2
+        iframe
+        iframe #
+        ipureintro
+        refine ⟨by word, by word, HK', fun y ⟨i', hi', x, hx, r, hr, ha, hp⟩ => ?_, HB'⟩
+        rw [his] at hi'
+        rcases Nat.lt_succ_iff_lt_or_eq.1 hi' with hi' | hi'
+        · exact HC' y ⟨i', hi', x, hx, r, hr, ha, hp⟩
+        · subst hi'
+          rw [Hxg] at hx; cases hx
+          have hrR : r ∈ R := (HRm r).2 hr
+          obtain ⟨j', hj', hjr⟩ := List.getElem_of_mem hrR
+          exact HD' y ⟨j', by omega, r, by rw [← hjr]; exact List.getElem?_eq_getElem hj', ha, hp⟩
+    · have hiL : sint.nat iv = L.length := by
+        have h1 := Hil; rw [← HcsL, Hl.1]; word
+      ihave %Hlq := ownSlice_len _ _ _ $$ Hq
+      ihave %Hcs2L : ⌜cs2.length = L2.length⌝ $$ []
+      · unfold cfgsOk; icases Hcs2 with ⟨%h, -⟩; ipureintro; exact h
+      have hmem : ∀ y, y ∈ L2 ↔ knownCfgs L i o y := by
+        intro y
+        refine ⟨HK y, fun ⟨x, hx, r, hr, ha, hp⟩ => ?_⟩
+        obtain ⟨i', hi', hix⟩ := List.getElem_of_mem hx
+        exact HC y ⟨i', by omega, x, by rw [← hix]; exact List.getElem?_eq_getElem hi', r, hr, ha, hp⟩
+      have H := stepG_pSeq L hne i o L2 hmem
+      simp only [hu, Bool.false_eq_true, ↓reduceIte] at H
+      have hok : (sint.Z (W64 0) < sint.Z q.len) ↔ L2 ≠ [] := by
+        rw [← List.length_pos_iff, ← Hcs2L, Hlq.1]
+        constructor <;> intro h <;> word
+      iapply HΦ
+      iexists q, cs2, L2, _
+      iframe Hq
+      iframe #
+      ipureintro
+      refine ⟨rfl, ?_, fun hok' => ?_⟩
+      · unfold stepRes
+        rw [hu]
+        simp only [Bool.false_eq_true, ↓reduceIte, H]
+        by_cases h : L2 ≠ []
+        · rw [if_pos h, decide_eq_true (hok.2 h)]; rfl
+        · rw [if_neg h, decide_eq_false (fun h' => h (hok.1 h'))]; rfl
+      · have h := hok.1 (of_decide_eq_true hok')
+        exact ⟨h, fun x hx => Nat.le_succ_of_le (HB x hx)⟩
   · have H := pseq_unknown L hne i
     wp_auto
     wp_apply wp_isWrite
