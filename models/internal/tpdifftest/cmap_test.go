@@ -1,6 +1,7 @@
 package tpdifftest_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -163,7 +164,7 @@ func TestCmapRandom(t *testing.T) {
 	d, _ := cmDump(t, m)
 	tr.printf("shrunk: %s", d)
 	cmap.SHARD_COUNT = 9
-	tr.printf("grown: set panics=%v", panics(func() {
+	tr.printf("grown: set: %s", outcome(func() {
 		for i := 0; i < 64; i++ {
 			m.Set(fmt.Sprint(i), i)
 		}
@@ -220,6 +221,32 @@ func TestCmapConcurrent(t *testing.T) {
 			d, _ := cmDump(t, m)
 			// the shared counters: the number of Upserts, deterministic per worker seed
 			tr.printf("shards %d run %d: %s", shards, run, d)
+		}
+	}
+	tr.save(t)
+}
+
+// TestCmapFormats: fmt's printing of a shard (the same struct as v1.0.0's) in both builds; JSON
+// (MarshalJSON), outside the model: a NotModelled panic in the model, v1.0.0's JSON otherwise.
+func TestCmapFormats(t *testing.T) {
+	tr := newTranscript("cmap-formats")
+	defer func(n int) { cmap.SHARD_COUNT = n }(cmap.SHARD_COUNT)
+	cmap.SHARD_COUNT = 1
+	m := cmap.New()
+	m.Set("a", 1)
+	m.Set("b", "x")
+	tr.printf("shard %%v %v", m[0])
+	tr.printf("shard %%+v %+v", m[0])
+	tr.printf("len %d", len(m))
+	nm := notModelled(func() { json.Marshal(m) })
+	if model && !nm {
+		t.Errorf("model: json.Marshal did not panic NotModelled")
+	}
+	if !model {
+		j, err := json.Marshal(m)
+		t.Logf("v1.0.0 json %s %v", j, err)
+		if nm || string(j) != `{"a":1,"b":"x"}` {
+			t.Errorf("v1.0.0 json %s %v", j, err)
 		}
 	}
 	tr.save(t)

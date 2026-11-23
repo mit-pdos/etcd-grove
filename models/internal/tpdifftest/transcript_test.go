@@ -8,6 +8,25 @@ import (
 	"testing"
 )
 
+// outcome runs f: "ok", or "panic: " and the panic's text (a runtime error's message, which the
+// model's panics must match), or "panic: NotModelled" for the models' panic value.
+func outcome(f func()) (s string) {
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(interface{ NotModelled() }); ok {
+				s = "panic: NotModelled"
+			} else {
+				s = fmt.Sprintf("panic: %v", r)
+			}
+		}
+	}()
+	f()
+	return "ok"
+}
+
+// notModelled reports whether f panics with the models' panic value.
+func notModelled(f func()) bool { return outcome(f) == "panic: NotModelled" }
+
 // A transcript is what a test observed of a library, line by line: run.sh runs every test against
 // the real library and against the model, each writing its transcripts to $TPDIFF_OUT, and
 // compares the two directories (they must be byte for byte equal). Without $TPDIFF_OUT the
@@ -35,16 +54,4 @@ func (t *transcript) save(tb testing.TB) {
 	if err := os.WriteFile(filepath.Join(dir, t.name+".txt"), t.buf.Bytes(), 0o644); err != nil {
 		tb.Fatal(err)
 	}
-}
-
-// panics runs f and reports whether it panicked (the transcripts record that a call panicked,
-// not the panic value: the model's runtime errors may be other runtime errors than the library's).
-func panics(f func()) (p bool) {
-	defer func() {
-		if recover() != nil {
-			p = true
-		}
-	}()
-	f()
-	return false
 }

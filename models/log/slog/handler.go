@@ -10,7 +10,7 @@ import (
 
 // MODEL: of Go's handler.go the Handler interface, DiscardHandler (Go's code), and the default
 // handler reduced to its level check (Go's defaultHandler formats a record and writes it to the
-// log package's output: dropped). The handler options, the text and JSON handlers' common code,
+// log package's output; the model's API never enables a record for it, so it never does). The handler options, the text and JSON handlers' common code,
 // and the other handlers are left out.
 
 // A Handler handles log records produced by a Logger.
@@ -45,9 +45,9 @@ type Handler interface {
 
 // MODEL: the default handler (Go: defaultHandler, over the log package's output). Enabled is Go's
 // check against the log package's level, which is LevelInfo (Go: logLoggerLevel, changed only by
-// SetLogLoggerLevel, not in the model). Handle drops the record (Go: formats it and writes it to
-// log's output, os.Stderr, which the program does not read). WithAttrs and WithGroup are not
-// reachable through the model's API.
+// SetLogLoggerLevel, not in the model). Handle, WithAttrs and WithGroup are not reachable through
+// the model's API: only the package-level Debug uses the default handler (Go: Default(), not in
+// the model), and Debug is below LevelInfo.
 type defaultHandler struct{}
 
 func (defaultHandler) Enabled(_ context.Context, l Level) bool { return l >= LevelInfo }
@@ -66,27 +66,10 @@ func (dh discardHandler) Handle(context.Context, Record) error { return nil }
 func (dh discardHandler) WithAttrs(attrs []Attr) Handler       { return dh }
 func (dh discardHandler) WithGroup(name string) Handler        { return dh }
 
-// MODEL: the models' panic value: what the model does not model (a program-supplied Handler, the
-// use of Logger.Handler's result).
+// MODEL: the models' panic value: what the model does not model (a program-supplied Handler).
 type notModelled struct{ what string }
 
 func (e notModelled) Error() string { return "log/slog model: not modelled: " + e.what }
 
 // NotModelled marks the value as the models' panic.
 func (notModelled) NotModelled() {}
-
-// MODEL: the handler Logger.Handler returns: every method panics with notModelled.
-type notModelledHandler struct{}
-
-func (notModelledHandler) Enabled(context.Context, Level) bool {
-	panic(notModelled{"the use of Logger.Handler's result"})
-}
-func (notModelledHandler) Handle(context.Context, Record) error {
-	panic(notModelled{"the use of Logger.Handler's result"})
-}
-func (notModelledHandler) WithAttrs([]Attr) Handler {
-	panic(notModelled{"the use of Logger.Handler's result"})
-}
-func (notModelledHandler) WithGroup(string) Handler {
-	panic(notModelled{"the use of Logger.Handler's result"})
-}

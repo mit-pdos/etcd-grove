@@ -5,6 +5,8 @@
 # with the three replaced by the models' directories, tag tpmodel). Each build checks the
 # libraries against the tests' references and writes its transcripts (what it observed); the two
 # builds' transcripts must be equal.
+# The pinned modules are fetched first if the module cache lacks them (GOPROXY=off otherwise):
+# from $TPDIFF_GOPROXY, default proxy.golang.org.
 # Usage: models/internal/tpdifftest/run.sh [go test flags]
 set -euo pipefail
 D=$(cd "$(dirname "$0")" && pwd)
@@ -21,6 +23,13 @@ go mod edit -replace=github.com/emirpasic/gods="$M/gods" \
 # the uuid model requires goose's primitive (its go.mod); the sums are the model's
 cat "$M/uuid/go.sum" >> "$tmp/go.model.sum"
 cd "$D"
+# the pinned modules (and goose's primitive, the uuid model's) in the module cache
+fetch() {
+  (cd "$1" && { go mod download "${@:2}" 2>/dev/null ||
+    GOPROXY=${TPDIFF_GOPROXY:-https://proxy.golang.org} GOFLAGS=-mod=mod go mod download "${@:2}"; })
+}
+fetch "$D" github.com/emirpasic/gods github.com/google/uuid github.com/orcaman/concurrent-map
+fetch "$M/uuid" github.com/goose-lang/primitive
 echo "== the real modules"
 go vet ./...
 TPDIFF_OUT="$tmp/real" go test -count=1 "$@" ./...
@@ -37,4 +46,13 @@ for f in "$tmp/real"/*.txt; do
   fi
 done
 [ "$(ls "$tmp/real" | wc -l)" = "$(ls "$tmp/model" | wc -l)" ] || { echo "transcript sets differ"; exit 1; }
+# outside the uuid model's premise: a package initialized before uuid assigns crypto/rand.Reader
+echo "== randprobe (outside the claim: crypto/rand.Reader assigned before uuid's initialization)"
+R="$D/testdata/randprobe"
+cp "$R/go.mod" "$tmp/rp.mod"; cp "$R/go.sum" "$tmp/rp.sum"; cat "$M/uuid/go.sum" >> "$tmp/rp.sum"
+go mod edit -replace=github.com/google/uuid="$M/uuid" "$tmp/rp.mod"
+real=$(cd "$R" && go run .); model=$(cd "$R" && go run -modfile="$tmp/rp.mod" .)
+echo "v1.3.1: $real" | tr '\n' ' '; echo; echo "model: $model" | tr '\n' ' '; echo
+[ "$real" = $'NewRandom error: no randomness\nNew panicked: true' ] || { echo "randprobe: v1.3.1 unexpected"; exit 1; }
+[ "$model" = $'NewRandom error: <nil>\nNew panicked: false' ] || { echo "randprobe: model unexpected"; exit 1; }
 echo "tpdifftest: ok"

@@ -3,6 +3,7 @@ package slogdifftest
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -159,34 +160,53 @@ func TestNil(t *testing.T) {
 	tr.save(t)
 }
 
-// TestHandler: Logger.Handler returns (in both); using its result is outside the model (a
-// NotModelled panic in the model; Go's returns DiscardHandler).
+// TestHandler: Logger.Handler returns the Logger's handler (Go's code in both): its identity, its
+// type, its methods; a zero Logger's is nil.
 func TestHandler(t *testing.T) {
 	tr := &transcript{name: "handler"}
 	l := slog.New(slog.DiscardHandler)
-	var h slog.Handler
-	tr.printf("Handler(): %s", outcome(func() { h = l.Handler() }))
-	tr.printf("non-nil: %v", h != nil)
+	h := l.Handler()
+	tr.printf("Handler() == DiscardHandler: %v; %%T %T; %%v %v; %%#v %#v", h == slog.DiscardHandler, h, h, h)
+	tr.printf("Enabled(Error) %v; Handle %v; WithAttrs == DiscardHandler %v; WithGroup %v",
+		h.Enabled(context.Background(), slog.LevelError), h.Handle(context.Background(), slog.Record{}),
+		h.WithAttrs(nil) == slog.DiscardHandler, h.WithGroup("g") == slog.DiscardHandler)
+	tr.printf("New(Handler()) Info: %s", outcome(func() { slog.New(h).Info("m", "k", spy{}) }))
+	_, isWG := h.(interface{ WithGroup(string) slog.Handler })
+	tr.printf("type assertion WithGroup: %v", isWG)
+	var z slog.Logger
+	tr.printf("zero Logger: Handler() == nil %v", z.Handler() == nil)
+	for _, m := range methods(&z) {
+		tr.printf("zero Logger %s: %s", m.name, outcome(func() { m.f("msg", "k", 1) }))
+	}
+	tr.printf("zero Logger %%v %v; New(DiscardHandler) %%v %v %%+v %+v", z, *l, *l)
 	tr.save(t)
-	use := []func(){
-		func() { h.Enabled(context.Background(), slog.LevelError) },
-		func() { h.Handle(context.Background(), slog.Record{}) },
-		func() { h.WithAttrs(nil) },
-		func() { h.WithGroup("g") },
-		func() { slog.New(h) },
+}
+
+// TestLevel: Level's methods (Go's code in both): String, fmt, JSON and text, parsing.
+func TestLevel(t *testing.T) {
+	tr := &transcript{name: "level"}
+	for lv := slog.Level(-12); lv <= 14; lv++ {
+		j, jerr := lv.MarshalJSON()
+		x, xerr := lv.MarshalText()
+		a, aerr := lv.AppendText([]byte("p:"))
+		js, _ := json.Marshal(struct{ L slog.Level }{lv})
+		tr.printf("%d: String %s; %%v %v; %%d %d; json %s %v; text %s %v; append %s %v; struct %s; Level %d",
+			int(lv), lv.String(), lv, lv, j, jerr, x, xerr, a, aerr, js, int(lv.Level()))
 	}
-	for i, f := range use {
-		r := notModelledPanic(f)
-		if model && !r {
-			t.Errorf("model: use %d of Handler()'s result did not panic NotModelled", i)
-		}
-		if !model && r {
-			t.Errorf("Go: use %d of Handler()'s result panicked", i)
-		}
+	for _, in := range []string{"DEBUG", "debug", "Info", "WARN", "ERROR", "error+2", "INFO-3",
+		"WARN+0", "ERROR-10", "INFO+", "INFO+x", "FATAL", "", "DEBUG+99999999999999999999", "warn-4",
+		"4", "INFO +1"} {
+		var a, b slog.Level
+		ea := a.UnmarshalText([]byte(in))
+		eb := b.UnmarshalJSON([]byte(fmt.Sprintf("%q", in)))
+		var c slog.Level
+		ec := c.UnmarshalJSON([]byte(in))
+		tr.printf("%q: text %d %v; json %d %v; raw json %d %v", in, int(a), ea, int(b), eb, int(c), ec)
 	}
-	if !model && h != slog.DiscardHandler {
-		t.Errorf("Go: Handler() is not DiscardHandler")
-	}
+	var st struct{ L slog.Level }
+	err := json.Unmarshal([]byte(`{"L":"WARN+1"}`), &st)
+	tr.printf("struct unmarshal %d %v", int(st.L), err)
+	tr.save(t)
 }
 
 type progHandler struct{ calls *int }
@@ -197,7 +217,7 @@ func (h progHandler) WithAttrs([]slog.Attr) slog.Handler        { return h }
 func (h progHandler) WithGroup(string) slog.Handler             { return h }
 
 // TestProgramHandler: a Handler the program supplies is outside the model (a NotModelled panic at
-// New in the model; Go's calls it).
+// New in the model; Go's calls it), here also one obtained by wrapping DiscardHandler.
 func TestProgramHandler(t *testing.T) {
 	n := 0
 	r := notModelledPanic(func() { slog.New(progHandler{&n}).Info("m") })
@@ -206,6 +226,11 @@ func TestProgramHandler(t *testing.T) {
 	}
 	if !model && (r || n != 2) {
 		t.Errorf("Go: panicked %v, handler calls %d", r, n)
+	}
+	type wrapped struct{ slog.Handler }
+	r = notModelledPanic(func() { slog.New(wrapped{slog.DiscardHandler}).Info("m") })
+	if model != r {
+		t.Errorf("wrapped DiscardHandler: NotModelled %v (model %v)", r, model)
 	}
 }
 

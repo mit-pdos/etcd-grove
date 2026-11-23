@@ -10,7 +10,7 @@ package treemap
 
 // Select returns a new container containing all elements for which the given function returns a true value.
 func (m *Map) Select(f func(key interface{}, value interface{}) bool) *Map {
-	newMap := NewWith(m.comparator) // MODEL: gods: &Map{tree: rbt.NewWith(m.tree.Comparator)}
+	newMap := NewWith(m.state.comparator) // MODEL: gods: &Map{tree: rbt.NewWith(m.tree.Comparator)}
 	iterator := m.Iterator()
 	for iterator.Next() {
 		if f(iterator.key(), iterator.Value()) {

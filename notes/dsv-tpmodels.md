@@ -87,9 +87,7 @@ its bodies.
 
 1. Directory names: `models/gods`, `models/uuid`, `models/concurrent-map` (the module's last element,
    as `models/grpc`); or something else?
-2. API subset only (every other exported name removed, so a program calling one does not build),
-   per the task; `models/README.md` says a model keeps the library's API. `concurrent-map` keeps
-   `Count`/`IsEmpty` only because the fork's tests call `IsEmpty`. OK?
+2. (answered by the review, below: interface-reached methods are kept.)
 3. gods: the claim is conditional on the comparator being a total preorder that does not panic on
    two keys of the key type; which comparator calls happen is not claimed (Put on an empty map does
    call `comparator(k, k)`, as gods does). SwiftPaxos's `KeyComparator` (int64 keys) satisfies it.
@@ -103,3 +101,39 @@ its bodies.
 6. Translation ownership (above, "What a kit needs", 2).
 
 `notes/STATUS.md` is not updated on this branch (nothing landed); the landing adds the entry.
+
+## Review round 1 (Upamanyu, #24 comment 7090130923) and what changed
+
+The reviewer's reproducers (`/tmp/dsvtp-probe`, `/tmp/dsvtp/models/internal/slogprobe`) are not
+visible from this session's machine; each finding is reproduced instead in the difftests below.
+
+1. **Interface-reached methods kept** (the "does not build" argument dropped from README and here):
+   uuid `String`, `MarshalText`/`UnmarshalText`, `MarshalBinary`/`UnmarshalBinary`, `Value`/`Scan`
+   with `Parse`/`ParseBytes` (v1.3.1's code); treemap `*Map.String` (gods' code),
+   `MarshalJSON`/`UnmarshalJSON` (`NotModelled`); `ConcurrentMap.MarshalJSON` (`NotModelled`);
+   slog `Level`'s `String`, `MarshalJSON`, `UnmarshalJSON`, `AppendText`, `MarshalText`,
+   `UnmarshalText`, `Level` (Go's code).
+2. **gods**: `Map{state *sorted}`, `NewWith` allocating (zero/new/nil Map panic with gods' nil
+   dereference, copies share the state); comparator premise over every pair incl. a key with itself,
+   sign-consistent, transitive; a change counter: Next/Value after a Put on the map (Select's
+   predicate included) panic `NotModelled`; no current entry: a nil dereference, gods' text (tested
+   exactly: transcripts now record panic texts).
+3. **uuid**: premises "never assigns `crypto/rand.Reader`", "not built with boringcrypto"; v4
+   coverage stated as structural (`ArbitraryInt`). `testdata/randprobe` (run by run.sh) shows the
+   early-init case: v1.3.1's `New` panics, the model's does not (outside the premise).
+4. **concurrent-map**: `MarshalJSON` only.
+5. **slog**: `Logger.Handler()` is Go's `return l.handler` (notModelledHandler removed); the
+   `log.SetOutput/SetFlags` premise replaced by "no record is ever enabled through the model's
+   API"; premise: the program makes no `Record`/`Attr` values (opaque in the model).
+6. **Evidence**: tpdifftest covers zero, new, nil, copied maps, fmt and JSON of all three types
+   (cmap JSON: `NotModelled` in the model, `{"a":1,"b":"x"}` in v1.0.0), uuid text/binary/JSON/gob/
+   SQL and parsing of 381 texts, a replaced `crypto/rand.Reader`; slogdifftest covers `Handler()`'s
+   identity and type, a zero Logger, `Level` formatting and parsing, a wrapped DiscardHandler
+   (`NotModelled`). `tpdifftest/run.sh` fetches the pinned modules when the cache lacks them
+   (tried with an empty GOMODCACHE: passes).
+
+Goose (pinned Perennial) still translates all four with bodies, no error. The new methods reference
+names a kit's Lean build must have: `database/sql/driver.Value` (no translation in Perennial or the
+main tree yet: names only would do, as the kits never call Value/Scan), `encoding/hex.Encode` (main
+tree), `bytes.EqualFold`, `fmt.Errorf`/`Sprintf` (Perennial: trusted), `strings.TrimRight`,
+`strconv` (slog's Level parsing).

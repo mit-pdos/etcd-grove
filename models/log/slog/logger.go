@@ -30,17 +30,12 @@ type Logger struct {
 }
 
 // Handler returns l's Handler.
-//
-// MODEL: a handler whose every method panics with a NotModelled value (Go: l's handler). It reads
-// l's handler first, so that on a nil l it panics as Go's does.
-func (l *Logger) Handler() Handler {
-	_ = l.handler
-	return notModelledHandler{}
-}
+func (l *Logger) Handler() Handler { return l.handler }
 
 // New creates a new Logger with the given non-nil Handler.
 //
-// MODEL: a handler other than DiscardHandler panics with a NotModelled value (after Go's nil check).
+// MODEL: a handler other than DiscardHandler panics with a NotModelled value (after Go's nil
+// check), so a Logger's handler is DiscardHandler or, in a zero Logger, nil: Go's own values.
 func New(h Handler) *Logger {
 	if h == nil {
 		panic("nil Handler")
@@ -78,10 +73,10 @@ func (l *Logger) Error(msg string, args ...any) {
 // MODEL: Go's check (Enabled: l's handler's), then the handler's Handle with an empty Record
 // (Go: NewRecord(time.Now(), level, msg, pc) with the arguments added).
 func (l *Logger) log(ctx context.Context, level Level, msg string, args ...any) {
-	if !l.handler.Enabled(ctx, level) {
+	if !l.Handler().Enabled(ctx, level) {
 		return
 	}
-	_ = l.handler.Handle(ctx, Record{})
+	_ = l.Handler().Handle(ctx, Record{})
 }
 
 // Debug calls [Logger.Debug] on the default logger.
