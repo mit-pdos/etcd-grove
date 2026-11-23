@@ -3,8 +3,10 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/putget/Main.lean` (i
 2026-10-18; over the examples' shared start since 2026-10-22, D33). Lean-first (no Rocq
 counterpart).
 
-The steps: `Main`'s premises in the shared start's form (`etcdstart.bootPremise_of`,
-`commonPremises`); the ghost state `NewServer` takes (`etcdstart.alloc1`); `etcdstart.StartServer` (the member's configuration, `NewServer`, `Start`);
+The steps: `etcdstart.StartServer` (the member's configuration, `NewServer`, `Start`) from `Main`'s
+premises (`etcdstart.wp_StartServer1`, shared with `putget_safe`'s member since 2026-11-23: the premises in the
+shared start's form, `etcdstart.bootPremise_of` and `commonPremises`, and the ghost state `NewServer` takes,
+`etcdstart.alloc1`, inside);
 `etcdstart.Serve` (`v3rpc.Server`, `Listen`, `go gs.Serve(l)`) with the ghost step
 `etcdstart.kv_served` (one gRPC slot; etcd's `Put` and `Range` registered at the address);
 `etcdstart.NewClient` (`clientv3.New`); each call's context with the request timeout
@@ -23,7 +25,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartSe
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClient
 public import Perennial.Spec.context.Background
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartOne
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
@@ -66,22 +68,14 @@ theorem Main.wp_proof
   wp_start as ⟨Hstart, Htok, #Hprem⟩
   -- (hub step 7) the client address's listen right, out of the member's start bundle (to `Serve`)
   icases etcdstart.memberStartRes_client _ _ _ rfl $$ Hstart with ⟨Haddr, Hstart⟩
-  iunfold premises at Hprem
-  iunfold etcdstart.premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Htd, #Hns⟩
-  -- `Main`'s premises in the shared start's form
-  ihave #Hb := etcdstart.bootPremise_of N [id] (LogEntry.toEntries boot 0) ctxs (putgetDir id)
-      go!"putget" go!"putget"
-      (etcdstart.urls1 go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790") id cfgOk urlsOk
-      (fun _ h => h)
-      (fun _ h => h) $$ Hboot
-  ihave #Hcom : etcdstart.commonPremises (GF := GF) $$ []
-  · iunfold etcdstart.commonPremises; iframe #
   -- `context`'s `closedchan`, from its package's fact
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
   -- the imports' package facts
+  ihave #Pes : isPkgInit (PROP := IProp GF)
+      pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart $$ []
+  · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
@@ -99,27 +93,13 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg #Hlgz
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlgz
   (try wp_auto)
-  -- the ghost state `NewServer` takes (`alloc1`)
-  have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
-  imod (etcdstart.alloc1_false hne id ctxs boot Hbf (putgetDir id) (dirOne_member id _)
-      (by omega) (by omega)) $$ Hmarsh
-    with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hvs, hrule, hboot, hγn1, hγn2, hlog⟩ := Hal
-  have hblen : (LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    simp [LogEntry.toEntries, hblen0]
-  -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`
-  -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
-  have Hdirok : netDirOk (putgetDir id) :=
-    dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  -- (hub step 7) no peer address: the start bundle is the fresh bundle at the network `γn`
-  ihave Hfresh := etcdstart.memberStartRes_fresh _ _ γn rfl $$ Hstart
-  wp_apply (wp_StartServer N go!"putget" go!"127.0.0.1:23800" go!"127.0.0.1:23790" lg
-      (LogEntry.toEntries boot 0) ctxs (putgetDir id) id γ ρ E₀ Φs γn .none Htb Hrb48 HrbN HwbN hvs
-      hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [putgetDir, etcdstart.dir1, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh]
-    as %srv %err Hr
+  -- `StartServer("putget", "127.0.0.1:23800", clientAddr, lg)`: the one member of a new cluster from the
+  -- named premises (`wp_StartServer1`: `alloc1` inside; shared with `putget_safe`'s member)
+  wp_apply (etcdstart.wp_StartServer1 wp_StartServer hne N go!"putget" go!"127.0.0.1:23800"
+      go!"127.0.0.1:23790" lg id ctxs boot Hbf (by decide) (by decide) (by decide) Htb Hrb48 HrbN HwbN
+      Haf Hbuq Hdbo) $$ [Htok Hstart] as %srv %err Hr
   · iframe; iframe #
-  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup, -⟩)
+  icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, %ρ, %E₀, %γn, Hup, Hetcd⟩)
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
@@ -181,7 +161,6 @@ theorem Main.wp_proof
     as %pctx %pcd %pcancel ⟨#Hpcancel, #Hpctx, #Hpce, -⟩
   (try wp_auto)
   -- the client's invariant, the floor, no options
-  rw [kvModelSt_boot _ (fun _ _ => True) _ _ (srvBootLogOk_of_BootLog _ _ _ Hbf.boot)]
   imod (client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0))) go!"k" go!"v" ⊤)
     $$ Hetcd with ⟨%γf, #Hinv⟩
   imod v3rpc.kvLogLb_nil (GF := GF) E.γs with #HF0
