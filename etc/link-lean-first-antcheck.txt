@@ -233,8 +233,7 @@ NewChecker: Init0
 Checker__End:
 Checker__Next: violated State__GCDue State__GC State__Step =AntCheck.State.gc_within
 
-# pending (proofs in progress)
 State__Boot: State__clone setPre setMsgs setQueue setReads setStr Recovered State__Vote SubSeq Concat State__VoteOf setInt setLog setConfirmed factsMinus votesMinus Event__has Event__applied EntriesEqual ConfOf State__InitConf setConf LastConf SameConf
 State__Send: State__clone Event__msg Event__has Event__cause Msg__from Msg__typ Msg__to Msg__term Msg__reject Msg__index isForwarded Set__Has setPre factsHas VoteFact votesHas factsAdd IsReq SnapOk ReqFactIn State__Sendable AckFact msgSeqHead State__PrevOk State__HasFirst Max setConfirmed State__EffTerm isUnmodelled
-State__OnDisk: ?
+State__OnDisk: onDisk__w onDisk__isApp onDisk__fm onDisk__T1 onDisk__T0 onDisk__elect onDisk__adopt onDisk__hasM onDisk__m onDisk__voted onDisk__V1 onDisk__snaps onDisk__leads onDisk__stores onDisk__first onDisk__L0 onDisk__f onDisk__k_i onDisk__es onDisk__moved onDisk__L1 onDisk__conf1 onDisk__acks onDisk__ackAt onDisk__ch1 onDisk__adv onDisk__old onDisk__newC SendableIn Event__vote Event__snap Event__commit Msg__term Msg__typ Msg__from Msg__index Msg__logTerm factsHas VoteFact State__UpToDate SnapOk State__PrevOk State__HasFirst EntriesEqual SubSeq At IsReq State__clone setInt setStr setLog setConfirmed factsAdd State__VoteRequest AckFact votesAdd factsMinus votesMinus setPre Min Concat factsUnion votesUnion Lowest TermInts__With Max violAdd Comparable IsPrefix Matching
 Run: NewChecker Checker__Next Checker__End =AntCheck.State.step_within =AntCheck.State.gc_within =AntCheck.State.step_cfg

@@ -638,3 +638,7 @@ new file of its own (named below), and it reports its link lines, which the inte
   in H4b's report (the `State__OnDisk: ?` line of the link list until then).
 - **`violated.spec` strengthened** (H6's finding 1, ledger 2026-11-23): its post says an empty result
   is `nil`; `Checker.Next` takes `violated.spec`, and its re-proof `violated_wp` is gone.
+- **W4b done, all groups done (2026-11-23):** `State.OnDisk` proved (H4b-H4e: one theorem over
+  `wp_join`, laws `OnDiskProofLaws.lean`; the last step restates the premise over the Go's last
+  intermediate state, whose `leaders`/`ledLog` are `ld`/`ll`, equal to `X.ld`/`X.ll` only
+  propositionally). Link has no `links_pending` section: `Run` is linked with no hypothesis.
