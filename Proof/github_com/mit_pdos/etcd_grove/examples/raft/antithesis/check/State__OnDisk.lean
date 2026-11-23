@@ -2212,6 +2212,59 @@ theorem State.OnDisk.wp_proof
     · iframe Hq Hul
     try wp_auto
     wp_join_done
+  -- u8: `ns.Chain = x.ch1(); if x.adv() { ns.TermLen = tl.With(x.T1(), Max(x.old(), len(x.newC()))) } else { ns.TermLen = tl }`
+  obtain ⟨c1, tl', hc1, Ho, htl'⟩ := u8_ok Ho
+  generalize hS6 : ({ S5 with undo := s.undo.set (sint.nat n) (some p7) } : State) = S6 at Ho ⊢
+  have hcfg6 : S6.cfg = s.cfg := by rw [← hS6]; exact hcfg5
+  odm ch1
+  wp_apply wp_ch1 _ X c1 $$ [Hx] as %gc1 #Hc1
+  · iframe Hx; ipureintro; exact hc1
+  try wp_auto
+  wp_apply wp_set_chain q S6 gc1 c1 $$ [Hq Hc1] as Hq
+  · iframe Hq Hc1
+  try wp_auto
+  have htlw := HW.2.2.2.2.2.2.2.2.2.1
+  rw [hXtl] at htlw
+  wp_join (v := executeVal) iprop(stateOwn q { { S6 with chain := c1 } with termLen := tl' }) at next with [Hq] as Hq
+  · rcases htl' with ⟨had, rfl⟩ | ⟨o', nc, had, ho, hnc, rfl⟩
+    · odm adv
+      wp_apply wp_adv _ X false $$ [Hx]
+      · iframe Hx; ipureintro; exact had
+      try wp_auto
+      try rw [hXtl]
+      wp_apply wp_set_termLen q { S6 with chain := c1 } tll tl $$ [Hq Htl] as Hq
+      · iframe Hq Htl
+      try wp_auto
+      wp_join_done
+    odm adv
+    wp_apply wp_adv _ X true $$ [Hx]
+    · iframe Hx; ipureintro; exact had
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    odm old
+    wp_apply wp_old _ X o' $$ [Hx] as %uo %Huo
+    · iframe Hx; ipureintro; exact ho
+    try wp_auto
+    odm newC
+    wp_apply wp_newC _ X nc $$ [Hx] as %gnc #Hnc
+    · iframe Hx; ipureintro; exact hnc
+    ihave %Hncl := logRO_len _ _ $$ Hnc
+    try wp_auto
+    wp_apply wp_Max uo gnc.len as %um %Hum
+    try wp_auto
+    smu TermInts With
+    wp_apply wp_TermInts_With tll tl u1 um $$ [Htl] as %tl2 #Htl2
+    · iframe Htl; ipureintro; have := htlw.1; omega
+    try wp_auto
+    rw [Hu1, Hum, Huo, Hncl]
+    try rw [hXtl]
+    wp_apply wp_set_termLen q { S6 with chain := c1 } tl2 _ $$ [Hq Htl2] as Hq
+    · iframe Hq Htl2
+    try wp_auto
+    wp_join_done
   done
 
 end proof
