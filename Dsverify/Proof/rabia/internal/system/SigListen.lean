@@ -2,7 +2,7 @@
 (Ported from dsverify-lab `examples/rabia/proof/Proof/rabia/internal/system/SigListen.lean`, run `rabia-r1wake-1`.)
 
 The proof of `SigListen` (`SigListen.spec`): `sigIn` is a fresh channel that `signal.Notify` (the
-model) never sends on, a bag of `False`; `done` a bag of `False` (the premise): the `select` never
+environment assumption `os.signal.NoSignals`: nobody sends signals) never sends on, a bag of `False`; `done` a bag of `False` (the premise): the `select` never
 fires.
 -/
 module
@@ -23,7 +23,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : rabia.internal.system.Assumptions]
-variable [os.signal.Hyps GF]
+variable [os.signal.NoSignals GF]
 
 omit package_sem in
 /-- A channel's `isChan` says it is not `nil` (here of `os.Signal`). -/
@@ -48,7 +48,7 @@ theorem SigListen.wp_proof : SigListen.spec (GF := GF) := by
   iintro %sl ⟨_, _⟩
   wp_auto_lc 2
   ihave %Hnn := isChan_ne_nil_signal _ _ $$ Hch
-  wp_apply os.signal.Notify.wp_proof _ _ Hnn
+  wp_apply os.signal.NotifyQuiet.wp_proof _ _ Hnn
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
   isplit
