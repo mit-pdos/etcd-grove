@@ -68,7 +68,7 @@ abbrev v3rpc.serverWatchStream.isWatchPermitted.spec : Prop :=
       (∀ _ : err = GoInterface.nil, ∃ info,
         apply.classResFrom r.srv.E.authMode n info [(k, e, auth.PermType.read)] ∗
         □ (⌜r.srv.E.authMode.isOn = true⌝ →
-          v3rpc.infoBoundT r.srv.s r.srv.E.authMode tok info)) ∗
+          v3rpc.infoBoundT (srvTLSId r.srv.s) r.srv.E.authMode tok info)) ∗
       (∀ _ : err ≠ GoInterface.nil, ∃ info,
         permWhy r.srv.s r.srv.E.authMode n tok err info k e .read) }}
 

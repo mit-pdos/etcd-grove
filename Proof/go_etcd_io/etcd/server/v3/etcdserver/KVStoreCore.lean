@@ -31,9 +31,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc mvcc.api
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The server's ghost names of the store's state** (allocated by `NewServer`'s caller, with
 the read names: the floors are indexed by `slog`): `st` the `(log, pending)` part (½ the
@@ -76,6 +77,27 @@ abbrev wSt (γs : KVSNames) (log : mvcc.Log) (c : Int) : IProp GF :=
 def crOwn (γs : KVSNames) (c : Int) : IProp GF := ghostVar γs.cr (1 : Qp).half.half c
 
 
+/-- `kvReadAt`, generic (R8, 2026-11-08, the second `lean` merge: with the compaction revision's
+permit `Cp σ.crev`, the invariant's, for a failed range's facts, `rangeErrAt`). -/
+def kvReadAtG (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF) (γs : KVSNames) (L₀ : mvcc.Log)
+    (σ : MvccState) : IProp GF :=
+  iprop(⌜L₀ <+: σ.log⌝ ∗ kvLogLb γs σ.log ∗ Nx σ.log ∗ ⧖ (mvcc.logCh σ.log) ∗ Cp σ.crev ∗
+    ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
+
+/-- `histLb`, generic. -/
+def histLbG (Nx : mvcc.Log → IProp GF) (γs : KVSNames) (L : mvcc.Log) : IProp GF :=
+  iprop(monoListLbOwn γs.nlog L ∗ ∃ L' : mvcc.Log, ⌜L <+: L' ∧ mvcc.LogWf' L'⌝ ∗ Nx L' ∗
+    ⧖ (mvcc.logCh L') ∗ ⌜L'.length ≤ mvcc.logCh L' + 2⌝)
+
+end defs
+
+section defsHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
 /-- **The store invariant, generic**: `KVStoreApi.lean`'s `kvStoreInv` at a witness `Nx` of the
 logs and a permit `Cp` of the compaction revision. -/
 def kvStoreInvG (kv : GoInterface) (γ : MvccName) (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF)
@@ -92,19 +114,7 @@ theorem kvStoreInvG_persistent (Hp : persistent.law (GF := GF)) (kv : GoInterfac
   haveI := Hp.1 kv γ
   unfold kvStoreInvG; infer_instance
 
-/-- `kvReadAt`, generic (R8, 2026-11-08, the second `lean` merge: with the compaction revision's
-permit `Cp σ.crev`, the invariant's, for a failed range's facts, `rangeErrAt`). -/
-def kvReadAtG (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF) (γs : KVSNames) (L₀ : mvcc.Log)
-    (σ : MvccState) : IProp GF :=
-  iprop(⌜L₀ <+: σ.log⌝ ∗ kvLogLb γs σ.log ∗ Nx σ.log ∗ ⧖ (mvcc.logCh σ.log) ∗ Cp σ.crev ∗
-    ⌜MvccReachable σ ∧ σ.log.length + 3 ≤ 2 ^ 63⌝)
-
-/-- `histLb`, generic. -/
-def histLbG (Nx : mvcc.Log → IProp GF) (γs : KVSNames) (L : mvcc.Log) : IProp GF :=
-  iprop(monoListLbOwn γs.nlog L ∗ ∃ L' : mvcc.Log, ⌜L <+: L' ∧ mvcc.LogWf' L'⌝ ∗ Nx L' ∗
-    ⧖ (mvcc.logCh L') ∗ ⌜L'.length ≤ mvcc.logCh L' + 2⌝)
-
-end defs
+end defsHeap
 
 /-! ## The pure part -/
 

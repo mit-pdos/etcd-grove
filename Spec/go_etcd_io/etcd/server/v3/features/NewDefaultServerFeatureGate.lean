@@ -1,7 +1,9 @@
 /-
-`features.NewDefaultServerFeatureGate(name, lg)` (`server/features/etcd_features.go`): the trust
-boundary (`server/v3/features` and `pkg/v3/featuregate` are names-only). Lean-first (no Rocq
-counterpart); the adequacy example's (item 9, point 7) configuration.
+`features.NewDefaultServerFeatureGate(name, lg)` (`server/features/etcd_features.go`). Lean-first (no
+Rocq counterpart); the adequacy example's (item 9, point 7) configuration. Proved (featuregate-3,
+2026-11-23: `Proof/go_etcd_io/etcd/server/v3/features/NewDefaultServerFeatureGate.lean`, over
+featuregate's `New`, `Add` and `Enabled`, translated with bodies); until then the trust boundary
+(`server/v3/features` and `pkg/v3/featuregate` names-only).
 
 In Go: `featuregate.New(name + "ServerFeatureGate", lg)` (a fresh `*featureGate`, its known
 features featuregate's defaults, none enabled explicitly), then `Add(DefaultEtcdServerFeatureGates)`
@@ -20,7 +22,7 @@ only fresh resources: a non-nil pointer and a persistent contract about its meth
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
+public import Proof.go_etcd_io.etcd.server.v3.features.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.features.Defs
 
 @[expose] public section

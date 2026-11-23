@@ -1,29 +1,28 @@
 /-
-**Hypotheses: gods' treemap** as the `state` package uses it (`treemap.NewWith(KeyComparator)`,
-`Put`, `Get`, and for `SCAN`: `Select`, `Iterator`, `Iterator.Next`, `Iterator.Value`), over
-`state.Key` keys and `state.Value` values (notes/dsv-epaxos.md, "Hypotheses").
+**gods' treemap** as the `state` package uses it (`treemap.NewWith(KeyComparator)`, `Put`, `Get`,
+and for `SCAN`: `Select`, `Iterator`, `Iterator.Next`, `Iterator.Value`), over `state.Key` keys and
+`state.Value` values (notes/dsv-epaxos.md, "Hypotheses").
 
-The translated gods (v1.18.1, `Dsverify/Code/github_com/emirpasic/gods/**`) is real, but nothing
-proves it here (and its red-black tree iterator's `Next`/`Prev` are names only: `goto`); the lab
-proved a cut-down copy instead. The coordinator's rule (2026-11-23): take treemap's specs as
-hypotheses until the gods model (dsv-tpmodels) lands. So the class `TreemapHyp GF` (a `Prop`-free
-structure of predicates and `Prop` specs; every theorem that uses the treemap takes it as an
-instance) holds the representation predicates, abstract, and the specs named after the lab's
-(`treemap.NewWith.spec`, `treemap.Map.Put.spec`, `treemap.Map.Get.spec`; the lab's
-`Proof/wire/State/TreemapIter.lean` for the scan's).
+The hypothesis is the shared treemap spec set, `github_com.emirpasic.gods.maps.treemap.Hyps`
+(`Dsverify/Spec/github_com/emirpasic/gods/maps/treemap/Specs.lean`: generic in the comparator and
+the stored values, the swiftpaxos kit states the same specs). The class `StateTreemap GF` here is
+its specialization to `state` (every theorem that uses the treemap takes it as an instance), derived
+from it by `StateTreemap.ofGods` with `enc = keyIface`, `cmpOk KeyComparator keyIface`
+(`state.keyComparator_cmpOk`, wire/State/KeyComparator.lean) and the stored values `valIface sl`:
 
 * `isTreeMap m M`: the map `m` (made by `NewWith(KeyComparator)`) maps each key of `M` to the
-  `state.Value` slice `M` gives it.
+  `state.Value` slice `M` gives it: gods' `isTreeMap m keyIface` of some entries `es` in increasing
+  key order (`sortedEntries M es`), their values `valIface sl`.
 * `iterVal v es`: the iterator value `v` (`Map.Iterator()`'s result) over the entries `es`, in
-  increasing (signed) key order (`sortedEntries`), before its first `Next`; stored at `p`, it is
-  `ownIter p es none` (`iter_alloc`).
+  increasing (signed) key order, before its first `Next`; stored at `p`, it is `ownIter p es none`
+  (`iter_alloc`).
 * `ownIter p rest cur`: the iterator at `p`, at entry `cur` (none before the first `Next`), with
   `rest` still to visit.
 -/
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.state.Base
-public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Base
+public import Dsverify.Spec.github_com.emirpasic.gods.maps.treemap.Specs
 
 @[expose] public section
 
@@ -31,7 +30,7 @@ noncomputable section
 
 namespace Perennial.github_com.imdea_software.swiftpaxos_epaxos
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- The entries `es` are `M`'s, in increasing signed key order. -/
 def sortedEntries (M : GMap w64 GoSlice) (es : List (w64 × GoSlice)) : Prop :=
@@ -48,8 +47,9 @@ def keyIface (k : w64) : GoInterface := interface.mkOk state.Key.ty #k
 def valIface (sl : GoSlice) : GoInterface := interface.mkOk state.Value.ty #sl
 
 open github_com.emirpasic.gods.maps.treemap in
-/-- **Hypothesis** (the file header): gods' treemap, as `state` uses it. -/
-class TreemapHyp (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics]
+/-- gods' treemap, as `state` uses it (the file header): derived from the shared hypothesis
+(`StateTreemap.ofGods`). -/
+class StateTreemap (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics]
     [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] where
   isTreeMap : Loc → GMap w64 GoSlice → IProp GF
   iterVal : Iterator → List (w64 × GoSlice) → IProp GF
@@ -115,6 +115,165 @@ class TreemapHyp (GF : BundledGFunctors) [hG : HeapGS .hasLC GF] [go.Semantics]
         ownIter p rest (some (k, sl)) }}
       (App (Val (p @!! go.GoType.PointerType Iterator.ty @!! go!"Value")) (Val #()))
     {{ RET #(valIface sl); ownIter p rest (some (k, sl)) }}
+
+
+/-! ## The specialization, from the shared hypothesis -/
+
+/-- An entry of the store as gods holds it: its value the `state.Value` interface. -/
+abbrev valE (e : w64 × GoSlice) : w64 × GoInterface := (e.1, valIface e.2)
+
+open github_com.emirpasic.gods.maps.treemap
+
+theorem putE_valE (es : List (w64 × GoSlice)) (k : w64) (sl : GoSlice) :
+    putE (es.map valE) k (valIface sl) = (putE es k sl).map valE :=
+  putE_map valIface es k sl
+
+theorem lookupE_valE (es : List (w64 × GoSlice)) (k : w64) :
+    lookupE (es.map valE) k = (lookupE es k).map valIface :=
+  lookupE_map valIface es k
+
+theorem filter_valE (es : List (w64 × GoSlice)) (P : w64 → Bool) :
+    (es.map valE).filter (fun e => P e.1) = (es.filter (fun e => P e.1)).map valE := by
+  rw [List.filter_map]; rfl
+
+theorem sortedEntries_sortedE {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
+    (h : sortedEntries M es) : sortedE es := by
+  have h1 := h.1
+  rw [List.pairwise_map] at h1
+  exact h1
+
+theorem sortedEntries_lookupE {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
+    (h : sortedEntries M es) (k : w64) : lookupE es k = M.lookup k := by
+  apply Option.ext; intro x
+  rw [lookupE_some_iff es k x (sortedEntries_sortedE h)]
+  exact h.2 k x
+
+theorem sortedEntries_empty : sortedEntries (∅ : GMap w64 GoSlice) [] :=
+  ⟨List.Pairwise.nil, fun _ sl =>
+    ⟨fun h => (List.not_mem_nil h).elim,
+     fun h => nomatch (h : (none : Option GoSlice) = some sl)⟩⟩
+
+theorem sortedEntries_put {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
+    (h : sortedEntries M es) (k : w64) (sl : GoSlice) :
+    sortedEntries (M.insert k sl) (putE es k sl) := by
+  have hs := sortedEntries_sortedE h
+  refine ⟨by rw [List.pairwise_map]; exact sortedE_putE es k sl hs, fun k' x => ?_⟩
+  rw [mem_putE es k sl hs k' x]
+  show _ ↔ (if k = k' then some sl else M.lookup k') = some x
+  by_cases hk : k' = k
+  · subst hk
+    simp only [ite_true, true_and, ne_eq, not_true_eq_false, and_false, or_false, Option.some.injEq]
+    exact eq_comm
+  · rw [if_neg (Ne.symm hk), ← h.2 k' x]
+    simp [hk]
+
+theorem lookup_filterP (M : GMap w64 GoSlice) (P : w64 → Bool) (k : w64) :
+    (M.filter (fun k _ => P k)).lookup k = if P k then M.lookup k else none := by
+  show (M.lookup k).filter (fun _ => P k) = _
+  cases M.lookup k <;> by_cases hP : P k <;> simp [hP, Option.filter]
+
+theorem sortedEntries_filter {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
+    (h : sortedEntries M es) (P : w64 → Bool) :
+    sortedEntries (M.filter (fun k _ => P k)) (es.filter (fun e => P e.1)) := by
+  refine ⟨by rw [List.pairwise_map]; exact sortedE_filter _ es (sortedEntries_sortedE h),
+    fun k x => ?_⟩
+  rw [lookup_filterP, List.mem_filter, h.2 k x]
+  by_cases hP : P k <;> simp [hP]
+
+/-- `state`'s treemap from the shared hypothesis (the file header): `enc = keyIface`, the
+comparator `KeyComparator` (`hcmp`: `state.keyComparator_cmpOk`), the values `valIface sl`. -/
+def StateTreemap.ofGods {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
+    [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
+    (H : github_com.emirpasic.gods.maps.treemap.Hyps GF)
+    (hcmp : isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.state ⊢
+      cmpOk (GF := GF) (functions state.KeyComparator []) keyIface) : StateTreemap GF where
+  isTreeMap m M := iprop(∃ es, H.isTreeMap m keyIface (es.map valE) ∗ ⌜sortedEntries M es⌝)
+  iterVal v es := H.iterVal v (es.map valE)
+  ownIter p rest cur := H.ownIter p (rest.map valE) (cur.map valE)
+  NewWith_spec := by
+    wp_start_folded
+    ihave #Hst : isPkgInit (PROP := IProp GF)
+        pkg_id.github_com.imdea_software.swiftpaxos_epaxos.state $$ []
+    · iPkgInit
+    ihave #Hc := hcmp $$ Hst
+    wp_apply H.NewWith_spec (functions state.KeyComparator []) keyIface $$ [$Hc] as %m Hm
+    iapply HΦ
+    iexists []
+    simp only [List.map_nil]
+    iframe Hm
+    ipureintro; exact sortedEntries_empty
+  Put_spec := by
+    intro m M k sl
+    wp_start_folded as ⟨%es, Hm, %Hes⟩
+    wp_apply H.Put_spec m keyIface (es.map valE) k (valIface sl) $$ [$Hm] as Hm
+    iapply HΦ
+    iexists putE es k sl
+    rw [← putE_valE]
+    iframe Hm
+    ipureintro; exact sortedEntries_put Hes k sl
+  Get_spec := by
+    intro m M k
+    wp_start_folded as ⟨%es, Hm, %Hes⟩
+    wp_apply H.Get_spec m keyIface (es.map valE) k $$ [$Hm] as Hm
+    rw [lookupE_valE, sortedEntries_lookupE Hes k]
+    iapply HΦ
+    isplitl [Hm]
+    · iexists es
+      iframe Hm
+      ipureintro; exact Hes
+    ipureintro
+    cases M.lookup k <;> simp
+  Select_spec := by
+    intro m M f P R hf
+    wp_start_folded as ⟨⟨%es, Hm, %Hes⟩, HR⟩
+    wp_apply H.Select_spec m keyIface (es.map valE) f P R ?hsel $$ [$Hm $HR]
+      as %m' ⟨Hm, HR, Hm'⟩
+    case hsel =>
+      intro k v hv
+      obtain ⟨⟨k0, sl⟩, -, hev⟩ := List.mem_map.mp hv
+      simp only [valE, Prod.mk.injEq] at hev
+      obtain ⟨rfl, rfl⟩ := hev
+      exact hf k0 sl
+    iapply HΦ
+    iframe HR
+    isplitl [Hm]
+    · iexists es
+      iframe Hm
+      ipureintro; exact Hes
+    iexists M.filter (fun k _ => P k)
+    isplitl [Hm']
+    · iexists es.filter (fun e => P e.1)
+      rw [← filter_valE]
+      iframe Hm'
+      ipureintro; exact sortedEntries_filter Hes P
+    ipureintro; exact lookup_filterP M P
+  Iterator_spec := by
+    intro m M
+    wp_start_folded as ⟨%es, Hm, %Hes⟩
+    wp_apply H.Iterator_spec m keyIface (es.map valE) $$ [$Hm] as %v Hv
+    iapply HΦ
+    iexists es
+    iframe Hv
+    ipureintro; exact Hes
+  iter_alloc := fun p v es => H.iter_alloc p v (es.map valE)
+  Next_spec := by
+    intro p rest cur
+    wp_start_folded as Hit
+    wp_apply H.Next_spec p (rest.map valE) (cur.map valE) $$ [$Hit] as %b Hb
+    iapply HΦ
+    irevert Hb
+    cases rest <;> simp only [List.map_nil, List.map_cons, Option.map_none, Option.map_some]
+    all_goals (try (iintro Hb; iexact Hb))
+  Value_spec := by
+    intro p rest k sl
+    wp_start_folded as Hit
+    have hv : Option.map valE (some (k, sl)) = some (k, valIface sl) := rfl
+    irevert Hit
+    rw [hv]
+    iintro Hit
+    wp_apply H.Value_spec p (rest.map valE) k (valIface sl) $$ [$Hit] as Hit
+    iapply HΦ
+    iexact Hit
 
 end heap
 

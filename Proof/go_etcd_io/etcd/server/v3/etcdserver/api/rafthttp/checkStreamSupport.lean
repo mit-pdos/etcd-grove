@@ -51,8 +51,9 @@ theorem rafthttp.checkStreamSupport.wp_proof
   · iframe #
   wp_apply hNew as %nv ⟨%Hnv, %onv, #Hnvx⟩
   (try wp_auto)
-  wp_apply hString nv $$ [] as %ks -
-  · iframe #; ipureintro; exact Hnv
+  wp_apply hString nv DFrac.discard _ $$ [] as -
+  · iframe #
+  generalize semver.render _ = ks
   (try wp_auto)
   -- `supportedStream[nv.String()]`: a read-only slice (nil if the version is absent)
   wp_apply (wp_map_lookup1 go.string _ m M ks DFrac.discard) $$ [] as -

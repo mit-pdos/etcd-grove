@@ -6,7 +6,7 @@ public import Code.k8s_io.apimachinery.pkg.api.errors
 public import Code.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import Code.k8s_io.apiserver.pkg.storage
 public import Perennial.Code.context
-public import Code.maps
+public import Perennial.Code.maps
 public import Perennial.Code.reflect
 public import Perennial.Code.slices
 public import Perennial.Code.strconv

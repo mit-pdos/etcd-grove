@@ -157,6 +157,16 @@ instance adminHistAu_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (t
     Persistent (adminHistAu (GF := GF) s E ρ tok rq Q) := by
   unfold adminHistAu; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **An admitted admin request's proposal result** at the stamped header `hm` and the committed
 prefix `L` before its entry: its step determinate at the model's auth state there
 (`adminPropRes`), and (5b) its client's history update's result if the entry is recorded
@@ -165,6 +175,16 @@ def adminQh (γk : KVNames) (rq : apply.IRRModel) (Q : List auth.AuthState → I
     (hm : apply.HeaderModel) (L : List EntryModel) : IProp GF :=
   iprop(adminPropRes γk srvAuthSt0 (apply.withHeader rq hm) L ∗
     adminRecRes γk srvAuthSt0 (apply.withHeader rq hm) Q L)
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **What `raftRequest.spec` with auth on answers, at the entry point's response** (the contract's `Q`):
 on `nil`, the request applied at the committed prefix `L` before its entry (`appliedOkM true`, at

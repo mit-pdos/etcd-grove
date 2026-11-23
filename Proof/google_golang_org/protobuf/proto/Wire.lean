@@ -217,6 +217,12 @@ def allLen (ks : List (Nat × FVal)) (num : Nat) : List (List w8) :=
   ks.filterMap fun p => if p.1 = num then (match p.2 with | .len bs => some bs | _ => none)
     else none
 
+/-- **A singular message field's occurrences, merged** (`consumeMessageInfo`: the first allocates
+the message, each one is unmarshalled into it): the records and unknown fields of every occurrence
+in order, as if one; `none` if one does not decode. -/
+def decodeMerged (s : FieldSchema) (parts : List (List w8)) : Option (List (Nat × FVal) × List w8) :=
+  (parts.mapM (decode s)).map fun ps => (ps.flatMap Prod.fst, ps.flatMap Prod.snd)
+
 /-! ## Varints -/
 
 theorem varintEnc_lt128 {n : Nat} (h : n < 128) : varintEnc n = [W8 n] := by
@@ -535,6 +541,11 @@ theorem decode_encode {s : FieldSchema} {uf : List w8} {ks : List (Nat × FVal)}
 
 theorem decode_nil (s : FieldSchema) : decode s [] = some ([], []) := by
   simp [decode, decodeLoop]
+
+theorem decodeMerged_single (s : FieldSchema) (bs : List w8) :
+    decodeMerged s [bs] = decode s bs := by
+  simp only [decodeMerged, List.mapM_cons, List.mapM_nil]
+  cases decode s bs <;> simp
 
 /-! ## Lengths -/
 

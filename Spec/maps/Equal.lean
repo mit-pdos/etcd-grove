@@ -1,16 +1,11 @@
 /-
-`maps.Equal(m1, m2)` (names-only here) on two non-nil `map[string]bool` (the D30g patch's
+`maps.Equal(m1, m2)` on two non-nil `map[string]bool` (the D30g patch's
 `maps.Equal(s.NeedsRewrite, other.NeedsRewrite)` in `Model.Equal`): whether they have the same
-entries; both only read. Stated at this one map type (`spec_strBool`). Its axiom will be
-`maps.Equal.wp_proof_strBool` (k8s 7g, `notes/k8s-7g-trust.md`), until Perennial translates `maps`
-(`notes/perennial-changes.md`, "Generic maps and slices iterators").
-
-Faithful (go1.27.3, `maps/maps.go`): `Equal` returns `false` if the lengths differ, else whether
-every key of `m1` is a key of `m2` with an `==` value (`bool`: Lean's equality); with equal lengths
-that is equality of the entries (`GMap` equality is extensional). Both non-nil here (the points-tos);
-a nil and an empty map are `Equal` in Go, outside the spec. Go evidence:
-`examples/k8s/etcd3/trustspecs_test.go` `TestMapsCloneEqual` (5000 random pairs; a `false` entry
-differs from no entry). Lean-first.
+entries; both only read. Stated at this one map type (`spec_strBool`). Proved (2026-11-23,
+`Proof/maps/Equal.lean`) from Perennial's translation of `maps` and its generic spec
+(`maps.wp_Equal`, Perennial `70706ce5e`); until then a trust-boundary axiom (k8s 7g,
+`notes/k8s-7g-trust.md`). Both maps non-nil (the points-tos); a nil and an empty map are `Equal` in
+Go, outside the spec. The `isPkgInit pkg_id.maps` premise is no longer needed by the proof.
 -/
 module
 

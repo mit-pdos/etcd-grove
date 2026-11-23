@@ -42,7 +42,7 @@ abbrev client_Put_on.law : Prop :=
             (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
               GoInterface) ∗
           kvObjAtC api conn [addr] ∗
-          isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
+          isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn (srvTLSId s) E ρ cid mid) ∗
           srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
           □ kvOpAu1 ρ.rd.kv (.put (putKeyOp key val)) Q }}
         (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -51,7 +51,7 @@ abbrev client_Put_on.law : Prop :=
           (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
               putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
               ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-                v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
+                v3rpc.writeGrantOn (srvTLSId s) E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
             (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }}
 
 /-- `client_Get_on`'s statement (`ClientOn.lean`, a linking module), as a hypothesis of the proofs
@@ -66,7 +66,7 @@ abbrev client_Get_on.law : Prop :=
             (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api :
               GoInterface) ∗
           kvObjAtC api conn [addr] ∗
-          isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
+          isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn (srvTLSId s) E γr cid mid) ∗
           committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
           metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
           sortNamesIf (opGetModel key gs).base.sortSet ∗
@@ -79,7 +79,7 @@ abbrev client_Get_on.law : Prop :=
           ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
               rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
               ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-                v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
+                v3rpc.rangeAuthed (srvTLSId s) E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
             (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }}
 
 /-- `client_Txn_on`'s statement (`ClientOn.lean`, a linking module), as a hypothesis of the proofs

@@ -1,6 +1,6 @@
 /-
 Ported from dsverify-lab examples/epaxos/proof/Epaxos/Proof/wire/Link.lean (notes/dsv-epaxos.md);
-the lab's treemap results are gone (`TreemapHyp`, `Interface/Treemap.lean`).
+the lab's treemap results are gone (`StateTreemap`, `Interface/Treemap.lean`).
 
 The wire package's results under the names its callers link against: for each spec
 `<Fn>.spec : Prop` of `Epaxos/Interface/{Marshal,State,Misc}.lean`, `<Fn>.wp_proof : <Fn>.spec`
@@ -64,7 +64,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 
 section
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-  [TH : TreemapHyp GF]
+  [TH : StateTreemap GF]
 theorem state.InitState.wp_proof : state.InitState.spec (GF := GF) := state.InitState.spec_holds
 theorem state.NIL.wp_proof : state.NIL.spec (GF := GF) := state.NIL.spec_holds
 theorem state.NOOP.wp_proof : state.NOOP.spec (GF := GF) := state.NOOP.spec_holds

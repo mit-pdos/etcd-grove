@@ -123,8 +123,9 @@ zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 errors_IsStatusErr:
 # (prove-ps2-wrb, 2026-11-22) `waitRetryBackoff` proved over the real code: its timer and `select`
 # (Perennial's `time`), and `contextErrToGRPCErr` over `errors.Is` (Perennial's, and the trust
-# boundary's `errors.IsDeadlineExceeded`) and `status.Error`
-errors_IsDeadlineExceeded:
+# boundary's `errors.IsDeadlineExceeded`) and `status.Error`; (errors-is-deadline, 2026-11-23)
+# `errors.IsDeadlineExceeded` proved over Perennial's `errors.Is`
+errors_IsDeadlineExceeded: =_root_.Perennial.errors.wp_Is
 contextErrToGRPCErr: errors_IsDeadlineExceeded errors_Is status_Error
 waitRetryBackoff: contextErrToGRPCErr
 withVersion:

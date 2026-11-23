@@ -518,7 +518,7 @@ theorem run.wp_proof
     ihave #H := akHist_setupAu x0.2.ρ.rd.kv k hk $$ Hhist
     iexact H
   ihave #Hput : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Put"
-      (client.etcdPutSpecOn s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
+      (client.etcdPutSpecOn (srvTLSId s0) w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
   · iunfold akKVOn at HKV₁
     icases HKV₁ with ⟨#H, -, -, -⟩
     iexact H
