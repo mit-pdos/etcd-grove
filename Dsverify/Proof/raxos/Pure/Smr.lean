@@ -96,6 +96,15 @@ def execIds (B : GoString → Option Batch) (es : ExecSt) : List GoString → Ex
 def execLog (B : GoString → Option Batch) (L : List (List GoString)) : ExecSt :=
   L.foldl (execIds B) ExecSt.init
 
+/-- The store of the puts `l`, newest first (the lab's `Harness.Models` `kvAbs`: a key's value is
+its newest put's). -/
+def kvAbs : List (GoString × GoString) → Store
+  | [] => fun _ => none
+  | (k, v) :: l => fun k' => if k' = k then some v else kvAbs l k'
+
+theorem kvAbs_put (l : List (GoString × GoString)) (k v : GoString) :
+    kvAbs ((k, v) :: l) = fun k' => if k' = k then some v else kvAbs l k' := rfl
+
 /-! ## The client's operations and the store's specification -/
 
 /-- A key-value input as the kit's `In` (`model.go`): a put of `v` at `k`, or a get of `k`. -/

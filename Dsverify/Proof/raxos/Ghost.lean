@@ -112,12 +112,6 @@ theorem KOut.toT_inj : Function.Injective KOut.toT := by
 instance KOut.countable : Pos.Countable KOut :=
   .ofInjective (fun v => Pos.Countable.encode (KOut.toT v)) (fun _ _ h => KOut.toT_inj (Pos.encode_inj h))
 
-/-- The store of the puts `l`, newest first (the lab's `Harness.Models` `kvAbs`: a key's value is
-its newest put's). -/
-def kvAbs : List (GoString × GoString) → pure.Store
-  | [] => fun _ => none
-  | (k, v) :: l => fun k' => if k' = k then some v else kvAbs l k'
-
 /-! ## Names -/
 
 /-- A registry entry: the empty batch `"nil"`, an epoch summary (its id is `summaryId p` for a
