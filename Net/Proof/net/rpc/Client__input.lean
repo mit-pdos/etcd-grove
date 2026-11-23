@@ -293,7 +293,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
           ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HP]
       · rw [List.append_nil]; iexact HP
       wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
-          ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
+          ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
           (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
             (respProto (Gg := hG.goose_globalGS) W a)
             ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
@@ -527,7 +527,7 @@ theorem Client.input.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := 
             ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ []) $$ [HrT]
         · rw [List.append_nil]; iapply recvTok_L $$ HrT
         wp_apply wp_ReadResponseBody cc t cn false a la ra interface.nil
-            ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
+            ⟨fun _ _ => iprop(True), fun _ _ _ => iprop(True), fun _ _ => iprop(True)⟩ iprop(True) (fun _ _ => iprop(True))
             (fun got => recvTokL (Gg := hG.goose_globalGS) cn false
               (respProto (Gg := hG.goose_globalGS) W a)
               ((framesOf (C.flatMap ansPls) ++ frameOf (respHdr seq sm e)) ++ got))
