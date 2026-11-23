@@ -12,9 +12,12 @@ premise every theorem using them takes and a visible premise of `swiftpaxos_remo
 
 The names (see dsv-epaxos's file for each): `rpcAddrP W a hs hsAns` (address `a` serves `W`'s
 net/rpc behind the handshake `hs`/`hsAns`; over HTTP `connectReq path`/`connectAns`; every world
-of the stand-in is HTTP's, `worldHs_http`), `muxOwner`, `muxHas`, `defaultServer`,
+of the kit is `httpW` of a raw one), `muxOwner`, `muxHas`, `defaultServer`,
 `DialHTTPPath_spec`, `DialHTTP_spec` (models-rpc-http's preconditions verbatim: `httpEnv`, net/rpc's
-`connected`; `dialEnv`), `HandleHTTP_spec` (with `muxOwner`), `Register_spec`, `Serve_spec`. Not
+`connected`; `dialEnv`), `HandleHTTP_spec` (with `muxOwner`), `Register_spec`, `Serve_spec`.
+After Upamanyu's EPaxos review: no law fixes every world's handshake (`httpW` gives the HTTP
+world of a raw one instead), and `DefaultServer` is not derived from `isPkgInit net.rpc`
+(`True` here): a machine's `∃ γ, defaultServer γ` is a boot resource, beside `muxOwner []`. Not
 stated (the kit does not call them, or only through these): `Server.ServeHTTP`,
 `Server.HandleHTTP`, `ServeMux.ServeHTTP` (reviewed against dsv-epaxos `75c9efff2f` and
 models-rpc-http `e6b232b2f6`, 2026-11-23).
@@ -117,10 +120,14 @@ class RpcHttpAddr (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [S
   `RpcWorld.hs`/`RpcWorld.hsAns` (fields that `lean`'s `RpcWorld` does not have yet). -/
   worldHs : RpcWorld GF → GoString → List w8
   worldHsAns : RpcWorld GF → GoString → List w8
-  /-- Every world of the stand-in is net/rpc over HTTP at `DefaultRPCPath` at every address: the
-  stand-in for the world models-rpc-http's start builds, `{ W with hs := fun _ => connectReq
-  defaultRPCPath, hsAns := fun _ => connectAns }` (the kit serves and dials only that). -/
-  worldHs_http : ∀ W a, worldHs W a = connectReq defaultRPCPath ∧ worldHsAns W a = connectAns
+  /-- The world `W` over HTTP at `DefaultRPCPath`: models-rpc-http's `{ W with hs := fun _ =>
+  connectReq defaultRPCPath, hsAns := fun _ => connectAns }` (Upamanyu's EPaxos review, 1: a law
+  fixing `worldHs` for every world had no true instance). The kit's world is `httpW` of the raw
+  world the start allocates. -/
+  httpW : RpcWorld GF → RpcWorld GF
+  httpW_hs : ∀ W a, worldHs (httpW W) a = connectReq defaultRPCPath
+  httpW_hsAns : ∀ W a, worldHsAns (httpW W) a = connectAns
+  httpW_SS : ∀ W, (httpW W).SS = W.SS
   /-- A listener address's rpc protocols (the file header). -/
   rpcLisP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
@@ -158,9 +165,6 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
   defaultServer : GName → IProp GF
   defaultServer_persistent : ∀ γ, Persistent (defaultServer γ)
-  /-- `net/rpc`'s initialized package has its `DefaultServer`. -/
-  defaultServer_init :
-    isPkgInit (PROP := IProp GF) pkg_id.net.rpc ⊢ ∃ γ, defaultServer γ
   /-- `rpc.DialHTTPPath(nw, a, path)`: writes `connectReq path`, reads the answer through
   `http.ReadResponse` (status `200 Connected to Go RPC`, else an error), then `NewClient`. -/
   DialHTTPPath_spec : ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),

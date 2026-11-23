@@ -9,9 +9,7 @@ The address helpers' instances the client node uses (`atConf.spec`, `atRpc.spec`
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.Addr
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientConnect
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeNew
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeShare
 
 @[expose] public section
 
@@ -27,9 +25,8 @@ namespace cnode
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [examples.swiftnet.Assumptions]
-variable [C : net.rpc.RpcCodec netDistGF]
 
 theorem confAddrC_atStr (c : Nat) (hc : c < 6) : confAddrC c = atStr (1 + c) (W64 2000) := by
   unfold confAddrC
@@ -40,6 +37,17 @@ theorem atConf_proof : atConf.spec := by
   have hu : uint.nat (W64 1 + W64 (c : Int)) = 1 + c := by word
   have h := wp_at (GF := netDistGF) sl dq (W64 1 + W64 (c : Int)) (W64 2000) (by omega)
   rw [hu, ← confAddrC_atStr c hc] at h
+  exact h
+
+theorem startAddrC_atStr (c : Nat) (hc : c < 6) : startAddrC c = atStr (1 + c) (W64 3000) := by
+  unfold startAddrC
+  rw [List.getD_eq_getElem?_getD, atStr_cstart c hc, Option.getD_some]
+
+theorem atStart_proof : atStart.spec := by
+  intro sl dq c hc
+  have hu : uint.nat (W64 1 + W64 (c : Int)) = 1 + c := by word
+  have h := wp_at (GF := netDistGF) sl dq (W64 1 + W64 (c : Int)) (W64 3000) (by omega)
+  rw [hu, ← startAddrC_atStr c hc] at h
   exact h
 
 theorem atRpc_proof : atRpc.spec := by

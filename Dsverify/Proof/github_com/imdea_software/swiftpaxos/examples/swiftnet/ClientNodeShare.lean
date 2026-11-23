@@ -1,19 +1,23 @@
 /-
-Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swiftnet/ClientNodeShare.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
--/
-/-
-Client node `c`'s share (`clientNodeShare γ c`), split as `NewClient` uses it: the configuration
-port's token and protocols (`conf.dialPC γ`, `conf.ackQP γ (cl c)`), the client's protocol share
-(sequence number 0 of the id `c + 1`), the registration token, and the run's facts the node's
-operations need (`nodeEnv`, less the codec's).
+Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swiftnet/ClientNodeShare.lean (lab master
+915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
+
+Client node `c`'s share (`clientNodeShare γ c`), split as `newClient` uses it: the configuration
+port's protocols (`conf.dialPC γ`, `conf.ackQP γ (cl c)`), the start port's (`conf.startP γ`,
+`conf.ackQ`), the client's protocol share (sequence number 0 of the id `c + 1`), the registration
+token, and the run's facts the node's operations need (the rpc listeners' protocols, the
+services, the replicas' ports' protocols, `sp.inv`).
 -/
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.ClientNodeDefs
+public import GooseLang.Ext.Net.Decide
 
 @[expose] public section
 
 noncomputable section
+
+set_option linter.unusedSectionVars false
 
 namespace Perennial.github_com.imdea_software.swiftpaxos
 
@@ -26,17 +30,28 @@ namespace cnode
 /-- Client node `c`'s configuration port. -/
 abbrev confAddrC (c : Nat) : GoString := clientConfAddrs.getD c go!""
 
+/-- Client node `c`'s start port. -/
+abbrev startAddrC (c : Nat) : GoString := clientStartAddrs.getD c go!""
+
 theorem confAddrC_mem (c : Nat) (hc : c < 6) : confAddrC c ∈ clientConfAddrs := by
   unfold confAddrC
   rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp [clientConfAddrs]; omega)]
   exact List.getElem_mem _
 
-section share
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
+theorem startAddrC_mem (c : Nat) (hc : c < 6) : startAddrC c ∈ clientStartAddrs := by
+  unfold startAddrC
+  rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by simp [clientStartAddrs]; omega)]
+  exact List.getElem_mem _
 
-instance rpcAddrG_persistent (W : net.rpc.RpcWorld netDistGF) (a : GoString) :
-    Persistent (net.rpc.rpcAddr W a) := by
-  unfold net.rpc.rpcAddr; infer_instance
+/-- The master's address is one the master's wildcard listener takes. -/
+theorem masterAddr_lis : lisAccepts go!":7001" masterAddr := lisAcceptsB_iff.1 (by decide)
+
+theorem masterAddr_ok : addrOk masterAddr = true := by decide
+
+theorem replicaRpcAddrs_ok : ∀ a ∈ replicaRpcAddrs, addrOk a = true := by decide
+
+section share
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [SwiftNetPkgState netDistGF]
 
 theorem protoP_confAddrC (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
     protoP γ (confAddrC c) = conf.dialPC γ := by
@@ -50,53 +65,84 @@ theorem protoQ_confAddrC (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
   | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ =>
     simp [protoQ, confAddrC, clientConfAddrs, List.idxOf?, List.findIdx?, List.findIdx?.go]
 
+theorem protoP_startAddrC (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
+    protoP γ (startAddrC c) = conf.startP γ := by
+  match c, hc with
+  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ =>
+    simp [protoP, startAddrC, clientStartAddrs, clientConfAddrs, confAddrs]
+
+theorem protoQ_startAddrC (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
+    protoQ γ (startAddrC c) = conf.ackQ := by
+  match c, hc with
+  | 0, _ | 1, _ | 2, _ | 3, _ | 4, _ | 5, _ =>
+    simp [protoQ, startAddrC, clientStartAddrs, clientConfAddrs, List.idxOf?, List.findIdx?,
+      List.findIdx?.go]
+
 theorem protos_replica (γ : SwiftNames netDistGF) :
     ∀ a ∈ replicaAddrs, protoP γ a = sp.inP γ.sp γ.conf γ.mem ∧
       protoQ γ a = sp.outQ γ.sp γ.conf γ.mem := by
   have hd : ∀ a ∈ replicaAddrs, (replicaAddrs.idxOf? a).isSome ∧ a ∉ confAddrs ∧
-      a ∉ clientConfAddrs ∧ clientConfAddrs.idxOf? a = none ∧ confAddrs.idxOf? a = none := by
+      a ∉ clientConfAddrs ∧ a ∉ clientStartAddrs ∧ clientConfAddrs.idxOf? a = none ∧
+      confAddrs.idxOf? a = none := by
     decide
   intro a ha
-  obtain ⟨h1, h2, h3, h4, h5⟩ := hd a ha
+  obtain ⟨h1, h2, h3, h3', h4, h5⟩ := hd a ha
   obtain ⟨k, hk⟩ := Option.isSome_iff_exists.mp h1
   unfold protoP protoQ
-  rw [_root_.if_neg h2, _root_.if_neg h3, hk, h4, h5]
+  rw [_root_.if_neg h2, _root_.if_neg h3, _root_.if_neg h3', hk, h4, _root_.if_neg h3', h5]
   exact ⟨rfl, rfl⟩
 
+variable [RpcHttpAddr netDistGF]
 
 /-- Client node `c`'s share, split. -/
 theorem clientNodeShare_split (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
-    clientNodeShare γ c ⊢ addrTok (clientNodeAddrs.getD c go!"") ∗
-      addrTok (confAddrC c) ∗
+    clientNodeShare γ c ⊢
       addrProto (confAddrC c) (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl c)) ∗
+      addrProto (startAddrC c) (conf.startP γ) conf.ackQ ∗
       sp.clientSeq γ.sp (W32 (((c : Nat) + 1 : Nat) : Int)) 0 ∗ sp.predTok γ.sp (sp.PNode.cl c) ∗
-      net.rpc.rpcAddr (GF := netDistGF) γ.W masterAddr ∗
-      ([∗list] a ∈ replicaRpcAddrs, net.rpc.rpcAddr (GF := netDistGF) γ.W a) ∗
+      RpcHttpAddr.rpcAddrP γ.W masterAddr (connectReq defaultRPCPath) connectAns ∗
+      ([∗list] a ∈ replicaRpcAddrs,
+        RpcHttpAddr.rpcAddrP γ.W a (connectReq defaultRPCPath) connectAns) ∗
       ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
       ([∗list] a ∈ replicaAddrs,
         addrProto a (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem)) ∗
       sp.inv γ.sp γ.conf γ.mem γ.lin := by
   unfold clientNodeShare
-  iintro ⟨Hkey, Hct, Hst, Hpt, Hcom⟩
+  iintro ⟨-, -, -, Hst, Hpt, Hcom⟩
   ihave Hseq := sp.clientStart_elim (γ := γ.sp) c $$ Hst
   unfold common
   icases Hcom with ⟨#Hps, %HSS, #Hrpc, #Hinv⟩
   have hp : confAddrC c ∈ plainAddrs := by
     unfold plainAddrs; simp only [List.cons_append, List.mem_cons, List.mem_append]
-    exact Or.inr (Or.inl (Or.inl (Or.inr (confAddrC_mem c hc))))
+    exact Or.inr (Or.inl (Or.inl (Or.inl (Or.inr (confAddrC_mem c hc)))))
+  have hs : startAddrC c ∈ plainAddrs := by
+    unfold plainAddrs; simp only [List.cons_append, List.mem_cons, List.mem_append]
+    exact Or.inr (Or.inl (Or.inl (Or.inr (startAddrC_mem c hc))))
   ihave #Hcp : addrProto (confAddrC c) (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl c))
     $$ [Hps]
   · rw [← protoP_confAddrC γ c hc, ← protoQ_confAddrC γ c hc]
     iapply BigSepL.bigSepL_mem (Φ := fun a => addrProto a (protoP γ a) (protoQ γ a))
       hp $$ Hps
-  iframe Hkey Hct Hcp Hseq Hpt Hinv
-  unfold rpcAddrs
+  ihave #Hsp : addrProto (startAddrC c) (conf.startP γ) conf.ackQ $$ [Hps]
+  · rw [← protoP_startAddrC γ c hc, ← protoQ_startAddrC γ c hc]
+    iapply BigSepL.bigSepL_mem (Φ := fun a => addrProto a (protoP γ a) (protoQ γ a))
+      hs $$ Hps
+  iframe Hcp Hsp Hseq Hpt Hinv
+  unfold rpcLis
   icases BigSepL.bigSepL_cons.1 $$ Hrpc with ⟨#Hm, #Hr⟩
-  iframe Hm Hr
+  isplitr
+  · iapply RpcHttpAddr.rpcLisP_addr γ.W go!":7001" _ _ masterAddr masterAddr_ok masterAddr_lis $$ Hm
+  isplitr
+  · iapply BigSepL.bigSepL_mono ?_ $$ Hr
+    intro k x hx
+    iintro #H
+    iapply RpcHttpAddr.rpcLisP_addr γ.W x _ _ x
+      (replicaRpcAddrs_ok x (List.mem_of_getElem? hx))
+      ((lisAccepts_addrOk (replicaRpcAddrs_ok x (List.mem_of_getElem? hx))).2 rfl) $$ H
   isplitr
   · ipureintro; exact HSS
-  have hsub : plainAddrs = (orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ confAddrs) ++
-      replicaAddrs := rfl
+  have hsub : plainAddrs = (orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ clientStartAddrs ++
+      confAddrs) ++ replicaAddrs := rfl
   rw [hsub]
   icases BigSepL.bigSepL_append.1 $$ Hps with ⟨-, Hps2⟩
   iapply BigSepL.bigSepL_mono ?_ $$ Hps2

@@ -126,6 +126,14 @@ theorem clSt_advance (γ : SwiftNames netDistGF) (s : Loc) (c j j' : Nat) (h : j
     iframe Hb Hr
     ipureintro; exact ⟨Hb.1, by omega⟩
 
+/-- A dialer machine's net/rpc state (persistent; a boot resource): the receipt bound, the
+client's and `DialHTTP`'s package state (`rpcHttp` less the address). -/
+def cliBoot : IProp netDistGF :=
+  iprop(⌜receiptBound netDistGF ≤ 2 ^ 64⌝ ∗ net.rpc.cliEnv ∗ dialEnv)
+
+instance cliBoot_persistent : Persistent (cliBoot (hG := hG)) := by
+  unfold cliBoot; infer_instance
+
 /-- net/rpc's codec state as its initialization leaves it, before the program's `Register()`
 (exclusive: a boot resource of the machine). -/
 def codecFresh : IProp netDistGF :=
@@ -142,6 +150,40 @@ variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF]
 variable [ρ : RemoteGS]
 
 local notation "swiftnetPkg" => pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet
+
+/-- `Addrs()`: a new slice of the nodes' first addresses. -/
+abbrev AddrsC.spec : Prop :=
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
+    (App (Val (@! examples.swiftnet.Addrs)) (Val #()))
+  {{ (sl : GoSlice), RET #sl; sl ↦* addrs }}
+
+/-- `at(addrs, 1+c, ConfOff)`: client node `c`'s configuration port. -/
+abbrev atConf.spec : Prop :=
+  ∀ (sl : GoSlice) (dq : DFrac) (c : Nat), c < 6 →
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ sl ↦*{dq} addrs }}
+    (App (App (App (Val (@! examples.swiftnet.«at»)) (Val #sl)) (Val #(W64 1 + W64 (c : Int))))
+      (Val #(W64 2000)))
+  {{ RET #(clientConfAddrs.getD c go!""); sl ↦*{dq} addrs }}
+
+/-- `at(addrs, 1+c, StartOff)`: client node `c`'s start port. -/
+abbrev atStart.spec : Prop :=
+  ∀ (sl : GoSlice) (dq : DFrac) (c : Nat), c < 6 →
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ sl ↦*{dq} addrs }}
+    (App (App (App (Val (@! examples.swiftnet.«at»)) (Val #sl)) (Val #(W64 1 + W64 (c : Int))))
+      (Val #(W64 3000)))
+  {{ RET #(clientStartAddrs.getD c go!""); sl ↦*{dq} addrs }}
+
+/-- `host(addrs[NC+1])`: the master's host. -/
+abbrev hostMaster.spec : Prop :=
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
+    (App (Val (@! examples.swiftnet.host)) (Val #(go!"127.0.0.1:7001")))
+  {{ RET #(go!"127.0.0.1"); True }}
+
+/-- `port(addrs[NC+1])`: the master's port. -/
+abbrev portMaster.spec : Prop :=
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
+    (App (Val (@! examples.swiftnet.port)) (Val #(go!"127.0.0.1:7001")))
+  {{ RET #(W64 7001); True }}
 
 /-- `Register()`: the kit's codec registered. -/
 abbrev Register.spec : Prop :=
@@ -213,11 +255,11 @@ abbrev op.spec (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) : Prop :=
       ∃ w : BStr, ⌜o = Out.mk false w.1⌝ ∗ Φ w }}
 
 /-- `newClient(addrs, c)` on client node `c`, from its share and its boot resources (the node's
-fresh ghost, net/rpc's fresh codec state): the node's system. -/
+fresh ghost, net/rpc's fresh codec state and client state): the node's system. -/
 abbrev newClient.spec (γ : SwiftNames netDistGF) (c : Nat) : Prop :=
   ∀ (asl : GoSlice),
   {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ asl ↦* addrs ∗ clientNodeShare γ c ∗
-      client.ghostFresh ∗ codecFresh }}
+      client.ghostFresh ∗ codecFresh ∗ cliBoot }}
     (App (App (Val (@! examples.swiftnet.newClient)) (Val #asl)) (Val #(W64 (c : Int))))
   {{ (s : Loc), RET #s; isSysL γ c s }}
 

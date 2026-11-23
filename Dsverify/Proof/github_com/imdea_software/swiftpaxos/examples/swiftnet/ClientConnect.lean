@@ -58,27 +58,6 @@ theorem ready_ne_null (b : Loc) (γ : sp.Names) (γc γm γl : GName) (cid : w32
 
 end laws
 
-section specs
-variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [C : net.rpc.RpcCodec netDistGF]
-
-local notation "swiftnetPkg" => pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet
-
-/-- `host(addrs[NC+1])`: the master's host (an instance of the adapter's `host` spec). -/
-abbrev hostMaster.spec : Prop :=
-  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
-    (App (Val (@! examples.swiftnet.host)) (Val #(go!"127.0.0.1:7001")))
-  {{ RET #(go!"127.0.0.1"); True }}
-
-/-- `port(addrs[NC+1])`: the master's port (an instance of the adapter's `port` spec). -/
-abbrev portMaster.spec : Prop :=
-  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
-    (App (Val (@! examples.swiftnet.port)) (Val #(go!"127.0.0.1:7001")))
-  {{ RET #(W64 7001); True }}
-
-end specs
-
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]

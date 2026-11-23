@@ -72,7 +72,7 @@ abbrev master.Master.Run.specFull : Prop :=
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
       ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗ H.muxOwner [] ∗
-      RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
+      (∃ γs, H.defaultServer γs) ∗ RpcHttpAddr.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
       ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
       net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
@@ -94,7 +94,7 @@ theorem master.Master.Run.wp_proof_full
     (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
     (wp_run : master.Master.run.spec) (rcvr_ok : master.rcvr.spec) :
     master.Master.Run.specFull := fun m γc γm N W => by
-  wp_start as ⟨Hcr, #Hrpc, #Hhttp, %Hthr, #Henv, Hmo, #Hlp, Haddrs, %HSS, #Hcs⟩
+  wp_start as ⟨Hcr, #Hrpc, #Hhttp, %Hthr, #Henv, Hmo, #Hds0, #Hlp, Haddrs, %HSS, #Hcs⟩
   unfold master.createdFull master.createdBody
   icases Hcr with ⟨%v, %c, %fr, Hm, #Hq, #Hc, Hauth, Hnl, Hal, Hpl, Hcnl, Hcal, Hcpl, Hnodes,
     Hleaders, Halives, Hlats, #Hplain, Hlk, #Hcd, %Hp⟩
@@ -156,7 +156,6 @@ theorem master.Master.Run.wp_proof_full
   wp_apply master.wp_Printf wp_Printf $$ [$Logger $Hq]
   ipersist master
   -- rpc.Register(master), on DefaultServer
-  ihave #Hds0 := H.defaultServer_init $$ Hrpc
   icases Hds0 with ⟨%γs, #Hds⟩
   ihave Hrc := rcvr_ok m γc γm N $$ [$Hcs $HisM]
   · ipureintro; exact Hmnn
