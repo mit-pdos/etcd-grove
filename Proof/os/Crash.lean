@@ -1,5 +1,5 @@
 /-
-The proofs of `Spec/os/Crash.lean`: the models' loops as in `Proof/os/OpenFile.lean`,
+The proofs of `Spec/os/Crash.lean`: the models' loops as in `Proof/os/OpenFileS.lean`,
 `Proof/os/File__WriteAt.lean` and `Proof/syscall/Fdatasync.lean`, over the crash-aware steps of
 `Proof/os/CrashOps.lean`. The open's loop keeps what its attempts may have made of the state
 (`OpenInv`: a failed attempt may have created the file); a write's loop keeps a state the write

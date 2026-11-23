@@ -1,13 +1,13 @@
 /-
 The extension's operations over a file in the generic crash invariant (`Proof/os/CrashSt.lean`):
 each opens the invariant around its one step (`fsOp_atomic`; `cs_open`, which closes it again
-with a state of the same file, so the tree's part holds as it did), applies the extension-level
+with a state of the same file, so the claim's part holds as it did), applies the extension-level
 spec to the invariant's and the caller's parts put together, and closes it with the new state, of
 which the caller shows `Ok`. The caller's part is of the file only (`csOwnF`), but for the create,
-which needs the history (`csOwn`). Lean-first (no Rocq counterpart).
+which needs the caller's half of the claim on the file's name (`csOwn`). Lean-first (no Rocq counterpart).
 
-* `wp_osOpenCreate_cs`: no file at `p = d/b`, the create (the invariant's half of the history and
-  the caller's make it whole), to the new file (`csNew`); on failure maybe.
+* `wp_osOpenCreate_cs`: no file at `p = d/b`, the create (the invariant's half of the claim and
+  the caller's make it whole, `wp_osOpenCreateS`), to the new file (`csNew`); on failure maybe.
 * `wp_osPWriteStart_cs`/`wp_osPWriteFinish_cs`: idle to a write in flight (inside the file, and
   missing the frozen bytes), and back to idle, as the write of the first `k` bytes left it.
 * `wp_osFtruncateStart_cs`/`wp_osFtruncateFinish_cs`: idle to a growing truncate in flight, and

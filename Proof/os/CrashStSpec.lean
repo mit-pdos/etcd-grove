@@ -1,5 +1,5 @@
 /-
-The proofs of `Spec/os/CrashSt.lean`: the models' loops as in `Proof/os/OpenFile.lean`,
+The proofs of `Spec/os/CrashSt.lean`: the models' loops as in `Proof/os/OpenFileS.lean`,
 `Proof/os/File__WriteAt.lean`, `Proof/os/File__Truncate.lean`, `Proof/os/File__Sync.lean` and
 `Proof/golang_org/x/sys/unix/*.lean`, over the steps of `Proof/os/CrashStOps.lean`. The open's loop
 keeps what its attempts may have made of the state (`CsOpenInv`); a write's loop keeps a state it

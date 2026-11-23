@@ -4,14 +4,15 @@ initializes the package and runs `Boot(dir)`, at the start and after every crash
 file extension v2 (`fs_crash_adequacy`).
 
 The boot program's precondition, over a generation's local ghost state `L` (`bootPre`), is `L`'s
-invariant of the mapped cells, the whole of the tree's history, with nothing logged (`(m, [])`),
-the file at `dir/log` as `L` starts with it (`startAt`: nothing, or the file `dir/log` names, on
-disk; never a directory), `Good` (the crash invariant: a nonzero flag means the data), and the
-package state of a fresh program. Each generation puts the file and half of the history in its
-crash invariant (`cfInv_alloc`) and runs `Boot` (`Boot.lean`'s `wp_Boot`); after a crash, the
-crash part opens the old generation's invariant and takes the file and the history from it
-(`cfInv_crash_keep`): the new history is a crash of the old one, with nothing logged, and the file
-`dir/log` names in it a `Good` one.
+invariant of the mapped cells, the tree's start resources (`osShared`) on a well-formed tree with
+nothing logged (`(m, [])`), the file at `dir/log` as `L` starts with it (`startAt`: nothing, or the
+file `dir/log` names, on disk; never a directory), `Good` (the crash invariant: a nonzero flag means
+the data), and the package state of a fresh program. Each generation takes the claim on `log` from
+its start resources (`osShared_file`), puts the file and half of the claim in its crash invariant
+(`cfInv_alloc`) and runs `Boot` (`Boot.lean`'s `wp_Boot`); after a crash, the crash part opens the
+old generation's invariant and takes from it what the crash left at `dir/log` (`cfInv_crash_keep`,
+over `crashRest_region'`): a `Good` file, or none; the new generation's tree resources come from the
+restart (`crashRest_treeS'`).
 
 **What is assumed.** The package initializer is not proved: `crash_safety` takes as a hypothesis
 `Hinit_wp`, that the package's `initialize'` runs from the fresh package state (`ownGoState ∅`)
