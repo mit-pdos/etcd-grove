@@ -130,6 +130,9 @@ theorem EtcdServer.PromoteMember.wp_proof
   intro s E ρ γr ctx cd tok id Pin Pm Qm Qin Qfw n
   wp_start as ⟨#Hq, #Hr, #Hprt, #Hau, #Hlb, #Hctx, #Hlib, #HtokC, HRD, HPin, HPm, #Hmay, #Hconf,
     #Hfw⟩
+  -- `errors.IsCtxErr` takes `context`'s initialization (errors-is-axioms, 2026-11-22)
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
   iunfold srvPeerRt at Hprt
   icases Hprt with ⟨%rt, #Hrtf, %Hrt⟩
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -300,7 +303,7 @@ theorem EtcdServer.PromoteMember.wp_proof
     · iPkgInit
     ihave Hmi : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
     · iapply isPkgInit_access $$ Pmb
-    icases Hmi with ⟨-, #HMV⟩
+    icases Hmi with ⟨-, #HMV, -⟩
     ihave #HvINF := errorsNewVars_mem
       (X := go_etcd_io.etcd.server.v3.etcdserver.api.membership.ErrIDNotFound)
       (m := go!"membership: ID not found")

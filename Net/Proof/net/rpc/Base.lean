@@ -50,6 +50,16 @@ def reqHdr (seq : w64) (sm : GoString) : List w8 := u64Le seq ++ strEnc sm
 method and the error string. -/
 def respHdr (seq : w64) (sm e : GoString) : List w8 := u64Le seq ++ strEnc sm ++ strEnc e
 
+/-- A request on the wire (`clientCodec.WriteRequest`): its header frame, then its body frame (the
+codec's encoding `eb` of the argument). -/
+def reqWire (seq : w64) (sm : GoString) (eb : List w8) : List w8 :=
+  frameOf (reqHdr seq sm) ++ frameOf eb
+
+/-- A response on the wire (`serverCodec.WriteResponse`): its header frame, then its body frame (the
+codec's encoding `eb` of the reply; empty after an error, `e ≠ ""`). -/
+def respWire (seq : w64) (sm e : GoString) (eb : List w8) : List w8 :=
+  frameOf (respHdr seq sm e) ++ frameOf (if e = [] then eb else [])
+
 /-- The largest frame payload a reader accepts (`maxFrame`, 1 GiB). -/
 def maxFrameN : Nat := 2 ^ 30
 
@@ -60,6 +70,10 @@ theorem frameOf_length (p : List w8) : (frameOf p).length = 8 + p.length := by
 
 theorem strEnc_length (s : GoString) : (strEnc s).length = 8 + s.length := by
   simp [strEnc, u64Le_length]
+
+theorem reqWire_length (seq : w64) (sm : GoString) (eb : List w8) :
+    (reqWire seq sm eb).length = 8 + (8 + (8 + sm.length)) + (8 + eb.length) := by
+  simp [reqWire, frameOf_length, reqHdr, strEnc_length, u64Le_length]
 
 theorem framesOf_nil : framesOf [] = [] := rfl
 

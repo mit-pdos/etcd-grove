@@ -875,7 +875,7 @@ theorem authMaintenanceServer.wp_Status :
 
 theorem errors.wp_IsCtxErr :
     EtcdGrove.errors.IsCtxErr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.errors.IsCtxErr.wp_proof
+  EtcdGrove.errors.IsCtxErr.wp_proof _root_.Perennial.errors.wp_Is
 
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=

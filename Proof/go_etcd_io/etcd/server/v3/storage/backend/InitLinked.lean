@@ -28,6 +28,10 @@ public import Proof.github_com.prometheus.client_golang.prometheus.NewCounter
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGauge
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogram
 public import Proof.github_com.prometheus.client_golang.prometheus.ExponentialBuckets
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Set
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Add
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Inc
+public import Proof.github_com.prometheus.client_golang.prometheus.gauge__Dec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewCounterVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewGaugeVec
 public import Proof.github_com.prometheus.client_golang.prometheus.NewHistogramVec
@@ -197,7 +201,13 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     unfold go_etcd_io.etcd.server.v3.storage.backend.histSpec
     iexact CsnapshotTransferSec
   -- translated initializer of isDefragActive))
-  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#CisDefragActive, #DisDefragActive, %NisDefragActive⟩
+  wp_apply EtcdGrove.prometheus.NewGauge.wp_proof _ _ _ _ _ rfl (by decide) as %cisDefragActive ⟨#RisDefragActive, %NisDefragActive⟩
+  ihave #CisDefragActive : (EtcdGrove.prometheus.metric.gaugeSpec cisDefragActive : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSpec_of_isGauge (EtcdGrove.prometheus.gauge.Inc.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) (EtcdGrove.prometheus.gauge.Dec.wp_proof EtcdGrove.prometheus.gauge.Add.wp_proof) EtcdGrove.prometheus.gauge.Add.wp_proof
+    all_goals iassumption
+  ihave #DisDefragActive : (EtcdGrove.prometheus.metric.gaugeSetSpec cisDefragActive : IProp GF) $$ []
+  · iapply EtcdGrove.prometheus.metric.gaugeSetSpec_of_isGauge EtcdGrove.prometheus.gauge.Set.wp_proof
+    all_goals iassumption
   try wp_auto
   -- the translated init.«0»
   wp_func_call
