@@ -397,7 +397,7 @@ theorem wp_handlePrepareReply (hS : replica.Replica.SendMsg.spec (GF := GF))
     (γ : EpNames) (i : Nat) (r rr : Loc) (L : List GoString) (p : FwPtrs) (Rext : IProp GF)
     (ord : List w32) (σ : RState) (l : Loc) (m : PrepareReply) (w : InstRec) (lb : LbRec)
     (hw : PRWf i σ ord m w lb) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPrepareReplyNN l m ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPrepareReplyNN l m ∗
         repFrag γ i (hPrepareReply σ m).1 ∗ outsOk γ i (hPrepareReply σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handlePrepareReply"))
         (Val #l))

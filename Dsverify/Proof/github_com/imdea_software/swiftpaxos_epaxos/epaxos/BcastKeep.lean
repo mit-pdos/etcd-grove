@@ -40,7 +40,7 @@ theorem wp_bcastCommitKeep (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : 
     (hw : σ.inst ⟨toN replica, toN n⟩ = some w) (hlb : w.lb = some lb)
     (hdo : lbDepsOwned lb = false) (hm : (Msg.commit (commitOf σ replica n lb)).wf)
     (hord : ∀ o ∈ ord, 0 ≤ sint.Z o) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ⌜instBounds σ.inst⌝ ∗ ⌜cutBounds σ.committedUpTo⌝ ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ⌜instBounds σ.inst⌝ ∗ ⌜cutBounds σ.committedUpTo⌝ ∗
         repInstsP r (updP (instAtP γ i σ.inst) ⟨toN replica, toN n⟩
           (ptrQ γ i ⟨toN replica, toN n⟩ ptr w)) ∗ ownRepRest i r σ ∗ repFrag γ i σ ∗
         pendFrag γ i (bcastCommitOf σ ⟨toN replica, toN n⟩ (commitOf σ replica n lb)).norm ∗

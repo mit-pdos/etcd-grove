@@ -321,6 +321,23 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
      so never use it outside `wire/`), then `gf_annotate` and `FIXUPS`. Re-running it on every
      file ported this session reproduces the tree (checked 2026-11-23), except the hand-maintained
      files named in its docstring.
+3i. **The epaxos package's code proofs (2026-11-23, resumed agent 2): ported, all check.**
+   `Interface/EpaxosRep` and the lab's 48 remaining `Proof/epaxos/*` files (order:
+   `scratchpad/eporder.txt`, i.e. the import topological order) are `port.py`'s output, no hand
+   edits. **The lab's `Proof/epaxos/Base.lean` is `epaxos/EpBase.lean`** (`epaxos/Base.lean` is the
+   package fact). New `port.py` rules: `[examples.epaxosnet.Assumptions]` → `[epaxos.Assumptions]`
+   (and `EpaxosRep` no longer imports the kit's `Server`), the store's assumptions + `TreemapHyp`
+   wherever the lab had `examples.epaxosnet.Assumptions`, `connFreshG_excl _ cn s` →
+   `connFresh_excl (Gg := G) cn s`, `(GF := GF)` on: spec conclusions `theorem X : Y.specZ :=`,
+   `{{ pkgInit_X`, `{{ <ghost pred>`, `have h : …` statements (incl. `· have`), the kit's own spec
+   `Prop`s after `:` (`HandlerSpec`, `ProposeSpec`, `ExecuteCommandsSpecX`, …, collected from
+   `def/structure XSpec…`), pattern-matching defs counted as ghost predicates; a file-level
+   `variable [GooseExts]` when pure declarations over the code's types precede the first section;
+   `omit … [net.model.Assumptions]` → the Net variables; FIXUPS for `EpaxosRep` (`efld` over the
+   local context, as `fld`), `HCtx`, `Slot`, `New` (no `addrTok`). `epaxos.New`'s theorem is
+   `wp_New_of` (premises: the replica specs, `HandlerSpecs`, `ExecuteCommandsSpec`, `CmdStringSpec`).
+   Not yet: the lab's `Interface/Epaxos.lean` (it closes these premises: imports `replica.Link`,
+   `wire.Link`, `ExecuteCommandsProof`, `HandlePropose`, the kit's `Server` and `rpcmaster.ReplicaRcvr`).
 3d. **`Interface/Misc.lean`** (dlog's non-verbose `Println`/`Printf`/`Fatal`, config's
    `IsProxy` on an empty `ProxyInfo`) and its proofs `wire/Misc/{Dlog,IsProxy}.lean`: ported, check
    with 0 errors (2026-11-23). The lab's import of `Top/PkgState` is dropped (not needed).

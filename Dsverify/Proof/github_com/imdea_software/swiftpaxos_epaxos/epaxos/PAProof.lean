@@ -49,7 +49,7 @@ theorem wp_replyPreAccept_frac (hS : replica.Replica.SendMsg.spec (GF := GF)) (�
     (t : Nat) (q : w32) (hqt : W32 (t : Int) = q) (lr : Loc) (m : PreAcceptReply)
     (ds cds : GoSlice) (dq1 dq2 : DFrac) (h : t < nR ∧ t ≠ i)
     (hwf : (Msg.preAcceptReply m).wf) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ outboxFrag γ i t [Msg.preAcceptReply m] ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ outboxFrag γ i t [Msg.preAcceptReply m] ∗
         lr ↦ epaxos.PreAcceptReply.mk m.replica m.inst m.ballot m.vballot m.seq ds cds m.status ∗
         ds ↦*{dq1} m.deps ∗ cds ↦*{dq2} m.committedDeps }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"replyPreAccept"))
@@ -148,7 +148,7 @@ theorem wp_handlePreAccept_core (hS : replica.Replica.SendMsg.spec (GF := GF)) (
     (hlead : toN m.leaderId < nR ∧ toN m.leaderId ≠ i ∧ 0 ≤ zz m.leaderId)
     (hdeps : depsOk m.deps) (hcmd : m.command ≠ []) (hconf : ConfWf σ)
     (houts : OutsWf (hPreAccept σ m).2) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPreAccept l m (DFrac.own 1) ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPreAccept l m (DFrac.own 1) ∗
         repFrag γ i (hPreAccept σ m).1 ∗ outsOk γ i (hPreAccept σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handlePreAccept"))
         (Val #l))

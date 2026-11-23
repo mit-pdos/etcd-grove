@@ -88,7 +88,7 @@ def StrongconnectSpec (γ : EpNames) (i : Nat) (r e rr : Loc) (L : List GoString
   ∀ (F : Nat → List Loc) (σ : RState) (t : St InstId) (v : InstId) (idxp : Loc) (wv : InstRec),
     SearchOk i σ t → ¬ t.vis v → σ.inst v = some wv → wv.status = stCOMMITTED →
     (t.A = [] → t.S = []) → (∀ a, t.A.getLast? = some a → σ.depEdge a v) →
-  {{ exCtx γ i r e rr L p Rext ∗ exHeap γ i r e F σ t idxp }}
+  {{ exCtx (GF := GF) γ i r e rr L p Rext ∗ exHeap γ i r e F σ t idxp }}
     (App (App (Val (e @!! go.GoType.PointerType epaxos.Exec.ty @!! go!"strongconnect"))
       (Val #(ptrOf F v))) (Val #idxp))
   {{ (b : Bool), RET #b; ∃ (σ' : RState) (t' : St InstId),

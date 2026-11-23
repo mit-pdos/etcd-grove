@@ -275,7 +275,7 @@ theorem wp_startPhase1 (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpNa
     (hq : 0 ≤ zz replica ∧ zz replica < nR) (hn : 0 ≤ zz n ∧ toN n + 1 < MAX_INSTANCE)
     (hcs : cs ≠ slice.nil) (hconf : ConfWf σ) (hord : ∀ o ∈ ord, 0 ≤ sint.Z o)
     (hout : OutsWf (startPhase1 σ cmds ⟨toN replica, toN n⟩ replica n ballot props).2) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRepHole γ i r σ ⟨toN replica, toN n⟩ ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRepHole γ i r σ ⟨toN replica, toN n⟩ ∗
         ownCmds cs cmds DFrac.discard ∗ propsOwn γ i prs props ∗
         repFrag γ i (startPhase1 σ cmds ⟨toN replica, toN n⟩ replica n ballot props).1 ∗
         outsOk γ i (startPhase1 σ cmds ⟨toN replica, toN n⟩ replica n ballot props).2 }}

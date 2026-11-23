@@ -26,11 +26,11 @@ variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
 
 theorem wp_findSCC (γ : EpNames) (i : Nat) (r e rr : Loc) (L : List GoString) (p : FwPtrs)
-    (Rext : IProp GF) (hSC : StrongconnectSpec γ i r e rr L p Rext)
+    (Rext : IProp GF) (hSC : StrongconnectSpec (GF := GF) γ i r e rr L p Rext)
     (F : Nat → List Loc) (σ : RState) (v : InstId) (wv : InstRec) (s : GoSlice) (xs : List Loc)
     (hwf : ExecWf σ) (hib : instBounds σ.inst) (hi : i < nR) (hv : σ.inst v = some wv)
     (hc : wv.status = stCOMMITTED) :
-    {{ exCtx γ i r e rr L p Rext ∗ repInstsX γ i r F σ.inst (fun _ => none) ∗
+    {{ exCtx (GF := GF) γ i r e rr L p Rext ∗ repInstsX γ i r F σ.inst (fun _ => none) ∗
         repRowArr r go!"ExecedUpTo" σ.execedUpTo ∗ repStore r σ.store ∗
         structFieldRef epaxos.Exec go!"stack" e ↦ s ∗ s ↦* xs ∗ ownSliceCap Loc s (DFrac.own 1) ∗
         ⌜0 < sint.Z s.cap⌝ ∗ repFrag γ i σ ∗ pendFrag γ i none ∗ curFrag γ i [] 0 }}
@@ -164,11 +164,11 @@ theorem wp_findSCC (γ : EpNames) (i : Nat) (r e rr : Loc) (L : List GoString) (
       omega
 
 theorem wp_executeCommand (γ : EpNames) (i : Nat) (r e rr : Loc) (L : List GoString)
-    (p : FwPtrs) (Rext : IProp GF) (hSC : StrongconnectSpec γ i r e rr L p Rext)
+    (p : FwPtrs) (Rext : IProp GF) (hSC : StrongconnectSpec (GF := GF) γ i r e rr L p Rext)
     (σ : RState) (q n : w32) (s : GoSlice) (xs : List Loc)
     (hwf : ExecWf σ) (hib : instBounds σ.inst) (hi : i < nR)
     (hq : 0 ≤ zz q ∧ zz q < nR) (hn : 0 ≤ zz n ∧ toN n + 1 < MAX_INSTANCE) :
-    {{ exCtx γ i r e rr L p Rext ∗ repInsts γ i r σ.inst ∗
+    {{ exCtx (GF := GF) γ i r e rr L p Rext ∗ repInsts γ i r σ.inst ∗
         repRowArr r go!"ExecedUpTo" σ.execedUpTo ∗ repStore r σ.store ∗
         structFieldRef epaxos.Exec go!"stack" e ↦ s ∗ s ↦* xs ∗ ownSliceCap Loc s (DFrac.own 1) ∗
         ⌜0 < sint.Z s.cap⌝ ∗ repFrag γ i σ ∗ pendFrag γ i none ∗ curFrag γ i [] 0 }}

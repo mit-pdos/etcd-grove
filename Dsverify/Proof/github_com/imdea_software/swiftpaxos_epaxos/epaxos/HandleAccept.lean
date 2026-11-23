@@ -113,7 +113,7 @@ step's outputs, the handler ends in the lock's invariant shape. -/
 theorem wp_handleAccept (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpNames) (i : Nat) (r rr : Loc)
     (L : List GoString) (p : FwPtrs) (Rext : IProp GF) (ord : List w32) (σ : RState)
     (l : Loc) (m : Accept) (hw : AccWf i σ ord m) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownAcceptNN l m ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownAcceptNN l m ∗
         repFrag γ i (hAccept σ m).1 ∗ outsOk γ i (hAccept σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handleAccept")) (Val #l))
     {{ RET #(); repDone γ i r }} := by

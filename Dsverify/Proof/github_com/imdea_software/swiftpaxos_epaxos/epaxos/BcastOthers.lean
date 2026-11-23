@@ -145,7 +145,7 @@ theorem wp_bcastPreAccept (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : E
     (hw : σ.inst ⟨toN replica, toN n⟩ = some w) (hlb : w.lb = some lb)
     (hdo : lbDepsOwned lb = false) (hm : (Msg.preAccept (preAcceptOf σ replica n lb)).wf)
     (hord : ∀ o ∈ ord, 0 ≤ sint.Z o) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
         pendFrag γ i (bcastPreAcceptOf σ ⟨toN replica, toN n⟩ (preAcceptOf σ replica n lb)).norm ∗
         outboxesNil γ i }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"bcastPreAccept"))
@@ -429,7 +429,7 @@ theorem wp_bcastCommit (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpNa
     (hw : σ.inst ⟨toN replica, toN n⟩ = some w) (hlb : w.lb = some lb)
     (hdo : lbDepsOwned lb = false) (hm : (Msg.commit (commitOf σ replica n lb)).wf)
     (hord : ∀ o ∈ ord, 0 ≤ sint.Z o) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
         pendFrag γ i (bcastCommitOf σ ⟨toN replica, toN n⟩ (commitOf σ replica n lb)).norm ∗
         outboxesNil γ i }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"bcastCommit"))
@@ -656,7 +656,7 @@ theorem wp_bcastPrepare (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpN
     (replica n : w32) (w : InstRec) (lb : LbRec) (hwf : RepWf i σ ord)
     (hq : 0 ≤ zz replica ∧ zz replica < nR) (hn : 0 ≤ zz n ∧ toN n + 1 < MAX_INSTANCE)
     (hw : σ.inst ⟨toN replica, toN n⟩ = some w) (hlb : w.lb = some lb) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
         pendFrag γ i (bcastPrepareOf σ ⟨toN replica, toN n⟩ lb.lastTriedBallot).norm ∗
         outboxesNil γ i }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"bcastPrepare"))

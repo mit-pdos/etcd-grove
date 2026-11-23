@@ -49,7 +49,7 @@ theorem wp_handleAcceptReply (hS : replica.Replica.SendMsg.spec (GF := GF))
     (γ : EpNames) (i : Nat) (r rr : Loc) (L : List GoString) (p : FwPtrs) (Rext : IProp GF)
     (ord : List w32) (σ : RState) (l : Loc) (m : AcceptReply) (w : InstRec) (lb : LbRec)
     (hw : ARWf i σ ord m w lb) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownAcceptReply l m (DFrac.own 1) ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownAcceptReply l m (DFrac.own 1) ∗
         repFrag γ i (hAcceptReply σ m).1 ∗ outsOk γ i (hAcceptReply σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handleAcceptReply"))
         (Val #l))

@@ -30,7 +30,7 @@ variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions
 theorem wp_handleTryPreAccept (γ : EpNames) (i : Nat) (r rr : Loc) (L : List GoString)
     (p : FwPtrs) (Rext : IProp GF) (ord : List w32) (σ : RState) (l : Loc)
     (m : TryPreAccept) (hdead : False) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownTryPreAccept l m (DFrac.own 1) ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownTryPreAccept l m (DFrac.own 1) ∗
         repFrag γ i (hTryPreAccept σ m).1 ∗ outsOk γ i (hTryPreAccept σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handleTryPreAccept"))
         (Val #l))
@@ -40,7 +40,7 @@ theorem wp_handleTryPreAccept (γ : EpNames) (i : Nat) (r rr : Loc) (L : List Go
 theorem wp_handleTryPreAcceptReply (γ : EpNames) (i : Nat) (r rr : Loc) (L : List GoString)
     (p : FwPtrs) (Rext : IProp GF) (ord : List w32) (σ : RState) (l : Loc)
     (m : TryPreAcceptReply) (hdead : False) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownTryPreAcceptReply l m (DFrac.own 1) ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownTryPreAcceptReply l m (DFrac.own 1) ∗
         repFrag γ i (hTryPreAcceptReply σ m).1 ∗ outsOk γ i (hTryPreAcceptReply σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handleTryPreAcceptReply"))
         (Val #l))

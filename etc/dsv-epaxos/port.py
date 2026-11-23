@@ -154,7 +154,7 @@ def generic_conv(t):
     t = re.sub(r'\((h\w* : [\w.]+\.spec)\)', r'(\1 (GF := GF))', t)
     t = re.sub(r'\((h\w* : [A-Z]\w*Spec)\)', r'(\1 (GF := GF))', t)
     # a `structure … : Prop` of specs: its fields' spec types determine no `GF`
-    t = re.sub(r'(?m)^(  \w+ : [A-Z]\w*Spec)(?= )(?! \(GF)', r'\1 (GF := GF)', t)
+    t = re.sub(r'(?m)^(  \w+ : [A-Z]\w*Spec)(?=[ \n])(?! \(GF)', r'\1 (GF := GF)', t)
     # `omit … [net.model.Assumptions] in`: the variables that replace it
     t = re.sub(r'(?m)^(omit .*)\[net\.model\.Assumptions\]', r'\1[HasExt netExt] [π : NetProtoGS]', t)
     t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
@@ -215,6 +215,14 @@ def bufio_conv(t):
 
 # hand fixes after the mechanical port, by lab path: (old, new) replacements, each must apply
 FIXUPS = {
+    'Epaxos/Proof/epaxos/New.lean': [
+        # the lab's `addrTok` is gone (the listen right is the address's `addrProto`, in `clientInvs`)
+        ("listFinal γ L ∗ sl ↦* L ∗ addrTok (peerAddrOf k) ∗ clientInvs γ ∗", "listFinal γ L ∗ sl ↦* L ∗ clientInvs γ ∗"),
+        ("#Hlf, Hsl, Haddr, #HCI,", "#Hlf, Hsl, #HCI,"),
+        ("$Hsl $Haddr $HCI", "$Hsl $HCI"),
+        ("icases Hfst with ⟨Haddr, Hrfs,", "icases Hfst with ⟨Hrfs,"),
+        ("$$ [Haddr Hrfs HM", "$$ [Hrfs HM"),
+    ],
     'Epaxos/Proof/epaxos/Slot.lean': [
         # the lab's `netConnExts` local instance gave `GooseExts`; here a binder
         ("def lbFields (y", "def lbFields [GooseExts] (y"),
@@ -462,6 +470,16 @@ for p in [a for a in sys.argv[1:] if a != '--bufio']:
     if k > 0 and re.search(r'\b(?:epaxos|state|replica)\.[A-Z]', s[:k]) and 'variable [GooseExts]\n' not in s[:k]:
         s = s.replace('attribute [local instance] GooseGlobalGS.gooseInvGS\n',
                       'attribute [local instance] GooseGlobalGS.gooseInvGS\n\nvariable [GooseExts]\n', 1)
+    # the kit's own spec `Prop`s (`def/structure XSpec(s)`): a use after `: ` determines no `GF`
+    specs = set()
+    for x in _texts + [s]:
+        specs |= set(re.findall(r'(?m)^(?:def|structure) ([A-Z]\w*Spec\w*)\b', x))
+    if specs:
+        s = re.sub(r'(:\s+)(' + '|'.join(sorted(specs, key=len, reverse=True)) + r')\b(?! \(GF)', r'\1\2 (GF := GF)', s)
+    # a triple's precondition starting with a ghost predicate: annotate it (the statement's other
+    # `GF`s, in hypotheses, do not reach into the triple's elaboration)
+    preds = gf_preds(_texts + [s])
+    s = re.sub(r'\{\{ (\w+) (?!\(GF)', lambda m: m.group(0) + ('(GF := GF) ' if m.group(1) in preds else ''), s)
     # the lab harness's `net.rpc.connIface c cn s` is `connIf` (Interface/ConnBuf.lean)
     s = s.replace('net.rpc.connIface', 'connIf')
     open(out, 'w').write(s)

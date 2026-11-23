@@ -141,7 +141,7 @@ theorem wp_replyPrepare (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpN
     (q : w32) (hqt : W32 (t : Int) = q)
     (lr : Loc) (m : PrepareReply) (dq : DFrac) (h : t < nR ∧ t ≠ i)
     (hwf : (Msg.prepareReply m).wf) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ outboxFrag γ i t [Msg.prepareReply m] ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ outboxFrag γ i t [Msg.prepareReply m] ∗
         ownPrepareReply lr m dq }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"replyPrepare"))
         (Val #q)) (Val #lr))
@@ -179,7 +179,7 @@ theorem wp_replyAccept (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpNa
     (L : List GoString) (p : FwPtrs) (Rext : IProp GF) (ord : List w32) (t : Nat)
     (q : w32) (hqt : W32 (t : Int) = q)
     (lr : Loc) (m : AcceptReply) (dq : DFrac) (h : t < nR ∧ t ≠ i) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ outboxFrag γ i t [Msg.acceptReply m] ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ outboxFrag γ i t [Msg.acceptReply m] ∗
         ownAcceptReply lr m dq }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"replyAccept"))
         (Val #q)) (Val #lr))
@@ -228,7 +228,7 @@ in the lock's invariant shape. -/
 theorem wp_handlePrepare (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpNames) (i : Nat) (r rr : Loc)
     (L : List GoString) (p : FwPtrs) (Rext : IProp GF) (ord : List w32) (σ : RState)
     (l : Loc) (m : Prepare) (hw : PrepWf i σ ord m) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPrepare l m (DFrac.own 1) ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPrepare l m (DFrac.own 1) ∗
         repFrag γ i (hPrepare σ m).1 ∗ outsOk γ i (hPrepare σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handlePrepare")) (Val #l))
     {{ RET #(); repDone γ i r }} := by

@@ -49,7 +49,7 @@ structure PAWf (i : Nat) (σ : RState) (ord : List w32) (m : PreAccept) : Prop w
 theorem wp_handlePreAccept (hS : replica.Replica.SendMsg.spec (GF := GF)) (hP : dlog.Logger.Printf.spec (GF := GF))
     (γ : EpNames) (i : Nat) (r rr : Loc) (L : List GoString) (p : FwPtrs) (Rext : IProp GF)
     (ord : List w32) (σ : RState) (l : Loc) (m : PreAccept) (hw : PAWf i σ ord m) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPreAccept l m (DFrac.own 1) ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ ownPreAccept l m (DFrac.own 1) ∗
         repFrag γ i (hPreAccept σ m).1 ∗ outsOk γ i (hPreAccept σ m).2 }}
       (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"handlePreAccept"))
         (Val #l))
@@ -78,7 +78,7 @@ theorem wp_startRecoveryForInstance
     (hP : dlog.Logger.Printf.spec (GF := GF)) (γ : EpNames) (i : Nat) (r rr : Loc) (L : List GoString)
     (p : FwPtrs) (Rext : IProp GF) (ord : List w32) (σ : RState) (x : InstId)
     (hw : RecWf i σ ord x) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗
         repFrag γ i (hRecover σ x).1 ∗ outsOk γ i (hRecover σ x).2 }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty
         @!! go!"startRecoveryForInstance")) (Val #(W32 x.q))) (Val #(W32 x.i)))

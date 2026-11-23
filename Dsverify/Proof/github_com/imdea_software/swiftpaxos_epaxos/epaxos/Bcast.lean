@@ -134,7 +134,7 @@ theorem wp_bcast_send (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpNam
     (L : List GoString) (p : FwPtrs) (Rext : IProp GF) (ord : List w32) (pr : Nat)
     (msg : GoInterface) (m : Msg) (dq : DFrac) (code : w8) (hc : code = m.code)
     (h : pr < L.length ∧ pr ≠ i ∧ m.isProto = true ∧ m.wf) (dq1 dq2 : DFrac := dq) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ outboxFrag γ i pr [m] ∗ msgObj msg m dq dq1 dq2 }}
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ outboxFrag γ i pr [m] ∗ msgObj msg m dq dq1 dq2 }}
       (App (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"SendMsg"))
         (Val #(W32 pr))) (Val #code)) (Val #msg))
     {{ RET #(); msgObj msg m dq dq1 dq2 ∗ outboxFrag γ i pr [] }} := by
@@ -169,7 +169,7 @@ theorem wp_bcastAccept (hS : replica.Replica.SendMsg.spec (GF := GF)) (γ : EpNa
     (hw : σ.inst ⟨toN replica, toN n⟩ = some w) (hlb : w.lb = some lb)
     (hdo : lbDepsOwned lb = false) (hm : (Msg.accept (acceptOf σ replica n lb)).wf)
     (hord : ∀ o ∈ ord, 0 ≤ sint.Z o) :
-    {{ hdCtx γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
+    {{ hdCtx (GF := GF) γ i r rr L p Rext ord ∗ ownRep γ i r σ ∗ repFrag γ i σ ∗
         pendFrag γ i (bcastAcceptOf σ ⟨toN replica, toN n⟩ (acceptOf σ replica n lb)).norm ∗
         outboxesNil γ i }}
       (App (App (Val (r @!! go.GoType.PointerType epaxos.Replica.ty @!! go!"bcastAccept"))
