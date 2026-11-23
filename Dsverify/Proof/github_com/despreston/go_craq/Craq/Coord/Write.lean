@@ -33,7 +33,7 @@ theorem wp_errors_New_ne (pfx msg : GoString) (h : pfx ≠ []) :
       (App (Val (@! errors.New)) (Val #(pfx ++ msg)))
     {{ (err : GoInterface), RET #err; errNE err }} := by
   wp_start_folded
-  wp_apply errors.wp_New_errorString as %x #He
+  wp_apply errors.wp_New_errorString as %x ⟨-, #He⟩
   iapply HΦ
   unfold errNE net.rpc.errMsg
   iexists pfx ++ msg

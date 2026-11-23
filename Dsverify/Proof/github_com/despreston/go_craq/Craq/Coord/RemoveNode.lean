@@ -48,7 +48,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
   cases found
   · -- not found
     wp_auto
-    wp_apply errors.wp_New_errorString as %e #He
+    wp_apply errors.wp_New_errorString as %e ⟨-, #He⟩
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hreplicas Hsl Hcap Hversion Hnext Hhead Htail
       Hreps Hjoin Htok]
     · inext; iapply coordLock_pack cfg c sl rs ver hd tl Hwf; iframe; iexact Hnfs
@@ -109,7 +109,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
     · -- fenced: the token and the tail's cover
       obtain ⟨rfl, hTc, rfl⟩ := Hok
       unfold updPost
-      simp only [Bool.false_eq_true, false_and, true_and, ↓reduceIte, and_self]
+      simp only [Bool.false_eq_true, false_and, true_and, ↓reduceIte, _root_.and_self]
       icases HTpost with ⟨-, %L, Htok, #Hcov⟩
       wp_auto
       ihave %Hslwf := ownSlice_wf $$ Hsl

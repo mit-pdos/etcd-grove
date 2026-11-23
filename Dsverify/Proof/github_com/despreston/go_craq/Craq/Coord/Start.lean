@@ -117,7 +117,7 @@ theorem wp_pingReplicas (cfg : Cfg GF) (c : Loc) :
           all_goals first | (iframe Hbag; done) | (iframe Hbag; itrivial) | itrivial
       ihave #HnfR : nodeFacts cfg r.loc r.addr $$ []
       · unfold nodeFacts; iframe Haddr; iexists cl; iframe Hrpc Hcl
-      wp_apply +noauto time.wp_After
+      wp_apply +noauto (time.After.spec_pkgInit time.wp_After _)
       iintro %ach %γa #Hafter
       wp_auto_lc 2
       wp_apply_core chan.wp_select_blocking

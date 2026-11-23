@@ -102,7 +102,7 @@ theorem wp_updateNode (cfg : Cfg GF) (c : Loc) (sl : GoSlice) (rs : List Rep) (d
     rcases (List.getElem?_eq_some_iff.mp hri) with ⟨h, -⟩; exact h
   ihave #Hnf := nodeFacts_at cfg rs _ ri hri $$ Hnfs
   wp_auto
-  simp only [show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len from ⟨hi, by word⟩, and_self, ↓reduceIte]
+  simp only [show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z sl.len from ⟨hi, by word⟩, _root_.and_self, ↓reduceIte]
   wp_apply wp_load_slice_index sl (sint.Z i) (rs.map Rep.loc) dq ri.loc hi $$ [Hsl] as Hsl
   · iframe Hsl; ipureintro; exact locs_at rs _ ri hri
   wp_apply wp_node_Address' cfg ri.loc ri.addr $$ Hnf
