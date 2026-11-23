@@ -208,23 +208,46 @@ package among those it translates, so goose translates its bodies. `goose.py --c
 checked-in file is current. The toml's lines have no effect; its comment now says so. The
 concurrent-map proofs build over the bodies (Lean's three axioms).
 
-**Frontier** (build 19, after this session's changes; see the build log in scratch `sw-build19.log`).
-Still to do, in order:
-1. `swift.TableAllocH` (`iframe` of `encoding.gob.codecSet` at line 70).
-2. The HTTP hypotheses. Make a class `RpcHttpHyp` after dsv-epaxos's
-   `Interface/RpcHttpHyps.lean`, with exactly the shapes of `rpc-http-shapes.md`. Then
-   `Master__Run`'s spec (`net.http.muxOwner`, `kitNameOk`) and `Client__dialMaster`
-   (`net.rpc.DialHTTP.wp`) become premises.
-3. `master/Run` still calls the lab's `net.ListenWild` (at `"10.77.0.17"`): port it like `Conn`, over
-   `Listen.labProof` and `lisProto (":" ++ port)`.
-4. Step 5.
-   - The kit onto remote.
-   - **Finding: `replicaAddrs` is the lab's 10.77.0.x list, and `replica/ConnAddr.addr_split` assumes
-     15-byte addresses.** The kit here uses `127.0.0.1:76xx` (14 bytes): both are to be restated.
-   - The package inits: `InitHyp`s for gob, signal and uuid; `mutGlobalsInit` handed to the boot thread.
+**Frontier at the end of the fifth session** (build 20, then `ConnLink` fixed with `lean-check`; scratch
+`sw-build20.log`, `frontier.py`): **82 of the 474 copied modules are unbuilt** (95 at the session's start).
+They wait on these causes, with how many modules each blocks:
+- **The lab kit, which step 5 replaces rather than ports**: `examples.swiftnet.{Interface (36),
+  registerRPC (19), codec.Prim (18), CodecFns (12), NameOkFor (11), PkgState (9), OrchAddr (4),
+  OrchGen (3)}`. Their missing files (`encoding.gob.SetCodec`, `netrpc.rpc.LocalRegister`) are the lab's
+  own models, which are not ported.
+- **The HTTP path**: `master.Master__Run`'s spec (11; `net.http.muxOwner`, `net.rpc.kitNameOk`) and
+  `client.Client__dialMaster` (2; `net.rpc.DialHTTP.wp`).
+- `slices.SortFuncOn.*` (the lab's `slices` proofs' `Spec` files; `frontier.py` miscounts replayed
+  modules, so check these with `lake build` before working on them).
+- Done this session: `TableAllocH` (proved at the kit codec instance: its section no longer has a
+  `[C]` variable), `ClosestPeers` (a `wp_float64_div` step), and `ConnLink` (`[net.rpc.Assumptions]`,
+  the `*.labProof` names).
+
+**Next, in order.**
+1. **The HTTP hypotheses.** Make a class `RpcHttpHyp` copied from dsv-epaxos's
+   `Interface/RpcHttpHyps.lean` (namespaced to this kit), with exactly the shapes of `rpc-http-shapes.md`:
+   `rpcAddrP` with `connectReq`, `DialHTTP(Path).spec`, `Server.ServeHTTP`/`HandleHTTP.spec`,
+   `http.Serve`/`ServeMux.ServeHTTP.spec`. Never state them with Net's current `isClient` over
+   `rpcAddr`.
+   - Restate `master.Master.Run.spec` over it: `muxOwner` goes, and the spec takes `defaultServer` and
+     `srvServes` per models-rpc-server. `methodOk`'s `argDec` now owes decoding only of deposited
+     arguments.
+   - Port `master/Run` (the master's rpc service, `Register`/`HandleHTTP`/`http.Serve`) and its
+   `net.ListenWild` at `":7001"`, as `Conn` was ported (`Listen.labProof` over `lisProto`).
+   - `client/Client__dialMaster`: `DialHTTP_spec` over `rpcAddrP W masterAddr (connectReq
+     defaultRPCPath) connectAns`, which `client.Client.dialMaster.specI`'s precondition must then
+     carry instead of `rpcAddr`.
+2. **Step 5** (the kit onto remote):
+   - `Orch`/`Client`/`Model`'s proofs as in dsv-paxos.
+   - `replicaAddrs`/`rpcAddrs`/`masterAddr` are the lab's `10.77.0.x` constants, and
+     `replica/ConnAddr.addr_split` assumes 15-byte addresses. Restate them for the kit's
+     `127.0.0.1:76xx/86xx/96xx`.
+   - The boot makes each node's `lisProto (replica.wildOf a)` with `lis_set_proto`.
+   - The package inits: `InitHyp` for gob, signal and uuid, and `swift.mutGlobalsInit` to the boot
+     thread.
    - `swiftpaxos_remote_robust`, with every `SwiftHyps`/`InitHyp`/`RpcHttpHyp` a visible premise and
      `os.signal.Notify` named as an ENVIRONMENT assumption, as rabia does.
-   - `etc/theorem-loc.py`, and the TCB collection.
+   - `etc/theorem-loc.py`, and `etc/tcb-collections/dsv-swiftpaxos.txt`.
 
 ## State (2026-11-23, fourth session; superseded where the fifth says so)
 

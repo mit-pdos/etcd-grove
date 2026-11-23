@@ -20,6 +20,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.Client
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.ProposeUnmarshal
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.dlog.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.ClosestPeers
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetConn
 
 @[expose] public section
 
@@ -38,8 +39,8 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions] [state.Assumptions]
 variable [github_com.emirpasic.gods.maps.treemap.Assumptions] [sync.Assumptions]
 variable [io.Assumptions] [errors.Assumptions]
-variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [dlog.Assumptions]
-  [time.Assumptions] [strings.Assumptions] [encoding.binary.Assumptions] [config.Assumptions]
+variable [bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
+  [dlog.Assumptions] [time.Assumptions] [strings.Assumptions] [encoding.binary.Assumptions] [config.Assumptions]
 
 theorem replica.Replica.wp_waitForPeerConnections :
     replica.Replica.waitForPeerConnections.spec (hG := hG) :=
@@ -60,7 +61,7 @@ theorem replica.Replica.wp_clientListener : replica.Replica.clientListener.spec 
   replica.Replica.clientListener.wp_proof replica.defs.Propose.wp_Unmarshal
     replica.defs.LatencyTable.WaitDuration.wp_proof replica.defs.NewDelayProposeChan.wp_proof
     replica.defs.DelayProposeChan.Write.wp_proof config.ProxyInfo.IsProxy.wp_proof
-    dlog.Logger.wp_Println net.TCPConn.RemoteAddr.wp_proof net.TCPConn.Close.wp_proof
+    dlog.Logger.wp_Println net.TCPConn.RemoteAddr.labProof net.TCPConn.Close.labProof
     strings.wp_Split
 
 theorem replica.Replica.wp_WaitForClientConnections :
