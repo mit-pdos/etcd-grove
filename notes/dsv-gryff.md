@@ -6,8 +6,9 @@ Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `le
 **`gryff-bump-1`**, the final verified run: clients on nodes of their own, Perennial `3afd77e35`;
 proof `21ef7d6` tag `final`, fork `ef17c2d`; read only, nothing in the lab changed).
 
-**State (2026-11-23, second resumed session; branch merged with `dsv-infra` `884cb306c9` and
-`models-rpc-server` `040ef5e808`):** Go and translation done (`etc/goose.py --check --project
+**State (2026-11-23, second resumed session; branch merged with `dsv-infra` `884cb306c9`,
+`models-rpc-server` `040ef5e808`, the revised `dsv-bufio` `75ef5881aa` and `lean` `1b2fd95b30`
+(Perennial `7b2259a12`; `net-wildcard-listen` landed there)):** Go and translation done (`etc/goose.py --check --project
 dsv-gryff` clean). **Ported by editing and building** (`lake build` of every module under
 `Dsverify/Proof/gryff/`, 186 files, green): the library-free layers (`Model/`, `Kahn/`, the tag
 order, `Pure*`, `Proto/`, `Proto2/`, `Proto2P/`, `B.Pure`, `Wire.Enc`/`Varint`), and the first
@@ -176,6 +177,17 @@ requested), `http.ListenAndServe.spec`/`http.Serve.spec`/`ServeMux.ServeHTTP.spe
 to the hijack, handlers as `handlerOk` per path). Gryff's hypotheses must match these names and
 shapes exactly (gryff's clients do not pipeline after `CONNECT`: `DialHTTPPath` waits for the
 answer).
+
+## Wildcard listens
+
+The master and the replicas listen on `":p"` (`masterlib.NewMaster`, `serverlib.Serve`, the
+replicas' peer port). `lean` now has `net-wildcard-listen` (merged here): `Listen.spec` covers
+wildcard addresses (`listenOk`), `Listener.Accept.spec` takes `lisAccepts la a`; laws `lisUnset`,
+`lisProto la P Q`, `lis_set_proto`, `lisProto_addr`, `listen_lis_au`, `accept_lis_au`,
+`accept_lis_shared_au`, `addrs_lis_start` (`GooseLang/Ext/Net/Proto.lean`); the valid-address
+shapes are `Listen.spec_addrOk`/`Listener.Accept.spec_addrOk` (`Net/Proof/net/AtAddr.lean`). Use
+them, not a hypothesis. A wildcard on port `p` covers `p` on every machine: the kit's ports are all
+distinct (7501..7504, 8502..8504, 7511..7516), as it needs.
 
 ## The trace prophecy as a prophecy patch: blocked by prophcheck's grammar
 
