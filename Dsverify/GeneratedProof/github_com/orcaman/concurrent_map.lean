@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.GeneratedProof.encoding.json
+public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.orcaman.concurrent_map

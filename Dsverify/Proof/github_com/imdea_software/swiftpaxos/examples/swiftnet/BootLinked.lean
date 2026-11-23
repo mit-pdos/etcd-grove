@@ -82,7 +82,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [examples.swiftnet.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [log.Assumptions] [net.http.Assumptions]
 variable [math.rand.InitHyp netDistGF] [net.rpc.InitHyp netDistGF] [net.http.InitHyp netDistGF]
-variable [encoding.json.InitHyp netDistGF] [encoding.gob.InitHyp netDistGF]
+variable [encoding.gob.InitHyp netDistGF]
 variable [os.signal.InitHyp netDistGF] [github_com.google.uuid.InitHyp netDistGF]
 variable [RpcHttpAddr netDistGF] [H : RpcHttpHyp netDistGF] [RpcFirstInit (GF := netDistGF)]
 

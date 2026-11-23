@@ -6,7 +6,7 @@ module
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.replica
 public import Perennial.Proof.errors.NewVar
 public import Perennial.Proof.encoding.binary.Link
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.math.Link

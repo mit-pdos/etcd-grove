@@ -1,24 +1,22 @@
 /-
-The trust boundary: `(*rate.Limiter).Wait` (`golang.org/x/time/rate` is names-only).
-(prove-metrics3, 2026-11-21) Not provable over the real code then: the token bucket (`reserveN`) negates a
-`float64` (`-tokens`), which Perennial's semantics did not step. (prove-metrics-float, 2026-11-22) The
-bucket is now proved (`rate.Limiter.reserveN.wp_proof`, over Perennial's IEEE 754 floats); what keeps
-`Wait` an axiom is the rest of `wait` (`rate.go:262-316`), none of it float-dependent but `CancelAt`:
-`fmt.Errorf` (rate would import `fmt`), the non-blocking and blocking `select`s on `ctx.Done()`, the
-timer closure, and `Reservation.CancelAt` (the limiter's mutex through the reservation's `lim`).
+Proof of `Spec/golang_org/x/time/rate/Limiter__Wait.lean` over the real code (x/time/rate v0.16.0,
+`rate.go:232-235`: `WaitN(ctx, 1)`; rate-wait, 2026-11-23: until then a trust-boundary axiom, the
+token bucket's floats and then `wait`'s `fmt.Errorf`, `select`s and timer closure untranslated).
 -/
 module
 
-public import Spec.golang_org.x.time.rate.Limiter__Wait
+public import Spec.golang_org.x.time.rate.Limiter__WaitN
 
 @[expose] public section
+
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI golang_org.x.time
+open Iris Iris.BI Iris.ProofMode golang_org.x.time
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -27,7 +25,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : golang_org.x.time.rate.Assumptions]
 
-axiom rate.Limiter.Wait.wp_proof : rate.Limiter.Wait.spec (GF := GF) (hG := hG)
+theorem rate.Limiter.Wait.wp_proof
+    (wp_WaitN : rate.Limiter.WaitN.spec (GF := GF) (hG := hG)) :
+    rate.Limiter.Wait.spec (GF := GF) (hG := hG) := by
+  intro rl c cd
+  wp_start as ⟨#Hl, #Hc⟩
+  wp_auto
+  wp_apply wp_WaitN $$ [$Hpkg $Hl $Hc] as %err -
+  iapply HΦ
+  itrivial
 
 end proof
 

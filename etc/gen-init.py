@@ -1404,6 +1404,28 @@ generated protobuf descriptors), which the trust-boundary axiom `opaqueInitsOk` 
         'iexists _, _', 'iframe #', 'ipureintro', 'simp (config := {decide := true})'],
 )
 
+# (etcd-small-3, 2026-11-23, etcd-grove#39) `mvccpb`: `Event_EventType_name`, which
+# `Event_EventType.String`'s trusted model reads (until then skipped; the fact `True`)
+SPECIAL['go_etcd_io.etcd.api.v3.mvccpb'] = dict(
+    doc='''Its fact (`mvccpbInit`, `cache/v3/Base.lean`; etcd-grove#39, 2026-11-23, `True` until then):
+`Event_EventType_name` holds a map with `mvccpb.eventTypeNames` (`0` `PUT`, `1` `DELETE`), both
+read-only for good: `Event_EventType.String`'s trusted model reads it. Its initializer allocates and
+sets the translated name map (a `map[int32]string` literal, `kv.pb.go`), initializes its imports and
+runs its trusted `init` (a no-op model).''',
+    alloc_types={'Event_EventType_name': 'Loc'},
+    before={
+        'Event_EventType_name': [
+            'try wp_auto',
+            'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mn Hmn',
+            'try wp_auto',
+            'repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hmn as Hmn; try wp_auto)']},
+    finish=['ipersist HEvent_EventType_name', 'ipersist Hmn'] + [
+        'iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
+        'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro',
+        'unfold go_etcd_io.etcd.cache.v3.mvccpbInit go_etcd_io.etcd.cache.v3.mvccpb.eventTypeNames',
+        'iexists _', 'iframe #'],
+)
+
 # (prove-grpc3, 2026-11-21) grpc's `resolver`, in the closure since `internal/resolver`'s `New` is
 # translated (it imports `resolver/manual`): its two package variables, translated.
 SPECIAL['google_golang_org.grpc.resolver'] = dict(
@@ -2850,6 +2872,12 @@ initializers (the generated protobuf descriptors and enum maps), which the trust
 reads (`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: `map[int32]string` literals,
 `rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`."""
 _P['alloc_types'].update({'RangeRequest_SortOrder_name': 'Loc', 'RangeRequest_SortTarget_name': 'Loc'})
+# (etcd-small-3, 2026-11-23, etcd-grove#39) and `AlarmType_name`, which `AlarmType.String`'s trusted
+# model reads (until then skipped)
+_P['doc'] += """ (etcd-grove#39, 2026-11-23) And `AlarmType_name` (a `map[int32]string` literal),
+which the fact holds read-only, `etcdserverpb.alarmTypeNames`: `AlarmType.String`'s trusted model reads
+it."""
+_P['alloc_types']['AlarmType_name'] = 'Loc'
 _P['heavy'] = True
 _P['pre'] = ['/-- A small 64-bit literal\'s value as a signed natural (the descriptors\' slice indices). -/',
              'theorem EtcdGrove.sint_nat_ofNat64 (n : Nat) (h : n < 2 ^ 63) : sint.nat (BitVec.ofNat 64 n) = n := by',
@@ -2859,7 +2887,8 @@ _PB_DESCS = ['KV', 'Watch', 'Lease', 'Cluster', 'Maintenance', 'Auth']
 _P['before'] = {'$inits': [f'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %p{t} ⟨S{t}, -⟩; try wp_auto'
                             for t in _PB_SL] + ['try wp_auto']}
 # (const-inits, 2026-11-19) the sort enumerations' name maps: `map[int32]string` literals
-for _x, _h in [('RangeRequest_SortOrder_name', 'Hso'), ('RangeRequest_SortTarget_name', 'Hst')]:
+for _x, _h in [('RangeRequest_SortOrder_name', 'Hso'), ('RangeRequest_SortTarget_name', 'Hst'),
+               ('AlarmType_name', 'Hatn')]:
     _P['before'][_x] = ['try wp_auto',
         f'wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %m{_h} {_h}',
         'try wp_auto',
@@ -2879,10 +2908,11 @@ _P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                 [f'ipersist H{d}_ServiceDesc' for d in _PB_DESCS] +
                 [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
                 ['ipersist HRangeRequest_SortOrder_name', 'ipersist HRangeRequest_SortTarget_name',
-                 'ipersist Hso', 'ipersist Hst'] +
+                 'ipersist Hso', 'ipersist Hst', 'ipersist HAlarmType_name', 'ipersist Hatn'] +
                 FIN_PRE[:6] + ['imodintro', 'unfold go_etcd_io.etcd.cache.v3.etcdserverpbInit go_etcd_io.etcd.cache.v3.etcdserverpbDescs go_etcd_io.etcd.cache.v3.pbDescIs',
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ' + _PB_DOM(2),
                  'isplitl []', '· iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ' + _PB_DOM(4),
+                 'isplitl []', '· iexists _; iframe HAlarmType_name; unfold go_etcd_io.etcd.cache.v3.etcdserverpb.alarmTypeNames; iexact Hatn',
                  'iframe #',
                  'repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))'])
 
@@ -3175,8 +3205,10 @@ errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the
 registration rights of the metric names of its import closure (`namesFree initNames`, decision D16;
 the read package's, `EtcdGrove.read.readRegPerm`, until mustreg, 2026-11-20), which it passes on to
 the registering packages' initializers. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
-guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
-reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
+guarding `raftStatus` (`rnRaftStatusOk`; the `init()` of `raft.go` registers an `expvar` closure that
+reads `raftStatus` under the mutex: a trusted no-op model since etcd-grove#39, 2026-11-23, as `server.go`'s,
+since no verified code reads `expvar`'s registry; `metrics.go`'s, which registers the metrics, stays
+names-only, the trust-boundary axiom `initFuncsOk`: translating it needs Perennial's `runtime.Version`). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
 axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments. (auth-mediation M2, 2026-11-20) And `PromoteMember`'s metrics,
@@ -3300,7 +3332,7 @@ specs; until 2026-11-19 the trust-boundary axioms `<X>_init`),
              ', '.join(f'#RW{i}' for i in range(len(_V_WERRS))) + ', -⟩',
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
-             'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
+             'icases Hpi with ⟨#HSO, #HST, -, #HDescs⟩',
              'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1', "-- (incomingof Part B) the context errors are keys of the map, so neither read error's description", 'ihave #HCD : (ctxErrDescs : IProp GF) $$ []', '· ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []', '  · iapply _root_.Perennial.context.isInit_access $$ Hd1', '  iNamed Hci', '  icases HCanceledCell with ⟨%xc, #Hxc, -⟩', '  unfold ctxErrDescs', '  isplitl []', '  · iexists _; iframe Hxc', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.Canceled %_ %(by mem_tac) Hxc', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv', '    iexists m1; iframe D1; ipureintro; exact h1', '  · iexists _; iframe HDeadlineExceededTy', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.DeadlineExceeded %_ %(by mem_tac)', '      HDeadlineExceededTy', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    ihave ⟨%m1, #D1, %h1⟩ := grpcErrMapOk_key $$ PtoGRPCErrorMap %hv', '    iexists m1; iframe D1; ipureintro; exact h1',
              'ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗',
              '    ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []',

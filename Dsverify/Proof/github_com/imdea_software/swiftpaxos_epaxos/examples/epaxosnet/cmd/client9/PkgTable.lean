@@ -9,7 +9,6 @@ do not edit.
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.client9.Init
-public import Dsverify.Proof.encoding.json.Init
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.net.http.Init
 
@@ -32,7 +31,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [_root_.Perennial.net.http.InitHyp GF]
 variable [_root_.Perennial.net.rpc.InitHyp GF]
-variable [_root_.Perennial.encoding.json.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.client9.Assumptions]
 
 /-- Every package of the program's import closure, with its `isPkgInit`. -/
@@ -331,7 +329,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
   have h54 : GetIsPkgInitProp pkg_id.encoding.json (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h5, h6, True.intro⟩
   have h55 : GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.trees.redblacktree (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
